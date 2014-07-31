@@ -36,16 +36,12 @@ namespace CoupledField {
     //! Calculate local basis functions (based on local gradient)
     virtual void CalcLocShFnc( Matrix<Double>& curl, 
                                const LocPointMapped& lp,
-                             const Elem* elem, UInt comp = 1 ) {
-      
-    }
+                             const Elem* elem, UInt comp = 1 ) = 0;
     
     //! Calculate local curl of basis function
     virtual void CalcLocCurlShFnc( Matrix<Double>& curl,
                                    const LocPointMapped& lp,
-                                   const Elem* elem, UInt comp = 1 ) {
-      
-    }
+                                   const Elem* elem, UInt comp = 1 ) = 0;
 
     
   private:

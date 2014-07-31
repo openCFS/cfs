@@ -160,6 +160,32 @@
           <xsd:element name="numModes" type="xsd:token"/>
           <xsd:element name="freqShift" type="DT_NonNegFloat"/>
           <xsd:element name="writeModes" type="DT_CFSBool"/>
+          <!-- bloch band gap visualization on the IBZ -->
+          <xsd:element name="bloch" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:sequence>
+               <xsd:element name="ibz" minOccurs="0" maxOccurs="1">
+                 <xsd:complexType>
+                   <xsd:attribute name="sample" default="boundary" use="optional">
+                     <xsd:simpleType>
+                       <xsd:restriction base="xsd:token">
+                         <xsd:enumeration value="boundary"/>
+                         <xsd:enumeration value="full"/>
+                        </xsd:restriction>
+                     </xsd:simpleType>
+                   </xsd:attribute>
+                   <xsd:attribute name="steps" use="required" type="xsd:int"/>
+                 </xsd:complexType>
+               </xsd:element>
+               <xsd:element name="waveVector" minOccurs="0" maxOccurs="unbounded">
+                 <xsd:complexType>
+                    <xsd:attribute name="x" type="xsd:float" use="required"/>
+                    <xsd:attribute name="y" type="xsd:float" use="required"/>
+                 </xsd:complexType>
+               </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>

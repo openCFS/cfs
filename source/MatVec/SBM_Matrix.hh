@@ -279,9 +279,9 @@ namespace CoupledField {
     //!       file. The file names are constructed by appending the suffix
     //!       <em>_i_j.mtx</em> to fname with (i,j) replaced by the index
     //!       tuple for the sub-matrix.
-    virtual void Export( const char *fname,
+    virtual void Export( const std::string& fname,
                          BaseMatrix::OutputFormat format,
-                         const char *comment ) const;
+                         const std::string& comment = "" ) const;
 
     //@}
 

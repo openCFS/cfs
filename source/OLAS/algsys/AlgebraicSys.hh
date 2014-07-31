@@ -173,8 +173,8 @@ namespace CoupledField {
     //! \param shift Frequency shift applied to the system
     //! \param quadratic Flag indicating if a quadratic eigenvalue problem
     //!        (true) or a generalized problem (false) is to be solved
-    void SetupEigenSolver( UInt numFreq, Double shift,
-                           bool quadratic );
+    //! \param bloch mode problems are complex but not quadratic
+    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool bloch);
 
 
     //! Solve the linear system.
@@ -210,7 +210,7 @@ namespace CoupledField {
     //! \return Number of converged eigenvalues
     //! \note This method may only be calaled if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Double>& frequencies,
+    void CalcEigenFrequencies( Vector<Double>& frequencies, // TODO bloch implement export system
                                Vector<Double>& err );
  
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
@@ -786,7 +786,9 @@ namespace CoupledField {
     //! for example STIFFNESS, MASS...
     //! \param matrixTypes set of enums of global matrices
     void GetFEMatrixTypes( std::set<FEMatrixType> &matrixTypes ) const;
-    
+
+    /** This is meant mainly for debug purpose */
+    SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_[type]; }
     
     //! Return, if a non-zero static condensation block is present
     bool UseStaticCondensation() {
@@ -864,6 +866,10 @@ namespace CoupledField {
     //!       functionality.
     void CheckConsistency();
     
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+     * Shall be called for each phase, set each time exactly one parameter to true */
+    void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
+
     //! Generate  SBM matrix according to graph information
     
     //! This method generates the SBM matrix for a given entry type. In

@@ -29,8 +29,8 @@ SET(TARGET_LL
   driver
   mathparser
   paramh
+  utils  
   matvec
-  utils
   timeschemes
   mesh
   results

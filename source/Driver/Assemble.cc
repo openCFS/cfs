@@ -20,10 +20,13 @@
 #include "PDE/SinglePDE.hh"
 
 #include "OLAS/algsys/AlgebraicSys.hh"
+#include "MatVec/SBM_Matrix.hh"
 
 #include "Utils/Timer.hh"
 
 #include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/LinForms/LinearForm.hh"
 
 namespace CoupledField
@@ -107,44 +110,32 @@ namespace CoupledField
   }
 
   
-  BiLinFormContext* Assemble::GetBiLinForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2,  const std::string& integrator, bool silent)
+  BiLinFormContext* Assemble::GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1, SinglePDE* pde2, bool silent)
   {
-    REFACTOR;
-     // the EntityList has the region name as name but not the id
-//     std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
+    for(std::set<BiLinFormContext*>::iterator it = allBiLinForms_.begin(); it != allBiLinForms_.end(); ++it )
+    {
+      BiLinFormContext& context = **it;
 
-     BiLinFormContext* result = NULL;
+      if(context.GetIntegrator()->GetName() != integrator)
+        continue;
 
-//     // iterate over all descriptors
-//     StdVector<BiLinFormContext*>::iterator iter;
-//     int counter = 0;
-//     for (iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
-//     {
-//       counter++;
-//       // we are wrong if the region does not match
-////       if((*iter)->GetFirstEntities()->GetName() != region) continue;
-//       if((*iter)->GetFirstEntities()->GetRegion() != regionId) continue;
-//       // when pde1 is given we compare it by name and continue if the names are different
-////       if(pde1 != NULL && (*iter)->GetFirstPde()->GetName() != pde1->GetName()) continue;
-//       if((*iter)->GetFirstPde() != pde1) continue;
-////       if(pde2 != NULL && (*iter)->GetSecondPde()->GetName() != pde2->GetName()) continue;
-//       if((*iter)->GetSecondPde() != pde2) continue;
-//       //std::cout << counter << ":" << (*iter)->GetIntegrator()->GetName() << " vs " << integrator << std::endl;
-//       if((*iter)->GetIntegrator()->GetName() != integrator) continue;
-//
-//       // we come here because we had no contradiction - check for uniqueness
-//       if(result != NULL) throw Exception("parameters not unique!");
-//       // absolutley no contradiction, save result and continue to
-//       // check that there is no further match
-//       result = *iter;
-//     }
-//
-//     if(result == NULL && !silent)
-//     {
-//       std::string region = domain->GetGrid()->GetRegion().ToString(regionId);
-//       EXCEPTION("BiLinFormContext '" << integrator << "' at region '" << region << "' not found within " << counter << " integrators");
-//     }
-     return result;
+      if(context.GetFirstEntities()->GetRegion() != regionId)
+        continue;
+
+      if(pde1 != NULL && pde1 != context.GetFirstPde())
+        continue;
+
+      if(pde2 != NULL && pde2 != context.GetSecondPde())
+        continue;
+
+      return &context;
+    }
+
+    if(!silent)
+      EXCEPTION("cannot find integrator " << integrator << " in region " << domain->GetGrid()->GetRegion().ToString(regionId)
+                << " for pde1=" << (pde1 != NULL ? pde1->GetName() : "null") << " and pde2=" << (pde2 != NULL ? pde2->GetName() : "null"));
+
+    return NULL;
   }
 
   LinearForm* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
@@ -451,6 +442,8 @@ namespace CoupledField
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType fctId1, fctId2;
 
+    LOG_DBG2(assemble) << "AM_Std: AssembleMatrices_Std() enter";
+
     timer_->Start();
 
     // Reset for matrix update
@@ -481,7 +474,6 @@ namespace CoupledField
       EntityList& secondEntities = *(listIt->first.second);
       UInt size = std::max( firstEntities.GetSize(),
                             secondEntities.GetSize() );
-
 
       // Total work: numElement x numForms
       std::stringstream progStream;
@@ -527,6 +519,7 @@ namespace CoupledField
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
+        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum  << " and " << it2.GetElem()->elemNum;
 
       it1.Begin();
       it2.Begin();
@@ -589,10 +582,10 @@ namespace CoupledField
             // Calc element matrix
             if ( form->IsComplex() ){
               form->CalcElementMatrix( elemMatrixC, it1, it2 );
-
+              LOG_DBG3(assemble) << "AM_Std: cplx CEM -> " << elemMatrixC.ToString(2);
             } else {
               form->CalcElementMatrix( elemMatrix, it1, it2 );
-              LOG_DBG3(assemble) << "elementMatrix is \n" << elemMatrix << std::endl; 
+              LOG_DBG3(assemble) << "AM_Std: real CEM -> " << elemMatrix.ToString(2);
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
@@ -668,6 +661,8 @@ namespace CoupledField
 
     timer_->Stop();
     
+       // algsys_->GetMatrix(STIFFNESS)->Export("assemble_stiff.mtx");
+       // algsys_->GetMatrix(MASS)->Export("assemble_mass.mtx");
   }
   
   
@@ -991,9 +986,7 @@ namespace CoupledField
       }
       // Total work: numElement x numForms
       std::stringstream progStream;
-      boost::progress_display progress( size*forms.GetSize(),
-                                        progStream );
-
+      boost::progress_display progress( size*forms.GetSize(), progStream );
       
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
@@ -1282,6 +1275,9 @@ namespace CoupledField
       PtrParamNode form = list->Get("bilinearForm", ParamNode::APPEND);
       // integrator name
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+      BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context.GetIntegrator());
+      if(bdb != NULL && bdb->GetBOp() != NULL && bdb->GetBOp()->GetName() != "")
+        form->Get("BOp")->SetValue(bdb->GetBOp()->GetName());
 
       // region name of entity list
       std::string regionName;
@@ -1423,7 +1419,8 @@ namespace CoupledField
     {
       BiLinFormContext & actContext = **it;
 
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || setall)
+      // we set multiple times in eigenfrequency for bloch and there we need to reassemble
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1524,24 +1521,28 @@ namespace CoupledField
                                  Double omega ) {
                                  
     Complex factor(0.0, 0.0);
+
     // first determine factor of due to time derivative: d/dt = jOmega
     // 0: stiffness
     // 1: damping / mass
     // 2: mass
+
     switch( matrixType ) {
-      case STIFFNESS:
-        factor = Complex(1.0, 0.0);
-        break;
-      case DAMPING:
-        factor = Complex(0.0, omega);
-        break;
-      case MASS:
-        factor = Complex(-omega*omega, 0.0);
-        break;
-      default:
-        EXCEPTION("No default conversion from double entries to matrix type"
-                  << matrixType << "known" );
+    case STIFFNESS:
+      factor = Complex(1.0, 0.0);
+      break;
+    case DAMPING:
+      factor = Complex(0.0, omega);
+      break;
+    case MASS:
+      // BLOCH CHECK for 1st time derivative order!
+      factor = Complex(-omega*omega, 0.0);
+      break;
+    default:
+      EXCEPTION("No default conversion from double entries to matrix type" << matrixType << "known");
+      break;
     }
+
     harmMat = origMat * factor;
 
   }
@@ -1714,12 +1715,20 @@ namespace CoupledField
     FEMatrixType mappedDest = matrixMap_[dest];
 
     assert(mappedDest != NOTYPE);
-    assert(analysisType_ == BasePDE::HARMONIC);
+    // bloch mode analysis is complex
+    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
     Double omega = mp_->Eval( mHandle_ );
 
-    Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega );
+    // for bloch mode we need special handling. The mass matrix needs to be complex but
+    // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
+    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || omega == 0.0);
+
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC)
+      Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
+    else
+      harmMat = elemMat;
 
     algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1,
                                fctId2, eqnVec2, context.IsSetCounterPart(),

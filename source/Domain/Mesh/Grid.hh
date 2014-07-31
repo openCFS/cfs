@@ -480,6 +480,11 @@ namespace CoupledField
                                        bool isaxi = false,
                                        bool updated = false ) = 0;
     
+    /** calculates the bounding box of the entire grid. Is slow,
+     * CalcVolumeSpannedByNamedNodes() in legacy cfs is faster!
+     * @param sys if NULL the the default one is used */
+    Matrix<double>& CalcGridBoundingBox(CoordSystem* sys = NULL);
+
 
     //! This method computes the x-y-z boundig box of a given region
     //! \param(in) reId the region to compute the box of
@@ -972,6 +977,11 @@ namespace CoupledField
     std::map<UInt, StdVector<BoxType> > elemBoxes_;
 
 #endif // USE_CGAL
+
+  private:
+
+    /** Here the result from CalcGridBoundingBox() is stored and reused. */
+    Matrix<double> grid_bounding_box_;
 
 
 

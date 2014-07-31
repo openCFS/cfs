@@ -23,7 +23,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
-//#include "Domain/Domain.hh"
+#include "Domain/Domain.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 
@@ -63,6 +63,39 @@ namespace CoupledField
     regular = false;
     homogeneous = true;
     barycenters = false;
+  }
+
+  Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys)
+  {
+    Matrix<double>& box = grid_bounding_box_;
+    if(box.GetNumRows() > 0)
+      return box;
+
+    if(sys == NULL) sys = domain->GetCoordSystem();
+
+    StdVector<RegionIdType> regs;
+    GetVolRegionIds(regs);
+
+    Matrix<double> tmp;
+
+    for(unsigned int r = 0; r < regs.GetSize(); r++)
+    {
+      CalcBoundingBoxOfRegion(regs[r], tmp, sys);
+      if(r == 0)
+        box = tmp;
+      else
+      {
+        for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+        {
+          box[d][0] = std::min(box[d][0], tmp[d][0]);
+          box[d][1] = std::max(box[d][1], tmp[d][1]);
+        }
+      }
+    }
+
+    assert(!regs.IsEmpty() && box.GetNumCols() == 2);
+
+    return box;
   }
 
   shared_ptr<ElemShapeMap> Grid::GetElemShapeMap( const Elem* ptElem,
