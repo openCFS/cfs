@@ -388,7 +388,11 @@ class Function
         }
 
         /** identifies the element by the design type. Works only for special neighborhoods! */
-        BaseDesignElement* GetElement(DesignElement::Type type);
+        const BaseDesignElement* GetElementByType(BaseDesignElement::Type type) const;
+
+
+        /** returns design value by the design type. getParameter == true works for ParamMat parameters. Works only for special neighborhoods! */
+        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
@@ -435,7 +439,7 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
         double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
@@ -464,7 +468,7 @@ class Function
 
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
-        double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
+        double CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const;
 
         /** local tensor trace for FMO */
         double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
