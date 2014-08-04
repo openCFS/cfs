@@ -176,18 +176,10 @@ ENDIF(USE_GIDPOST)
 
 IF(USE_BLAS OR USE_LAPACK)
 
-  IF(CFS_BLAS_LAPACK STREQUAL "ACML" OR
-     CFS_BLAS_LAPACK STREQUAL "GOTO")
-    MESSAGE(FATAL_ERROR
-      "BLAS implementations ACML and GOTO not yet ported to FeSpace!")
-  ENDIF()
-
   #-----------------------------------------------------------------------------
   # Find Netlib BLAS/LAPACK library
   #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR
-     CFS_BLAS_LAPACK STREQUAL "GOTO" OR
-     USE_ILUPACK)
+  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
     
     SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
     SET(LAPACK_GZ "lapack-3.4.2.tgz")
@@ -195,9 +187,22 @@ IF(USE_BLAS OR USE_LAPACK)
     
     INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR
-        CFS_BLAS_LAPACK STREQUAL "GOTO" OR
-        USE_ILUPACK)
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+
+  #-----------------------------------------------------------------------------
+  # Find OpenBLAS/LAPACK library
+  #-----------------------------------------------------------------------------
+  IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+    
+    SET(OPENBLAS_URL "${CFS_DS_SOURCES_DIR}/openblas")
+    SET(OPENBLAS_GZ "xianyi-OpenBLAS-v0.2.10-0-gf20c0f9.tar.gz")
+    SET(OPENBLAS_MD5 "66e64bbc4dc7b602ac3bb359d2933936")
+    
+    INCLUDE("${CFSDEPS_DIR}/openblas/External_OpenBLAS.cmake")
+    
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+
+
 
   #-----------------------------------------------------------------------------
   # Find Intel Math Kernel library
@@ -230,8 +235,8 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   IF(USE_ARPACK)
     SET(ARPACK_URL "${CFS_DS_SOURCES_DIR}/arpack")
-    SET(ARPACK_GZ "arpack-ng_3.1.1.tar.gz")
-    SET(ARPACK_MD5 "d65b915736650d8878719d4168e50c36")
+    SET(ARPACK_GZ "arpack-ng_3.1.5.tar.gz")
+    SET(ARPACK_MD5 "f773f34079a9c24807da6bc2e72fe6df")
   
     INCLUDE("${CFSDEPS_DIR}/arpack/External_ARPACK.cmake")
   ENDIF(USE_ARPACK)
