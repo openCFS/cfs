@@ -83,15 +83,15 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "13")
-SET(CFS_VERSION_MONTH "11")
+SET(CFS_VERSION_YEAR "14")
+SET(CFS_VERSION_MONTH "08")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Rotating Rhino")
+SET(CFS_NAME "Maximale Verwirrung")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -182,9 +182,9 @@ ENDIF()
 # Options concerning linear algebra and  direct solver libraries The following
 # combinations are implemented
 #
-#         ACML GOTO MKL NETLIB
-# SCHENK   x    x    x    x
-#    MKL   -    -    x    -
+#         OPENBLAS MKL NETLIB
+# SCHENK    x       x    x
+#    MKL    -       x    -
 #
 # Since ILUPACK uses  MUMPS and no longer Pardiso for  its matching operations
 # it should now compile with all  other combinations of BLAS/LAPACK If we want
@@ -192,11 +192,11 @@ ENDIF()
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
-  "BLAS/LAPACK implementation. May be one of ACML, APPLE, GOTO, MKL, NETLIB")
+  "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
 
 SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   CACHE STRING
-  "Pardiso implementation for CFS. May be one of MKL or SCHENK.")
+  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Or disable USE_PARDISO")
 
 OPTION(USE_PARDISO "Use Pardiso"
   ${USE_PARDISO_DEFAULT})
@@ -239,8 +239,9 @@ ENDIF(USE_PARDISO OR
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
-    "BLAS/LAPACK implementation. May be one of ACML, GOTO, MKL, NETLIB"
+    "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
     FORCE)
+  # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")   
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------

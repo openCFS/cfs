@@ -205,6 +205,8 @@ cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
 cfsdeps/muparser/muparser-pow-intel.patch -text
 cfsdeps/muparser/muparser-strfun45.patch -text
+cfsdeps/openblas/External_OpenBLAS.cmake -text
+cfsdeps/openblas/openblas_install_cfs.patch -text
 cfsdeps/paraview/External_ParaViewSuperbuild.cmake -text
 cfsdeps/paraview/paraview-srcdir-mingw/CMake/branded_paraview_main.cxx.in -text
 cfsdeps/paraview/paraview-srcdir-mingw/CoProcessing/Adaptors/BuildAdaptors.cmake -text
