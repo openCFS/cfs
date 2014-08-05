@@ -198,8 +198,7 @@ DECLARE_LOG(fefunc)
   
   std::string BaseFeFunction::ToString() const {
     std::string ret;
-    ret += "FeFunction for result '" + 
-        SolutionTypeEnum.ToString(result_->resultType) + "'";
+    ret += "FeFunction for result '" + SolutionTypeEnum.ToString(result_->resultType) + "'";
     return ret;
   }
   

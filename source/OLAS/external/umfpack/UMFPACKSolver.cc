@@ -41,7 +41,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    infoNode_ = olasInfo->Get("umfpack",ParamNode::APPEND);
+    infoNode_ = olasInfo->Get("umfpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
 
     // Initialise attributes
     firstCall_ = true;
