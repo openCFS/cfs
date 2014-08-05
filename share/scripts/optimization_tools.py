@@ -547,7 +547,7 @@ def refine_density(infile, outfile, design1=None, design2=None, design3=None, de
       write_density_file(outfile, out, "refined")
       return out
     else:
-      output[:,d] = out.flatten()
+      output[:,d] = numpy.ravel(out,order='F')
   
   write_multi_design_file(outfile, output, (design1, design2, design3, design4, design5)[0:ndes])
   return output
