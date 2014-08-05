@@ -39,7 +39,7 @@ class SingleVector;
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
     /** Helper method which determines if an AnalyisType is complex. */
-    virtual bool IsComplex() { return isQuadratic_ || isBloch_; };
+    virtual bool IsComplex() { return true; /* isQuadratic_ || isBloch_;*/ };
 
     /** @see BaseDriver::DoBlochModeEigenfrequency() */
     bool DoBlochModeEigenfrequency() const { return isBloch_; };

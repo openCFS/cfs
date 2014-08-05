@@ -1,5 +1,5 @@
 #include "MatVec/SCRS_Matrix.hh"
-
+#include "DataInOut/ProgramOptions.hh"
 #include "OLAS/precond/IC0Precond.hh"
 
 namespace CoupledField {
@@ -12,7 +12,7 @@ namespace CoupledField {
                              PtrParamNode olasInfo )
   {
     this->xml_ = precondNode;
-    this->infoNode_ = olasInfo->Get("ic0", ParamNode::APPEND);
+    this->infoNode_ = olasInfo->Get("ic0", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     size_           = mat.GetNumRows();
     amFactorised_   = false;
   }
