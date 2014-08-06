@@ -885,62 +885,70 @@ namespace CoupledField {
           // pass info to material class
           material->SetNonLinMatIso( MAG_PERMEABILITY, info);
         } // nonlinear isotropic material   
-      else if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("anisotropic")) {
         
-        //anisotropic case: bundle of nonlinear curves
-        PtrParamNode nonLin = mag->Get("magneticPermeability")->Get("nonlinear")->Get("anisotropic");
+        else if (mag->Get("magneticPermeability")->Get("nonlinear")->Has("anisotropic")) {
 
-        // fetch paramnodes for hdbc
-        ParamNodeList anIsoNodes = nonLin->GetList("data");
+          //anisotropic case: bundle of nonlinear curves
+          PtrParamNode nonLin = mag->Get("magneticPermeability")->Get("nonlinear")->Get("anisotropic");
 
-        if ( anIsoNodes.GetSize() > 0 ) {
-          StdVector<BaseMaterial::MatDescriptorNl> nlData;
-          nlData.Resize(anIsoNodes.GetSize());
+          // fetch paramnodes for hdbc
+          ParamNodeList anIsoNodes = nonLin->GetList("data");
 
-          // iterate over all parameter nodes
-          for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
-            // read parameters
-            BaseMaterial::MatDescriptorNl info;
-            info.angle = 0.0;
-            info.approxType = NO_APPROX_TYPE;
-            info.measAccuracy = 0.01;
-            info.maxVal = 2.5;
-            info.fileName = "";
+          if ( anIsoNodes.GetSize() > 0 ) {
+            StdVector<BaseMaterial::MatDescriptorNl> nlData;
+            nlData.Resize(anIsoNodes.GetSize());
 
-            // read approximation type  
-            if(anIsoNodes[i]->Has("angle")) {
-              info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+            // iterate over all parameter nodes
+            for( UInt i = 0; i < anIsoNodes.GetSize(); i++ ) {
+              // read parameters
+              BaseMaterial::MatDescriptorNl info;
+              info.angle = 0.0;
+              info.approxType = NO_APPROX_TYPE;
+              info.measAccuracy = 0.01;
+              info.maxVal = 2.5;
+              info.zScaling= 1.0;
+              info.fileName = "";              
+
+              // read angle  
+              if(anIsoNodes[i]->Has("angle")) {
+                info.angle =  anIsoNodes[i]->Get("angle")->As<Double>();
+              }
+
+              // read approximation type  
+              if(anIsoNodes[i]->Has("approxType")) {
+                std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
+                info.approxType = ApproxCurveTypeEnum.Parse(type );
+              }
+
+              // read measurement accuracy
+              if(anIsoNodes[i]->Has("measAccuracy")) 
+                info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
+
+              // read maximum value for approximation
+              if(anIsoNodes[i]->Has("maxApproxVal")) 
+                info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
+              
+              // read z-scaling factor  
+              if(anIsoNodes[i]->Has("angle"))
+                info.zScaling =  anIsoNodes[i]->Get("zScaling")->As<Double>();
+
+              // read name of function file 
+              if(anIsoNodes[i]->Has("dataName")) 
+                info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
+
+              nlData[i].angle        = info.angle;
+              nlData[i].fileName     = info.fileName;
+              nlData[i].approxType   = info.approxType;
+              nlData[i].measAccuracy = info.measAccuracy;
+              nlData[i].maxVal       = info.maxVal;
+              nlData[i].zScaling     = info.zScaling;
+              
             }
+            material->SetNonLinMatAniso( MAG_PERMEABILITY, nlData );
+          }        
 
-            // read approximation type  
-            if(anIsoNodes[i]->Has("approxType")) {
-              std::string type =  anIsoNodes[i]->Get("approxType")->As<std::string>();
-              info.approxType = ApproxCurveTypeEnum.Parse(type );
-            }
-
-            // read measurement accuracy
-            if(anIsoNodes[i]->Has("measAccuracy")) 
-              info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
-
-            // read maximum value for approximation
-            if(anIsoNodes[i]->Has("maxApproxVal")) 
-              info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
-
-            // read name of function file 
-            if(anIsoNodes[i]->Has("dataName")) 
-              info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
-
-
-            nlData[i].angle        = info.angle;
-            nlData[i].fileName     = info.fileName;
-            nlData[i].approxType   = info.approxType;
-            nlData[i].measAccuracy = info.measAccuracy;
-            nlData[i].maxVal       = info.maxVal;
-          }
-          material->SetNonLinMatAniso( MAG_PERMEABILITY, nlData );
-        }        
-
-      } // end of anisotropic nonlinear material
+        } // end of anisotropic nonlinear material
       } // end of nonlinear section
     } // end of magneticPermeability  
 

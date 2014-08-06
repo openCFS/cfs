@@ -11,10 +11,6 @@ namespace CoupledField {
 class ApproxData;
 class BaseBOperator;
 
-//! Scaling factor of anisotropic behavior in z-direction
-//! Note: this should only be temporary! -> see variable definition
-#define ZSCALING 1.0
-
 
 // ============================================================================
 //  ISOTROPIC VERSIONS
@@ -128,6 +124,7 @@ public:
   void Init( Double coefScalar, 
              StdVector<ApproxData*>  nLinFnc,
              StdVector<Double> angles,
+             StdVector<Double> zScalings,
              shared_ptr<FeFunction<Double> > fct,
              BaseBOperator* bOp );
 
@@ -153,11 +150,10 @@ protected:
   StdVector<Double> angles_;
   
   //! Scaling factor of anisotropic behavior in z-direction
-  //! Note: this should only be temporary!
   //! -> Since we do not yet have nonlinear curves in z direction we use the same 
   //! curves as given for the xy-plane but scale it with an appropriate factor.
   //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
-  Double zScaling_;
+  StdVector<Double> zScalings_;
   
   //! Depending FeFunction
   shared_ptr<FeFunction<Double> > feFct_; 
@@ -181,6 +177,7 @@ public:
   //! Initialize with data
   void Init( StdVector<ApproxData*>  nLinFnc,
              StdVector<Double> angles,
+             StdVector<Double> zScalings,
              shared_ptr<FeFunction<Double> > fct,
              BaseBOperator* bOp );
 
@@ -206,11 +203,10 @@ protected:
   StdVector<Double> angles_;
   
   //! Scaling factor of anisotropic behavior in z-direction
-  //! Note: this should only be temporary!
   //! -> Since we do not yet have nonlinear curves in z direction we use the same 
   //! curves as given for the xy-plane but scale it with an appropriate factor.
   //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
-  Double zScaling_;
+  StdVector<Double> zScalings_;
   
   //! Depending FeFunction
   shared_ptr<FeFunction<Double> > feFct_; 

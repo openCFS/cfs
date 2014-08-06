@@ -58,6 +58,11 @@ namespace CoupledField {
       
       //! Angle, for which this curve is defined (0 for no angular dependency)
       Double angle;
+      
+      //! Scaling factor of anisotropic behavior in z-direction 
+      //! Explanation: we assume the same material behavior in z-direction as in xy-plane 
+      //! therefore the same curves with an optional scaling factor are used for calculation
+      Double zScaling;
 
       //! Pointer to interpolation class
       ApproxData* approxData;
