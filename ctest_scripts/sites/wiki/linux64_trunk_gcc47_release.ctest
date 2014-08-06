@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
@@ -52,21 +52,21 @@ INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+STRING(REGEX REPLACE "/ctest$" "/cmake" CTEST_CMAKE_COMMAND "${CTEST_EXECUTABLE_NAME}")
+SET(CTEST_CMAKE_COMMAND  "${CTEST_CMAKE_COMMAND}")
 
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-SET(INTEL_COMPILER_PATH "/opt/pckg/intel/composer_xe_2013.5.192")
+# Installation of RHEL 6 Developer Toolsets from CERN:
+# wget -O /etc/pki/rpm-gpg/RPM-GPG-KEY-cern http://www.scientificlinux.org/documentation/gpg/RPM-GPG-KEY-cern
+# wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
+# yum install devtoolset-2 devtoolset-1.1
 
-SET(INTEL_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
-SET(INTEL_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
+SET(GCC_COMPVARS_SH "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.sh")
+SET(GCC_COMPVARS_CMAKE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
 
-FILE(WRITE "${INTEL_COMPVARS_SH}"
+FILE(WRITE "${GCC_COMPVARS_SH}"
 "
-. ${INTEL_COMPILER_PATH}/bin/compilervars.sh intel64
+. /opt/rh/devtoolset-1.1/enable
+
 ${CTEST_CMAKE_COMMAND} -E environment
 ")
 
@@ -74,42 +74,45 @@ SET(SHCMD
 #  env
 #  -i
   sh
-  "${INTEL_COMPVARS_SH}"
+  "${GCC_COMPVARS_SH}"
 )
 EXECUTE_PROCESS(
   COMMAND ${SHCMD}
-  OUTPUT_VARIABLE INTEL_ENV_SH
+  OUTPUT_VARIABLE GCC_ENV_SH
 )
 
-STRING(REPLACE "\n" ";" INTEL_ENV_SH ${INTEL_ENV_SH})
+STRING(REPLACE "\n" ";" GCC_ENV_SH ${GCC_ENV_SH})
 
-SET(INTEL_ENV_CMAKE "")
-FOREACH(LINE IN ITEMS ${INTEL_ENV_SH})
+SET(GCC_ENV_CMAKE "")
+FOREACH(LINE IN ITEMS ${GCC_ENV_SH})
   STRING(REPLACE "=" ";" LINE_TOKENS ${LINE})
   LIST(GET LINE_TOKENS 0 VAR_NAME)
   LIST(GET LINE_TOKENS 1 VAR_VALUE)
-  IF(NOT VAR_NAME STREQUAL "INTEL_LICENSE_FILE" AND
-     NOT VAR_NAME STREQUAL "PWD" AND
+  IF(NOT VAR_NAME STREQUAL "PWD" AND
      NOT VAR_NAME STREQUAL "SHLVL" AND
      NOT VAR_NAME STREQUAL "_")
 
 #    MESSAGE("SET(\$ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
-    SET(INTEL_ENV_CMAKE "${INTEL_ENV_CMAKE}\nSET(ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
+    SET(GCC_ENV_CMAKE "${GCC_ENV_CMAKE}\nSET(ENV{${VAR_NAME}} \"${VAR_VALUE}\")")
   ENDIF()
 ENDFOREACH()
 
-FILE(WRITE "${INTEL_COMPVARS_CMAKE}" "${INTEL_ENV_CMAKE}")
-INCLUDE("${INTEL_COMPVARS_CMAKE}")
+FILE(WRITE "${GCC_COMPVARS_CMAKE}" "${GCC_ENV_CMAKE}")
+INCLUDE("${GCC_COMPVARS_CMAKE}")
 
-SET(ENV{LM_LICENSE_FILE} "/opt/pckg/intel/licenses/new.lic")
-SET(ENV{INTEL_LICENSE_FILE} "$ENV{LM_LICENSE_FILE}")
-SET(ENV{CC} "icc")
-SET(ENV{CXX} "icpc")
-SET(ENV{FC} "ifort")
-SET(ENV{LC_MESSAGES} "en_US.UTF-8")
-SET(ENV{LC_ALL} "en_US.UTF-8")
-SET(ENV{LANG} "en_US.UTF-8")
-SET(ENV{LANGUAGE} "en_US.UTF-8")
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(ENV{CC} "gcc")
+SET(ENV{CXX} "g++")
+SET(ENV{FC} "gfortran")
+SET(ENV{LC_MESSAGES} "C")
+SET(ENV{LC_ALL} "C")
+SET(ENV{LANG} "C")
+SET(ENV{LANGUAGE} "C")
+
 
 SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
@@ -174,21 +177,15 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE
+   TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
 #   USE_ANSYSRST:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
-   MKL_ROOT_DIR:PATH=${INTEL_COMPILER_PATH}/mkl
-   USE_OPENMP:BOOL=ON
+   MKL_ROOT_DIR:PATH=/opt/pckg/intel/composer_xe_2013_sp1.0.080/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 
-# Generate Unix Makefiles
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
-
-# Since we only have one Intel license, we force a serial build here.
-# cf. http://www.kitware.com/blog/home/post/63
-SET(CTEST_BUILD_FLAGS "-j1")
 
 message("Start dashboard...")
 ctest_start(Nightly)
@@ -198,48 +195,11 @@ ctest_start(Nightly)
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
 message("  Configure")
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-# Manually reconfigure binary dir.
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} .
-  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
-  RESULT_VARIABLE RETVAL
-)
-
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #message("read custom files after configure")
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-
-# Copy some extra shared objects from Intel runtime
-SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/RHEL_6_X86_64")
-SET(DLLS
-  libifport.so.5
-  libifcore.so.5
-  libimf.so
-  libsvml.so
-  libintlc.so.5
-  libiomp5.so
-)
-
-
-FOREACH(DLL IN ITEMS ${DLLS})
-  EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E copy "${INTEL_COMPILER_PATH}/compiler/lib/intel64/${DLL}" "${CFS_LIB_DIR}"
-    RESULT_VARIABLE RETVAL
-  )
-ENDFOREACH()
-
-# Manually reconfigure binary dir.
-EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} .
-  WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}"
-  RESULT_VARIABLE RETVAL
-)
-
-SET(ENV{OMP_NUM_THREADS} 2)
-SET(ENV{MKL_NUM_THREADS} $ENV{OMP_NUM_THREADS})
-
 message("  Test")
 ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 message("  Submit")

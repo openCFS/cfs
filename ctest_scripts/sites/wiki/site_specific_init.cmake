@@ -88,12 +88,12 @@ FILE(REMOVE_RECURSE
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-  ctest_update_fespace_wien.cmake
-  ctest_update_fespace_testsuite_wien.cmake
-
-  # Checkout or update trunk working copies
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
+
+  # Checkout or update trunk working copies
+  ctest_update_trunkOld_wien.cmake
+  ctest_update_trunkOld_testsuite_wien.cmake
   ctest_update_cfsdeps_trunk_wien.cmake
 
   # Checkout or update modelling manual working copy
