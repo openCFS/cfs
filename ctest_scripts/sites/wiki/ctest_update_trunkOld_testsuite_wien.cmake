@@ -33,15 +33,15 @@
 # Set site name and build name
 #-----------------------------------------------------------------------------
 SITE_NAME(CFS_BUILD_HOST)
-SET(BUILDNAME "Update Testsuite FeSpace")
+SET(BUILDNAME "Update Testsuite Trunk")
 
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom/sedici
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_OLDTRUNK")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_OLDTRUNK")
 
-SET(REPO "${CFS_DS_SVN}/CFS++_TEST/trunk")
+SET(REPO "${CFS_DS_SVN}/CFS++_TEST/tags/CFS++_trunk_july_2014")
 SET(USER ${CFS_TESTUSER})
 
 INCLUDE(${SITE_DIR}/ctest_update.cmake)
