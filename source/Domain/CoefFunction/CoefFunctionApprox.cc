@@ -157,6 +157,7 @@ CoefFunctionApproxAniso::~CoefFunctionApproxAniso(){
 void CoefFunctionApproxAniso::Init( Double coefScalar, 
                                     StdVector<ApproxData*>  nLinFnc,
                                     StdVector<Double> angles,
+                                    StdVector<Double> zScalings,
                                     shared_ptr<FeFunction<Double> > fct,
                                     BaseBOperator* bOp ) {
 
@@ -165,11 +166,9 @@ void CoefFunctionApproxAniso::Init( Double coefScalar,
   coefScalar_ = coefScalar;
   nLinFnc_ = nLinFnc;
   angles_ = angles;
+  zScalings_ = zScalings;
   feFct_ = fct;
   bOperator_ = bOp;
-  
-  // TODO-avolk: this should not be hardcoded here but specified in the xml file!!
-  zScaling_ = ZSCALING;
 }
 
 void CoefFunctionApproxAniso::GetScalar(Double& coefScalar, 
@@ -289,16 +288,10 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) 
                      + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);      
     }
-    
+       
     // --------------------------------------------------------------------
     //  Angular based interpolation according to z direction (angle theta)
     // --------------------------------------------------------------------
-
-    // TODO-avolk: this should be deleted after first tests!!
-    // added just to be shure that everything is woring correctly!
-    if (zScaling_ != ZSCALING) {
-      EXCEPTION("Something went wrong: scaling factor in z-direction was not set correctly!" );
-    }
     
     // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
     //             is equivalent to BH-curve in transverse direction (phi=90°)
@@ -306,7 +299,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //             be chosen for theta as well as its corresponding BH-curve      
     // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
     //       nu = 1/mu; c*mu => 1/c*mu  
-    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScaling_);
+    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[kend]);
 
     // since we use curves from xy-plane take care that theta stays in range
     // TODO-avolk: implement handling of theta bounds like it is done for phi!!
@@ -332,6 +325,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 //    std::cerr << " B_z=" << elemOpSol[2];
     std::cerr << " angleBPhi=" << angleBPhi;
     std::cerr << " angleBTheta=" << angleBTheta;
+    std::cerr << "zScaling(end)=" << zScalings_[kend];
 //    std::cerr << " startAngle=" << angles_[klo]; 
 //    std::cerr << " stopAngle=" << angles_[khi];
 //    std::cerr << " ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
@@ -369,18 +363,17 @@ CoefFunctionApproxDerivAniso::~CoefFunctionApproxDerivAniso(){
 //! Initialize with data
 void CoefFunctionApproxDerivAniso::Init( StdVector<ApproxData*>  nLinFnc,
                                          StdVector<Double> angles,
+                                         StdVector<Double> zScalings,
                                          shared_ptr<FeFunction<Double> > fct,
                                          BaseBOperator* bOp ) {
   // set type to TENSOR
   dimType_ = TENSOR;
   nLinFnc_ = nLinFnc;
   angles_ = angles;
+  zScalings_ = zScalings;
   feFct_ = fct;
   bOperator_ = bOp;
   dimDMat_ = bOperator_->GetDimDMat();
-  
-  // TODO-avolk: this should not be hardcoded here but specified in the xml file!!
-  zScaling_ = ZSCALING;
 }
 
 void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat, 
@@ -498,12 +491,6 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // --------------------------------------------------------------------
     //  Angular based interpolation according to z direction (angle theta)
     // --------------------------------------------------------------------
-
-    // TODO-avolk: this should be deleted after first tests!!
-    // added just to be shure that everything is woring correctly!
-    if (zScaling_ != ZSCALING) {
-      EXCEPTION("Something went wrong: scaling factor in z-direction was not set correctly!" );
-    }
         
     // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
     //             is equivalent to BH-curve in transverse direction (phi=90°)
@@ -512,7 +499,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
     // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
     // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
-    nuPrimeZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScaling_);
+    nuPrimeZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[kend]);
 
     // since we use curves from xy-plane take care that theta stays in range
     // TODO-avolk: implement handling of theta bounds like it is done for phi!!
@@ -543,6 +530,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     std::cerr << "GetTensor(): statistics of element " << lpm.ptEl->elemNum;
     std::cerr << ": angleBPhi=" << angleBPhi;
     std::cerr << ", angleBTheta=" << angleBTheta;
+    std::cerr << "zScaling(end)=" << zScalings_[kend];
 //    std::cerr << ", startAngle=" << angles_[klo]; 
 //    std::cerr << ", stopAngle=" << angles_[khi];
 //    std::cerr << ", ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;

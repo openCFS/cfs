@@ -119,8 +119,9 @@
       <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
       <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
       <xsd:element name="dataName"     type="xsd:string"/>
+      <xsd:element name="zScaling"     type="DT_NonNegFloat"/>
     </xsd:sequence>
-  </xsd:complexType>
+  </xsd:complexType>  
   
   <!-- ******************************************************************* -->
   <!--   Definition of hysterese model                                     -->
