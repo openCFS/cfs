@@ -89,7 +89,7 @@
               <xsd:choice maxOccurs="unbounded">
                  <!-- Dirichlet Boundary Conditions -->
                 <xsd:element name="fluxParallel"  type="DT_BcHomScalar"    />
-                <xsd:element name="potential"     type="DT_BcInhomScalar"  />
+                <xsd:element name="potential"     type="DT_BcInhomVector"  />
                 
                 <!-- RHS Load Values-->
                 <xsd:element name="fluxDensity"   type="DT_BcInhomVector"/>
@@ -98,11 +98,10 @@
           </xsd:element>
 
           <!-- Section for specifying the coils (optional) -->
-          <xsd:element name="coils" minOccurs="0">
+          <xsd:element name="coilList" minOccurs="0">
             <xsd:complexType>
               <xsd:sequence>
-                <xsd:element ref="BasicCoil" minOccurs="1"
-                  maxOccurs="unbounded"/>
+                <xsd:element name="coil" type="DT_MagCoil" minOccurs="0" maxOccurs="unbounded"/>
               </xsd:sequence>
             </xsd:complexType>
           </xsd:element>
@@ -228,6 +227,7 @@
   <xsd:simpleType name="DT_MagneticEdgeEdgeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magPotential"/>
+      
     </xsd:restriction>
   </xsd:simpleType>
   
@@ -241,10 +241,12 @@
   <xsd:simpleType name="DT_MagneticEdgeElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magPotentialD1"/>
+      <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="magPotentialDiv"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
-      <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
+      <xsd:enumeration value="magTotalCurrentDensity"/>
       <xsd:enumeration value="magForceLorentzDensity"/>
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/> 
@@ -257,7 +259,25 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
-      <xsd:enumeration value="magForceLorentz"/>
+      <xsd:enumeration value="magForceLorentz"/>   
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of surf region result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeSurfRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="magEddyCurrent"/>
+      <xsd:enumeration value="magFlux"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of coil result types of magnetic PDE -->
+  <xsd:simpleType name="DT_MagneticEdgeCoilResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="coilInductance"/>
+      <xsd:enumeration value="coilCurrent"/>
+      <xsd:enumeration value="coilInducedVoltage"/>
+      <xsd:enumeration value="coilLinkedFlux"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -297,6 +317,30 @@
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
                 <xsd:attribute name="type" type="DT_MagneticEdgeRegionResult"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Surface region result definition -->
+        <xsd:element name="surfRegionResult" minOccurs="0"
+          maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SurfRegionResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeSurfRegionResult"
+                  use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Coil result definition -->
+        <xsd:element name="coilResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_CoilResult">
+                <xsd:attribute name="type" type="DT_MagneticEdgeCoilResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

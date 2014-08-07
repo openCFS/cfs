@@ -36,6 +36,7 @@ namespace CoupledField {
     subType_(),
     nonLin_(false),
     nonLinMaterial_(false),
+    nonLinTotalFormulation_(false),
     isHysteresis_(false),
     isIterCoupled_(false),
     diagMass_(false),
@@ -50,8 +51,14 @@ namespace CoupledField {
   {
   }
   
-  StdPDE::~StdPDE() 
+  StdPDE::~StdPDE()
   {
+
+    // delete all Fe functions explicitly
+    feFunctions_.clear();
+    prevFeFunctions_.clear();
+    timeDerivFeFunctions_.clear();
+    rhsFeFunctions_.clear();
     
   }
 
@@ -148,8 +155,14 @@ namespace CoupledField {
       LOG_DBG(stdPde) << pdename_ << ":\tfctId #" << fctId
           << ", Type: " << resultName << ", #Equations: " 
           << feSpace.GetNumEquations();
-      algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
-                            feSpace.GetNumFreeEquations() );
+      // Only register function, if there are any equations at all
+      if(feSpace.GetNumEquations() > 0 ) {
+        algsys_->RegisterFct( fctId, feSpace.GetNumEquations(),
+                              feSpace.GetNumFreeEquations() );
+      } else {
+        LOG_DBG(stdPde) << pdename_ << ":\tfctId #" << fctId
+                  << ", Omitting registration, as no equations are defined!";
+      }
     }
 
     // ---------------------------------------

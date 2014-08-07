@@ -86,6 +86,9 @@ class BiLinearForm;
 
     //! results
     ResultInfoList results_;
+
+    //! Lagrange multiplier order is same as velocity?
+    bool lmOrderSameAsVel_;
   };
 
 

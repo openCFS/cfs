@@ -39,15 +39,19 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType GetSlaveVolRegion() const { return slaveVolRegion_; }
     
     bool IsPlanar() const { return isCoplanar_; }
+    
+    bool IsEulerian() const { return isEulerian_; }
 
     bool NeedsUpdate() const { return isMoving_; }
     
     const std::string& GetCoordSys() const { return coordSysId_; }
+    
+    PtrCoefFct GetGridVelocity() const { return gridVelo_; };
+
+    void ResetInterface();
 
     void UpdateInterface();
     
-    void MoveInterface(Double t) { EXCEPTION("Not implemented yet."); }
-
   protected:
     
     void SetRotation(const std::string &coordSysId,
@@ -56,6 +60,8 @@ class MortarInterface : public BaseNcInterface {
     void SetMotion( const StdVector<std::string> &offsetExpr,
                     const std::string &coordSysId = "default" );
     
+    void MoveInterface();
+
     // =======================================================================
     // Non-matching grid interface calculation
     // =======================================================================
@@ -156,17 +162,23 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType masterVolRegion_;
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
+    bool isEulerian_;
     bool isMoving_;
+    bool moveMaster_;
     bool exportToGrid_;
+    bool geoWarn_;
     std::string coordSysId_;
     CoordSystem* coordSys_;
     MathParser* mParser_;
+    PtrCoefFct gridVelo_;
     StdVector<std::string> offsetExpr_;
     UInt mphOffset_[3];
     NcIntersectAlgo intersectAlgo_;
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
+
+    bool isReset_;
 
 };
 

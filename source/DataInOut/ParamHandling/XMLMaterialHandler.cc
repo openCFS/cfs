@@ -17,6 +17,7 @@
 #include "Materials/PiezoMaterial.hh"
 #include "Materials/FlowMaterial.hh"
 #include "Materials/TestMaterial.hh"
+#include "Materials/ElectricConductionMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
 //#include "Materials/magStrictMaterial.hh"
@@ -138,6 +139,10 @@ namespace CoupledField {
       REFACTOR;
       //material = new MagStrictMaterial();
       //ReadMagStrict( material, pn );
+    }
+    else if ( matClass == ELECTRICCONDUCTION ) {
+      material = new ElectricConductionMaterial(mp, cs);
+      ReadElectricConduction( material, pn );
     }
     else {
       EXCEPTION( "material type:" << matClass << " not defined" );
@@ -524,6 +529,58 @@ namespace CoupledField {
       }
     } // end of irreversibleStrainCoefficient
 
+
+    // check and read thermal expansion coefficients (TECs)
+    if (mech->Has("thermalExpanison")) {
+      PtrParamNode tec = mech->Get("thermalExpanison");
+
+      // check values for isotropic
+      if (tec->Has("isotropic"))  {
+        // read the real part
+        if (tec->Get("isotropic")->Has("real")) {
+          PtrParamNode real = tec->Get("isotropic")->Get("real");
+          // read reference temperature
+           if (real->Has("refTemperature")) {
+             material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
+           }
+          // read thermal expansion coefficient (TEC)
+          if (real->Has("TEC")) {
+            material->SetScalar(real->Get("TEC")->As<std::string>(), MECH_TEC, Global::REAL );
+          }
+        }
+        // read the imaginary part
+        if (tec->Get("isotropic")->Has("imag")) {
+          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        }
+      } // end of isotropic
+      // check values for isotropic
+      if (tec->Has("orthotropic"))  {
+        // read the real part
+        if (tec->Get("orthotropic")->Has("real")) {
+          PtrParamNode real = tec->Get("orthotropic")->Get("real");
+          // read real reference temperature
+
+          if (real->Has("refTemperature")) {
+            material->SetScalar(real->Get("refTemperature")->As<std::string>(), MECH_TEC_REFTEMPERATURE, Global::REAL );
+          }
+          // read real thermal expansion coefficients (TEC)
+          if (real->Has("TEC1")) {
+            material->SetScalar(real->Get("TEC1")->As<std::string>(), MECH_TEC1, Global::REAL );
+          }
+          if (real->Has("TEC2")) {
+            material->SetScalar(real->Get("TEC2")->As<std::string>(), MECH_TEC2, Global::REAL );
+          }
+          if (real->Has("TEC3")) {
+            material->SetScalar(real->Get("TEC3")->As<std::string>(), MECH_TEC3, Global::REAL );
+          }
+        }
+        // read the imaginary part
+        if (tec->Get("orthotropic")->Has("imag")) {
+          EXCEPTION("Complex thermal expansion coefficient not implemented");
+        }
+      }
+    }
+
     // read mechanical damping
     if(mech->Has("mechanicalDamping"))
     {
@@ -882,6 +939,14 @@ namespace CoupledField {
           if(iso->Has("dataName"))
             info.fileName = iso->Get("dataName")->As<std::string>();
 
+          // read analytic function of material parameter
+          if(iso->Has("nuExpr"))
+            material->SetScalar(iso->Get("nuExpr")->As<std::string>(),MAG_RELUCTIVITY);
+
+          // read analytic derivative of material parameter
+          if(iso->Has("nuDerivExpr"))
+            material->SetScalar(iso->Get("nuDerivExpr")->As<std::string>(),MAG_RELUCTIVITY_DERIV);
+
           // pass info to material class
           material->SetNonLinMatIso( MAG_PERMEABILITY, info);
         } // nonlinear isotropic material   
@@ -1051,9 +1116,9 @@ namespace CoupledField {
         // === ISOTROPIC ===
         if (lin->Has("isotropic")) {
           material->SetScalar(lin->Get("isotropic")->As<Double>(), HEAT_CONDUCTIVITY, Global::REAL);
-          material->SetSymmetryType(HEAT_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
         }
         else if (lin->Has("tensor")){
+
           // can only be a real 3x3 tensor
           Matrix<double> tensor(3,3);
           PtrParamNode tens_pn = 
@@ -1061,7 +1126,14 @@ namespace CoupledField {
 
           ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
           material->SetTensor(tensor, HEAT_CONDUCTIVITY_TENSOR, Global::REAL);
+          material->SetSymmetryType(HEAT_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
 
+          //set mean value of diagonal entries
+          Double meanCond = 0.0;
+          for ( UInt i=0; i<tensor.GetNumRows(); i++)
+            meanCond += tensor[i][i];
+          meanCond /= (Double)tensor.GetNumRows();
+          material->SetScalar(meanCond, HEAT_CONDUCTIVITY, Global::REAL);
         }
       }
 
@@ -1096,6 +1168,7 @@ namespace CoupledField {
 
         //set info to material class
         material->SetNonLinMatIso(HEAT_CONDUCTIVITY, info);
+        //material->SetSymmetryType(HEAT_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
       } // nonlinear isotropic material  
 
     }
@@ -1219,4 +1292,77 @@ namespace CoupledField {
       }
     }
   }
+
+  //**********************************************************************
+  //*************  READ ELECTRIC CONDUCTIVITY ******************************************
+    //**********************************************************************
+    void XMLMaterialHandler::ReadElectricConduction(BaseMaterial *material, PtrParamNode elec)
+    {
+      // read electric conductivity
+      if(elec->Has("elecConductivity")) {
+        if (elec->Get("elecConductivity")->Has("linear")) {
+          PtrParamNode lin = elec->Get("elecConductivity")->Get("linear");
+
+          // === ISOTROPIC ===
+          if (lin->Has("isotropic")) {
+            material->SetScalar(lin->Get("isotropic")->As<Double>(), ELEC_CONDUCTIVITY, Global::REAL);
+            material->SetSymmetryType(ELEC_CONDUCTIVITY,BaseMaterial::ISOTROPIC);
+          }
+          else if (lin->Has("tensor")){
+            // can only be a real 3x3 tensor
+            Matrix<double> tensor(3,3);
+            PtrParamNode tens_pn =
+                lin->GetByVal("tensor","dim1","3")->Get("real");
+
+            ParamTools::AsTensor<double>(tens_pn, 3, 3, tensor);
+            material->SetTensor(tensor, ELEC_CONDUCTIVITY_TENSOR, Global::REAL);
+            material->SetSymmetryType(ELEC_CONDUCTIVITY_TENSOR,BaseMaterial::GENERAL);
+          }
+        }
+
+        // we know only nonlinear isotropic material
+        if(elec->Get("elecConductivity")->Has("nonlinear") &&
+            elec->Get("elecConductivity")->Get("nonlinear")->Has("isotropic"))
+        {
+          PtrParamNode iso = elec->Get("elecConductivity")->Get("nonlinear")->Get("isotropic");
+          BaseMaterial::MatDescriptorNl info;
+          info. approxType = NO_APPROX_TYPE;
+          info.measAccuracy = 0.01;
+          info.maxVal = 1000;
+          info.fileName = "";
+	  info.factor = 1.;
+
+          // read dependency: can be "temperature" or voltage
+          if(iso->Has("dependency"))
+            material->SetScalar(iso->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY);
+
+          // read approximation type
+          if(iso->Has("approxType")) {
+            std::string type =  iso->Get("approxType")->As<std::string>();
+            info.approxType = ApproxCurveTypeEnum.Parse(type );
+          }
+
+          // read measurement accuracy
+          if(iso->Has("measAccuracy"))
+            info.measAccuracy = iso->Get("measAccuracy")->As<Double>();
+
+          // read maximum value for approximation
+          if(iso->Has("maxApproxVal"))
+            info.maxVal = iso->Get("maxApproxVal")->As<Double>();
+
+          // read name of function file
+          if(iso->Has("dataName"))
+            info.fileName = iso->Get("dataName")->As<std::string>().c_str();
+
+          // read factor
+          if(iso->Has("factor"))
+            info.factor = iso->Get("factor")->As<Double>();
+
+          //set info to material class
+          material->SetNonLinMatIso(ELEC_CONDUCTIVITY, info);
+        } // nonlinear isotropic material
+
+      }
+    }
+
 } // end of namespace

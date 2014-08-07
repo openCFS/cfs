@@ -18,6 +18,7 @@ set(boost_source  "${boost_prefix}/src/boost")
 SET(CMAKE_ARGS
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
   -DCMAKE_CXX_FLAGS:STRING=${CFSDEPS_CXX_FLAGS}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
@@ -31,6 +32,7 @@ SET(CMAKE_ARGS
   -DPYTHON_INCLUDE_PATH:PATH=${PYTHON_INCLUDE_PATH} 
   -DPYTHON_EXECUTABLE:FILEPATH=${PYTHON_EXECUTABLE} 
   -DPYTHON_LIBRARIES:FILEPATH=${PYTHON_LIBRARIES}
+  -DWITH_ICU:BOOL=NO
   -DWITH_MPI:BOOL=NO
 )
 
@@ -38,17 +40,17 @@ SET(CMAKE_ARGS
 # has obviously  some problems when building  the thread lib and  we only need
 # static libs anyway.
  
-# if(MSVC)
-LIST(APPEND CMAKE_ARGS
-  -DENABLE_SHARED:BOOL=OFF
-  -DENABLE_STATIC:BOOL=ON
-  )
-#else()
-#  LIST(APPEND CMAKE_ARGS
-#    -DENABLE_SHARED:BOOL=ON
-#    -DENABLE_STATIC:BOOL=ON
-#  )
-# endif()
+if(MSVC)
+  LIST(APPEND CMAKE_ARGS
+    -DENABLE_SHARED:BOOL=OFF
+    -DENABLE_STATIC:BOOL=ON
+    )
+else()
+  LIST(APPEND CMAKE_ARGS
+    -DENABLE_SHARED:BOOL=ON
+    -DENABLE_STATIC:BOOL=ON
+    )
+endif()
 
 IF(CMAKE_TOOLCHAIN_FILE)
   LIST(APPEND CMAKE_ARGS
@@ -120,6 +122,7 @@ SET(BOOST_BUILD_LIBS
   "signals"
   "system"
   "thread"
+  "chrono"
 )
 
 SET(BPROJ "-DBUILD_PROJECTS:STRING=")
@@ -141,19 +144,51 @@ SET(PFN "${boost_prefix}/boost-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://distfiles.lesslinux.org/boost_1_52_0.tar.bz2"
+  "http://freefr.dl.sourceforge.net/project/boost/boost/1.52.0/boost_1_52_0.tar.bz2"
+  "${BOOST_URL}/${BOOST_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/boost/${BOOST_GZ}")
+SET(MD5_SUM ${BOOST_MD5})
+
+SET(DLFN "${boost_prefix}/boost-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The Boost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(boost
   DEPENDS zlib bzip2-shared bzip2-static
   LIST_SEPARATOR ,
   PREFIX "${boost_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/boost
-  URL ${BOOST_URL}/${BOOST_GZ}
+  URL ${LOCAL_FILE}
   URL_MD5 ${BOOST_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
     ${CMAKE_ARGS}
   )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(boost cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${boost_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

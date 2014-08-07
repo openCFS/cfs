@@ -501,7 +501,7 @@ extern "C" {
       if ( facSymbolic == true ) {
         if ( ordering != BaseOrdering::NOREORDERING ) {
           std::string tmp;
-      tmp = BaseOrdering::reorderingType.ToString( ordering );
+          tmp = BaseOrdering::reorderingType.ToString( ordering );
 
           LOG_TRACE(pardisoSolver) << " Analyse phase will determine a '"
                                    << tmp << "' re-ordering";
@@ -514,14 +514,14 @@ extern "C" {
     
     // Do we need to determine MFLOPs for the LU factorisation
     bool stats = false;
-      xml_->GetValue("stats", stats, ParamNode::INSERT);
+    xml_->GetValue("stats", stats, ParamNode::INSERT);
     
     if(stats)
       iparm_[18] = -1;
     else
       iparm_[18] = 0;
   
-    // Setting pivoting strategy for indefinit problems
+    // Setting pivoting strategy for indefinite problems
     iparm_[20] = 1;
 
     // In case we have no positive definite system (especially piezo)
@@ -570,7 +570,7 @@ extern "C" {
       iparm_[31] = 1;
     }
 
-    /* The facotrisation algorithm in pardiso rows/columns which have the about
+    /* The factorisation algorithm in pardiso rows/columns which have the about
      * the same magnitude and structure into one supernode. This may cause
      * numerical errors due to pivotisation, the iterative refine step remedies
      * this. (see O.Schenk et al "Solving unsymmetric sparse systems of linear
@@ -579,18 +579,17 @@ extern "C" {
     if (xml_->Has("IterRefineSteps"))
     {
       xml_->GetValue("IterRefineSteps", iparm_[7], ParamNode::INSERT);
-    } else if (iparm_[7] == 0 && mType_ > 10) {
-      WARN( "Iterative refinement steps is not set!\n" 
-            << "PARDISO did not set it neither.\n"
-            << "It is advisable for unsymmetric to set it in the xml,\n"
-            << "since bad pivotisation may result in numerical errors!" );
+    }
+    if (iparm_[7] == 0 && mType_ > 10) {
+      // set 10 iterative refinement steps by default for unsymmetric systems
+      iparm_[7] = 10;
     }
     
-    // we have to icrement the entries of the col- and row-position arrays
+    // we have to increment the entries of the col- and row-position arrays
     // by one, so that the first col and first row start with index 1 (and
     // not with zero) to be consistent with fortran
     // at the end of the method we will undo it!!
-    for (UInt i=0; i < static_cast<UInt>(probDim_+1); i++ )
+    for (UInt i=0; i < static_cast<UInt>(probDim_+1); ++i )
       rowPtr_[i] += 1;
 
     for (UInt i=0; i< nnz_; i++ )
@@ -674,9 +673,9 @@ extern "C" {
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
 
-    // now we undo our increment, since on our side the frist col and row
+    // now we undo our increment, since on our side the first col and row
     // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); ++i )
       rowPtr_[i] -= 1;
 
     for (UInt i=0; i< nnz_; i++ )
@@ -729,11 +728,11 @@ extern "C" {
     int errorFlag = 0;
     int phase = 33;
 
-    // we have to icrement the entries of the col- and row-position arrays
+    // we have to increment the entries of the col- and row-position arrays
     // by one, so that the first col and first row start with index 1 (and
     // not with zero) to be consistent with fortran
     // at the end of the method we will undo it!!
-    for (UInt i=0; i<static_cast<UInt>(probDim_+1); i++ )
+    for (UInt i=0; i<static_cast<UInt>(probDim_+1); ++i )
       rowPtr_[i] += 1;
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
@@ -754,7 +753,7 @@ extern "C" {
 
     // now we undo our increment, since on our side the first col and row
     // has an value of zero!!
-    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); i++ )
+    for (UInt i=0; i <  static_cast<UInt>(probDim_+1); ++i )
       rowPtr_[i] -= 1;
     for (UInt i=0; i< nnz_; i++ )
       colPtr_[i] -= 1;
@@ -770,6 +769,12 @@ extern "C" {
 
     // Finish log report
     if(!mSolver_) {
+      if ( iparm_[7] > 0 && iparm_[6] == iparm_[7] ) {
+        WARN( "PARDISO reached the maximum number of iterative refinement steps ("
+              << iparm_[7] << ").\n This could indicate that the solution is incorrect!\n"
+              << " You may need to increase the iterRefineSteps parameter in"
+              << " order to obtain\n a correct solution." );
+      }
       LOG_TRACE(pardisoSolver) << " number of iterative refinement steps: " << iparm_[6];
       LOG_TRACE(pardisoSolver) << " number of perturbed pivots: " << iparm_[13];
       LOG_TRACE(pardisoSolver) << " number of positive eigenvalues: " << iparm_[21];

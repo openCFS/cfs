@@ -159,6 +159,8 @@ namespace CoupledField {
     void SetMortar( const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
                                           Double weight, bool useMaster);
 
+    //! Return shape map
+    const shared_ptr<ElemShapeMap> GetShapeMap() const {return shapeMap;}
 
     //! Shape map for this element
     shared_ptr<ElemShapeMap> shapeMap;
@@ -489,33 +491,6 @@ namespace CoupledField {
     void Global2Local( Vector<Double>& locPoint, 
                        const Vector<Double>& glob );
     
-    //! check if the point coincides with corner nodes
-    //! this function is introduced as the usual non-linear iterations
-    //! sometimes mess up if the requested point coincides with a element node
-    //! tolerance is 1e-10!
-    bool Global2LocalOnNode(Vector<Double>& locPoint,
-                            const Vector<Double>& glob);
-
-    //! Specialized version for quad4
-    void Global2LocalQuad4( Vector<Double>& locPoint,
-                               const Vector<Double>& glob );
-
-    //! Orignial version from duester skript
-    void Global2LocalDuester(Vector<Double>& locPoint,
-                             const Vector<Double>& globalPoint);
-
-    //! For elements using barycentric coordinates right now limited to straight edges
-    void Global2LocalBarycentric( Vector<Double>& locPoint,
-                                     const Vector<Double>& globalPoint );
-
-    //! Version for linear line elements
-    void Global2LocalLine2(Vector<Double>& locPoint,
-                           const Vector<Double>& globalPoint);
-
-    //! General version
-    void Global2LocalGeneral( Vector<Double>& locPoint,
-                               const Vector<Double>& glob );
-
     //! @copydoc ElemShapeMap::GetGlobMidPoint
     void GetGlobMidPoint( Vector<Double>& midPoint );
 
@@ -578,6 +553,53 @@ namespace CoupledField {
 
   protected:
 
+    
+    // ---------------------------------------------------
+    //   Specialized Global -> Local Algorithms 
+    // ---------------------------------------------------
+    //@{ \name Specialized Global -> Local Mapping Algorithms 
+    
+    //! Return local search directions and Jacobian determinant
+    
+    //! This method calculates for the given, full Jacobian matrix
+    //! the determinant and returns the local search direction. 
+    //! It takes into account the possible combinations (globDir,elemDir).
+    //! \param delta_xi (out) Local search direction
+    //! \param delta_x (in) Global search direction
+    //! \param jac (in) Jacobian matrix
+    Double GetLocDirJac( Vector<Double>& delta_xi, 
+                         const Vector<Double>& delta_x,
+                         const Matrix<Double>& jac );
+    
+    //! check if the point coincides with corner nodes
+    //! this function is introduced as the usual non-linear iterations
+    //! sometimes mess up if the requested point coincides with a element node
+    //! tolerance is 1e-10!
+    bool Global2LocalOnNode(Vector<Double>& locPoint,
+                            const Vector<Double>& glob);
+
+    //! Specialized version for quad4
+    void Global2LocalQuad4( Vector<Double>& locPoint,
+                            const Vector<Double>& glob );
+
+    //! Orignial version from duester skript
+    void Global2LocalDuester(Vector<Double>& locPoint,
+                             const Vector<Double>& globalPoint);
+
+    //! For elements using barycentric coordinates right now limited to straight edges
+    void Global2LocalBarycentric( Vector<Double>& locPoint,
+                                  const Vector<Double>& globalPoint );
+
+    //! Version for linear line elements
+    void Global2LocalLine2(Vector<Double>& locPoint,
+                           const Vector<Double>& globalPoint);
+
+    //! General version
+    void Global2LocalGeneral( Vector<Double>& locPoint,
+                              const Vector<Double>& glob );
+
+    //@}
+    
     //! Pointer to H1 element of lower order
     FeH1LagrangeExpl* ptFe_;
 

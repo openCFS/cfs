@@ -31,7 +31,7 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
-    
+
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
     shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions
@@ -57,48 +57,52 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
     } else  {
       EXCEPTION( "Unknown dimension type" );
     }
-    
+
     if(isComplex_) {
       zeroCoef_ = cFct;
-    } else { 
+    } else {
       zeroCoef_ = rFct;
     }
-      
+
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
     if( coef->GetDimType() != dimType_ ) {
       EXCEPTION( "The dimensionality of the coefficient functions "
           << "is not the same");
     }
-    
+
     // check size of tensor
     UInt nRows, nCols;
     switch (coef->GetDimType() ) {
-      case VECTOR:
-        if(coef->GetVecSize() != rowSize_ ) {
-          EXCEPTION( "Vector size inconsistent" );
-        }
+    case VECTOR:
+      if(coef->GetVecSize() != rowSize_ ) {
+        EXCEPTION( "Vector size inconsistent" );
+      }
       break;
-      case TENSOR:
-        coef->GetTensorSize(nRows, nCols);
-        if( nRows != rowSize_ || nCols != colSize_) {
-          EXCEPTION( "Tensor size inconsistent" );
-        }
-        break;
-      default:
-        break;
+    case TENSOR:
+      coef->GetTensorSize(nRows, nCols);
+      if( nRows != rowSize_ || nCols != colSize_) {
+        EXCEPTION( "Tensor size inconsistent" );
+      }
+      break;
+    default:
+      break;
     }
     if( isComplex_ != coef->IsComplex() ) {
       EXCEPTION( "All coefficient functions must have the same complexType");
     }
   }
-  
+
   // in the end, check if there was already a coefficient function 
   // for this region
   if( regionCoefs_.find( region ) != regionCoefs_.end() ) {
     EXCEPTION( "There was already a coefficient function defined for "
-               << "the region width id " << region );
+        << "the region width id " << region );
   }
+
+  // adjust dependency of this coeffunction
+  dependType_ = std::max(this->GetDependency(), 
+                         coef->GetDependency());
   
   regionCoefs_[region] = coef;
 }
@@ -167,27 +171,31 @@ std::string CoefFunctionMulti::ToString() const {
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Double >  & vals,
-                                                  Grid* ptGrid ){
+                                                  Grid* ptGrid,
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Double> >  & vals,
-                                                  Grid* ptGrid ){
+                                                  Grid* ptGrid,
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetScalarValuesAtPoints: not implemented")
 }
 
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Complex >  & vals, 
-                                                  Grid* ptGrid){
+                                                  Grid* ptGrid,
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 
 void  CoefFunctionMulti::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                   StdVector<Vector<Complex> >  & vals,
-                                                  Grid* ptGrid ){
+                                                  Grid* ptGrid,
+                                                  const StdVector<shared_ptr<EntityList> >& srcEntities ){
   EXCEPTION("CoefFunctionMulti::GetVectorValuesAtCoords: not implemented")
 }
 

@@ -24,6 +24,7 @@ public:
     dependType_ = CONSTANT;
     isAnalytic_ = true;
     isComplex_ = std::tr1::is_same<T,Complex>::value;
+    supportDerivative_ = true;
   }
 
   //! Destructor
@@ -154,6 +155,26 @@ public:
     return "";
   }
 
+  //! \copydoc CoefFunction::SetDerivativeOperation
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    this->derivType_ = type;
+    //derivative of a constant is always zero...
+    switch(dimType_){
+    case SCALAR:
+      this->coefScalar_ = 0.0;
+      break;
+    case VECTOR:
+      this->coefVec_.Init();
+      break;
+    case TENSOR:
+      this->constCoefMat_.Init();
+      break;
+    default:
+      break;
+    }
+    return;
+  }
+
   // =========================================================================
   // STRING REPRESENTATION 
   // =========================================================================
@@ -171,12 +192,22 @@ public:
 
 
   // COLLECTION ACCESS
-  virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                        StdVector<T >  & vals, Grid* ptGrid);
+  virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                        StdVector<T >  & vals, Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<T> >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >()  );
+
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                        StdVector<Matrix<T> >  & vals,
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
 protected:
   

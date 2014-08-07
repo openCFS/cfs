@@ -149,6 +149,10 @@ namespace CoupledField
                       Double& etaLineSearch, bool trans=false);
 
     //! does a line search and returns the optimal residual norm
+    Double LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                      Double& etaLineSearch, bool trans=false);
+
+    //! does a line search and returns the optimal residual norm
     Double LineSearchMaterial(SBM_Vector& solIncrement, 
                               SBM_Vector& actSol, 
                               Double& etaLineSearch, Double& RHSLin2Norm,
@@ -177,6 +181,15 @@ namespace CoupledField
                                           const Double residualErr, 
                                           const Double incrementalErr, 
                                           double etaLineSearch=0.0);
+
+    virtual void WriteNonLinIterToInfoXML(const std::string& pdeName, 
+                                          const UInt coupledIterStep,
+                                          const UInt solStep,
+                                          const UInt iterationCounter,
+                                          const Double residualErr, 
+                                          const Double incrementalErr, 
+                                          double etaLineSearch=0.0);
+    
 
     //------------- storage vectors for nonlinear analysis --------------
     //Vector<Double> RhsLinVal_; //!< external forces (for nonlin simulations)
@@ -220,9 +233,15 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
+	Double minValidValue_;     //! stopping if any value in the region exceeds value
+	Double maxValidValue_;     //! stopping if any value in the region exceeds value
+	SolutionType solutionLimit_; //! solution type for which a limit is set
+	RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
+    bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;

@@ -24,6 +24,7 @@
 #include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "Utils/SmoothSpline.hh"
+#include "Utils/LinInterpolate.hh"
 using std::string;
 using std::map;
 using std::set;
@@ -37,6 +38,7 @@ namespace CoupledField
     maxVal = 0.0;
     angle = 0.0;
     zScaling = 0.0;
+    factor = 0.0;
     approxData = NULL;
   }
   
@@ -942,7 +944,37 @@ namespace CoupledField
    
    PtrCoefFct  BaseMaterial::GetVectorCoefFnc(MaterialType matType,
                                               Global::ComplexPart matDataType) {
-     EXCEPTION("Not implemented")
+     //EXCEPTION("Not implemented")
+     PtrCoefFct mFunct;
+
+     if( vectorCoef_.find(matType) !=  vectorCoef_.end() ) {
+       // --------------------------------------
+       //  Coefficient Function already defined
+       // --------------------------------------
+       mFunct = vectorCoef_[matType]->GetComplexPart( matDataType );
+
+     } else {
+       // -------------------------------------------
+       //  Create CoefFunction from constant entries
+       // -------------------------------------------
+       if(matDataType == Global::REAL){
+         CoefFunctionConst<Double>* tmpFnc = new CoefFunctionConst<Double>();
+         Vector<Double> real;
+         GetVector(real,matType,matDataType);
+         tmpFnc->SetVector(real);
+         mFunct.reset(tmpFnc);
+       }else if(matDataType == Global::COMPLEX){
+         CoefFunctionConst<Complex>* tmpFnc = new CoefFunctionConst<Complex>();
+         Vector<Complex> val;
+         GetVector(val,matType,matDataType);
+         tmpFnc->SetVector(val);
+         mFunct.reset(tmpFnc);
+       }else{
+         EXCEPTION("Material Data Type not supported");
+       }
+     }
+     mFunct->SetCoordinateSystem(this->coosy_);
+     return mFunct;
    }
 
    PtrCoefFct  BaseMaterial::GetScalCoefFnc(MaterialType matType,
@@ -996,11 +1028,18 @@ namespace CoupledField
      return mFunct;
    }
 
+   PtrCoefFct BaseMaterial::GetTensorCoefFncNonLin( MaterialType matType,
+                                                    SubTensorType type,
+                                                    Global::ComplexPart matDataType,
+                                                    PtrCoefFct dependency ) {
+     EXCEPTION("Currently only implemented for ElectroMagnetic material")
+   }
+   
+   
 
    PtrCoefFct BaseMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                  Global::ComplexPart matDataType,
-                                                 shared_ptr<BaseFeFunction> feFct,
-                                                 BaseBOperator* bOp) {
+                                                 PtrCoefFct dependency) {
      shared_ptr<CoefFunctionApprox> coef;
      
      // Ensure that only real-valued parameters are used
@@ -1020,24 +1059,35 @@ namespace CoupledField
      // Check, if smooth spline approximation was already created 
      // and initialized
      if( !matNl.approxData ) {
-       SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType ); 
-       sp->SetAccuracy( matNl.measAccuracy );
-       sp->SetMaxY( matNl.maxVal );
-       sp->CalcBestParameter();
-       sp->CalcApproximation();
-       sp->Print();
-       matNl.approxData = sp;
+       if ( matNl.approxType == SMOOTH_SPLINES ) {
+         SmoothSpline * sp = new SmoothSpline( matNl.fileName, matType );
+         sp->SetAccuracy( matNl.measAccuracy );
+         sp->SetMaxY( matNl.maxVal );
+         sp->CalcBestParameter();
+         sp->CalcApproximation();
+         sp->Print();
+         matNl.approxData = sp;
+       }
+       else if ( matNl.approxType == LIN_INTERPOLATE ) {
+         LinInterpolate * sp = new LinInterpolate( matNl.fileName, matType );
+         //sp->SetAccuracy( matNl.measAccuracy );
+         //sp->SetMaxY( matNl.maxVal );
+         sp->Print();
+         matNl.approxData = sp;
+        }
+       else {
+         EXCEPTION( "No nonlinear approx/interpolate type not available '"
+             << ApproxCurveTypeEnum.ToString(matNl.approxType) << "'");
+       }
      }
-     
+
      ApproxData * sp = matNl.approxData;
      
      // get linear starting value
      Double startVal = 0.0;
      this->GetScalar( startVal, matType, Global::REAL );
      coef.reset(new CoefFunctionApprox());
-     shared_ptr<FeFunction<Double> > dfeFct = 
-         dynamic_pointer_cast<FeFunction<Double> >(feFct);
-     coef->Init( startVal, sp, dfeFct, bOp );
+     coef->Init( startVal, sp, dependency );
 
      return coef;
    }

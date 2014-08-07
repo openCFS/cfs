@@ -14,6 +14,8 @@
 
 #include <def_expl_templ_inst.hh>
 
+#include <fstream>
+
 #include "CoefFunctionGridNodalInterp.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -47,10 +49,8 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
   this->consInterpReady_ = false;
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
   this->extDataInfo_ = curInfo->Get("externalGrid",ParamNode::APPEND);
+  this->destGrid_ = this->domain_->GetGrid();
   ReadXMLNode(configNode);
-
-  //obtain grid pointer and store its dimension
-  this->srcGrid_ = this->domain_->GetGrid(this->gridId_);
 
   // Determine which steps are available
   this->domain_->GetResultHandler()->GetStepValues(this->inputId_,this->aSeqStep_,this->resultInfo_,this->stepValueMap_,false);
@@ -68,7 +68,7 @@ CoefFunctionGridNodalInterp(Domain* ptDomain,
     this->dimDof_ = this->resultInfo_->dofNames.GetSize();
     this->dimType_ = CoefFunction::TENSOR;
   }
-  UInt gDim = this->domain_->GetGrid()->GetDim();
+  UInt gDim = this->destGrid_->GetDim();
   UInt dDim = this->resultInfo_->dofNames.GetSize();
   this->CreateOperator(gDim,dDim);
 }
@@ -129,7 +129,13 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
     this->PrepareForStdInterp(this->myConfigNode_);
     std::cout << "Done" << std::endl;
     std::cout.flush();
+  }else{
+    if(this->dependType_ != CoefFunction::CONSTANT){
+      this->UpdateSolution();
+      this->interpolFunction_->ApplyExternalData();
+    }
   }
+
 
 
     //there is a special case when dealing with surface elements
@@ -229,60 +235,97 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
   //first obtain the node coordinates of the source regions
 
 
-  StdVector<Vector<Double> > nodeGlobCoords;
+  StdVector< Vector<Double> > nodeGlobCoords;
   StdVector<LocPoint> localCoords;
-  StdVector< const Elem* > foundElements;
+  StdVector<const Elem*> foundElements;
 
-  Grid* destGrid = this->domain_->GetGrid();
-
-
-  StdVector<UInt> allNodes;
-  std::set<std::string>::iterator regIt = this->srcRegions_.begin();
-  bool multipleRegions = (this->srcRegions_.size()>1);
-  if(!multipleRegions){
-     RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-     this->srcGrid_->GetNodesByRegion(allNodes,aReg);
-  }else{
-     StdVector<UInt> curNodes;
-     while(regIt != this->srcRegions_.end()){
-       RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
-       this->srcGrid_->GetNodesByRegion(curNodes,aReg);
-       allNodes.Reserve(allNodes.GetSize()+curNodes.GetSize());
-       for(UInt i=0;i<curNodes.GetSize();i++){
-         if(allNodes.Find(curNodes[i])==-1)
-           allNodes.Push_back(curNodes[i]);
-       }
-       regIt++;
-     }
+  StdVector<UInt> allNodes, nodeNums;
+  std::set<std::string>::iterator regIt = this->srcRegions_.begin(),
+                                  endIt = this->srcRegions_.end();
+  if (this->srcRegions_.size() == 1) {
+    RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+    this->srcGrid_->GetNodesByRegion(allNodes, aReg);
   }
-  UInt dim = this->srcGrid_->GetDim();
-  nodeGlobCoords.Resize(allNodes.GetSize(),Vector<Double>(dim));
+  else {
+    UInt numRegNodes = 0; 
+    StdVector<UInt> curNodes;
+    while (regIt != endIt){
+      RegionIdType aReg = this->srcGrid_->GetRegion().Parse(*regIt);
+      this->srcGrid_->GetNodesByRegion(curNodes, aReg);
+      numRegNodes = curNodes.GetSize();
+      allNodes.Reserve(allNodes.GetSize() + numRegNodes);
+      for (UInt i=0; i<numRegNodes; ++i) {
+        if (allNodes.Find(curNodes[i]) == -1) {
+          allNodes.Push_back(curNodes[i]);
+        }
+      }
+      ++regIt;
+    }
+  }
+
+  UInt numNodes = allNodes.GetSize();
+  UInt srcDim = this->srcGrid_->GetDim();
+  UInt destDim = destGrid_->GetDim();
+  nodeGlobCoords.Reserve(numNodes);
+  nodeNums.Reserve(numNodes);
   Vector<Double> aCoord;
-  for(UInt i=0;i<allNodes.GetSize();++i){
-    this->srcGrid_->GetNodeCoordinate(aCoord,allNodes[i]);
-    nodeGlobCoords[i] = aCoord;
+  for (UInt i=0; i<numNodes; ++i) {
+    this->srcGrid_->GetNodeCoordinate(aCoord, allNodes[i]);
+    if (srcDim > destDim) {
+      if (abs(aCoord[2]-xyPlaneAtZ_) > zTol_) {
+        continue;
+      }
+      aCoord.Resize(destDim);
+    }
+    nodeGlobCoords.Push_back(aCoord);
+    nodeNums.Push_back(allNodes[i]);
+  }
+  numNodes = nodeNums.GetSize();
+  if (numNodes == 0) {
+    EXCEPTION("There are no nodes for interpolation at z = " << xyPlaneAtZ_
+              << " m +/- " << zTol_ << " m.");
+  }
+  
+  StdVector<shared_ptr<EntityList> > lists;
+  std::set<RegionIdType>::const_iterator destRegIt = this->destRegions_.begin();
+  for(; destRegIt != this->destRegions_.end(); ++destRegIt ) {
+    shared_ptr<ElemList> newList(new ElemList(this->destGrid_));
+    newList->SetRegion(*destRegIt);
+    lists.Push_back(newList);
   }
 
-  destGrid->GetElemsAtGlobalCoords( nodeGlobCoords,
+  destGrid_->GetElemsAtGlobalCoords( nodeGlobCoords,
                                     localCoords,
                                     foundElements,
-                                    this->destRegions_,
+                                    lists,
                                     globalTol_,
                                     localTol_,
                                     false);
 
   //we now create some debugging information
   UInt elemCounter = 0;
-  for(UInt i=0;i<foundElements.GetSize();++i){
-    if(!foundElements[i]){
-      elemCounter++;
-    }else{
+  for (UInt i=0; i<numNodes; ++i) {
+    if (!foundElements[i]) {
+      ++elemCounter;
+    }
+    else {
       LOG_DBG3(coeffunctiongridnodalinterp) << "Node #" << allNodes[i] << " get associated to element #" << foundElements[i]->elemNum << std::endl;
       LOG_DBG3(coeffunctiongridnodalinterp)<< "Local Coordinate is: " << localCoords[i] << std::endl << std::endl;
     }
   }
-  if(elemCounter>0)
-    WARN("There were " << elemCounter << " unmapped nodes from source region \'" << *regIt << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
+  if (elemCounter > 0) {
+    std::ostringstream oss;
+    regIt = this->srcRegions_.begin();
+    while (regIt != endIt) {
+      oss << *regIt;
+      ++regIt;
+      if (regIt != endIt) oss << ", ";
+    }
+    WARN("There were " << elemCounter << " unmapped nodes from source region(s) \'" << oss.str() << "\' which are not mapped to region \'" << this->destRegionName_ << "\'. Perhaps you should increase the tolerances!");
+    if(this->verbose_ == true){
+      PrintNodesToCSV(foundElements,nodeGlobCoords);
+    }
+  }
 
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("numUnmappedNodes")->SetValue(elemCounter);
   this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("globalTol")->SetValue(globalTol_);
@@ -290,15 +333,37 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapElemNodesConservative(){
 
   //if the user wants to, we save the node->element association here
   //now we store the information in our map
-  for(UInt i=0;i<foundElements.GetSize();++i){
+  for (UInt i=0; i<numNodes; ++i) {
     //check if we have the information
-    if(foundElements[i]){
+    if (foundElements[i]) {
       std::vector<UInt> & curVec = this->elemNodeAssoc_[foundElements[i]->elemNum];
-      curVec.push_back(allNodes[i]);
-      this->localCoordsNodeAssoc_[allNodes[i]] = localCoords[i];
+      curVec.push_back(nodeNums[i]);
+      this->localCoordsNodeAssoc_[nodeNums[i]] = localCoords[i];
     }
   }
 }
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalInterp<DATA_TYPE>::PrintNodesToCSV(const StdVector<const Elem*>& foundElements,
+                                                                     const StdVector< Vector<Double> >& nodeGlobCoords){
+
+  RegionIdType regID = this->destGrid_->GetRegion().Parse(this->destRegionName_);
+  std::string filename = "unmappedNodes_" + this->destRegionName_+ ".csv";
+  std::cerr << "Printing unmapped node coordinates to file: " << filename << std::endl;
+  std::ofstream outFile(filename.c_str(), std::ios::out | std::ios::trunc);
+  outFile << "x coord, y coord, z coord, scalar\n";
+  for (UInt i=0; i<foundElements.GetSize(); ++i) {
+    if (!foundElements[i]) {
+       Vector<Double> coord = nodeGlobCoords[i];
+       outFile << coord[0] << ", " << coord[1];
+       if(coord.GetSize()==3)
+         outFile << ", " << coord[2];
+       outFile << ", " << regID << "\n";
+    }
+  }
+  outFile.close();
+}
+
 
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode){
@@ -306,7 +371,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
 
   this->inputId_ = configNode->Get("inputId")->As<std::string>();
   this->gridId_ = configNode->Get("gridId")->As<std::string>();
-  this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
+
+  //this was already determined in constructor of CoefFunctionGrid
+  //this->aSeqStep_ = this->domain_->GetDriver()->GetActSequenceStep();
+
+  this->verbose_ = configNode->Get("verbose")->As<bool>();
 
   this->DetermineResult(this->inputId_,this->aSeqStep_);
 
@@ -318,11 +387,23 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::ReadXMLNode(PtrParamNode configNode
   this->extDataInfo_->Get("interpolation")->Get("type")->SetValue(interpStr);
   this->extDataInfo_->Get("interpolation")->Get("setBy")->SetValue("XML");
 
+  globalTol_ = 0.0;
+  configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
+  localTol_ = 1e-3;
+  configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+
   if ( this->curInterpType_ == CoefFunctionGrid::CONSERVATIVE ) {
-    globalTol_ = 0.0;
-    configNode->GetValue("globalTolerance", globalTol_, ParamNode::PASS);
-    localTol_ = 1e-3;
-    configNode->GetValue("localTolerance", localTol_, ParamNode::PASS);
+    xyPlaneAtZ_ = 0.0;
+    zTol_ = 1e-12;
+    if (configNode->Has("xyPlane")) {
+      if (destGrid_->GetDim() == 3) {
+        WARN("xyPlane directive is ignored, because target grid of interpolation is 3D.");
+      }
+      else {
+        configNode->Get("xyPlane")->GetValue("z", xyPlaneAtZ_, ParamNode::EX);
+        configNode->Get("xyPlane")->GetValue("tolerance", zTol_, ParamNode::PASS);
+      }
+    }
   }
   
   //obtain grid pointer
@@ -351,7 +432,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
                                                                       Vector<DATA_TYPE>& feFncVec){
 
   if(!this->consInterpReady_){
-    std::cout << "Preparing for conservative interpolation of external data...";
+    std::cout << "Preparing for conservative interpolation of external data... ";
     std::cout.flush();
     boost::shared_ptr<Timer> t(new Timer);
     t->Start();
@@ -366,6 +447,10 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     //now we know which node is in which element, lets loop over the entity list and
     //create the matrix
     UInt dDim = this->resultInfo_->dofNames.GetSize();
+    if(dDim==0){
+      //assume a scalar
+      ++dDim;
+    }
     //determine the number of rows in the CRS matrix
     StdVector<Integer> elemEqns;
     UInt nnz=0;
@@ -373,7 +458,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     UInt numCols = this->solVec_.GetSize();
     std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
     while(eIt != this->elemNodeAssoc_.end()){
-      const Elem* curE = this->domain_->GetGrid()->GetElem(eIt->first);
+      const Elem* curE = this->destGrid_->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
       for(UInt i=0;i<elemEqns.GetSize();++i){
         if(elemEqns[i]>0){
@@ -381,7 +466,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
         }
       }
       //nnz += fe->GetNumFncs()*eIt->second.size()*dDim;
-      eIt++;
+      ++eIt;
     }
 
     //ok lets create the container
@@ -393,9 +478,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     LocPointMapped lpm;
     while(eIt != this->elemNodeAssoc_.end()){
       const Elem* curE = NULL;
-      curE = this->domain_->GetGrid()->GetElem(eIt->first);
+      curE = this->destGrid_->GetElem(eIt->first);
       targetSpace->GetElemEqns(elemEqns,curE);
-      esm = this->domain_->GetGrid()->GetElemShapeMap( curE, true );
+      esm = this->destGrid_->GetElemShapeMap( curE, true );
       //now we add for each source node the corresponding entries
       for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
         UInt curNodeNum = eIt->second[aNode];
@@ -419,7 +504,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
           }
         }//add to coordMatrix
       }//for each source node
-      eIt++;
+      ++eIt;
     }//for each target element
     myContainer->FinaliseAssembly();
     //TODO: delete unnecessary data structures
@@ -453,7 +538,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     this->extDataInfo_->Get("interpolation")->Get("conservative")->
         Get("creationTime")->SetValue(elapsed.str());
 
-    std::cout << "Done" << std::endl;
+    std::cout << " done." << std::endl;
     std::cout.flush();
   }
   //perhaps we need to reread the solution vector from file
@@ -463,6 +548,43 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
   //here it gets simple we just take the external solution vector and multiply with matrix
   this->consInterpMat_->MultAdd(this->solVec_,feFncVec);
+
+
+  if(this->verbose_ == true){
+    DATA_TYPE accu1 = 0;
+    std::map<UInt,std::vector<UInt> >::iterator eIt = this->elemNodeAssoc_.begin();
+    UInt dDim = this->resultInfo_->dofNames.GetSize();
+    if(dDim==0){
+      //assume a scalar
+      ++dDim;
+    }
+    while(eIt != this->elemNodeAssoc_.end()){
+      for(UInt aNode=0; aNode < eIt->second.size(); aNode++){
+        UInt curNodeNum = eIt->second[aNode];
+        UInt idx = this->nodeIdxMap_[curNodeNum];
+        for(UInt d =0;d<dDim;++d){
+          UInt curSrcEq =  this->eqnNumbers_[idx][d];
+          accu1 += this->solVec_[curSrcEq];
+        }
+      }
+      eIt++;
+    }
+
+    DATA_TYPE accu2 = 0;
+    for(UInt i = 0; i < feFncVec.GetSize(); i++){
+      accu2 += feFncVec[i];
+    }
+    DATA_TYPE accu3 = 0;
+    for(UInt i = 0; i < feFncVec.GetSize(); i++){
+      accu3 += this->solVec_[i];
+    }
+    PtrParamNode aStepNode = this->extDataInfo_->Get("interpolation")->Get("conservative")->Get("TimeSteps")->Get("Step",ParamNode::APPEND);
+    aStepNode->Get("ReadStep")->SetValue(this->lastStepRead_);
+    aStepNode->Get("CurrentTimeValue")->SetValue(this->curTStep_);
+    aStepNode->Get("MappedSourceVectorSum")->SetValue(accu1);
+    aStepNode->Get("InterpolatedVectorSum")->SetValue(accu2);
+    aStepNode->Get("CompleteSourceVectorSum")->SetValue(accu3);
+  }
 }
 
 //Prepare for standard interpolation
@@ -506,9 +628,10 @@ template<class DATA_TYPE>
    PtrParamNode polyMotherNode = this->myConfigNode_->GetRoot()->
        Get("fePolynomialList", ParamNode::INSERT );
    polyNode_ = polyMotherNode->GetByVal("Lagrange","id",polyId, ParamNode::INSERT);
-   polyNode_->Get("useGridOrder", ParamNode::INSERT)->SetValue("true");
-   polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("true");
-   polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("1");
+
+   polyNode_->Get("spectral", ParamNode::INSERT)->SetValue("false");
+   polyNode_->Get("gridOrder",ParamNode::INSERT);
+   //polyNode_->Get("isoOrder", ParamNode::INSERT)->SetValue("2");
 
    PtrParamNode integMotherNode = this->myConfigNode_->GetRoot()->
        Get("integrationSchemeList", ParamNode::INSERT );
@@ -526,7 +649,7 @@ template<class DATA_TYPE>
    //with this information we can now create a nice FeSpace
    PtrParamNode interpolSpaceNode = this->extDataInfo_->Get("interpolation")->Get("standard")->Get("interpolationSpace");
    shared_ptr<FeSpace> interpolSpace;
-   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,this->domain_->GetGrid());
+   interpolSpace = FeSpace::CreateInstance(motherNode,interpolSpaceNode,FeSpace::H1,this->destGrid_);
 
 
    shared_ptr<SolStrategy> solStrat(new SolStrategyStd(motherNode));
@@ -534,7 +657,7 @@ template<class DATA_TYPE>
    interpolSpace->Init(solStrat);
    this->interpolFunction_.reset(new FeFunction<DATA_TYPE>(this->domain_->GetMathParser()));
    this->interpolFunction_->SetFeSpace(interpolSpace);
-   this->interpolFunction_->SetGrid(this->domain_->GetGrid());
+   this->interpolFunction_->SetGrid(this->destGrid_);
    interpolSpace->AddFeFunction(interpolFunction_);
    this->interpolFunction_->SetResultInfo(this->resultInfo_);
 
@@ -548,6 +671,17 @@ template<class DATA_TYPE>
      this->interpolFunction_->AddEntityList(this->entities_[aReg]);
      interpolSpace->SetRegionApproximation(this->entities_[aReg]->GetRegion(),polyId,integId);
      this->interpolFunction_->AddExternalDataSource(this->shared_from_this(), this->entities_);
+     //now check if this is a surface region
+     //if so, we add the associated volume region
+     if(this->entities_[aReg]->GetType() == EntityList::SURF_ELEM_LIST ||
+        this->entities_[aReg]->GetType() == EntityList::NC_ELEM_LIST ){
+       EntityIterator it = this->entities_[aReg]->GetIterator();
+       RegionIdType volRegionId = it.GetSurfElem()->ptVolElems[0]->regionId;
+       std::string volReg = this->destGrid_->GetRegion().ToString(volRegionId);
+       shared_ptr<EntityList> VolList = this->destGrid_->GetEntityList( EntityList::ELEM_LIST, volReg);
+       this->interpolFunction_->AddEntityList(VolList);
+       interpolSpace->SetRegionApproximation(volRegionId,polyId,integId);
+     }
    }
    this->interpolFunction_->SetFctId(PSEUDO_FCT_ID);
 
@@ -567,40 +701,67 @@ template<class DATA_TYPE>
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< Vector<DATA_TYPE> >& values,
-                                                                      Grid* ptGrid ){
-
-  StdVector<LocPoint> localCoords;
-  StdVector< const Elem* > foundElements;
+                                                                      Grid* ptGrid,
+                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities )
+{
   //build up set of source regions
-  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
-  std::set<RegionIdType> scrRegIds;
-  for( ; regIter != this->srcRegions_.end(); ++regIter) {
-    RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
-    scrRegIds.insert(curId);
+//  std::set<std::string>::iterator regIter = this->srcRegions_.begin();
+//  std::set<RegionIdType> scrRegIds;
+//  if (srcRegions.size()>0) {
+//    scrRegIds.insert(srcRegions.begin(), srcRegions.end());
+//  }
+//  else {
+//    for( ; regIter != this->srcRegions_.end(); ++regIter) {
+//      RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
+//      scrRegIds.insert(curId);
+//    }
+//  }
+//  
+  if(!this->stdInterpReady_){
+    std::cout << "Preparing for interpolation of external data...";
+    std::cout.flush();
+    //====================================================
+    // Create Data structures for easy solution access
+    //====================================================
+    //in this special class we start with the equation mapping right
+    //after the first call to get entities as this method should not be called twice!
+    this->MapEqns();
+    //read in the first solution
+    this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
+    //    this->PrepareForStdInterp(this->myConfigNode_);
+    std::cout << "Done" << std::endl;
+    std::cout.flush();
   }
 
-  this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
-                                          localCoords,
-                                          foundElements,
-                                          scrRegIds);
+  if(localCoords_.GetSize() == 0){
+    this->srcGrid_->GetElemsAtGlobalCoords( globCoord,
+                                             localCoords_,
+                                             foundElements_,
+                                             StdVector<shared_ptr<EntityList> >(),this->globalTol_,this->localTol_);
+   }
 
   Vector<DATA_TYPE> eSol;
   Matrix<DATA_TYPE> opMat;
   LocPointMapped lpm;
   shared_ptr<ElemShapeMap> esm;
   values.Resize(globCoord.GetSize(), Vector<DATA_TYPE>(this->dimDof_));
-  for(UInt i=0;i<foundElements.GetSize();++i){
-    const Elem* curE = foundElements[i];
+  for(UInt i=0;i<foundElements_.GetSize();++i){
+    const Elem* curE = foundElements_[i];
     if(!curE){
       continue;
     }
     this->GetElemSolution(eSol,curE->elemNum);
     esm = this->srcGrid_->GetElemShapeMap( curE, true );
-    LocPoint lp = localCoords[i];
+    LocPoint lp = localCoords_[i];
     lpm.Set(lp,esm,1.0);
     BaseFE * fe = esm->GetBaseFE();
     this->myOperator_->CalcOpMat(opMat,lpm,fe);
     values[i] = opMat * eSol;
+  }
+  //release memory in case of constant data
+  if(this->dependType_ == CoefFunction::CONSTANT){
+    localCoords_.Clear();
+    foundElements_.Clear();
   }
 }
 
@@ -608,9 +769,11 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVectorValuesAtCoords( const StdV
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                                                       StdVector< DATA_TYPE >& values,
-                                                                      Grid* ptGrid ){
+                                                                      Grid* ptGrid,
+                                                                      const StdVector<shared_ptr<EntityList> >& srcEntities )
+{
   StdVector< Vector<DATA_TYPE> > vecValues;
-  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid);
+  this->GetVectorValuesAtCoords(globCoord,vecValues, ptGrid, srcEntities);
   values.Resize(globCoord.GetSize(),0.0);
   for(UInt i=0;i<vecValues.GetSize();++i){
     values[i] = vecValues[i][0];

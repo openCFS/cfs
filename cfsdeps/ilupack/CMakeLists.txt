@@ -895,7 +895,12 @@ ENDIF()
       NO_CMAKE_SYSTEM_PATH 
       )
 
-    LIST(APPEND TARGET_LL "${${lib}_LIBRARY}")
+    # Obviously, the irc_s lib from Intel Fortran is not necessary
+    # and even can cause problems in conjunction with mkl_core.
+    IF(NOT lib STREQUAL "irc_s")
+      LIST(APPEND TARGET_LL "${${lib}_LIBRARY}")
+    ENDIF()
+
   endforeach()
 
   UNSET(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES)

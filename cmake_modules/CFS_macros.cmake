@@ -161,7 +161,7 @@ MACRO (TODAY RESULT)
         string(STRIP "${OUT}" OUT)
         SET(${RESULT} ${OUT})
       ELSE()
-        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat"} OUTPUT_VARIABLE OUT)
+        EXECUTE_PROCESS(COMMAND cmd /E:ON /C "${CFS_SOURCE_DIR}/share/scripts/getdate.bat" OUTPUT_VARIABLE OUT)
 #        string(REGEX REPLACE "(..)/(..)/..(..).*" "\\3\\2\\1"
 #	  ${RESULT} ${${RESULT}})
         string(STRIP "${OUT}" OUT)
@@ -212,3 +212,82 @@ MACRO (APPLY_PATCHES PATCHES INPUTDIR)
     ENDIF()
   endforeach(patch)
 ENDMACRO (APPLY_PATCHES)
+
+
+MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
+  SET(PERFORM_DOWNLOAD 0)                             
+  SET(DOWNLOAD_OKAY 0)                             
+  STRING(STRIP ${MD5_SUM} MD5_SUM)                    
+  STRING(TOLOWER ${MD5_SUM} MD5_SUM)                  
+  SET(TIMEOUT 60)                         
+
+  IF(EXISTS ${LOCAL_FILE})
+#    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
+
+    FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
+    STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
+
+#    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+#    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+
+    STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
+
+    IF(NOT MD5_EQUAL)
+      FILE(REMOVE ${LOCAL_FILE})
+      SET(PERFORM_DOWNLOAD 1)   
+#      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
+    ELSE()                                                          
+#      MESSAGE("MD5 sums match! Very fine!")
+      SET(DOWNLOAD_OKAY 1)
+    ENDIF()
+  ELSE()
+    SET(PERFORM_DOWNLOAD 1)
+  ENDIF()
+
+  IF(PERFORM_DOWNLOAD)
+    FOREACH(URL IN ITEMS ${MIRROR_LIST})
+      MESSAGE("downloading...
+     src='${URL}'
+     dst='${LOCAL_FILE}'
+     timeout=${TIMEOUT}")
+
+      FILE(DOWNLOAD
+        ${URL}
+        ${LOCAL_FILE}
+        INACTIVITY_TIMEOUT ${TIMEOUT}
+        STATUS DL_STATUS
+        LOG DL_LOG
+        SHOW_PROGRESS)
+
+      LIST(GET DL_STATUS 0 DL_FAIL)
+      LIST(GET DL_STATUS 1 DL_MSG)
+
+      IF(NOT DL_FAIL)
+        FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
+        STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
+
+#        MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+#        MESSAGE("EXPECTED_MD5 ${MD5_SUM}")
+
+        STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
+
+        IF(MD5_EQUAL)
+          SET(DOWNLOAD_OKAY 1)
+          BREAK()
+        ELSE()
+          FILE(REMOVE ${LOCAL_FILE})
+        ENDIF()
+
+      ELSE()
+        MESSAGE("Download failed: ${DL_MSG}")
+        FILE(REMOVE ${LOCAL_FILE})
+      ENDIF()
+
+    ENDFOREACH()
+  ENDIF()
+
+  IF(NOT DOWNLOAD_OKAY)
+    MESSAGE(FATAL_ERROR "Download failed!")
+  ENDIF()
+ENDMACRO()
+

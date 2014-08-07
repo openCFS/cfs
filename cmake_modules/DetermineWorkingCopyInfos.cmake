@@ -56,11 +56,13 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
        "http://www.svnkit.com/org.tmatesoft.svn_1.7.4.standalone.zip"
        "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip")
      
-     execute_process(COMMAND unzip "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip"
+     execute_process(COMMAND unzip
+       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip"
        WORKING_DIRECTORY "${CFS_BINARY_DIR}")
    ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.7.4")
 
-   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.7.4/bin/jsvn" CACHE FILEPATH
+   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.7.4/bin/jsvn"
+     CACHE FILEPATH
      "subversion command line client" FORCE)
 
    FIND_PACKAGE("SVNKit" 1.4)
@@ -92,7 +94,9 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
       OUTPUT_STRIP_TRAILING_WHITESPACE)
 
     IF(NOT ${Subversion_svn_modified_result} EQUAL 0)
-      MESSAGE(SEND_ERROR "Command \"${Subversion_SVN_EXECUTABLE} status -q ${dir}\" failed with output:\n${Subversion_svn_info_error}")
+      SET(MSG "Command \"${Subversion_SVN_EXECUTABLE} status -q ${dir}\"")
+      SET(MSG "${MSG} failed with output:\n${Subversion_svn_info_error}")
+      MESSAGE(SEND_ERROR "${MSG}")
     ELSE(NOT ${Subversion_svn_modified_result} EQUAL 0)
 
       IF(${prefix}_WC_MODIFIED)
@@ -130,14 +134,21 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
   EXECUTE_PROCESS(
     COMMAND ${GIT_EXECUTABLE} svn info
     OUTPUT_VARIABLE CFS_GIT_SVN_INFO
+    ERROR_VARIABLE CFS_GIT_SVN_ERROR
     RESULT_VARIABLE RETVAL)
 
-  STRING(REGEX REPLACE "^(.*\n)?URL: ([^\n]+).*"
-    "\\2" CFS_WC_URL "${CFS_GIT_SVN_INFO}")
-  STRING(REGEX REPLACE "^(.*\n)?Repository Root: ([^\n]+).*"
-    "\\2" CFS_WC_ROOT "${CFS_GIT_SVN_INFO}")
-  STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
-    "\\2" CFS_WC_REVISION "${CFS_GIT_SVN_INFO}")
+  IF(RETVAL)
+      SET(CFS_WC_URL "N/A")
+      SET(CFS_WC_ROOT "N/A")
+      SET(CFS_WC_REVISION "N/A")
+  ELSE()
+    STRING(REGEX REPLACE "^(.*\n)?URL: ([^\n]+).*"
+      "\\2" CFS_WC_URL "${CFS_GIT_SVN_INFO}")
+    STRING(REGEX REPLACE "^(.*\n)?Repository Root: ([^\n]+).*"
+      "\\2" CFS_WC_ROOT "${CFS_GIT_SVN_INFO}")
+    STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
+      "\\2" CFS_WC_REVISION "${CFS_GIT_SVN_INFO}")
+  ENDIF()
 
 #  MESSAGE("CFS_WC_URL ${CFS_WC_URL}")
 #  MESSAGE("CFS_WC_REVISION ${CFS_WC_REVISION}")

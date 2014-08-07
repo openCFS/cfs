@@ -18,7 +18,6 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
-#include "Forms/Operators/ConvectivePierceOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/DivOperator.hh"
 
@@ -435,6 +434,10 @@ namespace CoupledField{
         //Add the region information
         PtrParamNode flowNode = myParam_->Get("flowList")->GetByVal("flow","name",flowId.c_str());
 
+        bool fullForm = false;
+        if(myParam_->Get("flowFormulation")->As<std::string>() == "withDivergence")
+          fullForm = true;
+
         // Read coefficient flow coefficient function for this region and add it to flow functor
         PtrCoefFct regionFlow;
         std::set<UInt> definedDofs;
@@ -443,35 +446,158 @@ namespace CoupledField{
                              isComplex_, regionFlow, definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
 
-        //now create the integrators
-        BiLinearForm *convectiveStiff = NULL;
-        BiLinearForm *convectiveDamp = NULL;
-        if( dim_ == 2 ) {
-          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,2,1>(),
-                                        new ConvectiveOperator<FeH1,2,1>(),coeffM, -1.0, coefUpdateGeo);
-        } else {
-          convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, 2.0, coefUpdateGeo);
-          convectiveStiff = new ABInt<>(new ConvectivePierceOperator<FeH1,3,1>(),
-                                        new ConvectiveOperator<FeH1,3,1>(), coeffM, -1.0, coefUpdateGeo);
+
+        PtrCoefFct divRegionFlow;
+        PtrCoefFct divUFactors;
+        if(fullForm){
+          ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames, flowInfo->entryType,
+                               isComplex_, divRegionFlow, definedDofs, coefUpdateGeo );
+          divRegionFlow->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
+          divMeanFlowCoef_->AddRegion( actRegion, divRegionFlow );
         }
-        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
-        convectiveDamp->SetName("convectiveDampPierce");
+
+
+
+        //now create the integrators
+        BaseBDBInt   *convectiveStiff = NULL;
+        BiLinearForm *convectiveStiffDivU = NULL;
+        BiLinearForm *convectiveDamp = NULL;
+        BiLinearForm *convectiveDampT = NULL;
+        BiLinearForm *convectiveDampDivU = NULL;
+        if( dim_ == 2 ) {
+          if( isComplex_ ) {
+
+
+            convectiveDamp  = new ABInt<Complex>(new IdentityOperator<FeH1,2,1>(),
+                                                 new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                 coeffM, 1.0, coefUpdateGeo);
+            convectiveDampT  = new ABInt<Complex>(new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                  new IdentityOperator<FeH1,2,1>(),
+                                                  coeffM, -1.0, coefUpdateGeo);
+
+            convectiveStiff = new BBInt<Complex>(new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                 coeffM, -1.0, coefUpdateGeo);
+            if(fullForm){
+              divUFactors = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                                CoefXprBinOp(mp_,coeffM,divRegionFlow,CoefXpr::OP_MULT));
+              convectiveDampDivU = new BBInt<Complex>(new IdentityOperator<FeH1,2,1>(),
+                                                      divUFactors, 1.0, coefUpdateGeo);
+
+              convectiveStiffDivU = new ABInt<Complex>( new IdentityOperator<FeH1,2,1>(),
+                                                        new ConvectiveOperator<FeH1,2,1,Complex>(),
+                                                        divUFactors, 1.0, coefUpdateGeo);
+            }
+
+          } else {
+
+            convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,2,1>(),
+                                          new ConvectiveOperator<FeH1,2,1>(),
+                                          coeffM, 1.0, coefUpdateGeo);
+            convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,2,1>(),
+                                          coeffM, -1.0, coefUpdateGeo);
+
+            convectiveDampT  = new ABInt<>(new ConvectiveOperator<FeH1,2,1>(),
+                                           new IdentityOperator<FeH1,2,1>(),
+                                           coeffM, -1.0, coefUpdateGeo);
+            if(fullForm){
+              divUFactors = CoefFunction::Generate( mp_, Global::REAL,
+                                                CoefXprBinOp(mp_,divRegionFlow,coeffM,CoefXpr::OP_MULT));
+              convectiveDampDivU = new BBInt<>(new IdentityOperator<FeH1,2,1>(),
+                                                      divUFactors, 1.0, coefUpdateGeo);
+
+              convectiveStiffDivU = new ABInt<>( new IdentityOperator<FeH1,2,1>(),
+                                                        new ConvectiveOperator<FeH1,2,1>(),
+                                                        divUFactors, 1.0, coefUpdateGeo);
+            }
+          }        
+        } else {
+          if( isComplex_ ) {
+
+            convectiveDamp  = new ABInt<Complex>(new IdentityOperator<FeH1,3,1>(),
+                                                 new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                 coeffM, 1.0, coefUpdateGeo);
+            convectiveDampT  = new ABInt<Complex>(new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                  new IdentityOperator<FeH1,3,1>(),
+                                                  coeffM, -1.0, coefUpdateGeo);
+
+            convectiveStiff = new BBInt<Complex>(new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                 coeffM, -1.0, coefUpdateGeo);
+            if(fullForm){
+              divUFactors = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                                CoefXprBinOp(mp_,coeffM,divRegionFlow,CoefXpr::OP_MULT));
+
+              convectiveDampDivU = new BBInt<Complex>(new IdentityOperator<FeH1,3,1>(),
+                                                      divUFactors, 1.0, coefUpdateGeo);
+
+              convectiveStiffDivU = new ABInt<Complex>( new IdentityOperator<FeH1,3,1>(),
+                                                        new ConvectiveOperator<FeH1,3,1,Complex>(),
+                                                        divUFactors, 1.0, coefUpdateGeo);
+            }
+          } else {            
+
+            convectiveDamp  = new ABInt<>(new IdentityOperator<FeH1,3,1>(),
+                                          new ConvectiveOperator<FeH1,3,1>(),
+                                          coeffM, 1.0, coefUpdateGeo);
+            convectiveDampT  = new ABInt<>(new ConvectiveOperator<FeH1,3,1>(),
+                                           new IdentityOperator<FeH1,3,1>(),
+                                           coeffM, -1.0, coefUpdateGeo);
+
+            convectiveStiff = new BBInt<>(new ConvectiveOperator<FeH1,3,1>(),
+                                          coeffM, -1.0, coefUpdateGeo);
+
+            if(fullForm){
+              divUFactors = CoefFunction::Generate( mp_, Global::REAL,
+                                                CoefXprBinOp(mp_,coeffM,divRegionFlow,CoefXpr::OP_MULT));
+
+              convectiveDampDivU = new BBInt<>(new IdentityOperator<FeH1,3,1>(),
+                                                      divUFactors, 1.0, coefUpdateGeo);
+
+              convectiveStiffDivU = new ABInt<>( new IdentityOperator<FeH1,3,1>(),
+                                                        new ConvectiveOperator<FeH1,3,1>(),
+                                                        divUFactors, 1.0, coefUpdateGeo);
+            }
+          }          
+        }
         convectiveStiff->SetBCoefFunctionOpB(meanFlowCoef_);
         convectiveStiff->SetName("convectiveStiffPierce");
+        convectiveDamp->SetBCoefFunctionOpB(meanFlowCoef_);
+        convectiveDamp->SetName("convectiveDampPierce");
+        convectiveDampT->SetBCoefFunctionOpA(meanFlowCoef_);
+        convectiveDampT->SetName("convectiveDampPierceTransposed");
 
+        convectiveInts_[actRegion] = convectiveStiff;
+
+        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveStiff, STIFFNESS );
         BiLinFormContext *convectiveContextDamp  =  new BiLinFormContext(convectiveDamp, DAMPING );
-        BiLinFormContext *convectiveContextStiff =  new BiLinFormContext(convectiveDamp, STIFFNESS );
+        BiLinFormContext *convectiveContextDampT  =  new BiLinFormContext(convectiveDampT, DAMPING );
 
         convectiveContextDamp->SetEntities( actSDList, actSDList );
         convectiveContextDamp->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+        convectiveContextDampT->SetEntities( actSDList, actSDList );
+        convectiveContextDampT->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
         convectiveContextStiff->SetEntities( actSDList, actSDList );
         convectiveContextStiff->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
-
         assemble_->AddBiLinearForm( convectiveContextDamp );
+        assemble_->AddBiLinearForm( convectiveContextDampT );
         assemble_->AddBiLinearForm( convectiveContextStiff );
+
+        if(fullForm){
+          convectiveStiffDivU->SetBCoefFunctionOpB(meanFlowCoef_);
+          convectiveStiffDivU->SetName("convectiveStiffPierceDivU");
+          convectiveDampDivU->SetName("convectiveDampPierceDivU");
+          BiLinFormContext *convectiveContextStiffDivU =  new BiLinFormContext(convectiveStiffDivU, STIFFNESS );
+          BiLinFormContext *convectiveContextDampDivU  =  new BiLinFormContext(convectiveDampDivU, DAMPING );
+
+
+          convectiveContextDampDivU->SetEntities( actSDList, actSDList );
+          convectiveContextDampDivU->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+          convectiveContextStiffDivU->SetEntities( actSDList, actSDList );
+          convectiveContextStiffDivU->SetFeFunctions( feFunctions_[formulation_],feFunctions_[formulation_]);
+
+          assemble_->AddBiLinearForm( convectiveContextDampDivU );
+          assemble_->AddBiLinearForm( convectiveContextStiffDivU );
+        }
+
       }
     }
   }
@@ -518,8 +644,8 @@ namespace CoupledField{
     std::map<std::string, PtrCoefFct> vars;
     std::map<std::string, PtrCoefFct> var;
     vars["a"]  = coeffPMLVec;
-    var["a"] = coeffPMLVec;
     vars["b"] = coeffc;
+    var["a"] = coeffPMLVec;
 
     StdVector<std::string> matAReal;
     StdVector<std::string> matBReal;
@@ -616,7 +742,7 @@ namespace CoupledField{
       BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, -1.0, updatedGeo_ );
 
       dampNu->SetName("acouPML_dampNu");
-      CgradNu->SetName("acouPML_CgradNu");
+      CgradNu->SetName("acouPML_CgIdentityOperaradNu");
       dNudt->SetName("acouPML_dNudt");
       P->SetName("acouPML_P");
 
@@ -647,14 +773,16 @@ namespace CoupledField{
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(formulation_, *ncIt);
+        if (dim_ == 2)
+          DefineMortarCoupling<2,1>(formulation_, *ncIt);
+        else
+          DefineMortarCoupling<3,1>(formulation_, *ncIt);
         break;
       case NC_NITSCHE:
-        if(dim_ == 2)
-          DefineNitscheCoupling<2>(formulation_, *ncIt);
+        if (dim_ == 2)
+          DefineNitscheCoupling<2,1>(formulation_, *ncIt );
         else
-          DefineNitscheCoupling<3>(formulation_, *ncIt);
-
+          DefineNitscheCoupling<3,1>(formulation_, *ncIt );
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -766,19 +894,19 @@ namespace CoupledField{
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,1>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                                                  1.0, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-                Double,true>(1.0, exValue , volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,3,1>(),
+                                                 1.0, exValue , volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -795,11 +923,11 @@ namespace CoupledField{
                                          CoefXprBinOp(mp_, tmp2,surfDens, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,1>,
-              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,1>, 
-              Complex,true>(1.0, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+                                                1.0, exValue, volRegions, coefUpdateGeo);
         }
 
       } else {
@@ -850,19 +978,19 @@ namespace CoupledField{
       if( formulation_ == ACOU_POTENTIAL ) {
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                  scalFactor, exValue, volRegions, coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                 scalFactor, exValue, volRegions, coefUpdateGeo);
           }
         }
       } else if( formulation_ == ACOU_PRESSURE && isComplex_) {
@@ -879,11 +1007,11 @@ namespace CoupledField{
                                          CoefXprBinOp(mp_, surfDens, tmp2, 
                                                       CoefXpr::OP_MULT) );
         if( dim_ == 2) {
-          lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>,
-              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                scalFactor, exValue, volRegions, coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-              Complex,true>(scalFactor, exValue, volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex,true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                scalFactor, exValue, volRegions, coefUpdateGeo);
         }
       } else {
         EXCEPTION( "Normal velocity can only be prescribed for potential "
@@ -994,6 +1122,7 @@ namespace CoupledField{
     rhs->unit = "?";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    this->rhsFeFunctions_[formulation_]->SetResultInfo(rhs);
     DefineFieldResult( this->rhsFeFunctions_[formulation_], rhs );
     results_.Push_back( rhs );
     availResults_.insert( rhs );
@@ -1084,6 +1213,22 @@ namespace CoupledField{
 
   }
   
+  void AcousticPDE::FinalizePostProcResults(){
+    //first call base class method
+    SinglePDE::FinalizePostProcResults();
+
+    ////now we additonally add the convective stuff
+    //std::map<RegionIdType, BaseBDBInt*>::iterator stiffIt = this->convectiveInts_.begin();
+    //for(; stiffIt != convectiveInts_.end(); ++stiffIt ) {
+    //  RegionIdType region = stiffIt->first;
+    //  BaseBDBInt* bdb = stiffIt->second;
+    //  if( !bdb)
+    //    continue;
+    //
+    //  convectiveCoef_->AddIntegrator(bdb, region);
+    //}
+  }
+
   void AcousticPDE::DefinePostProcResults(){
     
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
@@ -1146,10 +1291,28 @@ namespace CoupledField{
       // Define pressure as p = rho * dPsi/dt
       PtrCoefFct potD1Fct= this->GetCoefFct( ACOU_POTENTIAL_DERIV_1 );
       PtrCoefFct densFct = this->GetCoefFct( ELEM_DENSITY);
-      presFct = 
-          CoefFunction::Generate( mp_, part,
-                                 CoefXprBinOp(mp_, potD1Fct, densFct, CoefXpr::OP_MULT ) );
-      DefineFieldResult(presFct, pres); 
+      presFct  =
+               CoefFunction::Generate( mp_, part,
+                                      CoefXprBinOp(mp_, potD1Fct, densFct, CoefXpr::OP_MULT ) );
+
+     //in case of flow, we need the substantial derivative
+      // THIS WOULD WORK IF ONLY CefFunctionBOp WOULD BE DEFINED IN A CONSISTENT MANNER!
+      // USAGE OF THIS COEFFUNCTION in MechPDE and FluidPDE PROHIBIT THIS AT THE MOMENT!
+     /*if( isComplex_ ) {
+       convectiveCoef_.reset(new CoefFunctionBOp<Complex>(feFct, res1));
+     } else {
+       convectiveCoef_.reset(new CoefFunctionBOp<Double>(feFct, res1));
+     }
+
+
+     PtrCoefFct p2Fct  =
+              CoefFunction::Generate( mp_, part,
+                                     CoefXprBinOp(mp_, densFct,convectiveCoef_, CoefXpr::OP_MULT ) );
+
+      presFct  =
+          CoefFunction::Generate( mp_, part, CoefXprBinOp(mp_, p1Fct, p2Fct, CoefXpr::OP_ADD ) );
+*/
+      DefineFieldResult(presFct, pres);
     } else{
       presFct = this->GetCoefFct(ACOU_PRESSURE);
     }
@@ -1314,6 +1477,47 @@ namespace CoupledField{
       availResults_.insert(power);
     }
     
+    // === ACOUSTIC KINETIC ENERGY ===
+    shared_ptr<ResultFunctor> keFunc;
+    shared_ptr<ResultInfo> kinEnergy(new ResultInfo);
+    kinEnergy->resultType = ACOU_KIN_ENERGY;
+    kinEnergy->dofNames = "";
+    kinEnergy->unit = "Ws";
+    kinEnergy->entryType = ResultInfo::SCALAR;
+    kinEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert ( kinEnergy );
+
+    shared_ptr<BaseFeFunction> deriv1vFct;
+    if ( formulation_ == ACOU_PRESSURE )
+      deriv1vFct = timeDerivFeFunctions_[ACOU_PRESSURE_DERIV_1];
+    else
+      deriv1vFct = timeDerivFeFunctions_[ACOU_POTENTIAL_DERIV_1];
+
+    if( isComplex_ ) {
+      keFunc.reset(new EnergyResultFunctor<Complex>(deriv1vFct, kinEnergy, 0.5));
+    } else {
+      keFunc.reset(new EnergyResultFunctor<Double>(deriv1vFct, kinEnergy, 0.5));
+    }
+    resultFunctors_[ACOU_KIN_ENERGY] = keFunc;
+    massFormFunctors_.insert(keFunc);
+
+    // === ACOUSTIC POTENTIAL ENERGY ===
+    shared_ptr<ResultFunctor> keFuncPot;
+    shared_ptr<ResultInfo> potEnergy(new ResultInfo);
+    potEnergy->resultType = ACOU_POT_ENERGY;
+    potEnergy->dofNames = "";
+    potEnergy->unit = "Ws";
+    potEnergy->entryType = ResultInfo::SCALAR;
+    potEnergy->definedOn = ResultInfo::REGION;
+    availResults_.insert ( potEnergy );
+    if( isComplex_ ) {
+      keFuncPot.reset(new EnergyResultFunctor<Complex>(feFct, potEnergy, 0.5));
+    } else {
+      keFuncPot.reset(new EnergyResultFunctor<Double>(feFct, potEnergy, 0.5));
+    }
+    resultFunctors_[ACOU_POT_ENERGY] = keFuncPot;
+    stiffFormFunctors_.insert(keFuncPot);
+
   }
 
    void AcousticPDE::CreateMeanFlowFunction(StdVector<std::string> dofNames){
@@ -1331,19 +1535,36 @@ namespace CoupledField{
 
      results_.Push_back( flowvelocity );
      availResults_.insert( flowvelocity );
+     if(myParam_->Get("flowFormulation")->As<std::string>() == "withDivergence"){
+       //// === DIVERGENCE OF MEAN FLOW ===
+       shared_ptr<ResultInfo> divflowvelocity( new ResultInfo);
+       divflowvelocity->resultType = DIV_MEAN_FLUIDMECH_VELOCITY;
+       divflowvelocity->dofNames = "";
+       divflowvelocity->unit = "1/s";
 
+       divflowvelocity->definedOn = ResultInfo::ELEMENT;
+       divflowvelocity->entryType = ResultInfo::SCALAR;
+
+       divMeanFlowCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+       DefineFieldResult( divMeanFlowCoef_, divflowvelocity );
+
+       results_.Push_back( divflowvelocity );
+       availResults_.insert( divflowvelocity );
+     }
    }
 
   //! Init the time stepping
   void AcousticPDE::InitTimeStepping(){
+
+    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
 
     if(this->isTimeDomPML_){
       //basically the choice for alpha scheme needs to be done everytime we have
       //a damping matrix not just for PML
 
       //scheme for main unknown
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,-0.3);
-      GLMScheme * scheme2 = new Newmark(0.5,0.25,-0.3);
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
+      GLMScheme * scheme2 = new Newmark(0.5,0.25,alpha);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       shared_ptr<BaseTimeScheme> vecScheme(new TimeSchemeGLM(scheme2,0));
 
@@ -1351,18 +1572,18 @@ namespace CoupledField{
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);
 
       if(!this->isAPML_ && dim_ == 3){
-        GLMScheme * scheme3 = new Newmark(0.5,0.25,-0.3);
+        GLMScheme * scheme3 = new Newmark(0.5,0.25,alpha);
         shared_ptr<BaseTimeScheme> scalScheme(new TimeSchemeGLM(scheme3,0));
         feFunctions_[ACOU_PMLAUXSCALAR]->SetTimeScheme(scalScheme);
       }
     }else{
-      GLMScheme * scheme1 = new Newmark(0.5,0.25,0.0);
+      //GLMScheme * scheme1 = new Newmark(0.8,0.4225,-0.3);
+      //GLMScheme * scheme1 = new Newmark(0.6,0.3025,alpha);
+      GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
       shared_ptr<BaseTimeScheme> acouScheme(new TimeSchemeGLM(scheme1,0));
       feFunctions_[formulation_]->SetTimeScheme(acouScheme);
     }
-
   }
-
 
 }
 

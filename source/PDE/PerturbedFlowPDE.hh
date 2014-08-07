@@ -102,6 +102,7 @@ namespace CoupledField
     //! is in general different for each region and will most likely
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> meanFlowCoef_;
+    shared_ptr<CoefFunction> meanFlowCoefScattered_;
     shared_ptr<BaseFeFunction> meanFlowFeFct_;
     shared_ptr<FeSpace> meanFlowFeSpace_;
 
@@ -110,6 +111,10 @@ namespace CoupledField
 
     //! type of stabilization
     bool stabilized_;
+    bool stabilizedBochev_;
+
+    bool enableC2_;
+    Double factorC1_;
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

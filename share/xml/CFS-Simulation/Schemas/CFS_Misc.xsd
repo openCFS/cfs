@@ -54,6 +54,14 @@
       <xsd:maxInclusive value="360"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!-- Data type for specifying direction orientation (-/+1) -->
+  <xsd:simpleType name="DT_DirFlag">
+    <xsd:restriction base="xsd:integer">
+      <xsd:enumeration value="-1"/>
+      <xsd:enumeration value="+1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 
   <!-- Data type for setting flags -->
@@ -111,6 +119,7 @@
       <xsd:enumeration value="acoustic"/>
       <xsd:enumeration value="acousticXYZ"/>
       <xsd:enumeration value="electrostatic"/>
+      <xsd:enumeration value="elecConduction"/>
       <xsd:enumeration value="smooth"/>
       <xsd:enumeration value="mpcci"/>
       <xsd:enumeration value="heatConduction"/>

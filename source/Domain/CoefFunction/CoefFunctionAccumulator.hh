@@ -44,6 +44,10 @@ public:
 //  }
   //@}
   
+  virtual CoefDimType GetDimType() const{
+	  return fct_->GetDimType();
+  }
+
   
   // ========================
   //  ACCESS METHODS

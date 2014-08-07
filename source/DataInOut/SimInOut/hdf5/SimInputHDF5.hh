@@ -183,6 +183,10 @@ namespace CoupledField {
 
     //@}
 
+
+    void GetNamedNodeResult(const std::string& nodeName,
+                            const std::string resultName,
+                            StdVector<Complex>& result);    
   protected:
 
     // =======================================================================

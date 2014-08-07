@@ -74,17 +74,6 @@ namespace CoupledField
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
     
-    // register signal handler only, if it is a child driver
-    if( !simState_->HasInput() ) {
-      if( signal( SIGINT, HarmonicDriver::SignalHandler) == SIG_ERR ) {
-        EXCEPTION( "Could not register Signal Handler");
-      }
-
-      // store pointer to global instance variable, if not yet set
-      if( !instance ) {
-        instance = this;
-      }
-    }
   }
 
   HarmonicDriver::~HarmonicDriver()
@@ -276,6 +265,17 @@ namespace CoupledField
     // Perform one simulation for each desired frequency
     for ( actFreqStep_ = restartStep_+1; actFreqStep_ <= numFreq_+restartStep_; actFreqStep_++ )
     {
+      // register signal handler only, if it is a child driver
+      if( actFreqStep_ > restartStep_+1 && !simState_->HasInput() ) {
+        if( signal( SIGINT, HarmonicDriver::SignalHandler) == SIG_ERR ) {
+          EXCEPTION( "Could not register Signal Handler");
+        }
+
+        // store pointer to global instance variable, if not yet set
+        if( !instance ) {
+          instance = this;
+        }
+      }
       
       // Determine next frequency value
       ComputeFrequencyStep(actFreqStep_);

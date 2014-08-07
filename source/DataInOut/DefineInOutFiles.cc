@@ -17,8 +17,11 @@
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 #include <def_use_comsol.hh>
+#include <def_use_cgns.hh>
 
 #include "DefineInOutFiles.hh"
+
+#include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
@@ -40,9 +43,6 @@
 // HDF5 readers and writers
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-
-// XDMF writer
-#include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
 
 #include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
@@ -64,10 +64,17 @@
 #include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
 #endif
 
+#ifdef USE_CGNS
+#include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
+#include "DataInOut/SimInOut/CGNS/SimOutputCGNS.hh"
+#endif
+
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
 #include "DataInOut/SimInOut/InfoResultOutput/SimOutputInfo.hh"
 #ifndef __MINGW32__
+#ifndef __INTEL_COMPILER
 #include "DataInOut/SimInOut/Streaming/SimOutputStreaming.hh"
+#endif
 #endif
 
 #include "DataInOut/ParamHandling/XMLMaterialHandler.hh"
@@ -194,6 +201,13 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
       EXCEPTION( "No support for MESH input file format." );
 #endif // USE_MESH
     }
+    else if (informat == "cdb")
+    {
+      if (meshFile.empty())
+        meshFile = simName + ".cdb";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputCDB(meshFile, actNode, infoNode));
+    }
     else if (informat == "hdf5")
     {
 #ifdef USE_HDF5
@@ -244,6 +258,17 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
 #else
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
 #endif // USE_COMSOL
+    }
+    else if (informat == "cgns")
+    {
+#ifdef USE_CGNS
+      if (meshFile == "")
+        meshFile = simName + ".cgns";
+      inFiles[actId] = shared_ptr<SimInput> (
+          new SimInputCGNS(meshFile, actNode, infoNode));
+#else
+      EXCEPTION( "No support for CGNS .cgns input file format." );
+#endif // USE_CGNS
     }
     else if (informat == "unv")
     {
@@ -351,9 +376,6 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     
   }
   
-  // The HDF5 writer needs to be known to the XDMF writer.
-  shared_ptr<SimOutput> hdf5Writer;
-  
   // iterate over all found files
   for (UInt i = 0; i < formatNodes.GetSize(); i++)
   {
@@ -374,6 +396,16 @@ CreateSimOutputFiles(PtrParamNode rootNode,
                                                            infoNode, restart));
 #else
       EXCEPTION( "No support for UNV output file format." );
+#endif
+    }
+
+    if (actFormat == "cgns")
+    {
+#ifdef USE_CGNS
+      out[actId] = shared_ptr<SimOutput> (new SimOutputCGNS(simName, actNode, 
+                                                           infoNode, restart));
+#else
+      EXCEPTION( "No support for CGNS output file format." );
 #endif
     }
 
@@ -424,44 +456,11 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     if (actFormat == "hdf5")
     {
 #ifdef USE_HDF5
-      if(!hdf5Writer) 
-      {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
-        out[actId] = hdf5Writer;
-
-        std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
-      }
+      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode,
+                                                            infoNode, restart));
+      std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
 #else
       EXCEPTION( "No support for HDF5 output file format." );
-#endif
-    }
-
-    if (actFormat == "xdmf")
-    {
-#ifdef USE_HDF5
-      if(!hdf5Writer) 
-      {        
-        hdf5Writer.reset(new SimOutputHDF5(simName, actNode, infoNode, restart));
-
-        if(hdf5Id == "")
-          hdf5Id = actId + "_hdf5";
-
-        out[hdf5Id] = hdf5Writer;
-
-        std::cout << "++ Creating HDF5/XDMF writer '" << hdf5Id << "'" << std::endl;
-      }
-      
-      SimOutputXDMF* simOutXDMF = new SimOutputXDMF(simName, actNode, 
-                                                    infoNode, restart);
-      if(simOutXDMF) 
-      {
-        out[actId] = shared_ptr<SimOutput> (simOutXDMF);
-        simOutXDMF->SetHDF5Writer(dynamic_cast<SimOutputHDF5*>( hdf5Writer.get() ), false);
-      }
-        
-#else
-      EXCEPTION( "No support for HDF5 output file format.\n"
-                 << "Therefore it does not make sense to write XDMF output." );
 #endif
     }
 
@@ -487,10 +486,12 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     }
 
 #ifndef __MINGW32__
+#ifndef __INTEL_COMPILER
     if (actFormat == "streaming")
     {
       out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode, restart));
     }
+#endif
 #endif
 
   } // loop over reader nodes

@@ -66,6 +66,9 @@ public:
   //! Finalize initialization
   virtual void Finalize() = 0;
   
+  //! Cleanup date. To b called before destruction. 
+  virtual void CleanUp() = 0;
+  
   //! Query for complex-valued results
   virtual bool IsComplex() const = 0;
   
@@ -328,6 +331,9 @@ public:
   //! \see BaseFeFunction::Finalize()
   void Finalize();
   
+  //! \see BaseFeFunction::CleanUp 
+  void CleanUp();
+  
   
   virtual bool IsComplex() const {
     return std::tr1::is_same<T,Complex>::value;
@@ -385,6 +391,10 @@ public:
   //! Return complex-valued vector at integration point
   virtual void GetVector(Vector<T>& vec, 
                          const LocPointMapped& lpm );
+
+  //! Return real-valued element averaged value
+  virtual void GetAvgElemValue(T & vec, 
+                         const Elem* elem); 
 
   //! Return complex-valued scalar at integration point
   virtual void GetScalar(T& scalar, 

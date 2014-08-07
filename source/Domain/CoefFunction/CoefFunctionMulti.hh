@@ -79,32 +79,44 @@ public:
   // COLLECTION ACCESS
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Double >  & vals,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                            StdVector<shared_ptr<EntityList> >()  );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Double> >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                            StdVector<shared_ptr<EntityList> >()  );
 
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Complex >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                            StdVector<shared_ptr<EntityList> >()  );
 
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                         StdVector<Vector<Complex> >  & vals, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                            StdVector<shared_ptr<EntityList> >()  );
 
 private:
   
+  //! perform initialization (set zeroCoef_)
+  void Init();
+
   //! Return coefficient function for a given region
   inline PtrCoefFct GetRegionCoef( RegionIdType region ) {
-    std::map<RegionIdType,PtrCoefFct >::const_iterator it = 
-        regionCoefs_.find(region);
+    std::map<RegionIdType,PtrCoefFct >::const_iterator it =
+                           regionCoefs_.find(region);
     if(it == regionCoefs_.end()){
       if ( !zeroEmptyRegions_ )
         EXCEPTION("Region " << region << " is not contained in functor");
       return zeroCoef_;
     }
+
     return it->second;
   }
   

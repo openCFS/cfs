@@ -213,7 +213,7 @@ namespace CoupledField {
   template<class T_Stype>
   void BlockJacPrecondImpl<T_Stype>::Apply( const Vector<T_Stype> &r,
                                             Vector<T_Stype> &z ) {
-    EXCEPTION("Not imeplemented for the general case");
+    EXCEPTION("Not implemented for the general case");
   }
   
   template<>
@@ -241,6 +241,29 @@ namespace CoupledField {
       rStart += size;
     }
   }
+  
+  template<class T_Stype>
+    void BlockJacPrecondImpl<T_Stype>::
+       GetPrecondSysMat( BaseMatrix& sysMat ) {
+    EXCEPTION( "Not implemeneted for the general case" )
+  }
+  
+  template<>
+  void BlockJacPrecondImpl<Double>::
+     GetPrecondSysMat( BaseMatrix& sysMat ) {
+
+       VBR_Matrix<Double>& ret = dynamic_cast<VBR_Matrix<Double>& >(sysMat);
+
+       sysMat.Init();
+       // loop over all diagonal blocks
+       for( UInt i = 0; i < numRows_; ++i ) {
+         
+         Matrix<Double> & inv = factors_[i];
+         ret.SetDiagBlock(i, inv);
+       }
+
+     }
+
   
   // ***********************
   // Explicit template instantiation
@@ -300,30 +323,7 @@ namespace CoupledField {
    void BlockJacPrecond<T_storage,T>::
    GetPrecondSysMat( BaseMatrix& sysMat ) {
 
-     EXCEPTION("Temporary not available")
-     //VBR_Matrix<T>& ret = dynamic_cast<VBR_Matrix<T>& >(sysMat);
-
-//     T * ptDiag = NULL;
-//     sysMat.Init();
-//
-//     // loop over all diagonal blocks
-//     UInt bs = 0, rStart = 0;
-//     for( UInt i = 0; i < numRows_; ++i ) {
-//       
-//       Matrix<T> & inv = factors_[i];
-//
-//       // obtain block information
-//       ptDiag = ret.GetDiagBlock( i,bs, rStart);
-//
-//       // set b
-//       for( UInt i = 0; i < bs ; ++i ) {
-//         for( UInt j = 0; j < bs ; ++j ) {
-//         ptDiag[i*bs +j] = inv[i][j];
-//         }
-//       }
-//
-//     }
-
+     this->pimpl_->GetPrecondSysMat( sysMat );
    }
    // ***********************
    // Explicit template instantiation

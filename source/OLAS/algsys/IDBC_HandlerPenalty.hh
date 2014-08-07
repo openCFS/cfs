@@ -66,7 +66,7 @@ namespace CoupledField {
     void AdaptSystemMatrix( SBM_Matrix &sysMat );
 
     //! @copydoc BaseIDBC_Handler::AddIDBCToRHS()
-    inline void AddIDBCToRHS( SBM_Vector *rhs );
+    void AddIDBCToRHS( SBM_Vector *rhs );
 
     //! @copydoc BaseIDBC_Handler::SetIDBC()
     void SetIDBC( UInt rowBlock, UInt rowNum, const T &val );

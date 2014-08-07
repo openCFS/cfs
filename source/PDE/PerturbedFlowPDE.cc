@@ -21,6 +21,7 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionStabParams.hh"
 #include "Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh"
+
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/Assemble.hh"
@@ -41,11 +42,14 @@
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/DivOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/Operators/IdentityOperatorProjected.hh"
 #include "Forms/Operators/MultiIdOp.hh"
 #include "Forms/Operators/LaplOp.hh"
 #include "Forms/Operators/ConvectiveOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/StrainOperator.hh"
+
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -114,6 +118,22 @@ namespace CoupledField {
     stabilized_ = myParam_->Get("stabilization")->As<bool>();
     if ( stabilized_ )
     	std::cerr << "\n DO STABILIZED FORMULATION!!\n" << std::endl;
+
+    stabilizedBochev_ = false;
+    stabilizedBochev_ = myParam_->Get("stabilizationBochev")->As<bool>();
+    if ( stabilizedBochev_ )
+          std::cerr << "\n DO STABILIZED FORMULATION OF TYPE BOCHEV!!\n" << std::endl;
+
+    if ( stabilizedBochev_ && stabilized_)
+      EXCEPTION("Standad stabilization AND stabilization of Bochev not possible");
+    
+    enableC2_ = false;
+    enableC2_ = myParam_->Get("enableC2")->As<bool>();
+    if ( enableC2_ )
+          std::cerr << "\n ENABLING SECOND CONVECTIVE TERM 2 (C2)\n" << std::endl;
+
+    factorC1_ = 2.0;
+    factorC1_ = myParam_->Get("factorC1")->As<Double>();
   }
   
   void PerturbedFlowPDE::InitNonLin() {
@@ -191,7 +211,9 @@ namespace CoupledField {
       // --------------------------
       // We hardcode the Taylor-Hood spaces for the moment
       velSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+      //velSpace->SetRegionApproximation(actRegion, "default", "default");
       meanVelSpace->SetRegionApproximation(actRegion, "velPolyId", "velIntegId");
+      // meanVelSpace->SetRegionApproximation(actRegion, "default", "default");
       presSpace->SetRegionApproximation(actRegion, "presPolyId", "presIntegId");
 
       PtrCoefFct density = materials_[actRegion]->GetScalCoefFnc(
@@ -311,6 +333,10 @@ namespace CoupledField {
         // Get result info object for flow
         shared_ptr<ResultInfo> flowInfo;
         flowInfo = GetResultInfo(MEAN_FLUIDMECH_VELOCITY);
+        // Read coefficient flow coefficient function for this region
+        bool coefUpdateGeo = false;
+        PtrCoefFct regionFlow;
+        std::set<UInt> definedDofs;
         
         //Add the region information
         PtrParamNode flowNode = 
@@ -318,33 +344,49 @@ namespace CoupledField {
                                               "name",
                                               flowId.c_str());
         
-        // Read coefficient flow coefficient function for this region
-        bool coefUpdateGeo = false;
-        PtrCoefFct regionFlow;
-        std::set<UInt> definedDofs;
         ReadUserFieldValues( actSDList, flowNode, flowInfo->dofNames,
-                             flowInfo->entryType, false, regionFlow,
+                             flowInfo->entryType, isComplex_, regionFlow,
                              definedDofs, coefUpdateGeo );
         meanFlowCoef_->AddRegion( actRegion, regionFlow );
-
+          
+        
         meanVelFct->AddEntityList( actSDList );
         meanVelFct->AddExternalDataSource( regionFlow,
                                            actSDList );
 
         //now create the integrators
         BiLinearForm *convectiveVv = NULL;
+
         if( dim_ == 2 ) {
-          convectiveVv = new ABInt<>( new IdentityOperator<FeH1,2,2>(),
-                                      new ConvectiveOperator<FeH1,2,2>(),
-                                      density, 1.0, coefUpdateGeo );
+          if(isComplex_) 
+          {
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,2,2>(),
+                                               new ConvectiveOperator<FeH1,2,2,Complex>(),
+                                               density, factorC1_, coefUpdateGeo );
+          }
+          else
+          {
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,2,2>(),
+                                              new ConvectiveOperator<FeH1,2,2>(),
+                                              density, factorC1_, coefUpdateGeo );
+          }
         } else {
-          convectiveVv = new ABInt<>( new IdentityOperator<FeH1,3,3>(),
-                                      new ConvectiveOperator<FeH1,3,3>(),
-                                      density, 1.0, coefUpdateGeo );
+          if(isComplex_) 
+          {
+            convectiveVv = new ABInt<Complex>( new IdentityOperator<FeH1,3,3>(),
+                                               new ConvectiveOperator<FeH1,3,3,Complex>(),
+                                               density, factorC1_, coefUpdateGeo );
+          }
+          else
+          {
+            convectiveVv = new ABInt<Double>( new IdentityOperator<FeH1,3,3>(),
+                                              new ConvectiveOperator<FeH1,3,3>(),
+                                              density, factorC1_, coefUpdateGeo );
+          }
         }
 
-        convectiveVv->SetBCoefFunctionOpB(meanFlowCoef_);
-
+        convectiveVv->SetBCoefFunctionOpB(meanVelFct);
+        
         convectiveVv->SetName("PerturbedStiffIntConvectiveVv");
 
         BiLinFormContext *convectiveContextVv = NULL;
@@ -355,66 +397,67 @@ namespace CoupledField {
                                              feFunctions_[FLUIDMECH_VELOCITY] );
         assemble_->AddBiLinearForm( convectiveContextVv );
 
-#if 1
-        // Second convective term. Derivative tensor of mean flow field is a
-        // factor computed by a CoefFunction.
-        BaseBOperator* bOpGrad;
-        BaseBOperator* bOpId;
-        if( dim_ == 2 ) {
-          bOpId = new IdentityOperator<FeH1,2,2>();
-        }
-        else {
-          bOpId = new IdentityOperator<FeH1,3,3>();
-        }
-
-        //now create the integrators
-        BiLinearForm *convectivevV = NULL;
-        PtrCoefFct coeffConvec;
-        if(isComplex_) {
+        if(enableC2_) 
+        {
+          // Second convective term. Derivative tensor of mean flow field is a
+          // factor computed by a CoefFunction.
+          BaseBOperator* bOpGrad;
+          BaseBOperator* bOpId;
           if( dim_ == 2 ) {
-            bOpGrad = new GradientOperator<FeH1,2, Complex>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
-                                                             bOpGrad, meanVelFct )
-              );
-          } else {
-            bOpGrad = new GradientOperator<FeH1,3, Complex>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
-                                                             bOpGrad, meanVelFct )
-              );
-          }          
-          convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
-
-        } else {
-          if( dim_ == 2 ) {
-            bOpGrad = new GradientOperator<FeH1,2, Double>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
-                                                            bOpGrad, meanVelFct )
-              );
-          } else {
-            bOpGrad = new GradientOperator<FeH1,3, Double>();
-            coeffConvec.reset(
-              new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
-                                                            bOpGrad, meanVelFct )
-              );
+            bOpId = new IdentityOperator<FeH1,2,2>();
           }
-          convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
+          else {
+            bOpId = new IdentityOperator<FeH1,3,3>();
+          }
+          
+          //now create the integrators
+          BiLinearForm *convectivevV = NULL;
+          PtrCoefFct coeffConvec;
+          if(isComplex_) {
+            if( dim_ == 2 ) {
+              bOpGrad = new GradientOperator<FeH1,2, 1, Complex>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Complex,2>( density, viscosity,
+                                                               bOpGrad, meanVelFct )
+                );
+            } else {
+              bOpGrad = new GradientOperator<FeH1,3, 1, Complex>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Complex,3>( density, viscosity,
+                                                               bOpGrad, meanVelFct )
+                );
+            }          
+            convectivevV = new BDBInt<Complex,Complex>( bOpId, coeffConvec, 1.0 );
+            
+          } else {
+            if( dim_ == 2 ) {
+              bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Double,2>( density, viscosity,
+                                                              bOpGrad, meanVelFct )
+                );
+            } else {
+              bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
+              coeffConvec.reset(
+                new CoefFunctionMeanFlowConvection<Double,3>( density, viscosity,
+                                                              bOpGrad, meanVelFct )
+                );
+            }
+            convectivevV = new BDBInt<Double,Double>( bOpId, coeffConvec, 1.0 );
+          }
+          
+          convectivevV->SetName("PerturbedStiffIntConvectivevV");
+          
+          BiLinFormContext *convectiveContextvV = NULL;
+          convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
+          
+          convectiveContextvV->SetEntities( actSDList, actSDList );
+          convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
+                                               feFunctions_[FLUIDMECH_VELOCITY] );
+          assemble_->AddBiLinearForm( convectiveContextvV );
         }
         
-        convectivevV->SetName("PerturbedStiffIntConvectivevV");
-
-        BiLinFormContext *convectiveContextvV = NULL;
-        convectiveContextvV = new BiLinFormContext(convectivevV, STIFFNESS );
-
-        convectiveContextvV->SetEntities( actSDList, actSDList );
-        convectiveContextvV->SetFeFunctions( feFunctions_[FLUIDMECH_VELOCITY],
-                                             feFunctions_[FLUIDMECH_VELOCITY] );
-        assemble_->AddBiLinearForm( convectiveContextvV );
-
-#endif
-
+        
         //======================================================================
         // DO STABILIZATION due to convection
         //======================================================================
@@ -424,127 +467,212 @@ namespace CoupledField {
           density->GetScalar(densityVal, map);
           BaseBOperator* bOpGrad;
           if( dim_ == 2 ) {
-            bOpGrad = new GradientOperator<FeH1,2, Double>();
+            bOpGrad = new GradientOperator<FeH1,2, 1, Double>();
           }
           else {
-            bOpGrad = new GradientOperator<FeH1,3, Double>();
+            bOpGrad = new GradientOperator<FeH1,3, 1, Double>();
           }
           PtrCoefFct coeffConvecStab;
           coeffConvecStab.reset(
             new CoefFunctionStabParams( density, viscosity, meanFlowCoef_,
                                         bOpGrad, presFct,
-                                        CoefFunctionStabParams::SUPG )
+                                        CoefFunctionStabParams::SUPG, isComplex_ )
             );
-          
+
           //stabilization: velocity mass matrix
           BiLinearForm *convecMassVVstab = NULL;
           if( dim_ == 2 ) {
-            convecMassVVstab = new ABInt<>(
-              new ConvectiveOperator<FeH1,2,2>(),
-              new IdentityOperator<FeH1,2,2>(),
-              coeffConvecStab, densityVal, coefUpdateGeo
-              );
+            if(isComplex_) 
+            {
+              convecMassVVstab = new ABInt<Complex>(
+                new ConvectiveOperator<FeH1,2,2,Complex>(),
+                new IdentityOperator<FeH1,2,2>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecMassVVstab = new ABInt<Double>(
+                new ConvectiveOperator<FeH1,2,2>(),
+                new IdentityOperator<FeH1,2,2>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
           } else {
-            convecMassVVstab = new ABInt<>(
-              new ConvectiveOperator<FeH1,3,3>(),
-              new IdentityOperator<FeH1,3,3>(),
-              coeffConvecStab, densityVal, coefUpdateGeo
-              );
+            if(isComplex_) 
+            {
+              convecMassVVstab = new ABInt<Complex>(
+                new ConvectiveOperator<FeH1,3,3,Complex>(),
+                new IdentityOperator<FeH1,3,3>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecMassVVstab = new ABInt<>(
+                new ConvectiveOperator<FeH1,3,3>(),
+                new IdentityOperator<FeH1,3,3>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
           }
           convecMassVVstab->SetBCoefFunctionOpA(meanFlowCoef_);
           convecMassVVstab->SetName("PerturbedDampIntVVConvectiveStab");
-          
+
           BiLinFormContext *dampContextVVStab = NULL;
           dampContextVVStab = new BiLinFormContext( convecMassVVstab,
                                                     DAMPING );
           dampContextVVStab->SetEntities( actSDList, actSDList );
           dampContextVVStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( dampContextVVStab );
-          
+
           //stabilization: velocity stiffness matrix
           BiLinearForm *convecStiffVVstab = NULL;
           if( dim_ == 2 ) {
-            convecStiffVVstab = new BBInt<>(
-              new ConvectiveOperator<FeH1,2,2>(),
-              coeffConvecStab, densityVal, coefUpdateGeo
-              );
+            if(isComplex_)
+            {
+              convecStiffVVstab = new BBInt<Complex>(
+                new ConvectiveOperator<FeH1,2,2,Complex>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecStiffVVstab = new BBInt<>(
+                new ConvectiveOperator<FeH1,2,2>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
           } else {
-            convecStiffVVstab = new BBInt<>(
-              new ConvectiveOperator<FeH1,3,3>(),
-              coeffConvecStab, densityVal, coefUpdateGeo
-              );
+            if(isComplex_) 
+            {
+              convecStiffVVstab = new BBInt<Complex>(
+                new ConvectiveOperator<FeH1,3,3,Complex>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecStiffVVstab = new BBInt<>(
+                new ConvectiveOperator<FeH1,3,3>(),
+                coeffConvecStab, densityVal, coefUpdateGeo
+                );
+            }
           }
           convecStiffVVstab->SetBCoefFunctionOpB(meanFlowCoef_);
           convecStiffVVstab->SetName("PerturbedStiffIntVVConvectiveStab");
-          
+
           BiLinFormContext *stiffContextVVStab = NULL;
           stiffContextVVStab = new BiLinFormContext( convecStiffVVstab,
                                                      STIFFNESS );
           stiffContextVVStab->SetEntities( actSDList, actSDList );
           stiffContextVVStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( stiffContextVVStab );
-          
+
           //stabilization: pressure stiffness matrix, in velocity equation
           BiLinearForm *convecStiffVPstab = NULL;
           if( dim_ == 2 ) {
-            convecStiffVPstab = new ABInt<>(
-              new ConvectiveOperator<FeH1,2,2>(),
-              new GradientOperator<FeH1,2>(),
-              coeffConvecStab, 1.0, coefUpdateGeo
-              );
+            if(isComplex_) 
+            {
+              convecStiffVPstab = new ABInt<Complex>(
+                new ConvectiveOperator<FeH1,2,2,Complex>(),
+                new GradientOperator<FeH1,2>(),
+                coeffConvecStab, 1.0, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecStiffVPstab = new ABInt<>(
+                new ConvectiveOperator<FeH1,2,2>(),
+                new GradientOperator<FeH1,2>(),
+                coeffConvecStab, 1.0, coefUpdateGeo
+                );
+            }
           } else {
-            convecStiffVPstab = new ABInt<>(
-              new ConvectiveOperator<FeH1,3,3>(),
-              new GradientOperator<FeH1,3>(),
-              coeffConvecStab, 1.0, coefUpdateGeo
-              );
+            if(isComplex_) 
+            {
+              convecStiffVPstab = new ABInt<Complex>(
+                new ConvectiveOperator<FeH1,3,3,Complex>(),
+                new GradientOperator<FeH1,3>(),
+                coeffConvecStab, 1.0, coefUpdateGeo
+                );
+            }
+            else
+            {
+              convecStiffVPstab = new ABInt<>(
+                new ConvectiveOperator<FeH1,3,3>(),
+                new GradientOperator<FeH1,3>(),
+                coeffConvecStab, 1.0, coefUpdateGeo
+                );
+            }
           }
+          
           convecStiffVPstab->SetBCoefFunctionOpA(meanFlowCoef_);
           convecStiffVPstab->SetName("PerturbedStiffIntVPConvectiveStab");
-          
+
           BiLinFormContext *stiffContextVPStab = NULL;
           stiffContextVPStab = new BiLinFormContext( convecStiffVPstab,
                                                      STIFFNESS );
           stiffContextVPStab->SetEntities( actSDList, actSDList );
           stiffContextVPStab->SetFeFunctions( velFct, presFct);
           assemble_->AddBiLinearForm( stiffContextVPStab );
-          
+
           //pressure stabilization: velocity stiffness matrix, in pressure equation
           PtrCoefFct coeffPressStab;
           coeffPressStab.reset(
             new CoefFunctionStabParams(density, viscosity, meanFlowCoef_,
                                        bOpGrad, presFct,
-                                       CoefFunctionStabParams::PSPG ) 
+                                       CoefFunctionStabParams::PSPG, isComplex_ )
             );
-          
+
           BiLinearForm *convecStiffPVstab = NULL;
           if( dim_ == 2 ) {
-            convecStiffPVstab = new ABInt<>( new GradientOperator<FeH1,2>(),
-                                             new ConvectiveOperator<FeH1,2,2>(),
-                                             coeffPressStab, densityVal,
-                                             coefUpdateGeo);
+            if(isComplex_) 
+            {
+              convecStiffPVstab = new ABInt<Complex>( new GradientOperator<FeH1,2>(),
+                                                      new ConvectiveOperator<FeH1,2,2,Complex>(),
+                                                      coeffPressStab, densityVal,
+                                                      coefUpdateGeo);
+            }
+            else
+            {
+              convecStiffPVstab = new ABInt<>( new GradientOperator<FeH1,2>(),
+                                               new ConvectiveOperator<FeH1,2,2>(),
+                                               coeffPressStab, densityVal,
+                                               coefUpdateGeo);
+            }
           } else {
-            convecStiffPVstab = new ABInt<>( new GradientOperator<FeH1,3>(),
-                                             new ConvectiveOperator<FeH1,3,3>(),
-                                             coeffPressStab, densityVal,
-                                             coefUpdateGeo);
+            if(isComplex_) 
+            {
+              convecStiffPVstab = new ABInt<Complex>( new GradientOperator<FeH1,3>(),
+                                                      new ConvectiveOperator<FeH1,3,3,Complex>(),
+                                                      coeffPressStab, densityVal,
+                                                      coefUpdateGeo);
+            }
+            else
+            {
+              convecStiffPVstab = new ABInt<>( new GradientOperator<FeH1,3>(),
+                                               new ConvectiveOperator<FeH1,3,3>(),
+                                               coeffPressStab, densityVal,
+                                               coefUpdateGeo);
+            }
           }
           convecStiffPVstab->SetBCoefFunctionOpB(meanFlowCoef_);
           convecStiffPVstab->SetName("PerturbedStiffIntPVConvectiveStab");
-          
+
           BiLinFormContext *stiffContextPVStab = NULL;
           stiffContextPVStab = new BiLinFormContext( convecStiffPVstab,
                                                      STIFFNESS );
           stiffContextPVStab->SetEntities( actSDList, actSDList );
           stiffContextPVStab->SetFeFunctions( presFct, velFct );
           assemble_->AddBiLinearForm( stiffContextPVStab );
-          
+
           //stabilization: Least Squares InCompressibility
           PtrCoefFct coeffLsicStab;
           coeffLsicStab.reset(
             new CoefFunctionStabParams( density, viscosity, meanFlowCoef_,
-                                        bOpGrad, presFct, 
-                                        CoefFunctionStabParams::LSIC )
+                                        bOpGrad, presFct,
+                                        CoefFunctionStabParams::LSIC, isComplex_ )
             );
           BiLinearForm *LsicStiffVVstab = NULL;
           if( dim_ == 2 ) {
@@ -559,14 +687,14 @@ namespace CoupledField {
                                            coefUpdateGeo);
           }
           LsicStiffVVstab->SetName("PerturbedLSICStiffIntVVStab");
-          
+
           BiLinFormContext *stiffContextLsicStab = NULL;
           stiffContextLsicStab =new BiLinFormContext( LsicStiffVVstab,
                                                       STIFFNESS );
           stiffContextLsicStab->SetEntities( actSDList, actSDList );
           stiffContextLsicStab->SetFeFunctions( velFct, velFct);
           assemble_->AddBiLinearForm( stiffContextLsicStab );
-        }
+        } //stabilized
       } // is flow
       
       // ====================================================================
@@ -593,13 +721,38 @@ namespace CoupledField {
       //======================================================================
       // DO STABILIZATION due to pressure
       //======================================================================
-      if ( stabilized_) {
+      if ( stabilizedBochev_) {
         //stabilization of pressure
+        PtrCoefFct coeffKPPstab = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+//        PtrCoefFct coeffKPPstab =
+//            CoefFunction::Generate( mp_, Global::REAL,
+//                CoefXprBinOp( mp_, density, viscosity, CoefXpr::OP_DIV ) );
+
+        BiLinearForm * stiffIntPPstab = NULL;
+
+        if( dim_ == 2 ) {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,2>(),
+              coeffKPPstab,1.0);
+        } else {
+          stiffIntPPstab = new BBInt<>( new IdentityOperatorProjected<FeH1,3>(),
+              coeffKPPstab,1.0);
+        }
+        stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
+        BiLinFormContext *stiffContPPstab = NULL;
+        stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
+        
+        stiffContPPstab->SetEntities( actSDList, actSDList );
+        stiffContPPstab->SetFeFunctions( presFct, presFct );
+        assemble_->AddBiLinearForm( stiffContPPstab );
+      }
+
+      if ( stabilized_) {
         PtrCoefFct coeffKPPstab;
         coeffKPPstab.reset(
           new CoefFunctionStabParams( density,
                                       viscosity,
-                                      CoefFunctionStabParams::PSPG ) 
+                                      CoefFunctionStabParams::PSPG, isComplex_ )
           );
         BiLinearForm * stiffIntPPstab = NULL;
         if( dim_ == 2 ) {
@@ -612,11 +765,11 @@ namespace CoupledField {
         stiffIntPPstab->SetName("PerturbedStiffIntPPstab");
         BiLinFormContext *stiffContPPstab = NULL;
         stiffContPPstab = new BiLinFormContext(stiffIntPPstab, STIFFNESS );
-        
+
         stiffContPPstab->SetEntities( actSDList, actSDList );
         stiffContPPstab->SetFeFunctions( presFct, presFct );
         assemble_->AddBiLinearForm( stiffContPPstab );
-        
+
         //stabilization of pressure
         Double densityVal;
         LocPointMapped map;
@@ -634,7 +787,7 @@ namespace CoupledField {
         dampIntpvStab->SetName("PerturbedDampIntStab");
         BiLinFormContext *dampContextpvStab = NULL;
         dampContextpvStab = new BiLinFormContext( dampIntpvStab, DAMPING );
-        
+
         dampContextpvStab->SetEntities( actSDList, actSDList );
         dampContextpvStab->SetFeFunctions( presFct, velFct);
         assemble_->AddBiLinearForm( dampContextpvStab );
@@ -721,7 +874,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> pressure( new ResultInfo);
     pressure->resultType = FLUIDMECH_PRESSURE;
     pressure->dofNames = "";
-    pressure->unit = "Pa";
+    pressure->unit = MapSolTypeToUnit(pressure->resultType);
 
     pressure->definedOn = ResultInfo::NODE;
     pressure->entryType = ResultInfo::SCALAR;
@@ -736,7 +889,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> velocity( new ResultInfo);
     velocity->resultType = FLUIDMECH_VELOCITY;
     velocity->dofNames = velDofNames;
-    velocity->unit = "m/s";
+    velocity->unit = MapSolTypeToUnit(velocity->resultType);
 
     velocity->definedOn = ResultInfo::NODE;
     velocity->entryType = ResultInfo::VECTOR;

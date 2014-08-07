@@ -29,7 +29,7 @@ namespace CoupledField
     //! Initialization method
     
     //! Initialize driver
-    //! \param restart If true, the driver performss restart
+    //! \param restart If true, the driver performs restart
     virtual void Init(bool restart) = 0;
 
     /** This solved the analysis problem and involved generation the global

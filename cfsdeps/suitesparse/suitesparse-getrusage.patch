@@ -2,7 +2,7 @@
 +++ CMakeLists.txt	2013-01-20 20:39:43.000000000 +0100
 @@ -1,6 +1,18 @@
  cmake_minimum_required(VERSION 2.8)
- project(SuiteSparse-3.7.0 Fortran C)
+ project(SuiteSparse-4.2.1 Fortran C)
  
 +#-----------------------------------------------------------------------------
 +# Include all the necessary files for macros

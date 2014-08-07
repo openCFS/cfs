@@ -314,6 +314,10 @@ namespace CoupledField {
         // Get diag matrix for vector generation
         stdMat = sysMat_[SYSTEM]->GetPointer( k, k );
 
+        if(stdMat == NULL){
+          EXCEPTION("SBM-Block was not initialized");
+        }
+        
         // Insert sub-vector into solution
         bVec = GenerateVectorObject( *stdMat, solEntryType );
         sVec = dynamic_cast<SingleVector*>( bVec );
@@ -558,6 +562,14 @@ namespace CoupledField {
 
   }
 
+
+  void AlgebraicSys::AddIDBCToRHS() {
+    LOG_TRACE(algSys) << "Add IDBC to RHS ";
+
+    idbcHandler_->AddIDBCToRHS( rhs_ );
+  }
+
+
   void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
@@ -632,29 +644,24 @@ namespace CoupledField {
     PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
-    // Now modifiy the right-hand side vector.
+    // Now modify the right-hand side vector.
     // Note: It is mandatory to incorporate the IDBC values to the
     // complete RHS.
     if ( setIDBC ) 
       idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
-    // the solve part is commentet out, I see no reason to export linsys also here, it would
-    // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
     PtrParamNode els = solStrat_->GetExportLinSysNode();
     std::string file;
     std::string base;
 
-    // TODO: This is most ugly copy & paste from standardsys.cc -> Generalize common parts!!
-    // need it common even when exclusive solution
     if(els) {
       std::ostringstream os;
       std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
       os << name;
-      //          std::string id = analysis_id->Get("analysis_id")->As<std::string>();
-      //          boost::replace_all(id, ":", "_");
-      //          os << "_" << id;
+      std::string id = analysis_id->Get("analysis_id")->As<std::string>();
+      boost::replace_all(id, ":", "_");
+      os << "_" << id;
       base = os.str();
     }
 
@@ -671,16 +678,23 @@ namespace CoupledField {
 
       sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
 
-      // HARD-CODED: Export also preconditioner
-      SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-      if( onlyOneMatrixBlock_ ) {
-        precond_->GetPrecondSysMat((*copy)(0,0));
-      } else {
-        precond_->GetPrecondSysMat(*copy);
-      }
-      copy->Export((base+"_precond").c_str(), format, NULL);
+      switch (precond_->GetPrecondType()) {
+      case BasePrecond::NOPRECOND:
+      case BasePrecond::ID:
+        // don't export anything
+        break;
+      default:
+        // HARD-CODED: Export also preconditioner
+        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        if( onlyOneMatrixBlock_ ) {
+          precond_->GetPrecondSysMat((*copy)(0,0));
+        } else {
+          precond_->GetPrecondSysMat(*copy);
+        }
+        copy->Export((base+"_precond").c_str(), format, NULL);
 
-      delete copy;
+        delete copy;
+      }
 
       if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
         sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);
@@ -750,8 +764,10 @@ namespace CoupledField {
               (*sysMat_[SYSTEM])(numBlocks_-1, numBlocks_-1);
 
       if( sysMat_[SYSTEM]->IsSymmetric() ) {
-        
+
         // sum up row contributions S_ic * sol_c
+        // calculate not directly with S_ic but with S_ci^T
+        // (S_ic does not exist in symmetric sbm matrices)
         for(UInt c = 0; c < numBlocks_ -1; ++c ) {
           StdMatrix &stdMat =(*sysMat_[SYSTEM])(c,numBlocks_-1);
           stdMat.MultTSub((*sol_)(c),*tmp);
@@ -759,7 +775,12 @@ namespace CoupledField {
         S_ii.Mult(*tmp, (*sol_)(numBlocks_-1));
         //(*sol_)(numBlocks_-1).Init();
       } else {
-        EXCEPTION("Non-symmetric case not yet implemented");
+        // sum up row contributions S_ic * sol_c
+        for(UInt c = 0; c < numBlocks_ -1; ++c ) {
+          StdMatrix &stdMat =(*sysMat_[SYSTEM])(numBlocks_-1,c);
+          stdMat.MultSub((*sol_)(c),*tmp);
+        }
+        S_ii.Mult(*tmp, (*sol_)(numBlocks_-1));
       }
       // delete temporary vector
       delete tmp;
@@ -864,8 +885,10 @@ namespace CoupledField {
     // Note: currently static condensation does not work in conjunction
     // with direct coupled / mixed problems.
     if( numFcts > 1 && statCond_ ) {
-      EXCEPTION("Static condensation is currently just implemented for "
-                 << "systems with one FeFunction only.");
+      WARN("Static condensation is currently just implemented for "
+          << "systems with one FeFunction only."
+          << "However for mech-acou problems it works as the coupling boundary contains no "
+          << "inner degrees of freedom.");
     }
   }
 
@@ -1290,8 +1313,8 @@ namespace CoupledField {
 
         // insert all combinations (rowBlock,colBlock) feSubMatricesByBlock_
         std::set<UInt>::const_iterator rowIt = rowBlocks.begin();
-        std::set<UInt>::const_iterator colIt = colBlocks.begin();
         for( ; rowIt != rowBlocks.end(); ++rowIt ) {
+          std::set<UInt>::const_iterator colIt = colBlocks.begin();
           for( ; colIt != colBlocks.end(); ++colIt ) {
             SubMatrixID sID;
             sID.rowInd = *rowIt;
@@ -1678,7 +1701,7 @@ namespace CoupledField {
           if( index > blockInfo_[iBlock]->numLastFreeIndex ) {
             // fixed index
             fixedIndPerBlock[iBlock].insert( 
-                index - blockInfo_[iBlock]->numLastFreeIndex -1 + offset );
+                index - blockInfo_[iBlock]->numLastFreeIndex + offset );
           } else {
             // free index
             freeIndPerBlock[iBlock].insert( index + offset );
@@ -1823,7 +1846,8 @@ namespace CoupledField {
                                        const StdVector<Integer>& eqnNrs1,
                                        FeFctIdType fctId2,
                                        const StdVector<Integer>& eqnNrs2,
-                                       bool setCounterPart ) {
+                                       bool setCounterPart,
+                                       bool noStaticCond) {
     
     LOG_DBG(algSys) << "Setting element matrix for fctIds ("
                      << fctId1 << ", " << fctId2 << ")";
@@ -1831,6 +1855,7 @@ namespace CoupledField {
     LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
     LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
     LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
+    LOG_DBG3(algSys) << "noStaticCond is:\n " << noStaticCond;
     
     // Security check: check if we have as many equations as numRows/Cols
     // of the matrix
@@ -1932,7 +1957,11 @@ namespace CoupledField {
     // 4) store back the matrices
     
     // check for static condensation and if inner block has non-zero size
-    if( statCond_ && rowIndList1[numBlocks_-1].GetSize() ) {
+    // additionally added a switch which allows to disable static cond
+    // (needed for transient case where the system matrix can be build with static condensation
+    //  but the matrix parts, which are needed for the calculation of the rhs, will not be condensed)
+    if( statCond_ && rowIndList1[numBlocks_-1].GetSize() &&
+        (noStaticCond == false) ) {
       
       LOG_DBG(algSys) << "Performing static condensation";
 
@@ -2232,7 +2261,6 @@ namespace CoupledField {
   }
 
 
-
   void AlgebraicSys::UpdateRHS(FEMatrixType matrixType, 
                                const SBM_Vector& fup,bool SysMatUpdated) {
     
@@ -2241,6 +2269,9 @@ namespace CoupledField {
 
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
+
+//    std::cout << "Updating RHS with matrix "
+//        << feMatrixType.ToString(matrixType) << std::endl;
 
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
@@ -2355,6 +2386,11 @@ namespace CoupledField {
     std::map<UInt, std::set<UInt> > dummyFreeSet;
     MapCompleteFctIdToIndex(fctId, freeIndPerBlock, fixedIndPerBlock, true);
 
+    // If there are no affected free dofs, leave immediately
+    if( freeIndPerBlock.size() == 0 ) {
+      return;
+    }
+    
     // It's okay, if there are no factors, if there is only a system
     // matrix and no other ones
     if ( matFactors.empty() == true ) {
@@ -3122,11 +3158,11 @@ namespace CoupledField {
   template void AlgebraicSys::
   SetElementMatrix( FEMatrixType, Matrix<Double>&, 
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& , bool);
+                    FeFctIdType, const StdVector<Integer>& , bool, bool);
   template void AlgebraicSys::
   SetElementMatrix( FEMatrixType, Matrix<Complex>&, 
                     FeFctIdType, const StdVector<Integer>& ,
-                    FeFctIdType, const StdVector<Integer>& , bool);
+                    FeFctIdType, const StdVector<Integer>& , bool, bool);
   
   template void AlgebraicSys::
   SetElementRHS( const Vector<Double>&, const FeFctIdType, 

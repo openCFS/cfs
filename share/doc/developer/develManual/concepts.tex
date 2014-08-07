@@ -1,9 +1,740 @@
 \chapter{Concepts}
 
 \section{General Overview}
+
 \section{FE-Space}
+
+\subsection{Motivation}
+\subsubsection{Two-Level Solver for Nonlinear Problems}
+\begin{itemize} 
+\item Splitting of unknowns in Nodal, Edge, Face and inner unknowns gives two
+two levels
+\item Nodal unknowns are coarse grid $K_{NN}$
+\item Higher order terms represent fine grid
+\end{itemize}
+\begin{equation}
+{\bf K} = \left(
+\begin{array}{cccc}
+K_{NN} & K_{NE} & K_{NF} & K_{NI} \\
+K_{EN} & K_{EE} & K_{EF} & K_{EI} \\
+K_{FN} & K_{FE} & K_{FF} & K_{FI} \\
+K_{IN} & K_{IE} & K_{IF} & K_{II} \\
+\end{array} \right)
+\end{equation}
+
+ \begin{itemize}
+  \item Block Jacobi preconditioner defined by ${\bf C}$
+\[ \displaystyle
+{\bf C} = \left(
+\begin{array}{cccc}
+K_{NN} & 0 & 0 & 0 \\
+0 & K_{EE} & 0 & 0 \\
+0 & 0 & K_{FF} & 0 \\
+0 & 0 & 0 & K_{II} \\
+\end{array} \right)
+\]
+\item Solution using e.g. PCG / Richardson iteration
+\[ \displaystyle
+ u^{k+1} = u^k + {\bf C}^{-1} (f-{\bf K}u^k)
+\]
+ \end{itemize}
+
+\subsubsection{Solution strategy}
+ \begin{enumerate}
+  \item Solve nonlinear problem only on coarse grid (unknowns of lowest order)
+until working point is reached 
+\[ \displaystyle
+{\bf K}_{NN}(u_N^k) \Delta u_N = f_N - {\bf K}_{NN}(u_{N}^k) u^k = r(u_N^k)
+\]
+\[ \displaystyle
+u^{k+1}_N = u^k_{N} + \eta \Delta u_N
+\]
+\item Calculate complete stiffness matrix
+\item Use iterative preconditioned CG / Richardson solver for smoothing the
+solution
+ \end{enumerate}
+
+\noindent{Advantages}
+\begin{itemize}
+\item Expensive recalculation of ${\bf K}(u)$ mostly performed on coarse level
+\item Matrix $\bf{C}$ is easy invertible
+\end{itemize}
+{\bf $\Rightarrow$ Major changes in CFS / OLAS necessary}
+
+
+\subsection{Drawbacks of Current Concepts}
+\subsubsection{AlgebraicSystem / OLAS}
+  \begin{itemize}
+  \item System matrices only adressable as whole block via \verb+pdeId+, no further distionction in different solution types within one PDE possible
+  %\begin{itemize}
+  %\item No block solver possible
+%\item No Schur-Complement method 
+%  \end{itemize}
+  \item OLAS does not know about the nature of the problem
+  \item Status information of OLAS just written in plain files
+  \end{itemize}
+
+\subsubsection{Equation Handling}
+\begin{itemize}
+ \item Cumbersome numbering with similar loops for nodes/edges/faces/elements
+ ( global $\rightarrow$ pdeLocal $\rightarrow$ eqn)
+\item No discontinuous mapping possible
+\item EqnMap can not know how to handle higher order modes (boundary conditions etc.)
+\begin{itemize}
+\item Set modes to zero?
+\item Map boundary function to coefficients?
+\end{itemize}
+\end{itemize}
+
+\subsubsection{Elements / Ansatz Functions}
+\begin{itemize}
+ \item Currently choice of shape functions encoded in {\tt AnsatzFct}-class
+\item Nested \verb+if+-statements in each Element subclass for Lagrange/Legendre/Spectral
+\item Shape Mapping (Jacobian Determinant, local $\leftrightarrow$ global coordinates) not independent of FE-approximation (only iso-parametric concept)
+\item Axial symmetry explicit encoded in bilinear forms
+\item No flexible choice of integration order possible (order for stiffness matrix lower than for mass matrix)
+\end{itemize}
+
+\subsubsection{(Bi-)Linearforms}
+ \begin{itemize}
+  \item Class structure of many forms too complicated (e.g. MechStressStrain $\leftrightarrow$ LinElastInt)
+\item Calculation of Jacobian Matrix too often (BDB-Form, B-Operatoer etc.)
+\item Inconsistent feature support of bilinearforms for 
+\begin{itemize}
+\item rotation of material data / arbitrary coordinate systems
+\item material tensor instead of isotropic behavior
+\item usage of math parser
+\end{itemize}
+ \end{itemize}
+
+\subsubsection{Relicts of Nodal Stone Age}
+  \begin{itemize}
+\item Boundary conditions only mapped to nodal degrees of freedom
+\item Iterative coupling works just on nodes / element interior
+\item HDF5-Writer currently just handles nodal / element dofs
+\end{itemize}
+
+\subsection{New Concepts}
+\subsubsection{Overview of new Concepts}
+\begin{itemize}
+ \item New Element hierarchy
+\item FESpace 
+\item SBM-System
+\item Equation Numbering System
+\item Shape Mapping Concept
+\end{itemize}
+
+\subsubsection{New Element Hierarchy}
+\paragraph{Element classes}
+\begin{itemize}
+ \item Distionction of elements w.r.t. function space they are belonging (H1 / HCurl / HDiv / L2) 
+
+\includegraphics[width=\textwidth]{pics/concepts/elems}
+
+\item Distinction of lower order (Lagrange-type) and higher order space (arbitrary order) 
+\item As the shape for all e.g. quadrilaterals is the same, we keep the geometric information of the element (nodes, edges, faces, dimension) in a common structure {\tt RefElemShapes}, in where we can access the geometric information using the {\tt FeType}
+\begin{verbatim}
+   // get corner coordinates for QUAD4
+   Matrix<Double> & cornerCoords = 
+        RefElemShapes::shape(QUAD4).cornerCoords;
+\end{verbatim}
+\item Higher order elements can use different polynomials (Jacobi, Legendre, etc.)
+\end{itemize}
+
+\subsection{Shape Mapping}
+\paragraph{New Shape Mapping concept}
+ to be written ...
+
+\subsection{More Reusability}
+\paragraph{Modify BilinearForms structure}
+ to be written ...
+
+
+\subsubsection{FeSpace}
+\begin{itemize} 
+\item Collects pointers to H1 / HCurl / HDiv FE-elements (class \verb#Elem# gets rid \verb#BaseFE# pointer), so it acts as {\color{red} Common interface for all reference FE elements of one given type (H1Lo/Hi, HCurlLo/Hi ...)}
+\item Returns FE-Element for geometric element
+\item Performs equation numbering (replaces EqnMap-class)
+\item Has general methods to change attributes of ALL its elements, e.g.
+\begin{itemize}
+\item Order of shape functions
+\item Integration order
+\item Which polynomials to use for higher order elements (Legendre, Jacobi)
+\end{itemize}
+\end{itemize}
+
+\paragraph{Equation Numbering}
+Perform Re-numbering transparantly in OLAS 
+\begin{itemize}
+  \item Allow for discontinuous mapping of equation numbers
+  \item FeSpace registers at OLAS and obtaines FunctionId (formerly the pdeID)
+  \item Each solution in the FeSpace has equation numbers starting from $1,\dots,n$
+  \item FeSpace can optionally decide to create alternative two level grouping of equations (majorBlockId, blockId), which map to physical matrix blocks in the SBMSystem (see section about SBM-system)
+ \end{itemize}
+
+The FeSpace should allow for a unified mapping of nodes/edges/faces/interior to equation numbers, for the continuous, as well as for the discontinuous case.
+
+\begin{table}[tb]
+\centering
+\begin{minipage}{18cc}\caption{Mapping Scheme.}
+\label{tab:mapping_scheme}
+\end{minipage}
+\par\medskip\noindent
+\begin{tabular}{c|c|c}
+& continuous & discontinuous \\ \hline
+(elemNr,nodeNr) & map$<$nodeNr, EqnNr$>$ & map$<$(elemNr,nodeNr),eqnNr$>$ \\
+(elemNr,edgeNr) & map$<$edgeNr, EqnNr$>$ & map$<$(edgeNr,nodeNr),eqnNr$>$ \\
+(elemNr,faceNr) & map$<$faceNr, EqnNr$>$ & map$<$(faceNr,nodeNr),eqnNr$>$ \\
+\end{tabular}
+\end{table}
+
+\subsubsection{Ablauf der Assemblierung in NGSolve}
+
+\input{pygmentized/ng-Ablauf}
+
+\subsubsection{Brainstorming - Erweiterung von CFS++, Andreas Hauck, 27. Februar 2009}
+
+\paragraph{Einschränkungen des bisherigen Konzeptes}
+\begin{itemize}
+\item Systemmatrizen nicht als  einzelne Blöcke ansprechbar (nur eingeschränkt
+  mit jetzigem SBM-System)
+
+\item    Gleichungsvergabe   sehr    kompliziert   (global-lokal-eqn,    keine
+  diskontinuierlichen DOFs)
+
+\item  FE-Elemente ``zustandsbehaftet''  über AnsatzFct-Klassen  $\rightarrow$
+  lange / verschachtelte if-statement
+
+\item Shape Mapping nicht unabh. Von FE-Ansatz (nur isoparametrisch)
+
+\item Axialsymmetrie explizit codiert
+
+\item Zu teure Berechnung von Geometriemapping (Berechnung d. Jacobi Matrix zu
+  oft)
+
+\item  Klassenstruktur  der Forms  zu  kompliziert  und nicht  allgemeingültig
+  (LinElastInt $\rightarrow$ MechStressStrainInt etc.)
+
+\item  Wahl  der  Integrationsordnung  nicht  flexibel  genug  (pro  Region  /
+  Integrator)
+
+\item Framework für Zeitschrittintegration nicht allgemeingültig genug
+
+\item Relikte aus ``Knoten''-Urzeit:
+
+\begin{itemize}
+\item Iterative Kopplung nur über Knoten möglich
+\item Randwerte nur Knoten-für-Knoten abbildbar
+\end{itemize}
+
+\end{itemize}
+
+\paragraph{Ziele}
+
+\begin{enumerate}
+\item SBM-System / Gleichungsvergabe
+
+\begin{itemize}
+\item Flexible Wahl der Adressierung z.B.
+\begin{itemize}
+\item Lösungstyp (solutionType)
+\item Node / Edge / Face / Inner Dofs
+\item Splittung der Räume (Lower Order $\leftrightarrow$ Higher Order)
+\end{itemize}
+
+\item Flexiblere Lösungsstrategien
+\begin{itemize}
+\item Schur-Komplement-Methode
+\item Block-Jacobi / Gauss-Seidel Methoden
+\item Lösen von Sub-Systemen
+\item Evtl. Lösen d. Systems ohne Aufstellen von Matrix (Spektrale Elemente)
+\end{itemize}
+
+\item Umnummerierung im OLAS statt in eqnMap-Klasse
+\begin{itemize}
+\item PDE / eqnMap vergibt ``flexibel'' Ids (Ersatz für pdeIdType)
+\item Jeder dieser Gleichungsblöcke wird hat Bereich 1-n
+
+\item Lösung /  RHS kann  pro Gleichungsblock  gesetzt /  geholt werden  oder
+  global (SBM-Vektor für Timestepping)
+\end{itemize}
+
+\end{itemize}
+
+\item ElemSpace
+\begin{itemize}
+\item  Sammelt  ``Pointer'' auf  H1  /  Hcurl  / Hdiv  Elemente  $\rightarrow$
+  Elem-Klasse hat keinen Pointer auf BaseFE mehr!
+
+\item Gibt Referenzelement für globales Element zurück
+\item Vergibt Gleichungsnummern 
+\item Vereinigt
+\begin{itemize}
+\item AnsatzFct-Klassen
+\item Globale ptQuad1FE, ptQuad2FE,....
+\item eqnMap
+\end{itemize}
+
+\item  Gleichungsnummern   einfacher  vergeben  mit  {\tt   std::map<>}  statt
+  indirektem Mapping (nodeGlobal-nodeLocal-eqn)
+
+\end{itemize}
+
+\item Shape Mapping
+\begin{itemize}
+\item Trennung von FE-Element und der Berechnung von
+\begin{itemize}
+\item Jacobi Matrix / Determinante
+\item Local $\leftrightarrow$ Global Mapping von Koordinaten
+\item Normal / Tangentialvektor
+\end{itemize}
+\item Klasse ElemShapeMap
+\begin{itemize}
+\item Erhält Pointer auf Grid
+\item Bietet GetMethoden für o.g. Größen pro lokalem Punkt
+\end{itemize}
+\item Konkrete Realisierungen
+\begin{itemize}
+\item H1LoQuadFe1, H1LoQuadFe2
+\item Curved (z.B. Kanten / Oberflächen über NURBS)
+\item Analytical (z.B. Kreis, Ellipse etc.)
+\end{itemize}
+\end{itemize}
+
+\item FeFunction
+
+\begin{itemize}
+\item Ersetzt NodeStoreSol
+\item Hat Informationen über
+\begin{itemize}
+\item ElemSpace
+\item Koeffizientenvektor
+\item Randwerte (Dirichlet, Constraints)
+\end{itemize}
+\item Operationen
+\begin{itemize}
+\item Mapping auf 
+\end{itemize}
+\end{itemize}
+
+\end{enumerate}
+
 \section{FE-Function}
-\section{Integrator}
+
+The FeFunction generalizes the NodeStoreSolution class. It ...
+\begin{itemize}
+ \item stores the coefficients of a solution
+\item knows about its boundary conditions (hold the BCs objects) and can map them to its coefficients (projection based interpolation)
+\item can map itself to another function or to a Node/Elem-Result object (for postprocessing)
+\item knows about its FeSpace (which knows the equations numbers) as well as its FunctionId (for OLAS)
+\end{itemize}
+
+\section{Super Block Matrix (SBM) System}
+
+\paragraph{Original idea by Marcus Mohr}
+\begin{itemize}
+ \item Matrix-/ Vector entries are themself matrices
+\item Address block(s) via pdeID
+\end{itemize} 
+
+\paragraph{More flexible way of addressing blocks, e.g.}
+\begin{itemize}
+  \item SolutionType (several solutions within on PDE, e.g. mixed formulations)
+\item Node / Edge / Face / Inner dofs
+\item Higher Order $\leftrightarrow$ Lower Order Functions
+\item Dual / Primal Ansatz space (Simons NC-interfaces)
+\item Spatial separation / different regions (Local Timestepping)
+\end{itemize}
+
+\subsection{Equation Numbering / Block Adressing}
+\label{sec:blockadress}
+
+Allow for more flexible solution strategies 
+\begin{itemize}
+  \item Omit sub-blocks (e.g. static condenstation)
+  \item Schur-complement method
+  \item Block-Jacobi solver
+\end{itemize}
+
+\begin{figure}[htb]
+  \centering
+  \includegraphics [width=10cm]{pics/splitting}
+  \caption{Splitting of equation numbers according to DOFs, HDBCs and IDBCs.}
+  \label{fig:equation_numbering_splitting}
+\end{figure}
+
+Up to now, OLAS just knows pdeIDs and equation numbers.
+The new concept allows three views onto the system.
+\paragraph{Access strategies}
+ \begin{itemize}
+ \item {\color{red}(matrixId, row/col)} SBM-internal view on entries
+  \item {\color{red}(functionId, eqnNr)} solution-oriented view from CFS++
+  \item {\color{red}((mBlockId, blockId), row/col)} Alternative Logical view from CFS++ (e.g. local time stepping)
+ \end{itemize}
+
+OLAS internally performs the mappings 
+\begin{itemize}
+ \item{\color{red}(functionId, eqnNr) $\rightarrow$ (matrixId, row/col)}
+\item {\color{red}((mBlockId, blockId), row/col) $\rightarrow$ (matrixId, row/col)}
+\end{itemize}
+
+\paragraph{Example}
+We consider a mixed PDE with pressure $p$ and velocity $v$ as dofs, additionally split up in two regions $1$ and $2$ (superscript). The resulting systems looks like (only diagonal and upper diagonal entries shown)
+\begin{center}
+\includegraphics[width=6cm]{pics/concepts/system1}
+\end{center}
+
+\paragraph{Example - Physical View}
+The SBM system has a consecutive numbering of the rows/columns containing the matrices, e.g. the matrix $K_{pp}^{12}$ has the \emph{coordinate} (1,3).
+\begin{center}
+\includegraphics[width=6cm]{pics/concepts/system2}
+\end{center}
+This is the OLAS internal view. Outside OLAS, no one needs to know the \emph{exact} row / column index of the matrices!
+
+\paragraph{Example - Solution oriented view}
+ CFS normally adresses the entries in a combination of {\color{red} (functionId, eqnNr)}, which OLAS maps to a matIndex and a row / column.
+\begin{center}
+\includegraphics[width=6cm]{pics/concepts/system3}
+\end{center}
+This should be the normal view from CFS++, e.g. during matrix / vector assembly and when accessing the solution. If the user requests the solution for $p$, OLAS has to collect the entries from the blocks $p^1$ and $p^2$ and copy them into a SingleVector.
+
+\paragraph{Example - Alternative Logical View}
+ Two level grouping  ({\color{blue}mBlockId},{\color{magenta}blockId}) (as requested by the FeSpace):
+\begin{itemize}
+\item Major Block level (mBlockId): Address all unknowns in Region 1 and 2
+\item Block level (blockId): Address different solution unknowns within one region
+\end{itemize}
+\begin{center}
+\includegraphics[width=5cm]{pics/concepts/system4}
+\end{center}
+This can be used for local time stepping, e.g. request mayjor block for region 1 (Sub-SBM vector) and solve locally. Using the blockId, we can access $p^1$ and $v^1$ within one major block.
+
+\section{Neues Gleichungsvergabekonzept in CFS++}
+\subsection{Bisherige Gleichungsnummernvergabe}
+Das bisherige Konzept der Gleichungsnummernvergabe beruht darauf, dass
+sich alle Einträge, die in das globale Gleichungssystem mit eingehen,
+aus Knotenunbekannten und Knotenansatzfunktionen zusammensetzen
+lassen. Die Zuordnung von Knoten- nach Gleichungsnummern geschieht in
+der Klasse \verb#NodeEQN#. Folglich gibt es (mit Varianten) nur die
+zwei Befehle
+\begin{verbatim}
+ void Node2EQN(const UInt nodeNr, const UInt dof,
+               Integer & eqnNr,UInt & eqnDof) const;
+ void Node2EQN(const StdVector<UInt> &nodeNr,
+               StdVector<Integer> &eqnNr) const;
+\end{verbatim}
+um Knoten auf Gleichungsnummern zu mappen. 
+
+\noindent
+Aufgrund dieser
+Einschränkung folgende Berechnungen und Kopplungen derzeit nicht oder
+nur schwer umsetzbar:
+\begin{itemize}
+\item Aufstellen einer PDE mit mehreren Knotenergebnissen
+  (z.B. Non-matching grid mit akust. Potential und Lagrange-Muliepliern)
+\item Kopplung einer knotenbaiserten PDE mit geometrieunabhängigen
+  Gleichungen (z.B. Kopplung ElecPDE/MagPDE + Netzwerkgleichung)
+\item Kopplung von Knoten- und Element-Unbekannte
+  (z.B. Piezo-Composite Materialien)
+\item PDE mit Edge/Surface-Unbekannten (z.B. Magnetik in 3D)
+\item Verwendung von Elementen beliebiger (höherer) Ordnung unter
+  Verwendung verschiedener Ansatzfunktionen
+\end{itemize}
+
+\noindent
+Ziel des neuen Klassenkonzepts muss daher eine weitergehende
+Abstraktion der Einträge in den SystemMatrizen und ihres Ursprungs bieten.
+
+\clearpage
+\subsection{Allgemeines Konzept}
+In Abbildung \ref{fig:ablauf} sind ist der allgemeine Weg des Mappings
+von einer (physikalischen) größe bis zum entsprechenden Eintrag in der
+Matrix (definiert durch die Gleichungsnummer) gezeigt.
+\begin{figure}[htb]
+  \centering
+%  \includegraphics [width=17cm]{pics/ablauf.png}
+  \includegraphics [width=7cm]{dummy}
+  \caption{Ablauf des Mappings}
+  \label{fig:ablauf}
+\end{figure}
+
+\noindent
+Dabei gibt es folgende Stufen:
+\begin{itemize}
+\item {\bf Quantity/Dof}\newline 
+  Am Beginn steht immer eine (meist physikalische)
+  Größe, wie z.B. das elektr. Potential, die mech. Verschiebung oder
+  der akust. Druck. Es können jedoch auch nicht-physikalische Größen
+  und Unbekannte auftreten, wie z.B. die Lagrange-Multiplizierer. Jede
+\item {\bf Defined On} \newline
+  Jede der o.g. Größen ist entweder auf
+  Knoten/Kanten/Oberflächen, dem Element selbst, einer Liste von
+  Knoten (z.B. Springs) oder als freie Unbekannte (z.B. Maschenstrom
+  usw.) definiert.
+\item {\bf Interpolation/Approximation} \newline 
+  Abhängig von den Entities, auf
+  denen eine Größe definiert ist, kann sie verschiedenartig
+  approximiert werden:
+  \begin{itemize}
+  \item Knoten/Kanten/Oberflächen: Für diese geomtrischen Elemente
+    exisitieren verschiedene Ansatzfunktionen, z.B. Lagrange oder
+    Legendre. Für diese gibt es u.U. auch verschiedene
+    Interpolationsordnungen (linear, quadratisch, höherer Ordnung)
+  \item Element/Rgion/NodeList/Free: Da diese Elemente nicht an
+    Interpolationsfunktionen gebunden sind lassen sie sich nur als
+    konstante Größen approximieren.
+  \end{itemize}
+\item {\bf Entity Type} \newline
+  Abhängig davon, worauf die Größe definiert ist (s. Defined On), muss
+  über verschiedene Entities iteriert werden, um die Elementmatrizen
+  aufzustellen. Für Knoten / Kanten / Oberflächen / Element-Unbekannte muss
+  (wie bisher) über die Elemente einerr Region iteriert werden. Für
+  Regionen-Unbekannte muss über eine Liste von Regionen, für
+  Unbekannte einer Knotenliste muss über diese und für unabhängige
+  Unbekannte muss über vorher vergebene Nummern iteriert
+  werden. Wichtig ist, dass sich jeder EntitType aufzählen lässt,
+  sich also über ihn iterieren lässt.
+\item {\bf EQN number} \newline
+  Um am Ende die Einträge, die eine Größe definieren, in die Matrix
+  eintragen zu können, ist eine Kombination aus Gleichungsnummern
+  notwendig, um Zeile-Spalen-Kombinationen für die Matrixeinträge
+  bestimmen zu können.
+\end{itemize}
+
+\noindent
+Das bisherige Konzept und seine Implementierung lassen bis jetzt nur
+ein Mapping von Knotenunbekannten mit Lagrange-Funktionen
+1./2. Ordnung zu. Das neue Konzept sollte jedoch alle
+o.g. Kombinationen zulassen.
+\subsection{Neue Klassenstruktur}
+In Abbildung \ref{fig:gesamt} ist die neue Klassenstruktur
+zusammenhängend zu sehen.
+\begin{figure}[htb]
+  \centering
+%  \includegraphics [width=17cm]{pics/dof-mapping}
+  \includegraphics [width=10cm]{pics/concepts/dof-mapping}
+  \caption{Neue Klassenstruktur}
+  \label{fig:gesamt}
+\end{figure}
+
+Im Folgenden werden die neuen Klassen und ihre Rolle näher
+vorgestellt.
+\subsubsection{Klasse ResultDof}
+Diese Klasse erweitert den Enum-Type \verb#SolutionType# so, dass auch
+die Information über die Art der Approximation und nähere Angaben über
+die DOFs enthalten sind.
+
+\begin{figure}[htb]
+  \centering
+%  \includegraphics [width=5cm]{pics/resultdof.png}
+  \includegraphics [width=7cm]{dummy}
+  \caption{ResultDof Klasse}
+  \label{fig:class-resultdof}
+\end{figure}
+
+Die Variable \verb#result_# kodiert die Größe, die approximiert wird
+unt \verb#dofs_# die Anzahl der Freiheitsgrade. Die Namen dieser sind
+in \verb#dofNames_# gespeichert. 
+
+\noindent
+Die Variable \verb#definedOn_# gibt an, worauf die Größe definiert
+ist (NODE, EDGE, SURFACE, ELEMENT, REGION, NODELIST, FREE). 
+Zusätzlich wird in der Variable
+\verb#approxType# gespeichert, wie die Größe approximiert /
+interpoliert wird.
+
+\noindent
+Objekte dieser Klasse werden in der Klasse \verb#SinglePDE# angelegt
+(z.B. in \verb#DefineIntegrators#) und werden den
+\verb#BaseForm#-Integratoren mitgegeben, so dass sie die
+Interpolationsordnung wissen. Außerdem können Objekte dieses Typs für
+die neue StoreSolution-Klasse verwendet werden, da sie direkt die
+Größe, die dofs und deren Namen verwaltet. Das Objekt ließe sich
+evtl. noch um Flags für komplex/reell usw. erweitern.
+
+
+
+\begin{itemize}
+\item ResultDof
+
+\item Approx
+\item BaseForm
+\item IntDescriptor
+\item EntityList
+\item EntityIterator
+\end{itemize}
+
+\section{Integrator - On Numerical Integration in CFS, Fabian Wein}
+
+The numerical  integration in CFS, based  on the integration of  the reference
+elements, is a crucial factor for the size of the system matrix. The numerical
+integration  is also  (improperly)  blamed for  bad  simulation results.  This
+document summarizes some knowledge gained  in reimplementing the relevant part
+in  CFS and  shows  how to  isolate  the effect  of  numerical integration  on
+simulation.
+
+\subsection{Mathematics}
+Via numerical integration the integral over the test (Ansatz) functions is 
+approximated. This is covered in any FEM book, advisable is \cite{Solin04}.  
+
+\subsubsection{Economical Gauss Quadrature}
+
+The authors in \cite{Solin04} claim  to present the most efficient integration
+points available,  called \textit{economical} integration. For  CFS users this
+is   called  \textit{Gauss\_standard}.   Other  books   give  for   rectangles
+(quadrilateral) and  cubes (hexahedron, brick)  the values gained  by applying
+the cartesian product of line integration values. Especially in $\mathbf{R}^3$
+economical are much more efficient.
+
+\subsubsection{The Right Order}
+Obviously the order of integration depends on the order of the test functions.
+In CFS  all elements (LineFE,  RectangleFE, ...)  are derived from  BaseFE and
+child classes depending  on the order of the test  function (Line1FE, Line2FE,
+Quad1FE, Quad2FE, ...). It is now important to note, that it is not sufficient
+to always use  integration rules of order  1 and 2! I found  no explanation in
+the books \footnote{Please add  it here if you know it  in detail!} but taking
+the product of two  bilinear functions the result has a  higher order than one
+in the center  of the element but  practically vanishes in first  order on the
+element boundary  $\ldots$. The default  values should be sufficient  for most
+cases. Table \ref{tab:default_order} shows the current default values. In case
+you have  difficulties with this defaults  please start a discussion  to alter
+this values!
+
+\begin{table}
+\begin{center}
+\begin{tabular}{r|r|r|r|r|r}
+element & test function & Gauss order & points \\
+\hline
+line & 1 & 1 & 1\\
+     & 2 & 2=3 & 2 \\
+triangle & 1 & 2 & 3 \\
+         & 2 & 3 & 4 \\
+rectangle & 1 & 2=3 & 4 \\
+          & 2 & 2=3 & 4 \\
+tetrahedron & 1 & 1 & 1 \\
+         & 2 & 2 & 4 \\
+hexahedron & 1 & 4=5 & 14 \\
+         & 2 & 4=5 & 14 \\
+\end{tabular}
+\caption{This are the default integration orders  when no other value is given
+  in the  XML file. They should  have sufficient accuracy for  most cases. The
+  test cases  (section \ref{sec:test_cases}) show  that the results  don't get
+  significantly better  for higher orders  but are  void for lower  orders. An
+  exception is  the triangle, where for  one Gauss order less  the results are
+  also in the same order. Please note that these values are chosen only on the
+  basis of three test cases!}
+\label{tab:default_order}
+\end{center}
+\end{table}
+
+\subsection{Higher Orders}
+On bad simulation results, the impact  of the numerical integration can easily
+be  eliminated  by  manually  applying an  extreme  integration  order.  Table
+\ref{tab:order_points} shows the number of  integration points for a first set
+of higher orders. Not all data  from \cite{Solin04} is implemented, but as the
+book is  accompanied by a  CD further  points can be  added to the  code quite
+easily. For elements where the integration rules are the same for even and odd
+order (2,3) (4,5),  ... only the higher  order is stored. So  users should ask
+for it otherwise a warning message will be printed.
+
+The  XML manual  shows how  to manually  adjust for  high orders.  This should
+eliminate the effect of numerical integration.
+
+\begin{table}
+\begin{center}
+\begin{tabular}{r|r|r|r|r|r}
+order & line & trian & quad & tetra & hexa \\
+\hline
+1     & 1    & 1     & 1    & 1     & 1    \\ 
+2     & 2    & 3     & 4    & 4     & 6    \\
+3     & 2    & 4     & 4    & 5     & 6    \\
+4     & 3    & 6     & 8    & 11    & 14   \\
+5     & 3    & 7     & 8    & 14    & 14   \\
+6     & 4    & 12    & 12   & 24    & 27   \\
+7     & 4    & 13    & 12   & 31    & 27   \\
+8     & 5    & 16    & 20   & 43    & 53   \\
+9     & 5    & 19    & 20   & 53    & 53   \\
+\ldots & \ldots & \ldots & \ldots & \ldots & \ldots \\
+\end{tabular}
+\caption{Economical  Gauss quadrature  points for  the main  elements. Further
+  orders are implemented  and not quoted here. In \cite{Solin04}  orders up to
+  greater 20 are  given. Note that for line, quad  (rectangle) and hexa (cube)
+  the odd and even orders coincide.}
+\label{tab:order_points}
+\end{center}
+\end{table}
+
+\subsubsection{Reduced Integration}
+This  is a  very special  numerical  trick to  avoid blocking  effects. It  is
+mentioned  in  \cite{Hughes00}.  The  parameters   are  set  directly  in  the
+code. Anybody  using this reduced  integration should check and  maintain this
+values!
+
+It should be noted, that in the  test cases a lower integration order than the
+one used as defaults produced completely wrong  results or even a crash in the
+solver.
+
+\subsection{Validation}
+The numerical  integration was tested  on three examples where  the analytical
+solution is known.
+\subsubsection{The Test Cases}
+\label{sec:test_cases}
+The test cases  are taken from the \textit{ANSYS Verification  Manual 5.3} and
+are part of the test suite.
+\paragraph{2D Example: VM181 (Plate)}
+VM181 is  a test for  the natural  frequency of a  flat circular plate  with a
+clamped edge.  The plate  has radius  a=0.4318m and  height of  t=0.0127m. The
+material properties  are E=2.068428e11  Pa, $\nu$=0.3 and  $\rho$=7801.51. The
+exact result of the first mode of vibration is 172.64Hz.
+
+The examples are meshed via GID  structured (coarse and fine) and unstructured
+for triangles and quadrilaterals for bilinear and biquadratic test functions.
+
+\paragraph{3D Example: VM184 (Straight Cantilever Beam)}
+The cantilever has the geometry l=0.1524m, h=0.00508m, t=0.00254m and is fixed
+on one and. On the other side a force can be applied. In the line
+\begin{verbatim}
+<load name="load" dof="uz" value="4.44822/8"/>
+\end{verbatim}
+the direction  of the force  is to be  set. As with  GID one cannot  apply the
+force on the surface, the total force is to be divided by the number of points
+on the  surface. To  find it, simply  calculate the problem  and see  how many
+points are actually written to the history directory - then adjust the divider
+in the  XML file.  The analytical solution  of the deflection  for a  force of
+4.44822 Newton in  x-direction is 7.62e-7m, for y-direction  2.743e-3m and for
+z-direction 1.097e-2m.
+
+The test cases  are modelled with 10 and 30  tetrahedrons and hexahedrons with
+test functions of first and second order.
+
+\paragraph{3D Example: VM187 (Bending of a Curved Beam)}
+The beam  is here a quarter  of a ring  with inner radius 0.104684m  and outer
+radius 0.109728m.  The depth  is 0.00254m  and the  force 4.44822  Newton. The
+analytical  solution is  2.24927e-3m.  As  for the  straight  beam, check  the
+division of the force in the XML file.
+
+The meshes consist of 20 and 40 elements.
+
+\subsubsection{Observations}
+The observations clearly show that the results are determined by
+\begin{itemize}
+\item the order of the test function.
+\item the discretization.
+\item the quality of the meshing (the deformation of elements).
+\item a sufficient high interpolation order.
+\end{itemize}
+This is neither a surprise nor  the observation that higher integration orders
+have only a negligible effect due  to their theoretical exact approximation of
+corresponding polynomials.
+
+One exception is  the simulation of the heavily deformed  meshed 2D plate with
+quadrilaterals. Here the  results become worse by $\approx 5  \%$ for the next
+integration  order but  improve with  successive  higher orders.   But such  a
+deformed  meshing should  be avoided  anyway. Similar  meshing with  triangles
+gives better results  but again the asymptotical convergence is  about 40 away
+from the analytical solution.
+
+
 \section{BOperator}
 \section{CoefficientFunction}
 \section{TimeStepping}
@@ -11,7 +742,6 @@
 \section{Driver}
 \section{Matrix / Vector}
 \section{AlgSys}
-\section{ParamNode}
 \section{Elements}
 
 \label{sec:cfs_element_types}
@@ -145,9 +875,11 @@
     \put(56.5,27.5){\sf {\small 12}}
     \put(45.5,29.5){\sf {\small 13}}
 
-    \put(64,15){{\sf {\tiny \shortstack[c]{1 = (0 0 -1), 2 = (1 0 -1), \\3 = (0 1 -1), 4 = (0 0 1), \\5 = (1 0 1), 6 = (0 1 1), \\7 = (0.5 0 -1), 8 = (0.5 0.5 -1), \\9 = (0 0.5 -1), 10 = (0.5 0 1), \\11 = (0.5 0.5 1), 12 = (0 0.5 1), \\13 = (0 0 0), 14 = (1 0 0), \\15 = (0 1 0)}}}}
-
-
+    \put(64,15){{\sf {\tiny \shortstack[c]{1 =  (0 0 -1), 2 = (1  0 -1), \\3 =
+            (0 1 -1), 4  = (0 0 1), \\5 = (1  0 1), 6 = (0 1 1),  \\7 = (0.5 0
+            -1), 8 =  (0.5 0.5 -1), \\9 = (0  0.5 -1), 10 = (0.5 0  1), \\11 =
+            (0.5 0.5 1), 12 = (0 0.5 1), \\13 =  (0 0 0), 14 = (1 0 0), \\15 =
+            (0 1 0)}}}}
 
   \end{overpic}
   \caption{Available element types in CFS++.}
@@ -155,18 +887,37 @@
 \end{figure}
 
 \section{Input/Output IDs vs. Grid IDs}
+
 \section{Mortar FEM Implementation}
 
 \section{The Enum Class}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Enum}
+\url{\CFSDSHTTPS/trac/wiki/Enum}
 
 \section{Exceptions}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Exceptions}
+\url{\CFSDSHTTPS/trac/wiki/Exceptions}
 
 \section{Parameter Handling}
 \subsection{XML File and Xerces Handler}
 \subsection{ParamNode}
-\subsection{Setting Parameters Using Python and TCL Scripts}
+\subsection{Configuration of Logging Streams}
+
+When compiled in debug mode the  CFS++ logging streams can be configured using
+a XML file
+
+\begin{verbatim}
+cfs -l log.xml simName
+\end{verbatim}
+
+\noindent or
+
+\begin{verbatim}
+cfstool --logConfFile log.xml --mode convert input.h5 output.msh
+\end{verbatim}
+
+\noindent which should look like this:
+
+\input{pygmentized/log}
+
 \section{HDF5 File Format}
 
 \subsection{Design Goals}
@@ -234,24 +985,20 @@ im Projekt erzielten Forschungsdaten in \cite{DFGGuidelines}).
 
 \subsection{XML  Hierarchy  of  HDF5  File  Format}
 
-
-Develop       writer      for       XDMF       metadata      format       (cf.
-\url{http://www.visitusers.org/index.php?title=Using_XDMF_to_read_HDF5},
-\url{http://www.xdmf.org/index.php/Main_Page}).
-
 \input{pygmentized/hdf5_file_format}
 
 \subsection{Fortran Code for Writing  HDF5 Files} During a planned cooperation
-with  a guy named  Kreuzinger, a  demonstration program  for writing  an early
-version of our  HDF5 files has been developed  (not completely compatible with
+with a  guy named  Kreuzinger, a  demonstration program  for writing  an early
+version of our  HDF5 files has been developed (not  completely compatible with
 the current specification).  For the case  that someone may still have use for
-it,     the     corresponding    CMake     project     is    attached     here
-\attachfile[icon=PushPin,description={Fortran   code  for  writing   an  older
-version  of our  HDF5 files.},mimetype=text/plain]{attachments/kreuzinger.txt}
-in the form of a shell archive (extract via: {\tt sh kreuzinger.txt}).  Please
-note  that  the  HDF5  library   (1.6.x)  has  to  be  compiled  with  Fortran
-support. The one from CFSDEPS does  not have Fortran support!  Also, all paths
-are hardcoded into the CMakeLists.txt files and need to be adjusted.
+it,  the corresponding  CMake project  can be  found in  the form  of a  shell
+archive on  the CFS  development server\footnote{Fortran  code for  writing an
+  older          version          of         our          HDF5          files:
+  \url{\CFSDSCFSDEPS/sources/hdf5/kreuzinger.sh}}   (extract   via:  {\tt   sh
+  kreuzinger.sh}).   Please note  that  the  HDF5 library  (1.6.x)  has to  be
+compiled with  Fortran support.  The one  from CFSDEPS  does not  have Fortran
+support!  Also, all paths are hardcoded into the CMakeLists.txt files and need
+to be adjusted.
 
 \section{Interpolation Between Grids}
 
@@ -260,5 +1007,5 @@ for                                                                   debugging
 purposes.},mimetype=text/plain]{attachments/mpcci_reactivate_lse24_lic.txt}
 
 \section{The Logging Mechanism}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/Logging}
+\url{\CFSDSHTTPS/trac/wiki/Logging}
 

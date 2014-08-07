@@ -7,7 +7,7 @@
 
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-
+#include "Utils/Coil.hh"
 
 namespace CoupledField {
 
@@ -146,6 +146,12 @@ namespace CoupledField {
     //! Set single element
     virtual void SetElement( const Elem* elem );
 
+    //! Add an element to the list
+    virtual void AddElement( const Elem* elem );
+    
+    //! Add vector of elements to the list
+    void AddElements( const StdVector<Elem*>& elems );
+
     //! Get RegionId
     RegionIdType GetRegion() const;
     
@@ -191,6 +197,9 @@ namespace CoupledField {
 
     //! Set single surface element
     virtual void SetSurfElem( const SurfElem* elem );
+
+    //! Add an element to the list
+    virtual void AddElement( const SurfElem* elem );
 
     //! Get one element of the list
     virtual const Elem * GetElem( UInt nr ) const;
@@ -257,7 +266,7 @@ namespace CoupledField {
     virtual void AddElement( const shared_ptr<NcSurfElem> elem );
 
     //! Deletes all elements from the list
-    virtual void Clear() { ncElems_.Clear(); }
+    virtual void Clear() { ncElems_.Clear(); size_ = 0; }
     
     //! Get iterator
     virtual EntityIterator GetIterator() const;
@@ -358,7 +367,7 @@ namespace CoupledField {
 
     //! Get iterator
     EntityIterator GetIterator() const;
-    
+
   private:
     StdVector<shared_ptr<Coil> > list_;
 
@@ -494,7 +503,7 @@ namespace CoupledField {
     //! ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST: number of element 
     //! NODE_LIST: node number
     //! REGION_LIST: region name
-    //! COIL_LIST: coild id
+    //! COIL_LIST: coil id
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     

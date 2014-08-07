@@ -134,6 +134,9 @@ protected:
   //! Mathparser object
   MathParser* parser_;
   
+  //! Default coordinate system 
+  CoordSystem* coordSysDefault_;
+  
   //! Map variable names to coefficient functions
   std::map<std::string, PtrCoefFct > coefs_;
 
@@ -227,6 +230,9 @@ protected:
   
   //! Mathparser object
   MathParser* parser_;
+  
+  //! Default coordinate system 
+  CoordSystem* coordSysDefault_;
   
   //! Map variable names to coefficient functions
   std::map<std::string, PtrCoefFct > coefs_;

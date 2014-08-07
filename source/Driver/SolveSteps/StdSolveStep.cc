@@ -7,7 +7,6 @@
 #include "Driver/Assemble.hh"
 #include "PDE/StdPDE.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ResultCache.hh"
 #include "Domain/Results/BaseResults.hh"
 #include "Utils/EvalIntegrals/BiotSavart.hh"
 #include "Utils/Timer.hh"
@@ -15,15 +14,19 @@
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 #include "OLAS/algsys/AlgebraicSys.hh"
 #include "OLAS/algsys/SolStrategy.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
 
 namespace CoupledField {
+
+// declare logging stream
+DECLARE_LOG(stdsolvestep)
+DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   StdSolveStep::StdSolveStep(StdPDE & apde)
     :BaseSolveStep(),
      PDE_(apde)
   {
-
-
 
     pdename_      = PDE_.GetName();
     isaxi_        = PDE_.GetIsaxi();
@@ -36,6 +39,7 @@ namespace CoupledField {
 
     results_      = PDE_.GetResultInfos();
     couplingIter_ = 0;
+    solutionLimit_ = NO_SOLUTION_TYPE;
 
     // copy FE functions of PDE
     feFunctions_ = PDE_.GetFeFunctions();
@@ -73,11 +77,14 @@ namespace CoupledField {
     incStopCrit_ = 1e-2;
     residualStopCrit_ = 1e-3;
     nonLinMaxIter_ = 10;
+    minValidValue_ = -DBL_MAX;
+    maxValidValue_ = DBL_MAX;
 
-    nonLin_            = PDE_.IsNonLin();
-    nonLinMaterial_    = PDE_.IsNonLinMaterial();
-    isHyst_            = PDE_.IsHysteresis();
-    regionNonLinTypes_ = PDE_.GetNonLinRegionTypes();
+    nonLin_                 = PDE_.IsNonLin();
+    nonLinMaterial_         = PDE_.IsNonLinMaterial();
+    nonLinTotalFormulation_ = PDE_.IsTotalNonLinFormulation();
+    isHyst_                 = PDE_.IsHysteresis();
+    regionNonLinTypes_      = PDE_.GetNonLinRegionTypes();
 
     startStep_ = 1;
     
@@ -177,7 +184,9 @@ namespace CoupledField {
 
 
   void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id) {
+
     bool performOneMoreStep;
+    bool isNewton = false;
 
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
@@ -205,9 +214,6 @@ namespace CoupledField {
       PDE_.UpdateToSolStrategy();
       algsys_->UpdateToSolStrategy();
 
-      // Inititalize RHS load vector
-      algsys_->InitRHS();
-      
       // set the boundary conditions
       PDE_.SetBCs();
 
@@ -217,10 +223,8 @@ namespace CoupledField {
           Get("load_factor")->SetValue(loadFactor);
 
       // setup right hand side
+      algsys_->InitRHS();
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // assemble nonlinear parts to RHS
-      assemble_->AssembleNonLinRHS();
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -230,13 +234,27 @@ namespace CoupledField {
       // =================================
       do {
         iterationCounter++;
-        // RHS is already set up!!
 
-//        PtrParamNode child_id = 
-//            BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
+        if ( lineSearch_ != "none" || iterationCounter == 1) {
+          // set linear part of RHS
+          algsys_->InitRHS(RhsLinVal_);
 
-        // setup and solve new system (rhs is already set) =====================
-        assemble_->AssembleMatrices();
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(SYSTEM,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+        }
+
+
+        // assemble Newton bilinear forms
+        isNewton = true;
+        assemble_->AssembleMatrices(isNewton);
+
+        //compute effective matrix
         algsys_->ConstructEffectiveMatrix( NO_FCT_ID,
                                            matrix_factor_[NO_FCT_ID] );
 
@@ -245,7 +263,7 @@ namespace CoupledField {
         algsys_->SetupSolver(analysis_id);
 
         bool setIDBC = false;
-        if ( iterationCounter == 1 )
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
         algsys_->Solve(analysis_id, setIDBC);
@@ -256,38 +274,44 @@ namespace CoupledField {
 
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
-        if ( lineSearch_ == "none" ) {
+        if ( lineSearch_ == "none" || iterationCounter == 1) {
+          //to incooperate the inhomog. Dirichlet BCs we need a full
+          //step for the first iteration
+
           actSol.Add(1.0, solInc);
-        }
-        else {
-          // true is for transient simulation
-          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-        }
+          // store the new solution
+          solVec_ = actSol;
 
-        // store the new solution
-        solVec_ = actSol;
-
-        if ( lineSearch_ == "none" ) {
-          // recalculate RHS with new values to get new residual (f^(k+1))========
+          //=================compute residual norm
+          // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
-          assemble_->AssembleNonLinRHS();  
-          //Set special RHS Values
-          PDE_.SetRhsValues();
+
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(SYSTEM,solVec_,true);
+          solVec_.ScalarMult(-1.0);
 
           //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
 
           // calculation of residual error =======================================
-          residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
-        } else {
-          algsys_->InitRHS(RhsLinVal_ );
-          assemble_->AssembleNonLinRHS();
-          //Set special RHS Values
-          PDE_.SetRhsValues();
+          residualL2Norm = actRHS.NormL2();
+          //std::cout << "ResAbsolut: " << residualL2Norm << std::endl;
+        }
+        else {
+          // do line search
+          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
+
+          // store the new solution
+          solVec_ = actSol;
         }
 
-        // calculation of residual error =======================================
+        // calculation relative residual error ====================================
         Double residualErr;
         if ( RhsLinL2Norm > 1.0 )
           residualErr = residualL2Norm / RhsLinL2Norm;
@@ -308,19 +332,33 @@ namespace CoupledField {
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, iLevel+1,iterationCounter, residualErr, 
-                                   incrementalErr, etaLineSearch);
-          // write norm to file
-          logFile_ <<  iterationCounter << "\t"
-              << residualErr << "\t"
-              << incrementalErr << "\t"
-              << etaLineSearch << std::endl;
+          //UInt actStep = PDE_.GetSolveStep()->GetActStep();
+
+        if (PDE_.IsIterCoupled()) {
+          WriteNonLinIterToInfoXML(pdename_, couplingIter_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        } else {
+            WriteNonLinIterToInfoXML(pdename_, iLevel+1, iterationCounter, residualErr, incrementalErr, etaLineSearch);
+        }
+
+        // write norm to file
+        logFile_ <<  iterationCounter << "\t"
+            << residualErr << "\t"
+            << incrementalErr << "\t"
+            << etaLineSearch << std::endl;
         }
 
         // boolean variable, holds condition if another iteration step is necessary
         performOneMoreStep =
             (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
+        
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' in step no '" << iLevel+1 
+                  << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
       // stop timer
@@ -354,13 +392,12 @@ namespace CoupledField {
   }
 
   void StdSolveStep::PreStepTrans() {
-    ResultCache::SetStepValue( actTime_ );
-
+    // Update moving ncInterfaces as needed
+    ptgrid_->MoveNcInterfaces();
+    
     // due to coupling-pdes, the RHS has to be initialized BEFORE
     // the coupling forces are assembled to the RHS
     algsys_->InitRHS();
-
-
   }
 
 
@@ -376,7 +413,10 @@ namespace CoupledField {
     }
     // do a nonlinear time step
     else if (nonLin_){
-      StepTransNonLin(analysis_id);
+      if ( nonLinTotalFormulation_ )
+        StepTransNonLinTotal(analysis_id);
+      else
+        StepTransNonLin(analysis_id);
     }
     // do a linear time step
     else {
@@ -430,21 +470,63 @@ namespace CoupledField {
       algsys_->GetRHSVal(rhsVec_);
       
 
+      // if we want to use static condensation we have to perform the timestepping on element level
+      if(algsys_->UseStaticCondensation()){
 
-      assemble_->AssembleMatrices();
-      if(assemble_->IsMatrixUpdated()){
-
-        // set system matrix to zero initially, as ConstructEffectiveMatrix only
-        // sums up the contributions
-        algsys_->InitMatrix(SYSTEM);
         matrix_factor_.clear();
+        // get timeintegration factors and store them in a map
         for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
           FeFctIdType fctId = fncIt->second->GetFctId();
           fncIt->second->GetTimeScheme()
-              ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
-          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+                                  ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
         }
-        effectiveMatrixUpdated = true;
+        // assemble all matrix parts (needed to update rhs) and also calculate complete
+        // system matrix
+        assemble_->AssembleMatrices_CondTrans(false,i,matrix_factor_);
+
+        if(assemble_->IsMatrixUpdated()){
+
+          //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
+
+          // the system matrix was already created so do not init it!
+          //        algsys_->InitMatrix(SYSTEM);
+
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+
+            // we need to call this function
+            // but as we already have summed up all entries on element level we just have to give
+            // this function a matrix_factor_ list which contains only 0 else
+            std::map<FEMatrixType,Double> zero_factors;
+            zero_factors[MASS] = 0.0;
+            zero_factors[STIFFNESS] = 0.0;
+            zero_factors[DAMPING] = 0.0;
+
+            algsys_->ConstructEffectiveMatrix(fctId, zero_factors); //matrix_factor_[fctId]);
+          }
+          //        matrix_factor_[fctId]
+          effectiveMatrixUpdated = true;
+        }
+
+      } else {
+
+
+        assemble_->AssembleMatrices();
+        if(assemble_->IsMatrixUpdated()){
+          //std::cout << "in SolveStepLin: new matrices computed" << std::endl;
+
+          // set system matrix to zero initially, as ConstructEffectiveMatrix only
+          // sums up the contributions
+          algsys_->InitMatrix(SYSTEM);
+          matrix_factor_.clear();
+          for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+            FeFctIdType fctId = fncIt->second->GetFctId();
+            fncIt->second->GetTimeScheme()
+                  ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+            algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+          }
+          effectiveMatrixUpdated = true;
+        }
       }
 
       //now compute the effective right hand side
@@ -483,10 +565,13 @@ namespace CoupledField {
   }
 
 
-
   void StdSolveStep::StepTransNonLin(PtrParamNode analysis_id) {
 
+    //std::cout << "in StepTransNonLin" << std::endl;
+    LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLin";
     bool performOneMoreStep;
+    bool isNewton = false;
+
     SBM_Vector solInc(BaseMatrix::DOUBLE);
 
     //get actual solution
@@ -510,6 +595,7 @@ namespace CoupledField {
     for(UInt i=0;i<numStages;i++){
       //do initialization 
       rhsVec_.Init();
+      LOG_DBG(stdsolvestep) << "StepTransNonLin: Stage: " << i ;
 
       //we obtain a reference to the stage vectors of the scheme
       SBM_Vector stageSol;
@@ -531,23 +617,9 @@ namespace CoupledField {
 
       solVec_  = actSol;
 
-
       // setup right hand side
       Double loadFactor = 1.0;
       Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
-
-      //now update RHS according to time stepping
-      for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-        if(matIt->second < 0)
-          continue;
-        for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
-          fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
-        }
-        algsys_->UpdateRHS(matIt->first,stageRHS_,true);
-      }
 
       // set iteration counter
       UInt iterationCounter=0;
@@ -555,8 +627,34 @@ namespace CoupledField {
       do {
         iterationCounter++;
 
-        // do matrices
-        assemble_->AssembleMatrices();
+        if ( lineSearch_ != "none" || iterationCounter == 1) {
+          // set linear part of RHS
+          algsys_->InitRHS(RhsLinVal_);
+
+          // setup the matrices
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
+
+          //now update RHS according to time stepping
+          for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+            //std::cout << "Matrix: " << matIt->first << std::endl;
+            if(matIt->second < 0)
+              continue;
+            for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+              fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+            }
+            algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+          }
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+        }
+
+        //now assemble the Newton bilinear forms
+        isNewton = true;
+        assemble_->AssembleMatrices(isNewton);
+
         matrix_factor_.clear();
         
         // set system matrix to zero initially, as ConstructEffectiveMatrix only
@@ -568,47 +666,47 @@ namespace CoupledField {
             ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
           algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
         }
+        // setup the matrices to compute correct error norms
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
         algsys_->SetupPrecond( analysis_id);
         algsys_->SetupSolver(analysis_id);
 
+        // just set inh. Dirichlet BCs for the first iteration
         bool setIDBC = false;
-        if ( iterationCounter == 1 )
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
         algsys_->Solve(analysis_id, setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
+        //std::cout << solInc.ToString(1,',') << std::endl;
+
         Double residualL2Norm = 0.0;
         Double etaLineSearch  = 1.0;
-        if ( lineSearch_ == "none" ) {
+
+        //necessary due to inh. Dirichlet BCs!!
+        if ( iterationCounter == 1 && couplingIter_ == 0 )
+          stageSol.Init();
+
+        if ( lineSearch_ == "none" || iterationCounter == 1) {
+          //to incooperate the inhomog. Dirichlet BCs we need a full
+          //step for the first iteration
+
           stageSol.Add(1.0, solInc);
-        }
-        else {
-          // true is for transient simulation
           solVec_  = stageSol;
-          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
-        }
 
-        //std::cout << solInc.ToString(1,',') << std::endl;
-        //std::cout << stageSol.ToString(1,',') << std::endl;
+          // setup the matrices with new solution
+          isNewton = false;
+          assemble_->AssembleMatrices(isNewton);
 
-        // store the new solution
-        //stageSol = actSol;
-        //solVec_  = actSol;
-
-        solVec_  = stageSol;
-
-        if ( lineSearch_ == "none" ) {
-          // recalculate RHS with new values to get new residual (f^(k+1))========
+          // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
-          assemble_->AssembleNonLinRHS();  
-          PDE_.SetRhsValues();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+            //std::cout << "Matrix: " << matIt->first << std::endl;
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -617,17 +715,23 @@ namespace CoupledField {
             algsys_->UpdateRHS(matIt->first,stageRHS_,true);
           }
 
+          //substract from RHS the term K*sol
+          solVec_.ScalarMult(-1.0);
+          algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          solVec_.ScalarMult(-1.0);
+
           //get RHS vector
           SBM_Vector actRHS(BaseMatrix::DOUBLE);
           algsys_->GetRHSVal( actRHS );
 
           // calculation of residual error =======================================
-          residualL2Norm = actRHS.NormL2(); // L2Norm of  ( f_i^(k+1) - f_a )
-        } 
-        //else {
-        //  algsys_->InitRHS(RhsLinVal_ );
-        //  assemble_->AssembleNonLinRHS();
-        //}
+          residualL2Norm = actRHS.NormL2();
+        }
+        else {
+           //solVec_  = stageSol;
+          residualL2Norm = LineSearch(solInc, stageSol, etaLineSearch,true);
+          solVec_  = stageSol;
+        }
 
         // calculation of residual error =======================================
         Double residualErr;
@@ -645,12 +749,19 @@ namespace CoupledField {
           incrementalErr = solIncrL2Norm / actSolL2Norm;
         else {
           incrementalErr = solIncrL2Norm;
-          WARN("Zero solution vector!! ");
+          //WARN("Zero solution vector!! ");
         }
 
         // output of norms and data
         if ( nonLinLogging_ == true ) {
-          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          // get current step 
+          UInt actStep = PDE_.GetSolveStep()->GetActStep();
+
+          if (PDE_.IsIterCoupled()) {
+            WriteNonLinIterToInfoXML(pdename_, couplingIter_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+      } else {
+            WriteNonLinIterToInfoXML(pdename_, actStep,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+      }
           // write norm to file
           logFile_ <<  iterationCounter << "\t"
               << residualErr << "\t"
@@ -662,132 +773,200 @@ namespace CoupledField {
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
+                  << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
       } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
 
     } //stages
       
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator limitFeFctIt;
+    limitFeFctIt = feFunctions_.find(solutionLimit_);
+    if (limitFeFctIt != feFunctions_.end() ) {
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        if (fncIt == limitFeFctIt) { // pos is now referring to the corresponding subVec[pos]
+          //const SingleVector * subv = solVec_.GetPointer(pos);
+          Vector<Double> & dsubVec = dynamic_cast<Vector<Double> & > (*(solVec_.GetPointer(pos)));
+          for (UInt j=0; j < dsubVec.GetSize(); j++) {
+            if (dsubVec[j] >= maxValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ << 
+                      "' is larger than the allowed maximum limit set in the XML: "
+                      << maxValidValue_); 
+            }
+            if (dsubVec[j] <= minValidValue_) {
+              EXCEPTION("A value ('" << dsubVec[j] << "') in the solution of PDE '" << pdename_ << 
+                      "' is smaller than the allowed minimum limit set in the XML: "
+                      << minValidValue_); 
+            }
+          }
+        }
+      }
+    }
+
+    //update stage
+    for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->FinishStep();
+    }
+    
+
+
+  }
+
+
+  void StdSolveStep::StepTransNonLinTotal(PtrParamNode analysis_id) {
+    std::cout << "In Step Total" << std::endl;
+    bool performOneMoreStep;
+    bool isNewton;
+    Double incrementalErr;
+
+    SBM_Vector solNew(BaseMatrix::DOUBLE);
+    SBM_Vector diffSol(BaseMatrix::DOUBLE);
+
+    //get actual solution
+    SBM_Vector  actSol(BaseMatrix::DOUBLE);
+    actSol = solVec_;
+
+    //obtain the number of stages
+    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+    std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+    std::map<FEMatrixType,Integer>::iterator matIt;
+
+    UInt pos = 0;
+
+    bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 );
+    for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+      fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+    }
+
+    for(UInt i=0;i<numStages;i++){
+      //do initialization
+      rhsVec_.Init();
+
+      //we obtain a reference to the stage vectors of the scheme
+      SBM_Vector stageSol;
+      stageSol.Resize(feFunctions_.size());
+      for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+        stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+        fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
+      }
+      stageSol.SetOwnership(false);
+
+      //initialize solution vector for each stage
+      if ( i > 0 )
+        actSol = stageSol;
+      else{
+        //special case of incremental non-linearity, we set the stage vector to the solution vector
+        stageSol = actSol;
+      }
+
+      solVec_  = actSol;
+
+      // setup right hand side
+      Double loadFactor = 1.0;
+      incrementalErr = SetLinRHS(loadFactor);
+
+      // set iteration counter
+      UInt iterationCounter=0;
+
+      do {
+        iterationCounter++;
+
+        // do matrices: Newton is not working for total formulation!!
+        isNewton = false;
+        assemble_->AssembleMatrices(isNewton);
+
+        // set RHS
+        algsys_->InitRHS(RhsLinVal_);
+
+        //now update RHS according to time stepping
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
+        // set system matrix to zero initially, as ConstructEffectiveMatrix only
+        // sums up the contributions
+        matrix_factor_.clear();
+        algsys_->InitMatrix(SYSTEM);
+        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+          FeFctIdType fctId = fncIt->second->GetFctId();
+          fncIt->second->GetTimeScheme()
+            ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+        }
+
+        PDE_.SetBCs();
+        algsys_->BuildInDirichlet();
+        algsys_->SetupPrecond(analysis_id);
+        algsys_->SetupSolver(analysis_id);
+
+        //always set inhomog. Dirichlet BCs
+        bool setIDBC = true;
+
+        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->GetSolutionVal(solNew, setIDBC );
+
+        // calculate incremental error ========================================
+        diffSol = solNew;
+        diffSol.Add( -1.0, actSol);
+        Double solIncrL2Norm = diffSol.NormL2();
+        Double solNewL2Norm = solNew.NormL2();
+
+        if (solNewL2Norm > 1)
+          incrementalErr = solIncrL2Norm / solNewL2Norm;
+        else
+          incrementalErr = solIncrL2Norm;
+
+        //just dummy things
+        Double etaLineSearch = 1.0;
+        Double residualErr = incrementalErr;
+
+        // output of norms and data
+        if ( nonLinLogging_ == true ) {
+          WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+          // write norm to file
+          logFile_ <<  iterationCounter << "\t"
+              << residualErr << "\t"
+              << incrementalErr << "\t"
+              << etaLineSearch << std::endl;
+        }
+
+        stageSol = solNew;
+        solVec_  = stageSol;
+
+        //store new solution
+        actSol = solNew;
+
+        // boolean variable, holds condition if another iteration step is necessary
+        performOneMoreStep =
+          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
+                  << "' at iteration '" << iterationCounter 
+                  << "'.\n ==> incremental error: " << incrementalErr
+                  << "\n ==> residual error: " << residualErr);
+        }
+
+      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+    } //stages
+
     //update stage
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
 
-  }
-
-
-  void StdSolveStep::StepTransNonLinTotal(PtrParamNode base_analysis_id) {
-    REFACTOR;
-/*
-    std::cout << "\n In :StepTransNonLinTotal  \n " << std::endl;
- 
-    bool performOneMoreStep;
-    UInt iterationCounter=0;
-    Double etaLineSearch;
-    Double incrementalErr, residualErr;
-
-    SBM_Vector newSol(BaseMatrix::DOUBLE), 
-               oldSol(BaseMatrix::DOUBLE), solPrev(BaseMatrix::DOUBLE);
-  
-    // remember previous solution  
-    solPrev = solVec_;
-
-    // perform predictor step
-    if ( TS_alg_== NULL ) {
-      Exception( "TS_alg has NULL-Pointer, in StdSolveStep::StepTransNonLin");
-    }
-    else {
-      //compute predictors
-      TS_alg_->Predictor(solPrev);
-    }
-
-    //! account for Dirichlet BCs
-    PDE_.SetBCs( );    
-
-    Double loadFactor = 0.0;
-    for ( UInt iload=0; iload<1; iload++ ) {
-      loadFactor += 1.0;
-//      Info->PrintF(pdename_, "\n");
-//      Info->PrintF(pdename_, "LoadFactor: %g \n", loadFactor);
-
-      // setup right hand side
-      Double RhsLinL2Norm = SetLinRHS(loadFactor);
-
-      // inner forces due to nonlin formulation
-      assemble_->AssembleNonLinRHS();  
-
-      do {
-        iterationCounter++;
-        
-        // set solution of previous iteration
-        if (iterationCounter == 1 ) {
-          oldSol = solPrev;
-        }
-        else {
-          oldSol = newSol;
-        }
-        
-        //init RHS with linear part!
-        algsys_->InitRHS(RhsLinVal_);
-        
-        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(base_analysis_id, "load", iload, "nonLin", iterationCounter);
-        
-        //perform new assembly
-        assemble_->AssembleMatrices();
-        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-        
-        
-        //Update RHS (mass matrix on right hand side)
-        TS_alg_->UpdateRHS();
-        
-        // build in the Dirichlet vales in system matrix and rhs
-        algsys_->BuildInDirichlet();
-        
-        algsys_->SetupSolver(child_id);
-        algsys_->SetupPrecond(child_id);
-        
-        algsys_->Solve(child_id);
-        algsys_->GetSolutionVal(newSol); 
-        
-        //store solution for (n+1)
-        solVec_ = newSol;
-        
-        // compute L2-Norm of error between last incremental solution and
-        // actual incremental solution
-        Double solIncrL2Norm=0;
-        SBM_Vector temp(BaseMatrix::DOUBLE);
-        temp.Add(1.0, newSol, -1.0, oldSol );
-//        for (UInt i=0; i<newSol.GetSize(); i++)
-//          solIncrL2Norm += (newSol[i]-oldSol[i])*(newSol[i]-oldSol[i]);
-//        
-//        solIncrL2Norm = sqrt(solIncrL2Norm);
-        solIncrL2Norm = temp.NormL2();
-        Double actSolL2Norm = newSol.NormL2();
-        
-        if (actSolL2Norm > 1)
-          incrementalErr = solIncrL2Norm / actSolL2Norm;
-        else
-          incrementalErr = solIncrL2Norm;
-
-        //just dummy things
-        etaLineSearch = RhsLinL2Norm;
-        etaLineSearch = 1.0;
-        residualErr   = incrementalErr;
-        
-        // output of norms and data
-        nonLinLogging_ = true;
-        if ( nonLinLogging_ == true )
-          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-        
-        performOneMoreStep = (incrementalErr > incStopCrit_) ; //|| (residualErr > residualStopCrit_);      
-        
-      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);  
-    } // load step loop
-
-    if ( incrementalErr > incStopCrit_ ) 
-      std::cout << "Not converged, norm is: " <<incrementalErr << std::endl; 
-
-    //perform corrector step  
-    TS_alg_->Corrector(newSol);
-    */
   }
 
   
@@ -1101,7 +1280,6 @@ namespace CoupledField {
   // ======================================================w
 
   void StdSolveStep::PreStepHarmonic() {
-    ResultCache::SetStepValue( actFreq_ );
     algsys_->InitRHS();
   }
 
@@ -1238,7 +1416,9 @@ namespace CoupledField {
 
     // If extForcesL2Norm is 0, no residual norm can be calculated
     if (!RhsLinL2Norm) {
-      WARN("Zero external force vector!! ");
+        // Note: there are PDEs, such as elecconduction, which always have rhs=0. Those should not emit this warning. SE.
+      if (pdename_ != "elecConduction")
+        WARN("Zero external force vector!! ");
     }
 
     return RhsLinL2Norm;
@@ -1287,14 +1467,89 @@ namespace CoupledField {
 
 
   Double StdSolveStep::LineSearch(SBM_Vector& solIncrement, SBM_Vector& actSol,
-                                  Double& etaLineSearch, bool trans)
+                                  Double& etaLineSearch, bool trans)  {
+
+    SBM_Vector solOld(BaseMatrix::DOUBLE);
+    solOld = actSol;
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {0.1, 0.25, 0.5, 1.0}; //, 0.5, 0.25, 0.125, 0.1};
+        // initialize etaOpt or receive compiler warning
+    Double etaOpt = 0.0;
+    Double residualL2NormOpt = 1e15;
+
+    for( UInt i=0; i<nrEtas; i++) {
+      actSol.Add( 1.0, solOld, eta[i], solIncrement);
+
+      //store new solution
+      solVec_ = actSol;
+      
+      // set RHS: linear part
+      algsys_->InitRHS(RhsLinVal_ );
+
+      // setup the matrices
+      bool isNewton = false;
+      assemble_->AssembleMatrices(isNewton);
+
+      if( trans ) {
+        //now update RHS according to time stepping
+        std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+        std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+        std::map<FEMatrixType,Integer>::iterator matIt;
+        UInt pos = 0;
+        for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+          if(matIt->second < 0)
+            continue;
+          for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+            fncIt->second->GetTimeScheme()->ComputeStageRHS(0,matIt->second,stageRHS_.GetPointer(pos));
+          }
+          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+        }
+
+        //substract from RHS the term K*sol
+        solVec_.ScalarMult(-1.0);
+        algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+        solVec_.ScalarMult(-1.0);
+      }
+      else {
+        solVec_.ScalarMult(-1.0);
+        algsys_->UpdateRHS(SYSTEM,solVec_,true);
+        solVec_.ScalarMult(-1.0);
+      }
+
+
+      // =====================================================================
+      // calculation of error norms
+      // =====================================================================
+      SBM_Vector actRHS(BaseMatrix::DOUBLE);
+      algsys_->GetRHSVal( actRHS );
+
+      // calculation of residual error =======================================
+      Double residualL2Norm = actRHS.NormL2();
+
+      if (residualL2Norm < residualL2NormOpt) {
+        residualL2NormOpt = residualL2Norm;
+        etaOpt = eta[i];
+      }
+    }
+
+    etaLineSearch = etaOpt;
+    
+    // Set new solution
+    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+
+    return residualL2NormOpt;
+  }
+
+
+  Double StdSolveStep::LineSearchMag(SBM_Vector& solIncrement, SBM_Vector& actSol,
+                                          Double& etaLineSearch, bool trans)
   {
 
     SBM_Vector solOld(BaseMatrix::DOUBLE);
     solOld = actSol;
-    const UInt nrEtas = 5;
-    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.125, 0.1};
-		// initialize etaOpt or receive compiler warning
+    const UInt nrEtas = 4;
+    const Double eta[nrEtas] = {1, 0.5, 0.25, 0.1};
+    // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
@@ -1305,7 +1560,7 @@ namespace CoupledField {
 
       //store new solution
       solVec_ = actSol;
-      
+
       // recalculate RHS with new values to get new residual (f^(k+1))========
       algsys_->InitRHS(RhsLinVal_ );
 
@@ -1314,7 +1569,7 @@ namespace CoupledField {
 //        assemble_->AssembleNonLinRHS();
 //        TS_alg_->UpdateRHS(actSol);
         assemble_->AssembleNonLinRHS();
-        PDE_.SetRhsValues();
+        //PDE_.SetRhsValues();
         //now update RHS according to time stepping
         std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
         std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
@@ -1350,14 +1605,13 @@ namespace CoupledField {
     }
 
     etaLineSearch = etaOpt;
-    
+
     // Careful: in the end, we have to re-assemble the RHS with the correct
     // value i.e. use the "optimal" solution
-    actSol.Add( 1.0, solOld, etaOpt, solIncrement );
+    actSol.Add(1.0, solOld, etaOpt, solIncrement );
 
     return residualL2NormOpt;
   }
-
 
   Double StdSolveStep::LineSearchMaterial(SBM_Vector& solIncrement, SBM_Vector& actSol,
                                           Double& etaLineSearch, Double& RhsLinL2Norm, bool trans)
@@ -1369,7 +1623,7 @@ namespace CoupledField {
     const UInt nrEtas = 3;
     const Double eta[nrEtas] = {0.9, 0.5, 0.3};
     //    const Double eta[nrEtas] = {0.1, 0.2, 0.4, 0.5, 0.7, 0.9, 1.0};
-		// initialize etaOpt or receive compiler warning
+        // initialize etaOpt or receive compiler warning
     Double etaOpt = 0.0;
     Double residualL2NormOpt = 1e15;
 
@@ -1480,6 +1734,46 @@ namespace CoupledField {
 
       // maximal number of NL-iterations
       nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
+
+      LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
+      LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
+      LOG_DBG3(stdsolvestep) << "\tresidual Stopping Criterion: " << residualStopCrit_;
+      LOG_DBG3(stdsolvestep) << "\tmaxNumIters: " << nonLinMaxIter_;
+      if( nonLinNode->Has("stopOnLimit") ) {
+        std::string solutionString;
+        // quantity
+        solutionString = nonLinNode->Get( "stopOnLimit")
+            ->Get( "quantity" )->As<std::string>();
+        solutionLimit_ = SolutionTypeEnum.Parse(solutionString);
+        if (feFunctions_.find(solutionLimit_) == feFunctions_.end() ) 
+          EXCEPTION("ERROR: Solution type '" << solutionString << "' is not part of PDE '" << pdename_ << 
+                      "' and cannot serve as stopping limit criterion");
+        // minimum value
+        nonLinNode->Get( "stopOnLimit")
+            ->GetValue( "min", minValidValue_, ParamNode::PASS );
+        // maximum value
+        nonLinNode->Get( "stopOnLimit")
+            ->GetValue( "max", maxValidValue_, ParamNode::PASS );
+        // region
+        std::string solutionRegion;
+        solutionRegion = nonLinNode->Get( "stopOnLimit")
+            ->Get( "region" )->As<std::string>();
+        solutionLimitReg_ = ptgrid_->GetRegion().Parse(solutionRegion);
+        if (solutionLimitReg_ != ALL_REGIONS) {
+          if( subdoms_.Find(solutionLimitReg_) == -1 ) 
+              EXCEPTION("ERROR: Region '" << solutionRegion <<"' is not part of PDE '" << pdename_ << 
+                      "' and cannot serve as stopping limit region");
+
+          // don't know how to implement region checking as we only have the solution as vector (glmvector_[0])
+          EXCEPTION("checking limits in a region is not implemented (and I don't know how) (SE). " 
+                  << "Just remove the 'region=XXX' tag");
+        }
+        LOG_DBG3(stdsolvestep) << "\tStop on Limit: " << solutionString;
+        LOG_DBG3(stdsolvestep) << "\t\tmin:     " << minValidValue_;
+        LOG_DBG3(stdsolvestep) << "\t\tmax:     " << maxValidValue_;
+        LOG_DBG3(stdsolvestep) << "\t\tin Region:     " << solutionRegion;
+        LOG_DBG3(stdsolvestep) << "\t\tRegionID:     " << solutionLimitReg_;
+      }
     }
   }
 
@@ -1493,9 +1787,31 @@ namespace CoupledField {
     PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
     iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT)
         ->Get("iteration",ParamNode::APPEND);
+    iter->Get("pdeName")->SetValue(pdeName);
     iter->Get("nr")->SetValue(iterationCounter);
     iter->Get("residualErr")->SetValue(residualErr);
     iter->Get("incrementalErr")->SetValue(incrementalErr);
+    if(etaLineSearch)
+      iter->Get("eta_linesearch")->SetValue(etaLineSearch);
+  }
+
+  void StdSolveStep::WriteNonLinIterToInfoXML(const std::string& pdeName,
+                                              const UInt coupledIterStep,
+                                              const UInt solStep,
+                                              const UInt iterationCounter,
+                                              const Double residualErr, 
+                                              const Double incrementalErr, double etaLineSearch)
+  {
+    
+    PtrParamNode iter = PDE_.GetInfoNode()->Get("nonlinearConvergence");
+    iter = iter->GetByVal("solStep","value",solStep,ParamNode::INSERT);
+    iter = iter->GetByVal("couplingStep", "value", coupledIterStep, ParamNode::INSERT)
+        ->Get("iteration",ParamNode::APPEND);
+    iter->Get("pdeName")->SetValue(pdeName);
+    iter->Get("nr")->SetValue(iterationCounter);
+    iter->Get("residualErr")->SetValue(residualErr);
+    iter->Get("incrementalErr")->SetValue(incrementalErr);
+    // SE: include PDE name and time step
     if(etaLineSearch)
       iter->Get("eta_linesearch")->SetValue(etaLineSearch);
   }

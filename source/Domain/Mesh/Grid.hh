@@ -202,7 +202,7 @@ namespace CoupledField
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
-                                                        bool updated = false );
+                                                      bool updated = false );
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -271,23 +271,24 @@ namespace CoupledField
     //! \param globCoord (in) Global coordinate for which the element is requested
     //! \param locCoord (out) Local projection of the global coordinate in the
     //!                      reference element coordinate system.
-    //! \param srcRegion (in) (Optional) List or regions, which are considered
+    //! \param srcEntities(in) (Optional) List or elements, which are considered
     //!                       for the element search. If the set is empty,
     //!                       all (volume) regions are considered. 
     //! \return Element at global coordinate position.
     const Elem* GetElemAtGlobalCoord(const Vector<double>& globCoord,
                                      LocPoint& locCoord,
-                                     const std::set<RegionIdType>& srcRegions
-                                     = std::set<RegionIdType> (),
+                                     const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                     StdVector<shared_ptr<EntityList> >(),
                                      bool printWarnings = true );
     
     //! Return a list of elements and local coordinate for global coordinates
     void GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
                                 StdVector< LocPoint >& localCoords,
                                 StdVector< const Elem* > & elems,
-                                const std::set<RegionIdType>& srcRegions 
-                                = std::set<RegionIdType>(),
-                                Double globalTol = 0.0, Double localTol = 1e-2,
+                                const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                StdVector<shared_ptr<EntityList> >(),
+                                Double globalTol = 1e-3, 
+                                Double localTol = 1e-2,
                                 bool printWarnings = true);
     
     //! Return for a given node number the element and a local coordinate
@@ -304,7 +305,7 @@ namespace CoupledField
     const Elem* GetElemAtNode( UInt nodeNum,
                                LocPoint& locCoord,
                                const std::set<RegionIdType>& srcRegions
-                               = std::set<RegionIdType> () );
+                               = std::set<RegionIdType>() );
 
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
@@ -457,6 +458,14 @@ namespace CoupledField
                                         const StdVector<RegionIdType>
                                         &neighRegions ) = 0;
 
+    //! Get the surface element of which \param volElemNum is in ptVolElems[0,1]. Surf elem must be in region reg_id.
+    //! If not found, Elem vector \parm surfEl (in) is empty.
+    virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS) = 0;
+
+    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
+    //! \param reg_id (in) query parameter
+    //! \param volRegIds (out) list
+    virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
     //! Returns the volume of a given region
 
@@ -532,6 +541,8 @@ namespace CoupledField
     //! Get list of elements by their name
     virtual void GetElemsByName( StdVector<Elem*> & elems,
                                  const std::string & elemsName ) = 0;
+
+
 
     /** To be called when all regions are added.
      * Sets the internal element and region structures. */
@@ -696,6 +707,9 @@ namespace CoupledField
     //! Computes if a list of surface elements are all coplanar
     bool IsSurfacePlanar(const StdVector<SurfElem*>& surfElems) const;
 
+    //! Triggers calculation of node offsets for moving interfaces
+    void MoveNcInterfaces();
+    
   protected:
     
     //! Add a node to the grid
@@ -853,6 +867,11 @@ namespace CoupledField
 
   protected:
 
+    //! Return for a list of entitylists all element numbers
+    void GetElemNums( boost::unordered_set<UInt>& elemNums, 
+                      std::set<UInt>& dims,
+                      const StdVector<shared_ptr<EntityList> >& entities );
+    
     // =======================================================================
     //  ELEMENT / POINT MAPPING
     // =======================================================================
@@ -890,6 +909,14 @@ namespace CoupledField
                              Double tol = 1e-2,
                              bool printWarnings = true);
 
+  public:
+    //! Create a bounding box from a given element. Mapping LIBFBI 
+    void CreateBBoxFromElement(const Elem* elem,
+                               Double globToler,
+                               Double* bbox);
+
+  protected:
+
 #ifdef USE_CGAL
 
     //! Define 3-dimensional bounding box
@@ -905,28 +932,25 @@ namespace CoupledField
     //! of elements, where the point is contained in the bounding box.
     //! This algorithm makes use of the CGAL fast intersection algorithm.
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 0.0 );
 
-    //! List containing the "boxes" of all elements
-    std::vector<HandleBox> elemBoxes_;
+    //! Map for each dimension (key) a list containing the "boxes" of elements (value)
+    std::map<UInt, std::vector<HandleBox> > elemBoxes_;
 
     //! \param coords(in) The vector of global coordinates
     //! \param id(in) An identifier for this specific coordinate (e.g. index in a vector)
     //! \param tol(in) Tolerance in meters which determines the size of the bounding box
-    HandleBox CreateBoxFromCoord( const Vector<double> coors,
+    HandleBox CreateBoxFromCoord( const Vector<double>& coords,
                                   UInt *id,
                                   Double tol = 0.0 );
 
-    //! create a box from a given element
-    HandleBox CreateBoxFromElement(const Elem* elem,Double globToler);
-    
 #elif USE_LIBFBI // USE_CGAL
 
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
                                    Double tol = 1e-3 );
 
 #else
@@ -937,12 +961,15 @@ namespace CoupledField
     //! This method uses the own (potentially slow) algorithm, to determine
     //! the bounding boxed
     void MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
-                                   const std::set<RegionIdType> srcRegions 
-                                   = std::set<RegionIdType>(),
-                                   Double tol = 0.0 );
+                                   const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                   StdVector<shared_ptr<EntityList> >(),
+                                   Double tol = 1e-3 );
     
-    //! Bounding boxes
-    StdVector<boost::array<Double,6> > elemBoxes_;
+    //! Define type for bounding boxes
+    typedef std::pair<boost::array<Double,6>, UInt> BoxType;
+    
+    //! Define for each dimension type (key) bounding boxes (value)
+    std::map<UInt, StdVector<BoxType> > elemBoxes_;
 
 #endif // USE_CGAL
 

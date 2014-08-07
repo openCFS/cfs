@@ -191,6 +191,12 @@ namespace CoupledField{
 //    }
 //  }
 
+  void FeSpaceHCurlHi::SetUseGradients(RegionIdType region) {
+    LOG_DBG(feSpaceHCurlHi) << "Setting gradient for region"
+        << ptGrid_->GetRegion().ToString(region) << " to true\n";
+    useGradients_[region] = true;
+  }
+  
 
   void FeSpaceHCurlHi::SetRegionElements(RegionIdType region, 
                                          MappingType mType,
@@ -205,21 +211,32 @@ namespace CoupledField{
     if(isFinalized_){
       Exception("FeSpace::SetRegionMapping is called after finalization");
     }
+    
+    // default: use no gradients
+    useGradients_[region] = false;
 
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
+    refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
     refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
     
+    refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
-
+    refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
 
+    refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
+    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+
 
     
     // set order for every region
@@ -233,7 +250,176 @@ namespace CoupledField{
     }
     
     infoNode->Get("order")->SetValue(order.ToString());
+    
+    
+  }
+  
+  void FeSpaceHCurlHi::AdjustGradients( ) {
+    
+    LOG_DBG(feSpaceHCurlHi) << "Setting Region Gradients";
 
+    // Loop over all regions and fix edge / face on
+    // shared edges /faces
+    std::map< RegionIdType, 
+               std::map<Elem::FEType, FeHCurlHi* > >::const_iterator it;
+    it = refElems_.begin();
+    
+    for( ; it != refElems_.end(); ++it ){
+      StdVector<Elem*> elems;
+      RegionIdType regionId = it->first;
+
+      ptGrid_->GetElems( elems, regionId );
+      UInt numElems = elems.GetSize();
+      for( UInt i = 0; i < numElems; ++i ) {
+
+        const Elem& el = *(elems[i]);
+        LOG_DBG3(feSpaceHCurlHi) << "Treating element #" << el.elemNum;
+
+        // Fetch reference element and set correct order
+        FeHCurlHi * myFe = static_cast<FeHCurlHi*>(GetFeHi( regionId, el.type));
+
+        // important: do not adjust the entity order here, as the
+        // edge / face order is not yet initialized
+        SetElemGrad( elems[i], myFe, regionId, false );
+
+        // a) loop over all edges
+        // -----------------------
+        UInt numEdges = el.edges.GetSize();
+        LOG_DBG3(feSpaceHCurlHi) << "Checking " << numEdges << " edges ";
+        const StdVector<bool>& edgeGradients = myFe->GetEdgeGradient();
+        for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ){
+          UInt edgeNum = std::abs(el.edges[iEdge]);
+          bool gradient = edgeGradients[iEdge];
+
+          // check if edge got already mapped
+          if( gradEdges_.find(edgeNum) == gradEdges_.end() ) {
+            gradEdges_[edgeNum] = gradient;
+            LOG_DBG3(feSpaceHCurlHi) << "\tedge #" << edgeNum << ", grad: " 
+                << gradient ;
+          } else {
+            bool oldGrad = gradEdges_[edgeNum];
+            LOG_DBG3(feSpaceHCurlHi) << "\tedge #" << edgeNum 
+                << " -> Already set to " << oldGrad; 
+            // check if previous set order is different from current
+            if( gradient != oldGrad) {
+              gradEdges_[edgeNum] = true;
+              LOG_DBG3(feSpaceHCurlHi) << "\t\t=> Re-Set to " 
+                  << gradEdges_[edgeNum]<< " (max. rule)";
+              adjustedGradEdges_.insert( edgeNum );
+            }
+          }
+        } // loop over edges
+
+
+        // b) loop over all faces (only in 3D case )
+        // -----------------------------------------
+        if( ptGrid_->GetDim() == 3 ) {
+          UInt numFaces = el.faces.GetSize();
+          LOG_DBG3(feSpaceHCurlHi) << "Checking " << numFaces << " faces ";
+          const StdVector<bool>& faceGradients = myFe->GetFaceGradient();
+          for( UInt iFace = 0; iFace < numFaces; ++iFace ){
+            UInt faceNum = el.faces[iFace];
+            bool gradient = faceGradients[iFace];
+
+            // check if face got already mapped
+            if( gradFaces_.find(faceNum) == gradFaces_.end() ) {
+              gradFaces_[faceNum] = gradient;
+              LOG_DBG3(feSpaceHCurlHi) << "\tface #" << faceNum << ", grad: " 
+                  << gradient;
+            } else {
+              bool oldGrad = gradFaces_[faceNum];
+              LOG_DBG3(feSpaceHCurlHi) << "\tface #" << faceNum 
+                  << " -> Already set to " << oldGrad;
+              // check if previous set order is different from current
+              if( gradient != oldGrad) {
+                gradFaces_[faceNum] = true;
+                LOG_DBG3(feSpaceHCurlHi) << "\t\t=> Re-Set to " 
+                    << gradFaces_[faceNum] << " (max. rule)";
+                adjustedGradFaces_.insert( faceNum );
+              }
+            }
+          }  // loop over faces
+        } // check for 3D case 
+
+      } // loop over elements
+    }
+    
+    // This part is called in the end.
+
+    // The idea is as follows:
+    // Up to now the polynomial orders of all edges and faces are stored
+    // explicitly. However, we need to store only those, which
+    // have been adjusted explicitly due to the maximum rule.
+    // Thus we store only explicitly the edge and face order of those
+    // edges / faces adjusted.
+
+    // Create temporary map for edges
+    boost::unordered_map<UInt, bool> edgeGrads;
+    
+    // Loop over all adjusted edges
+    boost::unordered_set<UInt>::const_iterator edgeIt = adjustedGradEdges_.begin();
+    for( ; edgeIt != adjustedGradEdges_.end(); ++edgeIt ) {
+      edgeGrads[*edgeIt] = gradEdges_[*edgeIt];
+    } // loop over edges
+
+    // store only adjusted edges back
+    gradEdges_ = edgeGrads;
+    
+    boost::unordered_map<UInt, bool> faceGrads;
+    boost::unordered_set<UInt>::const_iterator faceIt = adjustedGradFaces_.begin();
+      for( ; faceIt != adjustedGradFaces_.end(); ++faceIt ) {
+        faceGrads[*faceIt] = gradFaces_[*faceIt];
+      } // loop over edges
+
+      // store only adjusted edges back
+      gradFaces_ = faceGrads;
+    
+  }
+  
+  void FeSpaceHCurlHi::SetElemGrad( const Elem* ptEl, FeHCurlHi* ptFe,
+                                    RegionIdType regionId,
+                                    bool applyMaxRule ) {
+    LOG_DBG(feSpaceHCurlHi) << "In SetElemGrad for elem " << ptEl->elemNum 
+                        << ", maxRule: " << applyMaxRule;
+     
+
+    // Stage 1: Set gradient as given from the region template.
+    ptFe->SetUseGradients(useGradients_[regionId]);
+    LOG_DBG(feSpaceHCurlHi) << "\t->Gradient: " << 
+        (useGradients_[ptEl->regionId] ? "true" : "false");
+
+     // Stage 2: Adjust edge / face order according to minimum /
+     // maximum rule, in case the element has neighboring elements with
+     // different order. We will use the maximum rule
+     if( applyMaxRule && gradEdges_.size() ) {
+       // loop over all edges
+       UInt numEdges = ptEl->edges.GetSize();
+       for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
+         UInt edgeNum = std::abs( ptEl->edges[iEdge] );
+         // check if edge got adjusted
+         if( gradEdges_.find(edgeNum) != gradEdges_.end() ) {
+           LOG_DBG3(feSpaceHCurlHi) << "Setting grad edge " << edgeNum
+               << " to " << gradEdges_[edgeNum];
+           ptFe->SetEdgeGradient(iEdge, gradEdges_[edgeNum]);
+         }
+       }
+
+     }
+
+     if( applyMaxRule && gradFaces_.size() && ptGrid_->GetDim() == 3  ) {
+       // loop over all faces
+       UInt numFaces = ptEl->faces.GetSize();
+       for( UInt iFace = 0; iFace < numFaces; ++iFace ) {
+         UInt faceNum = ptEl->faces[iFace];
+         // check if face got adjusted
+         if( gradFaces_.find(faceNum) != gradFaces_.end() ) {
+           LOG_DBG3(feSpaceHCurlHi) << "Setting grad face " << faceNum
+               << " to order " << gradFaces_[faceNum];
+           ptFe->SetFaceGradient( iFace, gradFaces_[faceNum] );
+         }
+       }
+
+     }
   }
 
 
@@ -257,6 +443,10 @@ namespace CoupledField{
      * 4. Map equations only based on the virtualNodeArray
      */
     AdjustEntityOrder();
+    
+    // adjust the gradients
+    AdjustGradients();
+    
     CreateVirtualNodes();
 
     // Map normal Bcs
@@ -388,12 +578,14 @@ namespace CoupledField{
       myFe = refElems_[eRegion][ent.GetElem()->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ent.GetElem(), myFe, it->second, true );
+      SetElemGrad( ent.GetElem(), myFe, eRegion, true );
       myFe = refElems_[eRegion][ent.GetElem()->type];
     }
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
     // setting of entity orders.
     assert (myFe);
+    
     return myFe;
   }
   
@@ -425,8 +617,10 @@ namespace CoupledField{
       myFe = refElems_[eRegion][ptElem->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ptElem, myFe, it->second, true );
+      SetElemGrad( ptElem, myFe, eRegion, true );
       myFe = refElems_[eRegion][ptElem->type];
     }
+    
     return myFe;
   }
 

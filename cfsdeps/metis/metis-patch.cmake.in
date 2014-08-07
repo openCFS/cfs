@@ -33,12 +33,12 @@ EXECUTE_PROCESS(
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "metis-gcc44.patch";
+  "metis-gcc44.patch"
 )
 
 IF(MINGW OR WIN32 OR CYGWIN)
   LIST(APPEND patches
-    "metis-windows.patch";
+    "metis-windows.patch"
   )
 ENDIF()
 

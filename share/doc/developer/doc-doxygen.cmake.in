@@ -1,13 +1,23 @@
+SET(CMAKE_COMMAND "@CMAKE_COMMAND@")
 SET(CMAKE_CURRENT_BINARY_DIR "@CMAKE_CURRENT_BINARY_DIR@")
 SET(CMAKE_CURRENT_SOURCE_DIR "@CMAKE_CURRENT_SOURCE_DIR@")
+
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../../cmake_modules/DevelopmentServer.cmake")
 
 INCLUDE("${CMAKE_CURRENT_BINARY_DIR}/../doc-common.cmake")
 
 MESSAGE(STATUS "Building Doxygen documentation...")
 
-SET(DOXY_DIR "${CMAKE_CURRENT_BINARY_DIR}/html") 
+SET(DOXY_HTML_DIR "${CMAKE_CURRENT_BINARY_DIR}/doxygen-new/html") 
+SET(DOXY_LATEX_DIR "${CMAKE_CURRENT_BINARY_DIR}/doxygen-new/latex") 
 SET(DOXYGEN_EXECUTABLE "@DOXYGEN_EXECUTABLE@")
 SET(DOXY_CONFIG "@DOXY_CONFIG@")
+SET(DOXY_CONFIG_NEW "@DOXY_CONFIG_NEW@")
+SET(PYGMENTS_EXE "pygmentize")
+SET(PYGMENTS_STYLE "trac")
+SET(PYG_OPTIONS -O linenos=True,linenostep=1,style=${PYGMENTS_STYLE})
+SET(CFS_WC_URL "@CFS_WC_URL@")
+SET(CFS_WC_REVISION "@CFS_WC_REVISION@")
 
 TODAY(DATE)
 
@@ -20,8 +30,88 @@ CONFIGURE_FILE(
   "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/footer.html"
   @ONLY )
 
-
 EXECUTE_PROCESS(
   COMMAND "${DOXYGEN_EXECUTABLE}" "${DOXY_CONFIG}"
   )
+
+# ============================================================================
+# Build new Documentation
+# ============================================================================
+
+# Configure HTML headers and footers
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/headerTemplateNew.html"
+  "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/headerNew.html"
+  @ONLY )
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/footerTemplateNew.html"
+  "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/footerNew.html"
+  @ONLY )
+
+CONFIGURE_FILE(
+  "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/latexHeader.tex"
+  "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/latexHeader.tex"
+  @ONLY )
+
+EXECUTE_PROCESS(
+  COMMAND "${DOXYGEN_EXECUTABLE}" "${DOXY_CONFIG_NEW}"
+  )
+
+FILE(MAKE_DIRECTORY "${DOXY_HTML_DIR}/images")
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/cfs-logo_small.png" "${DOXY_HTML_DIR}/images/cfs-logo.png"
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/e325_logo.png" "${DOXY_HTML_DIR}/images/e325_logo.png"
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/tu_signet.png" "${DOXY_HTML_DIR}/images/tu_signet.png"
+  )
+
+EXECUTE_PROCESS(
+  COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/../auxilliaries/Pics/cfs-docu.png" "${DOXY_HTML_DIR}/images/cfs-docu.png"
+  )
+
+# Write Pygments HTML CSS style file
+EXECUTE_PROCESS(
+  COMMAND "${PYGMENTS_EXE}" -f html -S ${PYGMENTS_STYLE} -O linenos
+  OUTPUT_VARIABLE PYGMENTS_CSS
+  )
+
+FILE(WRITE "${DOXY_HTML_DIR}/pygments.css" "${PYGMENTS_CSS}")
+
+# Write Pygments HTML listing
+EXECUTE_PROCESS(
+  COMMAND "${PYGMENTS_EXE}" -f html ${PYG_OPTIONS} "${CMAKE_CURRENT_SOURCE_DIR}/../developer/develManual/sources/qs_bootstrap.sh"
+  OUTPUT_VARIABLE PYG_HTMLOUT
+  )
+
+FILE(WRITE "${DOXY_HTML_DIR}/../snippets/pygments_test.html" "<div id=\"franzgeorg\" class=\"fragment\">")
+FILE(APPEND "${DOXY_HTML_DIR}/../snippets/pygments_test.html" "${PYG_HTMLOUT}")
+FILE(APPEND "${DOXY_HTML_DIR}/../snippets/pygments_test.html" "</div>")
+
+# Write Pygments LaTeX style file
+EXECUTE_PROCESS(
+  COMMAND "${PYGMENTS_EXE}" -f latex -S ${PYGMENTS_STYLE} -O linenos
+  OUTPUT_VARIABLE PYGMENTS_LATEX
+  )
+
+FILE(WRITE "${DOXY_LATEX_DIR}/pygments.tex" "${PYGMENTS_LATEX}")
+
+# Write Pygments LaTeX listing
+EXECUTE_PROCESS(
+  COMMAND "${PYGMENTS_EXE}" -f latex ${PYG_OPTIONS} "${CMAKE_CURRENT_SOURCE_DIR}/../developer/develManual/sources/qs_bootstrap.sh"
+  OUTPUT_VARIABLE PYG_LATEXOUT
+  )
+
+STRING(REPLACE "commandchars"
+  "frame=lines,framesep=2mm,fontsize=\\small,commandchars"
+  PYG_LATEXOUT
+  "${PYG_LATEXOUT}"
+  )
+
+FILE(WRITE "${DOXY_LATEX_DIR}/pygments_test.tex" "${PYG_LATEXOUT}")
 

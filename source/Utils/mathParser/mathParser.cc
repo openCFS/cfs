@@ -6,7 +6,6 @@
 #include "MatVec/Vector.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Utils/Interpolate1D.hh"
-#include "DataInOut/ResultCache.hh"
 #include "Domain/Domain.hh"
 #include "Utils/mathfunctions.hh"
 
@@ -371,6 +370,69 @@ namespace CoupledField {
     }
 
   }
+
+  Double MathParser::DiffVectorEntry(HandleType handle, std::string varName, Integer VecPos){
+    //basically a mod of the original diff implementation
+    mu::Parser & myParser = GetParser( handle );
+    VarPool &  curPool = pools_[handle];
+    Double buffer = curPool[varName];
+    Double eps = (buffer==0)? 1e-10 : 1e-7*buffer;
+
+    Integer nExpr;
+    mu::value_type *v = NULL;
+    Double f1,f2,f3,f4;
+
+    SetValue( handle, varName, buffer + 2*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f1 = v[VecPos];
+
+    SetValue( handle, varName, buffer + 1*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f2 = v[VecPos];
+
+    SetValue( handle, varName, buffer - 1*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f3 = v[VecPos];
+
+    SetValue( handle, varName, buffer - 2*eps );
+    MATHPARSER_EXEC( v = myParser.Eval(nExpr));
+    if(nExpr < VecPos)
+      Exception("Invalid indices for vector diff");
+    f4 = v[VecPos];
+
+    curPool[varName] =  buffer;
+    SetValue( handle, varName, buffer );
+    return (-f1 + 8*f2 - 8*f3 + f4 ) / (12*eps);
+  }
+
+  void MathParser::EvalDivVector( HandleType handle, Double& divergence ){
+
+    //loop over variable pool and compute divergence
+    divergence = 0.0;
+
+    if(this->IsExprVariable(handle,"x")){
+      divergence += this->DiffVectorEntry(handle,"x",0);
+    }
+    if(this->IsExprVariable(handle,"y")){
+      divergence += this->DiffVectorEntry(handle,"y",1);
+    }
+    if(this->IsExprVariable(handle,"z")){
+      divergence += this->DiffVectorEntry(handle,"z",2);
+    }
+    if(this->IsExprVariable(handle,"r")){
+      divergence += this->DiffVectorEntry(handle,"r",0);
+    }
+    if(this->IsExprVariable(handle,"phi")){
+      divergence += this->DiffVectorEntry(handle,"phi",1);
+    }
+  }
+
      
   void MathParser::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
                                UInt numRows , UInt numCols ) {
@@ -453,12 +515,12 @@ namespace CoupledField {
     parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );
     parser.DefineFun("locCoord2D", MathParser::LocCoord2D, false );
     parser.DefineFun("locCoord3D", MathParser::LocCoord3D, false );
-    parser.DefineFun("input", ResultCache::GetResult, false);
 
     // Register signal generating functions
     parser.DefineFun("sinBurst", SinBurst, false );
     parser.DefineFun("fadeIn", FadeIn, false );
     parser.DefineFun("spike", Spike, false );
+    parser.DefineFun("chirp", Chirp, false );
     //parser.DefineFun("cosPulseComb", CosPulseComb, false );
     parser.DefineFun("squareBurst", SquarePulse, false );
     parser.DefineFun("gauss", Gauss, false );
@@ -688,9 +750,9 @@ namespace CoupledField {
     }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(3), glob(3);
-    loc[0] = x;
-    loc[1] = y;
-    loc[2] = z;
+    glob[0] = x;
+    glob[1] = y;
+    glob[2] = z;
     cosy->Global2LocalCoord(loc, glob);
     return loc[(UInt)dof-1];
   }
@@ -705,8 +767,8 @@ namespace CoupledField {
     }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(2), glob(2);
-    loc[0] = x;
-    loc[1] = y;
+    glob[0] = x;
+    glob[1] = y;
     cosy->Global2LocalCoord(loc, glob);
     
     return loc[(UInt)dof-1];

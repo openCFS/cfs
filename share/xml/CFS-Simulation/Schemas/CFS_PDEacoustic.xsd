@@ -44,6 +44,7 @@
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -80,9 +81,6 @@
             </xsd:complexType>
           </xsd:element>
 
-          <xsd:element name="valRHS" type="DT_CFSBool" minOccurs="0"
-            maxOccurs="1" default="no"/>
-
 
           <!-- Type of FlowData (optional) -->
           <!-- List defining flows -->
@@ -98,10 +96,10 @@
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                            
               <!-- Initial state of previous sequence step / external file -->
               <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
-              
+              <!-- Initial state given by used -->
+              <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
  		      </xsd:choice>
  		    </xsd:complexType>
 		  </xsd:element>
@@ -121,8 +119,7 @@
 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
-                <xsd:element name="flowData"       type="DT_AcousticFlow" />
-                <xsd:element name="rhsValues"      type="DT_BcInhomVector" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsValues"      type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="impedance"      type="DT_AcouImpedance"/>
                 <xsd:element name="periodic"       type="DT_BcPeriodic"   />
               </xsd:choice>
@@ -148,6 +145,8 @@
           </xsd:simpleType>
         </xsd:attribute>
 
+        <xsd:attribute name="timeStepAlpha" use="optional" default="0.0" type="xsd:double"/>
+
         <!-- updated Lagrangian formulation -->
         <xsd:attribute name="updatedLagrange" use="optional" default="no">
           <xsd:simpleType>
@@ -165,6 +164,17 @@
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="standard"/>
               <xsd:enumeration value="combustionNoise"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        
+        <!-- Type of acoustic flow formulation -->
+        <xsd:attribute name="flowFormulation" use="optional"
+          default="standard">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="standard"/>
+              <xsd:enumeration value="withDivergence"/>
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
@@ -361,7 +371,6 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPressure"/>
       <xsd:enumeration value="acouPotential"/>
-      <xsd:enumeration value="LagrangeMultiplier"/>
       <xsd:enumeration value="acouPmlAuxScalar"/>
       <xsd:enumeration value="acouPmlAuxVec"/>
     </xsd:restriction>
@@ -446,25 +455,6 @@
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="value" type="xsd:token" use="required"/>
     <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition for Flow data                                          -->
-  <!-- ******************************************************************* -->
-
-   <xsd:complexType name="DT_AcousticFlow">
-      <xsd:sequence>
-        <xsd:element name="flowDir" type="xsd:token"/>
-        <xsd:element name="flowOrd" type="xsd:nonNegativeInteger"/>
-        <xsd:element name="flowVel" type="xsd:double"/>
-        <xsd:element name="flowDia" type="xsd:double"/>
-        <xsd:element name="flowLen" type="xsd:double"/>
-        <xsd:element name="flowDecay" type="xsd:double"/>
-        <xsd:element name="flowCenterX" type="xsd:double"/>
-        <xsd:element name="flowCenterY" type="xsd:double"/>
-        <xsd:element name="flowCenterZ" type="xsd:double"/>
-      </xsd:sequence>
-    <xsd:attribute name="region" type="xsd:token" use="required"/>
   </xsd:complexType>
 
 
@@ -630,7 +620,9 @@
       <xsd:enumeration value="acouPotential"/>
       <xsd:enumeration value="acouPotentialD1"/>
       <xsd:enumeration value="acouPotentialD2"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="acouRhsLoad"/>
+      <xsd:enumeration value="meanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -643,6 +635,7 @@
       <xsd:enumeration value="acouVelocity"/>
       <xsd:enumeration value="density"/>
       <xsd:enumeration value="pmlDampFactor"/>
+      <xsd:enumeration value="divMeanFluidMechVelocity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -665,6 +658,8 @@
   <xsd:simpleType name="DT_AcousticRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouEnergy"/>
+      <xsd:enumeration value="acouPotEnergy"/>      
+     <xsd:enumeration value="acouKinEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 

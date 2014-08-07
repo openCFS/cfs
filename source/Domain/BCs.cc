@@ -32,6 +32,10 @@ namespace CoupledField {
 
   InhomDirichletBc::InhomDirichletBc() {
   }
+  
+  InhomDirichletBc::~InhomDirichletBc() {
+    value.reset();
+  }
 
   void InhomDirichletBc::ToInfo(PtrParamNode in) const
   {

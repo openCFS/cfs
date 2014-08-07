@@ -424,8 +424,8 @@ norm/length of the calculated vector.
 \newpage
 \section{Acoustics}
 Here, the acoustic wave equation is solved using the acoustic pressure
-or the acoustic scalar potential. With which unkown thw computation is
-performed, is directly sepcified at the starting of the PFE
+or the acoustic scalar potential. With which unkown the computation is
+performed, is directly sepcified at the starting of the PDE
 definition (by default is pressure formulation), e.g.,
 
 \begin{xmllisting}
@@ -718,7 +718,7 @@ numbers is written, if the attribute \xat{writeNodes} is set to
 
 {\footnotesize 
 \begin{xmllisting}
-?xml version="1.0"?>
+<?xml version="1.0"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
 
   <fileFormats>
@@ -782,7 +782,7 @@ numbers is written, if the attribute \xat{writeNodes} is set to
 \newpage
 \section{Magnetics}
 Here, we solve for the low frequency approximation (no electromagnetic
-wave propagation). We differe between the standard nodal (correct in
+wave propagation). We differ between the standard nodal (correct in
 2D and wrong in 3D) and the edge (use in 3D) finite element
 discretization. The definitions are as follows
 \begin{xmllisting}

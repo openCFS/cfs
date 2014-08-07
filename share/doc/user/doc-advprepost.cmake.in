@@ -8,13 +8,18 @@ SET(ADV_PRE_POST_DIR "${CMAKE_CURRENT_BINARY_DIR}/advPrePostManual")
 RSYNC_AUX_DIR()
 RSYNC_DIR(
   "${CMAKE_CURRENT_SOURCE_DIR}/advPrePostManual"
-  "${CMAKE_CURRENT_BINARY_DIR}"
+  "${CMAKE_CURRENT_BINARY_DIR}/advPrePostManual"
   )
 
 CLEANUP_LATEX_DIR("${ADV_PRE_POST_DIR}")
 
 # Apply syntax coloring to files in sources directory
 PYG_MAKE_AUX_STYLE_FILE()
+
+FILE(COPY 
+  "${CFS_SOURCE_DIR}/source/DataInOut/SimInOut/Unverg/unv_dataset_numbers.txt"
+  DESTINATION
+  "${CMAKE_CURRENT_BINARY_DIR}/advPrePostManual/sources")
 
 SET(FILES
   photo.c
@@ -27,7 +32,7 @@ SET(FILES
   pv_matlab_besselh.m
   pv_texture_map.py
   icem_to_ansys.in.txt
-  Pfeifenfussmodell_modificated_swept.in.txt
+  ansys_example.inp.txt
   mkmesh.txt
   mkmesh.mlib.txt
   ansys_surf_vol_mesh.txt
@@ -42,6 +47,9 @@ SET(FILES
   polarplot.plt
   polarloop.plt
   unv_dataset_numbers.txt
+  comsol_mphtxt_tag.xml
+  comsol_mphtxt_mph.xml
+  gmsh_physical_entities.xml
 )
 
 PYGMENTIZE("${ADV_PRE_POST_DIR}" "${FILES}")

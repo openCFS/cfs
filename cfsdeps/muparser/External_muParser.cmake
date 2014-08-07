@@ -38,15 +38,47 @@ IF(CMAKE_TOOLCHAIN_FILE)
 ENDIF()
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "http://pkgs.fedoraproject.org/repo/pkgs/muParser/muparser_v2_2_2.zip/6d77b5cb8096fe2c50afe36ad41bc14a/muparser_v2_2_2.zip"
+  "ftp://ftp.jp.netbsd.org/pub/pkgsrc/distfiles/muparser_v2_2_2.zip"
+  "${MUPARSER_URL}/${MUPARSER_ZIP}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/muparser/${MUPARSER_ZIP}")
+SET(MD5_SUM ${MUPARSER_MD5})
+
+SET(DLFN "${muparser_prefix}/muparser-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(muparser
   PREFIX "${muparser_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/muparser
-  URL ${MUPARSER_URL}/${MUPARSER_ZIP}
+  URL ${LOCAL_FILE}
   URL_MD5 ${MUPARSER_MD5}
   CMAKE_ARGS
     ${CMAKE_ARGS}
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(muparser cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${muparser_prefix}
 )
 
 #-------------------------------------------------------------------------------

@@ -117,6 +117,9 @@ namespace CoupledField {
       //! The setup phase generates a vector containing the inverses of the
       //! diagonal entries of the system matrix
       void Setup( StdMatrix &sysmat );
+      
+      //! \copydoc BasePrecond::ExportPrecondSysMat
+      void GetPrecondSysMat( BaseMatrix& sysMat );
 
     private:
       //! Number of block rows 

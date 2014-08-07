@@ -64,7 +64,7 @@ namespace CoupledField
       yValue = a * y_[klo] + b * y_[khi];
     }
 
-    return yValue;
+    return yValue*factor_;
   }
 
 

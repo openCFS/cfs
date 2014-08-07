@@ -7,8 +7,9 @@
 namespace CoupledField {
 
   
-  LogConfigurator::LogConfigurator() {
-    
+  LogConfigurator::LogConfigurator(const std::string& confFile) :
+    confFile_(confFile)
+  {    
     // Set some default output modifiers for the log streams
     add_modifier("*", prepend_prefix);
     //add_modifier("*", prepend_time("$hh:$mm:$ss "), "", INT_MAX );
@@ -56,12 +57,11 @@ namespace CoupledField {
   void LogConfigurator::ParseLogConfFile() {
    
     // Query filename from option parser
-    std::string confFile = progOpts->GetLogConfFileStr();
-    if( confFile == "") return;
+    if( confFile_ == "") return;
     
     // If file is defined, create new Xerces instance and parse file
     Xerces xmlParser;
-    xmlParser.SetFile(confFile);
+    xmlParser.SetFile(confFile_);
     
     // Obtain ParamNode
     PtrParamNode root = xmlParser.CreateParamNodeInstance();

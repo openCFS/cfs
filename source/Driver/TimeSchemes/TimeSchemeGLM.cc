@@ -183,8 +183,10 @@ namespace CoupledField{
       //update for old solutions
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         UInt col = curScheme_->numStages_+i;
+
         Double coef = curScheme_->schemeCoefs_[cRow][col];
         if(coef !=0){
+          //std::cout << "cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
           SingleVector * curVec = glmVector_[i];
           rhsVec->Add(coef,(*curVec));
         }
@@ -205,6 +207,11 @@ namespace CoupledField{
       UInt col = curScheme_->numStages_;
       Double coef = curScheme_->schemeCoefs_[cRow][col];
       if(coef !=0){
+        ////This is currently a HACK!!
+        //if ( curType_ == GLMScheme::BDF2 && col > 0 )
+        //  coef = curScheme_->schemeCoefs_[cRow][col-1];
+
+        //std::cout << "NL:  cRow: " << cRow << "  col: " << col << "  Value: " << coef << std::endl;
         SingleVector * curVec = stageVector_[actStage];
         rhsVec->Add(coef * -1.0,(*curVec));
       }
@@ -220,8 +227,15 @@ namespace CoupledField{
   }
 
   void TimeSchemeGLM::FinishStep(){
+
+    //just hack for flow and BDF2
+    //bool usePredictorsOK = true;
+    //if (curType_ == GLMScheme::BDF2 && nLinType_ == INCREMENTAL)
+    //  usePredictorsOK = false;
+
     //update for old solutions
-    if(curScheme_->usePredictors_){
+    //if(curScheme_->usePredictors_ && usePredictorsOK ) { //&& nLinType_ != INCREMENTAL){
+    if(curScheme_->usePredictors_) { //&& nLinType_ != INCREMENTAL){
       for(UInt i=0;i<curScheme_->sizeGLMVec_;i++){
         if((Integer)i != avoidUpdateIdx_){
           glmVector_[i]->Init();
@@ -285,8 +299,8 @@ namespace CoupledField{
     }
   }
 
-  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap
-                                          , std::map<FEMatrixType,Double> & matFactors){
+  void TimeSchemeGLM::AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
+                                        std::map<FEMatrixType,Double> & matFactors){
 
     //The correct matrix factors are always at the same position
     std::map<FEMatrixType,Integer>::const_iterator mIt = matMap.begin();
@@ -376,8 +390,10 @@ namespace CoupledField{
   void TimeSchemeGLM::InitGLMs(){
     //initialize GLMs
     availSchemes[GLMScheme::TRAPEZOIDAL] = new Trapezoidal(0.513);
+    //availSchemes[GLMScheme::TRAPEZOIDAL] = new Trapezoidal(1.0);
 
     availSchemes[GLMScheme::NEWMARK] = new Newmark(0.5,0.25);
+    availSchemes[GLMScheme::BDF2] = new Bdf2();
   }
 
 }

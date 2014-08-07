@@ -111,7 +111,6 @@ class BaseTimeScheme{
 
     /// Give the timestep the possibility to initialize
     virtual void InitStage(UInt aStage,Double aTime,Domain* domain)=0;
-;
 
   protected:
 

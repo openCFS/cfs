@@ -198,6 +198,10 @@ namespace CoupledField {
     static void ReorderComsolNodes(int elementtype,UInt *topo);
     int LoadComsolMesh(Grid *data, const char *prefix, bool readInfos);
 
+    typedef std::map<std::string, std::vector<UInt> > RegionMapType;
+    void BuildRegionMaps(RegionMapType& volDomMap,
+                         RegionMapType& surfDomMap);
+
     // =======================================================================
     // CLASS ATTRIBUTES
     // =======================================================================
@@ -222,7 +226,7 @@ namespace CoupledField {
     //! Array indicating if elems of given dimension were read in
     std::vector<bool> elemDimReadIn_;
 
-    //! Vectpr with nodal numbers for each region
+    //! Vector with nodal numbers for each region
     std::vector<std::set<UInt> > regionNodes_;
     
     //! Pointer to input file
@@ -230,6 +234,9 @@ namespace CoupledField {
 
     //! End position in input mesh-file
     std::string::size_type pos_end;
+
+    //! File name of optional .mph file for reading region infos.
+    std::string mph_;
 
     //@}
 

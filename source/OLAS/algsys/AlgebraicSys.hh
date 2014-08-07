@@ -531,6 +531,9 @@ namespace CoupledField {
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different Fct identifiers.
+    //! \param noStaticCond If set to false, no static condensation will be
+    //!                     applied to this element matrix. This is needed e.g.
+    //!                     for matrices not being assembled to the system matrix.
     template<typename T>
     void SetElementMatrix( FEMatrixType matrixType, 
                            Matrix<T>& elemmat,
@@ -538,7 +541,8 @@ namespace CoupledField {
                            const StdVector<Integer>& eqnNrs1,
                            FeFctIdType fctId2,
                            const StdVector<Integer>& eqnNrs2,
-                           bool setCounterPart );
+                           bool setCounterPart, 
+                           bool noStaticCond );
 
     //! Assemble the local rhs vector to the global one
 
@@ -585,6 +589,7 @@ namespace CoupledField {
     //! \param fup array with vector entries, which get multiplied
     //! \param SysMatUpdated indicates if we need to allocate new memory for the tmpRHS_ vector
     void UpdateRHS(FEMatrixType matrixType, const SBM_Vector& fup,bool SysMatUpdated);
+
 
     //! Add a value to a diagonal matrix entry
 
@@ -695,6 +700,10 @@ namespace CoupledField {
     //! \note After assembling the dirichlet values, the preconditioner and
     //! the solver have to be set up again.
     void BuildInDirichlet();
+
+    //! correct RHS according to inhomogeneous Dirichlet bcs
+    void AddIDBCToRHS();
+
 
     //! Return complete solution vector
 

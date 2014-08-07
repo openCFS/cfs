@@ -40,7 +40,8 @@ namespace CoupledField {
     //! Constructor
     CoefFunctionStabParams(PtrCoefFct density,
                            PtrCoefFct viscosity,
-                           StabType type);
+                           StabType type,
+                           bool isComplex);
     
     
     //! Constructor for additional mean flow coefFunction
@@ -49,7 +50,8 @@ namespace CoupledField {
                            PtrCoefFct meanFlow,
                            BaseBOperator* opt,
                            shared_ptr<BaseFeFunction > feFnc,
-                           StabType type);
+                           StabType type,
+                           bool isComplex);
     
     //! Destructor
     virtual ~CoefFunctionStabParams(){;}
@@ -67,7 +69,8 @@ namespace CoupledField {
     //! do initilization
     void PerformInitialization(PtrCoefFct density,
                                PtrCoefFct viscosity,
-                               StabType type);
+                               StabType type,
+                               bool isComplex);
     
     //! density
     PtrCoefFct density_;
@@ -93,6 +96,9 @@ namespace CoupledField {
     
     //! Depending FeFunction
     shared_ptr<BaseFeFunction>  feFct_;
+
+    //! Do we have a complex-valued mean flow function
+    bool isComplex_;
     
   };
 }

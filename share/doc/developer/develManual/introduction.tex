@@ -302,16 +302,92 @@ inverse schemes for the precise determination of material parameters
 optimization \cite{kaltenbacher09:10,wein10:1}.
 %
 
-\section{CFS++ Coding Style}
+\section{Coding Style}
 
-There is no very strict coding style for CFS++. The main points which have been agreed upon are
+There is  no very strict  coding style for CFS++.  The main points  which have
+been agreed upon are
 \begin{itemize}
-  \item No tabs only spaces.
-  \item The indentation width is two characters.
-  \item Source encoding is UTF-8.
+
+\item \textbf{No tabs only spaces.}
+
+\item \textbf{Source encoding is UTF-8.}
+
+\item \textbf{Indentation style} The indentation  width is two characters. The
+  indentation style can be characterized  as the "indented brace".  This means
+  that the  curly brace (scope  delimiter) should  be placed on  the following
+  line. It should look like this:
+\begin{verbatim}
+if (indicator == TRUE)
+{
+  doSmth();
+}
+\end{verbatim}
+\item \textbf{Names} We use capitalization to indicate words within a name. To
+  distinguish a local variable of a  method from an attribute (global variable
+  of the class), we append a trailing  underline to the end of the attribute's
+  name. Something like this:
+\begin{verbatim}
+class Foo{
+ Integer varOfClass_;
+}
+\end{verbatim}
+     Your  names  should  be   transparent,  i.e.  self-explanatory,  and  not
+     incorporate non-standard  abbreviations. This leads to  longer names, but
+     it also makes reading the code easier.
+\item \textbf{using  namespace} Directives "using  namespace std" can  be used
+  only in function scope. It's better to use the namespace in name of variable
+  or  method.  For  example,  it's  clear  to  determine  that  variable  {\tt
+    grd::Vertex}  is  from namespace  of  grd,  that  is  used in  classes  by
+  Roberto. Also,  all methods  iand variables from  standard library  of {C++}
+  should be mentioned with namespace {\tt std::}, like that: {\tt std::cout }.
+\item \textbf{C++ standard libraries} It is preferable to use methods from the
+  standard C++  library and  not the standard  C library and  also to  use the
+  corresponding headers. So header inclusion should look like:
+\begin{verbatim}
+#include <fstream>
+#include <iostream>
+#include <string>
+\end{verbatim}
+and not like:
+\begin{verbatim}
+#include <fstream.h>
+#include <iostream.h>
+#include <string.h>
+\end{verbatim}
+     Note that  the .h  versions of  the C++-headers  are deprecated.  If they
+     exist on a system, this is only for backward compatibility.
+\item \textbf{\#include} The header file of  the class should include only the
+  superclasses (general classes of CFS++, such as \texttt{Vector, Environment,
+    etc.}) header. All headers of standard libraries should be included in the
+  source file.  If you  use some class  in header file,  you should  provide a
+  declaration of the  class instead of including a header  file of this class,
+  for example in the following fashion:
+     \begin{verbatim}
+     class Elem;
+     class Grid
+     {
+      Elem * listElems;
+     };
+     \end{verbatim}
+     and not in this way:
+     \begin{verbatim}
+     #include "elem.hh"
+     class Grid
+     {
+      Elem * listElems;
+     };
+     \end{verbatim} 
+     If you have to include some files from another library, then it is better
+     to do this using a flag/macro. Using this approach the code can then also
+     be compiled without external classes.
+\item \textbf{Get/Set}  We try to  maintain the concept of  data encapsulation
+  and keep variables of a class protected. Therefore, all variables of a class
+  should be  declared as  protected. Public  access to  variables can  then be
+  provided by appropriate Set/Get methods.
 \end{itemize}
 
-\todo[inline]{Put informations from \url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/StyleGuide} here.}
+\todo[inline]{Put  informations   from  \url{\CFSDSHTTPS/trac/wiki/StyleGuide}
+  here.}
 
 \section{Settings for Eclipse}
 
@@ -321,11 +397,10 @@ from CMake.
 
 \section{Settings for Emacs}
 
-The            following           attached            shell           archive
-\attachfile[icon=PushPin,description={Emacs
-settings.},mimetype=text/plain]{attachments/emacs_settings.txt} implements the
-CFS++  policies for Emacs.  It also  contains modes  for editing  CMake files,
-gnuplot files  and ANSYS APDL  input scripts. It  also features the  CUA mode,
-which contains keyboard shortcuts which  are more consistent with oder editors
-(e.g. Ctrl+C for  copying). Some changes to the Lisp  scripts may be necessary
-to get them working with XEmacs.
+A shell archive implementing the CFS++  policies for Emacs is available on the
+development                   server\footnote{Emacs                  settings:
+  \url{\CFSDSHTTPS/codingrules/emacs_settings.sh}}.   It  also contains  modes
+for editing CMake files, gnuplot files  and ANSYS APDL input scripts.  It also
+features  the CUA  mode,  which  contains keyboard  shortcuts  which are  more
+consistent with oder editors (e.g.  Ctrl+C  for copying).  Some changes to the
+Lisp scripts may be necessary to get them working with XEmacs.

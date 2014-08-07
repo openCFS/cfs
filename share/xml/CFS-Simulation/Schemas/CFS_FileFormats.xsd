@@ -26,6 +26,8 @@
           </xsd:documentation>
         </xsd:annotation>        
       </xsd:element>
+      <xsd:element name="scatteredData" type="DT_InputScatteredData"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="output" type="DT_OutputList" minOccurs="0" maxOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -81,7 +83,9 @@
       <xsd:element name="mesh" type="DT_InputMesh"/>
       <xsd:element name="mphtxt" type="DT_InputComsol"/>
       <xsd:element name="hdf5" type="DT_InputHDF5"/>      
+      <xsd:element name="cgns" type="DT_InputCGNS"/>
       <xsd:element name="unv" type="DT_InputUNV"/>
+      <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
     </xsd:choice>
   </xsd:group>
@@ -267,14 +271,15 @@
   <xsd:complexType name="DT_InputComsol">
     <xsd:annotation>
       <xsd:documentation xml:lang="en">
-        Read mesh files generated using Comsol (http://www.comsol.com).
+        Read ASCII .mphtxt mesh files generated using Comsol (http://www.comsol.com).
       </xsd:documentation>
     </xsd:annotation>
     
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:sequence minOccurs="0">
-          <xsd:element name="region" type="DT_InputComsol_RegionType"  minOccurs="0" maxOccurs="unbounded"/>
+          <xsd:element name="region" type="DT_InputComsol_RegionType"
+                       minOccurs="0" maxOccurs="unbounded"/>
         </xsd:sequence>
         <xsd:attribute name="fileName"
 		       type="xsd:token"
@@ -285,24 +290,22 @@
             </xsd:documentation>
           </xsd:annotation>          
         </xsd:attribute>
-        <xsd:attribute name="info"
-          type="xsd:boolean"
-          default="false">
+        <xsd:attribute name="mph"
+          type="xsd:token"
+          default="default">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              Print out infos while reading the .mphtxt file.
+              File name of multiphysics .mph file corresponding to the grid
+              in the .mphtxt file. If an additional multiphysics file is
+              provided CFS++ reads the model.xml inside the .mph file, which
+              is an ordinary zip file, and tries to aquire region names 
+              from explicit selections of the first model. In the COMSOL GUI
+              this maps to /filename.mph/Model 1/Definitions/... and in the
+              model.xml this maps to
+              /com.comsol.mph-vXX:Model/selection[1]/selections[1...n].
             </xsd:documentation>
           </xsd:annotation>          
-        </xsd:attribute>        
-        <xsd:attribute name="debug"
-          type="xsd:boolean"
-          default="false">
-          <xsd:annotation>
-            <xsd:documentation xml:lang="en">
-              Print out debug information while reading the .mphtxt file.
-            </xsd:documentation>
-          </xsd:annotation>          
-        </xsd:attribute>        
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -313,6 +316,11 @@
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputGMV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read (G)eneral (M)esh (V)iewer files (http://www.generalmeshviewer.com)
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
       </xsd:extension>
@@ -325,6 +333,13 @@
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputHDF5">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read the native CFS++ HDF5 file format. This format has the most complete
+        set of supported features (mesh, data, restart info, etc.). HDF5 files
+        can be generated using the ANSYS mkhdf5 extension, cplreader and cfstool.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:attribute name="generateRegionNodes"
@@ -350,11 +365,44 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
+  <!--   Definition of CGNS data input type -->
+  <!-- ******************************************************************** -->
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputCGNS">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Read (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
+      </xsd:documentation>
+    </xsd:annotation>    
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="coordSysId"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="scaleFac"
+          type="xsd:double"
+          default="1.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
   <!--   Definition of UNV  data input type -->
   <!-- ******************************************************************** -->
 
   <!-- Data type for specification of input file format -->
   <xsd:complexType name="DT_InputUNV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        Read Ideas universal files. These can e.g. be generated using
+        Siemens NX PLM, GiD (File -&gt; Export -&gt; Using Template .bas -&gt; UNV)
+        or Gmsh.
+      </xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_InputBasic">
         <xsd:attribute name="fileName"
@@ -383,6 +431,80 @@
   </xsd:simpleType>  
 
   <!-- ******************************************************************** -->
+  <!--   Definition of ANSYS .cdb/.inp data input type -->
+  <!-- ******************************************************************** -->
+  
+  <xsd:simpleType name="DT_InputCDBSurfElemsTypes">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="nodeCmpToNamedElems"/>
+      <xsd:enumeration value="nodeCmpToSurfRegions"/>
+      <xsd:enumeration value="surfBCsToNamedElems"/>
+    </xsd:restriction>
+  </xsd:simpleType>  
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputCDB">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        The CFS++ .cdb/.inp reader can read mesh files generated with the
+        ANSYS CDWRITE command (e.g. allsel\n cdwrite, db, 'file', 'cdb').
+        The corresponding read command in ANSYS would therefore be CDREAD.
+        ANSYS .cdb files can also be written using the Workbench interface.
+        Also .inp files containing meshes may be read if they are not too
+        general. The corresponding APDL command would be /INPUT.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:attribute name="fileName"
+          type="xsd:token"
+          default="default"/>
+        <xsd:attribute name="strict"
+          type="xsd:boolean"
+          default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              If strict is true, no gaps in the node number list and the element
+              number list are tolerated. Therefore, a nummrg may be in order before
+              writing out the .cdb or .inp file.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="degenerate"
+          type="xsd:boolean"
+          default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              ANSYS usually writes wedges, pyras and tets as degenerated versions
+              of hexas. If degenerate is false, CFS++ will convert the degenerated
+              hexas to the proper type. If degenerate is true, CFS++ will just add
+              the degenerated hexa connectivity to the grid.
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="surfElemsMode"
+          type="DT_InputCDBSurfElemsTypes"
+          default="nodeCmpToSurfRegions">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              ANSYS Workbench  Mechanical (Tools  -&gt; Write Input  File) and
+              Finite  Element Modeler  (Write APDL  Solver File)  write named  
+              selections of surfaces  as node  components. Therefore,  the CDB  reader
+              reconstructs  surface  elements from  node  components and adds them as
+              surface regions by default (nodeCmpToSurfRegions). The surface elements
+              can also be put into named element groups using nodeCmpToNamedElems.
+              If  this attribute  is set to surfBCsToNamedElems, named elements can be
+              generated by applying pressure surface BCs on the corresponding named
+              selections. Please note, that also node components written from ANSYS
+              Classic using CDWRITE are subject to this parameter!
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
   <!--   Definition of Internal data input type -->
   <!-- ******************************************************************** -->
 
@@ -400,7 +522,258 @@
     </xsd:complexContent>
   </xsd:complexType>
   
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered data input type -->
+  <!-- ******************************************************************** -->
 
+  <xsd:group name="ScatteredDataGroup">
+    <xsd:choice>
+      <xsd:element name="csv" type="DT_ScatteredDataCSV"/>
+      <xsd:element name="ccm" type="DT_ScatteredDataCCM"/>
+    </xsd:choice>
+  </xsd:group>
+  
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputScatteredData">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="de">
+        Scattered data is defined with respect to point clouds. No grid
+        is associated with scattered data.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:sequence>
+      <xsd:group ref="ScatteredDataGroup" minOccurs="1" maxOccurs="unbounded"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic scattered input type -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataBasic">
+    <xsd:attribute name="fileName"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Full path of file containing the scattered data.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="id"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Unique id for input reader which reads from the given file.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of basic quantity type for scattered data -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityBasic"  abstract="true">
+    <xsd:sequence>
+      <xsd:element name="bbox" maxOccurs="1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Only data points contained in this bounding box are considered
+            for the database inside the CoefFunctionScatteredData.
+          </xsd:documentation>
+        </xsd:annotation>        
+        <xsd:complexType>
+          <xsd:attribute name="xmin" type="xsd:double" use="required"/>
+          <xsd:attribute name="ymin" type="xsd:double" use="required"/>
+          <xsd:attribute name="zmin" type="xsd:double" use="required"/>
+          <xsd:attribute name="xmax" type="xsd:double" use="required"/>
+          <xsd:attribute name="ymax" type="xsd:double" use="required"/>
+          <xsd:attribute name="zmax" type="xsd:double" use="required"/>          
+        </xsd:complexType>
+      </xsd:element>
+      <xsd:element name="dump" maxOccurs="1" minOccurs="0">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Dump point cloud data contained in the CoefFunctionScatteredData
+            to a file.
+          </xsd:documentation>
+        </xsd:annotation>        
+        <xsd:complexType>
+          <xsd:attribute name="fileName" type="xsd:token" use="required"/>
+          <xsd:attribute name="format" type="xsd:token" use="optional" default="csv"/>
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Name of this quantity
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="id"
+      use="required"
+      type="xsd:token">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Id for this scattered data quantity.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>    
+    <xsd:attribute name="factor" type="xsd:double" default="1.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          A scaling factor for all components of the values.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="interpolAlgo" use="optional" default="shepard">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Interpolation algorithm for scattered data points. May be one of shepard, nearest-neighbor.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="numNeighbors" use="optional" type="xsd:unsignedInt" default="20">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Number of scattered data points to include in interpolation.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="p" use="optional" type="xsd:double" default="2.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Exponent for calculation of weights.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>        
+    <xsd:attribute name="knnLib" use="optional" default="cgal">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Library for k-nearest-neighbor search. May be one of cgal or flann.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>    
+  </xsd:complexType>  
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered quantity for .csv files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityCSV">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        The columns of the single degrees of freedom (dofs) for the values
+        can be specified component-wise.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredQuantityBasic">
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+              <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of input tag for .csv files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataCSV">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredDataBasic">
+        <xsd:sequence>
+          <xsd:element name="coordinates" minOccurs="1" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                The columns of the single degrees of freedom (dofs) for the point
+                coordinates can be specified component-wise.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="dof" type="xsd:token" use="required"/>
+                    <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
+                  </xsd:complexType>  
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="quantity" minOccurs="1" maxOccurs="1" type="DT_ScatteredQuantityCSV"/>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of scattered quantity for .ccm files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredQuantityCCM">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        The field short names of the single degrees of freedom (dofs) for the values
+        can be specified component-wise. The default values for the dofs x, y, z are SU, SV and SW.
+        The short names of the fields can be found in the .ccm files under e.g.
+        /FieldSets/FieldSet-1/Phase-1/Fields/Velocity_0/ShortName. The cgnsview executable can be used
+        to open the ADF tree inside the .ccm file.
+      </xsd:documentation>
+    </xsd:annotation>
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredQuantityBasic">
+        <xsd:sequence>
+          <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:complexType>
+              <xsd:attribute name="dof" type="xsd:token" use="required"/>
+              <xsd:attribute name="shortName" type="xsd:token" use="required"/>
+            </xsd:complexType>  
+          </xsd:element>
+        </xsd:sequence>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of input tag for STAR-CCM+ .ccm files -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ScatteredDataCCM">
+    <xsd:complexContent>
+      <xsd:extension base="DT_ScatteredDataBasic">
+        <xsd:sequence>
+          <xsd:element name="quantity" minOccurs="1" maxOccurs="1" type="DT_ScatteredQuantityCCM">
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="dump" type="xsd:boolean" use="optional" default="false">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Dump point cloud data to a CSV file. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="cellCenters" type="xsd:boolean" use="optional" default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Read data from cell centers. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+        <xsd:attribute name="faceCenters" type="xsd:boolean" use="optional" default="true">
+          <xsd:annotation>
+            <xsd:documentation xml:lang="en">
+              Read data from face centers. 
+            </xsd:documentation>
+          </xsd:annotation>
+        </xsd:attribute>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>  
+  
   <xsd:group name="OutputGroup">
     <xsd:choice>
       <xsd:element name="gmsh" type="DT_OutputGMsh"
@@ -415,10 +788,10 @@
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="hdf5" type="DT_OutputHDF5"
 		   minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="xdmf" type="DT_OutputXDMF"
-        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="rst" type="DT_OutputRST"
 		   minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="cgns" type="DT_OutputCGNS"
+        minOccurs="0" maxOccurs="1"/>
       <xsd:element name="text" type="DT_OutputText"
 		   minOccurs="0" maxOccurs="1"/>
       <xsd:element name="csv" type="DT_OutputCSV"
@@ -526,15 +899,6 @@
   </xsd:complexType>
 
   <!-- ******************************************************************** -->
-  <!--   Definition of data type for XDMF output -->
-  <!-- ******************************************************************** -->
-  <xsd:complexType name="DT_OutputXDMF">
-    <xsd:attribute name="directory" type="xsd:string" default="results_hdf5"/>
-    <xsd:attribute name="id" type="xsd:token" default="xdmf"/>
-    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
-  </xsd:complexType>
-  
-  <!-- ******************************************************************** -->
   <!--   Definition of data type for ANSYS RST output -->
   <!-- ******************************************************************** -->
   <xsd:complexType name="DT_OutputRST">
@@ -549,6 +913,72 @@
     <xsd:attribute name="id" type="xsd:token" default="rst"/>
     <xsd:attribute name="gridId" type="xsd:token" default="default"/>
   </xsd:complexType>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of data type for CGNS output -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_OutputCGNS">
+    <xsd:annotation>
+      <xsd:documentation xml:lang="en">
+        Write (C)FD (G)eneral (N)otation (S)ystem files (http://www.cgns.org).
+      </xsd:documentation>
+    </xsd:annotation>   
+    <xsd:attribute name="directory" type="xsd:string" default="results_cgns"/>
+    <xsd:attribute name="id" type="xsd:token" default="cgns"/>
+    <xsd:attribute name="gridId" type="xsd:token" default="default"/>
+    <xsd:attribute name="mll" type="DT_OutputCGNSMidLevelLibraries" default="default">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Mid level library used to write CGNS SIDS. May be one of hdf5, adf,
+          adf2 or default. By default adf is used in order to support also older
+          post-processors. This behavior may however be changed by setting the 
+          environment variable CGNS_FILETYPE to one of hdf5, adf or adf2. CFS++
+          is linked to CGNS 3.1. Therefore hdf5 will be used if CGNS_FILETYPE is
+          not defined and 'mll' is set to 'default'.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="writeQuadElems" type="xsd:boolean" default="false">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Even if the CGNS library properly defines complete and incomplete
+          quadratic element types, most post-processors (VisIt, ParaView with
+          VisItBridge, EnSight) have problems handling them. Therefore, we just
+          write linear element types by default.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="complexFormat" type="DT_ComplexFormat" default="realImag">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Format for complex-valued results.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+    <xsd:attribute name="separateFiles" type="xsd:boolean" default="true">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          It has been found, that some post-processors for CGNS (VisIt &lt;= 2.7,
+          EnSight &lt;= 10.0) have problems handling nodal and element results 
+          defined under the same base node. ParaView (&lt;= 4.1) may go to 100% CPU 
+          load and even crash! Even if the different result types are defined with
+          respect to different base nodes in the same .cgns file, which would be okay
+          for ParaView, VisIt and EnSight have problems handling this situation.
+          Therefore, the default is to write node and element results to different
+          files.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
+  </xsd:complexType>
+
+  <xsd:simpleType name="DT_OutputCGNSMidLevelLibraries">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="adf"/>
+      <xsd:enumeration value="adf2"/>
+      <xsd:enumeration value="hdf5"/>
+      <xsd:enumeration value="default"/>
+    </xsd:restriction>
+  </xsd:simpleType>  
   
   <!-- ******************************************************************** -->
   <!--   Definition of data type for text output -->

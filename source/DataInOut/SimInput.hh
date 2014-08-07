@@ -70,7 +70,8 @@ namespace CoupledField
           fileName_(fileName),
           mi_(NULL),
           myParam_(inputNode),
-          myInfo_(infoNode)
+          myInfo_(infoNode),
+          dim_(0)
       {};
 
 

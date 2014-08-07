@@ -124,9 +124,13 @@
                 <xsd:element name="force"         type="DT_BcInhomVector"/>
                 <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
                 <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
-                
+
+                <!-- RHS, due to thermal strains-->
+                <xsd:element name="thermalStrain" type="DT_BcInhomScalar"/>
+
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"    type="DT_MechCS" />
+                <xsd:element name="concentratedElem" type="DT_MechConcElem"    />
                 
             <!--<xsd:element name="spring"        type="DT_MechSpring"    />
                 <xsd:element name="preStress"     type="DT_MechPreStress" />
@@ -371,22 +375,20 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for spring elements -->
+  <!-- Element type for concentrated mechanical elements -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechSpring">
+  <xsd:complexType name="DT_MechConcElem">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-        <xsd:attribute name="massValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="stiffnessValue" type="xsd:double"
-          use="required"/>
-        <xsd:attribute name="relStiffness" type="xsd:boolean" use="optional" 
-          default="false" />        
+        <xsd:attribute name="massValue" type="xsd:token" default="0.0"/>
+        <xsd:attribute name="dampingValue" type="xsd:token" default="0.0"/>
+        <xsd:attribute name="stiffnessValue" type="xsd:token" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>
+  </xsd:complexType> 
+  
   
   <!-- Element type for constraint condition -->
   <!-- We derive it by extending the base type -->
@@ -413,6 +415,7 @@
       <xsd:enumeration value="mechVelocity"/>
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -420,10 +423,12 @@
   <xsd:simpleType name="DT_MechElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStrain"/>
+      <xsd:enumeration value="mechThermalStrain"/>
       <xsd:enumeration value="mechStress"/>
+      <xsd:enumeration value="mechThermalStress"/>
       
       <xsd:enumeration value="mechStructIntensity"/>
-      <xsd:enumeration value="vonMisesStress"/>
+      <xsd:enumeration value="vonMises"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="mechKinEnergyDensity"/>
       <xsd:enumeration value="mechDeformEnergyDensity"/>

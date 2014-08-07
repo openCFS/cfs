@@ -3,7 +3,12 @@
 #-----------------------------------------------------------------------------
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
-SET(REQ_PATCH_VER 7)
+SET(REQ_PATCH_VER 11)
+
+#-----------------------------------------------------------------------------
+# Include global definitions for CFS++ development server (host name, etc.)
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/DevelopmentServer.cmake")
 
 #-----------------------------------------------------------------------------
 # Give some hints to the user, if CMake is too old.
@@ -14,15 +19,15 @@ IF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
 
 MESSAGE(
 "
-================================================================================
-! ATTENTION: The CMake binaries you are using are too old for building CFS++!  !
-! But do not worry. There are a number of ways to remedy this situation:       !
-================================================================================
+==============================================================================
+! ATTENTION: The CMake binaries you are using are too old for building CFS++ !
+! But do not worry. There are a number of ways to remedy this situation:     !
+==============================================================================
 
 1. On Unix download and run the latest bootstrapper script for CFS++
 
-    $ LSE17FTP='ftp://lse17.e-technik.uni-erlangen.de:40065'
-    $ wget $LSE17FTP/scripts/bootstrap_devel_machine.sh
+    $ CFSDSFTP='${CFS_DS_FTP}'
+    $ wget $CFSDSFTP/scripts/bootstrap_devel_machine.sh
     $ sudo bash
     $ sh bootstrap_devel_machine.sh
 
@@ -37,9 +42,10 @@ MESSAGE(
 
 3. Download just the CMake binaries for your platform from Kitware at
    http://cmake.org/cmake/resources/software.html (works on Windows/Linux/Mac)
-   You may have to install additional packages by hand! (cf. Developer's Manual)
+   You may have to install additional packages by hand! (cf. Developer's
+   Manual and share/scripts/bootstrap_devel_machine.sh)
 
-================================================================================
+==============================================================================
 ")
 
 ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
@@ -78,16 +84,17 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "13")
-SET(CFS_VERSION_MONTH "06")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Nonmatching Noolbenger")
+SET(CFS_NAME "Rotating Rhino")
 
-colormsg(HIBLUE "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
+colormsg(HIBLUE
+  "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
 
 #-----------------------------------------------------------------------------
 # Set hostname of build host
@@ -97,7 +104,8 @@ SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}"
   CACHE INTERNAL "CFS_BUILD_HOST")
 
 #-----------------------------------------------------------------------------
-# Set user who builds CFS++, in order to track back who built a given binary.
+# Set user who builds CFS++, in order to be able to track back who built a
+# given binary.
 #-----------------------------------------------------------------------------
 IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
   SET(REG_KEY "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows")
@@ -130,7 +138,8 @@ ENDIF()
 SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 
 #-----------------------------------------------------------------------------
-# Set default values according to environment or platform
+# Set default values according to environment or platform. The user can
+# specify his own defaults in $HOME/.cfs_platform_defaults.cmake
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/platform_defaults.cmake")
 
@@ -170,32 +179,37 @@ IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 ENDIF()
 
 #-----------------------------------------------------------------------------
-# Options concerning linear algebra and direct solver libraries
-# The following combinations are implemented
+# Options concerning linear algebra and  direct solver libraries The following
+# combinations are implemented
 #
 #         ACML GOTO MKL NETLIB
 # SCHENK   x    x    x    x
 #    MKL   -    -    x    -
 #
-# Since ILUPACK uses MUMPS and no longer Pardiso for its matching operations
-# it should now compile with all other combinations of BLAS/LAPACK
-# If we want to try out the Pardiso matching this would have to be 
-# implemented separately
+# Since ILUPACK uses  MUMPS and no longer Pardiso for  its matching operations
+# it should now compile with all  other combinations of BLAS/LAPACK If we want
+# to try out the Pardiso matching this would have to be implemented separately
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
-  "BLAS/LAPACK implementation for CFS. May be one of ACML, APPLE, GOTO, MKL, NETLIB")
+  "BLAS/LAPACK implementation. May be one of ACML, APPLE, GOTO, MKL, NETLIB")
 
 SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK.")
 
-OPTION(USE_PARDISO "Use Pardiso" ${USE_PARDISO_DEFAULT})
-OPTION(USE_ARPACK "Use the ARPACK eigensolver library." ${USE_ARPACK_DEFAULT})
-OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK." ${USE_ILUPACK_DEFAULT})
-OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse." ${USE_SUITESPARSE_DEFAULT})
-OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers." ${USE_LIS_DEFAULT})
-OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs." ${USE_SUPERLU_DEFAULT})
+OPTION(USE_PARDISO "Use Pardiso"
+  ${USE_PARDISO_DEFAULT})
+OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
+  ${USE_ARPACK_DEFAULT})
+OPTION(USE_ILUPACK "Use Preconditioners from ILUPACK."
+  ${USE_ILUPACK_DEFAULT})
+OPTION(USE_SUITESPARSE "Use CholMod and UMFPACK solvers from SuiteSparse."
+  ${USE_SUITESPARSE_DEFAULT})
+OPTION(USE_LIS "Use (L)ibrary of (I)terative (S)olvers."
+  ${USE_LIS_DEFAULT})
+OPTION(USE_SUPERLU "Use SuperLU direct solver and ILUs."
+  ${USE_SUPERLU_DEFAULT})
 
 IF(USE_PARDISO OR
    USE_ARPACK OR
@@ -225,12 +239,12 @@ ENDIF(USE_PARDISO OR
 #-----------------------------------------------------------------------------
 IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
-    "BLAS/LAPACK implementation for CFS. May be one of ACML, GOTO, MKL, NETLIB"
+    "BLAS/LAPACK implementation. May be one of ACML, GOTO, MKL, NETLIB"
     FORCE)
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
-# Options which have become so important that they are not optional anymore
+# Options which have become so important that they are not optional anymore.
 #-----------------------------------------------------------------------------
 SET(USE_HDF5 ${USE_HDF5_DEFAULT}
   CACHE INTERNAL "Use HDF5 for simulation in/output.")
@@ -245,6 +259,26 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 OPTION(USE_CGNS "Enable support for the CFD General Notation System."
   ${USE_CGNS_DEFAULT})
 
+# Since the CGNS library depends on the HDF5 library, we need to force
+# USE_HDF5 to ON.
+IF(USE_CGNS)
+    SET(USE_HDF5 ON CACHE BOOL "Use HDF5 for simulation in/output." FORCE)
+ENDIF()
+
+#-----------------------------------------------------------------------------
+# CCMIO - STAR-CCM+ I/O library
+#-----------------------------------------------------------------------------
+OPTION(USE_CCMIO "Enable support for the STAR-CCM+ I/O library."
+  ${USE_CCMIO_DEFAULT})
+
+# Since the CCMIO library depends on the ADF library from CGNS, we need to
+# force USE_CGNS to ON.
+IF(USE_CCMIO AND
+    NOT USE_CGNS)
+    SET(USE_CGNS ON CACHE BOOL
+      "Enable support for the CFD General Notation System." FORCE)
+ENDIF()
+
 #-----------------------------------------------------------------------------
 # CFXIO - Support for reading ANSYS CFX result files
 #-----------------------------------------------------------------------------
@@ -257,21 +291,6 @@ ENDIF()
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
 OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
-
-#-----------------------------------------------------------------------------
-# Yet another optimization library.
-#-----------------------------------------------------------------------------
-OPTION(USE_IPOPT "Use the external IPOPT optimizer." ${USE_IPOPT_DEFAULT})
-
-#-----------------------------------------------------------------------------
-# SnOpt optimizer library.
-#-----------------------------------------------------------------------------
-OPTION(USE_SNOPT "Use the external SnOpt optimizer." ${USE_SNOPT_DEFAULT})
-
-#-----------------------------------------------------------------------------
-# KNITRO is a commercial optimizer, requiring a license file/server
-#-----------------------------------------------------------------------------
-OPTION(USE_KNITRO "Use the external KNITRO optimizer." FALSE)
 
 #-----------------------------------------------------------------------------
 # Use cgal toggles the inclusion of the CGAL library.
@@ -293,24 +312,43 @@ IF(USE_CGAL AND USE_LIBFBI)
     "Either USE_CGAL or USE_LIBFBI can be actived, but not both!")
 ENDIF()
 
-OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
-OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)." ${PROFILING_DEFAULT})
-OPTION(COVERAGE "Turn on code coverage output." ${COVERAGE_DEFAULT})
+#-----------------------------------------------------------------------------
+# Use FLANN toggles the inclusion of the FLANN library.
+#-----------------------------------------------------------------------------
+OPTION(USE_FLANN
+  "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
+  ${USE_FLANN_DEFAULT})
 
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)." ${CFSTOOL_DEFAULT})
+OPTION(DEBUG "Build debug version of the code."
+  ${DEBUG_DEFAULT})
+OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."
+  ${PROFILING_DEFAULT})
+OPTION(COVERAGE "Turn on code coverage output."
+  ${COVERAGE_DEFAULT})
+
+OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
+  ${CFSTOOL_DEFAULT})
+
+OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
+  ${CFSDAT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_PARAVIEW
-  "Build the ParaView postprocessor with HDF5 and OpenFOAM extensions?."
+  "Build the ParaView post-processor with CFS++/NACS HDF5 and extension?."
   ${BUILD_PARAVIEW_DEFAULT})
+
+IF(BUILD_PARAVIEW)
+  # We need CGNS for ParaView
+  SET(USE_CGNS ON CACHE BOOL "Use CFD General Notation System." FORCE)
+ENDIF()
 
 #-----------------------------------------------------------------------------
 # Shall we build HDFView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_HDFVIEW
-  "Build the HDF 4/5 file viewer?"
+  "Build the HDF 5 file viewer?"
    ${BUILD_HDFVIEW_DEFAULT})
 
 #-----------------------------------------------------------------------------
@@ -346,10 +384,13 @@ IF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
     SET(USE_HDF5 ON CACHE INTERNAL
       "Use HDF5 for simulation in/output." FORCE)
     
-    ADD_SUBDIRECTORY(${TESTSUITE_DIR} "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
+    ADD_SUBDIRECTORY(${TESTSUITE_DIR}
+      "${CMAKE_CURRENT_BINARY_DIR}/testsuite")
   ELSE(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
-    MESSAGE("Testsuite directory '${TESTSUITE_DIR}' does not contain TESTSUIT. "
-      "Please specify a proper location!")
+    SET(MSG "Testsuite directory '${TESTSUITE_DIR}' does not contain")
+    SET(MSG "${MSG} TESTSUIT.\nPlease specify a proper location!")
+
+    MESSAGE("${MSG}")
   ENDIF(EXISTS ${TESTSUITE_DIR}/TESTSUIT)
 ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 
@@ -407,14 +448,14 @@ INCLUDE("cmake_modules/FindPrograms.cmake")
 INCLUDE("cmake_modules/compiler.cmake")
 
 #-----------------------------------------------------------------------------
-# Determine if some Fortran system libs are installed (blas, lapack, g2c...)
-#-----------------------------------------------------------------------------
-INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
-
-#-----------------------------------------------------------------------------
 # Determine on what UNIX/Linux/Windows distribution we are building on
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/distro.cmake")
+
+#-----------------------------------------------------------------------------
+# Determine if some Fortran system libs are installed (blas, lapack, g2c...)
+#-----------------------------------------------------------------------------
+INCLUDE("cmake_modules/CheckFortranRuntime.cmake")
 
 #-----------------------------------------------------------------------------
 # Perform some configure checks
@@ -437,7 +478,11 @@ OPTION(BUILD_TESTING "Build the testing tree." OFF)
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ")
+  SET(BUILDNAME
+    "${BUILDNAME} ${CFS_CXX_COMPILER_VER} ")
+  SET(BUILDNAME
+    "${BUILDNAME} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
@@ -447,23 +492,30 @@ IF(BUILD_TESTING)
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
 
+#-----------------------------------------------------------------------------
+# Set proper paths to development servers in testing readme.
+#-----------------------------------------------------------------------------
+CONFIGURE_FILE(
+  ${CMAKE_CURRENT_SOURCE_DIR}/ctest_scripts/README.md
+  ${CMAKE_CURRENT_BINARY_DIR}/ctest_scripts/README.md
+  @ONLY)
 
 #-----------------------------------------------------------------------------
 # Set path where shared/static libraries should go
 #-----------------------------------------------------------------------------
 IF(CFS_ARCH STREQUAL "X86_64")
-  SET(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64/${CFS_ARCH_STR} CACHE INTERNAL
-    "Single output directory for building all libraries.")
+  SET(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib64/${CFS_ARCH_STR}
+    CACHE INTERNAL "Single output directory for building all libraries.")
 ELSE(CFS_ARCH STREQUAL "X86_64")
-  SET(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR} CACHE INTERNAL
-    "Single output directory for building all libraries.")
+  SET(LIBRARY_OUTPUT_PATH ${CFS_BINARY_DIR}/lib/${CFS_ARCH_STR}
+    CACHE INTERNAL "Single output directory for building all libraries.")
 ENDIF(CFS_ARCH STREQUAL "X86_64")
 
 #-----------------------------------------------------------------------------
 # Set path where executables should go
 #-----------------------------------------------------------------------------
-SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR} CACHE INTERNAL
-  "Single output directory for building all executables.")
+SET(EXECUTABLE_OUTPUT_PATH ${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}
+  CACHE INTERNAL "Single output directory for building all executables.")
 
 
 #-----------------------------------------------------------------------------
@@ -560,6 +612,7 @@ ADD_SUBDIRECTORY(source/DataInOut)
 ADD_SUBDIRECTORY(source/DataInOut/Logging)
 ADD_SUBDIRECTORY(source/DataInOut/ParamHandling)
 
+ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysCDB)
 IF(USE_MESH)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysFile)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/internalMesh)
@@ -571,7 +624,8 @@ ENDIF(USE_COMSOL)
 
 IF(USE_GMV)
  SET(USE_GMV_INPUT ON 
-    CACHE INTERNAL "Use GMV files as input for simulation. Attention! Debugging may not work!")
+    CACHE INTERNAL
+    "Use GMV files as input for simulation. Debugging may not work!")
 
   SET(USE_GMV_OUTPUT ON 
     CACHE INTERNAL "Use GMV files as output for simulation.")
@@ -586,7 +640,6 @@ ADD_SUBDIRECTORY(source/DataInOut/SimInOut/RefElems)
 
 IF(USE_HDF5)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/hdf5)
-  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/xdmf)
 ENDIF(USE_HDF5)
 
 IF(USE_GIDPOST)
@@ -601,11 +654,18 @@ IF(USE_ANSYSRST)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)
 ENDIF(USE_ANSYSRST)
 
+IF(USE_CGNS)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/CGNS)
+ENDIF(USE_CGNS)
+
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/TextOutput)
 ADD_SUBDIRECTORY(source/DataInOut/SimInOut/InfoResultOutput)
 IF(NOT MINGW)
+IF(NOT CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Streaming)
-ENDIF(NOT MINGW)
+ENDIF()
+ENDIF()
+ADD_SUBDIRECTORY(source/DataInOut/ScatteredDataInOut)
 
 ADD_SUBDIRECTORY(source/Domain)
 ADD_SUBDIRECTORY(source/Domain/CoefFunction)
@@ -643,6 +703,10 @@ ADD_SUBDIRECTORY(source/main)
 IF(CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
 ENDIF(CFSTOOL)
+
+IF(CFSDAT)
+  ADD_SUBDIRECTORY(source/cfsdat)
+ENDIF(CFSDAT)
 
 #-----------------------------------------------------------------------------
 # Build the actual headers with defines from templates.

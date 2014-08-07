@@ -27,6 +27,7 @@ SET(files
   "include/muParserBase.h"
   "include/muParserCallback.h"
   "include/muParserTemplateMagic.h"
+  "include/muParserBytecode.h"
   "src/muParser.cpp"
   "src/muParser.cpp"
   "src/muParserBase.cpp"
@@ -50,6 +51,17 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   LIST(APPEND patches
     "muparser-intel-atomic.patch"
     )
-ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+ENDIF()
+
+# This patch fixes the Clang error:
+# include/muParserBytecode.h:51:7: error: anonymous types declared in an anonymous union are an extension [-Werror,-Wnested-anon-types]
+#      struct //SValData
+# ...
+IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+  LIST(APPEND patches
+    "muparser-clang-nested-anon-types.patch"
+    )
+ENDIF()
+
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/muparser")

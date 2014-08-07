@@ -66,6 +66,9 @@ namespace CoupledField {
     //!  Define available postprocessing results
     void DefinePrimaryResults();
 
+    //! Define available postprocessing results
+    void DefinePostProcResults();
+
     //! Init the time stepping
     void InitTimeStepping();
     

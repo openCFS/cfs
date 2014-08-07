@@ -40,7 +40,6 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
-
   }
 
 
@@ -252,7 +251,7 @@ namespace CoupledField {
         sampleVals[iDim].Init();
       } else {
         UInt numSamples  =
-          UInt( floor ( (coords[iDim].stop-coords[iDim].start)
+          UInt( floor ( abs(coords[iDim].stop-coords[iDim].start)
                         / coords[iDim].inc ) )+1;
         sampleVals[iDim].Resize( numSamples );
         for( UInt iSample = 0; iSample < numSamples; iSample++ ) {
@@ -704,7 +703,7 @@ namespace CoupledField {
     std::map<RegionIdType, StdVector<UInt> > volRegionNodes, surfRegionNodes;
     std::map<RegionIdType, UInt > regionDims;
 
-    LOG_DBG(gridcfs) << "Determine list of surface elements";
+    LOG_DBG(gridcfs) << "Determine list of surface elements: " << numElems;
     
     // set of elements, which get surface-mapped
     StdVector<Elem*> surfElems;
@@ -847,6 +846,19 @@ namespace CoupledField {
       numSurfElemNodes_.Push_back( numRegionNodes );
     }
 
+    if (regionData.GetSize() != (volElems_.GetSize() + surfElems_.GetSize()))
+    {
+      for(UInt i = 0; i < regionData.GetSize(); i++)
+      {
+        if (volRegionIds_.Find(regionData[i].id) == -1
+            && surfRegionIds_.Find(regionData[i].id) == -1)
+        {
+          EXCEPTION("Region has neither volume nor surface elements: " \
+              << region_.ToString(regionData[i].id));
+        }
+      }
+    }
+
     // in case of internalMesh the region is already marked as regular
     // so we can skip the test here
     for(unsigned int i = 0; i < regionData.GetSize(); i++)
@@ -855,6 +867,8 @@ namespace CoupledField {
     isInitialized_ = true;
 
     // Try to fix problems due to negative Jacobian determinants
+    LOG_TRACE(gridcfs) << "Trying to correct negative Jacobians. -> CoupledField::LagrangeElemShapeMap::CalcJDet -> CoupledField::FeH1::GetLocDerivShFnc";
+
     CorrectElementConnectivities();
     
     // make named nodes from lines
@@ -956,11 +970,22 @@ namespace CoupledField {
           Edge curEdge = edges_[abs(curE->edges[aSub])-1];
           curSurf->edges.Push_back(abs(curE->edges[aSub]));
 
-          //first the corner nodes
-          for( UInt i = 0; i < 2; i++ ) {
-            curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][i]-1]);
-            curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+
+          if(curE->edges[aSub]<0){
+            //first the corner nodes
+            for( Integer i = 1; i >= 0; i-- ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeVertices[aSub][(UInt)i]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][(UInt)i]-1]);
+            }
+          }else{
+            //first the corner nodes
+            for( UInt i = 0; i < 2; i++ ) {
+              curSurf->connect.Push_back(curE->connect[curShape.edgeVertices[aSub][i]-1]);
+              curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeVertices[aSub][i]-1]);
+            }
           }
+
+
           //now we check for more nodes on the edge
           //and assume the the corners were the first two entries in the edgeNodes array
           UInt numNodes = curShape.edgeNodes[aSub].GetSize();
@@ -1126,7 +1151,7 @@ namespace CoupledField {
                          std::map<std::string, CoordSystem*>& coordSysMap ) {
     
     // This method crates a "dummy" multisequence step, in
-    // wchich some grid-information rsults are created:
+    // which some grid-information results are created:
     // - Local directions (xi,eta,zeta) of elements
     // - Jacobian determinant
     // - surface element normals
@@ -1146,6 +1171,8 @@ namespace CoupledField {
     shared_ptr<ResultInfo> jacRes( new ResultInfo );
     shared_ptr<ResultInfo> surfNormal( new ResultInfo );
     shared_ptr<ResultInfo> aspectRatio( new ResultInfo );
+    shared_ptr<ResultInfo> area( new ResultInfo );
+    shared_ptr<ResultInfo> volume( new ResultInfo );
 
     StdVector<std::string> dirVec (dim_);
     if( dim_ == 3 ) {
@@ -1202,6 +1229,22 @@ namespace CoupledField {
     aspectRatio->entryType = ResultInfo::SCALAR;
     aspectRatio->dofNames = "";
     aspectRatio->unit = "";
+    
+    // 5) Area
+    area->resultType = VOLUME;
+    area->resultName = "area";
+    area->definedOn = ResultInfo::ELEMENT;
+    area->entryType = ResultInfo::SCALAR;
+    area->dofNames = "";
+    area->unit = "m^2";
+    
+    // 5) Volume / Area
+    volume->resultType = VOLUME;
+    volume->resultName = "volume";
+    volume->definedOn = ResultInfo::ELEMENT;
+    volume->entryType = ResultInfo::SCALAR;
+    volume->dofNames = "";
+    volume->unit = "m^3";
     
     // === create results for all coordinate systems available ===
     std::map<std::string, StdVector<shared_ptr<ResultInfo> > > coordDirs;
@@ -1279,6 +1322,19 @@ namespace CoupledField {
         sol->SetResultInfo(locDir3);
         ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
         resultList.Push_back(sol);
+        
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(volume);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
+      }
+      else {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(area);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
       }
       
       // loop over all coordinate systems
@@ -1315,6 +1371,14 @@ namespace CoupledField {
       sol->SetResultInfo(surfNormal);
       ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
       surfResultList.Push_back(sol);
+      
+      if ( dim_ == 3 ) {
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(area);
+        ptRes->RegisterResult(sol, fnc, 0, 0, 1, 1, outDest, "", true, false);
+        resultList.Push_back(sol);
+      }
     }
     
     // begin writing of results
@@ -1333,24 +1397,19 @@ namespace CoupledField {
           dynamic_cast<Result<Double>&>(*resultList[i]);
       EntityIterator it = actSol.GetEntityList()->GetIterator();
       Vector<Double> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
 
       // check, which result is required
-      bool isJacobian = false;
-      bool isAspect = false;
-      if (actSol.GetResultInfo()->resultName == "xi") {
-        actLocDir = locDir_xi;
-      } else  if (actSol.GetResultInfo()->resultName == "eta") {
-        actLocDir = locDir_eta;
-      } else  if (actSol.GetResultInfo()->resultName == "zeta") {
-        actLocDir = locDir_zeta;
-      } else  if (actSol.GetResultInfo()->resultName == "aspectRatio") {
-        isAspect = true;
-      } else {
-        isJacobian = true;
-      }
-      
-      if (!isJacobian &&!isAspect) {
+      switch (actSol.GetResultInfo()->resultType) {
+      case ELEM_LOC_DIR:
+        if (actSol.GetResultInfo()->resultName == "xi") {
+          actLocDir = locDir_xi;
+        } else if (actSol.GetResultInfo()->resultName == "eta") {
+          actLocDir = locDir_eta;
+        } else if (actSol.GetResultInfo()->resultName == "zeta") {
+          actLocDir = locDir_zeta;
+        }
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
           const Elem * ptElem = it.GetElem();
@@ -1367,7 +1426,10 @@ namespace CoupledField {
             actVal[it.GetPos()*dim_ + iDim] = globVec[iDim];
           }
         }
-      } else if(isAspect) {
+        break;
+
+      case ASPECT_RATIO:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
@@ -1377,7 +1439,10 @@ namespace CoupledField {
           esm->GetMaxMinEdgeLength(maxEdge,minEdge);
           actVal[it.GetPos()] = maxEdge / minEdge;
         } // loop over elements
-      } else {
+        break;
+        
+      case JACOBIAN:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
         // loop over elements
         for ( it.Begin(); !it.IsEnd(); it++ ) {
 
@@ -1390,6 +1455,22 @@ namespace CoupledField {
           jac.Determinant(jacDet);
           actVal[it.GetPos()] = jacDet;
         } // loop over elements
+        break;
+        
+      case VOLUME:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
+        // loop over elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+
+          const Elem * ptElem = it.GetElem();
+          shared_ptr<ElemShapeMap>  esm = GetElemShapeMap(ptElem);
+          actVal[it.GetPos()] = esm->CalcVolume();
+        } // loop over elements
+        break;
+        
+      default:
+        WARN("Grid info '" << actSol.GetResultInfo()->resultName
+             << "is enabled, but calculation is not implemented.");
       }
       ptRes->UpdateResult(resultList[i]);
     } // loop over volume results
@@ -1442,21 +1523,41 @@ namespace CoupledField {
           dynamic_cast<Result<Double>&>(*surfResultList[i]);
       EntityIterator it = actSol.GetEntityList()->GetIterator();
       Vector<Double> & actVal = actSol.GetVector();
-      actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
       
-      // loop over surface elements
-      for ( it.Begin(); !it.IsEnd(); it++ ) {
-        const SurfElem * ptElem = it.GetSurfElem();
-        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
-        Vector<Double> midPoint = 
-            Elem::shapes[it.GetElem()->type].midPointCoord;
-        esm->CalcNormal( normal, midPoint );
+      switch (actSol.GetResultInfo()->resultType) {
+      case ELEM_LOC_DIR:
+        actVal.Resize( actSol.GetEntityList()->GetSize() * dim_ );
+
+        // loop over surface elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          const SurfElem * ptElem = it.GetSurfElem();
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          Vector<Double> midPoint = 
+              Elem::shapes[it.GetElem()->type].midPointCoord;
+          esm->CalcNormal( normal, midPoint );
+
+
+          for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+            actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
+          }
+        } // loop over elements
+        break;
         
+      case VOLUME:
+        actVal.Resize( actSol.GetEntityList()->GetSize() );
+
+        // loop over surface elements
+        for ( it.Begin(); !it.IsEnd(); it++ ) {
+          const SurfElem * ptElem = it.GetSurfElem();
+          shared_ptr<ElemShapeMap> esm = GetElemShapeMap(ptElem);
+          actVal[it.GetPos()] = esm->CalcVolume();
+        } // loop over elements
+        break;
         
-        for(UInt iDim = 0; iDim < dim_; iDim++ ) {
-          actVal[it.GetPos()*dim_ + iDim] = normal[iDim];
-        }
-      } // loop over elements
+      default:
+        WARN("Grid info '" << actSol.GetResultInfo()->resultName
+             << "is enabled, but calculation is not implemented.");
+      }
       
       ptRes->UpdateResult(surfResultList[i]);
     } // loop over surface results
@@ -1578,11 +1679,14 @@ namespace CoupledField {
 
   void GridCFS::AddNodes(const UInt numNodes)
   {
+#pragma omp critical
+{
     coords_.Resize(this->numNodes_ + numNodes);
     for( UInt i = 0; i < coords_.GetSize(); ++i ) {
       coords_[i].Resize(dim_);
     }
     numNodes_ += numNodes;
+}
   }
 
 
@@ -1594,7 +1698,7 @@ namespace CoupledField {
                  << "node number " << inode );
     }
 
-    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (rfPoint[2] != 0) ) {
+    if ( (dim_ == 2) && rfPoint.GetSize() > 2 && (abs(rfPoint[2]) > 1.0E-15) ) {
       EXCEPTION( "GridCFS: Dimension of grid is 2D. "
                   << "But you wanted to set the 3D coordinate " << "("
                   << rfPoint[0] << ", " << rfPoint[1] << ", " << rfPoint[2]
@@ -1769,6 +1873,76 @@ namespace CoupledField {
 
   void GridCFS::GetListElemNames( StdVector<std::string> & elemNames) {
     elemNames = namedElemNames_;
+  }
+
+
+  void GridCFS::GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id) {
+    Integer index = 0;
+    surfEl.Clear();
+    index = surfRegionIds_.Find(reg_id);
+    if ( index != -1 ) {
+      UInt numElems = surfElems_[index].GetSize();
+      SurfElem * ptSurfElem;
+      for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+        ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
+        if (ptSurfElem->ptVolElems[0] != NULL) {
+	  if (ptSurfElem->ptVolElems[0]->elemNum == volElemNum)
+	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
+        }
+        if (ptSurfElem->ptVolElems[1] != NULL) {
+	  if (ptSurfElem->ptVolElems[1]->elemNum == volElemNum)
+	    surfEl.Push_back( (Elem *) surfElems_[index][iElem]);
+        }
+      }
+    } else {
+        EXCEPTION( "GridCFS: The surface region with id '" << reg_id
+                   << "' was not found in the grid!" ); 
+
+    }
+  }
+
+  void GridCFS::GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) {
+
+    // check if region id is a volume anyways, then just return that
+    Integer index = 0;
+    volRegIds.Clear();
+
+    // look in volume regions
+    index = volRegionIds_.Find(reg_id);
+    if ( index != -1 ) {
+     volRegIds.Resize(1);
+     volRegIds[0] = reg_id;
+    
+    } else {
+      // look in surface regions
+      index = surfRegionIds_.Find(reg_id);
+      if ( index != -1 ) {
+        UInt numElems = surfElems_[index].GetSize();
+	SurfElem * ptSurfElem;
+	Integer iFound;
+        for( UInt iElem = 0; iElem <  numElems; ++iElem ) {
+          ptSurfElem = dynamic_cast<SurfElem*>(surfElems_[index][iElem]);
+	  if (ptSurfElem->ptVolElems[0] != NULL) {
+	    iFound = volRegIds.Find(ptSurfElem->ptVolElems[0]->regionId);
+	    if (iFound == -1) // not found
+	      volRegIds.Push_back(ptSurfElem->ptVolElems[0]->regionId);
+
+	  } else if(ptSurfElem->ptVolElems[1] != NULL) {
+	    WARN("not implemented");
+	  } else {
+            EXCEPTION( "GridCFS: The surface region with id '" << reg_id
+                   << "' doesn't have a volume attached!" ); 
+	  }
+	}
+      // loop over all elements and save their volRegionIds 
+      } else {
+        EXCEPTION( "GridCFS: The region with id '" << reg_id
+                   << "' was not found in the grid!" ); 
+
+      }
+    }
+
+
   }
 
   // ======================================================
@@ -2068,6 +2242,7 @@ namespace CoupledField {
 
 
   const Elem * GridCFS::GetElem( UInt elemNr ) {
+    LOG_TRACE(gridcfs) << "GetElem ptr for element nr " << elemNr;
 
  #ifndef NDEBUG
     if ( elemNr > numElems_ ) {
@@ -2162,6 +2337,7 @@ namespace CoupledField {
 
   void GridCFS::GetElems( StdVector<Elem*> & elems,
                           const RegionIdType regionId ) {
+    LOG_TRACE(gridcfs) << "GetElems for region " << region_.ToString(regionId);
     elems.Clear();
 
     // check if region Id is ALL_REGIONS
@@ -2189,6 +2365,7 @@ namespace CoupledField {
         }
       }
     }
+    LOG_DBG(gridcfs) << "GetElems returning '" << elems.GetSize() <<"' elements";
   }
 
 
@@ -2240,6 +2417,7 @@ namespace CoupledField {
   void GridCFS::GetElemsByName( StdVector<Elem*> & elems,
                                 const std::string & elemsName ) {
 
+    LOG_TRACE(gridcfs) << "GetElemsByName for name " << elemsName;
     StdVector<UInt> elemNumbers;
     Integer index = namedElemNames_.Find(elemsName);
 
@@ -2260,6 +2438,7 @@ namespace CoupledField {
   void GridCFS::GetElemNumsByName( StdVector<UInt> & elemNums,
                                        const std::string & elemName )
   {
+    LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
       EXCEPTION( "There are no entities with name '" << elemName
@@ -2351,6 +2530,7 @@ namespace CoupledField {
                                    const StdVector<UInt> & connect,
                                    bool updated ) {
 
+    LOG_TRACE(gridcfs) << "GetElemNodeCoord() for connect list: " << connect.ToString();
     coordMat.Resize(dim_, connect.GetSize());
 
     if( updated == true && deltCoords_.GetSize() != 0 ) {
@@ -2882,7 +3062,8 @@ namespace CoupledField {
 
     if(coord.GetSize() != 3)
       EXCEPTION("Node to be added has wrong dimension!");
-
+#pragma omp critical
+{
     coords_.Push_back(coord);
     inode = ++numNodes_;
 
@@ -2891,6 +3072,7 @@ namespace CoupledField {
       zero.Init();
       deltCoords_.Push_back(zero);
     }
+}
   }
 
   void GridCFS::AddNodes( const StdVector< Vector<Double> > & coords,
@@ -2898,7 +3080,8 @@ namespace CoupledField {
   {
     if(!isInitialized_)
       EXCEPTION("Cannot add nodes to uninitialized grid!");
-
+#pragma omp critical
+{
     UInt i, n;
 
     n=coords.GetSize();
@@ -2917,6 +3100,7 @@ namespace CoupledField {
       for (i = 0; i < n; ++i)
         deltCoords_.Push_back(zero);
     }
+}
   }
 
   void GridCFS::AddSurfaceElems( const RegionIdType regionid,
@@ -3095,9 +3279,13 @@ namespace CoupledField {
         // Please implement the general case if you need it. But beware!
         // It's compliated, because you need to renumber all nodes and
         // therefore change the connectivity as well!
-        EXCEPTION("Cannot delete named nodes '" << name
-                  <<"', because it is not a contiguous block at the end of "
-                  <<"all node numbers.")
+        numNodes_ = coords_.GetSize() - sortedNodes.size();
+        coords_.Resize(numNodes_);
+        deltCoords_.Resize(numNodes_);
+
+        WARN("Deleting named nodes which are not a continuous block at the end \n" <<
+              "of the node array. In case of rotating AND static NcInterfaces \n" <<
+              "this may lead to wrong results. Only proceed if you know what you are doing.")
       }
       
       namedNodeNames_.Erase( (UInt) idx );
@@ -3150,14 +3338,20 @@ namespace CoupledField {
     // if some elements were successfully reoriented, issue warning
     if(corrElems.size() > 0 ) {
       std::stringstream out;
-      out << "The following elements have a wrong orientation and "
-          << "were re-oriented:\n";
-      std::set<const Elem*>::iterator it = corrElems.begin();
-      for( ; it != corrElems.end(); it++  ) {
-        out << (*it)->elemNum << ", ";
+      if(corrElems.size() > 10){
+        out << "A total number of " << corrElems.size() << " elements"
+            << " had a wrong orientation and were reoriented."
+            << "\n Usually this does not lead to further errors.";
+      }else{
+        out << "The following elements have a wrong orientation and "
+            << "were re-oriented:\n";
+        std::set<const Elem*>::iterator it = corrElems.begin();
+        for( ; it != corrElems.end(); it++  ) {
+          out << (*it)->elemNum << ", ";
+        }
+        out << "\n\nPlease check your mesh!\n";
       }
-      out << "\n\nPlease check your mesh!\n";
-      WARN( out.str().c_str() );
+        WARN( out.str().c_str() );
     }
 
     // if some elements could not be reoriented, generate exception

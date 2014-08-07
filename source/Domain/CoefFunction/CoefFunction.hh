@@ -91,6 +91,13 @@ public:
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   
+  //! Modifications of coefficient function
+  typedef enum{
+    NONE,              /*!< Default interpolation of data*/
+    VECTOR_DIVERGENCE  /*!< Return divergence of vector valued CoefFuncton when called with getScalar*/
+  } CoefDerivativeType;
+  static Enum<CoefDerivativeType> CoefDerivativeType_;
+
   // ========================
   //  FACTORY METHODS
   // ========================
@@ -194,6 +201,8 @@ public:
     dependType_ = CONSTANT;
     isAnalytic_ = false;
     isComplex_ = false;
+    supportDerivative_ = false;
+    derivType_ = NONE;
     
     // by default, the coefficients do not
     // depend on any coordinate system
@@ -238,6 +247,12 @@ public:
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
+  //! Return real-valued element averaged value
+  virtual void GetAvgElemValue(Double & vec, 
+                         const Elem* elem) {
+    EXCEPTION( "CoefFunction::GetAvgElemValue<Double> not implemented in base class" );
+  }
+
 
   //! Return real-valued scalar at integration point
   virtual void GetScalar(Double& scal, 
@@ -341,6 +356,12 @@ public:
     return "";
   }
   
+  //! sets the derivative modification to the coefFunction
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
+    return;
+  }
+
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
   // ======================================================================
@@ -411,10 +432,14 @@ public:
   //! CoefFunction class.
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<Double> >& values,
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<Complex> >& values, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   //@}
 
   //@{
@@ -432,10 +457,44 @@ public:
   //! CoefFunction class.
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Double >& values, 
-                                        Grid* ptGrid);
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Complex >& values, 
-                                        Grid* ptGrid);
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
+  //@}
+
+  //@{
+  //! Return scalar values at global coordinate locations
+
+  //! This method allows to get the values at several global coordinate
+  //! locations at once. This can be very efficient for simple expressions
+  //! (constant, analytical) or rather costly (e.g. for element-discerete values
+  //! involving a global-local transformation.
+  //!
+  //! In the base class, the most general approach is implemented, i.e. we
+  //! map every coordinate to element local coordinates and call the related
+  //! GetScalar() method, which can be rather costly.
+  //! In this case it is advisable to override this method in the derived
+  //! CoefFunction class.
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                        StdVector< Matrix<Double> >& values,
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() ) {
+    Exception("GetTensorValuesAtCoords<Double> not implemented in base class");
+  }
+
+  virtual void GetTensorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
+                                        StdVector< Matrix<Complex> >& values,
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() ) {
+    Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
+  }
   //@}
 
   //@}
@@ -463,11 +522,17 @@ protected:
   //! Dependency type of the coefficient function
   CoefDependType dependType_;
   
+  //! storing the derivative type of the CoefFunction
+  CoefDerivativeType derivType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
   //! Flag, if coefficient function is complex-valued
   bool isComplex_;
+
+  //! Flag indicating if the CoefFunction supports derivatives
+  bool supportDerivative_;
 
 };
 
@@ -507,6 +572,40 @@ public:
                              StdVector<std::string>& real, 
                              StdVector<std::string>& imag ) {
     EXCEPTION( "Not implemented here");
+  }
+
+  //! \copydoc CoefFunction::SetDerivativeOperation
+  virtual void SetDerivativeOperation(CoefDerivativeType type){
+    this->derivType_ = type;
+
+    //make some checks here!
+    switch(dimType_){
+    case SCALAR:
+      //only NONE is valid right now
+      //if extended to gradient, this would be fine too
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for scalar coefFunction");
+      }
+      break;
+    case VECTOR:
+      //this is fine in all cases right now
+      if(type==VECTOR_DIVERGENCE){
+        //change dim type to scalar
+        this->dimType_ = SCALAR;
+        //PAY ATTENTION: In case of a derivative, the coefFunction is
+        // no longer analytic due to the current implementation!
+        this->isAnalytic_ = false;
+      }
+      break;
+    case TENSOR:
+      if(type==VECTOR_DIVERGENCE){
+        EXCEPTION("CoefFunctionExpression: VECTOR_DIVERGENCE is not a valid operator for tensor coefFunction");
+      }
+      break;
+    default:
+      break;
+    }
+    return;
   }
 
 };

@@ -180,9 +180,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available, template caused
-    using BaseBOperator::CalcOpMat;
+    using CurlOperator<FeHCurl,D,TYPE>::CalcOpMat;
 
-    using BaseBOperator::CalcOpMatTransposed;
+    using CurlOperator<FeHCurl,D,TYPE>::CalcOpMatTransposed;
 
   protected:
 

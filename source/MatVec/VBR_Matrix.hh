@@ -397,7 +397,10 @@ namespace CoupledField {
     //@{
     
     //! \copydoc StdMatrix::GetDiagBlock
-    void GetDiagBlock( UInt blockRow,  DenseMatrix& diagBlock ) const; 
+    void GetDiagBlock( UInt blockRow, DenseMatrix& diagBlock ) const; 
+    
+    //! \copydoc StdMatrix::SetDiagBlock
+    void SetDiagBlock( UInt blockRow, const DenseMatrix& diagBlock );
     //@}
 
   private:

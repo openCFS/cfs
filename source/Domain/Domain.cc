@@ -37,11 +37,14 @@
 #include "PDE/AcousticMixedPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
+#include "PDE/FlowPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MagneticPDE.hh"
 #include "PDE/MagEdgePDE.hh"
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
+#include "PDE/ElecCurrentPDE.hh"
+#include "PDE/WaterWavePDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -49,6 +52,8 @@
 #include "CoupledPDE/PiezoCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
+#include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
+#include "CoupledPDE/WaterWaveMechCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -172,7 +177,13 @@ void Domain::CreateGrid()
 
     // print grid information to result file if requested
     if(param_->Get("domain")->Get("printGridInfo")->As<bool>() ) {
-      if( resultHandler_ && isParentDomain_) {
+      // only print grid information, if we are the master domain (i.e. not
+      // within a child domain when reading from an external simulation) and if
+      // we are not in a restarted state (i.e. we assume that the grid information was
+      // printed already in the first attempt)
+      if( resultHandler_ && 
+          isParentDomain_&&
+          !progOpts->GetRestart()) {
         gridMap_["default"]->CreateGridInformation(resultHandler_, coordSys_);
       }
     }
@@ -649,10 +660,22 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
                                                simState_, this );
       }
+      else {
+        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode,
+                                               simState_, this );
+      }
     }
     else if (actPdeName == "testPDE") {
         ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode,
                                       simState_, this );
+    }
+    else if (actPdeName == "elecConduction") {
+        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode,
+                                      	  	  simState_, this );
+    }
+    else if (actPdeName == "waterWave") {
+        ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode,
+                                              simState_, this );
     }
     else
     {
@@ -709,6 +732,7 @@ void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
   
   // Loop over all SinglePDEs and pass pointer to iterative coupled PDE
   for( UInt i = 0; i < ptSinglePde_.GetSize(); ++i ) {
+    //std::cout << "PDE: " << ptSinglePde_[i]->GetName() << std::endl;
     ptSinglePde_[i]->SetIterCoupledPDE( ptIterCoupledPde_ );
   }
   
@@ -812,6 +836,25 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i], info_,
                                        simState_, this );
+    }
+    // *** WATER WAVE-ACOUSTIC Coupling ***
+    else if (couplingName == "waterWaveAcouDirect")
+    {
+      pde1 = GetSinglePDE("waterWave");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new WaterWaveAcousticCoupling(pde1, pde2, pairNodes[i], info_,
+                                               simState_, this );
+    }
+    // *** Water Wave-MECH Coupling ***
+    else if (couplingName == "waterWaveMechDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("waterWave");
+
+      coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                           simState_, this );
     }
 //
 //    // ------------------------------------------------------------------------

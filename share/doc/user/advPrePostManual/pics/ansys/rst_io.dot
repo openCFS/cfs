@@ -1,19 +1,23 @@
 digraph G {
-        "CFX" -> ".res";
-        ".res" -> "cfx5export";
-        "cfx5export" -> ".cgns";
-        FLUENT -> ".cgns";
+    "CFS++" -> ".rst"
+    "unv2rst" -> ".rst"
+    "ANSYS Classic" -> ".rst"
+    "ANSYS Workbench" -> ".rst"
 
-	".cgns" -> "ANSYS CFD-Post";
-	".cgns" -> Tecplot;
-	".cgns" -> EnSight;
-	".cgns" -> VisIt;
-	".cgns" -> cplreader;
+    ".rst" -> "ANSYS Classic"
+    ".rst" -> "ANSYS Workbench"
+    ".rst" -> "ANSYS CFD-Post"
+    ".rst" -> "Tecplot"
+    ".rst" -> "EnSight"
+    ".rst" -> "rstinfo"
 
-        "cplreader" [shape=box];
-        VisIt [shape=box];
-	"ANSYS CFD-Post" [shape=box];
-        Tecplot [shape=box];
-        EnSight [shape=box];
-	FLUENT [shape=box];
+    "unv2rst" [shape=box];
+    "ANSYS Classic" [shape=box];
+    "ANSYS Workbench" [shape=box];
+    Tecplot [shape=box];
+    EnSight [shape=box];
+    "ANSYS CFD-Post" [shape=box];
+    "rstinfo" [shape=box];
+
+    "CFS++" [shape=box,color=darkgrey,style=filled];
 }

@@ -107,7 +107,8 @@ ENDIF()
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
 #-------------------------------------------------------------------------------
-IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
+IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
+   CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
@@ -127,8 +128,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # code a command line like the following might be used
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
+
     # -frounding-math: is needed for CGAL library
-    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100 -frounding-math")
+    IF(USE_CGAL)
+      SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -frounding-math")
+    ENDIF(USE_CGAL)
+
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
@@ -191,12 +197,14 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   ENDIF()
 
   IF(APPLE)
-    #---------------------------------------------------------------------------
-    # The C++ linker creates compact exception stack unwinding data since
-    # MacOS X 10.6. This can cause page long linker warnings, which cannot be
-    # deactivated. So we disable it here alltogether (cf. man unwinddump).
-    #---------------------------------------------------------------------------
+    IF(NOT CMAKE_CROSSCOMPILING)
+      #-------------------------------------------------------------------------
+      # The C++ linker creates compact exception stack unwinding data since
+      # MacOS X 10.6. This can cause page long linker warnings, which cannot be
+      # deactivated. So we disable it here alltogether (cf. man unwinddump).
+      #-------------------------------------------------------------------------
     SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
+    ENDIF()
   ENDIF()
 
 

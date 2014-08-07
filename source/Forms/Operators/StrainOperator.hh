@@ -107,10 +107,16 @@ namespace CoupledField{
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     if( useICModes_ ) {
-      fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
 
     } else {
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
     }
     
     const UInt numFncs = xiDx.GetNumRows();
@@ -146,9 +152,15 @@ namespace CoupledField{
     FE *fe = (static_cast<FE*>(ptFe));
     // query const variable, should be pretty much optimized away
     if( useICModes_ ) {
-      fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
     } else {
-      fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
     }
 
     const UInt numFncs = xiDx.GetNumRows();
@@ -272,9 +284,15 @@ namespace CoupledField{
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     if( useICModes_ ) {
-      fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFncICModes(  xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
     } else {
-      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFnc(  xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
     }
     const UInt numFncs = xiDx.GetNumRows();
     
@@ -285,9 +303,15 @@ namespace CoupledField{
     // Calculate phi-phi component
     Vector<Double> shape;
     if( useICModes_ ) {
-      fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
+//      if ( isSurfOpt_ )
+//        fe->GetShFncICModes( shape, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() );
+//      else
+        fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
     } else {
-      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+//      if ( isSurfOpt_ )
+//        fe->GetShFnc( shape, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() );
+//      else
+        fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
     }
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
@@ -326,9 +350,15 @@ namespace CoupledField{
     Matrix<Double> xiDx;
     FE *fe = (static_cast<FE*>(ptFe));
     if( useICModes_ ) {
-      fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFncICModes(  xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFncICModes( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
     } else {
-      fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
+      if ( isSurfOpt_ )
+        fe->GetGlobDerivShFnc(  xiDx, *lpm.lpmVol, lpm.lpmVol->shapeMap->GetElem() , 1 );
+      else
+        fe->GetGlobDerivShFnc( xiDx, lpm, lpm.shapeMap->GetElem() , 1 );
     }
     
     const UInt numFncs = xiDx.GetNumRows();
@@ -339,9 +369,12 @@ namespace CoupledField{
     // Calculate phi-phi component
     Vector<Double> shape;
     if( useICModes_ ) {
-      fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
+      if ( isSurfOpt_ )
+        fe->GetShFncICModes( shape, lpm.lpmVol->lp, lpm.lpmVol->shapeMap->GetElem() );
+      else
+        fe->GetShFncICModes( shape, lpm.lp, lpm.shapeMap->GetElem() );
     } else {
-      fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
+        fe->GetShFnc( shape, lpm.lp, lpm.shapeMap->GetElem() );
     }
     Vector<Double> globPoint;
     lpm.shapeMap->Local2Global(globPoint, lpm.lp);
@@ -468,9 +501,15 @@ namespace CoupledField{
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
      if( useICModes_ ) {
-       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+       if ( isSurfOpt_ )
+         fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+       else
+         fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      } else {
-       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+       if ( isSurfOpt_ )
+         fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+       else
+         fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      }
      
      const UInt numFncs = xiDx.GetNumRows();
@@ -517,9 +556,15 @@ namespace CoupledField{
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
      if( useICModes_ ) {
-       fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+       if ( isSurfOpt_ )
+         fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+       else
+         fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      } else {
-       fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+       if ( isSurfOpt_ )
+         fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+       else
+         fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
      }
      
      const UInt numFncs = xiDx.GetNumRows();

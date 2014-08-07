@@ -1,4 +1,4 @@
-#include "CoefFunctionSurf.hh"
+	#include "CoefFunctionSurf.hh"
 
 #include <boost/tr1/type_traits.hpp>
 
@@ -59,6 +59,10 @@ void CoefFunctionSurf::AddVolumeCoef( RegionIdType region, PtrCoefFct coef ) {
     if( !this->mapNormal_)
       dimType_ = coef->GetDimType();
   }
+  
+  // adjust dependency type
+  dependType_ = std::max(this->GetDependency(), 
+                         coef->GetDependency());
   regions_.insert(region);
   coefs_[region] = coef;
 }

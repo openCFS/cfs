@@ -69,7 +69,12 @@ namespace CoupledField {
     void SetupMatrixGraph( FeFctIdType fctId1, FeFctIdType fctId2 );
 
     //! Trigger assembly of the matrices
-    void AssembleMatrices();
+    void AssembleMatrices(bool isNewtonPart=false);
+    
+    //! Assemble matrices with static condensation for transient simulations
+        void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, 
+                                        std::map<FeFctIdType, 
+                                        std::map<FEMatrixType,Double> > timeStepFactors);
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
@@ -131,10 +136,10 @@ namespace CoupledField {
   protected:
 
     //! Assemble matrices without static condensation
-    void AssembleMatrices_Std();
+    void AssembleMatrices_Std(bool isNewtonPart=false);
     
-    //! Assemble matrices with satic condensation
-    void AssembleMatrices_Cond();
+    //! Assemble matrices with static condensation
+    void AssembleMatrices_Cond(bool isNewtonPart=false);
 
     
     //! Assemble linearForms of right hand side
@@ -167,13 +172,15 @@ namespace CoupledField {
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2,
+                       bool preventStaticCondensation = false );
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2 );
+                       FeFctIdType fctId1, FeFctIdType fctId2,
+                       bool preventStaticCondensation = false );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

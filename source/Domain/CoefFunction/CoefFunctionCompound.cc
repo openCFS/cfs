@@ -18,9 +18,9 @@ CoefFunctionCompound<Double>::CoefFunctionCompound(MathParser * mp) {
 
   parser_ = mp;
   handle_ = parser_->GetNewHandle( true );
-  
+
   // always store default coordinate system
-  coordSys_ = domain->GetCoordSystem();
+  coordSysDefault_ = domain->GetCoordSystem();
 }
 
 CoefFunctionCompound<Double>::~CoefFunctionCompound() {
@@ -36,7 +36,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handle_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
   
   // update internal variables 
   UpdateXpr( lpm );
@@ -45,7 +45,7 @@ GetTensor( Matrix<Double>& coefMat, const LocPointMapped& lpm ) {
                          this->numRows_, this->numCols_ ); 
 
   // Rotate material, if coordinate system is not the global one
-  if( coordSys_->GetName() != "default") {
+  if( this->coordSys_ ) {
     // Obtain rotation matrix
     Matrix<Double> rotMatrix;
     coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
@@ -73,14 +73,18 @@ GetVector( Vector<Double>& coefVec, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handle_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
   // update internal variables 
   UpdateXpr( lpm );
   parser_->EvalVector( handle_, locVector );
 
-  // Afterwards rotate the local vector back to global coordinates
-  this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+  if( this->coordSys_ ) {
+    // Afterwards rotate the local vector back to global coordinates
+    this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+  } else {
+    coefVec = locVector;
+  }
 }
 
 void CoefFunctionCompound<Double>::
@@ -90,7 +94,7 @@ GetScalar( Double& coefScalar, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handle_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handle_, *(this->coordSysDefault_), pointCoord);
 
   // update internal variables 
   UpdateXpr( lpm );
@@ -192,6 +196,10 @@ RegisterCoefFct( const std::string& name,
                << "' was already registered!" );
   }
   
+  // adjust dependency tpye of own coefficient function
+  dependType_ = std::max(this->GetDependency(), 
+                         coef->GetDependency());
+  
   // query type of coefficient
   CoefDimType dim = coef->GetDimType();
   coefs_[name] = coef;
@@ -275,7 +283,7 @@ CoefFunctionCompound<Complex>::CoefFunctionCompound(MathParser * mp) {
   handleImag_ = parser_->GetNewHandle( true );
   
   // always store default coordinate system
-  coordSys_ = domain->GetCoordSystem();
+  coordSysDefault_ = domain->GetCoordSystem();
 }
 
 CoefFunctionCompound<Complex>::~CoefFunctionCompound() {
@@ -293,8 +301,8 @@ GetTensor( Matrix<Complex>& coefMat, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handleReal_, *(this->coordSys_), pointCoord);
-  parser_->SetCoordinates( handleImag_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
+  parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
   
   // update internal variables 
   UpdateXpr( lpm );
@@ -334,8 +342,8 @@ GetVector( Vector<Complex>& coefVec, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handleReal_, *(this->coordSys_), pointCoord);
-  parser_->SetCoordinates( handleImag_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
+  parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
 
   // update internal variables 
   UpdateXpr( lpm );
@@ -345,8 +353,12 @@ GetVector( Vector<Complex>& coefVec, const LocPointMapped& lpm ) {
   locVector.SetPart(Global::REAL, temp);
   parser_->EvalVector( handleImag_, temp );
   locVector.SetPart(Global::IMAG, temp);
-  // Afterwards rotate the local vector back to global coordinates
-  this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+  if( this->coordSys_ ) {
+    // Afterwards rotate the local vector back to global coordinates
+    this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+  } else {
+    coefVec = locVector;
+  }
 }
 
 void CoefFunctionCompound<Complex>::
@@ -357,8 +369,8 @@ GetScalar( Complex& coefScalar, const LocPointMapped& lpm ) {
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  parser_->SetCoordinates( handleReal_, *(this->coordSys_), pointCoord);
-  parser_->SetCoordinates( handleImag_, *(this->coordSys_), pointCoord);
+  parser_->SetCoordinates( handleReal_, *(this->coordSysDefault_), pointCoord);
+  parser_->SetCoordinates( handleImag_, *(this->coordSysDefault_), pointCoord);
   
   // update internal variables 
   UpdateXpr( lpm );

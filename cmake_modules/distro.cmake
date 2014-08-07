@@ -67,6 +67,63 @@ IF(MINGW)
     SET(MINGW_TARGET_ARCH "I386")
   ENDIF()
 
+ELSEIF(APPLE)
+  IF(CMAKE_CROSSCOMPILING)
+    #---------------------------------------------------------------------------
+    # Try to build an executable and determine its target architecture.
+    #---------------------------------------------------------------------------
+    SET(CPP_SRC "int main(int argc, char** argv) {}")
+    FILE(WRITE "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test.cpp" "${CPP_SRC}")
+    TRY_COMPILE(
+      RESULT_VAR "${CMAKE_CURRENT_BINARY_DIR}/tmp"
+      "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test.cpp"
+      COPY_FILE "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test"
+      OUTPUT_VARIABLE BUILD
+    )
+
+    STRING(REPLACE "gcc" "lipo" LIPO_EXE ${CMAKE_C_COMPILER})
+    EXECUTE_PROCESS(
+      COMMAND "${LIPO_EXE}" -info
+      "${CMAKE_CURRENT_BINARY_DIR}/tmp/macosx_test"
+      WORKING_DIRECTORY "${CFS_BINARY_DIR}"
+      OUTPUT_VARIABLE MACOSX_BINARY_ARCH
+      RESULT_VARIABLE RETVAL
+    )
+
+    STRING(REPLACE "\n" "" MACOSX_BINARY_ARCH "${MACOSX_BINARY_ARCH}")
+    STRING(REPLACE ":" ";" MACOSX_BINARY_ARCH "${MACOSX_BINARY_ARCH}")
+    LIST(GET MACOSX_BINARY_ARCH 2 MACOSX_BINARY_ARCH)
+    STRING(STRIP "${MACOSX_BINARY_ARCH}" MACOSX_BINARY_ARCH)
+
+    IF(MACOSX_BINARY_ARCH MATCHES "x86_64")
+      SET(MACOSX_TARGET_ARCH "X86_64")
+    ELSEIF(MACOSX_BINARY_ARCH MATCHES "i386")
+      SET(MACOSX_TARGET_ARCH "I386")
+    ENDIF()
+
+    # Determine version of Mac OSX SDK
+    FILE(READ
+      "${CMAKE_OSX_SYSROOT}/System/Library/CoreServices/SystemVersion.plist"
+      SYSVER_PLIST)
+    STRING(REPLACE "\n" ";" SYSVER_PLIST ${SYSVER_PLIST})
+    SET(LINE_IT 0)
+    FOREACH(LINE IN ITEMS ${SYSVER_PLIST})
+      IF(LINE MATCHES "ProductVersion")
+        MATH(EXPR LINE_VER "${LINE_IT} + 1")
+        LIST(GET SYSVER_PLIST ${LINE_VER} MACOSX_DISTRO_VER)
+        STRING(REPLACE "<string>" "" MACOSX_DISTRO_VER ${MACOSX_DISTRO_VER})
+        STRING(REPLACE "</string>" "" MACOSX_DISTRO_VER ${MACOSX_DISTRO_VER})
+        STRING(STRIP "${MACOSX_DISTRO_VER}" MACOSX_DISTRO_VER)
+      ENDIF()
+      MATH(EXPR LINE_IT "${LINE_IT} + 1")
+    ENDFOREACH()
+
+  ENDIF()
+
+  #-----------------------------------------------------------------------------
+  # We are building on Unix and want to get informations about the distro.
+  #-----------------------------------------------------------------------------
+  SET(DISTRO_SCRIPT "${CFS_SOURCE_DIR}/share/scripts/distro.sh")
 ELSE(MINGW)
   #-----------------------------------------------------------------------------
   # If we are not using the MinGW toolchain, we either build on Windows or on
@@ -152,7 +209,7 @@ IF(NOT MINGW)
     #---------------------------------------------------------------------------
     SET(CFS_FULL_DISTRO "${DIST}")
     SET(CFS_FULL_DISTRO_VER "${REV}")
-    
+
     IF(DIST_FAMILY)
       SET(CFS_DISTRO "${DIST_FAMILY}")
       SET(CFS_DISTRO_VER "${MAJOR_REV}")
@@ -160,6 +217,7 @@ IF(NOT MINGW)
       SET(CFS_DISTRO "${DIST}")
       SET(CFS_DISTRO_VER "${REV}")
     ENDIF()
+
     
     SET(CFS_OS "${OS}")
     SET(CFS_ARCH "${ARCH}")
@@ -170,6 +228,22 @@ IF(NOT MINGW)
     SET(CFS_BUILD_OS "${OS}")
     SET(CFS_BUILD_DISTRO "${DIST}_${REV}_${ARCH}")
     SET(CFS_TARGET_OS "${OS}")
+
+    IF(APPLE AND CMAKE_CROSSCOMPILING)
+      SET(CFS_OS "MAC OS X")
+      SET(CFS_TARGET_OS "${CFS_OS}")
+      SET(CFS_DISTRO "MACOSX")
+      SET(CFS_DISTRO_VER "${MACOSX_DISTRO_VER}")
+
+      SET(CFS_ARCH "${MACOSX_TARGET_ARCH}")
+      SET(CFS_ARCH_STR "MACOSX_${MACOSX_DISTRO_VER}_${CFS_ARCH}")
+      # Determine the subarchitecture of the platform.
+      SET(CFS_SUBARCH "-")
+
+      SET(CFS_FULL_DISTRO "${CFS_DISTRO}")
+      SET(CFS_FULL_DISTRO_VER "${MACOSX_DISTRO_VER}")
+    ENDIF()
+
   ELSE(NOT WIN32)
     #---------------------------------------------------------------------------
     # We are on Windows. Since Windows is very compatible across versions we
@@ -243,6 +317,7 @@ ELSEIF(CFS_DISTRO STREQUAL "LINUXMINT")
 
 ELSEIF(CFS_DISTRO STREQUAL "FEDORA" OR    
     CFS_DISTRO STREQUAL "REDHAT" OR
+    CFS_DISTRO STREQUAL "RED" OR
     CFS_DISTRO STREQUAL "RHEL" OR
     CFS_DISTRO STREQUAL "CENTOS")
 

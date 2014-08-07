@@ -42,6 +42,10 @@ rem windows 8/windows server 2012
 ver | find.exe "Version 6.2" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_8
 
+rem windows 8/8.1
+ver | find.exe "Version 6.3" > nul
+if %ERRORLEVEL% EQU 0 goto :ver_8
+
 rem Windows 2000 version 5.0
 ver | find.exe "2000" > nul
 if %ERRORLEVEL% EQU 0 goto :ver_2000

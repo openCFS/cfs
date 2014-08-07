@@ -6,6 +6,7 @@
 #include <def_use_mesh.hh>
 #include <def_use_pardiso.hh>
 #include <def_use_unv.hh>
+#include <def_use_comsol.hh>
 #include <def_use_gidpost.hh>
 #include <def_use_ilupack.hh>
 #include <def_use_suitesparse.hh>
@@ -15,8 +16,12 @@
 #include <def_use_arpack.hh>
 #include <def_use_gmv.hh>
 #include <def_use_gmsh.hh>
+#include <def_use_cgns.hh>
+#include <def_use_ccmio.hh>
 #include <def_use_lapack.hh>
 #include <def_use_cgal.hh>
+#include <def_use_libfbi.hh>
+#include <def_use_flann.hh>
 #include <def_xmlschema.hh>
 
 #include <def_cfs_fortran_interface.hh>
@@ -71,12 +76,38 @@
 #include <CGAL/version.h>
 #endif
 
+#ifdef USE_FLANN
+#include <flann/flann.hpp>
+#endif
+
 #ifdef USE_XERCES
 #include <xercesc/util/XercesVersion.hpp>
 #endif
 
 #ifdef USE_GIDPOST
 #include <gidpost.h>
+#endif
+
+#ifdef USE_CGNS
+#include <cgnslib.h>
+// The NO_ERROR and NO_DATA symbols are defined in some windows headers
+// and conflict with ADF headers...
+#define CFS_DUMMY_NO_ERROR NO_ERROR
+#define CFS_DUMMY_NO_DATA NO_DATA
+#undef NO_ERROR
+#undef NO_DATA
+#include <adf/ADF.h>
+#include <adfh/ADFH.h>
+#undef NO_ERROR
+#undef NO_DATA
+#define NO_ERROR CFS_DUMMY_NO_ERROR
+#define NO_DATA CFS_DUMMY_NO_DATA
+#undef CFS_DUMMY_NO_ERROR
+#undef CFS_DUMMY_NO_DATA
+#endif
+
+#ifdef USE_CCMIO
+#include <libccmio/ccmioversion.h>
 #endif
 
 #include <boost/version.hpp>
@@ -808,11 +839,58 @@ namespace CoupledField {
         << fg_blue << "NO" << fg_reset << endl;
  #endif
 
- #ifdef USE_UNV
+#ifdef USE_UNV
     out << "USE_UNV:               "
         << fg_blue << "YES" << fg_reset << endl;
- #else
+#else
     out << "USE_UNV:               "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_COMSOL
+    out << "USE_COMSOL:            "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "MINIZIP_VERSION:       "
+        << fg_blue << MINIZIP_VERSION 
+        << " (for reading zipped .mph file)"
+        << fg_reset << endl;
+#else
+    out << "USE_COMSOL:            "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_CGNS
+    out << "USE_CGNS:              "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CGNS_VERSION:          "
+        << fg_blue << (CGNS_VERSION/1000) 
+        << "." << ((CGNS_VERSION%1000)/100)
+        << ((CGNS_VERSION%100)/10)
+        << fg_reset << endl;
+#if defined(CGNS_COMPATVERSION)
+    out << "CGNS_COMPATVERSION:    "
+        << fg_blue << (CGNS_COMPATVERSION/1000) 
+        << "." << ((CGNS_COMPATVERSION%1000)/100)
+        << ((CGNS_COMPATVERSION%100)/10)
+        << fg_reset << endl;
+#endif
+    char version[1024];
+    int error_return = 0;
+    ADF_Library_Version(version, &error_return ) ;
+    out << "ADF_VERSION:           "
+        << fg_blue << version << fg_reset << endl;
+    ADFH_Library_Version(version, &error_return ) ;
+    out << "ADFH_VERSION:          "
+        << fg_blue << version << fg_reset << endl;
+#else
+    out << "USE_CGNS:              "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_CCMIO
+    out << "USE_CCMIO:             "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "CCMIO_VERSION:         "
+        << fg_blue << kCCMIOVersionStr << fg_reset << endl;
+#else
+    out << "USE_CCMIO:             "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
 
@@ -846,6 +924,23 @@ namespace CoupledField {
         << fg_reset << endl;
 #else
     out << "USE_CGAL:              "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_LIBFBI
+    out << "USE_LIBFBI:            "
+        << fg_blue << "YES" << fg_reset << endl;
+#else
+    out << "USE_LIBFBI:            "
+        << fg_blue << "NO" << fg_reset << endl;
+#endif
+#ifdef USE_FLANN
+    out << "USE_FLANN:             "
+        << fg_blue << "YES" << fg_reset << endl;
+    out << "FLANN_VERSION:         "
+        << fg_blue << FLANN_VERSION_
+        << fg_reset << endl;
+#else
+    out << "USE_FLANN:             "
         << fg_blue << "NO" << fg_reset << endl;
 #endif
     
@@ -901,7 +996,26 @@ namespace CoupledField {
         << endl
         << "10.10, Prickly Porcupine" << endl
         << "  No major advance beside taking care that young students are not confronted with" << endl
-        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl;
+        << "  X-rated terms. Luckily they don't hear developers conversation with compilers!." << endl
+        << endl
+        << "11.06, Querulous Quokka" << endl
+        << endl
+        << "11.12, Scintillant Scapolite" << endl
+        << endl
+        << "12.02, Branchy Burbank" << endl
+        << "  c.f. http://web.mit.edu/invent/iow/burbank.html," << endl
+        << "  http://en.wikipedia.org/wiki/Russet_Burbank_potato" << endl
+        << endl
+        << "13.02, Cocky Coriolis" << endl
+        << endl
+        << "13.06, Nonmatching Noolbenger" << endl
+        << "  CFS++ now has a framework for non-conforming interfaces. Coupling can be done" << endl
+        << "  using Mortar or Nitsche formulation." << endl
+        << endl
+        << "13.10, Rotating Rhino" << endl
+        << "  Non-conforming interfaces can now cope with moving grids, especially rotation." << endl
+        << "  The animal part of the name shall express that CFS++ is heavier than ever," << endl
+        << "  despite lots of code optimization." << endl;
 
   }
 

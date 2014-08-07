@@ -44,6 +44,11 @@ SET(CTEST_BINARY_DIRECTORY "/home/local/lse/jens/cfs/sbm_fespace_090409/build/de
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 
 #-----------------------------------------------------------------------------
+# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
+#-----------------------------------------------------------------------------
+INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+#-----------------------------------------------------------------------------
 # Use CMake (cmake) executable corresponding to CTest executable used to run
 # this script.
 #-----------------------------------------------------------------------------

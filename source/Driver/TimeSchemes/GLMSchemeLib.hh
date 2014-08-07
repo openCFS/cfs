@@ -39,9 +39,8 @@ class GLMScheme{
   /// Enumeration for each GLM scheme available
   typedef enum{
     TRAPEZOIDAL = 1,
-    NEWMARK = 2
-    // RK4 = 3,
-    // BDF2 = 4
+    NEWMARK = 2,
+     BDF2 = 3
   } SchemeType;
 
   
@@ -258,8 +257,8 @@ class Newmark : public GLMScheme{
 
 
     virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
-     /// domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
-     ///                                    "t", aTime+(alpha_*curTStepSize_) );
+     domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                        "t", aTime+(alpha_*curTStepSize_) );
     }
   private:
     /*!parameter for switching between implicit and explicit scheme
@@ -278,7 +277,32 @@ class Newmark : public GLMScheme{
 
 };
 
+/*! \class BDF2
+ *    \brief Defines coefficients for BDF2 timestepping
+ *    @author A.Hueppe
+ *    @date 02/2014
+ */
+class Bdf2 : public GLMScheme{
+  public:
 
+  Bdf2();
+
+    //! \copydoc GLMSchem::GetType
+    virtual SchemeType GetType() const {
+      return BDF2;
+    }
+
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+
+
+    virtual void PrepareStage(UInt i,Double aTime, Domain* domain){
+     /// domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+     ///                                    "t", aTime+(alpha_*curTStepSize_) );
+    }
+  private:
+
+};
 
 
 

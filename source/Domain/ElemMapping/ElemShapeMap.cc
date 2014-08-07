@@ -355,16 +355,19 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
     if (ptGrid_->GetDim() == 2) {
       Global2LocalQuad4(locPoint, globalPoint);
     } else {
-      Global2LocalGeneral(locPoint,globalPoint);
+      Global2LocalDuester(locPoint,globalPoint);
     }
     break;
+  case Elem::ET_TRIA6:
   case Elem::ET_HEXA20:
   case Elem::ET_HEXA27:
   case Elem::ET_HEXA8:
   case Elem::ET_PYRA5:
   case Elem::ET_TET10:
   case Elem::ET_PYRA13:
+  case Elem::ET_WEDGE6:
   case Elem::ET_WEDGE15:
+  case Elem::ET_WEDGE18:
     Global2LocalDuester(locPoint, globalPoint);
     break;
   case Elem::ET_TRIA3:
@@ -648,6 +651,120 @@ void LagrangeElemShapeMap::Global2LocalQuad4(Vector<Double>& locPoint,
    }*/
 }
 
+Double LagrangeElemShapeMap::GetLocDirJac( Vector<Double>& delta_xi, 
+                                           const Vector<Double>& f,
+                                           const Matrix<Double>& J) {
+  
+  Double jacDet = 0.0;
+  UInt globDim = J.GetNumRows(); // dimension of the grid
+  UInt locDim = J.GetNumCols();  // dimension of the element
+  
+  // ===============================================================
+  //  2 DIMENSIONAL MESH
+  // ===============================================================
+  if (globDim == 2) {
+    if( locDim == 2) {
+      // Find new local search direction for 2D -> 2D mapping using
+      // Cramer's rule.
+
+      // Jacobian Matrix:
+      //
+      //  J = ( J_00  J_01 )
+      //      ( J_10  J_11 )
+      jacDet = +J[0][0] * J[1][1] - J[1][0] * J[0][1];
+
+      //  ( f_0  J_01 )
+      //  ( f_1  J_11 )
+      delta_xi[0] = -J[1][1] * f[0] + J[0][1] * f[1];
+
+      //  ( J_00  f_0 )
+      //  ( J_10  f_1 )
+      delta_xi[1] = -J[0][0] * f[1] + J[1][0] * f[0];
+    } else if( locDim == 1 ) {
+      EXCEPTION("Not implemented yet")
+    }
+
+  } else {
+    // ===============================================================
+    //  3 DIMENSIONAL MESH
+    // ===============================================================
+    if (locDim == 3) {
+      // Find new local search direction for 3D -> 3D mapping using
+       // Cramer's rule.
+
+       //      ( J_00  J_01  J_02 )
+       //  J = ( J_10  J_11  J_12 )
+       //      ( J_20  J_21  J_22 )
+
+       jacDet = +J[0][0] * J[1][1] * J[2][2] - J[0][0] * J[2][1] * J[1][2]
+                - J[1][0] * J[0][1] * J[2][2] + J[2][1] * J[1][0] * J[0][2]
+                - J[1][1] * J[2][0] * J[0][2] + J[2][0] * J[0][1] * J[1][2];
+
+       //  ( f_0  J_01  J_02 )
+       //  ( f_1  J_11  J_12 )
+       //  ( f_2  J_21  J_22 )
+       delta_xi[0] = -J[1][1] * J[2][2] * f[0] + J[2][1] * J[1][2] * f[0]
+                     - J[2][1] * J[0][2] * f[1] + J[0][1] * J[2][2] * f[1]
+                     - J[0][1] * J[1][2] * f[2] + J[1][1] * J[0][2] * f[2];
+
+       //  ( J_00  f_0  J_02 )
+       //  ( J_10  f_1  J_12 )
+       //  ( J_20  f_2  J_22 )
+       delta_xi[1] = -J[1][2] * J[2][0] * f[0] + J[1][0] * J[2][2] * f[0]
+                     - J[0][0] * J[2][2] * f[1] + J[2][0] * J[0][2] * f[1]
+                     - J[1][0] * J[0][2] * f[2] + J[1][2] * J[0][0] * f[2];
+
+       //  ( J_00  J_01  f_0 )
+       //  ( J_10  J_11  f_1 )
+       //  ( J_20  J_21  f_2 )
+       delta_xi[2] = -J[1][0] * J[2][1] * f[0] + J[2][0] * J[1][1] * f[0]
+                    - J[0][1] * J[2][0] * f[1] + J[2][1] * J[0][0] * f[1]
+                    - J[0][0] * J[1][1] * f[2] + J[1][0] * J[0][1] * f[2];
+    } else if( locDim == 2 ) {
+      // Find new local search direction for 2D -> 3D mapping.
+      // Project 3D difference vector onto 2D basis given by
+      // the Jacobian to find the new 2D search direction.
+
+      // Jacobian Matrix:
+      //
+      //      ( J_00  J_01  1 )
+      //  J = ( J_10  J_11  1 )
+      //      ( J_20  J_21  1 )
+
+      jacDet = + J[1][0] * J[2][1] - J[2][0] * J[1][1] - J[0][0] * J[2][1]
+               + J[2][0] * J[0][1] + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+
+      // Calculate negative Jacobian determinants of the following matrices
+      // to find the local search direction which has to point in the opposite
+      // direction of the backprojected global error vector f.
+      //
+      //  ( f_0  J_01  1 )
+      //  ( f_1  J_11  1 )
+      //  ( f_2  J_21  1 )
+
+      delta_xi[0] = -f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
+                    + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
+
+      //  ( J_00  f_0  1 )
+      //  ( J_10  f_1  1 )
+      //  ( J_20  f_2  1 )
+
+      delta_xi[1] = -f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
+                    + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
+
+    } else {
+      // Find new local search direction for 1D -> 3D mapping.
+      EXCEPTION("Not implemented yet")
+
+    }
+  }
+  
+  // Normalize the local search direction
+  delta_xi /= jacDet;
+  
+  return jacDet;
+}
+
 void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
 //Version 0 algorithm from duester script
@@ -660,10 +777,11 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
   Double f_test; //storing the absolute value of search direction
   UInt k = 0; //iteration counter
   Integer l = 0; //stepping value
-  Double jacDet = 0;
+  //Double jacDet = 0;
   Matrix<Double> J; // Jacobian at local point xi_k
-  UInt elemDim = globalPoint.GetSize();
-  Double j11, j12, j13, j21, j22, j23, j31, j32, j33;
+  UInt elemDim = shape_->dim;
+  //UInt globDim = globalPoint.GetSize();
+  //Double j11, j12, j13, j21, j22, j23, j31, j32, j33;
 
   locPoint.Resize(elemDim);
   locPoint.Init();
@@ -755,43 +873,10 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     xi_start.Init();
     // Calculate Jacobian at iteration point xi_k
     this->CalcJ(J, xi_k);
-    if (elemDim == 2) {
-      jacDet = +J[0][0] * J[1][1] - J[1][0] * J[0][1];
-      //  ( f_0  J_01 )
-      //  ( f_1  J_11 )
-      delta_xi[0] = (-J[1][1] * f[0] + J[0][1] * f[1]) / jacDet;
-
-      //  ( J_00  f_0 )
-      //  ( J_10  f_1 )
-      delta_xi[1] = (-J[0][0] * f[1] + J[1][0] * f[0]) / jacDet;
-      //xi_start = xi_k + (delta_xi * 2.0);
-      //Local2GlobalCoord(f, xi_start, coordMat, NULL);
-      //f = f - globalPoint;
-      //f_test = f.NormL2();
-    } else if (elemDim == 3) {
-      j11 = J[0][0];
-      j12 = J[0][1];
-      j13 = J[0][2];
-      j21 = J[1][0];
-      j22 = J[1][1];
-      j23 = J[1][2];
-      j31 = J[2][0];
-      j32 = J[2][1];
-      j33 = J[2][2];
-
-      jacDet = j11 * j22 * j33 - j11 * j32 * j23 - j21 * j12 * j33
-          + j32 * j21 * j13 - j22 * j31 * j13 + j31 * j12 * j23;
-
-      delta_xi[0] = -j22 * j33 * f[0] + j32 * j23 * f[0] - j32 * j13 * f[1]
-          + j12 * j33 * f[1] - j12 * j23 * f[2] + j22 * j13 * f[2];
-      delta_xi[1] = -j23 * j31 * f[0] + j21 * j33 * f[0] - j11 * j33 * f[1]
-          + j31 * j13 * f[1] - j21 * j13 * f[2] + j23 * j11 * f[2];
-      delta_xi[2] = -j21 * j32 * f[0] + j31 * j22 * f[0] - j12 * j31 * f[1]
-          + j32 * j11 * f[1] - j11 * j22 * f[2] + j21 * j12 * f[2];
-      delta_xi[0] /= jacDet;
-      delta_xi[1] /= jacDet;
-      delta_xi[2] /= jacDet;
-    }
+    
+    // Calculate local search direction
+    GetLocDirJac(delta_xi, f, J);
+    
     l = 0;
     //perform damping
     while (l < 40 && f_test >= f_old) {
@@ -809,16 +894,19 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     xi_k = xi_start;
     k++;
   }
-  //if( f_test > tolerance){
-  //  std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
-  //  //ONLY for DEBUGGING
-  //  Local2Global(f, xi_k);
-  //  std::cout << "Calculated global point :" << std::endl << f << std::endl;
-  //  std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
-  //  std::cout << "The error was: " << f_test << std::endl<< std::endl;
-  //  //xi_k.Init(99);
-  //  //std::cout << std::endl;
-  //}
+//  if( f_test > tolerance){
+//    std::cout << "performed " << k << " iterations to reach the point" << std::endl<< xi_k << std::endl;
+//    //ONLY for DEBUGGING
+//    Local2Global(f, xi_k);
+//    std::cout << "Calculated global point :" << std::endl << f << std::endl;
+//    std::cout << "Original global coord " << std::endl << globalPoint << std::endl;
+//    std::cout << "The error was: " << f_test << std::endl<< std::endl;
+//    std::cout << "connectivity: " << ptElem_->connect.ToString() << std::endl;
+//    std::cout << "coordinates: " << coords_.ToString() << std::endl;
+//    WARN("G2L did not converge for element " << ptElem_->elemNum << " of type " << ptElem_->type);
+//    //xi_k.Init(99);
+//    //std::cout << std::endl;
+//  }
 
   // Put local coordinate of point into matrix.
   if (xi_k.GetSize() == 0) {
@@ -889,7 +977,7 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
   
   const ElemShape & shape = *shape_;
-  UInt globDim = globalPoint.GetSize(); // determine global dimension
+  //UInt globDim = globalPoint.GetSize(); // determine global dimension
   UInt locDim = shape.dim; // dimension of current element
 
   Vector<Double> xi_start; // local start point for Newton-Raphson method
@@ -943,6 +1031,7 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
     }
   }
   xi_k = xi_start;
+  xi_min = xi_start;
   f = f_start;
   distance = f_min;
   // divergence = false;
@@ -958,106 +1047,109 @@ void LagrangeElemShapeMap::Global2LocalGeneral(Vector<Double>& locPoint,
       EXCEPTION("Line elements should not use the Newton-Raphson method!");
       return;
     }
-
-    if (globDim == 2) {
-      // Find new local search direction for 2D -> 2D mapping using
-      // Cramer's rule.
-
-      // Jacobian Matrix:
-      //
-      //  J = ( J_00  J_01 )
-      //      ( J_10  J_11 )
-
-      jacDet = +J[0][0] * J[1][1] - J[1][0] * J[0][1];
-
-      //  ( f_0  J_01 )
-      //  ( f_1  J_11 )
-      delta_xi[0] = -J[1][1] * f[0] + J[0][1] * f[1];
-
-      //  ( J_00  f_0 )
-      //  ( J_10  f_1 )
-      delta_xi[1] = -J[0][0] * f[1] + J[1][0] * f[0];
-
-      distNormalizer = sqrt(fabs(jacDet));
-    } else {
-      if (locDim == 2) {
-        // Find new local search direction for 2D -> 3D mapping.
-        // Project 3D difference vector onto 2D basis given by
-        // the Jacobian to find the new 2D search direction.
-
-        // Jacobian Matrix:
-        //
-        //      ( J_00  J_01  1 )
-        //  J = ( J_10  J_11  1 )
-        //      ( J_20  J_21  1 )
-
-        jacDet = +J[1][0] * J[2][1] - J[2][0] * J[1][1] - J[0][0] * J[2][1]
-            + J[2][0] * J[0][1] + J[0][0] * J[1][1] - J[1][0] * J[0][1];
-
-        // Calculate negative Jacobian determinants of the following matrices
-        // to find the local search direction which has to point in the opposite
-        // direction of the backprojected global error vector f.
-        //
-        //  ( f_0  J_01  1 )
-        //  ( f_1  J_11  1 )
-        //  ( f_2  J_21  1 )
-
-        delta_xi[0] = -f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
-            + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
-
-        //  ( J_00  f_0  1 )
-        //  ( J_10  f_1  1 )
-        //  ( J_20  f_2  1 )
-
-        delta_xi[1] = -f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
-            + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
-
-        distNormalizer = sqrt(fabs(jacDet));
-      } else {
-        // Find new local search direction for 3D -> 3D mapping using
-        // Cramer's rule.
-
-        //      ( J_00  J_01  J_02 )
-        //  J = ( J_10  J_11  J_12 )
-        //      ( J_20  J_21  J_22 )
-
-        jacDet = +J[0][0] * J[1][1] * J[2][2] - J[0][0] * J[2][1] * J[1][2]
-            - J[1][0] * J[0][1] * J[2][2] + J[2][1] * J[1][0] * J[0][2]
-            - J[1][1] * J[2][0] * J[0][2] + J[2][0] * J[0][1] * J[1][2];
-
-        //  ( f_0  J_01  J_02 )
-        //  ( f_1  J_11  J_12 )
-        //  ( f_2  J_21  J_22 )
-        delta_xi[0] = -J[1][1] * J[2][2] * f[0] + J[2][1] * J[1][2] * f[0]
-            - J[2][1] * J[0][2] * f[1] + J[0][1] * J[2][2] * f[1]
-            - J[0][1] * J[1][2] * f[2] + J[1][1] * J[0][2] * f[2];
-
-        //  ( J_00  f_0  J_02 )
-        //  ( J_10  f_1  J_12 )
-        //  ( J_20  f_2  J_22 )
-        delta_xi[1] = -J[1][2] * J[2][0] * f[0] + J[1][0] * J[2][2] * f[0]
-            - J[0][0] * J[2][2] * f[1] + J[2][0] * J[0][2] * f[1]
-            - J[1][0] * J[0][2] * f[2] + J[1][2] * J[0][0] * f[2];
-
-        //  ( J_00  J_01  f_0 )
-        //  ( J_10  J_11  f_1 )
-        //  ( J_20  J_21  f_2 )
-        delta_xi[2] = -J[1][0] * J[2][1] * f[0] + J[2][0] * J[1][1] * f[0]
-            - J[0][1] * J[2][0] * f[1] + J[2][1] * J[0][0] * f[1]
-            - J[0][0] * J[1][1] * f[2] + J[1][0] * J[0][1] * f[2];
-
-        distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
-      }
-    }
+    
+    jacDet = GetLocDirJac(delta_xi, f, J);
+    distNormalizer = sqrt(fabs(jacDet));
+//
+//    if (globDim == 2) {
+//      // Find new local search direction for 2D -> 2D mapping using
+//      // Cramer's rule.
+//
+//      // Jacobian Matrix:
+//      //
+//      //  J = ( J_00  J_01 )
+//      //      ( J_10  J_11 )
+//
+//      jacDet = +J[0][0] * J[1][1] - J[1][0] * J[0][1];
+//
+//      //  ( f_0  J_01 )
+//      //  ( f_1  J_11 )
+//      delta_xi[0] = -J[1][1] * f[0] + J[0][1] * f[1];
+//
+//      //  ( J_00  f_0 )
+//      //  ( J_10  f_1 )
+//      delta_xi[1] = -J[0][0] * f[1] + J[1][0] * f[0];
+//
+//      distNormalizer = sqrt(fabs(jacDet));
+//    } else {
+//      if (locDim == 2) {
+//        // Find new local search direction for 2D -> 3D mapping.
+//        // Project 3D difference vector onto 2D basis given by
+//        // the Jacobian to find the new 2D search direction.
+//
+//        // Jacobian Matrix:
+//        //
+//        //      ( J_00  J_01  1 )
+//        //  J = ( J_10  J_11  1 )
+//        //      ( J_20  J_21  1 )
+//
+//        jacDet = +J[1][0] * J[2][1] - J[2][0] * J[1][1] - J[0][0] * J[2][1]
+//            + J[2][0] * J[0][1] + J[0][0] * J[1][1] - J[1][0] * J[0][1];
+//
+//        // Calculate negative Jacobian determinants of the following matrices
+//        // to find the local search direction which has to point in the opposite
+//        // direction of the backprojected global error vector f.
+//        //
+//        //  ( f_0  J_01  1 )
+//        //  ( f_1  J_11  1 )
+//        //  ( f_2  J_21  1 )
+//
+//        delta_xi[0] = -f[0] * J[1][1] - f[1] * J[2][1] - f[2] * J[0][1]
+//            + f[2] * J[1][1] + f[1] * J[0][1] + f[0] * J[2][1];
+//
+//        //  ( J_00  f_0  1 )
+//        //  ( J_10  f_1  1 )
+//        //  ( J_20  f_2  1 )
+//
+//        delta_xi[1] = -f[0] * J[2][0] - f[1] * J[0][0] - f[2] * J[1][0]
+//            + f[2] * J[0][0] + f[1] * J[2][0] + f[0] * J[1][0];
+//
+//        distNormalizer = sqrt(fabs(jacDet));
+//      } else {
+//        // Find new local search direction for 3D -> 3D mapping using
+//        // Cramer's rule.
+//
+//        //      ( J_00  J_01  J_02 )
+//        //  J = ( J_10  J_11  J_12 )
+//        //      ( J_20  J_21  J_22 )
+//
+//        jacDet = +J[0][0] * J[1][1] * J[2][2] - J[0][0] * J[2][1] * J[1][2]
+//            - J[1][0] * J[0][1] * J[2][2] + J[2][1] * J[1][0] * J[0][2]
+//            - J[1][1] * J[2][0] * J[0][2] + J[2][0] * J[0][1] * J[1][2];
+//
+//        //  ( f_0  J_01  J_02 )
+//        //  ( f_1  J_11  J_12 )
+//        //  ( f_2  J_21  J_22 )
+//        delta_xi[0] = -J[1][1] * J[2][2] * f[0] + J[2][1] * J[1][2] * f[0]
+//            - J[2][1] * J[0][2] * f[1] + J[0][1] * J[2][2] * f[1]
+//            - J[0][1] * J[1][2] * f[2] + J[1][1] * J[0][2] * f[2];
+//
+//        //  ( J_00  f_0  J_02 )
+//        //  ( J_10  f_1  J_12 )
+//        //  ( J_20  f_2  J_22 )
+//        delta_xi[1] = -J[1][2] * J[2][0] * f[0] + J[1][0] * J[2][2] * f[0]
+//            - J[0][0] * J[2][2] * f[1] + J[2][0] * J[0][2] * f[1]
+//            - J[1][0] * J[0][2] * f[2] + J[1][2] * J[0][0] * f[2];
+//
+//        //  ( J_00  J_01  f_0 )
+//        //  ( J_10  J_11  f_1 )
+//        //  ( J_20  J_21  f_2 )
+//        delta_xi[2] = -J[1][0] * J[2][1] * f[0] + J[2][0] * J[1][1] * f[0]
+//            - J[0][1] * J[2][0] * f[1] + J[2][1] * J[0][0] * f[1]
+//            - J[0][0] * J[1][1] * f[2] + J[1][0] * J[0][1] * f[2];
+//
+//        distNormalizer = std::pow(fabs(jacDet), 1.0 / 3.0);
+//      }
+//    }
 
     // Here is the new local search direction. We normalize it so we
     // can be sure, that we have a local search vector of a length
     // comparable to the local element diameter.
     Double len;
 
-    delta_xi[0] /= jacDet;
-    delta_xi[1] /= jacDet;
-    delta_xi[2] /= jacDet;
+//    delta_xi[0] /= jacDet;
+//    delta_xi[1] /= jacDet;
+//    delta_xi[2] /= jacDet;
 
     len = delta_xi.NormL2();
     delta_xi[0] /= len;
@@ -1563,15 +1655,28 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     surfLocDirs[0] = shape.faceLocDirs[index][0];
     surfLocDirs[1] = shape.faceLocDirs[index][1];
 
-    // only for quad-faces, we must check. if both
-    // directions have to get interchanged.
-    if (shape.faceNodes[index].GetSize() == 4) {
-      // check, if directions have to get interchanged
-      if (!ptSurfElem->faceFlags[0][2]) {
-        std::swap(surfLocDirs[0], surfLocDirs[1]);
+    // as we have identified the correct face, we have already the two 
+    // involved global directions. In order to determine the correct ordering
+    // of the directions, we compare the orientation of the first edge of each
+    // face.
+    
+    // get local volume nodes of surface edge #1, pointing in local xi/0 direction  
+    Integer volNode1, volNode2;
+    volNode1 = ptElem_->connect.Find(ptSurfElem->connect[0])+1;
+    volNode2 = ptElem_->connect.Find(ptSurfElem->connect[1])+1;
+
+    Integer edgeIndex = -1;
+    for( UInt i = 0; i < shape.numEdges; ++i ) {
+      const StdVector<UInt> & edgeNodes = shape.edgeNodes[i];
+      if( (edgeNodes[0] == UInt(volNode1) && edgeNodes[1] == UInt(volNode2) ) ||
+          (edgeNodes[1] == UInt(volNode1) && edgeNodes[0] == UInt(volNode2) ) ) {
+        edgeIndex = i;
+        break;
       }
     }
-
+    if(UInt(shape.edgeLocDirs[UInt(edgeIndex)]) != surfLocDirs[0]) {
+      std::swap(surfLocDirs[0], surfLocDirs[1]);
+    }
   } else {
     EXCEPTION("Can only handle 1D or 2D elements.")
   }
@@ -1633,9 +1738,11 @@ void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
   max = 1e-100;
   min = 1e+100;
   Double length, dl;
+  //check for surface element
+  UInt dim = std::max(this->ptGrid_->GetDim(), shape.dim);
   for (UInt i = 0; i < shape.numEdges; ++i) {
     length = 0.0;
-    for (UInt iDim = 0; iDim < shape.dim; ++iDim) {
+    for (UInt iDim = 0; iDim < dim; ++iDim) {
       dl = coords_[iDim][shape.edgeVertices[i][1] - 1]
                          - coords_[iDim][shape.edgeVertices[i][0] - 1];
       length += dl * dl;
@@ -1713,6 +1820,14 @@ if (jac.GetNumCols() == jac.GetNumRows()) {
   //see kaltenbacher, p.23, eq.(2.122)
   jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
 }
+
+// Adjust "volume" of Jacobian in case of axi-symmetry
+Vector<Double> globPoint;
+if (IsAxi()) {
+  Local2Global(globPoint, lp);
+  jacDet *= 2 * PI * globPoint[0];
+}
+
 
 return jacDet;
 }
