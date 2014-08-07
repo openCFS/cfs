@@ -268,8 +268,9 @@ namespace CoupledField
     /** Set this matrix with a multiple of another matrix.
      * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
-     * this = factor * other_mat */
-    void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
+     * this = factor * other_mat
+     * @param size_tolerant if set this matrix and other_mat may have different size with 0 entries for the unused. */
+    void Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant = false);
     
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;

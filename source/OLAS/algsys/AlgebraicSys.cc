@@ -1938,9 +1938,9 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Setting element matrix for fctIds ("
                      << fctId1 << ", " << fctId2 << ")";
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
-    LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
-    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
-    LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
+    LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
+    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
     LOG_DBG3(algSys) << "noStaticCond is:\n " << noStaticCond;
     
     // Security check: check if we have as many equations as numRows/Cols

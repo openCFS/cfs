@@ -149,16 +149,16 @@ namespace CoupledField {
     Double freqShift_;
 
     //! Maximum number of iterations
-    UInt numFreq_;
+    int numFreq_;
 
     //! Maximum number of iterations
     UInt maxIterations_;
 
     //! Number of Arnoldi vectors
-    UInt numArnoldiVec_;
+    int numArnoldiVec_;
 
     //! Size of equation system
-    UInt size_;
+    int size_;
 
     //! stores the calculated eigenvalues (real or complex)
     SingleVector* eigenValues_;

@@ -365,16 +365,17 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       BaseBDBInt *massInt = NULL;
 
-      if( dim_ == 2 )
-      {
-        if(do_bloch) // complex mass integrator due to complex bloch stiffness matrix
-          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
-        else
-          massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+      // complex mass integrator due to complex bloch stiffness matrix
 
-      } else {
-        massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>, densCoeff, 1.0);
-      }
+      if(dim_== 2 && do_bloch)
+        massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+      if(dim_== 2 && !do_bloch)
+        massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+      if(dim_== 3 && do_bloch)
+        massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
+      if(dim_== 3 && !do_bloch)
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
+
       massInt->SetName("MassInt");
       massInt->SetFeSpace( mySpace );
 
@@ -943,7 +944,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           bOp = new StrainOperatorBloch2D<FeH1,Complex>(icModes);
 
           EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
-          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() == 2);
+          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() >= 2);
           // efd->GetCurrentWaveVector() always contains the current one!
 
           dynamic_cast<StrainOperatorBloch2D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
@@ -956,7 +957,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       if(subType_ == "planeStress")
         bOp = new StrainOperator2D<FeH1,Complex>(icModes);
       if(subType_ == "3d")
-        bOp = new StrainOperator3D<FeH1,Complex>(icModes);
+      {
+        if(do_bloch)
+        {
+          bOp = new StrainOperatorBloch3D<FeH1,Complex>(icModes);
+
+          EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
+          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() == 3);
+          // efd->GetCurrentWaveVector() always contains the current one!
+
+          dynamic_cast<StrainOperatorBloch3D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
+        }
+        else
+          bOp = new StrainOperator3D<FeH1,Complex>(icModes);
+      }
     }
     else // not complex
     {

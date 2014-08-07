@@ -211,9 +211,8 @@ namespace CoupledField {
     for (itNum=0; itNum<maxIterations_; itNum++)
     {
       // additionally rwork is ignored for the real case
-      CallAUPD(&ido, type_, (Integer*) &size_, which_, (Integer*) &numFreq_,
-            &tolerance_, residual.GetPointer(), (Integer*) &numArnoldiVec_, matrixV.GetPointer(),
-            (Integer*) &size_, iparams.GetPointer(), ipntr.GetPointer(),
+      CallAUPD(&ido, type_, &size_, which_, &numFreq_, &tolerance_, residual.GetPointer(),
+            &numArnoldiVec_, matrixV.GetPointer(), &size_, iparams.GetPointer(), ipntr.GetPointer(),
             workD.GetPointer(), workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
 
       switch (ido)
@@ -307,10 +306,10 @@ namespace CoupledField {
     StdVector<TYPE> workev(2 * numArnoldiVec_);
 
     // cast to char* or receive compiler warning
-    CallEUPD(&rvec, (char*) "A", select.GetPointer(), d.GetPointer(), evec.GetPointer(), (Integer*) &size_,
-        &omgShift, workev.GetPointer() , (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_,
-        &tolerance_, residual.GetPointer(), (Integer*) &numArnoldiVec_, matrixV.GetPointer(),
-        (Integer*) &size_, iparams.GetPointer(), ipntr.GetPointer(), workD.GetPointer(),
+    CallEUPD(&rvec, (char*) "A", select.GetPointer(), d.GetPointer(), evec.GetPointer(), &size_,
+        &omgShift, workev.GetPointer() , (char*) "G", &size_, which_, &numFreq_,
+        &tolerance_, residual.GetPointer(), &numArnoldiVec_, matrixV.GetPointer(),
+        &size_, iparams.GetPointer(), ipntr.GetPointer(), workD.GetPointer(),
         workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
 
     LOG_DBG3(as) << "FE post d=" << d.ToString();
@@ -414,10 +413,8 @@ namespace CoupledField {
       UInt itNum;
       for (itNum=1; itNum<=maxIterations_; itNum++) {
 
-        znaupd(&ido, (char*) "G", (Integer*) &size_, which_,
-                        (Integer*) &numFreq_, &tolerance_, residual,
-                        (Integer*) &numArnoldiVec_, matrixV,
-                        (Integer*) &size_, iparams, ipntr, workD, workL,
+        znaupd(&ido, (char*) "G", &size_, which_, &numFreq_, &tolerance_, residual,
+                        &numArnoldiVec_, matrixV, &size_, iparams, ipntr, workD, workL,
                         &lenWorkL, workDbleD, &info);
 
           switch (ido)  {
@@ -512,22 +509,20 @@ namespace CoupledField {
       // zEigenVectors_ will only store data for positive freqs.
       Complex *zEV = new Complex [numFreq_*size_];
 
-      for (UInt i=0; i< numArnoldiVec_*2; i++) {
+      for (int i=0; i< numArnoldiVec_*2; i++) {
         d[i] = (Complex) 0.0;
         zwv[i] = (Complex) 0.0;
       }
-      for (UInt i=0; i< numFreq_*size_; i++) {
-        zEV[i]            = (Complex) 0.0;
+      for (int i=0; i< numFreq_*size_; i++) {
+        zEV[i]  = (Complex) 0.0;
         evec[i] = (Complex) 0.0;
       }
 
       Complex omgShift = (Complex) freqShift_*8.0*atan(1.0);
 
-      zneupd(&rvec, (char*) "A", select, d, zEV,
-                      (Integer*) &size_, &omgShift, zwv, (char*) "G",
-                      (Integer*) &size_, which_, (Integer*) &numFreq_,
-                      &tolerance_, residual, (Integer*) &numArnoldiVec_,
-                      matrixV, (Integer*) &size_, iparams, ipntr, workD,
+      zneupd(&rvec, (char*) "A", select, d, zEV, &size_, &omgShift, zwv, (char*) "G",
+                      &size_, which_, &numFreq_, &tolerance_, residual, &numArnoldiVec_,
+                      matrixV, &size_, iparams, ipntr, workD,
                       workL, &lenWorkL, workDbleD, &info);
 
       LOG_DBG3(as) << "FQE post d=" << ToString(d, numArnoldiVec_*2);
@@ -599,57 +594,57 @@ namespace CoupledField {
 
             LOG_DBG3(as) << "CQV post ncv=" << ncv << " pos=" << pos << " eval=" << eval[pos];
 
-            for (UInt j=0; j<size_; j++) {
+            for (int j=0; j<size_; j++) {
               evec[pos*size_+j] = zEV[ncv*size_+j];
             }
 
             ztmp = evec.GetPointer() + pos*size_;
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               z3[j] = ztmp[j];
             }
             interface_->MultZDampV(ztmp, z1); 
             ztmp += size_/2;
             interface_->MultZStiffV(ztmp, z2); 
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               z1[j] = -z1[j] - z2[j];
             }
   
             if ( interface_->UseStiffInNMat() ) {
-              for (UInt j=0; j<size_/2; j++) {
+              for (int j=0; j<size_/2; j++) {
                 z2[j] = z3[j];
               }
               interface_->MultZStiffV(z2, z3); 
             }
             interface_->ScaleDiag(z3);
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
                 zA[j]         = z1[j];
                 zA[j+size_/2] = z3[j];
             }
   
             ztmp = evec.GetPointer() + pos*size_;
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
                z3[j] = ztmp[j+size_/2];
             }
             interface_->MultZMassV(ztmp, z1); 
   
             if ( interface_->UseStiffInNMat() ) {
-              for (UInt j=0; j<size_/2; j++) {
+              for (int j=0; j<size_/2; j++) {
                   z2[j] = z3[j];
               }
               interface_->MultZStiffV(z2, z3); 
             }
             interface_->ScaleDiag(z3);
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               zB[j]         = z1[j];
               zB[j+size_/2] = z3[j];
             }
   
             Double vNrm2 = 0.0,v2Nrm2 = 0.0;
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
               vNrm2 += pow(abs(zC[j]),2);
             }
-            for (UInt j=size_/2; j<size_; j++) {
+            for (int j=size_/2; j<size_; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
               v2Nrm2 += pow(abs(zC[j]),2);
             }
@@ -661,17 +656,17 @@ namespace CoupledField {
             Double  epsTest = 1.0e-6;
             // 1) for a unit vector
             Complex vLen = (Complex) 0.0;
-            for (UInt j=size_/2; j<size_; j++) {
+            for (int j=size_/2; j<size_; j++) {
               vLen += ztmp[j]*std::conj(ztmp[j]);
             }
             vLen = sqrt(vLen);
-            for (UInt j=0; j<size_; j++) {
+            for (int j=0; j<size_; j++) {
               ztmp[j] /= vLen;
             }
   
             // 2) start at size_/2, i.e. use "essential part" of the eigenvector
             //    and look for first non-noisy entry
-            UInt jNorm = size_/2, jFound=0;
+            int jNorm = size_/2, jFound=0;
             while (jFound==0 && jNorm<size_) {
               if (std::abs(ztmp[jNorm]) > epsTest)
                 jFound = 1;
@@ -687,7 +682,7 @@ namespace CoupledField {
   
             Complex zbase = Complex (1.,1.);
             Complex zNorm = ztmp[jNorm]*zbase;
-            for (UInt j=0; j<size_; j++) {
+            for (int j=0; j<size_; j++) {
               ztmp[j] /= zNorm;
             }
 
@@ -720,7 +715,7 @@ namespace CoupledField {
   void ArpackSolver::InitQuadTempSpace(Complex *tempV,Complex *residual,
          Complex* workD, Complex* workL, Complex* matrixV, Double* workDbleD) {
 
-      UInt i;
+      int i;
       for (i=0; i < size_;i++) {
            tempV[i] = (Complex) 0.0;
            residual[i] = (Complex) 0.0;
@@ -729,7 +724,7 @@ namespace CoupledField {
       for (i=0; i < 3*size_;i++)
            workD[i] = (Complex) 0.0;
 
-      UInt len = numArnoldiVec_*(3*numArnoldiVec_+5);
+      int len = numArnoldiVec_*(3*numArnoldiVec_+5);
       for (i=0; i < len; i++)
           workL[i] = (Complex) 0.0;
 

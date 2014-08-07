@@ -66,7 +66,10 @@ namespace CoupledField {
       FillWaveVectors(param_->Get("bloch"));
       std::string file = progOpts->GetSimName() + ".bloch.dat";
       bloch_plot_.open(file.c_str(), std::ios::out);
-      bloch_plot_ << "#step\tk_x\tk_y\t1.mode\t2.mode\t..." << std::endl;
+      bloch_plot_ << "#step\tk_x\tk_y";
+      if(domain->GetGrid()->GetDim() == 3)
+        bloch_plot_ << "\tk_z";
+      bloch_plot_ << "\t1.mode\t2.mode\t..." << std::endl;
     }
 
     if(isQuadratic_ && isBloch_)
@@ -90,6 +93,8 @@ namespace CoupledField {
   {
     ParamNodeList lst = bloch_pn->GetList("waveVector");
 
+    unsigned int dim = domain->GetGrid()->GetDim();
+
     // check if we have ibz
     if(bloch_pn->Has("ibz"))
     {
@@ -97,36 +102,61 @@ namespace CoupledField {
         throw Exception("no wave vectors may be given in bloch mode analysis concurrently with ibz");
 
       bool do_boundary = bloch_pn->Get("ibz/sample")->As<std::string>() == "boundary";
+
       blochSteps_     = bloch_pn->Get("ibz/steps")->As<int>();
       int steps = blochSteps_;
 
+      int edges = dim == 2 ? 3 : 4; // GAMMA -> X -> M -> [GAMMA | R -> GAMMA]
 
-      if((do_boundary && ((steps % 3) != 0 || steps < 3)) || (!do_boundary && (int) sqrt(steps) * (int) sqrt(steps) != steps))
-        throw Exception("bloch mode ibz/steps need to a multiple of 3 for boundary sampling or a square number for full sampling.");
+      if(!do_boundary && dim == 3)
+              throw Exception("for 3D only 'do_boundary' sampling of the wave vector.");
+
+      if((do_boundary && ((steps % edges) != 0 || steps < edges)) || (!do_boundary && (int) sqrt(steps) * (int) sqrt(steps) != steps))
+        EXCEPTION("bloch mode ibz/steps need to a multiple of " << edges << " for boundary sampling or a square number for full sampling.");
 
       // we need the unit cell dimensions to scale the wave vector from 0 .. pi/d where d is unit cell dimension -> Hussein;2009
-      Matrix<double>& box = domain->GetGrid()->CalcGridBoundingBox();
+      Matrix<double>& box = domain->GetGrid()->CalcGridBoundingBox(NULL, true); // force 3D
       double d_x = box[0][1]-box[0][0];
       double d_y = box[1][1]-box[1][0];
+      double d_z = box[2][1]-box[2][0]; // 0.0 for 2D
       wave_vectors_.Resize(steps);
 
       if(do_boundary)
       {
         // we don't repeat the corner points, the are calculated at the start of a line
-        for(int i = 0; i < steps/3; i++) {
-          wave_vectors_[i].Resize(2);
-          wave_vectors_[i][0] = (i*3*PI/steps) / d_x;
+        for(int i = 0; i < steps/edges; i++) {
+          wave_vectors_[i].Resize(3);
+          wave_vectors_[i][0] = (i*edges*PI/steps) / d_x;
           wave_vectors_[i][1] = 0.0;
+          wave_vectors_[i][2] = 0.0;
         }
-        for(int i = 0; i < steps/3; i++) {
-          wave_vectors_[steps/3 + i].Resize(2);
-          wave_vectors_[steps/3 + i][0] = PI/d_x;
-          wave_vectors_[steps/3 + i][1] = (i*3*PI/steps) / d_y;
+        for(int i = 0; i < steps/edges; i++) {
+          wave_vectors_[steps/edges + i].Resize(3);
+          wave_vectors_[steps/edges + i][0] = PI/d_x;
+          wave_vectors_[steps/edges + i][1] = (i*edges*PI/steps) / d_y;
+          wave_vectors_[steps/edges + i][2] = 0.0;
         }
-        for(int i = 0; i < steps/3; i++) {
-          wave_vectors_[2*steps/3 + i].Resize(2);
-          wave_vectors_[2*steps/3 + i][0] = PI/d_x * (1.0-i*3.0/steps);
-          wave_vectors_[2*steps/3 + i][1] = PI/d_y * (1.0-i*3.0/steps);
+        if(dim == 2)
+          for(int i = 0; i < steps/edges; i++) {
+            wave_vectors_[2*steps/edges + i].Resize(3);
+            wave_vectors_[2*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors_[2*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors_[2*steps/edges + i][2] = 0.0;
+          }
+        else
+        {
+          for(int i = 0; i < steps/edges; i++) {
+            wave_vectors_[2*steps/edges + i].Resize(3);
+            wave_vectors_[2*steps/edges + i][0] = PI/d_x;
+            wave_vectors_[2*steps/edges + i][1] = PI/d_y;
+            wave_vectors_[2*steps/edges + i][2] = (i*edges*PI/steps) / d_z;
+          }
+          for(int i = 0; i < steps/edges; i++) {
+            wave_vectors_[3*steps/edges + i].Resize(3);
+            wave_vectors_[3*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors_[3*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors_[3*steps/edges + i][2] = PI/d_z * (1.0-i * (double) edges/steps);
+          }
         }
       }
       else
@@ -135,7 +165,7 @@ namespace CoupledField {
         for(int y = 0; y < root; y++) {
           for(int x = 0; x < root; x++) {
             int idx = y * root + x;
-            wave_vectors_[idx].Resize(2);
+            wave_vectors_[idx].Resize(3);
             wave_vectors_[idx][0] = (PI/d_x) * (x/(root-1));
             wave_vectors_[idx][1] = (PI/d_y) * (y/(root-1));
            }
@@ -150,12 +180,16 @@ namespace CoupledField {
       {
         PtrParamNode wv = lst[i];
         Vector<double>& p = wave_vectors_[i];
-        p.Resize(2);
+        p.Resize(dim);
         p[0] = wv->Get("x")->As<double>();
         p[1] = wv->Get("y")->As<double>();
+        if(dim == 3)
+          p[2] = wv->Get("z")->As<double>();
         LOG_DBG3(efd) << "EDF:FWV i=" << i << " p=" << p.ToString();
       }
     }
+
+    LOG_DBG(efd) << "FWV -> " << ToString<double>(wave_vectors_, true);
 
     current_wave_vector_ = wave_vectors_[0]; // copy constructor :)
 
@@ -168,6 +202,7 @@ namespace CoupledField {
                                          ResultHandler* resHandler, UInt numConverged, int wave_vector_step)
   {
     Vector<TYPE>& eigenFreqs = dynamic_cast<Vector<TYPE>&>(*freq_ptr);
+    unsigned int dim = domain->GetGrid()->GetDim();
 
     // If no frequency at all converged, just leave
     if( numConverged == 0) {
@@ -190,6 +225,8 @@ namespace CoupledField {
       cout << std::endl << " step=" << wave_vector_step << " wave vector=" << current_wave_vector_.ToString() << " frequencies: ";
       // also plot
       bloch_plot_ << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
+      if(dim == 3)
+        bloch_plot_ << current_wave_vector_[2] << "\t";
     }
     else
     {
@@ -233,6 +270,8 @@ namespace CoupledField {
         mode->Get("step")->SetValue(wave_vector_step);
         mode->Get("k_x")->SetValue(current_wave_vector_[0]);
         mode->Get("k_y")->SetValue(current_wave_vector_[1]);
+        if(dim == 3)
+          mode->Get("k_z")->SetValue(current_wave_vector_[2]);
       }
 
       mode->Get("nr")->SetValue(i+1); // not the mode but frequency in list
