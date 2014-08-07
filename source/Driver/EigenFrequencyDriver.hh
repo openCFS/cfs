@@ -38,8 +38,10 @@ class SingleVector;
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
-    /** Helper method which determines if an AnalyisType is complex. */
-    virtual bool IsComplex() { return true; /* isQuadratic_ || isBloch_;*/ };
+    /** Helper method which determines if an AnalyisType is complex.
+     * This means that the solution matrix is complex to allow to defive velocity and acceleration.
+     * The matrix shall only be complex for isQudratic or isBloc_ */
+    virtual bool IsComplex() { return true; };
 
     /** @see BaseDriver::DoBlochModeEigenfrequency() */
     bool DoBlochModeEigenfrequency() const { return isBloch_; };

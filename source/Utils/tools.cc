@@ -168,6 +168,18 @@ namespace CoupledField {
     return os.str();
   }
 
+  template <class TYPE>
+  std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line)
+  {
+    std::ostringstream os;
+
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      os << i << "=" << "[" << data[i].ToString() << "]" << (new_line ? "\n": " ");
+
+    return os.str();
+  }
+
+
   template <>
   std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size)
   {
@@ -460,5 +472,6 @@ namespace CoupledField {
   template std::string ToString<unsigned int>(const unsigned int* data, unsigned int size);
   template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
 
+  template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
 
 }// namespace CoupledField

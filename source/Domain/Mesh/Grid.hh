@@ -482,8 +482,10 @@ namespace CoupledField
     
     /** calculates the bounding box of the entire grid. Is slow,
      * CalcVolumeSpannedByNamedNodes() in legacy cfs is faster!
-     * @param sys if NULL the the default one is used */
-    Matrix<double>& CalcGridBoundingBox(CoordSystem* sys = NULL);
+     * @param sys if NULL the the default one is used
+     * @param force_3D third dimension is zero for 2D otherwise there is no third dimension in 2D
+     * @return num rows == GetDim() or 3 for force_3D */
+    Matrix<double>& CalcGridBoundingBox(CoordSystem* sys = NULL, bool force_3D = false);
 
 
     //! This method computes the x-y-z boundig box of a given region

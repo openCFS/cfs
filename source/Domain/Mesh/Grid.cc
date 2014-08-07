@@ -65,36 +65,45 @@ namespace CoupledField
     barycenters = false;
   }
 
-  Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys)
+  Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     Matrix<double>& box = grid_bounding_box_;
-    if(box.GetNumRows() > 0)
-      return box;
-
-    if(sys == NULL) sys = domain->GetCoordSystem();
-
-    StdVector<RegionIdType> regs;
-    GetVolRegionIds(regs);
-
-    Matrix<double> tmp;
-
-    for(unsigned int r = 0; r < regs.GetSize(); r++)
+    if(box.GetNumRows() == 0)
     {
-      CalcBoundingBoxOfRegion(regs[r], tmp, sys);
-      if(r == 0)
-        box = tmp;
-      else
+      // set the box ignoring force_3D!
+      if(sys == NULL) sys = domain->GetCoordSystem();
+
+      StdVector<RegionIdType> regs;
+      GetVolRegionIds(regs);
+
+      Matrix<double> tmp;
+
+      for(unsigned int r = 0; r < regs.GetSize(); r++)
       {
-        for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+        CalcBoundingBoxOfRegion(regs[r], tmp, sys);
+        if(r == 0)
+          box = tmp;
+        else
         {
-          box[d][0] = std::min(box[d][0], tmp[d][0]);
-          box[d][1] = std::max(box[d][1], tmp[d][1]);
+          for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+          {
+            box[d][0] = std::min(box[d][0], tmp[d][0]);
+            box[d][1] = std::max(box[d][1], tmp[d][1]);
+            if(GetDim() == 3)
+              box[d][2] = std::max(box[d][2], tmp[d][2]);
+          }
         }
       }
     }
 
-    assert(!regs.IsEmpty() && box.GetNumCols() == 2);
-
+    // now the box is set but it might be that force_3D is ignored
+    // this also works if box was created in a previous call but with another force_3D parameter
+    if(GetDim() == 2 && ((!force_3D && box.GetNumRows() == 3) || (force_3D && box.GetNumRows() == 2)))
+    {
+      Matrix<double> tmp(force_3D ? 3 : 2,2);
+      tmp.Assign(box, 1.0, true); // size tolerant
+      box = tmp;
+    }
     return box;
   }
 

@@ -646,7 +646,7 @@ namespace CoupledField{
    {
      unsigned int numFncs = ptFe->GetNumFncs();
      // the implementation follows Hussein; Reduced Bloch mode expansion for periodic media band structure calculations
-     assert(wave_vector_ != NULL && wave_vector_->GetSize() == 2);
+     assert(wave_vector_ != NULL && wave_vector_->GetSize() >= 2);
      Vector<double>& wv = *wave_vector_;
 
      // the real part
@@ -688,8 +688,121 @@ namespace CoupledField{
      Matrix<Complex> tmp;
      CalcOpMat(tmp, lpm, ptFe);
      tmp.Transpose(bMat);
+     // tmp.TransposeConjugate(bMat);
+   }
+
+
+   template<class FE, class TYPE = Complex >
+   class StrainOperatorBloch3D : public StrainOperator3D<FE, Double>
+   {
+   public:
+
+     /** The wave vector needs to be set!
+      * @see SetWaveVector() */
+     StrainOperatorBloch3D(bool useICModes = false)
+     {
+       assert(useICModes == false);
+
+       this->name_ = "StrainOperatorBloch3D";
+       this->wave_vector_ = NULL; // to be set
+     }
+
+     //! Destructor
+     ~StrainOperatorBloch3D(){ }
+
+     /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
+     void SetWaveVector(Vector<double>& current_wave_vector) {
+       wave_vector_ = &current_wave_vector;
+     };
+
+
+     //! Calculate operator matrix
+     void CalcOpMat(Matrix<Complex> & bMat, const LocPointMapped& lp, BaseFE* ptFe );
+
+     //! Calculate transposed operator matrix
+     void CalcOpMatTransposed(Matrix<Complex> & bMat, const LocPointMapped& lp, BaseFE* ptFe );
+
+     static const UInt ORDER_DIFF = 1;
+     static const UInt DIM_DOF = 3;
+     static const UInt DIM_SPACE = 3;
+     static const UInt DIM_ELEM = 3;
+     static const UInt DIM_D_MAT = 6;
+     UInt GetDiffOrder() const { return ORDER_DIFF; }
+     UInt GetDimDof() const { return DIM_DOF; }
+     UInt GetDimSpace() const { return DIM_SPACE; }
+     UInt GetDimElem() const { return DIM_ELEM; }
+     UInt GetDimDMat() const { return DIM_D_MAT; }
+
+
+   private:
+     Vector<double>* wave_vector_;
+   };
+
+   template<class FE, class TYPE>
+   void StrainOperatorBloch3D<FE,TYPE>::CalcOpMat(Matrix<Complex> & bMat, const LocPointMapped& lpm, BaseFE* ptFe )
+   {
+     unsigned int numFncs = ptFe->GetNumFncs();
+     // the implementation follows Hussein; Reduced Bloch mode expansion for periodic media band structure calculations -> (A5)
+     assert(wave_vector_ != NULL && wave_vector_->GetSize() == 3);
+     Vector<double>& wv = *wave_vector_;
+
+     // the real part
+     Matrix<double> real;
+     StrainOperator3D<FE,double>::CalcOpMat(real, lpm, ptFe);
+     assert(real.GetNumRows() == DIM_D_MAT);
+     assert(real.GetNumCols() == numFncs * DIM_SPACE);
+
+     // std::cout << "SOB3D:COM k=" << wv.ToString() << std::endl;
+
+     // assemble with the imaginary part
+     bMat.Resize(real.GetNumRows(), real.GetNumCols());
+     bMat.Init(); // reset to 0 as we only fill partially
+     Vector<double> shape; // N_a
+     static_cast<FE*>(ptFe)->GetShFnc(shape, lpm.lp, lpm.shapeMap->GetElem());
+
+     unsigned int iFunc = 0;
+     unsigned int pos = 0;
+     for(iFunc = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[0][pos+0] = Complex(real[0][pos+0], shape[iFunc] * wv[0]);  // N_a,x + j k_x N_a
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[1][pos+1] = Complex(real[1][pos+1], shape[iFunc] * wv[1]);  // N_a,y + j k_y N_a
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[2][pos+2] = Complex(real[2][pos+2], shape[iFunc] * wv[2]);  // N_a,z + j k_z N_a
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[3][pos+1] = Complex(real[3][pos+1], shape[iFunc] * wv[2]);  // N_a,z + j k_z N_a
+       bMat[3][pos+2] = Complex(real[3][pos+2], shape[iFunc] * wv[1]);  // N_a,y + j k_y N_a
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[4][pos+0] = Complex(real[4][pos+0], shape[iFunc] * wv[2]);  // N_a,z + j k_z N_a
+       bMat[4][pos+2] = Complex(real[4][pos+2], shape[iFunc] * wv[0]);  // N_a,x + j k_x N_a
+     }
+
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE ) {
+       bMat[5][pos+0] = Complex(real[5][pos+0], shape[iFunc] * wv[1]);  // N_a,y + j k_y N_a
+       bMat[5][pos+1] = Complex(real[5][pos+1], shape[iFunc] * wv[0]);  // N_a,x + j k_x N_a
+     }
+     //std::cout << bMat.ToString() << std::endl;
+   }
+
+   template<class FE, class TYPE>
+   void StrainOperatorBloch3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex> & bMat, const LocPointMapped& lpm, BaseFE* ptFe )
+   {
+     // is typically not called but BDBInt::CalcElementMatrix calls CalcOpMat and BLAS transposes it.
+
+     Matrix<Complex> tmp;
+     CalcOpMat(tmp, lpm, ptFe);
+     tmp.Transpose(bMat);
      // Conjugate(bMat);
    }
+
+
 
 }
 #endif

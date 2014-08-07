@@ -656,15 +656,22 @@ namespace CoupledField
 
   /** Assigns a multiple of another matrix */
   template<class TYPE>
-  void Matrix<TYPE>::Assign(const Matrix<TYPE>& other_mat, TYPE factor)
+  void Matrix<TYPE>::Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant)
   {
-#ifdef CHECK_INDEX
-    if(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_) 
-      EXCEPTION("matrices do not match");
-#endif
-    
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
-      data_[0][k] = factor * other_mat.data_[0][k];
+    if(size_row_ == other_mat.size_row_ && size_col_ == other_mat.size_col_)
+      for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+        data_[0][k] = factor * other_mat.data_[0][k];
+    else
+    {
+      if(!size_tolerant)
+        EXCEPTION("matrices do not match");
+      // assure the non assigned area is zero
+      if(size_row_ > other_mat.size_row_ || size_col_ > other_mat.size_col_)
+        this->Init();
+      for(unsigned int r = 0, nr = std::min(size_row_, other_mat.size_row_); r < nr; r++)
+        for(unsigned int c = 0, nc = std::min(size_col_, other_mat.size_col_); c < nc; c++)
+          data_[r][c] = factor * other_mat.data_[r][c];
+    }
   }
   
   
