@@ -48,6 +48,11 @@ either just the  mesh (Gmsh) or to  a single time step (GMV).  Also note, that
 the GiD  formats and the  ANSYS .rst format  are pure output  formats, whereas
 .mesh is a pure input format.
 
+\section{cfsdat}
+\label{sec:cfsdat}
+
+\todo[inline]{Section about cfsdat needs to be written.}
+
 \section{cplreader}
 \label{sec:cplreader}
 
@@ -101,26 +106,28 @@ ParaView application fit in.
   \label{fig:vtk_vis_pipeline}
 \end{figure}%
 
-The     {\tt     vtkCFSReader}     class     is    implemented     in     {\tt
-CFSDEPS/cfs-hdf5/paraviewPlugin/vtkCFSReader.*}.   It   derives  from  a  {\tt
-vtkMultiBlockDataSetAlgorithm}\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkMultiBlockDataSetAlgorithm.html}}
-which    is   a    data   source,    that   can    provide    time   dependent
+The     {\tt     vtkCFSReader}     class    is     implemented     in     {\tt
+  cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/vtkCFSReader.*}.        It
+derives                     from                    a                     {\tt
+  vtkMultiBlockDataSetAlgorithm}\footnote{\url{http://www.vtk.org/doc/nightly/html/classvtkMultiBlockDataSetAlgorithm.html}}
+which    is   a    data   source,    that   can    provide   time    dependent
 data\footnote{\url{http://www.itk.org/Wiki/images/2/20/IEEE08_Time-In-ParaView.ppt}}
 \cite{Biddiscombe2007} on a number of regions  of the domain.  In our case the
 meshes   in    the   subregions   are    implemented   as   blocks    in   the
-vtkMultiBlockDataSet. Therefore  our continous global node numbers  have to be
+vtkMultiBlockDataSet. Therefore our  continous global node numbers  have to be
 split up into sets for the blocks  and the connectivity of the elements in the
 blocks has to be adjusted also. The reader takes care of these remappings. The
 datasets  which are  called 'attributes'  in VTK  parlance do  not have  to be
 remapped  however, since  they are  saved  region-wise within  the HDF5  files
-already. To read  all the nodes, elements and  datasets the vtkCFSReader makes
-use of  the classes  in hdf5common.cc and  hdf5reader.cc which are  located in
-{\tt CFSDEPS/cfs-hdf5/source/hdf5*.cc}  and which are  meant to be used  as an
-interface  to  our  HDF5  file   structure  also  from  within  CFS++  in  the
-future. Since the classes in the mentioned  files make use of the HDF5 C++ API
-and also functions  from Boost, the ParaView plugin  depends on both libraries
-at the  moment.  The build  script for ParaView  will check if both  libs have
-been compiled already and will issue an error if this is not the case.
+already. To read  all the nodes, elements and datasets  the vtkCFSReader makes
+use of  the classes in  hdf5common.cc and  hdf5reader.cc which are  located in
+{\tt cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5*.cc} and which are
+meant to be used  as an interface to our HDF5 file  structure also from within
+CFS++ in the future. Since the classes  in the mentioned files make use of the
+HDF5 C++  API and also  functions from Boost,  the ParaView plugin  depends on
+both libraries  at the moment.   The build script  for ParaView will  check if
+both libs have  been compiled already and  will issue an error if  this is not
+the case.
 
 
 

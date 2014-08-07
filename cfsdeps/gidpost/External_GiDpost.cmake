@@ -19,6 +19,7 @@ ELSE()
 ENDIF()
 
 STRING(REPLACE ";" "," GID_FORTRAN_LIBS "${CFS_FORTRAN_LIBS}")
+STRING(REPLACE ";" "," GID_HDF5_LIBRARY "${HDF5_LIBRARY}")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
@@ -35,8 +36,10 @@ SET(CMAKE_ARGS
   -DZLIB_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
   -DZLIB_LIBRARIES:FILEPATH=${ZLIB_LIBRARY}
-  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}
-  -DHDF5_INCLUDE_DIRS:FILEPATH=${CFS_BINARY_DIR}/include
+  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
+  -DHDF5_C_LIBRARY:PATH=${GID_HDF5_LIBRARY}
+  -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
+  -DHDF5_LT_LIBRARY:FILEPATH=${HDF5_LT_LIBRARY}
   -DHDF5:BOOL=ON
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
@@ -66,19 +69,50 @@ SET(PFN "${gidpost_prefix}/gidpost-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://www.gidhome.com/pub/Tools/${GIDPOST_ZIP}"
+  "${GIDPOST_URL}/${GIDPOST_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")
+SET(MD5_SUM ${GIDPOST_MD5})
+
+SET(DLFN "${gidpost_prefix}/gidpost-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The GiDpost external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(gidpost
   DEPENDS hdf5-static zlib
   PREFIX "${gidpost_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/gidpost
-  URL ${GIDPOST_URL}/${GIDPOST_ZIP}
+  URL ${LOCAL_FILE}
   URL_MD5 ${GIDPOST_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   LIST_SEPARATOR ,
   CMAKE_ARGS
      ${CMAKE_ARGS}
   )
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(gidpost cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${gidpost_prefix}
+)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

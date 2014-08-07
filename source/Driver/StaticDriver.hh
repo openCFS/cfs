@@ -36,6 +36,9 @@ namespace CoupledField {
     virtual bool IsComplex() { return false; };
 
   protected:
+
+    //! \copydoc SingleDriver::SetToStepValue
+    virtual void SetToStepValue(UInt stepNum, Double stepVal );
   };
 
 }

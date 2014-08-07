@@ -61,11 +61,16 @@ namespace CoupledField {
     //  Coefficient Function Related Methods
     // ======================================================================
     //@{ \name Coefficient Function Related Method
-    //! Return scalar-valued coefficient function (linear)
+    //! Return tensor-valued coefficient function for nonlinear function
+    virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,
+                                               SubTensorType type,
+                                               Global::ComplexPart matDataType,
+                                               PtrCoefFct dependency );
+    
+    //! Return scalar-valued coefficient function for nonlinear function 
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            shared_ptr<BaseFeFunction> feFct,
-                                            BaseBOperator* bOp );
+                                            PtrCoefFct fluxDensity );
     //@}
     //============================ HYSTERESIS ===================================
 

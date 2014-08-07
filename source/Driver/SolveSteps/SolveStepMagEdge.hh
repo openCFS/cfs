@@ -34,7 +34,7 @@ namespace CoupledField
     //! solves for one nonlinear static step 
     void StepStaticNonLin(PtrParamNode analysis_id);
     
-    
+
   private:
      
      //! Explicit pointer to MagEdgePDE

@@ -65,6 +65,9 @@ namespace CoupledField {
     if(writeAllSteps_ || isPartOfSequence_)
       simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
 
+    // set dummy time to zero
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
+    
     // do we really want to create a new entry? Might blast up the output
     ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
     analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
@@ -87,6 +90,23 @@ namespace CoupledField {
     if(writeAllSteps_ || isPartOfSequence_ ) { 
       simState_->FinishMultiSequenceStep(true);
     }
+  }
+  
+  void StaticDriver::SetToStepValue(UInt stepNum, Double stepVal ) {
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+    
+    if( stepNum != 1 || stepVal > EPS ) {
+      EXCEPTION( "A static driver only has 1 step and its time value is 0.0!")
+    }
+    
+    
+    // For a static driver only stepNum == 1 and stepVal == 0.0 make sense
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 1 );    
   }
 
   void StaticDriver::StoreResults(UInt stepNum, double step_val)

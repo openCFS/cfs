@@ -368,7 +368,7 @@ void FeSpaceHi::AdjustEntityOrder() {
   // This method is called in the end.
 
   // The idea is as follows:
-  // Up to now the polynomial orders of all edges and faces ar stored
+  // Up to now the polynomial orders of all edges and faces are stored
   // explicitly. However, we need to store only those, which
   // have been adjusted explicitly due to the maximum rule.
   // Thus we store only explicitly the edge and face order of those
@@ -536,8 +536,9 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
                             << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
   }
 
-  if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
-      coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
+  if( (coefFct->GetDependency() == CoefFunction::CONSTANT ||
+      coefFct->GetDependency() == CoefFunction::TIMEFREQ) && 
+      type_ != HCURL) {
     // --------------------------
     //  SIMPLE MAPPING MECHANISM
     // --------------------------

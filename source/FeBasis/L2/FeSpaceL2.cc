@@ -359,11 +359,15 @@ namespace CoupledField{
 
        //check if we got what we expected
 
+       //first we loop just over the element lists. in a second step we cover the
+       //surfaces.
+
        if ( ! (actListType == EntityList::ELEM_LIST) &&
-           ! (actListType == EntityList::SURF_ELEM_LIST) &&
-           ! (actListType == EntityList::NC_ELEM_LIST))  {
+            ! (actListType == EntityList::SURF_ELEM_LIST) &&
+            ! (actListType == EntityList::NC_ELEM_LIST))  {
          continue;
        }
+
        //cast down to element list
        EntityList* actElemList = fctEntList[actList].get();
        //      RegionIdType curReg = actElemList->GetRegion();
@@ -384,14 +388,24 @@ namespace CoupledField{
          StdVector<UInt> permutations; // initially size 0
          UInt elemNum = actEl->elemNum;
 
+         UInt volElemNum = 0;
+
          //===========================================================
          //Assign the BaseFE::VERTEX node numbers
          //===========================================================
          {
            UInt numVertexNodes = 0;
-           UInt eNum = elemNum;
            UInt numVert = Elem::shapes[actEl->type].numVertices;
            StdVector<UInt> elemNodes = actEl->connect;
+
+           //in case of surface elements we obtain the number of the first associated volume element
+           if((actListType == EntityList::SURF_ELEM_LIST) ||
+               (actListType == EntityList::NC_ELEM_LIST)){
+             const SurfElem* sE = entIt.GetSurfElem();
+             volElemNum = sE->ptVolElems[0]->elemNum;
+           }else{
+             volElemNum = actEl->elemNum;
+           }
 
            EntityTypeNodes & vtn =  virtualNodes_[actEl->elemNum][BaseFE::VERTEX];
 
@@ -403,19 +417,19 @@ namespace CoupledField{
                numVertexNodes = permutations.GetSize();
 
                // Check if the vertex is already numbered.
-               if( vertexNodes[vertexNum][eNum].GetSize() == 0 ) {
+               if( vertexNodes[vertexNum][volElemNum].GetSize() == 0 ) {
 
-                 vertexNodes[vertexNum][eNum].Resize(numVertexNodes);
-                 vertexNodes[vertexNum][eNum].Init();
+                 vertexNodes[vertexNum][volElemNum].Resize(numVertexNodes);
+                 vertexNodes[vertexNum][volElemNum].Init();
                  for( UInt vertNode = 0; vertNode < numVertexNodes; ++vertNode ) {
-                   vertexNodes[vertexNum][eNum][vertNode] = ++offset;
+                   vertexNodes[vertexNum][volElemNum][vertNode] = ++offset;
                    nodesType_[offset] = BaseFE::VERTEX;
                  }
                }
 
 
                for( UInt i = 0; i < numVertexNodes; ++i ) {
-                 vtn.vNodes.Push_back(vertexNodes[vertexNum][eNum][permutations[i] ]);
+                 vtn.vNodes.Push_back(vertexNodes[vertexNum][volElemNum][permutations[i] ]);
                }
                vtn.offset.Push_back( permutations.GetSize() );
 
@@ -433,12 +447,22 @@ namespace CoupledField{
          //===========================================================
          {
            UInt numEdgeNodes = 0;
-           UInt eNum = elemNum;
+
+           //in case of surface elements we obtain the number of the first associated volume element
+           if((actListType == EntityList::SURF_ELEM_LIST) ||
+               (actListType == EntityList::NC_ELEM_LIST)){
+             const SurfElem* sE = entIt.GetSurfElem();
+             volElemNum = sE->ptVolElems[0]->elemNum;
+           }else{
+             volElemNum = actEl->elemNum;
+           }
            EntityTypeNodes & etn =  virtualNodes_[actEl->elemNum][BaseFE::EDGE];
 
            // check if edges of this element were already numbered
            if( etn.vNodes.GetSize() == 0 ) {
              for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
+
+
                UInt edgeNum = std::abs(actEl->edges[iEdge]);
                //get the permutation Vector
                ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
@@ -447,13 +471,13 @@ namespace CoupledField{
                // Check if the edge is already numbered.
                // Additionally, if we have the case of discontinuous approximation,
                // we number the nodes separately for every element anyway.
-               if(edgenodes[edgeNum][eNum].GetSize() == 0 ) {
+               if(edgenodes[edgeNum][volElemNum].GetSize() == 0 ) {
                  //here we assume spectral element approximation and we have
                  //order-1 nodes on the edge
-                 edgenodes[edgeNum][eNum].Resize(numEdgeNodes);
-                 edgenodes[edgeNum][eNum].Init();
+                 edgenodes[edgeNum][volElemNum].Resize(numEdgeNodes);
+                 edgenodes[edgeNum][volElemNum].Init();
                  for ( UInt edgeNode = 0;edgeNode < numEdgeNodes ;edgeNode++ ) {
-                   edgenodes[edgeNum][eNum][edgeNode] = ++offset;
+                   edgenodes[edgeNum][volElemNum][edgeNode] = ++offset;
                    nodesType_[offset] = BaseFE::EDGE;
                  }
                }
@@ -461,7 +485,7 @@ namespace CoupledField{
                //fill the virtual Nodes in the correct ordering
 
                for ( UInt i = 0; i < numEdgeNodes ; i++ ) {
-                 etn.vNodes.Push_back(edgenodes[edgeNum][eNum][ permutations[i] ]);
+                 etn.vNodes.Push_back(edgenodes[edgeNum][volElemNum][ permutations[i] ]);
                }
                etn.offset.Push_back( permutations.GetSize() );
              } // loop over edges
@@ -472,9 +496,15 @@ namespace CoupledField{
          //===========================================================
          {
            UInt numFaceNodes = 0;
-           UInt eNum = elemNum;
            EntityTypeNodes & ftn =  virtualNodes_[actEl->elemNum][BaseFE::FACE];
-
+           //in case of surface elements we obtain the number of the first associated volume element
+           if((actListType == EntityList::SURF_ELEM_LIST) ||
+               (actListType == EntityList::NC_ELEM_LIST)){
+             const SurfElem* sE = entIt.GetSurfElem();
+             volElemNum = sE->ptVolElems[0]->elemNum;
+           }else{
+             volElemNum = actEl->elemNum;
+           }
            // check if faces of this element ware already numbered
            if( ftn.vNodes.GetSize() == 0 ) {
              for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
@@ -486,17 +516,17 @@ namespace CoupledField{
                // Check if the face is already numbered.
                // Additionally, if we have the case of discontinuous approximation,
                // we number the nodes separately for every element separately anyway.
-               if(facenodes[faceNum][eNum].GetSize() == 0 ){
-                 facenodes[faceNum][eNum].Resize(numFaceNodes);
+               if(facenodes[faceNum][volElemNum].GetSize() == 0 ){
+                 facenodes[faceNum][volElemNum].Resize(numFaceNodes);
                  for ( UInt faceNode = 0;faceNode < numFaceNodes ;faceNode++ ) {
-                   facenodes[faceNum][eNum][faceNode] = ++offset;
+                   facenodes[faceNum][volElemNum][faceNode] = ++offset;
                    nodesType_[offset] = BaseFE::FACE;
                  }
                } else {
                  // additional check, this face got already mapped with different size
-                 if( facenodes[faceNum][eNum].GetSize() != numFaceNodes ) {
-                   WARN("Face #" << faceNum << " for element #" << eNum 
-                        << " got " << facenodes[faceNum][eNum].GetSize()
+                 if( facenodes[faceNum][volElemNum].GetSize() != numFaceNodes ) {
+                   WARN("Face #" << faceNum << " for element #" << volElemNum
+                        << " got " << facenodes[faceNum][volElemNum].GetSize()
                         << " faceNodes, whereas we want to set "
                         << numFaceNodes << " entries for element #" <<
                         elemNum );
@@ -505,7 +535,7 @@ namespace CoupledField{
                //fill the virtual Nodes in the correct ordering
 
                for ( UInt i = 0; i < numFaceNodes ; i++ ) {
-                 ftn.vNodes.Push_back(facenodes[faceNum][eNum][ permutations[i] ]);
+                 ftn.vNodes.Push_back(facenodes[faceNum][volElemNum][ permutations[i] ]);
                }
                ftn.offset.Push_back( permutations.GetSize() );
              }
@@ -537,22 +567,6 @@ namespace CoupledField{
          } // loop elements
        }
      } // loop entity lists
-
-
-     // trim all vectors to get unused memory back
-     boost::unordered_map< UInt, ElemVirtualNodes >::iterator it = 
-         virtualNodes_.begin();
-     for( ; it != virtualNodes_.end(); ++it ) {
-       ElemVirtualNodes & evn = it->second;
-       ElemVirtualNodes::iterator evnIt = evn.begin();
-       for( ; evnIt != evn.end(); evnIt++ ) {
-         //        evnIt->second.vNodes.Trim();
-         //        evnIt->second.offset.Trim();
-       }
-
-     }
-
-
    }
 
   void FeSpaceL2::PrintEqnMap(){
@@ -577,7 +591,40 @@ namespace CoupledField{
         elemIt != virtualNodes_.end(); elemIt++ ) {
 
       // print element information (type, region, connect, edges, faces)
-      const Elem * ptElem = ptGrid->GetElem(elemIt->first);
+      const Elem * ptElem = NULL;
+      if(elemIt->first > ptGrid->GetNumElems()){
+        //try to find in own lists...
+        std::map< RegionIdType, shared_ptr<NcSurfElemList> >::iterator regIt = interiorElemMap_.begin();
+        bool found = false;
+        for(;regIt != interiorElemMap_.end() ; regIt++){
+          EntityIterator eIt = regIt->second->GetIterator();
+          for(eIt.Begin();!eIt.IsEnd(); eIt++){
+            //check the number
+            if(elemIt->first == eIt.GetElem()->elemNum){
+              ptElem = eIt.GetElem();
+              found = true;
+            }
+          }
+        }
+        regIt = exteriorElements_.begin();
+        if(!found){
+          for(;regIt != exteriorElements_.end() ; regIt++){
+            EntityIterator eIt = regIt->second->GetIterator();
+            for(eIt.Begin();!eIt.IsEnd(); eIt++){
+              //check the number
+              if(elemIt->first == eIt.GetElem()->elemNum){
+                ptElem = eIt.GetElem();
+                found = true;
+              }
+            }
+          }
+        }
+        if(!found){
+          EXCEPTION("CANNOT FIND ELEMNT");
+        }
+      }else{
+        ptElem = ptGrid->GetElem(elemIt->first);
+      }
 
       std::cout << "=============\n"
           << " Elem #" << elemIt->first << std::endl

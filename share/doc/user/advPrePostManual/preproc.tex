@@ -8,13 +8,12 @@
 \subsubsection{ANSYS mkmesh/mkhdf5 Interface}
 \label{sec:ansys_mkmesh_mkhdf5}
 The extensions to ANSYS for writing out the mesh to either the .mesh or to the
-.h5 format  readable by CFS++ are implemented  in part as APDL  scripts and in
-part  by  an  AWK  script  (mkmesh)  or  as  reader  module  within  cplreader
-(mkhdf5).  The  source  code  of  the  extension  can  be  obtained  from  SVN
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk/}  or  from
-the attached files in this document.   The following APDL code has to be added
-either to  {\tt \$HOME/start110.ans} or  to {\tt v110/ansys/apdl/start110.ans}
-for the extension to be initialized:
+.h5 format readable  by CFS++ are implemented  in part as APDL  scripts and in
+part by an AWK script (mkmesh)  or as reader module within cplreader (mkhdf5).
+The   source   code   of   the    extension   can   be   obtained   from   SVN
+\url{\CFSDSSVN/mkmesh/trunk/}  or from  the attached  files in  this document.
+The following APDL code has to be added either to {\tt \$HOME/start110.ans} or
+to {\tt v110/ansys/apdl/start110.ans} for the extension to be initialized:
 
 \begin{verbatim}
 ! Settings for the mkmesh-Interface
@@ -41,20 +40,50 @@ files generated  by our interface will not  be deleted once the  HDF5 file has
 been  successfully written. The  'verbose' flag  instructs cplreader  to print
 more information on the console.
 
+\subsubsection{Modifying Element Types for Meshes from Other Sources}
+\label{sec:ansys_modify_element_types}
+
+In some case, where meshes have not been created by {\tt /PREP7} but come from
+other sources like  ICEM, CDREAD or external ANSYS databases,  it is necessary
+to modify the element types for use with the {\tt mkhdf5} interface.
+
+\noindent    An    example    APDL    input    file    is    attached    here:
+\attachfile[icon=PushPin,description={Example  ANSYS   APDL  input   file  for
+    modifying                                                          element
+    types.},mimetype=text/plain]{attachments/ansys_example.inp.txt}
+
+\noindent How  to modify third  party ANSYS /prep7  meshes to write  them with
+mkhdf5:    \attachfile[icon=PushPin,description={ANSYS   input    script   for
+    converting            ICEM            mesh            to            mkhdf5
+    mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
+
 \subsection{GiD}
-\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}   The
-preprocessing extension can be obtained  from the CFS++ development server. It
-has to be  installed into the problem types subdirectory of  GiD e.g. by using
-the following sequence of commands:
+
+Meshes generated with GiD can be brought into CFS++ in two ways:
+\begin{enumerate}
+\item By using the TCL extension for writing {\tt .mesh} files.
+\item By using the built-in {\tt .unv} file writer
+\end{enumerate}
+
+\subsubsection{Installing   the  GiD   CFS++   Pre-processing  Extension}
+
+The  preprocessing  extension  can  be obtained  from  the  CFS++  development
+server. It  has to  be installed  into the problem  types subdirectory  of GiD
+e.g. by using the following sequence of commands:
 
 \begin{verbatim}
 cd gid-9.0.2-x86_64/problemtypes
-svn co https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk CAESAR.gid
+svn co \CFSDSSVN/CAESAR.gid/trunk CAESAR.gid
 cd ..
 
 # Start GiD using CAESER problem type.
 ./gid -p CAESAR
 \end{verbatim}
+
+\subsubsection{Writing Ideas Universal Files}
+
+Universal  files can  be written  from  GiD using  Files $\rightarrow$  Export
+$\rightarrow$ Using template .bas (only mesh) $\rightarrow$ UNV.
 
 \subsection{Gmsh}
 \label{sec:preproc_gmsh}
@@ -68,8 +97,9 @@ ASCII as well as binary. The XML input tag should look like this:
 </input>
 \end{verbatim}
 
-For the older  format version 1, region names can be  assigned to physical ids
-using subelements of the $<$gmsh$>$ element.
+For the older format  version 1, region names can be  assigned to physical ids
+using       subelements      of       the      {\tt       <gmsh>}      element
+(cf. Sec. \ref{sec:define_regions_gmsh})
 
 \subsection{ICEM CFD}
 
@@ -82,7 +112,8 @@ cplreader --type CGNS --name input --dim 3 --justmesh 1
 
 Another way to get  the meshes into HDF5 format is to  write ANSYS /PREP7 code
 using ICEM and afterwards modify the element types in the ANSYS script and use
-the mkhdf5 macro to generate the HDF5 file.
+the      mkhdf5      macro      to       generate      the      HDF5      file
+(cf. Sec. \ref{sec:ansys_modify_element_types}).
 
 \subsubsection{Export of ICEM Meshes to ANSYS and Modification of Element Types}
 
@@ -115,21 +146,85 @@ The exported mesh contains node components (cmlist) and element regions tagged
 by element types (etlist). Please note,  that no pyramids will be written out,
 if the element types are not switched to MESH200.
 
-\attachfile[icon=PushPin,description={Result  of File  -> Export  ->  ANSYS in
-ICEM
-CFD.},mimetype=text/plain]{attachments/Pfeifenfussmodell_modificated_swept.in.txt}
-
-\noindent How  to modify third  party ANSYS /prep7  meshes to write  them with
-mkhdf5 \attachfile[icon=PushPin,description={ANSYS input script for converting
-ICEM                     mesh                     to                    mkhdf5
-mesh.},mimetype=text/plain]{attachments/icem_to_ansys.in.txt}
-
 \subsection{Pointwise}
 \subsection{Matlab}
 
 \section{Defining Geometry}
 
 \section{Defining Regions and Named Entities}
+
+\subsection{COMSOL}
+\label{sec:preproc_comsol_region_map}
+
+The geometric entities defined inside the COMSOL {\tt .mphtxt} files, usually need to
+be grouped into physically meaningful regions first before conducting a simulation.
+Without grouping, a usually large number of numbered geometric {\tt vol\_domain\_*} and
+{\tt surf\_domain\_*} regions can be found in a converted mesh.
+
+These entities may be grouped into physical regions in two different manners. First,
+one can group the entities without further interaction with COMSOL in the CFS++
+{\tt .xml} file. The corresponding {\tt <mphtxt/>} input tag could look like this:
+
+\input{pygmentized/comsol_mphtxt_tag}
+
+For models containing a large number of entities, the previous approach quickly becomes
+very tedious. Therefore, it is also possible to read informations about physical regions
+from the {\tt model.xml} file inside the multiphysics {\tt .mph} file. This information
+is read from the explicit selection nodes in the COMSOL model tree. Such selections may
+be created by right-clicking on Definitions in the Model Builder and choosing Selections
+$\rightarrow$ Explicit\footnote{COMSOL Explicit Selections Video: 
+\url{http://www.comsol.com/products/tutorials/Selections_Explicit/}} as Fig. 
+\ref{fig:comsol_explicit_selections} shows. 
+
+\begin{figure}[htb] 
+  \centering
+
+  \subfloat[Creating an explicit selection inside COMSOL.]{
+    \begin{overpic}[width=0.48\textwidth]{pics/comsol/explicit_selection}%
+    \end{overpic}
+    \label{fig:comsol_explicit_selections}
+    }
+  \qquad
+  \subfloat[Making sure selected entities and not adjacent ones are selected
+             as output entities.]{
+    \begin{overpic}[width=0.48\textwidth]{pics/comsol/selected_domain}%
+    \end{overpic}
+    \label{fig:comsol_selected_domain}
+  } 
+  \caption{Explicit selections in COMSOL.}
+\end{figure}%
+%
+It is important to note, that under the Output Entities tab, the Selected domains,
+boundaries or edges are chosen and not the adjacent entities (cf. Fig. 
+\ref{fig:comsol_selected_domain}).
+Even if convenient inside the COMSOL GUI, please do not enable the All domains or
+All boundaries check box, since the no explicit entity numbers will be written to the
+{\tt model.xml} if doing so. The Last step is to make sure, the exported {\tt .mphtxt}
+is consistent with the {\tt .mph} model. Figure \ref{fig:comsol_export_mesh} shows
+how to export an {\tt .mphtxt}.
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/comsol/export_mesh}%
+  \end{overpic}
+  \caption{Exporting the {\tt .mphtxt} mesh file.}
+  \label{fig:comsol_export_mesh}
+\end{figure}%
+Finally the generated {\tt .mphtxt} and {\tt .mph} files can be read into CFS++ using
+the following XML tag:
+
+\input{pygmentized/comsol_mphtxt_mph}
+
+\subsection{Gmsh}
+\label{sec:define_regions_gmsh}
+Physical regions which are meaningful to CFS++ can be generated using the
+{\tt Physical Volume}, {\tt Physical Surface}, {\tt Physical Line} and
+{\tt Physical Point} Gmsh scripting commands. In the Gmsh mesh format 
+version 2, these entities are already assigned a name. For the older
+mesh format version 1, names may assigned to the numbered physical
+entities in the XML file. A corresponding input tag might look like this:
+
+\input{pygmentized/gmsh_physical_entities}
+
 
 \section{Creating Mapped Meshes}
 

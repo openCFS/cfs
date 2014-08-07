@@ -49,7 +49,7 @@ namespace CoupledField{
                    << "ensure, that only ONE node is defined by this name!" );
       }
 
-      ptGrid_->GetNodeCoordinate(vec, nodes[0]);
+      ptGrid_->GetNodeCoordinate(vec, nodes[0], true);
 
     } else {
 

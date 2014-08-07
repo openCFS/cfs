@@ -4,7 +4,6 @@
 #include "Domain/Mesh/Grid.hh"
 
 
-
 namespace CoupledField {
 
   Enum<EntityList::ListType>   EntityList::listType;
@@ -31,6 +30,7 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::REGION_LIST, "regionList", false);
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
+    EntityList::listType.Add(EntityList::COIL_LIST, "coilList");
   }
   
   void EntityList::Intersect(const StdVector<shared_ptr<EntityList> >& set1,
@@ -96,7 +96,6 @@ namespace CoupledField {
       type_ = ELEM_LIST;
       region_ = NO_REGION_ID;
       defineType_ = NO_TYPE;
-      region_ = NO_REGION_ID;
       list_.Push_back( elem->elemNum );
   }
   
@@ -116,11 +115,13 @@ namespace CoupledField {
   void ElemList::SetNamedElems( const std::string& name ) {
     StdVector<Elem*> elems;
     grid_->GetElemsByName( elems, name );
+    UInt numElems = elems.GetSize();
     
     list_.Clear();
+    list_.Reserve(numElems);
     
-    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
-      list_.Push_back( elems[i]->elemNum);
+    for ( UInt i=0; i<numElems; ++i ) {
+      list_.Push_back(elems[i]->elemNum);
     }
     
     defineType_ = NAMED_ELEMS;
@@ -133,10 +134,12 @@ namespace CoupledField {
   void ElemList::SetRegion( RegionIdType region ) {
     StdVector<Elem*> elems;
     grid_->GetElems( elems, region );
+    UInt numElems=elems.GetSize();
     
     list_.Clear();
+    list_.Reserve(numElems);
     
-    for ( UInt i=0, numElems=elems.GetSize(); i<numElems; ++i ) {
+    for ( UInt i=0; i<numElems; ++i ) {
       list_.Push_back( elems[i]->elemNum);
     }
 
@@ -172,6 +175,22 @@ namespace CoupledField {
     return it;
   }
  
+  //! Add an element to the list
+  void ElemList::AddElement( const Elem* elem ) {
+#pragma omp critical
+{
+    list_.Push_back(elem->elemNum);
+    ++size_;
+}
+  }
+
+  void ElemList::AddElements( const StdVector<Elem*>& elems ){
+    list_.Reserve( list_.GetSize() + elems.GetSize() );
+    for( unsigned int k = 0; k < elems.GetSize(); ++k ){
+      list_.Push_back(elems[k]->elemNum);
+    }
+    size_ = list_.GetSize();
+  }
 
 
   // --- SurfElem List ---
@@ -235,6 +254,14 @@ namespace CoupledField {
     region_ = NO_REGION_ID;
     name_ = "";
     surfElemList_.Resize(1, elem);
+  }
+  
+  void SurfElemList::AddElement(const SurfElem* elem) {
+#pragma omp critical
+{
+    surfElemList_.Push_back(elem);
+    ++size_;
+}
   }
   
   const Elem* SurfElemList::GetElem(UInt nr) const {
@@ -388,7 +415,36 @@ namespace CoupledField {
      return it;
    }
   
-  
+   
+   // --- CoilList ---
+   CoilList::CoilList( Grid* grid )
+   : EntityList( grid ) {
+     type_ = COIL_LIST;
+   }
+
+   std::string CoilList::GetName() const {
+     std::string id = "";
+     if( size_ > 0 ) {
+       id = list_[0]->coilId_;
+     }
+     return id;
+   }
+
+   void CoilList::AddCoil( shared_ptr<Coil> aCoil ) {
+     defineType_ = NO_TYPE;
+     list_.Push_back( aCoil );
+     size_ = list_.GetSize();
+   }
+
+   EntityIterator CoilList::GetIterator() const {
+     EntityIterator it;
+     it.type_ = COIL_LIST;
+     it.coilList_ = this;
+     it.pos_ = 0;
+     it.size_ = list_.GetSize();
+     return it;
+   }
+
 
   // --- Number List ---
   NumberList::NumberList( Grid* grid )
@@ -521,8 +577,11 @@ namespace CoupledField {
 
   //! Adds an element using a shared pointer which is better suited here
   void NcSurfElemList::AddElement( const shared_ptr<NcSurfElem> elem ) {
+#pragma omp critical
+{
     ncElems_.Push_back(elem);
     ++size_;
+}
   }
 
   //! Get iterator
@@ -630,6 +689,10 @@ namespace CoupledField {
     return 0;
   }
   
+  shared_ptr<Coil> EntityIterator::GetCoil() const {
+    return coilList_->list_[ pos_ ];
+  }
+
   std::string EntityIterator::GetIdString() const {
     
     std::string id = "";
@@ -647,6 +710,9 @@ namespace CoupledField {
       break;
     case EntityList::REGION_LIST:
       id = regionList_->grid_->GetRegion().ToString( GetRegion() );
+      break;
+    case EntityList::COIL_LIST:
+      id = coilList_->list_[ pos_ ]->coilId_;
       break;
     default:
       EXCEPTION( "Not implemented" );

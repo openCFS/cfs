@@ -45,6 +45,9 @@ public:
                                 std::map<UInt,StdVector<std::set<Integer> > >&
                                 minorBlocks );
   
+  //! Ensure usage of gradient (default: omit)
+  virtual void SetUseGradients(RegionIdType region);
+  
   //! Treat thin regions specially
   virtual void TreatThinElements(Double maxAspectRatio );
   
@@ -106,7 +109,35 @@ protected:
   
   //! Maximum aspect ratio of elements in case of anisotropic element smoothing
   Double maxAspectRatio_;
+  
+  // ====================================================================
+  // GRADIENT HANDLING (only for HCurl)
+  // ====================================================================
+  
+  
+  //! Set handling of gradients  for edges / faced interior
+  void AdjustGradients( );
+  
+  //! Set the usage of gradients for one element
+  void SetElemGrad( const Elem* ptEl, FeHCurlHi* ptFe, 
+                    RegionIdType regionId, bool applyMaxRule );
+  
+  //! Map for each region, if gradients should be used
+  std::map< RegionIdType, bool> useGradients_;
+  
+  //! Set containing all edges, where use of gradient was adjusted
+  boost::unordered_set<UInt> adjustedGradEdges_;
 
+  //! Set containing all faces, where use of gradient was adjusted
+  boost::unordered_set<UInt> adjustedGradFaces_;
+
+  //! Map usage of gradients of adjusted edges (key: edge number)
+  boost::unordered_map<UInt, bool> gradEdges_;
+
+  //! Map usage of gradients of adjusted faces (key: face number)
+  boost::unordered_map<UInt, bool> gradFaces_;
+
+  
 private:
 };
 } // end of namespace

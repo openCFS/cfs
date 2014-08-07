@@ -244,16 +244,20 @@ void SurfaceNormalDerivOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Double> & bMa
   UInt numFncs = ptFe->GetNumFncs();
   // Set correct size of matrix B and initialise with zeros
   bMat.Resize( D_DOF, numFncs );
+  bMat.InitValue(0.0);
 
   // Get derivatives of local shape functions with respect to global
   // coords (format: nrNodes x spaceDim)
   Matrix<Double> xiDx;
   FE *fe = (static_cast<FE*>(ptFe));
   fe->GetGlobDerivShFnc( xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+
   //perform scalar mult with surface normal
-  for(UInt d = 0; d < DIM_DOF ; d ++){
-    for(UInt sh = 0; sh < numFncs; sh ++){
-      bMat[d][sh*DIM_DOF + d] = xiDx[sh][d] * lp.normal[d];
+  for(UInt d = 0; d < DIM_DOF ; ++d){
+    for(UInt d1 = 0; d1 < DIM_SPACE ; ++d1){
+      for(UInt sh = 0; sh < numFncs; ++sh){
+        bMat[d][sh*DIM_DOF + d] += xiDx[sh][d1] * lp.normal[d1];
+      }
     }
   }
 }
@@ -359,7 +363,16 @@ void SurfaceIdentityOperatorScaledBySurface<FE,D,D_DOF,TYPE>::
   assert(lp.isSurface);
   assert(D == ptFe->shape_.dim);
 
-  Double factor2 = lp.shapeMap->CalcVolume();
+  //Double factor2 = lp.shapeMap->CalcVolume();
+  const NcSurfElem* sElem = dynamic_cast<const NcSurfElem*>(lp.ptEl);
+
+  shared_ptr<ElemShapeMap> esm1 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[0].get(),true);
+  shared_ptr<ElemShapeMap> esm2 = lp.shapeMap->GetGrid()->GetElemShapeMap(sElem->neighbors[1].get(),true);
+
+  Double v1 = esm1->CalcVolume();
+  Double v2 = esm1->CalcVolume();
+
+  Double factor2 = 2/(v1+v2);
 
   UInt numFncs = ptFe->GetNumFncs();
 

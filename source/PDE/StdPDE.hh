@@ -156,6 +156,9 @@ namespace CoupledField {
     bool IsNonLinMaterial() 
     { return nonLinMaterial_;};
 
+    bool IsTotalNonLinFormulation()
+    { return nonLinTotalFormulation_;};
+
     bool IsHysteresis() 
     { return isHysteresis_;};
 
@@ -195,7 +198,9 @@ namespace CoupledField {
       NcCouplingType    type;
       LagrangeMultType  lagrangeMultType;
       Double            nitscheFactor;
+      Double            nitscheFactorDamp;
       bool              crossPointHandling;
+      bool              movingMortarForm;
     };
 
     //! Constructor
@@ -275,13 +280,21 @@ namespace CoupledField {
     //! \name Attributes connected to nonlinearity
     bool nonLin_;           //!< flag for nonlinear calculations
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
+    bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool isHysteresis_;     //!< flag for hysteresis
+    bool matDepend_;        //!< flag for material dependencies
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
 
-    //! map for each nonlinearity the id
+    //! map for each region the type of material dependency
+    std::map<RegionIdType, StdVector<NonLinType> > regionMatDepTypes_;
+
+    //! map: for each nonlinearity the id
     std::map<std::string, NonLinType> nonLinTypes_;
+
+    //! map: for each material dependency the id
+    std::map<std::string, NonLinType> matDepTypes_;
 
     // type of nonlinear algorithm (e.g., Newton)
     NonLinMethodType nonLinMethod_;

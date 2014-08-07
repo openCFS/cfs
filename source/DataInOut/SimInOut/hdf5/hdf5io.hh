@@ -320,6 +320,8 @@ namespace CoupledField {
         CleanUp();
       };
 
+      void AdaptToTypeBeforeRead(const H5::DataType& data){ }
+
       //! Query, if data is set
       bool IsSet() { return isSet_; }
 

@@ -42,11 +42,11 @@ namespace CoupledField{
     static const UInt DIM_ELEM = D;
 
     //! Dimension of the related material
-    static const UInt DIM_D_MAT = D;
+    static const UInt DIM_D_MAT = D_DOF;
     //@}
 
     ConvectiveOperator(){
-      this->name_ = "DivOperator";
+      this->name_ = "ConvectiveOperator";
     }
 
     virtual ~ConvectiveOperator(){
@@ -63,15 +63,13 @@ namespace CoupledField{
 
     virtual void CalcOpMat(Matrix<Complex> & bMat,
                            const LocPointMapped& lp,
-                           BaseFE* ptFe ){
-      EXCEPTION("ConvectiveOperator::CalcOpMat not implement for Complex");
-    }
+                           BaseFE* ptFe );
+    
 
     virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
                                      const LocPointMapped& lp,
-                                     BaseFE* ptFe ){
-      EXCEPTION("ConvectiveOperator::CalcOpMatTransposed not implement for Complex");
-    }
+                                     BaseFE* ptFe );
+    
 
     // ===============
     //  QUERY METHODS
@@ -144,6 +142,63 @@ namespace CoupledField{
                                                    BaseFE* ptFe ){
     //obtain external field
     Vector<Double> myVec;
+    this->coef_->GetVector(myVec,lp);
+
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( numFncs * DIM_DOF , DIM_DOF);
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    for(UInt iDimDof = 0; iDimDof < DIM_DOF; ++iDimDof) {
+      for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+        for( UInt i = 0; i < numFncs; ++i ) {
+          bMat[i*DIM_DOF + iDimDof][iDimDof] += xiDx[i][iDim] * myVec[iDim];
+        }
+      }
+    }
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Complex> & bMat,
+                                         const LocPointMapped& lp,
+                                         BaseFE* ptFe ){
+
+    //obtain external field
+	Vector<Complex> myVec;
+    this->coef_->GetVector(myVec,lp);
+
+    //std::cout << "Velocity at IP" << std::endl << myVec << std::endl;
+
+    const UInt numFncs = ptFe->GetNumFncs();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize( DIM_DOF, numFncs * DIM_DOF );
+    bMat.Init();
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    for(UInt iDimDof = 0; iDimDof < DIM_DOF; ++iDimDof) {
+      for(UInt iDim = 0; iDim < DIM_SPACE; ++iDim) {
+        for( UInt i = 0; i < numFncs; ++i ) {
+          bMat[iDimDof][i*DIM_DOF + iDimDof] += xiDx[i][iDim] * myVec[iDim];
+        }
+      }
+    }
+  }
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void ConvectiveOperator<FE,D,D_DOF,TYPE>::CalcOpMatTransposed(Matrix<Complex> & bMat,
+                                                   const LocPointMapped& lp,
+                                                   BaseFE* ptFe ){
+    //obtain external field
+    Vector<Complex> myVec;
     this->coef_->GetVector(myVec,lp);
 
     const UInt numFncs = ptFe->GetNumFncs();

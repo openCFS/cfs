@@ -1,0 +1,19 @@
+01/2014:
+In this very directory we will create the CFS++ Data Analysis Tool (cfsdat) 
+We plan to create a unified interface for CFS++ users for:
+- File Conversion
+- FFT
+- Aeroacoustic source term computation
+- Evaluation of results at given points or along lines
+- General data analysis (diff|sum|etc.) as provided by current cfstool
+- Interpolation of Data to other grids
+- Generation of analytical fields on boundaries or inside the domain
+  based on the given HDF5 files
+
+Some parts of the programm should also be capable to include MPI-functionality
+This is a crucial thing and we have to see how this can be established.
+Perhaps we can seperate some parts of the programm as MPI...
+
+First Steps:
+1. Establish a hirarchical command line interface using boost
+2. Create the first module for analytic fields

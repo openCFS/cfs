@@ -37,6 +37,15 @@ namespace CoupledField {
       this->aOperator_->SetCoefFunction(coef);
     }
 
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual void SetSolDependent() {
+      solDependent_ = true;
+    }
+
+    //! \copydoc BiLinearForm::IsSolDependent
+    virtual bool IsSolDependent() {
+      return solDependent_;
+    }
 
   protected:
 
@@ -46,6 +55,8 @@ namespace CoupledField {
     //! Store intermediate A-matrix
     Matrix<MAT_DATA_TYPE> aMat_;
     
+    bool solDependent_;
+
 };
 
   //! general class for calculation of AB-Forms
@@ -148,7 +159,7 @@ namespace CoupledField {
     SurfaceNitscheABInt( BaseBOperator * aOp, BaseBOperator * bOp,
                          PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
                          BiLinearForm::CouplingDirection cplDir,
-                         bool coordUpdate = false);
+                         bool coordUpdate = false, bool isSym = false, bool isPenalty=false);
 
     //! Destructor
     ~SurfaceNitscheABInt() {}
@@ -165,6 +176,8 @@ namespace CoupledField {
 
     //! Set containing all volume regions for surface integrators
     BiLinearForm::CouplingDirection myDirection_;
+
+    bool isPenalty_;
 
     //TODO: for future purpose it would be helpful to be able
     //to add two and more volume regions to one master or slave side

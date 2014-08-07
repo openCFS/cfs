@@ -14,54 +14,70 @@ SET(CFS_ARCH "@CFS_ARCH@")
 SET(MINGW "@MINGW@")
 SET(WIN32 "@WIN32@")
 SET(MSVC "@MSVC@")
-SET(HDF5_CROSS_COMPILE "@HDF5_CROSS_COMPILE@")
+SET(APPLE "@APPLE@")
+SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
+SET(HDF5_BUILD_TYPE "@HDF5_BUILD_TYPE@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
 #=============================================================================
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
-IF(MINGW)
-  IF(HDF5_CROSS_COMPILE)
+IF(MINGW OR APPLE)
+
+  IF(CMAKE_CROSSCOMPILING)
     IF(CFS_ARCH STREQUAL "X86_64")
-      SET(patches
-	# When cross compiling the HDF5 build process may not generate
-	# intermediate binaries for platform introspection, since they
-	# can not run on the build host. We provide the introspection
-	# sources H5Tinit.c and H5lib_settings.c by hand. These sources
-	# have to be provided for each combination of host and target
-        # platform.
-	"hdf5-cross-compile.patch"
-	)
-      
-      EXECUTE_PROCESS(
-	COMMAND ${CMAKE_COMMAND}
-	-E make_directory
-	"${hdf5_prefix}/src/hdf5-static-build"
-	)
-      
-      EXECUTE_PROCESS(
-	COMMAND ${CMAKE_COMMAND}
-	-E copy_if_different
-	"${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit.c"
-	"${hdf5_prefix}/src/hdf5-static-build/H5Tinit.c"
-	)
-      
-      EXECUTE_PROCESS(
-	COMMAND ${CMAKE_COMMAND}
-	-E copy_if_different
-	"${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings.c"
-	"${hdf5_prefix}/src/hdf5-static-build/H5lib_settings.c"
-	)
-      
-      
+      IF(APPLE)
+        SET(H5TINIT_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit_MACOSX_X86_64.c")
+        SET(H5LIB_SETTINGS_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings_MACOSX_X86_64.c")
+      ELSEIF(MINGW)
+        SET(H5TINIT_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit_MINGW_X86_64.c")
+        SET(H5LIB_SETTINGS_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings_MINGW_X86_64.c")
+      ELSE()
+        MESSAGE(FATAL_ERROR "HDF5 cross build is only working for OSX and MinGW!")
+      ENDIF()
+
     ELSE(CFS_ARCH STREQUAL "X86_64")
-      MESSAGE(FATAL_ERROR "HDF5 cross build is only working for X86_64!")
+      IF(APPLE)
+        SET(H5TINIT_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5Tinit_MACOSX_I386.c")
+        SET(H5LIB_SETTINGS_C "${CFS_SOURCE_DIR}/cfsdeps/hdf5/H5lib_settings_MACOSX_I386.c")
+      ENDIF(APPLE)
     ENDIF(CFS_ARCH STREQUAL "X86_64")
-  ELSE()
-      SET(patches
-	# The H5detect and H5_libsettings executables need to be linked
-        # against ws2_32.lib
+
+    SET(patches
+      # When cross compiling the HDF5 build process may not generate
+      # intermediate binaries for platform introspection, since they
+      # can not run on the build host. We provide the introspection
+      # sources H5Tinit.c and H5lib_settings.c by hand. These sources
+      # have to be provided for each combination of host and target
+      # platform.
+      "hdf5-cross-compile.patch"
+      )
+
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND}
+      -E make_directory
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build"
+      )
+
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND}
+      -E copy_if_different
+      "${H5TINIT_C}"
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build/H5Tinit.c"
+      )
+    
+    EXECUTE_PROCESS(
+      COMMAND ${CMAKE_COMMAND}
+      -E copy_if_different
+      "${H5LIB_SETTINGS_C}"
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build/H5lib_settings.c"
+      )
+  ENDIF()
+
+  IF(MINGW)
+      LIST(APPEND patches
+	# Adjust library names to MinGW conventions.
 	"hdf5-mingw.patch"
 	)
   ENDIF()
@@ -73,6 +89,11 @@ ELSE()
       "hdf5-msvc-gettimeofday.patch"
       )
   ENDIF()
-ENDIF(MINGW)
+ENDIF(MINGW OR APPLE)
+
+# If we already built the static library the patches have already been applied.
+IF(HDF5_BUILD_TYPE STREQUAL "shared")
+  SET(patches "")
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/hdf5")

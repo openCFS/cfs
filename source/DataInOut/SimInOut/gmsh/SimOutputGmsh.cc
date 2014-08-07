@@ -141,8 +141,37 @@ namespace CoupledField {
   {
     currAnalysis_ = type;
     currMsStep_ = step;
-    
-    WriteGrid( false );
+    if ( step == 1 ) { 
+      // first step must write the grid
+      WriteGrid( false );
+    }
+    else if ( step == 2 ) { 
+      /* if this is the second sequence step, one must not write the grid. 
+         we leave this `append` file handle open until the end of the simu
+         hence we need to open it only at the second sequence step. */
+      // close old write handle
+      if(output_) {
+        output_->close();
+        delete output_;
+        output_ = NULL;
+      }
+      std::string gridFileName = fileName_ + ".msh";
+      // Generate basename for output file
+      fs::path filePath = dirName_ / gridFileName;
+      
+      if (ascii_) {
+        output_ = new fs::ofstream(filePath, std::ios_base::app);
+      }
+      else {
+        output_ = new fs::ofstream(filePath, std::ofstream::binary | std::ios_base::app);
+      }
+      if ( !output_ ) {
+        EXCEPTION("Could not open file " << gridFileName
+                  << " for appending Gmsh output");
+      }
+    } else {
+      // relax, append file handle already opened
+    }
   }
   
   void SimOutputGmsh::RegisterResult( shared_ptr<BaseResult> sol,

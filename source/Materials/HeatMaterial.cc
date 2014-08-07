@@ -158,6 +158,7 @@ void HeatMaterial::GetScalar( Complex& param, MaterialType matType,
     else if ( dataType == Global::COMPLEX ) {
       param = val;
     }
+
   }
 }
 
@@ -272,25 +273,16 @@ void HeatMaterial::ComputeFullMuTensor() {
   Matrix<Double> heatCond(3,3);
   Double scalarVal;
 
-  // depending on symmetry, calculate full 3x3 tensor
-  SymmetryType symType = GetSymmetryType(HEAT_CONDUCTIVITY);
-  switch(symType) {
+  scalarMap::const_iterator pos;
+  pos = scalarParams_.find( HEAT_CONDUCTIVITY );
 
-    case GENERAL:
-      // in this case we have already the full tensor
-      break;
-
-    case ISOTROPIC:
+  if ( pos != scalarParams_.end() ) {
       GetScalar( scalarVal, HEAT_CONDUCTIVITY, Global::REAL );
       heatCond[0][0] = scalarVal;
       heatCond[1][1] = scalarVal;
       heatCond[2][2] = scalarVal;
-      SetTensor( heatCond, HEAT_CONDUCTIVITY, Global::REAL );
-      break;
-
-    default:
-      EXCEPTION( "Calculation of full heat conductivity tensor for symmetryType '"
-          << symType << "' not implemented!" );
+      SetTensor( heatCond, HEAT_CONDUCTIVITY_TENSOR, Global::REAL );
   }
 }
+
 }

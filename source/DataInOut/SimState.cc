@@ -8,7 +8,7 @@
 #include <boost/bind.hpp>
 
 // include hdf5 cpp file
-#include "cpp/H5Cpp.h"
+#include "H5Cpp.h"
 
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"

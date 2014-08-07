@@ -1,3 +1,8 @@
+// Generate this mesh from command line by issuing:
+//
+// gmsh -2 -bin -n -nopopup plateMesh.geo
+//
+
 overall = 10;
 pmlW = 1;
 plateW = 0.1;

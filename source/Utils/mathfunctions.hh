@@ -25,8 +25,13 @@ namespace CoupledField {
   Double SpikeBPF( Double cutOff, Double slewRate, Double t );
 
   //! Generate a chirp signal
-  //! -> not yet realized, because we can only pass 4 arguments
-  //!    to muParser functions
+  
+  //! This function generates a chirp signal, i.e. a signal where the
+  //! frequency rises proportional to the time. Additionally,
+  //! there can be fade-in/-out, defined by the number of periods 
+  //! related to the center frequency.
+  Double Chirp(Double sweepTime, Double startFreq, Double stopFreq, 
+               Double nPerFadeIn, Double nPerFadeOut, Double t);
 
   Double CosPulseComb( Double freq, Double pulseWidth, Double t );
 

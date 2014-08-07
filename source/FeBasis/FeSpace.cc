@@ -11,6 +11,7 @@
 #include "L2/FeSpaceL2Nodal.hh"
 #include "H1/FeSpaceH1Hi.hh"
 #include "HCurl/FeSpaceHCurlHi.hh"
+#include "FeSpaceConst.hh"
 
 
 namespace CoupledField {
@@ -25,7 +26,7 @@ ApproxOrder::ApproxOrder( ) {
   maxOrder_= 0;
   dim_ = 0;
   isIsotropic_ = false;
-  completeType_ = BaseFE::TRUNK_SPACE;
+  polyMapType_ = UNDEF;
 }
 
 ApproxOrder::ApproxOrder(UInt dim ) {
@@ -33,7 +34,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   maxOrder_= 0;
   dim_ = dim;
   isIsotropic_ = false;
-  completeType_ = BaseFE::TRUNK_SPACE;
+  polyMapType_ = UNDEF;
 }
   
   void ApproxOrder::SetIsoOrder( UInt isoOrder ) {
@@ -72,16 +73,16 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } 
   }
   
-  void ApproxOrder::SetPolyCompleteness (BaseFE::PolyCompleteType pct ) {
-    completeType_  = pct;
+  void ApproxOrder::SetPolyMapping(PolyMapType type) {
+    polyMapType_ = type;
   }
   
   bool ApproxOrder::IsIsotropic() const {
     return isIsotropic_;
   }
   
-  BaseFE::PolyCompleteType ApproxOrder::ReturnPolyCompleteness() const {
-    return completeType_;
+  ApproxOrder::PolyMapType ApproxOrder::GetPolyMapType() const {
+    return polyMapType_;
   }
   
   UInt ApproxOrder::GetIsoOrder() const {
@@ -304,6 +305,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
         break;
       case CONSTANT:
+        LOG_DBG(feSpace) << "Creating CONST space";
+        ret.reset(new FeSpaceConst(aNode, infoNode, ptGrid));
+        break;
       case HDIV:
       case L2:
         LOG_DBG(feSpace) << "Creating L2 space";
@@ -695,7 +699,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         LOG_DBG(feSpace) << "\tLEAVING";
         continue;
       }
+      LOG_DBG(feSpace) << "========================================";
       LOG_DBG(feSpace) << "treating entityList '" << fctEntList[actList]->GetName() << "'";
+      LOG_DBG(feSpace) << "========================================";
       //cast down to element list
       EntityList* actElemList = fctEntList[actList].get();
 
@@ -782,7 +788,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
                 } // loop: fncs
               } else {
                 if( en.GetSize() != numFncs[iEdge] ) {
-                  EXCEPTION("Edge " << iEdge+1 << 
+                  EXCEPTION("Edge " << iEdge+1 << ", edge #" << edgeNum << 
                             " of element #" << actEl->elemNum << " got already "
                             << en.GetSize() << " virtual nodes and is now assigned "
                             << numFncs[iEdge] << " virtual nodes" );
@@ -854,6 +860,36 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       } // loop: elements
     } // loop: entity lists
+    
+    
+
+    // --------------------------------
+    // Print information to info block  
+    // --------------------------------
+    // Loop over entity types
+    PtrParamNode vNodeInfo = infoNode_->Get("virtualNodes");
+    
+    boost::unordered_map<BaseFE::EntityType, EntityNodesType>::const_iterator typeIt;
+    typeIt = vNodesCont_.begin();
+    UInt numVirtNodes = 0;
+    for( ; typeIt != vNodesCont_.end(); ++typeIt ) {
+      const BaseFE::EntityType & type = typeIt->first;
+      const EntityNodesType& nodesVec = typeIt->second;
+      
+      // Collect number of entities and total nodes
+      UInt numEntities = nodesVec.size();
+      UInt vNodesOfType = 0;
+      EntityNodesType::const_iterator nodeIt = nodesVec.begin();
+      for( ; nodeIt != nodesVec.end(); ++nodeIt ) {
+        vNodesOfType += nodeIt->second.GetSize();
+      }
+      numVirtNodes += vNodesOfType;
+      std::string entType = BaseFE::entityType.ToString(type);
+      vNodeInfo->Get(entType)->Get("numEntitiies")->SetValue(numEntities);
+      vNodeInfo->Get(entType)->Get("numVirtualNodes")->SetValue(vNodesOfType);
+    }
+    vNodeInfo->Get("numVirtualNodes")->SetValue(numVirtNodes);
+    
     
     // trim all vectors to get unused memory back
     boost::unordered_map<BaseFE::EntityType, EntityNodesType>::iterator it;
@@ -962,7 +998,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else {
       // 3) 1D element in 3D simulation
       
-      // In case the (only) edge is not numbered yet, wer perform a 
+      // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
       if(ptElem->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
@@ -1027,12 +1063,22 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       mapType= GRID;
       UInt gridOrder = ptGrid_->IsQuadratic() ? 2 : 1;
       order.SetIsoOrder( gridOrder );
+      order.SetPolyMapping(ApproxOrder::GRID_TYPE);
 
     } else if(node->Has("isoOrder")) {
       PtrParamNode isoOrderNode = node->Get("isoOrder", ParamNode::PASS );
       mapType= POLYNOMIAL;
       Integer isoOrder = isoOrderNode->As<Integer>();
       order.SetIsoOrder(isoOrder);
+      
+      // Try to find out polynomial mapping type for lagrange type
+      ApproxOrder::PolyMapType polyMapType = ApproxOrder::TENSOR_TYPE;
+      if (polyType_ == LAGRANGE ) {
+        if(node->Get("isoOrder")->Get("serendipity")->As<bool>() == true) 
+          polyMapType = ApproxOrder::SERENDIPITY_TYPE;
+      }
+      order.SetPolyMapping(polyMapType);
+     
 
     } else if(node->Has("anIsoOrder")) {
       PtrParamNode anIsoOrderNode = node->Get("anIsoOrder", ParamNode::PASS );
@@ -1062,6 +1108,8 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         }
       }
       order.SetAnisoOrder(orderMat);
+      // Anisotropic order makes only sense for tensorial functions.
+      order.SetPolyMapping(ApproxOrder::TENSOR_TYPE);
       
     } else {
       EXCEPTION( "Could not find definition of polynomial order" );
@@ -1315,10 +1363,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         tmp.Init();
         GetEqns( tmp, it, entType);
         allEqns.insert(tmp.Begin(), tmp.End());
-        
       }
       eqns.Clear();
       eqns.Resize(allEqns.size());
+      eqns.Init();
       std::copy(allEqns.begin(), allEqns.end(), eqns.Begin());
     }
       

@@ -102,12 +102,16 @@ public:
   //! Give Values at global coordinate locations
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<DATA_TYPE> >& values, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
   //! Give Values at global coordinate locations
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< DATA_TYPE >& values, 
-                                        Grid* ptGrid );
+                                        Grid* ptGrid,
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >()  );
 
   //@}
 
@@ -129,6 +133,10 @@ private:
   ///Compute datastructures for conservative interpolation
   void MapElemNodesConservative();
 
+  //! print unmaped nodes to CSV file for paraview read in
+  virtual void PrintNodesToCSV(const StdVector<const Elem*>& foundElements,
+                                  const StdVector< Vector<Double> >& nodeGlobCoords);
+
   //@{ \name Conservative interpolation datastructures
   ///flag to determine if everything is ready to go
   bool consInterpReady_;
@@ -147,6 +155,12 @@ private:
   
   //! local tolerance (interval of local coordinates outside of element)
   Double localTol_;
+  
+  //! For 3D => 2D interpolation use x-y-plane at this z-coordinate
+  Double xyPlaneAtZ_;
+  
+  //! Tolerance for z-coordinate of x-y-plane
+  Double zTol_;
   //@}
 
   // =====================================
@@ -186,7 +200,14 @@ private:
 
   std::string destRegionName_;
 
+  //! Pointer to destination grid for interpolation (usually "default" grid)
+  Grid * destGrid_;
 
+  //! cache global coords in case of standard interpolation of transient data
+  StdVector<LocPoint> localCoords_;
+
+  // cache found elements in case of standard interpolation of transient data
+  StdVector< const Elem* > foundElements_;
 
 };
 

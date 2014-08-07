@@ -223,7 +223,7 @@ public:
       }
       
       //! \copydoc BiLinearForm::IsSolDependent
-      bool IsSolDependent() {
+      virtual bool IsSolDependent() {
         return dData_->GetDependency() == CoefFunction::SOLUTION;
       }
 

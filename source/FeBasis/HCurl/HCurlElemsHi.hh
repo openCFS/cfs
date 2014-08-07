@@ -23,11 +23,8 @@ public:
   //! Destructor
   virtual ~FeHCurlHi();
 
-  //! Set usage of gradients
-  void UseGradient(EntityType entity, bool usage);
-  
   //! Set Usage of only lowest order functions
-  void SetOnlyLowestOrder( bool flag) { onlyLowestOrder_ = flag; }
+  void SetOnlyLowestOrder( bool flag);
   
   //! Get total number of functions
   UInt GetNumFncs();
@@ -37,14 +34,14 @@ public:
                    EntityType fctEntityType,
                    UInt dof = 1 );
   
-  //! This holds only for line,quad and hex,
-  //! if other types are available the has to be reimplemented!
+  //! This holds only for line, quad and hex,
+  //! if other types are available the has to be re-implemented!
   //! Get the permutation Vector for a given Face or Edge
   //! e.g. If asked for a face, the element will check the flags
   //! of this face and return a vector of size NumberOfFncs on the Face
   //! holding the correct ordering 
   /*!
-  \param fncPermutation (output) The Permuation Vector 
+  \param fncPermutation (output) The Permutation Vector 
   \param ptElem (input) pointer to Grid Element to get grip of flags 
   \param fctEntityType (input) The Entity type, Node/Edge/Face where the 
   nodes are located at
@@ -68,24 +65,79 @@ public:
   //! \copydoc BaseFE::GetAnsiOrder
   virtual void GetAnisoOrder(StdVector<UInt>& order ) const;
   
-  //! Compare two element for equality (= same shape and approximation);
+  //! Compare two elements for equality (= same shape and approximation);
   bool operator==( const FeHCurlHi& comp) const;
+  
+  //! Set general usage of gradient shape functions
+  void SetUseGradients(bool useGrad);
+  
+  //! Set usage of gradient shape functions on specified edge
+  void SetEdgeGradient(UInt edgeNum, bool useGrad);
+  
+  //! Set usage of gradient shape functions on specified face
+  void SetFaceGradient(UInt faceNum, bool useGrad);
+  
+  //! Get gradient usage on edges
+  const StdVector<bool>& GetEdgeGradient() const {
+    return useEdgeGrad_;
+  }
+  
+  //! Get gradient usage on faces
+  const StdVector<bool>& GetFaceGradient() const {
+    return useFaceGrad_;
+  }
   
 protected:
   
   //! Calculate number of unknowns
   virtual void CalcNumUnknowns() = 0;
 
+  //! Flag for using only lowest order shape functions
+  bool onlyLowestOrder_; 
+  
   // ========================================================================
   // Usage Of Gradient function
   // ========================================================================
+  //@{ \name Usage of gradient functions
+
+  //! Flag vector (#edges) if gradient shape functions are used on edges
+  StdVector<bool> useEdgeGrad_;
   
-  //! Usage of gradient for given entitytype
-  std::map<EntityType, bool> useGrad_;
+  //! Flag vector (#faces) if gradient shape functions are used on face
+  StdVector<bool> useFaceGrad_;
   
-  //! Flag for using only lowst order shape functions
-  bool onlyLowestOrder_; 
+  //! Flag if gradient shape functions are used in interior
+  bool useInteriorGrad_;
+  //@}
+
 };
+
+
+//! HCurl conforming hierarchical higher order triangular element
+class  FeHCurlHiTria : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiTria();
+
+  //! Destructor
+  virtual ~FeHCurlHiTria();
+
+  //! @copydoc FeHCurl::CalcLocShFnc
+  void CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
+                     const Elem* elem, UInt comp = 1 );
+
+  //! @copydoc FeHCurl::CalcLocCurlShFnc
+  void CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+protected:
+  
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+  
+};
+
 
 
 
@@ -182,6 +234,42 @@ protected:
   //! Calculate number of unknowns
   void CalcNumUnknowns();
 };
+
+// =======
+//  TET  
+// =======
+//! HCurl conforming hierarchical higher order tetrahedral element
+class  FeHCurlHiTet : public FeHCurlHi {
+
+public:
+
+  //! Constructor
+  FeHCurlHiTet();
+
+  //! Destructor
+  virtual ~FeHCurlHiTet();
+
+  //! Return HCurl shape functions 
+  virtual void GetShFnc( Matrix<Double>& shape, 
+                         const LocPointMapped& lp,
+                         const Elem* elem, UInt comp = 1 );
+
+  //! Return global curl of shape functions
+  virtual void GetCurlShFnc( Matrix<Double>& curl, 
+                             const LocPointMapped& lp,
+                             const Elem* elem, UInt comp = 1 );
+  
+  //! Internal method for calculating generalized curl functions
+  template<DiffType DIFF_TYPE>
+  void CalcLocShFnc2( Matrix<Double>& curl, 
+                      const LocPointMapped& lp,
+                      const Elem* elem, UInt comp = 1 );
+protected:
+
+  //! Calculate number of unknowns
+  void CalcNumUnknowns();
+};
+
 
 } // namespace
 

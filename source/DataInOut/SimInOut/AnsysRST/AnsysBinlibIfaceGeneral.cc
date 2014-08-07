@@ -1594,7 +1594,13 @@ namespace CoupledField
     void* DLLAPI loadObject(const char* name, int argc, void** argv) {
       // std::cout << "Trying to load object: " << name << std::endl;
 #ifdef _WIN32
-      SetEnvironmentEnums();
+    // VERY important: It seems, that under Windows the Enums loaded in the DLL 
+    // are distinct from the ones already in memory. Thus, the enums have to be
+    // initialized separately again.
+    SetEnvironmentEnums();
+    BasePDE::SetEnums();
+    EntityList::SetEnums();
+    ElemShape::Initialize();
 #endif
       
       if(std::strncmp(name,

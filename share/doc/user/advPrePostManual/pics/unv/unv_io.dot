@@ -4,6 +4,8 @@ digraph G {
         ".unverg" -> "CFS++";
         ".unverg" -> unv2rst;
 
+        ".unv" -> "CFS++";
+
 	".unv" -> Gmsh;
 	Gmsh -> ".unv";
 
@@ -19,7 +21,7 @@ digraph G {
 	SALOME -> ".unv";
 	GiD -> ".unv";
 
-        "CFS++" [shape=box];
+        "CFS++" [shape=box,color=darkgrey,style=filled];
         Gmsh [shape=box];
         SALOME [shape=box];
         "Code ASTER" [shape=box];
@@ -32,4 +34,5 @@ digraph G {
 
         Tecplot [shape=box];
         EnSight [shape=box];
+        FLUENT [shape=box];
 }

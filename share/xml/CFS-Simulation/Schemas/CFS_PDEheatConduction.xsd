@@ -91,7 +91,12 @@
                 <xsd:element name="temperature"   type="DT_BcInhomScalar"  />
                 
                 <!-- heat specific boundary conditions -->
-                <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar"/>
+                <xsd:element name="heatSourceDensity"  type="DT_BcInhomScalar"/>
+
+              
+                <!-- RHS Load Values-->
+                <xsd:element name="elecPowerDensity"  type="DT_BcInhomScalarCoupled"/>
+
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -191,6 +196,7 @@
   <xsd:simpleType name="DT_HeatNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="heatTemperature"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="heatRhsLoad"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
@@ -207,6 +213,7 @@
   <!-- Definition of element result types of heatConduction PDE -->
   <xsd:simpleType name="DT_HeatElemResult">
     <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="heatFluxDensity"/>      
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  

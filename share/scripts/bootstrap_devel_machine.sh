@@ -38,7 +38,7 @@ SetupDebian() {
         cmake-curses-gui cmake-qt-gui gmsh default-jre openjdk-6-jdk \
         patch diff diffutils zip libxt-dev libxp6 tk-dev xsltproc \
         libgl1-mesa-dev libglu1-mesa-dev libxmuu-dev libncurses5-dev \
-        util-linux gcc-multilib"
+        util-linux gcc-multilib libxmu-dev"
 
     for pckg in $PCKGS; do
         apt-get install -y --force-yes -f $pckg
@@ -60,8 +60,9 @@ SetupSuse() {
         python-pygments doxygen tcl-devel python-devel git-svn \
         java-1_6_0-openjdk-devel cmake-gui xorg-x11-libXt-devel \
         diffutils patch zip xorg-x11-libXp tk-devel Mesa-devel \
-        ncurses-devel perl util-linux glibc-devel-32bit \
-        gcc-32bit gcc-c++-32bit gcc-fortran-32bit"
+        ncurses-devel perl util-linux glibc-devel-32bit libXmu-devel\
+        gcc-32bit gcc-c++-32bit gcc-fortran-32bit glu-devel"
+
     
     # We need to add the SDK DVDs as repos in case of SLE
     if [ "$DIST" = "SLE" ]; then 
@@ -141,54 +142,68 @@ SetupFedora() {
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
-        patch diffutils zip libXt-devel libXp ncurses-devel || ExitFail
+        patch diffutils zip libXt-devel libXp ncurses-devel \
+        mesa-libGL-devel mesa-libGLU-devel libXmu-devel mesa-libglapi || ExitFail
 }
 
 SetupRHEL() {
     # Setup Red Hat Enterprise Linux, CentOS, Oracle, Scientific Linux, etc.
     RHEL_REL=$(echo $REV | cut -d'.' -f1)
 
+    # At the moment we support RHEL 5-7
+    SUPPORTED=0
+    # For RHEL 7 we only tested with the public Beta version for which no
+    # additional repositories were available yet (2014-02-27).
+    ADD_ADDITIONAL_REPOS=1
     case "${RHEL_REL}" in
-	5) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
-	6) echo "Fine! RHEL release ${RHEL_REL} is supported!";;
+	5) SUPPORTED=1 ;;
+	6) SUPPORTED=1 ;;
+	7) SUPPORTED=1; ADD_ADDITIONAL_REPOS=0; ;;
 	*)
             echo "RHEL release ${RHEL_REL} is NOT supported!"
+	    exit 1
             ;;
     esac
+    if [ "$SUPPORTED" = 1 ]; then
+        echo "Fine! RHEL release ${RHEL_REL} is supported!";
+    fi
 
-    cd /etc/yum.repos.d && \
-    rm -f graphviz-rhel.repo || ExitFail 
-    wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
-
-    YC=atrpms.repo
-    echo "[atrpms]" > $YC && \
-    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
-    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
-    echo "gpgcheck=1" >> $YC || ExitFail
-    rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
-
-    YC=epel.repo
-    echo "[epel]" > $YC && \
-    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-    echo "baseurl=http://ftp.ucr.ac.cr/epel/${RHEL_REL}/\$basearch" >> $YC || ExitFail
-    rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-    wget http://ftp.ucr.ac.cr/epel/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-    rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
-
-    ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
-    BASE=http://pkgs.repoforge.org/rpmforge-release
-    case "${RHEL_REL}" in
-	5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
-	    ;;
-	6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
-	    ;;
-	*)
-            echo "RHEL release ${RHEL_REL} is not supported!"
-            ;;
-    esac
-    wget $BASE/$RPM || ExitFail
-    rpm -Uhv --force $RPM || ExitFail
+    if [ "$ADD_ADDITIONAL_REPOS" = 1 ]; then
+	cd /etc/yum.repos.d && \
+	    rm -f graphviz-rhel.repo || ExitFail 
+	wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
+	
+	YC=atrpms.repo
+	echo "[atrpms]" > $YC && \
+	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
+	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
+	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
+	    echo "gpgcheck=1" >> $YC || ExitFail
+	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
+	
+	YC=epel.repo
+	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
+	echo "[epel]" > $YC && \
+	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
+	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
+	
+	ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
+	BASE=http://pkgs.repoforge.org/rpmforge-release
+	case "${RHEL_REL}" in
+	    5) RPM=rpmforge-release-0.5.3-1.el5.rf.$ARCH.rpm
+		;;
+	    6) RPM=rpmforge-release-0.5.3-1.el6.rf.$ARCH.rpm
+		;;
+	    *)
+		echo "RHEL release ${RHEL_REL} is not supported!"
+		;;
+	esac
+	wget $BASE/$RPM || ExitFail
+	rpm -Uhv --force $RPM || ExitFail
+    fi
 
     # http://public-yum.oracle.com/
     # http://linux.oracle.com/switch/
@@ -225,7 +240,8 @@ SetupRHEL() {
                 java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
                 tcl-devel python-devel git-svn patch diffutils zip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
-                glibc-devel.i386 glibc-devel.i686 util-linux-ng util-linux || ExitFail
+                glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
+                libstdc++-devel.x86_64 libstdc++-devel.i686 || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
@@ -343,13 +359,13 @@ SetupCMake() {
     CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
     CMAKE_PATCH_LEVEL=$(echo $CMAKE_VERSION | cut -d'.' -f3)
 
-    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 8 ]; then
+    if [ $CMAKE_MAJOR_VERSION -ge 2 ] && [ $CMAKE_MINOR_VERSION -ge 8 ] && [ $CMAKE_PATCH_LEVEL -ge 10 ]; then
         return 1
     fi
 
     CMAKE_MAJOR_VERSION=2
     CMAKE_MINOR_VERSION=8
-    CMAKE_PATCH_LEVEL=10.2
+    CMAKE_PATCH_LEVEL=12.2
 
     PCKG_BASE_NAME="cmake-$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION.$CMAKE_PATCH_LEVEL";
     MYTMPDIR="$TMPDIR/$(basename $0).$$"
@@ -363,7 +379,7 @@ SetupCMake() {
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
              ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
-    MD5SUM="097278785da7182ec0aea8769d06860c"
+    MD5SUM="17c6513483d23590cbce6957ec6d1e66"
 
     # Download source
     for mirror in $mirrors; do

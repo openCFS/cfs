@@ -127,6 +127,14 @@ namespace CoupledField {
     //! \param vec Vector to be filled
     void EvalVector( HandleType handle, Vector<Double>& vec );
     
+    //! Evaluate list of mathematical expression, set by SetExpr()
+
+    //! This method evaluated the expression previously set by SetExpr()
+    //! and computes the divergence of it
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param divergence result of computation
+    void EvalDivVector( HandleType handle, Double& divergence );
+
     //! Evaluate expressions to matrix, previously set by SetExpr()
     
     //! This method evaluates the expression previously set by SetExpr()
@@ -269,6 +277,8 @@ namespace CoupledField {
                               Double x, Double y);
 
         
+    Double DiffVectorEntry(HandleType handle, std::string varName, Integer VecPos);
+
     //! Pool of math parsers
     ParserMap parsers_;
     

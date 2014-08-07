@@ -8,11 +8,12 @@ namespace CoupledField  {
 //  FORM BASED COEFFICIENT FUNCTION
 // ==========================================================================
 
-CoefFunctionFormBased::CoefFunctionFormBased( ) {
+CoefFunctionFormBased::CoefFunctionFormBased( ) : CoefFunction(){
 
   
-  // set inherited attributes
-  dependType_ = CoefFunction::GENERAL;
+  // All coefficient functions are based on the solution vector, so 
+  // we have a general SOLUTION dependency.
+  dependType_ = CoefFunction::SOLUTION;
   isAnalytic_ = false;
 }
 
@@ -48,7 +49,12 @@ CoefFunctionBOp( shared_ptr<BaseFeFunction> feFct,
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
   
   // set inherited attributes
+  //This is not very nice. Because another operator can turn
+  //this coefficient function into another type.
+  //Inconsistencies are the result, messing up other CoefFunctions
+  //THIS HAS TO BE CHANGED!!!!
   dimType_ = CoefFunction::VECTOR;
+
 }
 
 
@@ -88,13 +94,59 @@ CoefFunctionBOp<TYPE>::~CoefFunctionBOp() {
 }
 
 template<class TYPE>
+void CoefFunctionBOp<TYPE>::GetTensor(Matrix<TYPE>& coefMat,
+                                          const LocPointMapped& lpm ) {
+  EXCEPTION("CoefFunctionBOp<TYPE>::GetTensor not implemented");
+  //Vector<TYPE> tmpVec;
+  //this->GetVector(tmpVec,lpm);
+  ////now put into matrix can be 2x2 or 3x3
+  ////either 3 or 6 vector components
+  //if(tmpVec.GetSize() == 3){
+  //  coefMat.Resize(2,2);
+  //  coefMat.Init();
+  //  for(UInt i=0;i<2;i++)
+  //    coefMat[i][i] = tmpVec[i];
+  //  coefMat[0][1] = tmpVec[3];
+  //  coefMat[1][0] = tmpVec[3];
+  //
+  //}else if (tmpVec.GetSize() == 6){
+  //  coefMat.Resize(3,3);
+  //  coefMat.Init();
+  //  for(UInt i=0;i<3;i++)
+  //    coefMat[i][i] = tmpVec[i];
+  //
+  //  coefMat[0][1] = tmpVec[3];
+  //  coefMat[0][2] = tmpVec[4];
+  //  coefMat[1][2] = tmpVec[5];
+  //  coefMat[1][0] = tmpVec[3];
+  //  coefMat[2][0] = tmpVec[4];
+  //  coefMat[2][1] = tmpVec[5];
+  //}else{
+  //  EXCEPTION("CoefFunctionBOp<TYPE>::GetTensor: Got an unknown Voigt vector dimension");
+  //}
+}
+
+template<class TYPE>
 void CoefFunctionBOp<TYPE>::GetVector(Vector<TYPE>& coefVec,
                                       const LocPointMapped& lpm ) {
   this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
   BaseFE* ptFe = feSpace_->GetFe( lpm.ptEl->elemNum );
-  this->bOps_[lpm.ptEl->regionId]->CalcOpMat(bMat_, lpm, ptFe);
-  coefVec = bMat_* (elemSol_);
-  coefVec *= factor_;
+  if(this->bOps_.find(lpm.ptEl->regionId) != this->bOps_.end()){
+    this->bOps_[lpm.ptEl->regionId]->CalcOpMat(bMat_, lpm, ptFe);
+    coefVec = bMat_* (elemSol_);
+    coefVec *= factor_;
+  } else{
+    coefVec.Resize(this->res_->dofNames.GetSize());
+    coefVec.Init();
+  }
+}
+
+template<class TYPE>
+void CoefFunctionBOp<TYPE>::GetScalar(TYPE& coefScal,
+                                          const LocPointMapped& lpm ) {
+  Vector<TYPE> tmpVec;
+  this->GetVector(tmpVec,lpm);
+  coefScal = tmpVec[0];
 }
 
 template<class TYPE>
@@ -131,6 +183,7 @@ CoefFunctionFlux( shared_ptr<BaseFeFunction> feFct,
 
   // set inherited attributes
   dimType_ = CoefFunction::VECTOR;
+
 }
 
 template<class TYPE, bool TRANS> CoefFunctionFlux<TYPE,TRANS>::
@@ -163,6 +216,39 @@ AddIntegrator( BaseBDBInt* form,
 
 }
 
+template<class TYPE, bool TRANS>
+void CoefFunctionFlux<TYPE,TRANS>::GetTensor(Matrix<TYPE>& coefMat,
+                                          const LocPointMapped& lpm ) {
+  EXCEPTION("CoefFunctionFlux<TYPE>::GetTensor not implemented");
+  //Vector<TYPE> tmpVec;
+  //this->GetVector(tmpVec,lpm);
+  ////now put into matrix can be 2x2 or 3x3
+  ////either 3 or 6 vector components
+  //if(tmpVec.GetSize() == 3){
+  //  coefMat.Resize(2,2);
+  //  coefMat.Init();
+  //  for(UInt i=0;i<2;i++)
+  //    coefMat[i][i] = tmpVec[i];
+  //  coefMat[0][1] = tmpVec[3];
+  //  coefMat[1][0] = tmpVec[3];
+  //
+  //}else if (tmpVec.GetSize() == 6){
+  //  coefMat.Resize(3,3);
+  //  coefMat.Init();
+  //  for(UInt i=0;i<3;i++)
+  //    coefMat[i][i] = tmpVec[i];
+  //
+  //  coefMat[0][1] = tmpVec[3];
+  //  coefMat[0][2] = tmpVec[4];
+  //  coefMat[1][2] = tmpVec[5];
+  //  coefMat[1][0] = tmpVec[3];
+  //  coefMat[2][0] = tmpVec[4];
+  //  coefMat[2][1] = tmpVec[5];
+  //}else{
+  //  EXCEPTION("CoefFunctionBOp<TYPE>::GetTensor: Got an unknown Voigt vector dimension");
+  //}
+}
+
 template<class TYPE, bool TRANS> void CoefFunctionFlux<TYPE,TRANS>::
 GetVector(Vector<TYPE>& coefVec,
           const LocPointMapped& lpm ) {
@@ -182,6 +268,15 @@ GetVector(Vector<TYPE>& coefVec,
     bdb->ApplydBMat(coefVec, elemSol, lpm );
   }
   coefVec *= factor_;
+}
+
+
+template<class TYPE,bool TRANS>
+void CoefFunctionFlux<TYPE,TRANS>::GetScalar(TYPE& coefScal,
+                                          const LocPointMapped& lpm ) {
+  Vector<TYPE> tmpVec;
+  this->GetVector(tmpVec,lpm);
+  coefScal = tmpVec[0];
 }
 
 template<class TYPE, bool TRANS> UInt CoefFunctionFlux<TYPE,TRANS>::
@@ -217,8 +312,10 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
   // set inherited attributes
-  dimType_ = CoefFunction::SCALAR;
-  
+  this->dimType_ = CoefFunction::SCALAR;
+
+ // std::cout << "DimType: " << CoefFunction::SCALAR << " << std::endl;
+
 }
 
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::

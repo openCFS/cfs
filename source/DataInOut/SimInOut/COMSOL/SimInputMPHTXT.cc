@@ -25,9 +25,19 @@
 #include <algorithm>
 #include <cstdarg>
 
+#include <unzip.h>
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "SimInputMPHTXT.hh"
 
 namespace CoupledField {
+
+  // declare logging stream
+  DECLARE_LOG(simInputMPHTXT)
+  DEFINE_LOG(simInputMPHTXT, "simInput.MPHTXT")
+
 
 #define MAXLINESIZE 200     /* maximum length of line to be read */
 #define MAXNODESD3 64       /* maximum number of 3D nodes */ 
@@ -146,7 +156,6 @@ namespace CoupledField {
     // int foundsame;
     // int mode,nvalue,maxknot,nosides,sideelemtype;
     int allocated;
-    bool info = false;  
     //  int boundarytype,materialtype,boundarynodes,side,parent,elemsides;
     int elemnodes, elembasis, elemtype;
     elembasis = 0;
@@ -154,7 +163,6 @@ namespace CoupledField {
     dim_ = 0;
     // int bulkdone, usedmax,hits;
     // int label;
-    int debug = false;  
     int offset,domains,mindom,minbc,elemdim = 0;
     char line[MAXLINESIZE],*cp;
     // int l,n,ind,inds[MAXNODESD2],sideind[MAXNODESD1];
@@ -171,18 +179,13 @@ namespace CoupledField {
     std::stringstream sstr;
     sstr << prefix; //  << ".mphtxt";
     if ((in = fopen(sstr.str().c_str(),"r")) == NULL) {
-      printf("LoadComsolMesh: opening of the Comsol mesh file '%s' wasn't succesfull !\n",
-	     sstr.str().c_str());
-      return(1);
+      EXCEPTION("LoadComsolMesh: opening of the Comsol mesh file '" <<
+                sstr.str() << "' wasn't succesfull!");
     }
     
-    myParam_->GetValue( "debug", debug, ParamNode::PASS );
-    myParam_->GetValue( "info", info, ParamNode::PASS );
-    
-    if(info) 
-      printf("Reading mesh from Comsol mesh file %s.\n",sstr.str().c_str());
+    LOG_TRACE(simInputMPHTXT) << "Reading mesh from Comsol mesh file "
+                              << sstr.str() << std::endl;
     // InitializeKnots(data);
-    
     
     allocated = false;
     
@@ -209,9 +212,7 @@ namespace CoupledField {
       if(strstr(line,"# sdim")) {
         cp = line;
         dim_ = next_int(&cp);
-     #ifndef NDEBUG
-        if(debug) printf("dim=%d\n",dim_);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "dim=" << dim_ << std::endl;
       }
       
       if(strstr(line,"# class")) {
@@ -222,25 +223,19 @@ namespace CoupledField {
                     << "Offending class line --> " << class_line);
         }
           
-     #ifndef NDEBUG
-        if(debug) printf("class line=%s\n", class_line.c_str());
-     #endif
+        LOG_DBG(simInputMPHTXT) << "class line=" << class_line << std::endl;
       }
 
       else if(strstr(line,"# number of mesh points")) {
         cp = line;
         noknots = next_int(&cp);
-     #ifndef NDEBUG
-        if(debug) printf("noknots=%d\n",noknots);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "noknots=" << noknots << std::endl;
       }
       
       else if(strstr(line,"# lowest mesh point index")) {
         cp = line;
         offset = 1 - next_int(&cp);
-     #ifndef NDEBUG
-        if(debug) printf("offset=%d\n",offset);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "offset=" << offset << std::endl;
       }
       
       else if(strstr(line,"# type name")) {
@@ -259,17 +254,15 @@ namespace CoupledField {
         cp = line;
         elemnodes = next_int(&cp);
         if(elemnodes > maxnodes) maxnodes = elemnodes;      
-     #ifndef NDEBUG
-        if(debug) printf("elemnodes=%d\n",elemnodes);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "elemnodes=" << elemnodes << std::endl;
         
         fetype = ElmerType2ElemType(elembasis + elemnodes);
         
       }
       
       else if(strstr(line,"# Mesh point coordinates")) {
-        if(info) 
-          printf("Loading %d coordinates\n",noknots);
+        LOG_TRACE(simInputMPHTXT) << "Loading " << noknots <<
+          " coordinates" << std::endl;
         
         for(i=1;i<=noknots;i++) {
           Comsolrow(line,in);	
@@ -303,9 +296,9 @@ namespace CoupledField {
         // elemdim = GetElementDimension(elemtype);
         elemdim = Elem::shapes[fetype].dim;
         
-     #ifndef NDEBUG
-        if(debug) printf("Loading %d elements of type %d\n",k,elemtype);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "Loading " << k << " elements of type " <<
+          elemtype << "." << std::endl;
+
         domains = noelements;
         
         for(i=1;i<=k;i++) {
@@ -330,15 +323,15 @@ namespace CoupledField {
         }
       }
       
-      else if(strstr(line,"# number of domains") || strstr(line,"# number of geometric entity indices")) {
+      else if(strstr(line,"# number of domains") ||
+              strstr(line,"# number of geometric entity indices")) {
         
         cp = line;
         k = next_int(&cp);
         
         Comsolrow(line,in);	            
-     #ifndef NDEBUG
-        if(debug) printf("Loading %d domains for the elements\n",k);
-     #endif
+        LOG_DBG(simInputMPHTXT) << "Loading " << k <<
+          " domains for the elements." << std::endl;
         
         for(i=1;i<=k;i++) {
           Comsolrow(line,in);	
@@ -390,14 +383,10 @@ namespace CoupledField {
           }
           
         }
-      }
-      
+      }      
       else if(strstr(line,"#")) {
-     #ifndef NDEBUG
-        if(debug) printf("Unused command:  %s",line);
-     #endif
-      }
-      
+        LOG_DBG(simInputMPHTXT) << "Unused command: " << line << "." << std::endl;
+      }      
     }
     
   end:
@@ -417,10 +406,9 @@ namespace CoupledField {
       //    data->maxnodes = maxnodes;
       //    data->dim = dim_;
       
-      if(info) {
-        printf("Allocating for %d knots and %d %d-node elements.\n",
-               noknots,noelements,maxnodes);
-      }
+      LOG_TRACE(simInputMPHTXT) << "Allocating for " << noknots << 
+        " knots and " << noelements << " " << maxnodes <<
+        "-node elements." << std::endl;
       
       if(readInfos) 
       {
@@ -432,39 +420,15 @@ namespace CoupledField {
         data->AddElems(noelements);
         data->AddNodes(noknots);
         
-        ParamNodeList regions = myParam_->GetList("region");
-        ParamNodeList::iterator regit = regions.Begin();
-        std::string name, domains, domtype;
-        
-        std::map<std::string, std::vector<UInt> > volDomMap;
-        std::map<std::string, std::vector<UInt> > surfDomMap;
-        
-        for( ; regit != regions.End(); regit++ ) {
-          
-          (*regit)->GetValue( "name", name );
-          (*regit)->GetValue( "domains", domains );
-          (*regit)->GetValue( "domtype", domtype );
-          
-          typedef boost::tokenizer<boost::char_separator<char> > Tok;
-          boost::char_separator<char> sep(";| ");
-          Tok t(domains, sep);
-          Tok::iterator it, end;
-          it = t.begin();
-          end = t.end();
-          
-          for( ; it != end; it++) {
-            std::stringstream sstr;
-            sstr << (*it);
-            UInt dom;
-            sstr >> dom;
-            
-            if(domtype == "volume") {
-              volDomMap[name].push_back(dom);
-            } else {
-              surfDomMap[name].push_back(dom);
-            }
-          }
-        }
+        // Since the .mphtxt file only contains informations about
+        // geometrical entities like points, edges, areas and volumes
+        // a large number of these may be mapped to surf_domain_* or
+        // vol_domain_* regions without physical meaning in CFS++.
+        // Therefore, these entities can be grouped either manually in
+        // the XML file or programmatically by reading the model.xml
+        // from the COMSOL .mph file.
+        RegionMapType volDomMap, surfDomMap;
+        BuildRegionMaps(volDomMap, surfDomMap);
         
         StdVector<std::string> names;
         
@@ -572,7 +536,9 @@ namespace CoupledField {
     }
     fclose(in);
     
-    if(info) printf("The Comsol mesh was loaded from file %s.\n\n",sstr.str().c_str());
+    LOG_TRACE(simInputMPHTXT) << "The Comsol mesh was loaded from file " <<
+      sstr.str() << std::endl;
+
     return(0);
   }
   
@@ -583,6 +549,10 @@ namespace CoupledField {
     SimInput(fileName, inputNode, infoNode)
   {
     capabilities_.insert( SimInput::MESH);
+
+    std::string mph = ""; 
+    myParam_->GetValue("mph", mph, ParamNode::PASS );
+    mph_ = mph;
   }
   
   
@@ -615,6 +585,159 @@ namespace CoupledField {
     LoadComsolMesh(mi, fileName_.c_str(), false);
   }
   
+  void SimInputMPHTXT::BuildRegionMaps(RegionMapType& volDomMap,
+                                       RegionMapType& surfDomMap)
+  {
+    typedef boost::tokenizer<boost::char_separator<char> > Tok;
+    boost::char_separator<char> sep(",;| ");
+
+    if(mph_ != "") 
+    {
+      LOG_TRACE(simInputMPHTXT) << "Multiphysics file: " << mph_ << std::endl;
+
+      // Read model.xml from COMSOL .mph multiphysics file.
+      unzFile uf = unzOpen64(mph_.c_str());
+      if(!uf)
+      {
+        EXCEPTION("Could not open COMSOL multiphysics file '" << mph_ << "'!");
+      }      
+
+      int res = unzLocateFile( uf, "model.xml", 1 ); // case sensitive
+      if( res != UNZ_OK ) 
+      {
+        unzClose(uf);
+        EXCEPTION("Could not locate model.xml inside '" << mph_ << "'!");
+      }      
+
+      unz_file_info fi;
+      unzGetCurrentFileInfo( uf, &fi, NULL, 0, NULL, 0, NULL, 0 );
+      if( fi.uncompressed_size == 0 )
+      {
+        unzClose(uf);
+        EXCEPTION("Could not get file info for model.xml!");
+      }      
+      int outLength = fi.uncompressed_size;
+      
+      StdVector<char> outData(outLength+1);
+      
+      res = unzOpenCurrentFile( uf );
+      if( res != UNZ_OK )
+      {
+        unzClose(uf);
+        EXCEPTION("Could not open model.xml!");
+      }      
+      
+      int bytesRead = unzReadCurrentFile( uf, &outData[0], outLength );
+      if( bytesRead != outLength ) 
+      {
+        unzCloseCurrentFile( uf );
+        unzClose(uf);
+        EXCEPTION("Number of bytes read " << bytesRead << " is different " << 
+                  "from size " << outLength << " of model.xml!");
+      }      
+        
+      res = unzCloseCurrentFile( uf );
+      if( res != UNZ_OK )
+      {
+        unzClose(uf);
+        EXCEPTION("Problem while closing model.xml!");
+      }      
+
+      unzClose(uf);
+      
+      outData[outLength] = 0;
+      std::string modelXmlStr = &outData[0];
+      
+      // Parse model.xml into a ParamNode using our Xerces parser.
+      CoupledField::Xerces xerces;
+      xerces.SetString(modelXmlStr);
+      PtrParamNode modelNode = xerces.CreateParamNodeInstance();
+
+      std::cout << modelNode->GetName() << std::endl;
+      PtrParamNode selectionNode = modelNode->Get("selection");
+      std::cout << selectionNode->GetName() << std::endl;
+
+      ParamNodeList regions = selectionNode->GetList("selections");
+      ParamNodeList::iterator regit = regions.Begin();
+      std::string name, domains, domtype;
+      for( ; regit != regions.End(); regit++ ) {
+        if((*regit)->Has( "entityName" )) 
+        {  
+          // For COMSOL 4.2
+          (*regit)->GetValue( "entityName", name );
+          (*regit)->GetValue( "domains", domains );
+          (*regit)->GetValue( "hDim", domtype );
+        }
+        else 
+        {
+          // For COMSOL 4.4
+          PtrParamNode valNode = (*regit)->Get("value");
+          valNode->GetValue( "entityName", name );
+          valNode->GetValue( "domains", domains );
+          valNode->GetValue( "hDim", domtype );
+        }        
+
+        LOG_TRACE(simInputMPHTXT) << "name: " << name << " domains: " << domains
+                                  << " domType " << domtype << std::endl;
+
+        std::stringstream sstr;
+        UInt hDim;
+        sstr << domtype;
+        sstr >> hDim;
+        
+        Tok t(domains, sep);
+        Tok::iterator it, end;
+        it = t.begin(); it++;
+        end = t.end();
+        
+        for( ; it != end; it++) {
+          sstr.clear(); sstr.str(*it);
+          UInt dom;
+          sstr >> dom;
+          
+          if(hDim == dim_) {
+            volDomMap[name].push_back(dom);
+          } else {
+            surfDomMap[name].push_back(dom-1);
+          }
+        }
+      }      
+    }
+    else 
+    {
+      // Aquire infos about physical meaning of geometric entities inside
+      // .mphtxt from .xml file.
+      ParamNodeList regions = myParam_->GetList("region");
+      ParamNodeList::iterator regit = regions.Begin();
+      std::string name, domains, domtype;
+      
+      for( ; regit != regions.End(); regit++ ) {
+        
+        (*regit)->GetValue( "name", name );
+        (*regit)->GetValue( "domains", domains );
+        (*regit)->GetValue( "domtype", domtype );
+        
+        Tok t(domains, sep);
+        Tok::iterator it, end;
+        it = t.begin();
+        end = t.end();
+        
+        for( ; it != end; it++) {
+          std::stringstream sstr;
+          sstr << (*it);
+          UInt dom;
+          sstr >> dom;
+          
+          if(domtype == "volume") {
+            volDomMap[name].push_back(dom);
+          } else {
+            surfDomMap[name].push_back(dom);
+          }
+        }
+      }
+    }
+  }
+
   // ======================================================
   // GENERAL MESH INFORMATION
   // ======================================================

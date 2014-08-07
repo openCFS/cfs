@@ -15,6 +15,7 @@
 #include <def_expl_templ_inst.hh>
 
 #include "CoefFunctionGridNodal.hh"
+#include "Driver/SolveSteps/BaseSolveStep.hh"
 
 #include "FeBasis/FeSpace.hh"
 #include <boost/lexical_cast.hpp>
@@ -24,24 +25,17 @@
 
 namespace CoupledField{
 
-//template<class T>
-//struct map_data_compare : public std::binary_function<typename T::value_type, 
-//                                                      typename T::mapped_type, 
-//                                                      bool>
-//{
-//public:
-//    bool operator() (typename T::value_type &pair, 
-//                     typename T::mapped_type i) const
-//    {
-//        return pair.second == i;
-//    }
-//};
 
   template<class DATA_TYPE>
   CoefFunctionGridNodal<DATA_TYPE>::CoefFunctionGridNodal(Domain* ptDomain,
                                                           PtrParamNode configNode)
                                    :CoefFunctionGrid(ptDomain, configNode){
     eqnMapComplete_ = false;
+    lastStepRead_ = 0;
+    //Set sequence Step according to XML definition
+    this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
+
+    this->snapToCFSStep_ = configNode->Get("snapToCFSTimeStep")->As<bool>();
 
     std::string solString = configNode->Get("quantity")->As<std::string>();
     solType_ = SolutionTypeEnum.Parse(solString );
@@ -121,6 +115,18 @@ namespace CoupledField{
   }
 
   template<class DATA_TYPE>
+  void CoefFunctionGridNodal<DATA_TYPE>::CreateDivOperator(UInt spaceDim, UInt dofDim){
+
+    if(spaceDim != dofDim)
+      EXCEPTION("CoefFunctionGridNodal<DATA_TYPE>: Divergence need vectorial data!");
+
+    if(spaceDim == 2)
+      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,2,DATA_TYPE>());
+    else if(spaceDim == 3)
+      this->myOperator_.reset(new ScalarDivergenceOperator<FeH1,3,DATA_TYPE>());
+  }
+
+  template<class DATA_TYPE>
   void CoefFunctionGridNodal<DATA_TYPE>::MapEqns(){
     //Be careful we determine the current sequence step according to the 
     //current simulation run. This could fail in a multisequence analysis!!!
@@ -192,7 +198,6 @@ namespace CoupledField{
       //Vector<DATA_TYPE> curVec = resVec; // = dynamic_cast< Vector<DATA_TYPE>* >(Bres-);
       StdVector<UInt> eqns;
       UInt locPos = 0;
-
       //TODO> In case of multiple source regions, node results on the interface between the regions appear multiple times
       //The current implementation will overwrite the results obtained from reg1 with the one from reg2
       //this should not be problematic as the results in region 1 and 2 should be identical.
@@ -223,14 +228,15 @@ namespace CoupledField{
 
 
         // CURRENTLY NOT WORKING!
-        //factorFnc_->GetScalarValuesAtPoints(CoordVec,values);
-        values.Init(1.0);
+        //factorFnc_->GetScalarValuesAtCoords(CoordVec,values);
+        factorFnc_->GetScalarValuesAtCoords(CoordVec,values,this->domain_->GetGrid());
+        //values.Init(1.0);
         node = 0;
         for( it.Begin(); !it.IsEnd(); it++,node++ ) {
           UInt idx = nodeIdxMap_[it.GetNode()];
           eqns = eqnNumbers_[idx];
-          for(UInt d = 0; d<eqns.GetSize();++d){
-            sol[eqns[d]] = resVec[locPos++];
+          for(UInt d = 0; d<eqns.GetSize();++d,++locPos){
+            sol[eqns[d]] = resVec[locPos] * values[locPos];
 
             //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
@@ -245,14 +251,42 @@ namespace CoupledField{
       UInt stepnumber=0;
       bool needTinterp=false;
       Double factor1,factor2;
-      stepnumber = GetStepNum(needTinterp,factor1,factor2);
-      if(needTinterp){
-        EXCEPTION("StepValue interpolation not supported right now")
-      }else{
-        //we just read the solution vector
+      if(this->snapToCFSStep_){
+        //we need this to set some class variables... this is not very good style
+        stepnumber = GetStepNum(needTinterp,factor1,factor2);
+        stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
         if(lastStepRead_ != stepnumber){
           this->ReadSolution(stepnumber,this->solVec_);
           lastStepRead_ = stepnumber;
+        }
+      }else{
+        stepnumber = GetStepNum(needTinterp,factor1,factor2);
+        if(needTinterp){
+          WARN("Interpolating between src-file timestep #" << lastStepRead_ << " and " << stepnumber);
+          if(this->solVecFuture_.GetSize() == 0){
+            this->solVecFuture_.Resize(numEqns_);
+            this->solVecFuture_.Init();
+          }
+          if(lastStepRead_ != stepnumber){
+            this->solVecOld_ = this->solVecFuture_;
+            this->ReadSolution(stepnumber,this->solVecFuture_);
+          }
+          //should not happen anyway
+          if(this->solVecOld_.GetSize() == 0){
+            this->solVecOld_.Resize(this->solVecFuture_.GetSize());
+            this->solVecOld_.Init();
+          }
+          for(UInt i=0;i<this->solVecOld_.GetSize();i++){
+            this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
+          }
+          lastStepRead_ = stepnumber;
+        }else{
+          //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
+          //we just read the solution vector
+          if(lastStepRead_ != stepnumber){
+            this->ReadSolution(stepnumber,this->solVec_);
+            lastStepRead_ = stepnumber;
+          }
         }
       }
     }
@@ -282,7 +316,7 @@ namespace CoupledField{
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-4){
+      if(abs(stepIter->second - aTimeFreq) < 1e-10){
         break;
       }
     }
@@ -302,8 +336,8 @@ namespace CoupledField{
         }
       }
       interpolateT = true;
-      //std::cout << "oldTime = " << oldTime << std::endl;
-      //std::cout << "stepIter->second = " << stepIter->second << std::endl;
+//      std::cout << "oldTime = " << oldTime << std::endl;
+//      std::cout << "stepIter->second = " << stepIter->second << std::endl;
       Double dt = stepIter->second - oldTime;
       iFactor1 = (stepIter->second  - curTStep_)/dt;
       iFactor2 = (curTStep_  - oldTime)/dt;
@@ -321,7 +355,6 @@ namespace CoupledField{
       iFactor1 = 0.0;
       iFactor2 = 0.0;
     }
-    //std::cout << "computed Step: " << step << std::endl;
     return step;
   }
 }

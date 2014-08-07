@@ -116,9 +116,9 @@ project)
 
 \subsection{GMV}
 \label{sec:postproc_gmv}
-\noindent The current GMV  version is located in \texttt{/home/shareAll/linux\_bin/bin}
-in  Erlangen  and in  {\tt  /opt/pckg/bin}  at  clusters and  workstations  in
-Klagenfurt.
+\noindent     The      current     GMV      version     is      located     in
+\texttt{/home/shareAll/linux\_bin/bin} in Erlangen  and in {\tt /opt/pckg/bin}
+at clusters and workstations in Klagenfurt.
 
 \noindent Currently there are three binaries:
 
@@ -236,15 +236,14 @@ Fig. \ref{fig:visit_adv_io} shows. It can also export data into Tecplot format
 \subsection{ParaView} A ParaView plugin for reading CFS++'s native HDF5 format
 is provided.   We (Andreas Hauck  and Simon Triebenbacher) have  implemented a
 file  reader  for  our  HDF5   files  into  the  Visualization  Toolkit  (VTK)
-\cite{VTKWebSite,VTKWiki,VTKTextbook,VTKGuide}  which ParaView is  built upon.
+\cite{VTKWebSite,VTKWiki,VTKTextbook,VTKGuide} which  ParaView is  built upon.
 The   basis  for   this  endeavour   was   the  OpenFOAM   reader  by   Takuya
 Oshima\footnote{\url{http://openfoamwiki.net/index.php/Contrib_Parallelized_Native_OpenFOAM_Reader_for_ParaView}}. It
 will be built  along ParaView, if BUILD\_PARAVIEW is switched  ON in the CMake
-build environment  of CFS++.  Building ParaView  will take a  long time, since
-also Qt4  must be built  for it. Prebuilt  binaries for a number  of platforms
-along with a few sample datasets  can be found on the CFS++ development server
-at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+build environment  of CFS++.  Building ParaView  will take a long  time, since
+also Qt4  must be built  for it. Prebuilt binaries  for a number  of platforms
+along with a few sample datasets can  be found on the CFS++ development server
+at \url{\CFSDSFTP/binaries/paraview}.
 
 The architecture of our plugin, how it integrates with VTK/ParaView, where the
 source code resides and how it is  built into ParaView by CFSDEPS can be found
@@ -283,19 +282,20 @@ data    to    native    VTK    multi    block    files    or    XDMF2    files
 \url{http://paraview.org/OnlineHelpCurrent/Cut.html}
 
 \subsection{GiD}
+Refer                to                \cite{Simkovics2010}                and
 \url{http://gid.cimne.upc.es/component/manual/24170?id=24170}
-
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
 
 \subsection{GMV}
 
 \noindent Color by node fields:
 
-\noindent Cells dialogue  $\rightarrow$ Color By: $\rightarrow$ Node Field  $\rightarrow$ Cells dialogue: Apply
+\noindent  Cells dialogue  $\rightarrow$  Color By:  $\rightarrow$ Node  Field
+$\rightarrow$ Cells dialogue: Apply
 
 \noindent Color by materials:
 
-\noindent Display $\rightarrow$ Cells $\rightarrow$ Select $\rightarrow$ Select On Materials and Flags $\rightarrow$ Man  $\rightarrow$ Apply
+\noindent  Display  $\rightarrow$  Cells  $\rightarrow$  Select  $\rightarrow$
+Select On Materials and Flags $\rightarrow$ Man $\rightarrow$ Apply
 
 \subsection{ANSYS Classic}
 Plot    nodal   solution   elecPot    on   .rst    from   test    suite   case
@@ -326,7 +326,8 @@ Results Button (left-most colorful one)
 
 For plotting element results use the {\tt plesol} command.
 
-To get information about available result sets, one can write the following sequence of commands
+To get  information about available result  sets, one can write  the following
+sequence of commands
 %
 \begin{verbatim}
 /POST1  
@@ -396,7 +397,8 @@ saved in  the {\tt .rst} file depends  on the settings made  in the simulation
 
 \subsection{GMV}
 
-\noindent Menu: Calculate $\rightarrow$ Cutplanes $\rightarrow$ 1 NONE $\rightarrow$ (1,0,-0.3), (0,1,-0.3), (0,0,-0.3) $\rightarrow$ Add
+\noindent  Menu:  Calculate  $\rightarrow$   Cutplanes  $\rightarrow$  1  NONE
+$\rightarrow$ (1,0,-0.3), (0,1,-0.3), (0,0,-0.3) $\rightarrow$ Add
 
 Note that also cutspheres are possible to calculate.
 
@@ -433,8 +435,8 @@ the "Clip" filter on the point data, and set "type" to "Scalar"
 \url{http://paraview.org/OnlineHelpCurrent/Contour.html}
 
 \subsection{GiD}
-\url{http://gid.cimne.upc.es/component/manual/24164?id=24164}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+Refer   to   \cite{Simkovics2010}   and   to
+\url{http://gid.cimne.upc.es/component/manual/24164?id=24164}.
 
 
 \subsection{Tecplot}
@@ -469,8 +471,9 @@ PLDISP,2
 \subsection{ParaView}
 
 Data    of     the    deformed    structure    can     be    visualized    via
-Filters$\rightarrow$Common$\rightarrow$Warp(vector). Surface  plots of scalar fields  may be created
-using Filters$\rightarrow$Alphabetical$\rightarrow$Warp(scalar).
+Filters$\rightarrow$Common$\rightarrow$Warp(vector).  Surface plots  of scalar
+fields              may              be             created              using
+Filters$\rightarrow$Alphabetical$\rightarrow$Warp(scalar).
 
 \begin{itemize}
 \item \url{http://paraview.org/OnlineHelpCurrent/WarpVector.html}
@@ -478,7 +481,7 @@ using Filters$\rightarrow$Alphabetical$\rightarrow$Warp(scalar).
 \end{itemize}
 
 \subsection{GiD}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+Refer   to   \cite{Simkovics2010}.
 
 \subsection{GMV}
 
@@ -490,13 +493,13 @@ meshes.
 
 The only  possibilty is to  re-write gmv files with  mechanical displacements,
 where  the  displacements are  added  to  the  nodal coordinates  as  offsets.
-Fortunately, there exists  a GMV writer/reader-library\footnote{GMV I/O source
-codes:  \url{http://www.generalmeshviewer.com/io_util.html}},  which was  used
-for     the    program     gmv-addDisp\footnote{GMV     displacement    tools:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV/gmv-tools.tgz}}.
-It can be used  to read in a GMV file, add the  displacements as offset to the
-nodal coordinates and write a new result file with a new name.  The program is
-also located in \texttt{/home/shareAll/linux\_bin/bin}.
+Fortunately, there exists a  GMV writer/reader-library\footnote{GMV I/O source
+  codes: \url{http://www.generalmeshviewer.com/io_util.html}},  which was used
+for     the    program     gmv-addDisp\footnote{GMV    displacement     tools:
+  \url{\CFSDSWEBDAV/programs/GMV/gmv-tools.tgz}}.  It  can be used  to read
+in a GMV  file, add the displacements  as offset to the  nodal coordinates and
+write a  new result  file with  a new name.   The program  is also  located in
+\texttt{/home/shareAll/linux\_bin/bin}.
 
 \noindent The syntax is as follows:
 \begin{verbatim}
@@ -567,7 +570,7 @@ filename-expansion by the shell!
 \url{https://visualization.hpc.mil/wiki/Glyph}
 
 \subsection{GiD}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+Refer   to   \cite{Simkovics2010}.
 
 \subsection{Tecplot}
 \url{http://www.tecplot.com/Portals/0/Tutorials/Vector.htm}
@@ -639,14 +642,15 @@ Refer               to                Sec.               2.10               in
 
 \subsubsection{Selecting points and marking them with glyphs}
 
-You  may select points  using the  selection toolbar.  To really  do something
+You may  select points using  the selection  toolbar.  To really  do something
 useful  with  the  set  of   selected  points  open  the  Selection  inspector
-(View$\rightarrow$Selection Inspector). There you may  add or remove selected points from
-a list.  Turn on Cell or  Point labels and do  some other stuff.  Once you are
-satisfied  with the selection,  just apply  the Filters$\rightarrow$Alphabetical$\rightarrow$Extract
-Selection  Filter and  make sure  to click  the Copy  Selection button  in its
-properties pane.  Now you have extracted  your Points for  example and display
-them using for example the Glyph filter.
+(View$\rightarrow$Selection Inspector).  There you may add  or remove selected
+points from  a list.  Turn on  Cell or Point  labels and do some  other stuff.
+Once   you    are   satisfied   with    the   selection,   just    apply   the
+Filters$\rightarrow$Alphabetical$\rightarrow$Extract Selection Filter and make
+sure to click the Copy Selection button  in its properties pane.  Now you have
+extracted your Points for example and display them using for example the Glyph
+filter.
 
 \subsubsection{Marking named nodes and elements with glyphs}
 
@@ -784,7 +788,7 @@ Tools  $\rightarrow$  Animation  $\rightarrow$ Quick  Animation  $\rightarrow$
 Timesteps $\rightarrow$ Start
 
 \subsection{GiD}
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
+Refer   to   \cite{Simkovics2010}.
 
 \subsection{GMV}
 
@@ -792,13 +796,20 @@ GMV  can  not  directly  create  a  movie or  animation,  but  there  are  two
 possibilities to create a sequence of images:
 
 \begin{itemize}
-    \item Under ' File $\rightarrow$ Read GMV File $\rightarrow$ Auto Read - Same Simulation ' one can load sequentially a series of GMV input files and display them. If the checkbox Auto Snapshots is activated, the pictures are written in the SGI RGB format. Note, that during the rendering, the GMV window has to be completely visible, since the snapshot function uses some of the X-system internal functions.
-    \item Another way of making image sequences is to use the script gmv-animate.sh.
+    \item Under '  File $\rightarrow$ Read GMV File $\rightarrow$  Auto Read -
+      Same Simulation ' one can load  sequentially a series of GMV input files
+      and  display them.  If the  checkbox  Auto Snapshots  is activated,  the
+      pictures  are written  in  the SGI  RGB format.  Note,  that during  the
+      rendering,  the GMV  window  has  to be  completely  visible, since  the
+      snapshot function uses some of the X-system internal functions.
+
+    \item  Another  way  of  making  image sequences  is  to  use  the  script
+      gmv-animate.sh.
 \end{itemize}
 
 \noindent   This   script  is   also   located   on   the  CFS++   development
 server\footnote{gmv-render.sh:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV/gmv-tools.tgz}}.
+\url{\CFSDSWEBDAV/programs/GMV/gmv-tools.tgz}}.
 It is used like:
 
 \begin{verbatim}
@@ -864,11 +875,11 @@ For further information see man animate.
 \subsubsection{Using 'convert'}
 
 One way to create a movie is the tool convert. Although its main purpose is to
-convert  pictures from  different formats,  it can  also be  used  to generate
+convert  pictures from  different formats,  it can  also be  used to  generate
 simple .mpg movies. Therefore convert firstly creates temporary jpg images and
-afterwards uses  the tool  mpeg2encode to  create a movie.  This tool  is also
-located in \texttt{/home/shareAll/linux\_bin/bin} and its  location has to be included in the
-search path in order to work correctly with convert.
+afterwards uses  the tool mpeg2encode  to create a  movie.  This tool  is also
+located in  \texttt{/home/shareAll/linux\_bin/bin} and its location  has to be
+included in the search path in order to work correctly with convert.
 
 \noindent A typical call to convert looks like this:
 
@@ -885,10 +896,7 @@ can be seen by man convert.
 
 \subsection{GiD}
 
-Refer to 6.1.7 in
-\url{https://lse17.e-technik.uni-erlangen.de:2001/docu/tutorial/html/cfsManual-html.html}
-
-Refer to line graphs in
+Refer   to   6.1.7   in   \cite{Simkovics2010}   and   to   line   graphs   in
 \url{http://gid.cimne.upc.es/component/manual/24180?id=24180}
 
 \subsection{ParaView}
@@ -898,11 +906,15 @@ Refer to Excercise 2.7 in ParaView 3.10 Tutor.
 \subsubsection{Using the PlotOverLine-Filter to create a xy-plot}
 
 \begin{itemize}
-\item apply the filter "PlotOverLine" (Filters$\rightarrow$Data Analysis$\rightarrow$Plot Over Line) to the vonMises-Calculator-Filter
+\item    apply    the    filter    "PlotOverLine"    (Filters$\rightarrow$Data
+  Analysis$\rightarrow$Plot Over Line) to the vonMises-Calculator-Filter
 \item position the line in the View or by entering coordinates
-\item create another view by splitting the current one (buttons in the top right corner of the view) and choose 2D View
-\item activate the 2D View (by clicking on it) and activate the PlotOverLine-Filter (by selecting it in the Pipeline Browser)
-\item In the Display tab of the object inspector of the PlotOverLine-Filter the plotted variables can be selected and renamed 
+\item create  another view by  splitting the current  one (buttons in  the top
+  right corner of the view) and choose 2D View
+\item  activate   the  2D  View   (by  clicking   on  it)  and   activate  the
+  PlotOverLine-Filter (by selecting it in the Pipeline Browser)
+\item In  the Display tab of  the object inspector of  the PlotOverLine-Filter
+  the plotted variables can be selected and renamed
 \end{itemize}
 
 \subsubsection{Saving/Exporting the scalar result}
@@ -930,12 +942,12 @@ Refer to Excercise 2.11 in ParaView 3.10 Tutor.
 
 \subsubsection{Selecting points and plotting them over time.}
 
-The selection works  as noted in Sec. \ref{sec:selection_pv}.   Do not use the
-Extract   Selection   filter   however.    Instead   use   the   Filters$\rightarrow$Data
-Analysis$\rightarrow$Plot  Selection over Time  filter and  make sure  to click  the Copy
-Selection button in its properties pane to get a plot of all available (nodal)
-results for your selection.  You  can afterwards switch off individual results
-in the Display tab of the Object Inspector.
+The selection works  as noted in Sec. \ref{sec:selection_pv}.  Do  not use the
+Extract Selection  filter however.   Instead use  the Filters$\rightarrow$Data
+Analysis$\rightarrow$Plot Selection  over Time filter  and make sure  to click
+the  Copy Selection  button  in its  properties  pane  to get  a  plot of  all
+available (nodal) results  for your selection.  You can  afterwards switch off
+individual results in the Display tab of the Object Inspector.
 
 ATTENTION: The application of this filter  can take a very long time since all
 time steps have to be loaded and queried for the desired results.

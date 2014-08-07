@@ -7,7 +7,6 @@
 #include "PDE/SinglePDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/DirectCoupledPDE.hh"
-#include "DataInOut/ResultCache.hh"
 #include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 namespace CoupledField
@@ -37,7 +36,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         ret = std::abs(newVal);
         break;
       case L2REL:
-        if (std::abs(newVal) > EPS ) {
+        if (std::abs(newVal) > 1.0 ) {
           ret = delta / std::abs(newVal);
         } else {
           ret = delta;
@@ -294,6 +293,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // Initialize solution map
     solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
+    solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
   }
   
     
@@ -422,11 +422,12 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     
     // 3) Resort the PDE order 
     ResortPDEOrder();
+    isFinalized_ = true;
   }
   
   void IterSolveStep::ResortPDEOrder() {
     LOG_TRACE(itersolvestep) << "Resorting PDE order";
-    
+
     // Collect all uncoupled SinglePDes
     std::set<SinglePDE*> uncoupledPdes;
     uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
@@ -449,17 +450,27 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     // 1) We start by all uncoupled Pdes
     // 2) Add coupled Pdes in the end
     rPDE_.numPDEs_ = uncoupledPdes.size() + rPDE_.coupledPDEs_.GetSize();
+
     rPDE_.PDEs_.Reserve( rPDE_.numPDEs_ );
     std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
     // remember mechanic PDE if present
     SinglePDE * mechPDE = NULL;
+    SinglePDE * heatPDE = NULL;
     for( ; it != uncoupledPdes.end(); ++it ) {
       if( (*it)->GetName() == "mechanic" ) {
         mechPDE = *it;
-      } else {
+      }
+      else if ( (*it)->GetName() == "heatConduction" ) {
+        heatPDE = *it;
+      }
+      else {
         rPDE_.PDEs_.Push_back( *it );
       }
     }
+
+    if ( heatPDE )
+      rPDE_.PDEs_.Push_back( heatPDE );
+
     if( mechPDE )
       rPDE_.PDEs_.Push_back(mechPDE);
     
@@ -588,6 +599,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
 
         rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
         rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
@@ -665,7 +677,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   void IterSolveStep::PreStepTrans()
   {
-    ResultCache::SetStepValue( actTime_ );
   }
   
   
@@ -700,6 +711,9 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
     while (iter < maxiter_ &&  (! normsReached)) {
       LOG_DBG(itersolvestep) << "\n";
       LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
+
+      //std::cout << "=== Iteration #" << iter+1 << "===" << std::endl;
+
       // --------------------------------------
       //  1) Re-Set all convergence criterions
       // --------------------------------------
@@ -763,6 +777,8 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
               << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
               << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
               << std::endl;
+
+          //std::cout << "Quantity " << quantityName << " :" << norm << std::endl;
         }
       }
       iter++;
@@ -791,7 +807,6 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   //----------------------- HARMONIC---------------------------------------
   void IterSolveStep::PreStepHarmonic()
   {
-    ResultCache::SetStepValue( actFreq_ );
   }
   
   void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)

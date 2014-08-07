@@ -11,6 +11,8 @@
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/SimOutput.hh"
 #include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/ColoredConsole.hh"
 
 #include "ParamsInit.hh"
 #include "HelperFuncs.hh"
@@ -44,6 +46,20 @@ PtrParamNode param;
 PtrParamNode info;
 
 namespace CFSTool {
+
+  void PrintWarning(Exception& ex) {
+    
+    // Print warning on command line
+    std::string msg = ex.GetMsg();
+    std::string fileName = ex.GetFileName();
+    unsigned int lineNum = ex.GetLineNum();
+    
+    std::cerr << "\n "
+              << fg_blue << "WARNING:" << fg_reset << "\n "
+              << msg << std::endl;
+    std::cerr << "\n(" << fileName << ", Line " 
+              << lineNum  << ")\n\n";
+  }
 
   void Convert( const std::string& inFile, const std::string& outFile ) {
 
@@ -939,6 +955,7 @@ int main(int argc, char** argv)
   // todo: do better once! - Fabian
   CFSTool::InitEnums(); 
   ElemShape::Initialize();
+  shared_ptr<LogConfigurator> logConf;
 
   domain = NULL;
   
@@ -948,7 +965,7 @@ int main(int argc, char** argv)
   {
     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
 
-    CFSTool::ParamsInit(argc, argv, param);
+    CFSTool::ParamsInit(argc, argv, param, logConf);
 
     // Switch this flag tc true for debugging
     if (param->Get("forceSegFault")->As<bool>())
@@ -957,6 +974,9 @@ int main(int argc, char** argv)
     } else {
       Exception::segfault_ = false;
     }
+
+    // Register callback function with exception class for warning
+    Exception::SetCallbackWarn(CFSTool::PrintWarning);
 
     // Print out hard-coded node and element limits and exit.
     if (param->Has("printLimits"))
@@ -1004,13 +1024,10 @@ int main(int argc, char** argv)
       }
     }
 
-    if (file1 != "")
-    {
-      // This is necessary to run, but I do not know what it is for
-      info.reset(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
-      infoFileName = param_mode + "_" + file1 + ".info.xml";
-      info->SetName("cfsInfo"); 
-    }
+    // This is necessary to run, but I do not know what it is for
+    info.reset(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
+    infoFileName = param_mode + "_" + file1 + ".info.xml";
+    info->SetName("cfsInfo"); 
 
     if (param_mode == "calcAverage")
     {
@@ -1053,8 +1070,9 @@ int main(int argc, char** argv)
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
         std::cout << "'" << file1 << "' and '" << file2
-          << "' have maximum difference " << maxDiff
-          << " at '" << maxDiffResultName << "'\n";
+                  << "' have maximum difference " << maxDiff
+                  << " at '" << maxDiffResultName << "' which is greater than "
+                  << "the specified tolerance " << tolerance << ".\n";
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";
@@ -1075,12 +1093,9 @@ int main(int argc, char** argv)
       CFSTool::Diff( file1, file2, file3, \
                      true, false, maxDiffResultName);
     } else if (param_mode == "wvt") {
-      if (num_files < 2)
-      {
-        EXCEPTION( "Please provide 'lateral_mode_file', 'coriolis_mode_file',\n and optionally ['mean_velocity_file'] ['out_file']" );
-      }
 
       CFSTool::WVT wvt( param, info );
+      wvt.PostProcess();
 
     } else {
       EXCEPTION( "No such mode: " << param_mode <<". See help for available modes." );

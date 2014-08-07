@@ -2,8 +2,8 @@
 +++ CMakeLists.txt	2013-01-08 16:18:26.750849891 +0100
 @@ -1,5 +1,42 @@
  cmake_minimum_required(VERSION 2.8)
--project(SuiteSparse-3.7.0 C)
-+project(SuiteSparse-3.7.0 Fortran C)
+-project(SuiteSparse-4.2.1 C)
++project(SuiteSparse-4.2.1 Fortran C)
 +
 +IF(NOT CMAKE_CROSSCOMPILING AND NOT CFS_FORTRAN_COMPILER_NAME STREQUAL "OPEN64")
 +  # Create a header file blas_lapack.h with the correct mangling
@@ -54,7 +54,7 @@
  #    libufconfig libamd libcamd libcolamd libccolamd libcholmod libumfpack)
 --- CHOLMOD/Include/cholmod_blas.h	2009-11-07 14:31:40.000000000 +0100
 +++ CHOLMOD/Include/cholmod_blas.h	2013-01-08 16:12:02.718849958 +0100
-@@ -106,6 +106,8 @@
+@@ -105,6 +105,8 @@
  
  #elif defined (BLAS_NO_UNDERSCORE)
  
@@ -65,7 +65,7 @@
  #define BLAS_DTRSM dtrsm
 --- UMFPACK/Source/cholmod_blas.h	2009-11-07 14:31:04.000000000 +0100
 +++ UMFPACK/Source/cholmod_blas.h	2013-01-08 15:59:51.358916436 +0100
-@@ -106,6 +106,8 @@
+@@ -97,6 +97,8 @@
  
  #elif defined (BLAS_NO_UNDERSCORE)
  

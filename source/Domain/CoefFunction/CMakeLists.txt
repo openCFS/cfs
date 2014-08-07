@@ -15,6 +15,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
+  CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
   CoefFunctionMeanFlowConvection.cc
 )
@@ -29,4 +30,10 @@ ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 #  $(TARGET_LL)
 #  )
 
+SET(TARGET_LL
+  scattereddatainout
+  )
 
+TARGET_LINK_LIBRARIES(coeffunction
+  ${TARGET_LL}
+  )

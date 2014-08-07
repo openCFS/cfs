@@ -141,6 +141,9 @@ namespace CoupledField {
     //! Compute elasticity tensor from given parameters
     void ComputeFullStiffTensor();
 
+    //! Computae vector for thermal expansion
+    void ComputeFullThermalExpanionVector();
+
   };
 
 } // end of namespace

@@ -45,6 +45,11 @@ public:
   virtual void AddIntegrator( BaseBDBInt* form,  
                               RegionIdType region );
   
+  //! Return type of entry (scalar, vector, tensor)
+  virtual CoefDimType GetDimType() const{
+	  return dimType_;
+  }
+
 protected:
   
   //! Store bilinearform for each region
@@ -88,9 +93,17 @@ public:
   // ========================
   //@{ \name Access Methods
 
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<TYPE>& coefMat,
+                           const LocPointMapped& lpm );
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec,
                          const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(TYPE& coefScal,
+                           const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
@@ -159,9 +172,17 @@ public:
   // ========================
   //@{ \name Access Methods
 
+  //! \copydoc CoefFunction::GetTensor
+  virtual void GetTensor(Matrix<TYPE>& coefMat,
+                           const LocPointMapped& lpm );
+
   //! \copydoc CoefFunction::GetVector
   virtual void GetVector(Vector<TYPE>& coefVec,
                          const LocPointMapped& lpm );
+
+  //! \copydoc CoefFunction::GetScalar
+  virtual void GetScalar(TYPE& coefScal,
+                           const LocPointMapped& lpm );
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const;
@@ -227,6 +248,7 @@ public:
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     EXCEPTION("This class defines coefficients of scalar type only." );
   }
+
   //@}
 
   //! \copydoc CoefFunction::ToString
@@ -251,6 +273,7 @@ protected:
 
   //! Additional factor
   TYPE factor_;
+
 };
 
 } // end of namespace

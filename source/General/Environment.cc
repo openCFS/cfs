@@ -89,6 +89,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_PRESSURE:
+        return "Pa";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -102,6 +106,18 @@ namespace CoupledField {
         break;
 
       case ACOU_RHS_LOAD:
+        return "kg m^-3 s^-2";
+        break;
+
+      case ACOU_RHS_LOADP:
+        return "kg m^-3 s^-2";
+        break;
+
+      case ACOU_APE_RHS_LOAD:
+        return "kg m^-3 s^-2";
+        break;
+
+      case ACOU_VORTEX_RHS_LOAD:
         return "kg m^-3 s^-2";
         break;
 
@@ -125,8 +141,28 @@ namespace CoupledField {
         return "Ws";
         break;
 
+      case ACOU_POT_ENERGY:
+        return "Ws";
+        break;
+
+      case ACOU_KIN_ENERGY:
+        return "Ws";
+        break;
+
       case ACOU_ELEM_SPEED_OF_SOUND:
         return "m/s";
+        break;
+
+      case ACOU_MIXED_MASS_LOAD:
+        return "-";
+        break;
+
+      case ACOU_MIXED_MOMENTUM_LOAD:
+        return "-";
+        break;
+
+      case ACOU_LAMB_RHS:
+        return "-";
         break;
 
       case ELEC_CHARGE:
@@ -169,12 +205,40 @@ namespace CoupledField {
         return "C";
         break;
 
+      case ELEC_CURRENT_DENSITY:
+        return "A/m^2";
+        break;
+
+      case ELEC_NORMAL_CURRENT_DENSITY:
+        return "A/m^2";
+        break;
+
+      case ELEC_CURRENT:
+        return "A";
+        break;
+
+      case ELEC_POWER_DENSITY:
+        return "W/m^3";
+        break;
+
+      case ELEC_POWER:
+        return "W";
+        break;
+
       case FLUIDMECH_VELOCITY:
         return "m/s";
         break;
 
       case MEAN_FLUIDMECH_VELOCITY:
         return "m/s";
+        break;
+
+      case MEAN_FLUIDMECH_VELOCITY_NORMAL:
+        return "m/s";
+        break;
+
+      case DIV_MEAN_FLUIDMECH_VELOCITY:
+        return "1/s";
         break;
 
       case FLUIDMECH_PRESSURE:
@@ -197,24 +261,40 @@ namespace CoupledField {
         return "1/s";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR:
+      case FLUIDMECH_WVT:
         return "kg m^-2 s^-2";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY:
+      case FLUIDMECH_WVT_DENSITY:
         return "kg m^-2 s^-2 m s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_VECTOR_PHI:
+      case FLUIDMECH_WVT_PHI:
         return "kg m^-3 s^-1";
         break;
 
-      case FLUIDMECH_WEIGHT_DENSITY_PHI:
+      case FLUIDMECH_WVT_DENSITY_PHI:
         return "kg m^-3 s^-1 m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U1:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_U2:
+        return "m s^-1";
+        break;
+
+      case FLUIDMECH_WVT_F:
+        return "N";
         break;
 
       case HEAT_TEMPERATURE:
         return "K";
+        break;
+
+      case HEAT_FLUX_DENSITY:
+        return "W/m^2";
         break;
 
       case HEAT_RHS_LOAD:
@@ -226,15 +306,20 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_NORMAL_FLUX_DENSITY:
+      case COIL_LINKED_FLUX:
         return "Vs/m^2";
         break;
 
-      case MAG_HFIELD:
+      case MAG_FLUX:
+        return "Vs";
+        break;
+
+      case MAG_FIELD_INTENSITY:
         return "A/m";
         break;
 
       case MAG_EDDY_CURRENT_DENSITY:
-      case MAG_COIL_CURRENT_DENSITY:
       case MAG_TOTAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
@@ -248,7 +333,12 @@ namespace CoupledField {
         break;
 
       case MAG_SCALAR_POTENTIAL:
+      case COIL_CURRENT:
         return "A";
+        break;
+
+      case COIL_CURRENT_DERIV1:
+        return "A/s";
         break;
 
       case MAG_RHS_LOAD:
@@ -278,6 +368,10 @@ namespace CoupledField {
         return "m";
         break;
 
+      case MECH_NORMAL_DISPLACEMENT:
+        return "m";
+        break;
+
       case MECH_VELOCITY:
         return "m/s";
         break;
@@ -296,15 +390,21 @@ namespace CoupledField {
         return "Ws";
         break;
 
+      case MECH_STRESS:
+        return "N/m^2";
         break;
 
-      case MECH_STRESS:
+      case MECH_THERMAL_STRESS:
         return "N/m^2";
         break;
 
       case MECH_STRAIN:
         return "";
         break;
+
+      case MECH_THERMAL_STRAIN:
+         return "";
+         break;
 
       case MECH_NORMAL_STRESS:
         return "N/m^2";
@@ -461,9 +561,6 @@ namespace CoupledField {
 
 
 
-
-
-
   template<>
   void Enum2String<MaterialClass>(const MaterialClass &in,
                                   std::string &out) {
@@ -479,6 +576,9 @@ namespace CoupledField {
         break;
       case ELECTROSTATIC:
         out = "electric";
+        break;
+      case ELECTRICCONDUCTION:
+        out = "elecConduction";
         break;
       case FLUID:
         out = "acoustic";
@@ -523,8 +623,8 @@ namespace CoupledField {
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
     }
-    else if ( in == "electrostatic" ) {
-      out = ELECTROSTATIC;
+    else if ( in == "elecConduction" ) {
+      out = ELECTRICCONDUCTION;
     }
     else if ( in == "electromagnetic" ) {
       out = ELECTROMAGNETIC;
@@ -643,7 +743,16 @@ namespace CoupledField {
       out = NLHEAT_CONDUCTIVITY;
     } else if( in == "heatCapacity") {
       out = NLHEAT_CAPACITY;
-
+    } else if( in == "elecConductivity") {
+       out = NLELEC_CONDUCTIVITY;
+    } else if( in == "elecBiPole") {
+       out = NLELEC_BIPOLE;
+    } else if( in == "elecBiPoleTempDep") {
+       out = NLELEC_BIPOLE_TEMP_DEP;
+    } else if( in == "elecTriPole") {
+       out = NLELEC_TRIPOLE;
+    } else if( in == "elecTriPoleTempDep") {
+       out = NLELEC_TRIPOLE_TEMP_DEP;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'NonLinType' item!" );
@@ -681,6 +790,21 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
+        break;
+      case NLELEC_CONDUCTIVITY:
+        out = "elecConductivity";
+        break;
+      case NLELEC_BIPOLE:
+        out = "elecBiPole";
+        break;
+      case NLELEC_BIPOLE_TEMP_DEP:
+        out = "elecBiPoleTempDep";
+        break;
+      case NLELEC_TRIPOLE:
+        out = "elecTriPole";
+        break;
+      case NLELEC_TRIPOLE_TEMP_DEP:
+        out = "elecTriPoleTempDep";
         break;
       case PIEZO_MICRO_HF:
         out = "piezoMicroHF";
@@ -1003,16 +1127,19 @@ namespace CoupledField {
     SolutionTypeEnum.SetName("SolutionTypeEnum");
     //mechanics
     SolutionTypeEnum.Add(MECH_DISPLACEMENT, "mechDisplacement");
+    SolutionTypeEnum.Add(MECH_NORMAL_DISPLACEMENT, "mechNormalDisplacement");
     
     SolutionTypeEnum.Add(MECH_ACCELERATION, "mechAcceleration");
     SolutionTypeEnum.Add(MECH_VELOCITY, "mechVelocity");
     SolutionTypeEnum.Add(MECH_RHS_LOAD, "mechRhsLoad");    
     
     SolutionTypeEnum.Add(MECH_STRESS, "mechStress");
+    SolutionTypeEnum.Add(MECH_THERMAL_STRESS, "mechThermalStress");
     SolutionTypeEnum.Add(MECH_STRAIN, "mechStrain");
+    SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
-    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMises");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
     SolutionTypeEnum.Add(MECH_DEFORM_ENERGY_DENS, "mechDeformEnergyDensity");
@@ -1024,10 +1151,15 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
-    
-    //electrostatics
+
+    //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
+    SolutionTypeEnum.Add(ELEC_CURRENT_DENSITY, "elecCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_NORMAL_CURRENT_DENSITY, "elecNormalCurrentDensity");
+    SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
+    SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
+    SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
     SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
     SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
@@ -1055,6 +1187,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_POTENTIAL_DERIV_2, "acouPotentialD2");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
+    SolutionTypeEnum.Add(ACOU_RHS_LOADP, "acouRhsLoadP");
+    SolutionTypeEnum.Add(ACOU_APE_RHS_LOAD, "apeRhsLoad");
+    SolutionTypeEnum.Add(ACOU_VORTEX_RHS_LOAD, "vortexRhsLoad");
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
     SolutionTypeEnum.Add(ACOU_RHSVAL, "acouRHSval");
     SolutionTypeEnum.Add(ACOUSURF_RHSVAL, "acouSurfRHSval");
@@ -1064,10 +1199,21 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_INTENSITY, "acouIntensity");
     SolutionTypeEnum.Add(ACOU_NORMAL_INTENSITY, "acouNormalIntensity");
     SolutionTypeEnum.Add(ACOU_SURFINTENSITY, "acouSurfIntensity");
-    SolutionTypeEnum.Add(ACOU_ENERGY, "acouEnergy");
+    SolutionTypeEnum.Add(ACOU_POT_ENERGY, "acouPotEnergy");
+    SolutionTypeEnum.Add(ACOU_KIN_ENERGY, "acouKinEnergy");
     SolutionTypeEnum.Add(ACOU_PMLAUXVEC,"acouPmlAuxVec");
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
+
+    SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
+    SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
+    SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
+
+    //water waves
+    SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
+    SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
+    SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -1076,29 +1222,42 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_RHS_LOAD, "magRhsLoad");
     
     SolutionTypeEnum.Add(MAG_FLUX_DENSITY, "magFluxDensity");
-    SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
+    SolutionTypeEnum.Add(MAG_FLUX, "magFlux");
+    SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
+    SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
+    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
-    SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSIY, "magEddyPowerDensity");
+    SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
     
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
-
-    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
-    
+    SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
+
+    // magnetic - coil results
+    SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
+    SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
+    
+    SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
+    SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
+    SolutionTypeEnum.Add(COIL_LINKED_FLUX, "coilLinkedFlux");
+    
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
+    SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
     //fluidMech
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
+    SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY_NORMAL, "meanFluidMechVelocityNormal");
+    SolutionTypeEnum.Add(DIV_MEAN_FLUIDMECH_VELOCITY, "divMeanFluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY, "fluidMechVelocity");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE, "fluidMechPressure");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_1, "fluidMechVelocity_deriv1");
@@ -1110,10 +1269,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
     SolutionTypeEnum.Add(FLUIDMECH_STRESS, "fluidMechStress");
     SolutionTypeEnum.Add(FLUIDMECH_STRAINRATE, "fluidMechStrainRate");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR, "fluidMechWeightVector");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY, "fluidMechWeightDensity");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_VECTOR_PHI, "fluidMechWeightVectorPhi");
-    SolutionTypeEnum.Add(FLUIDMECH_WEIGHT_DENSITY_PHI, "fluidMechWeightDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT, "fluidMechWVT");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY, "fluidMechWVTDensity");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_PHI, "fluidMechWVTPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_DENSITY_PHI, "fluidMechWVTDensityPhi");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U1, "fluidMechWVT_u1");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_U2, "fluidMechWVT_u2");
+    SolutionTypeEnum.Add(FLUIDMECH_WVT_F, "fluidMechWVT_f");
+
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
 
     // TEST PDE
@@ -1135,7 +1298,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
     // independent
-    SolutionTypeEnum.Add(LAGRANGE_MULT, "LagrangeMultiplier");
+    SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
+    SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
+    SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_2, "lagrangeMultiplierD2");
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
@@ -1162,6 +1327,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MAG_RELUCTIVITY_DERIV, "Magnetic_reluctivity_derivative" );
     MaterialTypeEnum.Add( MAG_CONDUCTIVITY, "Magnetic_Conductivity" ); 
     MaterialTypeEnum.Add( ELEC_PERMITTIVITY, "Electric_Permittivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY, "Electric_Conductivity" );
+    MaterialTypeEnum.Add( ELEC_CONDUCTIVITY_TENSOR, "Electric_conductivity_tensor" );
     MaterialTypeEnum.Add( MECH_STIFFNESS_TENSOR, "MechanicStiffnessTensor" );
     MaterialTypeEnum.Add( COEFF_STRAIN_IRREVERSIBLE, "Coeff_Strain_Irreversible" ); 
     MaterialTypeEnum.Add( MECH_EMODULUS, "Mechanic_Emodulus" );
@@ -1179,6 +1346,19 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_GMODULUS_XY, "Mechanic_Gmodulus_XY" );
     MaterialTypeEnum.Add( MECH_LAME_MU, "Mechanic_LameMu" );
     MaterialTypeEnum.Add( MECH_LAME_LAMBDA, "Mechanic_LameLambda" ); 
+    MaterialTypeEnum.Add( MECH_TEC, "Mechanic_ThermalExpCoef" );
+    MaterialTypeEnum.Add( MECH_TEC1, "Mechanic_ThermalExpCoef1" );
+    MaterialTypeEnum.Add( MECH_TEC2, "Mechanic_ThermalExpCoef2" );
+    MaterialTypeEnum.Add( MECH_TEC3, "Mechanic_ThermalExpCoef3" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
+    MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
+
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORPLANE, "Mechanic_StiffTEC_VectorPlane" );
+    MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORAXI, "Mechanic_StiffTEC_VectorAxi" );
+
+    MaterialTypeEnum.Add( MECH_TEC_REFTEMPERATURE, "refTemperature");
     MaterialTypeEnum.Add( RAYLEIGH_ALPHA, "Rayleigh_Alpha" ); 
     MaterialTypeEnum.Add( RAYLEIGH_BETA, "Rayleigh_Beta" ); 
     MaterialTypeEnum.Add( RAYLEIGH_FREQUENCY, "Rayleigh_Frequency" ); 
@@ -1245,8 +1425,11 @@ namespace CoupledField {
     // ==== Initialization of ApproxCurveTypes ====
     ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );
     ApproxCurveTypeEnum.Add( LIN_INTERPOLATE, "LinInterpolate" );
+    ApproxCurveTypeEnum.Add( BILIN_INTERPOLATE, "BiLinInterpolate" );
+    ApproxCurveTypeEnum.Add( TRILIN_INTERPOLATE, "TriLinInterpolate" );
     ApproxCurveTypeEnum.Add( CUBIC_SPLINES, "CubicSplines" );
     ApproxCurveTypeEnum.Add( SMOOTH_SPLINES, "smoothSplines" );
+    ApproxCurveTypeEnum.Add( ANALYTIC, "analytic" );
     
     
     MAX_NUM_FE_MATRICES = feMatrixType.map.size() - 1;

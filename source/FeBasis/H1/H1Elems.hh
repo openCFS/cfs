@@ -12,6 +12,24 @@ namespace CoupledField {
   class FeH1 : public BaseFE {
   public:
 
+    //! Enum defining the completenesss of the basis functions
+    
+    //! This enum defines (especially for higher order polynomials), if the
+    //! set of polynomials spans a complete set up to a given order p (i.e.
+    //! every single monomial occurring has maximum order p -> tensorial 
+    //! approach / Lagrange approach) or if the only the sum of every 
+    //! combination spans the polynomial degree p (Serendipity / trunk type)
+    //! This has an influence on the possible choice of integration method,
+    //! as 
+    //@{
+    typedef enum {
+      SERENDIPITY_TYPE,      // Only side nodes (also referred as trunk space)
+      TENSOR_TYPE            // Tensor approach (also referred as Lagrange space)
+    } PolyCompleteType;
+    static Enum<PolyCompleteType> polyCompleteEnum_;
+    //@}
+    
+    
     //! Constructor
     FeH1();
 
@@ -101,6 +119,9 @@ namespace CoupledField {
                                     const Elem* ptElem,
                                     UInt comp = 1 ) = 0;
     
+    //! Flag defining the completeness of the polynomial
+    PolyCompleteType completeType_;
+    
     // =======================================================================
     //  PRE CALCULATION OF SHAPE FUNCTIONS AT INTEGRATION POINTS
     //  Changed here to map data structure as it is more versatile and
@@ -146,6 +167,8 @@ namespace CoupledField {
 
     //@}
   private:
+    
+    
   };
 
 } // namespace CoupledField

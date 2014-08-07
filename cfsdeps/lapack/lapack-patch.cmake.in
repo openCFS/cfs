@@ -20,7 +20,7 @@ INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 # Apply some patches.
 #=============================================================================
 SET(patches
-  "lapack-for-cfs.patch";
+  "lapack-for-cfs.patch"
 )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/lapack")

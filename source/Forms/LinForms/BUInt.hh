@@ -29,20 +29,21 @@
 namespace CoupledField{
 
 
-template< class B_OP,
-class VEC_DATA_TYPE=Double,
-bool SURFACE = false>
+template< class VEC_DATA_TYPE=Double,
+          bool SURFACE = false>
 class BUIntegrator : public LinearForm{
 public:
 
   //! Constructor for volume integration
-  BUIntegrator(VEC_DATA_TYPE factor,
+  BUIntegrator(BaseBOperator * bOp,
+               VEC_DATA_TYPE factor,
                shared_ptr<CoefFunction > rhsCoef,
                bool coordUpdate = false,
                bool fullEvaluation = true);
 
   //! Constructor for surface integration
-  BUIntegrator(VEC_DATA_TYPE factor,
+  BUIntegrator(BaseBOperator * bOp,
+               VEC_DATA_TYPE factor,
                shared_ptr<CoefFunction > rhsCoef,
                const std::set<RegionIdType>& volRegions,
                bool coordUpdate = false,
@@ -65,16 +66,11 @@ public:
     Bdim_ = opDim;
   }
 
-  //! \copydoc LinearForm::IsSolDependent
-  bool IsSolDependent() {
-    return rhsCoefs_->GetDependency() == CoefFunction::SOLUTION;
-  }
-
 protected:
   
   
   //! Differential operator
-  B_OP operator_;
+  BaseBOperator * bOperator_;
 
   //! Additional factor for integrator
   VEC_DATA_TYPE factor_;

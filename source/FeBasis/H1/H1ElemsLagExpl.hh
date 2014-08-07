@@ -33,7 +33,8 @@ public:
   //! Get the permutation Vector for a given Face or Edge
   //! e.g. If asked for a face, the element will check the flags
   //! of this face and return a vector of size NumberOfFncs on the Face
-  //! holding the correct ordering 
+  //! holding the correct ordering. BUT: this only works for tensor product elements!
+  //! For Explicit elements this needs to be overloaded!
   /*!
   \param fncPermutation (output) The Permuation Vector 
   \param ptElem (input) pointer to Grid Element to get grip of flags 
@@ -99,6 +100,9 @@ public:
   //! Overloaded method for lagrange Elements
   //virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
+  //! @copydoc BaseFE::GetLocalDOFCoordinates
+  virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
+  
 protected:
 
   //! @copydoc FeNodal::SetFunctionsAtIp
@@ -558,6 +562,7 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
 };
 
 //! Lagrangian tetrahedron element of 1st order (ET_TET4)

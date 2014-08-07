@@ -220,21 +220,21 @@ namespace CoupledField {
     elemNodeMap_[Elem::ET_QUAD9].insert( emvt(7, 7) );
     elemNodeMap_[Elem::ET_QUAD9].insert( emvt(8, 8) );
 
-    elemNodeMap_[Elem::ET_TET4].insert( emvt(0, 0) );
+    elemNodeMap_[Elem::ET_TET4].insert( emvt(3, 0) );
     elemNodeMap_[Elem::ET_TET4].insert( emvt(1, 1) );
     elemNodeMap_[Elem::ET_TET4].insert( emvt(2, 2) );
-    elemNodeMap_[Elem::ET_TET4].insert( emvt(3, 3) );
+    elemNodeMap_[Elem::ET_TET4].insert( emvt(0, 3) );
 
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(0, 0) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(3, 0) );
     elemNodeMap_[Elem::ET_TET10].insert( emvt(1, 1) );
     elemNodeMap_[Elem::ET_TET10].insert( emvt(2, 2) );
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(3, 3) );
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(4, 4) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(0, 3) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(9, 4) );
     elemNodeMap_[Elem::ET_TET10].insert( emvt(5, 5) );
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(6, 6) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(8, 6) );
     elemNodeMap_[Elem::ET_TET10].insert( emvt(7, 7) );
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(8, 9) );
-    elemNodeMap_[Elem::ET_TET10].insert( emvt(9, 8) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(6, 9) );
+    elemNodeMap_[Elem::ET_TET10].insert( emvt(4, 8) );
 
     elemNodeMap_[Elem::ET_HEXA8].insert( emvt(0, 0) );
     elemNodeMap_[Elem::ET_HEXA8].insert( emvt(1, 1) );

@@ -60,6 +60,11 @@ namespace CoupledField
     //! solution) is present for the wrapped bilinearform
     bool IsNonLin();
 
+    //! bilinearform is part of Newton tangential matrix
+    bool IsNewtonBilinearForm() {
+      return integrator_->IsNewtonBilinearForm();
+    }
+
     //! Get destination matrix
     FEMatrixType GetDestMat() const { return destMat_; }
 
@@ -218,24 +223,7 @@ namespace CoupledField
 
   };
 
-  class SurfaceBiLinFormContext : public BiLinFormContext {
-  public:
 
-
-    SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection);
-
-    //! Destructor
-    virtual ~SurfaceBiLinFormContext();
-
-    virtual void MapEqns( EntityIterator& it1,
-                              EntityIterator& it2,
-                              StdVector<Integer>& eqnVec1,
-                              StdVector<Integer>& eqnVec2,
-                              FeFctIdType& id1, FeFctIdType& id2 );
-
-  protected:
-    BiLinearForm::CouplingDirection currentDirection_;
-  };
 
   // -------------------------------------------------------------------------
 
@@ -326,7 +314,10 @@ namespace CoupledField
     //! \param destMat destination Matrix (STIFFNESS, MASS, ...) of the
     //!                bilinearform
     NcBiLinFormContext(BiLinearForm *biLinForm, FEMatrixType destMat)
-        : BiLinFormContext( biLinForm, destMat ) {};
+        : BiLinFormContext( biLinForm, destMat ) {
+
+      isMoving_ = false;
+    };
 
     //! Destructor
     virtual ~NcBiLinFormContext(){};
@@ -342,8 +333,51 @@ namespace CoupledField
                           StdVector<Integer>& eqnVec2,
                           FeFctIdType& id1, FeFctIdType& id2 );
 
+    //! Returns all equations of this context
+    virtual void GetEqns( StdVector<Integer>& eqnVec1,
+                             StdVector<Integer>& eqnVec2,
+                             FeFctIdType& id1, FeFctIdType& id2 ) const;
+    
+    //! set the moving flag
+    virtual void SetMotion(bool moving){
+      isMoving_ = moving;
+    }
+
+    //! obtain moving flag
+    virtual bool GetMotion(){
+      return isMoving_;
+    }
+
+  private:
+
+    //flag indicating if we are moving
+    bool isMoving_;
+
   }; // class NcBiLinFormContext
 
+  class SurfaceBiLinFormContext : public NcBiLinFormContext {
+   public:
+
+
+     SurfaceBiLinFormContext( BiLinearForm* biLinForm, FEMatrixType destMat, BiLinearForm::CouplingDirection currentDirection);
+
+     //! Destructor
+     virtual ~SurfaceBiLinFormContext();
+
+     virtual void MapEqns( EntityIterator& it1,
+                               EntityIterator& it2,
+                               StdVector<Integer>& eqnVec1,
+                               StdVector<Integer>& eqnVec2,
+                               FeFctIdType& id1, FeFctIdType& id2 );
+
+     //! Returns all equations of this context
+     virtual void GetEqns( StdVector<Integer>& eqnVec1,
+                              StdVector<Integer>& eqnVec2,
+                              FeFctIdType& id1, FeFctIdType& id2 ) const;
+
+   protected:
+     BiLinearForm::CouplingDirection currentDirection_;
+   };
 } // end of namespace
 
 #endif

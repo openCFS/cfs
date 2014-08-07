@@ -1,6 +1,6 @@
---- src/CMakeLists.txt	2011-11-07 23:11:30.000000000 +0100
-+++ src/CMakeLists.txt	2012-11-26 18:33:46.057764985 +0100
-@@ -570,27 +570,27 @@
+--- src/CMakeLists.txt.orig	2013-11-21 16:13:52.000000000 +0100
++++ src/CMakeLists.txt	2014-02-18 14:13:22.860041658 +0100
+@@ -619,13 +619,13 @@
    TARGET_LINK_LIBRARIES (H5detect "ws2_32.lib")
  ENDIF (MSVC)
  
@@ -20,7 +20,8 @@
 +# )
  
  ADD_EXECUTABLE (H5make_libsettings ${HDF5_SRC_DIR}/H5make_libsettings.c)
- IF (MSVC)
+ TARGET_C_PROPERTIES (H5make_libsettings " " " ")
+@@ -633,14 +633,14 @@
    TARGET_LINK_LIBRARIES (H5make_libsettings "ws2_32.lib")
  ENDIF (MSVC)
  

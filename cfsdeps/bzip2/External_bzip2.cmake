@@ -21,6 +21,7 @@ set(bzip2_install  "${CMAKE_CURRENT_BINARY_DIR}")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${bzip2_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
@@ -51,6 +52,28 @@ SET(PFN "${bzip2_prefix}/bzip2-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
+# Set up a list of publicly available mirrors, since the non-standard port 
+# number of the FTP server on the CFS++ development server  may not be
+# accessible from behind firewalls.
+# Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
+# used to configure the download CMake file for the library.
+#-------------------------------------------------------------------------------
+SET(MIRRORS
+  "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/bzip2-1.0.6.tar.gz"
+  "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/bzip2-1.0.6.tar.gz"
+  "${BZIP2_URL}/${BZIP2_GZ}"
+)
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/bzip2/${BZIP2_GZ}")
+SET(MD5_SUM ${BZIP2_MD5})
+
+SET(DLFN "${bzip2_prefix}/bzip2-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  )
+
+#-------------------------------------------------------------------------------
 # The bzip2 external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(bzip2-static
@@ -63,6 +86,17 @@ ExternalProject_Add(bzip2-static
   CMAKE_ARGS
     ${CMAKE_ARGS}
     -DBUILD_SHARED_LIBS:BOOL=OFF
+)
+
+#-------------------------------------------------------------------------------
+# Add custom download step to be able to download from a list of mirrors
+# instead of just a single URL.
+#-------------------------------------------------------------------------------
+ExternalProject_Add_Step(bzip2-static cfsdeps_download
+   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+   DEPENDERS download
+   DEPENDS "${DLFN}"
+   WORKING_DIRECTORY ${bzip2_prefix}
 )
 
 #-------------------------------------------------------------------------------

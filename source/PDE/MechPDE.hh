@@ -87,6 +87,9 @@ namespace CoupledField
     
     //! Define available postprocessing results
     void DefinePostProcResults();
+    
+    //! Define concentrated mechanical elements
+    void DefineConcentratedElems();
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
@@ -102,6 +105,13 @@ namespace CoupledField
     
     //! Tensor type
     SubTensorType tensorType_;
+
+    //! coefFunctzion for thermal strain
+    shared_ptr<CoefFunctionMulti> thermalStrain_;
+
+    //! coefFunctzion for thermal stress
+    shared_ptr<CoefFunctionMulti> thermalStress_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC

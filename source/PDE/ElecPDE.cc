@@ -246,9 +246,11 @@ namespace CoupledField {
                    CoefXprVecScalOp(mp_, coef[i], 
                    boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i],coefUpdateGeo);
+          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                           Complex(1.0), coef[i],coefUpdateGeo);
         } else  {
-          lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i],coefUpdateGeo);
+          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                          1.0, coef[i],coefUpdateGeo);
         }
         lin->SetName("ChargeDensityInt");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -271,9 +273,11 @@ namespace CoupledField {
         EXCEPTION("Charge density must be defined on elements")
       }
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                         Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                        1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("ChargeDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -309,19 +313,19 @@ namespace CoupledField {
         // === SURFACE ===
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                   Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,2>, 
-                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,2>(),
+                                                  1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }else {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Complex, true>(Complex(1.0), coef[i], volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                   Complex(1.0), coef[i], volRegions, coefUpdateGeo);
           } else  {
-            lin = new BUIntegrator<IdentityOperatorNormal<FeH1,3>, 
-                Double, true>(1.0, coef[i], volRegions, coefUpdateGeo);
+            lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,3>(),
+                                                 1.0, coef[i], volRegions, coefUpdateGeo);
           } 
         }
         lin->SetName("SurfaceFluxDensityInt");
@@ -366,10 +370,10 @@ namespace CoupledField {
     
     if ( isComplex ) {
       if( dim_ == 2 ) {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       } else {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,Complex>(),
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
                                              curCoef, factor, updatedGeo_ );
       }
     }
@@ -500,8 +504,9 @@ namespace CoupledField {
     rhs->unit = "C";
     rhs->definedOn = results_[0]->definedOn;
     rhs->entryType = ResultInfo::SCALAR;
+    rhsFeFunctions_[ELEC_POTENTIAL]->SetResultInfo(rhs);
     availResults_.insert( rhs );
-    DefineFieldResult( feFunctions_[ELEC_POTENTIAL], rhs );
+    DefineFieldResult( rhsFeFunctions_[ELEC_POTENTIAL], rhs );
 
   }
   
@@ -511,7 +516,10 @@ namespace CoupledField {
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(ELEC_POTENTIAL, *ncIt);
+        if (dim_ == 2)
+          DefineMortarCoupling<2,1>(ELEC_POTENTIAL, *ncIt);
+        else
+          DefineMortarCoupling<3,1>(ELEC_POTENTIAL, *ncIt);
         break;
       case NC_NITSCHE:
         EXCEPTION("ncInterface of Nitsche type is not implemented for ElecPDE");

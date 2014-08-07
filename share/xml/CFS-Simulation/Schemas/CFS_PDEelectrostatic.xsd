@@ -219,6 +219,7 @@
   <xsd:simpleType name="DT_ElecNodeResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="elecPotential"/>
+      <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="elecRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>

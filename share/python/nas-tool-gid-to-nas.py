@@ -204,12 +204,15 @@ for line in open(infile, 'r'):
       elemstmpline = line 
       continue
 
+    # at this point, tmpline must not be emtpy because it contains 
+    # the data from the previous line which is needed here!
     if elemstmpline == '':
       print "error! tmpline is empty!"
 
     tls = elemstmpline.split() # contains info about element (number, type, numofnodes, region)
     ls = line.split() # contains node numbers forming the element
 
+    # this check is mainly redundant because it should be correctly done by gid!
     if not (len(ls) == int(tls[2]) and len(tls) == 4):
       print "error parsing nodes! offending lines: " + elemstmpline + ' ' + line
 

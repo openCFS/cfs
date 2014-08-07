@@ -11,6 +11,7 @@ namespace CoupledField {
   
   FeH1::FeH1() {
     hasICModes_ = false;
+    completeType_ = SERENDIPITY_TYPE;
   }
   
   FeH1::~FeH1() {

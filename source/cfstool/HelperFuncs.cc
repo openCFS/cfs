@@ -12,6 +12,7 @@
 #include <def_use_unv.hh>
 #include <def_use_ansysrst.hh>
 #include <def_use_comsol.hh>
+#include <def_use_cgns.hh>
 
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/trim.hpp>
@@ -28,6 +29,8 @@ namespace fs = boost::filesystem;
 #include "DataInOut/SimOutput.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
+
+#include "DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh"
 
 #ifdef USE_MESH
 #include "DataInOut/SimInOut/AnsysFile/SimInputMESH.hh"
@@ -46,8 +49,6 @@ namespace fs = boost::filesystem;
 #ifdef USE_HDF5
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
-
-#include "DataInOut/SimInOut/xdmf/SimOutputXDMF.hh"
 #endif
 
 #include "DataInOut/SimInOut/RefElems/SimInputRefElems.hh"
@@ -67,6 +68,11 @@ namespace fs = boost::filesystem;
 
 #ifdef USE_COMSOL
 #include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
+#endif
+
+#ifdef USE_CGNS
+#include "DataInOut/SimInOut/CGNS/SimInputCGNS.hh"
+#include "DataInOut/SimInOut/CGNS/SimOutputCGNS.hh"
 #endif
 
 #include "DataInOut/SimInOut/TextOutput/TextSimOutput.hh"
@@ -138,6 +144,16 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for MESH input file format." );
 #endif
+    } else if( fileName.find( ".cdb") != std::string::npos ||
+               fileName.find( ".inp") != std::string::npos ) {
+      if(inputNode->Has("cdb")) {
+        readerNode = inputNode->Get("cdb");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("cdb");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputCDB(fileName, readerNode, info));
     } else if( fileName.find( ".h5") != std::string::npos ) {
 #ifdef USE_HDF5
       if(inputNode->Has("hdf5")) {
@@ -180,6 +196,19 @@ namespace CFSTool {
       reader = shared_ptr<SimInput>(new SimInputMPHTXT(fileName, readerNode, info) );
 #else  
       EXCEPTION( "No support for Comsol .mphtxt input file format." );
+#endif
+    } else if( fileName.find( ".cgns") != std::string::npos ) {
+#ifdef USE_CGNS
+      if(inputNode->Has("cgns")) {
+        readerNode = inputNode->Get("cgns");
+      } else {
+        readerNode = PtrParamNode(new ParamNode());
+        readerNode->SetName("cgns");
+      }
+
+      reader = shared_ptr<SimInput>(new SimInputCGNS(fileName, readerNode, info) );
+#else  
+      EXCEPTION( "No support for CGNS .cgns input file format." );
 #endif
     } else if( fileName.find( ".gmv") != std::string::npos ) {
 #ifdef USE_GMV
@@ -359,29 +388,6 @@ namespace CFSTool {
 #else
       EXCEPTION( "No support for HDF5 output file format." );
 #endif
-    } else if(fileName.find( ".xmf") != std::string::npos) {
-#ifdef USE_HDF5
-      baseName = std::string(fileName, 0, fileName.find(".xmf"));
-      PtrParamNode eFiles (new ParamNode(ParamNode::EX, ParamNode::ATTRIBUTE));
-      eFiles->SetName("externalFiles");
-      eFiles->SetValue( "false" );
-
-      if(outputNode->Has("xdmf")) {
-        writerNode = outputNode->Get("xdmf");
-        if(!writerNode->Has("externalFiles")) {
-          writerNode->AddChildNode( eFiles );
-        } 
-      } else {
-        writerNode = PtrParamNode(new ParamNode());
-        writerNode->SetName("xdmf");
-        writerNode->AddChildNode( eFiles );
-      }
-
-      writer =  shared_ptr<SimOutput>( new SimOutputXDMF( baseName, writerNode, 
-                                                          info, restart ) );
-#else
-      EXCEPTION( "No support for HDF5 output file format. Cannot write XDMF files." );
-#endif
     } else if(fileName.find( ".rst") != std::string::npos) {
 #ifdef USE_ANSYSRST
       baseName = std::string(fileName, 0, fileName.find(".rst"));
@@ -426,6 +432,22 @@ namespace CFSTool {
                                                          info, restart ) );
 #else
       EXCEPTION( "No support for IDEAS universal output file format." );
+#endif
+    } else if(fileName.find( ".cgns") != std::string::npos) {
+#ifdef USE_CGNS
+      baseName = std::string(fileName, 0, fileName.find(".cgns"));
+
+      if(outputNode->Has("cgns")) {
+        writerNode = outputNode->Get("cgns");
+      } else {
+        writerNode = PtrParamNode(new ParamNode());
+        writerNode->SetName("cgns");
+      }
+
+      writer =  shared_ptr<SimOutput>( new SimOutputCGNS( baseName, writerNode, 
+                                                          info, restart ) );
+#else
+      EXCEPTION( "No support for CGNS output file format." );
 #endif
     } else {
       EXCEPTION( "Output format not supported!" );
@@ -597,7 +619,7 @@ namespace CFSTool {
             if( oldFormatNode->Has(str) ) 
             {
               ParamNodeList oldList = oldFormatNode->GetChildren();
-              for(UInt on=0, non=oldList.GetSize(); on < non; non++) 
+              for(UInt on=0, non=oldList.GetSize(); on < non; on++) 
               {
                 if(oldList[on]->GetName() == str) 
                 {

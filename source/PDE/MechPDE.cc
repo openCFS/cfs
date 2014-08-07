@@ -25,6 +25,8 @@
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
+#include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -32,8 +34,13 @@
 
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
 namespace CoupledField {
 
@@ -93,10 +100,18 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                  << probGeo << "'"; );
     }
     
-    // Sanity check: 3D can only be computed if 3D elements are present
+    // Sanity check: 3D can only be computed if 3D elements are present/
     if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
     }
+
+    // thermal stress coefFunction
+    thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,
+                         stressDim_, 1, isComplex_, true));
+
+    // thermal strain coefFunction
+    thermalStrain_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,
+                         stressDim_, 1, isComplex_, true));
 }
 
 
@@ -369,6 +384,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
     }
+    
+    // ====================================================================
+    //  Concentrated Mechanical Network Elements
+    // ====================================================================
+    DefineConcentratedElems();
   }
   
   void MechPDE::DefineNcIntegrators() {
@@ -377,10 +397,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     for ( ; ncIt != endIt; ++ncIt ) {
       switch (ncIt->type) {
       case NC_MORTAR:
-        DefineMortarCoupling(MECH_DISPLACEMENT, *ncIt, dim_);
+        if (dim_ == 2)
+          DefineMortarCoupling<2,2>(MECH_DISPLACEMENT, *ncIt);
+        else
+          DefineMortarCoupling<3,3>(MECH_DISPLACEMENT, *ncIt);
         break;
       case NC_NITSCHE:
-        EXCEPTION("ncInterface of Nitsche type is not implemented for MechPDE");
+      {
+        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_
+                                    ->GetNcInterface(ncIt->interfaceId).get());
+        assert(ncIf);
+        
+        //check for softening
+        bool icModes = false;
+        if ( regionSoftening_[ncIf->GetMasterVolRegion()] == "icModesTW" ||
+             regionSoftening_[ncIf->GetSlaveVolRegion()]  == "icModesTW" )
+               icModes = true;
+
+        if(dim_ == 2)
+          DefineNitscheCoupling<2,2>(MECH_DISPLACEMENT, *ncIt, icModes);
+        else
+          DefineNitscheCoupling<3,3>(MECH_DISPLACEMENT, *ncIt, icModes);
+
+      }
         break;
       default:
         EXCEPTION("Unknown type of ncInterface");
@@ -388,6 +427,135 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
     }
   }
+  
+  void MechPDE::DefineConcentratedElems() {
+
+     // Get FESpace and FeFunction of mechanical displacement
+     shared_ptr<BaseFeFunction> myFct = feFunctions_[MECH_DISPLACEMENT];
+     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+     
+      // try to get bcsAndLoads node
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+      if( !bcNode )
+        return;
+
+      // fetch parameter node specifying spring
+      ParamNodeList springNodes =
+          bcNode->GetList("concentratedElem");
+
+      // Iterate over all springs
+      std::string name, dofName;
+      std::string massVal, dampVal, stiffVal;
+      for( UInt i = 0; i < springNodes.GetSize(); i++ ) {
+
+        // get data from node
+        springNodes[i]->GetValue( "name", name );
+        springNodes[i]->GetValue( "dof", dofName );
+        springNodes[i]->GetValue( "massValue", massVal );
+        springNodes[i]->GetValue( "dampingValue", dampVal );
+        springNodes[i]->GetValue( "stiffnessValue", stiffVal );
+
+        UInt dof = results_[0]->GetDofIndex( dofName );
+
+        shared_ptr<EntityList> nodes = 
+            ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
+        UInt numNodes = nodes->GetSize();
+
+        // Ensure, that only lists with 1 or 2 nodes are present
+        if( numNodes > 2 ) {
+          WARN( "Concentrated mechanical element on '" 
+                 << name << "' is omitted, as it consists of more than "
+                 << "2 nodes!"; );
+          continue;
+        }
+
+        StdVector<FEMatrixType> matrices;
+        matrices = STIFFNESS, MASS, DAMPING;
+        StdVector<std::string> vals;
+        vals = stiffVal, massVal, dampVal;
+
+        if( numNodes == 1 ) {
+          // ============================
+          //  POINT CONCENTRATED ELEMENT
+          // ============================
+          
+          for( UInt i = 0; i < matrices.GetSize(); ++i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            
+            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt( dim_, vals[i], dof,
+                                                                   mp_ );
+            BiLinFormContext * intCtx =
+                new BiLinFormContext( myInt, matrices[i] );
+            intCtx->SetEntities( nodes, nodes );
+            intCtx->SetFeFunctions( myFct, myFct );
+            
+            assemble_->AddBiLinearForm( intCtx );
+          } // loop over mass/stiffness/damp
+
+        } else {
+          // =================================
+          //  PAIR-WISE CONCENTRATED ELEMENTS
+          // =================================
+
+          // extract both nodes and put them into a new node list
+          shared_ptr<NodeList> node1(new NodeList(ptGrid_));
+          shared_ptr<NodeList> node2(new NodeList(ptGrid_));
+          StdVector<UInt> tmp(1);
+          EntityIterator it = nodes->GetIterator();
+          tmp[0] = it.GetNode();
+          node1->SetNodes( tmp );
+          it++;
+          tmp[0] = it.GetNode();
+          node2->SetNodes( tmp );
+
+          // loop over stiffness, mass and dampingvalue
+          std::string diagVal, offDiagVal;
+          for( UInt i = 0; i < matrices.GetSize(); ++ i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            if( matrices[i] == STIFFNESS ) {
+              diagVal = "1.0 * (" + vals[i] + ")";
+              offDiagVal = "-1.0 * (" + vals[i] + ")";
+            } else {
+              diagVal = "(" + vals[i] + ") * 1.0 / 3.0";
+              offDiagVal = "(" + vals[i] + ") * 1.0 / 6.0";
+            }
+
+            // a) diagonal entries
+            SingleEntryBiLinInt * diagInt1 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx1 =
+                new BiLinFormContext( diagInt1, matrices[i] );
+            diagCtx1->SetEntities( node1, node1 );
+            diagCtx1->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx1 );
+
+            SingleEntryBiLinInt * diagInt2 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx2 =
+                new BiLinFormContext( diagInt2, matrices[i] );
+            diagCtx2->SetEntities( node2, node2 );
+            diagCtx2 ->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx2 );
+
+            // b) off-diagonal entries
+            SingleEntryBiLinInt * offDiagInt = 
+                new SingleEntryBiLinInt( dim_, offDiagVal, dof, mp_);
+            BiLinFormContext * offDiagCtx = 
+                new BiLinFormContext( offDiagInt, matrices[i] );
+            offDiagCtx->SetEntities( node1, node2 );
+            offDiagCtx->SetFeFunctions( myFct, myFct );
+            offDiagCtx->SetCounterPart( true );
+            assemble_->AddBiLinearForm( offDiagCtx );
+          } // loop matrix types
+        } // if: 1 / 2 nodes
+
+      } // loop concentrated elements
+
+    }
   
   void MechPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
@@ -477,15 +645,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+                                            Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+                                           1.0, coef[i], coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Complex>(new IdentityOperator<FeH1,3,3>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], coefUpdateGeo);
+          lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+                                           1.0, coef[i], coefUpdateGeo);
         }
       }
       lin->SetName("ForceDensityInt");
@@ -497,6 +669,83 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     } // for
     
     
+    // ==================
+    //  THERMAL STRAIN
+    // ==================
+    LOG_DBG(mechpde) << "Reading thermal strain definition";
+
+    ReadRhsExcitation( "thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                       ent, coef, coefUpdateGeo );
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+      for( UInt i = 0; i < ent.GetSize(); ++i ) {
+        // check type of entitylist
+        if (ent[i]->GetType() == EntityList::NODE_LIST) {
+          EXCEPTION("Thermal strain must be defined on elements")
+        }
+
+        RegionIdType myRegionId = ent[i]->GetRegion();
+        MaterialType typeStrain, typeStress;
+        if( subType_ == "axi" ) {
+          typeStrain =  MECH_TEC_VECTORAXI;
+          typeStress =  MECH_STIFFTENSOR_TEC_VECTORAXI;
+        }
+        else if( subType_ == "planeStrain" || subType_ == "planeStress" ) {
+          typeStrain =  MECH_TEC_VECTORPLANE;
+          typeStress =  MECH_STIFFTENSOR_TEC_VECTORPLANE;
+        }
+        else if( subType_ == "3d") {
+          typeStrain = MECH_TEC_VECTOR;
+          typeStress = MECH_STIFFTENSOR_TEC_VECTOR;
+        }
+        else
+          EXCEPTION("Mechanical Tensortype not implemented!")
+
+        //get thermal expansion in Voigt notation
+        PtrCoefFct vecTEC = materials_[myRegionId]->GetVectorCoefFnc(typeStrain, part);
+
+        //get thermal expansion already multiplied with elasticity tensor
+        PtrCoefFct vecMechTEC = materials_[myRegionId]->GetVectorCoefFnc(typeStress, part);
+
+        PtrCoefFct refTemp = materials_[myRegionId]->GetScalCoefFnc(MECH_TEC_REFTEMPERATURE,
+                                                                    part);
+
+        PtrCoefFct TminusTref =
+                  CoefFunction::Generate( mp_, part,
+                                         CoefXprBinOp(mp_,coef[i],refTemp,CoefXpr::OP_SUB));
+
+        //compute the termal strain
+        PtrCoefFct thermalStrainCoef =
+                    CoefFunction::Generate( mp_, part,
+                                           CoefXprBinOp(mp_,TminusTref,vecTEC,CoefXpr::OP_MULT));
+        // store the coefFunction for postprocessing
+        thermalStrain_->AddRegion( myRegionId, thermalStrainCoef);
+
+
+        PtrCoefFct thermalStressCoef =
+                  CoefFunction::Generate( mp_, part,
+                                         CoefXprBinOp(mp_,TminusTref,vecMechTEC,CoefXpr::OP_MULT));
+
+        // store the coefFunction for postprocessing
+        thermalStress_->AddRegion( myRegionId, thermalStressCoef);
+
+        BaseBOperator * bOp = GetStrainOperator( isComplex_, false );
+
+        if(isComplex_) {
+            EXCEPTION("Complex thermal strain RHS linear form not implemented");
+        }
+        else {
+            lin = new BUIntegrator<Double>(bOp, 1.0, thermalStressCoef, coefUpdateGeo);
+        }
+        lin->SetName("ThermalStrainInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+        myFct->AddEntityList(ent[i]);
+      } // for
+
     // ===============
     //  PRESSURE 
     // ===============
@@ -520,23 +769,23 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       
       if( dim_ == 2) {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Complex,true>(Complex(presFac), coef[i], 
-                                               volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+                                                  Complex(presFac), coef[i],
+                                                  volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,2>, 
-                                 Double,true>(presFac, coef[i], volRegions, 
-                                              coefUpdateGeo);
+          lin = new BUIntegrator<Double,true> ( new IdentityOperatorNormalTrans<FeH1,2>(),
+                                                presFac, coef[i], volRegions,
+                                                coefUpdateGeo);
         }
       } else  {
         if(isComplex_) {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Complex, true>(Complex(presFac), coef[i], 
-                                                volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Complex, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+                                                 Complex(presFac), coef[i],
+                                                 volRegions, coefUpdateGeo);
         } else {
-          lin = new BUIntegrator<IdentityOperatorNormalTrans<FeH1,3>, 
-                                 Double, true>(presFac, coef[i], 
-                                               volRegions, coefUpdateGeo);
+          lin = new BUIntegrator<Double, true> ( new IdentityOperatorNormalTrans<FeH1,3>(),
+                                                 presFac, coef[i],
+                                                 volRegions, coefUpdateGeo);
         }
       }
       lin->SetName("PressureInt");
@@ -546,6 +795,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       assemble_->AddLinearForm(ctx);
       myFct->AddEntityList(ent[i]);
     } // for
+
 
     
     // ==================
@@ -569,19 +819,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         
         if( dim_ == 2) {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Complex>(Complex(1.0), 
-                                                                        coef[i], coefUpdateGeo);
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2,2>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,2,2>, Double>(1.0, coef[i], 
-                                                                       coefUpdateGeo);
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2,2>(),
+                                             1.0, coef[i],coefUpdateGeo);
           }
         } else  {
           if(isComplex_) {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Complex>(Complex(1.0), 
-                                                                        coef[i], coefUpdateGeo);
+            lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3,3>(),
+                                              Complex(1.0), coef[i], coefUpdateGeo);
           } else {
-            lin = new BUIntegrator<IdentityOperator<FeH1,3,3>, Double>(1.0, coef[i], 
-                                                                       coefUpdateGeo);
+            lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3,3>(),
+                                             1.0, coef[i], coefUpdateGeo);
           }
         }
         lin->SetName("TractionIntegrator");
@@ -593,7 +843,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       } // for
 
       // ==================
-      //  SURFACE TRACTION
+      //  RHS NODAL VALUES
       // ==================
       LOG_DBG(mechpde) << "Reading direct right hand side values";
 
@@ -799,6 +1049,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     rhs->unit = "N";
     rhs->entryType = ResultInfo::VECTOR;
     rhs->definedOn = ResultInfo::NODE;
+    rhsFeFunctions_[MECH_DISPLACEMENT]->SetResultInfo(rhs);
     DefineFieldResult( rhsFeFunctions_[MECH_DISPLACEMENT], rhs );
 
     // === MECHANIC STRESS ===
@@ -808,14 +1059,83 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     stress->unit =  "N/m^2";
     stress->entryType = ResultInfo::TENSOR;
     stress->definedOn = ResultInfo::ELEMENT;
+    PtrCoefFct stressCoef;
+
     shared_ptr<CoefFunctionFormBased> sigmaFunc;
     if( isComplex_ ) {
       sigmaFunc.reset(new CoefFunctionFlux<Complex>(feFct, stress));
     } else {
       sigmaFunc.reset(new CoefFunctionFlux<Double>(feFct, stress));
     }
-    DefineFieldResult( sigmaFunc, stress );
+    // check for thermal strains
+    bool isThermalStrain = false;
+    PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
+    if( bcsNode ) {
+      if( bcsNode->Has("thermalStrain") ) {
+        isThermalStrain = true;
+      }
+    }
+    if ( isThermalStrain )  {
+      //! Cauchy stress is [c] ( Bu - alpha DeltaT )
+      stressCoef =
+          CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,sigmaFunc,thermalStress_,CoefXpr::OP_SUB));
+    }
+    else {
+      stressCoef = sigmaFunc;
+    }
+    DefineFieldResult( stressCoef, stress );
     stiffFormCoefs_.insert(sigmaFunc);
+
+    // === THERMOMECHANICAL STRESS ===
+    if ( isThermalStrain )  {
+      shared_ptr<ResultInfo> stress(new ResultInfo);
+      stress->resultType = MECH_THERMAL_STRESS;
+      stress->dofNames = stressComponents;
+      stress->unit =  "N/m^2";
+      stress->entryType = ResultInfo::TENSOR;
+      stress->definedOn = ResultInfo::ELEMENT;
+      DefineFieldResult( thermalStress_, stress );
+    }
+
+    // === VON_MISES_STRESS  ===
+    shared_ptr<ResultInfo> misesStress(new ResultInfo);
+    misesStress->resultType = VON_MISES_STRESS;
+    misesStress->dofNames = "";
+    misesStress->unit = "N/m^2";
+    misesStress->entryType = ResultInfo::SCALAR;
+    misesStress->definedOn = ResultInfo::ELEMENT;
+    if ( !isComplex_ ) {
+      shared_ptr<CoefFunctionCompound<Double> >
+        misesCoef(new CoefFunctionCompound<Double>(mp_));
+      std::map<std::string, PtrCoefFct> var;
+      std::string misesStr;
+
+      var["s"] = stressCoef;
+      if ( stressDim_==3 ) {
+        // 2D plane strain or stress case
+        misesStr = "sqrt(   s_0_R^2 + s_1_R^2 \
+                          - s_0_R*s_1_R \
+                          + 3.0*s_2_R^2 )";
+      }
+      else if ( stressDim_==4 ) {
+        // 2D axi case
+        misesStr = "sqrt(   s_0_R^2 + s_1_R^2 + s_3_R^2\
+                             - s_0_R*s_1_R - s_0_R*s_3_R - s_1_R*s_3_R  \
+                             + 3.0*s_2_R^2 )";
+      }
+      else if ( stressDim_==6 ) {
+        // 3D case
+        misesStr = "sqrt(   s_0_R^2 + s_1_R^2 + s_2_R^2\
+                           - s_0_R*s_1_R - s_0_R*s_2_R - s_1_R*s_2_R  \
+                           + 3.0*(s_3_R^2 + s_4_R^2 + s_5_R^2) )";
+      }
+      else
+        EXCEPTION( "Wrong dimesnion for stress: in DefinePostprocResults");
+
+      misesCoef->SetScalar(misesStr,var);
+      DefineFieldResult( misesCoef, misesStress );
+    }
 
     // === MECHANIC STRAIN ===
     shared_ptr<ResultInfo> strain(new ResultInfo);
@@ -830,9 +1150,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     } else {
       strainFunc.reset(new CoefFunctionBOp<Double>(feFct, strain));
     }
-    DefineFieldResult( strainFunc, strain );
+
+    if ( isThermalStrain )  {
+      //add thermal strain to mechanical strain
+      shared_ptr<CoefFunction> totalStrain;
+      totalStrain =
+          CoefFunction::Generate( mp_, part,
+              CoefXprBinOp(mp_,strainFunc,thermalStrain_,CoefXpr::OP_ADD));
+      DefineFieldResult( totalStrain, strain );
+    }
+    else {
+      DefineFieldResult( strainFunc, strain );
+    }
     stiffFormCoefs_.insert(strainFunc);
 
+    if ( isThermalStrain )  {
+      shared_ptr<ResultInfo> thermalStrain(new ResultInfo);
+      thermalStrain->resultType = MECH_THERMAL_STRAIN;
+      thermalStrain->dofNames = stressComponents;
+      thermalStrain->unit =  "";
+      thermalStrain->entryType = ResultInfo::TENSOR;
+      thermalStrain->definedOn = ResultInfo::ELEMENT;
+      DefineFieldResult( thermalStrain_, thermalStrain );
+    }
 
     PtrCoefFct intensFct;
     shared_ptr<CoefFunctionFormBased> kedFunc;
@@ -992,7 +1332,39 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
 
     // === MECHANIC DISPLACED SURFACE VOLUME ===
-    // ... to be implemented
+    shared_ptr<ResultInfo> dispNormal, dispVol;
+    shared_ptr<CoefFunctionSurf> dispFctNormal;
+
+    //normal mechanical displacement
+    dispNormal.reset(new ResultInfo);
+    dispNormal->resultType = MECH_NORMAL_DISPLACEMENT;
+    dispNormal->dofNames = "";
+    dispNormal->unit = "m";
+    dispNormal->entryType = ResultInfo::SCALAR;
+    dispNormal->definedOn = ResultInfo::SURF_ELEM;
+
+    dispFctNormal.reset(new CoefFunctionSurf(true, dispNormal));
+    DefineFieldResult(dispFctNormal, dispNormal);
+    surfCoefFcts_[dispFctNormal] = feFct;
+
+    dispVol.reset(new ResultInfo);
+    dispVol->resultType = MECH_DEF_SURF_VOLUME;
+    dispVol->dofNames = "";
+    dispVol->unit = "m^3";
+    dispVol->entryType = ResultInfo::SCALAR;
+    dispVol->definedOn = ResultInfo::SURF_REGION;
+    // Integrate normal displacement
+    shared_ptr<ResultFunctor> dispVolFct;
+    if( isComplex_ ) {
+      dispVolFct.reset(new ResultFunctorIntegrate<Complex>(dispFctNormal,
+                                                          feFct, dispVol ) );
+    } else {
+      dispVolFct.reset(new ResultFunctorIntegrate<Double>(dispFctNormal,
+                                                         feFct, dispVol) );
+    }
+    resultFunctors_[MECH_DEF_SURF_VOLUME] = dispVolFct;
+    availResults_.insert(dispVol);
+
 
     // === MECHANIC_NORMAL_STRESS ===
     shared_ptr<ResultInfo> normalStressInfo;

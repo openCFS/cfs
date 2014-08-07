@@ -32,7 +32,7 @@ namespace CoupledField{
      this->bOperator_ = bOp;
      this->coefScalar_ = scalCoef;
      this->factor_ = factor;
-     
+
      // Ensure, that the coefficient set is a scalar valued one
      if( this->coefScalar_->GetDimType() != CoefFunction::SCALAR ) {
        EXCEPTION( "The BBInt-class only works with scalar-valued "
@@ -84,6 +84,7 @@ namespace CoupledField{
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
+
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
 #ifdef USE_BLAS_VERSION
@@ -255,9 +256,9 @@ namespace CoupledField{
      FeHCurlHi* ptFe = 
          static_cast<FeHCurlHi*>(this->ptFeSpace1_->GetFe( ent1, method, order ));
      // Special: Only use lower order functions
-     ptFe->SetOnlyLowestOrder(true);
+     //ptFe->SetOnlyLowestOrder(true);
 
-     const UInt nrFncs = ptFe->BaseFE::GetNumFncs();
+     const UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
      shared_ptr<ElemShapeMap> esm = 
@@ -294,7 +295,7 @@ namespace CoupledField{
 #endif
 
      }
-     ptFe->SetOnlyLowestOrder(false);
+     //ptFe->SetOnlyLowestOrder(false);
    }
 
    template< class COEF_DATA_TYPE, class B_DATA_TYPE> 

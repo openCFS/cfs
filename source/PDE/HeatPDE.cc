@@ -14,6 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -130,6 +131,7 @@ void HeatPDE::ReadSpecialBCs() {
   void HeatPDE::InitNonLin() {
 
     SinglePDE::InitNonLin();
+ //  nonLinTotalFormulation_ = true;
 
   }
 
@@ -146,7 +148,7 @@ void HeatPDE::DefineIntegrators() {
       tensorType = AXI;
       isaxi_ = true;
     } else {
-      tensorType = PLANE_STRAIN;
+      tensorType = PLANE;
     }
   }
 
@@ -185,11 +187,10 @@ void HeatPDE::DefineIntegrators() {
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion]; 
     if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) != -1 ) {
       // informs material that approx./interpol. for heat conductivity is needed
-      std::cout << "Do NL Cond" << std::endl;
-
-      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      //BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
       PtrCoefFct condNL = 
-          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, feFunc, bOp);
+          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
                                       
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
@@ -213,19 +214,19 @@ void HeatPDE::DefineIntegrators() {
       // =================================
       //  Nonlinear RHS-integrator
       // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0, 
-                                                          feFunc );
-        rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
-        LinearFormContext * rhsNlinContext =
-            new LinearFormContext( rhsNlinForm );
-        rhsNlinContext->SetEntities( actSDList );
-        rhsNlinContext->SetFeFunction( feFunc );
-        assemble_->AddLinearForm( rhsNlinContext );
+//      LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+//                                                          feFunc );
+//      rhsNlinForm->SetName("RHSNonLinFormHeatStiff");
+//      LinearFormContext * rhsNlinContext =
+//          new LinearFormContext( rhsNlinForm );
+//      rhsNlinContext->SetEntities( actSDList );
+//      rhsNlinContext->SetFeFunction( feFunc );
+//      assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
       // --- linear real-valued stiffness integrator ---
       shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY, tensorType, 
+        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType,
                                     Global::REAL );
 
       BaseBDBInt* stiffInt = NULL;
@@ -246,43 +247,45 @@ void HeatPDE::DefineIntegrators() {
       
       assemble_->AddBiLinearForm( stiffIntDescr );
       bdbInts_[actRegion] = stiffInt;
+
+//      if ( nonLinTypes.Find(NLHEAT_CONDUCTIVITY) ||
+//                nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
+//        // === Additional RHS integrator in case of Non-linearity ===
+//        LinearForm * rhsNlinForm = new KXIntegrator<Double>(stiffInt, -1.0,
+//                                                            feFunc );
+//        rhsNlinForm->SetName("RHSNonLinFormHeatStiff-Lin");
+//        LinearFormContext * rhsNlinContext =
+//            new LinearFormContext( rhsNlinForm );
+//        rhsNlinContext->SetEntities( actSDList );
+//        rhsNlinContext->SetFeFunction( feFunc );
+//        assemble_->AddLinearForm( rhsNlinContext );
+//      }
     }
 
     // ====================================================================
     // mass integrator
     // ====================================================================
 
-    // Factor for mass matrix: density * heatCapacity
-    PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
-    PtrCoefFct heatCapacity = 
-        actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
-    PtrCoefFct massFactor =
-        CoefFunction::Generate(mp_, Global::REAL,
-                               CoefXprBinOp( mp_, density, heatCapacity, 
-                                             CoefXpr::OP_MULT ) );
-    
-
     if ( nonLinTypes.Find(NLHEAT_CAPACITY) != -1 ) {
-      // informs material that approx./interpol. for heat conductivity is needed
-      std::cout << "Do NL Capacity" << std::endl;
-//      
-      BaseBOperator * bOp = new IdentityOperator<FeH1>();
+      // Factor for mass matrix: density * heatCapacity
+      PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
+      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      //BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct capNL = 
-          actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL,
-                                          feFunc, bOp);
+          actSDMat->GetScalCoefFncNonLin( HEAT_CAPACITY, Global::REAL, heatCoef );
 
-      PtrCoefFct nlMassCoeff = 
+      PtrCoefFct nlMassCoeff =
           CoefFunction::Generate(mp_, Global::REAL,
                                  CoefXprBinOp(mp_,  capNL, density, CoefXpr::OP_MULT ) );
 
       // create stiffness integrator
       BaseBDBInt* massIntNL = NULL;
       if( dim_ == 2 ) {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff, 
-                                1.0, updatedGeo_ );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,2>(), nlMassCoeff,
+                                1, updatedGeo_ );
       } else {
-        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff, 
-                                1.0, updatedGeo_ );
+        massIntNL = new BBInt<>(new IdentityOperator<FeH1,3>(), nlMassCoeff,
+                                1, updatedGeo_ );
       }
       massIntNL->SetName("MassIntegrator-NL");
 
@@ -293,19 +296,18 @@ void HeatPDE::DefineIntegrators() {
 
       assemble_->AddBiLinearForm( massNLContext );
       bdbInts_[actRegion] = massIntNL;
-
-      // =================================
-      //  Nonlinear RHS-integrator
-      // =================================
-      LinearForm * rhsNlinForm = new KXIntegrator<Double>(massIntNL, -1.0, feFunc );
-      rhsNlinForm->SetName("RHSNonLinFormHeatMass");
-      LinearFormContext * rhsNlinContext =
-        new LinearFormContext( rhsNlinForm );
-      rhsNlinContext->SetEntities( actSDList );
-      rhsNlinContext->SetFeFunction( feFunc );
-      assemble_->AddLinearForm( rhsNlinContext );
     }
     else {
+      // Linear case
+      // Factor for mass matrix: density * heatCapacity
+      PtrCoefFct density = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct heatCapacity =
+          actSDMat->GetScalCoefFnc( HEAT_CAPACITY, Global::REAL );
+      PtrCoefFct massFactor =
+          CoefFunction::Generate(mp_, Global::REAL,
+                                 CoefXprBinOp( mp_, density, heatCapacity,
+                                               CoefXpr::OP_MULT ) );
+
       BiLinearForm *massInt = NULL;
       if(dim_==2)
         massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), massFactor,1.0, updatedGeo_ );
@@ -322,6 +324,51 @@ void HeatPDE::DefineIntegrators() {
       assemble_->AddBiLinearForm( massContext );
     }
   }
+
+  // ===============
+  //  electric power density
+  // ===============
+  LOG_DBG(heatcondpde) << "Reading electric power densities";
+
+  shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+  StdVector<std::string> dispDofNames = myFct->GetResultInfo()->dofNames;
+  StdVector<shared_ptr<EntityList> > ent;
+  StdVector<PtrCoefFct > coef;
+  LinearForm * lin = NULL;
+
+  ReadRhsExcitation( "elecPowerDensity", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                      ent, coef, updatedGeo_ );
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // check type of entitylist
+    if (ent[i]->GetType() == EntityList::NODE_LIST) {
+      EXCEPTION("Electric power density must be defined on elements")
+    }
+
+    if( dim_ == 2) {
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2>(),
+                                          Complex(1.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2>(),
+                                         1.0, coef[i], updatedGeo_ );
+      }
+    } else  {
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3>(),
+                                          Complex(1.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3>(),
+                                         1.0, coef[i], updatedGeo_ );
+      }
+    }
+    lin->SetName("ElectricPowerDensityInt");
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities( ent[i] );
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+    myFct->AddEntityList(ent[i]);
+  } // for
+
 
   // ======================================================================
   // Neumann boundary condition
@@ -534,10 +581,16 @@ void HeatPDE::DefineNcIntegrators() {
   for ( ; ncIt != endIt; ++ncIt ) {
     switch (ncIt->type) {
     case NC_MORTAR:
-      DefineMortarCoupling(HEAT_TEMPERATURE, *ncIt);
+      if (dim_ == 2)
+        DefineMortarCoupling<2,1>(HEAT_TEMPERATURE, *ncIt);
+      else
+        DefineMortarCoupling<3,1>(HEAT_TEMPERATURE, *ncIt);
       break;
     case NC_NITSCHE:
-      EXCEPTION("ncInterface of Nitsche type is not implemented for HeatPDE");
+      if (dim_ == 2)
+        DefineNitscheCoupling<2,1>(HEAT_TEMPERATURE, *ncIt );
+      else
+        DefineNitscheCoupling<3,1>(HEAT_TEMPERATURE, *ncIt );
       break;
     default:
       EXCEPTION("Unknown type of ncInterface");
@@ -626,9 +679,11 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       it.Begin();
       
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
+                                          Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
+                                         1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("HeatSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -653,12 +708,18 @@ void HeatPDE::InitTimeStepping() {
 
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+  Double gamma = 0.5; 
+  GLMScheme * scheme = new Trapezoidal(gamma);
 
-  feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
-
-
+  if ( nonLinTotalFormulation_ ) {
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0)); //, nlType) );
+    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+  }
+  else {
+    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0, nlType) );
+    feFunctions_[HEAT_TEMPERATURE]->SetTimeScheme(myScheme);
+  }
 }
 
 
@@ -695,6 +756,26 @@ void HeatPDE::DefinePrimaryResults() {
   rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
   DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
+}
+
+void HeatPDE::DefinePostProcResults() {
+  shared_ptr<BaseFeFunction> feFct = feFunctions_[HEAT_TEMPERATURE];
+
+  // === HEAT FLUX DENSITY ===
+  shared_ptr<ResultInfo> flux ( new ResultInfo );
+  flux->resultType = HEAT_FLUX_DENSITY;
+  flux->SetVectorDOFs(dim_, isaxi_);
+  flux->unit = "W/m^2";
+  flux->definedOn = ResultInfo::ELEMENT;
+  flux->entryType = ResultInfo::VECTOR;
+  shared_ptr<CoefFunctionFormBased> fluxFunc;
+  if( isComplex_ ) {
+    fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, Complex(-1.0)));
+  } else {
+    fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
+  }
+  DefineFieldResult( fluxFunc, flux );
+  stiffFormCoefs_.insert(fluxFunc);
 }
 
 } // end of namespace CoupledField

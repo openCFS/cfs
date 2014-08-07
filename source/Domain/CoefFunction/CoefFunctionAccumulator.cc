@@ -10,6 +10,8 @@ CoefFunctionAccumulator::CoefFunctionAccumulator(PtrCoefFct fct,
 : CoefFunction(), integrate_(integrate) {
   squaredSum_ = 0.0;
   fct_ = fct;
+  dependType_ = fct->GetDependency(); 
+  
 //  sum_.Resize(fct_->GetVecSize());
   
 }
@@ -61,7 +63,13 @@ void CoefFunctionAccumulator::GetVector(Vector<Double>& coefVec,
 
 void CoefFunctionAccumulator::GetScalar(Double& coef,
                                         const LocPointMapped& lpm ){
-  
+
+	fct_->GetScalar(coef, lpm);
+
+	if( integrate_ )
+		squaredSum_ = coef * coef * lpm.weight * lpm.jacDet;
+	else
+		squaredSum_ = coef * coef;
 }
 
 } // end of namespace

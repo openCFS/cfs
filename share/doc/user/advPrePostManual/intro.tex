@@ -3,20 +3,9 @@
 This chapter introduces the interaction between CFS++ and a number of pre- and
 postprocessing packages.
 
-Scientific Visualization Artist Tools \url{http://svat.sourceforge.net/}.
+\section{Simulation Data Formats}
 
-\section{Software Landscape}
-
-\begin{figure}[htp]
-  \begin{center}
-    \includegraphics[width=\textwidth]{pics/soft_landscape} 
-  \end{center}
-  \caption{Software landscape for CFS++.}
-  \label{fig:cfs_soft_landscape}
-\end{figure}
-
-\subsection{CFS++/NACS HDF5 (.h5) and XDMF2 (.xmf) Files}
-
+\subsection{CFS++/NACS Native HDF5 Files ({\tt .h5/.h5ref/.nmf/.nrf})}
 
 \subsubsection{HDF5} The  internal data structures and  temporal succession of
 operations  in CFS++ are  most closely  matched by  a hierarchical  data model
@@ -25,17 +14,18 @@ hierarchical structure of a HDF5 file.  A number of plugins and extensions for
 external codes provide  interfaces to pre- as well  as postprocessors.
 
  HDF5 is  used as format for  input and output due  to the fact, that  it is a
-mature standard. The investigation of  the mesh and therefore visual debugging
-before the actual  simulation is possible.  This feature  is especially useful
-for  checking the results  of the  intersection calculation  step of  a Mortar
-coupled simulation.  The  output of a simulation run can be  used as input for
-next simulation,  enabling decoupled simulations.   This can be  necessary for
-the  investigation  of  intermediate  result  (esp.   in  aeroacoustics)  HDF5
-provides   tested   interoperability   with   other   packages   (Matlab   via
-h5read/h5write, Octave  via save -hdf5, Mathematica  via Import/Export, Python
-via h5py\footnote{h5py  web site: \url{http://h5py.alfven.org/}},  etc). There
-exist also a number of command  line utilities for querying and modifying HDF5
-files. For a broader overview cf. Sec. \ref{sec:intro_hdf5tools}.
+ mature standard. The investigation of the mesh and therefore visual debugging
+ before the actual simulation is  possible.  This feature is especially useful
+ for checking  the results of  the intersection  calculation step of  a Mortar
+ coupled simulation.  The output of a simulation  run can be used as input for
+ next simulation, enabling  decoupled simulations.  This can  be necessary for
+ the  investigation  of  intermediate  result (esp.   in  aeroacoustics)  HDF5
+ provides   tested   interoperability   with  other   packages   (Matlab   via
+ h5read/h5write, Octave  via {\tt save -hdf5},  Mathematica via Import/Export,
+ Python  via  h5py\footnote{h5py   web  site:  \url{http://h5py.alfven.org/}},
+ etc). There  exist also a number  of command line utilities  for querying and
+ modifying       HDF5      files.       For      a       broader      overview
+ cf. Sec. \ref{sec:intro_hdf5tools}.
 
  Meshes can also  be loaded partially and a global  compuational mesh in CFS++
 can be combined from a number HDF5 mesh  files.  A plugin in the form of a VTK
@@ -51,13 +41,15 @@ the following codes (cf. Fig. \ref{fig:hdf5_xdmf_io}).
 \begin{figure}[htb] 
   \centering 
   \includegraphics[scale=0.8]{pics/hdf5/hdf5_io}
-  \caption{Options for HDF5 and XDMF2 data I/O.}
+  \caption{Options for HDF5 data I/O.}
   \label{fig:hdf5_xdmf_io}
 \end{figure}
 
 
 \subsubsection{XDMF}
-As stated in the abstract of  \cite{Clarke2007}
+In previous versions  of CFS++ we wrapped  our HDF5 format also  into the XDMF
+format to make  changes inside the HDF5 hierarchy transparent  to ParaView and
+VisIt. The abstract of \cite{Clarke2007} states:
 
 \emph{The extensible data model and format (XDMF) is an active common data hub
 used to  pass meta data and  values between application modules  in a standard
@@ -65,17 +57,6 @@ fashion. XDMF  views data  as consisting  of two basic  types: light  data and
 heavy data.  Light  data is both meta data and small  amounts of values. Heavy
 data  typically consists  of  large arrays  of  values.  Support  for XDMF  is
 included in the widely used visualization package ParaView\dots}
-
-The customized HDF5 data model of CFS++ therefore perfectly fits into the more
-general XDMF \cite{Clarke2002,  Clarke2007, XDMFWebsite} model, which consists
-of slim XML files for describing the structure of the finite element model and
-HDF5 files which carry the  large data structures (geometry, mesh, field data,
-etc.). This way it is possible to  tune the CFS++ HDF5 format according to the
-internal structures within  the program but make the  produced data consumable
-by other codes  like ParaView or VisIt (cf.  Sec. \ref{sec:intro_visit}).  The
-XDMF format enjoys also growing support in the aforementioned codes, making it
-possible  to   use  very  large  files  beyound   four  gigabytes,  on-the-fly
-visualization and parallel I/O (cf.  \cite{hpcforgeWebsite}).
 
 Other  advantages  according  to  \cite{ParaViewXdmf}  include,  that  derived
 quantities can  be calculated and added  lightly to the data  model.  The Xdmf
@@ -85,8 +66,101 @@ concatenate  all pieces.   In transient  simulations the  geometry  can remain
 fixed  while  being shared  with  lightweight  links.  The XDMF  library  also
 includes converters to the older EXODUS II FEM data model \cite{Schoof1994}.
 
+The disadvantage of XDMF was however, that it did not cover the broad range of
+features of  the HDF5 standard completely  and therefore one did  not have the
+full freedom to change the HDF5  hierarchy. Another disadvantage was, that one
+had  to spend  a  lot of  time  to write  a wrapper  around  an existing  HDF5
+hierarchy,  which could  have been  spent  more productively,  to implement  a
+reader plugin  using the HDF5  API with full flexibility  rightaway. Moreover,
+the development  of the XDMF format  seems to have ceased  in 2010. Therefore,
+the support for XDMF has been  dropped from CFS++.  For further information on
+XDMF\footnote{XDMF                                                    website:
+  \url{http://www.xdmf.org/index.php/Main_Page}\\Using  XDMF   to  read  HDF5:
+  \url{http://www.visitusers.org/index.php?title=Using_XDMF_to_read_HDF5}}
+please refer to \cite{Clarke2002, Clarke2007, XDMFWebsite, hpcforgeWebsite}.
 
-\subsection{ANSYS Result Files (.rst)}
+\subsection{ANSYS Mesh Database Files ({\tt .cdb/.inp})}
+
+CFS++ can read and  write {\tt .cdb} or {\tt .inp} mesh  database files in the
+ANSYS Classic format  (cf. Fig.  \ref{fig:cdb_io}). Please  note however, that
+not all ANSYS element  types may be supported and no results  can read from or
+written into this format!
+
+\begin{figure}[htb] 
+  \centering 
+  \includegraphics[scale=0.8]{pics/cdb/cdb_io}
+  \caption{Options for {\tt .cdb} mesh data I/O.}
+  \label{fig:cdb_io}
+\end{figure}
+
+\paragraph{Create a .cdb file from ANSYS Classic:}
+
+\begin{verbatim}
+allsel
+cdwrite, db, 'file', 'cdb'
+\end{verbatim}
+
+\begin{figure}[htb] 
+  \centering
+  \includegraphics[width=\textwidth]{pics/cdb/workbench_femodeler_classic}
+  \caption{ANSYS Workbench  schematic for either  creating an {\tt  .inp} file
+    from the  Finite Element Modeler  or a {\tt  .cdb} file from  a Mechanical
+    APDL system starting from a mesh component system.}
+  \label{fig:cdb_workbench_femodeler_classic}
+\end{figure}
+
+\paragraph{Create a .cdb file from a FE Modeler system:}
+
+\begin{enumerate}
+\item Open your project in Workbench containing the FE Modeler System.
+
+\item In the  Project Schematic, create a the Mechanical  APDL system and link
+  the FE Modeler cell to the Mechanical APDL Analysis cell.
+
+\item Update the FE Modeler system,  right click on the Mechanical APDL system
+  Analysis cell,  and choose  \emph{Edit in Mechanical  APDL}. This  opens the
+  Mechanical          APDL         application          user         interface
+  (cf. Fig. \ref{fig:cdb_workbench_femodeler_classic}).
+
+\item  Select  \emph{Preprocessor  $\rightarrow$ Archive  Model  $\rightarrow$
+  Write} from the \emph{Mechanical APDL Main Menu}.
+
+\item In the dialog, choose \emph{DB  All finite element information} from the
+  \emph{Data to Archive} drop-down menu.
+
+\item Select the  \emph{Archive File Name} button and then  specify the folder
+  location and filename for the {\tt .cdb} file.
+\end{enumerate}
+
+\paragraph{Create a .inp file from a FE Modeler system:}
+
+\begin{enumerate}
+\item  In Workbench  Project  Flow Chart  add connection  to  FE Modeler  from
+  Solution or Mesh cells (cf. Fig. \ref{fig:cdb_workbench_femodeler_classic}).
+\item Update Cells
+\item Open FE Modeler
+\item Choose at the top  toolbar \emph{Target System $\rightarrow$ Mechanical
+  APDL}
+\item Choose at the top toolbar \emph{Write Solver File}
+\end{enumerate}
+
+\subsection{Gmsh Mesh and Result Files ({\tt .msh/.pos})}
+
+Version 2  of the  Gmsh format {\tt  .msh} is supported  by CFS++  for reading
+meshes and writing mesh and result data. The older version 1 is only supported
+for reading meshes. CFS++ also supports  the {\tt .pos} post processing format
+of  Gmsh for  higher  order  results.  Since  Joachim  Schöberl's NETGEN  also
+supports the {\tt .msh} format for second order meshes, it can also be used as
+a preprocessor for CFS++ (cf. Fig. \ref{fig:gmsh_io})
+
+\begin{figure}[htb] 
+  \centering 
+  \includegraphics[scale=0.8]{pics/gmsh/gmsh_io}
+  \caption{Options for I/O with Gmsh formats.}
+  \label{fig:gmsh_io}
+\end{figure}
+
+\subsection{ANSYS Result Files ({\tt .rst})}
 
 The .rst  file format is ANSYS  Classic's native output format  for meshes and
 simulation   results.    It   is   a  well-documented   binary   format   (cf.
@@ -95,8 +169,8 @@ the following codes (cf. Fig. \ref{fig:rst_io}).
 
 \begin{figure}[htb] 
   \centering 
-  \includegraphics[width=0.8\textwidth]{pics/ansys/rst_io}
-  \caption{Options for I-DEAS universal data I/O.}
+  \includegraphics[width=\textwidth]{pics/ansys/rst_io}
+  \caption{Options for post-processing of ANSYS result files.}
   \label{fig:rst_io}
 \end{figure}
 
@@ -217,7 +291,7 @@ not. \textcolor{red}{ATTENTION:  EnSight support was  known to work  with .rst
 13.0 files and is also broken now.  The problem seems to be the .rst writer of
 CFS++.}}
 
-\subsection{I-DEAS Universal Files (.unv) and CAPA (.unverg) Files}
+\subsection{I-DEAS Universal Files ({\tt .unv}) and CAPA ({\tt .unverg}) Files}
 \label{sec:intro_unv}
 
 The  I-DEAS universal  file  format is  a  general format  originally used  by
@@ -392,7 +466,7 @@ files\footnote{Code            ASTER            .unv            Preprocessing:
 \url{http://caelinux.com/downloads/docs/PRE_IDEAS_EN.pdf}}
 \end{description}
 
-\subsection{CFD General Notation System (.cgns) Files}
+\subsection{CFD General Notation System ({\tt .cgns}) Files}
 
 For  the import  of CFD data  CGNS is  the most general  choice of
 formats.  It defines a data  model (Standard Interface Data Structures (SIDS))
@@ -424,6 +498,22 @@ created in the following codes:
 \end{figure}
 
 \begin{description}
+
+\item[CFS++] can read and write  unstructured CGNS files.  Reading and writing
+  of  results is  limited to  one time-step  at the  moment. Also  only a  few
+  selected result  types can  be read  from CGNS files.   CFS++ uses  the CGNS
+  library version 3.1.4 at the moment. Therefore, generated CGNS files may not
+  be readable  by older post-processors  directly.  Conversion of a  CGNS file
+  from  HDF5   to  ADF   using  {\tt  hdf2adf}\footnote{CGNS   tools  website:
+    \url{http://www.grc.nasa.gov/WWW/cgns/CGNS_docs_current/cgnstools/index.html}}
+  and  downdating its  version  using {\tt  cgnsversion} may  help  in such  a
+  situation. These  tools are generated during  the build of CFS++  and can be
+  found in its binary directory.
+
+\item[ANSYS Workbench  Mesher] Linear  meshes can be  exported from  the ANSYS
+  Workbench mesher using \emph{File} $\rightarrow$ \emph{Export} $\rightarrow$
+  \emph{File type .cgns}.  The regions for CFS++ can be  generated by creating
+  \emph{Named Selections}.
 
 \item[cplreader]  The CAA coupling  reader of  CFS++ can  read CGNS  files and
 generate acoustic source terms from CFD fields (cf. \cite{cplreadermanual}).
@@ -611,20 +701,20 @@ tools\footnote{cgnsToFoam                    and                   foamToCGNS:
 \section{Pre- and Postprocessors}
 
 \subsection{GiD} GiD  may be  downloaded along with  a free  one-month license
-from  the International Center  for Numerical  Methods in  Engineering (CIMNE)
-website\footnote{CIMNE                                                 website:
-\url{http://gid.cimne.upc.es/download/official-versions}}     .     The    GiD
-preprocessing  script  extension  for   CFS++  is  available  from  the  CFS++
-development         server\footnote{GiD        preprocessing        extension:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/CAESAR.gid/trunk}}. CFS++
-can write the GiD postprocessing format, therefore data can be opened directly
-in GiD.  Please  note, that the license servers  at Erlangen (131.188.140.136)
-and  Klagenfurt  (rom,  143.205.120.86)  only provide  licenses  for  versions
-9.x. In  order to register GiD,  start GiD, go to  Help $\rightarrow$ Register
-GiD $\rightarrow$ select sysinfo for local host $\rightarrow$ enter IP address
-of license server. For an introduction to modeling refer to the chapter 'Basic
-Steps of Modeling in GiD' in the main reference concerning the usage of GiD in
-conjunction with CFS++ \cite{Simkovics2010}.
+from the  International Center  for Numerical  Methods in  Engineering (CIMNE)
+website\footnote{CIMNE                                                website:
+  \url{http://gid.cimne.upc.es/download/official-versions}}    .    The    GiD
+preprocessing  script  extension  for  CFS++   is  available  from  the  CFS++
+development        server\footnote{GiD         preprocessing        extension:
+  \url{\CFSDSSVN/CAESAR.gid/trunk}}.  CFS++ can  write the  GiD postprocessing
+format, therefore data  can be opened directly in GiD.   Please note, that the
+license   servers  at   Erlangen   (131.188.140.136)   and  Klagenfurt   (rom,
+143.205.120.86) only provide  licenses for versions 9.x. In  order to register
+GiD, start  GiD, go  to Help $\rightarrow$  Register GiD  $\rightarrow$ select
+sysinfo for local  host $\rightarrow$ enter IP address of  license server. For
+an introduction to  modeling refer to the chapter 'Basic  Steps of Modeling in
+GiD' in  the main reference  concerning the usage  of GiD in  conjunction with
+CFS++ \cite{Simkovics2010}.
 
 \begin{figure}[htb] 
   \centering
@@ -730,14 +820,14 @@ nonetheless cause postprocessors to crash.}
 
 \subsubsection{ANSYS Classic - Mechanical APDL}
 \label{sec:intro_ansys_classic} An ANSYS  Classic APDL preprocessing extension
-is   available   for  generating   ASCII   based   mesh   files  readable   by
+is   available   for  generating   ASCII   based   mesh  files   readable   by
 CFS++\footnote{ANSYS       preprocessing       extension      for       CFS++:
-\url{https://lse17.e-technik.uni-erlangen.de:2001/svn/mkmesh/trunk}}.        An
-extension   for  generating   HDF5  mesh   files  based   on   cplreader  (cf.
-\cite{cplreadermanual})  is presented in  Sec.  \ref{sec:ansys_mkmesh_mkhdf5}.
-CFS++ can  write ANSYS  result files for  postprocessing if  the USE\_ANSYSRST
-configuration option in CMake  is set to ON. This is the  case for the nightly
-built executables ({\tt cfs\_nightly\_*, cfstool\_nightly\_*}) in Klagenfurt.
+  \url{\CFSDSSVN/mkmesh/trunk}}.  An extension for  generating HDF5 mesh files
+based  on  cplreader  (cf.    \cite{cplreadermanual})  is  presented  in  Sec.
+\ref{sec:ansys_mkmesh_mkhdf5}.   CFS++  can  write   ANSYS  result  files  for
+postprocessing if  the USE\_ANSYSRST configuration  option in CMake is  set to
+ON. This is the case for  the nightly built executables ({\tt cfs\_nightly\_*,
+  cfstool\_nightly\_*}) in Klagenfurt.
 
 \textcolor{red}{ATTENTION:  The  ANSYS  Classic  GUI  requires  the  OpenMotif
 library libXm.so.3.  Most modern Linux distributions, except openSUSE (package
@@ -839,7 +929,6 @@ symmetrischen                          Modellen                         6/2003:
 }
 \end{description}
 
-
 \subsubsection{CFD-Post}
 \label{sec:intro_ansys_cfdpost}
 
@@ -869,6 +958,26 @@ archive section also past issues of The Focus are available.
 \item[ANSYS Advantage Magazine] \url{http://www.ansys.com/magazine/default.asp}
 \item[CADFEM Infoplaner Magazin] \url{http://www.cadfem.de/unternehmen/infoplaner/archiv.html} 
 \end{description}
+
+\subsection{COMSOL}
+
+The multiphysics package COMSOL \footnote{COMSOL Multiphysics:
+\url{http://www.comsol.com}} is supported as a pre-processor for CFS++.
+Its {\tt .mphtxt} files can be read into CFS++ for mesh input. Please note,
+that also geometry or other entities may be defined inside {\tt .mphtxt}
+files, which cannot be read into CFS++. The {\tt .mphtxt} mesh files only
+define numbered geometric entities, which may not have any immediate physical
+meaning. Therefore, these entities need to be grouped into physical regions
+first. Please refer to Sec. \ref{sec:preproc_comsol_region_map} for information
+on how to achieve this.
+
+\begin{figure}[htb] 
+  \centering
+  \begin{overpic}[width=0.5\textwidth]{pics/comsol/preproc}%
+  \end{overpic}
+  \caption{Postprocessing the mesh quality of the man with COMSOL.}
+  \label{fig:comsol}
+\end{figure}%
 
 \subsection{ParaView} 
 
@@ -904,7 +1013,7 @@ further details about the implementation of the CFS++ HDF5 plugin.
 \item[ParaView Guide] The official ParaView Manual \cite{PVGuide2007} is also available as a free online resource inside the ParaView Wiki at \url{http://paraview.org/Wiki/ParaView/Users_Guide/Table_Of_Contents} since ParaView 3.10.
 \item[ParaView Wiki] \cite{PVWiki}
 \item[ParaView Online documentation] \url{http://www.paraview.org/paraview/help/documentation.html}
-\item[Precompiled ParaView Binaries with our plugin] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/Paraview}.
+\item[Precompiled ParaView Binaries with our plugin] \url{\CFSDSFTP/binaries/paraview}.
 \item[Kitware - The Source] The official newsletter provides reports about the
 latest  features   of  ParaView  and  other  Kitware   toolkits  (CMake,  VTK,
 etc.).   This    information   is    relevant   to   developers    and   users
@@ -964,7 +1073,7 @@ is  developed at  Lawrence  Livermore National  Laboratories.
 
 \begin{figure}[htb]
   \centering
-  \begin{overpic}[width=0.5\textwidth]{pics/visit}
+  \begin{overpic}[width=0.75\textwidth]{pics/visit}
 %    \put(10,20){\textcolor{white}{\bf The electrostatic man!}}
   \end{overpic}
   \caption{Postprocessing the electrostatic man with VisIt}
@@ -1131,7 +1240,7 @@ has    its   roots    also    at   Lawrence    Livermore    Labs   is    VisIt
 \begin{description}
 \item[GMV website] \url{http://www.generalmeshviewer.com}
 \item[GMV Manual] \cite{GMVManual2008}
-\item[GMV binaries on CFS++ development server] \url{https://lse17.e-technik.uni-erlangen.de:2001/files/precompiled/GMV}
+\item[GMV binaries on CFS++ development server] \url{\CFSDSWEBDAV/programs/GMV}
 \end{description}
 
 

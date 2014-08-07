@@ -26,3 +26,7 @@ SET(CFS_NIGHTLY_DIR "/opt/pckg/cfs_nightly")
 
 # Directory for nightly CFS++ binaries on web server
 SET(APACHE_NIGHTLY_DIR "/var/www/html/cfs_nightly")
+
+# Directory for nightly documenation on web server
+SET(CFS_DOCU_DIR "/var/www/html/cfs_docu")
+

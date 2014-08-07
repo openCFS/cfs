@@ -87,8 +87,8 @@ class TimeSchemeGLM : public BaseTimeScheme{
     }
 
     //! \copydoc BaseTimeScheme::AddMatFactors(UInt,const std::map<FEMatrixType,Integer> &,std::map<FEMatrixType,Double> &)
-    virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap
-                               , std::map<FEMatrixType,Double> & matFactors);
+    virtual void AddMatFactors(UInt stage, const std::map<FEMatrixType,Integer> & matMap,
+                                  std::map<FEMatrixType,Double> & matFactors);
 
     //! \copydoc BaseTimeScheme::AdaptBC(Double&,Double,UInt,Integer)
     virtual void AdaptBC(Double& transVal, Double initValue,UInt initDerivOrder, Integer eqnNumber){

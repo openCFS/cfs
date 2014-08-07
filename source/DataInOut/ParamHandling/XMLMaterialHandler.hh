@@ -88,6 +88,11 @@ namespace CoupledField {
     //! \param matName Name of the material to be read
     void ReadMagStrict(BaseMaterial *material, PtrParamNode pn);
 
+    //! Reads electric conduction material
+    //! \param material Material object to be filled with data
+    //! \param matName Name of the material to be read
+    void ReadElectricConduction(BaseMaterial *material, PtrParamNode pn);
+
   };
   
 }

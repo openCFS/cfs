@@ -3,7 +3,7 @@ mkdir -p $HOME/Documents/dev
 cd $HOME/Documents/dev
 
 # Set variable for repository base path
-REPO_BASE=https://lse17.e-technik.uni-erlangen.de:2001/svn
+REPO_BASE=@CFS_DS_SVN@
 
 # Fetch complete history of CFS++ trunk SVN repository (may take a long time)
 git svn clone $REPO_BASE/CFS++/trunk CFS_TRUNK_GIT

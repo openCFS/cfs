@@ -14,7 +14,7 @@ public:
   
   //! Constructor
   BaseBOperator(){
-
+    isSurfOpt_ = false;
   }
 
   //! Destructor
@@ -131,6 +131,15 @@ public:
     coef_ = coef;
   }
 
+  //! Set the coefficient function of the operator
+  virtual PtrCoefFct GetCoefFunction(){
+    return coef_;
+  }
+
+  //! set operator to rurface operator
+  virtual void SetOperator2SurfOperator() {
+    isSurfOpt_ = true;
+  }
   
 protected:
 
@@ -139,6 +148,9 @@ protected:
 
   //!pointer to coefficient function as used e.g. in Convective operators
   PtrCoefFct coef_;
+
+  //! if true, then it is a surface operator
+  bool isSurfOpt_;
 };
 }
 #endif

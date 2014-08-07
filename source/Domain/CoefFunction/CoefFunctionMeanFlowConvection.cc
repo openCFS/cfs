@@ -47,7 +47,7 @@ namespace CoupledField{
 
       for(UInt dof=0; dof < DOFS; dof++) 
       {
-        tensor[rdof][dof] = dens * VDerivs[rdof][dof];
+        tensor[dof][rdof] = dens * VDerivs[rdof][dof];
       }
     }
   }

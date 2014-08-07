@@ -48,23 +48,23 @@
 namespace CoupledField {
 
   DECLARE_LOG(testpde)
-  DEFINE_LOG(testpde, "pde.tes")
+  DEFINE_LOG(testpde, "pde.test")
 
-// ======================================================
-// SET SOLUTION INFORMATION
-// ======================================================
-TestPDE::TestPDE(Grid * aptgrid, PtrParamNode paramNode,
-                 PtrParamNode infoNode,
-                 shared_ptr<SimState> simState, Domain* domain)
-:SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
+  // ======================================================
+  // SET SOLUTION INFORMATION
+  // ======================================================
+  TestPDE::TestPDE(Grid * aptgrid, PtrParamNode paramNode,
+                   PtrParamNode infoNode,
+                   shared_ptr<SimState> simState, Domain* domain)
+  :SinglePDE( aptgrid, paramNode, infoNode, simState, domain ) {
 
-  pdename_           = "testPDE";
-  pdematerialclass_  = TESTMAT;
-  nonLin_            = false;
+    pdename_           = "testPDE";
+    pdematerialclass_  = TESTMAT;
+    nonLin_            = false;
   
-  //! Always use updated Lagrangian formulation 
-  updatedGeo_        = true;
-}
+    //! Always use updated Lagrangian formulation 
+    updatedGeo_        = true;
+  }
 
 
 
@@ -93,119 +93,121 @@ TestPDE::TestPDE(Grid * aptgrid, PtrParamNode paramNode,
   }
 
 
-void TestPDE::DefineIntegrators() {
+  void TestPDE::DefineIntegrators() {
 
-  RegionIdType actRegion;
-  BaseMaterial * actSDMat = NULL;  
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;  
 
-  // Define integrators for "standard" materials
-  std::map<RegionIdType, BaseMaterial*>::iterator it;
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
 
-  //get FEFunction and space
-  shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
-  shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
+    //get FEFunction and space
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
+    shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
   
-  for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
     
-    // Set current region and material
-    actRegion = it->first;
-    actSDMat = it->second;
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
     
-    // Get current region name
-    std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
+      // Get current region name
+      std::string regionName = ptGrid_->GetRegion().ToString(actRegion);
     
-    // create new entity list
-    shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-    actSDList->SetRegion( actRegion );
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( actRegion );
     
-    // --- Set the FE ansatz for the current region ---
-    PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
-    std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-    std::string integId = curRegNode->Get("integId")->As<std::string>();
-    mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      // --- Set the FE ansatz for the current region ---
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
+      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+      std::string integId = curRegNode->Get("integId")->As<std::string>();
+      mySpace->SetRegionApproximation(actRegion, polyId,integId);
     
-    // pass entitylist of fespace / fefunction
-    feFunc->AddEntityList( actSDList );
+      // pass entitylist of fespace / fefunction
+      feFunc->AddEntityList( actSDList );
 
-    // ====================================================================
-    // stiffness integrator
-    // ====================================================================
-    PtrCoefFct beta = actSDMat->GetScalCoefFnc( TEST_BETA, Global::REAL );
+      // ====================================================================
+      // stiffness integrator
+      // ====================================================================
+      PtrCoefFct beta = actSDMat->GetScalCoefFnc( TEST_BETA, Global::REAL );
 
-    BaseBDBInt* stiffInt = NULL;
-    if( dim_ == 2 ) {
-      stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
-    } else {
-      stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
+      BaseBDBInt* stiffInt = NULL;
+      if( dim_ == 2 ) {
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
+      } else {
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
+      }
+      stiffInt->SetName("StiffnessIntegrator");
+
+      BiLinFormContext * stiffIntDescr =
+        new BiLinFormContext(stiffInt, STIFFNESS );
+
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions(feFunc,feFunc);
+      stiffInt->SetFeSpace( mySpace );
+
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      bdbInts_[actRegion] = stiffInt;
+
+      // ====================================================================
+      // mass integrator
+      // ====================================================================
+      PtrCoefFct alpha = actSDMat->GetScalCoefFnc( TEST_ALPHA, Global::REAL );
+      BiLinearForm *massInt = NULL;
+      if(dim_==2)
+        massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), alpha,1.0, updatedGeo_ );
+      else
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), alpha,1.0, updatedGeo_ );
+
+      massInt->SetName("MassIntegrator");
+      massInt->SetFeSpace( mySpace );
+
+      BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
+    
+      massContext->SetEntities( actSDList, actSDList );
+      massContext->SetFeFunctions( feFunc,feFunc);
+      assemble_->AddBiLinearForm( massContext );
     }
-    stiffInt->SetName("StiffnessIntegrator");
 
-    BiLinFormContext * stiffIntDescr =
-      new BiLinFormContext(stiffInt, STIFFNESS );
-
-    stiffIntDescr->SetEntities( actSDList, actSDList );
-    stiffIntDescr->SetFeFunctions(feFunc,feFunc);
-    stiffInt->SetFeSpace( mySpace );
-
-    assemble_->AddBiLinearForm( stiffIntDescr );
-    bdbInts_[actRegion] = stiffInt;
-
-    // ====================================================================
-    // mass integrator
-    // ====================================================================
-    PtrCoefFct alpha = actSDMat->GetScalCoefFnc( TEST_ALPHA, Global::REAL );
-    BiLinearForm *massInt = NULL;
-    if(dim_==2)
-      massInt = new BBInt<>(new IdentityOperator<FeH1,2,1,Double>(), alpha,1.0, updatedGeo_ );
-    else
-      massInt = new BBInt<>(new IdentityOperator<FeH1,3,1,Double>(), alpha,1.0, updatedGeo_ );
-
-    massInt->SetName("MassIntegrator");
-    massInt->SetFeSpace( mySpace );
-
-    BiLinFormContext *massContext =  new BiLinFormContext(massInt, DAMPING );
-    
-    massContext->SetEntities( actSDList, actSDList );
-    massContext->SetFeFunctions( feFunc,feFunc);
-    assemble_->AddBiLinearForm( massContext );
   }
 
-}
-
-void TestPDE::DefineRhsLoadIntegrators() {
+  void TestPDE::DefineRhsLoadIntegrators() {
   
-  LOG_TRACE(testpde) << "Defining rhs load integrators for test PDE";
-
+    LOG_TRACE(testpde) << "Defining rhs load integrators for test PDE";
+  
     // Get FESpace and FeFunction of electric potential
     shared_ptr<BaseFeFunction> myFct = feFunctions_[TEST_DOF];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
-
+  
     StdVector<shared_ptr<EntityList> > ent;
     StdVector<PtrCoefFct > coef;
     LinearForm * lin = NULL;
     StdVector<std::string> dofNames;
-
-    
+  
+  
     bool coefUpdateGeo = true;
     // =====================
     //  TEST SOURCE DENSITY
     // =====================
     LOG_DBG(testpde) << "Reading source density of test PDE";
-    
+  
     ReadRhsExcitation( "testSourceDensity", dofNames,
                        ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
         EXCEPTION("Test source density must be defined on elements")
-      }
+          }
       EntityIterator it = ent[i]->GetIterator();
       it.Begin();
-      
+    
       if(isComplex_) {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Complex>(Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                         Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<IdentityOperator<FeH1>, Double>(1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                        1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("TestSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -213,97 +215,97 @@ void TestPDE::DefineRhsLoadIntegrators() {
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     } // for
-}
+  }
 
 
-void TestPDE::DefineSolveStep() {
+  void TestPDE::DefineSolveStep() {
 
-  solveStep_ = new StdSolveStep(*this);
+    solveStep_ = new StdSolveStep(*this);
 
-}
+  }
 
-// ======================================================
-// TIME STEPPING SECTION
-// ======================================================
+  // ======================================================
+  // TIME STEPPING SECTION
+  // ======================================================
 
-void TestPDE::InitTimeStepping() {
+  void TestPDE::InitTimeStepping() {
 
-  // Until now no effective mass formulation in the trapezoidal
-  //  integration scheme is implemented!
-  //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
-  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
+    // Until now no effective mass formulation in the trapezoidal
+    //  integration scheme is implemented!
+    //TS_alg_ = new Trapezoidal( algsys_, olasNode_ );
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::TRAPEZOIDAL, 0) );
 
-  feFunctions_[TEST_DOF]->SetTimeScheme(myScheme);
-
-
-}
+    feFunctions_[TEST_DOF]->SetTimeScheme(myScheme);
 
 
-void TestPDE::DefinePrimaryResults() {
+  }
 
-  // === TEMPERATURE ===
-  shared_ptr<ResultInfo> res1( new ResultInfo);
-  res1->resultType = TEST_DOF;
+
+  void TestPDE::DefinePrimaryResults() {
+
+    // === TEMPERATURE ===
+    shared_ptr<ResultInfo> res1( new ResultInfo);
+    res1->resultType = TEST_DOF;
     
-  res1->dofNames = "";
-  res1->unit = "?";
-  res1->definedOn = ResultInfo::NODE;
-  res1->entryType = ResultInfo::SCALAR;
-  feFunctions_[TEST_DOF]->SetResultInfo(res1);
-  results_.Push_back( res1 );
-  availResults_.insert( res1 );
-  res1->SetFeFunction(feFunctions_[TEST_DOF]);
-  DefineFieldResult( feFunctions_[TEST_DOF], res1 );
+    res1->dofNames = "";
+    res1->unit = "?";
+    res1->definedOn = ResultInfo::NODE;
+    res1->entryType = ResultInfo::SCALAR;
+    feFunctions_[TEST_DOF]->SetResultInfo(res1);
+    results_.Push_back( res1 );
+    availResults_.insert( res1 );
+    res1->SetFeFunction(feFunctions_[TEST_DOF]);
+    DefineFieldResult( feFunctions_[TEST_DOF], res1 );
 
 
 
-  // -----------------------------------
-  //  Define xml-names of Dirichlet BCs
-  // -----------------------------------
-  hdbcSolNameMap_[TEST_DOF] = "testGround";
-  idbcSolNameMap_[TEST_DOF] = "testPotential";
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    hdbcSolNameMap_[TEST_DOF] = "testGround";
+    idbcSolNameMap_[TEST_DOF] = "testPotential";
 
-  // === TEST RHS ===
-  shared_ptr<ResultInfo> rhs ( new ResultInfo );
-  rhs->resultType = TEST_RHS_LOAD;
-  rhs->dofNames = "";
-  rhs->unit = "?";
-  rhs->definedOn = results_[0]->definedOn;
-  rhs->entryType = ResultInfo::SCALAR;
-  availResults_.insert( rhs );
-  rhsFeFunctions_[TEST_DOF]->SetResultInfo(rhs);
-  DefineFieldResult( rhsFeFunctions_[TEST_DOF], rhs );
-}
+    // === TEST RHS ===
+    shared_ptr<ResultInfo> rhs ( new ResultInfo );
+    rhs->resultType = TEST_RHS_LOAD;
+    rhs->dofNames = "";
+    rhs->unit = "?";
+    rhs->definedOn = results_[0]->definedOn;
+    rhs->entryType = ResultInfo::SCALAR;
+    availResults_.insert( rhs );
+    rhsFeFunctions_[TEST_DOF]->SetResultInfo(rhs);
+    DefineFieldResult( rhsFeFunctions_[TEST_DOF], rhs );
+  }
 
-void TestPDE::DefinePostProcResults() {
+  void TestPDE::DefinePostProcResults() {
 
-	// === TEST FIELD ===
-	StdVector<std::string> vecComponents;
-	if( dim_ == 3 ) {
-		vecComponents = "x", "y", "z";
-	}
-	else if( isaxi_ ) {
-		vecComponents = "r", "z";
-	}
-	else {
-		vecComponents = "x", "y";
-	}
-	shared_ptr<BaseFeFunction> feFct = feFunctions_[TEST_DOF];
-	shared_ptr<ResultInfo> field(new ResultInfo);
-	field->resultType = TEST_FIELD;
-	field->dofNames = vecComponents;
-	field->unit = "??";
-	field->definedOn = ResultInfo::ELEMENT;
-	field->entryType = ResultInfo::VECTOR;
-	availResults_.insert( field );
-	shared_ptr<CoefFunctionFormBased> fieldFunc;
-	if( isComplex_ ) {
-		fieldFunc.reset(new CoefFunctionBOp<Complex>(feFct, field));
-	} else {
-		fieldFunc.reset(new CoefFunctionBOp<Double>(feFct, field));
-	}
-	DefineFieldResult( fieldFunc, field );
-	stiffFormCoefs_.insert(fieldFunc);
-}
-
+    // === TEST FIELD ===
+    StdVector<std::string> vecComponents;
+    if( dim_ == 3 ) {
+      vecComponents = "x", "y", "z";
+    }
+    else if( isaxi_ ) {
+      vecComponents = "r", "z";
+    }
+    else {
+      vecComponents = "x", "y";
+    }
+    shared_ptr<BaseFeFunction> feFct = feFunctions_[TEST_DOF];
+    shared_ptr<ResultInfo> field(new ResultInfo);
+    field->resultType = TEST_FIELD;
+    field->dofNames = vecComponents;
+    field->unit = "??";
+    field->definedOn = ResultInfo::ELEMENT;
+    field->entryType = ResultInfo::VECTOR;
+    availResults_.insert( field );
+    shared_ptr<CoefFunctionFormBased> fieldFunc;
+    if( isComplex_ ) {
+      fieldFunc.reset(new CoefFunctionBOp<Complex>(feFct, field));
+    } else {
+      fieldFunc.reset(new CoefFunctionBOp<Double>(feFct, field));
+    }
+    DefineFieldResult( fieldFunc, field );
+    stiffFormCoefs_.insert(fieldFunc);
+  }
+  
 } // end of namespace CoupledField

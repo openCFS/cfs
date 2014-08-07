@@ -66,6 +66,9 @@ namespace CoupledField {
 
       //! Pointer to interpolation class
       ApproxData* approxData;
+
+      //! Scale factor material data read from file
+      Double factor;
       
     };
     
@@ -142,12 +145,27 @@ namespace CoupledField {
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
                                             bool transposed  ) ;
+
+    //! Return tensor-valued coefficient function for nonlinear function
+    virtual PtrCoefFct GetTensorCoefFncNonLin( MaterialType matType,
+                                               SubTensorType type,
+                                               Global::ComplexPart matDataType,
+                                               PtrCoefFct dependency );
     
-    //! Return scalar-valued coefficient function (linear)
+    //! Return scalar-valued coefficient function for nonlinear function
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            shared_ptr<BaseFeFunction> feFct,
-                                            BaseBOperator* bOp );
+                                            PtrCoefFct dependency );
+					    
+    //! Return scalar-valued coefficient function for nonlinear function
+    //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
+    virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,
+                                                   NonLinType nlType,
+                                                   Global::ComplexPart matDataType,
+                                                   StdVector<PtrCoefFct> dependencies,
+ 					           StdVector<RegionIdType> & regs) 
+						   {EXCEPTION("not implemented in base class"); PtrCoefFct dummy; return dummy;}
+
     //@}
     
     //! get info, which material parameter is set
@@ -280,6 +298,12 @@ namespace CoupledField {
     {
       EXCEPTION("not implemented");      
     }
+
+    //! get a complex vector
+     virtual void GetVector( Vector<Complex>& param, MaterialType matType, Global::ComplexPart dataType ) const
+     {
+       EXCEPTION("not implemented");
+     }
 
     //! get a real material tensor
     virtual void GetTensor( Matrix<Double>& param, MaterialType matType, 

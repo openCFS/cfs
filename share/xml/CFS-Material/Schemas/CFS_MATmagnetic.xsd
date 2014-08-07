@@ -99,6 +99,8 @@
       <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
       <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
       <xsd:element name="dataName" type="xsd:string"/>
+      <xsd:element name="nuExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <xsd:element name="nuDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
     </xsd:sequence>
   </xsd:complexType>
   

@@ -58,6 +58,10 @@ SET(patches
   # Make sure GiDpost can find all CFS++ Fortran libs for linking its
   # Fortran example.
   "gidpost-fortran.patch"
+
+  # Remove HDF5 lite functions from source/hdf5c.c and add dependency to
+  # HDF5_LT_LIBRARY to targets in examples/CMakeLists.txt
+  "gidpost-hdf5-lite.patch"
   )
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/gidpost")

@@ -283,7 +283,11 @@ namespace CoupledField {
           // Check, if output writer "lives" on the same grid.
           // If not, we have to perform mapping
           // =================================================
-          if( outGridIds_[outId] != "default" ) {
+          ResultInfo & info = *(actContext.result->GetResultInfo());
+          if( outGridIds_[outId] != "default" &&
+              (info.definedOn == ResultInfo::NODE || 
+              info.definedOn == ResultInfo::ELEMENT ||
+              info.definedOn == ResultInfo::SURF_ELEM ) ) {
             
             // security check: if no result functor is present, we leave
             if( !actContext.functor )
@@ -953,7 +957,10 @@ namespace CoupledField {
     std::string entListName = actContext.result->GetEntityList()->GetName();
     EntityList::ListType lType = actContext.result->GetEntityList()->GetType();
     shared_ptr<EntityList> destList = destGrid->GetEntityList( lType, entListName );
-
+    
+    StdVector<shared_ptr<EntityList> >lists(1);
+    lists[0] = srcGrid->GetEntityList(EntityList::ELEM_LIST, entListName); 
+ 
     // loop over all elements, get the element midpoint and store it in a vector
     StdVector<Vector<Double> > globPoints(destList->GetSize());
     EntityIterator it = destList->GetIterator();
@@ -963,7 +970,7 @@ namespace CoupledField {
       for( ; !it.IsEnd(); it++ ) {
         // get global element midpoint
         UInt nodeNum = it.GetNode();
-        destGrid->GetNodeCoordinate( globPoints[pos++], nodeNum);
+        destGrid->GetNodeCoordinate( globPoints[pos++], nodeNum, false );
       }
     } else if( actContext.result->GetResultInfo()->definedOn == ResultInfo::ELEMENT ) {
       // loop over all elements
@@ -975,13 +982,16 @@ namespace CoupledField {
         const Elem* ptEl = it.GetElem();
         esm = destGrid->GetElemShapeMap( ptEl , false );
         esm->GetGlobMidPoint( globPoints[pos++] );
-      }
+      } 
+    }else {
+      // In this case we have results not being defined on nodes or elements, 
+      // which should not happen
     }
 
     // now map global locations to our src grid
     StdVector<LocPoint> lps(destList->GetSize());
     StdVector<const Elem*> elems(destList->GetSize());
-    srcGrid->GetElemsAtGlobalCoords( globPoints, lps, elems );
+    srcGrid->GetElemsAtGlobalCoords( globPoints, lps, elems, lists);
 
 
     // Get result functor
@@ -1016,7 +1026,7 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -1028,7 +1038,7 @@ namespace CoupledField {
             vals[pos++] = NAN;
             continue;
           }
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector
@@ -1066,7 +1076,7 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
           coef->GetScalar( temp[0], lpm);
           vals[pos++] = temp[0];
@@ -1076,7 +1086,7 @@ namespace CoupledField {
         for( UInt i = 0; i < lps.GetSize(); ++i ) {
           if( elems[i] == NULL)
             continue;
-          esm = srcGrid->GetElemShapeMap( elems[i]);
+          esm = srcGrid->GetElemShapeMap( elems[i], true );
           lpm.Set( lps[i], esm, 0.0 );
 
           // Calculate coefficient function and store the result into the vector

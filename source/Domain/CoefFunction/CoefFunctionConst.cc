@@ -149,9 +149,10 @@ void CoefFunctionConst<Complex>::GetStrTensor( UInt& numRows, UInt& numCols,
 }
 
 template<typename T>
-void CoefFunctionConst<T>:: GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+void CoefFunctionConst<T>:: GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                      StdVector<T >  & vals,
-                                                     Grid* ptGrid){
+                                                     Grid* ptGrid,
+                                                     const StdVector<shared_ptr<EntityList> >& srcEntities){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -163,7 +164,8 @@ void CoefFunctionConst<T>:: GetVectorValuesAtCoords( const StdVector<Vector<Doub
 
 template<typename T>
 void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
-                                           StdVector<Vector<T> >  & vals, Grid* ptGrid){
+                                           StdVector<Vector<T> >  & vals, Grid* ptGrid,
+                                           const StdVector<shared_ptr<EntityList> >& srcEntities){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -189,6 +191,20 @@ void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Doubl
         this->coordSys_->Local2GlobalVector( vals[i], coefVec_, points[i] );
       }
     }
+  }
+}
+
+template<typename T>
+void CoefFunctionConst<T>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
+                                                    StdVector<Matrix<T> >  & vals,
+                                                    Grid* ptGrid ,
+                                                    const StdVector<shared_ptr<EntityList> >& srcEntities)
+{
+  assert(this->dimType_ == TENSOR);
+  vals.Resize(points.GetSize());
+  vals.Init();
+  for(UInt i=0; i< vals.GetSize() ; ++i){
+    vals[i] =  constCoefMat_;
   }
 }
 

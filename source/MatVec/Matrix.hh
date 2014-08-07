@@ -987,7 +987,10 @@ namespace CoupledField
 #endif
 
 #ifdef CHECK_INDEX
-    if (size_col_ != x.GetSize()) EXCEPTION("incompatible dimension");
+    if (size_col_ != x.GetSize()) 
+    {
+      EXCEPTION("incompatible dimension");
+    }
 #endif
   
     Vector<PROMOTE(TYPE,TYPE2)> z(size_row_);
