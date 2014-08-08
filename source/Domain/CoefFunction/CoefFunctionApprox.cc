@@ -386,7 +386,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     coefScalar = coefScalar_;
   } else {
 
-    // x-values have to be positive! TODO-avolk: or is this handled somewhere below??
+    // x-values have to be positive! 
 //    if ( elemSol[0] <= 0 ) { 
 //      EXCEPTION("CoefFunctionApproxAniso::GetScalar(): x value has to be positive!" );
 //    }
@@ -395,7 +395,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //  compute angle phi of B vector 
     // -------------------------------
     Double angleBPhi;
-    if ( abs(elemSol[0]) > 1e-5 ) { // why is this done?? TODO-avolk
+    if ( abs(elemSol[0]) > 1e-5 ) { 
       angleBPhi = abs( std::atan( elemSol[1] / elemSol[0] ) );
       angleBPhi *= 180.0/3.141592654; // conversion rad to deg
     }
@@ -439,7 +439,29 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 //    }
 //    std::cerr << "elem: " << lpm.ptEl->elemNum << "absB: " << fieldAbs << ", angle: " << angleBPhi << ", pos: " << pos << std::endl;
 //    coefScalar = nLinFnc_[pos]->EvaluateFuncNu(fieldAbs);
+
     
+    // ------------------------------------   
+    // Interpolation method of coefficients
+    // ------------------------------------
+    //
+    //                90°
+    //                 o
+    //                / \
+    //               /   \
+    //            4 o     o
+    //     theta   /       \
+    //            /         \
+    //         3 o           o
+    //          /     x       \
+    //         /               \
+    //     0° o-----o-----o-----o 90°
+    //              1     2
+    //                phi
+    //
+    // - locally interpolate over phi (points 1 and 2) to get coef_xy
+    // - locally interpolate over theta (points 3 and 4) to get coef_z
+    // - interpolate coef_xy and coef_z over theta to get final coefficient
     
     // ---------------------------------------------------
     //  Angular based interpolation in the xy-plane (phi)
@@ -491,27 +513,60 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     //  Angular based interpolation according to z direction (angle theta)
     // --------------------------------------------------------------------
     
-    // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
-    //             is equivalent to BH-curve in transverse direction (phi=90°)
-    // !! NOTE !!  till now the maximum angle provided for phi will also  
-    //             be chosen for theta as well as its corresponding BH-curve      
-    // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
-    //       nu = 1/mu; c*mu => 1/c*mu  
-    Double coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[kend]);
+    // ASSUMPTION: material behavior of in thickness direction (theta) is 
+    //             equivalent to behavior in transverse direction (phi).
+    //             therefore we use the same BH-curves but scale them by 
+    //             an appropriate scaling factor. 
+    
+    Double coefScalarZ = 0.0;
 
-    // since we use curves from xy-plane take care that theta stays in range
-    // TODO-avolk: implement handling of theta bounds like it is done for phi!!
-    if (angleBTheta > angles_[kend]) {
-      WARN( "Theta = " << angleBTheta << " is out of bounds! "
-          << "Theta = " << angles_[kend] << " will be used instead!");
-      angleBTheta = angles_[kend];
+    // if angle is out of bounds or we have just one entry,
+    // return boundary value (i.e. first or last) 
+    if ( angleBTheta > angles_[kend] || kend == 0) {
+      coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
     }
+    else if ( angleBTheta < angles_[0] ) {
+      coefScalarZ = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+    }
+    else {  // now that the angle is in range, search for the "best" given angle 
+      UInt klo,khi,k;
+      klo=0;
+      khi=kend;
+      // We will find the right place in the table by means of bisection.
+      // klo and khi bracket the input value of theta-value
+      while (khi-klo > 1) {
+        k=(khi+klo) >> 1; // binary right shift
+        if (angles_[k] > angleBTheta)
+          khi=k;
+        else
+          klo=k;
+      }
 
-    Double dThetaVal = angles_[kend] - 0.0;
-    Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
-    Double blo = ( angleBTheta - 0.0 ) / dThetaVal;
+      // size of theta interval
+      Double dThetaVal = angles_[khi] - angles_[klo]; 
 
-    // interpolate between calculated coefficient in xy-plane and z-direction 
+      // The theta-values must be distinct!
+      if (dThetaVal == 0.0) {
+        EXCEPTION("You cannot have two equal angular values!" );
+      }
+
+      // relative distance of theta-value to theta-bounds
+      Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
+      Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
+
+      // value of coefficient interpolated along z-direction and phi=0°
+      // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
+      //       nu = 1/mu; c*mu => 1/c*mu          
+      coefScalarZ =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[klo])
+                    + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[khi]);
+    }
+    
+    // ----------------------------------------------------------------------------------------
+    //  Interpolation between calculated coefficients in xy-plane and z-direction (angle theta)
+    // ----------------------------------------------------------------------------------------
+    
+    Double bhi = ( 90 - angleBTheta ) / 90;
+    Double blo = ( angleBTheta - 0.0 ) / 90;
     coefScalar = bhi * coefScalarXY + blo * coefScalarZ;
 
 
@@ -523,7 +578,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 //    std::cerr << " B_z=" << elemSol[2];
     std::cerr << " angleBPhi=" << angleBPhi;
     std::cerr << " angleBTheta=" << angleBTheta;
-    std::cerr << "zScaling(end)=" << zScalings_[kend];
+    std::cerr << " zScaling(end)=" << zScalings_[kend];
 //    std::cerr << " startAngle=" << angles_[klo]; 
 //    std::cerr << " stopAngle=" << angles_[khi];
 //    std::cerr << " ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
@@ -634,6 +689,28 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
 //    Double nuPrime = nLinFnc_[pos]->EvaluatePrimeNu(fieldAbs);
     
     
+    // ------------------------------------   
+    // Interpolation method of coefficients
+    // ------------------------------------
+    //
+    //                90°
+    //                 o
+    //                / \
+    //               /   \
+    //            4 o     o
+    //     theta   /       \
+    //            /         \
+    //         3 o           o
+    //          /     x       \
+    //         /               \
+    //     0° o-----o-----o-----o 90°
+    //              1     2
+    //                phi
+    //
+    // - locally interpolate over phi (points 1 and 2) to get coef_xy
+    // - locally interpolate over theta (points 3 and 4) to get coef_z
+    // - interpolate coef_xy and coef_z over theta to get final coefficient    
+    
     // ---------------------------------------------------
     //  Angular based interpolation in the xy-plane (phi)
     // ---------------------------------------------------
@@ -683,30 +760,60 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     //  Angular based interpolation according to z direction (angle theta)
     // --------------------------------------------------------------------
         
-    // ASSUMPTION: BH-curve of magn. flux in thickness direction (theta=90°) 
-    //             is equivalent to BH-curve in transverse direction (phi=90°)
-    // !! NOTE !!  till now the maximum angle provided for phi will also  
-    //             be chosen for theta as well as its corresponding BH-curve
-    // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
-    // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
-    // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
-    nuPrimeZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[kend]);
-
-    // since we use curves from xy-plane take care that theta stays in range
-    // TODO-avolk: implement handling of theta bounds like it is done for phi!!
-    if (angleBTheta > angles_[kend]) {
-      WARN( "Theta = " << angleBTheta << " is out of bounds! "
-          << "Theta = " << angles_[kend] << " will be used instead!");
-      angleBTheta = angles_[kend];
+    // ASSUMPTION: material behavior of in thickness direction (theta) is 
+    //             equivalent to behavior in transverse direction (phi).
+    //             therefore we use the same BH-curves but scale them by 
+    //             an appropriate scaling factor. 
+    
+    // if angle is out of bounds or we have just one entry,
+    // return boundary value (i.e.first or last) 
+    if ( angleBTheta > angles_[kend] || kend == 0) {
+      nuPrimeZ = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
     }
-    
-    Double dThetaVal = angles_[kend] - 0.0;
-    Double bhi = ( angles_[kend] - angleBTheta ) / dThetaVal;
-    Double blo = ( angleBTheta - 0.0 ) / dThetaVal;
+    else if ( angleBTheta < angles_[0] ) {
+      nuPrimeZ = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+    }
+    else {
+      UInt klo,khi,k;
+      klo=0;
+      khi=kend;
+      // We will find the right place in the table by means of bisection.
+      //  klo and khi bracket the input value of theta-value
+      while (khi-klo > 1) {
+        k=(khi+klo) >> 1; // binary right shift
+        if (angles_[k] > angleBTheta)
+          khi=k;
+        else
+          klo=k;
+      }
 
-    // interpolate between calculated nuPrime in xy-plane and z-direction 
-    nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;    
+      // size of theta interval
+      Double dThetaVal = angles_[khi] - angles_[klo];
+
+      // The theta-values must be distinct!
+      if (dThetaVal == 0.0) {
+        EXCEPTION("You cannot have two equal angular values!" );
+      }
+
+      // relative distance of phi-value to phi-bounds
+      Double ahi = ( angles_[khi] - angleBTheta ) / dThetaVal;
+      Double alo = ( angleBTheta - angles_[klo] ) / dThetaVal;
+
+      // value of nuPrime interpolated along z-direction and phi=0°
+      // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
+      // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
+      // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
+      nuPrimeZ =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[klo])
+                 + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[khi]);
+    }
+
+    // -----------------------------------------------------------------------------------
+    //  Interpolation between calculated nuPrime in xy-plane and z-direction (angle theta)
+    // -----------------------------------------------------------------------------------
     
+    Double bhi = ( 90 - angleBTheta ) / 90;
+    Double blo = ( angleBTheta - 0.0 ) / 90;
+    nuPrime = bhi * nuPrimeXY + blo * nuPrimeZ;        
     
     
     // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B 
@@ -721,7 +828,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     std::cerr << "GetTensor(): statistics of element " << lpm.ptEl->elemNum;
     std::cerr << ": angleBPhi=" << angleBPhi;
     std::cerr << ", angleBTheta=" << angleBTheta;
-    std::cerr << "zScaling(end)=" << zScalings_[kend];
+    std::cerr << ", zScaling(end)=" << zScalings_[kend];
 //    std::cerr << ", startAngle=" << angles_[klo]; 
 //    std::cerr << ", stopAngle=" << angles_[khi];
 //    std::cerr << ", ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
