@@ -877,7 +877,68 @@ namespace CoupledField
          return(nuFnc);
        }
 
-     } else {
+     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+       
+       // ---------------------------
+       // ANISOTROPIC VERSION
+       // ---------------------------
+       StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+       UInt numCurves = matNl.GetSize();
+       StdVector<Double> angles(numCurves);
+       StdVector<ApproxData*> approx(numCurves);
+       // Loop over all entries
+       for( UInt i = 0; i < matNl.GetSize(); ++i ) {
+         MatDescriptorNl & actNl = matNl[i];
+         angles[i] = actNl.angle;
+         // Check, if smooth spline approximation was already created 
+         // and initialized
+         if( !actNl.approxData ) {
+           SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY ); 
+           sp->SetAccuracy( actNl.measAccuracy );
+           sp->SetMaxY( actNl.maxVal );
+           sp->CalcBestParameter();
+           sp->CalcApproximation();
+           sp->Print();
+           actNl.approxData = sp;
+         }
+
+         approx[i] = actNl.approxData;
+       }
+       
+       // -------------------------
+       // Insertion sort algorithm
+       // ------------------------
+       Double compAngle;
+       ApproxData * compApprox = NULL;
+       UInt j;
+       for( UInt i = 1; i < numCurves; i++ ) {
+         compAngle = angles[i];
+         compApprox = approx[i];
+         j = i;
+         while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
+           angles[j] = angles[j - 1];
+           approx[j] = approx[j - 1];
+           j = j - 1;
+         }
+         angles[j] = compAngle;
+         approx[j] = compApprox;
+       }
+       // -----------------------
+//       std::cerr << "angles are:\n";
+//       for( UInt i = 0; i < numCurves; ++i ) {
+//         std::cerr << "angle: " << angles[i] 
+//                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
+//       }
+
+         // get linear starting value
+         Double startVal = 0.0;
+         this->GetScalar( startVal, matType, Global::REAL );
+         shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
+         coef->Init( startVal, approx, angles, fluxCoef );
+         ret = coef;                  
+     }
+
+     else {
        EXCEPTION( "No nonlinear definition found for material type '"
            << MaterialTypeEnum.ToString(matType) << "'");
      }
