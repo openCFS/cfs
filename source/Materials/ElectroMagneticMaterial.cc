@@ -825,6 +825,7 @@ namespace CoupledField
      
      // check if material is isotropic or anisotropic
      if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+       
        // ---------------------------
        // ISOTROPIC VERSION
        // ---------------------------
@@ -884,11 +885,13 @@ namespace CoupledField
        StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
        UInt numCurves = matNl.GetSize();
        StdVector<Double> angles(numCurves);
+       StdVector<Double> zScalings(numCurves);
        StdVector<ApproxData*> approx(numCurves);
        // Loop over all entries
        for( UInt i = 0; i < matNl.GetSize(); ++i ) {
          MatDescriptorNl & actNl = matNl[i];
          angles[i] = actNl.angle;
+         zScalings[i] = actNl.zScaling;
          // Check, if smooth spline approximation was already created 
          // and initialized
          if( !actNl.approxData ) {
@@ -908,32 +911,37 @@ namespace CoupledField
        // Insertion sort algorithm
        // ------------------------
        Double compAngle;
+       Double compZScaling;
        ApproxData * compApprox = NULL;
        UInt j;
        for( UInt i = 1; i < numCurves; i++ ) {
          compAngle = angles[i];
+         compZScaling = zScalings[i];
          compApprox = approx[i];
          j = i;
          while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
            angles[j] = angles[j - 1];
+           zScalings[j] = zScalings[j - 1];
            approx[j] = approx[j - 1];
            j = j - 1;
          }
          angles[j] = compAngle;
+         zScalings[j] = compZScaling;
          approx[j] = compApprox;
        }
        // -----------------------
 //       std::cerr << "angles are:\n";
 //       for( UInt i = 0; i < numCurves; ++i ) {
-//         std::cerr << "angle: " << angles[i] 
+//         std::cerr << "angle: " << angles[i] << " zScaling: " << zScalings[i]
 //                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
 //       }
+       // -----------------------
 
          // get linear starting value
          Double startVal = 0.0;
          this->GetScalar( startVal, matType, Global::REAL );
          shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
-         coef->Init( startVal, approx, angles, fluxCoef );
+         coef->Init( startVal, approx, angles, zScalings, fluxCoef );
          ret = coef;                  
      }
 
@@ -1036,17 +1044,20 @@ namespace CoupledField
          }
 
        } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+         
          // ---------------------------
          // ANISOTROPIC VERSION
          // ---------------------------
          StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
          UInt numCurves = matNl.GetSize();
          StdVector<Double> angles(numCurves);
+         StdVector<Double> zScalings(numCurves);
          StdVector<ApproxData*> approx(numCurves);
          // Loop over all entries
          for( UInt i = 0; i < matNl.GetSize(); ++i ) {
            MatDescriptorNl & actNl = matNl[i];
            angles[i] = actNl.angle;
+           zScalings[i] = actNl.zScaling;
            // Check, if smooth spline approximation was already created 
            // and initialized
            if( !actNl.approxData ) {
@@ -1066,37 +1077,43 @@ namespace CoupledField
          // Insertion sort algorithm
          // ------------------------
          Double compAngle;
+         Double compZScaling;
          ApproxData * compApprox = NULL;
          UInt j;
          for( UInt i = 1; i < numCurves; i++ ) {
            compAngle = angles[i];
+           compZScaling = zScalings[i];
            compApprox = approx[i];
            j = i;
            while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
              angles[j] = angles[j - 1];
+             zScalings[j] = zScalings[j - 1];
              approx[j] = approx[j - 1];
              j = j - 1;
            }
            angles[j] = compAngle;
+           zScalings[j] = compZScaling;
            approx[j] = compApprox;
          }
+         
          // -----------------------
-  //       std::cerr << "angles are:\n";
-  //       for( UInt i = 0; i < numCurves; ++i ) {
-  //         std::cerr << "angle: " << angles[i] 
-  //                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
-  //       }
+//         std::cerr << "angles are:\n";
+//         for( UInt i = 0; i < numCurves; ++i ) {
+//           std::cerr << "angle: " << angles[i] << " zScaling: " << zScalings[i] 
+//                     << " fName: " << approx[i]->GetNlFileName() << std::endl;
+//         }
+         // -----------------------
          
          if( matType == MAG_RELUCTIVITY ) {
            // get linear starting value
            Double startVal = 0.0;
            this->GetScalar( startVal, matType, Global::REAL );
            shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
-           coef->Init( startVal, approx, angles, dependency );
+           coef->Init( startVal, approx, angles, zScalings, dependency );
            ret = coef;
          } else if (matType == MAG_RELUCTIVITY_DERIV ) {
            shared_ptr<CoefFunctionApproxDerivAniso> coef( new CoefFunctionApproxDerivAniso());
-           coef->Init( approx, angles, dimDMat, dependency );
+           coef->Init( approx, angles, zScalings, dimDMat, dependency );
            ret = coef;
          }
 
