@@ -118,7 +118,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
 
   // *****************************
-  //   Definition of Integrators
+  //  Definition of Integrators
   // *****************************
   void MagEdgePDE::DefineIntegrators() {
 
