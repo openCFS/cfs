@@ -94,7 +94,7 @@ SET(UPDATE_SCRIPTS
   # Checkout or update trunk working copies
   ctest_update_trunkOld_wien.cmake
   ctest_update_trunkOld_testsuite_wien.cmake
-  ctest_update_cfsdeps_trunk_wien.cmake
+  ctest_update_cfsdeps_trunkOld_wien.cmake
 
   # Checkout or update modelling manual working copy
   ctest_update_modelling_manual.cmake
