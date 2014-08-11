@@ -59,9 +59,10 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/gcc")
-SET(ENV{CXX} "/usr/bin/g++")
-SET(ENV{FC} "/usr/bin/gfortran")
+SET(ENV{PATH} "/opt/pckg/macosx_10.6_dev/bin:$ENV{PATH}")
+SET(ENV{CC} "i686-apple-darwin10-gcc")
+SET(ENV{CXX} "i686-apple-darwin10-g++")
+SET(ENV{FC} "i686-apple-darwin10-gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
@@ -106,14 +107,21 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "Trunk ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "Trunk Old 2014 MACOSX 10.6 X86_64 ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
+SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.cross-osx.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+set(SITE_OS_NAME "Mac OS X")
+set(SITE_OS_RELEASE "10.6")
+set(SITE_OS_VERSION "10M2518")
+set(SITE_OS_BITS "64")
+set(SITE_COMPILER_NAME "GCC")
+set(SITE_COMPILER_VERSION "4.2.1 (Apple 5646)")
 
 #-----------------------------------------------------------------------------
 # Start out with an empty binary directory.
@@ -130,12 +138,11 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   CMAKE_TOOLCHAIN_FILE=${CTEST_SOURCE_DIRECTORY}/share/scripts/toolchain_cross_linux_macosx_x86_64.cmake
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
-#   USE_ANSYSRST:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
-   MKL_ROOT_DIR:PATH=/opt/pckg/intel/composer_xe_2013_sp1.0.080/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
@@ -153,8 +160,111 @@ ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
 message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
-message("  Test")
-ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+# Copy some extra .dylibs from GCC OSX runtime
+SET(CFS_LIB_DIR "${CTEST_BINARY_DIRECTORY}/lib64/MACOSX_10.6_X86_64")
+SET(CFS_BIN_DIR "${CTEST_BINARY_DIRECTORY}/bin/MACOSX_10.6_X86_64")  
+SET(DLLS                                                             
+  libgfortran.2.0.0.dylib 
+  libgomp.1.0.0.dylib
+)
+SET(BASE_DIR "/opt/pckg/macosx_10.6_dev/lib/gcc/i686-apple-darwin10/4.2.1/x86_64")
+
+EXECUTE_PROCESS(
+  COMMAND /bin/find . -type f -perm -o+rx
+  COMMAND /usr/bin/xargs /usr/bin/file
+  OUTPUT_VARIABLE MAC_EXES
+  WORKING_DIRECTORY "${CFS_BIN_DIR}"
+  RESULT_VARIABLE RETVAL
+)
+
+
+FOREACH(DLL IN ITEMS ${DLLS})
+  STRING(REPLACE ".0.0" "" DLL_SHORT ${DLL})
+  EXECUTE_PROCESS(
+    COMMAND ${CMAKE_COMMAND} -E copy "${BASE_DIR}/${DLL}" "${CFS_LIB_DIR}/${DLL_SHORT}"
+    RESULT_VARIABLE RETVAL
+  )
+
+  MESSAGE("DLL ${DLL}")
+  MESSAGE("DLL_SHORT ${DLL_SHORT}")
+
+  EXECUTE_PROCESS(
+    COMMAND i686-apple-darwin10-install_name_tool -id "${DLL_SHORT}" "${DLL_SHORT}"
+    WORKING_DIRECTORY "${CFS_LIB_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+
+  EXECUTE_PROCESS(
+    COMMAND i686-apple-darwin10-otool -L "${DLL_SHORT}"
+    WORKING_DIRECTORY "${CFS_LIB_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+
+  EXECUTE_PROCESS(
+    COMMAND ls -lah "${BASE_DIR}/${DLL_SHORT}" "${DLL_SHORT}" "${DLL_SHORT}"
+    WORKING_DIRECTORY "${CFS_LIB_DIR}"
+    RESULT_VARIABLE RETVAL
+  )
+
+  STRING(REPLACE "\n" ";" MAC_EXES ${MAC_EXES})
+  FOREACH(line IN ITEMS ${MAC_EXES})
+    IF(line MATCHES "executable")
+      STRING(REPLACE ":" ";" line ${line})
+      LIST(GET line 0 EXE)
+      MESSAGE("EXE ${EXE}")
+
+      EXECUTE_PROCESS(
+        COMMAND i686-apple-darwin10-install_name_tool -change "${BASE_DIR}/${DLL_SHORT}" "${DLL_SHORT}" ${EXE}
+        WORKING_DIRECTORY "${CFS_BIN_DIR}"
+        RESULT_VARIABLE RETVAL
+      )
+
+      EXECUTE_PROCESS(
+        COMMAND i686-apple-darwin10-otool -L ${EXE}
+        WORKING_DIRECTORY "${CFS_BIN_DIR}"
+        RESULT_VARIABLE RETVAL
+      )
+
+    ENDIF()
+  ENDFOREACH()
+
+ENDFOREACH()
+
 message("  Submit")
+
+# Set OSName to Mac OS X before submission to make it obvious on the dashboard,
+# # that this build is not for Linux but OSX.
+FILE(GLOB XML_FILES "${CTEST_BINARY_DIRECTORY}/Testing/2*/*.xml")
+FOREACH(XML_FILE IN ITEMS ${XML_FILES})
+  MESSAGE("XML_FILE ${XML_FILE}")
+  FILE(READ "${XML_FILE}" XML_CONTENTS)
+  STRING(REPLACE ";" "\\;" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSName=\"[a-zA-z ]+\"" "OSName=\"${SITE_OS_NAME}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSRelease=\"[a-zA-Z0-9.\\-]+_[a-zA-Z0-9.\\-]+\"" "OSRelease=\"${SITE_OS_RELEASE}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSVersion=\"[a-zA-Z0-9:# ]+\"" "OSVersion=\"${SITE_OS_VERSION}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REPLACE "CompilerName=\"\"" "CompilerName=\"${SITE_COMPILER_NAME}\"\n\tCompilerVersion=\"${SITE_COMPILER_VERSION}\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "OSPlatform=\"[a-zA-z0-9 ()]+\"" "OSPlatform=\"x86_64\"" XML_CONTENTS "${XML_CONTENTS}")
+  STRING(REGEX REPLACE "Is64Bits=\"[a-zA-z0-9 ()]+\"" "Is64Bits=\"1\"" XML_CONTENTS "${XML_CONTENTS}")
+  FILE(WRITE "${XML_FILE}" ${XML_CONTENTS})
+
+  # Check validity of generated XML.
+  EXECUTE_PROCESS(
+    COMMAND xmllint "${XML_FILE}"
+    OUTPUT_VARIABLE XMLLINT_OUT
+    ERROR_VARIABLE XMLLINT_ERR
+    RESULT_VARIABLE RETVAL
+  )
+  IF(RETVAL)
+    MESSAGE("xmllint error:\n${XMLLINT_ERR}")
+  ENDIF()
+
+  # Re-submit with OSName set to Mac OS X.
+  #  EXECUTE_PROCESS(
+  #    COMMAND curl --http1.0 -T "${XML_FILE}" http://${CFS_DS_HOSTNAME}:2000/cdash/submit.php?project=CFS
+  #  )
+ENDFOREACH()
+
 ctest_submit(RETURN_VALUE res)
+
 message("  All done")

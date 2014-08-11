@@ -135,7 +135,7 @@ SET(CTEST_INITIAL_CACHE
 #   USE_ANSYSRST:BOOL=ON
    USE_PARDISO:BOOL=ON
    CFS_PARDISO:STRING=MKL
-   MKL_ROOT_DIR:PATH=/opt/pckg/intel/composer_xe_2013_sp1.0.080/mkl
+   MKL_ROOT_DIR:PATH=/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
@@ -148,6 +148,7 @@ ctest_start(Nightly)
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
 message("  Configure")
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+# Configure twice so that CFX and OpenFOAM dependencies get built
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #message("read custom files after configure")
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")

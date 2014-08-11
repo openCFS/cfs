@@ -59,8 +59,8 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "/usr/bin/gcc")
-SET(ENV{CXX} "/usr/bin/g++")
+SET(ENV{CC} "/opt/pckg/clang+llvm-3.3-amd64-Ubuntu-10.04.4/bin/clang")
+SET(ENV{CXX} "/opt/pckg/clang+llvm-3.3-amd64-Ubuntu-10.04.4/bin/clang++")
 SET(ENV{FC} "/usr/bin/gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
@@ -106,7 +106,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "Trunk ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "Trunk Old 2014 ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
@@ -130,6 +130,7 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+#   CMAKE_Fortran_FLAGS:STRING=-fplugin=dragonegg
    TESTSUITE_DIR:STRING=$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE
 #   USE_ANSYSRST:BOOL=ON
@@ -148,6 +149,7 @@ ctest_start(Nightly)
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
 message("  Configure")
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+# Configure twice so that CFX and OpenFOAM dependencies get built
 ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
 #message("read custom files after configure")
 #ctest_read_custom_files("${CTEST_BINARY_DIRECTORY}")
