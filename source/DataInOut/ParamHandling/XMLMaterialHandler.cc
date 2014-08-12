@@ -973,6 +973,8 @@ namespace CoupledField {
               info.maxVal = 2.5;
               info.zScaling= 1.0;
               info.fileName = "";              
+              info.analyticExpr = "";
+              info.analyticExprDeriv = "";
 
               // read angle  
               if(anIsoNodes[i]->Has("angle")) {
@@ -989,26 +991,34 @@ namespace CoupledField {
               if(anIsoNodes[i]->Has("measAccuracy")) 
                 info.measAccuracy = anIsoNodes[i]->Get("measAccuracy")->As<Double>();
 
+              // read name of function file
+              if(anIsoNodes[i]->Has("dataName"))
+                info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
+
               // read maximum value for approximation
               if(anIsoNodes[i]->Has("maxApproxVal")) 
                 info.maxVal = anIsoNodes[i]->Get("maxApproxVal")->As<Double>();
-              
+
               // read z-scaling factor  
               if(anIsoNodes[i]->Has("angle"))
                 info.zScaling =  anIsoNodes[i]->Get("zScaling")->As<Double>();
 
-              // read name of function file 
-              if(anIsoNodes[i]->Has("dataName")) 
-                info.fileName = anIsoNodes[i]->Get("dataName")->As<std::string>().c_str();
-
+              // read analytic function of material parameter
+              if(anIsoNodes[i]->Has("nuExpr")) {
+                info.analyticExpr = anIsoNodes[i]->Get("nuExpr")->As<std::string>().c_str();
+              }
+              // read analytic derivative of material parameter
+              if(anIsoNodes[i]->Has("nuDerivExpr"))
+                info.analyticExprDeriv = anIsoNodes[i]->Get("nuDerivExpr")->As<std::string>().c_str();
 
               nlData[i].angle        = info.angle;
               nlData[i].fileName     = info.fileName;
               nlData[i].approxType   = info.approxType;
               nlData[i].measAccuracy = info.measAccuracy;
               nlData[i].maxVal       = info.maxVal;
-              nlData[i].zScaling     = info.zScaling;
-              
+              nlData[i].analyticExpr = info.analyticExpr;
+              nlData[i].analyticExprDeriv = info.analyticExprDeriv;
+              nlData[i].zScaling          = info.zScaling;
             }
             material->SetNonLinMatAniso( MAG_PERMEABILITY, nlData );
           }        

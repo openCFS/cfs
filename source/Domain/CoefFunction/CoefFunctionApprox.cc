@@ -335,6 +335,24 @@ void CoefFunctionApproxDeriv::GetTensor(Matrix<Double>& coefMat,
   }
 }
 
+//! \see CoefFunction::GetScalar
+void CoefFunctionApproxDeriv::GetScalar(Double& coefScalar,
+                                       const LocPointMapped& lpm ) {
+
+
+  // evaluate vector of dependency
+  Vector<Double> elemB;
+  dependCoef_->GetVector( elemB, lpm);
+  Double fieldAbs = elemB.NormL2();
+
+  if( fieldAbs == 0 ) {
+    coefScalar = 0.0;
+  }
+  else {
+    // evaluate derivative of reluctivity
+    coefScalar = nLinFnc_->EvaluatePrimeNu(fieldAbs);
+  }
+}
 
 std::string CoefFunctionApproxDeriv::ToString() const {
   EXCEPTION( "Implement me");
@@ -359,7 +377,7 @@ CoefFunctionApproxAniso::~CoefFunctionApproxAniso(){
 
 //! Initialize with data
 void CoefFunctionApproxAniso::Init( Double coefScalar, 
-                                    StdVector<ApproxData*>  nLinFnc,
+                                    StdVector<shared_ptr<CoefFunction> > nLinFnc,
                                     StdVector<Double> angles,
                                     StdVector<Double> zScalings,
                                     PtrCoefFct dependCoef ) {
@@ -382,7 +400,7 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 
   Double fieldAbs = elemSol.NormL2();
 
-  if( fieldAbs == 0 ) { 
+  if( fieldAbs < 1.0e-04 ) {
     coefScalar = coefScalar_;
   } else {
 
@@ -473,10 +491,12 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     // return boundary value (i.e.first or last) 
     const UInt kend = angles_.GetSize() - 1;
     if ( angleBPhi > angles_[kend] || kend == 0) {
-      coefScalarXY = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+      //coefScalarXY = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+      nLinFnc_[kend]->GetScalar(coefScalarXY, lpm );
     }
     else if ( angleBPhi < angles_[0] ) {
-      coefScalarXY = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+      //coefScalarXY = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+      nLinFnc_[0]->GetScalar(coefScalarXY, lpm);
     }
     else {  // now that the angle is in range, search for the "best" given angle 
       UInt klo,khi,k;
@@ -505,8 +525,12 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
       
       // value of coefficient interpolated within the xy-plane and theta=0°
-      coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) 
-                     + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);      
+//      coefScalarXY =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs)
+//                      + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs);
+      Double VALklo, VALkhi;
+      nLinFnc_[klo]->GetScalar(VALklo, lpm);
+      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+      coefScalarXY =   ahi * VALklo + alo * VALkhi;
     }
        
     // --------------------------------------------------------------------
@@ -523,10 +547,12 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e. first or last) 
     if ( angleBTheta > angles_[kend] || kend == 0) {
-      coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+      //coefScalarZ = nLinFnc_[kend]->EvaluateFuncNu(fieldAbs);
+      nLinFnc_[kend]->GetScalar(coefScalarZ, lpm);
     }
     else if ( angleBTheta < angles_[0] ) {
-      coefScalarZ = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+//      coefScalarZ = nLinFnc_[0]->EvaluateFuncNu(fieldAbs);
+      nLinFnc_[0]->GetScalar(coefScalarZ, lpm);
     }
     else {  // now that the angle is in range, search for the "best" given angle 
       UInt klo,khi,k;
@@ -556,9 +582,14 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
 
       // value of coefficient interpolated along z-direction and phi=0°
       // Note: scaling of mu by factor c leads to scaling of nu by 1/c since: 
-      //       nu = 1/mu; c*mu => 1/c*mu          
-      coefScalarZ =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[klo])
-                    + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[khi]);
+      //       nu = 1/mu; c*mu => 1/c*mu
+      Double VALkhi, VALklo;
+      nLinFnc_[klo]->GetScalar(VALklo, lpm);
+      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+      coefScalarZ =   ahi * VALklo * (1/zScalings_[klo])
+                     + alo * VALkhi * (1/zScalings_[khi]);
+//      coefScalarZ =   ahi * nLinFnc_[klo]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[klo])
+//                    + alo * nLinFnc_[khi]->EvaluateFuncNu(fieldAbs) * (1/zScalings_[khi]);
     }
     
     // ----------------------------------------------------------------------------------------
@@ -611,7 +642,7 @@ CoefFunctionApproxDerivAniso::~CoefFunctionApproxDerivAniso(){
 }
 
 //! Initialize with data
-void CoefFunctionApproxDerivAniso::Init( StdVector<ApproxData*>  nLinFnc,
+void CoefFunctionApproxDerivAniso::Init( StdVector<shared_ptr<CoefFunction> > nLinFnc,
                                          StdVector<Double> angles,
                                          StdVector<Double> zScalings,
                                          UInt dimDMat,
@@ -635,7 +666,7 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
 
   Double fieldAbs = elemB.NormL2();
   coefMat.Resize( dimDMat_, dimDMat_ );
-  if( fieldAbs == 0 ) {
+  if( fieldAbs == 0.0 ) {
     coefMat.Init();
   } else {
 
@@ -720,10 +751,12 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // return boundary value (i.e.first or last) 
     const UInt kend = angles_.GetSize() - 1;
     if ( angleBPhi > angles_[kend] || kend == 0) {
-      nuPrimeXY = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
+      //nuPrimeXY = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
+      nLinFnc_[kend]->GetScalar(nuPrimeXY, lpm);
     }
     else if ( angleBPhi < angles_[0] ) {
-      nuPrimeXY = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+      //nuPrimeXY = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+      nLinFnc_[0]->GetScalar(nuPrimeXY, lpm);
     }
     else {
       UInt klo,khi,k;
@@ -752,8 +785,12 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       Double alo = ( angleBPhi - angles_[klo] ) / dPhiVal;
 
       // value of nuPrime interpolated within the xy-plane and theta=0°
-      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) 
-                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
+      Double VALklo, VALkhi;
+      nLinFnc_[klo]->GetScalar(VALklo, lpm);
+      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+      nuPrimeXY =   ahi * VALklo + alo * VALkhi;
+//      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs)
+//                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
     }
     
     // --------------------------------------------------------------------
@@ -768,10 +805,12 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 
     if ( angleBTheta > angles_[kend] || kend == 0) {
-      nuPrimeZ = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
+      nLinFnc_[kend]->GetScalar(nuPrimeZ, lpm);
+      //nuPrimeZ = nLinFnc_[kend]->EvaluatePrimeNu(fieldAbs);
     }
     else if ( angleBTheta < angles_[0] ) {
-      nuPrimeZ = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
+      nLinFnc_[0]->GetScalar(nuPrimeZ, lpm);
+//      nuPrimeZ = nLinFnc_[0]->EvaluatePrimeNu(fieldAbs);
     }
     else {
       UInt klo,khi,k;
@@ -803,8 +842,13 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       // Note: scaling of mu by factor c leads to scaling of nu' by 1/c since:
       // 1) nu = 1/mu; c*mu => 1/c*mu meaning that scaling has to be applied by the reciprocal factor 
       // 2) g(x)=c*f(x) => g'(x)=c*f'(x) meaning that scaling can also be applied to derivative
-      nuPrimeZ =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[klo])
-                 + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[khi]);
+      Double VALklo, VALkhi;
+      nLinFnc_[klo]->GetScalar(VALklo, lpm);
+      nLinFnc_[khi]->GetScalar(VALkhi, lpm);
+      nuPrimeZ =   ahi * VALklo * (1/zScalings_[klo])
+                 + alo * VALkhi * (1/zScalings_[khi]);
+//      nuPrimeZ =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[klo])
+//                 + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs) * (1/zScalings_[khi]);
     }
 
     // -----------------------------------------------------------------------------------

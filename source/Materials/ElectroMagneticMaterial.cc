@@ -886,25 +886,73 @@ namespace CoupledField
        UInt numCurves = matNl.GetSize();
        StdVector<Double> angles(numCurves);
        StdVector<Double> zScalings(numCurves);
-       StdVector<ApproxData*> approx(numCurves);
+       StdVector<shared_ptr<CoefFunction> > approx(numCurves);
+       Double startValAveraged = 0.0;
+
        // Loop over all entries
        for( UInt i = 0; i < matNl.GetSize(); ++i ) {
          MatDescriptorNl & actNl = matNl[i];
          angles[i] = actNl.angle;
          zScalings[i] = actNl.zScaling;
-         // Check, if smooth spline approximation was already created 
-         // and initialized
-         if( !actNl.approxData ) {
-           SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY ); 
-           sp->SetAccuracy( actNl.measAccuracy );
-           sp->SetMaxY( actNl.maxVal );
-           sp->CalcBestParameter();
-           sp->CalcApproximation();
-           sp->Print();
-           actNl.approxData = sp;
-         }
+         if( actNl.approxType == SMOOTH_SPLINES ) {
+           // Check, if smooth spline approximation was already created
+           // and initialized
+           if( !actNl.approxData ) {
+             SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
+             sp->SetAccuracy( actNl.measAccuracy );
+             sp->SetMaxY( actNl.maxVal );
+             sp->CalcBestParameter();
+             sp->CalcApproximation();
+             sp->Print();
+             actNl.approxData = sp;
+           }
 
-         approx[i] = actNl.approxData;
+           ApproxData * sp = actNl.approxData;
+           // get linear starting value
+
+           Double startVal;
+           this->GetScalar( startVal, matType, Global::REAL );
+           shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+           coef->Init( startVal, sp, fluxCoef);
+
+           //compute an averaged starting value
+           startValAveraged += startVal / (Double)numCurves;
+
+           //store in array
+           approx[i] = coef;
+         }
+         else if( actNl.approxType == ANALYTIC ) {
+           // this is for describing the reluctivity directly in the xml as analytic formula
+           // idea: the string from the xml describes a function with the same notation as
+           // described in CoefFunctionCompound.hh
+           // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+           // note: a good starting value for B->0 works miracles!
+
+           // get Euclidean norm of B
+           CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+           PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+           // get function of B
+           std::string nuStr = actNl.analyticExpr; //stringParams_[matType];
+           shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
+           std::map<std::string,PtrCoefFct> symbolsNu;
+           symbolsNu["B"] = fluxDensAbs;
+
+           nuStr.insert(0,"( ");
+           nuStr.append(" )");
+           nuFnc->SetScalar(nuStr,symbolsNu);
+
+           //compute an averaged starting value
+           Double B_init = 0.0;
+           MathParser::HandleType handle = mp_->GetNewHandle();
+           mp_->RegisterExternalVar(handle,"B_R",&B_init);
+           mp_->SetExpr(handle,nuStr);
+           Double nuInit = mp_->Eval(handle);
+           startValAveraged += nuInit / (Double)numCurves;
+
+           //store in array
+           approx[i] = nuFnc;
+         }
        }
        
        // -------------------------
@@ -912,7 +960,7 @@ namespace CoupledField
        // ------------------------
        Double compAngle;
        Double compZScaling;
-       ApproxData * compApprox = NULL;
+       shared_ptr<CoefFunction> compApprox;
        UInt j;
        for( UInt i = 1; i < numCurves; i++ ) {
          compAngle = angles[i];
@@ -929,20 +977,11 @@ namespace CoupledField
          zScalings[j] = compZScaling;
          approx[j] = compApprox;
        }
-       // -----------------------
-//       std::cerr << "angles are:\n";
-//       for( UInt i = 0; i < numCurves; ++i ) {
-//         std::cerr << "angle: " << angles[i] << " zScaling: " << zScalings[i]
-//                   << " fName: " << approx[i]->GetNlFileName() << std::endl;
-//       }
-       // -----------------------
 
-         // get linear starting value
-         Double startVal = 0.0;
-         this->GetScalar( startVal, matType, Global::REAL );
-         shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
-         coef->Init( startVal, approx, angles, zScalings, fluxCoef );
-         ret = coef;                  
+       // get linear starting value
+       shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
+       coef->Init( startValAveraged, approx, angles, zScalings, fluxCoef );
+       ret = coef;
      }
 
      else {
@@ -1044,41 +1083,64 @@ namespace CoupledField
          }
 
        } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
-         
          // ---------------------------
          // ANISOTROPIC VERSION
          // ---------------------------
          StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+
          UInt numCurves = matNl.GetSize();
          StdVector<Double> angles(numCurves);
          StdVector<Double> zScalings(numCurves);
-         StdVector<ApproxData*> approx(numCurves);
+         StdVector<shared_ptr<CoefFunction> > approx(numCurves);
          // Loop over all entries
          for( UInt i = 0; i < matNl.GetSize(); ++i ) {
            MatDescriptorNl & actNl = matNl[i];
            angles[i] = actNl.angle;
            zScalings[i] = actNl.zScaling;
-           // Check, if smooth spline approximation was already created 
-           // and initialized
-           if( !actNl.approxData ) {
-             SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY ); 
-             sp->SetAccuracy( actNl.measAccuracy );
-             sp->SetMaxY( actNl.maxVal );
-             sp->CalcBestParameter();
-             sp->CalcApproximation();
-             sp->Print();
-             actNl.approxData = sp;
-           }
+           if( actNl.approxType == SMOOTH_SPLINES ) {
+             // Check, if smooth spline approximation was already created
+             // and initialized
+             if( actNl.approxData == NULL) {
+               SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
+               sp->SetAccuracy( actNl.measAccuracy );
+               sp->SetMaxY( actNl.maxVal );
+               sp->CalcBestParameter();
+               sp->CalcApproximation();
+               sp->Print();
+               actNl.approxData = sp;
+             }
+             ApproxData * sp = actNl.approxData;
+             shared_ptr<CoefFunctionApproxDeriv> coef( new CoefFunctionApproxDeriv());
+             coef->Init( sp, dimDMat, dependency );
 
-           approx[i] = actNl.approxData;
+             approx[i] = coef;
+           }
+           else if( actNl.approxType == ANALYTIC ) {
+             //get the analytic expression for nu'(B)
+             CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, dependency, CoefXpr::OP_NORM );
+             PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+
+             // get function of B
+             std::string nuStr = actNl.analyticExprDeriv; //stringParams_[matType];
+             shared_ptr<CoefFunctionCompound<Double> > nuFncDeriv(new CoefFunctionCompound<Double>(mp_));
+             std::map<std::string,PtrCoefFct> symbolsNu;
+             symbolsNu["B"] = fluxDensAbs;
+
+             nuStr.insert(0,"( ");
+             nuStr.append(" )");
+             nuFncDeriv->SetScalar(nuStr,symbolsNu);
+
+             //store in array
+             approx[i] = nuFncDeriv;
+           }
          }
-         
+
          // -------------------------
          // Insertion sort algorithm
          // ------------------------
          Double compAngle;
          Double compZScaling;
-         ApproxData * compApprox = NULL;
+         shared_ptr<CoefFunction> compApprox;
          UInt j;
          for( UInt i = 1; i < numCurves; i++ ) {
            compAngle = angles[i];
@@ -1096,14 +1158,6 @@ namespace CoupledField
            approx[j] = compApprox;
          }
          
-         // -----------------------
-//         std::cerr << "angles are:\n";
-//         for( UInt i = 0; i < numCurves; ++i ) {
-//           std::cerr << "angle: " << angles[i] << " zScaling: " << zScalings[i] 
-//                     << " fName: " << approx[i]->GetNlFileName() << std::endl;
-//         }
-         // -----------------------
-         
          if( matType == MAG_RELUCTIVITY ) {
            // get linear starting value
            Double startVal = 0.0;
@@ -1117,13 +1171,11 @@ namespace CoupledField
            ret = coef;
          }
 
-
        } else {
          EXCEPTION( "No nonlinear definition found for material type '"
              << MaterialTypeEnum.ToString(matType) << "'");
        }
 
-       
        return ret;
      }
 
