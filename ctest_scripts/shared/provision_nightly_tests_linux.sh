@@ -19,7 +19,7 @@ PWDLINE=$(getent passwd $USER)
 HOME=$(echo $PWDLINE | cut -d':' -f6)
 echo "HOME $HOME"
 CTEST="/opt/pckg/cmake/bin/ctest"
-NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_FESPACE_NIGHTLY"
+NIGHTLY_DIR="$HOME/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY"
 LOG_FILE="/vagrant/logs/nightly_test.log"
 echo "LOG_FILE $LOG_FILE"
 eval $(sh $NIGHTLY_DIR/share/scripts/distro.sh -s)
