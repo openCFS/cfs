@@ -72,9 +72,6 @@ namespace CoupledField{
 
   private:
 
-    //! stores if the Acoustic PDE is in potential or pressure form
-    SolutionType formulation_;
-
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     

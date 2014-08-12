@@ -38,8 +38,8 @@ SET(BUILDNAME "Update CFSDEPS Trunk")
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom/sedici
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_TRUNK_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_TRUNK_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_OLDTRUNK_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFSDEPS_OLDTRUNK_NIGHTLY")
 
 SET(REPO "${CFS_DS_SVN}/cfsdeps/trunk")
 SET(USER ${CFS_TESTUSER})
