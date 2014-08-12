@@ -291,6 +291,10 @@ public:
   void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
 
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm );
+
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -327,7 +331,7 @@ public:
 
   //! Initialize with data
   void Init( Double coefScalar, 
-             StdVector<ApproxData*>  nLinFnc,
+             StdVector<shared_ptr<CoefFunction> > nLinFnc,
              StdVector<Double> angles,
              StdVector<Double> zScalings,
              PtrCoefFct dependCoef );
@@ -345,7 +349,7 @@ protected:
   Double coefScalar_;
   
   //! Vector containing the approximations of the curves
-  StdVector<ApproxData* > nLinFnc_;
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
@@ -376,7 +380,7 @@ public:
   virtual ~CoefFunctionApproxDerivAniso();
   
   //! Initialize with data
-  void Init( StdVector<ApproxData*>  nLinFnc,
+  void Init( StdVector<shared_ptr<CoefFunction> > nLinFnc,
              StdVector<Double> angles,
              StdVector<Double> zScalings,
              UInt dimDMat,
@@ -395,7 +399,7 @@ protected:
   UInt dimDMat_;
   
   //! Vector containing the approximations of the curves
-  StdVector<ApproxData* > nLinFnc_;
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;

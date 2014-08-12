@@ -69,7 +69,12 @@ namespace CoupledField {
 
       //! Scale factor material data read from file
       Double factor;
+
+      //! string for analytic expression
+      std::string analyticExpr;
       
+      //! string for derivative
+      std::string analyticExprDeriv;
     };
     
     //@{ \name public typedefs

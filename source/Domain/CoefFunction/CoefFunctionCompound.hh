@@ -97,7 +97,7 @@ public:
                   std::map<std::string, PtrCoefFct >& vars );
 
   //! Set Tensor valued expression
-  void SetTensor( StdVector<std::string>& expr,
+void SetTensor( StdVector<std::string>& expr,
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
 
