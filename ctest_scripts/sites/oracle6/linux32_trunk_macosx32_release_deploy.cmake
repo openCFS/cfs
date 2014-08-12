@@ -71,7 +71,7 @@ IF(EXISTS "${CFS_BINARY}" AND
 
   FILE(MAKE_DIRECTORY "$ENV{HOME}/Documents/dev/deploy/example")
   EXECUTE_PROCESS(
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_FESPACE/TESTSUIT/Singlefield/Electrostatics/Cube3d" example
+    COMMAND ${CMAKE_COMMAND} -E copy_directory "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK/TESTSUIT/Singlefield/Electrostatics/Cube3d" example
     WORKING_DIRECTORY "$ENV{HOME}/Documents/dev/deploy"
     RESULT_VARIABLE RETVAL
   )
