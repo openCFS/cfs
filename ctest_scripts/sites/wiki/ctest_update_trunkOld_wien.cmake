@@ -33,7 +33,7 @@
 # Set site name and build name
 #-----------------------------------------------------------------------------
 SITE_NAME(CFS_BUILD_HOST)
-SET(BUILDNAME "Update CFS Old Trunk0714")
+SET(BUILDNAME "Update CFS Trunk Old 2014")
 
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom/sedici
