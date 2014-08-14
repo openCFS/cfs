@@ -314,7 +314,7 @@ void LatticeBoltzmannPDE::Solve()
   state_.Start(); // global timer
 
   //for debugging
-  ExportMultipleFiles(elements);
+//  ExportMultipleFiles(elements);
 
 
   switch(iface_)
@@ -585,8 +585,6 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
   std::set<unsigned int> sing;
   compressed_matrix<double> test(n_elems * 9, n_elems * 9, output.nnz());
 
-//  std::cout << "Msize1: " << M.size1() << " Msize2: " << M.size2() << std::endl;
-
   for(unsigned int i = 0, n = non_sing.GetSize(); i < n; i++)
     sing.insert(non_sing[i] + 1);
 
@@ -625,8 +623,6 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
       }
     }
   }
-  WriteMatrix("jacobi.dat",output);
-//  EXCEPTION("delete_singularities");
 }
 
 
