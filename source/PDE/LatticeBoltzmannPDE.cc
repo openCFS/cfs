@@ -69,29 +69,64 @@ DEFINE_LOG(lbm_pde, "lbm_pde")
 
 void test_matrix()
 {
-  compressed_matrix<double> cm(3,3);
-  cm(0,0) = 1.0;
-  cm(1,1) = 2.0;
-  cm(2,2) = 3.0;
-  cm(0,2) = 4.0;
-  cm(1,0) = 5.0;
+  compressed_matrix<double> cm(6,6);
+  cm(0,0) = 10.0;
+  cm(0,4) = -2;
+  cm(1,0) = 3;
+  cm(1,1) = 9;
+  cm(1,5) = 3;
+  cm(2,1) = 7;
+  cm(2,2) = 8;
+  cm(2,3) = 7;
+  cm(3,0) = 3;
+  cm(3,2) = 8;
+  cm(3,3) = 7;
+  cm(3,4) = 5;
+  cm(4,1) = 8;
+  cm(4,3) = 9;
+  cm(4,4) = 9;
+  cm(4,5) = 13;
+  cm(5,1) = 4;
+  cm(5,4) = 2;
+  cm(5,5) = -1;
 
-  for(unsigned int i=0; i< cm.filled2();i++)
-    std::cout << "cm filled2: i=" << i << " -> index2_data=" << cm.index2_data()[i] << " v=" << cm.value_data()[i] << "\n";
+  compressed_matrix<double>::const_iterator1 iter;
+//  iter = cm.find1(0, 1, 0);
+//  std::cout << *iter << std::endl;
+//  iter = cm.find1(0, 2, 0);
+//  std::cout << *iter << std::endl;
+//  iter = cm.find1(1, 1, 0);
+//  std::cout << *iter << std::endl;
+//  iter = cm.find1(1, 2, 0);
+//  std::cout << *iter << std::endl;
 
-  // Create row array
-  for(unsigned int i=0;i< cm.filled1();i++)
-    std::cout << "cm filled1: i=" << i << " -> index1_data=" << cm.index1_data()[i] << " v=" << cm.value_data()[i] << "\n";
-
-  // this is the iterator over the rows
-  for(compressed_matrix<double>::const_iterator1 it = cm.begin1(); it != cm.end1(); ++it)
-  {
-    // it.i2 == 0
-    std::cout << "it1.i1=" << it.index1() << " it.i2=" << it.index2() << " it=" << *it << "\n";
-    // this is the iterator over the columns of the current row
-    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
-       std::cout << "it2.i1=" << it2.index1() << " it2.i2=" << it2.index2() << " it2=" << *it2 << " == " <<  cm(it2.index1(), it2.index2()) << "\n" ;
+  for(compressed_matrix<double>::const_iterator1 it1 = cm.begin1(); it1 != cm.end1(); ++it1) {
+    for(compressed_matrix<double>::const_iterator2 it2 = it1.begin(); it2 != it1.end(); ++it2) {
+      std::cout << cm(it2.index1(),it2.index2()) << std::endl;
+    }
+    std::cout << std::endl;
   }
+//  std::cout<< cm << std::endl;
+//  compressed_matrix<double, boost::numeric::ublas::column_major> ccs;
+//  ccs = trans(cm);
+//  std::cout << ccs << std::endl;
+
+//  for(unsigned int i=0; i< cm.filled2();i++)
+//    std::cout << "cm filled2: i=" << i << " -> index2_data=" << cm.index2_data()[i] << " v=" << cm.value_data()[i] << "\n";
+//
+//  // Create row array
+//  for(unsigned int i=0;i< cm.filled1();i++)
+//    std::cout << "cm filled1: i=" << i << " -> index1_data=" << cm.index1_data()[i] << " v=" << cm.value_data()[i] << "\n";
+//
+//  // this is the iterator over the rows
+//  for(compressed_matrix<double>::const_iterator1 it = cm.begin1(); it != cm.end1(); ++it)
+//  {
+//    // it.i2 == 0
+//    std::cout << "it1.i1=" << it.index1() << " it.i2=" << it.index2() << " it=" << *it << "\n";
+//    // this is the iterator over the columns of the current row
+//    for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2)
+//       std::cout << "it2.i1=" << it2.index1() << " it2.i2=" << it2.index2() << " it2=" << *it2 << " == " <<  cm(it2.index1(), it2.index2()) << "\n" ;
+//  }
 
   EXCEPTION("test_matrix");
 }
@@ -108,7 +143,7 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   method_ = "mechanic";
   dirty_ = true; // not solved yet!
 
-  // test_matrix();
+//  test_matrix();
 
   // LBM parametes
   omega_       = myParam_->Get("LBM/omega")->As<double>();
@@ -278,6 +313,10 @@ void LatticeBoltzmannPDE::Solve()
   timer.Start(); // local timer
   state_.Start(); // global timer
 
+  //for debugging
+  ExportMultipleFiles(elements);
+
+
   switch(iface_)
   {
   case EXT_MATLAB:
@@ -385,11 +424,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
   SetupSensitivityAnalysis(ux, uy, dloc, weights);
 
-  // derivative of the collision operator with respect to p
   // derivative of the residual with respect to design variables
   Vector<double> dRdp(9 * n_elems);
   dRdp.Init(0.0);
 
+  // derivative of the collision operator with respect to p
   mapped_matrix<double> col_jacobi(9 * n_elems, 9 * n_elems);
   //compressed_matrix<double> col_jacobi(9 * n_elems, 9 * n_elems);
 
@@ -400,10 +439,10 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   for(unsigned int index = 0; index < n_elems ; index++)
   {
     block.InitValue(0.0);
-    // interia
+    // interior
     if(elements[index] >= 0)  {
       // Jacobi matrix of the collision operator with respect to the design variables
-      d_collision_step_d_rho(index, block, dfeqdux, dfeqduy, ux, uy, dloc, weights);
+      d_collision_step_d_f(index, block, dfeqdux, dfeqduy, ux, uy, dloc, weights);
 
       // simple choice of the mapping between p and s
       DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
@@ -413,13 +452,13 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         dRdp[index * 9 +k] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index]);
     }
     else if(elements[index] == LBM_NODE_TYPE_BB) {
-      d_bounceback_d_rho(block); // bounce-back sensitivities
+      d_bounceback_d_f(block); // bounce-back sensitivities
     }
     else if(elements[index] == LBM_NODE_TYPE_INLET) {
-      d_inflow_d_rho(index,block, weights); // inlet derivative with respect to f
+      d_inflow_d_f(index,block, weights); // inlet derivative with respect to f
     }
     else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
-      d_outflow_d_rho(index,block, ux, uy, dloc, weights); // outlet derivative with respect to f
+      d_outflow_d_f(index,block, ux, uy, dloc, weights); // outlet derivative with respect to f
     }
     else {
       assert(false);
@@ -435,7 +474,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // the real jacobi combines d_collision with d_propagation
   mapped_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
   // compressed_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
-  d_propagate_d_rho(Jacobi,col_jacobi);
+  d_propagate_d_f(Jacobi,col_jacobi);
 
   for(unsigned int i=0;i < 9 * n_elems; i++)
     Jacobi(i,i) -= 1.;
@@ -544,11 +583,14 @@ void LatticeBoltzmannPDE::matrix_sparse_to_crs(mapped_matrix<double>& M, double*
 void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output)
 {
   std::set<unsigned int> sing;
+  compressed_matrix<double> test(n_elems * 9, n_elems * 9, output.nnz());
+
+//  std::cout << "Msize1: " << M.size1() << " Msize2: " << M.size2() << std::endl;
 
   for(unsigned int i = 0, n = non_sing.GetSize(); i < n; i++)
     sing.insert(non_sing[i] + 1);
 
-  // delete singular rows of the Jacobian in the sensitivit analysis for the optimization
+  // delete singular rows of the Jacobian in the sensitivity analysis for the optimization
   double val;
   std::set<unsigned int>::iterator sing_it1, sing_it2;
   // for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
@@ -557,13 +599,14 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
     for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
       val = M(it2.index1(),it2.index2());
       if (abs(val) > 1e-20) {
+        //it2.index1():row, it2.index2():column
         sing_it1 = sing.find(it2.index1()+1);
         sing_it2 = sing.find(it2.index2()+1);
         if (sing_it1 != sing.end() && sing_it2 != sing.end()) {
-          if (it2.index1()+1 == *(sing_it1) && it2.index2()+1 == *(sing_it2)){
-            output(it2.index2(),it2.index1()) = val;
-            LOG_DBG3(lbm_pde) << "DS: o("<< it2.index2() << ", " << it2.index1() << ") = " << val;
-          }
+          // if elements found in sing
+          //output(it2.index2(),it2.index1()) = val;
+          output(it2.index1(),it2.index2()) = val;
+          LOG_DBG3(lbm_pde) << "DS: o("<< it2.index2() << ", " << it2.index1() << ") = " << val;
         }
       }
     }
@@ -582,11 +625,13 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
       }
     }
   }
+  WriteMatrix("jacobi.dat",output);
+//  EXCEPTION("delete_singularities");
 }
 
 
 
-void LatticeBoltzmannPDE::d_collision_step_d_rho(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& dloc, const StdVector<double>& weight)
+void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& dloc, const StdVector<double>& weight)
 {
   // gradient of the collision step with respect to the design variables
   // partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
@@ -594,8 +639,8 @@ void LatticeBoltzmannPDE::d_collision_step_d_rho(unsigned int index, Matrix<doub
   double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
   double scale = 1. - elements[index]; // 1.-pow(por[0][index],penal);
   assert(scale >= 0);
-  LOG_DBG3(lbm_pde) << "d_collision_step_d_rho: index = " << index << " scale=" << scale;
-  //LOG_DBG3(lbm_pde) << "d_collision_step_d_rho: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
+  LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " scale=" << scale;
+  //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
   //partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
   double us1,us2,dot,norm;
   for (int i=0; i<9; i++)
@@ -607,7 +652,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_rho(unsigned int index, Matrix<doub
     dfeqdrho[i] = weight[i]*(1. + 3.*dot + 9./2.*dot*dot - 3./2.* norm);
     dfeqdux[i] = weight[i]*dloc[index]*(3. *E[0][i] + 9.*E[0][i]*dot - 3.*us1);
     dfeqduy[i] = weight[i]*dloc[index]*(3. *E[1][i] + 9.*E[1][i]*dot - 3.*us2);
-    //LOG_DBG3(lbm_pde) << "d_collision_step_d_rho: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
+    //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
   }
   //gradient of u_x with respect to f
   double duxdf[9];
@@ -627,7 +672,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_rho(unsigned int index, Matrix<doub
     for (int j= 0; j<9; j++)
       dfeqdf[i][j] = dfeqdrho[i] + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j];
 
-  //LOG_DBG3(lbm_pde) << "d_collision_step_d_rho: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
+  //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
   for (int i=0;i<9;i++)
@@ -646,7 +691,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_rho(unsigned int index, Matrix<doub
 
 }
 
-void LatticeBoltzmannPDE::d_bounceback_d_rho(Matrix<double>& block)
+void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
 {
   // bounce-back sensitivities
   block[0][0] = 1.;
@@ -661,7 +706,7 @@ void LatticeBoltzmannPDE::d_bounceback_d_rho(Matrix<double>& block)
 
 }
 
-void LatticeBoltzmannPDE::d_inflow_d_rho(int index, Matrix<double>& block, StdVector<double>& weight)
+void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight)
 {
   // gradient of the velocity inlet boundary with respect to the design variables
   double dfeqdrho[9];
@@ -673,9 +718,9 @@ void LatticeBoltzmannPDE::d_inflow_d_rho(int index, Matrix<double>& block, StdVe
     double dot = E[0][i]*us1+E[1][i]*us2;
     double norm = us1*us1+us2*us2;
     dfeqdrho[i] = weight[i]*(1. + 3*dot +4.5*dot*dot - 1.5* norm);
-    // LOG_DBG3(lbm_pde) << "d_inflow_d_rho index=" << index << " i=" << i << " us1=" << us1 << " us2=" << us2 << " dot=" << dot << " norm=" << norm;
+    // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << us1 << " us2=" << us2 << " dot=" << dot << " norm=" << norm;
   }
-  // LOG_DBG3(lbm_pde) << "d_inflow_d_rho index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
+  // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
 
   for (int i =0;i<9;i++)
     for (int j=0;j<9;j++)
@@ -683,7 +728,7 @@ void LatticeBoltzmannPDE::d_inflow_d_rho(int index, Matrix<double>& block, StdVe
 
 }
 
-void LatticeBoltzmannPDE::d_outflow_d_rho(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight)
+void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight)
 {
   // gradient of the density outlet boundary condition with respect to the design variables
   double dfeqdux[9],dfeqduy[9];
@@ -717,9 +762,34 @@ void LatticeBoltzmannPDE::d_outflow_d_rho(int index, Matrix<double>& block, StdV
 
 }
 
+//void LatticeBoltzmannPDE::d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J, int dir) {
+//  int rows1, rows2;
+//  mapped_matrix<double>::const_iterator1 iter1, iter2;
+//  switch (dir)
+//  {
+//    case 0:
+//      rows1 = (y-1)*n_x_*9+(x-1)*9;
+//      rows2 = 0;
+//      iter1 = J.find1(0, rows1, 0);
+//      iter2 = iter1.end();
+//      break;
+//    case 1:
+//      rows1=((y-1)*(n_x_)*9+1);
+//      rows2=((y-1)*(n_x_)*9+9+1);
+//      iter1 = J.find1(0, rows1, 0);
+//      iter2 = J.find1(0, rows2, 0);
+//      break;
+//  }
+//  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+//    Jprop(rows1,it.index2())=J(rows1,it.index2());
+//  }
+//  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
+//    Jprop(rows1,it.index2())=J(rows1,it.index2());
+//  }
+//}
 
-// void LatticeBoltzmannPDE::d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
-void LatticeBoltzmannPDE::d_propagate_d_rho(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J)
+// void LatticeBoltzmannPDE::d_propagate_d_f(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
+void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J)
 {
   //gradient of the propagations step with resprect to the design variables by Georg Pingen, University of Colorado (CU), Boulder, Colorado
   // f0
@@ -768,6 +838,39 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(mapped_matrix<double>& Jprop, const 
     }
   }
 
+  //* fdist2 */
+  for (unsigned int x = 1; x <= n_x_; x++) {
+    rows1 = ((x - 1) * 9 + 2);
+    rows2 = ((n_x_) * 9 + (x - 1) * 9 + 2);
+    iter = J.find1(0, rows1, 0);
+    for (mapped_matrix<double>::const_iterator2 it = iter.begin();
+        it != iter.end(); ++it) {
+      Jprop(rows1, it.index2()) = J(rows1, it.index2());
+      // std::cout << "dp f_2 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 8 \n";
+    }
+    iter = J.find1(0, rows2, 0);
+    for (mapped_matrix<double>::const_iterator2 it = iter.begin();
+        it != iter.end(); ++it) {
+      Jprop(rows1, it.index2()) = Jprop(rows1, it.index2())
+                  + J(rows2, it.index2());
+      // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 9 \n";
+    }
+  }
+
+  for (unsigned int y = 2; y <= n_y_ - 1; y++) {
+    for (unsigned int x = 1; x <= n_x_; x++) {
+      rows1 = (y - 1) * n_x_ * 9 + (x - 1) * 9 + 2;
+      rows2 = rows1 + n_x_ * 9;
+      iter = J.find1(0, rows2, 0);
+
+      for (mapped_matrix<double>::const_iterator2 it = iter.begin();
+          it != iter.end(); ++it) {
+        Jprop(rows1, it.index2()) = J(rows2, it.index2());
+        // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 10 \n";
+      }
+    }
+  }
+
   //* fdist3 */
   for(unsigned int y=1;y<=n_y_;y++) {
     rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+3);
@@ -793,35 +896,6 @@ void LatticeBoltzmannPDE::d_propagate_d_rho(mapped_matrix<double>& Jprop, const 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
         // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 7 \n";
-      }
-    }
-  }
-
-  //* fdist2 */
-  for(unsigned int x=1;x<=n_x_;x++) {
-    rows1=((x-1)*9+2);
-    rows2=((n_x_)*9+(x-1)*9+2);
-    iter = J.find1(0, rows1, 0);
-    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-      Jprop(rows1,it.index2())= J(rows1,it.index2());
-      // std::cout << "dp f_2 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 8 \n";
-    }
-    iter = J.find1(0, rows2, 0);
-    for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-      Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
-      // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 9 \n";
-    }
-  }
-
-  for(unsigned int y=2;y<=n_y_-1;y++) {
-    for(unsigned int x=1;x<=n_x_;x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+2;
-      rows2=rows1+n_x_*9;
-      iter = J.find1(0, rows2, 0);
-
-      for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-        Jprop(rows1,it.index2())=J(rows2,it.index2());
-      // std::cout << "dp f_3 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 10 \n";
       }
     }
   }
@@ -1155,7 +1229,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   // compressed_matrix<double> dFdf(n_elems * 9,1,0.);
   mapped_matrix<double> dFdf(n_elems * 9, 1, n_elems * 9);
 
-  d_propagate_d_rho(dFdf,dPD);
+  d_propagate_d_f(dFdf,dPD);
 
   Vector<double> rhs(n_elems * 9);
   for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
@@ -1568,14 +1642,14 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
 
   std::ofstream obst("obst.dat");
   // assume to have the mesh ordered from lower left starting to the right (lexicographic)
-  // the OLD! interface assumes origen left upper and x downwards and y to the right!
+  // the OLD! interface assumes origin left upper and x downwards and y to the right!
   // TODO! Do by neighbours!
   Matrix<int> obst_m(n_y_, n_x_); // FIXME check order!
   for(unsigned int x = 0; x < n_x_; x++)
   {
     for(unsigned int y = 0; y < n_y_; y++)
     {
-      // org: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porisity
+      // out: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porisity
       // out: 1 bb1, 2 inlet, 3 outlet, 0 for porosity
       int v = (int) -1.0 * elements[n_x_ * y + x];
       obst << std::max(0, v) << " "; // org porosity would be -1
@@ -1608,6 +1682,18 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   data.close();
 
 
+}
+
+void LatticeBoltzmannPDE::WriteMatrix(const std::string& file, const compressed_matrix<double> & M)
+{
+  std::ofstream output(file.c_str());
+  for (compressed_matrix<double>::const_iterator1 it1 = M.begin1(); it1 != M.end1(); ++it1) {
+    for (compressed_matrix<double>::const_iterator2 it2 = it1.begin(); it2 != it1.end(); ++it2) {
+      output << it2.index1()+1 << " " << it2.index2()+1 << "        " << *(it2) << std::endl;
+    }
+    output << std::endl;
+  }
+  output.close();
 }
 
 std::string LatticeBoltzmannPDE::ToString(const StdVector<double>& elements, bool x_fast, bool as_int) const
@@ -1698,6 +1784,8 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
   // we have the vector to export it as non_sing.dat for the old interface
   non_sing.Reserve(9 * n_x_ * n_y_);
 
+
+
   for(unsigned int y = 0; y < n_y_; y++)
   {
     for(unsigned int x = 0; x < n_x_; x++)
@@ -1722,8 +1810,9 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
         if(y+1 < n_y_ && elements[index(x,y+1)] != LBM_NODE_TYPE_BB) // y+1 = f_2_
           non_sing.Push_back(base + 2);
 
-        if(x > 0 && elements[index(x-1,y)] != LBM_NODE_TYPE_BB)
+        if(x > 0 && elements[index(x-1,y)] != LBM_NODE_TYPE_BB) {
           non_sing.Push_back(base + 3);
+        }
 
         if(y > 0 && elements[index(x,y-1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 4);

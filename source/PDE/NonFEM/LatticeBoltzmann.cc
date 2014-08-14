@@ -160,7 +160,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   in->Get("walltime")->SetValue(wt);
 
   if(R >= 1000) 
-    EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large -> abort");
+    EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");
 
   if(!steady_state)
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
