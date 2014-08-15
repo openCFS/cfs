@@ -426,7 +426,7 @@ namespace CoupledField {
                                      Symbolic, &Numeric, &Control[0], &Info[0]);
         if (status < 0)
         {
-          EXCEPTION ("umfpack_zi_numeric failed") ;
+          EXCEPTION ("umfpack_zi_numeric failed with status " << status) ;
         }
         // printf ("\nNumeric factorization of C: ") ;
         // (void) umfpack_zi_report_numeric (Numeric, &Control[0]) ;
@@ -549,8 +549,8 @@ namespace CoupledField {
                                  Numeric, &Control[0], &Info[0]) ;
       if (status < 0)
       {
-	umfpack_zi_report_status (&Control[0], status) ;
-	EXCEPTION ("umfpack_zi_solve failed") ;
+        umfpack_zi_report_status (&Control[0], status) ;
+        EXCEPTION ("umfpack_zi_solve failed") ;
       }
     }    
     else
@@ -561,8 +561,8 @@ namespace CoupledField {
                                  Numeric, &Control[0], &Info[0]) ;
       if (status < 0)
       {
-	umfpack_di_report_status (&Control[0], status) ;
-	EXCEPTION ("umfpack_di_solve failed") ;
+        umfpack_di_report_status (&Control[0], status) ;
+        EXCEPTION ("umfpack_di_solve failed") ;
       }
 
     }

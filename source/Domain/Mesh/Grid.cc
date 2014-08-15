@@ -81,7 +81,10 @@ namespace CoupledField
       for(unsigned int r = 0; r < regs.GetSize(); r++)
       {
         CalcBoundingBoxOfRegion(regs[r], tmp, sys);
-        if(r == 0)
+
+        LOG_DBG(grid) << "CGBB: tmp rows= " << tmp.GetNumRows() << " cols = " << tmp.GetNumCols();
+        LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString(0, false);
+        if(r == 0) // the first region is the first guess
           box = tmp;
         else
         {
@@ -89,8 +92,6 @@ namespace CoupledField
           {
             box[d][0] = std::min(box[d][0], tmp[d][0]);
             box[d][1] = std::max(box[d][1], tmp[d][1]);
-            if(GetDim() == 3)
-              box[d][2] = std::max(box[d][2], tmp[d][2]);
           }
         }
       }

@@ -86,7 +86,7 @@ namespace CoupledField
     @param bloch quadratic problem or bloch modes */
     virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
                                        Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift, bool bloch ) {
+                                       UInt numFreq, Double shift, bool bloch) {
       EXCEPTION( "Not implemented here!" );
       return 0;
     }

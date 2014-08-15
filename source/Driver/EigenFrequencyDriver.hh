@@ -39,8 +39,8 @@ class SingleVector;
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
     /** Helper method which determines if an AnalyisType is complex.
-     * This means that the solution matrix is complex to allow to defive velocity and acceleration.
-     * The matrix shall only be complex for isQudratic or isBloc_ */
+     * This means that the solution vector is complex to allow to define velocity and acceleration.
+     * The matrix itself shall only be complex for isQudratic or isBloc_ */
     virtual bool IsComplex() { return true; };
 
     /** @see BaseDriver::DoBlochModeEigenfrequency() */
@@ -87,6 +87,12 @@ class SingleVector;
 
     /** here we output the bloch mode data for direct plotting */
     std::ofstream bloch_plot_;
+
+    /** do we do ibz? Then bloch.plot will repeat the first step as final step. */
+    bool ibz_;
+
+    /** store the first plot.dat line to be repeated in the ibz_ case as last step */
+    std::string first_plot_line_;
   };
 
 }

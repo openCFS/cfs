@@ -71,14 +71,17 @@ namespace CoupledField {
               << " 1/2 the number of unknowns of the system");
       }
       
-
-      // eigenvalues, tolerances and vectors
-      if(bloch) {
-        eigenValues_  = new Vector<Complex>(numArnoldiVec_);
-        eigenVectors_ = new Vector<Complex>(numFreq_*size_);
-      } else {
-        eigenValues_  = new Vector<double>(numArnoldiVec_);
-        eigenVectors_ = new Vector<double>(numFreq_*size_);
+      // Setup() is called for each wave_vector
+      if(eigenValues_ == NULL || eigenVectors_ == NULL)
+      {
+        // eigenvalues, tolerances and vectors
+        if(bloch) {
+          eigenValues_  = new Vector<Complex>(numArnoldiVec_);
+          eigenVectors_ = new Vector<Complex>(numFreq_*size_);
+        } else {
+          eigenValues_  = new Vector<double>(numArnoldiVec_);
+          eigenVectors_ = new Vector<double>(numFreq_*size_);
+        }
       }
       eigenTolerances_.Resize(numArnoldiVec_);
   }
