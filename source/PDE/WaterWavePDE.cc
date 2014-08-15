@@ -205,20 +205,14 @@ namespace CoupledField{
       // Generate coefficient functions
       //=======================================================================
 
-      PtrCoefFct dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-      PtrCoefFct blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-
-      // c0 = sqrt(bulk_modulus / density)
-      PtrCoefFct c0 =
+      // compute surface wave velocity
+      PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
+      PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
+      PtrCoefFct gravityC0 =
           CoefFunction::Generate( mp_,  Global::REAL,
-                                  CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
-                                  CoefXpr::OP_SQRT) );
+                    CoefXprBinOp( mp_, gravity, omega, CoefXpr::OP_DIV));
 
       PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-
-      // store coefficient functions
-//      matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, factor ) ; //dens);
-//      matCoefs_[WATER_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, factor); //c0);
 
       // ====================================================================
       // Take account for pml (frequency domain only)
@@ -232,8 +226,6 @@ namespace CoupledField{
         curRegNode->GetValue("dampingId",dampId);
         if(analysistype_ == HARMONIC){
           PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-
-          PtrCoefFct gravityC0 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
           coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,actSDList,regions_,true));
           coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,actSDList,regions_,false));
 
@@ -361,19 +353,14 @@ namespace CoupledField{
         shared_ptr<ElemList> volSDList( new ElemList(ptGrid_ ) );
         volSDList->SetRegion( volRegion );
 
-        //speed of sound
-        PtrCoefFct dens = materials_[volRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-        PtrCoefFct blk = materials_[volRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-
         PtrCoefFct factor;
         factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
 
-        // c0 = sqrt(bulk_modulus / density)
-        PtrCoefFct c0 = CoefFunction::Generate( mp_, Global::REAL, "1.0");
-//            c0 = sqrt(bulk_modulus / density)
-//            CoefFunction::Generate( mp_,  Global::REAL,
-//                                    CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
-//                                    CoefXpr::OP_SQRT) );
+        // compute surface wave velocity
+        PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
+        PtrCoefFct omega = CoefFunction::Generate( mp_, Global::REAL, "2*pi*f");
+        PtrCoefFct gravityC0 = CoefFunction::Generate( mp_,  Global::REAL,
+                                   CoefXprBinOp( mp_, gravity, omega, CoefXpr::OP_DIV));
 
         //just coef-functions for the transformation of jacobians
         shared_ptr<CoefFunction> coeffPMLScal;
@@ -383,7 +370,7 @@ namespace CoupledField{
           std::string dampId = pmlfreeSurfaceNodes[i]->Get("dampingId")->As<std::string>();
           if(analysistype_ == HARMONIC){
             PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
-            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0,volSDList,regions_,false));
+            coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,gravityC0,volSDList,regions_,false));
             coeffPMLfactor = CoefFunction::Generate( mp_, Global::COMPLEX,
                                               CoefXprBinOp(mp_, factor, coeffPMLScal,CoefXpr::OP_MULT));
           }else
@@ -392,12 +379,9 @@ namespace CoupledField{
         else
           EXCEPTION("pml4FreeSurfaceCondition needs definition of dampingId");
 
-        // gravity
-        PtrCoefFct gravity = CoefFunction::Generate( mp_, Global::REAL, "9.81");
-
         // factor for damping matrix: factor / gravity
         PtrCoefFct coeffMassPML =
-        CoefFunction::Generate( mp_, Global::COMPLEX,
+            CoefFunction::Generate( mp_, Global::COMPLEX,
                                CoefXprBinOp(mp_, coeffPMLfactor, gravity, CoefXpr::OP_DIV ) );
         BiLinearForm * gravityIntPML = NULL;
         if( dim_ == 2 ) {

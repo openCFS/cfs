@@ -181,8 +181,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // ================================================
           //  Nonlinear Stiffness Integrator (only Newton )
           // ================================================
-          // Note: currently we set the nonlinear method hard-coded to NEWTON for
-          // testing purpose
           if( nonLinMethod_ == NEWTON ) {
             PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
                                                                  Global::REAL, magFluxCoef );
@@ -383,9 +381,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), 
                                                      CoefXpr::OP_DIV);
             PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
-            
-            CoefFunction * tmp = jFct.get();
-            std::cerr << "jFct is " << tmp->ToString() << std::endl;
+
             // ===========
             //  3D CASE
             // ===========

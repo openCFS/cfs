@@ -70,7 +70,7 @@ namespace CoupledField {
     //! Return scalar-valued coefficient function for nonlinear function 
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
-                                            PtrCoefFct fluxDensity );
+                                            PtrCoefFct fluxCoef );
     //@}
     //============================ HYSTERESIS ===================================
 
