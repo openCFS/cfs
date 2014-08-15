@@ -5,6 +5,7 @@
 #include "General/Environment.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
+
 namespace CoupledField
 {
 
@@ -72,6 +73,9 @@ namespace CoupledField
      * @see CreateAnalysisId() and CreateAnalysisIdChild) */
     PtrParamNode GetAnalysisId() { return analysis_id_; }
     
+    /** shortcut the Bloch Mode Eigenfrequency Analysis */
+    virtual bool DoBlochModeEigenfrequency() const { return false; }
+
     /** Helper function to create a child analysis step
      * Adds a child-element to base with "analysis_id" = the analysis_id of the base
      * plus ":" plus the child_name (plus ":" plus child_id)

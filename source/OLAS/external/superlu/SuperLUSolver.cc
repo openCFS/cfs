@@ -63,7 +63,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     xml_ = solverNode;
-    infoNode_ = olasInfo->Get("superlu",ParamNode::APPEND);
+    infoNode_ = olasInfo->Get("superlu",progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
 
     // Set default solver type to direct sparse solver
     PtrParamNode sNode = xml_->Get("superlu", ParamNode::INSERT);

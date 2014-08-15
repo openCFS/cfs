@@ -185,6 +185,9 @@ namespace CoupledField
 
     //@}
 
+    /** e.g. coordinate systems */
+    void ToInfo(PtrParamNode info);
+
 
   protected:
 

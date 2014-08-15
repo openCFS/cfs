@@ -1352,7 +1352,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver
-    algsys_->SetupEigenSolver( numFreq, shift, false );
+    algsys_->SetupEigenSolver( numFreq, shift, false, false );
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds);
@@ -1362,7 +1362,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex> & frequencies,
                                            Vector<Double> & errBounds,
-                                           UInt numFreq, Double shift ) {
+                                           UInt numFreq, Double shift, bool bloch) {
 
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1371,8 +1371,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     assemble_->AssembleMatrices();
 
-    // Setup solver
-    algsys_->SetupEigenSolver( numFreq, shift, true );
+    // Setup solver  - we cannot be quadratic and bloch concurrently!
+   algsys_->SetupEigenSolver( numFreq, shift, !bloch, bloch );
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds );

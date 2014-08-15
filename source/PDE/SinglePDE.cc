@@ -207,8 +207,7 @@ namespace CoupledField {
 
 
     // Obtain regions the pde is defined on
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetList("region");
+    ParamNodeList regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
     PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
@@ -217,21 +216,20 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
       PtrParamNode in_ = list->Get("region");
-      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->As<std::string>());
+      std::string name = regionNodes[i]->Get("name")->As<std::string>();
+      in_->Get("name")->SetValue(name);
       bool complexMat = false;
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
-      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
       
       // Check, if region was already defined an issue a warning otherwise
-      if( std::find(regions_.Begin(), regions_.End(), actRegionId ) 
-          != regions_.End() )  {
+      if( std::find(regions_.Begin(), regions_.End(), actRegionId )!= regions_.End() )
         WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );
-      }
           
-      regions_.Push_back( actRegionId );
+      regions_.Push_back(actRegionId);
 
       complexMatData_[actRegionId] = complexMat;
     }
@@ -369,7 +367,7 @@ namespace CoupledField {
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( needsAlgsys_ == true && !isDirectCoupled_ ) 
+    if( needsAlgsys_ == true && !isDirectCoupled_ )
       assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
   }
 
@@ -1145,9 +1143,10 @@ namespace CoupledField {
         shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
         shared_ptr<BaseFeFunction> derivFeFct = it->second;
         if( !primFeFct || !derivFeFct ) {
-          EXCEPTION( "The time derivative information for PDE '" << pdename_
-                     << "' is not set correctly!" );
+          EXCEPTION( "The time derivative information for PDE '" << pdename_  << "' is not set correctly!" );
         }
+        LOG_DBG(singlepde) << "FPPR: " << pdename_ << " derivFeFct =" << derivFeFct->ToString() << " complex:" << derivFeFct->IsComplex();
+
         // Now loop over all regions of the primary FeFunction and pass the
         // all regions of the primary one
         StdVector< shared_ptr<EntityList> > support =  primFeFct->GetEntityList();
@@ -1159,26 +1158,20 @@ namespace CoupledField {
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
         if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
-          FeFunction<Complex> & cDerivFct = 
-              dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
-          shared_ptr<FeFunction<Complex> > cPrimFct = 
-              dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
+          FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
+          shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
-
         } else {
-          primFeFct->GetTimeScheme()
-                                         ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
-          simState_->RegisterFeFct( derivFeFct );
+          primFeFct->GetTimeScheme()->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector());
+          simState_->RegisterFeFct(derivFeFct);
         }
       }
     }
   }
-      
+
 
   PtrCoefFct SinglePDE::GetCoefFct( SolutionType type ) {
-    LOG_DBG(singlepde) <<  pdename_ << 
-        ": Requesting coefficient function for solution type "
-        << SolutionTypeEnum.ToString( type );
+    LOG_DBG(singlepde) <<  pdename_ << ": Requesting coefficient function for solution type " << SolutionTypeEnum.ToString(type);
     
     PtrCoefFct ret;
     // 1) look in fieldCoefs

@@ -1120,7 +1120,7 @@
           <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
           <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="logging" type="DT_CFSBool" minOccurs="0"/>
+          <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="which" minOccurs="0">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">

@@ -390,10 +390,10 @@ namespace CoupledField
     EXCEPTION("Error parsing the xml file '" << 
               (xerces_->file_ == "" ? "<no-file>" : xerces_->file_)
               << "' in line " << event.getLineNumber() << ", column "
-              << event.getColumnNumber() << std::endl << "-> '"
+              << event.getColumnNumber() << std::endl << " - '"
               << Xerces::Transcode(event.getMessage()) << "'"
               << std::endl << " schema: '"
-              << (!xerces_->schema_.empty() ? xerces_->schema_ : "<no-schema>") << "'");
+              << (!xerces_->schema_.empty() ? xerces_->schema_ : ":no-schema:") << "'");
 
   }
 

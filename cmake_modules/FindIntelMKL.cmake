@@ -253,6 +253,7 @@ FIND_FILE(MKL_ROOT_DIR
   NO_CMAKE_SYSTEM_PATH
   )
 
+
 #-------------------------------------------------------------------------------
 # Replace include/mkl.h with nothing to get the MKL root dir.
 #-------------------------------------------------------------------------------
@@ -276,7 +277,7 @@ IF(NOT MKL_ROOT_DIR)
     " 3. Or adapt the MKL_POSSIBLE_PATHS at the beginning of cmake_modules/FindIntelMKL.cmake. "
     "You may also just copy MKL from LSE /home/shareAll/linux_bin/intel/mkl. "
     "Another option is to change CFS_BLAS_LAPACK and CFS_PARDISO to different "
-    "implementations. GotoBLAS and ACML should provide similar performance like MKL.")
+    "implementations. OpenBLAS and should provide similar performance to MKL.")
 ELSE(NOT MKL_ROOT_DIR)
   SET(MKL_FOUND 1)
 ENDIF(NOT MKL_ROOT_DIR)

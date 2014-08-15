@@ -198,8 +198,7 @@ DECLARE_LOG(fefunc)
   
   std::string BaseFeFunction::ToString() const {
     std::string ret;
-    ret += "FeFunction for result '" + 
-        SolutionTypeEnum.ToString(result_->resultType) + "'";
+    ret += "FeFunction for result '" + SolutionTypeEnum.ToString(result_->resultType) + "'";
     return ret;
   }
   
@@ -305,6 +304,7 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::Finalize(){
     
     // assert that functionId was set
+    // FIXME
     static bool warn = false;
     if(warn) 
     {

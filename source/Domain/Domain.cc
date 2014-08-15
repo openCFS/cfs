@@ -1116,4 +1116,16 @@ void Domain::Dump()
 
 }
 
+
+void Domain::ToInfo(PtrParamNode in)
+{
+  PtrParamNode in_ = in->Get("coordinateSystems");
+  for(std::map<std::string, CoordSystem*>::iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
+  {
+    PtrParamNode s = in_->Get("system", ParamNode::APPEND);
+    s->Get("name")->SetValue(it->first);
+    it->second->ToInfo(s);
+  }
+}
+
 }

@@ -24,9 +24,8 @@ namespace CoupledField {
 
 
     //! Destructor
-    ~PatternPool() {
-
-
+    ~PatternPool()
+    {
       // Check if there are any undeleted patterns, which we consider to be
       // a sever error, due to the memory problems involved when we go out
       // of scope now!
@@ -38,13 +37,16 @@ namespace CoupledField {
       }
 
       // If everything is not okay complain
-      if ( safe != true ) {
-        EXCEPTION( "PatternPool::~PatternPool: Problem detected!\n\n"
-                 << " PatternID | no. users\n ---------------------");
-        for ( UInt i = 0; i < patterns_.size(); i++ ) {
-          EXCEPTION( std::setw(11) << std::setfill( ' ' ) << i << " | "
-                   << std::setw(11) << numPatternUsers_[i]);
-        }
+      if(safe != true)
+      {
+        std::stringstream ss;
+
+        ss << "PatternPool::~PatternPool: Problem detected!\n";
+        for(UInt i = 0; i < patterns_.size(); i++)
+           ss << "PatternID: " << i << " no. users: " << numPatternUsers_[i] << std::endl;
+
+        std::cerr << "Ignore a Problem: " << ss.str();
+        // throw Exception(ss.str()); // FIXME Fabian
       }
     }
 
@@ -79,6 +81,8 @@ namespace CoupledField {
       // set usage count to zero
       numPatternUsers_.push_back( 0 );
 
+      // std::cout << "PatternPool:InsertPattern -> " << numPatternUsers_.size() << std::endl;
+
       // generate and return pattern identifier
       return static_cast<PatternIdType>(numPatternUsers_.size());
     }
@@ -95,7 +99,6 @@ namespace CoupledField {
     //! \return A pointer to a BaseSparsityPattern object representing the
     //!         pattern belonging to the specified pattern.
     BaseSparsityPattern* RegisterUser( PatternIdType patternID ) {
-
 
       // Check that identifier is legal
       if ( patternID > patterns_.size() ) {
@@ -120,6 +123,8 @@ namespace CoupledField {
 
       // Increase usage count of pattern
       numPatternUsers_[patternID - 1]++;
+
+      // std::cout << "PatternPool:RegisterUser pIT " << patternID << " -> " << numPatternUsers_[patternID - 1] << std::endl;
 
       // Return that pattern
       return patterns_[patternID - 1];
@@ -174,6 +179,9 @@ namespace CoupledField {
         patterns_[patternID - 1] = NULL;
         numPatternUsers_[patternID - 1] = -1;
       }
+
+      // std::cout << "PatternPool:DeRegisterUser pIT " << patternID << " -> " << numPatternUsers_[patternID - 1] << std::endl;
+
     }
 
   private:

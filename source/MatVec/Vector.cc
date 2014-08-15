@@ -565,7 +565,7 @@ namespace CoupledField {
   //   Export vector
   // *****************
   template<typename T>
-  void Vector<T>::Export(const char *fname, 
+  void Vector<T>::Export(const std::string& fname,
                          BaseMatrix::OutputFormat format) const
   {
     std::stringstream sstr;
