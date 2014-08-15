@@ -942,11 +942,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         if(do_bloch)
         {
           bOp = new StrainOperatorBloch2D<FeH1,Complex>(icModes);
-
           EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
-          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() >= 2);
-          // efd->GetCurrentWaveVector() always contains the current one!
-
           dynamic_cast<StrainOperatorBloch2D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
         }
         else
@@ -961,11 +957,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         if(do_bloch)
         {
           bOp = new StrainOperatorBloch3D<FeH1,Complex>(icModes);
-
           EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
-          assert(efd != NULL && efd->GetCurrentWaveVector().GetSize() == 3);
-          // efd->GetCurrentWaveVector() always contains the current one!
-
           dynamic_cast<StrainOperatorBloch3D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
         }
         else

@@ -143,9 +143,7 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      std::string precondId = solStrat_->GetPrecondId();
-      precond_ = GenerateStdPrecondObject( mat, precondId, 
-                                           precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -204,6 +202,9 @@ namespace CoupledField {
     std::string whichString = "LM";
     xml_->GetValue("which", whichString, ParamNode::INSERT );
     
+    if(which_ != NULL) // called multiple times
+      delete[] which_;
+
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
@@ -228,19 +229,21 @@ namespace CoupledField {
     if (numVec > 0)
         arpackSolver_->SetNumVectors(numVec);
 
-    // Create solver - for every bloch wave vector :(
-    solver_ = GenerateSolverObject( *matrixB_, solStrat_, 
-                                    solverList_, eigenInfo_ );
+    // Create solver - for every bloch wave vector :( Make sure it will be deleted!
+    if(solver_ != NULL)
+      delete solver_;
+    solver_ = GenerateSolverObject( *matrixB_, solStrat_,  solverList_, eigenInfo_);
 
     // Perform check, if matrix is std or sbm
-    if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
+    if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX )
+    {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
-
       // Create preconditioner
-      std::string precondId = solStrat_->GetPrecondId();
-      precond_ = GenerateStdPrecondObject( mat, precondId, 
-                                           precondList_, eigenInfo_ );
-    } else {
+      if(precond_ == NULL)
+        precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_);
+    }
+    else
+    {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
 
@@ -380,10 +383,7 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
 
       // Create preconditioner
-      std::string precondId = solStrat_->GetPrecondId();
-
-      precond_ = GenerateStdPrecondObject( mat, precondId, 
-                                           precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -518,9 +518,7 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      std::string precondId = solStrat_->GetPrecondId();
-      precond_ = GenerateStdPrecondObject( mat, precondId, 
-                                           precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat,  solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }

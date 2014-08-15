@@ -353,9 +353,9 @@ namespace CoupledField {
      if( varMap_.count( "simName") != 0 ) {
 
        // get complete path
+       //std::cout << "sN='" << varMap_["simName"].as<string>() << "'\n";
        fs::path simPath ( varMap_["simName"].as<string>());
-
-       boost::filesystem::absolute( simPath.parent_path()).string();
+       //std::cout << "abs='" << boost::filesystem::absolute( simPath.parent_path()).string() << "'\n";
 
        // return path to simulation
        return fs::absolute( simPath.parent_path());
@@ -521,7 +521,6 @@ namespace CoupledField {
 
   void ProgramOptions::ToInfo(PtrParamNode in) const
   {
-    in->SetComment("values of command line parameters (including defaults)");
     in->Get("problem")->SetValue(GetSimName());
     in->Get("parameterFile")->SetValue(GetParamFileStr());
     in->Get("schemaPath")->SetValue(GetSchemaPathStr());

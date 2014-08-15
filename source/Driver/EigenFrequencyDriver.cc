@@ -44,6 +44,7 @@ namespace CoupledField {
     writeModes_ = true;
     isQuadratic_ = false;
     isBloch_ = false;
+    ibz_     = false;
     // replace with a concrete element
     param_ = param_->Get("eigenFrequency");
     info_ = info_->Get("eigenFrequency");
@@ -98,6 +99,7 @@ namespace CoupledField {
     // check if we have ibz
     if(bloch_pn->Has("ibz"))
     {
+      ibz_ = true;
       if(!lst.IsEmpty())
         throw Exception("no wave vectors may be given in bloch mode analysis concurrently with ibz");
 
@@ -120,6 +122,9 @@ namespace CoupledField {
       double d_y = box[1][1]-box[1][0];
       double d_z = box[2][1]-box[2][0]; // 0.0 for 2D
       wave_vectors_.Resize(steps);
+
+      LOG_DBG(efd) << "FWV box: " << box.ToString();
+      LOG_DBG(efd) << "FWV box d_x=" << d_x << " d_y=" << d_y << " d_z=" << d_z;
 
       if(do_boundary)
       {
@@ -224,9 +229,14 @@ namespace CoupledField {
       // single line printing
       cout << std::endl << " step=" << wave_vector_step << " wave vector=" << current_wave_vector_.ToString() << " frequencies: ";
       // also plot
-      bloch_plot_ << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
+      std::stringstream ss;
+      ss << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
       if(dim == 3)
-        bloch_plot_ << current_wave_vector_[2] << "\t";
+        ss << current_wave_vector_[2] << "\t";
+
+      bloch_plot_ << ss.str();
+      if(wave_vector_step == 0)
+        first_plot_line_ = ss.str();
     }
     else
     {
@@ -253,7 +263,11 @@ namespace CoupledField {
       if(isBloch_)
       {
         cout << freq << (i < numConverged-1 ? ", " : "");
-        bloch_plot_ << freq << (i < numConverged-1 ? "\t" : "\n");
+        std::stringstream ss;
+        ss << freq << (i < numConverged-1 ? "\t" : "\n");
+        bloch_plot_ << ss.str();
+        if(wave_vector_step == 0) // to be repeated as first line!
+          first_plot_line_ += ss.str();
       }
       else
       {
@@ -298,8 +312,14 @@ namespace CoupledField {
           simState_->WriteStep(save_step, std::abs(eigenFreqs[i]) );
       }
     }
+
     if(isBloch_)
+    {
+      // repeat the first step at the and of bloch.plot
+      if(wave_vector_step == wave_vectors_.GetSize() - 1)
+         bloch_plot_ << first_plot_line_;
       bloch_plot_.flush();
+    }
 
   }
   
@@ -328,7 +348,7 @@ namespace CoupledField {
     // the eigenfrequencies are complex in the quadratic case or in bloch mode
     SingleVector* eigenFreqs = NULL;
     if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
-                          else eigenFreqs = new Vector<Double>(numFreq_);
+                            else eigenFreqs = new Vector<Double>(numFreq_);
 
     Vector<Double> errBounds( numFreq_ );
 
@@ -373,6 +393,8 @@ namespace CoupledField {
     }
     if( writeAllSteps_ )
       simState_->FinishMultiSequenceStep(true);
+
+    delete eigenFreqs; // hopefully this is no problem for optimization
   }
   
   

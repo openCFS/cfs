@@ -75,6 +75,9 @@ namespace CoupledField {
     tmpRHS_                = NULL;
     patternPool_           = NULL; 
     
+    eigenValues_           = NULL;
+    eigenValError_         = NULL;
+
     idbcHandler_           = NULL;
     assembleDirichletToSysMat_ = false;
     
@@ -123,6 +126,9 @@ namespace CoupledField {
     delete idbcHandler_;
     idbcHandler_ = NULL;
     
+    delete eigenValues_; eigenValues_ = NULL;
+    delete eigenValError_; eigenValError_ = NULL;
+
     for( UInt i = 0; i < numBlocks_; ++i )
       delete blockInfo_[i];
     blockInfo_.Clear();
@@ -559,11 +565,13 @@ namespace CoupledField {
 
     UInt totalSize = (*sysMat_[SYSTEM])(0,0).GetNumRows();
 
-    BaseVector *bVec = GenerateSingleVectorObject(  eType, totalSize );
-    BaseVector *errVec = GenerateSingleVectorObject(  BaseMatrix::DOUBLE, totalSize );
-    eigenValues_ = dynamic_cast<SingleVector*>( bVec );
-    eigenValError_ = dynamic_cast<SingleVector*>( errVec );
-
+    if(eigenValues_ == NULL || eigenValError_ == NULL)
+    {
+      BaseVector *bVec = GenerateSingleVectorObject(eType, totalSize);
+      BaseVector *errVec = GenerateSingleVectorObject(BaseMatrix::DOUBLE, totalSize);
+      eigenValues_ = dynamic_cast<SingleVector*>(bVec);
+      eigenValError_ = dynamic_cast<SingleVector*>(errVec);
+    }
     ExportLinSys(true, false, false); // setup
 
   }
