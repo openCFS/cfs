@@ -32,7 +32,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "c:/CFS_FESPACE_NIGHTLY")
+SET(CTEST_SOURCE_DIRECTORY "c:/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "c:/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
@@ -107,7 +107,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "DEBUG")
-SET(BUILDNAME "FeSpace MINGW ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "Trunk MINGW ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(STRIP "${CFS_BUILD_HOST}" CFS_BUILD_HOST)
@@ -195,7 +195,7 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=ON
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=z:/CFS_TESTSUITE_FESPACE
+   TESTSUITE_DIR:STRING=z:/CFS_TESTSUITE_TRUNK
    CFS_DEPS_CACHE_DIR:PATH=z:/CFSDEPSCACHE
 #   USE_ANSYSRST:BOOL=ON
    USE_PARDISO:BOOL=ON

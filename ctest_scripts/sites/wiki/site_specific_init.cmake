@@ -88,13 +88,13 @@ FILE(REMOVE_RECURSE
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-  ctest_update_fespace_wien.cmake
-  ctest_update_fespace_testsuite_wien.cmake
-
-  # Checkout or update trunk working copies
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
-  ctest_update_cfsdeps_trunk_wien.cmake
+
+  # Checkout or update trunk working copies
+  ctest_update_trunkOld_wien.cmake
+  ctest_update_trunkOld_testsuite_wien.cmake
+  ctest_update_cfsdeps_trunkOld_wien.cmake
 
   # Checkout or update modelling manual working copy
   ctest_update_modelling_manual.cmake
@@ -108,7 +108,8 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
       -DSITE_DIR:PATH=${SITE_DIR}
       -DCFS_DS_HOSTNAME:STRING=${CFS_DS_HOSTNAME}
       -DCFS_DS_SVN:STRING=${CFS_DS_SVN}
-      -DCFS_DS_CDASH_DROP_SITE:STRING=${CFS_DS_CDASH_DROP_SITE}
+#disable this since PW would be submitted to cdash in clean text      
+#-DCFS_DS_CDASH_DROP_SITE:STRING=${CFS_DS_CDASH_DROP_SITE}
       -DCFS_TESTUSER:STRING=${CFS_TESTUSER}
       -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW}
       -S "${SITE_DIR}/${SCRIPT}"
