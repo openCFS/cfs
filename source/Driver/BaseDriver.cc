@@ -11,6 +11,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 #include "Domain/Domain.hh"
 

@@ -176,7 +176,7 @@ namespace CoupledField {
     //! not identical to zero.
     //! \param fname name of output file
     //! \param comment string to be inserted into file header
-    void ExportMatrixMarket( const char *fname, const char *comment = NULL ) const;
+    void ExportMatrixMarket(const std::string& fname, const std::string& comment = "") const;
 
     //! Add the multiple of a matrix to this matrix.
 

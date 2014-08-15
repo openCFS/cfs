@@ -75,6 +75,9 @@ namespace CoupledField {
     tmpRHS_                = NULL;
     patternPool_           = NULL; 
     
+    eigenValues_           = NULL;
+    eigenValError_         = NULL;
+
     idbcHandler_           = NULL;
     assembleDirichletToSysMat_ = false;
     
@@ -123,6 +126,9 @@ namespace CoupledField {
     delete idbcHandler_;
     idbcHandler_ = NULL;
     
+    delete eigenValues_; eigenValues_ = NULL;
+    delete eigenValError_; eigenValError_ = NULL;
+
     for( UInt i = 0; i < numBlocks_; ++i )
       delete blockInfo_[i];
     blockInfo_.Clear();
@@ -487,12 +493,14 @@ namespace CoupledField {
       solver_->SetPrecond( precond_ );
     }
     
+    ExportLinSys(true, false, false); // setup
+
     // stop setup timer of solver
     solver_->GetSetupTimer()->Stop();
   }
 
   void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic ) {
+                                       bool isQuadratic, bool bloch ) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -513,6 +521,9 @@ namespace CoupledField {
     // otherwise we issue a warning
     bool dampPresent = (matrixTypes_.find( DAMPING) != matrixTypes_.end());
     bool massPresent = (matrixTypes_.find( MASS) != matrixTypes_.end());
+
+    // bloch only in one configuration
+    assert(!bloch || (!isQuadratic && !dampPresent && massPresent));
 
     if( isQuadratic == true ) {
       if( dampPresent == false ) {
@@ -535,7 +546,7 @@ namespace CoupledField {
         // Setup the eigenvalue solver for generalized EV problem
         eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
                              (*sysMat_[MASS])(0,0),
-                             numFreq, shift );
+                             numFreq, shift, bloch);
       } else {
         // Setup the eigenvalue solver for standard EV problem
         eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
@@ -543,11 +554,10 @@ namespace CoupledField {
       }
     }
 
-
     // Determine some basic properties and create vectors
     // for eigenvalues and related error bounds
     BaseMatrix::EntryType eType;
-    if( isQuadratic == true ) {
+    if( isQuadratic || bloch ) {
       eType = BaseMatrix::COMPLEX;
     } else {
       eType = BaseMatrix::DOUBLE;
@@ -555,10 +565,14 @@ namespace CoupledField {
 
     UInt totalSize = (*sysMat_[SYSTEM])(0,0).GetNumRows();
 
-    BaseVector *bVec = GenerateSingleVectorObject(  eType, totalSize );
-    BaseVector *errVec = GenerateSingleVectorObject(  BaseMatrix::DOUBLE, totalSize );
-    eigenValues_ = dynamic_cast<SingleVector*>( bVec );
-    eigenValError_ = dynamic_cast<SingleVector*>( errVec );
+    if(eigenValues_ == NULL || eigenValError_ == NULL)
+    {
+      BaseVector *bVec = GenerateSingleVectorObject(eType, totalSize);
+      BaseVector *errVec = GenerateSingleVectorObject(BaseMatrix::DOUBLE, totalSize);
+      eigenValues_ = dynamic_cast<SingleVector*>(bVec);
+      eigenValError_ = dynamic_cast<SingleVector*>(errVec);
+    }
+    ExportLinSys(true, false, false); // setup
 
   }
 
@@ -650,6 +664,10 @@ namespace CoupledField {
     if ( setIDBC ) 
       idbcHandler_->AddIDBCToRHS( rhs_ );
 
+    /* BLOCH TODO
+    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
+    // the solve part is commentet out, I see no reason to export linsys also here, it would
+    // require a generalization anyway. Fabian 16.11.07
     // check if we do export stuff
     PtrParamNode els = solStrat_->GetExportLinSysNode();
     std::string file;
@@ -714,6 +732,8 @@ namespace CoupledField {
     if(els && els->HasByVal("initialGuess", true))
       sol_->Export((base+"_intial_guess").c_str(), format);
 
+    */
+
     // -------------------------------------------
     //  Adjust RHS for due to static condensation
     // -------------------------------------------
@@ -740,6 +760,8 @@ namespace CoupledField {
       }
     }
     
+    ExportLinSys(false, true, false); // pre_solve
+
     // Trigger solution
     if( onlyOneMatrixBlock_ ) { 
       solver_->Solve( (*effMat_)(0,0), 
@@ -786,9 +808,10 @@ namespace CoupledField {
       delete tmp;
     }
 
+    // BLOCH TODO
     // Export solution if desired
-    if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-      sol_->Export((base+"_sol").c_str(), format);
+    // if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
+    //  sol_->Export((base+"_sol").c_str(), format);
 
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
@@ -803,6 +826,80 @@ namespace CoupledField {
     // stop timer associated with solver
     solver_->GetSolveTimer()->Stop();
   }
+
+
+  void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve)
+  {
+    assert((setup && !pre_solve && !post_solve) || (!setup && pre_solve && !post_solve) || (!setup && !pre_solve && post_solve));
+
+    if(!solStrat_->GetParamNode()->Has("exportLinSys"))
+      return;
+
+    PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
+
+    // TODO consider multiple systems here, this was done by the analysis_id
+    std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+
+    // we export the system always but on only_check_solution and exclusive solution
+    bool exclusive = els->Has("solution") ? els->Get("solution")->As<std::string>() == "exclusive" : false;
+
+    BaseMatrix::OutputFormat format = els->Has("format") ? BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>())
+                                                         : BaseMatrix::MATRIX_MARKET;
+
+    if(setup && !exclusive)
+    {
+      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
+        EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
+
+
+      // Export also preconditioner if we have one
+      if(precond_ != NULL)
+      {
+        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        if(onlyOneMatrixBlock_)
+          precond_->GetPrecondSysMat((*copy)(0,0));
+        else
+          precond_->GetPrecondSysMat(*copy);
+        copy->Export(base + "_precond", format);
+      }
+
+      // BLOCH check split_system doesn't exist any more!
+      if(els->HasByVal("split_system", true))
+      {
+        if(sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
+          sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
+
+        if(sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
+          sysMat_[DAMPING]->Export(base + "_damping", format);
+
+        if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
+          sysMat_[AUXILIARY]->Export(base + "_aux", format);
+
+        // check if the export _system is really ok in the else case
+        assert(sysMat_[SYSTEM]->GetMaxDiag() == 0.0);
+      }
+      else
+      {
+        sysMat_[SYSTEM]->Export(base + "_system", format);
+      }
+    }
+    if(pre_solve && !exclusive)
+    {
+      // rhs is only in harwell-boing included
+      rhs_->Export(base + "_rhs.vec", format);
+
+      if(els->HasByVal("initialGuess", true))
+        sol_->Export(base + "_intial_guess.vec", format);
+    }
+    if(post_solve)
+    {
+      // Export solution if desired
+      if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
+        sol_->Export(base + "_sol.vec", format);
+    }
+  }
+
+
 
   void AlgebraicSys::CalcEigenFrequencies( Vector<Double>& frequencies,
                                            Vector<Double>& err ) {
@@ -828,11 +925,10 @@ namespace CoupledField {
     // Check, if eigenvalue solver is quadratic, as only in this case
     // this method is well-defined
 
-    if( eigenSolver_->IsQuadratic() == false ) {
+    if(!eigenSolver_->IsBloch() && !eigenSolver_->IsQuadratic())
       EXCEPTION("When solving a generalized eigenvalue problem, only " \
                << "real-valued results are obtained! Use the second " \
                << "CalcEigenFrequencies()-method!");
-    }
 
     // Trigger calculation of eigenvalues
     eigenSolver_->CalcEigenFrequencies( *eigenValues_, *eigenValError_ );
@@ -848,16 +944,14 @@ namespace CoupledField {
   void AlgebraicSys::CalcEigenMode( UInt numMode )  {
     
     LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
-    if ( eigenSolver_->IsQuadratic()==true ) {
-       Vector<Complex> & solHelp =
-         dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-       eigenSolver_->CalcQuadEigenMode( numMode, solHelp );
+    if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
+       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &> ((*sol_)(0));
+       eigenSolver_->CalcComplexEigenMode( numMode, solHelp );
     } else {
       Vector<Complex> & solHelp =
         dynamic_cast<Vector<Complex> &> ((*sol_)(0));
       eigenSolver_->CalcEigenMode( numMode, solHelp );
     }
-
   }
 
   void AlgebraicSys::GraphSetupInit( UInt numFcts, 
@@ -1852,9 +1946,9 @@ namespace CoupledField {
     LOG_DBG(algSys) << "Setting element matrix for fctIds ("
                      << fctId1 << ", " << fctId2 << ")";
     LOG_DBG2(algSys) << "Matrix: " << feMatrixType.ToString(matrixType);
-    LOG_DBG2(algSys) << "EqnVec1: " << eqnNrs1.ToString();
-    LOG_DBG2(algSys) << "EqnVec2: " << eqnNrs2.ToString();
-    LOG_DBG3(algSys) << "matrix is:\n " << elemMat;
+    LOG_DBG2(algSys) << "EqnVec1: (" << eqnNrs1.GetSize() << "): " << eqnNrs1.ToString();
+    LOG_DBG2(algSys) << "EqnVec2: (" << eqnNrs2.GetSize() << "): " << eqnNrs2.ToString();
+    LOG_DBG3(algSys) << "elemMat (" << elemMat.GetNumRows() << ", " << elemMat.GetNumCols() << "):\n " << elemMat;
     LOG_DBG3(algSys) << "noStaticCond is:\n " << noStaticCond;
     
     // Security check: check if we have as many equations as numRows/Cols
@@ -2104,6 +2198,7 @@ namespace CoupledField {
           LOG_DBG3(algSys) << "\t1) free-free entries:";
           LOG_DBG3(algSys) << "\t\trowIndices: " << rList1.ToString();
           LOG_DBG3(algSys) << "\t\tcolIndices: " << cList1.ToString();
+          LOG_DBG3(algSys) << "\t\tmat: " << stdMat->ToInfoString();
           // 2) Assemble all free <-> free entries
           // loop over all rows/col
 

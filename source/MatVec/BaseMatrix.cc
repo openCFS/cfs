@@ -17,6 +17,13 @@ Enum<BaseMatrix::StructureType>("Matrix Structure Types",
     sizeof(structureTypeTuples) / sizeof(EnumTuple),
     structureTypeTuples); 
 
+
+std::string BaseMatrix::ToInfoString() const
+{
+  return "st=" + structureType.ToString(GetStructureType()) + " et=" + entryType.ToString(GetEntryType()) + " mu=" + boost::lexical_cast<std::string>(GetMemoryUsage());
+}
+
+
 // Definition of matrix entry type mappings
 static EnumTuple entryTypeTuples[] = 
 {
@@ -58,9 +65,10 @@ static EnumTuple outputFormatTuples[] =
  EnumTuple( BaseMatrix::HARWELL_BOEING, "harwell-boeing" ),
 };
 
+
 Enum<BaseMatrix::OutputFormat> BaseMatrix::outputFormat = \
 Enum<BaseMatrix::OutputFormat>("Matrix Output Formats",
     sizeof(outputFormatTuples) / sizeof(EnumTuple),
     outputFormatTuples); 
 
-}
+} // end of namespace

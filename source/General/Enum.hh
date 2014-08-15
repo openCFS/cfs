@@ -237,7 +237,14 @@ typedef std::multimap<int, std::string> EnumMap;
         {
             this->name_ = name;
         };   
-         
+
+        /** for debug purpose */
+        void Dump() const
+        {
+          for(EnumMap::const_iterator it = map.begin() ; it != map.end(); ++it)
+            std::cout << "enum " << name_ << " key=" << it->first << " value=" << it->second << std::endl;
+        }
+
      private:
         std::string name_;   
   };

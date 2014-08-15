@@ -53,7 +53,8 @@ namespace CoupledField {
         eigenInfo_(eigenInfo),
         numFreq_(0),
         freqShift_(0.0),
-        isQuadratic_(false)
+        isQuadratic_(false),
+        isBloch_(false)
     {
     }
     
@@ -62,7 +63,10 @@ namespace CoupledField {
     }
 
     //! Get type of eigenvalue problem to be solved
-    bool IsQuadratic() {return isQuadratic_;}
+    bool IsQuadratic() const {return isQuadratic_;}
+
+    /** do we calculate in complex generalized EV mode */
+    bool IsBloch() const { return isBloch_; }
 
     //! Setup routine for standard eigenvalue problem
 
@@ -88,7 +92,7 @@ namespace CoupledField {
     //!        is used
     virtual void Setup( const BaseMatrix & stiffMat,
                         const BaseMatrix & massMat,
-                        UInt numFreq, Double freqShift ) = 0;
+                        UInt numFreq, Double freqShift, bool bloch) = 0;
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -124,7 +128,7 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     virtual void CalcEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
-    virtual void CalcQuadEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
+    virtual void CalcComplexEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
     
     
     //! Calculate condition number
@@ -175,6 +179,9 @@ namespace CoupledField {
 
     //! Flag indicating if a quadratic eigenvalue problem is solved
     bool isQuadratic_;
+
+    //! Flag indication if a complex generalized bloch mode EV problem is solved
+    bool isBloch_;
   };
   
 }

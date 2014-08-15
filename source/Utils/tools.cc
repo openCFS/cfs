@@ -156,38 +156,43 @@ namespace CoupledField {
     return std::sqrt(result);
   }
 
+  template <class TYPE>
+  std::string ToString(const TYPE* data, unsigned int size)
+  {
+    std::ostringstream os;
 
-  /** Compares if two doubles are close to each other */
-  bool close(Double d1, Double d2)
-  {
-    return std::abs(d1-d2) < 1e-6;
-  }
+    os << "[";
+    for(unsigned int i = 0; i < size; i += 1)
+      os << data[i] << ((i < size-1) ? ", ": "]");
 
-  /** Compared if two complex are close (if both the real and imaginary part are close) */
-  bool close(Complex c1, Complex c2)
-  {
-    return close(c1.real(), c2.real()) && close(c1.imag(), c2.imag());
-  }
-
-  bool IsNoise(Double val)
-  {
-    return std::abs(val) < 1e-13;
-  }
-  
-  bool IsNoise(Complex val)
-  {
-    return IsNoise(val.real()) && IsNoise(val.imag());
+    return os.str();
   }
 
-  bool IsNoise(Integer val)
+  template <class TYPE>
+  std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line)
   {
-    return false;
+    std::ostringstream os;
+
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      os << i << "=" << "[" << data[i].ToString() << "]" << (new_line ? "\n": " ");
+
+    return os.str();
   }
 
-  bool IsNoise(UInt val)
+
+  template <>
+  std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size)
   {
-    return false;
+    std::ostringstream os;
+
+    // prepare for copy and paste to matlab
+    os << "[";
+    for(unsigned int i = 0; i < size; i += 1)
+      os << data[i].real() << " + " << data[i].imag() << "i" << ((i < size-1) ? ", ": "]");
+
+    return os.str();
   }
+
 
   double Average(const double* data, unsigned int size)
   {
@@ -269,6 +274,14 @@ namespace CoupledField {
     target.Resize(n);
     for(UInt i = 0; i < n; i++)
       target[i] = factor * other[i];
+  }
+
+  void Conj(Matrix<Complex>& mat)
+  {
+
+    for(UInt r = 0; r < mat.GetNumRows(); r++)
+      for(UInt c = 0; c < mat.GetNumCols(); c++)
+        mat[r][c] = std::conj(mat[r][c]);
   }
 
   int MemoryUsage(bool peak)
@@ -452,5 +465,13 @@ namespace CoupledField {
     assert(abs(x) + eps > 0);
     return x / std::sqrt(x*x + eps*eps);
   }
+
+  // explicit template instantiation
+  template std::string ToString<double>(const double* data, unsigned int size);
+  template std::string ToString<int>(const int* data, unsigned int size);
+  template std::string ToString<unsigned int>(const unsigned int* data, unsigned int size);
+  template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
+
+  template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
 
 }// namespace CoupledField

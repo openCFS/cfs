@@ -3,7 +3,7 @@
 #include "MatVec/opdefs.hh"
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/SCRS_Matrix.hh"
-
+#include "DataInOut/ProgramOptions.hh"
 #include "ildlprecond.hh"
 
 // By default, we assume that, if this class is to be debugged, then also the
@@ -37,7 +37,7 @@ namespace CoupledField {
         
     // Set pointers to communication objects
     this->xml_ = precondNode;
-    this->infoNode_ = olasInfo->Get("ildl", ParamNode::APPEND);
+    this->infoNode_ = olasInfo->Get("ildl", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
 
     // No factorisation was computed yet
     amFactorised_ = false;

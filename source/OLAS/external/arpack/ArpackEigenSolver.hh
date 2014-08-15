@@ -55,7 +55,7 @@ namespace CoupledField {
     //!        is used
     void Setup( const BaseMatrix & stiffMat,
                 const BaseMatrix & massMat,
-                UInt numFreq, Double freqShift );
+                UInt numFreq, Double freqShift, bool bloch);
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -92,7 +92,7 @@ namespace CoupledField {
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
     void CalcEigenMode( UInt modeNr, Vector<Complex> & mode );
-    void CalcQuadEigenMode( UInt modeNr, Vector<Complex> & mode );
+    void CalcComplexEigenMode( UInt modeNr, Vector<Complex> & mode );
 
 
     //! Calculate condition number
@@ -105,10 +105,6 @@ namespace CoupledField {
                               Vector<Double>& err );
 
   private:
-
-    //! Method for writing logging information into .las file
-    void PrintInfo();
-
     //! Method for generation of complex matrices from real ones
     void SetupComplexMatrices();
 

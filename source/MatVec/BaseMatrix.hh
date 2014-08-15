@@ -124,9 +124,9 @@ namespace CoupledField {
     //! \param fname name of output file
     //! \param format matrix output format 1 = MatrixMarket, 2 = Harwell-Boeing (optional)
     //! \param comment string to be inserted into file header (optional)
-    virtual void Export( const char *fname,
+    virtual void Export( const std::string& fname,
                          OutputFormat format = MATRIX_MARKET,
-                         const char *comment = NULL) const = 0;
+                         const std::string& comment = "") const = 0;
 
 
     //! Add the multiple of a matrix to this matrix
@@ -196,6 +196,10 @@ namespace CoupledField {
     
     //! This method returns the memory size of the matrix in Bytes
     virtual Double GetMemoryUsage() const = 0;
+
+    /** gives some debug information */
+    std::string ToInfoString() const;
+
   };
 
   // Function for determining matrix/vector entry type (i.e. Integer, Double,

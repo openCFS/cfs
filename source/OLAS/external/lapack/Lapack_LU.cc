@@ -658,7 +658,7 @@ namespace CoupledField {
     // by the identity x = diag(C) * z.
     if ( scalingType_ == 'C' || scalingType_ == 'B' ) {
       for ( Integer i = 0; i < lp_ncols; i++ ) {
-	lp_sol[i] *= col_scalings_[i];
+        lp_sol[i] *= col_scalings_[i];
       }
     }
 
@@ -668,12 +668,14 @@ namespace CoupledField {
 
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
-    // solver. Nevertheless we supply some values for consistency
+    // solver.
+    // PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
+    // out->Get("numIter")->SetValue(-1);
+    // out->Get("finalNorm")->SetValue(-1.0);
 
     PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
-
   }
 
 

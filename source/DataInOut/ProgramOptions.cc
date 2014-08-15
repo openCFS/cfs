@@ -353,9 +353,9 @@ namespace CoupledField {
      if( varMap_.count( "simName") != 0 ) {
 
        // get complete path
+       //std::cout << "sN='" << varMap_["simName"].as<string>() << "'\n";
        fs::path simPath ( varMap_["simName"].as<string>());
-
-       boost::filesystem::absolute( simPath.parent_path()).string();
+       //std::cout << "abs='" << boost::filesystem::absolute( simPath.parent_path()).string() << "'\n";
 
        // return path to simulation
        return fs::absolute( simPath.parent_path());
@@ -521,7 +521,6 @@ namespace CoupledField {
 
   void ProgramOptions::ToInfo(PtrParamNode in) const
   {
-    in->SetComment("values of command line parameters (including defaults)");
     in->Get("problem")->SetValue(GetSimName());
     in->Get("parameterFile")->SetValue(GetParamFileStr());
     in->Get("schemaPath")->SetValue(GetSchemaPathStr());
@@ -1025,7 +1024,11 @@ namespace CoupledField {
         << "13.10, Rotating Rhino" << endl
         << "  Non-conforming interfaces can now cope with moving grids, especially rotation." << endl
         << "  The animal part of the name shall express that CFS++ is heavier than ever," << endl
-        << "  despite lots of code optimization." << endl;
+        << "  despite lots of code optimization." << endl
+        << endl
+        << "14.08, Maximale Verwirrung" << endl
+        << "  The FE-Space branch is the new trunk and the optimization group starts to add "
+        << "  its stuff." << endl;
 
   }
 

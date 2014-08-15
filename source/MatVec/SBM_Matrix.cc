@@ -600,9 +600,9 @@ namespace CoupledField {
   // **********
   //   Export
   // **********
-  void SBM_Matrix::Export( const char *fname,
+  void SBM_Matrix::Export( const std::string& fname,
                            BaseMatrix::OutputFormat format,
-                           const char *comment ) const {
+                           const std::string& comment) const {
 
 
     std::stringstream fileName;

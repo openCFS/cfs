@@ -2,6 +2,7 @@
 
 #include "OLAS/precond/ILU0Precond.hh"
 #include "MatVec/opdefs.hh"
+#include "DataInOut/ProgramOptions.hh"
 namespace CoupledField {
 
 
@@ -16,7 +17,7 @@ ILU0Precond<T>::ILU0Precond( const StdMatrix& mat,
 
   // Set pointers to communication objects
   this->xml_ = precondNode;
-  this->infoNode_ = olasInfo->Get("ilu0", ParamNode::APPEND);
+  this->infoNode_ = olasInfo->Get("ilu0", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
 
   // Set size information
   size_ = mat.GetNumRows();

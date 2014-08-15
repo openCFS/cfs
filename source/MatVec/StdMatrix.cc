@@ -14,14 +14,14 @@ using CoupledField::Exception;
 namespace CoupledField 
 {
 
-void StdMatrix::Export( const char *fname,
+void StdMatrix::Export( const std::string& fname,
                         OutputFormat format,
-                        const char *comment ) const {
+                        const std::string& comment ) const {
    std::string fn = fname;
    switch(format) {
      case MATRIX_MARKET: // MatrixMarket
        fn += ".mtx";
-       ExportMatrixMarket(fn.c_str(), comment);
+       ExportMatrixMarket(fn, comment);
        break;
      case HARWELL_BOEING: // Harwell-Boeing
        ExportHarwellBoeing(fn, NULL);
