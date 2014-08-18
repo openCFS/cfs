@@ -331,7 +331,7 @@ namespace CoupledField {
       vecY = workD.GetPointer();
       interface_->MultAV(vecX, vecY);
       double vNrm2 = 0.0;
-      for (UInt j=0; j<size_; j++) {
+      for (Integer j=0; j<size_; j++) {
         vecX[j] = vecY[j] - d[i]*vecY[j+size_];
         vNrm2 += abs(vecX[j])*abs(vecX[j]);
       }
