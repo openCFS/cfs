@@ -13,8 +13,8 @@ INCLUDE("cmake_modules/DevelopmentServer.cmake")
 #-----------------------------------------------------------------------------
 # Give some hints to the user, if CMake is too old.
 #-----------------------------------------------------------------------------
-IF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
-   CMAKE_MINOR_VERSION LESS REQ_MINOR_VER OR
+IF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER AND
+   CMAKE_MINOR_VERSION LESS REQ_MINOR_VER AND
    CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
 
 MESSAGE(
@@ -48,8 +48,8 @@ MESSAGE(
 ==============================================================================
 ")
 
-ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER OR
-      CMAKE_MINOR_VERSION LESS REQ_MINOR_VER OR
+ENDIF(CMAKE_MAJOR_VERSION LESS REQ_MAJOR_VER AND
+      CMAKE_MINOR_VERSION LESS REQ_MINOR_VER AND
       CMAKE_PATCH_VERSION LESS REQ_PATCH_VER)
 
 #-----------------------------------------------------------------------------
