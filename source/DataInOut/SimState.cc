@@ -202,7 +202,19 @@ class MaterialHandler;
       inFile_->DB_GetFeFctCoefs(sequenceStep, stepNum, pdeName, feName,
                                 (*it)->GetSingleVector() );
     }
-
+    
+    // In case there is a domain object, we also have to notify the 
+    // Driver
+    if( domain_ ) {
+      // notify also the driver about the current time / freqeuency step 
+      SingleDriver * ptDriver = domain_->GetSingleDriver();
+      Integer index = stepNums_.Find(stepNum);
+      if( index == -1 ) {
+        EXCEPTION( "Step number " << stepNum << " not defined" );
+      }
+      Double stepVal = stepVals_[index];
+      ptDriver->SetToStepValue( stepNum, stepVal);
+    }
   }
   
   void SimState:: SetInterpolation( InterpolType type, MathParser * parser,
@@ -228,9 +240,13 @@ class MaterialHandler;
     } else {
       parentParser_->SetExpr(parentHandle_, "f");
     }
-    conn_ = parentParser_->AddExpChangeCallBack(
-        boost::bind(&SimState::UpdateTimeFreqStep, this ),
-        parentHandle_ );
+    
+    // only add callback, if interpolation is not CONSTANT
+    if( type != CONSTANT ) {
+      conn_ = parentParser_->AddExpChangeCallBack(
+          boost::bind(&SimState::UpdateTimeFreqStep, this ),
+          parentHandle_ );
+    }
     
     
     // Loop over all registered FeFunctions
@@ -593,7 +609,8 @@ class MaterialHandler;
 
   // Definition of finite element space types
    static EnumTuple interpolTypeTuples[] = {
-     EnumTuple(SimState::NO_INTERPOLATION, "undef"), 
+     EnumTuple(SimState::NO_INTERPOLATION, "undef"),
+     EnumTuple(SimState::CONSTANT, "constant"), 
      EnumTuple(SimState::NEAREST_NEIGHBOR, "nearestNeighbor"), 
      EnumTuple(SimState::LINEAR,           "linear")
    };
