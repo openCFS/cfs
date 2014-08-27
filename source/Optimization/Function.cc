@@ -578,7 +578,7 @@ bool Function::IsAdjointBased() const {
 bool Function::NeedsSelectionVector() const {
   switch (type_) {
   case OUTPUT:
-//    case CONJUGATE_COMPLIANCE: ??
+  case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
   case ENERGY_FLUX:
