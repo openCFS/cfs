@@ -13,7 +13,6 @@
 namespace CoupledField
 {
 
-  class BaseForm;
   class LinearFormContext;
   class set;
 

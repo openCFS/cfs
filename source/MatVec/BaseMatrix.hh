@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-//#include "MatVec/basevector.hh"
+//#include "MatVec/baseVector.hh"
 
 #include "General/Enum.hh"
 #include "General/defs.hh"
@@ -203,7 +203,7 @@ namespace CoupledField {
   };
 
   // Function for determining matrix/vector entry type (i.e. Integer, Double,
-  // Complex) for enum-type refer to environment.hh
+  // Complex) for enum-type refer to Environment.hh
 
   //! Class for determining the type of a matrix/vector entry on scalar level
 

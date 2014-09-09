@@ -997,8 +997,8 @@ namespace CoupledField {
   //    http://dl.acm.org/citation.cfm?doid=567806.567811
   
 #ifdef VBR_TEST_SECTION
-#include "MatVec/matrix.hh"
-#include "MatVec/crs_matrix.hh"
+#include "MatVec/Matrix.hh"
+#include "MatVec/crs_Matrix.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
 
 namespace CoupledField {
