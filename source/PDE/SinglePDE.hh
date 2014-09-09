@@ -17,7 +17,6 @@ namespace CoupledField
   class SpaceErrorEstimator;
   class DirectCoupledPDE;
   class Assemble;
-  class BaseForm;
   class BiLinearForm;
   class BaseBDBInt;
   class ResultFunctor;

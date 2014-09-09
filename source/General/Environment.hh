@@ -30,7 +30,7 @@ namespace OutInfo{
 // KILLME #define REFACTOR WARN("Commented out due to refactoring");
 #define REFACTOR
 
-//! \file environment.hh
+//! \file Environment.hh
 //! This file contains some global macro, class and enumeration data type
 //! definitions for CFS++.
 namespace CoupledField {

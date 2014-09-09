@@ -11,7 +11,6 @@ namespace CoupledField
 
   //! Forward class declarations
   class BasePDE;
-  class BaseForm;
   class BaseMaterial;
   class StdPDE;
   class SinglePDE;

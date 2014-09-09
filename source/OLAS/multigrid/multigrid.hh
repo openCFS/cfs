@@ -27,7 +27,7 @@
 #include  "multigrid/jacobi.cc"
 #include  "multigrid/amg.cc"
 
-#include  "multigrid/prematrix.hh"
+#include  "multigrid/preMatrix.hh"
 #include  "multigrid/depgraph.hh"
 #include  "multigrid/topology.hh"
 #include  "multigrid/transfer.hh"
