@@ -37,6 +37,7 @@
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/EigenFrequencyDriver.hh"
@@ -892,6 +893,16 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                                           tensorType_, Global::REAL );
     }
     
+    // TODO: do only for optimizaton
+    if(true)
+    {
+      assert(!isComplex);
+
+      CoefFunctionOpt<double>* tmpFnc = new CoefFunctionOpt<double>(curCoef);
+      curCoef.reset(tmpFnc);
+    }
+
+
     // store coefficient function for later use (e.g. in boundary integrators)
     regionStiffness_[regionId] = curCoef;
     

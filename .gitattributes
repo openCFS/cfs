@@ -1345,6 +1345,7 @@ source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
+source/Domain/CoefFunction/CoefFunctionOpt.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
 source/Domain/CoefFunction/CoefFunctionScatteredData.cc -text
