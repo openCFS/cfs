@@ -164,7 +164,7 @@ void Ilupack<T>::Setup(BaseMatrix &sysMat, PtrParamNode analysis_id)
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("setup", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("setup", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
   // determine the matrix type. Symmetric/nonsymmetric, positive definite, ...
@@ -243,7 +243,7 @@ void Ilupack<T>::Solve(const BaseMatrix &base_mat,
     const BaseVector &base_rhs,  BaseVector &base_sol, PtrParamNode analysis_id)
 {
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
   if(analysis_id != NULL) // TODO only very quick and dirty fix for eigenfrequency analsys
     out->Get("analysis_id")->SetValue(analysis_id->Get("analysis_id"));
 
@@ -320,7 +320,7 @@ void Ilupack<T>::InitParameters()
   IlupackAMGInit();
   
   // dump the parameter block and overwrite
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_HEADER)->Get("parameters");
+  PtrParamNode out = infoNode_->Get(ParamNode::HEADER)->Get("parameters");
 
   CheckParameter(out, reinterpret_cast<bool*>(&param.matching), "matching");
   CheckParameter(out, &param.ordering, "ordering");

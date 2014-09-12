@@ -20,7 +20,7 @@
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/TransientDriver.hh"
 #include "FeBasis/BaseFE.hh"
-#include "Forms/LinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -86,7 +86,7 @@ ErsatzMaterial::ErsatzMaterial() :
   structure_ = NULL;
   densityFile = NULL;
 
-  pn = param->Get("optimization")->Get("ersatzMaterial");
+  pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
 
@@ -156,13 +156,15 @@ ErsatzMaterial::ErsatzMaterial() :
     densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
   }
 
-  harmonic = BasePDE::IsComplex(pde->GetAnalysisType());
+  harmonic = pde->IsComplex();
 
+  /* FIXME
   if((homogenization_ || maxwellHomogenization_) && !pde->HasPeriodicBC())
     throw Exception("homogenization requires periodic boundary conditions");
+   */
 
   // Get the assemble class
-  assemble_ = pde->getPDE_assemble();
+  assemble_ = pde->GetAssemble();
 
   // check our constraints, the shall have only valid designs
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
@@ -265,7 +267,7 @@ void ErsatzMaterial::PostInit()
     case Function::OUTPUT:
     case Function::DYNAMIC_OUTPUT:
     case Function::ABS_OUTPUT:
-    {
+    { /* FIXME
       if(!f->pn->Has("output"))
         throw Exception("element 'output' is mandatory for function 'output'");
       PtrParamNode output = f->pn->Get("output");
@@ -281,7 +283,7 @@ void ErsatzMaterial::PostInit()
 
       if(f->output_nodes.GetSize() == 0)
         throw Exception("no output optimization targets given");
-      break;
+      break; */
     }
     // we do energy flux in realtime
     default:
@@ -441,7 +443,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       // we then have no design region and need to skip GetForm
       if(design->GetRegionId() != -1)
       {
-        bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+        // FIXME bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
       }
       Objective vf(Function::VOLUME, 0.0, true); // physical!
       assert(design->GetRegionIds().GetSize() ==1);
@@ -495,7 +497,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     UInt timesteps = domain->GetDriver()->GetNumSteps();
     MathParser* parser = domain->GetMathParser();
     unsigned int mathParserHandle = parser->GetNewHandle();
-    assert(domain->HasErsatzMaterialTensor());
+    // FIXME assert(domain->HasErsatzMaterialTensor());
     Matrix<double> dK(1, 1), dM(1, 1);
     Vector<double> dKp(0), dMp(0), dDp(0);
 // this is only caching, access using the double maps for every get slows down this procedure by about 50% for 200 timesteps
@@ -576,7 +578,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             {
               // just performance; if alpha = beta = 0, we can omit one vector product
               Vector<double>& ut_vec = dynamic_cast<Vector<double>&>(*(*forwarddt[t])[e]);
-              dDp = dampingAlpha * dMp + dampingBeta * dKp;
+              assert(false);
+              // FIXME dDp = dampingAlpha * dMp + dampingBeta * dKp;
               v -= ut_vec * dDp;
             }
           }
@@ -1165,23 +1168,25 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::IntegrateDesignVariable(Objective* c, Condition* g, bool derivative, DesignElement::Type dtype, bool normalized, bool scale, double exponent)
   {
-// this replaces and enhances calculation of volume, it is used by regularization
-// when not assuming a regular grid, computation of Volume is not as simple
-// we also consider working only on a given region, when used as constrain
-// use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
-// do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
+    // this replaces and enhances calculation of volume, it is used by regularization
+    // when not assuming a regular grid, computation of Volume is not as simple
+    // we also consider working only on a given region, when used as constrain
+    // use dtype == NO_TYPE to iterate over all designs, but do not calculate tensor trace even if available
+    // do we want the physical value? Don't make GTF() fault tolerant as we assume the physcial value!
+    Grid* grid = domain->GetGrid();
     Function* f = Function::GetFunction(c, g);
     TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, MECH) : NULL;
-    Matrix<Double> cornerCoords;
+
     double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
     bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
-    bool calculateTensorTrace = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
+    assert(false);
+    bool calculateTensorTrace = false; // FIMXE = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
     if (calculateTensorTrace && scale)
     {
       throw Exception("Cannot calculate Tensor Trace Volume on scaled design variables!");
     }
-// check whether we have to calculate the full volume
+    // check whether we have to calculate the full volume
     if(normalized)
     {
       if(g != NULL && g->GetDesignType() == DesignElement::UNITY)
@@ -1195,8 +1200,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       if(design->IsRegular())
       { // we use 1/(the volume of the first element) as fraction
-        grid->GetElemNodesCoord(cornerCoords, design->data[0].elem->connect, true);
-        fraction = 1.0 / design->data[0].elem->ptElem->CalcVolume(cornerCoords, false);
+        fraction = 1.0 / grid->GetElemShapeMap(design->data[0].elem, false)->CalcVolume();
       }
       else
       {
@@ -1226,8 +1230,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 for(unsigned int i = cur_reg.base; i < u; i++)
                 {
                   DesignElement* de = &design->data[i];
-                  grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
-                  fraction += de->elem->ptElem->CalcVolume(cornerCoords, false);
+                  fraction += grid->GetElemShapeMap(de->elem, false)->CalcVolume();
                 }
               }
             }
@@ -1298,8 +1301,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 val *= fraction;
                 if(!design->IsRegular())
                 {
-                  grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
-                  const double vol = de->elem->ptElem->CalcVolume(cornerCoords, false);
+                  const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
                   val *= vol;
                 }
                 de->AddGradient(c, g, val);
@@ -1327,8 +1329,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                 }
                 else
                 {
-                  grid->GetElemNodesCoord(cornerCoords, de->elem->connect, true);
-                  const double vol = de->elem->ptElem->CalcVolume(cornerCoords, false);
+                  const double vol = grid->GetElemShapeMap(de->elem, false)->CalcVolume();
                   sum += des * vol;
                 }
               } // if derivative
@@ -1622,26 +1623,30 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
       case Objective::COMPLIANCE: // adjoint has the original rhs (scaled with weight per timestep), but time walks backwards
       {
-        assemble_->AssembleLinRHS(NULL);
+        assemble_->AssembleLinRHS();
         Vector<Double> rhs;
-        assemble_->GetAlgSys()->GetRHSVal(rhs);
+        assert(false);
+        // FIXME assemble_->GetAlgSys()->GetRHSVal(rhs);
         double w = GetStepWeight(ts);
         for(unsigned int i = 0; i < rhs.GetSize(); ++i)
         {
           rhs[i] *= w;
         }
-        assemble_->GetAlgSys()->InitRHS(rhs);
+        assert(false);
+        // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
       }
       break;
 
       default:
       EXCEPTION("adjoint RHS not known for Objective " + adjointParams->GetFunction()->ToString());
     }
-// if the first step is static, we have to readjust the right hand side for ts == 0. Note that the transientDriver/solveStep does no rhs update any more
+    // if the first step is static, we have to readjust the right hand side for ts == 0. Note that the transientDriver/solveStep does no rhs update any more
     if (IsFirstTransientStepStatic() && ts == 0)
     {
+      assert(false);
+      /* FIXME FE-Space
       double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
-      double gamma = pde->getTimeStepping()->GetNewmarkGamma();
+      double gamma =pde->getTimeStepping()->GetNewmarkGamma();
       double beta = pde->getTimeStepping()->GetNewmarkBeta();
       
       Vector<Double>& pp = pde->getTimeStepping()->GetDeriveMap()[FIRST_DERIV];
@@ -1664,60 +1669,67 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         coeffDamping.Add(0.5 * (gamma - 2*beta) * dt, ppp);
         assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
       }
+      */
     }
     
     // in case of contact, we have to inform the solver, that an adjoint system is solved
-    assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
+    assert(false);
+    // FIXME assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
   }
 
   double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
   {
-// calc 1/2 Re{j omega psi^R Q psi^*} where Q is the grad_n matrix B applied at some points L
-// this is the global element solution, indexed by equation number
+    // calc 1/2 Re{j omega psi^R Q psi^*} where Q is the grad_n matrix B applied at some points L
+    // this is the global element solution, indexed by equation number
     Vector<complex<double> > u_glob = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
-// here we store Q*u^* as we have to determine the nodal entries by count
+    // here we store Q*u^* as we have to determine the nodal entries by count
     Vector<complex<double> > q_u_glob(u_glob.GetSize());
     SetEnergyFluxVector(f, u_glob, false, q_u_glob);
-// calculate the product Re(j*omega*u*(Q*u^*)) which is -Im(u*(Q*u^*))
-// the (Q*u^*) term is normalized
+    // calculate the product Re(j*omega*u*(Q*u^*)) which is -Im(u*(Q*u^*))
+    // the (Q*u^*) term is normalized
     double result = 0;
     for (unsigned int i = 0, in = q_u_glob.GetSize();i < in;i++)
-    result += std::real(excite.GetOmega() * complex<double>(0, 0.5) * u_glob[i] * q_u_glob[i]);
+      result += std::real(excite.GetOmega() * complex<double>(0, 0.5) * u_glob[i] * q_u_glob[i]);
     return result;
   }
   void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<double> >& u_glob, bool adjoint, Vector<complex<double> >& q_u_glob)
   {
-// determine the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case
-// Q is the grad_z vector (selected B matrix) applied to selection points L defined by
-// a surface region in the "energyFlux" element.
-// always determined again, no caching.
-// can be easily extended to other pdes!
+    // determine the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case
+    // Q is the grad_z vector (selected B matrix) applied to selection points L defined by
+    // a surface region in the "energyFlux" element.
+    // always determined again, no caching.
+    // can be easily extended to other pdes!
     SinglePDE* mypde = ToPDE(ACOUSTIC);
     shared_ptr<ResultInfo> res_info = mypde->GetResultInfo(ACOU_POTENTIAL);
-    shared_ptr<EqnMap> eqnMap = mypde->GetEqnMap();
-// get the surface region description
+    assert(false);
+    shared_ptr<EqnMap> eqnMap; // FIMXE = mypde->GetEqnMap();
+    // get the surface region description
     PtrParamNode srpn = f->pn->Get("output/energyFlux/surfRegion");
-// surface element list
-    shared_ptr<EntityList> sel = grid->GetEntityList(EntityList::SURF_ELEM_LIST, srpn->Get("name")->As<string>(), EntityList::REGION);
-// neighbor region is mandatory to define the volume elements
-    RegionIdType vol_neigh = grid->GetRegion().Parse(srpn->Get("neighborRegion")->As<string>());
-// reset output
+    // surface element list
+    assert(false);
+    shared_ptr<EntityList> sel; // FIXME = grid->GetEntityList(EntityList::SURF_ELEM_LIST, srpn->Get("name")->As<string>(), EntityList::REGION);
+    // neighbor region is mandatory to define the volume elements
+    assert(false);
+    // FIXME RegionIdType vol_neigh = grid->GetRegion().Parse(srpn->Get("neighborRegion")->As<string>());
+    // reset output
     q_u_glob.Init(complex<double>(0.0, 0.0));
-// here we count the entries to q_u_glob to normalize in the end
+    // here we count the entries to q_u_glob to normalize in the end
     StdVector<int> count(u_glob.GetSize());
     count.Init(0);
-// an element solution vector -> we need a 1 dof solution up to now!
+    // an element solution vector -> we need a 1 dof solution up to now!
     Vector<complex<double> > elem_sol;
-// node numbers common on a surface element and the matching volume element
+    // node numbers common on a surface element and the matching volume element
     StdVector<unsigned int> common_nodes;
-// this contains an element B (grad_n) matrix to be applied with the solution.
+    // this contains an element B (grad_n) matrix to be applied with the solution.
     Matrix<complex<double> > q_mat;
-// surface normal
+    // surface normal
     Vector<double> normal;
-// traverse our surface elements
+    // traverse our surface elements
     EntityIterator it = sel->GetIterator();
     for(it.Begin(); !it.IsEnd(); it++)
     {
+      assert(false);
+      /* FIXME
       const SurfElem* se = it.GetSurfElem();
       const Elem* vol = se->ptVolElem1 != NULL && se->ptVolElem1->regionId == vol_neigh ? se->ptVolElem1 : se->ptVolElem2;
       assert(vol->regionId == vol_neigh);
@@ -1770,6 +1782,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         }
         LOG_DBG3(em) << "SEFV: vol=" << vol->elemNum << " node=" << node << " eqn_nr=" << eqn_nr << " count=" << count[eqn_idx] << " sum=" << sum;
       }
+      */
     }
     LOG_DBG2(em) << "SEFV: q_u_glob=" << q_u_glob.ToString(1);
     LOG_DBG2(em) << "SEFV: count=" << count.ToString(1);
@@ -1796,15 +1809,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts)
   {
-// this is for the static and for the transient case.
+    assert(false);
+    /*
+    // this is for the static and for the transient case.
     Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR);
     LOG_DBG3(em) << "SolveTrackingProblem: displacement vector: (" << u.GetSize() << ") " << u.ToString();
-    shared_ptr<EqnMap> eqnMap = pde->GetEqnMap();
+    assert(false);
+    shared_ptr<EqnMap> eqnMap; // FIXME = pde->GetEqnMap();
     MathParser* parser = domain->GetMathParser();
     unsigned int mathParserHandle = parser->GetNewHandle();
     CoordSystem* coosy = domain->GetCoordSystem();
     Vector<Double> rhs;
-    assemble_->GetAlgSys()->GetRHSVal(rhs);
+    assert(false)
+    // FIXME assemble_->GetAlgSys()->GetRHSVal(rhs);
 // set rhs to 0
     rhs.Init();
     double w = GetStepWeight(ts);
@@ -1832,6 +1849,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     assemble_->GetAlgSys()->InitRHS(rhs);
     parser->ReleaseHandle(mathParserHandle);
+    */
   }
 
   double ErsatzMaterial::CalcProjection(Function* f, bool derivative)
@@ -1918,6 +1936,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
+    assert(false);
+    /* FIXME
     Function* f = Function::Cast(c, g);
     UInt timesteps = domain->GetDriver()->GetNumSteps();
     if(derivative)
@@ -1992,6 +2012,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       parser->ReleaseHandle(mathParserHandle);
       return 0.5 * val;
     }
+    */
   }
 
   double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
@@ -2110,7 +2131,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
     unsigned int ex_size = me->excitations.GetSize();
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2154,7 +2176,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   Matrix<Complex> ErsatzMaterial::CalcMaxwellHomogenizedTensor(Solutions sol)
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
     unsigned int ex_size = me->excitations.GetSize();
     assert((dim == 2 && ex_size == 2) || (dim == 3 && ex_size == 3));
     Matrix<Complex> result(ex_size, ex_size);
@@ -2197,7 +2220,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
 // TODO Would be E^* - E^H if expression templates would work
     Matrix<double> diff_tensor;
     diff_tensor = target - hom;
@@ -2272,7 +2296,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   void ErsatzMaterial::CalcMaxwellHomogenizedTrackingGradient(const Matrix<Complex>& target, const Matrix<Complex>& hom, Function* f)
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
 //  std::cout << "sol length: " << forward.Get(1)->GetComplexVector(Solution::RAW_VECTOR).GetSize() << std::endl;
 // TODO Would be E^* - E^H if expression templates would work
     Matrix<Complex> diff_tensor;
@@ -2351,7 +2376,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out)
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
@@ -2430,7 +2456,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
   Complex ErsatzMaterial::CalcMaxwellHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<Complex>& grad_out, Solutions sol)
   {
-    const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
+    assert(false);
+    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 2) || (dim == 3 && me->excitations.GetSize() == 3));
     const unsigned int k = boost::get<0>(entry) - 1;
     const unsigned int l = boost::get<1>(entry) - 1;
@@ -2438,7 +2465,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     StdVector<SingleVector*>& u2 = sol.Get(l)->elem[ELEC];// equal to \u^{l}
     Complex result(0.0, 0.0);
     if (derivative)
-    grad_out.Resize(design->GetNumberOfElements());
+      grad_out.Resize(design->GetNumberOfElements());
 
 // loop over elements. In the gradient case not summed up
     for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
@@ -2571,6 +2598,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::SetMaxwellHomMatType(MaterialType type)
   {
+    assert(false);
+    /* FIXME
     StdVector<BiLinFormContext*> bilinForms = assemble_->GetBiLinForms();
     for (UInt i = 0;i < bilinForms.GetSize();++i)
     {
@@ -2581,6 +2610,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       dynamic_cast<VolChargeHomInt*>(linForms[i]->GetIntegrator())->GetBDBInt()->setDMaterialType(type);
     }
+    */
   }
 
   Complex ErsatzMaterial::CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec)
@@ -2886,8 +2916,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   StdVector<pair<SinglePDE*,IdBcList> > ErsatzMaterial::SetHDBC()
   {
-// IDBC values in the forward problem are homogeneous in the adjoint PDE. Consider elec and mech
-// store org value as idbc_list per pde
+    // IDBC values in the forward problem are homogeneous in the adjoint PDE. Consider elec and mech
+    // store org value as idbc_list per pde
     StdVector<pair<SinglePDE*,IdBcList> > org_idbc;
     org_idbc.Reserve(pdes.size());
     for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
@@ -2896,16 +2926,18 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       org_idbc.Push_back(make_pair(it->second, IdBcList()));
 
       // get the idbc list of the current pde
-      IdBcList idbc_list = it->second->GetIDBCList();
+      assert(false);
+      IdBcList idbc_list; // FIXME = it->second->GetIDBCList();
       for(unsigned int bc = 0; bc < idbc_list.GetSize(); bc++)
       {
         // store original value -> we have to do a deep copy!
         org_idbc.Last().second.Push_back(shared_ptr<InhomDirichletBc>(new InhomDirichletBc(*(idbc_list[bc]))));
         // make homogeneous values! -> this is only stored in the PDE, we have to call SetBCs() later!
-        (*idbc_list[bc]).value = "0.0";
-        (*idbc_list[bc]).phase = "0.0";
-        LOG_DBG(em) << "Set IDBC to HDBC (" << it->second->GetName() << ") -> value "
-        << (*(org_idbc.Last().second[bc])).value << " -> " << (*(it->second->GetIDBCList()[bc])).value;
+        assert(false);
+        // FIXME (*idbc_list[bc]).value = "0.0";
+        // FIXME (*idbc_list[bc]).phase = "0.0";
+        // LOG_DBG(em) << "Set IDBC to HDBC (" << it->second->GetName() << ") -> value "
+        //             << (*(org_idbc.Last().second[bc])).value << " -> " << (*(it->second->GetIDBCList()[bc])).value;
       }
 
       // apply the new boundary condition
@@ -2916,7 +2948,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::ResetHDBC(StdVector<pair<SinglePDE*,IdBcList> >& org_idbc)
   {
-// reset the original IDBC which were HDBC for the adjoint PDE
+    // reset the original IDBC which were HDBC for the adjoint PDE
+    assert(false);
+    /* FIXME
     for(unsigned int p = 0; p < org_idbc.GetSize(); p++)
     {
       // get the idbc list of the current pde
@@ -2931,6 +2965,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       }
       org_idbc[p].first->SetBCs();
     }
+    */
   }
 
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
@@ -3002,6 +3037,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
   {
+    assert(false);
+    /* FIXME
+
     // the adjoint RHS might be an output stuff, then the loads are changed.
     // save and restore them in any case.
     LoadList org_loads = assemble_->GetLoads();
@@ -3018,9 +3056,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     ResetHDBC(org_idbc);
     // reset the original loads, they have been changed in the output case
     assemble_->SetLoads(org_loads);
+
+    */
   }
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {
+    assert(false);
+    /* FIXME
     // in SolveStateProblem() the clean variant for the objective
     LoadList org_loads;
     if (!alter_rhs)
@@ -3041,6 +3083,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
         << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
+    */
   }
   void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   {
@@ -3065,8 +3108,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       assert(false);
       break;
     }
-    assemble_->GetAlgSys()->InitRHS(rhs);
-// assert(rhs.NormMax() != 0.0);
+    assert(false);
+    // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
+    // assert(rhs.NormMax() != 0.0);
     LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
   }
 
@@ -3141,10 +3185,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       default:
       assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
     }
-    assemble_->GetAlgSys()->InitRHS(rhs);
-// assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
-    LOG_DBG2(em) << "CARHS<complex>: f=" << domain->GetDriver()->GetActStep(pde->GetName())
-    << " rhs before solving: " << rhs.ToString(1);
+    assert(false);
+    // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
+    // assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
+    LOG_DBG2(em) << "CARHS<complex>: f=" << domain->GetDriver()->GetActStep(pde->GetName()) << " rhs before solving: " << rhs.ToString(1);
   }
 
   void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)

@@ -310,7 +310,6 @@ DesignElement::~DesignElement()
 {
   delete simp; simp = NULL;
   delete vicinity; vicinity = NULL;
-  delete location_; location_ = NULL;
 }
 
 void DesignElement::Init()
@@ -319,7 +318,6 @@ void DesignElement::Init()
   vicinity        = NULL;
   lse_            = NULL;
   tge             = NULL;
-  location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
   pseudoElementIndex_ = -1;
@@ -337,25 +335,18 @@ DesignElement::Type DesignElement::Default(const SinglePDE* pde)
 }
 
 
-Point* DesignElement::GetLocation()
+const Vector<double>& DesignElement::GetLocation()
 {
-  if(location_ != NULL) return location_;
+  if(location_.GetSize() != 0) return location_;
   
-  location_ = new Point();
   // calc location
   
   // check for ghost elements
   if(elem == NULL) EXCEPTION("location_ not set but elem is NULL");
     
-  Matrix<double>  coords; // we ignore the n times constructs
+  domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(location_);
 
-  StdVector<unsigned int>& connect = elem->connect;
-  // do not use updated coordinates up to now!!
-  domain->GetGrid()->GetElemNodesCoord(coords, connect, false );
-  // a barycenter is simply the average of all coordinates -> location_ gets the Point out
-  BaseFE::CalcBarycenter(coords, *location_);
-
-  LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
+  LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_.ToString() << " for " << ToString();
   return location_;
 }
 
@@ -365,9 +356,7 @@ double DesignElement::CalcVolume()
   if(elemVol_ >= 0)
     return elemVol_;
 
-  static Matrix<Double> coords;
-  domain->GetGrid()->GetElemNodesCoord(coords, elem->connect, true);
-  elemVol_ = elem->ptElem->CalcVolume(coords, false);
+  elemVol_ = domain->GetGrid()->GetElemShapeMap(elem, false)->CalcVolume();
   return elemVol_;
 }
 
@@ -1068,11 +1057,11 @@ void SIMPElement::Dump()
   }
   distance_avg /= neighborhood.GetSize();
 
-  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString() 
+  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation().ToString()
             << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
   for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
     std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
-              << neighborhood[i].neighbour->GetLocation()->ToString()
+              << neighborhood[i].neighbour->GetLocation().ToString()
               << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 
@@ -1120,10 +1109,8 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
 
   // We need the spacing of a element to detect periodic elements later
   StdVector<double> spacing; // the output
-  Matrix<double> coords; // temporary
   Elem* elem = space->data[0].elem;
-  domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
-  elem->ptElem->GetEdgeLength(coords, spacing);
+  domain->GetGrid()->GetElemShapeMap(elem, false)->GetEdgeLength(spacing);
 
   // in the periodic case the neighborhood is enlarged
   StdVector<std::pair<Elem*, int> > enlarged_data;
@@ -1149,7 +1136,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       }
     }
 
-    LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
+    // FIXME LOG_DBG(desel) << "VE:Init elem=" << de->elem->elemNum << " neighbors=" << neighbors.ToString();
 
     for(unsigned int n = 0; n < neighbors.GetSize(); n++)
     {
@@ -1158,12 +1145,13 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       // now we have to find the relative position of candidate
       Elem* candidate = neighbors[n].first;
 
+
       LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
-                    << de->elem->ptElem->GetDim() << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
-                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->ptElem->GetDim() << " o.r=" << candidate->regionId;
+                    << de->elem->GetShape().dim << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
+                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId;
 
       // if the neighbor is a surface element we don't want to play with it
-      if(de->elem->ptElem->GetDim() != candidate->ptElem->GetDim())
+      if(de->elem->GetShape().dim != candidate->GetShape().dim)
         continue;
       // we include pseudo design regions. This is for off-design optimization or non_design_vicinity=true in <ersatzMaterial>
       if(!space->Contains(candidate->regionId, space->DoNonDesignVicinity()))

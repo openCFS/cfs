@@ -10,7 +10,6 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/BaseFE.hh"
-#include "Forms/BaseForm.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -22,7 +21,6 @@
 #include "Optimization/Function.hh"
 #include "Optimization/StressConstraint.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/eqnMap.hh"
 #include "PDE/MechPDE.hh"
 #include "Utils/tools.hh"
 
@@ -59,7 +57,8 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
 
 
   // global initializations
-  M = dynamic_cast<MechPDE*>(em->ToPDE(Optimization::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+  assert(true);
+  // FIXME M = dynamic_cast<MechPDE*>(em->ToPDE(Optimization::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
     tf = TransferFunction(Optimization::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
@@ -98,9 +97,6 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 
   double fm = mode == STRESS ? 1.0 : 2.0;
 
-  // for the Jacobi determinant we need the coordinates
-  Matrix<double> coords;
-
   StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
 
   for(unsigned int a = 0; a < apps.GetSize(); a++)
@@ -116,15 +112,16 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
       DesignElement* de = f->elements[e];
 
       // the element volume is actually only required if we no NOT want the stress density
-      domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false); // no updated coordinates
-      double elem_vol = de->elem->ptElem->CalcVolume(coords, false); // by default no axis symmetry!
+      double elem_vol = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
 
-      const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
+      assert(false);
+      Vector<double> weights;
+      // FIXME const Vector<double>& weights = de->elem->ptElem->GetIntWeights();
 
       SetupElement(de, app.first, app.second, mode);
 
       // we integrate over the element by averages summation and then multiplying with the volume
-      for(unsigned int ip = 1, ipn = de->elem->ptElem->GetNumIntPoints(); ip <= ipn; ip++) // 1-based!! :(
+      for(unsigned int ip = 1, ipn = 4/* FIXME de->elem->ptElem->GetNumIntPoints()*/; ip <= ipn; ip++) // 1-based!! :(
       {
         SetupIntPoint(de->elem, ip, mode);
 
@@ -134,7 +131,8 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
         T inner = stress1.Inner(M_stress2);
 
         // do the (de)normalization stuff outside of the inner product
-        double jac_det = de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
+        assert(false);
+        double jac_det = 0.0; // FIXME de->elem->ptElem->CalcJacobianDetAtIp(ip, coords, de->elem);
         double factor = fm * weights[ip-1] * jac_det / (f->GetType() == Function::STRESS ? elem_vol : 1.0); // fuck 1-based!
 
         out[e] += factor * Real(inner);
@@ -159,6 +157,9 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 template<typename T>
 void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 {
+  assert(false);
+  /* FIXME
+
   // elastic adjoint rhs w.r.p to one element static : - 2* (rho^p*E_0*B*u)^T * M * rho^p E_0 B
   // elastic adjoint rhs w.r.p to one element dynamic: - 1* (rho^p*E_0*B*u^*)^T * M * rho^p E_0 B
   // for the globalization it is multiplied by alpha
@@ -253,7 +254,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
         } // node
       } // ip
     } // elements
-  } // apps
+  } // apps */
 }
 
 template<typename T>
@@ -288,6 +289,8 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
 template<typename T>
 void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
 {
+  assert(false);
+  /* FIXME
   form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true);
   form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true);
 
@@ -326,7 +329,7 @@ void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Applicat
     tmp = E2;
     tmp.Transpose(E2);
   }
-
+  */
 }
 template<typename T>
 void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
@@ -334,6 +337,8 @@ void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
   Vector<T>& u1_elem = *u1_elem_ptr;
   Vector<T>& u2_elem = *u2_elem_ptr;
 
+  assert(false);
+  /* FIXME
   // we need the integration points for B
   Vector<Double>* intPoints = elem->ptElem->GetIntPoints();
 
@@ -341,7 +346,7 @@ void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
   // elem->ptElem->GetCoordMidPoint(intPoint);
   form1->CalcBMatOnly(B1, intPoints[ip-1], elem); // fucking 1-based
   form2->CalcBMatOnly(B2, intPoints[ip-1], elem);
-
+*/
   // left side stress
   strain1 = B1 * u1_elem;
   stress1 = E1 * strain1;
@@ -371,13 +376,15 @@ StdVector<pair<Optimization::Application, Optimization::Application> >  StressCo
    result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
   else
   {
+    assert(false);
+    /* FIXME
     // one of three piezo case - is the stress constraint defined on a piezo region ?!
     RegionIdType reg = f->elements[0]->elem->regionId;
 
     BaseForm* form = em->GetForm(reg, Optimization::MECH, Optimization::ELEC, false);
     if(form == NULL)
       throw Exception("piezoelectric stress constraint not defined on a piezoelectric region");
-
+*/
     switch(f->GetStressType())
     {
     case Function::ONLY_COUPLING: // special case only

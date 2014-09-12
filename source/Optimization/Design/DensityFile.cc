@@ -64,12 +64,13 @@ DensityFile::~DensityFile()
 
 bool DensityFile::NeedLoadErsatzMaterial()
 {
-  return param->Has("loadErsatzMaterial") || progOpts->GetErsatzMaterialStr() != "";
+  return domain->GetParamRoot()->Has("loadErsatzMaterial") || progOpts->GetErsatzMaterialStr() != "";
 }
 
 DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 {
   Grid* grid = domain->GetGrid();
+  PtrParamNode info = domain->GetInfoRoot();
 
   // perhaps Optimization has already called the SetEnums
   if (DesignElement::type.map.empty())
@@ -80,14 +81,14 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // do we have a command line switch? we then use the filename and the last set
   bool cmd = progOpts->GetErsatzMaterialStr() != "";
   PtrParamNode pn; // some default auto pointer NULL stuff
-  if(!cmd) pn = param->Get("loadErsatzMaterial");
+  if(!cmd) pn = domain->GetParamRoot()->Get("loadErsatzMaterial");
 
   string file = cmd ? progOpts->GetErsatzMaterialStr() : pn->Get("file")->As<string>();
 
   // to be appended by the set name
   std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
-  PtrParamNode in = ersatzMaterial ? info->Get("optimization/header/designSpace/ersatzMaterialFile")
+  PtrParamNode in = ersatzMaterial ? info->Get("optimization/designSpace/header/ersatzMaterialFile")
                                    : info->Get("ersatzMaterialFile");
   in->Get("file")->SetValue(file);
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
@@ -226,13 +227,12 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
    if(this->ersatzMaterial_->IsRegular())
    {
      DesignElement& de = ersatzMaterial_->data[0];
-     Matrix<double> coords;
-     domain->GetGrid()->GetElemNodesCoord(coords, de.elem->connect, false );
      StdVector<double> edges;
-     de.elem->ptElem->GetEdgeLength(coords, edges);
+     domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
 
      Point dim;
-     domain->GetGrid()->CalcVolumeSpannedByNamedNodes(&dim);
+     assert(false);
+     // FIXME dim not set!! domain->GetGrid()->CalcVolumeSpannedByNamedNodes(&dim);
 
      LOG_TRACE(density) << " dim=" << dim.ToString() << " edges=" << edges.ToString();
      PtrParamNode mesh = in_->Get("mesh");

@@ -218,7 +218,7 @@ Function::~Function() {
 }
 
 void Function::Init() {
-  this->harmonic_ = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  this->harmonic_ = domain->GetDriver()->IsComplex();
   this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
@@ -301,7 +301,8 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
   if (tensor_read) {
     // output the target tensor to xml-file
     // to get a reference and be able to do quick checks
-    PtrParamNode in_mat = info->Get("target_tensor");
+    // FIXME
+    PtrParamNode in_mat = domain->GetInfoRoot()->Get("target_tensor");
     in_mat->SetType(ParamNode::ELEMENT);
     in_mat->Get("tensor")->SetValue(matrix);
   }
@@ -372,13 +373,15 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix,
     if (!selectionTensor) {
       // output the target tensor to xml-file
       // to get a reference and be able to do quick checks
-      PtrParamNode in_mat = info->Get("target_tensor");
+      // FIXME
+      PtrParamNode in_mat = domain->GetInfoRoot()->Get("target_tensor");
       in_mat->SetType(ParamNode::ELEMENT);
       in_mat->Get("maxwellTensor")->SetValue(matrix);
     } else {
       // output the selection tensor to xml-file
       // to get a reference and be able to do quick checks
-      PtrParamNode in_mat = info->Get("selection_tensor");
+      // FIXME
+      PtrParamNode in_mat = domain->GetInfoRoot()->Get("selection_tensor");
       in_mat->SetType(ParamNode::ELEMENT);
       in_mat->Get("selectionTensor")->SetValue(matrix);
     }
@@ -1019,9 +1022,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
-      info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue(
-          "function '" + fname + "' has local/power "
-              + lexical_cast<string>(power_) + ", for sum one needs power=1");
+      // FIXME
+      domain->GetInfoRoot()->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
     this->globalized_ = true;
     break;
 
@@ -1059,8 +1061,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
       pn != NULL && pn->Has("locality") ?
           locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
-  bool snopt = param->Get("optimization/optimizer/type")->As<string>()
-      == "snopt";
+  // FIXME
+  bool snopt = domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch (ftype) {
   case SLOPE:
@@ -1656,10 +1658,8 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
   radius = DesignStructure::FindFilterRadius(fs, &de, value);
 
   // find the orthogonal dimensions based on radius
-  Matrix<double> coords;
-  domain->GetGrid()->GetElemNodesCoord(coords, de.elem->connect, false);
   StdVector<double> edges;
-  de.elem->ptElem->GetEdgeLength(coords, edges);
+  domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
 
   assert(edges.GetSize() == dim);
   orthogonal.Resize(dim);
@@ -2488,7 +2488,8 @@ double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
 double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
     const Matrix<double> & vol_a, const Matrix<double> & vol_b, const Matrix<double> & vol_c,
     const Matrix<double> & vol_coeff, double direction) const {
-  PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+  // FIXME
+  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   double vol = 0.;
   int m = vol_a.GetNumRows();
   int n = vol_b.GetNumRows();

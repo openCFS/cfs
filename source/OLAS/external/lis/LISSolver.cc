@@ -208,7 +208,7 @@ void LISSolver::Setup(BaseMatrix &sysmat, PtrParamNode analysis_id){
 void LISSolver::Solve( const BaseMatrix &sysmat,
                        const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id){
   ParamNode::ActionType at = ParamNode::APPEND;
-  PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", at);
+  PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", at);
 
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){

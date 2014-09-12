@@ -420,61 +420,70 @@ namespace CoupledField {
   }
 
 
-//  template<class TYPE>
-//  bool StdVector<TYPE>::InWindow(unsigned int index)
-//  {
-//    return index >= window.GetStart() && index < window.GetStart() + window.GetSize();
-//  }
-//
-//  template<class TYPE>
-//  StdVector<TYPE>::Window::Window()
-//  {
-//    this->active_ = false;
-//    this->start_  = std::numeric_limits<unsigned int>::max();
-//    this->size_   = std::numeric_limits<unsigned int>::max();
-//  }
-//
-//  template<class TYPE>
-//  void StdVector<TYPE>::Window::Set(unsigned int start, unsigned int size)
-//  {
-//    this->active_ = true;
-//    this->start_  = start;
-//    this->size_   = size;
-//  }
-//
-//  template<class TYPE>
-//  void StdVector<TYPE>::Window::Set(StdVector<TYPE>& vec)
-//  {
-//    this->active_ = true;
-//    this->start_  = 0;
-//    this->size_   = vec.GetSize();
-//  }
-//
-//
-//  template<class TYPE>
-//  unsigned int StdVector<TYPE>::Window::GetStart() const
-//  {
-//#ifdef CHECK_INITIALIZED
-//    if(!active_)
-//      EXCEPTION("Vector: window not initialized." );
-//#endif
-//    return start_;
-//  }
-//
-//  template<class TYPE>
-//  unsigned int StdVector<TYPE>::Window::GetSize() const
-//  {
-//#ifdef CHECK_INITIALIZED
-//    if(!active_)
-//      EXCEPTION("Vector: window not initialized." );
-//#endif
-//    return size_;
-//  }
+  template<class TYPE>
+  bool StdVector<TYPE>::InWindow(unsigned int index)
+  {
+    return index >= window.GetStart() && index < window.GetStart() + window.GetSize();
+  }
 
   template<class TYPE>
-  std::string StdVector<TYPE>::ToString(int level, int stride ) const
+  StdVector<TYPE>::Window::Window()
   {
+    this->active_ = false;
+    this->start_  = std::numeric_limits<unsigned int>::max();
+    this->size_   = std::numeric_limits<unsigned int>::max();
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(unsigned int start, unsigned int size)
+  {
+    this->active_ = true;
+    this->start_  = start;
+    this->size_   = size;
+  }
+
+  template<class TYPE>
+  void StdVector<TYPE>::Window::Set(StdVector<TYPE>& vec)
+  {
+    this->active_ = true;
+    this->start_  = 0;
+    this->size_   = vec.GetSize();
+  }
+
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetStart() const
+  {
+    #ifdef CHECK_INITIALIZED
+      if(!active_)
+        EXCEPTION("Vector: window not initialized." );
+    #endif
+    return start_;
+  }
+
+  template<class TYPE>
+  unsigned int StdVector<TYPE>::Window::GetSize() const
+  {
+    #ifdef CHECK_INITIALIZED
+      if(!active_)
+        EXCEPTION("Vector: window not initialized." );
+    #endif
+    return size_;
+  }
+
+  template<class TYPE>
+  std::string StdVector<TYPE>::ToString(int level, int stride, bool in_window) const
+  {
+    if(!in_window)
       return StdVector<TYPE>::ToString(size_, data_, level, stride);
+    else
+    {
+      #ifdef CHECK_INDEX
+        if(window.GetStart() + window.GetSize() > size_)
+          EXCEPTION("Vector: window bounds violated." );
+      #endif
+      return StdVector<TYPE>::ToString(window.GetSize(), data_ + window.GetStart(), level, stride);
+    }
   }
   
   template<class TYPE>  

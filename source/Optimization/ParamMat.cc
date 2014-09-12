@@ -5,7 +5,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
-#include "MatVec/denseMatrix.hh"
+#include "MatVec/DenseMatrix.hh"
 #include "MatVec/Matrix.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"

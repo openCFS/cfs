@@ -20,9 +20,9 @@ class LinearFormContext;
 class ObjectiveContainer;
 class SinglePDE;
 
-typedef LoadBc TrackingBc;
+// FIXME typedef LoadBc TrackingBc;
 
-typedef LoadList TrackingList;
+// FIXME typedef LoadList TrackingList;
 
 
 /** For multiple loads (compliance or multiple frequency optimization) we use
@@ -68,13 +68,13 @@ public:
 
   /** For static/monoharmonic optimization with different load-cases. Now allowing also multiple loads in one case.
    * empty and apply_linForms=false if not applicable */
-  LoadList loads;
+  // FIXME LoadList loads;
 
   /** For static optimization with different pressure or regionLoads */
   StdVector<LinearFormContext*>* linForms;
 
   /** Different possible trackings for tracking objective */
-  TrackingList trackings;
+  // FIXME TrackingList trackings;
 
   /** This is a link to the Frequency description from the harmonic driver.
    * It is used for calling the HarmonicDriver to solve the problems */

@@ -63,10 +63,11 @@ void DesignStructure::Constructor()
   this->dim  = grid->GetDim();
 
   periodic = false;
+  /* FIXME
   if(em != NULL)
     for(map<Optimization::Application, SinglePDE*>::iterator it = em->pdes.begin(); it != em->pdes.end(); ++it)
       if(it->second->HasPeriodicBC()) periodic = true;
-
+*/
   filter_space_ = NO_FILTER;
   filter_ = Filter(); // defaults
 
@@ -95,7 +96,8 @@ void DesignStructure::Initialize()
   {
     SetPeriodicConstraintMapping();
     SetNodeElemMapping();
-    grid->CalcVolumeSpannedByNamedNodes(&dimension);
+    assert(false);
+    // FIXME grid->CalcVolumeSpannedByNamedNodes(&dimension);
   }
 
   initialized_ = true;
@@ -212,11 +214,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
   StdVector<double> edges;
   if(regular)
   {
-    Matrix<double> coords; // temporary
-    Elem* elem = data[0].elem;
-    domain->GetGrid()->GetElemNodesCoord(coords, elem->connect);
-    elem->ptElem->GetEdgeLength(coords, edges);
-
+    domain->GetGrid()->GetElemShapeMap(data[0].elem, false)->GetEdgeLength(edges);
     // also initialize the vicinity elements!
     VicinityElement::Init(space, this);
   }
@@ -366,7 +364,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
+  // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -438,7 +436,7 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
   const Point& bb = base->barycenter;
   const Point& tb = test->barycenter;
 
-  assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0) && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0));
+  assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0)/* && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0)*/);
 
   double dist = bb.Dist(tb);
 
@@ -485,7 +483,7 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
 
-  double radius, tmp;
+  double radius, tmp, max;
 
   switch(space)
   {
@@ -495,7 +493,7 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
 
     case VOLUME_RADIUS:
       // TODO really check for axis symmetry off
-      tmp = de->elem->ptElem->CalcVolume(coords, false);
+      tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
       radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
@@ -503,9 +501,10 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
       break;
 
     case MAX_EDGE:
-      de->elem->ptElem->GetMaxMinEdgeLength(coords, radius, tmp);
-      radius = value * radius;
-      LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << radius << " min=" << tmp << " to radius " << radius;
+
+      domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
+      radius = value * max;
+      LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
       break;
 
     default:
@@ -520,7 +519,7 @@ void DesignStructure::SetPeriodicConstraintMapping()
   assert(em != NULL); // is not called otherwise!
    constraintMapping.Resize(grid->GetNumNodes() + 1); // 1-based
 
-   ConstraintList glist = em->pde->GetConstraints();
+   ConstraintList glist = em->pde->GetFeFunctions().begin()->second->GetConstraints();
 
    assert(em->pdes.size() == 1);
    assert(glist.GetSize() > 0);
@@ -653,7 +652,7 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
   if(neighbors.GetSize() > 0)
     AppendNeighbors(*elem->neighborhood, neighbors);
 
-  LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << neighbors.ToString();
+  // LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << neighbors.ToString();
 
   return neighbors.GetSize() > 0;
 }

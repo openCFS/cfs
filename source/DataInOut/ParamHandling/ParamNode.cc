@@ -21,18 +21,17 @@ namespace CoupledField
 {
 
 /** set the global names for fields */
-const string ParamNode::PN_HEADER = "header";
-const string ParamNode::PN_PROCESS = "process";
-const string ParamNode::PN_SUMMARY = "summary";
+const string ParamNode::HEADER = "header";
+const string ParamNode::PROCESS = "process";
+const string ParamNode::SUMMARY = "summary";
 
-const string ParamNode::PN_WARNING = "warning";
-const string ParamNode::PN_ERROR = "error";
+const string ParamNode::WARNING = "warning";
+const string ParamNode::ERROR = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
  *  Filed in cfs.cc. The corresponding
  * "extern PtrParamNode param;" is in ParamNode.hh */
-PtrParamNode param;
-PtrParamNode info;
+
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type,
                      bool allowFileOutput  ) :
@@ -64,7 +63,7 @@ void ParamNode::SetValue(const boost::any& value)
   assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
 
-  if(this->name_ == PN_WARNING)
+  if(this->name_ == WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
 void ParamNode::SetValue(const char* value)
@@ -324,6 +323,26 @@ PtrParamNode ParamNode::GetByVal(const std::string& parent,
   return this->GetByVal(parent, child, std::string(value), action);
 }
 
+
+PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,  const string& value1,
+                                                           const string& child2,  const string& value2)
+{
+  ParamNodeList l = GetListByVal(parent_raw, child1, value1);
+  if(l.IsEmpty())
+    EXCEPTION("parent " << parent_raw << " has no child " << child1 << " with value " << value1);
+
+  for(unsigned int i = 0; i < l.GetSize(); i++)
+  {
+    // assert(l[i]->HasByVal(child1, value1));
+    if(l[i]->HasByVal(child2, value2))
+      return l[i];
+  }
+
+  EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
+            " but not also child " << child2 << " with value " << value2);
+}
+
+
 ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
@@ -379,6 +398,23 @@ ParamNodeList ParamNode::GetListByVal(const string& parent,
 /************************************************************************
  * D A T A    G E T   M E T H O D S
  ************************************************************************/
+
+StdVector<std::string>& ParamNode::GetFastBulkBlock()
+{
+  if(value_.empty())
+  {
+    StdVector<std::string> tmp;
+    SetValue(tmp);
+    return boost::any_cast<StdVector<std::string>&>(value_); // As() is const!
+  }
+  else
+  {
+    if(value_.type() == typeid(StdVector<std::string>))
+      return boost::any_cast<StdVector<std::string>&>(value_);
+
+    EXCEPTION("cannot provide fast bulk block, value already set to '" << ToString(0) << "'");
+  }
+}
 
 template<typename TYPE>
 TYPE ParamNode::As() const
@@ -672,9 +708,17 @@ PtrParamNode ParamNode::TokenizedHasAndGet(const string& name,
   return ptr;
 }
 
+std::string ParamNode::ToString(int depth) const
+{
+  std::string tmp;
+  ToString(tmp, depth);
+  return tmp;
+}
+
+
 void ParamNode::ToString(std::string& ret, int depth) const
 {
-  // This method is currently very hardcoded.
+  // This method is currently very hard coded.
   // In the future we rely on a general formatter class,
   // which can convert the special types
   // default case for not value (but children)

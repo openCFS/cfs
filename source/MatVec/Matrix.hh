@@ -226,6 +226,12 @@ namespace CoupledField
       data_[row][col] += val;
     }
     
+    /** give a specific row */
+    void GetRow(Vector<TYPE>& vec_out, UInt row) const;
+
+    /** give a specific column */
+    void GetCol(Vector<TYPE>& vec_out, UInt col) const;
+
     //! Gets the diagonal elements of a  matrix in a one column matrix
     void GetDiagInMatrix( Matrix<TYPE>& columnMat ) const;
 
@@ -327,10 +333,17 @@ namespace CoupledField
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
     void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
+
+    /** This implements the Frobenius inner product of two matrices. This is NOT the Frobenius norm!
+     * @return the sum of the element wise product: sum this_ij * other_ij */
+    TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;
     
     /** This implements the Frobenius norm of two matrices.
      * @return the sum of the element wise product: sum this_ij * other_ij */
     TYPE ScalarProduct(const Matrix<TYPE>& other_mat) const;
+
+    //! Entry-wise multiplication with another matrix
+    Matrix<double> EntryMult(const Matrix<double>& other_mat) const;
 
     //! Perform a matrix-vector multiplication rvec = transpose(this)*mvec
     void MultT( const SingleVector & mvec, SingleVector & rvec ) const;
@@ -391,7 +404,7 @@ namespace CoupledField
     
     //! Calculates the Trace
     //! works for non-square matrices of any size
-    void Trace( TYPE & val ) const;
+    TYPE Trace() const;
 
     /** Sum up the square of all entries */
     TYPE NormL2() const;
@@ -836,16 +849,13 @@ namespace CoupledField
   }
 
   template<class TYPE>
-  inline void Matrix<TYPE>::Trace(TYPE & ret) const {
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0|| size_col_ == 0) 
-      EXCEPTION( "Undefined Matrix!" );
-#endif
+  inline TYPE Matrix<TYPE>::Trace() const {
+    assert(size_row_ == 0|| size_col_ == 0);
     UInt smallersize = size_row_ < size_col_ ? size_row_ : size_col_;
-    ret = data_[0][0];
-    for(UInt i = 1; i < smallersize; i++){
+    TYPE ret = data_[0][0];
+    for(UInt i = 1; i < smallersize; i++)
       ret += data_[i][i];
-    }
+    return ret;
   }
 
   // Perform a matrix-matrix multiplication rMat = this*mMat

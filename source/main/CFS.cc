@@ -132,7 +132,7 @@ CFS::CFS(int argc, const char **argv) :
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   infoNode->SetName("cfsInfo");
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  infoNode->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
+  infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
   // Register callback function with exception class for warning
@@ -143,7 +143,7 @@ CFS::CFS(int argc, const char **argv) :
   using namespace boost::gregorian;
 
   // our calculation environment
-  PtrParamNode env = infoNode->Get(ParamNode::PN_HEADER)->Get("environment");
+  PtrParamNode env = infoNode->Get(ParamNode::HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
   
@@ -259,8 +259,8 @@ int CFS::Run()
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -284,7 +284,7 @@ int CFS::Run()
     // Print error cause to info file
     if(infoNode != NULL)
     {
-      PtrParamNode errorNode = infoNode->Get(ParamNode::PN_ERROR);
+      PtrParamNode errorNode = infoNode->Get(ParamNode::ERROR);
       errorNode->SetValue(ex.what());
       infoNode->Get("status")->SetValue("aborted");
       infoNode->ToFile();
@@ -423,14 +423,14 @@ void CFS::SetupIO(PtrParamNode rootNode )
                              materialHandler->GetFileName() );
   
   // Log command line parameters
-  progOpts->ToInfo(infoNode->Get(ParamNode::PN_HEADER)->Get("progOpts"));
+  progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
   
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    infoNode->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
+    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
   
   // Open file for status reports by OLAS
   fileHandler.OpenFile( DefineInOutFiles::OLAS_FILE );

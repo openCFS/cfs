@@ -51,7 +51,6 @@ namespace CoupledField {
   class CFSMessenger;
   class LogConfigurator;
   class ParamNode;
-  class InfoNode;
   class CoefFunction;
   
   // Type definition for shared_ptr<CoefFunction>
@@ -122,14 +121,19 @@ namespace CoupledField {
       // -- coupling quantities --
       MECH_FORCE, 
       
+      // -- optimization properties
+      MECH_PSEUDO_DENSITY, PHYSICAL_PSEUDO_DENSITY, MECH_SHAPE, MECH_TENSOR_TRACE, MECH_TENSOR,
+
       // ===============
       //  ELECTROSTATIC / ELECTRIC CURRENT
       // ===============
       ELEC_POTENTIAL, ELEC_FIELD_INTENSITY, ELEC_FORCE_VWP,
-      ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY,
-      ELEC_ENERGY, ELEC_ENERGY_DENSITY,
-      ELEC_POLARIZATION,ELEC_RHS_LOAD,ELEC_PSEUDO_POLARIZATION,
+      ELEC_CHARGE, ELEC_CHARGE_DENSITY, ELEC_FLUX_DENSITY, ELEC_RHS_LOAD,
+      ELEC_ENERGY, ELEC_ENERGY_DENSITY, ELEC_POLARIZATION,
       ELEC_CURRENT_DENSITY, ELEC_NORMAL_CURRENT_DENSITY, ELEC_CURRENT, ELEC_POWER, ELEC_POWER_DENSITY,
+
+      // -- optimization properties
+      ELEC_PSEUDO_POLARIZATION, ELEC_PHYSICAL_PSEUDO_DENSITY, ELEC_TENSOR_TRACE, ELEC_TENSOR,
 
       // =================
       //  PSEUDO MECHANIC
@@ -215,6 +219,7 @@ namespace CoupledField {
       OPT_RESULT_1, OPT_RESULT_2, OPT_RESULT_3,
       OPT_RESULT_4, OPT_RESULT_5, OPT_RESULT_6,
       OPT_RESULT_7, OPT_RESULT_8, OPT_RESULT_9,
+      OPT_RESULT_10, OPT_RESULT_11, OPT_RESULT_12,
       LAGRANGE_MULT, LAGRANGE_MULT_DERIV_1, LAGRANGE_MULT_DERIV_2,
       THERMOMECH_FORCE, THERMOELEC_FORCE,
       GRAD_ACOU_SOLUTION, GRAD_ELEC_POTENTIAL,
@@ -224,7 +229,12 @@ namespace CoupledField {
       // ==========
       //  GEOMETRY
       // ==========
-      ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO, VOLUME
+      ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO, VOLUME,
+
+      // === NonFEM LBM results ===
+      LBM_NODAL_PROBABILITY_DISTRIBUTION, LBM_PROBABILITY_DISTRIBUTION, LBM_VELOCITY, LBM_DENSITY,
+      LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY
+
     } SolutionType;
 
     extern Enum<SolutionType> SolutionTypeEnum;

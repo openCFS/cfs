@@ -241,8 +241,7 @@ namespace CoupledField {
 
     //! Define enumeration data type
     typedef 
-    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, 
-      ANALYTICAL } ShapeMapType;  
+    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, ANALYTICAL } ShapeMapType;
 
     //! Enum for shape map type
     static Enum<ShapeMapType> shapeMapType;

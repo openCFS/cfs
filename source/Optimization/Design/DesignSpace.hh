@@ -10,6 +10,7 @@
 // we need it for the template implementation
 #include "General/Enum.hh"
 #include "General/Environment.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignMaterial.hh"
@@ -88,7 +89,7 @@ namespace CoupledField
 
      /** Convenience version
       * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
-     double GetErsatzMaterialFactor(unsigned int design_index, const BaseForm* form, bool forBimaterial = false)
+     double GetErsatzMaterialFactor(unsigned int design_index, const BiLinearForm* form, bool forBimaterial = false)
      {
        return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
      }
@@ -148,7 +149,7 @@ namespace CoupledField
          DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
      
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
-     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* integrator, double& param);
+     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */double& param);
 
      bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
 
@@ -528,6 +529,9 @@ namespace CoupledField
 
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
+
+     /** This is the design space info node */
+     PtrParamNode info_;
 
   };
 

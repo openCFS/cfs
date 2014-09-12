@@ -8,6 +8,7 @@
 #include "General/Enum.hh"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
+#include "Utils/Point.hh"
 
 namespace CoupledField
 {
@@ -221,6 +222,20 @@ namespace CoupledField
 
     //@}
 
+    /** TODO: replace by information Edge and Face!
+     *  This defines the neighborhood of this element.
+     * The pair entries are: first = neighbor element and second = number
+     * of common nodes with this element. By this one can determine
+     * if it is an face, edge or node neighbor.
+     * The list is completely unsorted. To be generated via grid.
+     * @see Grid::FindElementNeighorhood() */
+    StdVector<std::pair<Elem*, int> >* neighborhood;
+
+    /** TODO: don't store here!
+     * The barycenter of the element, Set via Grid::SetElementBarycenters().
+     * The values are by for the uninitialized case zero, be careful! Check via Grid::RegionData */
+    Point barycenter;
+
     // ======================================================
     // HELPER METHODS
     // ======================================================
@@ -244,6 +259,9 @@ namespace CoupledField
     //! the corresponding element shape. In our case, we always
     //! return the shape to the 1st order elements.
     static ElemShape& GetShape( Elem::ShapeType );
+
+    /** Convenience function but not slow :( */
+    ElemShape& GetShape() { return GetShape(GetShapeType(type)); }
     
     //! Get nodes of face, identified by global face number
     void GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const; 
@@ -254,7 +272,7 @@ namespace CoupledField
     //@}
    
   public:
-    
+
     //! Global collection of reference element shape
     static std::map<Elem::FEType,ElemShape> shapes;
   };

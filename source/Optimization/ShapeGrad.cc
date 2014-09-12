@@ -9,20 +9,15 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "FeBasis/BaseFE.hh"
-#include "Forms/BaseForm.hh"
-#include "Forms/linElastInt.hh"
-#include "Forms/mechStressStrain.hh"
 #include "General/defs.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
-#include "Materials/baseMaterial.hh"
+#include "Materials/BaseMaterial.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "PDE/SinglePDE.hh"
-#include "Utils/basenodestoresol.hh"
-#include "Utils/nodestoresol.hh"
 
 namespace CoupledField
 {
@@ -32,7 +27,7 @@ DEFINE_LOG(shapeGrad, "shapeGrad")
 
 ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
 {
-  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
+  PtrParamNode pncf = domain->GetParamRoot()->Get("optimization")->Get("costFunction");
   if(pncf->Has("multipleExcitation"))
   {
     std::cout << "shapegrad has multiple excitation" << std::endl;
@@ -43,7 +38,8 @@ void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 {
   if(pde->GetName() != "mechanic") return;
   // TODO: extend for multi-region-optimization if necessary
-  const BaseMaterial* material = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
+  assert(false);
+  const BaseMaterial* material = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
   material->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
   material->GetScalar(mu, MECH_LAME_MU, Global::REAL);
   LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
@@ -53,13 +49,16 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
                                     const unsigned int e, const SubTensorType type,
                                     Application app)
 { 
+  assert(false);
+  /* FIXME
   Vector<double> intPoint;
   Matrix<double> elem_sol_forward_matrix;
   Matrix<double> elem_sol_adjoint_matrix;
 
   // we need a NodeStoreSol to get a element*matrix*. We use
   // the current one and explicitly set the raw solution vector from the forward problem
-  NodeStoreSol<double>* node_store_sol = dynamic_cast<NodeStoreSol<double>* >(ErsatzMaterial::pde->getPDESolution());
+  assert(false);
+  NodeStoreSol<double>* node_store_sol = NULL; // FIXME = dynamic_cast<NodeStoreSol<double>* >(ErsatzMaterial::pde->getPDESolution());
   
   // get current design element
   const DesignElement* de = &design->data[e];
@@ -107,12 +106,14 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
   // debug output
   LOG_DBG3(shapeGrad) << "elem " << de->elem->elemNum << " forward strain: " << vecforward.ToString();
   LOG_DBG3(shapeGrad) << "elem " << de->elem->elemNum << " adjoint strain: " << vecadjoint.ToString();
+  */
 }
 
 linElastInt* ShapeGrad::getBDBForm()
 {
   if(pde->GetName() != "mechanic") return NULL;
-  return dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "linElastInt"));
+  assert(false);
+  return NULL; // FIXME dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "linElastInt"));
 }
 
 

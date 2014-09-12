@@ -83,6 +83,9 @@ namespace CoupledField {
       return analysistype_;
     }
   
+    bool HasComplexMatData(RegionIdType actRegion) {
+      return complexMatData_[actRegion]; }
+
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
     {

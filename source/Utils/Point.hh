@@ -6,6 +6,7 @@
 #include <string>
 
 #include "General/defs.hh"
+#include "MatVec/Vector.hh"
 
 namespace CoupledField
 {
@@ -18,17 +19,15 @@ class Point
 public:
   //! constructor
   Point() {
-    SetZero();
+    data.Resize(3, 0.0);
   }
 
-  Point(const double val)
-  {
-    data[0] = val;
-    data[1] = val;
-    data[2] = val;
+  Point(const double val) {
+    data.Resize(3, val);
   }
 
   Point(const Double x, const Double y, const Double z) {
+    data.Resize(3);
     data[0]=x;
     data[1]=y;
     data[2]=z;
@@ -39,8 +38,7 @@ public:
 
   /** resets the values */
   void SetZero() {
-    for(UInt i=0; i<3; i++)
-      data[i]=0.0;
+    data.Init(0.0);
   }
 
   /** Assumes a Cartesian orientation and gives the direction, 0-based!*/
@@ -121,7 +119,7 @@ public:
   * @return the form "(0.3;4.3;0.0)" but no digit control */
   std::string ToString() const;
 
-  Double data[3];
+  Vector<double> data;
 
 private:
   /** common implementation

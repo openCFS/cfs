@@ -816,6 +816,33 @@ namespace CoupledField
     return result;
   }
 
+  template<class TYPE>
+  TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
+  {
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+
+    TYPE result(0);
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      result += OpType<TYPE>::dotProduct(data_[0][k], other_mat.data_[0][k]);
+
+    return result;
+  }
+
+  template<>
+  Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
+  {
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] *= other_mat.data_[0][k];
+
+    return *this;
+  }
+
+
 
   // Perform a matrix-vector multiplication rvec = this*mvec via the inner product
   template<class TYPE>
@@ -1673,20 +1700,33 @@ namespace CoupledField
   }
 
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetRow(Vector<TYPE>& vec, UInt row) const
+  {
+    assert(size_row_ > row);
+    vec.Resize(size_col_);
+
+    for(unsigned int i = 0; i < size_col_; i++)
+      vec[i] = (*this)[row][i]; // do it faster if you like
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetCol(Vector<TYPE>& vec, UInt col) const
+  {
+    assert(size_col_ > col);
+    vec.Resize(size_row_);
+
+    for(unsigned int i = 0; i < size_row_; i++)
+      vec[i] = (*this)[i][col]; // do it faster if you like
+  }
+
+
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("Undefined Matrix!" );
-#endif
-
-#ifdef CHECK_INDEX 
-    if (size_row_ != size_col_ ) 
-      EXCEPTION( "No square- matrix!" );
-#endif
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != size_col_ ); // check for square matrix
 
     columnMat.Resize(size_row_, 1);
     columnMat.Init();

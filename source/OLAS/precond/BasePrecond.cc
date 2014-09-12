@@ -59,9 +59,9 @@ namespace CoupledField {
     
     PtrParamNode base = infoNode_; 
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     precondTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::PN_SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("precond/timer")->SetValue( precondTimer_ );
   }
   
   void BasePrecond::GetPrecondSysMat( BaseMatrix& sysMat ) {

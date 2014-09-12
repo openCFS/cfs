@@ -4,13 +4,12 @@
 #include <sstream>
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
-#include "DataInOut/MaterialHandler.hh"
-#include "Domain/ansatzFct.hh"
+#include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
@@ -28,12 +27,12 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
-#include "Utils/result.hh" // IWYU pragma: keep
 #include "boost/lexical_cast.hpp"
-namespace CoupledField {
-template <class TYPE> class Vector;
-}  // namespace CoupledField
+
 using namespace CoupledField;
+
+template <class TYPE> class Vector;
+
 using std::complex;
 // declare class specific logging stream
 DECLARE_LOG(designSpace)
@@ -47,6 +46,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
 
   pn_ = pn;
+  info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
   // for convenience
   regionIds_ = reg_data;
   design_id = 0;
@@ -121,11 +121,11 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density
-    if(BasePDE::IsComplex(domain->GetBasePDE()->GetAnalysisType()) && FindDesign(DesignElement::DENSITY, false) >= 0) {
+    if(domain->GetBasePDE()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
         // std::cout << domain->GetBasePDE()->GetName() << std::endl;
-        PtrParamNode in = info->Get("optimization")->Get(ParamNode::HEADER)->Get("designSpace/transferFunctions")->Get(ParamNode::WARNING);
+        PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
         in->SetValue("no transfer function 'mass' given for harmonic model");
       }
     }
@@ -234,7 +234,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             double initial = random ? -1.0 : curr_design_pn->Get("initial")->As<double>();
 
             if(!random && (initial < lower || initial > upper))
-              info->Get("optimization/header/DesignSpace")->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
+              info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Initial value for design " + DesignElement::type.ToString(dt) + " not within bounds");
 
             for(unsigned int e = 0; e < n; e++)
             {
@@ -545,7 +545,7 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   default:
     ri->definedOn = ResultInfo::ELEMENT;
   }
-  ri->fctType = shared_ptr<ConstFct>(new ConstFct() );
+  // FIXME (really needed?) ri->fctType = shared_ptr<ConstFct>(new ConstFct() );
   // let the caller or a shared pointer delete it finally
   return ri;
 }
@@ -732,19 +732,25 @@ double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type 
   }
   return(1.0);
 }
+
 bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction){
   if(CollectMaterialParametersForElement(elem)){
     return(designMaterial->GetMaterialDamping(alpha, beta, direction));
   }
   return(false);
 }
-bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, BaseForm* form, double& param){
+
+bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
+{
+  assert(false);
+  /* FIXME
   if(CollectMaterialParametersForElement(elem)){
     double dummy = 0.0;
     if(form->GetName() == "MassInt") return(designMaterial->GetMaterialDamping(param, dummy));
     if(form->GetName() == "linElastInt") return(designMaterial->GetMaterialDamping(dummy, param));
   }
   return(false);
+  */
 }
 
 bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf, SubTensorType stt, MaterialClass mc, const DesignElement* derivative)
@@ -1155,15 +1161,15 @@ int DesignSpace::Find(const Elem* elem, bool throw_exception)
   // we might have surface element and it is pointing to a design element
   const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
   // no chance, we are wrong
-  if(se == NULL)
-  {
+  if(se == NULL) {
     if(!throw_exception) return -1;
     EXCEPTION("element " << elem->ToString() << " not in design regions" );
   }
-  if(se->ptVolElem1 != NULL && FindRegion(se->ptVolElem1->regionId) >= 0)
-    return Find(se->ptVolElem1->elemNum);
-  if(se->ptVolElem2 != NULL && FindRegion(se->ptVolElem2->regionId) >= 0)
-    return Find(se->ptVolElem2->elemNum);
+  else
+    for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
+      if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
+        return Find(se->ptVolElems[i]->elemNum);
+
   if(!throw_exception) return -1;
   EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
 }

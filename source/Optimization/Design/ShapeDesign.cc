@@ -151,7 +151,8 @@ void ShapeDesign::UpdateCoordinates(){
         }
         p[j] = v;
       }
-      grd->SetNodeOffset(i, p);
+      assert(false);
+      // FIXME comment with fe-space merge grd->SetNodeOffset(i, p);
     }
   }
 }

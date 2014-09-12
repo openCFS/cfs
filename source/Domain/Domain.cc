@@ -5,6 +5,7 @@
 #include "Domain.hh"
 
 #include <set>
+#include <map>
 #include <memory>
 #include <boost/filesystem.hpp>
 
@@ -28,6 +29,10 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
+
+#include "Optimization/Design/DensityFile.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimization.hh"
 
 
 #include "DataInOut/ResultHandler.hh"
@@ -97,7 +102,8 @@ Domain::Domain(
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   
-  
+  optimization_ = NULL;
+  ersatzMaterial_ = NULL;
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -371,6 +377,17 @@ Domain::~Domain()
     delete mathParser_;
     mathParser_ = NULL;
   }
+  // the optimization is optional. Important, before ersatzMaterial!
+  if (optimization_ != NULL) {
+    delete optimization_;
+    optimization_ = NULL;
+  }
+
+  // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
+  if(ersatzMaterial_ != NULL) {
+    delete ersatzMaterial_;
+    ersatzMaterial_ = NULL;
+  }
 
 }
 
@@ -530,9 +547,6 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::InitPDEs(UInt sequenceStep)
 {
-  
-  
-  
   // in case we have an iterative coupled PDE,
   // we take its info pointer and use it
   // as base for the coupled ones
@@ -944,7 +958,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::CreateCoordinateSystems()
 {
-  PtrParamNode in = info_->Get(ParamNode::PN_HEADER)->Get("domain");
+  PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian

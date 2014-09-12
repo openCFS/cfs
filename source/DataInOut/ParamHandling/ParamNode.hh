@@ -67,12 +67,12 @@ namespace CoupledField
   public:
     
     /** This string constant shall mark the logging part which contains "dynamic" data, e.g. current iteration */
-    const static std::string PN_HEADER;
-    const static std::string PN_PROCESS;
-    /** this string constann shall mark summary information, e.g. total number of iterations */
-    const static std::string PN_SUMMARY;
-    const static std::string PN_WARNING;
-    const static std::string PN_ERROR;
+    const static std::string HEADER;
+    const static std::string PROCESS;
+    /** this string constants shall mark summary information, e.g. total number of iterations */
+    const static std::string SUMMARY;
+    const static std::string WARNING;
+    const static std::string ERROR;
     
     /** Define behavior for get() methods in case the element does not exist:
     * DEFAULT: Apply default action of current node (gets inherited)
@@ -186,7 +186,8 @@ namespace CoupledField
     //@{
     /** Get the direct childs which has an attribute with a given value or in other words:
     *  Get the direct child where the grandchildren are as specified.<br>
-    *  example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").Get("dirichletInHom", "name", "fixed")
+    *  example: param->Get("pdeList/mechanic/bcsAndLoads/dirichletInHom", "name", "fixed")
+    *  will return that dirichletInHom where @name == fixed.
     *  @return the direct child, not the grandchildren */
     template<typename TYPE >
     PtrParamNode GetByVal( const std::string& parent, 
@@ -198,6 +199,10 @@ namespace CoupledField
                           const char* value,
                           ActionType action = DEFAULT );
     //@}
+
+    /** Get an element identified by two childs with prescribed value. Extend to the full standard GetByVal() features if you need them :) */
+    PtrParamNode GetByVal(const std::string& parent_raw, const std::string& child1,  const std::string& value1,
+                                                         const std::string& child2,  const std::string& value2);
 
     /** Get all direct childs of a name
     * example: param.Get("pdeList").Get("mechanic").Get("bcsAndLoads").GetList("dirichletInHom") */
@@ -221,6 +226,15 @@ namespace CoupledField
     /************************************************************************
     * D A T A    G E T   M E T H O D S
     ************************************************************************/
+
+    /** by "fast bulk block" or better "dirty bulk block" we denote optional content as xml formated strings.
+     * For high load applications as grid export (-G), streaming (grid and results and optimization design export
+     * this can save a significant amount of time.
+     * Logically the strings are written (ToXML() after param node childs but not considered in Getxx(). So it is
+     * rather dirty thand fast ! :(.
+     * The fast bulk block, a StdVector of std::string is stored as a boost::any type.
+     * @return create the block if it does not exist already. Exception if boost::any has already another type. */
+    StdVector<std::string>& GetFastBulkBlock();
 
     /** @return converted value
     * @throws an exception if the value is not set or not convertible
@@ -326,6 +340,9 @@ namespace CoupledField
      * @param depth if the elemen is matrix type the depth is mandatory for Matrix::ToXMLFormat(name, depth) */
     void ToString(std::string& ret, int depth ) const;
     
+    /** variant of other ToString() with more copy operations but also more convenient */
+    std::string ToString(int depth) const;
+
     /** Prints this as xml element to the stream. Builds a tree. Shall no be directly
      * called for an attribute.
      * Might change the order as Sort() is called to ensure HEADER < PROCESS < SUMMARY

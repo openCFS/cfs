@@ -413,7 +413,7 @@ public:
     MultiMaterial* multimaterial;
 
     /** calculates the location on request and stores it */
-    Point* GetLocation();
+    const Vector<double>& GetLocation();
 
 private:
 
@@ -424,7 +424,7 @@ private:
   void GetValue(ValueSpecifier sp, StdVector<double>& out) const;  
   
   /** the barycenter of this element only set on request. */
-  Point* location_;
+  Vector<double> location_;
 
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;
@@ -505,7 +505,7 @@ private:
   DesignElement* de_;
 };
 
-/** requires in DesignSpace and DesignMaterial */
+/** required in DesignSpace and DesignMaterial */
 class DesignID
 {
 public:
@@ -524,9 +524,8 @@ public:
 };
 
 
-/** implemented in StdVector.cc, there we need it */
+/** implemented in Environment.cc, used in StdVector.cc */
 std::ostream & operator << ( std::ostream & out, const DesignID& id);
-
 
 /** <p>A result description holds the result element in the xml file which describes what data from
  * a DesignElement is to be written to the cfs output. The following parameters have to be given

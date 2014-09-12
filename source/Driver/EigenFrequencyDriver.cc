@@ -329,7 +329,7 @@ namespace CoupledField {
   void EigenFrequencyDriver::SolveProblem() {
     // options not implemented
     
-    analysis_id_ = info_->Get(ParamNode::PN_PROCESS);
+    analysis_id_ = info_->Get(ParamNode::PROCESS);
 
     ResultHandler* resHandler = domain_->GetResultHandler();
 

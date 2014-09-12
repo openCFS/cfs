@@ -31,6 +31,14 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
+    /** @param see SinglePDE::GetSubTensorType() */
+    SubTensorType GetSubTensorType() const { return tensorType_; }
+
+    /** constants for test-strains, used for homogenization. We depend on the int values! */
+    typedef enum { NOT_SET=-1, X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+
+    static Enum<TestStrain> testStrain;
+
   protected:
 
     //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
@@ -70,6 +78,8 @@ namespace CoupledField
     //! Return strain operator 
     BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);
 
+    /** @see virtual SinglePDE::GetNativeSolutionType() */
+    SolutionType GetNativeSolutionType() const { return MECH_DISPLACEMENT; }
     // ========================
     // set solution information
     // ========================

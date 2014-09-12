@@ -13,7 +13,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
-#include "Domain/resultInfo.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "General/defs.hh"
@@ -27,7 +27,7 @@
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
-#include "PDE/elecPDE.hh"
+#include "PDE/ElecPDE.hh"
 #include "Utils/mathParser/mathParser.hh"
 
 using namespace CoupledField;
@@ -94,13 +94,14 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
   excitations.Resize(1);
   excitations[0].index = 0;
 
-  PtrParamNode pncf = param->Get("optimization")->Get("costFunction");
+  PtrParamNode pncf = domain->GetParamRoot()->Get("optimization/costFunction");
 
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
 
   int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
-  int num_loads = pde->getPDE_assemble()->GetLoads().GetSize(); // to be faked later for homogenization test strains
+  assert(false);
+  int num_loads = -1; // FIXME pde->GetAssemble()->GetLoads().GetSize(); // to be faked later for homogenization test strains
 
   ParamNodeList pnexcitations;
 
@@ -204,7 +205,9 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
         && !DoHomogenization()
         && !DoMaxwellHomogenization())
     {
-      LoadList loads = pde->getPDE_assemble()->GetLoads();
+      assert(false);
+      /* FIXME
+      LoadList loads = pde->GetAssemble()->GetLoads();
 
       for(unsigned int i = 0; i < excitations.GetSize(); i++)
       {
@@ -219,6 +222,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
           weight_sum += weight;
         }
       }
+      */
     }
 
     parser->ReleaseHandle(handle);
@@ -258,8 +262,11 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
       exin->Get("index")->SetValue(ex.index);
       exin->Get("label")->SetValue(ex.label);
+      assert(false);
+/* FIXME
       if(! ex.loads.IsEmpty())
         ex.loads[0]->ToInfo(exin->Get("load"));
+        */
       if(ex.frequency >= 0.0)
         exin->Get("frequency")->SetValue(ex.frequency);
       if(ex.test_strain.GetSize() > 0)
@@ -409,7 +416,7 @@ Excitation::Excitation()
 
 void Excitation::AddLinFormsFromAssemble(){
   // all already set linear Forms
-  StdVector<LinearFormContext*>& assLinForms = domain->GetBasePDE()->getPDE_assemble()->GetLinForms();
+  StdVector<LinearFormContext*>& assLinForms = domain->GetBasePDE()->GetAssemble()->GetLinForms();
   for(unsigned int i = 0; i < assLinForms.GetSize(); ++i){
     linForms->Push_back(assLinForms[i]);
   }
@@ -418,11 +425,13 @@ void Excitation::AddLinFormsFromAssemble(){
 void Excitation::Apply()
 {
   domain->GetOptimization()->applied_excitation = this;
-  Assemble* a = domain->GetBasePDE()->getPDE_assemble();
+  Assemble* a = domain->GetBasePDE()->GetAssemble();
   a->SetLinForms(linForms); // this works always, if not used just a copy of assembles linearForms
+  assert(false);
+  /* FIXME
   if(! loads.IsEmpty()){
     a->SetLoads(loads);
-  }
+  } */
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
 }
@@ -456,6 +465,8 @@ double Excitation::GetWeightedFactor(Function* f) const
 }
 
 void Excitation::ReadTrackings(PtrParamNode ts){
+  assert(false);;
+  /* FIXME
   StdPDE* mech = domain->GetStdPDE("mechanic");
   trackings.Clear();
   ParamNodeList tracking_list = ts->GetChildren();
@@ -477,10 +488,13 @@ void Excitation::ReadTrackings(PtrParamNode ts){
     actLoad->value = value;
     trackings.Push_back(actLoad);
   }
+  */
 }
 
 void Excitation::ReadLoads(PtrParamNode ls)
 {
+  assert(false);
+  /* FIXME
   // loads
   loads.Clear();
   MechPDE* mech = (MechPDE*)domain->GetSinglePDE("mechanic");
@@ -497,26 +511,33 @@ void Excitation::ReadLoads(PtrParamNode ls)
   std::map<RegionIdType, SinglePDE::RegionLoad> regionLoads;
   mech->ReadRegionLoadsFromXML(ls, regionLoads);
   mech->DefineRegionLoadIntegrators(regionLoads, linForms);
+  */
 }
 
 void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 {
+  assert(false);
+  /* FIXME
   MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
 
   loads.Clear();
 
   this->test_strain = mech->CalcTestStrainVector(ts);
   mech->DefineTestStrainIntegrator(ts, linForms);
+  */
 }
 
 void Excitation::ReadTestCharges(const Vector<double>& vec)
 {
+  assert(false);
+  /** FIXME
   this->test_charge = vec;
 
   loads.Clear();
   ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
   elec->SetRegionCharges(vec);
   elec->DefineMaxwellHomIntegrators(linForms);
+  */
 }
 
 

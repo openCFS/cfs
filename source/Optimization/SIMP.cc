@@ -15,7 +15,7 @@
 #include "Driver/Assemble.hh"
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "Driver/FormsContexts.hh"
-#include "Forms/LinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -262,6 +262,8 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   double alpha_m  = 0.0;
   double pamping_m = 0.0; // add on without omega
 
+  assert(false);
+  /* FIXME
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
   
@@ -283,6 +285,8 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
     else // pamping*rho'(1-2*rho)
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
   }
+
+  */
 
 	const unsigned int srows(S.GetNumRows());
 	const unsigned int scols(S.GetNumCols());
@@ -443,13 +447,14 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 
 
   // check if we have a form with the application name
-  LinearSurfForm* form = NULL;
+  assert(false);
+  // FIXME LinearSurfForm* form = NULL;
   LinearFormContext* actContext = NULL;
 
   SinglePDE* mech = domain->GetSinglePDE("mechanic", false);
   if(mech == NULL) return false // wrong pde -> extend if you need it!
       ;
-  StdVector<LinearFormContext*>* forms = &(mech->getPDE_assemble()->GetLinForms());
+  StdVector<LinearFormContext*>* forms = &(mech->GetAssemble()->GetLinForms());
 
   for(StdVector<LinearFormContext*>::iterator it = forms->Begin(); it != forms->End(); it++)
   {
@@ -457,16 +462,17 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
     actContext = *it;
     if(actContext->GetIntegrator()->GetName() == name)
     {
-      if(form != NULL) EXCEPTION("linear surface form '" << name << "' not unique");
-      form = dynamic_cast<LinearSurfForm*>(actContext->GetIntegrator());
+      assert(false);
+      // FIXME if(form != NULL) EXCEPTION("linear surface form '" << name << "' not unique");
+      // FIXME form = dynamic_cast<LinearSurfForm*>(actContext->GetIntegrator());
     }
   }
 
-  LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
-                  << (form != NULL ? form->GetName() : "NULL");
+  // FIXME LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
+  // FIXME                  << (form != NULL ? form->GetName() : "NULL");
 
   // form is not necessary defined int the xml file!
-  if(form == NULL) return false; // no form, no RHS!
+  // FIXME if(form == NULL) return false; // no form, no RHS!
 
   // the context knows the surface elements!
   this->valid = true;
@@ -476,9 +482,9 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 
   // calculate the rhs for the reference element, first store and then extract all but one node
   design->DisableTransferFunctions();
-  form->SetSurfElem(const_cast<SurfElem*>(elem)); // set the internal actElem_ of the form
+  // FIXME form->SetSurfElem(const_cast<SurfElem*>(elem)); // set the internal actElem_ of the form
   Vector<T> full;
-  form->CalcElemVector(full,const_cast<EntityIterator&>(eit));
+  // FIXME form->CalcElemVector(full,const_cast<EntityIterator&>(eit));
   // enable again our transfer functions
   design->EnableTransferFunctions();
 

@@ -630,7 +630,7 @@ class Function
     StdVector<DesignElement*> elements;
 
     /** When we optimize output we store here the nodes */
-    LoadList output_nodes;
+    // FIXME LoadList output_nodes;
 
   protected:
 

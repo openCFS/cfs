@@ -16,10 +16,7 @@
 #include "Driver/FormsContexts.hh"
 #include "Driver/TransientDriver.hh"
 #include "FeBasis/BaseFE.hh"
-#include "Forms/linElastInt.hh"
-#include "Forms/linPressureInt.hh"
-#include "Forms/LinearForm.hh"
-#include "Forms/massInt.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "General/Environment.hh"
 #include "MatVec/SingleVector.hh"
 #include "MatVec/exprt/xpr1.hh"
@@ -36,7 +33,6 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/ShapeOpt.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/timestepping.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
 
@@ -46,6 +42,8 @@ DECLARE_LOG(ShOpt)
 DEFINE_LOG(ShOpt, "shapeOpt")
 
 ShapeOpt::ShapeOpt() : ParamMat() {
+  assert(false);
+  /* FIXME
   shapedesign = dynamic_cast<ShapeDesign*>(design);
 
   PtrParamNode sopn = pn->Get("shapeOpt");
@@ -64,12 +62,14 @@ ShapeOpt::ShapeOpt() : ParamMat() {
       linForms[j]->GetIntegrator()->SetUseCoordUpdate(true);
     }
   }
+  */
 }
 
 double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool normalized){
   // the exponent is used in Ersatzmaterial for the volume cost function
   // if an exponent != 1.0 at this point makes any sense is unknown
-  
+  assert(false);
+  /* FIXME
   Function* f = Function::GetFunction(c, g);
 
   if(derivative){
@@ -199,11 +199,13 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
     }else{ // working on a design, alsomatopt_ must be true
       return(ErsatzMaterial::CalcVolume(c, g, derivative, normalized));
     }
-  }
+  }*/
   return 0.0;
 }
 
 void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
+  assert(false);
+  /* FIXME
   StdVector<double> der; // solution
   int np = shapedesign->GetNumberOfAuxParameters();
   der.Resize(np, 0.0);
@@ -445,9 +447,12 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   shapedesign->AddAuxDerivatives(f, constraint, der, 1.0);
   
   parser->ReleaseHandle(mathParserHandle);
+  */
 }
 
 void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
+  assert(true);
+  /* FIXME
   int np(shapedesign->GetNumberOfAuxParameters());
   const unsigned int ex_size(me->excitations.GetSize());
   UInt timesteps(domain->GetDriver()->GetNumSteps());
@@ -588,6 +593,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
   } // excitations  
 
   shapedesign->AddAuxDerivatives(f, constraint, der, w);
+  */
 }
 
 double ShapeOpt::CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative){
@@ -634,10 +640,13 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
   const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
   
-  double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
   
   Matrix<double> result(ex_size, ex_size);
   result.Init();
+
+  assert(false);
+  /* FIXME
+  double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
 
   Matrix<double> elemMat;
   Matrix<double> tmp_strain(dim, dim);
@@ -685,6 +694,7 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
 
   homogenizedTensor.Assign(result, 1.0);
 
+  */
   return result;
 }
 
