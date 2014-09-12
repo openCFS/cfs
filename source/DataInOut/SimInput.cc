@@ -135,7 +135,7 @@ namespace CoupledField
     myFunc->Finalize();
 
     //if(progOpts->DoListMapping())
-    //  eqnMap->ToInfo(info->Get(ParamNode::PN_HEADER)->Get("mappings", ParamNode::APPEND));
+    //  eqnMap->ToInfo(info->Get(ParamNode::HEADER)->Get("mappings", ParamNode::APPEND));
 
     //now we map the result vector to the coefficient vector
     

@@ -61,7 +61,7 @@ namespace CoupledField{
          name_ = name;
       }
       
-      std::string GetName(){
+      const std::string& GetName() const {
         return name_;
       }
 

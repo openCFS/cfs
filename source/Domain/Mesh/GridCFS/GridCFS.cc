@@ -886,7 +886,7 @@ namespace CoupledField {
 
     // print information to file - checks for exportGrid
     if(info_ ) {
-       ToInfo(info_->Get(ParamNode::PN_HEADER)->Get("domain")); 
+       ToInfo(info_->Get(ParamNode::HEADER)->Get("domain")); 
     }
   }
   

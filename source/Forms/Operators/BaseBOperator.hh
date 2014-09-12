@@ -124,7 +124,7 @@ public:
   virtual UInt GetDimDMat() const = 0;
 
   //! Return name of the integrator
-  std::string GetName(){
+  const std::string& GetName() const {
     return name_;
   }
   

@@ -351,10 +351,13 @@ double TopGrad::CalcPoissonTopGradOnElement(const unsigned int e) const
 {
   // FIXME xiDx is constant for all elements!!!
   // FIXME move out of the loop
+  double partElemMat(0.0);
   Matrix<double> xiDx;
   Matrix<double> xiDxT;
   Matrix<double> ptCoord;
-  double partElemMat(0.0);
+
+  assert(false);
+  /* FIXME
   
   Elem* de = optimization->GetDesign()->data[e].elem; // FIXME loop over all elems!!
   
@@ -377,7 +380,7 @@ double TopGrad::CalcPoissonTopGradOnElement(const unsigned int e) const
     
     partElemMat *= intWeights[ap-1] * jacobi;
   }
-  
+  */
   return -partElemMat; // FIXME sign??
 }
 

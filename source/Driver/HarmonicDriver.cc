@@ -53,7 +53,7 @@ namespace CoupledField
 
         // replace our info node by a more detailed level
     info_ = info_->Get("harmonic");
-    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
+    info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("Hz");
 
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
@@ -105,7 +105,7 @@ namespace CoupledField
     if(!params && !list)
       EXCEPTION("'analysis/harmonic' contains neither 'numFreq/startFreq/stopFreq' nor 'frequencyList' concurrently");
 
-    PtrParamNode in = info_->Get(ParamNode::PN_HEADER);
+    PtrParamNode in = info_->Get(ParamNode::HEADER);
     in->Get("start")->SetValue(startFreq_);
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
@@ -127,7 +127,7 @@ namespace CoupledField
     if(freqs.GetSize() == 0)
       EXCEPTION("cannot have empty frequeny list");
 
-    info_->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue("frequency list given");
+    info_->Get(ParamNode::HEADER)->Get("sampling")->SetValue("frequency list given");
 
     for(int fi = 0; fi < (int) list.GetSize(); fi++)
     {
@@ -170,7 +170,7 @@ namespace CoupledField
     String2Enum( sampling, samplingType_ );
 
     // store only the sampling strategy
-    info_->Get(ParamNode::PN_HEADER)->Get("sampling")->SetValue(sampling);
+    info_->Get(ParamNode::HEADER)->Get("sampling")->SetValue(sampling);
 
     // ---------------------------------
     //  Perform some consistency checks
@@ -215,12 +215,12 @@ namespace CoupledField
     // Check for single frequency computation
     if(startFreq_ == stopFreq_ && numFreq_ > 1)
     {
-      info_->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
+      info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting numFreq to 1, since startFreq = stopFreq");
       numFreq_ = 1;
 
       if(samplingType_ != LINEAR_SAMPLING)
       {
-        info_->Get(ParamNode::PN_HEADER)->Get(ParamNode::PN_WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
+        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("Re-setting sampling type to 'linear', since startFreq = stopFreq");
         samplingType_ = LINEAR_SAMPLING;
       }
     }
@@ -309,7 +309,7 @@ namespace CoupledField
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
       analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
-      PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::PN_HEADER)->Get("environment");
+      PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
     } // loop: frequencies
@@ -334,7 +334,7 @@ namespace CoupledField
     actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
     assert(freqs[actFreqStep-1].step == actFreqStep);
 
-    analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
+    analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
     analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     analysis_id_->Get("step")->SetValue(actFreqStep_);
     analysis_id_->Get("value")->SetValue(actFreq_);

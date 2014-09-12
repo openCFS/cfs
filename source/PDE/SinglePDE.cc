@@ -210,7 +210,7 @@ namespace CoupledField {
     ParamNodeList regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
+    PtrParamNode list = infoNode_->Get(ParamNode::HEADER);
 
     // output and set regions_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
@@ -317,7 +317,7 @@ namespace CoupledField {
     InitMaterialDependencies();
 
     // Todo: Move this part to the definition of damping
-    PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
+    PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
     {
       PtrParamNode in_ = in->GetByVal("region", "name", ptGrid_->GetRegion().ToString(regions_[i]));
@@ -368,7 +368,7 @@ namespace CoupledField {
 
     // Print information about defined integrators
     if( needsAlgsys_ == true && !isDirectCoupled_ )
-      assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
+      assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
   }
 
   void SinglePDE::Init_Stage3() {
@@ -683,12 +683,12 @@ namespace CoupledField {
      
      
 //    // loads
-//    PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("loads");
+//    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
 //
 //
 //    // constraints
-//    base = infoNode_->Get(ParamNode::PN_HEADER)->Get("constraints");
+//    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
 //    // periodic boundary conditions blow this up.
 //    if(constraints_.GetSize() <= 5 )
 //    {
@@ -1193,6 +1193,15 @@ namespace CoupledField {
     return ret;
   }
   
+  SubTensorType SinglePDE::GetSubTensorType() const
+  {
+    if(subType_ == "") return NO_TENSOR;
+
+    SubTensorType stt;
+    String2Enum(subType_, stt);
+    return stt;
+  }
+
   void SinglePDE::WriteResultsInFile( const UInt kstep,
                                       const Double actTimeFreq ) {
     LOG_DBG(singlepde) << pdename_ 

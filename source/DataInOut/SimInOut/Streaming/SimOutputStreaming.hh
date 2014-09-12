@@ -10,8 +10,6 @@ using boost::asio::ip::tcp;
 
 namespace CoupledField
 {
-  class InfoNode;
-
   /** This class collects the information, the basic text writer writes to files
    * in to info.xml output.
    * This writer is intialized by default */

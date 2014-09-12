@@ -606,7 +606,7 @@ namespace CoupledField {
                                      esNode, sNode, pNode,
                                      myInfo_->Get("solve_eigen") );
       PtrParamNode in = myInfo_->
-          Get(ParamNode::PN_PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+          Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
       in->Get("analysis_id")->SetValue(analysis_id);
       try {
         evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
@@ -655,7 +655,7 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
+    PtrParamNode out = myInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modify the right-hand side vector.

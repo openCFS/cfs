@@ -28,6 +28,9 @@ namespace CoupledField
    class MultipleExcitation;
    class StdPDE;
 
+   // FIXME: this is originally from timestepping.hh and has to be replaced
+   typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} DERIVType;
+
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
    class AdjointParameters {
    public:
@@ -248,14 +251,14 @@ namespace CoupledField
         static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
         /** Get the standard integrators */
-        BaseForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
+        BiLinForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
 
         /** Helper which extracts the Form from assemble using the optimization region
          * @param regionId the corresponding region
          * @param pde1 the first pde (e.g. mech)
          * @param pde2 this is either the same as pde1 or the coupling partner
          * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-        static BaseForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+        static BiLinForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
 
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }

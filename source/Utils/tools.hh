@@ -131,6 +131,12 @@ namespace CoupledField {
     return p;
   }
 
+  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
+  }
+
+
   //! calculate distance between two points embedded in matrix
 
   Double dist_Mat(const Matrix<Double> &a);
@@ -189,14 +195,20 @@ namespace CoupledField {
   template<class TYPE, class TYPE2>
   void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
-   #ifdef CHECK_INDEX
-      if(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols())
-        EXCEPTION("matrices do not match");
-   #endif
+   assert(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols());
    for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
      for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
        out[r][c] += fac * other[r][c];
   }
+
+  template<class TYPE, class TYPE2>
+  void Add(Vector<TYPE>& out, const TYPE2 fac, const Vector<TYPE>& other)
+  {
+   assert(out.GetSize() != other.GetSize());
+   for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
+       out[i] += fac * other[i];
+  }
+
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);

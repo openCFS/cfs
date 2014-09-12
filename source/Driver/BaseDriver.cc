@@ -48,7 +48,7 @@ PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int chi
 {
   // do we really want to create a new entry? Might blast up the output
   ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode child = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
+  PtrParamNode child = info_->Get(ParamNode::PROCESS)->Get("step", at);
   child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
   return child;
 }

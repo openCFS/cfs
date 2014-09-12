@@ -211,7 +211,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                                  actRayl.adjustDamping, isHarmonic );
         regionRaylDamping_[actRegionId] = actRayl;
 
-        PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER)
+        PtrParamNode in = infoNode_->Get(ParamNode::HEADER)
             ->GetByVal("region", "name", ptGrid_->GetRegion().ToString(actRegionId));
         in->Get("alpha_M")->SetValue(actRayl.alpha);
         in->Get("alpha_K")->SetValue(actRayl.beta);

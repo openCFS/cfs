@@ -11,21 +11,20 @@
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
-#include "Forms/BaseForm.hh"
-#include "Forms/linGradBDBInt.hh"
-#include "Forms/LinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 #include "General/defs.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/acousticPDE.hh"
+#include "PDE/AcousticPDE.hh"
 #include "PDE/BasePDE.hh"
-#include "PDE/elecPDE.hh"
-#include "PDE/heatCondPDE.hh"
+#include "PDE/ElecPDE.hh"
+#include "PDE/HeatPDE.hh"
 #include "PDE/MechPDE.hh"
-#include "PDE/LatticeBoltzmannPDE.hh"
+// #include "PDE/LatticeBoltzmannPDE.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -49,7 +48,7 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* spac
 
   regionIds = this->space->GetRegionIds();
 
-  harmonic_ =  BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType());
+  harmonic_ =  domain->GetDriver()->IsComplex();
   transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
@@ -87,7 +86,7 @@ OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMat
 }
 
 
-void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem, BaseMaterial* bimaterial, DesignElement::Type direction, double factor)
+void OptimizationMaterial::GetElementMatrix(BiLinForm* form, Matrix<double>& out, const Elem* elem, BaseMaterial* bimaterial, DesignElement::Type direction, double factor)
 {
   GetElementEntity(form, &out, NULL, elem, bimaterial, direction);
   // in piezoelectricity K_pp is -1.0* BDB
@@ -95,20 +94,23 @@ void OptimizationMaterial::GetElementMatrix(BaseForm* form, Matrix<double>& out,
     out *= factor;
   }
 
-  LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
+  // FIXME LOG_DBG3(om) << "CalcElemMatrix for " << form->GetName() << " factor=" << factor << " -> " << out.ToString();
 }
 
 void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem, BaseMaterial* bimaterial, const Vector<double>* ts)
 {
-  GetElementEntity(form, NULL, &out, elem, bimaterial, DesignElement::NO_DERIVATIVE, ts);
+  assert(false);
+  // FIXME GetElementEntity(form, NULL, &out, elem, bimaterial, DesignElement::NO_DERIVATIVE, ts);
 
   LOG_DBG3(om) << "CalcElemVector for " << form->GetName() << " -> " << out.ToString();
 }
 
 
-void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, BaseMaterial* bimaterial,
+void OptimizationMaterial::GetElementEntity(BiLinForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem, BaseMaterial* bimaterial,
                                             DesignElement::Type direction, const Vector<double>* ts)
 {
+  assert(false);
+  /* FIXME
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
 
@@ -126,11 +128,13 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
               else elemList.SetElement(elem);
 
   // form needs to be the right one for the region!
-  BaseMaterial* org_mat = form->GetMaterial(); // for bimaterial
+  assert(false);
+  BaseMaterial* org_mat = NULL; // FIXME form->GetMaterial(); // for bimaterial
 
   if(bimaterial != NULL)
   {
-    form->SetMaterial(bimaterial);
+    assert(false);
+    // FIXME form->SetMaterial(bimaterial);
   }
 
   const EntityIterator& it = elemList.GetIterator();
@@ -160,6 +164,7 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
 
   if(bimaterial != NULL)
     form->SetMaterial(org_mat);
+  */
 }
 
 Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
@@ -372,7 +377,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
 
 const Matrix<double>& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
-  assert(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
+   // FIXME assert(ErsatzMaterial::GetForm(elem->regionId, mech, mech, "MassInt")->GetMaterialDescriptor().Enabled());
   unsigned int index = multimaterial < 0 ? 0 : (unsigned int) multimaterial;
 
   if(!structured_ || direction != DesignElement::NO_DERIVATIVE)
@@ -400,11 +405,13 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 {
   // in homogenization we always set/replace the actual AddStrainRHSInt which contains the current test strain,
   // therefore we do not cache!
-  LinearForm* lf = mech->getPDE_assemble()->GetLinearForm(space->GetRegionId(), mech, "AddStrainRHSInt")->GetIntegrator();
+  assert(false);
+  LinearForm* lf = NULL; // FIXME mech->GetAssemble()->GetLinearForm(space->GetRegionId(), mech, "AddStrainRHSInt")->GetIntegrator();
   // this is really inefficient -> but won't cost to much! the vector is created too often!
   if(testStrain != MechPDE::NOT_SET)
   {
-    Vector<double> ts = mech->CalcTestStrainVector(testStrain, true);
+    assert(false);
+    Vector<double> ts; // FIXME = mech->CalcTestStrainVector(testStrain, true);
     GetElementVector(lf, mechStrainRHS, elem, NULL, &ts);
   }
   else
@@ -466,7 +473,7 @@ const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 {
   RegionIdType reg_id = elem->regionId;
 
-  assert(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
+  // FIXME assert(ErsatzMaterial::GetForm(reg_id, acou, acou, "MassInt")->GetMaterialDescriptor().Enabled());
 
   if(!structured_)
   {
@@ -542,7 +549,8 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
   OptimizationMaterial(em)
 {
   system_ = HEAT;
-  heat = dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
+  assert(false);
+  heat = NULL; // FIXME dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
   assert(heat != NULL);
 }
 
@@ -683,7 +691,8 @@ LBMMat::LBMMat(ErsatzMaterial* em) :
   OptimizationMaterial(em)
 {
   system_ = LBM;
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
+  assert(false);
+  lbm = NULL; // FIXME dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
   assert(lbm != NULL);
 }
 

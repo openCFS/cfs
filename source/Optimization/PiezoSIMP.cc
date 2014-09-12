@@ -11,7 +11,6 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Driver/Assemble.hh"
-#include "Forms/BaseForm.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -20,7 +19,6 @@
 #include "MatVec/exprt/xpr2.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
-#include "OLAS/algsys/basesystem.hh" // IWYU pragma: keep
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Excitation.hh"
@@ -29,8 +27,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/elecPDE.hh"
-#include "PDE/eqnMap.hh"
+#include "PDE/ElecPDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
 
@@ -53,8 +50,9 @@ PiezoSIMP::PiezoSIMP()
 
   for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
   {
-    GetForm(design->GetRegionIds()[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
-    GetForm(design->GetRegionIds()[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
+    assert(false);
+    // GetForm(design->GetRegionIds()[r], pde, elec, "linPiezoCoupling")->SetSolDependent(true);
+    // GetForm(design->GetRegionIds()[r], elec, elec, "linGradBDBInt")->SetSolDependent(true);
   }
   // The linear forms (pressure, charge density) are set in SoluctionRef::Init()
 
@@ -180,7 +178,8 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
   // create an element list to gain the iterator in the loop
   ElemList elemList(grid);
 
-  shared_ptr<EqnMap> eqn_map = elec->GetEqnMap();
+  assert(false);
+  shared_ptr<EqnMap> eqn_map; // FIXME = elec->GetEqnMap();
 
   for(int e = 0, n = design->data.GetSize(); e < n; e++) 
   {
@@ -201,7 +200,8 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
       unsigned int nn = de->elem->connect[n]; // nodenumber
 
       // get equation number within global rhs
-      int eqnr = eqn_map->GetNodeEqn(nn, 1); // Equations are 1-based! dof = 1 for phi
+      assert(false);
+      int eqnr = -5; // FIXME = eqn_map->GetNodeEqn(nn, 1); // Equations are 1-based! dof = 1 for phi
       LOG_DBG3(simp) << "CARHS: Node: " << nn << " eqnr (pure): " << eqnr;
 
       if(eqnr == 0) continue; // this means a homogeneous case and RHS has not to be set
@@ -217,7 +217,8 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
 
   // RHS has to be applied
   LOG_DBG2(simp) << "CARHS: final rhs before setting: " << rhs.ToString();
-  assemble_->GetAlgSys()->InitRHS(rhs);
+  assert(false);
+  // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
   LOG_DBG2(simp) << "CARHS: rhs after setting: " << rhs.ToString();
   
   return;

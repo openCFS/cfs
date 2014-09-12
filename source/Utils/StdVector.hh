@@ -308,16 +308,16 @@ namespace CoupledField {
     std::string Serialize( char separator = ',') const;
 
    
-//    /** Default output but you can choose to select the window */
-//    std::string ToString(bool in_window) const {
-//      return ToString(0, 1, in_window);
-//    }
+    /** Default output but you can choose to select the window */
+    std::string ToString(bool in_window) const {
+      return ToString(0, 1, in_window);
+    }
 
      /** Lists the content comma seperated.
       * @param level 0=all data, 1 is summary, the higher, the less 
       * @param stride on level=0 every element(1), every second (2), ...
       * @param in_window only for window. what requres the window to be set*/
-     std::string ToString(int level=0, int stride=1) const;
+     std::string ToString(int level=0, int stride=1, bool in_window = false) const;
      
      /** List the content or summary of an external source 
       * @see ToString(int)*/
@@ -329,44 +329,44 @@ namespace CoupledField {
      /** Reas the content from a string list */
      void Parse(const StdVector<std::string>& in);
 
-//     /** This is a little helper to define a range within the data.
-//      * It is just a rucksack of information with no further implication.
-//      * One could add verification of the ranges but this is also ensured by
-//      * the vector itself. */
-//     class Window
-//     {
-//     public:
-//
-//       /** default construcor */
-//       Window();
-//
-//       /** Sets automatically acive */
-//       void Set(unsigned int start, unsigned int size);
-//
-//       /** Scale to the whole vector dimension */
-//       void Set(StdVector& vec);
-//
-//       /** has the window valid properties */
-//       bool Initialized() const { return active_; }
-//
-//       /** index of the first element */
-//       unsigned int GetStart() const;
-//
-//       /** size of the window */
-//       unsigned int GetSize() const;
-//
-//     private:
-//
-//       unsigned int start_;
-//       unsigned int size_;
-//       bool active_;
-//     };
-//
-//     /** Out rucksack data */
-//     Window window;
+     /** This is a little helper to define a range within the data.
+      * It is just a rucksack of information with no further implication.
+      * One could add verification of the ranges but this is also ensured by
+      * the vector itself. */
+     class Window
+     {
+     public:
+
+       /** default construcor */
+       Window();
+
+       /** Sets automatically acive */
+       void Set(unsigned int start, unsigned int size);
+
+       /** Scale to the whole vector dimension */
+       void Set(StdVector& vec);
+
+       /** has the window valid properties */
+      bool Initialized() const { return active_; }
+
+       /** index of the first element */
+       unsigned int GetStart() const;
+
+       /** size of the window */
+       unsigned int GetSize() const;
+
+     private:
+
+       unsigned int start_;
+       unsigned int size_;
+       bool active_;
+     };
+
+     /** Out rucksack data */
+     Window window;
      
-//     /** Verifies if we are in the window. Error also if there is no window initialized (debug mode only) */
-//     bool InWindow(unsigned int index);
+     /** Verifies if we are in the window. Error also if there is no window initialized (debug mode only) */
+     bool InWindow(unsigned int index);
 
   protected:
 

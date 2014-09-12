@@ -13,7 +13,6 @@ namespace CoupledField
   class Domain;
   class WriteResults;
   class ResultHandler;
-  class InfoNode;
 
   //! Base class for driving classes where we implemented time-stepping
   class BaseDriver

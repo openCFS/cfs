@@ -110,6 +110,9 @@ namespace CoupledField
 
     ResultMap& GetResults() { return resultLists_; }
     
+    /** Return the native solution type, MECH_DISPLACEMENT, ... */
+    virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
+
     /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
      * it is added to resultLists_.</p>
      * <p>This method is to be called by ReadStoreResults() for every element in
@@ -122,6 +125,11 @@ namespace CoupledField
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
+    /** return sub type. The string is stored internally any we need to convert. :(
+     * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
+    virtual SubTensorType GetSubTensorType() const;
+
+
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
     //! a grid node

@@ -15,10 +15,8 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
-#include "Elements/2D/quad9fe.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
-
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "MatVec/Matrix.hh"
@@ -75,7 +73,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if (!CheckRequiredDesigns(d)) {
     throw Exception("Not all Parameters for chosen DesignMaterial given");
   }else if(d.GetSize() > r){ // design.GetSize() < r is impossible as CheckRequiredDesigns passed
-    info->Get("optimization/header/designSpace")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
+    domain->GetInfoRoot()->Get("optimization/designSpace/header")->Get(ParamNode::WARNING)->SetValue("There are designs specified that are not used!");
   }
 
   if(type_ == HOM_RECT || type_ == D_HOM_RECT)
@@ -146,15 +144,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2,
           hom_rect_coeff66_);
 
-      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1,
-          hom_rect_a_);
-      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1,
-          hom_rect_b_);
-      ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1,
-          hom_rect_c_);
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+      ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, hom_rect_c_);
       // the internal tensor representation in 3D hom_rect_samples_ is VOIGT
-      Notation notation =
-          root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+      Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       hom_rect_coeff44_ = hom_rect_coeff44_ * (notation == VOIGT ? 1.0 : 0.5);
       hom_rect_coeff55_ = hom_rect_coeff55_ * (notation == VOIGT ? 1.0 : 0.5);
       hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 1.0 : 0.5);
@@ -163,25 +157,18 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 }
 
-void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx,
-    const string& a, const string& b) {
+void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
+{
   // the internal tensor representation in hom_rect_samples_ is HILL-MANDEL!
-  Notation notation =
-      homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+  Notation notation =  homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
 
   PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
-  hom_rect_samples_[idx][DesignElement::TENSOR11 - DesignElement::TENSOR11] =
-      data->Get("e11")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR12 - DesignElement::TENSOR11] =
-      data->Get("e12")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR22 - DesignElement::TENSOR11] =
-      data->Get("e22")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR33 - DesignElement::TENSOR11] =
-      data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
-  hom_rect_samples_[idx][DesignElement::TENSOR13 - DesignElement::TENSOR11] =
-      0.0;
-  hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] =
-      0.0;
+  hom_rect_samples_[idx][DesignElement::TENSOR11 - DesignElement::TENSOR11] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR12 - DesignElement::TENSOR11] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR22 - DesignElement::TENSOR11] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][DesignElement::TENSOR33 - DesignElement::TENSOR11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][DesignElement::TENSOR13 - DesignElement::TENSOR11] = 0.0;
+  hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
 }
 
 unsigned int DesignMaterial::RequiredParameters(
@@ -1002,10 +989,10 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
-    SubTensorType subTensor, DesignElement::Type direction, Notation notation) {
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
+{
   // only relevant for hom_rect
-  Quad9FE fe;
+  // FIXME commented due to fe-space Quad9FE fe;
   double a = params_[DesignElement::STIFF1];
   double b = params_[DesignElement::STIFF2];
   double c = subTensor == FULL ? params_[DesignElement::STIFF3] : 0.0;
@@ -1043,7 +1030,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
   {
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
-      fe.GetShFnc(shape, p, NULL);
+      // FIXME commented due to fe-space  fe.GetShFnc(shape, p, NULL);
       ApplyHomRectTensor(E, shape);
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
     }
@@ -1057,9 +1044,10 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
   case DesignElement::STIFF3:
   {
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
+      /* FIXME fespace
       Matrix<double> jac;
       Matrix<double> dummy; // not used -> strange function ?! :(
-      fe.GetLocDerivShFnc(jac, p, dummy, NULL);
+      // FIXME commented due to fe-space  fe.GetLocDerivShFnc(jac, p, dummy, NULL);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
       jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by
@@ -1067,6 +1055,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
       // correct scaling to local FE coordinates
       E *= 4;
       LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
+      */
     }
     else if(type_ == HOM_RECT_C1) {
       ApplyHomRectC1Tensor(E, p,direction,subTensor);
@@ -1144,32 +1133,28 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
    }
    */
 }
-void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E,
-    const Vector<double>& shape) const {
+void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>& shape) const
+{
   E.Resize(3, 3);
   E.Init(); // for off-diagonal
   Vector<double> data;
-  hom_rect_samples_.GetCol(data,
-      DesignElement::TENSOR11 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR11 - DesignElement::TENSOR11);
   E[1 - 1][1 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data,
-      DesignElement::TENSOR12 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR12 - DesignElement::TENSOR11);
   E[1 - 1][2 - 1] = shape * data;
   E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
   LOG_DBG(dm)<< "AHRT 12=" << E[1-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data,
-      DesignElement::TENSOR22 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR22 - DesignElement::TENSOR11);
   E[2 - 1][2 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 22=" << E[2-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data,
-      DesignElement::TENSOR33 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::TENSOR33 - DesignElement::TENSOR11);
   E[3 - 1][3 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
 void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
-  PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+  PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
   int o = (subTensor == FULL) ? hom_rect_c_.GetNumRows() : 0;

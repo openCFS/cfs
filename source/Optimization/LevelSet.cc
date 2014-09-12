@@ -9,7 +9,6 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/BaseFE.hh"
-#include "Forms/linElastInt.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -380,6 +379,8 @@ void LevelSetElement::CalcBarycenterDisplacement(Vector<double> &out_u, const do
 
 double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linElastInt *bdb_form)
 {
+  assert(false);
+  /* FIXME
   static const unsigned int dim(domain->GetGrid()->GetDim());
   assert(dim == 2); // FIXME
 
@@ -390,6 +391,7 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
   
   for(unsigned int num = 0; num < 2; ++num)
   {
+
     // set B
     bdb_form->CalcBMatOnly(B, o.points[num], de_->elem);
     // LOG_DBG3(ls) << "B = " << B.ToString();
@@ -418,6 +420,8 @@ double LevelSetElement::IntegrateIntersectionObject(IntersectionObject &o, linEl
   Vector<double> difference(o.points[0]);
   difference -=  o.points[1];
   return difference.NormL2();
+  */
+  return -1.0;
 }
 
 const std::string ToString(const LevelSetElement &elem)
@@ -478,9 +482,7 @@ LevelSet::LevelSet(Optimization* opt, PtrParamNode pn) :
   assert(design_ != NULL);
 
   // cache the element widths, assumes a uniform grid!!
-  Matrix<double> coords;
-  domain->GetGrid()->GetElemNodesCoord(coords, (*design_)[0].elem->connect, false );
-  (*design_)[0].elem->ptElem->GetEdgeLength(coords, edge_length_);
+  domain->GetGrid()->GetElemShapeMap((*design_)[0].elem, false)->GetEdgeLength(edge_length_);
   assert(edge_length_.GetSize() == (domain->GetGrid()->GetDim() == 2) ? 2 : 3);
   LOG_DBG(ls) << "edge_length_: x = " << edge_length_[0] << ", y = " << edge_length_[1];
   if(edge_length_.GetSize() == 3)
@@ -1071,14 +1073,16 @@ void LevelSet::AddOrderedLevelsetNodesToLevelsetElement(LevelSetElement &lse)
   point_coords.reserve(nn);
   
   Point tmpPoint; // Points are always 3D!
-  domain->GetGrid()->GetNodeCoordinate(tmpPoint, cfs_node_numbers[0], false);
+  assert(false);
+  // FIXME domain->GetGrid()->GetNodeCoordinate(tmpPoint, cfs_node_numbers[0], false);
   double mins[3] = { tmpPoint.data[0], tmpPoint.data[1], tmpPoint.data[2] };
   point_coords.push_back(tmpPoint);
   
   for(unsigned int s = 1; s < nn; ++s)
   {
     // get coordinates for all the points sorted as in cfs_node_numbers
-    domain->GetGrid()->GetNodeCoordinate(tmpPoint, cfs_node_numbers[s], false);
+    assert(false);
+    // FIXME domain->GetGrid()->GetNodeCoordinate(tmpPoint, cfs_node_numbers[s], false);
     // remember the minimal coordinates for sorting
     for(unsigned int i = 0; i < 3; ++i)
     {

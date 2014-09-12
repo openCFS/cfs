@@ -189,7 +189,7 @@ std::string BaseOptimizer::Scale::ToString()
 BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::Optimizer type) :
   optimization(opt),
   type_(type),
-  info_(info->Get("optimization")->Get("optimizer")),
+  info_(domain->GetInfoRoot()->Get("optimization")->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
   timer_(new Timer()),
@@ -223,7 +223,7 @@ void BaseOptimizer::SolveOptimizationProblem()
   SolveProblem();
 
   // dirty fix to have the final status streamed for iTop
-  if(domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
+  if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
     optimization->CommitIteration(true);
 
   timer_->Stop();
@@ -301,7 +301,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = true;
     
     // tell assemble, the design has changed
-    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble();    
+    domain->GetBasePDE()->GetAssemble()->SetAllReassemble();    
 
     // does a lot of work.
     optimization->SolveStateProblem();

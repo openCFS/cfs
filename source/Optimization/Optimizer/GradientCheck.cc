@@ -175,7 +175,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 1 || x_dir_1 == 1)
   {
     de->SetDesign(x_eval_1);
-    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
+    domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
     optimization->SolveStateProblem();
     optimization->SolveAdjointProblems();
     f_x1 = optimization->CalcObjective();
@@ -186,7 +186,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 2 && x_dir_2 == 1)
   {
     de->SetDesign(x_eval_2);
-    domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
+    domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
     optimization->SolveStateProblem(); // expensive
     optimization->SolveAdjointProblems();
     f_x2 = optimization->CalcObjective();
@@ -194,7 +194,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
 
   // reset design
   de->SetDesign(x_org);
-  domain->GetBasePDE()->getPDE_assemble()->SetAllReassemble(); // tell assemble design has changed    
+  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
 
   if (order == 1)
   {

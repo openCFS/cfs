@@ -24,7 +24,7 @@ namespace CoupledField
 {
 
 class AcousticPDE;
-class BaseForm;
+class BiLinForm;
 class DesignSpace;
 class ElecPDE;
 class ErsatzMaterial;
@@ -84,7 +84,7 @@ protected:
    * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
    * @param elem if not given the first design element is used, otherwise the provided one
    * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BaseForm* form, Matrix<double>& out, const Elem* elem = NULL,
+  void GetElementMatrix(BiLinForm* form, Matrix<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
@@ -118,7 +118,7 @@ protected:
 private:
 
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
-  void GetElementEntity(BaseForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
+  void GetElementEntity(BiLinForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
@@ -159,6 +159,7 @@ public:
   /** The the rhs-contribution for full material for the current test strain. There is no caching!
    * @param testStrain optional value, otherwise the current set excitation set. You need it for homogenization! */
   const Vector<double>& MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain = MechPDE::NOT_SET);
+
 
 protected:  
   /** The mechanical element stiffness matrix is constant.

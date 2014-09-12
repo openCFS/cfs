@@ -165,7 +165,7 @@ namespace CoupledField {
     // ****************************
     //   Generate solution report
     // ****************************
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalPrecondResNorm")->SetValue(norm_new);
     

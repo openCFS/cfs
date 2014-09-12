@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 
+#include "Optimization/Design/DesignElement.hh"
 #include "Environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
@@ -416,6 +417,13 @@ namespace CoupledField {
 
       case SMOOTH_VELOCITY:
         return "m/s";
+        break;
+
+      case MECH_PSEUDO_DENSITY:
+      case PHYSICAL_PSEUDO_DENSITY:
+      case ELEC_PHYSICAL_PSEUDO_DENSITY:
+      case LBM_PHYSICAL_PSEUDO_DENSITY:
+        return "";
         break;
 
       default:
@@ -1152,6 +1160,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
 
+    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
+    SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
+    SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
+    SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
+
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
     SolutionTypeEnum.Add(ELEC_FIELD_INTENSITY, "elecFieldIntensity");
@@ -1160,8 +1174,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
-    SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
-    SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
@@ -1169,6 +1181,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
+
+    SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
+    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
+    SolutionTypeEnum.Add(ELEC_TENSOR, "elecTensor");
+    SolutionTypeEnum.Add(ELEC_TENSOR_TRACE, "elecTensorTrace");
+
     //smoothing PDE
     SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");
     SolutionTypeEnum.Add(SMOOTH_VELOCITY, "smoothVelocity");
@@ -1297,6 +1315,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_7, "optResult_7");
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
+    SolutionTypeEnum.Add(OPT_RESULT_10, "optResult_10");
+    SolutionTypeEnum.Add(OPT_RESULT_11, "optResult_11");
+    SolutionTypeEnum.Add(OPT_RESULT_12, "optResult_12");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
@@ -1315,6 +1336,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
     SolutionTypeEnum.Add(JACOBIAN, "jacobian");
     SolutionTypeEnum.Add(ASPECT_RATIO, "aspectRatio");
+
+    //LBM velocity
+    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
+    SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
+    SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
+    SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
@@ -1445,4 +1474,12 @@ namespace CoupledField {
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
+}
+
+
+/** declared in DesignElement.hh, required in StdVector.cc. Here due to circular includes which would happen otherwise */
+std::ostream & operator << ( std::ostream & out, const DesignID& id)
+{
+  out << id.design;
+  return out;
 }

@@ -119,7 +119,7 @@ namespace CoupledField {
 //      //        ptgrid_       = PDE_.getPDE_grid();
 //      algsys_       = PDE_.getPDE_algsys();
 //      //        sol_          = PDE_.getPDESolution();
-//      //        assemble_     = PDE_.getPDE_assemble();
+//      //        assemble_     = PDE_.GetAssemble();
 //      //        TS_alg_       = PDE_.getTimeStepping();
 //
 //

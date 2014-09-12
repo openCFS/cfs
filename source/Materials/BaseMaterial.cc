@@ -276,7 +276,24 @@ namespace CoupledField
   }
 
 
-  void BaseMaterial::ToInfo(PtrParamNode in)
+  void BaseMaterial::StoreTensor(PtrParamNode in, bool isComplex, const Matrix<Complex>& mat)
+  {
+    // get the tensor by default as complex
+    if(isComplex)
+    {
+      if(mat.GetPart(Global::IMAG).NormL2() == 0.0)
+        in->SetValue(mat.GetPart(Global::REAL));
+      else
+        in->SetValue(mat);
+    }
+    else
+    {
+      in->SetValue(mat.GetPart(Global::REAL));
+    }
+  }
+
+
+  void BaseMaterial::ToInfo(PtrParamNode in, SubTensorType stt, const Vector<Double>* rot)
   {
     set<MaterialType>::iterator iter;
 
@@ -296,14 +313,27 @@ namespace CoupledField
       PtrParamNode in_ = in->Get("property", ParamNode::APPEND);
       in_->Get("name")->SetValue(MaterialTypeEnum.ToString(mt));
 
+      if(rot != NULL && rot->NormMax() > 0)
+      {
+        assert(rot->GetSize() == 3);
+        PtrParamNode rot_ = in_->Get("rotation");
+        rot_->Get("alpha")->SetValue((*rot)[0]);
+        rot_->Get("beta")->SetValue((*rot)[1]);
+        rot_->Get("gamma")->SetValue((*rot)[2]);
+      }
+
       if(posTens != tensorParams_.end())
       {
-        // get the tensor by default as complex
-        if(isComplex)
-          in_->Get("tensor")->SetValue(posTens->second);
-        else
+        const Matrix<Complex>& mat = posTens->second;
+        StoreTensor(in_->Get("tensor"), isComplex, mat);
+
+        // e.g. in the flatShellPlateEV test case we have NO_TENSOR which cannot be
+        // handled by ComputeSubTensor()
+        if(stt != FULL && stt != NO_TENSOR) // electrostatic is NO_TENSOR
         {
-          in_->Get("tensor")->SetValue(posTens->second.GetPart(Global::REAL));
+          Matrix<Complex> sub_mat;
+          ComputeSubTensor(sub_mat, mt, stt);
+          StoreTensor(in_->Get("subtensor"), isComplex, sub_mat);
         }
       }
 
@@ -827,6 +857,26 @@ namespace CoupledField
       alpha = alphaOrig;
       beta = betaOrig;
     }
+  }
+
+
+  MaterialType BaseMaterial::ConvertMaterialClass(MaterialClass mc)
+  {
+    switch(mc)
+    {
+    case MECHANIC:
+      return MECH_STIFFNESS_TENSOR;
+    case PIEZO:
+      return PIEZO_TENSOR;
+    case ELECTROSTATIC:
+      return MECH_STIFFNESS_TENSOR;
+    default:
+      assert(false); // implement for your needs!
+      break;
+    }
+
+    assert(false);
+    return NO_MATERIAL;
   }
 
 

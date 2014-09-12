@@ -33,7 +33,7 @@ SimOutputStreaming::SimOutputStreaming(PtrParamNode outputNode,
   if(outputNode->Has("silent"))
     silent_ = outputNode->Get("silent")->As<bool>();
 
-  info_root = myInfo_->Get("streaming")->Get(ParamNode::PN_PROCESS); // TODO!
+  info_root = myInfo_->Get("streaming")->Get(ParamNode::PROCESS); // TODO!
 }
 
 SimOutputStreaming::~SimOutputStreaming()

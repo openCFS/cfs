@@ -64,7 +64,7 @@ namespace CoupledField {
     param_ = param_->Get("transient");
 
     info_ = info_->Get("transient");
-    info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("s");
+    info_->Get(ParamNode::HEADER)->Get("unit")->SetValue("s");
     
     // for the evaluation of deltaT, we make use of math Parser to
     // allow variable definitions of time step size
@@ -225,7 +225,7 @@ namespace CoupledField {
 
       // do we really want to create a new entry? Might blast up the output
       ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", at);
+      analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", at);
       analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
         
       analysis_id_->Get("step")->SetValue(actTimeStep_);
@@ -267,7 +267,7 @@ namespace CoupledField {
         
         analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = info_->GetRoot()->
-            Get(ParamNode::PN_HEADER)->Get("environment");
+            Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
         envNode->Get("remainingTime")->SetValue(remainingTime);
       }

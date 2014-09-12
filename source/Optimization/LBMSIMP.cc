@@ -1,7 +1,7 @@
 #include "Optimization/LBMSIMP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
-#include "PDE/LatticeBoltzmannPDE.hh"
+// FIXME #include "PDE/LatticeBoltzmannPDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
@@ -9,11 +9,12 @@ DECLARE_LOG(simp)
 
 LBMSIMP::LBMSIMP()
 {
+  /* FIXME
   lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
 
   for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
     GetForm(design->GetRegionIds()[r], lbm, lbm, "LatticeBoltzmannInt")->SetSolDependent(true);
-
+  */
 }
 
 LBMSIMP::~LBMSIMP()
@@ -24,7 +25,7 @@ LBMSIMP::~LBMSIMP()
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
   LOG_DBG(simp) << "SSP -> solve";
-  lbm->Solve();
+  // FIXME lbm->Solve();
 
 }
 
@@ -40,6 +41,7 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
   case Function::PRESSURE_DROP:
   {
+    /* FIXME
     if(!derivative)
       return lbm->CalcPressureDrop();
     else
@@ -57,6 +59,7 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       }
       return 0.0;
     }
+    */
   }
   break;
 

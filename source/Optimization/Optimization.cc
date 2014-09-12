@@ -14,7 +14,7 @@
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/HarmonicDriver.hh"
-#include "Forms/LinearForm.hh"
+#include "Forms/LinForms/LinearForm.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Optimization/Design/DesignElement.hh"
@@ -83,7 +83,7 @@ Optimization::Optimization()
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
-  this->harmonic = BasePDE::IsComplex(domain->GetDriver()->GetAnalysisType()); // no multi-sequence
+  this->harmonic = domain->GetDriver()->IsComplex(); // no multi-sequence
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
@@ -95,28 +95,28 @@ Optimization::Optimization()
   if(driver->GetDriverClass() != BaseDriver::SINGLE_DRIVER)
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
 
-  optInfoNode = info->Get("optimization");   // store our info results here
-  PtrParamNode pn = param->Get("optimization"); // read our parameters from the xml file
+  optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
+  PtrParamNode pn = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
   
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = pn->Has("firstStepStatic");
   if(firstStepStatic){
-    otherStepWeight = 1.0 - pn->Get("firstStepStatic")->Get("weight")->As<Double>();
+    otherStepWeight = 1.0 - pn->Get("firstStepStatic/weight")->As<Double>();
   }else{
     otherStepWeight = 1.0;
   }
 
   // the tool to solve the optimization problem
-  optimizer_ = optimizer.Parse(pn->Get("optimizer")->Get("type")->As<string>());
-  maxIterations = pn->Get("optimizer")->Get("maxIterations")->As<Integer>();
+  optimizer_ = optimizer.Parse(pn->Get("optimizer/type")->As<string>());
+  maxIterations = pn->Get("optimizer/maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
   objectives.Read(pn->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial")->Get("material")->As<string>()));
+  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial/material")->As<string>()));
 
-  this->assemble_ = pde->getPDE_assemble();
+  this->assemble_ = pde->GetAssemble();
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
@@ -126,8 +126,8 @@ Optimization::Optimization()
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
-  bool dme = pn->Get("costFunction")->Get("multiple_excitation")->As<bool>();
-  this->me = new MultipleExcitation(dme, dme ? pn->Get("costFunction")->Get("multipleExcitation", ParamNode::PASS) : PtrParamNode());
+  bool dme = pn->Get("costFunction/multiple_excitation")->As<bool>();
+  this->me = new MultipleExcitation(dme, dme ? pn->Get("costFunction/multipleExcitation", ParamNode::PASS) : PtrParamNode());
   if(dme) this->me->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
@@ -152,11 +152,11 @@ Optimization::Optimization()
   log.Init(pn->Get("log")->As<string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
 
   // the commit stuff
-  string cm = pn->Has("commit") ? pn->Get("commit")->Get("mode")->As<string>() : "forward";
+  string cm = pn->Has("commit") ? pn->Get("commit/mode")->As<string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
-  this->commitStride = pn->Has("commit") ? pn->Get("commit")->Get("stride")->As<Integer>() : 1;
-  optInfoNode->Get("commit")->Get("mode")->SetValue(cm);
-  optInfoNode->Get("commit")->Get("stride")->SetValue(commitStride);
+  this->commitStride = pn->Has("commit") ? pn->Get("commit/stride")->As<Integer>() : 1;
+  optInfoNode->Get("commit/mode")->SetValue(cm);
+  optInfoNode->Get("commit/stride")->SetValue(commitStride);
   
   // write out the directory where the HALTOPT file will be searched for
   optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().string());
@@ -179,7 +179,7 @@ Optimization::~Optimization()
 
 void Optimization::PostInitSecond()
 {
-  PtrParamNode opt = param->Get("optimization")->Get("optimizer");
+  PtrParamNode opt = domain->GetParamRoot()->Get("optimization/optimizer");
 
   switch(optimizer_)
   {
@@ -516,11 +516,13 @@ Optimization* Optimization::CreateInstance()
   DesignElement::SetEnums();
   DesignMaterial::SetEnums();
 
+  PtrParamNode param = domain->GetParamRoot();
+
   if(!param->Has("optimization")) return NULL;
 
   // we assume ersatz material, currently there is nothing else.
   // note, we read method again in the ersatz material constructor.
-  PtrParamNode em = param->Get("optimization")->Get("ersatzMaterial");
+  PtrParamNode em = param->Get("optimization/ersatzMaterial");
 
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
   OptimizationMaterial::System material = OptimizationMaterial::system.Parse(em->Get("material")->As<string>());
@@ -641,18 +643,22 @@ void Optimization::SolveStateProblem(Excitation* excite)
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
-    mech->ReReadResults();
+    assert(false);
+    // FIXME mech->ReReadResults();
     design->AppendOptimizationResults(mech);
-    mech->GetSolveStep()->ReInit();
+    assert(false);
+    // FIXME mech->GetSolveStep()->ReInit();
   }
                                          
   // Do not store the results. This is to be done in CommitIteration
-  if(!harmonic || excite == NULL) 
-    driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
+  if(!harmonic || excite == NULL)
+    assert(false);
+    // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   else
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
-    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+    assert(false);
+    // FIXME dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
   }
 
   problemSolvedCounter++;
@@ -661,18 +667,22 @@ void Optimization::SolveStateProblem(Excitation* excite)
 
 void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
-  BaseDriver* driver = domain->GetDriver();
+  assert(false);
+  // FIXME BaseDriver* driver = domain->GetDriver();
   
   AdjointParameters adjointParams(f, excite);
   
   if(IsTransient()){
+    assert(false);
+    /* FIXME
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
-    mech->GetSolveStep()->ReInit();
+    mech->GetSolveStep()->ReInit(); */
   }
 
   // Do not store the results. This is adjoint.
-  if(!harmonic) 
-    driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
+  if(!harmonic)
+    assert(false);
+    // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
     EXCEPTION("Harmonic adjoint not implemented!");
 }
@@ -1080,19 +1090,27 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
 LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const string& integrator, Global::ComplexPart entryType)
 {
-  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
-  return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
+  assert(false);
+  return NULL;
+  // FIXME Assemble* ass = domain->GetBasePDE()->GetAssemble();
+  // FIXME return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
 }
 
 
 BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
-  Assemble* ass = domain->GetBasePDE()->getPDE_assemble();
-  return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
+
+  assert(false);
+  return NULL;
+  // FIXME Assemble* ass = domain->GetBasePDE()->GetAssemble();
+  // FIXME return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
 }
 
-BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
+BiLinForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
 {
+  assert(false);
+  return NULL;
+  /* FIXME
   if (pde2 != NULL){
     BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
     return bc != NULL ? bc->GetIntegrator() : NULL;
@@ -1101,9 +1119,10 @@ BaseForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPD
     LinearFormContext* bc = GetLinearFormContext(regionId, pde1, integrator, entryType);
     return bc != NULL ? bc->GetIntegrator() : NULL;
   }
+  */
 }
 
-BaseForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
+BiLinForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
 {
   Application a1, a2;
   string integrator = "";
@@ -1132,8 +1151,9 @@ BaseForm* Optimization::GetForm(const RegionIdType reg, Application app1, Applic
 
   assert(integrator != "");
 
-  SinglePDE* pde1 = ToPDE(a1, throw_exception);
-  SinglePDE* pde2 = ToPDE(a2, throw_exception);
+  assert(false);
+  SinglePDE* pde1 = NULL; // FIXME ToPDE(a1, throw_exception);
+  SinglePDE* pde2 = NULL; // FIXME ToPDE(a2, throw_exception);
 
   if(pde1 == NULL || pde2 == NULL)
   {

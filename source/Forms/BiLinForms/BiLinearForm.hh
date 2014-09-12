@@ -69,7 +69,7 @@ class BiLinearForm{
       virtual void SetFeSpace( shared_ptr<FeSpace> feSpace )=0;
 
       //! Return name of bilinear form
-      std::string GetName(){
+      const std::string& GetName() const {
         return name_;
       }
 

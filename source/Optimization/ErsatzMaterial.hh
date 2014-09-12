@@ -509,11 +509,13 @@ protected:
       bool save_sol, DERIVType derivative, const std::string& comment);
   virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
   virtual void RhsCalculated(AdjointParameters* adjParams);
+
   /** Is the current system test strain excitated? True for special test case and homogenization */
   bool IsStrainExcitedSystem() const;
+
   /** Helper that gives the physical material tensor considers bi-material */
-  void GetPhysicalMaterial(BaseForm* form, const DesignElement* de,
-      const TransferFunction* tf, bool derivative, Matrix<double>& out);
+  void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
+
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
