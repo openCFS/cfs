@@ -2194,13 +2194,14 @@ namespace CoupledField {
                                      bool isComplex,
                                      StdVector<shared_ptr<EntityList> >& entities, 
                                      StdVector<PtrCoefFct >& coef,
-                                     bool& updateGeo ) {
+                                     bool& updateGeo,
+                                     PtrParamNode input) {
 
     // get grip of all elements of that type
-    if( !myParam_->Has("bcsAndLoads") )
+    if(!input && !myParam_->Has("bcsAndLoads") )
       return;
 
-    ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+    ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
 
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());

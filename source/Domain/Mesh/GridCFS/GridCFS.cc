@@ -2262,76 +2262,76 @@ namespace CoupledField {
 
   void GridCFS::FindElementNeighorhood()
   {
-    WARN("GridCFS::FindElementNeighorhood needs to be refactored");
-    
-//    // check if already filled.
-//    if(orderedElems_[0]->neighborhood != NULL) return;
-//
-//    // this is expensive but still O(n)
-//    // for all nodes we store the elements where they participate
-//    StdVector<StdVector<Elem*> > nodes;
-//    // we assume that the all nodes are consecutive and start with 0 or 1!
-//    nodes.Resize(numNodes_ + 1);
-//    for(unsigned int e = 0; e < numElems_; e++)
-//    {
-//      Elem* elem = orderedElems_[e];
-//      // add this elem to every node
-//      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
-//        nodes[elem->connect[n]].Push_back(elem);
-//    }
-//
-//    LOG_DBG3(gridcfs) << "FEN: nodes=" << nodes.ToString();
-//
-//    // this is a temporary neighborhood, copied to the elements when the size is known.
-//    StdVector<std::pair<Elem*, int> > neighborhood;
-//    // this is the temporary pair, as we cannot construct it within StdVector::Push_back()
-//    std::pair<Elem*, int> pair(NULL, 0);
-//
-//    // now add to all elements the neighborhood
-//    for(unsigned int e = 0; e < numElems_; e++)
-//    {
-//      Elem* elem = orderedElems_[e];
-//      neighborhood.Resize(0); // TODO -> keep capacity
-//
-//      // process the elements which are connected to our nodes
-//      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
-//      {
-//        const unsigned int curr_n = elem->connect[n];
-//        StdVector<Elem*>& list = nodes[curr_n];
-//        // check for duplicity of the elements
-//        for(unsigned int c = 0, nc = list.GetSize(); c < nc; c++)
-//        {
-//          Elem* cand = list[c];
-//          if(cand == elem) continue; // we are not a neighbour of ourself
-//          assert(cand->elemNum != elem->elemNum);
-//
-//          // if cand is new to neighborhood we add it with counter = 1,
-//          // otherwise increment the counter
-//          bool found = false;
-//          for(unsigned int o = 0; o < neighborhood.GetSize() && ! found; o++)
-//          {
-//            if(neighborhood[o].first == cand)
-//            {
-//              neighborhood[o].second++;
-//              found = true;
-//            }
-//          }
-//          // add this element if new
-//          if(!found)
-//          {
-//            pair.first = cand;
-//            pair.second = 1;
-//            neighborhood.Push_back(pair);
-//          }
-//        }
-//      }
-//
-//      // neighborhood is filled now, copy it to elem
-//      assert(neighborhood.GetSize() > 0); // assume there is no single element case
-//      elem->neighborhood = new StdVector<std::pair<Elem*, int> >(neighborhood);
-//
-//      LOG_DBG2(gridcfs) << "FEN: elem=" << elem->elemNum << " neighbourhood=" << elem->neighborhood->ToString();
-//    }
+    // TODO: This is from the legacy code -> replace with ShapeMap concept!
+
+    // check if already filled.
+    if(orderedElems_[0]->neighborhood != NULL) return;
+
+    // this is expensive but still O(n)
+    // for all nodes we store the elements where they participate
+    StdVector<StdVector<Elem*> > nodes;
+    // we assume that the all nodes are consecutive and start with 0 or 1!
+    nodes.Resize(numNodes_ + 1);
+    for(unsigned int e = 0; e < numElems_; e++)
+    {
+      Elem* elem = orderedElems_[e];
+      // add this elem to every node
+      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
+        nodes[elem->connect[n]].Push_back(elem);
+    }
+
+    LOG_DBG3(gridcfs) << "FEN: nodes=" << nodes.ToString();
+
+    // this is a temporary neighborhood, copied to the elements when the size is known.
+    StdVector<std::pair<Elem*, int> > neighborhood;
+    // this is the temporary pair, as we cannot construct it within StdVector::Push_back()
+    std::pair<Elem*, int> pair(NULL, 0);
+
+    // now add to all elements the neighborhood
+    for(unsigned int e = 0; e < numElems_; e++)
+    {
+      Elem* elem = orderedElems_[e];
+      neighborhood.Resize(0); // TODO -> keep capacity
+
+      // process the elements which are connected to our nodes
+      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
+      {
+        const unsigned int curr_n = elem->connect[n];
+        StdVector<Elem*>& list = nodes[curr_n];
+        // check for duplicity of the elements
+        for(unsigned int c = 0, nc = list.GetSize(); c < nc; c++)
+        {
+          Elem* cand = list[c];
+          if(cand == elem) continue; // we are not a neighbour of ourself
+          assert(cand->elemNum != elem->elemNum);
+
+          // if cand is new to neighborhood we add it with counter = 1,
+          // otherwise increment the counter
+          bool found = false;
+          for(unsigned int o = 0; o < neighborhood.GetSize() && ! found; o++)
+          {
+            if(neighborhood[o].first == cand)
+            {
+              neighborhood[o].second++;
+              found = true;
+            }
+          }
+          // add this element if new
+          if(!found)
+          {
+            pair.first = cand;
+            pair.second = 1;
+            neighborhood.Push_back(pair);
+          }
+        }
+      }
+
+      // neighborhood is filled now, copy it to elem
+      assert(neighborhood.GetSize() > 0); // assume there is no single element case
+      elem->neighborhood = new StdVector<std::pair<Elem*, int> >(neighborhood);
+
+      // LOG_DBG2(gridcfs) << "FEN: elem=" << elem->elemNum << " neighbourhood=" << elem->neighborhood->ToString();
+    }
   }
 
 
@@ -2967,26 +2967,21 @@ namespace CoupledField {
     }
   } 
 
+  double GridCFS::CalcVolumeOfRegion(const RegionIdType regionId, bool updated)
+  {
+    StdVector<Elem*> elems;
+    GetElems(elems,regionId);
 
-  Double GridCFS::CalcVolumeOfRegion( const RegionIdType regionId,
-                                      bool isaxi,
-                                      bool updated ) {
-    EXCEPTION( "Implement me");
-    
-    // get element shape map
-//    StdVector<Elem*> elems;
-//    Matrix<Double> cornerCoords;
-//    Double volume = 0.0;
-//
-//    GetElems(elems,regionId);
-//
-//    for( UInt i = 0; i < elems.GetSize(); i++ ) {
-//      GetElemNodesCoord(cornerCoords, elems[i]->connect, updated );
-//      volume += elems[i]->ptElem->CalcVolume(cornerCoords, isaxi);
-//    }
+    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elems[0], false);
+    double volume = 0.0;
 
-    //return volume;
-    return -1.0;
+    for(unsigned int i = 0, n = elems.GetSize(); i < n; i++ )
+    {
+      esm->SetElem(elems[i], updated);
+      volume += esm->CalcVolume();
+    }
+
+    return volume;
   }
   
   Double GridCFS::CalcVolumeOfEntityList( shared_ptr<EntityList> ent,

@@ -6,11 +6,13 @@
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "Domain/Domain.hh"
-#include "Domain/ElemMapping/Elem.hh"
-#include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
+#include "Domain/ElemMapping/Elem.hh"
+#include "Domain/ElemMapping/EntityLists.hh"
+#include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -45,6 +47,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
 
+  method_ = method;
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
   // for convenience
@@ -54,7 +57,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   designMaterial = NULL;
   applicationForm.SetName("DesignSpace::ApplicationForm");
   applicationForm.Add(Optimization::ELEC, "linGradBDBInt");
-  applicationForm.Add(Optimization::MECH, "linElastInt");
+  applicationForm.Add(Optimization::MECH, "LinElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(Optimization::MECH, "MechStressStrain", false);
   applicationForm.Add(Optimization::MECH, "PiezoStressStrain", false);
@@ -120,15 +123,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
       throw Exception("less transferFunctions than design variable types is infeasible");
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
-    // check for mass if we have harmonic and density
-    if(domain->GetBasePDE()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
-      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silend
-      if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
-        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
-        PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-        in->SetValue("no transfer function 'mass' given for harmonic model");
-      }
-    }
+    // check for mass if we have harmonic and density in PostInit() before the pde's are not ready
   }
   else
   {
@@ -379,6 +374,19 @@ DesignSpace* DesignSpace::Clone()
 
 void DesignSpace::PostInit(int objectives, int constraints)
 {
+  if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
+  {
+    if(domain->GetBasePDE()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silent
+      if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
+        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
+        PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
+        in->SetValue("no transfer function 'mass' given for harmonic model");
+      }
+    }
+  }
+
+
   LOG_DBG(designSpace) << "# objectives = " << objectives << ", # constraints = " << constraints;
   DesignElement::SetDesignSpace(this);
   for(unsigned int i = 0, n = totalElements_.GetSize(); i < n; i++)
@@ -584,6 +592,7 @@ void DesignSpace::AssertOneDesignOnly()
   if(design.GetSize() != 1)
     throw Exception("A feature relies on a single design only!");
 }
+
 int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
 {
   // do a fallback for NO_TYPE and DEFAULT
@@ -600,6 +609,27 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
     EXCEPTION("Design " << DesignElement::type.ToString(dt) << " not within " << design.GetSize() << " actual designs.");
   return base;
 }
+
+/** Performs the optimization.
+ * @return true if design and coefMat is set */
+bool DesignSpace::TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm)
+{
+  // we cannot check for the region here, if form is a linear form (e.g.
+  // pressure) but the design variable comes from elements one dimension higher
+  int idx = Find(lpm->ptEl->elemNum, false);
+  if(idx == -1)
+    return false;
+
+  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+
+  double factor = GetErsatzMaterialFactor(idx, app, false); // FIXME ignore bi-material
+  coef->orgMat->GetTensor(retMat, *lpm);
+  retMat *= factor;
+
+  return true;
+}
+
+
 double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
@@ -747,7 +777,7 @@ bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* ele
   if(CollectMaterialParametersForElement(elem)){
     double dummy = 0.0;
     if(form->GetName() == "MassInt") return(designMaterial->GetMaterialDamping(param, dummy));
-    if(form->GetName() == "linElastInt") return(designMaterial->GetMaterialDamping(dummy, param));
+    if(form->GetName() == "LinElastInt") return(designMaterial->GetMaterialDamping(dummy, param));
   }
   return(false);
   */
@@ -1263,18 +1293,22 @@ unsigned int DesignSpace::GetNumberOfVariables() const
   }
   return n;
 }
-int DesignSpace::FindRegion(RegionIdType regionId){
-  if(regions.GetSize() > 0){
+
+int DesignSpace::FindRegion(RegionIdType regionId) const
+{
+  if(regions.GetSize() > 0)
+  {
     const StdVector<DesignRegion>& regs = regions[0];
     const unsigned int nr = regs.GetSize();
-    for(unsigned int r = 0; r < nr; r++){
-      if(regs[r].regionId == regionId){
+    for(unsigned int r = 0; r < nr; r++)
+    {
+      if(regs[r].regionId == regionId)
         return r;
-      }
     }
   }
   return -1;
 }
+
 template <class T>
 void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
 {
@@ -1570,17 +1604,11 @@ BaseMaterial* MultiMaterial::GetMultiMaterial(const MaterialClass mc)
 
 
 // explicit template instantiation for GCC compiler
-#ifdef __GNUC__
-template
-void DesignSpace::ExtractResults<double>(shared_ptr<BaseResult> base_result);
-template
-void DesignSpace::ExtractResults<complex<double> >(shared_ptr<BaseResult> base_result);
-template
-void DesignSpace::FillNodeResults<double>(Result<double>& result, ResultDescription& descr);
-template
-void DesignSpace::FillNodeResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
-template
-void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
-template
-void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template void DesignSpace::ExtractResults<double>(shared_ptr<BaseResult> base_result);
+template void DesignSpace::ExtractResults<complex<double> >(shared_ptr<BaseResult> base_result);
+template void DesignSpace::FillNodeResults<double>(Result<double>& result, ResultDescription& descr);
+template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
+template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
 #endif

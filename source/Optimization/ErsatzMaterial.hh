@@ -42,7 +42,6 @@ class DesignDependentRHS;
 class DesignStructure;
 class OptimizationMaterial;
 class SinglePDE;
-class StdPDE;
 class TransferFunction;
 struct SurfElem;
 
@@ -123,8 +122,10 @@ public:
 
     typedef enum
     {
-      ELEMENT_VECTORS, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR, GRIDELEM_VECTORS
+      ELEMENT_VECTORS = 0, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR, GRIDELEM_VECTORS
     } StorageType;
+
+    static SolutionType GetSolutionType(SinglePDE* pde, Application app = NO_APP);
 
     /** Copies the solution for the pde in our own storage.
      * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
@@ -135,19 +136,19 @@ public:
      * @param app redundant to pde. NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
      * @param save_sol when an adjoint system was solved, one has to call
      *        "SaveSolution()" in the pde such that we can extract it element wise.
-     *        Only relevant for st = ELEMENT_VECTORS
+     *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app = NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+    SingleVector* Read(StorageType st, SinglePDE* pde, Application app = NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
     
     /** Writes the solution (raw vector) back to the pde */
-    void Write(StdPDE* pde);
+    void Write(SinglePDE* pde);
 
-    static void Write(StdPDE* pde, SingleVector* vec);
+    static void Write(SinglePDE* pde, SingleVector* vec);
 
     /** average the raw solutions by the excitations.
      * @param excitations average or solution by one entry only. Is strictly speaking already known
      * by the em_ parameter but is more explicit this way.  */
-    static void Write(StdPDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
+    static void Write(SinglePDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
 
     /** return an existing nodal vector.
      * As the type is not known we cannot create on the fly.
@@ -177,14 +178,14 @@ public:
 
   private:
     template<class T>
-    SingleVector* Read(StorageType st, StdPDE* pde, Application app,
+    SingleVector* Read(StorageType st, SinglePDE* pde, Application app,
         bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
 
     template<class T>
-    void Write(StdPDE* pde);
+    void Write(SinglePDE* pde);
 
     template<class T>
-    static void Write(StdPDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
+    static void Write(SinglePDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
 
     /** common helper for the Get*Vector() stuff */
     template<class T>

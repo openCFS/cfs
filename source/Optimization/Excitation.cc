@@ -100,8 +100,10 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
   // objective function block
 
   int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
-  assert(false);
-  int num_loads = -1; // FIXME pde->GetAssemble()->GetLoads().GetSize(); // to be faked later for homogenization test strains
+
+  pde->GetAssemble()->GetLinForms().GetSize();
+
+  int num_loads = pde->GetAssemble()->GetLinForms().GetSize();  // to be faked later for homogenization test strains
 
   ParamNodeList pnexcitations;
 
@@ -427,11 +429,11 @@ void Excitation::Apply()
   domain->GetOptimization()->applied_excitation = this;
   Assemble* a = domain->GetBasePDE()->GetAssemble();
   a->SetLinForms(linForms); // this works always, if not used just a copy of assembles linearForms
-  assert(false);
-  /* FIXME
   if(! loads.IsEmpty()){
-    a->SetLoads(loads);
-  } */
+    assert(false);
+    // FIXME
+    // a->SetLoads(loads);
+  }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
 }
@@ -493,7 +495,18 @@ void Excitation::ReadTrackings(PtrParamNode ts){
 
 void Excitation::ReadLoads(PtrParamNode ls)
 {
-  assert(false);
+  loads.Clear();
+
+  SinglePDE* mech = domain->GetSinglePDE("mechanic");
+  StdVector<std::string> comp;
+  comp.Push_back("x");
+  comp.Push_back("y");
+  comp.Push_back("z");
+  StdVector<PtrCoefFct > coef;
+  bool update_geo;
+
+  mech->ReadRhsExcitation("force", comp, ResultInfo::VECTOR, mech->IsComplex(), loads, coef, update_geo, ls);
+
   /* FIXME
   // loads
   loads.Clear();

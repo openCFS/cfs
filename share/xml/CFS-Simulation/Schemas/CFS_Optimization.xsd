@@ -94,7 +94,7 @@
             <xsd:element name="trackings" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
-                  <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+                  <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
                 </xsd:sequence>
               </xsd:complexType>
               <xsd:unique name="uTracking">
@@ -144,16 +144,16 @@
                               <xsd:element name="loads" minOccurs="1" maxOccurs="1">
                                 <xsd:complexType>
                                   <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                                    <xsd:element name="load"           type="DT_MechLoad"      />
-                                    <xsd:element name="pressure"       type="DT_MechPressure"  />
-                                    <xsd:element name="regionLoad"     type="DT_MechRegionLoad"/>
+                                    <xsd:element name="load"           type="DT_Load"      />
+                                    <xsd:element name="pressure"       type="DT_Load"  />
+                                    <xsd:element name="regionLoad"     type="DT_Load"/>
                                   </xsd:choice>
                                 </xsd:complexType>
                               </xsd:element>
                               <xsd:element name="trackings" minOccurs="0" maxOccurs="1">
                                 <xsd:complexType>
                                   <xsd:sequence>
-                                    <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
+                                    <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
                                   </xsd:sequence>
                                 </xsd:complexType>
                                 <xsd:unique name="uTrackingInExcitation">
@@ -1903,10 +1903,10 @@
 
   <xsd:complexType name="DT_output">
     <xsd:sequence>
-      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_MechLoad"/>
-      <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_ElecLoad"/>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
+      <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
       <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
-      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_AcousticLoad"/>
+      <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
       <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
@@ -1920,8 +1920,13 @@
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>               
-</xsd:complexType>    
-    
+  </xsd:complexType>    
   
+  
+  <!-- Simple load definition -->
+  <xsd:complexType name="DT_Load">
+    <xsd:attribute name="value" type="xsd:token" use="required"/>
+    <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>  
+  </xsd:complexType>
 </xsd:schema>
 

@@ -1,7 +1,5 @@
 #include <def_use_xerces.hh>
 
-#ifdef USE_XERCES
-
 #include <string>
 #include <fstream>
 
@@ -411,4 +409,3 @@ namespace CoupledField
 
 } // end of namespace
 
-#endif

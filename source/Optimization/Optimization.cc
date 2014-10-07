@@ -80,6 +80,8 @@ Enum<Optimization::CommitMode>       Optimization::commitMode;
 
 Optimization::Optimization()
 {
+  this->pde = NULL; // set in PostInit()
+  this->assemble_ = NULL;
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
@@ -96,27 +98,27 @@ Optimization::Optimization()
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
 
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
-  PtrParamNode pn = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
+  optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
   
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
-  firstStepStatic = pn->Has("firstStepStatic");
+  firstStepStatic = optParamNode->Has("firstStepStatic");
   if(firstStepStatic){
-    otherStepWeight = 1.0 - pn->Get("firstStepStatic/weight")->As<Double>();
+    otherStepWeight = 1.0 - optParamNode->Get("firstStepStatic/weight")->As<Double>();
   }else{
     otherStepWeight = 1.0;
   }
 
   // the tool to solve the optimization problem
-  optimizer_ = optimizer.Parse(pn->Get("optimizer/type")->As<string>());
-  maxIterations = pn->Get("optimizer/maxIterations")->As<Integer>();
+  optimizer_ = optimizer.Parse(optParamNode->Get("optimizer/type")->As<string>());
+  maxIterations = optParamNode->Get("optimizer/maxIterations")->As<Integer>();
 
   // might read a multiObjective problem
-  objectives.Read(pn->Get("costFunction"));
+  objectives.Read(optParamNode->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial/material")->As<string>()));
-
-  this->assemble_ = pde->GetAssemble();
+  // postpone
+  // SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial/material")->As<string>()));
+  // this->assemble_ = pde->GetAssemble();
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
@@ -126,12 +128,12 @@ Optimization::Optimization()
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
-  bool dme = pn->Get("costFunction/multiple_excitation")->As<bool>();
-  this->me = new MultipleExcitation(dme, dme ? pn->Get("costFunction/multipleExcitation", ParamNode::PASS) : PtrParamNode());
+  bool dme = optParamNode->Get("costFunction/multiple_excitation")->As<bool>();
+  this->me = new MultipleExcitation(dme, dme ? optParamNode->Get("costFunction/multipleExcitation", ParamNode::PASS) : PtrParamNode());
   if(dme) this->me->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
-  ParamNodeList list = pn->GetList("constraint");
+  ParamNodeList list = optParamNode->GetList("constraint");
   constraints.Read(list);
   PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
 
@@ -149,12 +151,12 @@ Optimization::Optimization()
     }
   }
 
-  log.Init(pn->Get("log")->As<string>(), pn->Get("logging", ParamNode::PASS)); // is fail save
+  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
 
   // the commit stuff
-  string cm = pn->Has("commit") ? pn->Get("commit/mode")->As<string>() : "forward";
+  string cm = optParamNode->Has("commit") ? optParamNode->Get("commit/mode")->As<string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
-  this->commitStride = pn->Has("commit") ? pn->Get("commit/stride")->As<Integer>() : 1;
+  this->commitStride = optParamNode->Has("commit") ? optParamNode->Get("commit/stride")->As<Integer>() : 1;
   optInfoNode->Get("commit/mode")->SetValue(cm);
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
   
@@ -176,10 +178,17 @@ Optimization::~Optimization()
   delete me; me = NULL;
 }
 
+void Optimization::PostInit()
+{
+  SetPDEs(OptimizationMaterial::system.Parse(optParamNode->Get("ersatzMaterial/material")->As<string>()));
+  this->assemble_ = pde->GetAssemble();
+
+}
+
 
 void Optimization::PostInitSecond()
 {
-  PtrParamNode opt = domain->GetParamRoot()->Get("optimization/optimizer");
+  PtrParamNode opt = optParamNode->Get("optimizer");
 
   switch(optimizer_)
   {
@@ -577,11 +586,6 @@ Optimization* Optimization::CreateInstance()
   // we have to do this, as PostInitSecond does already run CalcObjective/Gradient
   domain->SetOptimization(opt);
   
-  // second initialization phase, constructs material
-  opt->PostInit();
-  // third initialization phase, constructs optimizer
-  opt->PostInitSecond();
-
   return opt;
 }
 
@@ -652,8 +656,10 @@ void Optimization::SolveStateProblem(Excitation* excite)
                                          
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL)
-    assert(false);
-    // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
+  {
+    driver->SolveProblem();
+      // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
+  }
   else
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
@@ -1088,41 +1094,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out) out->flush();
 }
 
-LinearFormContext* Optimization::GetLinearFormContext(const RegionIdType regionId, StdPDE* pde, const string& integrator, Global::ComplexPart entryType)
-{
-  assert(false);
-  return NULL;
-  // FIXME Assemble* ass = domain->GetBasePDE()->GetAssemble();
-  // FIXME return(ass->GetLinearForm(regionId, pde, integrator, false, entryType));
-}
-
-
-BiLinFormContext* Optimization::GetFormContext(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
-{
-
-  assert(false);
-  return NULL;
-  // FIXME Assemble* ass = domain->GetBasePDE()->GetAssemble();
-  // FIXME return(ass->GetBiLinForm(regionId, pde1, pde2, integrator, !throw_exception, entryType));
-}
-
-BiLinForm* Optimization::GetForm(const RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const string& integrator, bool throw_exception, Global::ComplexPart entryType)
-{
-  assert(false);
-  return NULL;
-  /* FIXME
-  if (pde2 != NULL){
-    BiLinFormContext* bc = GetFormContext(regionId, pde1, pde2, integrator, throw_exception, entryType);
-    return bc != NULL ? bc->GetIntegrator() : NULL;
-  }
-  else {
-    LinearFormContext* bc = GetLinearFormContext(regionId, pde1, integrator, entryType);
-    return bc != NULL ? bc->GetIntegrator() : NULL;
-  }
-  */
-}
-
-BiLinForm* Optimization::GetForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
+BiLinFormContext* Optimization::GetBiLinForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
 {
   Application a1, a2;
   string integrator = "";
@@ -1130,7 +1102,7 @@ BiLinForm* Optimization::GetForm(const RegionIdType reg, Application app1, Appli
   if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
   {
     a1 = a2 = MECH;
-    integrator = "linElastInt";
+    integrator = "LinElastInt";
   }
   if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
   {
@@ -1163,7 +1135,7 @@ BiLinForm* Optimization::GetForm(const RegionIdType reg, Application app1, Appli
       EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
   }
 
-  return GetForm(reg, pde1, pde2, integrator, throw_exception);
+  return assemble_->GetBiLinForm(integrator, reg, pde1, pde2, !throw_exception);
 }
 
 

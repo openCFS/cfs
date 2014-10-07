@@ -89,7 +89,8 @@ namespace CoupledField
 
     inline void InitValue( const TYPE val = TYPE() )
     {
-      std::fill(&data_[0][0],&data_[0][size_row_*size_col_], val);
+      if(size_row_*size_col_ > 0)
+        std::fill(&data_[0][0],&data_[0][size_row_*size_col_], val);
     }
     
     //! Change the size of the matrix

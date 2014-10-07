@@ -80,13 +80,9 @@ Function::Function(PtrParamNode pn) {
   this->omega_omega_ =
       pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
   if (!harmonic_ && omega_omega_)
-    throw Exception(
-        "It makes no sense to set costFunction/factor/omega_omega in static optimization");
+    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
-  notation_ =
-      pn->Has("notation") ?
-          DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) :
-          DesignMaterial::VOIGT;
+  notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
   bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
 
@@ -96,8 +92,7 @@ Function::Function(PtrParamNode pn) {
   if (type_ == HOM_TENSOR || type_ == HOM_TRACKING) {
     // we must not give a value when there is a tensor
     if (type_ == HOM_TENSOR && pn->Has("tensor") && pn->Has("value"))
-      throw Exception(
-          "a value must not be given when a tensor is used in a homogenization constraint");
+      throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
   }
 
   if (type_ == HOM_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
@@ -121,8 +116,7 @@ Function::Function(PtrParamNode pn) {
 
   if (type_ == MAXWELL_HOM_TRACKING
       && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
-    throw Exception(
-        "a 'maxwellTensor' is mandatory for homogenization tracking");
+    throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
 
   // check parameter
   switch (type_) {
@@ -134,20 +128,14 @@ Function::Function(PtrParamNode pn) {
   case STRESS:
   case STRESS_DENSITY:
     if (!pn->Has("parameter"))
-      throw Exception(
-          "function '" + type.ToString(type_)
-              + "' requires the 'parameter' attribute");
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
 
   case PROJECTION:
     if (!pn->Has("filter"))
-      throw Exception(
-          "function '" + type.ToString(type_)
-              + "' requires the 'filter' element");
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'filter' element");
     if (region != ALL_REGIONS)
-      throw Exception(
-          "function '" + type.ToString(type_)
-              + "' cannot be region restricted");
+      throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
     break;
 
   case TENSOR_TRACE:
@@ -162,11 +150,8 @@ Function::Function(PtrParamNode pn) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-    if (design_ != DesignElement::ELAST_ALL
-        && design_ != DesignElement::DIELEC_ALL)
-      throw Exception(
-          "mandatory 'design' for '" + type.ToString(type_)
-              + "' is 'elast_all' and 'dielec_all'");
+    if (design_ != DesignElement::ELAST_ALL && design_ != DesignElement::DIELEC_ALL)
+      throw Exception("mandatory 'design' for '" + type.ToString(type_) + "' is 'elast_all' and 'dielec_all'");
 
     break;
 
@@ -201,8 +186,7 @@ Function::Function(PtrParamNode pn) {
     linear_ = pn->Get("linear")->As<bool>();
 
   if (physical_ && !(type_ == VOLUME || type_ == GREYNESS))
-    throw Exception(
-        "'physical' is no option for '" + type.ToString(type_) + "'");
+    throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
 
 }
 
@@ -906,9 +890,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
   case PENALIZED_VOLUME:
     for (unsigned int i = 0; i < space->transfer.GetSize(); i++)
       if (space->transfer[i].IsPenalized())
-        preInfo_->Get(ParamNode::WARNING)->SetValue(
-            "transfer function '" + space->transfer[i].ToString()
-                + " seems also to penalize");
+        preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
 
   case PROJECTION: {
@@ -1035,31 +1017,23 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // check beta
   if (ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION) {
     if (pn == NULL || !pn->Has("beta"))
-      throw Exception(
-          "function '" + fname
-              + "' requires the 'beta' attribute in a 'local' element");
+      throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
     if ((func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive())
         && beta_ < 0)
-      throw Exception(
-          "'function '" + fname
-              + "' allows beta=-1 only for condition in observe mode");
+      throw Exception("'function '" + fname + "' allows beta=-1 only for condition in observe mode");
   }
 
   // check eps
   if ((ftype == MOLE || ftype == GLOBAL_MOLE)
       && (pn == NULL || !pn->Has("eps")))
-    throw Exception(
-        "function '" + fname
-            + "' requires the 'eps' attribute in a 'local' element");
+    throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
 
   // check phase
   if (phase_ != BOTH && ftype != OSCILLATION && ftype != GLOBAL_OSCILLATION)
     throw Exception("'phase' may only be set for (global) oscillation");
 
   // set locality
-  this->locality_ =
-      pn != NULL && pn->Has("locality") ?
-          locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
+  this->locality_ = pn != NULL && pn->Has("locality") ? locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
   // FIXME
   bool snopt = domain->GetParamRoot()->Get("optimization/optimizer/type")->As<string>() == "snopt";
@@ -1071,19 +1045,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     if (user == DEFAULT && !snopt)
       locality_ = NEXT_AND_REVERSE;
     if (!snopt && locality_ != NEXT_AND_REVERSE)
-      throw Exception(
-          "The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
     if (locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
   case GLOBAL_SLOPE:
     if (locality_ != NEXT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = NEXT_AND_REVERSE;
     break;
 
@@ -1091,11 +1060,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_OSCILLATION:
     if ((phase_ == BOTH && locality_ != DEG_45_STAR_AND_REVERSE
         && locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
-        || (phase_ != BOTH && locality_ != DEG_45_STAR && locality_ != PREV_NEXT
-            && locality_ != DEFAULT))
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "' and phase '" + phase.ToString(phase_) + "'");
+        || (phase_ != BOTH && locality_ != DEG_45_STAR && locality_ != PREV_NEXT  && locality_ != DEFAULT))
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "' and phase '" + phase.ToString(phase_) + "'");
     if (locality_ == DEFAULT)
       locality_ = phase_ == BOTH ? DEG_45_STAR_AND_REVERSE : DEG_45_STAR;
     break;
@@ -1103,18 +1069,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case MOLE:
   case GLOBAL_MOLE:
     if (locality_ != DEG_45_STAR && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = DEG_45_STAR;
     break;
 
   case JUMP:
   case GLOBAL_JUMP:
     if (locality_ != BOUNDARY && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = BOUNDARY;
     break;
 
@@ -1122,9 +1084,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case STRESS_DENSITY:
   case DESIGN_BOUND:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
     break;
 
@@ -1146,17 +1106,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case BENSON_VANDERBEI_3:
   case MULTIMATERIAL_SUM:
     if (locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
     break;
 
   case BUMP:
     if (locality_ != PREV_NEXT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = PREV_NEXT;
     break;
     
@@ -1175,9 +1131,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case DEG_45_STAR_AND_REVERSE:
   case BOUNDARY:
     if (!pn)
-      throw Exception(
-          "sub element 'local' with neighborhood information mandatory for '"
-              + fname + "'");
+      throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
     if (locality_ == BOUNDARY)
       SetupBoundaryElementMap();
@@ -1203,9 +1157,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   }
 
   if (virtual_elem_map.GetSize() == 0)
-    throw Exception(
-        "mesh too small for locality of function '" + fname
-            + "' or wrong design attribute");
+    throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
@@ -1365,22 +1317,15 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
       for (int dir = -1; dir <= 1; dir += 2) {
         buddies.Resize(0);
         for (int e = n; e > 0; e--) {
-          DesignElement* tmp = VicinityElement::GetNeighbour(de,
-              VicinityElement::ToNeighbour(axis_first, -1), e);
-          buddies.Push_back(
-              VicinityElement::GetNeighbour(tmp,
-                  VicinityElement::ToNeighbour(axis_second, dir), e));
+          DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, -1), e);
+          buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::ToNeighbour(axis_second, dir), e));
         }
         for (unsigned int e = 1; e <= n; e++) {
-          DesignElement* tmp = VicinityElement::GetNeighbour(de,
-              VicinityElement::ToNeighbour(axis_first, 1), e);
-          buddies.Push_back(
-              VicinityElement::GetNeighbour(tmp,
-                  VicinityElement::ToNeighbour(axis_second, dir == 1 ? -1 : 1),
-                  e));
+          DesignElement* tmp = VicinityElement::GetNeighbour(de, VicinityElement::ToNeighbour(axis_first, 1), e);
+          buddies.Push_back(VicinityElement::GetNeighbour(tmp, VicinityElement::ToNeighbour(axis_second, dir == 1 ? -1 : 1), e));
         }
 
-        LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << BaseDesignElement::ToString(buddies);
+        // LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << BaseDesignElement::ToString(buddies);
 
         virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
         if (two_signs)
@@ -1399,22 +1344,14 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
         for (int dir_z = -1; dir_z <= 1; dir_z += 2) {
           buddies.Resize(0);
           for (int e = n; e > 0; e--) {
-            DesignElement* tmp_x = VicinityElement::GetNeighbour(de,
-                VicinityElement::X_N, e);
-            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x,
-                VicinityElement::ToNeighbour(1, dir_y), e);
-            buddies.Push_back(
-                VicinityElement::GetNeighbour(tmp_y,
-                    VicinityElement::ToNeighbour(2, dir_z), e));
+            DesignElement* tmp_x = VicinityElement::GetNeighbour(de, VicinityElement::X_N, e);
+            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y), e);
+            buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z), e));
           }
           for (unsigned int e = 1; e <= n; e++) {
-            DesignElement* tmp_x = VicinityElement::GetNeighbour(de,
-                VicinityElement::X_P, e);
-            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x,
-                VicinityElement::ToNeighbour(1, dir_y == 1 ? -1 : 1), e);
-            buddies.Push_back(
-                VicinityElement::GetNeighbour(tmp_y,
-                    VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
+            DesignElement* tmp_x = VicinityElement::GetNeighbour(de, VicinityElement::X_P, e);
+            DesignElement* tmp_y = VicinityElement::GetNeighbour(tmp_x, VicinityElement::ToNeighbour(1, dir_y == 1 ? -1 : 1), e);
+            buddies.Push_back(VicinityElement::GetNeighbour(tmp_y, VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
           }
 
           LOG_DBG3(func) << "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << BaseDesignElement::ToString(buddies);
@@ -1447,23 +1384,18 @@ void Function::Local::SetupBoundaryElementMap() {
     // do we have a full neighborhood? All or none
     bool full = true;
 
-    for (int dir = VicinityElement::X_P;
-        dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N);
-        dir++) {
+    for (int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++) {
       int a = VicinityElement::ToMainAxis((VicinityElement::Neighbour) dir);
       unsigned int n = struc->orthogonal[a];
       assert(n > 0);
-      if (!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir,
-          n))
+      if (!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n))
         full = false;
     }
 
     if (!full)
       continue;
 
-    for (int dir = VicinityElement::X_P;
-        dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir +=
-            2) {
+    for (int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir += 2) {
       VicinityElement::Neighbour pos = (VicinityElement::Neighbour) dir;
       VicinityElement::Neighbour neg = (VicinityElement::Neighbour) (dir + 1);
       unsigned int a = VicinityElement::ToMainAxis(pos);
@@ -1472,8 +1404,8 @@ void Function::Local::SetupBoundaryElementMap() {
       DesignElement* prev = VicinityElement::GetNeighbour(de, neg, n);
       DesignElement* next = VicinityElement::GetNeighbour(de, pos, n);
 
-      LOG_DBG3(func)<< "L:SBEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a
-      << " n=" << n << " prev=" << prev << " next=" << next;
+      LOG_DBG3(func) << "L:SBEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a
+                     << " n=" << n << " prev=" << prev << " next=" << next;
 
       virtual_elem_map.Push_back(Identifier(de, prev, next));
     }
@@ -1512,8 +1444,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
     // but for piezo-FMO the first element might not be a compatible one
     bool first_compatible_found = false;
     for (unsigned int i = 0; i < space->design.GetSize(); ++i) {
-      if (DesignElement::IsCompatible(f->GetDesignType(),
-          space->design[i].design)) {
+      if (DesignElement::IsCompatible(f->GetDesignType(), space->design[i].design)) {
         if (!first_compatible_found)
           first_compatible_found = true; // we do not add the first compatible designs to the neighbors
         else
@@ -1569,7 +1500,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
     break;
   }
 
-  LOG_DBG(func)<< "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
+  // LOG_DBG(func)<< "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
 
 
   if(elems > func_->elements.GetSize())
@@ -1588,8 +1519,8 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
       unsigned des = des_idx[d];
       DesignElement* other = &(space->data[elems * des + e]);
       neighbours.Push_back(other);
-      LOG_DBG3(func)<< "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
-      << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+      LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
+                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
     }
 
     virtual_elem_map.Push_back(Identifier(de, neighbours));
@@ -1671,10 +1602,7 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
   // validate
   for (unsigned int i = 0; i < orthogonal.GetSize(); i++)
     if (orthogonal[i] == 0)
-      throw Exception(
-          "your local neighbor radius for '"
-              + Function::type.ToString(local->func_->GetType())
-              + "' is too small");
+      throw Exception("your local neighbor radius for '" + Function::type.ToString(local->func_->GetType()) + "' is too small");
 
   // diagonals are xy, xz and yz plane, only xy in 2D
   for (int i = 0; i < (dim == 2 ? 1 : 3); i++) {
@@ -1682,19 +1610,16 @@ Function::Local::NeighborhoodStructure::NeighborhoodStructure(Local* local,
     int y = i == 0 ? 1 : 2; // xy, xz, yz
     double diag = std::sqrt(edges[x] * edges[x] + edges[y] * edges[y]);
     diagonal.Push_back((int) ((radius / diag) + 0.5));
-    LOG_DBG(func)<< "L:NS:NS diagonal[0]: x=" << x << " y=" << y << " radius="
-    << radius << " diag=" << diag << " -> " << diagonal[0];
+    LOG_DBG(func) << "L:NS:NS diagonal[0]: x=" << x << " y=" << y << " radius="
+                  << radius << " diag=" << diag << " -> " << diagonal[0];
   }
   // all 4 "total" diagonals have the same size
   if (dim == 3) {
-    double diag = std::sqrt(
-        edges[0] * edges[0] + edges[1] * edges[1] + edges[2] * edges[2]);
+    double diag = std::sqrt(edges[0] * edges[0] + edges[1] * edges[1] + edges[2] * edges[2]);
     diagonal.Push_back((int) ((radius / diag) + 0.5));
   }
 
-  assert(
-      (dim == 2 && diagonal.GetSize() == 1)
-          || (dim == 3 && diagonal.GetSize() == 4));
+  assert((dim == 2 && diagonal.GetSize() == 1) || (dim == 3 && diagonal.GetSize() == 4));
 }
 
 void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in) {
@@ -1916,7 +1841,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                     << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
+                 << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
@@ -2143,10 +2068,10 @@ double Function::Local::Identifier::CalcOscillation(double beta) const {
     res = min_max - own;
   }
 
-  LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << BaseDesignElement::ToString(neighbor)
-                 << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
-                 << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
-                 << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
+  // LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << BaseDesignElement::ToString(neighbor)
+  //               << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
+  //               << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
+  //               << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
   return res;
 }
 
@@ -2303,9 +2228,8 @@ double Function::Local::Identifier::CalcJump() const {
 
   double sin = std::sin(PI * (prev - next));
 
-  LOG_DBG3(func)<< "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
-  << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next)
-  << " -> sin*sin";
+  // LOG_DBG3(func) << "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
+  //               << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next) << " -> sin*sin";
 
   return sin * sin;
 }
@@ -3047,8 +2971,8 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
     break;
   } // end switch f->GetType()
   assert(ret != 12345678.0);
-  LOG_DBG3(func)<< "L::I::CPDD e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
-  << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
+  LOG_DBG3(func) << "L::I::CPDD e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
+                 << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
 

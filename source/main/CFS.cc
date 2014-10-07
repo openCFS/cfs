@@ -318,10 +318,7 @@ void CFS::SolveProblem()
  
  using namespace boost::posix_time;
  using namespace boost::gregorian;
- cout << "\n++ Finished solving the problem at " 
-     << to_simple_string( second_clock::local_time() ) 
-     << endl;
-
+ cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
 
 
@@ -356,10 +353,6 @@ void CFS::ReadXMLFile()
 
   // Write information to command line
   cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
-
-#ifndef USE_XERCES
-  EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
-#endif
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();

@@ -160,6 +160,37 @@ ErsatzMaterial::Solution::~Solution()
   }
 }
 
+SolutionType ErsatzMaterial::Solution::GetSolutionType(SinglePDE* pde, Application app)
+{
+  switch(app)
+  {
+  case NO_APP: // up to now
+    assert(pde != NULL);
+    return pde->GetNativeSolutionType();
+  case MECH:
+    return MECH_DISPLACEMENT;
+  case ELEC:
+    return ELEC_POTENTIAL;
+  case HEAT:
+    return HEAT_TEMPERATURE;
+  case ACOUSTIC:
+    return ACOU_POTENTIAL;
+  case LAPLACE:
+    assert(false);
+    break;
+    // app = MECH;
+    //solt = MECH_DISPLACEMENT;
+  case LBM:
+    return LBM_PROBABILITY_DISTRIBUTION;
+  default:
+    EXCEPTION("Solution type not implemented");
+  }
+  return NO_SOLUTION_TYPE;
+}
+
+
+
+
 std::string ErsatzMaterial::Solution::ToString()
 {
   std::stringstream ss;
@@ -167,7 +198,7 @@ std::string ErsatzMaterial::Solution::ToString()
   return ss.str();
 }
 
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol, DERIVType derivative)
+SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, Application app, bool save_sol, DERIVType derivative)
 {
   if (em_->harmonic)
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
@@ -176,7 +207,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
 }
 
 /** Writes the solution (raw vector) back to the pde */
-void ErsatzMaterial::Solution::Write(StdPDE* pde)
+void ErsatzMaterial::Solution::Write(SinglePDE* pde)
 {
   if (em_->harmonic)
     Write<std::complex<double> >(pde);
@@ -185,22 +216,23 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde)
 }
 
 template <class T>
-void ErsatzMaterial::Solution::Write(StdPDE* pde)
+void ErsatzMaterial::Solution::Write(SinglePDE* pde)
 {
-  T* ptr = NULL;
-  Vector<T>* v = static_cast<Vector<T>*>(raw);
-  if(v != NULL) // TODO make robust for LBM
+  // TODO make robust for LBM
+  if(raw != NULL)
   {
-    ptr = v->GetPointer();
-    assert(ptr != NULL);
     assert(raw->GetSize() != 0);
-    assert(false);
-    // FIXME pde->SaveSolution(ptr, raw->GetSize());
+
+    SolutionType solt = GetSolutionType(pde);
+    shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
+    *(fe->GetSingleVector()) = *raw;
   }
+  else
+    LOG_DBG2(emsol) << "S:W raw not written as it was not set";
 }
 
 
-void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
 {
   if(domain->GetDriver()->IsComplex())
     Write<complex<double> >(pde, sol, f, time_step, excitations);
@@ -209,7 +241,7 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, i
 }
 
 template <class T>
-void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
 {
   if(excitations.GetSize() == 1)
   {
@@ -234,7 +266,7 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde, Solutions& sol, Function* f, i
 }
 
 
-void ErsatzMaterial::Solution::Write(StdPDE* pde, SingleVector* vec)
+void ErsatzMaterial::Solution::Write(SinglePDE* pde, SingleVector* vec)
 {
   // we are static
   assert(false);
@@ -303,54 +335,39 @@ Vector<complex<double> >& ErsatzMaterial::Solution::GetComplexVector(StorageType
 }
 
 template <class T>
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Application app, bool save_sol, DERIVType derivative)
+SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, Application app, bool save_sol, DERIVType derivative)
 {
-  SolutionType solt;
-  switch(app)
+  assert(derivative == NO_DERIVTYPE); // would change solt!
+
+  SolutionType solt = GetSolutionType(pde, app);
+
+  if(app == LAPLACE)
   {
-  case NO_APP: // up to now
-    solt = dynamic_cast<SinglePDE*>(pde)->GetNativeSolutionType();
-    break;
-  case MECH:
-    solt = MECH_DISPLACEMENT;
-    break;
-  case ELEC:
-    solt = ELEC_POTENTIAL;
-    break;
-  case HEAT:
-    solt = HEAT_TEMPERATURE;
-    break;
-  case ACOUSTIC:
-    solt = ACOU_POTENTIAL;
-    break;
-  case LAPLACE:
+    assert(false); // FIXME
     app = MECH;
     solt = MECH_DISPLACEMENT;
-    break;
-  case LBM:
-    solt = LBM_PROBABILITY_DISTRIBUTION;
-    break;
-  default:
-    EXCEPTION("Solution type not implemented");
   }
 
-  shared_ptr<ResultInfo> resinfo = pde->GetResultInfo(solt);
-  Grid* grid = domain->GetGrid();
+  shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
 
   switch(st)
-    {
+  {
     case GRIDELEM_VECTORS:
     {
+      Grid* grid = domain->GetGrid();
+
       StdVector<SingleVector*>& elem_vec = gridelem[app];
       int n = grid->GetNumElems();
-      if(elem_vec.GetSize() == 0){
+      if(elem_vec.GetSize() == 0)
+      {
         elem_vec.Resize(n);
-        for(int ve = 0; ve < n; ve++){
+        for(int ve = 0; ve < n; ve++)
           elem_vec[ve] = new Vector<T>;
-        }
       }
+
       ElemList elemList(grid);
-      for(int e = 0; e < n; e++){
+      for(int e = 0; e < n; e++)
+      {
         elemList.SetElement(grid->GetElem(e+1)); // GetElem is 1-based
         assert(false);
         // FIXME const EntityIterator& it = elemList.GetIterator();
@@ -362,9 +379,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
     {
       if(save_sol)
       {
-        // store the solution in the PDE! This is necessary to read the element vector
-        // in the adjoint case!
-        assert(false);
+        assert(false); // still needed!
         // FIXME Vector<T> tmpSol;
         // FIXME em_->assemble_->GetAlgSys()->GetSolutionVal(tmpSol);
         // FIXME pde->SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize() );
@@ -384,23 +399,14 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
           elem_vec[ve] = new Vector<T>;
       }
 
-      // create an element list to gain the iterator in the loop
-      ElemList elemList(grid);
-
       // store the results of the standard design elements in our own structure
       for(int e = 0; e < n; e++)
       {
         DesignElement* de = &em_->design->data[e];
 
-        elemList.SetElement(de->elem);
-        assert(false);
-        // FIXME const EntityIterator& it = elemList.GetIterator();
-
-        assert((int) de->GetElementSolutionIndex() == e);
-        
-        assert(false);
-        // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[e], it, resinfo, derivative);
+        fe->GetEntitySolution((Vector<T>&) *elem_vec[e], de->elem);
       }
+
       // the pseudo design if we have some
       for(unsigned int r = 0; r < em_->design->GetPseudoDesignRegions().GetSize(); r++)
       {
@@ -409,13 +415,8 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
         for(unsigned int e = 0; e < data.GetSize(); e++)
         {
           DesignElement* de = &data[e];
-
-          elemList.SetElement(de->elem);
-          assert(false);
-          // FIXME const EntityIterator& it = elemList.GetIterator();
-
           assert(de->GetElementSolutionIndex() >= em_->design->GetNumberOfElements());
-          assert(false);
+          fe->GetEntitySolution(*elem_vec[de->GetElementSolutionIndex()], de->elem);
           // FIXME pde->GetAnyDerivSolVecOfElement((Vector<T>&) *elem_vec[de->GetElementSolutionIndex()], it, resinfo, derivative);
         }
       }
@@ -426,40 +427,20 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
     case RAW_VECTOR:
     case RHS_VECTOR:
     {
-      // It is best to get the RHS from the algebraic system (OLAS), the PDE
-      // might not check about a further adjont calculation
+      SingleVector* vec = GetVector<T>(st, true); // create when needed
+      if(st == RAW_VECTOR)
+      {
+        *vec = *fe->GetSingleVector();
+        assert(derivative == NO_DERIVTYPE);
+        // if not, the above might work ?!
+        // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
+      }
+      else
+        fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
 
-      // get access to solution
-      assert(false);
-      // FIXME AlgebraicSys* bs = em_->assemble_->GetAlgSys();
-      SingleVector** tmp = NULL; // tmp is ** Vec, *tmp is *Vec = raw/rhs/select, **tmp is Vec
-      switch(st){
-      case RAW_VECTOR:
-        tmp = &raw; break;
-      case RHS_VECTOR:
-        tmp = &rhs; break;
-      case SEL_VECTOR:
-        tmp = &select; break;
-      default:
-        assert(false);
-      }
-      if(*tmp == NULL){
-        *tmp = new Vector<T>(0);
-        LOG_DBG2(emsol) << ":S:R: new vector of type " << st << " created";
-      }
-      assert(false);
-      /* FIXME
-      if(st == RAW_VECTOR) {
-        if(derivative == NO_DERIVTYPE){
-          bs->GetSolutionVal(**tmp);
-        }else{
-          **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
-        }
-      } else {
-        bs->GetRHSVal(**tmp); // RHS_VECTOR and SEL_VECTOR, they do not have derivatives, so this is ignored
-      }
-      */
-      return *tmp;
+      LOG_DBG3(emsol) << "S:R: st=" << st << " vec=" << vec->ToString();
+
+      return vec;
     }
   }
   assert(false);

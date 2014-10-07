@@ -310,6 +310,7 @@ DesignElement::~DesignElement()
 {
   delete simp; simp = NULL;
   delete vicinity; vicinity = NULL;
+  delete location_; location_ = NULL;
 }
 
 void DesignElement::Init()
@@ -318,6 +319,7 @@ void DesignElement::Init()
   vicinity        = NULL;
   lse_            = NULL;
   tge             = NULL;
+  location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
   pseudoElementIndex_ = -1;
@@ -335,18 +337,18 @@ DesignElement::Type DesignElement::Default(const SinglePDE* pde)
 }
 
 
-const Vector<double>& DesignElement::GetLocation()
+const Point* DesignElement::GetLocation()
 {
-  if(location_.GetSize() != 0) return location_;
+  if(location_ != NULL) return location_;
   
   // calc location
-  
+  location_ = new Point();
   // check for ghost elements
   if(elem == NULL) EXCEPTION("location_ not set but elem is NULL");
     
-  domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(location_);
+  domain->GetGrid()->GetElemShapeMap(elem, false)->CalcBarycenter(*location_);
 
-  LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_.ToString() << " for " << ToString();
+  LOG_DBG3(desel) << "DesignElement::GetLocation() find " << location_->ToString() << " for " << ToString();
   return location_;
 }
 
@@ -1057,11 +1059,11 @@ void SIMPElement::Dump()
   }
   distance_avg /= neighborhood.GetSize();
 
-  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation().ToString()
+  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString()
             << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
   for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
     std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
-              << neighborhood[i].neighbour->GetLocation().ToString()
+              << neighborhood[i].neighbour->GetLocation()->ToString()
               << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 

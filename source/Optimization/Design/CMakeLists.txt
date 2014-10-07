@@ -15,8 +15,6 @@ SET(TARGET_LL
   cfsgeneral
   datainout
   domain
-  elements
-  forms
   logging
   matvec
   optimization

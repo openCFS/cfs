@@ -138,31 +138,28 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
   {
-     REFACTOR;
-     // the EntityList has the region name as name but not the id
-     std::string region = pde->GetGrid()->GetRegion().ToString(regionId);
-
      LinearForm* result = NULL;
 
-     //// iterate over all descriptors
-     //for(UInt i = 0; i < linForms_->GetSize(); i++)
-     //{
-     //  // we are wrong if the region does not match
-     //  LinearFormContext* lfc = (*linForms_)[i];
-     //  if(lfc->GetEntities()->GetName() != region) continue;
-     //  // when pde1 is given we compare it by name and continue if the names are different
-     //  if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-     //  if(lfc->GetIntegrator()->GetName() != integrator) continue;
-     //
-     //  // we come here because we had no contradiction - check for uniqueness
-     //  if(result != NULL) throw Exception("parameters not unique!");
-     //  result = lfc;
-     //}
-     //
-     //if(result == NULL && !silent)
-     //  EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+     // iterate over all descriptors
+     for(unsigned int i = 0; i < linForms_->GetSize(); i++)
+     {
+       // we are wrong if the region does not match
+       LinearFormContext* lfc = (*linForms_)[i];
+
+
+       // when pde1 is given we compare it by name and continue if the names are different
+       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+
+       // we come here because we had no contradiction - check for uniqueness
+       if(result != NULL) throw Exception("parameters not unique!");
+       result = lfc->GetIntegrator();
+     }
+
+     if(result == NULL && !silent)
+       EXCEPTION("LinearFormContext '" << integrator << "' not found");
      return result;
   }
 
@@ -1369,6 +1366,11 @@ namespace CoupledField
       LinearFormContext & context = **linIt;
 
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+      shared_ptr<EntityList> el = context.GetEntities();
+      form->Get("entities/name")->SetValue(el->GetName());
+      form->Get("entities/size")->SetValue(el->GetSize());
+      form->Get("entities/region")->SetValue(el->GetRegion() != NO_REGION_ID ? domain->GetGrid()->GetRegion().ToString(el->GetRegion()) : "no_region");
 
       // region name of entity list
       std::string regionName;

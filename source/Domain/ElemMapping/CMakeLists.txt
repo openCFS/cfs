@@ -9,6 +9,7 @@ SET(MAPPINGS_SRCS
 ADD_LIBRARY(elemmapping STATIC ${MAPPINGS_SRCS})
 
 SET(TARGET_LL
+  utils
   domain
   )
 

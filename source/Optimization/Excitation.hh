@@ -66,9 +66,9 @@ public:
   /** the index of this excitation in the excitations array. If -1 something went wront */
   int index;
 
-  /** For static/monoharmonic optimization with different load-cases. Now allowing also multiple loads in one case.
+  /** For static/single harmonic optimization with different load-cases. Now allowing also multiple loads in one case.
    * empty and apply_linForms=false if not applicable */
-  // FIXME LoadList loads;
+  StdVector<shared_ptr<EntityList> > loads;
 
   /** For static optimization with different pressure or regionLoads */
   StdVector<LinearFormContext*>* linForms;

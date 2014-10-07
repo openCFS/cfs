@@ -9,44 +9,25 @@
 
 namespace CoupledField {
 
+class DesignSpace;
+class BiLinearForm;
+
 /** Replaces a material data CoefFunctionConst with an ersatz material optimization version.
  * In the SIMP case this the original const material is scaled, in the bi-material it is interpolated with an additional
  * material, in multi-material it is the weighted sum of various materials and in parametric optimization the material (tensor)
  * is completely constructed out of optimization design variables. */
-template<typename T>
-class CoefFunctionOpt : public CoefFunction,
-                          public boost::enable_shared_from_this<CoefFunctionOpt<T> >
+class CoefFunctionOpt : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionOpt>
 {
 public:
 
   /** @param orgMat the CoefFunctionConst that would be originally used to provide the material data. */
-  CoefFunctionOpt(PtrCoefFct orgMat) : CoefFunction()
-  {
-    // this type of coefficient is always constant
-    dependType_ = GENERAL;
-    isAnalytic_ = false;
-    isComplex_ = std::tr1::is_same<T,Complex>::value;
-    supportDerivative_ = false;
-    dimType_ = orgMat->GetDimType();
-
-    this->orgMat = orgMat;
-  }
+  CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat);
 
   virtual ~CoefFunctionOpt() { }
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm )
-  {
-    assert(this->dimType_ == TENSOR);
-    // if no coordinate system is set, just
-    // use internal vector
-    if( !coordSys_ ) {
-      orgMat->GetTensor(coefMat, lpm);
-    }
-    else
-      EXCEPTION("the rotation is not fully finished ':-(\n");
+  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm );
 
-  }
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
     orgMat->GetTensorSize(numRows, numCols);
@@ -63,10 +44,32 @@ public:
     return orgMat->IsZero();
   }
 
-protected:
+  /** set the form such that the proper transfer function can be found */
+  void SetForm(BiLinearForm* form) {
+    this->form = form;
+  }
+
+  /** only to query the name to finde the proper transfer function */
+  const BiLinearForm* GetForm() const  {
+    return form;
+  }
+
+  /** flag the optimization off */
+  void SetEnable(bool val) { enabled = val; }
 
   /** the original material. Required if no optimization available or for SIMP and bi-material optimizaton */
   PtrCoefFct orgMat;
+
+protected:
+
+  /** This is the DesignSpace we use -> could be also requested from domain */
+  DesignSpace* design;
+
+  /** we store the form such that we can identify the proper transfer function */
+  BiLinearForm* form;
+
+  /** be may switch the query of optimization off to get the real material */
+  bool enabled;
 };
 
 }

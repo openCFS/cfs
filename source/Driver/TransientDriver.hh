@@ -38,7 +38,7 @@ namespace CoupledField {
     void Init( bool restart);
 
     //! main method, where time-stepping is implemented. it is for transient and static problem
-    void SolveProblem();
+    void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
 
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}

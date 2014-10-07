@@ -347,11 +347,8 @@ namespace CoupledField
     //! 'Volume' here means, that for 2D elements the third dimension is 
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
-    //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
-    Double CalcVolumeOfRegion( const RegionIdType regionId ,
-                               bool isaxi = false,
-                               bool updated = false);
+    double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
 
 
     //! \copydoc Grid::CalcVolumeOfEntityList

@@ -353,27 +353,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for inhomogeneous Dirichlet boundary conditions -->
-  <!-- We derive it by extending the homogeneous case -->
-  <xsd:complexType name="DT_MechID">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechHD">
-        <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
-  <!-- Element type for inhomogeneous Dirichlet from file -->
-  <!-- boundary conditions. We derive it by extending the homogeneous case -->
-  <xsd:complexType name="DT_MechIdFile">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechHD">
-        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
   <!-- Element type for concentrated mechanical elements -->
   <!-- We derive it by extending the base type -->

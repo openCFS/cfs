@@ -42,7 +42,7 @@ namespace CoupledField
      * @param write_results if false nothing is written to the output files
      * @param analysis_id if given is *set* as current and used.
      * @see StoreResults(double) */
-    virtual void SolveProblem() = 0;
+    virtual void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode()) = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 

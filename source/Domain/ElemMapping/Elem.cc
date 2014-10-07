@@ -12,7 +12,8 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
   Elem::Elem() : 
     elemNum(0),
     type(ET_UNDEF),
-    regionId( NO_REGION_ID )
+    regionId(NO_REGION_ID),
+    neighborhood(NULL)
   {}
 
 //
@@ -2316,7 +2317,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     } 
     
       
-    Elem::ShapeType Elem::GetShapeType( Elem::FEType type )  {
+    Elem::ShapeType Elem::GetShapeType( Elem::FEType type ) {
       ShapeType ret = ST_UNDEF;
       switch(type) {
         case ET_UNDEF:

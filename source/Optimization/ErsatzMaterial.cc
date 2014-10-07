@@ -104,19 +104,23 @@ ErsatzMaterial::ErsatzMaterial() :
 
   maxwellHomogenization_ = false;
   bitensor_ = false;
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++){
-    if(objectives.data[i]->IsMaxwellHomogenization()) {
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+  {
+    if(objectives.data[i]->IsMaxwellHomogenization())
+    {
       maxwellHomogenization_ = true;
       maxwellHomogenizedTensor.Resize(dim);
-      if (objectives.data[i]->IsBitensor()){
+      maxwellHomogenizedTensor.Init();
+
+      if (objectives.data[i]->IsBitensor())
+      {
         bitensor_ = true;
         maxwellHomogenizedTensorPermeability.Resize(dim);
-        maxwellHomogenizedTensor.Init();
+        maxwellHomogenizedTensorPermeability.Init();
       }
     }
   }
   optInfoNode->Get(ParamNode::HEADER)->Get("maxwellHomogenization")->SetValue(maxwellHomogenization_);
-  maxwellHomogenizedTensor.Init();
 
 
   // region stuff
@@ -156,15 +160,13 @@ ErsatzMaterial::ErsatzMaterial() :
     densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
   }
 
-  harmonic = pde->IsComplex();
+
+  harmonic = domain->GetDriver()->IsComplex();
 
   /* FIXME
   if((homogenization_ || maxwellHomogenization_) && !pde->HasPeriodicBC())
     throw Exception("homogenization requires periodic boundary conditions");
    */
-
-  // Get the assemble class
-  assemble_ = pde->GetAssemble();
 
   // check our constraints, the shall have only valid designs
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
@@ -188,16 +190,15 @@ ErsatzMaterial::ErsatzMaterial() :
   // give the domain this data, s.th. the ersatz material approach is applied
   domain->SetErsatzMaterial(design);
 
+  // postpone to PostInit
   // add optimization results to the pde
-  design->AppendOptimizationResults(pde);
+  // design->AppendOptimizationResults(pde);
 
   // forward and adjoint are initialized in PostInit()
   forward.Init(this);
   forward.SetIsForward(true);
   adjoint.Init(this);
 
-  // check for multiple loadcases (might be frequencies)
-  me->PrepareMultipleExcitations(pde, optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
 }
 
 ErsatzMaterial::~ErsatzMaterial()
@@ -215,6 +216,15 @@ ErsatzMaterial::~ErsatzMaterial()
 
 void ErsatzMaterial::PostInit()
 {
+  Optimization::PostInit();
+
+  // check for multiple loadcases (might be frequencies)
+  me->PrepareMultipleExcitations(pde, optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
+
+
+  // add optimization results to the pde
+  design->AppendOptimizationResults(pde);
+
   // might be constructed in SIMP::PostInit() or ParamMat::PostInit()
   if(structure_ == NULL)
     structure_ = new DesignStructure(this);
@@ -443,7 +453,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       // we then have no design region and need to skip GetForm
       if(design->GetRegionId() != -1)
       {
-        // FIXME bm = GetForm(design->GetRegionId(), pde, pde, "linElastInt")->GetMaterial();
+        assert(false);
+        // FIXME bm = GetForm(design->GetRegionId(), pde, pde, "LinElastInt")->GetMaterial();
       }
       Objective vf(Function::VOLUME, 0.0, true); // physical!
       assert(design->GetRegionIds().GetSize() ==1);
@@ -539,8 +550,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         if (!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType()))
         {
           RegionIdType regionId = de->elem->regionId;
-          BiLinFormContext* linElastIntCtxt = GetFormContext(regionId, pde, pde, "linElastInt");
-          BiLinFormContext* linMassIntCtxt = GetFormContext(regionId, pde, pde, "MassInt");
+          BiLinFormContext* linElastIntCtxt = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde, false);
+          BiLinFormContext* linMassIntCtxt = assemble_->GetBiLinForm("MassInt", regionId, pde, pde, false);
           if (linElastIntCtxt->GetSecDestMat() != NOTYPE)
           {
             parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());

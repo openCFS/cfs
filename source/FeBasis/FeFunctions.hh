@@ -214,7 +214,11 @@ public:
   //! Get solution for specific entity
   virtual void GetEntitySolution( SingleVector& elemSol, 
                         const EntityIterator& it ) = 0;
-                        
+
+  /** shortcut for GetEntitySolution() with EntityIterator */
+  void GetEntitySolution(SingleVector& elemSol, const Elem* elem);
+
+
   //! Get solution as matrix for specific entity
   virtual void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
                                   const EntityIterator& it ) = 0;

@@ -313,7 +313,7 @@ namespace CoupledField
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
     for(UInt i = 0;  i < elems.GetSize(); i++)
-      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->barycenter.data);
+      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->barycenter);
 
     rd.barycenters = true; // don't do it again!
 

@@ -1,6 +1,8 @@
 #include <boost/assign/list_of.hpp>
 
+#include "Utils/tools.hh"
 #include "ElemShapeMap.hh"
+#include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
@@ -254,8 +256,7 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
     try {
       ptSurfElem_ = dynamic_cast<const SurfElem*>(ptElem);
     } catch (...) {
-      EXCEPTION(
-          "Could not convert element #" << ptElem->elemNum << " to a surface element");
+      EXCEPTION("Could not convert element #" << ptElem->elemNum << " to a surface element");
     }
   } else {
     ptSurfElem_ = NULL;
@@ -1607,16 +1608,15 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
 //  std::cerr << "oriented normal: " << normal.ToString() << "\n\n";
 //}
 
-void LagrangeElemShapeMap::GetLocalIntPoints4Surface(
-  const StdVector<UInt> & surfConnect, const LocPoint & surfIntPoint,
-  LocPoint & volIntPoint, Vector<Double>& locNormal) {
-ptFe_->GetLocalIntPoints4Surface(surfConnect, ptElem_->connect, surfIntPoint,
-    volIntPoint, locNormal);
+void LagrangeElemShapeMap::GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect, const LocPoint & surfIntPoint,
+  LocPoint & volIntPoint, Vector<Double>& locNormal)
+{
+  ptFe_->GetLocalIntPoints4Surface(surfConnect, ptElem_->connect, surfIntPoint, volIntPoint, locNormal);
 }
 
 void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
-  StdVector<UInt>& surfLocDirs) {
-
+  StdVector<UInt>& surfLocDirs)
+{
   const ElemShape & shape = *shape_;
   // determine dimension of element
   // 1: look for edges
@@ -1690,47 +1690,49 @@ return ptFe_->CoordIsInsideElem(point, tolerance);
 }
 
 void LagrangeElemShapeMap::CalcDiameter(Vector<Double>& diameter) {
-Vector<Double> mins(shape_->dim), maxs(shape_->dim);
-mins.Init(std::numeric_limits<double>::max());
-maxs.Init();
-diameter.Resize(shape_->dim);
-diameter.Init();
-for (UInt dim = 0; dim < shape_->dim; dim++) {
-  for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++) {
-    Double test = coords_[dim][k];
-    Double& min = mins[dim];
-    Double& max = maxs[dim];
-    min = std::min(min, test);
-    max = std::max(max, test);
+  Vector<Double> mins(shape_->dim), maxs(shape_->dim);
+  mins.Init(std::numeric_limits<double>::max());
+  maxs.Init();
+  diameter.Resize(shape_->dim);
+  diameter.Init();
+  for (UInt dim = 0; dim < shape_->dim; dim++) {
+    for (UInt k = 0, n_elems = coords_.GetNumCols(); k < n_elems; k++) {
+      Double test = coords_[dim][k];
+      Double& min = mins[dim];
+      Double& max = maxs[dim];
+      min = std::min(min, test);
+      max = std::max(max, test);
+    }
+
+    diameter[dim] = maxs[dim] - mins[dim];
   }
-
-  diameter[dim] = maxs[dim] - mins[dim];
-}
 }
 
-void LagrangeElemShapeMap::CalcBarycenter(Vector<Double>& baryCenter) {
-EXCEPTION("Not implemented");
-//    UInt n_dims  = coords.GetNumRows();
-//    UInt n_elems = coords.GetNumCols();
-//
-//    // init barycenter for safty reason
-//    barycenter.SetZero();
-//
-//    // std::cout << "calc a new barycenter" << std::endl;
-//    // a barycenter is simply the average of all coordinates
-//    for (UInt dim=0; dim < n_dims; dim++)
-//    {
-//      // std::cout << "dim = " << dim << "  ";
-//      for (UInt k=0; k < n_elems; k++)
-//      {
-//        // the constructor of Point initializes
-//        barycenter[dim] += coords[dim][k];
-//        // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
-//      }
-//
-//      barycenter[dim] /= (double) n_elems;
-//      // std::cout << " average: " << (barycenter[dim]) << std::endl;
-//    }
+void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
+{
+  UInt n_dims  = coords_.GetNumRows();
+  UInt n_elems = coords_.GetNumCols();
+
+  assert(n_dims == domain->GetGrid()->GetDim());
+
+  // init barycenter for safty reason
+  barycenter.SetZero();
+
+  // std::cout << "calc a new barycenter" << std::endl;
+  // a barycenter is simply the average of all coordinates
+  for (UInt dim=0; dim < n_dims; dim++)
+  {
+    // std::cout << "dim = " << dim << "  ";
+    for (UInt k=0; k < n_elems; k++)
+    {
+      // the constructor of Point initializes
+      barycenter[dim] += coords_[dim][k];
+      // std::cout << coords[dim][k] << "->" << barycenter[dim] << "\t";
+    }
+
+    barycenter[dim] /= (double) n_elems;
+    // std::cout << " average: " << (barycenter[dim]) << std::endl;
+  }
 }
 
 void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
@@ -1743,8 +1745,7 @@ void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
   for (UInt i = 0; i < shape.numEdges; ++i) {
     length = 0.0;
     for (UInt iDim = 0; iDim < dim; ++iDim) {
-      dl = coords_[iDim][shape.edgeVertices[i][1] - 1]
-                         - coords_[iDim][shape.edgeVertices[i][0] - 1];
+      dl = coords_[iDim][shape.edgeVertices[i][1] - 1] - coords_[iDim][shape.edgeVertices[i][0] - 1];
       length += dl * dl;
     }
     length = sqrt(length);
@@ -1753,8 +1754,19 @@ void LagrangeElemShapeMap::GetMaxMinEdgeLength(Double& max, Double& min) {
   }
 }
 
-void LagrangeElemShapeMap::GetEdgeLength(StdVector<Double>& edges_out) {
-  EXCEPTION("Not implemented");
+void LagrangeElemShapeMap::GetEdgeLength(StdVector<Double>& edges_out)
+{
+  const ElemShape & shape = *shape_;
+
+  assert(Elem::GetShapeType(ptElem_->type) == Elem::ST_QUAD || Elem::GetShapeType(ptElem_->type) == Elem::ST_HEXA);
+
+  edges_out.Resize(shape.dim, 0.0);
+
+  for (UInt i = 0; i < shape.numEdges; ++i)
+    for (UInt iDim = 0; iDim < shape.dim; ++iDim)
+      edges_out[iDim] += abs(coords_[iDim][shape.edgeVertices[i][1] - 1] - coords_[iDim][shape.edgeVertices[i][0] - 1]) / shape.dim;
+
+  // std::cout << "edges=" << edges_out.ToString() << std::endl;
 }
 
 void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {
