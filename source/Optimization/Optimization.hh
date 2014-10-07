@@ -67,6 +67,13 @@ namespace CoupledField
           * @return either the described optimization problem or null if nothing in the xml file */
          static Optimization* CreateInstance();
 
+         /** PostInit is to be called after the constructor. */
+         virtual void PostInit();
+
+         /** This is the second phase of post initialization. It creates the Optimizer tools */
+         virtual void PostInitSecond();
+
+
          /** Solves the problem by looping over driver->SolveProblem() up to
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
@@ -193,8 +200,12 @@ namespace CoupledField
          * Always creates the list, so use only rarely. */
         StdVector<Function*> GetActiveFunctions() const;
 
+        /** Our base ParamNode pointer, pointing to input <optimization> */
+        PtrParamNode optParamNode;
+
         /** Our base ParamNode pointer, pointing to a plain <optimization> */
         PtrParamNode optInfoNode;
+
 
         /** This is the list of concurrent objective functions.
          * It is guaranteed to have at least one entry.
@@ -239,26 +250,8 @@ namespace CoupledField
          * @see ToApp()*/
         SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
 
-
-        static LinearFormContext* GetLinearFormContext(const RegionIdType regionId, StdPDE* pde,
-            const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
-
-        /** Helper which extracts the FormContext from assemble using the optimization region
-         * @param regionId the corresponding region
-         * @param pde1 the first pde (e.g. mech)
-         * @param pde2 this is either the same as pde1 or the coupling partner
-         * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-        static BiLinFormContext* GetFormContext(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
-
         /** Get the standard integrators */
-        BiLinForm* GetForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
-
-        /** Helper which extracts the Form from assemble using the optimization region
-         * @param regionId the corresponding region
-         * @param pde1 the first pde (e.g. mech)
-         * @param pde2 this is either the same as pde1 or the coupling partner
-         * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-        static BiLinForm* GetForm(RegionIdType regionId, StdPDE* pde1, StdPDE* pde2, const std::string& integrator, bool throw_exception = true, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+        BiLinFormContext* GetBiLinForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
 
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
@@ -297,13 +290,6 @@ namespace CoupledField
          * @param iteration a duplicate of the log file output to the info xml file */
         virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
-        /** PostInit is to be called after the constructor. 
-         * PostInit  does not really solve something. */
-        virtual void PostInit() {};
-
-        /** This is the second phase of post initialization. It creates the Optimizer tools */
-        virtual void PostInitSecond();
-        
         /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
          * PiezoSIMP does it simply in the constructor */
         virtual void SetPDEs(OptimizationMaterial::System sys);

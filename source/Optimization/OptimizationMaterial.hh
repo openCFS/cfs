@@ -25,12 +25,14 @@ namespace CoupledField
 
 class AcousticPDE;
 class BiLinForm;
+class BiLinFormContext;
 class DesignSpace;
 class ElecPDE;
 class ErsatzMaterial;
 class HeatCondPDE;
 class LinearForm;
 class LatticeBoltzmannPDE;
+class CoefFunctionOpt;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
  * While ErsatzMaterial itself contains a vector of pdes and the solutions for these
@@ -84,19 +86,34 @@ protected:
    * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
    * @param elem if not given the first design element is used, otherwise the provided one
    * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BiLinForm* form, Matrix<double>& out, const Elem* elem = NULL,
+  void GetElementMatrix(BiLinearForm* form, Matrix<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
   
+  void GetElementMatrix(Matrix<double>& out, const std::string& integrator, const Elem* elem = NULL,
+                        BaseMaterial* bimaterial = NULL, DesignElement::Type direction = DesignElement::NO_DERIVATIVE,  Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
+
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
   void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
+
+  /** Helper which extracts the FormContext from assemble using the optimization region
+          * @param regionId the corresponding region
+          * @param pde1 the first pde (e.g. mech)
+          * @param pde2 this is either the same as pde1 or the coupling partner
+          * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
+  BiLinearForm* GetForm(RegionIdType regionId, const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+
 
   /** service function handling multimaterial
    * @param de we need elem->region, multimaterial might be NULL otherwise we check for index */
   Matrix<double>& GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map,
       const DesignElement* de, MaterialClass mc, StdPDE* pde1, StdPDE* pde2, DesignElement::Type direction,
       double factor, bool transposed);
+
+  virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
+
+  virtual SinglePDE* GetPDE() = 0;
 
   StdVector<RegionIdType> regionIds;
 
@@ -118,7 +135,7 @@ protected:
 private:
 
   /** This is the common implementation for GetElementMatrix() and GetElementVector() */
-  void GetElementEntity(BiLinForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
+  void GetElementEntity(BiLinearForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
   
@@ -161,7 +178,10 @@ public:
   const Vector<double>& MechStrainRHS(const Elem* elem, MechPDE::TestStrain testStrain = MechPDE::NOT_SET);
 
 
-protected:  
+protected:
+
+  SinglePDE* GetPDE();
+
   /** The mechanical element stiffness matrix is constant.
    * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
   std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
@@ -204,6 +224,8 @@ public:
 
 protected:
 
+  SinglePDE* GetPDE();
+
   std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouStiffness_map;
   std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouMass_map;
 
@@ -234,6 +256,9 @@ public:
    * @return a pointer to the Element Mass Matrix*/
   const Matrix<double>& CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
+protected:
+  SinglePDE* GetPDE();
+
 private:
   /** The elec stiffness matrix $K_{\phi \phi}$. */
   std::map<RegionIdType, StdVector<Matrix<double> > > elecStiffness_map;
@@ -278,6 +303,9 @@ public:
 //  }
 
 protected:
+
+  SinglePDE* GetPDE();
+
   /** The electrostatic element stiffness matrix is constant.
    * We store the results for standard (first) and bimaterial (second)  */
   std::map<RegionIdType, std::pair<Matrix<std::complex <double> >, Matrix<std::complex <double> > > > elecStiffness_map;
@@ -292,6 +320,8 @@ public:
   HeatMat(ErsatzMaterial* em);
 
 protected:
+  SinglePDE* GetPDE();
+
   HeatCondPDE* heat;
 };
 
@@ -303,6 +333,9 @@ public:
   LBMMat(ErsatzMaterial* em);
 
 protected:
+
+  SinglePDE* GetPDE() { assert(false); return NULL; } // FIXME
+
   LatticeBoltzmannPDE* lbm;
 };
 

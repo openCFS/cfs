@@ -113,7 +113,7 @@ linElastInt* ShapeGrad::getBDBForm()
 {
   if(pde->GetName() != "mechanic") return NULL;
   assert(false);
-  return NULL; // FIXME dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "linElastInt"));
+  return NULL; // FIXME dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "LinElastInt"));
 }
 
 

@@ -474,11 +474,8 @@ namespace CoupledField
     //! 'Volume' here means, that for 2D elements the third dimension is
     //! assumed to be 1m.
     //! \param regionId (in) region identifier
-    //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
-    virtual Double CalcVolumeOfRegion( const RegionIdType regionId,
-                                       bool isaxi = false,
-                                       bool updated = false ) = 0;
+    virtual Double CalcVolumeOfRegion( const RegionIdType regionId,bool updated = false ) = 0;
     
     /** calculates the bounding box of the entire grid. Is slow,
      * CalcVolumeSpannedByNamedNodes() in legacy cfs is faster!

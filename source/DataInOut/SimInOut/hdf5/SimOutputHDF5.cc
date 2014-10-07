@@ -1196,8 +1196,7 @@ namespace CoupledField {
           }
           actGroup.close();
         }
-      } H5_CATCH( "Could not write result description for result '"
-                  << resultName << "'" );
+      } H5_CATCH( "Could not write result description for result '" << resultName << "'" );
     } //loop: registered mesh / history results
   }
 

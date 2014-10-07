@@ -1082,9 +1082,11 @@ void ParamNode::AdjustElementType()
   {
     string value;
     ToString(value, 0);
-    WARN("Node '" << name_ << "' has children AND a non-empty value '"
-        << value << "'. This is not possible in an xml tree!");
-    assert(false); // find the stuff. Maybe attribute and element with the same name!
+    if(value != "")
+    {
+      WARN("Node '" << name_ << "' has children AND a non-empty value '" << value << "'. This is not possible in an xml tree!");
+      assert(false); // find the stuff. Maybe attribute and element with the same name!
+    }
   }
 
   // Check if node is ATTRIBUTE and has children

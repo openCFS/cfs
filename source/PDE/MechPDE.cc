@@ -44,10 +44,15 @@
 
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
+#include "Optimization/Design/DesignSpace.hh"
+
 namespace CoupledField {
 
 DECLARE_LOG(mechpde)
 DEFINE_LOG(mechpde, "mechpde")
+
+/** the static test strain enum mapping */
+Enum<MechPDE::TestStrain> MechPDE::testStrain;
 
 MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                  shared_ptr<SimState> simState, Domain* domain )
@@ -621,9 +626,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         // number of nodes
         if( numNodes > 1 ) {
           Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
-          coef[i] = CoefFunction::Generate(mp_, part, 
-                                           CoefXprVecScalOp(mp_, coef[i], 
-                    boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
+          coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i],
+                        boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
         }
         
         lin = new SingleEntryInt(coef[i]);
@@ -893,12 +897,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                                           tensorType_, Global::REAL );
     }
     
-    // TODO: do only for optimizaton
-    if(true)
+    // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
+    if(domain->GetErsatzMaterial(false) != NULL)
     {
       assert(!isComplex);
 
-      CoefFunctionOpt<double>* tmpFnc = new CoefFunctionOpt<double>(curCoef);
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef);
       curCoef.reset(tmpFnc);
     }
 
@@ -932,6 +936,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       else
         integ = new BDBInt<Double>(bOp, curCoef, 1.0);
     }
+
+    if(domain->GetErsatzMaterial(false) != NULL)
+      dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(integ);
 
     return integ;
   }

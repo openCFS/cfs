@@ -16,7 +16,6 @@ namespace CoupledField {
   // forward class declarations
   class BasePairCoupling;
   class WriteResults;
-  class BaseNodeStoreSol;
   class StdSolveStep;
   class ParamNode;
   class BiotSavart;

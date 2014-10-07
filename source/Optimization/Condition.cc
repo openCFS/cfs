@@ -730,7 +730,6 @@ string Condition::ToString(MultipleExcitation* me) const
     os << ToString(coords);
 
   // with multiple output constraints we need to identify
-  assert(false);
   // FIXME if(type_ == OUTPUT && !output_nodes.IsEmpty())
   //  os << "_" << output_nodes[0]->entities->GetName();
 

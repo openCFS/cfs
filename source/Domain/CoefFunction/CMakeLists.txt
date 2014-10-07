@@ -11,13 +11,15 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionGridNodal.cc
   CoefFunctionGridNodalDefault.cc
   CoefFunctionGridNodalInterp.cc
+  CoefFunctionMeanFlowConvection.cc
   CoefFunctionMulti.cc
+  CoefFunctionOpt.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
-  CoefFunctionMeanFlowConvection.cc
+  
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

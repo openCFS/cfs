@@ -186,8 +186,8 @@ namespace CoupledField
      * @return  NULL but an exception if not set and not silent*/
     DesignSpace* GetErsatzMaterial(bool throw_exception = true);
 
-    /** This is set by optimization which holds the data (in a derved form). It
-     * is also reset here by the optimization destructor.
+    /** This is set by optimization which holds the data (in a derved form) or when we do loadErsatzMaterial or -x
+     * Is is also reset here by the optimization destructor.
      * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
      * @param regionId the region for the ersatz material */
      void SetErsatzMaterial(DesignSpace* data) { this->ersatzMaterial_ = data; }

@@ -21,9 +21,8 @@ namespace CoupledField {
                               bool isPartOfSequence,
                               shared_ptr<SimState> state, Domain* domain,
                               PtrParamNode paramNode, PtrParamNode infoNode ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain,
-                    paramNode, infoNode ) {
-
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain, paramNode, infoNode )
+  {
     analysis_ = BasePDE::STATIC;
     param_ = param_->Get("static");
     info_ = info_->Get("static");
@@ -34,7 +33,12 @@ namespace CoupledField {
   }
 
   void StaticDriver::Init(bool restart) {
-
+    // Initialize first multisequence step, as the method "CheckStoreResults"
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if(!domain->GetOptimization())
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
 
     InitializePDEs();
   }
@@ -50,15 +54,24 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem()
+  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
   {
 
-    // Initialize first multisequence step, as the method "CheckStoreResults" 
-    // relies on the result handler to know already about the current
-    // sequencestep. However, in case of optimization, the sequence step
-    // gets initialized in Optimization::SolveProblem()
-    handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
-    
+    // in the optimization case the step is given, otherwise it is created
+    // store such that special steps can add non-lin stuff and optimization adjoints
+    if(given_analysis_id == NULL)
+    {
+      // do we really want to create a new entry? Might blast up the output
+      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
+      analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", at);
+      analysis_id_->Get("analysis_id")->SetValue("0");
+    }
+    else
+    {
+      analysis_id_ = given_analysis_id;
+      assert(analysis_id_->Has("analysis_id"));
+    }
+
     // In case we allow general postprocessing or this analysis is part of 
     // a multisequence (in which case the subsequent run could need this
     // simulation as restart information)
@@ -68,11 +81,6 @@ namespace CoupledField {
     // set dummy time to zero
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
     
-    // do we really want to create a new entry? Might blast up the output
-    ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-    analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", at);
-    analysis_id_->Get("analysis_id")->SetValue("0");
-    
     // 'TimeStepping' is here the optimization iteration
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
@@ -80,13 +88,17 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
     ptPDE_->GetSolveStep()->PostStepStatic();
 
-    StoreResults(1,0.0);
-    handler_->FinishMultiSequenceStep();
-    
-    if( !isPartOfSequence_ ) {
-      handler_->Finalize(); // to be called only once in a HDF5 lifetime!
-    }
+    // in optimization we write the results via StoreResults() because
+    // we don't necessarily write every forward step.
+    if(write_results)
+    {
+      StoreResults(1,0.0);
+      handler_->FinishMultiSequenceStep();
 
+      if(!isPartOfSequence_)
+        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    }
+    
     if(writeAllSteps_ || isPartOfSequence_ ) { 
       simState_->FinishMultiSequenceStep(true);
     }

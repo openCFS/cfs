@@ -2,7 +2,6 @@
 #include <fstream>
 #include <string>
 
-#include "Optimization/Design/DesignElement.hh"
 #include "Environment.hh"
 #include "Utils/tools.hh"
 #include "Domain/Domain.hh"
@@ -1477,9 +1476,3 @@ namespace CoupledField {
 }
 
 
-/** declared in DesignElement.hh, required in StdVector.cc. Here due to circular includes which would happen otherwise */
-std::ostream & operator << ( std::ostream & out, const DesignID& id)
-{
-  out << id.design;
-  return out;
-}

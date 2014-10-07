@@ -326,7 +326,7 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem() {
+  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
     // options not implemented
     
     analysis_id_ = info_->Get(ParamNode::PROCESS);

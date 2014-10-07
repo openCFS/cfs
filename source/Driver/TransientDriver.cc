@@ -144,7 +144,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem() 
+  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();

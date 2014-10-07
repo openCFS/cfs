@@ -129,6 +129,28 @@ namespace CoupledField
      * @return if StdPDE::subType_ is not set we return NO_TENSOR  */
     virtual SubTensorType GetSubTensorType() const;
 
+    //! Read single RHS excitation
+
+    //! This method reads an xml element for a general RHS excitation and
+    //! returns the entityList and CoefFunction.
+    //! \param elemName Name of ParamNode within <bcsAndLoads> to be read
+    //! \param compNames Names of the components (vector, tensor)
+    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
+    //! \param isComplex Denotes  if a complex valued coef-function is to be
+    //!                  generated
+    //! \param entities Vector of entityLists of the boundary condition
+    //! \param coef Vector of coefficients function for the values
+    //! \param updateGeo Flag indicating, if coefficient function is defined
+    //!                  on an updated geometry (e.g. due to iterative coupling).
+    void ReadRhsExcitation( const std::string& elemName,
+                            const StdVector<std::string>& compNames,
+                            ResultInfo::EntryType type,
+                            bool isComplex,
+                            StdVector<shared_ptr<EntityList> >& entities,
+                            StdVector<PtrCoefFct>& coef,
+                            bool& updateGeo,
+                            PtrParamNode input = PtrParamNode());
+
 
     //! Read general external field information from given xml node
     //! The node has to contain either a values tag, a number of comp tags or
@@ -234,29 +256,6 @@ namespace CoupledField
                             shared_ptr<EntityList>& entity,
                             PtrCoefFct& coef,
                             bool& updateGeo );
-
-    //! Read single RHS excitation
-    
-    //! This method reads an xml element for a general RHS excitation and
-    //! returns the entityList and CoefFunction. 
-    //! \param elemName Name of ParamNode within <bcsAndLoads> to be read 
-    //! \param compNames Names of the components (vector, tensor)
-    //! \param type Type of CoefFunction to be read in (scalar, vector, tensor)
-    //! \param isComplex Denotes  if a complex valued coef-function is to be 
-    //!                  generated
-    //! \param entities Vector of entityLists of the boundary condition
-    //! \param coef Vector of coefficients function for the values
-    //! \param updateGeo Flag indicating, if coefficient function is defined
-    //!                  on an updated geometry (e.g. due to iterative coupling).
-    void ReadRhsExcitation( const std::string& elemName, 
-                            const StdVector<std::string>& compNames,
-                            ResultInfo::EntryType type,
-                            bool isComplex,
-                            StdVector<shared_ptr<EntityList> >& entities, 
-                            StdVector<PtrCoefFct>& coef,
-                            bool& updateGeo );
-
-
 
     //! Read results information for interpolation of continuous fields
     virtual void ReadFieldResults();

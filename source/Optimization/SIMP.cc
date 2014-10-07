@@ -271,7 +271,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   {
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    alpha_k = assemble_->GetBiLinForm(regionId, pde, pde, "linElastInt")->EvalSecMatFac();
+    alpha_k = assemble_->GetBiLinForm(regionId, pde, pde, "LinElastInt")->EvalSecMatFac();
 
     // now alpha_m
     alpha_m = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->EvalSecMatFac();
@@ -447,13 +447,12 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 
 
   // check if we have a form with the application name
-  assert(false);
-  // FIXME LinearSurfForm* form = NULL;
+  LinearForm* form = NULL;
   LinearFormContext* actContext = NULL;
 
   SinglePDE* mech = domain->GetSinglePDE("mechanic", false);
-  if(mech == NULL) return false // wrong pde -> extend if you need it!
-      ;
+  if(mech == NULL) return false; // wrong pde -> extend if you need it!
+
   StdVector<LinearFormContext*>* forms = &(mech->GetAssemble()->GetLinForms());
 
   for(StdVector<LinearFormContext*>::iterator it = forms->Begin(); it != forms->End(); it++)
@@ -463,16 +462,16 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
     if(actContext->GetIntegrator()->GetName() == name)
     {
       assert(false);
-      // FIXME if(form != NULL) EXCEPTION("linear surface form '" << name << "' not unique");
-      // FIXME form = dynamic_cast<LinearSurfForm*>(actContext->GetIntegrator());
+      if(form != NULL) EXCEPTION("linear surface form '" << name << "' not unique");
+      form = actContext->GetIntegrator(); // form = dynamic_cast<LinearSurfForm*>(actContext->GetIntegrator());
     }
   }
 
-  // FIXME LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
-  // FIXME                  << (form != NULL ? form->GetName() : "NULL");
+  LOG_DBG(simp) << "DesignDependentRHS::Init(app = " << Optimization::application.ToString(app) << ") -> form = "
+               << (form != NULL ? form->GetName() : "NULL");
 
-  // form is not necessary defined int the xml file!
-  // FIXME if(form == NULL) return false; // no form, no RHS!
+  // form is not necessary defined in the xml file!
+  if(form == NULL) return false; // no form, no RHS!
 
   // the context knows the surface elements!
   this->valid = true;
@@ -480,6 +479,8 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
   EntityIterator eit = actContext->GetEntities()->GetIterator();
   elem = eit.GetSurfElem();
 
+  // FIXME
+  assert(false);
   // calculate the rhs for the reference element, first store and then extract all but one node
   design->DisableTransferFunctions();
   // FIXME form->SetSurfElem(const_cast<SurfElem*>(elem)); // set the internal actElem_ of the form

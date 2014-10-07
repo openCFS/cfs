@@ -44,10 +44,6 @@ DECLARE_LOG(simp)
 
 PiezoSIMP::PiezoSIMP()
 {
-  // ignores the SetPDE() framework :(
-  elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  pdes[ELEC] = elec;
-
   for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
   {
     assert(false);
@@ -85,6 +81,7 @@ PiezoSIMP::~PiezoSIMP()
 
 void PiezoSIMP::PostInit()
 {
+  // ignores the SetPDE() framework :(
   if(harmonic) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
           else elecRHS.Init<double>(design, CHARGE_DENSITY);
 

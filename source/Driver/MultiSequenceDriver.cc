@@ -53,7 +53,7 @@ DEFINE_LOG(msDriver, "msDriver")
   }
 
 
-  void MultiSequenceDriver::SolveProblem() {
+  void MultiSequenceDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
 
     std::cout << "++ Starting to solve problem" << std::endl;
 

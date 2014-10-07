@@ -31,8 +31,6 @@ SET(TARGET_LL
   design
   domain
   driver
-  elements
-  forms
   logging
   materials
   matvec
@@ -42,10 +40,8 @@ SET(TARGET_LL
   utils
 )
 
-IF(USE_XERCES)
-  INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
-  SET(TARGET_LL ${TARGET_LL} ${XERCES_LIBRARY})
-ENDIF(USE_XERCES)
+INCLUDE_DIRECTORIES(${XERCES_INCLUDE_DIR})
+SET(TARGET_LL ${TARGET_LL} ${XERCES_LIBRARY})
 
 TARGET_LINK_LIBRARIES(optimization ${TARGET_LL})
 

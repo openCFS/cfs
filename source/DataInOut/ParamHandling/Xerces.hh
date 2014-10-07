@@ -1,7 +1,5 @@
 #include <def_use_xerces.hh>
 
-#ifdef USE_XERCES
-
 #ifndef XERCES_HH_
 #define XERCES_HH_
 
@@ -104,5 +102,3 @@ namespace CoupledField {
 
 
 #endif // XERCES_HH_
-
-#endif // USE_XERCES

@@ -305,15 +305,37 @@ void Domain::PostInit(UInt sequenceStep)
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
   SetDriver(driver); // see above!
-  //info_->FinishProgress();
+
+  // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
+  if (GetParamRoot()->Has("optimization"))
+    Optimization::CreateInstance(); // has an SetOptimization() included
+  else {
+    // check if we simulate with ersatz material - after driver and only if not used with optimization
+    // if used with optimization loadErsatzMaterial specifies the starting point for optimization
+    // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
+    if(DensityFile::NeedLoadErsatzMaterial())
+      ersatzMaterial_ = DensityFile::ReadErsatzMaterial();
+  }
 
   // initialize the driver
   // Note: In case this is not the parent / main domain, we do not read a 
   // restart file.
   driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
   
-  if( multiSequenceDriver_ && !isParentDomain_ )
+  if(multiSequenceDriver_ && !isParentDomain_)
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
+
+  // we need driver->Init() first
+  if(optimization_ != NULL)
+  {
+    // second initialization phase, constructs material
+    optimization_->PostInit();
+    // third initialization phase, constructs optimizer
+    optimization_->PostInitSecond();
+  }
+
+
+
 }
 
 // **************
@@ -394,16 +416,14 @@ Domain::~Domain()
 void Domain::SolveProblem()
 {
   BaseDriver* driver = multiSequenceDriver_;
-  if (driver == NULL)
+  if(driver == NULL)
     driver = ptSingleDriver_;
 
   // PostInit needs to be called in advance!
-//  if (GetOptimization() != NULL) {
-//    EXCEPTION("Optiization not yet adapted to new structure");
-//    GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
-//  } else {
+  if(optimization_ != NULL)
+    optimization_->SolveProblem(); // will call multiple driver-SolveProblem
+  else
     driver->SolveProblem();
-//  }
 }
 
   // **********************
@@ -503,7 +523,18 @@ BasePDE* Domain::GetBasePDE()
 
 }
 
-Grid * Domain::GetGrid(const std::string& id)
+DesignSpace* Domain::GetErsatzMaterial(bool throw_exception)
+{
+  if(ersatzMaterial_ != NULL)
+    return ersatzMaterial_;
+
+  if(throw_exception)
+    EXCEPTION("no ersatzMaterial set in domain");
+
+  return NULL;
+}
+
+Grid* Domain::GetGrid(const std::string& id)
 {
   if (gridMap_.find(id) == gridMap_.end())
   {

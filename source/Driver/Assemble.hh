@@ -111,7 +111,7 @@ namespace CoupledField {
     BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
     /** @see GetBiLinForm() */
-    LinearForm* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
+    LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
     /** Overwrites the linearForms to implement the multi-load optimization */
     void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }

@@ -660,8 +660,7 @@ namespace CoupledField {
     std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
     for( fileIt = outFiles_.begin(); 
     fileIt != outFiles_.end(); fileIt++ ) {
-      LOG_DBG(resHandler) << "Finalizing result for output '"
-      << fileIt->second->GetName() << "'";
+      LOG_DBG(resHandler) << "Finalizing result for output '" << fileIt->second->GetName() << "'";
       fileIt->second->Finalize( );
     }    
 

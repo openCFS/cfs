@@ -299,16 +299,11 @@ SET(BOOST_GZ "boost_1_52_0.tar.bz2")
 SET(BOOST_MD5 "3a855e0f919107e0ca4de4d84ad3f750")
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
-#-------------------------------------------------------------------------------
-# If USE_XERCES option is defined find Xerces library
-#-------------------------------------------------------------------------------
-IF(USE_XERCES)
-  SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
-  SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
-  SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
+SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
+SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
+SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
   
-  INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
-ENDIF(USE_XERCES)
+INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 
 #-----------------------------------------------------------------------------
 # Find CGAL

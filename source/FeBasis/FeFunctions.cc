@@ -96,6 +96,15 @@ DECLARE_LOG(fefunc)
     }
   }
   
+  void BaseFeFunction::GetEntitySolution(SingleVector& elemSol, const Elem* elem)
+  {
+    ElemList elemList(grid_);
+    elemList.SetElement(elem);
+    const EntityIterator& it = elemList.GetIterator();
+
+    GetEntitySolution(elemSol, it);
+  }
+
   StdVector< shared_ptr<EntityList> > BaseFeFunction::GetEntityList(){
     return entities_;
   }

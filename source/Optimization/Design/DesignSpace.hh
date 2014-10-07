@@ -18,22 +18,22 @@
 #include "Optimization/Optimization.hh"
 #include "Utils/StdVector.hh"
 
-namespace CoupledField {
-class TransferFunction;
-template <class TYPE> class Matrix;
-template <class TYPE> class Result;
-}  // namespace CoupledField
-
 namespace CoupledField
 {
+  template <class TYPE> class Matrix;
+  template <class TYPE> class Result;
+  struct Elem;
+  struct ResultInfo;
+  class CoefFunctionOpt;
+  class LocPointMapped;
+
+
+  class TransferFunction;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
   class MultiMaterial;
-  struct Elem;
-  struct ResultInfo;
-
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -74,6 +74,13 @@ namespace CoupledField
       * Otherwise not required to be called */
      void SetOptimizer(BaseOptimizer* bo) { optimizer_ = bo; }
 
+     /** Check if a region is subject to optimization (in principle, might be more complicated for piezo, ... */
+     int FindRegion(RegionIdType regionId) const;
+
+     /** Performs the optimization.
+      * @return true if design and coefMat is set */
+     bool TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
       *  a single element -> as in the coupling term of Piezo SIMP.
@@ -86,13 +93,6 @@ namespace CoupledField
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
       * This method is only to be used via domain. ErsatzMaterial has its own implementation in AddMassToStiffness() */
      bool GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat);
-
-     /** Convenience version
-      * @see  GetErsatzMaterialFactor(unsigned int, Optimization::Application) */
-     double GetErsatzMaterialFactor(unsigned int design_index, const BiLinearForm* form, bool forBimaterial = false)
-     {
-       return GetErsatzMaterialFactor(design_index, (Optimization::Application) applicationForm.Parse(form->GetName()), forBimaterial);
-     }
 
      /** do we have a slack variable and such an AuxDesign? */
      virtual bool HasSlackVariable() const { return false; }
@@ -475,8 +475,6 @@ namespace CoupledField
      ResultInfo* GetResultInfo(ResultDescription& rd);
 
 
-     /** as regionIds_ does not exist as StdVector anymore, a simple replacement for regionIds_.Find() */
-     int FindRegion(RegionIdType regionId);
 
      /** Setup the multimaterial vector and do sanity checks */
      void SetupMultiMaterial(ParamNodeList design_list);
@@ -533,6 +531,7 @@ namespace CoupledField
      /** This is the design space info node */
      PtrParamNode info_;
 
+     ErsatzMaterial::Method method_;
   };
 
 

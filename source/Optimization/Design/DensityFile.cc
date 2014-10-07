@@ -230,15 +230,13 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
      StdVector<double> edges;
      domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
 
-     Point dim;
-     assert(false);
-     // FIXME dim not set!! domain->GetGrid()->CalcVolumeSpannedByNamedNodes(&dim);
+     Matrix<double> m = domain->GetGrid()->CalcGridBoundingBox();
 
-     LOG_TRACE(density) << " dim=" << dim.ToString() << " edges=" << edges.ToString();
+     LOG_TRACE(density) << " edges=" << edges.ToString() << " bb=" << m.ToString(0,false);
      PtrParamNode mesh = in_->Get("mesh");
-     mesh->Get("x")->SetValue(dim.data[0] / edges[0]);
-     mesh->Get("y")->SetValue(dim.data[1] / edges[1]);
-     mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? dim.data[2] / edges[2]: 1);
+     mesh->Get("x")->SetValue((m[0][1]-m[0][0]) / edges[0]);
+     mesh->Get("y")->SetValue((m[1][1]-m[1][0]) / edges[1]);
+     mesh->Get("z")->SetValue(domain->GetGrid()->GetDim() == 3 ? (m[2][1]-m[2][0]) / edges[2]: 1);
    }
 
    in_->Get("designSpace/non_design_vicinity")->SetValue(non_desing_vicinity);

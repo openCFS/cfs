@@ -38,6 +38,8 @@ namespace CoupledField {
 
     static Enum<ListType> listType;
 
+    static Enum<DefineType> defineType;
+
     //! Constructor
     EntityList( Grid *grid);
 
@@ -100,6 +102,9 @@ namespace CoupledField {
     static void Union(const StdVector<shared_ptr<EntityList> >& set1,
                       const StdVector<shared_ptr<EntityList> >& set2,
                       StdVector<shared_ptr<EntityList> >& intersect );
+
+    /** dumps some data for logging and debugging purpose */
+    std::string ToString() const;
   protected:
     
     //! ListType of entities

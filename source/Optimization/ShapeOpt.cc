@@ -192,7 +192,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
       for(unsigned int i = 0; i < regs.GetSize(); i++){
         int rid = regs[i];
         if(!g || g->IsForRegion(rid)){
-          s += grd->CalcVolumeOfRegion(rid, false, true);
+          s += grd->CalcVolumeOfRegion(rid, true);
         }
       }
       return(s);
@@ -293,7 +293,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
     BiLinFormContext* biLinForm = biLinForms[i];
     if(biLinForm->GetFirstPde()->GetName() != pde->GetName()) continue;
     if(biLinForm->GetSecondPde()->GetName() != pde->GetName()) continue;
-    if(biLinForm->GetIntegrator()->GetName() != "linElastInt") continue;
+    if(biLinForm->GetIntegrator()->GetName() != "LinElastInt") continue;
     linElastInt* form = (linElastInt*)(biLinForm->GetIntegrator());
     MassInt* massInt = NULL;
     EntityIterator it = biLinForm->GetFirstEntities()->GetIterator();
@@ -661,7 +661,7 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
     BiLinFormContext* biLinForm = biLinForms[i];
     if(biLinForm->GetFirstPde()->GetName() != pde->GetName()) continue;
     if(biLinForm->GetSecondPde()->GetName() != pde->GetName()) continue;
-    if(biLinForm->GetIntegrator()->GetName() != "linElastInt") continue;
+    if(biLinForm->GetIntegrator()->GetName() != "LinElastInt") continue;
     linElastInt* form = (linElastInt*)(biLinForm->GetIntegrator());
     EntityIterator it = biLinForm->GetFirstEntities()->GetIterator();
     for(it.Begin(); !it.IsEnd(); it++){ // loop over all corresponding elements
