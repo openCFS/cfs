@@ -89,7 +89,7 @@ protected:
   void GetElementMatrix(BiLinearForm* form, Matrix<double>& out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
-  
+
   void GetElementMatrix(Matrix<double>& out, const std::string& integrator, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL, DesignElement::Type direction = DesignElement::NO_DERIVATIVE,  Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
 
@@ -138,7 +138,7 @@ private:
   void GetElementEntity(BiLinearForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
                         BaseMaterial* bimaterial = NULL,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
-  
+
 };
 
 class MechMat : public OptimizationMaterial

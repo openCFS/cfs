@@ -32,15 +32,16 @@ namespace CoupledField {
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
   }
 
-  void StaticDriver::Init(bool restart) {
+  void StaticDriver::Init(bool restart)
+  {
+    InitializePDEs();
+
     // Initialize first multisequence step, as the method "CheckStoreResults"
     // relies on the result handler to know already about the current
     // sequencestep. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
     if(!domain->GetOptimization())
       handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
-
-    InitializePDEs();
   }
 
 

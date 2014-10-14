@@ -299,7 +299,7 @@ void Domain::PostInit(UInt sequenceStep)
   
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
-  // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
+  // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init.
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
@@ -322,9 +322,6 @@ void Domain::PostInit(UInt sequenceStep)
   // restart file.
   driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
   
-  if(multiSequenceDriver_ && !isParentDomain_)
-    multiSequenceDriver_->SetSequenceStep(sequenceStep);
-
   // we need driver->Init() first
   if(optimization_ != NULL)
   {

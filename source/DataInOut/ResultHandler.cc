@@ -142,6 +142,8 @@ namespace CoupledField {
                                               BasePDE::AnalysisType type,
                                               UInt numSteps ) {
         
+    LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
+
     // store current sequencestep
     sequenceStep_ = step;
     analysisType_ = type;
@@ -159,7 +161,7 @@ namespace CoupledField {
 
   void ResultHandler::BeginStep( UInt stepNum, Double stepVal ) {
 
-    LOG_TRACE(resHandler) << "Begin step " << stepNum;
+    LOG_DBG(resHandler) << "Begin step " << stepNum;
 
     // remeber current step values 
     actStep_ = stepNum;
