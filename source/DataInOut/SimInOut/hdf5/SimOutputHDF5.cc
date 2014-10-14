@@ -15,6 +15,7 @@
 
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 #include "General/Exception.hh"
 #include "SimOutputHDF5.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -31,10 +32,16 @@ namespace CoupledField {
     EXCEPTION( STR << ":\n" << h5Ex.getCDetailMsg() );                  \
   }
 
+  DECLARE_LOG(h5Out)
+  DEFINE_LOG(h5Out, "hdf5Out")
+
+
 
   SimOutputHDF5::SimOutputHDF5(std::string fileName, PtrParamNode inputNode,
                                PtrParamNode infoNode, bool isRestart ) :
     SimOutput(fileName, inputNode, infoNode, isRestart) {
+
+    LOG_DBG(h5Out) << "SO fn=" << fileName << " rs=" << isRestart;
 
     fileName_ = fileName;
     formatName_ = "hdf5";
@@ -87,12 +94,14 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::Init( Grid* ptGrid, bool printGridOnly ) {
+    LOG_DBG(h5Out) << "Init";
     ptGrid_ = ptGrid;
     printGridOnly_ = printGridOnly;
     WriteGrid();
   }
 
   void SimOutputHDF5::WriteFileInfoHeader() {
+    LOG_DBG(h5Out) << "WFIH";
     H5::Group infoGroup;
     try {
       infoGroup = mainGroup_.openGroup( "FileInfo" );
@@ -132,6 +141,7 @@ namespace CoupledField {
   void SimOutputHDF5::BeginMultiSequenceStep( UInt step,
                                               BasePDE::AnalysisType type,
                                               UInt numSteps  ) {
+    LOG_DBG(h5Out) << "BMSS step=" << step << " at=" << BasePDE::analysisType.ToString(type) << " ns=" << numSteps;
     std::stringstream msName;
     H5::Group resultDescGroup;
     
@@ -247,8 +257,9 @@ namespace CoupledField {
                                       UInt saveBegin, UInt saveInc,
                                       UInt saveEnd,
                                       bool isHistory ) {
-
     std::string resultName = sol->GetResultInfo()->resultName;
+
+    LOG_DBG(h5Out) << "RS sol=" << resultName << " sb=" << saveBegin << " se=" << saveEnd << " inc=" << saveInc << " h=" << isHistory;
 
     if( !isHistory ) {
       registeredMeshResults_[resultName].push_back(sol);
@@ -266,7 +277,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::BeginStep( UInt stepNum, Double stepVal ) {
-    
+    LOG_DBG(h5Out) << "BS num=" << stepNum << " v=" << stepVal;
     currStep_ = stepNum;
     currStepValue_ = stepVal;
 
@@ -279,6 +290,8 @@ namespace CoupledField {
     LockFile();
     
     std::string resultName = sol->GetResultInfo()->resultName;
+
+    LOG_DBG(h5Out) << "AR sol=" << resultName;
 
     // try to determine, if current result is a history or mesh result
     bool isHistory = false;
@@ -318,6 +331,7 @@ namespace CoupledField {
 
   void SimOutputHDF5::AddMeshResult( shared_ptr<BaseResult> sol) {
 
+    LOG_DBG(h5Out) << "AMR sol=" << sol->GetResultInfo()->resultName;
     // No need to aquire lock, as this method just gets called from
     // SimOutputHDF5::AddResult()
     
@@ -460,6 +474,8 @@ namespace CoupledField {
     UInt numDofs = resInfo->dofNames.GetSize();
     std::string entityString = H5IO::MapUnknownTypeAsString(resInfo->definedOn );
 
+    LOG_DBG(h5Out) << "AHR sol=" << resultName;
+
 
     // Add current stepvalue to related group in result description,
     // if not yet present
@@ -541,7 +557,8 @@ namespace CoupledField {
 
   void SimOutputHDF5::FinishStep( )
   {
-    
+    LOG_DBG(h5Out) << "FS";
+
     LockFile();
     
     if(externalFiles_)
@@ -568,7 +585,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::FinishMultiSequenceStep( ) {
-
+    LOG_DBG(h5Out) << "FMSS";
     // Acquire lock
     LockFile();
 
@@ -603,7 +620,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::Finalize() {
-
+    LOG_DBG(h5Out) << "Finalize";
     // return in case of an already restarted file
     if (isRestart_)
       return;
@@ -664,6 +681,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::InitModule() {
+    LOG_DBG(h5Out) << "IM";
     if( isInitialized_)
       return;
 
@@ -681,6 +699,7 @@ namespace CoupledField {
   }
   
   void SimOutputHDF5::OpenFile(bool truncate){
+    LOG_DBG(h5Out) << "OF tr=" << truncate;
     // create main file and obtain main group
     try {
       mainFile_ = H5::H5File (currFileName_, truncate ? H5F_ACC_TRUNC : H5F_ACC_RDWR );
@@ -699,6 +718,7 @@ namespace CoupledField {
   }
   
   void SimOutputHDF5::CloseFile(){
+    LOG_DBG(h5Out) << "CF";
     if(currStepFile_.getLocId() > 0) {
       if (currStepFile_.getObjCount( H5F_OBJ_DATASET |
                                      H5F_OBJ_GROUP |
@@ -746,7 +766,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::WriteGrid() {
-
+    LOG_DBG(h5Out) << "WG";
     // ensure that grid gets only written once
     if(!gridWritten_)
       InitModule();
@@ -894,6 +914,7 @@ namespace CoupledField {
 
 
   void SimOutputHDF5::WriteRegions(const H5::Group& meshGroup) {
+    LOG_DBG(h5Out) << "WR";
     H5::Group regionListGroup;
     StdVector< std::string > regionNames;
     StdVector< UInt > regionDims;
@@ -1005,6 +1026,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::WriteNodeGroups(const H5::Group& meshGroup) {
+    LOG_DBG(h5Out) << "WNG";
     H5::Group myGroup;
     StdVector< UInt > nodes;
     StdVector<std::string> nodeNames;
@@ -1033,6 +1055,7 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::WriteElemGroups(const H5::Group& meshGroup) {
+    LOG_DBG(h5Out) << "WEG";
     H5::Group myGroup;
     StdVector< UInt > elemNums, elemNodes;
     StdVector<Elem*> elems;
@@ -1085,6 +1108,7 @@ namespace CoupledField {
   void SimOutputHDF5::WriteResultDescriptions( const H5::Group& resGroup,
                                                UInt numSteps,
                                                bool isHistory ) {
+    LOG_DBG(h5Out) << "WRD num=" << numSteps << " h=" << isHistory;
     std::string resultName, unit;
     UInt definedOn, numDofs, entryType; 
     //UInt saveBegin, saveEnd, saveInc;
@@ -1204,7 +1228,7 @@ namespace CoupledField {
                                     Vector<Double>& resultVals,
                                     const UInt numDOFs,
                                     const bool isImag ) {
-
+    LOG_DBG(h5Out) << "WR n=" << resultVals.GetSize() << " nd=" << numDOFs << " imag=" << isImag;
     // create dataset with related name
     std::string name;
     if( !isImag )
@@ -1220,6 +1244,8 @@ namespace CoupledField {
   }
 
   void SimOutputHDF5::CreateExternalFile() {
+    LOG_DBG(h5Out) << "CEF";
+
     std::stringstream fName, masterGroup;
     std::string pathsep, fn;
 
