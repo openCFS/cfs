@@ -916,10 +916,15 @@ DECLARE_LOG(fefunc)
     
     
     // Get common entity lists
-    FeFunction<T> & otherFct =  
-          dynamic_cast<FeFunction<T>& >(*feFct);
+    //FeFunction<T> & otherFct =
+    //      dynamic_cast<FeFunction<T>& >(*feFct);
+    //feFct->entities_
+    //
+
+    bool convertDoubleToComplex = (std::tr1::is_same<T,Complex>::value && !feFct->IsComplex());
+
     StdVector<shared_ptr<EntityList> > intersect;
-    EntityList::Intersect( this->entities_, otherFct.entities_, intersect );
+    EntityList::Intersect( this->entities_, feFct->GetEntityList(), intersect );
 
     // Loop over all entities
     LOG_DBG3(fefunc) << PREFIX << "Entities to be transferred: ";
@@ -956,26 +961,51 @@ DECLARE_LOG(fefunc)
       LOG_DBG(fefunc)<< "=> Applying Copy Based Algorithm <= ";
       Vector<T> & myVec = *(this->coeffs_);
       myVec.Init();
-      
-      for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
-        shared_ptr<EntityList> actList = intersect[iList];
-        
-        EntityIterator it = actList->GetIterator();
-        StdVector<Integer> eqns;
-        // loop over all elements
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-          Vector<T> elemSol;
-          otherFct.GetEntitySolution( elemSol, it);
-          feSpace_->GetEqns( eqns, it);
-          UInt numEqns = eqns.GetSize();
-          // Loop over all equations
-          for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
-            if( eqns[iEqn] > 0 ) {
-              myVec[eqns[iEqn]-1] = elemSol[iEqn];
-            }
-          } // loop: eqns
-        } // loop: elements
-      } // loop: lists
+      if(convertDoubleToComplex){
+        FeFunction<Double> & otherFct =
+              dynamic_cast<FeFunction<Double>& >(*feFct);
+        for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+          shared_ptr<EntityList> actList = intersect[iList];
+
+          EntityIterator it = actList->GetIterator();
+          StdVector<Integer> eqns;
+          // loop over all elements
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            Vector<Double> elemSol;
+            otherFct.GetEntitySolution( elemSol, it);
+            feSpace_->GetEqns( eqns, it);
+            UInt numEqns = eqns.GetSize();
+            // Loop over all equations
+            for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+              if( eqns[iEqn] > 0 ) {
+                myVec[eqns[iEqn]-1] = elemSol[iEqn];
+              }
+            } // loop: eqns
+          } // loop: elements
+        } // loop: lists
+      }else{
+        FeFunction<T> & otherFct =
+                      dynamic_cast<FeFunction<T>& >(*feFct);
+        for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+          shared_ptr<EntityList> actList = intersect[iList];
+
+          EntityIterator it = actList->GetIterator();
+          StdVector<Integer> eqns;
+          // loop over all elements
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            Vector<T> elemSol;
+            otherFct.GetEntitySolution( elemSol, it);
+            feSpace_->GetEqns( eqns, it);
+            UInt numEqns = eqns.GetSize();
+            // Loop over all equations
+            for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+              if( eqns[iEqn] > 0 ) {
+                myVec[eqns[iEqn]-1] = elemSol[iEqn];
+              }
+            } // loop: eqns
+          } // loop: elements
+        } // loop: lists
+      }
     }
     LOG_DBG(fefunc) << PREFIX << "Finished initialization from other FeFunction";
   }

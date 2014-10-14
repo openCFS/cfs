@@ -12,6 +12,9 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/Assemble.hh"
 
+#include "DataInOut/SimState.hh"
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
 // include elements
 #include "FeBasis/H1/H1Elems.hh"
@@ -26,6 +29,7 @@
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/Operators/PreStressOperator.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
@@ -355,6 +359,68 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         
       }
       
+
+      PtrParamNode preStressNode;
+      PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
+      if(bcNode){
+        preStressNode = bcNode->GetByVal("preStress","region",regionName.c_str(),ParamNode::PASS);
+      }
+
+      if( preStressNode ){
+
+        // either complex material or bloch mode with complex B-matrices
+        bool complexPre = (do_bloch | complexMatData_[actRegion] );
+
+        PtrCoefFct preStressFct = CreatePreStressFct(complexPre,preStressNode);
+
+        if(do_bloch || subType_ == "axi"){
+          EXCEPTION("Prestressing is not available for Block periodic or axi-symmetric computations");
+        }
+        BaseBDBInt *preStressInt = NULL;
+        if(dim_==2){
+          if( regionSoftening_[actRegion] == "icModesTW") {
+            if(complexPre){
+              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,2,Complex>(true),
+                                                     new PreStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
+            }else{
+              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,2,Double>(true),
+                                                    new PreStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
+            }
+          }else{
+            if(complexPre){
+              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
+            }else{
+              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,2>(false),preStressFct,1.0);
+            }
+          }
+        }else{
+          if( regionSoftening_[actRegion] == "icModesTW") {
+            if(complexPre){
+              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,3,Complex>(true),
+                                                     new PreStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
+            }else{
+              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,3,Double>(true),
+                                                    new PreStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
+            }
+          }else{
+            if(complexPre){
+              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
+            }else{
+              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,3>(false),preStressFct,1.0);
+            }
+          }
+        }
+
+        preStressInt->SetName("PreStressInt");
+        preStressInt->SetFeSpace( mySpace );
+
+        BiLinFormContext *preStressContext =  new BiLinFormContext( preStressInt, STIFFNESS );
+        preStressContext->SetEntities( actSDList, actSDList );
+        preStressContext->SetFeFunctions( myFct, myFct );
+
+        assemble_->AddBiLinearForm( preStressContext );
+      }
+
       // ====================================================================
       //  Standard Mass Integrator
       // ====================================================================
@@ -1438,5 +1504,235 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
      }
      return crSpaces;
    }
+
+  //+++++++++++++++++++++++++++++++++++++++++++++++++
+  // PreStressing CoefFunction Creation
+
+  //Helper
+  void MakeBigPreStressVector(StdVector<std::string>& bigVec, StdVector<std::string> smallVec, UInt dim){
+    if(dim ==2){
+      bigVec.Resize(16);
+      bigVec.Init("0.0");
+      bigVec[0] = smallVec[0];
+      bigVec[1] = smallVec[2];
+      bigVec[4] = smallVec[2];
+      bigVec[5] = smallVec[1];
+      bigVec[10] = smallVec[0];
+      bigVec[11] = smallVec[2];
+      bigVec[14] = smallVec[2];
+      bigVec[15] = smallVec[1];
+    }else if (dim ==3){
+      bigVec.Resize(81);
+      bigVec.Init("0.0");
+      for(UInt i=0;i<3;i++){
+        bigVec[i*30+0] = smallVec[0];
+        bigVec[i*30+1] = smallVec[3];
+        bigVec[i*30+2] = smallVec[5];
+
+        bigVec[i*30+9] = smallVec[3];
+        bigVec[i*30+10] = smallVec[1];
+        bigVec[i*30+11] = smallVec[4];
+
+        bigVec[i*30+18] = smallVec[5];
+        bigVec[i*30+19] = smallVec[4];
+        bigVec[i*30+20] = smallVec[2];
+      }
+    }
+  }
+
+  PtrCoefFct MechPDE::CreatePreStressFct( bool isComplex, PtrParamNode stressNode){
+    PtrParamNode preNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
+    PtrParamNode compNode = stressNode->Get("computeLHS",ParamNode::PASS);
+    PtrCoefFct coef;
+    if(preNode){
+      //TODO: This does not support coordinate systems. If this is needed,
+      // one possibility would be to create a stress tensor coeffunction first, apply coordinate systems and then blow it up
+      // according to the space dimension
+
+      //execute strTok and cast
+      typedef boost::tokenizer<boost::char_separator<char> >
+          tokenizer;
+      boost::char_separator<char> sep(" ");
+
+
+      StdVector<std::string> preVecR;
+      StdVector<std::string> preVecI;
+
+      std::string valueRStr =  preNode->Get("value")->As<std::string>();
+      tokenizer tokensR(valueRStr, sep);
+      for (tokenizer::iterator tok_iter = tokensR.begin();
+             tok_iter != tokensR.end(); ++tok_iter){
+        preVecR.Push_back(*tok_iter);
+      }
+
+      //some consistency checks
+      if(dim_==2 && preVecR.GetSize() != 3){
+        Exception("For a 2D simulation, we expect 3 values for real preStress tensor in Voigt notation.");
+      }
+      if(dim_==3 && preVecR.GetSize() != 6){
+        Exception("For a 3D simulation, we expect 6 values for real preStress tensor in Voigt notation.");
+      }
+
+      //first we create the big tensor for real values
+      StdVector<std::string> bigVecR;
+      StdVector<std::string> bigVecI;
+      MakeBigPreStressVector(bigVecR,preVecR,dim_);
+
+      if(isComplex){
+        //create just an empty tensor
+        preVecI.Resize(preVecR.GetSize());
+        preVecI.Init("0.0");
+        MakeBigPreStressVector(bigVecI,preVecI,dim_);
+      }
+
+      if(isComplex){
+        coef =  CoefFunction::Generate(mp_,Global::COMPLEX,dim_*dim_,dim_*dim_,bigVecR,bigVecI);
+      }else{
+        coef =  CoefFunction::Generate(mp_,Global::REAL,dim_*dim_,dim_*dim_,bigVecR);
+      }
+      return coef;
+    }else if(compNode){
+
+      UInt aSStep = 0;
+      //redefine if user passes the argument
+      if( compNode->Get("sequenceStep",ParamNode::PASS) ){
+          aSStep = compNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
+      }
+
+      if(aSStep < 1){
+        // GetPreceeding sequence step
+        aSStep = domain_->GetDriver()->GetActSequenceStep();
+        aSStep--;
+      }
+
+      //only real valued coefFunctions supported
+      PtrCoefFct stressVec = GetStressCoefFromSeqStep(aSStep);
+      std::map<std::string, PtrCoefFct> var;
+      var["a"]  = stressVec;
+
+      StdVector<std::string> preVecR;
+      StdVector<std::string> preVecI;
+      StdVector<std::string> bigVecR;
+      StdVector<std::string> bigVecI;
+
+      if(dim_ == 2){
+        const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" };
+        preVecR.Import(vecR,3);
+        MakeBigPreStressVector(bigVecR,preVecR,2);
+        if(isComplex){
+          const std::string vecI[] = { "0.0" , "0.0" , "0.0" };
+          preVecI.Import(vecI,3);
+          MakeBigPreStressVector(bigVecI,preVecI,2);
+        }
+      }else{
+        const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" , "a_3_R" , "a_4_R" , "a_5_R"};
+        preVecR.Import(vecR,6);
+        MakeBigPreStressVector(bigVecR,preVecR,3);
+        if(isComplex){
+          const std::string vecI[] = { "0.0" , "0.0" , "0.0" , "0.0" , "0.0" , "0.0" };
+          preVecI.Import(vecI,6);
+          MakeBigPreStressVector(bigVecI,preVecI,3);
+        }
+      }
+      //create the coefFunction object
+      if(bigVecI.GetSize()>0){
+        coef.reset(new CoefFunctionCompound<Complex>(mp_));
+        CoefFunctionCompound<Complex>*  stressTens = dynamic_cast< CoefFunctionCompound<Complex>* > (coef.get());
+        stressTens->SetTensor(bigVecR,bigVecI,dim_*dim_,dim_*dim_,var);
+      }else{
+        coef.reset(new CoefFunctionCompound<Double>(mp_));
+        CoefFunctionCompound<Double>*  stressTens = dynamic_cast< CoefFunctionCompound<Double>* > (coef.get());
+        stressTens->SetTensor(bigVecR,dim_*dim_,dim_*dim_,var);
+      }
+      return coef;
+    }else{
+      EXCEPTION("Cannot read definition of prestressing!");
+      return coef;
+    }
+  }
+
+  PtrCoefFct MechPDE::GetStressCoefFromSeqStep(UInt seqStep){
+    //This function uses mostly the simState algorithms from SinglePDE
+    //TODO: This is the third(?) time this code is used (see ReadUserFieldValues and ReadInitialConditions).
+    //Define some function to handle feFunction extraction from other sequence steps or external simulations
+
+    Domain * inDomain = NULL;
+    PtrCoefFct stressVec;
+    //Get Stress CoefFunction from previous state
+    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+
+    PtrParamNode icInfo = infoNode_->Get("Prestressing");
+    PtrParamNode isInfo = icInfo->Get("ComputedLHS");
+    try{
+      std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+      PtrParamNode node(new ParamNode());
+      PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
+                                          false));
+      boost::shared_ptr<SimInputHDF5> in;
+      in.reset(new SimInputHDF5(fileName, node, infoNode));
+      inState->SetInputHdf5Reader(in);
+      SimState::GridMap gridMap = domain_->GetGridMap();
+
+      inDomain = inState->GetDomain(seqStep, gridMap);
+      Double stepVal = 0.0;
+      UInt lastStepNum = 0;
+      inState->GetLastStepNum(seqStep, lastStepNum, stepVal);
+      // log to info node
+      isInfo->Get("inputSequenceStep")->SetValue(seqStep);
+      isInfo->Get("inputStepNumber")->SetValue(lastStepNum);
+      // update to last step number
+      inState->SetInterpolation(SimState::CONSTANT, mp_, analysistype_, 0);
+      inState->UpdateToStep(seqStep, lastStepNum);
+      SinglePDE * inPDE = inDomain->GetSinglePDE(pdename_);
+      if( inPDE->GetAnalysisType() != STATIC && inPDE->GetAnalysisType() != TRANSIENT){
+        EXCEPTION("Prestressing is only supported for a preceeding transient or static analysis");
+      }
+
+      shared_ptr<BaseFeFunction>  inFct = inPDE->GetFeFunction( MECH_DISPLACEMENT );
+
+      //Lets create the stress Coeffunction
+      // === MECHANIC STRESS ===
+      StdVector<std::string> stressComponents;
+      if( subType_ == "3d" ) {
+        stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
+      } else if( subType_ == "planeStrain" ) {
+        stressComponents = "xx", "yy", "xy";
+      } else if( subType_ == "planeStress" ) {
+        stressComponents = "xx", "yy", "xy";
+      } else if( subType_ == "axi" ) {
+        stressComponents = "rr", "zz", "rz", "phiphi";
+      }
+      shared_ptr<ResultInfo> stress(new ResultInfo);
+      stress->resultType = MECH_STRESS;
+      stress->dofNames = stressComponents;
+      stress->unit =  "N/m^2";
+      stress->entryType = ResultInfo::TENSOR;
+      stress->definedOn = ResultInfo::ELEMENT;
+      PtrCoefFct stressCoef;
+      shared_ptr<CoefFunctionFormBased> sigmaFunc;
+
+      sigmaFunc.reset(new CoefFunctionFlux<Double>(inFct, stress));
+
+      stiffFormCoefs_.insert(sigmaFunc);
+      stressVec = sigmaFunc;
+      // Cleanup everything, so that temporary memory needed for domain gets freed
+      in.reset();
+      // important: This deletes the internal references to the
+      inState->Finalize();
+      inState.reset();
+      delete inDomain;
+    }catch (Exception& e){
+      if( inState ) {
+        inState->Finalize();
+        inState.reset();
+      }
+      if(inDomain)
+        delete inDomain;
+
+      RETHROW_EXCEPTION(e, "Cannot obtain mechanic Stress coefficient function from last sequence step for prestressing."
+                        << "' from sequenceStep " << seqStep );
+    }
+    return stressVec;
+  }
 
 } // end namespace CoupledField

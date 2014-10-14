@@ -119,6 +119,7 @@ public:
     OP_MULT_CONJ,             /*!< Binary * operation (scal-scal, scalar-vector), conjugated */
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case) */
     OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated */
+    OP_MULT_TENSOR,           /*!< Binary * operation (tensor-tensor) e.g. dyad in case of vector-vector */
     OP_DIV,                   /*!< Binary / operation */
     OP_CROSS,                 /*!< Binary x operation (cross product 3D and 2D) */
     OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
