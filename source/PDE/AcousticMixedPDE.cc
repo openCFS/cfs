@@ -929,7 +929,6 @@ namespace CoupledField{
        shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
        feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
      }
-
    }
 
    void AcousticMixedPDE::ReadDampingInformation() {

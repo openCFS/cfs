@@ -131,9 +131,10 @@
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"    type="DT_MechCS" />
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"    />
+                <xsd:element name="preStress"     type="DT_MechPreStress"/>
                 
             <!--<xsd:element name="spring"        type="DT_MechSpring"    />
-                <xsd:element name="preStress"     type="DT_MechPreStress"/>
+                
                 <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
                 <xsd:element name="periodic"      type="DT_BcPeriodic"    />
               </xsd:choice>
@@ -580,7 +581,7 @@
      <xsd:choice>
        <xsd:element name="prescribedLHS">
          <xsd:complexType>
-           <xsd:attribute name="value">
+           <xsd:attribute name="value" use="required">
              <xsd:simpleType>
                <xsd:restriction base="DT_DoubleList">
                  <xsd:maxLength value="6"/>
@@ -589,7 +590,11 @@
            </xsd:attribute>
          </xsd:complexType>
        </xsd:element>
-       <xsd:element name="computeLHS"/>
+       <xsd:element name="computeLHS">
+         <xsd:complexType>
+           <xsd:attribute name="sequenceStep" use="optional" type="xsd:unsignedInt" default="0"/>
+         </xsd:complexType>
+       </xsd:element>
      </xsd:choice>
      <xsd:attribute name="region"  type="xsd:token"/>
    </xsd:complexType>

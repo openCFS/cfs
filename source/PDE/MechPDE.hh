@@ -92,6 +92,12 @@ namespace CoupledField
     //! Define concentrated mechanical elements
     void DefineConcentratedElems();
 
+    //! Create CoefFunction for preStressing
+    PtrCoefFct CreatePreStressFct( bool isComplex, PtrParamNode stressNode);
+
+    //! Returns a MechStress CoefFunction from a preceeding sequence step
+    PtrCoefFct GetStressCoefFromSeqStep(UInt seqStep);
+
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;
     
