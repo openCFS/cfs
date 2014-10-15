@@ -626,6 +626,8 @@ bool DesignSpace::TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matri
   coef->orgMat->GetTensor(retMat, *lpm);
   retMat *= factor;
 
+  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
+
   return true;
 }
 

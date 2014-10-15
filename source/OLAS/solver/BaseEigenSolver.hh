@@ -118,8 +118,7 @@ namespace CoupledField {
     //! \param sol Vector with converged eigenvalues
     //! \param err Vector with error bound of eigenvalues
     //! \return Number of converged eigenvalues
-    virtual UInt CalcEigenFrequencies( BaseVector &sol,
-                                       BaseVector &err ) = 0;
+    virtual UInt CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;
 
     //! Calculate a particular eigenmode as a postprocessing solution
 

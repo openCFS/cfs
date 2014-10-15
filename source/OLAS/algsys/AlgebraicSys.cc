@@ -493,14 +493,14 @@ namespace CoupledField {
       solver_->SetPrecond( precond_ );
     }
     
-    ExportLinSys(true, false, false); // setup
+    ExportLinSys(true, false, false, analysis_id); // setup
 
     // stop setup timer of solver
     solver_->GetSetupTimer()->Stop();
   }
 
   void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch ) {
+                                       bool isQuadratic, bool bloch, PtrParamNode analysis_id ) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -572,7 +572,7 @@ namespace CoupledField {
       eigenValues_ = dynamic_cast<SingleVector*>(bVec);
       eigenValError_ = dynamic_cast<SingleVector*>(errVec);
     }
-    ExportLinSys(true, false, false); // setup
+    ExportLinSys(true, false, false, analysis_id); // setup
 
   }
 
@@ -664,75 +664,7 @@ namespace CoupledField {
     if ( setIDBC ) 
       idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    /* BLOCH TODO
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
-    // the solve part is commentet out, I see no reason to export linsys also here, it would
-    // require a generalization anyway. Fabian 16.11.07
-    // check if we do export stuff
-    PtrParamNode els = solStrat_->GetExportLinSysNode();
-    std::string file;
-    std::string base;
 
-    if(els) {
-      std::ostringstream os;
-      std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
-      os << name;
-      std::string id = analysis_id->Get("analysis_id")->As<std::string>();
-      boost::replace_all(id, ":", "_");
-      os << "_" << id;
-      base = os.str();
-    }
-
-    BaseMatrix::OutputFormat format = BaseMatrix::MATRIX_MARKET;
-    if( els->Has("format") ) {
-      std::string fmt = els->Get("format")->As<std::string>();
-      
-      format = BaseMatrix::outputFormat.Parse(fmt);
-    }
-    
-    // check if we do not only want the solution
-    if( els->Has("solution") &&  
-        els->Get("solution")->As<std::string>() != "exclusive") {
-
-      sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
-
-      switch (precond_->GetPrecondType()) {
-      case BasePrecond::NOPRECOND:
-      case BasePrecond::ID:
-        // don't export anything
-        break;
-      default:
-        // HARD-CODED: Export also preconditioner
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( onlyOneMatrixBlock_ ) {
-          precond_->GetPrecondSysMat((*copy)(0,0));
-        } else {
-          precond_->GetPrecondSysMat(*copy);
-        }
-        copy->Export((base+"_precond").c_str(), format, NULL);
-
-        delete copy;
-      }
-
-      if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
-        sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);
-      
-      if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
-        sysMat_[DAMPING]->Export((base+"_damping").c_str(), format, NULL);
-
-      if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
-        sysMat_[STIFFNESS]->Export((base+"_stiffness").c_str(), format, NULL);
-      
-      if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
-        sysMat_[AUXILIARY]->Export((base+"_aux").c_str(), format, NULL);
-
-      // rhs is only in harwell-boing included
-      rhs_->Export( (base+"_rhs").c_str(), format );
-    }
-    if(els && els->HasByVal("initialGuess", true))
-      sol_->Export((base+"_intial_guess").c_str(), format);
-
-    */
 
     // -------------------------------------------
     //  Adjust RHS for due to static condensation
@@ -760,7 +692,7 @@ namespace CoupledField {
       }
     }
     
-    ExportLinSys(false, true, false); // pre_solve
+    ExportLinSys(false, true, false, analysis_id); // pre_solve
 
     // Trigger solution
     if( onlyOneMatrixBlock_ ) { 
@@ -828,9 +760,11 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve)
+  void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve, PtrParamNode analysis_id)
   {
     assert((setup && !pre_solve && !post_solve) || (!setup && pre_solve && !post_solve) || (!setup && !pre_solve && post_solve));
+
+    LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " aid_" << analysis_id->ToString(0);
 
     if(!solStrat_->GetParamNode()->Has("exportLinSys"))
       return;
