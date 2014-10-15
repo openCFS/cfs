@@ -36,16 +36,11 @@ DEFINE_LOG(lattice, "lattice")
    m_plot = plot;
 
    //matrix of the probability distributions
-   LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * N_VEL * 2.0 / 1024.0 / 1024.0) << " MiB)";
+   LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * 9 * 2.0 / 1024.0 / 1024.0) << " MiB)";
 
    m_pdfs.Resize(2);
-   m_pdfs[0].Resize(m_nNodes * N_VEL);
-   m_pdfs[1].Resize(m_nNodes * N_VEL);
-
-   prop_maps.Resize(N_VEL);
-   for (int i = 0; i < N_VEL; i++ ){
-     prop_maps[i].Resize(N_VEL);
-   }
+   m_pdfs[0].Resize(m_nNodes * 9);
+   m_pdfs[1].Resize(m_nNodes * 9);
 
    Scales.Resize(m_nNodes);
    rel.Resize(m_nNodes);
@@ -75,11 +70,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   InitializePdfs();
   SetupDataStructures(elements);
-
-  TestDirectionIndex();
-  SetupTransformation();
-  WriteMap();
-  exit(-1);
 
   assert((int) elements.GetSize() == m_nNodes);
   for (int i = 0; i < m_nNodes; ++i)
@@ -126,7 +116,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
         for(int i = 0; i < m_sizeX; i++) {
           index = j * m_sizeX + i;
 
-          for(int k = 0; k < N_VEL; k++)
+          for(int k = 0; k < 9; k++)
           {
             res = PDF_IDX(m_next, index, k) - PDF_IDX(m_cur, index, k);
             R += res * res;
@@ -208,148 +198,6 @@ void LatticeBoltzmann::InitializePdfs()
   }
 }
 
-int LatticeBoltzmann::GetIndexDir(int dir1, int dir2=0)
-{
-  if (dir2 == 0)
-    return dir1;
-  else {
-    assert((dir1 == Q9_S) || (dir1 == Q9_N));
-    assert((dir2 == Q9_E) || (dir2 == Q9_W));
-    return 2*dir1+1.5*dir2-0.5*dir1*dir2+0.5;
-  }
-}
-
-// validates GetIndexDir function
-void LatticeBoltzmann::TestDirectionIndex()
-{
-  assert(GetIndexDir(Q9_0) == 0);
-  assert(GetIndexDir(Q9_E) == 1);
-  assert(GetIndexDir(Q9_N) == 2);
-  assert(GetIndexDir(Q9_W) == 3);
-  assert(GetIndexDir(Q9_S) == 4);
-  assert(GetIndexDir(Q9_N,Q9_E) == 5);
-  assert(GetIndexDir(Q9_N,Q9_W) == 6);
-  assert(GetIndexDir(Q9_S,Q9_W) == 7);
-  assert(GetIndexDir(Q9_S,Q9_E) == 8);
-}
-
-void LatticeBoltzmann::SetupTransformation()
-{
-  // in 2D: 8 maps (4 corners + 4 edges)
-  StdVector<PropOperator> map;
-  map.Resize(N_VEL);
-  for (int dir = 0; dir < N_VEL; dir++) {
-    map[dir] = PropOperator(dir,0,0);
-  }
-
-  int xdirs[2];
-  xdirs[0] = Q9_E;
-  xdirs[1] = Q9_W;
-  int ydirs[2];
-  ydirs[0] = Q9_N;
-  ydirs[1] = Q9_S;
-  int d1, d2;
-  // propagation in corners
-  for (int i = 0; i < 2; i++) {
-    // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
-    }
-    d1 = xdirs[i];
-    for (int j = 0; j < 2; j++) {
-      d2 = ydirs[j];
-      map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
-      map[GetIndexDir(d2,d1)] = PropOperator(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
-      prop_maps[GetIndexDir(d2,d1)] = map;
-    }
-  }
-  // propagation on horizontal edges
-  for (int i = 0; i < 2; i++) {
-    d1 = xdirs[i];
-    // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
-    }
-    map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
-    for (int j = 0; j < 2; j++) {
-      d2 = ydirs[j];
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
-      map[GetIndexDir(d2,d1)] = PropOperator(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
-    }
-    prop_maps[GetIndexDir(d1)] = map;
-  }
-
-  //propagation on vertical edges
-  for (int i = 0; i < 2; i++) {
-    d1 = ydirs[i];
-    // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
-    }
-    map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),0,(d1 == Q9_S ? 1: -1 ));
-    for (int j = 0; j < 2; j++) {
-      d2 = xdirs[j];
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),(d2 == Q9_W ? 1: -1 ),0);
-      map[GetIndexDir(d1,d2)] = PropOperator(GetIndexDir(d1,d2),(d2 == Q9_W ? 1: -1 ),(d1 == Q9_S ? 1: -1 ));
-    }
-    prop_maps[GetIndexDir(d1)] = map;
-  }
-}
-
-// for debugging purposes
-void LatticeBoltzmann::WriteMap()
-{
-  int bounds[9];
-  bounds[0] = Q9_0;
-  bounds[1] = Q9_SW;
-  bounds[2] = Q9_SE;
-  bounds[3] = Q9_NW;
-  bounds[4] = Q9_NE;
-  bounds[5] = Q9_S;
-  bounds[6] = Q9_N;
-  bounds[7] = Q9_W;
-  bounds[8] = Q9_E;
-
-  int order[9];
-  order[0] = Q9_0;
-  order[1] = Q9_S;
-  order[2] = Q9_SE;
-  order[3] = Q9_NW;
-  order[4] = Q9_N;
-  order[5] = Q9_NE;
-  order[6] = Q9_NW;
-  order[7] = Q9_E;
-  order[8] = Q9_W;
-
-  fstream f;
-  f.precision(16);
-  f.open("propagation_map.txt", ios::out);
-  for (int i = 1; i < N_VEL; i++) {
-    StdVector<PropOperator>& mymap  = prop_maps[bounds[i]];
-    if (i == 1)
-      f << "SW corner" << std::endl;
-    if (i == 2)
-      f << "SE corner" << std::endl;
-    if (i == 3)
-          f << "NW corner" << std::endl;
-    if (i == 4)
-          f << "NE corner" << std::endl;
-    if (i == 5)
-          f << "S edge" << std::endl;
-    if (i == 6)
-      f << "N edge" << std::endl;
-    if (i == 7)
-      f << "W edge" << std::endl;
-    if (i == 8)
-      f << "E edge" << std::endl;
-    for (int dir = 0; dir < N_VEL; dir++) {
-      f << "x+" << mymap[order[dir]].off_x << ", y+" << mymap[order[dir]].off_y << std::endl;
-    }
-    f << std::endl;
-  }
-  f.close();
-}
 void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
 {
   rel.Clear();
@@ -419,7 +267,7 @@ void LatticeBoltzmann::create_output(const char * file, int cur)
   f.open(file, ios::out);
 
   for(int i = 0; i < m_nNodes; i++) {
-    for(int j = 0; j < N_VEL; j++) {
+    for(int j = 0; j < 9; j++) {
       f << PDF_IDX(cur, i, j) << " ";
     }
 
@@ -485,6 +333,7 @@ void LatticeBoltzmann::prop_step()
 }
 
 
+
 void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
 {
   // perform a propagation step
@@ -504,54 +353,8 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
   // ---------------------------------------------------------------------
 
   // ---------------------------------------------------------------------
-
-//  map_bottom_left[dir(S)] = Transform(0,1); // Q9_S
-//  map_bottom_left[dir(S, W)] = Transform(1,1); // Q9_SW
-//  map_bottom_left[dir(W)]  = Transform(1,0); // Q9_W
-//
-//  map_bottom_left[dir(S)] = Transform(0,1); // Q9_S
-//  map_bottom_left[dir(S, E)] = Transform(-1,1); // Q9_SE
-//  map_bottom_left[dir(E)]  = Transform(-1,0); // Q9_E
-//
-//  dir1 = S, N
-//  dir2 = E, W
-//
-//
-//  StdVector<StdVector<Transform> > maps;
-//
-//
-//  for()
-//  StdVector<Transform>& = maps[]
-//
-//  map[dir(dir1, dir2)]
-//
-//  StdVector<int> y_dirs(2);
-//  y_dirs[0] = S;
-//  y_dirs[1] = N;
-//
-//
-//  for d1 in y_dirs
-//    for d2 in x_dirs
-//    StdVector<Transform>& my_map = maps[dir(d1, d2)];
-//
-//    for d1 in y_dirs
-//      for d2 in x_dirs
-//        my_map[dir(d1)] = Transform(0,d1 == S ? 1 : -1)
-//        my_map[dir(d2)] = Transform(d2 == ,0)
-//        my_map[dir(d1, d2)] = Transform(1,1)
-//
-//  for d1 in y_dirs
-//    for d2 in x_dirs
-//      StdVector<Transform>& my_map = maps[dir(d1, d2)];
-//      x = 0; y = 0;
-//      for(i = 0; i < 9; i++)
-//      {
-//        Transform& trans = my_map[i];
-//        PDF(m_next, x, y, i)  = PDF(m_cur, x + trans.x, y + trans.y, i);
-//      }
-  x = 0; y = 0;
-
   // Bottom Left
+  x = 0; y = 0;
   PDF(m_next, x, y, Q9_0)  = PDF(m_cur, x,     y,     Q9_0);
 
   PDF(m_next, x, y, Q9_S)  = PDF(m_cur, x,     y + 1, Q9_S);

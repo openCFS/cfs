@@ -4,7 +4,8 @@
 
 #include <set>
 #include "Utils/StdVector.hh"
-#include "General/Enum.hh"
+
+
 /** This file is an extract of the LBM code of Markus Wittmann (RRZE) based on the code of Thomas Guess (AM2) based on the code of Georg Pingen (USA).
 The original code from Markus can be found at
 
@@ -18,9 +19,6 @@ namespace CoupledField
   // following value are treated as zeros.
   #define NON_ZERO_TOLERANCE  1.0e-20
 
-  // Number of velocity directions per element, e.g. 9 for D2Q9 model
-  #define N_VEL 9
-
   #define Q9_0  0
   #define Q9_E  1
   #define Q9_N  2
@@ -31,7 +29,6 @@ namespace CoupledField
   #define Q9_SW 7
   #define Q9_SE 8
 
-//typedef enum { N = 0, S = 4, W = 2,
 
   #define Q9_INV_0  Q9_0
   #define Q9_INV_E  Q9_W
@@ -70,11 +67,11 @@ namespace CoupledField
 
     // Address PDFs via Coordinates and Direction.
     // Assuming array of structures layout.
-    #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((_y) * __LX__ + (_x)) * N_VEL + (_direction)]
+    #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((_y) * __LX__ + (_x)) * 9 + (_direction)]
 
     // Address PDFs via Index and Direction only.
     // Assuming array of structures layout.
-    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * N_VEL + (_direction)]
+    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * 9 + (_direction)]
 
     // -- STRUCTURES OF ARRAYS LAYOUT --
 
@@ -109,34 +106,12 @@ public:
     void prop_step();
 
   private:
-    struct PropOperator{
-      int dir;
-      int off_x;
-      int off_y;
-      PropOperator(int i, int j, int k): dir(i), off_x(j), off_y(k){}
-      PropOperator():dir(0),off_x(0),off_y(0){}
-    };
 
     void SetupDataStructures(const StdVector<double>& elements);
 
+
     /** Sets distribution functions to initial value. */
     void InitializePdfs();
-
-    /**
-     * returns associated integer value of velocity direction two given principal directions
-     * e.g. getDir(S,E) returns Q9_SE
-     */
-    int GetIndexDir(int dir1, int dir2);
-
-    void TestDirectionIndex();
-
-    /**
-     * Sets transformation map to handle propagation at boundaries (corners and edges)
-     */
-    void SetupTransformation();
-
-    /** debugging prop_map */
-    void WriteMap();
 
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
@@ -188,8 +163,6 @@ public:
 
     StdVector< StdVector<double> > m_pdfs;
 
-    // contains propagation rules for boundary cases
-    StdVector< StdVector<PropOperator> > prop_maps;
     //double * m_pdfs[2];
     int m_cur;
     int m_next;
