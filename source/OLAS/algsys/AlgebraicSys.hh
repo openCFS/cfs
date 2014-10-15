@@ -174,7 +174,7 @@ namespace CoupledField {
     //! \param quadratic Flag indicating if a quadratic eigenvalue problem
     //!        (true) or a generalized problem (false) is to be solved
     //! \param bloch mode problems are complex but not quadratic
-    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool bloch);
+    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool bloch, PtrParamNode analysis_id);
 
 
     //! Solve the linear system.
@@ -846,6 +846,11 @@ namespace CoupledField {
     void RemoveIDBCInfoFromMatrix() const {;};
     //@}
 
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+     * Shall be called for each phase, set each time exactly one parameter to true */
+    void ExportLinSys(bool setup, bool pre_solve, bool post_solve, PtrParamNode analysis_id);
+
+
   protected:
 
     //! Auxiliary method for logging information on matrix patterns
@@ -866,9 +871,6 @@ namespace CoupledField {
     //!       functionality.
     void CheckConsistency();
     
-    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
-     * Shall be called for each phase, set each time exactly one parameter to true */
-    void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
     //! Generate  SBM matrix according to graph information
     

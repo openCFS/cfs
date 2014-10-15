@@ -118,12 +118,12 @@ namespace CoupledField
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     UInt CalcEigenFrequencies( Vector<Double> & frequencies,
                                Vector<Double> & errBounds,
-                               UInt numFreq, Double shift );
+                               UInt numFreq, Double shift, PtrParamNode analysis_id );
 
     //! Calculate the Eigenfrequencies of a quadratic eigenvalue problem
     UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
                                Vector<Double> & errBounds,
-                               UInt numFreq, Double shift, bool bloch);
+                               UInt numFreq, Double shift, bool bloch,  PtrParamNode analysis_id);
 
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.

@@ -83,17 +83,21 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
   if(overwrite_name)
     SetName(node->GetName());
 
+  assert(name_ != "");
+
   // set the value
   SetValue(node->value_);
 
   ParamNodeList& children = node->GetChildren();
+  // reserve own children size
+  children_.Resize(children.GetSize());
 
-  // run recusively through all children
+  // run recursively through all children
   for(UInt i = 0; i < children.GetSize(); i++)
   {
     // add new element
     PtrParamNode other = children[i];
-    PtrParamNode new_node = Get(other->GetName(), APPEND);
+    PtrParamNode new_node = SetNewChild(other->GetName(), i); // faster for large arrays
     new_node->SetValue(other, false);
   }
 }
@@ -825,6 +829,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = timer->ToXMLFormat(name_);
     return;
   }
+
+  if (value_.type() == typeid(StdVector<std::string>))
+  {
+    ret = "error in fast bulk block writing"; // this should not be printed
+    return;
+  }
 }
 
 void ParamNode::ToXML(std::ostream& os, int depth)
@@ -848,7 +858,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
   //Sort(); // (HEADER before) PROCESS before SUMMARY
 
   // if we start a new element or are part of an element is same/same
-  os << std::endl << string(depth, ' ');
+  os << std::endl << string(std::max(depth, 0), ' ');
 
   if (type_ != COMMENT && type_ != SELF_XML)
   {
@@ -889,6 +899,23 @@ void ParamNode::ToXML(std::ostream& os, int depth)
     return; // done, everything is printed!
   }
 
+  // the special fast bulk block mode
+  if(type_ == BULK)
+  {
+    os << ">" << std::endl;
+    StdVector<std::string>& block = GetFastBulkBlock();
+    assert(!block.IsEmpty());
+    for(UInt i = 0, n = block.GetSize(); i < n; i++)
+    {
+      os << string(std::max(depth + 2, 0), ' ');
+      os << block[i] << std::endl;
+    }
+    os << string(std::max(depth, 0), ' ');
+    os << "</" << name_ << ">";
+    return;
+  }
+
+
 
   if (only_attributes)
   {
@@ -901,6 +928,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
       // check, if value is set
       if (!value_.empty())
       {
+        assert(true); // this should not be possible and be checked in AdjustType()
         os << "> " << strValue << "</" << name_ << ">" << std::endl;
       }
       else
@@ -939,7 +967,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
     // do we close in the same line?
     if (chsize != 0 && !endl_written)
       os << std::endl;
-    os << string(depth, ' ');
+    os << string(std::max(depth, 0), ' ');
     if (type_ != COMMENT)
     {
       os  << "</" << name_ << ">";
@@ -1024,6 +1052,13 @@ void ParamNode::Dump(int level) const
   case COMMENT:
     cout << "<!-- " << strValue << " -->" << std::endl;
     break;
+  case BULK:
+  {
+    const StdVector<std::string>& block = boost::any_cast<const StdVector<std::string>&>(value_);
+    for(UInt i = 0, n = block.GetSize(); i < n; i++)
+      cout << " bulk: " << block[i] << std::endl;
+    break;
+  }
   }
   for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
     children_[i]->Dump(level + 1);
@@ -1078,7 +1113,7 @@ void ParamNode::AdjustElementType()
   }
   // Check if node is ELEMENT, has children and a value
   // -> not possible in an XML tree
-  if (type_ == ELEMENT && children_.GetSize() && !value_.empty())
+  if (type_ == ELEMENT && children_.GetSize() && !value_.empty() && value_.type() != typeid(StdVector<std::string>))
   {
     string value;
     ToString(value, 0);
@@ -1107,6 +1142,9 @@ void ParamNode::AdjustElementType()
     type_ = SELF_XML;
   }
 
+  if(value_.type() == typeid(StdVector<std::string>))
+    type_ = BULK;
+
   // ToDO: What is currently missing is the check for valid labels etc.
   // Maybe Fabian is willing to assist here ...
 }
@@ -1121,7 +1159,7 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-std::string ParamNode::ToValidLabel(std::string out) const
+inline std::string ParamNode::ToValidLabel(std::string out) const
 {
   boost::trim(out);
 

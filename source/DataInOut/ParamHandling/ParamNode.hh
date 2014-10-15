@@ -96,8 +96,9 @@ namespace CoupledField
      *          Note: Comment-nodes are not allowed to have children!
      * SELF_XML: Complex elements like Timer or Matrix which create an
      *           xml string by themselves.
+     * BULK:    A pre-formated block for fast large files (density.xml in optimization)
      */
-    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML } NodeType;
+    typedef enum { UNDEF, ELEMENT, ATTRIBUTE, COMMENT, SELF_XML, BULK } NodeType;
     
     /** The default constructor
      * @param type Type of the node (defaults to UNDEF)

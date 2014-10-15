@@ -369,20 +369,20 @@ namespace CoupledField {
         LOG_DBG(efd) << "SP i=" << i << " wv=" << current_wave_vector_.ToString();
 
         Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-        conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_);
+        conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_, given_analysis_id);
         PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, i);
       }
     }
     if(isQuadratic_ && !isBloch_)
     {
       Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_);
+      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_, given_analysis_id);
       PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv);
     }
     if(!isQuadratic_ && !isBloch_) // real generalized
     {
       Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_ );
+      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, given_analysis_id);
       PrintResult<Double>(eigenFreqs, errBounds, resHandler, conv);
     }
     
