@@ -19,7 +19,7 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void DiagSolver<T>::Solve( const BaseMatrix &sysmat,
-                             const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                             const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
     (*cla) << "### Solver for diagonal system  matrix" << std::endl;

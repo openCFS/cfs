@@ -252,7 +252,7 @@ namespace CoupledField {
     //! The implementation of the Setup method for the MINRES solver performs
     //! mainly memory management tasks. It will take care of (re-)allocation
     //! of the auxilliary vectors.
-    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
+    void Setup( BaseMatrix &sysMat );
 
     //! Solve a linear system using MINRES.
 
@@ -264,7 +264,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat,
-                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
+                const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 

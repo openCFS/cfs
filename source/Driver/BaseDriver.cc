@@ -43,52 +43,6 @@ UInt BaseDriver::GetActSequenceStep() {
 }
 
 
-PtrParamNode BaseDriver::CreateAnalysisId(const std::string& child_name, int child_id, 
-                                       const std::string& child_2_name, int child_2_id)
-{
-  // do we really want to create a new entry? Might blast up the output
-  ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-  PtrParamNode child = info_->Get(ParamNode::PROCESS)->Get("step", at);
-  child->Get("analysis_id")->SetValue(ConcatAnalysisId(child, child_name, child_id, child_2_name, child_2_id));
-  return child;
-}
-
-PtrParamNode BaseDriver::CreateAnalysisIdChild(PtrParamNode base, const std::string& child_name, int child_id, 
-    const std::string& child_2_name, int child_2_id)
-{
-  // create a child
-  PtrParamNode child = base->Get(child_name);
-  std::string val = domain_->GetDriver()->ConcatAnalysisId(base, child_name, child_id, child_2_name, child_2_id);
-  child->Get("analysis_id")->SetValue(val);
-  return child;
-}
-
-
-std::string BaseDriver::ConcatAnalysisId(PtrParamNode analysis_id, const std::string& child_name, int child_id, 
-                                    const std::string& child_2_name, int child_2_id)
-{
-  assert(!(child_name == "" && child_id != -1));
-  assert(!(child_name == "" && child_2_name != ""));
-  assert(!(child_2_name != "" && child_id == -1));
-  
-  std::stringstream ss;
-  ss << (analysis_id->Has("analysis_id") ? analysis_id->Get("analysis_id")->As<std::string>() : ""); 
-
-  if(child_name != "")
-  ss << ":" << child_name;
-
-  if(child_id != -1) 
-    ss << ":" << child_id;
-  
-  if(child_2_name != "")
-    ss << ":" << child_2_name; 
-  
-  if(child_2_id != -1) 
-      ss << ":" << child_2_id;
-
-  return ss.str();
-}
-
 // static stuff
 BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom,
                                        PtrParamNode paramNode, PtrParamNode infoNode)

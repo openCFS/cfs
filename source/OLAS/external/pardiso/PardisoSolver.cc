@@ -232,7 +232,7 @@ extern "C" {
   //   Setup
   // *********
   template<typename T>
-  void PardisoSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void PardisoSolver<T>::Setup( BaseMatrix &sysMat) {
 
     // Flag for check Pardiso's return status
     int errorFlag = 0;
@@ -689,8 +689,7 @@ extern "C" {
   //   Solve linear system
   // *************************
   template<typename T>
-  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+  void PardisoSolver<T>::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
 
     LOG_TRACE(pardisoSolver) << " -----------------------------------------"
                              << "-------------------------------------";

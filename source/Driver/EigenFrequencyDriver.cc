@@ -326,11 +326,9 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id) {
+  void EigenFrequencyDriver::SolveProblem(bool write_results) {
     // options not implemented
     
-    analysis_id_ = info_->Get(ParamNode::PROCESS);
-
     ResultHandler* resHandler = domain_->GetResultHandler();
 
     // we have to estimate the number of steps as we might loop over bloch modes
@@ -369,20 +367,20 @@ namespace CoupledField {
         LOG_DBG(efd) << "SP i=" << i << " wv=" << current_wave_vector_.ToString();
 
         Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-        conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_, given_analysis_id);
+        conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_);
         PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, i);
       }
     }
     if(isQuadratic_ && !isBloch_)
     {
       Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_, given_analysis_id);
+      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_);
       PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv);
     }
     if(!isQuadratic_ && !isBloch_) // real generalized
     {
       Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, given_analysis_id);
+      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_);
       PrintResult<Double>(eigenFreqs, errBounds, resHandler, conv);
     }
     

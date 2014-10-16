@@ -85,7 +85,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LDLSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -249,7 +249,7 @@ namespace CoupledField {
   template<typename T>
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
                             const BaseVector  &rhs,
-                            BaseVector &sol, PtrParamNode analysis_step ) {
+                            BaseVector &sol ) {
 
 
     bool logging = false;

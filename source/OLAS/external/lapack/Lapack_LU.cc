@@ -75,7 +75,7 @@ namespace CoupledField {
   // ********************************
   //   Setup: Perform Factorisation
   // ********************************
-  void Lapack_LU::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
+  void Lapack_LU::Setup( BaseMatrix &sysmat) {
     PrivateSetup( sysmat );
   }
 
@@ -454,8 +454,7 @@ namespace CoupledField {
   // ***********************
   //   Solve linear system
   // ***********************
-  void Lapack_LU::Solve( const BaseMatrix &sysmat, 
-      const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+  void Lapack_LU::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
 
 
     // Are we expected to be verbose?

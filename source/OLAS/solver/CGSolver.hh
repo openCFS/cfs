@@ -158,7 +158,7 @@ namespace CoupledField {
     //! \param rhs Right-hand side vector of the linear system
     //! \param sol Solution vector of linear system
     void Solve(const BaseMatrix& sysmat,  
-	       const BaseVector& rhs, BaseVector& sol, PtrParamNode analysis_step );
+	       const BaseVector& rhs, BaseVector& sol );
 
     //! Dummy setup method
 
@@ -167,7 +167,7 @@ namespace CoupledField {
     //! do actually.
     //! \note Depending on how the BaseSolver interface develops this method
     //! might be removed again.
-    void Setup( BaseMatrix &sysmat, PtrParamNode analysis_step );
+    void Setup( BaseMatrix &sysmat );
 
     //! Query type of this solver.
 

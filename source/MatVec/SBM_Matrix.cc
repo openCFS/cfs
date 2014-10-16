@@ -605,16 +605,15 @@ namespace CoupledField {
                            const std::string& comment) const {
 
 
-    std::stringstream fileName;
+    std::stringstream ss;
     std::string outFile;
 
     for ( UInt j = 0; j < ncols_; j++ ) {
       for ( UInt i = 0; i < nrows_; i++ ) {
-
         // construct file name
-        fileName.str( "" );
-        fileName << fname << '_' << i << '_' << j;
-        outFile = fileName.str();
+        if(ncols_ > 1 || nrows_ > 1)
+          ss << fname << '_' << i << '_' << j;
+        outFile = fname + ss.str();
 
         // export sub-matrix
         if ( subMat_[ComputeIndex(i,j)] != NULL ) {

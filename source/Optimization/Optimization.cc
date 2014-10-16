@@ -625,25 +625,13 @@ void Optimization::SolveProblem()
   if(e != NULL) throw *e;
   delete e;
 }
-PtrParamNode Optimization::CreateAdjointAnalysisIdNode(string child_name, Excitation* excite)
-{
-  BaseDriver* driver = domain->GetDriver();
-  PtrParamNode base = driver->GetAnalysisId();
-  string temp = "excite";
-  PtrParamNode in = excite == NULL ? driver->CreateAnalysisIdChild(base, child_name) : driver->CreateAnalysisIdChild(base, "excite", excite->index, child_name);
-  
-  return in;
-}
-
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  BaseDriver* driver = domain->GetDriver();
-
-  // this is the forward problem. Store the analysis_id in the driver such that
-  // we can aquire it for the adjoint problem
-  PtrParamNode analysis_id = excite == NULL ? driver->CreateAnalysisId("iter", currentIteration)
-                                         : driver->CreateAnalysisId("iter", currentIteration, "excite", excite->index);
+  AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+  id.iteration = currentIteration;
+  id.excite = excite == NULL ? "" : excite->label;
+  id.adjoint = false;
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
     SinglePDE* mech = domain->GetSinglePDE("mechanic");
@@ -657,7 +645,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL)
   {
-    driver->SolveProblem(false, analysis_id);
+    domain->GetDriver()->SolveProblem(false);
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
   else

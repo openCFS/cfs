@@ -73,7 +73,7 @@ namespace CoupledField {
   //   Setup of preconditioner
   // ***************************
   template<class T_storage,typename T>
-  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat, PtrParamNode analysis_id ) {
+  void JacPrecond<T_storage,T>::Setup( T_storage &sysmat ) {
 
 #pragma omp parallel for 
     for ( UInt i = 0; i < size_; i++ ) {
@@ -314,8 +314,7 @@ namespace CoupledField {
    //   Setup of preconditioner
    // ***************************
    template<class T_storage,typename T>
-   void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat,
-                                             PtrParamNode analysis_id ) {
+   void BlockJacPrecond<T_storage,T>::Setup( T_storage &sysmat) {
      this->pimpl_->Setup( sysmat );
    }
 

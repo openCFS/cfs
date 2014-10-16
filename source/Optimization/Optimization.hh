@@ -275,10 +275,6 @@ namespace CoupledField
          * @return zero for derivative */
         virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
 
-        /** Appends to the current analysis_id of the driver a child and
-         * sets analysis_id and excite accordingly */
-        PtrParamNode CreateAdjointAnalysisIdNode(std::string child_name = "adjoint", Excitation* excite = NULL);
-        
         /** This tells the driver to store the last solved problem (gid, ...). Called in
          * CommitIteration(). For PiezoSIMP we can save more often and there this method
          * is overwritten and might do nothing.

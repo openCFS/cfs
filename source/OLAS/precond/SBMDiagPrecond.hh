@@ -34,7 +34,7 @@ namespace CoupledField {
                         SBM_Vector &z ) ;
 
     //! \copydoc BaseSBMPrecond::Setup(SBM_Matrix, PtrParamNode)
-    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id );
+    virtual void Setup( SBM_Matrix &A );
 
     //! \copydoc BasePrecond::ExportPrecondSysMat
     virtual void GetPrecondSysMat( BaseMatrix& sysMat );

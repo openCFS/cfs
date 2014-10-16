@@ -132,18 +132,18 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::SolveStepStatic(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepStatic() {
 
     if (nonLin_) {
-      StepStaticNonLin(analysis_id);
+      StepStaticNonLin();
     }
     else {
-      StepStaticLin(analysis_id);
+      StepStaticLin();
     }
   }
 
 
-  void StdSolveStep::StepStaticLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepStaticLin() {
 
     assemble_->AssembleMatrices();
 
@@ -170,20 +170,20 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond(analysis_id);
+      algsys_->SetupPrecond();
 
-      algsys_->SetupSolver(analysis_id);
+      algsys_->SetupSolver();
     }
 
     // Solve problem
-    algsys_->Solve(analysis_id);
+    algsys_->Solve();
 
     // Get the solution and store it
     algsys_->GetSolutionVal(solVec_);
   }
 
 
-  void StdSolveStep::StepStaticNonLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepStaticNonLin() {
 
     bool performOneMoreStep;
     bool isNewton = false;
@@ -259,14 +259,14 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
                                            matrix_factor_[NO_FCT_ID] );
 
         algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond(analysis_id);
-        algsys_->SetupSolver(analysis_id);
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
         bool setIDBC = false;
         if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
-        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->Solve(setIDBC);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc, setIDBC );
@@ -401,31 +401,31 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepTrans() {
 
 
     // do a nonlinear material time step
     if ( nonLin_ && nonLinMaterial_ ) {
-      StepTransNonLinMaterial(analysis_id);
+      StepTransNonLinMaterial();
     }
     else if ( isHyst_ ) {
-      StepTransNonLinHysteresis(analysis_id);
+      StepTransNonLinHysteresis();
     }
     // do a nonlinear time step
     else if (nonLin_){
       if ( nonLinTotalFormulation_ )
-        StepTransNonLinTotal(analysis_id);
+        StepTransNonLinTotal();
       else
-        StepTransNonLin(analysis_id);
+        StepTransNonLin();
     }
     // do a linear time step
     else {
-      StepTransLin(analysis_id);
+      StepTransLin();
     }
   }
 
 
-  void StdSolveStep::StepTransLin(PtrParamNode analysis_id) 
+  void StdSolveStep::StepTransLin()
   {
     //TODO: add consistency check here
     //basically loop over all functions and check if the solution order is the same...
@@ -547,11 +547,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       algsys_->BuildInDirichlet();
 
       if( effectiveMatrixUpdated ){
-        algsys_->SetupPrecond( analysis_id);
-        algsys_->SetupSolver(analysis_id);
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
       }
 
-      algsys_->Solve(analysis_id);
+      algsys_->Solve();
 
       algsys_->GetSolutionVal(stageSol);
     }
@@ -565,7 +565,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::StepTransNonLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepTransNonLin() {
 
     //std::cout << "in StepTransNonLin" << std::endl;
     LOG_TRACE(stdsolvestep) << "StdSolveStep::StepTransNonLin";
@@ -670,15 +670,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond( analysis_id);
-        algsys_->SetupSolver(analysis_id);
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
         // just set inh. Dirichlet BCs for the first iteration
         bool setIDBC = false;
         if ( iterationCounter == 1 && couplingIter_ == 0 )
           setIDBC = true;
 
-        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solInc, setIDBC );
 
         //std::cout << solInc.ToString(1,',') << std::endl;
@@ -817,7 +817,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::StepTransNonLinTotal(PtrParamNode analysis_id) {
+  void StdSolveStep::StepTransNonLinTotal() {
     std::cout << "In Step Total" << std::endl;
     bool performOneMoreStep;
     bool isNewton;
@@ -907,13 +907,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
         PDE_.SetBCs();
         algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond(analysis_id);
-        algsys_->SetupSolver(analysis_id);
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
         //always set inhomog. Dirichlet BCs
         bool setIDBC = true;
 
-        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->Solve(setIDBC);
         algsys_->GetSolutionVal(solNew, setIDBC );
 
         // calculate incremental error ========================================
@@ -970,7 +970,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
   
-  void StdSolveStep::StepTransNonLinMaterial(PtrParamNode analysis_id) {
+  void StdSolveStep::StepTransNonLinMaterial() {
 
     REFACTOR;
 //
@@ -984,7 +984,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 //    Double RhsLinL2Norm;
 //    SBM_Vector uOld, actRHS;
 //
-//    StepTransLin(analysis_id);
+//    StepTransLin;
 //    algsys_->GetSolutionVal( actSol );
 //    PDE_.SaveSolution( actSol );
 //
@@ -1022,9 +1022,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 //      // substract K^* u^k from RHS
 //      TS_alg_->SubstractStiffnessFromRHS(actSol);
 //
-//      algsys_->SetupPrecond(analysis_id);
-//      algsys_->SetupSolver(analysis_id);
-//      algsys_->Solve(analysis_id);
+//      algsys_->SetupPrecond;
+//      algsys_->SetupSolver;
+//      algsys_->Solve;
 //
 //      // new solution is only an increment of the full solution =============
 //      algsys_->GetSolutionVal( solInc );
@@ -1094,7 +1094,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::StepTransNonLinHysteresis(PtrParamNode analysis_id) {
+  void StdSolveStep::StepTransNonLinHysteresis() {
 
     REFACTOR;
     //    bool performOneMoreStep;
@@ -1166,9 +1166,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 //        algsys_->ConstructEffectiveMatrix(matrix_factor_);
 //        algsys_->BuildInDirichlet();
 //
-//        algsys_->SetupPrecond(analysis_id);
-//        algsys_->SetupSolver(analysis_id);
-//        algsys_->Solve(analysis_id);
+//        algsys_->SetupPrecond;
+//        algsys_->SetupSolver;
+//        algsys_->Solve;
 //
 //        // new solution is only an increment of the full solution =============
 //        algsys_->GetSolutionVal( solInc );
@@ -1284,17 +1284,17 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
 
-  void StdSolveStep::SolveStepHarmonic(PtrParamNode analysis_id) {
+  void StdSolveStep::SolveStepHarmonic() {
     if ( nonLin_ ) {
-      StepHarmonicNonLin(analysis_id);
+      StepHarmonicNonLin();
     }
     else {
-      StepHarmonicLin(analysis_id);
+      StepHarmonicLin();
     }
   }
 
 
-  void StdSolveStep::StepHarmonicLin(PtrParamNode analysis_id) {
+  void StdSolveStep::StepHarmonicLin() {
 
     //JUST A HACK!!!!
     //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
@@ -1327,11 +1327,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     algsys_->BuildInDirichlet();
 
     if( assemble_->IsMatrixUpdated() ) {
-      algsys_->SetupPrecond(analysis_id);
-      algsys_->SetupSolver(analysis_id);
+      algsys_->SetupPrecond();
+      algsys_->SetupSolver();
     }
 
-    algsys_->Solve(analysis_id);
+    algsys_->Solve();
     algsys_->GetSolutionVal(solVec_);
   }
 
@@ -1342,7 +1342,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Double> & frequencies,
                                            Vector<Double> & errBounds,
-                                           UInt numFreq, Double shift, PtrParamNode analysis_id ) {
+                                           UInt numFreq, Double shift ) {
 
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1352,7 +1352,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver
-    algsys_->SetupEigenSolver( numFreq, shift, false, false, analysis_id );
+    algsys_->SetupEigenSolver( numFreq, shift, false, false);
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds);
@@ -1362,7 +1362,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex> & frequencies,
                                            Vector<Double> & errBounds,
-                                           UInt numFreq, Double shift, bool bloch, PtrParamNode analysis_id) {
+                                           UInt numFreq, Double shift, bool bloch) {
 
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1372,11 +1372,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver  - we cannot be quadratic and bloch concurrently!
-   algsys_->SetupEigenSolver( numFreq, shift, !bloch, bloch, analysis_id);
+   algsys_->SetupEigenSolver( numFreq, shift, !bloch, bloch);
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds );
-    algsys_->ExportLinSys(false, false, true, analysis_id); // setup
+    algsys_->ExportLinSys(false, false, true); // setup
 
     return frequencies.GetSize();
   }

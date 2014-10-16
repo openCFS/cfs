@@ -144,7 +144,7 @@ namespace CoupledField {
     InitializePDEs();
   }
     
-  void TransientDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
+  void TransientDriver::SolveProblem(bool write_results)
   {
     // notify resultHandler about beginning of new sequence step 
     ResultHandler * resHandler = domain_->GetResultHandler();
@@ -223,19 +223,14 @@ namespace CoupledField {
       }
       
 
-      // do we really want to create a new entry? Might blast up the output
-      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", at);
-      analysis_id_->Get("analysis_id")->SetValue(actTimeStep_);
-        
-      analysis_id_->Get("step")->SetValue(actTimeStep_);
-      analysis_id_->Get("value")->SetValue(actTime_);
-      
+      analysis_id_.time = actTime_;
+      analysis_id_.step = actTimeStep_;
+
       // Perform actions
       ptPDE_->GetSolveStep()->SetActTime(actTime_);
       ptPDE_->GetSolveStep()->SetActStep(actTimeStep_);
       ptPDE_->GetSolveStep()->PreStepTrans();
-      ptPDE_->GetSolveStep()->SolveStepTrans(analysis_id_);
+      ptPDE_->GetSolveStep()->SolveStepTrans();
       ptPDE_->GetSolveStep()->PostStepTrans();
 
       // writing results in output-file(s)
@@ -265,7 +260,7 @@ namespace CoupledField {
         pt::ptime now = pt::second_clock::local_time();
         now += pt::seconds(static_cast<long int>(remainingTime));
         
-        analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
+        //analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
         PtrParamNode envNode = info_->GetRoot()->
             Get(ParamNode::HEADER)->Get("environment");
         envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));

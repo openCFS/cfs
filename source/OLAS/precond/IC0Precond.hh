@@ -48,7 +48,7 @@ namespace CoupledField {
 
     //! The setup phase generates the incomplete cholesky factorization
     //! with zero fill in
-    void Setup( SCRS_Matrix<T> &sysMat, PtrParamNode analysis_id );
+    void Setup( SCRS_Matrix<T> &sysMat );
 
 
     //! Query type of preconditioner object
