@@ -31,7 +31,7 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagEdge::SolveStepStatic(PtrParamNode analysis_id) {
+  void SolveStepMagEdge::SolveStepStatic() {
 
 
 
@@ -43,9 +43,9 @@ namespace CoupledField {
       clock.Start();
            
       if (nonLin_) 
-        StepStaticNonLin(analysis_id);
+        StepStaticNonLin();
       else 
-        StepStaticLin(analysis_id);
+        StepStaticLin();
       
 
       Double wall = clock.GetWallTime();
@@ -81,9 +81,9 @@ namespace CoupledField {
 //      // Thus we solve the first "coarse" level like for the standard case
 //
 //      if (nonLin_) 
-//        StepStaticNonLin(analysis_id);
+//        StepStaticNonLin;
 //      else 
-//        StepStaticLin(analysis_id);
+//        StepStaticLin;
 //      
 //      
 //      Double wall = clock.GetWallTime();
@@ -155,9 +155,9 @@ namespace CoupledField {
 //      // ATTENTION: Of course, we want now the better initial solution so 
 //      // prevent re-setting of the solution vector in the StepStatic(Lin)
 //      if (nonLin_) 
-//        StepStaticNonLin(analysis_id);
+//        StepStaticNonLin;
 //      else 
-//        StepStaticLin(analysis_id);
+//        StepStaticLin;
 //
 //      wall = clock.GetWallTime();
 //      user = clock.GetCPUTime();
@@ -173,14 +173,14 @@ namespace CoupledField {
   }
 
 
-  void SolveStepMagEdge::StepStaticLin( PtrParamNode analysis_id ) {
-    StdSolveStep::StepStaticLin(analysis_id);  
+  void SolveStepMagEdge::StepStaticLin() {
+    StdSolveStep::StepStaticLin();
   }
 
-  void SolveStepMagEdge::StepStaticNonLin( PtrParamNode analysis_id ) {
+  void SolveStepMagEdge::StepStaticNonLin() {
     
     // Note: currently hard-coded to section from StdSolveStep
-    //StdSolveStep::StepStaticNonLin(analysis_id);
+    //StdSolveStep::StepStaticNonLin;
 
     bool performOneMoreStep;
 
@@ -251,14 +251,14 @@ namespace CoupledField {
                                            matrix_factor_[NO_FCT_ID] );
 
         algsys_->BuildInDirichlet();
-        algsys_->SetupPrecond(analysis_id);
-        algsys_->SetupSolver(analysis_id);
+        algsys_->SetupPrecond();
+        algsys_->SetupSolver();
 
         bool setIDBC = false;
         if ( iterationCounter == 1 )
           setIDBC = true;
 
-        algsys_->Solve(analysis_id, setIDBC);
+        algsys_->Solve(setIDBC);
 
         // new solution is only an increment of the full solution =============
         algsys_->GetSolutionVal( solInc, setIDBC );

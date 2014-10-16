@@ -1401,6 +1401,7 @@ source/Domain/Results/ResultFunctor.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultFunctor.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/ResultInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultInfo.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/AnalysisID.hh -text
 source/Driver/Assemble.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/Assemble.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/BaseDriver.cc svneol=native#text/x-c%2B%2Bsrc

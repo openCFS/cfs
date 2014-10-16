@@ -27,7 +27,7 @@ namespace CoupledField {
   //   Setup method
   // ****************
   template<typename T>
-    void CGSolver<T>::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
+    void CGSolver<T>::Setup( BaseMatrix &sysmat ) {
     
     if( r_ != NULL ) {
       delete r_;
@@ -55,7 +55,7 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void CGSolver<T>::Solve( const BaseMatrix &sysmat,
-                           const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                           const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
 

@@ -55,24 +55,8 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
+  void StaticDriver::SolveProblem(bool write_results)
   {
-
-    // in the optimization case the step is given, otherwise it is created
-    // store such that special steps can add non-lin stuff and optimization adjoints
-    if(given_analysis_id == NULL)
-    {
-      // do we really want to create a new entry? Might blast up the output
-      ParamNode::ActionType at = progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT;
-      analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", at);
-      analysis_id_->Get("analysis_id")->SetValue("0");
-    }
-    else
-    {
-      analysis_id_ = given_analysis_id;
-      assert(analysis_id_->Has("analysis_id"));
-    }
-
     // In case we allow general postprocessing or this analysis is part of 
     // a multisequence (in which case the subsequent run could need this
     // simulation as restart information)
@@ -86,7 +70,7 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
     ptPDE_->GetSolveStep()->PreStepStatic();
-    ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
+    ptPDE_->GetSolveStep()->SolveStepStatic();
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     // in optimization we write the results via StoreResults() because

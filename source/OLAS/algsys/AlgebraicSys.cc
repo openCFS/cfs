@@ -30,7 +30,11 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "Utils/Timer.hh"
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
+#include "Driver/AnalysisID.hh"
 
 DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
@@ -443,7 +447,7 @@ namespace CoupledField {
     }
   }
 
-  void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
+  void AlgebraicSys::SetupPrecond()  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
     // check, if system was already created
@@ -458,9 +462,9 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
-      precond_->Setup( (*effMat_)(0,0), analysis_id);
+      precond_->Setup( (*effMat_)(0,0));
     } else {
-      precond_->Setup( *(effMat_), analysis_id);
+      precond_->Setup( *(effMat_));
     }
     
     // stop setup timer of preconditioner
@@ -468,7 +472,7 @@ namespace CoupledField {
 
   }
 
-  void AlgebraicSys::SetupSolver(PtrParamNode analysis_id) {
+  void AlgebraicSys::SetupSolver() {
     
     LOG_TRACE(algSys) << "Setup of solver";
     // check, if system was already created
@@ -483,9 +487,9 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
-      solver_->Setup( (*effMat_)(0,0), analysis_id );
+      solver_->Setup( (*effMat_)(0,0));
     } else {
-      solver_->Setup( *effMat_, analysis_id);
+      solver_->Setup( *effMat_);
     }
     
    // in any case, pass preconditioner object to solver, if created
@@ -493,14 +497,14 @@ namespace CoupledField {
       solver_->SetPrecond( precond_ );
     }
     
-    ExportLinSys(true, false, false, analysis_id); // setup
+    ExportLinSys(true, false, false); // setup
 
     // stop setup timer of solver
     solver_->GetSetupTimer()->Stop();
   }
 
   void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch, PtrParamNode analysis_id ) {
+                                       bool isQuadratic, bool bloch ) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -572,7 +576,7 @@ namespace CoupledField {
       eigenValues_ = dynamic_cast<SingleVector*>(bVec);
       eigenValError_ = dynamic_cast<SingleVector*>(errVec);
     }
-    ExportLinSys(true, false, false, analysis_id); // setup
+    ExportLinSys(true, false, false); // setup
 
   }
 
@@ -584,7 +588,7 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
+  void AlgebraicSys::Solve(bool setIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
 
@@ -601,13 +605,10 @@ namespace CoupledField {
       PtrParamNode sNode = myParam_->Get("solverList");
       PtrParamNode pNode = myParam_->Get("precondList");
 
-      BaseEigenSolver * evs = 
-          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_, 
-                                     esNode, sNode, pNode,
-                                     myInfo_->Get("solve_eigen") );
-      PtrParamNode in = myInfo_->
-          Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
-      in->Get("analysis_id")->SetValue(analysis_id);
+      BaseEigenSolver * evs = GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_,
+                                     esNode, sNode, pNode, myInfo_->Get("solve_eigen") );
+      PtrParamNode in = myInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+
       try {
         evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
                                   ev, err );
@@ -692,18 +693,14 @@ namespace CoupledField {
       }
     }
     
-    ExportLinSys(false, true, false, analysis_id); // pre_solve
+    ExportLinSys(false, true, false); // pre_solve
 
     // Trigger solution
-    if( onlyOneMatrixBlock_ ) { 
-      solver_->Solve( (*effMat_)(0,0), 
-                      (*effRhs_)(0), (*effSol_)(0),
-                      analysis_id);
-    } else {
-      solver_->Solve( *effMat_, *effRhs_, 
-                      *effSol_, analysis_id );
-    }
-    
+    if( onlyOneMatrixBlock_ )
+      solver_->Solve( (*effMat_)(0,0), (*effRhs_)(0), (*effSol_)(0));
+    else
+      solver_->Solve( *effMat_, *effRhs_, *effSol_);
+
     // -------------------------------------------
     //  Adjust Sol for due to static condensation
     // -------------------------------------------
@@ -760,75 +757,76 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve, PtrParamNode analysis_id)
+  void AlgebraicSys::ExportLinSys(bool setup, bool pre_solve, bool post_solve)
   {
     assert((setup && !pre_solve && !post_solve) || (!setup && pre_solve && !post_solve) || (!setup && !pre_solve && post_solve));
 
-    LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " aid_" << analysis_id->ToString(0);
+    AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+
+    LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " id=" << id.ToString();
 
     if(!solStrat_->GetParamNode()->Has("exportLinSys"))
       return;
 
     PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
 
-    // TODO consider multiple systems here, this was done by the analysis_id
     std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+    if(id.ToString(true) != "") // filename variant
+      base += "_" + id.ToString(true);
 
-    // we export the system always but on only_check_solution and exclusive solution
-    bool exclusive = els->Has("solution") ? els->Get("solution")->As<std::string>() == "exclusive" : false;
+    BaseMatrix::OutputFormat format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
 
-    BaseMatrix::OutputFormat format = els->Has("format") ? BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>())
-                                                         : BaseMatrix::MATRIX_MARKET;
+    LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
-    if(setup && !exclusive)
+    if(setup)
     {
-      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
-        EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
+      // if(els->Get("format")->As<std::string>()  == "harwell-boeing") ???
+      //  EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
 
-
-      // Export also preconditioner if we have one
-      if(precond_ != NULL)
+      if(els->Get("precond")->As<bool>())
       {
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        assert(precond_ != NULL); // seems to be Id by default !?
+        LOG_DBG(algSys) << "ELS precond: " << BasePrecond::precondType.ToString(precond_->GetPrecondType());
+
+        SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
         if(onlyOneMatrixBlock_)
           precond_->GetPrecondSysMat((*copy)(0,0));
         else
           precond_->GetPrecondSysMat(*copy);
         copy->Export(base + "_precond", format);
+        delete copy;
       }
 
-      // BLOCH check split_system doesn't exist any more!
-      if(els->HasByVal("split_system", true))
-      {
-        if(sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
-          sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
+      if(els->Get("system")->As<bool>() && sysMat_.find(SYSTEM) != sysMat_.end() && sysMat_[SYSTEM] != NULL)
+        sysMat_[SYSTEM]->Export(base, format);
 
-        if(sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
-          sysMat_[DAMPING]->Export(base + "_damping", format);
+      if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
+        sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
 
-        if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
-          sysMat_[AUXILIARY]->Export(base + "_aux", format);
+      if(els->Get("damping")->As<bool>() && sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
+        sysMat_[DAMPING]->Export(base + "_damping", format);
 
-        // check if the export _system is really ok in the else case
-        assert(sysMat_[SYSTEM]->GetMaxDiag() == 0.0);
-      }
-      else
-      {
-        sysMat_[SYSTEM]->Export(base + "_system", format);
-      }
+      if(els->Get("mass")->As<bool>() && sysMat_.find(MASS) != sysMat_.end() && sysMat_[MASS] != NULL)
+        sysMat_[MASS]->Export(base + "_mass", format);
+
+      if(els->Get("auxiliary")->As<bool>() && sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
+        sysMat_[AUXILIARY]->Export(base + "_aux", format);
     }
-    if(pre_solve && !exclusive)
+
+    if(pre_solve)
     {
       // rhs is only in harwell-boing included
-      rhs_->Export(base + "_rhs.vec", format);
+      if(els->Get("rhs")->As<bool>())
+        rhs_->Export(base + "_rhs.vec", format);
 
-      if(els->HasByVal("initialGuess", true))
+      if(els->Get("initialGuess")->As<bool>())
         sol_->Export(base + "_intial_guess.vec", format);
     }
+
     if(post_solve)
     {
       // Export solution if desired
-      if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
+      if(els->Get("solution")->As<bool>())
         sol_->Export(base + "_sol.vec", format);
     }
   }

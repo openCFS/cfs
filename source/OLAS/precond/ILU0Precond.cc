@@ -82,7 +82,7 @@ void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
 //   Setup of Preconditioner
 // ===========================
 template <typename T>
-void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat, PtrParamNode analysis_id ) {
+void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
 
   // get correct ParamNode
   this->xml_->GetValue("logging", logging_, ParamNode::INSERT ) ;

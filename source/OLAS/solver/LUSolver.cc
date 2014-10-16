@@ -42,7 +42,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LUSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -104,7 +104,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
-			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+			   const BaseVector &rhs, BaseVector &sol ) {
 
 
     // Test that a factorisation is available, if not issue a warning.

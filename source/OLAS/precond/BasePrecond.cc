@@ -95,9 +95,9 @@ namespace CoupledField {
     }
   
 
-  void BaseSBMPrecond::Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
+  void BaseSBMPrecond::Setup( BaseMatrix &A ) {
     SBM_Matrix& sbmA = dynamic_cast<SBM_Matrix&>(A);
-    Setup(sbmA, analysis_id);
+    Setup(sbmA);
   }
  
 }

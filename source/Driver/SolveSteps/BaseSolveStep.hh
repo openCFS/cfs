@@ -28,11 +28,8 @@ namespace CoupledField
     //! routine for initilizations befor execution the SolveStep-method
     virtual void PreStepStatic( ) = 0;
     
-    /** base method for solving one static step 
-     * @param analysis_id references the "base" analysis step. 
-     *        is the the info/OLAS/process/step element and required the attribute
-     *        "analysis_id" to be set!. In the non-lin case subelements are created. */
-    virtual void SolveStepStatic(PtrParamNode analysis_id) = 0;
+    /** base method for solving one static step */
+    virtual void SolveStepStatic() = 0;
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic()  = 0;
@@ -45,9 +42,8 @@ namespace CoupledField
     // neede in case of FSI-Iterative-Coupling
     //virtual void PredictorStep() = 0;
 
-    /** base method for solving one transient step
-     * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepTrans(PtrParamNode analysis_id) = 0;
+    /** base method for solving one transient step */
+    virtual void SolveStepTrans() = 0;
 
     //! base method for solving one transient step with slicing method
     virtual void SolveStepTrans4Slice()
@@ -65,9 +61,8 @@ namespace CoupledField
     //! routine for initilizations before execution of the SolveStep-method
     virtual void PreStepHarmonic() = 0;
 
-    /** base method for solving one harmonic step
-     * @param analysis_id @see SolveStepStatic() */
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id) = 0;
+    /** base method for solving one harmonic step */
+    virtual void SolveStepHarmonic() = 0;
 
     //!  routine for actions after the SolveStep-method
     virtual void PostStepHarmonic() = 0;
@@ -76,7 +71,7 @@ namespace CoupledField
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
     virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies,
                                        Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift, PtrParamNode analysis_id ) {
+                                       UInt numFreq, Double shift ) {
       EXCEPTION( "Not implemented her!");
       return 0;
     }
@@ -85,7 +80,7 @@ namespace CoupledField
     @param bloch quadratic problem or bloch modes */
     virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
                                        Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift, bool bloch, PtrParamNode analysis_id) {
+                                       UInt numFreq, Double shift, bool bloch) {
       EXCEPTION( "Not implemented here!" );
       return 0;
     }

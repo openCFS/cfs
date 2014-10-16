@@ -246,7 +246,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results, PtrParamNode given_analysis_id)
+  void HarmonicDriver::SolveProblem(bool write_results)
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)
@@ -284,8 +284,11 @@ namespace CoupledField
       if(progOpts->IsQuiet())
         cout << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ << " frequency " << actFreq_ << endl; 
       else
-        cout << endl << ptPDE_->GetName() << ": Harmonic step " 
-        << actFreqStep_ <<" ======================= " << endl;
+        cout << endl << ptPDE_->GetName() << ": Harmonic step " << actFreqStep_ <<" ======================= " << endl;
+
+      analysis_id_.step = actFreqStep_;
+      analysis_id_.freq = actFreq_;
+      // analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
 
       handler_->BeginStep( actFreqStep_, actFreq_ );
       ptPDE_->WriteResultsInFile( actFreqStep_, actFreq_ );
@@ -308,7 +311,7 @@ namespace CoupledField
       Double remainingTime = (numFreq_ - actFreqStep_) * timePerStep_;
       pt::ptime now = pt::second_clock::local_time();
       now += pt::seconds(static_cast<long int>(remainingTime));
-      analysis_id_->Get("timePerStep")->SetValue( timePerStep_ );
+
       PtrParamNode envNode = info_->GetRoot()->Get(ParamNode::HEADER)->Get("environment");
       envNode->Get("estimatedEnd")->SetValue(pt::to_simple_string( now ));
       envNode->Get("remainingTime")->SetValue(remainingTime);
@@ -334,10 +337,10 @@ namespace CoupledField
     actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
     assert(freqs[actFreqStep-1].step == actFreqStep);
 
-    analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
-    analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
-    analysis_id_->Get("step")->SetValue(actFreqStep_);
-    analysis_id_->Get("value")->SetValue(actFreq_);
+    // analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
+    // analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
+    // analysis_id_->Get("step")->SetValue(actFreqStep_);
+    // analysis_id_->Get("value")->SetValue(actFreq_);
 
     // Set current frequency value in the mathParser
     mathParser_->SetValue( MathParser::GLOB_HANDLER, "f", actFreq_ );
@@ -347,7 +350,7 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
     ptPDE_->GetSolveStep()->PreStepHarmonic();
-    ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    ptPDE_->GetSolveStep()->SolveStepHarmonic();
     ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     return actFreq_;

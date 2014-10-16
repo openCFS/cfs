@@ -56,7 +56,7 @@ public:
   void Init(bool restart);
 
   //! Main method, where harmonic analysis is implemented.
-  void SolveProblem(bool write_results = true, PtrParamNode analysis_id = PtrParamNode());
+  void SolveProblem(bool write_results = true);
 
   /** This allows optimization to handle the individual frequency steps, e.g. to compute
    * objective values. Internally this is is a service function for SolveProblem()
@@ -64,8 +64,7 @@ public:
    Double ComputeFrequencyStep(UInt actFreqStep);
 
    /** This StoreResults meant for Optimization only */
-  void StoreResults(UInt stepNum,
-                    double step_val );
+  void StoreResults(UInt stepNum, double step_val);
 
   //! \copydoc SingleDriver::SetToStepValue
   virtual void SetToStepValue(UInt stepNum, Double stepVal );

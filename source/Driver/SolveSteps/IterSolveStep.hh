@@ -191,8 +191,7 @@ namespace CoupledField
   public:
 
     //! Constructor
-    IterSolveStep(IterCoupledPDE& apde, PtrParamNode paramNode,
-                  PtrParamNode infoNode );
+    IterSolveStep(IterCoupledPDE& apde, PtrParamNode paramNode, PtrParamNode infoNode);
 
     //! Destructor
     virtual ~IterSolveStep();
@@ -217,7 +216,7 @@ namespace CoupledField
     virtual void PreStepStatic()  {;};
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id);
+    virtual void SolveStepStatic();
 
     //! routine for acttions after the SolveStep-method
     virtual void PostStepStatic() {;}
@@ -233,7 +232,7 @@ namespace CoupledField
 
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id);
+    virtual void SolveStepTrans();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans() {;};
@@ -245,7 +244,7 @@ namespace CoupledField
 
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic();
 
 
     //!  routine for actions after the SolveStep-method

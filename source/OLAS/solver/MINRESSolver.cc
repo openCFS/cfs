@@ -64,7 +64,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step) {
+  void MINRESSolver<T>::Setup( BaseMatrix &sysMat) {
     PrivateSetup( sysMat );
   }
 
@@ -160,7 +160,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                               const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                               const BaseVector &rhs, BaseVector &sol ) {
 
 
     // ----------------------------------------

@@ -74,8 +74,7 @@ namespace CoupledField {
   //   Setup of Preconditioner
   // ===========================
   template <typename T>
-  void ILUTP_Precond<T>::Setup( CRS_Matrix<T> &sysMat,
-                                PtrParamNode analysis_id ) {
+  void ILUTP_Precond<T>::Setup(CRS_Matrix<T> &sysMat) {
 
 
     // Query parameter object for factorisation parameters

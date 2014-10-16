@@ -116,7 +116,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void UMFPACKSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void UMFPACKSolver<T>::Setup( BaseMatrix &sysMat) {
 
     // Flag for check Pardiso's return status
     //    int errorFlag = 0;
@@ -505,8 +505,7 @@ namespace CoupledField {
   // *************************
   template<typename T>
   void UMFPACKSolver<T>::Solve( const BaseMatrix &sysmat,
-                                const BaseVector &rhs, BaseVector &sol,
-                                PtrParamNode analysis_step ) {
+                                const BaseVector &rhs, BaseVector &sol) {
 
     LOG_TRACE(umfpackSolver) << " -----------------------------------------"
                              << "-------------------------------------";
