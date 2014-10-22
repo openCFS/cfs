@@ -1589,8 +1589,6 @@ source/PDE/LatticeBoltzmannPDE.hh -text
 source/PDE/NonFEM/CMakeLists.txt -text
 source/PDE/NonFEM/LatticeBoltzmann.cc -text
 source/PDE/NonFEM/LatticeBoltzmann.hh -text
-source/PDE/NonFEM/LatticeBoltzmann_orig.cc -text
-source/PDE/NonFEM/LatticeBoltzmann_orig.hh -text
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc
