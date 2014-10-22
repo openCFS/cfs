@@ -21,15 +21,15 @@ namespace CoupledField
   // Number of velocity directions per element, e.g. 9 for D2Q9 model
   #define N_VEL 9
 
-  #define Q9_0  0
-  #define Q9_E  1
-  #define Q9_N  2
-  #define Q9_W  3
-  #define Q9_S  4
-  #define Q9_NE 5
-  #define Q9_NW 6
-  #define Q9_SW 7
-  #define Q9_SE 8
+//  #define Q9_0  0
+//  #define Q9_E  1
+//  #define Q9_N  2
+//  #define Q9_W  3
+//  #define Q9_S  4
+//  #define Q9_NE 5
+//  #define Q9_NW 6
+//  #define Q9_SW 7
+//  #define Q9_SE 8
 
 //typedef enum { N = 0, S = 4, W = 2,
 
@@ -109,13 +109,19 @@ public:
     void prop_step();
 
   private:
-    struct PropOperator{
+    struct PropTransform{
       int dir;
       int off_x;
       int off_y;
-      PropOperator(int i, int j, int k): dir(i), off_x(j), off_y(k){}
-      PropOperator():dir(0),off_x(0),off_y(0){}
+      PropTransform(int i, int j, int k): dir(i), off_x(j), off_y(k){}
+      PropTransform():dir(0),off_x(0),off_y(0){}
     };
+
+    typedef enum {E=0, N=1, W=2, S=3, NE=4, NW=5, SW=6, SE=7} Boundary;
+    typedef enum {Q9_0=0, Q9_E=1, Q9_N=2, Q9_W=3, Q9_S=4, Q9_NE=5, Q9_NW=6, Q9_SW=7, Q9_SE=8} Direction;
+
+    static Enum<Boundary> boundaries;
+    static Enum<Direction> directions;
 
     void SetupDataStructures(const StdVector<double>& elements);
 
@@ -138,8 +144,19 @@ public:
     /** debugging prop_map */
     void WriteMap();
 
+    /** set enums for Q_9 directions */
+    void setEnums();
+
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
+
+    /** fills given propagation map with given offset value*/
+    inline void fillPropMap(StdVector<PropTransform>& map, int offsetx, int offsety)
+    {
+      for (int dir = 0; dir < N_VEL; dir++) {
+        map[dir] = PropTransform(dir,offsetx,offsety);
+      }
+    }
 
 
     inline bool LbmNodeTypeIsFluid(double value)
@@ -189,7 +206,7 @@ public:
     StdVector< StdVector<double> > m_pdfs;
 
     // contains propagation rules for boundary cases
-    StdVector< StdVector<PropOperator> > prop_maps;
+    StdVector< StdVector<PropTransform> > prop_maps;
     //double * m_pdfs[2];
     int m_cur;
     int m_next;

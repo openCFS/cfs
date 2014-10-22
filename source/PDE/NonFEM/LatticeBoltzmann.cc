@@ -20,6 +20,10 @@ using std::ios;
 DECLARE_LOG(lattice)
 DEFINE_LOG(lattice, "lattice")
 
+// instantiation of the static elements
+Enum<LatticeBoltzmann::Boundary>        LatticeBoltzmann::boundaries;
+Enum<LatticeBoltzmann::Direction>        LatticeBoltzmann::directions;
+
 
  LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot)
  {
@@ -42,9 +46,9 @@ DEFINE_LOG(lattice, "lattice")
    m_pdfs[0].Resize(m_nNodes * N_VEL);
    m_pdfs[1].Resize(m_nNodes * N_VEL);
 
-   prop_maps.Resize(N_VEL);
-   for (int i = 0; i < N_VEL; i++ ){
-     prop_maps[i].Resize(N_VEL);
+   prop_maps.Resize(N_VEL-1);
+   for (int i = 0; i < N_VEL-1; i++ ){
+     prop_maps[i].Resize(N_VEL-1);
    }
 
    Scales.Resize(m_nNodes);
@@ -76,6 +80,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   InitializePdfs();
   SetupDataStructures(elements);
 
+  setEnums();
   TestDirectionIndex();
   SetupTransformation();
   WriteMap();
@@ -210,10 +215,11 @@ void LatticeBoltzmann::InitializePdfs()
 
 int LatticeBoltzmann::GetIndexDir(int dir1, int dir2=0)
 {
+  // TODO Assert that dir1 direction exists
   if (dir2 == 0)
     return dir1;
   else {
-    assert((dir1 == Q9_S) || (dir1 == Q9_N));
+    assert((dir1 == Q9_S) || (dir1 == Q9_N) || (dir1 == Q9_E) || (dir1 == Q9_W));
     assert((dir2 == Q9_E) || (dir2 == Q9_W));
     return 2*dir1+1.5*dir2-0.5*dir1*dir2+0.5;
   }
@@ -236,119 +242,124 @@ void LatticeBoltzmann::TestDirectionIndex()
 void LatticeBoltzmann::SetupTransformation()
 {
   // in 2D: 8 maps (4 corners + 4 edges)
-  StdVector<PropOperator> map;
+  StdVector<PropTransform> map;
   map.Resize(N_VEL);
-  for (int dir = 0; dir < N_VEL; dir++) {
-    map[dir] = PropOperator(dir,0,0);
+//  const Direction allDirections[] = {Q9_0, Q9_E, Q9_N, Q9_W, Q9_S, Q9_NE, Q9_NW, Q9_SW, Q9_SE};
+  const Direction xDirs[] = {Q9_E,Q9_W};
+  const Direction yDirs[] = {Q9_N,Q9_S};
+//  int xdirs[2];
+//  xdirs[0] = Q9_E;
+//  xdirs[1] = Q9_W;
+//  int ydirs[2];
+//  ydirs[0] = Q9_N;
+//  ydirs[1] = Q9_S;
+  int d1, d2;
+//  const Boundary corners[] = {NE,NW,SW,SE};
+
+//  // propagation in corners
+//  for (int cindex = 0; cindex < 4; cindex++) {
+//
+//  }
+  for (int i = 0; i < 2; i++) { // E, W
+    for (int j = 0; j < 2; j++) { // N, S
+      // fill map to default offsets
+      fillPropMap(map,0,0);
+      d1 = xDirs[i];
+      map[GetIndexDir(d1)] = PropTransform(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
+      d2 = yDirs[j];
+      map[GetIndexDir(d2)] = PropTransform(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
+      map[GetIndexDir(d2,d1)] = PropTransform(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
+      prop_maps[GetIndexDir(d2,d1)-1] = map;
+      std::cout << "Filled: " << GetIndexDir(d2) << " and " << GetIndexDir(d2,d1)-1 << " i: " << i << " j: " << j << std::endl;
+    }
   }
 
-  int xdirs[2];
-  xdirs[0] = Q9_E;
-  xdirs[1] = Q9_W;
-  int ydirs[2];
-  ydirs[0] = Q9_N;
-  ydirs[1] = Q9_S;
-  int d1, d2;
-  // propagation in corners
-  for (int i = 0; i < 2; i++) {
-    // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
-    }
-    d1 = xdirs[i];
-    for (int j = 0; j < 2; j++) {
-      d2 = ydirs[j];
-      map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
-      map[GetIndexDir(d2,d1)] = PropOperator(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
-      prop_maps[GetIndexDir(d2,d1)] = map;
-    }
-  }
   // propagation on horizontal edges
-  for (int i = 0; i < 2; i++) {
-    d1 = xdirs[i];
-    // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
+  for (int i = 0; i < 2; i++) { // E, W
+    d1 = xDirs[i];
+//    // fill map to default offsets
+//    for (int dir = 0; dir < 9; dir++) {
+//      map[dir] = PropTransform(dir,0,0);
+//    }
+    map[GetIndexDir(d1)] = PropTransform(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
+    for (int j = 0; j < 2; j++) { // N, S
+      d2 = yDirs[j];
+      map[GetIndexDir(d2)] = PropTransform(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
+      map[GetIndexDir(d2,d1)] = PropTransform(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
     }
-    map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),(d1 == Q9_W ? 1: -1 ),0);
-    for (int j = 0; j < 2; j++) {
-      d2 = ydirs[j];
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),0,(d2 == Q9_S ? 1: -1 ));
-      map[GetIndexDir(d2,d1)] = PropOperator(GetIndexDir(d2,d1),(d1 == Q9_W ? 1: -1 ),(d2 == Q9_S ? 1: -1 ));
-    }
-    prop_maps[GetIndexDir(d1)] = map;
+    prop_maps[GetIndexDir(d1)-1] = map;
   }
 
   //propagation on vertical edges
-  for (int i = 0; i < 2; i++) {
-    d1 = ydirs[i];
+  for (int j = 0; j < 2; j++) { // N, S
+    d1 = yDirs[j];
     // fill map to default offsets
-    for (int dir = 0; dir < N_VEL; dir++) {
-      map[dir] = PropOperator(dir,0,0);
+    for (int dir = 0; dir < 9; dir++) {
+          map[dir] = PropTransform(dir,0,0);
+        }
+    map[GetIndexDir(d1)] = PropTransform(GetIndexDir(d1),0,(d1 == Q9_S ? 1: -1 ));
+    for (int i = 0; i < 2; i++) { // E, W
+      d2 = xDirs[i];
+      map[GetIndexDir(d2)] = PropTransform(GetIndexDir(d2),(d2 == Q9_W ? 1: -1 ),0);
+      map[GetIndexDir(d1,d2)] = PropTransform(GetIndexDir(d1,d2),(d2 == Q9_W ? 1: -1 ),(d1 == Q9_S ? 1: -1 ));
     }
-    map[GetIndexDir(d1)] = PropOperator(GetIndexDir(d1),0,(d1 == Q9_S ? 1: -1 ));
-    for (int j = 0; j < 2; j++) {
-      d2 = xdirs[j];
-      map[GetIndexDir(d2)] = PropOperator(GetIndexDir(d2),(d2 == Q9_W ? 1: -1 ),0);
-      map[GetIndexDir(d1,d2)] = PropOperator(GetIndexDir(d1,d2),(d2 == Q9_W ? 1: -1 ),(d1 == Q9_S ? 1: -1 ));
-    }
-    prop_maps[GetIndexDir(d1)] = map;
+    prop_maps[GetIndexDir(d1)-1] = map;
   }
 }
 
 // for debugging purposes
 void LatticeBoltzmann::WriteMap()
 {
-  int bounds[9];
-  bounds[0] = Q9_0;
-  bounds[1] = Q9_SW;
-  bounds[2] = Q9_SE;
-  bounds[3] = Q9_NW;
-  bounds[4] = Q9_NE;
-  bounds[5] = Q9_S;
-  bounds[6] = Q9_N;
-  bounds[7] = Q9_W;
-  bounds[8] = Q9_E;
-
-  int order[9];
+  // order of output for comparison with old implementation
+  Direction order[9];
   order[0] = Q9_0;
   order[1] = Q9_S;
   order[2] = Q9_SE;
-  order[3] = Q9_NW;
+  order[3] = Q9_SW;
   order[4] = Q9_N;
   order[5] = Q9_NE;
   order[6] = Q9_NW;
-  order[7] = Q9_E;
-  order[8] = Q9_W;
+  order[7] = Q9_W;
+  order[8] = Q9_E;
 
   fstream f;
   f.precision(16);
   f.open("propagation_map.txt", ios::out);
-  for (int i = 1; i < N_VEL; i++) {
-    StdVector<PropOperator>& mymap  = prop_maps[bounds[i]];
-    if (i == 1)
-      f << "SW corner" << std::endl;
-    if (i == 2)
-      f << "SE corner" << std::endl;
-    if (i == 3)
-          f << "NW corner" << std::endl;
-    if (i == 4)
-          f << "NE corner" << std::endl;
-    if (i == 5)
-          f << "S edge" << std::endl;
-    if (i == 6)
-      f << "N edge" << std::endl;
-    if (i == 7)
-      f << "W edge" << std::endl;
-    if (i == 8)
-      f << "E edge" << std::endl;
-    for (int dir = 0; dir < N_VEL; dir++) {
-      f << "x+" << mymap[order[dir]].off_x << ", y+" << mymap[order[dir]].off_y << std::endl;
+  const Boundary boundariesVector[] = {E, N, W, S, NE, NW, SW, SE};
+  for (int i = 0; i < 8; i++) {
+    StdVector<PropTransform>& mymap  = prop_maps[i];
+    f << boundaries.ToString(boundariesVector[i]) << std::endl;
+    f << "---------------------------------------" << std::endl;
+    for (int i = 0; i < N_VEL; i++) {
+      f << directions.ToString(order[i]) << " \t x+" << mymap[order[i]].off_x << ", y+" << mymap[order[i]].off_y << std::endl;
     }
     f << std::endl;
   }
   f.close();
+}
+
+void LatticeBoltzmann::setEnums()
+{
+  boundaries.SetName("Corners and edges in 2D");
+  boundaries.Add(E,"right edge");
+  boundaries.Add(N,"top edge");
+  boundaries.Add(W,"left edge");
+  boundaries.Add(S,"bottom edge");
+  boundaries.Add(NE,"top right corner");
+  boundaries.Add(NW,"top left corner");
+  boundaries.Add(SW,"bottom left corner");
+  boundaries.Add(SE,"bottom right corner");
+
+  directions.SetName("Q9 directions");
+  directions.Add(Q9_0,"C");
+  directions.Add(Q9_E,"E");
+  directions.Add(Q9_N,"N");
+  directions.Add(Q9_W,"W");
+  directions.Add(Q9_S,"S");
+  directions.Add(Q9_NE,"NE");
+  directions.Add(Q9_NW,"NW");
+  directions.Add(Q9_SW,"SW");
+  directions.Add(Q9_SE,"SE");
 }
 void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
 {
@@ -388,7 +399,6 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
       ++n;
     }
   }
-
   assert(m_nNodes == n);
 }
 

@@ -469,7 +469,7 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
     PDF(m_next, x, y, Q9_E)  = PDF(m_cur, x,     y,     Q9_E);
     PDF(m_next, x, y, Q9_W)  = PDF(m_cur, x + 1, y,     Q9_W);
 
-    // Rigth
+    // Right
     x = lx - 1;
     PDF(m_next, x, y, Q9_0)  = PDF(m_cur, x,     y,     Q9_0);
     PDF(m_next, x, y, Q9_S)  = PDF(m_cur, x,     y + 1, Q9_S);
