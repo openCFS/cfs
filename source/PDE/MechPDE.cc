@@ -369,7 +369,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       if( preStressNode ){
 
         // either complex material or bloch mode with complex B-matrices
-        bool complexPre = (do_bloch | complexMatData_[actRegion] );
+        bool complexPre = (do_bloch  );
 
         PtrCoefFct preStressFct = CreatePreStressFct(complexPre,preStressNode);
 
@@ -1687,41 +1687,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       if( inPDE->GetAnalysisType() != STATIC && inPDE->GetAnalysisType() != TRANSIENT){
         EXCEPTION("Prestressing is only supported for a preceeding transient or static analysis");
       }
-
-      shared_ptr<BaseFeFunction>  inFct = inPDE->GetFeFunction( MECH_DISPLACEMENT );
-
-      //Lets create the stress Coeffunction
-      // === MECHANIC STRESS ===
-      StdVector<std::string> stressComponents;
-      if( subType_ == "3d" ) {
-        stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
-      } else if( subType_ == "planeStrain" ) {
-        stressComponents = "xx", "yy", "xy";
-      } else if( subType_ == "planeStress" ) {
-        stressComponents = "xx", "yy", "xy";
-      } else if( subType_ == "axi" ) {
-        stressComponents = "rr", "zz", "rz", "phiphi";
-      }
-      shared_ptr<ResultInfo> stress(new ResultInfo);
-      stress->resultType = MECH_STRESS;
-      stress->dofNames = stressComponents;
-      stress->unit =  "N/m^2";
-      stress->entryType = ResultInfo::TENSOR;
-      stress->definedOn = ResultInfo::ELEMENT;
-      PtrCoefFct stressCoef;
-      shared_ptr<CoefFunctionFormBased> sigmaFunc;
-
-      sigmaFunc.reset(new CoefFunctionFlux<Double>(inFct, stress));
-
-      stiffFormCoefs_.insert(sigmaFunc);
-      stressVec = sigmaFunc;
-      // Cleanup everything, so that temporary memory needed for domain gets freed
-      in.reset();
-      // important: This deletes the internal references to the
-      inState->Finalize();
-      inState.reset();
-      delete inDomain;
-    }catch (Exception& e){
+      
+      // Directly aquire the mechanical stress from the previous sequence step
+      stressVec = inPDE->GetCoefFct(MECH_STRESS);
+      
+      // Store the data input for later. It will be destroyed in the destructor
+      // of the SinglePDE
+      inputs_[inState] = inDomain;
+     } catch (Exception& e){
       if( inState ) {
         inState->Finalize();
         inState.reset();
