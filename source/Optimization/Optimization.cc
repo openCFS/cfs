@@ -1262,6 +1262,7 @@ Optimization::Log::Log()
 {
   this->design = false;
   this->designGradient = false;
+  this->designConstraintGradients = false;
   this->file = NULL;
   this->fileHeader = "";
 }

@@ -12,7 +12,7 @@ args = parser.parse_args()
 
 mesh_name = args.type
 
-if args.type == 'cantilver2d' or args.type == 'cantilver2d_reinforced':
+if args.type == 'cantilever2d' or args.type == 'cantilever2d_reinforced':
   mesh = create_cantilever2d_mesh(args.type, args.res)
 elif args.type == 'mbb' or args.type == 'mbb_reinforced':  
   mesh = create_mbb_mesh(args.type, args.res)
