@@ -33,26 +33,26 @@ namespace CoupledField
 
 //typedef enum { N = 0, S = 4, W = 2,
 
-  #define Q9_INV_0  Q9_0
-  #define Q9_INV_E  Q9_W
-  #define Q9_INV_N  Q9_S
-  #define Q9_INV_W  Q9_E
-  #define Q9_INV_S  Q9_N
-  #define Q9_INV_NE Q9_SW
-  #define Q9_INV_NW Q9_SE
-  #define Q9_INV_SW Q9_NE
-  #define Q9_INV_SE Q9_NW
+//  #define Q9_INV_0  Q9_0
+//  #define Q9_INV_E  Q9_W
+//  #define Q9_INV_N  Q9_S
+//  #define Q9_INV_W  Q9_E
+//  #define Q9_INV_S  Q9_N
+//  #define Q9_INV_NE Q9_SW
+//  #define Q9_INV_NW Q9_SE
+//  #define Q9_INV_SW Q9_NE
+//  #define Q9_INV_SE Q9_NW
 
 
-  #define T_Q9_0   (4.0 /  9.0)
-  #define T_Q9_E   (1.0 /  9.0)
-  #define T_Q9_N   (1.0 /  9.0)
-  #define T_Q9_W   (1.0 /  9.0)
-  #define T_Q9_S   (1.0 /  9.0)
-  #define T_Q9_NE  (1.0 / 36.0)
-  #define T_Q9_NW  (1.0 / 36.0)
-  #define T_Q9_SW  (1.0 / 36.0)
-  #define T_Q9_SE  (1.0 / 36.0)
+//  #define T_Q9_0   (4.0 /  9.0)
+//  #define T_Q9_E   (1.0 /  9.0)
+//  #define T_Q9_N   (1.0 /  9.0)
+//  #define T_Q9_W   (1.0 /  9.0)
+//  #define T_Q9_S   (1.0 /  9.0)
+//  #define T_Q9_NE  (1.0 / 36.0)
+//  #define T_Q9_NW  (1.0 / 36.0)
+//  #define T_Q9_SW  (1.0 / 36.0)
+//  #define T_Q9_SE  (1.0 / 36.0)
 
   #ifndef __LX__
     #define __LX__  m_sizeX
@@ -80,11 +80,11 @@ namespace CoupledField
 
     // Address PDFs via Coordinates and Direction.
     // Assuming structures of array layout.
-    // #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) +  (_y) * __LX__ + (_x) ]
+//     #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) +  (_y) * __LX__ + (_x) ]
 
     // Address PDFs via Index and Direction only.
     // Assuming structures of array layout.
-    // #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) + (_index) ]
+//     #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) + (_index) ]
 
     // Fluid nodes have values in the range of [0.0; 1.0].
     #define LBM_NODE_TYPE_BB      (-1.0)
@@ -112,13 +112,13 @@ public:
     struct PropTransform{
       int off_x;
       int off_y;
-      PropTransform(int i, int j): off_x(i), off_y(j){}
+      PropTransform(int offx, int offy): off_x(offx), off_y(offy){}
       PropTransform(): off_x(0),off_y(0){}
     };
 
-    typedef enum {E=0, N=1, W=2, S=3, NE=4, NW=5, SW=6, SE=7} Boundary;
+    // Boundary C corresponds to interior
+    typedef enum {C=0, E=1, N=2, W=3, S=4, NE=5, NW=6, SW=7, SE=8} Boundary;
     typedef enum {Q9_0=0, Q9_E=1, Q9_N=2, Q9_W=3, Q9_S=4, Q9_NE=5, Q9_NW=6, Q9_SW=7, Q9_SE=8} Direction;
-
     static Enum<Boundary> boundaries;
     static Enum<Direction> directions;
 
@@ -131,7 +131,7 @@ public:
      * returns associated integer value of velocity direction two given principal directions
      * e.g. getDir(S,E) returns Q9_SE
      */
-    int GetIndexDir(int dir1, int dir2=0);
+    int GetIndexDir(Direction dir1, Direction dir2 = Q9_0);
 
     void TestDirectionIndex();
 
@@ -143,8 +143,16 @@ public:
     /** debugging prop_map */
     void WritePropMap();
 
-    /** set enums for directions and boundaries*/
+    /** set enumerations for directions and boundaries*/
     void setEnums();
+
+    /** Set LBM weights for D2Q9 model*/
+    void initWeights();
+
+    /** get inverse direction of D2Q9 direction */
+    int getInvDirection(Direction dir);
+
+    void testInvDirections();
 
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
@@ -202,9 +210,11 @@ public:
 
     StdVector<double> Scales;
 
+    StdVector<double> weights;
+
     StdVector< StdVector<double> > m_pdfs;
 
-    // contains propagation rules for boundary cases
+    // contains propagation rules for all types of elements (edge, corner, interior)
     StdVector< StdVector<PropTransform> > prop_maps;
     //double * m_pdfs[2];
     int m_cur;

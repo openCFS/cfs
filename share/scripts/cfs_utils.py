@@ -158,7 +158,7 @@ class Coordinate:
        
 
 # extracts an entry, if data is of lower dimension, the indices are ignored
-def getNDArrayEntry(data, i, j, k, d):
+def getNDArrayEntry(data, i, j, k, d = 1):
   if data.ndim == 4:
     return data[i,j,k,d]
   if data.ndim == 3:
@@ -195,10 +195,11 @@ def getDim(data):
   z = 1
   if data.ndim >= 3:
     z = data.shape[2]
-  d = None
   if data.ndim >= 4:
     d = data.shape[3]
-  return x, y, z, d
+    return x, y, z, d
+  else:
+   return x, y, z
 
 ## helps to clean an array with repeated entries as it happens hen nodes and elements are defined in cfs with a too small inc value
 # @param data array which is a history file read by numpy.loadtxt()
