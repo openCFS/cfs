@@ -131,7 +131,8 @@ public:
      * returns associated integer value of velocity direction two given principal directions
      * e.g. getDir(S,E) returns Q9_SE
      */
-    int GetIndexDir(Direction dir1, Direction dir2 = Q9_0);
+    int GetIndexDir(Direction dir1);
+    int GetIndexDir(Direction dir1, Direction dir2);
 
     void TestDirectionIndex();
 

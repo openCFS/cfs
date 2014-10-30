@@ -509,12 +509,12 @@ def enlarge_matrix(data, times_x, times_y=1, times_z=1):
 def refine_density(infile, outfile, design1=None, design2=None, design3=None, design4=None, design5 = None):
   if design1 is None:
     org = read_density(infile)
-    x, y, z, ndes = getDim(org)
+    x, y, z = getDim(org)
     ndes = 1
     dim = org.ndim
   else:
     org = read_multi_design(infile, design1, design2, design3, design4, design5, True)
-    x, y, z, ndes = getDim(org)
+    x, y, z, ndes = getDim(org, True)
     if ndes is None:
       ndes = z
     dim = org.ndim - 1
@@ -547,7 +547,7 @@ def refine_density(infile, outfile, design1=None, design2=None, design3=None, de
       write_density_file(outfile, out, "refined")
       return out
     else:
-      output[:,d] = out.flatten()
+      output[:,d] = numpy.ravel(out,order='F')
   
   write_multi_design_file(outfile, output, (design1, design2, design3, design4, design5)[0:ndes])
   return output

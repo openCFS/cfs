@@ -193,10 +193,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   in->Get("walltime")->SetValue(wt);
 
   // debugging
-  std::cout << "Propagation and collision: " << t_step/wt << "%; " << t_step << " sec" << std::endl;
-  std::cout << "Bounce back: " << t_bb/wt << "%; " << t_bb << " sec" << std::endl;
-  std::cout << "Propagation at velocity inlet: " << t_in/wt << "%; " << t_in << " sec" << std::endl;
-  std::cout << "Propagatin at density inlet: " << t_out/wt << "%; " << t_out << " sec" << std::endl;
+//  std::cout << "Propagation and collision: " << t_step/wt << "%; " << t_step << " sec" << std::endl;
+//  std::cout << "Bounce back: " << t_bb/wt << "%; " << t_bb << " sec" << std::endl;
+//  std::cout << "Propagation at velocity inlet: " << t_in/wt << "%; " << t_in << " sec" << std::endl;
+//  std::cout << "Propagatin at density inlet: " << t_out/wt << "%; " << t_out << " sec" << std::endl;
 
   if(R >= 1000) 
     EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");
@@ -237,18 +237,22 @@ void LatticeBoltzmann::InitializePdfs()
   }
 }
 
+inline int LatticeBoltzmann::GetIndexDir(Direction dir1)
+{
+  assert(directions.IsValid(dir1));
+  return dir1;
+}
+
+
 inline int LatticeBoltzmann::GetIndexDir(Direction dir1, Direction dir2)
 {
   assert(directions.IsValid(dir1));
-  if (dir2 == 0)
-    return dir1;
-  else {
-    assert(directions.IsValid(dir1));
-    assert(directions.IsValid(dir2));
-    assert((dir1 == Q9_S) || (dir1 == Q9_N));
-    assert((dir2 == Q9_E) || (dir2 == Q9_W));
-    return 2*dir1+1.5*dir2-0.5*dir1*dir2+0.5;
-  }
+  assert(dir2 != 0);
+  assert(directions.IsValid(dir1));
+  assert(directions.IsValid(dir2));
+  assert((dir1 == Q9_S) || (dir1 == Q9_N));
+  assert((dir2 == Q9_E) || (dir2 == Q9_W));
+  return 2*dir1+1.5*dir2-0.5*dir1*dir2+0.5;
 }
 
 // validates GetIndexDir function
@@ -403,7 +407,7 @@ void LatticeBoltzmann::initWeights()
 }
 
 // depends on numbering of directions
-int LatticeBoltzmann::getInvDirection(Direction dir)
+inline int LatticeBoltzmann::getInvDirection(Direction dir)
 {
   assert(directions.IsValid(dir));
   if (dir == Q9_0)
@@ -566,7 +570,7 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
   // perform a propagation step
   int x, y, index;
 
-  Direction dir;
+//  Direction dir;(Direction)
 
   const int lx = m_sizeX;
   const int ly = m_sizeY;
@@ -578,7 +582,7 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
   // Propagation for nodes in the corners....
   // ---------------------------------------------------------------------
 
-  const Direction allDirections[] = {Q9_0, Q9_E, Q9_N, Q9_W, Q9_S, Q9_NE, Q9_NW, Q9_SW, Q9_SE};
+//  const Direction allDirections[] = {Q9_0, Q9_E, Q9_N, Q9_W, Q9_S, Q9_NE, Q9_NW, Q9_SW, Q9_SE};
   const Boundary corners[] = {NE, NW, SW, SE};
   const Boundary vEdges[] = {W, E};
   const Boundary hEdges[] = {S, N};
@@ -596,9 +600,10 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
     }
 
     map1 = prop_maps[corners[i]];
+    assert(map1.GetSize() == N_DIR);
     for (int j = 0; j < N_DIR; j++) {
-      dir = allDirections[j];
-      PDF(m_next, x, y, dir)  = PDF(m_cur, x+map1[dir].off_x,     y+map1[dir].off_y,     dir);
+//      dir = allDirections[j];
+      PDF(m_next, x, y, j)  = PDF(m_cur, x+map1[j].off_x,     y+map1[j].off_y,     j);
     }
   }
 
@@ -607,11 +612,11 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
   map2 = prop_maps[hEdges[1]];
   for (int x = 1; x < lx - 1; ++x) {
     for (int i = 0; i < N_DIR; i++) {
-      dir = allDirections[i];
+//      dir = allDirections[i];
       y = 0;
-      PDF(m_next, x, y, dir)  = PDF(m_cur, x+map1[dir].off_x,     y+map1[dir].off_y,     dir);
+      PDF(m_next, x, y, i)  = PDF(m_cur, x+map1[i].off_x,     y+map1[i].off_y,     i);
       y = ly -1;
-      PDF(m_next, x, y, dir)  = PDF(m_cur, x+map2[dir].off_x,     y+map2[dir].off_y,     dir);
+      PDF(m_next, x, y, i)  = PDF(m_cur, x+map2[i].off_x,     y+map2[i].off_y,     i);
     }
   }
 
@@ -620,11 +625,11 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
   map2 = prop_maps[vEdges[1]];
   for (int y = 1; y < ly - 1; ++y) {
     for (int i = 0; i < N_DIR; i++) {
-      dir = allDirections[i];
+//      dir = allDirections[i];
       x = 0;
-      PDF(m_next, x, y, dir)  = PDF(m_cur, x+map1[dir].off_x,     y+map1[dir].off_y,     dir);
+      PDF(m_next, x, y, i)  = PDF(m_cur, x+map1[i].off_x,     y+map1[i].off_y,     i);
       x = lx - 1;
-      PDF(m_next, x, y, dir)  = PDF(m_cur, x+map2[dir].off_x,     y+map2[dir].off_y,     dir);
+      PDF(m_next, x, y, i)  = PDF(m_cur, x+map2[i].off_x,     y+map2[i].off_y,     i);
     }
   }
 
@@ -654,17 +659,17 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
       tmp_us = 0;
 
       for (int i = 0; i < N_DIR; i++) {
-        dir = allDirections[i];
+//        dir = allDirections[i];
         //store current pdf values in array for better accessing
-        pdfs[dir] = PDF(m_cur, x+map[dir].off_x,     y+map[dir].off_y,     dir);
+        pdfs[i] = PDF(m_cur, x+map[i].off_x,     y+map[i].off_y,     i);
         // add up all distribution functions of one element
-        sum += pdfs[dir];
-        if (dir != Q9_0) {
-          if (dir != Q9_N && dir != Q9_S) {
-            tmp_ux += map[getInvDirection(dir)].off_x*pdfs[dir];
+        sum += pdfs[i];
+        if (i != Q9_0) {
+          if (i != Q9_N && i != Q9_S) {
+            tmp_ux += map[getInvDirection((Direction)i)].off_x*pdfs[i];
           }
-          if (dir != Q9_E && dir != Q9_W)
-            tmp_uy += map[getInvDirection(dir)].off_y*pdfs[dir];
+          if (i != Q9_E && i != Q9_W)
+            tmp_uy += map[getInvDirection((Direction)i)].off_y*pdfs[i];
         }
       }
 
@@ -680,9 +685,9 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
 
       // propagate and collide for inner elements
       for (int i = 0; i < N_DIR; i++) {
-        dir = allDirections[i];
-        tmp = map[getInvDirection(dir)].off_x * tmp_ux + map[getInvDirection(dir)].off_y * tmp_uy;
-        PDF(m_next, x, y, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+//        dir = allDirections[i];
+        tmp = map[getInvDirection((Direction)i)].off_x * tmp_ux + map[getInvDirection((Direction)i)].off_y * tmp_uy;
+        PDF(m_next, x, y, i) = pdfs[i] + omega * ((sum * weights[i]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[i]);
       }
     }
   }

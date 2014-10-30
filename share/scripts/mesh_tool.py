@@ -349,18 +349,32 @@ def write_gid_mesh(mesh, filename):
 
   out.close()
   
-## creates a mesh of predefined geometry
-def create_cantilever2d_mesh(type, resolution):
+## creates a 2D mesh of predefined geometry
+def create_2d_mesh(type, x_res, y_res):
   mesh = Mesh()
   
-  width = 3.0
-  height = 2.0
+  # mbb reinforced does not work!!! check and fix the mbb stuff!
   
-  nx = resolution
-  ny = int(nx * (2./3.))
+  nx = x_res
   
+  # buld2d case
+  ny = y_res if y_res <> None else x_res
+  width = 1.0
+  height = float(ny)/nx 
+
+  if type.startswith('cantilever2d'):
+    width = 3.0
+    height = 2.0
+    ny = int(nx * (2./3.))
+  if type.startswith('mbb'):
+    width = 2.0
+    height = 1.0
+    ny = int(nx * 0.5)
+    
   dx = width / nx
-  dy = height / ny 
+  dy = height / ny
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
 
   for y in range(ny + 1):
     for x in range(nx + 1):
@@ -374,6 +388,10 @@ def create_cantilever2d_mesh(type, resolution):
       e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
+      # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
+      elif type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
+        e.region = 'reinforce'
+        
       else:
         e.region = 'mech'
 
@@ -396,59 +414,103 @@ def create_cantilever2d_mesh(type, resolution):
   return mesh
 
 ## creates a mesh of predefined geometry
-def create_mbb_mesh(type, resolution):
+def create_3d_mesh(x_res, y_res, z_res):
   mesh = Mesh()
+
+  nx = x_res
+  ny = y_res if y_res <> None else x_res
+  nz = z_res if z_res <> None else x_res
+
+  nnx = nx+1
+  nny = ny+1
+  nnz = nz+1
   
-  width = 2.0
-  height = 1.0
-  
-  nx = resolution
-  ny = int(nx * 0.5)
-  
+  width = 1.0
   dx = width / nx
-  dy = height / ny 
   
-  e = 1e-4
+  height = float(ny)/nx
+  dy = height / ny
+  
+  depth = float(nz)/nx
+  dz = depth / nz
 
+  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
+  
+  
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #       2 --------- 3         
+  #      /|          /|
+  #     / |         / |
+  #    6 --------- 7  |
+  #    |  |        |  |
+  #    |  |        |  |
+  #    |  0 -------|- 1
+  #    | /         | /
+  #    |/          |/
+  #    4 --------- 5
+  
 
-  for y in range(ny + 1):
-    for x in range(nx + 1):
-      mesh.nodes.append((x * dx, y * dy))
+  for z in range(nnz): # slowest variable
+    for y in range(nny):
+      for x in range(nnx): # fastest variable
+        mesh.nodes.append((x * dx, y * dy, z * dz))
  
-  # print mesh.nodes 
-  for y in range(ny):
-    for x in range(nx):
-      e = Element()
-      e.type = QUAD4
-      e.density = 1.0
-      # if type == 'mbb_reinforced' and (float(x) <= (.03 * nx + e) or float(x) >= (.97 * nx - e) or float(y) <= (.03 * ny + e) or float(y) >= (.97 * ny - e)):
-      if type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
-          e.region = 'reinforce'
-      else:
+  for z in range(nz):
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.density = 1.0
+        e.type = HEXA8
         e.region = 'mech'
-
-      #if y == 0:
-      #  print "x=" + str(x) + " -> " + str(.015 * nx) + " r=" + e.region
-
-
-      # assign nodes
-      ll = (nx+1) * y + x  # lowerleft
-      e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
-            
-      mesh.elements.append(e)
   
-  mesh.bc.append(("south", range(0, nx+1)))
-  mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
-  mesh.bc.append(("west", range(0, (nx+1)*ny+1, nx+1)))
-  mesh.bc.append(("east", range(nx, (nx+1)*(ny+1), nx+1)))
+        # assign nodes
+        # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane
+        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))  
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        
+        mesh.elements.append(e)
 
-  mesh.bc.append(("left_lower", [0]))
-  mesh.bc.append(("right_lower", [nx]))
-  mesh.bc.append(("left_upper", [(nx+1)*ny]))
-  mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny)*nnx+x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny+ny)*nnx+x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx+1)*(ny+1))))
+  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))
+
+
+  mesh.bc.append(("left_bottom_back",   [0]))
+  mesh.bc.append(("right_bottom_back",  [nx]))
+  mesh.bc.append(("left_top_back",      [nnx*ny]))
+  mesh.bc.append(("right_top_back",     [nnx*nny-1]))
+  mesh.bc.append(("left_bottom_front",  [nnx*nny*nz]))
+  mesh.bc.append(("right_bottom_front", [nnx*nny*nz+nx]))
+  mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
+  mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
   
   return mesh
-
 
 ## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
 # @param case pipe_bend or two_inlet_one_outlet 
