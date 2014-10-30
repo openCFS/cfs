@@ -1116,7 +1116,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       assert(!derivative); // SIMP!
-      result = CalcGlobalDynamicCompliance(excite, c);
+      result = CalcGlobalDynamicCompliance(excite, f);
       break;
 
       case Function::OUTPUT:
@@ -1491,7 +1491,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
   }
 
-  double ErsatzMaterial::CalcGlobalDynamicCompliance(Excitation& excite, Objective* f)
+  double ErsatzMaterial::CalcGlobalDynamicCompliance(Excitation& excite, Function* f)
   {
 //GLOBAL_DYNAMIC_COMPLIANCE
 // c = u^T conj(u) -> "A note on sensitivity analysis of linear dynamic systems with

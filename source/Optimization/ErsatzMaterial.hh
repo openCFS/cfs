@@ -399,7 +399,7 @@ public:
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
   /** Calculates the objective only, no derivative */
-  double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
+  double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 

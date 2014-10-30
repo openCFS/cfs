@@ -270,6 +270,8 @@
                 <xsd:enumeration value="penalizedVolume"/>
                 <xsd:enumeration value="gap"/>
                 <xsd:enumeration value="compliance"/>
+                <xsd:enumeration value="conjugateCompliance"/>
+                <xsd:enumeration value="globalDynamicCompliance"/>
                 <xsd:enumeration value="output"/>
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
