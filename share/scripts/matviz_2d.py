@@ -2,12 +2,38 @@ from matviz_rot import *
 from hdf5_tools import *
 
 import Image, ImageDraw
+import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import matplotlib.cm as cmx
+from matplotlib.path import Path
 from scipy import ndimage
 import numpy as np
 import scipy.interpolate as ip 
+
+
+## create and prepare a matplot figure where patched might be "added" to
+# def create_figure(min, max):
+#   fig = plt.figure()
+#   ax = fig.add_subplot(111, aspect='equal')
+#   ax.set_xlim(min[0],max[0])
+#   ax.set_ylim(min[1],max[1])
+#   
+#   return fig, ax
+
+## create and prepare a matplot figure where patched might be "added" to
+def create_figure(min, max, res):
+  
+  dpi_x = (res / 100) * (max[0] - min[0]) 
+  dpi_y = dpi_x * (max[1] - min[1]) / (max[0] - min[0]) 
+  
+  fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+  ax = fig.add_subplot(111)
+  ax.set_xlim(min[0],max[0])
+  ax.set_ylim(min[1],max[1])
+  return fig, ax
+
+
 
 
 ## @return phi, r
@@ -49,7 +75,7 @@ def to_rectangle_center(height, width, angle, x_offset, y_offset):
   
   # print "h=" + str(height) + " w=" + str(width) + " a=" + str(angle) + " x=" + str(x_offset) + " y=" + str(y_offset)
   
-  height = numpy.max((height,1))
+  #height = numpy.max((height,1))
   
   tupl = []
 
@@ -90,7 +116,7 @@ def to_frustum_center(start, end, center, elem_scale, elem, scale, direction):
   
   #WARNING CHECK the scaling!!!
   
-  # we scale the element scale, such it overlaps. therefore wen need to scale reciproc with the vale, which cancels!
+  # we scale the element scale, such it overlaps. therefore we need to scale reciproc with the vale, which cancels!
   points.append((-1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_1 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) * -val_2 * scale * elem[idx]/2))
   points.append(( 1.0 * scale * elem[alt_idx]/2, 1./max((1, scale)) *  val_2 * scale * elem[idx]/2))
@@ -172,6 +198,23 @@ def convert_interpolation_input(centers, s1, s2, angle):
       v[i][2] = angle[i]
       
   return c, v    
+
+## helper for get_interpolation and Fields
+#@return 2d locations and 2d data
+def convert_interpolation_input(centers, s1, angle):
+  # convert to 2D
+  c = numpy.zeros((len(centers), 2))
+  c[:,0] = [x[0] for x in centers]
+  c[:,1] = [x[1] for x in centers]
+
+  v = numpy.zeros((len(s1),  1 if angle == None else 2))
+  for i in range(len(s1)):
+    v[i][0] = s1[i][0]
+    if angle <> None:
+      v[i][1] = angle[i]
+      
+  return c, v    
+
 
 ## helper which returns an interpolated grid and one nearest neighbor interpolated grid
 def get_interpolation(coords, grad, sample, s1, s2, angle = None):
@@ -296,7 +339,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   
   
 
-  return im  
+  return im
 
 ## visualize the orientational stiffness
 # @return the image
@@ -398,12 +441,19 @@ def show_frame(coords, s1, s2, directions, nx):
 
 
 # @return the image
-def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="grayscale"):
+def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="grayscale", save=None):
 
   centers, min, max, elem = coords
 
-  im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
-
+  if save == None:
+    im, draw, dim, dx, dy = create_image_new(centers, min, max, nx,"white") 
+  else:
+    dim = (max[0]-min[0], max[1]-min[1])
+    #dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))  
+    dx = 1#dim[0] / (max[0] + 2.0 * min[0])
+    dy = 1#dim[1] / (max[1] + 2.0 * min[1])
+    im, axsubplot = create_figure(min, max, nx)
+    
   delta_angle = numpy.max(angle) - numpy.max(angle) 
 
   if scale == -1.0:
@@ -414,10 +464,11 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="gray
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
   sm = cmx.ScalarMappable(colors.Normalize(vmin=min_val, vmax=max_val), cmap=plt.get_cmap('Greys'))
-  
+
   for i in range(len(s1)):
   
     coord = centers[i]
+
     x_off = (coord[0] + min[0]) * dx
     y_off = (coord[1] + min[1]) * dy
 
@@ -427,28 +478,50 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="gray
     v1[1] = s2[i,0] / numpy.max((scale, 1.))
     theta = angle[i]
     c = [0,0]
-    c[0] = color_code(sm,v1[0]) if color == "grayscale" else color_code(sm, max_val)
-    c[1] = color_code(sm,v1[1]) if color == "grayscale" else color_code(sm, max_val)
+    if save == None:
+      c[0] = color_code(sm,v1[0]) if color == "grayscale" else color_code(sm, max_val)
+      c[1] = color_code(sm,v1[1]) if color == "grayscale" else color_code(sm, max_val)
+    else:
+      m = numpy.max([numpy.max(s1), numpy.max(s2)])
+      c[0] = v1[0]/m
+      c[1] = v1[1]/m
 
     # a
     if direction == 'horizontal': 
-      pol = to_rectangle_center(length * v1[0], length, theta, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill=c[0], outline=c[0])      
+      pol = to_rectangle_center(length * v1[0], length, theta, x_off, dim[1] - y_off)
+      if save == None:
+        draw.polygon(pol, fill=c[0], outline=c[0])
+      else:
+        draw_verts(pol, axsubplot, str(1.0 - c[0]))    
     # b
     elif direction == 'vertical':
-      pol = to_rectangle_center(length * v1[1], length, theta + numpy.pi/2, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill=c[1], outline=c[1])
+      pol = to_rectangle_center(length * v1[1], length, theta + numpy.pi/2, x_off, dim[1] - y_off)
+      if save == None: 
+        draw.polygon(pol, fill=c[1], outline=c[1])
+      else:
+        draw_verts(pol, axsubplot, str(1.0 - c[1]))
     else:
       vmax = 0 if v1[0] > v1[1] else 1
       vmin = (vmax + 1) % 2
-      pol = to_rectangle_center(length * v1[vmin], length, theta + vmin*numpy.pi/2, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill=c[vmin], outline=c[vmin])
-      pol = to_rectangle_center(length * v1[vmax], length, theta + vmax*numpy.pi/2, x_off, dim[1] - y_off) 
-      draw.polygon(pol, fill=c[vmax], outline=c[vmax])
+      pol = to_rectangle_center(length * v1[vmin], length, theta + vmin*numpy.pi/2, x_off, dim[1] - y_off)
+      if save == None: 
+        draw.polygon(pol, fill=c[vmin], outline=c[vmin])
+      else:
+        draw_verts(pol, axsubplot, str(1.0 - c[vmin]))
+      pol = to_rectangle_center(length * v1[vmax], length, theta + vmax*numpy.pi/2, x_off, dim[1] - y_off)
+      if save == None: 
+        draw.polygon(pol, fill=c[vmax], outline=c[vmax])
+      else:
+        draw_verts(pol, axsubplot, str(1.0 - c[vmax]))
       
-    
+  if save <> None:
+    # Save the full figure...
+    #im.savefig('full_figure.png')
+    # Save just the portion _inside_ the second axis's boundaries
+    extent = axsubplot.get_window_extent().transformed(im.dpi_scale_trans.inverted())
+    im.savefig(save, bbox_inches=extent)
 
-  return im  
+  return im
 
 
 
@@ -456,6 +529,15 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale=-1.0, color="gray
 def color_code(color_map, value):
   c = color_map.to_rgba(value)
   return "rgb(" + str(int(255 * c[0])) + ", " + str(int(255*c[1])) + "," + str(int(255*c[2])) + ")"
+  
+  
+def draw_verts(verts, axsubplot, color):
+  verts.append((0,0))
+  codes = [Path.MOVETO, Path.LINETO, Path.LINETO, Path.LINETO, Path.CLOSEPOLY]
+
+  path = Path(verts, codes)
+  patch = matplotlib.patches.PathPatch(path, edgecolor='none', facecolor=color, lw=1)
+  axsubplot.add_patch(patch)
 
 
 # draws a thick circle, where the thickness is determined automatically by the radius 

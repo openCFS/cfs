@@ -268,7 +268,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     // we calculate the 4 individual vec Mat vec via CalcU1KU2() and sum it up
     //
     // in the FMO case we run only via one design, the transfer function is identity
-    unsigned int size = design->HasErsatzMaterialTensor() ? 1 : design->design.GetSize();
+    unsigned int size = design->HasNonDensityDesignMaterial() ? 1 : design->design.GetSize();
     for(unsigned int i = 0; i < size; i++)
     {
       DesignElement::Type dt = design->design[i].design;

@@ -1092,7 +1092,7 @@ class Hysteresis;
     {
       elemIt.GetElem()->ptElem;
 
-      if(domain->HasErsatzMaterialTensor())
+      if(domain->HasNonDensityDesignMaterial())
         domain->GetErsatzMaterial()->GetDielecTensor(E, elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
       else
         E.Init();

@@ -62,6 +62,10 @@
 #include "newmark.hh"
 #include "newmarkFracDamp.hh"
 
+using boost::tokenizer;
+using boost::char_separator;
+
+
 namespace CoupledField {
 
   DECLARE_LOG(acoupde)

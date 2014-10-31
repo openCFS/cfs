@@ -172,7 +172,7 @@ namespace CoupledField {
 
   double MassInt::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
     // now check whether we have Param Mat, density is ignored then!!! 
-    if(elem != NULL && domain->HasErsatzMaterialMass()){
+    if(elem != NULL && domain->HasNonDensityDesignMaterial()){
       assert(domain->GetErsatzBiMaterial(elem, md_.mat_class) == NULL);
       return domain->GetErsatzMaterial()->GetErsatzMaterialMass(elem, direction);
     }else{

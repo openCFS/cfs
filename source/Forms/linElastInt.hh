@@ -113,6 +113,14 @@ template <class TYPE> class Matrix;
      * @return true if the ersatz material tensor has been set */
     bool GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
     
+    /** fetch the ErsatzElementMatrix from the DesignSpace when using ParamMat optimization
+     * @param t output variable, returns the Element Matrix
+     * @elem current element
+     * @direction if given return derivative w.r.t. this design element type
+     * @return true if the ersatz element matrix has been set */
+    bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
+
   private:
 
     //dimension of Dmatrix

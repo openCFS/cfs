@@ -21,6 +21,8 @@
 
 namespace CoupledField {
 
+using boost::char_separator;
+
 // Define / declare logging stream
 DECLARE_LOG(bisa)
 DEFINE_LOG(bisa, "biotSavart")

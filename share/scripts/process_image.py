@@ -40,7 +40,7 @@ parser.add_argument('--densfile', help="output .density.xml with only 'mech' den
 parser.add_argument('--multi_d', help="number of design variables in density.xml file",type = int, default = 1)
 parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type = float, default=0.0)
 
-
+mesh = Mesh()
 
 args = parser.parse_args()
 if not os.path.exists(args.input):
@@ -61,12 +61,12 @@ elif '.txt' in args.input:
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
 else:
     # read the png into a list
-  input_img = Image.open(args.input)
+  input_img = Image.open(args.input).transpose(Image.FLIP_TOP_BOTTOM)
   print "original image mode: " + input_img.mode
   if input_img.mode == 'I':
     print "Warning: mode is stupid, may give unusable results!"
   
-  input_img = input_img.convert("L") #.transpose(Image.FLIP_TOP_BOTTOM)
+  input_img = input_img.convert("L") 
   create_dense_mesh_img(input_img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
 
 if not args.noshow:

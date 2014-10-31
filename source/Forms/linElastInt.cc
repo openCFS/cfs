@@ -79,6 +79,24 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
     else {
       BDBInt::CalcElementMatrix( elemMat, ent1, ent2, direction);
     }
+  } else if (domain->HasNonDensityDesignMaterial() && domain->GetErsatzMaterial()->designMaterial->GetType() == domain->GetErsatzMaterial()->designMaterial->MSFEM_C1) {
+      const Elem* elem = ent1.GetElem();
+      if (domain->HasNonDensityDesignMaterial()) {
+        domain->GetErsatzMaterial()->GetErsatzElementMatrix(elemMat,elem, direction);
+        if (domain->GetErsatzMaterial()->IsRegular()) {
+          /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
+          double dx = ptCoord_[0][0]-ptCoord_[0][1];
+          double dy = ptCoord_[1][0]-ptCoord_[1][1];
+          elemMat *= 0.25*dx*dy;*/
+          elemMat *= 1.;
+        } else {
+          PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+          inf_warn->Get(ParamNode::WARNING)->SetValue("MSFEM Element matrix only valid for REGULAR grids.");
+        }
+      } else {
+        PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+        inf_warn->Get(ParamNode::WARNING)->SetValue("MSFEM Element matrix not provided");
+      }
   }
   else {
     // No softening
@@ -883,8 +901,14 @@ linElastInt::~linElastInt()
 bool linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
   return (elem != NULL
-      && domain->HasErsatzMaterialTensor()
+      && domain->HasNonDensityDesignMaterial()
       && domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction));
+}
+
+bool linElastInt::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+  // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzElementMatrix
+  return (elem != NULL
+      && domain->GetErsatzMaterial()->GetErsatzElementMatrix(t, elem, direction));
 }
 
 } // end of namespace

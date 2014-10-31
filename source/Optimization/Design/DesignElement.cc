@@ -163,6 +163,7 @@ BaseDesignElement::BaseDesignElement(Type t) {
   upper_          = 0.0;
   lower_          = 0.0;
   type_           = t;
+  index_          = numeric_limits<unsigned int>::max();
 }
 
 
@@ -248,6 +249,28 @@ double BaseDesignElement::SumObjectiveGradient() const
   return result;
 }
 
+std::string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec, bool print_type)
+{
+  std::stringstream ss;
+  ss << "[";
+  for(unsigned int i = 0, s = vec.GetSize(); i < s; ++i) {
+    if(typeid(vec[i]) == typeid(DesignElement*)){
+      ss << DesignElement::ToString(dynamic_cast<DesignElement*>(vec[i]));
+    }else{
+      ss << " BaseDesignElement ";
+    }
+    if(print_type) ss << "=" << vec[i]->type_;
+    if(i < s-1) ss << ",";
+  }
+  ss << "]";
+
+  return ss.str();
+}
+
+ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement() {
+  index_ = index;
+}
+
 /** The default constructor for StdVector and ghost elements*/
 DesignElement::DesignElement() : BaseDesignElement()
 {
@@ -299,7 +322,6 @@ void DesignElement::Init()
   location_       = NULL;
   elem            = NULL;
   type_           = NO_TYPE;
-  index_          = numeric_limits<unsigned int>::max();
   pseudoElementIndex_ = -1;
   elemVol_        = -1.0;
 }
@@ -630,6 +652,7 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("BaseDesignElement::Type");
+  type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
   type.Add(TENSOR_TRACE, "tensor_trace");

@@ -18,12 +18,15 @@
 #include "MatVec/matrix.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
 
 using std::string;
+using boost::make_tuple;
+using std::pair;
 
 using namespace CoupledField;
 class DesignStructure;
@@ -662,9 +665,6 @@ double Condition::GetBoundValue() const
 {
   // see GetSlackBoundValue()
   return HasSlackBound() ? 0.0 : boundValue_; // all slack constraints g <= slack need to be g - slack <= 0
-
-  assert(!HasSlackBound());
-  return boundValue_;
 }
 
 
@@ -855,7 +855,7 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = id.GetElement(i);
+    BaseDesignElement* de = id.GetElement(i);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
@@ -943,7 +943,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     break;
   }
 
-  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << DesignElement::ToString(id.neighbor, true);
+  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << BaseDesignElement::ToString(id.neighbor, true);
   return hess_sparsity_;
 }
 
@@ -969,7 +969,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     double eps = 1.0 * GetBoundValue();
 
     Function::Local::Identifier& id = GetCurrentVirtualContext();
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
     double e12 = E[0][1]; // 2
     double e22 = E[1][1]; // 3
@@ -1336,7 +1336,8 @@ void ConditionContainer::VirtualView::Done()
       for(unsigned int i = 0; i < vem.GetSize(); i++)
       {
         Function::Local::Identifier& id = vem[i];
-        DesignElement* de =  id.element;
+        assert(lc->GetType() !=  Function::SHAPE_INF);
+        DesignElement* de =  dynamic_cast<DesignElement*>(id.element);
         double sv = id.EvalFunction(lc->local);
 
         // in checkerboard we must not use abs

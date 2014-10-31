@@ -86,7 +86,7 @@ namespace CoupledField {
   {
     // consider standard FEM, SIMP and FMO
     if(elem == NULL ||
-        !domain->HasErsatzMaterialDielecTensor() ||
+        !domain->HasNonDensityDesignMaterial() ||
         !domain->GetErsatzMaterial()->GetDielecTensor(dMat, elem, direction))
     {
       if(direction != DesignElement::NO_MULTIMATERIAL && GetMultiMaterialTensor(dMat, elem, ELECTROSTATIC))

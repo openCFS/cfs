@@ -86,6 +86,27 @@
       </mechanicalDamping>
     </mechanical>
   </material>
+  <material name="99lines0">
+    <mechanical>
+      <density> 7872 </density>
+      <!-- Data as in the 99-lines code by Sigmund -->
+      <elasticity>
+        <isotropic>
+          <real>
+            <elasticityModulus>1</elasticityModulus>
+            <poissonNumber> 0. </poissonNumber>
+          </real>
+        </isotropic>
+      </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <alpha>0.05</alpha>
+          <beta>0.002</beta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>
+      </mechanicalDamping>
+    </mechanical>
+  </material>
   <material name="99mod">
     <mechanical>
       <density> 7872 </density>

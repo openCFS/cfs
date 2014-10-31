@@ -161,6 +161,28 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       // the tensor is orthotropic
     }
   }
+  if (type_ == MSFEM_C1) {
+    // Read interpolation coefficients of MSFEM element stiffness matrices from material catalogue
+        PtrParamNode hr = pn->Get("MSFEMC1");
+        std::string file = hr->Get("file")->As<std::string>();
+        Xerces xerces(file);
+        PtrParamNode root = xerces.CreateParamNodeInstance();
+        ParamTools::AsMatrix<double>(root->Get("a/matrix"),msfem_a_);
+        ParamTools::AsMatrix<double>(root->Get("b/matrix"),msfem_b_);
+        if (HasParameter(DesignElement::ROTANGLE)){
+          ParamTools::AsMatrix<double>(root->Get("c/matrix"),msfem_rot_);
+        }
+        StdVector<std::string> index;
+        index = "11","12","13","14","15","16","17","18","22","23","24","25",
+            "26","27","28","33","34","35","36","37","38","44","45","46","47","48","55","56","57","58","66","67","68","77","78","88";
+        msfem_coeff_.Resize(36);
+        for (int i = 0;i<36;i++) {
+          std::stringstream ss;
+          ss<<"coeff"<<index[i]<<"/matrix";
+          std::string tmp = ss.str();
+          ParamTools::AsMatrix<double>(root->Get(tmp), msfem_coeff_[i]);
+        }
+  }
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx,
@@ -215,6 +237,11 @@ unsigned int DesignMaterial::RequiredParameters(
       return r + 3;
     else
       return r + 6;
+  case MSFEM_C1:
+    if (dim == 2)
+      return r + 2;
+    else
+      return r + 3;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
   case DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED:
     return r + 6;
@@ -319,6 +346,15 @@ bool DesignMaterial::CheckRequiredDesigns(
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::ROTANGLE) >= 0);
+    }
+  case MSFEM_C1:
+    if (dim == 3) {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0
+          && design.Find(DesignElement::STIFF3) >= 0);
+    } else {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0);
     }
   }
   assert(false);
@@ -1137,23 +1173,23 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff11_, da,
+      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da,
           db, dc, j, k, l, m, n, o);
-      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff12_, da,
+      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da,
           db, dc, j, k, l, m, n, o);
-      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff13_, da,
+      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da,
           db, dc, j, k, l, m, n, o);
-      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff23_, da,
+      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,
           db, dc, j, k, l, m, n, o);
-      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff22_, da,
+      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,
           db, dc, j, k, l, m, n, o);
-      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff33_, da,
+      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,
           db, dc, j, k, l, m, n, o);
-      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff44_, da,
+      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da,
           db, dc, j, k, l, m, n, o);
-      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff55_, da,
+      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da,
           db, dc, j, k, l, m, n, o);
-      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(E, p, hom_rect_coeff66_, da,
+      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da,
           db, dc, j, k, l, m, n, o);
       E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
       E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
@@ -1161,15 +1197,15 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     } else {
       // Calculation of the interpolated tensor derivatives
-      E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
-      E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
-      E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
-      E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
-      E[4-1][4-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
-      E[5-1][5-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
-      E[6-1][6-1] = EvaluateC1Interpolation_Deriv_3D(E, p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
+      E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
+      E[2-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff23_, da,db,dc,j,k,l,m,n,o,direction);
+      E[2-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff22_, da,db,dc,j,k,l,m,n,o,direction);
+      E[3-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff33_, da,db,dc,j,k,l,m,n,o,direction);
+      E[4-1][4-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff44_, da,db,dc,j,k,l,m,n,o,direction);
+      E[5-1][5-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff55_, da,db,dc,j,k,l,m,n,o,direction);
+      E[6-1][6-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff66_, da,db,dc,j,k,l,m,n,o,direction);
       E[2-1][1-1] = E[1-1][2-1];
       E[3-1][1-1] = E[1-1][3-1];
       E[3-1][2-1] = E[2-1][3-1];
@@ -1180,26 +1216,85 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     E.Resize(3,3);
     E.Init(); // for off-diagonal
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1-1][1-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff11_,da,db,j,k,m,n);
-      E[1-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff12_,da,db ,j,k,m,n);
+      E[1-1][1-1] = EvaluateC1Interpolation(p, hom_rect_coeff11_,da,db,j,k,m,n);
+      E[1-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff12_,da,db ,j,k,m,n);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff22_, da,db,j,k,m,n);
-      E[3-1][3-1] = EvaluateC1Interpolation(E, p, hom_rect_coeff33_, da,db,j,k,m,n);
+      E[2-1][2-1] = EvaluateC1Interpolation(p, hom_rect_coeff22_, da,db,j,k,m,n);
+      E[3-1][3-1] = EvaluateC1Interpolation(p, hom_rect_coeff33_, da,db,j,k,m,n);
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
       LOG_DBG(dm)<<"hom_rect_coeff11 = "<<hom_rect_coeff11_[0][0];
     } else {
-      E[1-1][1-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
-      E[1-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
+      E[1-1][1-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff11_, da,db,j,k,m,n,direction);
+      E[1-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff12_, da,db,j,k,m,n,direction);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
-      E[3-1][3-1] = EvaluateC1Interpolation_Deriv(E, p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
+      E[2-1][2-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff22_, da,db,j,k,m,n,direction);
+      E[3-1][3-1] = EvaluateC1Interpolation_Deriv(p, hom_rect_coeff33_, da,db,j,k,m,n,direction);
       LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":"2")<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2];
     }
   }
-
 }
-double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E,
-    Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
+
+void DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
+    DesignElement::Type direction) {
+    assert((type_ == MSFEM_C1));
+
+    // read design variables
+    double a = params_[DesignElement::STIFF1];
+    double b = params_[DesignElement::STIFF2];
+    double rotAngle = 0.;
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      rotAngle = params_[DesignElement::ROTANGLE];
+    }
+    Vector<double> p(2);
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      p.Resize(3);
+    }
+    p[0] = a;
+    p[1] = b;
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      p[2] = rotAngle;
+    }
+    // length of the discretized design interval
+    int m = msfem_a_.GetNumRows();
+    int n = msfem_b_.GetNumRows();
+    int o = -1;
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      o = msfem_rot_.GetNumRows();
+    }
+
+    // grid size of the discretized design interval, works only for uniform material catalogue grids so far
+    double da = msfem_a_[1][0] - msfem_a_[0][0];
+    double db = msfem_b_[1][0] - msfem_b_[0][0];
+    double drot = 0.;
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      drot = msfem_rot_[1][0] - msfem_rot_[0][0];
+    }
+
+    int j = GetInterpolationIndex(msfem_a_,p[0]);
+    int k = GetInterpolationIndex(msfem_b_,p[1]);
+    int l = -1;
+    if (HasParameter(DesignElement::ROTANGLE)) {
+      l = GetInterpolationIndex(msfem_rot_,p[2]);
+    }
+
+    int count = 0;
+    A.Resize(8,8);
+    for (int ii = 0;ii<8;ii++) {
+      for (int jj = ii;jj<8;jj++) {
+        if (HasParameter(DesignElement::ROTANGLE)) {
+          A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
+        } else {
+          A[ii][jj] = EvaluateC1Interpolation(p, msfem_coeff_[count],da,db,j,k,m,n);
+        }
+        if (ii!=jj) {
+          A[jj][ii] = A[ii][jj];
+        }
+        count++;
+      }
+    }
+}
+
+double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const {
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<", "<<p[2]<<"]";
   double t=(p[0]-hom_rect_a_[j][0])/da;
@@ -1218,8 +1313,7 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Matrix<double>& E,
   return res;
 }
 
-double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,
-    Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
+double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
     DesignElement::Type direction) const {
   double u = (p[0] - hom_rect_a_[j][0]) / (da);
@@ -1264,12 +1358,46 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Matrix<double>& E,
   LOG_DBG(dm)<< "Deriv Result =" << deriv;
   return deriv;
 }
-double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E,
-    Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
+int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
+  PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+  int sz = interval.GetNumRows();
+  double h = interval[1][0] - interval[0][0];
+  int idx = -1;
+  if (interval[0][0] <= point && point < interval[sz - 1][0]) {
+    idx = (int) ( (point - interval[0][0]) / h);
+  } else if (point == interval[sz - 1][0]) {
+    idx = sz - 2;
+  } else if (point > interval[sz - 1][0]) {
+    idx = sz - 2;
+    point = 1.;
+    if (point > 1.01) {
+      inf_warn->Get(ParamNode::WARNING)->SetValue(
+          "C1-Interpolation of tensor failed. Design Variable "
+              + lexical_cast<string>(point) + " out of bounds ");
+    }
+  } else if (point < interval[0][0]) {
+    idx = 0;
+    point = interval[0][0];
+    if (point < interval[0][0]-0.01) {
+      inf_warn->Get(ParamNode::WARNING)->SetValue(
+          "C1-Interpolation of tensor failed. Design Variable "
+              + lexical_cast<string>(point) + " out of bounds ");
+    }
+  }
+  assert(idx != -1);
+  return idx;
+}
+double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     int & j, int & k, int & m, int & n) const {
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<"]";
-  double u =(p[1]-hom_rect_b_[k][0])/(db);
-  double t=(p[0]-hom_rect_a_[j][0])/(da);
+  double u,t;
+  if (type_ == MSFEM_C1) {
+    u =(p[1]-msfem_b_[k][0])/(db);
+    t=(p[0]-msfem_a_[j][0])/(da);
+  } else {
+    u =(p[1]-hom_rect_b_[k][0])/(db);
+    t=(p[0]-hom_rect_a_[j][0])/(da);
+  }
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
   LOG_DBG(dm)<<"j = "<<j<<" k= "<<k;
@@ -1283,8 +1411,7 @@ double DesignMaterial::EvaluateC1Interpolation(Matrix<double>& E,
   return res;
 }
 
-double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E,
-    Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
+double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     int & j, int & k, int & m, int & n, DesignElement::Type direction) const {
   double u = (p[1] - hom_rect_b_[k][0]) / (db);
   double t = (p[0] - hom_rect_a_[j][0]) / (da);
@@ -2161,6 +2288,7 @@ void DesignMaterial::SetEnums() {
   type.Add(LAMINATES, "laminates");
   type.Add(HOM_RECT, "hom-rect");
   type.Add(HOM_RECT_C1, "hom-rect-C1");
+  type.Add(MSFEM_C1, "msfem-C1");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");

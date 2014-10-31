@@ -357,6 +357,9 @@ namespace CoupledField
         /** are we harmonic or static? */
         bool harmonic;
         
+        /** Do we use MSFEM or not? */
+        bool msfem;
+
         /** is the first step static */
         bool firstStepStatic;
         
@@ -395,6 +398,9 @@ namespace CoupledField
 
            /** if set write the gradient of the design to logfile */
            bool designGradient;
+           
+           /** if set write the constraint gradient of the design to the logfile */
+           bool designConstraintGradients;
 
            /** optional log the iterations and cost value to a file to gnuplot it */
            std::ofstream* file;

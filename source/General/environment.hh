@@ -46,9 +46,9 @@ namespace OutInfo{
 
 namespace CoupledField {
 
-  // Import Boost's namespace
-  using namespace boost;
-
+  // Import Boost's namespace as using namespace boost is evil. It breaks with gcc 4.8
+  using boost::shared_ptr;
+  using boost::lexical_cast;
 
   class CFSMessenger;
   // forward class declaration

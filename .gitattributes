@@ -625,12 +625,16 @@ share/matlab/hdf5tools/test/th5varput.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
 share/matlab/opt_design_change.m -text
+share/matlab/polarplotdata.m -text
+share/matlab/polarplottensor.m -text
 share/matlab/sbmread.m svneol=native#text/plain
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
 share/scripts/IdentifyFortranCompiler.F90 -text
 share/scripts/abaqus_reader.py -text
+share/scripts/adjustDesign.py -text
+share/scripts/angles-twoload.py -text
 share/scripts/base_structures_images.py -text
 share/scripts/bootstrap_devel_machine.sh svneol=native#text/plain
 share/scripts/build_tee.pl -text
@@ -654,6 +658,7 @@ share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/extract_kkt.py -text
+share/scripts/fmk-extracttensorsfromh5.py -text
 share/scripts/gid_screenshots.py -text
 share/scripts/h5tool -text
 share/scripts/hdf5_aux.sh.in -text
@@ -1348,6 +1353,9 @@ source/OLAS/external/cholmod/CMakeLists.txt -text
 source/OLAS/external/cholmod/CholMod.cc -text
 source/OLAS/external/cholmod/CholMod.hh -text
 source/OLAS/external/cholmod/CholModDummy.cc -text
+source/OLAS/external/contact-ipopt/CMakeLists.txt -text
+source/OLAS/external/contact-ipopt/ContactIpopt.cc -text
+source/OLAS/external/contact-ipopt/ContactIpopt.hh -text
 source/OLAS/external/ilupack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/ilupack/Ilupack.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr

@@ -136,10 +136,10 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
       double fraction = isObjective ? volume_fraction_ : g->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
-        volume = CalcVolume(c, g, derivative, normalized);
+        volume = CalcVolume(c, g, false, normalized);
       }
       bool allDesignsRelevant = g == NULL || g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::DEFAULT;
-      bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;
+      bool ersatzMaterialTensor = domain->HasNonDensityDesignMaterial() && allDesignsRelevant;
       unsigned int upper = ersatzMaterialTensor ? design->GetNumberOfElements() : design->data.GetSize();
       Matrix<double> material;
       for(unsigned int i = 0; i < upper; i++) {

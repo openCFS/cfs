@@ -100,20 +100,13 @@ namespace CoupledField
      /** returns the slack variable if present or throws an exception */
      virtual double GetSlackVariable() const { assert(false); return -1; }
 
-     /** Returns true if optimization does provide a complete tensor, not just a density */
-     bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
-     
-     /** Returns true if optimization does provide a mass, currently density is not handled by this */
-     bool HasErsatzMaterialMass() const { return designMaterial != NULL; }
+     /** Returns true if optimization does provide a designMaterial, not just a density */
+     bool HasNonDensityDesignMaterial() const { return designMaterial != NULL; }
      
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
      bool HasErsatzMaterialDamping() {
        return(designMaterial != NULL && designMaterial->DampingIsDesign());
      }
-
-     bool HasPiezoCouplingTensor() const { return designMaterial != NULL; }
-
-     bool HasDielecTensor() const { return designMaterial != NULL; }
 
      /** gives either elasticity tensor, dielec tensor or piezo coupling tensor
       * @param type TENSOR_TRACE, ELAST_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL. Allways the complete tensor!
@@ -129,6 +122,13 @@ namespace CoupledField
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
      bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
+     /** Calculates the corresponding ErsatzElementMatrix for the given element
+      * @param t holds the resulting Element Matrix
+      * @param elem Element
+      * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
+      * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
+     bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
      bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
      bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
@@ -274,6 +274,9 @@ namespace CoupledField
      /** this is the number of ersatz material variables. Only below GetNumberOfVariables()
       * if AuxDesign or ShapeDesign is used*/
      unsigned int GetNumberOfErsatzMaterialVariables() const { return DesignSpace::GetNumberOfVariables(); }
+     
+     /** this is the number of Aux/Shape variables */
+     virtual int GetNumberOfAuxParameters() const { return 0; }
      
      /** Find the element with the largest Filter neighborhood, if no filter is used or if the
       * value is not unique (what should be the case) any suitable is returned.

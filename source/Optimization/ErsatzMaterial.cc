@@ -69,6 +69,7 @@ struct ResultInfo;
 }  // namespace CoupledField
 
 using namespace std;
+using boost::make_tuple;
 
 DECLARE_LOG(conditions)
 DEFINE_LOG(conditions, "conditions")
@@ -500,7 +501,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     UInt timesteps = domain->GetDriver()->GetNumSteps();
     MathParser* parser = domain->GetMathParser();
     unsigned int mathParserHandle = parser->GetNewHandle();
-    assert(domain->HasErsatzMaterialTensor());
+    assert(domain->HasNonDensityDesignMaterial());
     Matrix<double> dK(1, 1), dM(1, 1);
     Vector<double> dKp(0), dMp(0), dDp(0);
 // this is only caching, access using the double maps for every get slows down this procedure by about 50% for 200 timesteps
@@ -569,7 +570,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             Vector<double>& u_vec = dynamic_cast<Vector<double>&>(*(*forwards[t])[e]);
             v -= u_vec * dKp;
           }
-          if (t > 0 || !IsFirstTransientStepStatic())
+          if (t > 0 || !IsFirstTransientStepStatic()) // all transiently calculated timesteps
           {
             dMp = dM * p_vec;
             if (notDampingElement)
@@ -622,7 +623,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     int elements = design->GetNumberOfElements();
     int base_lower = 0;
     int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
-    if(!design->HasErsatzMaterialTensor() && !design->HasMultiMaterial())
+    if(!design->HasNonDensityDesignMaterial() && !design->HasMultiMaterial())
     {
       base_lower = design->FindDesign(tf->GetDesign()) * elements;
       base_upper = base_lower + elements;
@@ -771,7 +772,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       Matrix<double> hom_tensor = CalcHomogenizedTensor();
       if(c->HasHomogenizationEntry())
       {
-        return hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1];
+        return hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1];
       }
       else
       {
@@ -885,6 +886,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BENSON_VANDERBEI_3:
       case Function::DESIGN_BOUND:
       case Function::MULTIMATERIAL_SUM:
+      case Function::SHAPE_INF:
       assert(c == NULL);
       result = CalcLocalConstraint(g, derivative);
       break;
@@ -916,7 +918,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
         if(c->HasHomogenizationEntry())
         {
-          result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+          result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
         }
         else
         {
@@ -1016,13 +1018,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             if(c->HasHomogenizationEntry())
             hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(adjoint);
             maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-            result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
 
             SetMaxwellHomMatType(ELEC_PERMITTIVITY);
             dynamic_cast<ElecMat *>(material)->ReInit();
             hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
             if(c->HasHomogenizationEntry())
-            result += (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
           }
           else
           {
@@ -1032,7 +1034,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             hom_tensor = CalcMaxwellHomogenizedTensor<Double>(adjoint);
             maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
             if(c->HasHomogenizationEntry())
-            result = (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
             else
             {
               std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
@@ -1048,7 +1050,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             dynamic_cast<ElecMat *>(material)->ReInit();
             hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
             if(c->HasHomogenizationEntry())
-            result += (hom_tensor[get<0>(c->coord)-1][get<1>(c->coord)-1]).real();
+            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
             else
             {
               std::cout << "Homogenized Permittivity: " << std::endl << hom_tensor.ToString(0, true);
@@ -1156,7 +1158,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
     bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
-    bool calculateTensorTrace = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
+    bool calculateTensorTrace = domain->HasNonDensityDesignMaterial() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
     if (calculateTensorTrace && scale)
     {
       throw Exception("Cannot calculate Tensor Trace Volume on scaled design variables!");
@@ -1171,7 +1173,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         return(derivative ? 0.0 : 1.0);
       }
     }
-    else
+    else // no normalization needed, we set factor
     {
       if(design->IsRegular())
       { // we use 1/(the volume of the first element) as fraction
@@ -1589,7 +1591,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams)
   {
     int ts = domain->GetDriver()->GetActStep("mech") - 1; // drivers count timesteps starting with 1
-    unsigned int nts = domain->GetDriver()->GetNumSteps();
     Excitation& excite = *(adjointParams->GetExcitation());
     switch(adjointParams->GetFunction()->GetType())
     {
@@ -1619,35 +1620,31 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
       double gamma = pde->getTimeStepping()->GetNewmarkGamma();
       double beta = pde->getTimeStepping()->GetNewmarkBeta();
-      Vector<Double> coeffMass;
-      Vector<Double> coeffDamping;
+      
+      Vector<Double>& pp = pde->getTimeStepping()->GetDeriveMap()[FIRST_DERIV];
+      Vector<Double>& ppp = pde->getTimeStepping()->GetDeriveMap()[SECOND_DERIV];
+
+      // note, that these point eveluations are divided by dt, as our integral is missing multiplication by dt, it is normed by the number of timesteps using GetStepWeight
+      Vector<Double> coeffMass = pp;
+      coeffMass.ScalarMult(1.0 / dt);
+      coeffMass.Add(1.0 - gamma, ppp);
+      assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
+      
       // look up, whether the damping matrix exists
       std::set<FEMatrixType> matTypes;
       assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
-      bool damping = (matTypes.find(CoupledField::DAMPING) != matTypes.end());
-      double u = 1.0;
-      double upp = 0.0;
-      double up = 0.0;
-      for (unsigned int t = 1;t < nts;++t)
-      {
-        Vector<Double>& p_vec = adjoint.Get(excite, adjointParams->GetFunction(), t)->GetRealVector(Solution::RAW_VECTOR);
-        double ut = u + (up + upp * (0.5 - beta) * dt) * dt;
-        double upt = up + (1.0 - gamma) * dt * upp;
-        // now we have the factor ut / (beta * dt * dt) for the mass matrix
-        coeffMass = p_vec * (ut / (beta * dt * dt));
-        assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
-        if (damping)
-        {
-          coeffDamping = p_vec * (ut * gamma / (beta * dt) - upt);
-          assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
-        }
-        u = 0.0;
-        upp = (u - ut) / (beta * dt * dt);
-        up = (upt + upp * gamma * dt);
+      if(matTypes.find(CoupledField::DAMPING) != matTypes.end()){
+        Vector<Double> coeffDamping(0);
+        assemble_->GetAlgSys()->GetSolutionVal(coeffDamping);
+        coeffDamping.ScalarMult(1.0 / dt);
+        coeffDamping.Add(0.5, pp);
+        coeffDamping.Add(0.5 * (gamma - 2*beta) * dt, ppp);
+        assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
       }
-
     }
-
+    
+    // in case of contact, we have to inform the solver, that an adjoint system is solved
+    assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
   }
 
   double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
@@ -2307,7 +2304,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       tuple<int, int, double>& entry = g->coords[i];
       double t = CalcHomogenizedTensorEntry(entry, derivative, grad);
-      double factor = get<2>(entry);
+      double factor = boost::get<2>(entry);
 
       if(derivative)
       {
@@ -2318,9 +2315,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         result += factor * t;
 
-        homogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
+        homogenizedTensor[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
         // all tensors are symmetric. Makes reading easier!
-        homogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
+        homogenizedTensor[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
 
         //LOG_DBG(em) << "CHTC: g=" << g->ToString() << " coord=" << i << " ["
         //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2335,8 +2332,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
-    const unsigned int ij = get<0>(entry) - 1;
-    const unsigned int kl = get<1>(entry) - 1;
+    const unsigned int ij = boost::get<0>(entry) - 1;
+    const unsigned int kl = boost::get<1>(entry) - 1;
     SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
     StdVector<SingleVector*>& u1 = forward.Get(ij)->elem[MECH]; // equal to \chi^{ij}
     SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
@@ -2375,7 +2372,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       tuple<int, int, double>& entry = g->coords[i];
       Complex t = CalcMaxwellHomogenizedTensorEntry(entry, derivative, grad, sol);
-      double factor = get<2>(entry);
+      double factor = boost::get<2>(entry);
 
       if(derivative)
       {
@@ -2395,9 +2392,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         result += factor * t;
 
-//      maxwellHomogenizedTensor[get<0>(entry)-1][get<1>(entry)-1] = t;
+//      maxwellHomogenizedTensor[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
 //      // all tensors are symmetric. Makes reading easier!
-//      maxwellHomogenizedTensor[get<1>(entry)-1][get<0>(entry)-1] = t;
+//      maxwellHomogenizedTensor[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
 
         //LOG_DBG(em) << "CMHTC: g=" << g->ToString() << " coord=" << i << " ["
         //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
@@ -2412,8 +2409,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     const double cube_vol(grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 2) || (dim == 3 && me->excitations.GetSize() == 3));
-    const unsigned int k = get<0>(entry) - 1;
-    const unsigned int l = get<1>(entry) - 1;
+    const unsigned int k = boost::get<0>(entry) - 1;
+    const unsigned int l = boost::get<1>(entry) - 1;
     StdVector<SingleVector*>& u1 = sol.Get(k)->elem[ELEC]; // equal to \u^{k}
     StdVector<SingleVector*>& u2 = sol.Get(l)->elem[ELEC];// equal to \u^{l}
     Complex result(0.0, 0.0);
@@ -2698,7 +2695,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         res += fv;
         if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-        << id.element->elem->elemNum << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+        << ( typeid(id.element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }
 
       return res;

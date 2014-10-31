@@ -588,7 +588,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
     return 0;
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
-  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor())
+  if(dt == DesignElement::TENSOR_TRACE && HasNonDensityDesignMaterial())
     return 0;
   // search where in data we are
   int base = -1;
@@ -691,6 +691,15 @@ bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTe
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
     designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
+    return(true);
+  }
+  return(false);
+}
+
+bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+  // collect all parameters
+  if(CollectMaterialParametersForElement(elem)){
+    designMaterial->GetErsatzElementMatrixMSFEM(t, direction);
     return(true);
   }
   return(false);
@@ -823,7 +832,7 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor())
+  if(HasNonDensityDesignMaterial())
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
 
   if(use_single && transfer.GetSize() == 1)
@@ -1004,6 +1013,8 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   // had to weaken this condition for DESIGN_TRACKING in debug mode
   assert((regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING));
   assert(g != NULL); // only constraints can have sparse Jacobians
+  
+  unsigned int data_size = DesignSpace::GetNumberOfVariables();
 
   StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
 
@@ -1011,9 +1022,12 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   unsigned int base = out.window.GetStart();
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
   {
-    assert(out.InWindow(base + i));
-    double scaling = use_scaling ? regions[FindDesign(data[sparsity[i]].GetType())][0].scale_design : 1.0;
-    out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
+    unsigned int s = sparsity[i];
+    if(s <= data_size){ // else we have parts of the sparsity pattern on the aux design
+      assert(out.InWindow(base + i));
+      double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
+      out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
+    }
   }
 }
 void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
@@ -1296,11 +1310,10 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   def.access = (ri->resultType == PHYSICAL_PSEUDO_DENSITY || ri->resultType == ELEC_PHYSICAL_PSEUDO_DENSITY) ?
       DesignElement::SMART : DesignElement::PLAIN;
   def.value  = DesignElement::DESIGN;
-  ResultDescription& descr = def;
   // ignore defaults if there is a result description for the OPT_RESULT_* case
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
     if(resultDescriptions[i].solutionType == ri->resultType)
-      descr = resultDescriptions[i];
+      def = resultDescriptions[i];
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
   else
@@ -1490,7 +1503,6 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
       throw Exception("the 'design' attribute 'material' is only for multimaterial designs");
   }
 }
-
 
 BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {

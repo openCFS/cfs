@@ -21,9 +21,11 @@
 #include "Materials/mechanicMaterial.hh"
 //#include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
@@ -185,6 +187,7 @@ Function::Function(PtrParamNode pn) {
   case GLOBAL_SUM_MODULI:
   case SLACK:
   case MULTIMATERIAL_SUM:
+  case SHAPE_INF:
     linear_ = true;
     break;
   case TENSOR_TRACE:
@@ -392,9 +395,9 @@ bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix,
 
 void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
-  get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
-  get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
-  get<2>(coord) = 1.0; // default
+  boost::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
+  boost::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
+  boost::get<2>(coord) = 1.0; // default
 }
 
 void Function::ToInfo(PtrParamNode info) {
@@ -446,7 +449,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   // * different frequencies
   // * several homogenization test strains
   // * time steps
-  switch (type_) {
+  switch(type_) {
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
@@ -496,6 +499,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case SHAPE_INF:
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
@@ -627,6 +631,7 @@ bool Function::IsLocal(Type t) {
   case BENSON_VANDERBEI_3:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
+  case SHAPE_INF:
     return true;
   default:
     return false;
@@ -651,6 +656,7 @@ bool Function::ForDensityFiltering() const {
   switch (type_) {
   case PROJECTION:
   case SLACK:
+  case SHAPE_INF:
   case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
   case MULTIMATERIAL_SUM:
     // for the projection case we have a density filter manually on Function::projectionDesign only
@@ -728,6 +734,7 @@ bool Function::ForSensitivityFiltering() const {
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case SHAPE_INF:
     return false;
 
   case ISOTROPY:
@@ -752,61 +759,68 @@ StdVector<DesignElement>& Function::GetProjectionDesignClone() {
 void Function::SetElements(DesignSpace* space, RegionIdType region) {
   assert(elements.GetSize() == 0);
   Grid* grid = domain->GetGrid();
+  
+  if(type_ == SHAPE_INF){
+    AuxDesign* aspace = dynamic_cast<AuxDesign*>(space);
+    int n = space->GetNumberOfAuxParameters();
+    elements.Reserve(n);
+    for(int i = 0; i < n; i++){
+      elements.Push_back(static_cast<DesignElement*>(aspace->GetAuxDesignElement(i)));
+    }    
+  }else{
 
-  // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
-  // set in the objective
+    // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
+    // set in the objective
 
-  // if ALL_REGIONS for condition use what we define as design space which
-  // this is still not good enough
-  int nd = 1;
-  if (design_ == DesignElement::DEFAULT
-      || design_ == DesignElement::ALL_DESIGNS)
-    nd = space->design.GetSize();
-  if (design_ == DesignElement::TENSOR_TRACE)
-    nd = 6; // TODO why no 3?
-  if (design_ == DesignElement::ELAST_ALL)
-    nd = 6;
-  if (design_ == DesignElement::DIELEC_TRACE)
-    nd = 2;
-  if (design_ == DesignElement::DIELEC_ALL)
-    nd = 2;
-  if (design_ == DesignElement::PIEZO_ALL)
-    nd = 6;
-  //assert((int) space->design.GetSize() >= nd);
+    // if ALL_REGIONS for condition use what we define as design space which
+    // this is still not good enough
+    int nd = 1;
+    if(design_ == DesignElement::DEFAULT || design_ == DesignElement::ALL_DESIGNS)
+      nd = space->design.GetSize();
+    if(design_ == DesignElement::TENSOR_TRACE)
+      nd = 6; // TODO why no 3?
+    if(design_ == DesignElement::ELAST_ALL)
+      nd = 6;
+    if(design_ == DesignElement::DIELEC_TRACE)
+      nd = 2;
+    if(design_ == DesignElement::DIELEC_ALL)
+      nd = 2;
+    if(design_ == DesignElement::PIEZO_ALL)
+      nd = 6;
+    //assert((int) space->design.GetSize() >= nd);
 
-  elements.Reserve(
-      nd
-          * (region == ALL_REGIONS ?
-              space->GetNumberOfElements() : grid->GetNumElems(region)));
+    elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
 
-  if (region == ALL_REGIONS || space->Contains(region)) {
-    if (design_ == DesignElement::ALL_DESIGNS) {
-      // FIXME - what the hell??? :(
-      for (unsigned int i = 0; i < space->GetNumberOfElements(); i++) {
-        DesignElement* de = &(space->data[i]);
-        elements.Push_back(de);
+    if (region == ALL_REGIONS || space->Contains(region)) {
+      if (design_ == DesignElement::ALL_DESIGNS) {
+        // FIXME - what the hell??? :(
+        for (unsigned int i = 0; i < space->GetNumberOfElements(); i++) {
+          DesignElement* de = &(space->data[i]);
+          elements.Push_back(de);
+        }
+      } else {
+        for (unsigned int i = 0; i < space->data.GetSize(); i++) {
+          DesignElement* de = &(space->data[i]);
+          if(DesignElement::IsCompatible(design_, de->GetType()) 
+             && (region == ALL_REGIONS || de->elem->regionId == region))
+            elements.Push_back(de);
+        }
       }
     } else {
-      for (unsigned int i = 0; i < space->data.GetSize(); i++) {
-        DesignElement* de = &(space->data[i]);
-        if (DesignElement::IsCompatible(design_, de->GetType())
-            && (region == ALL_REGIONS || de->elem->regionId == region))
-          elements.Push_back(de);
+      // this is a special case where the constraint does not act on the design space
+      if(type_ != STRESS && type_ != STRESS_DENSITY)
+      {
+        string msg = "region " + grid->GetRegion().ToString(region)
+            + " of condition " + type.ToString(type_)
+            + " not within design domain";
+        info_->Get(ParamNode::WARNING)->SetValue(msg);
       }
-    }
-  } else {
-    // this is a special case where the constraint does not act on the design space
-    if (type_ != STRESS && type_ != STRESS_DENSITY) {
-      string msg = "region " + grid->GetRegion().ToString(region)
-          + " of condition " + type.ToString(type_)
-          + " not within design domain";
-      info_->Get(ParamNode::WARNING)->SetValue(msg);
-    }
 
-    assert(elements.GetSize() == 0);
+      assert(elements.GetSize() == 0);
 
-    // this creates the pseudo design elements and both indices are hopefully properly set!
-    space->RegisterPseudoDesignRegion(region, design_, &elements);
+      // this creates the pseudo design elements and both indices are hopefully properly set!
+      space->RegisterPseudoDesignRegion(region, design_, &elements);
+    }
   }
 
 //  assert(elements.GetSize() == elements.Capacity());
@@ -871,6 +885,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
   case STRESS:
   case STRESS_DENSITY:
   case SUM_MODULI:
+  case SHAPE_INF:
 
     // we need no neighbors.
     InitLocal(space);
@@ -1130,6 +1145,10 @@ Function::Local::Local(Function* func, DesignSpace* space) {
               + fname + "'");
     locality_ = PREV_NEXT;
     break;
+    
+  case SHAPE_INF:
+    locality_ = SHAPE;
+    break;
 
   default: // no locality
     assert(false);
@@ -1158,6 +1177,10 @@ Function::Local::Local(Function* func, DesignSpace* space) {
 
   case MULT_DESIGNS_ELEMENT:
     SetupMultDesignsElementMap(func);
+    break;
+    
+  case SHAPE:
+    SetupShapeElementMap(func, dynamic_cast<ShapeDesign*>(space));
     break;
 
   default:
@@ -1298,7 +1321,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
     if (!full)
       continue;
     // orthogonal first
-    StdVector<DesignElement*> buddies;
+    StdVector<BaseDesignElement*> buddies;
 
     for (int dir = VicinityElement::X_P;
         dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir +=
@@ -1314,7 +1337,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
       for (unsigned int i = 1; i <= n; i++)
         buddies.Push_back(VicinityElement::GetNeighbour(de, pos, i));
 
-      LOG_DBG3(func)<< "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << DesignElement::ToString(buddies);
+      LOG_DBG3(func) << "L:SSLEM: de=" << de->ToString() << " dir=" << dir << " pos=" << pos << " neg=" << neg << " a=" << a << " n=" << n << " buddies=" << BaseDesignElement::ToString(buddies);
 
       virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
       if (two_signs)
@@ -1356,7 +1379,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
                   e));
         }
 
-        LOG_DBG3(func)<< "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << DesignElement::ToString(buddies);
+        LOG_DBG3(func) << "L:SSLEM: diag de=" << de->ToString() << " dir=" << dir << " buddies=" << BaseDesignElement::ToString(buddies);
 
         virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
         if (two_signs)
@@ -1393,7 +1416,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
                     VicinityElement::ToNeighbour(2, dir_z == 1 ? -1 : 1), e));
           }
 
-          LOG_DBG3(func)<< "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << DesignElement::ToString(buddies);
+          LOG_DBG3(func) << "L:SSLEM: corner de=" << de->ToString() << " dir_y=" << dir_y << " dir_z=" << dir_z << " buddies=" << BaseDesignElement::ToString(buddies);
 
           virtual_elem_map.Push_back(Identifier(de, buddies, sign_1));
           if (two_signs)
@@ -1461,7 +1484,7 @@ void Function::Local::SetupSingularElementMap() {
   element_dimension_ = 1; // two boundary "stones" per dimension
   virtual_elem_map.Reserve(element_dimension_ * func_->elements.GetSize());
 
-  StdVector<DesignElement*> empty;
+  StdVector<BaseDesignElement*> empty;
 
   for (int e = 0, en = func_->elements.GetSize(); e < en; e++) {
     DesignElement* de = func_->elements[e];
@@ -1477,7 +1500,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
 
   // the neighbors are the design elements for the same FE-element but with other designs
   // one is not a neighbor of oneself
-  StdVector<DesignElement*> neighbours;
+  StdVector<BaseDesignElement*> neighbours;
 
   StdVector<unsigned int> des_idx; // the design indices we consider here
   switch (f->GetType()) {
@@ -1569,6 +1592,34 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
     }
 
     virtual_elem_map.Push_back(Identifier(de, neighbours));
+  }
+}
+
+
+void Function::Local::SetupShapeElementMap(const Function* func, ShapeDesign* design) {
+  element_dimension_ = 0;
+  StdVector<ShapeDesign::ShapeConstraint>& shapeconstraints = design->GetShapeConstraints();
+  int n = shapeconstraints.GetSize();
+  virtual_elem_map.Reserve(n);
+  StdVector<BaseDesignElement*> neighbours;
+  DesignElement* element(NULL);
+  neighbours.Reserve(5);
+
+  for(int e = 0; e < n; e++) {
+    ShapeDesign::ShapeConstraint& c = shapeconstraints[e];
+    neighbours.Resize(0);
+    element = func_->elements[c.param[0]];      
+    int t = c.param[1]; // TODO: pattern size may not vary in one constraint!!!, so constraints on a single parameters have added a second parameter with factor 0.0
+    if(t >= 0){
+      neighbours.Push_back(func_->elements[t]);
+    }else{
+      if(c.param[0] == 0){ // we must not have element = neighbours[0], this causes errors in sparsity
+        neighbours.Push_back(func_->elements[func_->elements.GetSize()-1]);
+      }else{
+        neighbours.Push_back(func_->elements[0]);
+      }
+    }
+    virtual_elem_map.Push_back(Identifier(element, neighbours));
   }
 }
 
@@ -1667,8 +1718,8 @@ void Function::Local::NeighborhoodStructure::ToInfo(PtrParamNode in) {
   in->Get("diagonal")->SetValue(tmp.ToString());
 }
 
-Function::Local::Identifier::Identifier(DesignElement* elem,
-    DesignElement* prev, DesignElement* next, int si) {
+Function::Local::Identifier::Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si)
+{
   this->element = elem;
 
   assert(next != NULL);
@@ -1684,18 +1735,19 @@ Function::Local::Identifier::Identifier(DesignElement* elem,
   this->sign = si;
 }
 
-Function::Local::Identifier::Identifier(DesignElement* elem,
-    StdVector<DesignElement*> buddies, int si) {
+Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si)
+{
   this->element = elem;
   this->neighbor = buddies;
   assert(si == NO_SIGN || si == -1 || si == 1);
   this->sign = si;
 }
 
-DesignElement* Function::Local::Identifier::GetElement(
-    DesignElement::Type type) {
-  for (int i = -1; i < (int) neighbor.GetSize(); i++) {
-    DesignElement* de = GetElement(i);
+BaseDesignElement* Function::Local::Identifier::GetElement(BaseDesignElement::Type type)
+{
+  for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
+  {
+    BaseDesignElement* de = GetElement(i);
     if (de->GetType() == type)
       return de; // do not check for non-uniqueness
   }
@@ -1789,14 +1841,18 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case MULTIMATERIAL_SUM:
     fv = CalcMultiMaterialSum(-1, local, false);
     break;
+    
+  case SHAPE_INF:
+    fv = CalcShape(f, local);
+    break;
 
   default:
     assert(false);
     break;
   }
 
-  LOG_DBG2(func)<< "L:I:EF: f=" << f->type.ToString(f->type_)
-  << " de=" << element->elem->elemNum << " sign=" << sign << " fv=" << fv;
+  LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_)
+                 << " de=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " fv=" << fv;
 
   // handle globalization
   switch (f->type_) {
@@ -1849,8 +1905,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   Objective* f = dynamic_cast<Objective*>(funct);
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
-  LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-  << element->elem->elemNum << " sign=" << sign;
+  LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
+                     << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
@@ -1858,9 +1914,9 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   double grad_glob_fv =
       local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
 
-  if (local->IsGlobalized() && grad_glob_fv == 0.0) {
-    LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-    << element->elem->elemNum << " sign=" << sign << " fv=0.0 -> return immediately";
+  if(local->IsGlobalized() && grad_glob_fv == 0.0) {
+    LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
+                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " fv=0.0 -> return immediately";
     return;
   }
   assert(local->IsGlobalized() || g != NULL); // only constraints are local
@@ -1940,37 +1996,39 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case MULTIMATERIAL_SUM:
       gv = CalcMultiMaterialSum(n, local, true);
       break;
+      
+    case SHAPE_INF:
+      gv = CalcShapeGradient(funct, local, n);
+      break;
 
     default:
       assert(false);
       break;
     }
 
-    LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-    << element->elem->elemNum << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
-    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv;
+    LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
+                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
+                   << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 ) << " gv=" << gv;
 
     // post process the globalized functions
     if (local->IsGlobalized()) {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
-      double factor;
+      double factor = 1.0;
       if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
         if (ft == GLOBAL_LAMINATES_VOL) {
           factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : 1. / local->total_vol_ ;
         } else {
           factor = 1.0 / local->virtual_elem_map.GetSize();
         }
-      } else {
-        factor = 1.;
       }
-      gv *= grad_glob_fv * factor;
-      LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-      << element->elem->elemNum << " sign=" << sign << " n=" << n
-      << " curr=" << GetElement(n)->elem->elemNum
-      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
+      gv  *= grad_glob_fv * factor;
+      LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
+                     << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n
+                     << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 )
+                     << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
-    DesignElement* de = GetElement(n);
+    BaseDesignElement* de = GetElement(n);
 
     if (!local->IsGlobalized()) {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
@@ -1978,10 +2036,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     }
 
     de->AddGradient(f, g, gv);
-    LOG_DBG2(func)<< "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-    << element->elem->elemNum << " sign=" << sign << " n=" << n
-    << " curr=" << GetElement(n)->elem->elemNum << " gv=" << gv
-    << " stored_gv=" << de->GetPlainGradient(f, g);
+    LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
+                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n
+                   << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 ) << " gv=" << gv
+                   << " stored_gv=" << de->GetPlainGradient(f, g);
   }
 }
 
@@ -1992,7 +2050,7 @@ double Function::Local::Identifier::CalcSlope() const {
 
   double s = this->sign == -1 ? -1.0 : 1.0;
 
-  LOG_DBG3(func)<< "L:I:CS de=" << element->elem->elemNum << " other=" << neighbor[0]->elem->elemNum
+  LOG_DBG3(func)<< "L:I:CS de=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
   << " sign=" << sign << " slope -> " << (s * (mine - other));
   return s * (mine - other);
 }
@@ -2038,10 +2096,10 @@ double Function::Local::Identifier::CalcOscillation(double beta) const {
     res = min_max - own;
   }
 
-  LOG_DBG3(func)<< "L:I:CO de=" << element->ToString() << " neigh=" << DesignElement::ToString(neighbor)
-  << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
-  << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
-  << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
+  LOG_DBG3(func) << "L:I:CO de=" << element->ToString() << " neigh=" << BaseDesignElement::ToString(neighbor)
+                 << " vals=" << tmp1.ToString() << "; " << tmp2.ToString() << " sign=" << sign << " own=" << own
+                 << " prev=" << prev << " next=" << next << " smooth=" << min_max << " hard="
+                 << (sign == 1 ? (own - std::max(prev, next)) : (std::min(prev, next) - own)) << " -> " << res;
   return res;
 }
 
@@ -2596,6 +2654,7 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, int 
 }
 
 double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int neigh_idx, bool derivative) const {
+  DesignElement* de = dynamic_cast<DesignElement*>(element);
   double scale(1.0), stiff1(0.0), stiff2(0.0), vol;
   int dim = domain->GetGrid()->GetDim();
   for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
@@ -2610,9 +2669,9 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
       break;
     }
   }
-  if (element->GetDesignSpace()->designMaterial->GetType()
+  if (de->GetDesignSpace()->designMaterial->GetType()
       == DesignMaterial::LAMINATES) {
-    scale = element->GetDesignSpace()->designMaterial->GetParameter(
+    scale = de->GetDesignSpace()->designMaterial->GetParameter(
         DesignElement::DENSITY);
     stiff1 *= scale;
     stiff2 *= scale;
@@ -2623,8 +2682,8 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, int 
     assert(local->total_vol_ != 0);
   }
   /**svol is a scaling factor for unstructured, nonregular grids. */
-  double svol = regular ? 1.0 : element->CalcVolume();
-  LOG_DBG2(func)<<"Element volume =  "<<element->CalcVolume();
+  double svol = regular ? 1.0 : de->CalcVolume();
+  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
   if (!derivative) {
       if (dim == 2) {
         return svol*(stiff1 + stiff2 - stiff1 * stiff2);
@@ -2699,7 +2758,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
       return 0.0;
     }
   else {
-    LOG_DBG3(func)<< "Local::Local e_num=" << element->elem->elemNum << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    LOG_DBG3(func) << "Local::Local e_num=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
     return E3-E1*nu31*nu31;
   }
 }
@@ -2713,8 +2772,7 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
 
   Matrix<double> E;
 
-  bool ok = local->space->GetTensor(E, g->GetDesignType(), PLANE_STRAIN,
-      element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  bool ok = local->space->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
   assert(ok);
@@ -2844,7 +2902,7 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
     break;
   } // end switch f->GetType()
   assert(ret != 12345678.0);
-  LOG_DBG3(func)<< "L::I::CPDD e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
+  LOG_DBG3(func)<< "L::I::CPDD e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
   << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
@@ -2861,12 +2919,9 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
 
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
-  local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, element->elem,
-      DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
 
-  LOG_DBG3(func)<< "L::I::CBV e_num=" << element->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
-
-  // See thesis of Sonja Lehmann (6.54) to (6.56)
+  LOG_DBG3(func) << "L::I::CBV e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
 
   double ret = -12345678.0;
 
@@ -2997,7 +3052,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
     break;
   } // end switch f->GetType()
   assert(ret != 12345678.0);
-  LOG_DBG3(func)<< "L::I::CBV e_num=" << element->elem->elemNum << " g=" << Function::type.ToString(g->GetType())
+  LOG_DBG3(func)<< "L::I::CBV e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType())
   << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
@@ -3013,15 +3068,14 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " i=" << i << " e=" <<  GetElement(i)->elem->elemNum << " mi=" << GetElement(i)->multimaterial->index
-                       << " v=" << GetElement(i)->GetDesign(DesignElement::PLAIN) << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
       }
     }
     else
     {
       ret = 1.0;
     }
-    LOG_DBG3(func) << "L::I::CMMS e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CMMS e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
     return ret;
   }
 
@@ -3030,11 +3084,9 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
   Matrix<double> E;
 
   DesignMaterial::Notation notation = local->func_->notation_;
-  const DesignElement* de = GetElement(neigh_idx);
+  const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
 
-  bool ok = local->space->GetTensor(E, local->func_->GetDesignType(),
-      PLANE_STRAIN, element->elem,
-      derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
+  bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), PLANE_STRAIN, de->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type does'nt matter)
 
   assert(ok);
   assert(
@@ -3043,7 +3095,7 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
           || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE
               && E.GetNumRows() == 3));
 
-  LOG_DBG3(func)<< "L::I::CTT e_num=" << element->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTT e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
 
@@ -3058,27 +3110,25 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
       !(derivative && notation == DesignMaterial::VOIGT
           && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
 
-  LOG_DBG3(func)<< "L::I::CTT e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
+  LOG_DBG3(func)<< "L::I::CTT e_num=" << de->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
 
-double Function::Local::Identifier::CalcTensorNorm(int neigh_idx,
-    const Local* local, bool derivative) const {
+double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const {
   Matrix<double> E;
-  const DesignElement* de = GetElement(neigh_idx);
+  const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
   // as we square we do not need the linear derivative
-  local->space->GetPiezoCouplingTensor(E, element->elem,
-      DesignElement::NO_DERIVATIVE);
+  local->space->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
-  LOG_DBG3(func)<< "L::I::CTN e_num=" << element->elem->elemNum << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTN e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " E=" << E.ToString(0, false);
 
   double ret = 0.0;
 
-  if (!derivative)
+  if(!derivative)
     ret = pow(E.NormL2(), 2);
   else {
-    switch (de->GetType()) {
+    switch(de->GetType()) {
     case DesignElement::PIEZO_11:
       ret = 2.0 * E[0][0];
       break;
@@ -3103,7 +3153,7 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx,
     }
   }
 
-  LOG_DBG3(func)<< "L::I::CTN e_num=" << element->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+  LOG_DBG3(func)<< "L::I::CTN e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
   return ret;
 }
 
@@ -3116,8 +3166,24 @@ double Function::Local::Identifier::CalcDesignBound(bool derivative) const {
 
   double ret = derivative ? 1.0 : val;
 
-  LOG_DBG3(func)<< "L::I::CDB e=" << element->elem->elemNum << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CDB e=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
 
   return ret;
 }
+  
+  double Function::Local::Identifier::CalcShape(Function* f, const Local* l) const {
+    assert(f->type_ == SHAPE_INF);
+    int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
+    ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
+    // note that if neighbor[0] should not be given, it points to the first design element and c.factor[1] is 0.0
+    double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
+    return(ret);
+  }
+  
+  double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
+    assert(f->type_ == SHAPE_INF);
+    int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
+    ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
+    return(neigh_idx == -1 ? c.factor[0] : -c.factor[1]); // if no neighbor given c.factor[0][1] is 0.0
+  }
 

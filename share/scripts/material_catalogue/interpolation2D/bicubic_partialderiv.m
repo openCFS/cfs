@@ -35,7 +35,7 @@
 % end
 % end
 
-function [dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E,E_number)
+function [dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E)
 % Approximation der Ableitungen in den Interpolationspunkten mit Finiten Differenzen
 dEda = zeros(length(a),length(b));
 dEdb = zeros(length(a),length(b));
