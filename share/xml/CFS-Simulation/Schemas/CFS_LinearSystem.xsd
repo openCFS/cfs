@@ -113,14 +113,6 @@
   
   <xsd:complexType name="DT_ExportLinSys">
     <xsd:attribute name="baseName" use="optional" type="xsd:token"/>
-    <xsd:attribute name="format" use="optional" default="matrix-market">
-      <xsd:simpleType>
-        <xsd:restriction base="xsd:token">
-          <xsd:enumeration value="matrix-market"/>
-          <xsd:enumeration value="harwell-boeing"/>
-        </xsd:restriction>
-      </xsd:simpleType>
-    </xsd:attribute>
     <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
     <xsd:attribute name="system" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
@@ -131,6 +123,26 @@
     <xsd:attribute name="rhs" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="solution" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="initialGuess" use="optional" default="false" type="xsd:boolean"/>          
+
+    <xsd:attribute name="format" use="optional" default="matrix-market">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="matrix-market"/>
+          <xsd:enumeration value="harwell-boeing"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
+    <xsd:attribute name="vecFormat" use="optional" default="plain">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="plain"/>
+          <xsd:enumeration value="matrix-market"/>
+          <xsd:enumeration value="harwell-boeing"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+
   </xsd:complexType>
 
 
