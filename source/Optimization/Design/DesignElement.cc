@@ -704,6 +704,7 @@ void DesignElement::SetEnums()
   type.Add(SLACK, "slack");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
+  type.Add(INTERPOLATION, "interpolation");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");

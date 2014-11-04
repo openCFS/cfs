@@ -229,6 +229,8 @@ unsigned int DesignMaterial::RequiredParameters(
     return r + 5 + (dim == 3 ? 3 : 1);
   case DENSITY_TIMES_ROT_PA12:
     return r + 5 + (dim == 3 ? 3 : 1);
+  case D_INTERP_TENSOR:
+    return r + 2;
   }
 
   assert(false);
@@ -290,6 +292,9 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::GMODUL) >= 0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
         && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 ) ) );
+  case D_INTERP_TENSOR:
+    return (design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::INTERPOLATION) >=0);
   case ORTHOTROPIC:
     return(design.Find(DesignElement::TENSOR11) >= 0
         && design.Find(DesignElement::TENSOR22) >= 0
@@ -1476,6 +1481,39 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Matrix<double>& E,
   return deriv;
 }
 
+void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
+    SubTensorType subTensor, DesignElement::Type direction, Notation notation){
+  double a = (direction == DesignElement::INTERPOLATION) ? 1.0 : params_[DesignElement::INTERPOLATION];
+  double ma = (direction == DesignElement::INTERPOLATION) ? -1.0 : 1.0-a;
+  switch (subTensor) {
+  case FULL:
+    t.Resize(6, 6);
+    t.Init();
+    SetOrthotropicTensor(t, subTensor, a*255.68181818+ma*294.03409091, a*99.43181818+ma*80.0, a*99.43181818+ma*114.34659091,
+        a*255.68181818+ma*166.19318182, a*99.43181818+ma*80.0, a*255.68181818+ma*294.03409091, a*78.125+ma*70.0, a*78.125+ma*70.0, a*78.125+ma*60.0);
+    break;
+  default:
+    throw Exception("subTensor not implemented yet");
+  }
+
+  if (type_ == D_INTERP_TENSOR)
+  {
+    double dens = params_[DesignElement::DENSITY];
+    if (direction == DesignElement::DENSITY)
+    {
+      if(penalty_ == 1.0)
+        dens = 1.0;
+      else
+        dens = penalty_*std::pow(dens, penalty_-1.0);
+    }
+    else
+    {
+      dens = std::pow(dens, penalty_);
+    }
+    t *= dens;
+  }
+}
+
 void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   switch(subTensor){
   case PLANE_STRAIN:    //see Allaire: Shape optimization by the homogenization method, pp. 127 [(2.64),(2.65)]
@@ -1635,6 +1673,35 @@ void DesignMaterial::Set2dVoigtTensor(Matrix<double>& t, double t11, double t22,
   t[2][0] = t13;
   t[2][1] = t23;
   t[2][2] = t33;
+}
+
+void DesignMaterial::SetOrthotropicTensor(Matrix<double>& t,
+    SubTensorType subTensor, double e11, double e12, double e13, double e22,
+    double e23, double e33, double e44, double e55, double e66) {
+  switch (subTensor) {
+    case FULL:
+      t.Resize(6, 6);
+      t.Init();
+      t[0][0] = e11;
+      t[0][1] = e12;
+      t[0][2] = e13;
+      t[1][0] = e12;
+      t[1][1] = e22;
+      t[1][2] = e23;
+      t[2][0] = e13;
+      t[2][1] = e23;
+      t[2][2] = e33;
+      t[3][3] = e44;
+      t[4][4] = e55;
+      t[5][5] = e66;
+      break;
+    case PLANE_STRAIN:
+    case PLANE_STRESS:
+      SetTransIsoTensor(t, subTensor, e11, 0.0, 0.0, e22, e12, e66);
+      break;
+    default:
+      throw Exception("subTensor not implemented yet");
+    }
 }
 
 void DesignMaterial::SetTransIsoTensor(Matrix<double>& t,
@@ -2168,6 +2235,9 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
   case HOM_RECT_C1:
     GetHomRectTensor(t, subTensor, direction, notation);
     break;
+  case D_INTERP_TENSOR:
+    GetInterpolatedTensor(t, subTensor, direction, notation);
+    break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }
@@ -2350,6 +2420,7 @@ void DesignMaterial::SetEnums() {
   type.Add(HOM_RECT, "hom-rect");
   type.Add(D_HOM_RECT, "density-times-hom-rect");
   type.Add(HOM_RECT_C1, "hom-rect-C1");
+  type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");
