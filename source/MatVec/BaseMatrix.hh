@@ -78,7 +78,7 @@ namespace CoupledField {
     //! sparse matrix. It can take one of the following values
     //! - MATRIX_MARKET
     //! - HARWELL_BOEING
-    typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2} OutputFormat;
+    typedef enum { MATRIX_MARKET = 1, HARWELL_BOEING = 2, PLAIN} OutputFormat;
     static Enum<OutputFormat> outputFormat;
     
     //! Default Constructor

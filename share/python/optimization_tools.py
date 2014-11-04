@@ -373,7 +373,7 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
   
   for x in range(times_x):
     for y in range(times_y):
-        for z in range(times_z):
+      for z in range(times_z):
         # copy complete block
         x_base = x * x_edge
         y_base = y * y_edge
@@ -385,7 +385,7 @@ def enlarge_matrix(data, times_x, times_y = 1, times_z = 1):
               val = getNDArrayEntry(data, i, j, k)
               setNDArrayEntry(res, x_base + i, y_base + j, z_base + k, val)
 
-  return res                     
+    return res                     
   else:
     res = numpy.zeros((x_edge * times_x, y_edge * times_y))
     

@@ -630,7 +630,11 @@ void Optimization::SolveStateProblem(Excitation* excite)
 {
   AnalysisID& id = domain->GetDriver()->GetAnalysisId();
   id.iteration = currentIteration;
-  id.excite = excite == NULL ? "" : excite->label;
+
+  assert(excite != NULL);
+  assert(!(!me->IsEnabled() && excite->label == ""));
+
+  id.excite = me->IsEnabled() ? excite->label : "";
   id.adjoint = false;
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
@@ -1226,6 +1230,7 @@ Optimization::Log::Log()
 {
   this->design = false;
   this->designGradient = false;
+  this->designConstraintGradients = false;
   this->file = NULL;
   this->fileHeader = "";
 }

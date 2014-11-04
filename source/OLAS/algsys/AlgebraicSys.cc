@@ -737,11 +737,6 @@ namespace CoupledField {
       delete tmp;
     }
 
-    // BLOCH TODO
-    // Export solution if desired
-    // if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-    //  sol_->Export((base+"_sol").c_str(), format);
-
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
       idbcHandler_->RemoveIDBCFromRHS( rhs_ );
@@ -752,6 +747,9 @@ namespace CoupledField {
           << "further diagnostics!");
     }
     
+
+    ExportLinSys(false, false, true); // post_solve
+
     // stop timer associated with solver
     solver_->GetSolveTimer()->Stop();
   }
@@ -774,7 +772,8 @@ namespace CoupledField {
     if(id.ToString(true) != "") // filename variant
       base += "_" + id.ToString(true);
 
-    BaseMatrix::OutputFormat format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
+    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
+    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
 
     LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
@@ -793,41 +792,41 @@ namespace CoupledField {
           precond_->GetPrecondSysMat((*copy)(0,0));
         else
           precond_->GetPrecondSysMat(*copy);
-        copy->Export(base + "_precond", format);
+        copy->Export(base + "_precond", mat_format);
         delete copy;
       }
 
       if(els->Get("system")->As<bool>() && sysMat_.find(SYSTEM) != sysMat_.end() && sysMat_[SYSTEM] != NULL)
-        sysMat_[SYSTEM]->Export(base, format);
+        sysMat_[SYSTEM]->Export(base + "_sys", mat_format);
 
       if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
-        sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
+        sysMat_[STIFFNESS]->Export(base + "_stiffness", mat_format);
 
       if(els->Get("damping")->As<bool>() && sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
-        sysMat_[DAMPING]->Export(base + "_damping", format);
+        sysMat_[DAMPING]->Export(base + "_damping", mat_format);
 
       if(els->Get("mass")->As<bool>() && sysMat_.find(MASS) != sysMat_.end() && sysMat_[MASS] != NULL)
-        sysMat_[MASS]->Export(base + "_mass", format);
+        sysMat_[MASS]->Export(base + "_mass", mat_format);
 
       if(els->Get("auxiliary")->As<bool>() && sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
-        sysMat_[AUXILIARY]->Export(base + "_aux", format);
+        sysMat_[AUXILIARY]->Export(base + "_aux", mat_format);
     }
 
     if(pre_solve)
     {
       // rhs is only in harwell-boing included
       if(els->Get("rhs")->As<bool>())
-        rhs_->Export(base + "_rhs.vec", format);
+        rhs_->Export(base + "_rhs", vec_format);
 
       if(els->Get("initialGuess")->As<bool>())
-        sol_->Export(base + "_intial_guess.vec", format);
+        sol_->Export(base + "_intial_guess", vec_format);
     }
 
     if(post_solve)
     {
       // Export solution if desired
       if(els->Get("solution")->As<bool>())
-        sol_->Export(base + "_sol.vec", format);
+        sol_->Export(base + "_sol", vec_format);
     }
   }
 

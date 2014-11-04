@@ -592,6 +592,9 @@ namespace CoupledField {
         break;
       }
       break;
+    case BaseMatrix::PLAIN:
+      sstr << ".vec";
+      break;
     }
     
     // open output file and check for errors
@@ -698,6 +701,13 @@ namespace CoupledField {
         fprintf( fp, "\n" );
       }
     }  
+    break;
+    case BaseMatrix::PLAIN:
+    for(unsigned int k = 0; k < size_; ++k)
+    {
+      OpType<T>::ExportEntry(data_[k], 0, fp);
+      fprintf(fp, "\n");
+    }
     break;
     }
     
