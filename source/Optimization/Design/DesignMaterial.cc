@@ -1282,9 +1282,17 @@ void DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
     for (int ii = 0;ii<8;ii++) {
       for (int jj = ii;jj<8;jj++) {
         if (HasParameter(DesignElement::ROTANGLE)) {
-          A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
+          if (direction == DesignElement::NO_DERIVATIVE) {
+            A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
+          } else {
+            A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count], da,db, drot, j, k, l, m, n, o);
+          }
         } else {
-          A[ii][jj] = EvaluateC1Interpolation(p, msfem_coeff_[count],da,db,j,k,m,n);
+          if (direction == DesignElement::NO_DERIVATIVE) {
+            A[ii][jj] = EvaluateC1Interpolation(p, msfem_coeff_[count],da,db,j,k,m,n);
+          } else {
+            A[ii][jj] = EvaluateC1Interpolation_Deriv(p, msfem_coeff_[count], da,db,j,k,m,n,direction);
+          }
         }
         if (ii!=jj) {
           A[jj][ii] = A[ii][jj];
@@ -1413,8 +1421,14 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p, const Matrix<d
 
 double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     int & j, int & k, int & m, int & n, DesignElement::Type direction) const {
-  double u = (p[1] - hom_rect_b_[k][0]) / (db);
-  double t = (p[0] - hom_rect_a_[j][0]) / (da);
+  double u,t;
+    if (type_ == MSFEM_C1) {
+      u = (p[1] - msfem_b_[k][0]) / (db);
+      t = (p[0] - msfem_a_[j][0]) / (da);
+    } else {
+      u = (p[1] - hom_rect_b_[k][0]) / (db);
+      t = (p[0] - hom_rect_a_[j][0]) / (da);
+    }
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
 
   double deriv = 0;

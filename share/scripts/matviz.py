@@ -64,13 +64,12 @@ def read_stiff_angle(hdf_file, dim_2D, args):
       	except:
       	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
       	  angle[:, 0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:, 0]
-        else:
-          angle[:, 0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
-          angle[:, 1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
-          angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+      else:
+        angle[:, 0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+        angle[:, 1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
+        angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception, e:
-      print 'could not read angle, ignore it: ', e
-      
+      print 'could not read angle, ignore it: ', e   
   return s1, s2, s3, angle
 
 # # show or write either Image or polydata

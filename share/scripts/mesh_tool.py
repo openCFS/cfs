@@ -111,6 +111,8 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, img=T
         mesh.nodes.append((x_Coord, y * dy))
   # print mesh.nodes 
   mech_count = 0
+  list_load = []
+  print 'nx = '+str(nx)
   for x in range(nx):
     for y in range(ny):
       e = Element()
@@ -138,6 +140,11 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, img=T
         if float(e.density) >= float(threshold):
           e.region = 'mech'
           mech_count += 1
+          if x == nx-1 :
+            if e.density == 1.:
+              ll = (nx + 1) * y + x
+              list_load.append(ll + 1)
+              list_load.append( ll + 1 + nx + 1)
         else:
           e.region = 'void'
       else:
@@ -156,6 +163,10 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, img=T
   mesh.bc.append(("top", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
   mesh.bc.append(("left", range(0, (nx + 1) * ny + 1, nx + 1)))
   mesh.bc.append(("right", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  print 'list type = '+str(len(list_load))
+  print 'range type = '+str(type(range(0,3)))   
+  mesh.bc.append(("load", list_load))
+
   
   # print mesh.bc
 

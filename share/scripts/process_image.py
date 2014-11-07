@@ -31,14 +31,14 @@ parser.add_argument("input", help="a greyscale image (any format, use gif when p
 parser.add_argument("--densemesh", help="writes a dense two region mesh (void/mech) with given name")
 parser.add_argument("--sparsemesh", help="writes a sparse mesh with region mech with given name")
 parser.add_argument("--threshold", help="threshold for void material with 0 and 1 (default 0.5)", default=0.5)
-parser.add_argument('--scale', help="scales by width w.r.t. one meter (default 1.0)", type = float, default=1.0)
+parser.add_argument('--scale', help="scales by width w.r.t. one meter (default 1.0)", type=float, default=1.0)
 parser.add_argument('--rhomin', help="maps pure white in tne image (default 0.001)", default=1e-7)
 parser.add_argument('--showbinary', action='store_true', help='shows only a binary pop-up image')
 parser.add_argument('--showsize', help="pixels in x direction for pop-up (default 800)", default=800)
 parser.add_argument('--noshow', action='store_true', help='do not pop up the image window')
 parser.add_argument('--densfile', help="output .density.xml with only 'mech' densities")
-parser.add_argument('--multi_d', help="number of design variables in density.xml file",type = int, default = 1)
-parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type = float, default=0.0)
+parser.add_argument('--multi_d', help="number of design variables in density.xml file", type=int, default=1)
+parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type=float, default=0.0)
 
 mesh = Mesh()
 
@@ -46,15 +46,16 @@ args = parser.parse_args()
 if not os.path.exists(args.input):
   print 'input file not found: ' + args.input
   sys.exit() 
+print args.multi_d
 # do it to generate statistical output of what would happen
 if args.multi_d == 3:
-  multi_d = read_multi_design(args.input,'stiff1','stiff2','rotAngle',matrix = True)
-  create_dense_mesh_density(multi_d, mesh, args.threshold, args.scale, args.rhomin,3)
+  multi_d = read_multi_design(args.input, 'stiff1', 'stiff2', 'rotAngle', matrix=True)
+  create_dense_mesh_density(multi_d, mesh, args.threshold, args.scale, args.rhomin, 3)
 elif args.multi_d == 2:
-  multi_d = read_multi_design(args.input,'stiff1','stiff2',matrix = True)
-  create_dense_mesh_density(multi_d, mesh, args.threshold, args.scale, args.rhomin,2)
+  multi_d = read_multi_design(args.input, 'stiff1', 'stiff2', matrix=True)
+  create_dense_mesh_density(multi_d, mesh, args.threshold, args.scale, args.rhomin, 2)
 elif '.xml' in args.input:
-  d  = read_density(args.input, "design")
+  d = read_density(args.input, "design")
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
 elif '.txt' in args.input:
   d = load_matrix_from_file(args.input)
@@ -71,7 +72,7 @@ else:
 
 if not args.noshow:
   if args.multi_d > 1:
-    show_dense_mesh_image(mesh,[multi_d.shape[0],multi_d.shape[1]],args.showbinary, int(args.showsize))
+    show_dense_mesh_image(mesh, [multi_d.shape[0], multi_d.shape[1]], args.showbinary, int(args.showsize))
   elif '.xml' in args.input or '.txt' in args.input:
     show_dense_mesh_image(mesh, d.shape, args.showbinary, int(args.showsize))
   else:
@@ -94,10 +95,10 @@ if args.densfile <> None:
     for i in range(len(mesh.elements)):
       if mesh.elements[i].region == 'mech': 
         densities.append(mesh.elements[i].density)
-        enr.append(i+1)
-    data = numpy.zeros((len(densities),1))
-    data[:,0] = densities    
-    write_multi_design_file(args.densfile, data, ['design'], enr)
+        enr.append(i + 1)
+    data = numpy.zeros((len(densities), 1))
+    data[:, 0] = densities    
+    write_multi_design_file(args.densfile, data, ['density'], enr)
   else:
     stiff1 = []
     stiff2 = []
@@ -110,17 +111,17 @@ if args.densfile <> None:
         stiff2.append(mesh.elements[i].stiff2)
         if args.multi_d == 3:
           rotAngle.append(mesh.elements[i].rotAngle)
-        enr.append(i+1)
+        enr.append(i + 1)
     if args.multi_d == 2:
-      data = numpy.zeros((len(stiff1),2))
-      data[:,0] = stiff1
-      data[:,1] = stiff2
-      write_multi_design_file(args.densfile, data, ['stiff1','stiff2'], enr) 
+      data = numpy.zeros((len(stiff1), 2))
+      data[:, 0] = stiff1
+      data[:, 1] = stiff2
+      write_multi_design_file(args.densfile, data, ['stiff1', 'stiff2'], enr) 
     else:
-      data = numpy.zeros((len(stiff1),3))
-      data[:,0] = stiff1
-      data[:,1] = stiff2
-      data[:,2] = rotAngle  
-      write_multi_design_file(args.densfile, data, ['stiff1','stiff2','rotAngle'], enr) 
+      data = numpy.zeros((len(stiff1), 3))
+      data[:, 0] = stiff1
+      data[:, 1] = stiff2
+      data[:, 2] = rotAngle  
+      write_multi_design_file(args.densfile, data, ['stiff1', 'stiff2', 'rotAngle'], enr) 
 
   
