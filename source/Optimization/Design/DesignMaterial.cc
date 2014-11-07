@@ -231,6 +231,8 @@ unsigned int DesignMaterial::RequiredParameters(
     return r + 5 + (dim == 3 ? 3 : 1);
   case D_INTERP_TENSOR:
     return r + 2;
+  case D_INTERP_TENSOR_ROT:
+    return r + 2 + (dim == 3 ? 3 : 1);
   }
 
   assert(false);
@@ -295,6 +297,11 @@ bool DesignMaterial::CheckRequiredDesigns(
   case D_INTERP_TENSOR:
     return (design.Find(DesignElement::DENSITY) >= 0
         && design.Find(DesignElement::INTERPOLATION) >=0);
+  case D_INTERP_TENSOR_ROT:
+    return (design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::INTERPOLATION) >=0
+        && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
+        && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 && design.Find(DesignElement::ROTANGLEZ) >= 0 ) ) );
   case ORTHOTROPIC:
     return(design.Find(DesignElement::TENSOR11) >= 0
         && design.Find(DesignElement::TENSOR22) >= 0
@@ -1489,14 +1496,17 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
   case FULL:
     t.Resize(6, 6);
     t.Init();
-    SetOrthotropicTensor(t, subTensor, a*255.68181818+ma*294.03409091, a*99.43181818+ma*80.0, a*99.43181818+ma*114.34659091,
-        a*255.68181818+ma*166.19318182, a*99.43181818+ma*80.0, a*255.68181818+ma*294.03409091, a*78.125+ma*70.0, a*78.125+ma*70.0, a*78.125+ma*60.0);
+//    SetOrthotropicTensor(t, subTensor, a*255.68181818+ma*294.03409091, a*99.43181818+ma*80.0, a*99.43181818+ma*114.34659091,
+//        a*255.68181818+ma*166.19318182, a*99.43181818+ma*80.0, a*255.68181818+ma*294.03409091, a*78.125+ma*70.0, a*78.125+ma*70.0, a*78.125+ma*60.0);
+    SetOrthotropicTensor(t, subTensor, a*1.78347578348+ma*1.45065370495, a*-0.390135327635+ma*-0.354901850603,
+        a*-0.390135327635+ma*-0.354901850603, a*1.78347578348+ma*1.45065370495, a*-0.390135327635+ma*-0.354901850603,
+        a*1.78347578348+ma*2.69723533378, a*0.611328125+ma*0.6, a*0.611328125+ma*0.6, a*0.611328125+ma*0.5078125);
     break;
   default:
     throw Exception("subTensor not implemented yet");
   }
 
-  if (type_ == D_INTERP_TENSOR)
+  if (type_ == D_INTERP_TENSOR || type_ == D_INTERP_TENSOR_ROT)
   {
     double dens = params_[DesignElement::DENSITY];
     if (direction == DesignElement::DENSITY)
@@ -1511,6 +1521,11 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
       dens = std::pow(dens, penalty_);
     }
     t *= dens;
+  }
+  if(type_ == D_INTERP_TENSOR_ROT){
+    // for all rotated types, rotate the material tensor
+    LOG_DBG3(dm) << "GetTransIsoMaterialTensor: tensor before rotation=" << t.ToString();
+    RotateVoigtTensor(t, direction);
   }
 }
 
@@ -2236,6 +2251,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
     GetHomRectTensor(t, subTensor, direction, notation);
     break;
   case D_INTERP_TENSOR:
+  case D_INTERP_TENSOR_ROT:
     GetInterpolatedTensor(t, subTensor, direction, notation);
     break;
   default: // case default
@@ -2421,6 +2437,7 @@ void DesignMaterial::SetEnums() {
   type.Add(D_HOM_RECT, "density-times-hom-rect");
   type.Add(HOM_RECT_C1, "hom-rect-C1");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
+  type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");
   transIsoType.Add(TRANSISO_YZ, "yz");

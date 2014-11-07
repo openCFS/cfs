@@ -1131,9 +1131,10 @@
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-rotated-pa12"/>
                             <xsd:enumeration value="density-times-interpolated-tensor"/>
+                            <xsd:enumeration value="density-times-rotated-interpolated-tensor"/>
                             <xsd:enumeration value="laminates"/>
                             <xsd:enumeration value="density-times-laminates"/>
-                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
+                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requires homRect element -->
                             <xsd:enumeration value="hom-rect"/>
                             <xsd:enumeration value="density-times-hom-rect"/>
                             <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
