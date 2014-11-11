@@ -405,6 +405,10 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 8;
   case OPT_RESULT_10:
     return 9;
+  case OPT_RESULT_11:
+    return 10;
+  case OPT_RESULT_12:
+    return 11;
   default:
     return -1;
   }
@@ -439,8 +443,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign();
-      else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(true);
+      else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
+        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
       else
         out[0] = GetValue(rd.value, rd.access);
     }
@@ -547,17 +551,14 @@ double DesignElement::GetDesign() const
   EXCEPTION("use DesignElement::GetDesign(Access)");
 }
 
-double DesignElement::GetPhysicalDesign(bool densForElec) const
+double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
 {
-  TransferFunction* tf = space_->GetTransferFunction(type_, densForElec ? Optimization::ELEC : TransferFunction::Default(type_), true);
+  assert(space_ != NULL);
+  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
 
   return tf->Transform(this, SMART);
-
-  //const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
- // return tf->Transform(this);
-
-  // we need the transfer function
 }
+
 
 bool DesignElement::HasPhysicalDesign() const
 {
@@ -694,11 +695,11 @@ void DesignElement::SetEnums()
   type.Add(ROTANGLEX, "rotAngleX");
   type.Add(ROTANGLEY, "rotAngleY");
   type.Add(ROTANGLEZ, "rotAngleZ");
-
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(STIFF3, "stiff3");
   type.Add(SLACK, "slack");
+  type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(ALL_DESIGNS, "allDesigns");
 
@@ -962,6 +963,21 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
                 //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
+//
+//  if (de_->GetIndex() == 88)
+//  {
+//    std::cout << de_->GetIndex() << std::endl;
+//    std::cout << de_->GetType() << std::endl;
+//    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+//    {
+//      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+//      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+//      std::cout << de->GetIndex() << ": " << de->GetPlainValue(sp, g) << std::endl;
+//    }
+//    std::cout << std::endl;
+//    assert(de_->simp != NULL);
+//  }
+
 
   // mathematically the neighborhood includes this element, but this is not in the structure
   for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)

@@ -572,6 +572,8 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_8: return 7;
       case OPT_RESULT_9: return 8;
       case OPT_RESULT_10: return 9;
+      case OPT_RESULT_11: return 10;
+      case OPT_RESULT_12: return 11;
       default: throw Exception("invalid solution type");
     }
   }
@@ -674,6 +676,7 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
   {
   case DesignElement::TENSOR_TRACE:
   case DesignElement::ELAST_ALL:
+  case DesignElement::ALL_DESIGNS:
     return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
   case DesignElement::DIELEC_TRACE:
   case DesignElement::DIELEC_ALL:

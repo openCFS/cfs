@@ -96,19 +96,24 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
 
 Optimization::Application TransferFunction::Default(const SinglePDE* pde)
 {
-  if(pde->GetName() == "electrostatic") return Optimization::ELEC;
-  if(pde->GetName() == "mechanic") return Optimization::MECH;
-  if(pde->GetName() == "heatConduction") return Optimization::LAPLACE;
-  if(pde->GetName() == "acoustic") return Optimization::LAPLACE;
+  if(pde->GetName() == "electrostatic")    return Optimization::ELEC;
+  if(pde->GetName() == "mechanic")         return Optimization::MECH;
+  if(pde->GetName() == "heatConduction")   return Optimization::LAPLACE;
+  if(pde->GetName() == "acoustic")         return Optimization::LAPLACE;
+  if(pde->GetName() == "LatticeBoltzmann") return Optimization::LBM;
   throw Exception("invalid");
 }
 
 /** see the other Default */
-Optimization::Application TransferFunction::Default(DesignElement::Type type)
+Optimization::Application TransferFunction::Default(DesignElement::Type type, const SinglePDE* pde)
 {
   switch(type)
   {
   case DesignElement::DENSITY:
+  {
+    if(pde)
+      return Default(pde);
+  }
   case DesignElement::EMODUL:
   case DesignElement::EMODULISO:
   case DesignElement::GMODUL:
@@ -121,6 +126,10 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type)
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
+  case DesignElement::TENSOR11:
+  case DesignElement::TENSOR12:
+  case DesignElement::TENSOR22:
+  case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:

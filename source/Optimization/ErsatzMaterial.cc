@@ -803,6 +803,180 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return 0.0;
   }
 
+  double ErsatzMaterial::CalcMaxwellHomTensor(Objective* c, Condition* g, bool derivative)
+  {
+    double result = 0.0;
+    if (c != NULL && derivative && c->HasHomogenizationEntry())
+    {
+      // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
+      StdVector<Complex> tmp;
+      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
+      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
+        design->data[e].AddGradient(c, NULL, tmp[e].real());
+    }
+    if (c != NULL && !derivative)
+    {
+      Matrix<Complex> hom_tensor;
+      if (IsHarmonic())
+        hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
+      else
+        hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
+      if (c->HasHomogenizationEntry())
+      {
+        result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
+      }
+      else
+      {
+        std::cout << "Homogenized Tensor: " << std::endl
+            << hom_tensor.ToString(0, true);
+        {
+          Complex det;
+          hom_tensor.Determinant(det);
+          std::cout << "Determinant of homogenized tensor: " << det
+              << std::endl;
+        }
+        std::cout << "\n";
+
+        result = hom_tensor.GetPart(Global::REAL).Trace();
+      }
+    }
+    if (g != NULL)
+    {
+      result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
+    }
+    return result;
+  }
+
+  double ErsatzMaterial::CalcMaxwellHomTracking(Function* f,  bool derivative)
+  {
+    double result = 0.0;
+
+    Matrix<Complex> maxwellHomogenizedTensor_tmp;
+    if (IsHarmonic())
+      maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Complex>(forward);
+    else
+      maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Double>(forward);
+
+    if (f->HasSelectionTensor())
+    {
+      maxwellHomogenizedTensor_tmp.SetPart(Global::REAL, maxwellHomogenizedTensor_tmp.GetPart(Global::REAL).EntryMult(f->GetSelectionTensor().GetPart(Global::REAL)));
+      maxwellHomogenizedTensor_tmp.SetPart(Global::IMAG, maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG).EntryMult(f->GetSelectionTensor().GetPart(Global::IMAG)));
+    }
+    //    std::cout << maxwellHomogenizedTensor_tmp.ToString() << std::endl;
+    if (derivative)
+    {
+      if (IsHarmonic())
+        CalcMaxwellHomogenizedTrackingGradient<Complex>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
+      else
+        CalcMaxwellHomogenizedTrackingGradient<Double>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
+    }
+    else
+    {
+      double diff = f->GetMaxwellTensor().GetPart(Global::REAL).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::REAL));
+      result = 0.5 * diff * diff;
+      diff = f->GetMaxwellTensor().GetPart(Global::IMAG).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG));
+      result += 0.5 * diff * diff;
+    }
+    return result;
+  }
+
+  double ErsatzMaterial::CalcMaxwellHomBitensor(Objective* c, Condition* g, bool derivative)
+  {
+    double result = 0.0;
+
+    if (c != NULL && derivative && c->HasHomogenizationEntry())
+    {
+      // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
+      StdVector<Complex> tmp;
+
+      SetMaxwellHomMatType(ELEC_PERMITTIVITY);
+      dynamic_cast<ElecMat *>(material)->ReInit();
+      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
+      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
+        design->data[e].AddGradient(c, NULL, tmp[e].real());
+
+      SetMaxwellHomMatType(MAG_PERMEABILITY);
+      dynamic_cast<ElecMat *>(material)->ReInit();
+      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, adjoint);
+      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
+        design->data[e].AddGradient(c, NULL, tmp[e].real());
+    }
+    if (c != NULL && !derivative)
+    {
+      Matrix<Complex> hom_tensor;
+      if (IsHarmonic())
+      {
+        SetMaxwellHomMatType(MAG_PERMEABILITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        if (c->HasHomogenizationEntry())
+          hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(adjoint);
+        maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
+        result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
+
+        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
+        if (c->HasHomogenizationEntry())
+          result += (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
+      }
+      else
+      {
+        SetMaxwellHomMatType(MAG_PERMEABILITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        if (c->HasHomogenizationEntry())
+          hom_tensor = CalcMaxwellHomogenizedTensor<Double>(adjoint);
+        maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
+        if (c->HasHomogenizationEntry())
+          result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
+        else
+        {
+          std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
+          {
+            Complex det;
+            hom_tensor.Determinant(det);
+            std::cout << "Determinant of homogenized tensor: " << det << std::endl;
+          }
+          std::cout << "\n";
+        }
+
+        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
+        if (c->HasHomogenizationEntry())
+          result += (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
+        else
+        {
+          std::cout << "Homogenized Permittivity: " << std::endl
+              << hom_tensor.ToString(0, true);
+          {
+            Complex det;
+            hom_tensor.Determinant(det);
+            std::cout << "Determinant of homogenized tensor: " << det << std::endl;
+          }
+          std::cout << "\n";
+
+          result = hom_tensor.GetPart(Global::REAL).Trace();
+        }
+      }
+    }
+    if (g != NULL)
+    {
+      if (g->IsBiisotropy())
+      {
+        SetMaxwellHomMatType(MAG_PERMEABILITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, adjoint);
+      }
+      else
+      {
+        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
+        dynamic_cast<ElecMat *>(material)->ReInit();
+        result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
+      }
+    }
+    return result;
+  }
+
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     assert(f != NULL);
@@ -865,6 +1039,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_SUM_MODULI:
       case Function::GLOBAL_LAMINATES_VOL:
       case Function::GLOBAL_TENSOR_TRACE:
+      case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
       result = CalcGlobalFunction(f, derivative);
       break;
 
@@ -875,6 +1050,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::BUMP:
       case Function::SUM_MODULI:
       case Function::LAMINATES_VOL:
+      case Function::ORTHOTROPIC_TENSOR_TRACE:
       case Function::TENSOR_TRACE:
       case Function::TENSOR_NORM:
       case Function::PARAM_PS_POS_DEF:
@@ -901,42 +1077,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
 
       case Function::MAXWELL_HOM_TENSOR:
-      if(c != NULL && derivative && c->HasHomogenizationEntry())
-      {
-        // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-        StdVector<Complex> tmp;
-        CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
-        for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-        design->data[e].AddGradient(c, NULL, tmp[e].real());
-      }
-      if(c != NULL && !derivative)
-      {
-        Matrix<Complex> hom_tensor;
-        if (IsHarmonic())
-        hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
-        else
-        hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
-        if(c->HasHomogenizationEntry())
-        {
-          result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
-        }
-        else
-        {
-          std::cout << "Homogenized Tensor: " << std::endl << hom_tensor.ToString(0, true);
-          {
-            Complex det;
-            hom_tensor.Determinant(det);
-            std::cout << "Determinant of homogenized tensor: " << det << std::endl;
-          }
-          std::cout << "\n";
-
-          result = hom_tensor.GetPart(Global::REAL).Trace();
-        }
-      }
-      if(g != NULL)
-      {
-        result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
-      }
+      result = CalcMaxwellHomTensor(c, g, derivative);
       break;
 
       case Function::HOM_TRACKING:
@@ -952,138 +1093,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
 
       case Function::HOM_FROBENIUS_PRODUCT:
-      if(derivative)
-      CalcHomFrobeniusProductGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
-      else
-      return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
-      break;
+        if(derivative)
+          CalcHomFrobeniusProductGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
+        else
+          return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
+        break;
 
       case Function::MAXWELL_HOM_TRACKING:
-      {
-
-        Matrix<Complex> maxwellHomogenizedTensor_tmp;
-        if (IsHarmonic())
-        maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Complex>(forward);
-        else
-        maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Double>(forward);
-        if (f->HasSelectionTensor())
-        {
-          maxwellHomogenizedTensor_tmp.SetPart(Global::REAL, maxwellHomogenizedTensor_tmp.GetPart(Global::REAL).EntryMult(f->GetSelectionTensor().GetPart(Global::REAL)));
-          maxwellHomogenizedTensor_tmp.SetPart(Global::IMAG, maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG).EntryMult(f->GetSelectionTensor().GetPart(Global::IMAG)));
-        }
-//    std::cout << maxwellHomogenizedTensor_tmp.ToString() << std::endl;
-        if(derivative)
-        {
-          if (IsHarmonic())
-          CalcMaxwellHomogenizedTrackingGradient<Complex>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
-          else
-          CalcMaxwellHomogenizedTrackingGradient<Double>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
-        }
-        else
-        {
-          double diff = f->GetMaxwellTensor().GetPart(Global::REAL).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::REAL));
-          result = 0.5 * diff * diff;
-          diff = f->GetMaxwellTensor().GetPart(Global::IMAG).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG));
-          result += 0.5 * diff * diff;
-        }
-      }
-      break;
+        result = CalcMaxwellHomTracking(f, derivative);
+        break;
 
       case Function::BITENSOR:
-      {
-        if(c != NULL && derivative && c->HasHomogenizationEntry())
-        {
-          // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-          StdVector<Complex> tmp;
-
-          SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-          dynamic_cast<ElecMat *>(material)->ReInit();
-          CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
-          for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-          design->data[e].AddGradient(c, NULL, tmp[e].real());
-
-          SetMaxwellHomMatType(MAG_PERMEABILITY);
-          dynamic_cast<ElecMat *>(material)->ReInit();
-          CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, adjoint);
-          for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-          design->data[e].AddGradient(c, NULL, tmp[e].real());
-        }
-        if(c != NULL && !derivative)
-        {
-          Matrix<Complex> hom_tensor;
-          if (IsHarmonic())
-          {
-            SetMaxwellHomMatType(MAG_PERMEABILITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            if(c->HasHomogenizationEntry())
-            hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(adjoint);
-            maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
-
-            SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
-            if(c->HasHomogenizationEntry())
-            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
-          }
-          else
-          {
-            SetMaxwellHomMatType(MAG_PERMEABILITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            if(c->HasHomogenizationEntry())
-            hom_tensor = CalcMaxwellHomogenizedTensor<Double>(adjoint);
-            maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-            if(c->HasHomogenizationEntry())
-            result = (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
-            else
-            {
-              std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
-              {
-                Complex det;
-                hom_tensor.Determinant(det);
-                std::cout << "Determinant of homogenized tensor: " << det << std::endl;
-              }
-              std::cout << "\n";
-            }
-
-            SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
-            if(c->HasHomogenizationEntry())
-            result += (hom_tensor[boost::get<0>(c->coord)-1][boost::get<1>(c->coord)-1]).real();
-            else
-            {
-              std::cout << "Homogenized Permittivity: " << std::endl << hom_tensor.ToString(0, true);
-              {
-                Complex det;
-                hom_tensor.Determinant(det);
-                std::cout << "Determinant of homogenized tensor: " << det << std::endl;
-              }
-              std::cout << "\n";
-
-              result = hom_tensor.GetPart(Global::REAL).Trace();
-            }
-          }
-        }
-
-        if(g != NULL)
-        {
-          if(g->IsBiisotropy())
-          {
-            SetMaxwellHomMatType(MAG_PERMEABILITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, adjoint);
-          }
-          else
-          {
-            SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-            dynamic_cast<ElecMat *>(material)->ReInit();
-            result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
-          }
-        }
-
-      }
-      break;
+        result = CalcMaxwellHomBitensor(c, g, derivative);
+        break;
 
       case Function::POISSONS_RATIO:
       case Function::YOUNGS_MODULUS:
@@ -1094,7 +1116,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Function::GLOBAL_DYNAMIC_COMPLIANCE:
       assert(!derivative); // SIMP!
-      result = CalcGlobalDynamicCompliance(excite, c);
+      result = CalcGlobalDynamicCompliance(excite, f);
       break;
 
       case Function::OUTPUT:
@@ -1121,8 +1143,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
 
       case Function::ELEC_ENERGY:
+      case Function::PRESSURE_DROP:
       assert(false);// shall be handled before
       break;
+
 
       case Function::SLACK:
         if(!derivative)
@@ -1335,7 +1359,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::VOLUME:
       // Bastian's stuff needs IntegrateDesignVariable(). The SIMP stuff is better with CalcTrivialVolume() as
       // we cannot assume SIMP_TYPE transfer functions here!
-      if(method_ == SIMP_METHOD)
+      if(method_ == SIMP_METHOD || GetDesign()->FindDesign(DesignElement::DENSITY, false) > -1)
       return CalcTrivialVolume(func, derivative, normalized);
       else// FIXME check if it is ok not to give an exponent in the physical case!
       return IntegrateDesignVariable(f, g, derivative, des, normalized, false, 1.0);// no scaling, exponent=1
@@ -1375,6 +1399,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // TODO: assumes a single transfer function for all regions!
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
+    unsigned int numEls = f->elements.GetSize();
+    unsigned int base;
+    if(design->HasMultiMaterial())
+      base = 0;
+    else
+      base = design->FindDesign(DesignElement::DENSITY)*numEls;
     double sum = 0.0;
     // we need the total volume in the non-regular case
     double total_vol = 0.0;
@@ -1384,21 +1414,20 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-
-      if (!regular) {
-        for (unsigned int i = 0, n = f->elements.GetSize();i < n;i++) {
+      if (!regular)
+      {
+        for (unsigned int i = base; i < base+numEls; i++)
           total_vol += f->elements[i]->CalcVolume();
-        }
-      } else {
-        total_vol = f->elements.GetSize();
       }
+      else
+      total_vol = numEls;
     }
     // in the multimaterial case we have to consider, the multiple design element case
     if(design->HasMultiMaterial())
       total_vol /= design->GetMultiMaterials().GetSize();
 
     LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
-    for(unsigned int i = 0, n = f->elements.GetSize(); i < n; i++)
+    for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
 
@@ -1462,7 +1491,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
   }
 
-  double ErsatzMaterial::CalcGlobalDynamicCompliance(Excitation& excite, Objective* f)
+  double ErsatzMaterial::CalcGlobalDynamicCompliance(Excitation& excite, Function* f)
   {
 //GLOBAL_DYNAMIC_COMPLIANCE
 // c = u^T conj(u) -> "A note on sensitivity analysis of linear dynamic systems with

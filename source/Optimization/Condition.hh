@@ -263,6 +263,12 @@ namespace CoupledField
        return current_view_index_ - virtual_base_index_;
      }
 
+     /** The absolute postion of the local constraint
+      * @return starts from 0 */
+     int GetCurrentPosition() const {
+       return current_view_index_;
+     }
+
      int GetVirtualBaseIndex() const { return virtual_base_index_; }
 
      /** The number of slope constraints. */

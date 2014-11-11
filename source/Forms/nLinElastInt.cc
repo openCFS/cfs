@@ -34,12 +34,14 @@ namespace CoupledField
   {
     name_ = "nLinElastInt";
     isSolDependent_ = true;
+    isSumBoperator_ = false;
   }
  
 
   nLinElastInt::~nLinElastInt()
   {
   }
+
 
 
   void nLinElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
@@ -143,6 +145,9 @@ namespace CoupledField
             bMat[dimD - 1][actNode * spaceDim + 1] = 0;
           }
       }
+
+    if ( isSumBoperator_ )
+      bMat += linBMat;
 
   }
   

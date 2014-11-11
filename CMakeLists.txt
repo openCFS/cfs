@@ -1,5 +1,7 @@
+
+
 #-----------------------------------------------------------------------------
-# Don't build anything unless the version of CMake is high enough.
+# Do not build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 
@@ -35,8 +37,8 @@ PROJECT(CFS C CXX Fortran)
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "12")
-SET(CFS_VERSION_MONTH "09")
+SET(CFS_VERSION_YEAR "14")
+SET(CFS_VERSION_MONTH "03")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -637,6 +639,7 @@ SUBDIRS(source/MatVec)
 SUBDIRS(source/ODESolve)
 SUBDIRS(source/ParamIdent)
 SUBDIRS(source/PDE)
+SUBDIRS(source/PDE/NonFEM)
 SUBDIRS(source/Utils)
 SUBDIRS(source/Optimization/Optimizer)
 SUBDIRS(source/Optimization/Design)

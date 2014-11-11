@@ -35,16 +35,26 @@ template <class TYPE> class Matrix;
      * In ersatz material optimization we the form \int B D B where D is [c] (lin elast in)
      * D might be multiplied with an ersatz-Material factor. This is handled in the by calcDMat() */
     void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2,
+                            const DesignElement::Type direction);
+
+    void CalcElementMatrix( Matrix<Complex>& elemMat,
                             EntityIterator& ent1, 
                             EntityIterator& ent2,
                             const DesignElement::Type direction);
 
     void CalcElementMatrix( Matrix<Double>& elemMat,
-                            EntityIterator& ent1, 
+                            EntityIterator& ent1,
                             EntityIterator& ent2 ){
       CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
     }
 
+    void CalcElementMatrix( Matrix<Complex>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2 ){
+      CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
 
     /** Function for calculation bdb matrix using incompatible modes. Uses */ 
     void CalcElementMatrixICM( Matrix<Double>& elemMat,
@@ -141,5 +151,17 @@ template <class TYPE> class Matrix;
 
 
 } //end namespace
+
+// Explicit template instantiation
+//#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+//template void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
+//    EntityIterator& ent1,
+//    EntityIterator& ent2,
+//    const DesignElement::Type direction);
+//template void linElastInt::CalcElementMatrix( Matrix<Complex>& elemMat,
+//    EntityIterator& ent1,
+//    EntityIterator& ent2,
+//    const DesignElement::Type direction);
+//#endif
 
 #endif // FILE_LINELASTINT

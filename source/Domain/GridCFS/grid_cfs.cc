@@ -276,6 +276,7 @@ namespace CoupledField {
         sampleVals[iDim].Resize(1);
         sampleVals[iDim].Init();
       } else {
+        assert(coords[iDim].stop-coords[iDim].start >= 0);
         UInt numSamples  =
           UInt( floor ( (coords[iDim].stop-coords[iDim].start)
                         / coords[iDim].inc ) )+1;
@@ -2455,8 +2456,12 @@ namespace CoupledField {
 
     list = in->Get("namedNodes");
     for(unsigned int i = 0; i < namedNodes_.GetSize(); i++)
-      list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND)
-      ->Get("count")->SetValue(namedNodes_[i].GetSize());
+    {
+      PtrParamNode pn = list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND);
+      pn->Get("count")->SetValue(namedNodes_[i].GetSize());
+      if(namedNodes_[i].GetSize() == 1)
+        pn->Get("coord")->SetValue(coords_[namedNodes_[i][0]-1].ToString());
+    }
 
     list = in->Get("namedElements");
     for(unsigned int i = 0; i < namedElems_.GetSize(); i++)

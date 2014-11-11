@@ -106,8 +106,8 @@ namespace CoupledField{
      //memset(vertSize,0,9*sizeof(cgsize_t));
 
      cg_base_read(fn,1,firstBaseName , &dim , &physDim );
-     cg_zone_type(fn,1,1,&gridType);
-     cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize);
+     cg_zone_type(fn,1,2,&gridType);
+     cg_zone_read(fn,1,2,firstZoneName,(cgsize_t*)vertSize);
 
      switch(gridType)
      {
@@ -628,30 +628,30 @@ namespace CoupledField{
     return fn;
   }
   void FileReader_CGNS::CheckFileValidity(Integer fileHandle){
-     Integer nbases,nzones,ngrids = 0;
+     //Integer nbases,nzones,ngrids = 0;
 
-     cg_nbases(fileHandle, &nbases);
-     if(nbases != 1){
-       std::cout << "ERROR: Found " << nbases << " Bases in the dataset" << std::endl;
-       std::cout << "Found invalid number of bases, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
-     
-     cg_nzones(fileHandle,nbases,&nzones);
-     if(nzones != 1){
-       std::cout << "ERROR: Found " << nzones << " Zones in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
-     cg_ngrids(fileHandle, nbases, nzones, &ngrids );
-     if(ngrids != 1){
-       std::cout << "ERROR: Found " << ngrids << " Grids in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
+     //cg_nbases(fileHandle, &nbases);
+     //if(nbases != 1){
+     //  std::cout << "ERROR: Found " << nbases << " Bases in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of bases, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
+     //
+     //cg_nzones(fileHandle,nbases,&nzones);
+     //if(nzones != 1){
+     //  std::cout << "ERROR: Found " << nzones << " Zones in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
+     //cg_ngrids(fileHandle, nbases, nzones, &ngrids );
+     //if(ngrids != 1){
+     //  std::cout << "ERROR: Found " << ngrids << " Grids in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
   }
   UInt FileReader_CGNS::MapCoordinateIndex(char* coordName){
     UInt coordinateIndex = 9999;

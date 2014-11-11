@@ -176,7 +176,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
-    double val = elems[e]->Get(name)->As<double>();
+    double val;
+    if (name != "design" && elems[e]->Has(name))
+      val = elems[e]->Get(name)->As<double>();
+    else
+      val = elems[e]->Get("design")->As<double>();
     int idx = dt == DesignElement::MULTIMATERIAL ? elems[e]->Get("index")->As<int>() : -1;
 
     // replace the value of the DesignElement
@@ -262,7 +266,6 @@ void DensityFile::SetCurrent(int current_iteration)
   StdVector<std::string>& block = in->GetFastBulkBlock();
   block.Resize(ersatzMaterial_->data.GetSize());
 
-  bool densForElec = domain->GetOptimization()->maxwellHomogenization_;
   for(unsigned int i = 0, n = ersatzMaterial_->data.GetSize(); i < n; ++i)
   {
     DesignElement* de = &ersatzMaterial_->data[i];
@@ -275,7 +278,7 @@ void DensityFile::SetCurrent(int current_iteration)
     ss.precision(11);
     ss << de->GetDesign(DesignElement::PLAIN) << "\"";
     if(de->HasPhysicalDesign())
-      ss << " physical=\"" << de->GetPhysicalDesign(densForElec) << "\"";
+      ss << " physical=\"" << de->GetPhysicalDesign(domain->GetOptimization()->pde) << "\"";
     ss << "/>";
     block[i] = ss.str();
   }

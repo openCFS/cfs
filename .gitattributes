@@ -726,6 +726,8 @@ share/scripts/nas-tool-nas2msh.py -text
 share/scripts/nas-tool-voidmesh.py -text
 share/scripts/optimization_tools.py -text
 share/scripts/paraview_fmo.py -text
+share/scripts/paraview_orthotropic.py -text
+share/scripts/paraview_transversal_isotropic.py -text
 share/scripts/physical_density_to_stiff.py -text
 share/scripts/physical_density_to_stiff_rotAngle.py -text
 share/scripts/printElemMatVec.py -text
@@ -735,6 +737,7 @@ share/scripts/process_image.py -text
 share/scripts/readme_show_fmo_tensor.txt -text
 share/scripts/readme_show_fmo_tensor_windows.txt -text
 share/scripts/rstinfo -text
+share/scripts/show_fmo_tensor.py -text
 share/scripts/show_fmo_tensor_examples.txt -text
 share/scripts/voidmesh.pl -text
 share/scripts/xmlreplace.py -text
@@ -771,6 +774,7 @@ share/xml/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_MpCCI.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
+share/xml/CFS-Simulation/Schemas/CFS_PDELatticeBoltzmann.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEbasic.xsd svneol=native#text/xml
@@ -1109,6 +1113,8 @@ source/Forms/FlatShellPiezoInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellPiezoInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/FlatShellStiffInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/FlatShellStiffInt.hh svneol=native#text/x-c%2B%2Bhdr
+source/Forms/LatticeBoltzmannInt.cc -text
+source/Forms/LatticeBoltzmannInt.hh -text
 source/Forms/PMLInt.cc svneol=native#text/x-c%2B%2Bsrc
 source/Forms/PMLInt.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/PiezoStressStrain.cc -text
@@ -1513,6 +1519,8 @@ source/Optimization/Excitation.cc -text
 source/Optimization/Excitation.hh -text
 source/Optimization/Function.cc -text
 source/Optimization/Function.hh -text
+source/Optimization/LBMSIMP.cc -text
+source/Optimization/LBMSIMP.hh -text
 source/Optimization/LevelSet.cc -text
 source/Optimization/LevelSet.hh -text
 source/Optimization/Objective.cc -text
@@ -1576,6 +1584,11 @@ source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
 source/PDE/CMakeLists.txt svneol=native#text/plain
+source/PDE/LatticeBoltzmannPDE.cc -text
+source/PDE/LatticeBoltzmannPDE.hh -text
+source/PDE/NonFEM/CMakeLists.txt -text
+source/PDE/NonFEM/LatticeBoltzmann.cc -text
+source/PDE/NonFEM/LatticeBoltzmann.hh -text
 source/PDE/SinglePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/SinglePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/StdPDE.cc svneol=native#text/x-c%2B%2Bsrc

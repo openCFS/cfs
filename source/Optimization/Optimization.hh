@@ -72,7 +72,7 @@ namespace CoupledField
          /** Where we apply the transformation.
           * A subset of the values are PDE identifiers for ToPDE() and ToApp().
           * The heat and acoustic transfer functions are Laplace! */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, NO_APP} Application;
+         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Application;
 
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, FEAS_SCP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
