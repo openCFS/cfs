@@ -86,6 +86,14 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
   }
 }
 
+void linElastInt::CalcElementMatrix( Matrix<Complex>& elemMat,
+    EntityIterator& ent1,
+    EntityIterator& ent2,
+    const DesignElement::Type direction) {
+  assert(softeningModel_ == "no");
+  BDBInt::CalcElementMatrix( elemMat, ent1, ent2, direction);
+}
+
 void linElastInt::ReorderBLikeMatrix(Matrix<Double>& in, Matrix<Double>& out, UInt ip, BaseFE* elem, const Matrix<Double>& ptCoord){
 
   const UInt numFncs  = elem->GetNumFncs( ansatzFct1_ );
@@ -181,7 +189,7 @@ void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
   
   // LOG_DBG3(lin_elast_int) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
   
-  ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
+   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
   // LOG_DBG2(lin_elast_int) << "calcBMat: bMat: " << bMat.ToString() << std::endl;
 
@@ -873,6 +881,7 @@ linElastInt::linElastInt( BaseMaterial* matData, SubTensorType type) :
   name_ = "linElastInt";
   subTensorType_ = type;
   SetDimensions(type);
+  isComplex_ = (matDataType_ != Global::REAL) ? true : false;
 }
 
 

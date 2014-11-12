@@ -304,6 +304,9 @@ namespace CoupledField
             // Get equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, id1, id2 );
 
+            LOG_DBG3(assemble) << "SMG: id1=" << id1 << " it1=" << it1.GetPos() << " eV1=" << eqnVec1.ToString();
+            LOG_DBG3(assemble) << "SMG: id2=" << id2 << " it2=" << it2.GetPos() << " eV2=" << eqnVec2.ToString();
+
             // Pass entity eqn-connectivity to algebraic system
             if( !doTranspose ) {
               algsys_-> SetElementPos( id1, eqnVec1,
@@ -350,7 +353,7 @@ namespace CoupledField
     std::map<FEMatrixType, bool>::iterator it;
     for( it = matReassemble_.begin(); it != matReassemble_.end(); it++ ) {
       if( it->second == true ) {
-        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << it->first;
+        LOG_DBG2(assemble) << "AssembleMatrices: init matrix " << feMatrixType.ToString(it->first);
         algsys_->InitMatrix( matrixMap_[it->first] );
       }
     }
@@ -376,7 +379,13 @@ namespace CoupledField
       // If assemble was already called and the current destination
       // matrix must not be reassembled -> continue with next iterator
       if( matReassemble_[destMat] == false ) {
+        if( secDestMat!= NOTYPE ) {
+          if(  matReassemble_[secDestMat] == false ) {
+            continue;
+          }
+        } else  {
          continue;
+        }
       }
 
       // Update flag
@@ -456,8 +465,8 @@ namespace CoupledField
             }
           }
 #endif
-
           assert((form->IsComplex() && eqnVec1.GetSize() == elemMatrixC.GetNumRows() && eqnVec2.GetSize() == elemMatrixC.GetNumCols()) || !form->IsComplex());
+
           assert((!form->IsComplex() && eqnVec1.GetSize() == elemMatrix.GetNumRows() && eqnVec2.GetSize() == elemMatrix.GetNumCols()) || form->IsComplex());
 
           // Pass element matrix to algebraic system (primary matrix)
@@ -774,11 +783,6 @@ namespace CoupledField
           parser->SetExpr( mHandle_, actLoad.value );
           val = parser->Eval(mHandle_ );
 
-#ifndef NDEBUG
-          if ( std::isnan(val) || std::isinf(val) )
-            EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
-
           // for a harmonic simulation: evaluate phase
           if ( analysisType_ == BasePDE::HARMONIC )
           {
@@ -786,10 +790,6 @@ namespace CoupledField
             parser->SetExpr( mHandle_, actLoad.phase  );
             phase = parser->Eval( mHandle_ );
 
-#ifndef NDEBUG
-            if ( std::isnan(phase) || std::isinf(phase) )
-              EXCEPTION("Trying to assemble nan/inf in AssembleRHSLoads!");
-#endif
             complexValue = Complex( val * cos( phase / 180 * PI ),
                                     val * sin( phase / 180 * PI ) );
           }
@@ -990,6 +990,46 @@ namespace CoupledField
         if ( actContext.GetSecDestMat() != NOTYPE )
           matReassemble_[actContext.GetSecDestMat()] = true;
       }
+    }
+
+    // Now we know which matrices are nonlinear (e.g. due to nonlinear stiffnes integrator)
+    // However, due to the secondaryMatrix-mechanism it could happen, that initially only
+    // the STIFFNESS matrix is set to reassemble. Due to the secondary matrix factor of
+    // the linear stiffness itegrator, also the DAMPING matrix has to be re-assembled 
+    // (first additional loop). In a next loop, we determine, that also the MASS integrator
+    // has to be re-assembled, as his secondary-matrix is the DAMPING one, which also
+    // has to be re-assembled (second loop). So to be on the save side and resolve
+    // all dependencies (i.e. all matrices have to be re-assembled), we perform
+    // the check 3 time.
+    
+    for( UInt i = 0; i < 3; ++i ) {
+      for( it = biLinForms_->Begin(); it != biLinForms_->End(); it++ ) {
+        BiLinFormContext & actContext = **it;
+        bool oneIsNonLin = false;
+        
+        // check primary or secondary matrix is nonlinear
+        if( matReassemble_[actContext.GetDestMat()] == true ||
+            ( actContext.GetSecDestMat() != NOTYPE && 
+              matReassemble_[actContext.GetSecDestMat()] == true) ) {
+          oneIsNonLin = true;
+        }
+        if( oneIsNonLin ) {
+          matReassemble_[actContext.GetDestMat()] = true;
+          if( actContext.GetSecDestMat() != NOTYPE ) 
+            matReassemble_[actContext.GetSecDestMat()] = true;
+        }
+      } // loops over integrators
+    } // 3 loops
+
+    if( IS_LOG_ENABLED( assemble, dbg) ) {
+      // Finally print status of matrices
+      std::map<FEMatrixType, bool>::const_iterator it2 =  matReassemble_.begin();
+      LOG_DBG(assemble) <<  "Status for matrix re-assembly: ";
+      for( ; it2 != matReassemble_.end(); ++it2) {
+        LOG_DBG(assemble) <<  "\t" << feMatrixType.ToString(it2->first)
+              << ": " << (it2->second ? "true" : "false");
+      }
+
     }
   }
 

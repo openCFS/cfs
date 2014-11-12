@@ -1,3 +1,4 @@
+
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // vim:fenc=utf-8:ft=tcl:et:sw=2:ts=2:sts=2
 // kate: space-indent on; indent-width 2; encoding utf-8;
@@ -7,6 +8,7 @@
 #include <stddef.h>
 #include <exception>
 #include <iostream>
+#include <string>
 #include <utility>
 
 #include "DataInOut/DefineFiles/definefiles.hh"
@@ -302,28 +304,21 @@ int CFS::Run()
     
     cout << ">> Total time: wall clock: '";
     
-    const int walltime((int) timer->GetWallTime());
-    const int cputime((int) timer->GetCPUTime());
+    const int walltime = (int) timer->GetWallTime();
+    const double cputime = timer->GetCPUTime();
 
     if(walltime > 120) 
     {
       const int wallmin((int) (walltime / 60.0));
       const int cpumin((int) (cputime / 60.0));
       if(wallmin > 60)
-      {
-        cout << wallmin / 60 << "h " << (wallmin % 60) 
-             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
-      }
+        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
       else
-      {
-        cout << wallmin << "m " << (walltime % 60) 
-             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
-      }
+        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
     }
     else
     {
-      cout << walltime << "s' CPU time: '" 
-           << cputime << "s'";
+      cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
     
     cout << endl << endl;
@@ -476,7 +471,7 @@ void CFS::SetupIO()
   map<string, shared_ptr<SimOutput> > outFiles;
   fileHandler.CreateSimOutputFiles( outFiles );
 
-  // Create resulthandler and pass the output files
+  // Create result handler and pass the output files
   resultHandler = new ResultHandler( ResultHandler::EMBEDDED );
   map<string, shared_ptr<SimOutput> >::iterator outputIt;
   map<string, shared_ptr<SimInput> >::iterator inputIt;
@@ -488,7 +483,6 @@ void CFS::SetupIO()
   for( ; inputIt != inFiles.end(); inputIt++ ) {
     resultHandler->AddInputReader( inputIt->second, inputIt->first );
   }
-
 
   // Log command line parameters
   progOpts->ToInfo(info->Get(ParamNode::HEADER)->Get("progOpts"));

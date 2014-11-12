@@ -15,6 +15,9 @@
 #include "piezoMicroModelBK.hh"
 
 
+using boost::extents;
+
+
 namespace CoupledField{
 
 

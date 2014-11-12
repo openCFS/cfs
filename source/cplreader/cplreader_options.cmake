@@ -86,7 +86,7 @@ ADD_OPTION(name
 ADD_OPTION(type
   string
   CFX
-  "Type of dataset (can be ANSYS | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS | ENSIGHT | FIELDVIEW)"
+  "Type of dataset (can be ANSYS | CCM | CFS++ | CFX | CFX_EXPORT | FASTEST | OPENFOAM | CGNS | ENSIGHT | FIELDVIEW)"
   "Specify the type of dataset to be read: ANSYS see Sec. \\\\ref{sec:ansys},
    CFX see Sec. \\\\ref{sec:cfx}, CFX\\\\_EXPORT see Sec. \\\\ref{sec:cfx-export},
    FASTEST see Sec. \\\\ref{sec:fastest}, OPENFOAM see Sec. \\\\ref{sec:openfoam}."
@@ -129,14 +129,20 @@ ADD_OPTION(extfiles
    disks, which are usually formatted with a FAT32 file system."
   )
   
-ADD_OPTION(pressureRhsForWave
-  bool
-  false
-  "Compute wave equation source term based on Laplacian of fluid pressure."
-  "If this parameter is true, the acouRhsLoad for the wave equation is computed by the Lighthill
-   Tensor but by the Laplacian of the fluid pressure."
+
+ADD_OPTION(quantityForAcouRhsLoad
+  string
+  fluidMechVelocity
+  "Specify which quantity from the fluid solver should be used for computing the RHS for wave equation.Choose one of ([fluidMechVelocity | fluidMechPressure | fluidMechDivLHT | fluidMechPressure_deriv2 | fluidMechPressure_timeDeriv2])"
+  "Cplreader is going to evaluate a different integral depending of the given choice"
   )
 
+ADD_OPTION(pressureForAPE
+  uint32_t 
+  0
+  "Compute soruce for momentum equation based on first derivative of flow pressure"
+  "Cplreader is going to evaluate a different integral depending of the given choice"
+  )
 ADD_OPTION(dim
   uint32_t
   3
@@ -153,10 +159,10 @@ ADD_OPTION(numsteps
   "The number of timesteps to read. By default (0) all available timesteps will be read."
   )
 
-ADD_OPTION(activeparts
+ADD_OPTION(activeParts
   string
   all
-  "Values will only be output on partitions specified by activeparts (all | numbers seperated by SPACE or SEMICOLON or |)."
+  "Values will only be output on regions specified by activeParts (all | region names separated by SPACE or SEMICOLON or |)."
   "When dealing with very large data sets with many partitions/sub-domains, it
    is often convenient to read the fields and compute the acoustic source for
    just a few of them."
@@ -165,11 +171,12 @@ ADD_OPTION(activeparts
 ADD_OPTION(outputfields
   string
   acouRhsLoad
-  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs]).  Values may be separated by SPACE or SEMICOLON or |"
+  "Which physical fields should be output ([acouDivLighthillTensor | acouRhsLoad | acouRhsLoadDensity | fluidMechDensity | fluidMechPressure | fluidMechVelocity | fluidMechTKE | fluidMechSkinFriction | acouLambVec | acouLambRhs | aeroAcouSourceRhs | mechRhsLoad | derivLighthillT_RHS | laplaceP_RHS | divLambVector_RHS]).  Values may be separated by SPACE or SEMICOLON or |"
   "Sometimes it may be necessary to do some post-processing on the fluid fields
    to get some understanding of the problem at hand. For this reason it is possible
    to write the most important fields (velocity, pressure, source terms, turbulence
-   kinetic energy, etc.) to the .h5 files by using the outputfields parameter."
+   kinetic energy, etc.) to the .h5 files by using the outputfields
+   parameter. Beware, not all outputfields work for all readers."
   )
 
 ADD_OPTION(firststep
@@ -385,6 +392,13 @@ ADD_OPTION(pres
   "Column of pressure in FASTEST result files (e.g. col5)."
   "Specify column of pressure in FASTEST ASCII files."
   )
+  
+ ADD_OPTION(presD2
+  string
+  ""
+  "Column of second spatial pressure derivative in FASTEST result files (e.g. col5)."
+  "Specify column of second spatial pressure derivative in FASTEST ASCII files."
+  )
 
 ADD_OPTION(reduceElementOrder
   bool
@@ -448,7 +462,49 @@ ADD_OPTION(cfxLastStep
   produced by CFX 11 and earlier this option can be omitted, because it is
   determined automatically."
   )
-   
+
+ADD_OPTION(digits
+  uint32_t
+  0
+  "number of digits at timestep input files (CCM only)"
+  "must be set greater than 0"
+  )
+
+ADD_OPTION(stepoffset
+  uint32_t
+  0
+  "offset for the timesteps (CCM only)"
+  "cplreader usually reads the steps: [ firststep , firststep + numsteps - 1], 
+    using this option the filreader will actually read [ firststep + offset , firststep + numsteps + offset - 1], 
+    while cplreader thinks it is reading [ firststep , firststep + numsteps - 1]"
+  )
+ADD_OPTION(PressureName
+  string
+  Pressure
+  "Name of the field variable set up in CCM for the exported pressure field (default: Pressure)"
+  "Sets the name of the CCM file reader to use for reading the pressure field"
+  )
+
+ADD_OPTION(VelocityName
+  string
+  Velocity
+  "Name of the field variable set up in CCM for the exported velocity field (default: Velocity)"
+  "Sets the name of the CCM file reader to use for reading the velocity field"
+  )
+
+ADD_OPTION(DivLHTName
+  string
+  DivLHT
+  "Name of the field variable set up in CCM for the exported divergence of Lighthill tensor field (default: DivLHT)"
+  "Sets the name of the CCM file reader to use for reading the divergence of Lighthill tensor field"
+  )
+
+ADD_OPTION(LaplacePName
+  string
+  LaplaceP
+  "Name of the field variable set up in CCM for the exported laplace of pressure field (default: LaplaceP)"
+  "Sets the name of the CCM file reader to use for reading the laplace of pressure field"
+  )
 CONFIGURE_FILE("ParamsInit.cc.in"
   "${CMAKE_CURRENT_BINARY_DIR}/ParamsInit.cc")
 

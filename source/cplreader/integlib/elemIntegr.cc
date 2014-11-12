@@ -50,6 +50,7 @@ namespace CoupledField
     if(ptElem_)
       delete ptElem_->ptElem;
     delete ptElem_;
+
   }
 
   ElemIntegr & ElemIntegr::operator=( ElemIntegr &rhs){
@@ -83,6 +84,7 @@ namespace CoupledField
 
       linearLoad_ = new LinearFlowNoiseInt(ptElem_->ptElem);
     }
+    std::cout << "created" << std::endl;
     return *this;
   }
 
@@ -188,6 +190,36 @@ namespace CoupledField
                                            ptElem_, density);
 
   }
+  
+  void ElemIntegr::PerformIntegrationPresD2(const Matrix<Double> & coordMat,
+                                                 const Vector<Double>& NodalPresD2,
+                                                 Vector<Double>& elemvec,
+                                                 Vector<Double>& nodalLoadDensity){
+    if(!ptElem_)
+      return;
+
+    //perform volume or surface (surfInt = true) integration
+      linearLoad_->CalcElemVecWaveWithPressD2(coordMat,  NodalPresD2, elemvec,
+                                           nodalLoadDensity, ptElem_);
+
+  }
+
+    void ElemIntegr::PerformIntegrationLighthillwithDivTij(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodaldTijdxj,
+                          const Matrix<Double>& NodalVal,
+                          Vector<Double>& elemvec,
+                          Vector<Double>& nodalLoadDensity,
+                          Vector<Double>& divLHTensor,
+                          Double density){
+    if(!ptElem_)
+      return;
+
+    //perform volume or surface (surfInt = true) integration
+      linearLoad_->CalcElemVec4QuadwithDivTij(coordMat,  NodaldTijdxj, elemvec,
+                                           nodalLoadDensity, divLHTensor,
+                                           ptElem_, density);
+
+   }
 
   void ElemIntegr::PerformIntegrationLHPressure(const Matrix<Double> & coordMat,
                                                 const Vector<Double>& NodalPres,
@@ -238,6 +270,36 @@ namespace CoupledField
                                      elemVecLamb,
                                      ptElem_,
                                      density);
+
+  }
+
+  void ElemIntegr::PerformIntegrationAPEMomentumPres(const Matrix<Double> & coordMat,
+                            const Vector<Double>& NodalPres,
+                            Vector<Double>& elemVecLambRhs,
+                            Double density){
+    if(!ptElem_)
+      return;
+
+    //perform integration for lamb vector
+    linearLoad_->CalcElemVecWithGradP(coordMat,
+                                     NodalPres,
+                                     elemVecLambRhs,
+                                     ptElem_,
+                                     density);
+
+  }
+
+  void ElemIntegr::PerformIntegrationMechRhs(const Matrix<Double> & coordMat,
+                          const Matrix<Double>& NodalForce,
+                          Vector<Double>& elemvec){
+
+    if(!ptElem_)
+      return;
+
+    //perform integration for lamb vector
+    linearLoad_->CalcElemVecSurfForce(coordMat,
+        NodalForce,
+        elemvec,ptElem_);
 
   }
 

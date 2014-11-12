@@ -262,7 +262,7 @@ void SnOpt::InfoXMLOutput()
     exitstring = "unbounded objective";
     break;
   case 31:
-    exitstring = "resource limit error - iteration limit reached";
+    exitstring = "resource limit error - minor iteration limit reached";
     break;
   case 32:
     exitstring = "resource limit error - major iteration limit reached";
@@ -609,8 +609,8 @@ void SnOpt::SetSnOptOptions()
       SetStringValue(list[i]->Get("name")->As<std::string>(), list[i]->Get("value")->As<std::string>());
   }
   
-  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 5000);
-  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000);
+  if(!setMinorItLimit) SetIntegerValue("minor_iterations_limit", 100000); // minors per major
+  if(!setItLimit) SetIntegerValue("iterations_limit", 1000000); // total minors
 }
 
 void SnOpt::initJacobians()
@@ -748,6 +748,10 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   {
     option = "Superbasics limit";
   }
+  else if(key == "new_superbasics_limit")
+  {
+    option = "New superbasics limit";
+  }
   else if(key == "timing_level")
   {
     option = "Timing level";
@@ -772,6 +776,14 @@ void SnOpt::SetIntegerValue(const std::string& key, integer value)
   {
     option = "Factorization frequency";
   }
+  else if(key == "total_integer_workspace")
+    option = "Total integer workspace";
+  else if(key == "total_real_workspace")
+    option = "Total real workspace";
+  else if(key == "user_integer_workspace")
+    option = "User integer workspace";
+  else if(key == "user_real_workspace")
+    option = "User real workspace";
   
   if(!option.empty())
   {

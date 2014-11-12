@@ -226,15 +226,6 @@ export CFS_DEPS_ROOT=PATH_TO_CFSDEPS
 export CFS_DEPS_CACHE_DIR=PATH_WHERE_SOURCES_AND_PRECOMPILED_LIBS_SHOULD_GO
 \end{verbatim}
 
-At LSE it is just necessary to specify the compilers since the CFSDEPS from
-
-\begin{verbatim}
-     https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk
-\end{verbatim}
-
-should be available at /home/data/libraries/CFSDEPS and the cache directory resides at /home/data/libraries/CFSDEPSCACHE.
-\subsubsection{Configuring the build tree}
-
 Next we change into the build tree.
 
 \begin{verbatim}
@@ -244,7 +235,7 @@ cd $HOME/MY_CFS_BUILD
 There we call
 
 \begin{verbatim}
-/home/data/programs/cmake/bin/ccmake $HOME/MY_CFS
+/home/shareAll/linux_bin/cmake/bin/ccmake $HOME/MY_CFS
 \end{verbatim}
 
 Then a GUI pops up and we press 'c' two times to configure.
@@ -365,22 +356,22 @@ export FC=ifort
 For OpenSUSE >= 11.x (cf. Sec. \ref{sec:compiler_compat_matrix})
 
 \begin{verbatim}
-source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh intel64
-source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
+source /home/shareAll/linux_bin/intel/Compiler/11.0/081/bin/iccvars.sh intel64
+source /home/shareAll/linux_bin/intel/Compiler/11.0/081/bin/ifortvars.sh intel64
 \end{verbatim}
 
 or
 
 \begin{verbatim}
-source /home/data/programs/intel/Compiler/11.0/081/bin/iccvars.sh ia32
-source /home/data/programs/intel/Compiler/11.0/081/bin/ifortvars.sh ia32
+source /home/shareAll/linux_bin/intel/Compiler/11.0/081/bin/iccvars.sh ia32
+source /home/shareAll/linux_bin/intel/Compiler/11.0/081/bin/ifortvars.sh ia32
 \end{verbatim}
 
 For OpenSUSE < 11.x
 
 \begin{verbatim}
-source /home/data/programs/intel/cc(e for 64Bit!)/COMPILER_VERSION/bin/iccvars.sh
-source /home/data/programs/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars.sh
+source /home/shareAll/linux_bin/intel/cc(e for 64Bit!)/COMPILER_VERSION/bin/iccvars.sh
+source /home/shareAll/linux_bin/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifortvars.sh
 \end{verbatim}
 
 

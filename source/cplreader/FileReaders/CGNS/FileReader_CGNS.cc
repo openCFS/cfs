@@ -106,8 +106,8 @@ namespace CoupledField{
      //memset(vertSize,0,9*sizeof(cgsize_t));
 
      cg_base_read(fn,1,firstBaseName , &dim , &physDim );
-     cg_zone_type(fn,1,1,&gridType);
-     cg_zone_read(fn,1,1,firstZoneName,(cgsize_t*)vertSize);
+     cg_zone_type(fn,1,2,&gridType);
+     cg_zone_read(fn,1,2,firstZoneName,(cgsize_t*)vertSize);
 
      switch(gridType)
      {
@@ -208,7 +208,7 @@ namespace CoupledField{
         UInt spaceIdx = MapVelocityIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solution[spaceIdx].resize(numVertices_,0);
@@ -220,7 +220,7 @@ namespace CoupledField{
         spaceIdx = MapFrictionIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionSkinFriction[spaceIdx].resize(numVertices_,0);
@@ -232,7 +232,7 @@ namespace CoupledField{
         spaceIdx = MapForceIndex(fieldName);
         if(spaceIdx != 9999){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionForce[spaceIdx].resize(numVertices_,0);
@@ -244,7 +244,7 @@ namespace CoupledField{
 
         if(strcmp(fieldName,"Pressure") == 0){
           cgsize_t range_min[3] = {1,1,1};
-          cgsize_t range_max[3] = {numVertices_,1,1};
+          cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
           Double * curSol = new Double[numVertices_];
           cg_field_read(fn,1,1,1, fieldName, RealDouble , range_min, range_max, (void *)curSol );
           solutionPressure.resize(numVertices_,0);
@@ -628,30 +628,30 @@ namespace CoupledField{
     return fn;
   }
   void FileReader_CGNS::CheckFileValidity(Integer fileHandle){
-     Integer nbases,nzones,ngrids = 0;
+     //Integer nbases,nzones,ngrids = 0;
 
-     cg_nbases(fileHandle, &nbases);
-     if(nbases != 1){
-       std::cout << "ERROR: Found " << nbases << " Bases in the dataset" << std::endl;
-       std::cout << "Found invalid number of bases, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
-     
-     cg_nzones(fileHandle,nbases,&nzones);
-     if(nzones != 1){
-       std::cout << "ERROR: Found " << nzones << " Zones in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
-     cg_ngrids(fileHandle, nbases, nzones, &ngrids );
-     if(ngrids != 1){
-       std::cout << "ERROR: Found " << ngrids << " Grids in the dataset" << std::endl;
-       std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
-       cg_close(fileHandle);
-       exit(1);
-     }
+     //cg_nbases(fileHandle, &nbases);
+     //if(nbases != 1){
+     //  std::cout << "ERROR: Found " << nbases << " Bases in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of bases, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
+     //
+     //cg_nzones(fileHandle,nbases,&nzones);
+     //if(nzones != 1){
+     //  std::cout << "ERROR: Found " << nzones << " Zones in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
+     //cg_ngrids(fileHandle, nbases, nzones, &ngrids );
+     //if(ngrids != 1){
+     //  std::cout << "ERROR: Found " << ngrids << " Grids in the dataset" << std::endl;
+     //  std::cout << "Found invalid number of  zones, expected 1... Aborting" << std::endl;
+     //  cg_close(fileHandle);
+     //  exit(1);
+     //}
   }
   UInt FileReader_CGNS::MapCoordinateIndex(char* coordName){
     UInt coordinateIndex = 9999;
@@ -733,7 +733,7 @@ namespace CoupledField{
      // READ IN COORDINATES
      //==================================================================
      cgsize_t range_min[3] = {1,1,1};
-     cgsize_t range_max[3] = {numVertices_,1,1};
+     cgsize_t range_max[3] = {(cgsize_t)numVertices_,1,1};
 
      nodeCoords_.Resize(ncoords);
      Double * curCoord = new Double[numVertices_];

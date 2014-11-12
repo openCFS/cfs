@@ -212,7 +212,7 @@ namespace CoupledField
     shared_ptr<EqnMap> eqnMap_;
     ResultList results_;
     Assemble * assemble_;            //!< pointer to assemble object  
-    //! factors for computingn effective system matrix
+    //! factors for computing effective system matrix
     std::map<FEMatrixType,Double> matrix_factor_;   
     
     TimeStepping * TS_alg_;        //!< pointer to time-stepping object

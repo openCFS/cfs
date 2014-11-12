@@ -33,6 +33,7 @@ class SinglePDE;
 class TransferFunction;
 class DesignSpace;
 class MultiMaterial;
+class ErsatzMaterial;
 struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
@@ -154,7 +155,12 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, STIFF1, STIFF2, G11,G12,G21,G22, G_ALL, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, STIFF1, STIFF2, STIFF3, G11,G12,G21,G22, G_ALL,
+                   LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL, ALL_DESIGNS} Type;
+
+    /** This defines how to access variables (design, objective_gradient, ...),
+     *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
+    typedef enum { PLAIN, SMART } Access; // not used here but needed for virtual method GetDesign(Access)
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};
@@ -173,6 +179,11 @@ public:
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
+  
+  virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
+
+  /** The index of this element within the design space - 0 based */
+  unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
 
   /** returns the type */
   virtual std::string ToString() const;
@@ -190,15 +201,15 @@ public:
 
   /** Reset either gradients of the class
    * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
-   * @param g this should preferably be a Funtion*, but it didn't work and 
+   * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
   void Reset(ValueSpecifier vs, Function* f = NULL);
 
-  /**  Gets the lower bound of the desing variable -
+  /**  Gets the lower bound of the design variable -
    * up to now this are defaults by type */
   double GetLowerBound() const { return lower_; }
 
-  /** The upper bound of the desing variable for the optimizer */
+  /** The upper bound of the design variable for the optimizer */
   double GetUpperBound() const { return upper_; }
 
   /** Set the lower bound of the design variable */
@@ -209,6 +220,9 @@ public:
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
+  
+  /** helper for LOG output */
+  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);  
 
   static Enum<Type> type;
 
@@ -237,7 +251,18 @@ protected:
 
   /** what is our design type */
   Type type_;
+  
+protected:
+  /** @see GetIndex() */
+  unsigned int index_;
 
+};
+
+class ShapeDesignElement : public BaseDesignElement
+{
+public:
+  /** ShapeDesignElement have an index, needed for sparse gradients, i.e. shape constraints */
+  ShapeDesignElement(unsigned int index);
 };
 
 
@@ -248,10 +273,6 @@ class DesignElement : public BaseDesignElement
 {     
 public:
 
-
-  /** This defines how to access variables (design, objective_gradient, ...),
-   *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
-  typedef enum { PLAIN, SMART } Access;
 
   /** The empty constructor is the StdVector and for ghost elements */
   DesignElement();
@@ -304,7 +325,8 @@ public:
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    double GetPhysicalDesign(bool densForElec = false) const;
+    double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
+
     
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
@@ -332,7 +354,7 @@ public:
     
     /** Write key values as attributes
      * @param tf if given prints the physical lower bound */
-    void ToInfo(PtrParamNode in, TransferFunction* tf) const;
+    void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
 
     /** @see BaseDesignElement::ToString() */
     std::string ToString() const { return ToString(this); }
@@ -351,9 +373,6 @@ public:
     /** to make the class polymorphi and we can dynamic_cast<> it */
     /** Pointer to the element of the region, parameter for integration, ... */
     Elem*  elem;
-
-    /** The index of this element within the design space - 0 based */
-    unsigned int GetIndex() const { assert(index_ != std::numeric_limits<unsigned int>::max()); return index_; }
 
     /** In case we are a pseudo design element which is not within the design domain but from the
      *  non-design region of a function (e.g. stress) this index stores the index within the element storage.
@@ -409,9 +428,6 @@ private:
   
   /** the barycenter of this element only set on request. */
   Point* location_;
-
-  /** @see GetIndex() */
-  unsigned int index_;
 
   /** @see GetPseudoElementIndex() */
   int pseudoElementIndex_;
@@ -496,15 +512,18 @@ private:
 class DesignID
 {
 public:
-   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL)
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0)
    {
      this->design = design;
      this->multimaterial = mm;
+     this->relative_bound = rb;
    }
 
    DesignElement::Type design;
    /** index. -1 for non-multimaterial */
    MultiMaterial*      multimaterial;
+   /** relative bounds for design, negative if not applicable, size by number of design types */
+   double              relative_bound;
 };
 
 /**required in Design space**/

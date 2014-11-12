@@ -4,6 +4,8 @@
 
 #include <assert.h>
 #include <algorithm>
+#include <iostream>
+#include <fstream>
 #include <cmath>
 // The following headers are required for Export()
 #include <cstdio>
@@ -226,6 +228,19 @@ namespace CoupledField {
     return sum;
   }
   
+  template <typename T>
+  T Vector<T>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
+  {
+    T sum(0);
+
+    const Vector<T>& secVec = dynamic_cast<const Vector<T>&>(vec);
+
+    for(unsigned int i = start; i < end; i++)
+      sum += OpType<T>::dotProduct(data_[i], secVec[i]);
+
+    return sum;
+  }
+
   
   /*
   template <typename T>
@@ -251,7 +266,7 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::Init( T entry)
   {
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = entry;
   }
@@ -261,7 +276,7 @@ namespace CoupledField {
   //   Compute Euclidean Norm
   // **************************
   template <typename T>
-  double Vector<T>::NormL2() const
+  double Vector<T>::NormL2Squared() const
   {				
     double sum(0.0);
 
@@ -269,7 +284,13 @@ namespace CoupledField {
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
     
-    return sqrt(sum);
+    return sum;
+  }
+  
+  template <typename T>
+  double Vector<T>::NormL2() const
+  {
+    return(sqrt(NormL2Squared()));
   }
 
   template<class TYPE> 
@@ -556,6 +577,25 @@ namespace CoupledField {
     {
       WARN("Could not close file '" << fname << "' after writing!");
     }
+  }
+
+  template<typename T>
+  void Vector<T>::Import(const std::string& name)
+  {
+    std::ifstream file(name.c_str());
+
+    this->Resize(0);
+
+    if(file)
+    {
+      T val;
+      while(file >> val)
+        this->Push_back(val);
+    }
+    else
+      throw Exception("cannot open " + name + " for reading numerical data");
+
+    file.close();
   }
 
 

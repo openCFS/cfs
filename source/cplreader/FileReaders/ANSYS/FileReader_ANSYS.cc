@@ -14,11 +14,15 @@
 #include "boost/algorithm/string/trim.hpp"
 #include "boost/filesystem/operations.hpp"
 #include "boost/filesystem/path.hpp"
-namespace fs=boost::filesystem;
 
 #include "General/exception.hh"
 #include "cplreader/Settings.hh"
 #include "FileReader_ANSYS.hh"
+
+namespace fs=boost::filesystem;
+
+using boost::char_separator;
+
 
 
 namespace CoupledField
@@ -210,7 +214,7 @@ namespace CoupledField
     std::string data(buf);
     delete[] buf;
 
-    typedef boost::tokenizer<char_separator<char> > Tok;
+    typedef boost::tokenizer<boost::char_separator<char> > Tok;
     boost::char_separator<char> sep("\n\r");
     Tok t(data, sep);
     Tok::iterator it, end;

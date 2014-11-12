@@ -20,6 +20,7 @@
 #include "def_use_lapack.hh"
 #include "def_use_pardiso.hh"
 #include "def_use_pardiso64.hh"
+#include "def_use_ipopt.hh"
 #include "generatesolver.hh"
 
 #ifdef USE_LAPACK
@@ -41,6 +42,10 @@
 
 #ifdef USE_CHOLMOD
 #include "OLAS/external/cholmod/CholMod.hh"
+#endif
+
+#ifdef USE_IPOPT
+#include "OLAS/external/contact-ipopt/ContactIpopt.hh"
 #endif
 
 // include source code for templated solvers
@@ -375,6 +380,23 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
   }
 #else
     EXCEPTION("Compile with USE_CHOLMOD to enable interface to CholMod");
+#endif
+    break;
+    
+  case BaseSolver::CONTACTIPOPT:
+#ifdef USE_IPOPT
+  {
+    if(mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX  || dynamic_cast<const StdMatrix &>(mat).GetStorageType() != BaseMatrix::SPARSE_SYM){
+      EXCEPTION("Contact-Ipopt only works with SCRS_Matrix class!");
+    }
+    if(eType != BaseMatrix::DOUBLE){
+      EXCEPTION("Contact-Ipopt only works for real values matrices!");
+    }
+    retSolver = new ContactIpopt(solverXML, olasInfo, eType);
+    (*cla) << "GenerateSolver: Generated Contact-Ipopt solver" << std::endl;
+  }
+#else
+    EXCEPTION("Compile with USE_IPOPT to enable interface to Contact-Ipopt");
 #endif
     break;
 
