@@ -121,7 +121,8 @@ template <class TYPE> class Matrix;
     /** Overwrites the linearForms to implement the multi-load optimization */
     void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
 
-    /** Returns the algebraic system */
+    /** Returns the algebraic system
+     * TODO check if really used */
     BaseSystem* GetAlgSys() { return algsys_; }
 
     /** Returns the bilinear forms list for Shape Optimization does need to loop these as assemble does */

@@ -186,11 +186,10 @@
       <!-- pair of coordinates -->
       <xsd:element name="coord">
         <xsd:complexType>
-          <xsd:attribute name="x" type="xsd:token" use="optional"/>
-          <xsd:attribute name="y" type="xsd:token" use="optional"/>
-          <xsd:attribute name="z" type="xsd:token" use="optional"/>
-          <xsd:attribute name="r" type="xsd:token" use="optional"/>
-          <xsd:attribute name="phi" type="xsd:token" use="optional"/>
+          <xsd:attribute name="x" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="y" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="z" type="xsd:token" use="optional" default="0.0"/>
+          <xsd:attribute name="r" type="xsd:token" use="optional" default="0.0"/>
           <xsd:attribute name="coordSysId" type="xsd:token"
             use="optional"  default="default"/>
         </xsd:complexType>

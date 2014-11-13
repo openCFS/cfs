@@ -2,53 +2,57 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#ifndef FILE_FILEREADER_fvuns_2011
-#define FILE_FILEREADER_fvuns_2011
+#ifndef FILE_FILEREADER_fvuns_2010
+#define FILE_FILEREADER_fvuns_2010
 
-#include <def_cplreader.hh>
+#include "def_cplreader.hh"
 #include "cplreader/FileReader.hh"
-#include "FieldViewFile.h"
 
-namespace CoupledField {
+namespace CoupledField
+{
 
-class FileReader_fvuns : public FileReader {
+  class FileReader_fvuns : public FileReader
+  {
+  public:
 
-public:
+    //! Constructor
+    FileReader_fvuns(const std::string& name,
+                     const UInt dim,
+                     const UInt numFiles,
+                     const UInt startIndex);
 
-  // constructor
-  FileReader_fvuns(
-      const std::string& name,
-      const UInt dim,
-      const UInt numFiles,
-      const UInt startIndex);
+    //! Deconstructor
+    virtual ~FileReader_fvuns();
 
-  // destructor
-  virtual ~FileReader_fvuns();
+    virtual void Init();
 
-  // pure virtual functions of parent class
-  void Init();
-  void ReadNodalCoords(std::vector<Double> & NODECOORD);
-  void ReadTopology(std::vector<UInt> & TOPOLOGYDATA, std::vector<UInt> & elemTypes);
-
-  // not implemented in parent class
-  void GetRegionElements(std::vector<UInt> & regionElements, const UInt regionIdx);
-  void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
-                                   const std::vector<bool>& activeParts,
-                                   const UInt timeStepIdx);
+    //! get node coordinates from the corresponding file
+    virtual void ReadNodalCoords(std::vector<Double> & NODECOORD);
 
 
-private:
+    //! get topology information from the corresponding topology file
+    virtual void ReadTopology(std::vector<UInt> & TOPOLOGYDATA,
+                                 std::vector<UInt> & elemTypes);
 
-  // fvuns file object
-  FieldViewFile fvunsFile_;
+    //! get nodal values from the corresponding fluid datafile the new way
+    virtual void ReadNodalValues(std::vector<FlowDataType>& nodalFlowData,
+                                 const std::vector<bool>& activeParts,
+                                 const UInt timeStepIdx);
 
-  // the available solution types
-  std::vector<SolutionType> solutionTypes_;
-  // their DOF index (0 for scalar, 0,1,2 for vectors)
-  std::vector<UInt> dofIndices_;
+    virtual std::string GetRegionName(const UInt regionIdx);
 
-};
+    virtual void GetRegionElements(std::vector<UInt> & regionElements,
+                                   const UInt regionIdx);
+
+    //! Get node groups
+    virtual void GetNodeGroups(std::map<std::string,
+                                        std::vector<UInt> >& nodeGroups);
+
+  protected:
+    std::vector<SolutionType> solutionTypes_;
+          std::vector<UInt> dofIndices_;
+  };
+  
 
 } // end of namespace
-
 #endif

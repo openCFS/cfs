@@ -145,7 +145,7 @@ namespace CoupledField {
       return nnz_;
     }
 
-    //! Transforms SCRS matrix into vector containing all upper
+    //! Trasforms SCRS matrix into vector containing all upper
     // triangle elements further usage in CFS++
     virtual void CopySCRSMatrix2Vec(Complex* &A){;};
 

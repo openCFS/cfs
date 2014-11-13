@@ -52,7 +52,7 @@ class Objective : public Function
     void ResetValue() { value_ = 0.0; }
 
     /** is a homogenization tensor coord set */
-    bool HasHomogenizationEntry() const { return boost::get<0>(coord) != -1; }
+    bool HasHomogenizationEntry() const { return get<0>(coord) != -1; }
 
     double GetPenalty() const { return penalty_; }
 

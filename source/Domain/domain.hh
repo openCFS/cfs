@@ -154,10 +154,7 @@ namespace CoupledField
                                   = std::string("default") );
 
     //! Return dimension
-    UInt GetDim() const { return dim_; }
-    
-    //! Is domain assumed axisymmetric?
-    bool IsAxisymmetric() const { return isAxi_; }
+    UInt GetDim() { return dim_; }
 
     /** For some optimization (SIMP) or normal simulation with external
      * ersatz material file the forms get the density value by this
@@ -356,9 +353,6 @@ namespace CoupledField
 
     //! dimension of the problem
     UInt dim_;
-    
-    //! is domain axisymmetric?
-    bool isAxi_;
   };
 
 }

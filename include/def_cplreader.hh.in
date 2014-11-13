@@ -9,6 +9,5 @@
 #cmakedefine CPLREADER_ENSIGHT
 #cmakedefine CPLREADER_FLUENT
 #cmakedefine CPLREADER_CGNS
-#cmakedefine CPLREADER_STARCCM
 
 #endif

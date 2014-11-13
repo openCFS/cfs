@@ -48,7 +48,6 @@
 #include "PDE/magneticScalarPDE.hh"
 #include "PDE/mechPDE.hh"
 #include "PDE/smoothPDE.hh"
-#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/cartesianCoordSys.hh"
 #include "Utils/coordSystem.hh"
 #include "Utils/cylCoordSys.hh"
@@ -70,7 +69,7 @@ namespace CoupledField
 {
 
 // **************
-//   Constructor
+//   Construtor
 // **************
 
 Domain::Domain(
@@ -107,17 +106,10 @@ void Domain::CreateGrid()
   if (probGeo == "3d")
   {
     dim_ = 3;
-    isAxi_ = false;
   }
-  else if (probGeo == "axi")
+  else if (probGeo == "axi" || probGeo == "plane")
   {
     dim_ = 2;
-    isAxi_ = true;
-  }
-  else if (probGeo == "plane")
-  {
-    dim_ = 2;
-    isAxi_ = false;
   }
   else
   {
@@ -188,7 +180,7 @@ void Domain::CreateGrid()
       // p.filename() does not compile for me!!
       // What should work:
       // boost::filesystem::base(p) << "." << boost::filesystem::extension(p)
-      std::cout << p.leaf() << " ";
+      std::cout << "'" << p.leaf() << "' ";
     }
 
     actGrid->FinishInit();
@@ -252,6 +244,7 @@ void Domain::PostInit()
 
   // initialize the driver
   driver->Init();
+
   // check if we have to do optimization
   if (param->Has("optimization"))
   {
@@ -557,7 +550,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
   ptSinglePde_.Init();
   numSinglePde_ = pdeNodes.GetSize();
 
-
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
 
@@ -568,12 +560,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep)
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode);
 
-    else if (actPdeName == "LatticeBoltzmann")
-      ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode);
-
     else if (actPdeName == "mechanic")
       ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode);
-
 
     else if (actPdeName == "acoustic")
     {

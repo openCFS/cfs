@@ -57,8 +57,8 @@ protected:
    * PIEZO_COUPLING ( + transposed) */
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
-    if(harmonic) SetElementK<std::complex<double>, double >(de, tf, app, out, calcMode, derivative);
-            else SetElementK<double, double>(de, tf, app, out, calcMode, derivative);
+    if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+            else SetElementK<double>(de, tf, app, out, calcMode, derivative);
   }
 
   /** is a cast of the ErsatzMaterial::material attribute. Set in PostInit() */
@@ -69,7 +69,7 @@ protected:
 
 private:
 
-  template <class T1, class T2>
+  template <class T>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
 
 

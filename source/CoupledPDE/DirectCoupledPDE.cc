@@ -785,9 +785,6 @@ class PDECoupling;
       if ( singlePDEs_[i]->BelongsPDE2PiezoHyst() )
         isPiezoHyst = true;
 
-      if (  singlePDEs_[i]->GetName() == "mechanic" ) {
-        totalFormulation_ = singlePDEs_[i]->IsTotaFormulation();
-      }
       //check for micro-piezo-model
      if ( singlePDEs_[i]->BelongsPDE2MicroPiezo() ) 
         isMicroPiezo = true;

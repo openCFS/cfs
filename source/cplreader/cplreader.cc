@@ -64,10 +64,6 @@ namespace fs=boost::filesystem;
 #include "FileReaders/CGNS/FileReader_CGNS.hh"
 #endif
 
-#ifdef CPLREADER_STARCCM
-#include "FileReaders/CCM/FileReader_CCM.hh"
-#endif
-
 #include "FileReaders/GENGRIDS/FileReader_GENGRIDS.hh"
 
 
@@ -232,18 +228,6 @@ namespace CoupledField
 
 #else
       EXCEPTION("Reading of CGNS files not supported!");
-#endif
-    }
-
-    if(type == "CCM")
-    {
-#ifdef CPLREADER_STARCCM
-      fileReader.reset(new FileReader_CCM(settings.GetString("name"),
-                                          settings.GetInt("dim"),
-                                          settings.GetInt("numsteps"), 0));
-
-#else
-      EXCEPTION("Reading of StarCCM+ files not supported!");
 #endif
     }
 

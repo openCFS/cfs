@@ -31,7 +31,6 @@
 #include "Forms/laplaceInt.hh"
 #include "Forms/linGradBDBInt.hh"
 #include "Forms/linearForm.hh"
-#include "Forms/linPressureInt.hh"
 #include "Forms/magforceop.hh"
 #include "Forms/massInt.hh"
 #include "Forms/nLinMagHystInt2D.hh"
@@ -158,11 +157,6 @@ DEFINE_LOG(magpde, "magpde")
     // Check for permanent magnets
     // -----------------------------
     ReadMagnets();
-
-    // -----------------------------
-    // Check for surface current loads
-    // -----------------------------
-    ReadSurfCurrents();
   }
   
 
@@ -477,27 +471,6 @@ DEFINE_LOG(magpde, "magpde")
       eqnMap_->AddResult( *results_[0], actSDList );
 
     }
-
-
-    //cgeck for surface currents
-    for (UInt actSF = 0; actSF < surfCurrents_.GetSize(); actSF++) {
-      
-      LinearSurfForm * rhsSrcSurf = 
-        new SurfCurrentLinForm(surfCurVals_[actSF], surfCurPhase_[actSF], 
-                               subType_, isaxi_ );
-      rhsSrcSurf->SetVoluInfo( materials_ );
-      
-      LinearFormContext * surfCurRhs = 
-        new LinearFormContext( rhsSrcSurf );
-      surfCurRhs->SetPtPde( this );
-      surfCurRhs->SetResult( results_[0], surfCurrents_[actSF] );
-      assemble_->AddLinearForm( surfCurRhs );
-      
-      // Give entities and result to equation numbering class
-      // and solution class
-      eqnMap_->AddResult( *results_[0], surfCurrents_[actSF] );
-    }
-    
     
     // =======================================================================
     // Integrators for NonConforming Interfaces
@@ -882,9 +855,7 @@ DEFINE_LOG(magpde, "magpde")
         const UInt nrIntPts = ptElem->GetNumIntPoints();
         const Vector<Double> & intWeights = ptElem->GetIntWeights();  
         Vector<Double> shapeFnc;
-
-        //        std::cout << "Num: " <<  intWeights << std::endl;
-     
+        
         // iterate over all integration points
         TYPE temp;
         elemEddyPower = 0.0;
@@ -896,8 +867,7 @@ DEFINE_LOG(magpde, "magpde")
         for (UInt actIntPt=1; actIntPt <= nrIntPts; actIntPt++) {  
           
           CalcEddyCurrentAtIP( elemIt, actIntPt, jEddyElem );
-
-          CalcLocalEddyPowerDensity(jEddyElem, temp);
+          temp = jEddyElem * jEddyElem;
           temp /= conductivity;
           ptElem->GetShFncAtIp(shapeFnc,actIntPt, elemIt.GetElem() );
           Double jacDet = ptElem->CalcJacobianDetAtIp(actIntPt, ptCoord, 
@@ -918,22 +888,6 @@ DEFINE_LOG(magpde, "magpde")
 
   }
   
-  void MagPDE::CalcLocalEddyPowerDensity( Vector<Double>& eddyCurrentElem, Double& value) {
-
-    value = eddyCurrentElem * eddyCurrentElem;
-  }
-
-  void MagPDE::CalcLocalEddyPowerDensity( Vector<Complex>& eddyCurrentElem, Complex& value) {
-    Complex factor(1,-1);    
-    Vector<Complex> help(eddyCurrentElem.GetSize());
-    for (UInt i=0; i<help.GetSize(); i++)
-      help[i] =  std::conj( eddyCurrentElem[i] );
-    
-    value = eddyCurrentElem * help;
-    //    std::cout << "J*J = " << eddyCurrentElem << "  Jcc = " << help << "  result: " << value << std::endl; 
-  }
-
-
 
   // **************
   //   CalcEnergy
@@ -1364,32 +1318,6 @@ DEFINE_LOG(magpde, "magpde")
     }
   }
 
-  void MagPDE::ReadSurfCurrents() {
-    //
-    ReadSurfCurrentsFromXML(myParam_->Get("bcsAndLoads", ParamNode::PASS), surfCurrents_, surfCurVals_, surfCurPhase_);
-  }
-
-  void MagPDE::ReadSurfCurrentsFromXML(PtrParamNode bcNode, 
-                                      StdVector<shared_ptr<EntityList> >& surfCurrents, 
-                                      StdVector<std::string>& surfVals, 
-                                      StdVector<std::string>& surfPhase) {
-      if( !bcNode )
-        return;
-
-      ParamNodeList surfNodes = bcNode->GetList("surfCurrent");
-      // iterate over all pressure definitions
-      std::string name, value, phase;
-      for( UInt i = 0; i < surfNodes.GetSize(); i++ ) {
-        surfNodes[i]->GetValue("name", name );
-        surfNodes[i]->GetValue("value", value );
-        surfNodes[i]->GetValue("phase", phase );
-        surfCurrents.Push_back(
-          ptgrid_->GetEntityList( EntityList::SURF_ELEM_LIST,
-                                  name, EntityList::REGION ) );
-        surfVals.Push_back( value );
-        surfPhase.Push_back( phase );
-      }
-    }
 
   void MagPDE::DefineAvailResults() {
     
@@ -1966,9 +1894,6 @@ DEFINE_LOG(magpde, "magpde")
       }
       GetDerivSolVecOfElement(magVecDeriv1Elem,it,results_[0]);
       
-//       std::cout << "J: " << magVecDeriv1Elem << std::endl;
-//       std::cout << "shFnc: " << shpFnc << std::endl;
-
       jEddyTemp = magVecDeriv1Elem * shpFnc;
       jEddyTemp *= -conductivity;
       jEddy[0] = jEddyTemp;

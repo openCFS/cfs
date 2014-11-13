@@ -5,7 +5,7 @@
 
 #define FV_MAGIC	0x00010203	/* decimal 66051 */
 
-/* Type (=content) of the file (grid only, results only or both). */
+/* Content of the file (grid only, results only or combined). */
 #define FV_GRIDS_FILE           1
 #define FV_RESULTS_FILE         2
 #define FV_COMBINED_FILE        3

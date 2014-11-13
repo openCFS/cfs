@@ -39,23 +39,6 @@ namespace CoupledField
                             Vector<Double>& divLHTensor,
                             Double density);
 
-    void PerformIntegrationPresD2(const Matrix<Double> & coordMat,
-                                      const Vector<Double>& NodalPresD2,
-                                      Vector<Double>& elemvec,
-                                      Vector<Double>& nodalLoadDensity);
-
-    void PerformIntegrationMechRhs(const Matrix<Double> & coordMat,
-                            const Matrix<Double>& NodalForce,
-                            Vector<Double>& elemvec);
-  
-    void PerformIntegrationLighthillwithDivTij(const Matrix<Double> & coordMat,
-                            const Matrix<Double>& NodaldTijdxj,
-                            const Matrix<Double>& NodalVal,
-                            Vector<Double>& elemvec,
-                            Vector<Double>& nodalLoadDensity,
-                            Vector<Double>& divLHTensor,
-                            Double density);
-
     void PerformIntegrationAPEMass(const Matrix<Double> & coordMat,
                             const Matrix<Double>& NodalVal,
                             const Vector<Double>& NodalPres,
@@ -72,11 +55,6 @@ namespace CoupledField
                             const Matrix<Double>& NodalVal,
                             const Matrix<Double>& nodalMeanVel,
                             Vector<Double>& elemVecLamb,
-                            Vector<Double>& elemVecLambRhs,
-                            Double density);
-
-    void PerformIntegrationAPEMomentumPres(const Matrix<Double> & coordMat,
-                            const Vector<Double>& NodalPres,
                             Vector<Double>& elemVecLambRhs,
                             Double density);
 
@@ -187,9 +165,6 @@ namespace CoupledField
         integMap_[it->first] = it->second;
         it++;
       }
-    }
-
-    ~IntegrationMap(){
     }
 
     ElemIntegr & operator[](UInt key){

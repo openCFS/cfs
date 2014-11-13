@@ -406,10 +406,6 @@ namespace CoupledField {
     case ACOU_DIV_LH_TENSOR:
       return "kg m^-2 s^-2";
       break;
-
-    case ACOU_DIV_LH_TENSOR_NODAL:
-      return "kg m^-2 s^-2";
-      break;
       
     case ACOU_LAMB_RHS:
       return "kg s^-1";
@@ -441,18 +437,6 @@ namespace CoupledField {
 
     case AERO_ACOU_SRC_RHS:
       return "Pa/m^2";
-      break;
-
-    case AERO_ACOU_D_LH_TENSOR:
-      return "Pa/m^2";
-      break;
-
-    case AERO_ACOU_LAPLACE_P_RHS:
-      return "Pa/m^2";
-      break;
-
-    case AERO_ACOU_DIV_LAMB_RHS:
-      return "1/s^2";
       break;
 
     case ELEC_CHARGE:
@@ -515,10 +499,6 @@ namespace CoupledField {
       return "N/m^2";
       break;
 
-    case FLUIDMECH_DIV_LH_T:
-      return "kg m^-2 s^-2";
-      break;
-      
     case HEAT_TEMPERATURE:
       return "K";
       break;
@@ -562,10 +542,6 @@ namespace CoupledField {
       return "Ws";
       break;
 
-    case MAG_SURF_CURRENT:
-      return "A/m";
-      break;
-
     case MAG_FORCE_VWP:
       return "N";
       break;
@@ -598,7 +574,6 @@ namespace CoupledField {
     case MECH_PSEUDO_DENSITY:
     case PHYSICAL_PSEUDO_DENSITY:
     case ELEC_PHYSICAL_PSEUDO_DENSITY:
-    case LBM_PHYSICAL_PSEUDO_DENSITY:
       return "";
       break;
 
@@ -1386,7 +1361,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_RHS_LOAD, "acouRhsLoad");
     SolutionTypeEnum.Add(ACOU_RHS_LOAD_DENSITY, "acouRhsLoadDensity");
     SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR, "acouDivLighthillTensor");
-    SolutionTypeEnum.Add(ACOU_DIV_LH_TENSOR_NODAL, "acouDivLighthillTensorNodal");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs"); 
     SolutionTypeEnum.Add(ACOU_LAMB_VEC, "acouLambVec"); 
     SolutionTypeEnum.Add(ACOUMIXED_MASS_LOAD, "acouMixedMassLoad");
@@ -1404,9 +1378,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_PMLAUXSCALAR, "acouPmlAuxScalar");
     SolutionTypeEnum.Add(ACOU_PSEUDO_DENSITY, "acouPseudoDensity");
     SolutionTypeEnum.Add(AERO_ACOU_SRC_RHS, "aeroAcouSourceRhs");
-    SolutionTypeEnum.Add(AERO_ACOU_D_LH_TENSOR, "derivLighthillT_RHS");
-    SolutionTypeEnum.Add(AERO_ACOU_LAPLACE_P_RHS, "laplaceP_RHS");
-    SolutionTypeEnum.Add(AERO_ACOU_DIV_LAMB_RHS, "divLambVector_RHS");
 
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
@@ -1415,7 +1386,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_HFIELD, "magHfield");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
-    SolutionTypeEnum.Add(MAG_SURF_CURRENT, "magSurfCurrent");
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
@@ -1427,13 +1397,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
-    //LBM velocity
-    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
-    SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
-    SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
-    SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
-    SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
-    SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
     //fluidMech
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_VELOCITY, "meanFluidMechVelocity");
     SolutionTypeEnum.Add(MEAN_FLUIDMECH_PRESSURE, "meanFluidMechPressure");
@@ -1444,12 +1407,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_2, "fluidMechPressure_deriv2");
-    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_TIME_DERIV_2, "fluidMechPressure_timeDeriv2");
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");
-    SolutionTypeEnum.Add(FLUIDMECH_DIV_LH_T, "fluidMechDivLHT");
-    SolutionTypeEnum.Add(FLUIDMECH_DIV_LAMBVEC, "fluidMechLambVec");
     SolutionTypeEnum.Add(LAMBDA_K, "lambda_k");
     // bubble
     SolutionTypeEnum.Add(BUBBLE_RADIUS, "bubbleRadius");
@@ -1569,8 +1529,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( NONLIN_DATA_NAME, "nonLinDataName" ); 
     MaterialTypeEnum.Add( DATA_ACCURACY, "dataAccuracy" ); 
     MaterialTypeEnum.Add( MAX_APPROX_VAL, "maxApproxVal" ); 
-    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" );
-    MaterialTypeEnum.Add( LBM_MATERIAL, "LatticeBoltzmannMaterial" );
+    MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "no FE matrix" );

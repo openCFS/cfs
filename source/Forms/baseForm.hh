@@ -297,9 +297,6 @@ namespace CoupledField
     /** @see other CalcBMatOnly(). This is just a variant in the parameters */
     void CalcBMatOnly(Matrix<Double> &bMat, UInt ip, BaseFE* elem, Matrix<Double> &ptCoord);
 
-
-    void SetSum4Boperator ();
-
   protected:
 
     /** Gets the factor for dMat to perform the ersatz material ansatz.
@@ -310,7 +307,7 @@ namespace CoupledField
      * Domain::GetErsatzMaterial() identifies the proper penaltization via RTTI (typid)
      * @param elem the element
      * @return 1.0 if nothing is to be done or a factor */ 
-    Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
+    virtual Double GetErsatzMaterialFactor(const Elem* elem, bool forBimaterial = false);
 
     /** Determines the multimaterial SIMP tensor if we do multimaterial and if the element is ok
      * @param mc MECHANIC, PIEZO or ELECTROSTATIC
@@ -340,7 +337,6 @@ namespace CoupledField
       return TS_alg_;
     };
 
-    
     //! pointer to reference element
     BaseFE  * ptelem;   
 
@@ -353,8 +349,6 @@ namespace CoupledField
     shared_ptr<AnsatzFct> ansatzFct1_;
     shared_ptr<AnsatzFct> ansatzFct2_;
 #endif
-
-    bool isSumBoperator_ ;
 
     //! flag indicating if element matrix is symmetric
     bool isSymmetric_;

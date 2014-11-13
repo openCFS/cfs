@@ -538,7 +538,6 @@ namespace CoupledField
     void SetFEMatrixType( const FEMatrixType matType,
                           const PdeIdType identifierPDE1,
                           const PdeIdType identifierPDE2 = NO_PDE_ID );
-  
 
     //@}
 
@@ -618,7 +617,6 @@ namespace CoupledField
 
     //! Pointer to a pool for sharing sparsity patterns between matrices
     PatternPool *patternPool_;
-
   };
 
 }

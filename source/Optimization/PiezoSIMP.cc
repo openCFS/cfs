@@ -329,12 +329,12 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 
 
-template <class T1, class T2>
+template <class T>
 void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
-  Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
+  Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
   switch(app)
   {

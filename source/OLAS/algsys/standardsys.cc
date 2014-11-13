@@ -77,7 +77,6 @@ namespace CoupledField {
     else {
       assembleDirichletToSysMat_ = false;
     }
-
   }
 
 
@@ -256,10 +255,8 @@ namespace CoupledField {
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modifiy the right-hand side vector
-    if ( isIDBC_ ) {
-      LOG_DBG(stdSys) << "Solve: add idbc to rhs";
-      idbcHandler_->AddIDBCToRHS( rhs_ );
-    }
+    LOG_DBG(stdSys) << "Solve: add idbc to rhs";
+    idbcHandler_->AddIDBCToRHS( rhs_ );
 
     // check if we do export stuff
     PtrParamNode els =  xml_->Get("exportLinSys", ParamNode::PASS);
@@ -328,11 +325,10 @@ namespace CoupledField {
     if(els && els->Get("solution")->As<std::string>() != "no")
       sol_->Export((base+".sol.vec").c_str());
 
-    if ( isIDBC_ ) {
-      LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
-      // Now de-modifiy the right-hand side vector
-      idbcHandler_->RemoveIDBCFromRHS( rhs_ );
-    }
+    LOG_DBG(stdSys) << "Solve: remove idbc from rhs";
+    // Now de-modifiy the right-hand side vector
+    idbcHandler_->RemoveIDBCFromRHS( rhs_ );
+
 
     // Check that solution went fine, if not issue a warning
     if ( out->Get("solutionIsOkay")->As<bool>() == false ) {
@@ -590,7 +586,7 @@ namespace CoupledField {
       in->Get("cols")->SetValue(mat->GetNumCols());
       in->Get("nnz")->SetValue(mat->GetNnz());
       in->Get("storageType")->SetValue(BaseMatrix::storageType.ToString(mat->GetStorageType()));
-      in->Get("structureType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
+      in->Get("structueType")->SetValue(BaseMatrix::structureType.ToString(mat->GetStructureType()));
     }
 
     // -----------------
@@ -1055,6 +1051,7 @@ namespace CoupledField {
   GetSolutionVal( SingleVector& ptSol,
                   const PdeIdType identifierPDE ) {
     
+
     // Elimination case
     if ( !usingPenalty_ ) {
 
@@ -1063,8 +1060,7 @@ namespace CoupledField {
         const Vector<Complex> * dVec1 = dynamic_cast<Vector<Complex>*>( sol_ );
         Vector<Complex> * retVec = dynamic_cast<Vector<Complex>*>( &ptSol );
         (*retVec) = (*dVec1);
-        if (isIDBC_ ) 
-          idbcHandler_->SetDofsToIDBC( retVec );
+        idbcHandler_->SetDofsToIDBC( retVec );
       } else {
         // Sequential setting: We copy the solution and add the Dirichlet values
         const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( *sol_ );
@@ -1073,8 +1069,7 @@ namespace CoupledField {
         for ( int i = 0; i < size_; i++ ) {
           retVec[i] = dVec1[i];
         }
-        if (isIDBC_ ) 
-          idbcHandler_->SetDofsToIDBC( &retVec );
+        idbcHandler_->SetDofsToIDBC( &retVec );
       }
     }
 

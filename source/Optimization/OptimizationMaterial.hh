@@ -30,7 +30,6 @@ class ElecPDE;
 class ErsatzMaterial;
 class HeatCondPDE;
 class LinearForm;
-class LatticeBoltzmannPDE;
 
 /** For Optimization problems does this class provide an interface to the actual physics.
  * While ErsatzMaterial itself contains a vector of pdes and the solutions for these
@@ -47,7 +46,7 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
+  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC } System;
 
   /** calls the proper constructor */
   static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em);
@@ -58,7 +57,7 @@ public:
   System GetSystem() const { return system_; }
 
   /** works fine for standard single pde SIMP stuff */
-  virtual DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
 
@@ -137,10 +136,10 @@ public:
    * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
     return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
@@ -164,7 +163,6 @@ protected:
   /** The mechanical element stiffness matrix is constant.
    * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
   std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
-  std::map<RegionIdType, StdVector<Matrix<Complex> > > mechStiffness_mapC;
 
   /** The mechanical element mass matrix is also constant. Only for harmonic!
    * @see mechStiffness_map*/
@@ -187,10 +185,10 @@ class AcouMat : public OptimizationMaterial
 public:
   AcouMat(ErsatzMaterial* em);
 
-  Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
+  const Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false) {
+  const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false) {
     return AcouStiffness(elem, bimaterial);
   }
 
@@ -251,6 +249,15 @@ private:
 
 
 
+class HeatMat : public OptimizationMaterial
+{
+public:
+  HeatMat(ErsatzMaterial* em);
+
+protected:
+  HeatCondPDE* heat;
+};
+
 
 /** For Jannis' Maxwell homogenization. The PiezoElecMat has elec for piezo */
 class ElecMat : public OptimizationMaterial
@@ -272,7 +279,7 @@ public:
   Vector<std::complex<double> > MaxwellHomRHS(const Elem* elem, bool bimaterial);
 
 //  /** overwrites OptimizationMaterial::Stiffness */
-//  Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {
+//  const Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {
 //    return ElecStiffness(elem, bimaterial, DesignElement::NO_DERIVATIVE);
 //  }
 
@@ -285,27 +292,7 @@ protected:
 };
 
 
-class HeatMat : public OptimizationMaterial
-{
-public:
-  HeatMat(ErsatzMaterial* em);
-
-protected:
-  HeatCondPDE* heat;
-};
-
-
-
-class LBMMat : public OptimizationMaterial
-{
-public:
-  LBMMat(ErsatzMaterial* em);
-
-protected:
-  LatticeBoltzmannPDE* lbm;
-};
-
-
 }
+
 
 #endif /* OPTMATERIAL_HH_ */

@@ -32,6 +32,104 @@ if [ ! "$REV" = "" ]; then
     ANSYS_REV="v$REV"
 fi
 
+SUSEPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   python"
+    echo "   tcl"
+    echo
+}
+
+RedhatPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   blas"
+    echo "   boost"
+    echo "   compat-gcc-g77 or gcc-g77"
+    echo "   gcc-gfortran"
+    echo "   lapack"
+    echo "   python"
+    echo "   tcl"
+    echo "   xerces-c"
+    echo
+}
+
+DebianPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   blas or refblas3"
+    echo "   libg2c0"
+    echo "   libboost-*"
+    echo "   lapack, lapack99, lapack3"
+    echo "   python2.4"
+    echo "   tcl8.4"
+    echo "   libxerces27"
+    echo     
+}
+
+UbuntuPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+    echo
+    echo "   refblas3"
+    echo "   libboost-*"
+    echo "   libg2c0"
+    echo "   lapack3"
+    echo "   python2.4"
+    echo "   tcl8.4"
+    echo "   libxerces27"
+    echo
+}
+
+MandrivaPackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    DISTRO_MAJOR_VER=`echo $DISTRO_VER | cut -d'.' -f 1`
+
+   "libblas1.1, libblas3, libblas, blas"
+   "libboost1, libboost, boost"
+   "gcc3.3-g77"
+   "libgfortran"
+   "lapack"
+   "python, libpython"
+   "libtcl8.4, tcl"
+   "xerces-c, libxerces-c"
+}
+
+GivePackageHint()
+{
+    DISTRO=$1
+    DISTRO_VER=$2
+
+    case "$DISTRO" in
+	SUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	OPENSUSE) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	SLES) SUSEPackageHint $DISTRO $DISTRO_VER ;;
+	*) break ;;
+    esac
+}
+
 SetANSYSParameters()
 {
     ARCH=$1
@@ -145,32 +243,10 @@ fi
 # Set path to CFS executable
 CFS_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/cfsbin
 
-# If we cannot find the usual executable, maybe we have crosscompiled
-# using MinGW and need to start the binary using Wine.
-MINGW=0
-if [ ! -e $CFS_EXE ]; then
-  
-  for arch in "X86_64" "I386"; do
-      CFS_EXE="$CFS_ROOT_DIR/bin/MINGW_$ARCH/cfsbin.exe"
-      if [ -e $CFS_EXE ]; then
-	  ARCH=$arch
-	  ARCH_STR="MINGW"_$ARCH
-	  MINGW=1;
-	  break;
-      fi
-  done
-fi
-
 # Set paths to HDF5 executables
-H5IMPORT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/tools/h5import
-H5DUMP_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/tools/h5dump
+H5IMPORT_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5import
+H5DUMP_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5dump
 H5TOOL_EXE=$CFS_ROOT_DIR/bin/$ARCH_STR/h5tool
-
-if [ $MINGW = 1 ]; then
-    H5IMPORT_EXE="${H5IMPORT_EXE}.exe"
-    H5DUMP_EXE="${H5DUMP_EXE}.exe"
-    H5TOOL_EXE="${H5TOOL_EXE}.exe"
-fi
 
 # Set parameters according to distribution type.
 case "$CFS_DIST_TYPE" in
@@ -220,6 +296,9 @@ then
     echo "These were:"
     echo "$CFS_EXE_LDD";
     echo
+    echo "CFS++ depends on the following packages on $DISTRO $DISTRO_VER:"
+    GivePackageHint $DISTRO $DISTRO_VER
+    echo "Please install the required packages."
     exit 4
 fi
 
@@ -256,6 +335,8 @@ then
     echo "Warning: MKL_NUM_THREADS overrides OMP_NUM_THREADS for Intel MKL!"
 fi
 
+export GFORTRAN_UNBUFFERED_PRECONNECTED=y
+
 # Determine name of simulation for extending result HDF5 file.
 last_was_param=0
 
@@ -288,7 +369,7 @@ st_mtime="0"
 
 hdf5_file_name="results_hdf5/${sim_name}.h5"
 if [ ! "$sim_name" = "" ] && [ -r "$hdf5_file_name" ]; then
-    if [ "$OS" = "MACOSX" ]; then
+    if [ "$OS" = "Mac" ]; then
         eval "$(stat -s $hdf5_file_name)"
         st_size_before=$st_size
         st_mtime_before=$st_mtime
@@ -302,28 +383,20 @@ fi
 # Execute the CFS exutable with arguments from this script
 if [ $# != 0 ]
 then
-    if [ $MINGW = 1 ]; then
-	wine $CFS_EXE "$@";
-    else    
-	$CFS_EXE "$@";
-    fi
+    $CFS_EXE "$@";
     # If CFS++ returned with an error return code, let's also return an error.
     if [ ! $? -eq 0 ]; then
        exit 1
     fi
 else
-    if [ $MINGW = 1 ]; then
-	wine $CFS_EXE "$@";
-    else    
-	$CFS_EXE;
-    fi
+    $CFS_EXE;
     exit 0;
 fi
 
 
 # Get file state of output HDF5 file
 if [ -r "$hdf5_file_name" ]; then
-    if [ "$OS" = "MACOSX" ]; then
+    if [ "$OS" = "Mac" ]; then
         eval "$(stat -s $hdf5_file_name)"
         st_size_after=$st_size
         st_mtime_after=$st_mtime
@@ -339,12 +412,12 @@ if [ "$st_size_before" = "$st_size_after" ] && [ "$st_mtime_before" = "$st_mtime
 fi
 
 # Create OS-specific hardware info files
-if [ "$OS" = "MACOSX" ]; then
+if [ "$OS" = "Mac" ]; then
     /usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
     OSFILELIST="macosx_info.txt";
     STATCMD="stat -x"
 fi
-if [ "$OS" = "LINUX" ]; then
+if [ "$OS" = "Linux" ]; then
     cat /proc/cpuinfo > linux_cpuinfo.txt
     cat /proc/meminfo > linux_meminfo.txt
     OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
@@ -371,11 +444,7 @@ for file in $FILELIST; do
 	echo >> tmp.dat
 	echo "================================================================================" >> tmp.dat
 	cat ${file} >> tmp.dat
-	if [ $MINGW = 1 ]; then
-	    wine $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
-	else    
-	    $H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
-	fi
+	$H5TOOL_EXE < tmp.dat > /dev/null; ErrorCheck
 	rm -f tmp.dat
     fi
 done

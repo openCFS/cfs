@@ -19,7 +19,7 @@
   <xsd:complexType name="DT_SystemSpec">
     <xsd:sequence>
 
-      <!-- System setup (optional) -->
+      <!-- Syste setup (optional) -->
       <xsd:element name="setup" type="DT_SetupDescription" minOccurs="0"/>
 
       <!-- Matrix format, entries and layout (optional) -->
@@ -103,7 +103,6 @@
           <xsd:enumeration value="smooth"/>
           <xsd:enumeration value="heatConduction"/>
           <xsd:enumeration value="fluidMech"/>
-          <xsd:enumeration value="LatticeBoltzmann"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -162,7 +161,6 @@
           <xsd:enumeration value="pardiso64"/>
           <xsd:enumeration value="ilupack"/>
           <xsd:enumeration value="cholmod"/>
-          <xsd:enumeration value="contact-ipopt"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>

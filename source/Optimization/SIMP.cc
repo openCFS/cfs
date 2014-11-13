@@ -97,19 +97,14 @@ void SIMP::PostInit()
 
 void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative)
 {
-  if(harmonic){
-    if(pde->HasComplexMatData(de->elem->regionId))
-      SetElementK<Complex, Complex >(de, tf, app, out, calcMode, derivative);
-    else
-      SetElementK<Complex, double >(de, tf, app, out, calcMode, derivative);
-  }
-  else SetElementK<double,double>(de, tf, app, out, calcMode, derivative);
+  if(harmonic) SetElementK<std::complex<double> >(de, tf, app, out, calcMode, derivative);
+  else SetElementK<double>(de, tf, app, out, calcMode, derivative);
 }
 
-template <class T1, class T2>
+template <class T>
 void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
-  Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
+  Matrix<T>& out = dynamic_cast<Matrix<T>& >(*mat_out);
 
 
   switch(app)
@@ -119,10 +114,10 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
-    const Matrix<T2>& stiffness = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, false, mm)); // no bimaterial
-
+    const Matrix<double>& stiffness = material->Stiffness(de->elem, false, mm); // no bimaterial
+    
     // Find the transfer function for K (e.g. DENSITY, MECH)
-    T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+    T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
@@ -131,7 +126,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
-      const Matrix<T2>& bimat = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, true)); // yes, bimaterial
+      const Matrix<double>& bimat = material->Stiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
@@ -161,11 +156,11 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     Matrix<std::complex<double> >& stiffness = dynamic_cast<ElecMat *>(material)->ElecStiffness(de->elem, false); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, MECH)
-    T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+    T k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
     if (harmonic)
-      Assign(out, dynamic_cast<Matrix<T1>& >(stiffness), k_factor);
+      Assign(out, dynamic_cast<Matrix<T>& >(stiffness), k_factor);
     else
       Assign(out, stiffness.GetPart(Global::REAL), k_factor);
 
@@ -178,7 +173,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, -13.456, true);
       if (harmonic)
-        Add(out, k_factor, dynamic_cast<Matrix<T1>& >(bimat));
+        Add(out, k_factor, dynamic_cast<Matrix<T>& >(bimat));
       else
         Add(out, k_factor, bimat.GetPart(Global::REAL));
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();

@@ -111,27 +111,6 @@ namespace CoupledField
     // Update variables for mathParser
     mParser_->SetCoordinates( handle, *coosy, globMidPointVol );
   }
-
-
-  void LinearSurfForm::RegisterSurfElemPoint( MathParser::HandleType handle,
-                                              const SurfElem * ptSurfElem,
-                                              const Vector<Double>& locPoint ) {
-
-    Vector<Double> globPoint;
-
-    // fetch global coordinate system
-    CoordSystem * coosy = domain->GetCoordSystem();
-    
-    // get connectivity 
-    const StdVector<UInt> & surfConnect = ptSurfElem->connect;
-    
-    Matrix<Double> surfCoordMat;
-    domain->GetGrid()->GetElemNodesCoord( surfCoordMat, surfConnect, coordUpdate_ );
-    ptSurfElem->ptElem->Local2GlobalCoord( globPoint, locPoint,
-                                           surfCoordMat, ptSurfElem );
-    // Update variables for mathParser
-    mParser_->SetCoordinates( handle, *coosy, globPoint );
-  }
   
 
 } // end of namespace

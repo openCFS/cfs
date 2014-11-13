@@ -26,8 +26,6 @@
 #include "Utils/result.hh"
 #include "resultHandler.hh"
 
-using boost::static_pointer_cast;
-
 namespace CoupledField {
 
 
@@ -685,14 +683,15 @@ namespace CoupledField {
     ResultInfo & actInfo = *( res->GetResultInfo() );
     ResultInfo::EntityUnknownType definedOn = actInfo.definedOn;
     EntityList::DefineType definedBy = res->GetEntityList()->GetDefineType();
-
+    
+    
     // a) Mesh result (Nodes/Elems/Surfelems by region)
     if( definedOn == ResultInfo::PFEM || 
         definedOn == ResultInfo::NODE ||
         definedOn == ResultInfo::ELEMENT ||
         definedOn == ResultInfo::SURF_ELEM ) {
       if( definedBy == EntityList::REGION ) {
-        neededCap = SimOutput::MESH_RESULTS; // If this becomes HISTORY, an elemList with element region-name is written to info.xml! - Fabian
+        neededCap = SimOutput::MESH_RESULTS;
       } else {
         neededCap = SimOutput::HISTORY;
       }

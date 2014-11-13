@@ -347,7 +347,6 @@ bool BaseOptimizer::SolveAdjointProblemsIfNeeded(int n, const double* x, bool cf
   bool need_eval = design_.design_id != design_.gradient_design_id; 
   
   if(need_eval){ // the adjoints have to be recalculated
-
     optimization->SolveAdjointProblems();
     design_.gradient_design_id = design_.design_id;
   }
@@ -561,9 +560,7 @@ void BaseOptimizer::GetBounds(int n, double* x_l, double* x_u, int m, double* g_
     // be reflected when the number of constraints is determined. Here Function::Local::Local()
     // only when we have NO box box constraints we need NEXT_AND_REVERSE
     // FIXME can this be removed?
-    if( (g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT)
-     || g->GetType() == Condition::SHAPE_INF
-      )
+    if(g->GetType() == Condition::SLOPE && g->GetLocal()->GetLocality() == Function::Local::NEXT)
       g_l[i] *= -1.0;
     else
     {

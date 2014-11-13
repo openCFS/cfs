@@ -140,7 +140,6 @@
       <xsd:enumeration value="tensor_tracking"/>
       <!-- this are solver keywords -->
       <xsd:enumeration value="solver"/>
-      <xsd:enumeration value="contact"/>
       <!-- nonmatching grids specific key words -->
       <xsd:enumeration value="lagrange multiplier"/>
       <xsd:enumeration value="mortar fem"/>

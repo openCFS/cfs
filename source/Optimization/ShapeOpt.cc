@@ -136,7 +136,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
       double fraction = isObjective ? volume_fraction_ : g->volume_fraction; // this already considers everything
       double volume = 0.0;
       if(!normalized){  // needed for derivative in normalized versions
-        volume = CalcVolume(c, g, false, normalized);
+        volume = CalcVolume(c, g, derivative, normalized);
       }
       bool allDesignsRelevant = g == NULL || g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::DEFAULT;
       bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;

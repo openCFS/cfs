@@ -36,11 +36,6 @@ namespace CoupledField
       return Elem::QUAD8;
     };
 
-    const UInt* getNodeNumbering() const
-    {
-      return nodeNumbering_;
-    }
-
   protected:
 
     //! Initialize Quadrilateral element
@@ -101,14 +96,7 @@ namespace CoupledField
         IntegOrder  = 3; 
     }
 
-    virtual void fastGlobal2LocalCoords(Matrix<Double> & localCoords,
-                                 const Matrix<Double> & globalCoords,
-                                 const Matrix<Double> & coordMat );
-
   private:
-
-    //! numbering order of the element
-    static const UInt nodeNumbering_[];
   };
 
 } // end of namespace

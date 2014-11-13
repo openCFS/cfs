@@ -54,19 +54,6 @@ namespace CoupledField
     //! read special boundary conditions (coils, magnets)
     void ReadSpecialBCs();
 
-    //!
-    void ReadSurfCurrents();
-
-    /** Does the actual reading of pressure loads, also called from optimization 
-     * @param bcNode paramnode that has "pressure" nodes as children 
-     * @param pressSurf StdVector containing the information
-     * @param pressVals StdVector containing the information
-     * @param pressPhase StdVector containing the information */
-    void ReadSurfCurrentsFromXML(PtrParamNode bcNode, 
-                                 StdVector<shared_ptr<EntityList> >& surfCurrents, 
-                                 StdVector<std::string>& surfVals, 
-                                 StdVector<std::string>& surfPhase);
-
     //! Read special store results
     void ReadSpecialResults();
 
@@ -143,12 +130,6 @@ namespace CoupledField
     template<class TYPE>
     void CalcEddyPower( shared_ptr<BaseResult> result );
 
-    //! computes J*J for transient case
-    void CalcLocalEddyPowerDensity( Vector<Double>& eddyCurrentElem, Double& value);
-
-    //! computes J * Jconjugate in harmonic case
-    void CalcLocalEddyPowerDensity( Vector<Complex>& eddyCurrentElem, Complex& value);
-
     //! Calculate the total flux/flux derivative
     template<class TYPE>
     void CalcFlux( shared_ptr<Coil>, 
@@ -220,15 +201,6 @@ namespace CoupledField
                               UInt ip,
                               Vector<TYPE>& field );
     
-    //! surface of current loads
-    StdVector<shared_ptr<EntityList> > surfCurrents_;
-
-    //! values of surface current loads
-    StdVector<std::string>  surfCurVals_;
-
-    //! phase of surface current loads
-    StdVector<std::string>  surfCurPhase_;
-
     // =======================================================================
     //   COILS
     // =======================================================================

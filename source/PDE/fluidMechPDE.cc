@@ -698,6 +698,9 @@ void FluidMechPDE::CalcInputCoupling() {
       case COORD:
 
         ptCoupling_->GetInputNodes(i, nodes);
+        //         LOG_DBG(fluidMechPDE) << "Input SMOOTH_DISPLACEMENT\n"
+        //                               << "couplingnodes:\n" << (*nodes)
+        //                               << "\n values:\n" << help << std::endl;
         ptgrid_->SetNodeOffset( *nodes , help );
 
         break;
@@ -708,23 +711,23 @@ void FluidMechPDE::CalcInputCoupling() {
       case RHS:
         ptCoupling_->GetInputNodes(i, nodes);
 
-        try {
-          for ( UInt dof = 0; dof < couplingDof; dof++ ) {
-            for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
-              eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1);
-              if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
-                algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
-                    eqnNr);
-              }
+        //         LOG_DBG(fluidMechPDE) << "Input FLUIDMECH RHS????\n"
+        //                               << "couplingnodes:\n" << (*nodes)
+        //                               << "\n values:\n" << help << std::endl;
 
-              LOG_DBG(fluidmechpde) << "CalcInputCoupling: " << "(" << pdename_ << ") "
-                << "Refused to pass " << "eqnNr=" << eqnNr << " to SetNodeRHS()."
-                << " numLastFreeDof=" << maxAllowedEqn;
+        //for (UInt dof=0; dof<ptCoupling_->GetInputDof(i); dof++)
+        for ( UInt dof = 0; dof < couplingDof; dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++ ) {
+            eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1);
+            if ( eqnNr != 0 && eqnNr <= maxAllowedEqn ) {
+              algsys_->SetNodeRHS( help[ dof + couplingDof * j ], pdeId_,
+                  eqnNr);
             }
+
+            LOG_DBG(fluidmechpde) << "CalcInputCoupling: " << "(" << pdename_ << ") "
+              << "Refused to pass " << "eqnNr=" << eqnNr << " to SetNodeRHS()."
+              << " numLastFreeDof=" << maxAllowedEqn;
           }
-        } catch (Exception& ex ) {
-          RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-              << "Could not get equation number.");
         }
         break;
 
@@ -769,26 +772,19 @@ void FluidMechPDE::CalcInputCoupling() {
         //                               << "couplingnodes:\n" << (*nodes)
         //                               << "values:\n" << help << std::endl;
 
-        try {
-          for ( UInt dof = 0; dof < dim_; dof++ )
-          {
-            for ( UInt j = 0; j < nodes->GetSize(); j++)
-            {
-              //eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1 );
-              eqnNr = eqnMap_->GetNodeEqn(*results_[0],(*nodes)[j],dof+1);
+        for ( UInt dof = 0; dof < dim_; dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize(); j++) {
 
-              if (eqnNr==0)
-              {
-                EXCEPTION( "The specified coupling node has no equation number");
-              }
+            //eqnNr = eqnMap_->GetNodeEqn((*nodes)[j],dof+1 );
+            eqnNr = eqnMap_->GetNodeEqn(*results_[0],(*nodes)[j],dof+1);
 
-              algsys_->SetDirichlet( pdeId_, eqnNr, \
-                                     help[dof+j*dim_] );
+            if (eqnNr==0) {
+              EXCEPTION( "The specified coupling node has no equation number");
             }
+
+            algsys_->SetDirichlet( pdeId_, eqnNr,
+                help[dof+j*dim_] );
           }
-        } catch (Exception& ex ) {
-          RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-              << "Could not get equation number.");
         }
         break;
 
@@ -804,19 +800,15 @@ void FluidMechPDE::CalcInputCoupling() {
         //                               << "values:\n" << help << std::endl;
 
         //gridSol_->CouplingToNodeSolution(help,(*nodes));
-        try {
-          for ( UInt dof = 0; dof < dim_; dof++ ) {
-            for ( UInt j = 0; j < nodes->GetSize();j++) {
-              eqnNr = eqnMap_->GetNodeEqn(*results_[0],(*nodes)[j],dof+1);
-              //gridSol_->data_[abs(eqnNr-1)]=help[dof+j*dim_];
-              gridSol_->Set(eqnNr,help[dof+j*dim_]);
-            }
+        for ( UInt dof = 0; dof < dim_; dof++ ) {
+          for ( UInt j = 0; j < nodes->GetSize();j++) {
+            eqnNr = eqnMap_->GetNodeEqn(*results_[0],(*nodes)[j],dof+1);
+            //gridSol_->data_[abs(eqnNr-1)]=help[dof+j*dim_];
+            gridSol_->Set(eqnNr,help[dof+j*dim_]);
           }
-        } catch (Exception& ex ) {
-          RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-              << "Could not get equation number.");
         }
         break;
+
     }
     //       for (UInt ii=0; ii<help.GetSize(); ii++)
     //         Info->PrintF( pdename_, "help[%d]=%e\n", ii, help[ii]);
@@ -863,38 +855,48 @@ void FluidMechPDE::CalcOutputCoupling()
     //Info->PrintF( pdename_, "Values[%d]=%d\n", i, (*values)[i]);
 
 
-    switch(ptCoupling_->GetOutputType(i))
-    {
+    switch(ptCoupling_->GetOutputType(i)) {
       case NODE:
-        ptCoupling_->GetOutputNodes(i, couplingNodes);
 
-        if (quantity == FLUIDMECH_FORCE)
-        {
+        ptCoupling_->GetOutputNodes(i, couplingNodes);
+        //for (UInt ii=0; ii<(*couplingNodes).GetSize(); ii ++)
+        //Info->PrintF( pdename_, "couplingNodes[%d]=%d\n", ii, (*couplingNodes)[ii]);
+
+        if (quantity == FLUIDMECH_FORCE) {
           ptCoupling_->GetOutputElements(i, couplingElems);
           dof = ptCoupling_->GetOutputDof(i);
           CalcMechCouplingRHS(couplingElems, *couplingNodes, auxValues, dof);
           //(*values)=(auxValues*forceFac_) + ((*oldValues)*(1.0-forceFac_));
           (*values)=(auxValues*forceFac_);
+          //std::cout << "Force:\n" << (*values) << std::endl;
           Info->PrintF( pdename_, "Coupling Output Type=Force\n");
+          //              LOG_DBG(fluidMechPDE) << "Output FLUIDMECH_FORCE\n"
+          //                                    << "couplingnodes:\n" << (*couplingNodes)
+          //                                    << "values:\n" << (*values) << std::endl;
+
         }
         if (quantity == ACOU_RHSVAL) {
           if(saveAcouSrc_ == true)
           {
             acou_src_.NodeSolutionToCoupling(*values, *couplingNodes, 1);
             Info->PrintF( pdename_, "Coupling Output Type=acouRHSval\n");
-          } else {
-              EXCEPTION("Sorry, but acouRHSval is not defined as a "
-                  << "NodeResult in your XML, please do so");
-          }
+            //                    LOG_DBG(fluidMechPDE) << "Output ACOU_RHSVAL\n"
+            //                                          << "couplingNodes:\n" << (*couplingNodes)
+            //                                          << "values:\n" << (*values) << std::endl;
+          }else
+            EXCEPTION("Sorry, but acouRHSval is not defined as a "
+                << "NodeResult in your XML, please do so");
 
         }
-        if (quantity == ACOUSURF_RHSVAL)
-        {
+        if (quantity == ACOUSURF_RHSVAL) {
           ptCoupling_->GetOutputElements(i, couplingElems);
           dof = ptCoupling_->GetOutputDof(i);
-          CalcAcouSurfSourceCouplingRHS(couplingElems, \
-                        *couplingNodes, (*values), dof);
+          CalcAcouSurfSourceCouplingRHS(couplingElems, *couplingNodes, (*values), dof);
+
           Info->PrintF( pdename_, "Coupling Output Type=acouSurfRHSVal\n");
+          //              LOG_DBG(fluidMechPDE) << "Output FLUIDMECH_FORCE\n"
+          //                                    << "couplingnodes:\n" << (*couplingNodes)
+          //                                    << "values:\n" << (*values) << std::endl;
         }
         break;
 
@@ -902,6 +904,7 @@ void FluidMechPDE::CalcOutputCoupling()
         EXCEPTION("No Element coupling output");
     }
   }
+
 }
 
 void FluidMechPDE::GetPresSolVecOfElement( Vector<Double>& elemSol,
@@ -916,20 +919,15 @@ void FluidMechPDE::GetPresSolVecOfElement( Vector<Double>& elemSol,
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   Vector<Double> & sol = solhelp->GetAlgSysVector();
 
-  try {
-    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
-      //eqnNr = eqnMap_->GetNodeEqn(connecth[actNode],presDof);
-      eqnNr = eqnMap_->GetNodeEqn(*results_[1],connecth[actNode],1);
-      if (eqnNr!= 0) {
-        elemSol[actNode] = sol[(abs(eqnNr-1))];
-        //elemSol[actNode] = presSol[(abs(eqnNr-1))];
-      } else {
-        elemSol[actNode] = 0.0;
-      }
+  for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+    //eqnNr = eqnMap_->GetNodeEqn(connecth[actNode],presDof);
+    eqnNr = eqnMap_->GetNodeEqn(*results_[1],connecth[actNode],1);
+    if (eqnNr!= 0) {
+      elemSol[actNode] = sol[(abs(eqnNr-1))];
+      //elemSol[actNode] = presSol[(abs(eqnNr-1))];
+    } else {
+      elemSol[actNode] = 0.0;
     }
-  } catch (Exception& ex ) {
-    RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-        << "Could not get equation number.");
   }
 }
 
@@ -949,25 +947,20 @@ void FluidMechPDE::GetVeloSolMatOfElement( Matrix<TYPE>& elemSol,
   NodeStoreSol<Double> * solhelp = dynamic_cast<NodeStoreSol<Double>*>(sol_);
   Vector<Double> & sol = solhelp->GetAlgSysVector();
 
-  try {
-    for(UInt actNode=0; actNode<connecth.GetSize(); actNode++)
-    {
-      for(UInt actDof=0; actDof<dim_; actDof++)
-      {
-        eqnNr = eqnMap_->GetNodeEqn(*results_[0],connecth[actNode],actDof+1);
-        if ( eqnNr != 0 )
-        {
-          elemSol[actDof][actNode] = sol[eqnNr-1];
-        } else if ( eqnNr <= maxAllowedEqn ) {
-          elemSol[actDof][actNode] = 0.0;
-        } else {
-          EXCEPTION( "wrong equation Number");
-        }
+  for(UInt actNode=0; actNode<connecth.GetSize(); actNode++) {
+    for(UInt actDof=0; actDof<dim_; actDof++) {
+
+      //eqnNr = eqnMap_->GetNodeEqn(connecth[actNode],actDof+1);
+      eqnNr = eqnMap_->GetNodeEqn(*results_[0],connecth[actNode],actDof+1);
+      if ( eqnNr != 0 ) {
+        elemSol[actDof][actNode] = sol[eqnNr-1];
+        //elemSol[actDof][actNode] = veloSol[eqnNr-1];
+      } else if ( eqnNr <= maxAllowedEqn ) {
+        elemSol[actDof][actNode] = 0.0;
+      } else {
+        EXCEPTION( "wrong equation Number");
       }
     }
-  } catch (Exception& ex ) {
-    RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-        << "Could not get equation number.");
   }
 }
 
@@ -1065,15 +1058,10 @@ void FluidMechPDE::AcouSourceCalc()
         //              LOG_DBG(fluidMechPDE) << "The current Element is:\n" << actCoupleElem->elemNum << std::endl;
         linear_load->CalcElemVec_withCFSVel(ptCoordNodes, flowdata, Result, density);
         // Now the results are written out as a gid result
-        try {
-          for(ii = 0; ii< ptEl->GetNumNodes(); ii++)
-          {
-            eqnNr = eqnMap_->GetNodeEqn(*results_[1],connecth[ii],1);
-            acou_src_.Add(eqnNr,Result[ii]);
-          }
-        } catch (Exception& ex ) {
-          RETHROW_EXCEPTION(ex, pdename_ << ": " << std:: endl 
-              << "Could not get equation number.");
+        for(ii = 0; ii< ptEl->GetNumNodes(); ii++)
+        {
+          eqnNr = eqnMap_->GetNodeEqn(*results_[1],connecth[ii],1);
+          acou_src_.Add(eqnNr,Result[ii]);
         }
         delete linear_load;
       }
@@ -1096,9 +1084,12 @@ void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
   // Double auxPres;
   Integer matIndex = -1;
   Elem * ptVolElem = NULL;
-  Matrix<Double> ptCoord, ptCoordVol;
-  Vector<Double> presSol, normal;
+  Matrix<Double> ptCoord, ptCoordVol, elemMat;
+  Vector<Double> presSol, pressureForceOnNode, normal;
   Matrix<Double> veloSol;
+  Vector<Double> Eps_xx_ForceOnNode, Eps_yy_ForceOnNode, Eps_zz_ForceOnNode;
+  Vector<Double> Eps_xy_ForceOnNode, Eps_yz_ForceOnNode, Eps_xz_ForceOnNode;
+  Vector<Double> Eps_xx_Sol, Eps_yy_Sol, Eps_zz_Sol, Eps_xy_Sol, Eps_yz_Sol, Eps_xz_Sol;
 
   elemCouplingSols.Init();
   for (UInt actElem=0; actElem<couplingElems->GetSize(); actElem++)
@@ -1113,8 +1104,13 @@ void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
       EXCEPTION( "No elements found for coupling!");
     }
 
+    // BaseFE * ptElem = actCoupleElem->ptElem; // TODO: Unused variable ptElem
+
     StdVector<UInt> & connecth = actCoupleElem->connect;
     ptgrid_->GetElemNodesCoord( ptCoord, connecth, true );
+
+    // Double surfArea; // TODO: Unused variable surfArea
+    // surfArea=ptElem->CalcVolume(ptCoord, isaxi_);
 
     // Try to find according region for first neighbouring volume
     // element of the surface element
@@ -1143,6 +1139,21 @@ void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
     materials_[subdoms_[matIndex]]->GetScalar(dynamicViscosity, DYNAMIC_VISCOSITY, Global::REAL);
     materials_[subdoms_[matIndex]]->GetScalar(kinematicViscosity, KINEMATIC_VISCOSITY, Global::REAL);
 
+    std::auto_ptr<BaseForm> bilinear_mass = std::auto_ptr<BaseForm>(new MassInt(1.0, 1, isaxi_, coordUp_ ));
+
+    ElemList temp( ptgrid_ );
+    temp.SetElement( actCoupleElem );
+    EntityIterator it = temp.GetIterator();
+    bilinear_mass->CalcElementMatrix(elemMat, it, it);
+    //delete bilinear_mass;
+
+    //fluidMech
+    GetPresSolVecOfElement(presSol, connecth);
+    pressureForceOnNode = elemMat * presSol;
+
+    // force has to be added on RHS with negative sign
+    pressureForceOnNode *= (-1.0 * density);
+
     // the normal vector points outwards of the MECHANICAL domain
     // (see. Kaltenbacher, "Num. Sim. of Mechatr. Act. & Sens." chapter 8.2)
     ptgrid_->CalcSurfNormal(normal, *actCoupleElem);
@@ -1157,44 +1168,97 @@ void FluidMechPDE::CalcMechCouplingRHS( StdVector<Elem*> * couplingElems,
     std::auto_ptr<FluidMechShearStress<Double> > shearStress =
       std::auto_ptr<FluidMechShearStress<Double> >(new FluidMechShearStress<Double>(materials_[subdoms_[matIndex]],type) );
 
-    ElemList temp1( ptgrid_ );
-    temp1.SetElement( actCoupleElem );
-    EntityIterator surfIter = temp1.GetIterator();
+    BaseFE * ptVolFE = ptVolElem->ptElem;
 
     ElemList temp2( ptgrid_ );
     temp2.SetElement( ptVolElem );
-    EntityIterator volIter = temp2.GetIterator();
+    EntityIterator it2 = temp2.GetIterator();
 
-    // force has to be added on RHS with negative sign
-    Matrix<Double> pressureForce;
-    Matrix<Double> viscStress;
-
-    //fluidMech-pressure
     StdVector<UInt> & connecthVol = ptVolElem->connect;
-    GetPresSolVecOfElement(presSol, connecthVol);
-    shearStress->SetActElemPresSol(presSol);
     ptgrid_->GetElemNodesCoord( ptCoordVol, connecthVol, true );
+
     GetVeloSolMatOfElement(veloSol, connecthVol);
+
     shearStress->SetActElemSol(veloSol);
 
-    shearStress->CalcPressureForce(pressureForce, volIter, surfIter, normal );
-    shearStress->CalcShearStressVec(viscStress, volIter, surfIter, normal );
+    Vector<Double> intPoint;
+    ptVolFE->GetCoordMidPoint(intPoint);
+    shearStress->SetIntPoint(intPoint);
+
+    Vector<Double> elemStress;
+    elemStress.Resize(stressDim_);
+    elemStress.Init();
+
+    //calculates the stress
+    shearStress->CalcShearStressVec(elemStress, 1, it2 );
+
+    Matrix<Double> elemShearForce;
+    elemShearForce.Resize(connecth.GetSize(), dim_);
+    if (dim_ == 2)
+    {
+      Eps_xx_Sol.Resize(connecth.GetSize());
+      Eps_xx_Sol.Init(elemStress[0]);
+      Eps_xx_ForceOnNode = elemMat * Eps_xx_Sol;
+
+      Eps_yy_Sol.Resize(connecth.GetSize());
+      Eps_yy_Sol.Init(elemStress[1]);
+      Eps_yy_ForceOnNode = elemMat * Eps_yy_Sol;
+
+      Eps_xy_Sol.Resize(connecth.GetSize());
+      Eps_xy_Sol.Init(elemStress[2]);
+      Eps_xy_ForceOnNode = elemMat * Eps_xy_Sol;
+
+      for(UInt n=0; n<connecth.GetSize(); n++)
+      {
+        elemShearForce[n][0]=Eps_xx_ForceOnNode[n]*normal[0] + Eps_xy_ForceOnNode[n]*normal[1];
+        elemShearForce[n][1]=Eps_xy_ForceOnNode[n]*normal[0] + Eps_yy_ForceOnNode[n]*normal[1];
+      }
+    } else if (dim_ == 3) {
+      Eps_xx_Sol.Resize(connecth.GetSize());
+      Eps_xx_Sol.Init(elemStress[0]);
+      Eps_xx_ForceOnNode = elemMat * Eps_xx_Sol;
+
+      Eps_yy_Sol.Resize(connecth.GetSize());
+      Eps_yy_Sol.Init(elemStress[1]);
+      Eps_yy_ForceOnNode = elemMat * Eps_yy_Sol;
+
+      Eps_zz_Sol.Resize(connecth.GetSize());
+      Eps_zz_Sol.Init(elemStress[2]);
+      Eps_zz_ForceOnNode = elemMat * Eps_zz_Sol;
+
+      Eps_yz_Sol.Resize(connecth.GetSize());
+      Eps_yz_Sol.Init(elemStress[3]);
+      Eps_yz_ForceOnNode = elemMat * Eps_yz_Sol;
+
+      Eps_xz_Sol.Resize(connecth.GetSize());
+      Eps_xz_Sol.Init(elemStress[4]);
+      Eps_xz_ForceOnNode = elemMat * Eps_xz_Sol;
+
+      Eps_xy_Sol.Resize(connecth.GetSize());
+      Eps_xy_Sol.Init(elemStress[5]);
+      Eps_xy_ForceOnNode = elemMat * Eps_xy_Sol;
+
+      for (UInt n=0; n<connecth.GetSize(); n++)
+      {
+        elemShearForce[n][0]=Eps_xx_ForceOnNode[n]*normal[0] + Eps_xy_ForceOnNode[n]*normal[1] + Eps_xz_ForceOnNode[n]*normal[2];
+        elemShearForce[n][1]=Eps_xy_ForceOnNode[n]*normal[0] + Eps_yy_ForceOnNode[n]*normal[1] + Eps_yz_ForceOnNode[n]*normal[2];
+        elemShearForce[n][2]=Eps_xz_ForceOnNode[n]*normal[0] + Eps_yz_ForceOnNode[n]*normal[1] + Eps_zz_ForceOnNode[n]*normal[2];
+      }
+    }
 
     //***********************************************************************************************//
 
     for (UInt actNode=0; actNode < connecth.GetSize(); actNode++)
     {
       UInt nodePos = 0;
-      while (connecth[actNode] != couplingNodes[nodePos] \
-                     && nodePos < couplingNodes.GetSize())
+      while (connecth[actNode] != couplingNodes[nodePos] && nodePos < couplingNodes.GetSize())
       {
         nodePos++;
       }
-      const UInt nodePos_couplingdof = nodePos * couplingdof;
-      for (UInt actDof = 0; actDof < couplingdof; ++actDof)
+      for (UInt actDof=0; actDof < couplingdof; actDof++)
       {
-        elemCouplingSols[nodePos_couplingdof +actDof] += \
-          pressureForce[actNode][actDof] + viscStress[actNode][actDof];
+        elemCouplingSols[nodePos*couplingdof +actDof] += 
+          (pressureForceOnNode[actNode] * normal[actDof] + elemShearForce[actNode][actDof]);
       }
     }
   }//end loop over elem
@@ -1207,6 +1271,7 @@ void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingEle
   Double density = 0.0;
   Double sign = 0.0;
   Integer matIndex = -1;
+  // Elem * ptVolElem = NULL; // TODO: Unused variable ptVolElem
   Matrix<Double> ptCoord, elemMat;
   Vector<Double> normal, actElemAcouRHS;
   Vector<Double> veloDerivSol, nveloDerivSol;
@@ -1240,9 +1305,11 @@ void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingEle
     // second one
     if ( matIndex == -1 ) {
       matIndex = subdoms_.Find(actCoupleElem->ptVolElem2->regionId);
+      // ptVolElem = actCoupleElem->ptVolElem2;
       sign = -1.0*actCoupleElem->normalSign;
 
     } else {
+      // ptVolElem = actCoupleElem->ptVolElem1;
       sign = actCoupleElem->normalSign;
     }
 
@@ -1292,12 +1359,10 @@ void FluidMechPDE::CalcAcouSurfSourceCouplingRHS( StdVector<Elem*> * couplingEle
 
 bool FluidMechPDE::HasOutput(SolutionType output)
 {
-  if ( output == FLUIDMECH_VELOCITY || output == FLUIDMECH_PRESSURE \
-      || output == FLUIDMECH_FORCE \
-      || output == ACOU_RHSVAL || output == ACOUSURF_RHSVAL )
-  {
+
+  if (output == FLUIDMECH_VELOCITY || output == FLUIDMECH_PRESSURE || output == FLUIDMECH_FORCE || output == ACOU_RHSVAL || output == ACOUSURF_RHSVAL)
     return true;
-  }
+
   return false;
 }
 
@@ -1312,6 +1377,7 @@ void FluidMechPDE::InitTimeStepping()
 {
   // timestepping formulation
   TS_alg_ = new Bdf2( algsys_);
+  //    	TS_alg_ = new Trapezoidal( algsys_);
 }
 
 // ***********************************************************************
@@ -1479,9 +1545,9 @@ void FluidMechPDE::DefineAvailResults() {
     fct->SetIsoOrder( order );
     pres->fctType = fct;
     pres->definedOn = ResultInfo::PFEM;
-  } else {
+  } else
     EXCEPTION( "Wrong approximation type" );	
-  }
+
 
   results_.Push_back( pres );
   availResults_.insert( pres);

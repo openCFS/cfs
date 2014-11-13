@@ -117,7 +117,6 @@ namespace CoupledField {
     
     name_ = "nlinHeatMassInt";
     isSolDependent_ = true;
-    matData->GetScalar(density_,DENSITY,Global::REAL);
   }
 
 
@@ -173,10 +172,10 @@ namespace CoupledField {
       
       if (isaxi_) {
         CoordAtIP = ptCoord_ * ShpFncAtIp;
-        partElemMat *= 2 * PI * intWeights[actIntPt-1] * heatCapacity * jacDet * CoordAtIP[0] * density_;
+        partElemMat *= 2 * PI * intWeights[actIntPt-1] * heatCapacity * jacDet * CoordAtIP[0];
       }
       else 
-        partElemMat *= intWeights[actIntPt-1] * heatCapacity * jacDet * density_;
+        partElemMat *= intWeights[actIntPt-1] * heatCapacity * jacDet;
       
       elemMat += partElemMat;
     }

@@ -5,7 +5,7 @@
 #include <map>
 
 #include "General/environment.hh"
-//#include "MatVec/exprt/xpr1.hhb"
+#include "MatVec/exprt/xpr1.hh"
 #include "OLAS/algsys/basesystem.hh"
 #include "PDE/timestepping.hh"
 #include "trapezoidal.hh"

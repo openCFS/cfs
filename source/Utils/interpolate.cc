@@ -10,8 +10,6 @@
 #include "General/exception.hh"
 #include "interpolate.hh"
 
-using boost::char_separator;
-
 namespace CoupledField {
   
   // define static maps

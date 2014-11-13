@@ -273,61 +273,7 @@ namespace CoupledField
             fdps->dofNames.push_back("-");
             fdps->unit = MapSolTypeToUnit(FLUIDMECH_PRESSURE);
             fdps->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
-          }
-        }
-
-        // copy derivative of Lighthill tensor if exists
-        if (dsName == "derivLighthillT" &&
-            (requiredResults_[AERO_ACOU_D_LH_TENSOR] ||
-             requiredResults_[NO_SOLUTION_TYPE]))
-        {
-          /* copy the Lighthill tensor values */
-          fdps = &fd[AERO_ACOU_D_LH_TENSOR];
-          fdps->isActive = !actRegion; // all partitions have results
-
-          if (fdps->dofNames.empty())
-          {
-            fdps->definedOn = ResultInfo::NODE; // nodes
-            fdps->entryType = ResultInfo::SCALAR;
-            fdps->dofNames.push_back("-");
-            fdps->unit = MapSolTypeToUnit(AERO_ACOU_D_LH_TENSOR);
-            fdps->resultName = SolutionTypeEnum.ToString(AERO_ACOU_D_LH_TENSOR);
-          }
-        }
-        // copy laplace P if exists
-        if (dsName == "laplaceP" &&
-            (requiredResults_[AERO_ACOU_LAPLACE_P_RHS] ||
-             requiredResults_[NO_SOLUTION_TYPE]))
-        {
-          /* copy the laplacian of p values */
-          fdps = &fd[AERO_ACOU_LAPLACE_P_RHS];
-          fdps->isActive = !actRegion; // all partitions have results
-
-          if (fdps->dofNames.empty())
-          {
-            fdps->definedOn = ResultInfo::NODE; // nodes
-            fdps->entryType = ResultInfo::SCALAR;
-            fdps->dofNames.push_back("-");
-            fdps->unit = MapSolTypeToUnit(AERO_ACOU_LAPLACE_P_RHS);
-            fdps->resultName = SolutionTypeEnum.ToString(AERO_ACOU_LAPLACE_P_RHS);
-          }
-        }
-        // copy divergence of lamb vector if exists
-        if (dsName == "divLambVector" &&
-            (requiredResults_[AERO_ACOU_DIV_LAMB_RHS] ||
-             requiredResults_[NO_SOLUTION_TYPE]))
-        {
-          /* copy the divergence of lamb vector */
-          fdps = &fd[AERO_ACOU_DIV_LAMB_RHS];
-          fdps->isActive = !actRegion; // all partitions have results
-
-          if (fdps->dofNames.empty())
-          {
-            fdps->definedOn = ResultInfo::NODE; // nodes
-            fdps->entryType = ResultInfo::SCALAR;
-            fdps->dofNames.push_back("-");
-            fdps->unit = MapSolTypeToUnit(AERO_ACOU_DIV_LAMB_RHS);
-            fdps->resultName = SolutionTypeEnum.ToString(AERO_ACOU_DIV_LAMB_RHS);
+            fdps->data.resize(numDOFs * nvx);
           }
         }
 
@@ -342,17 +288,7 @@ namespace CoupledField
                  requiredResults_[NO_SOLUTION_TYPE])) ||
               (dsName == "p" &&
                (requiredResults_[FLUIDMECH_PRESSURE] ||
-                requiredResults_[NO_SOLUTION_TYPE])) ||
-              (dsName == "derivLighthillT" &&
-               (requiredResults_[AERO_ACOU_D_LH_TENSOR] ||
-                requiredResults_[NO_SOLUTION_TYPE])) ||
-              (dsName == "laplaceP" &&
-              (requiredResults_[AERO_ACOU_LAPLACE_P_RHS] ||
-               requiredResults_[NO_SOLUTION_TYPE])) ||
-              (dsName == "divLambVector" &&
-              (requiredResults_[AERO_ACOU_DIV_LAMB_RHS] ||
-               requiredResults_[NO_SOLUTION_TYPE]))
-              )
+                requiredResults_[NO_SOLUTION_TYPE])))
           {
             numDOFs = fdps->dofNames.size();
             fdps->data.resize(numDOFs * nvx);

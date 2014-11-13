@@ -32,27 +32,17 @@ template <class TYPE> class Matrix;
     //! Destructor
     virtual ~BDBInt();
 
-    void CalcElementMatrix( Matrix<double>& elemMat,
-                            EntityIterator& ent1,
-                            EntityIterator& ent2 ){
-      CalcElementMatrix<double>( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
-    }
-
-    void CalcElementMatrix( Matrix<Complex>& elemMat,
-                            EntityIterator& ent1,
-                            EntityIterator& ent2 ){
-      CalcElementMatrix<Complex>( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
-    }
-
-    template<typename T>
-    void CalcElementMatrix( Matrix<T>& elemMat,
-                            EntityIterator& ent1,
-                            EntityIterator& ent2,
-                            const DesignElement::Type direction);
-
-
     //! Compute element matrix associated to ADB form
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1,
+                            EntityIterator& ent2 ){
+      CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
+    }
 
+    void CalcElementMatrix( Matrix<Double>& elemMat,
+                            EntityIterator& ent1, 
+                            EntityIterator& ent2,
+                            const DesignElement::Type direction );
 
     //! \note This memorial is dedicated to the undocumented function
     void CalcComplexElementMatrix( Matrix<Complex> & elemMat,
@@ -87,11 +77,6 @@ template <class TYPE> class Matrix;
       EXCEPTION("not correctly overwritten!");
     };
 
-    virtual void calcDMat(Matrix<Complex> &dMat)
-    {
-      EXCEPTION("not correctly overwritten!");
-    };
-
 
     /** This is the SIMP version, where the physical tensor [c], [\epsilon], ... is
      * multiplied with the design variable (pseudo density, pseudo polarization).
@@ -107,18 +92,9 @@ template <class TYPE> class Matrix;
       calcDMat(dMat); // call nonlinear stuff, elem was actually introducted for optimization
     };
 
-    virtual void calcDMat(Matrix<Complex> &dMat, const Elem* elem)
-    {
-      calcDMat(dMat); // call nonlinear stuff, elem was actually introducted for optimization
-    };
-
     /** This is the ParamMat optimization version, overwrite this to provide Derivatives for the tensor
      * used in parametric material optimization. */
     virtual void calcDMat(Matrix<Double> &dMat, const Elem* elem, DesignElement::Type direction, double force_factor = 0.0)
-    {
-      EXCEPTION("not correctly overwritten!");
-    };
-    virtual void calcDMat(Matrix<Complex> &dMat, const Elem* elem, DesignElement::Type direction, double force_factor = 0.0)
     {
       EXCEPTION("not correctly overwritten!");
     };
@@ -137,11 +113,6 @@ template <class TYPE> class Matrix;
     /** returns D - matrix for BDB, changes in every integration point
      * @see calcDMat(Matrix<Double>, EntityIterator*) */
     virtual void calcDMat( Matrix<Double> &dMat, UInt ip,
-                           Matrix<Double> &ptCoord ) {
-      EXCEPTION( "BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
-               << "not correct overwritten!" );
-    };
-    virtual void calcDMat( Matrix<Complex> &dMat, UInt ip,
                            Matrix<Double> &ptCoord ) {
       EXCEPTION( "BDBInt::calcDMat(Matrix<Double>&, int, Matrix<Double>&) "
                << "not correct overwritten!" );

@@ -23,7 +23,6 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEmpcci.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEheatConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEfluidMech.xsd"/>
-  <xsd:include schemaLocation="Schemas/CFS_PDELatticeBoltzmann.xsd"/>
 
   <!-- ******************************************************************* -->
   <!--   Include definition of coupling types and elements -->
@@ -186,7 +185,7 @@
     <!-- a corresponding region has been designated in the domain part -->
     <xsd:keyref name="CS_RegionExists" refer="CS_DomainNamesRegion">
       <xsd:selector
-        xpath="cfs:pdeList/cfs:LatticeBoltzmann/cfs:region|cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region"/>
+        xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region"/>
       <!-- Simple selection of all PDEs does not work due to problems -->
       <!--- with auxilliary MPCCI PDE. What is a region in that case? -->
       <!--xsd:selector xpath="cfs:pdeList/*/cfs:region"/-->

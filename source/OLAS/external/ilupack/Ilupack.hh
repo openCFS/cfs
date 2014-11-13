@@ -17,7 +17,6 @@ extern "C"
 { 
 #include <ilupack.h> 
 #include <stddef.h>
-#undef real
 }
 
 

@@ -52,7 +52,7 @@ namespace CoupledField
       static Optimization::Application Default(const SinglePDE* pde);
 
       /** see the other Default */
-      static Optimization::Application Default(DesignElement::Type type, const SinglePDE* = NULL);
+      static Optimization::Application Default(DesignElement::Type type);
 
       Optimization::Application GetApplication() { return application_; }
       

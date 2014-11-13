@@ -46,7 +46,6 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   PtrParamNode meshdefs = xml->Get("meshdeformations");
   unsigned int nshapeparams = meshdefs->Get("parameters")->As<Integer>();
   ParamNodeList deformations = meshdefs->GetList("deformation");
-  ParamNodeList constrs = meshdefs->GetList("constraint");
   unsigned int numnodes = domain->GetGrid()->GetNumNodes();
   if((unsigned int)meshdefs->Get("nodes")->As<Integer>() != numnodes){
     EXCEPTION("The number of nodes given in the mesh deformation file for Shape Optimization does not correspond to the number of nodes in the grid!");
@@ -70,18 +69,6 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
     double value = deformation->Get("value")->As<Double>();
     m[direction][param] = value;
   }
-  shapeconstraints_.Resize(constrs.GetSize());
-  for(unsigned int i = 0; i < constrs.GetSize(); i++){
-    ParamNodeList constr = constrs[i]->GetList("pair");
-    ShapeConstraint& c = shapeconstraints_[i];
-    assert(constr.GetSize() == 1); // more complex constraints could have several pairs, i.e. if not taking the inf-norm. This is not yet implemented
-    PtrParamNode con = constr[0];
-    c.param[0] = con->Get("p")->As<Integer>();
-    c.factor[0] = con->Get("fp")->As<Double>();
-    c.param[1] = con->Get("q")->As<Integer>();
-    c.factor[1] = con->Get("fq")->As<Double>();
-    assert(c.factor[1] == 0.0 || c.param[1] >= 0);
-  }
   // note that there exist empty matrices in the nodedeformations_
   aux_design_.Reserve(nshapeparams);
   double l = -1.0;
@@ -94,9 +81,8 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
     v = pn->Get("allShapeParams")->Get("initial")->As<Double>();
     scaling_ = pn->Get("allShapeParams")->Get("scaling")->As<Double>();
   }
-  int numberOfIndexesBefore = DesignSpace::GetNumberOfVariables();
   for(unsigned int i = 0; i < nshapeparams; i++){
-    ShapeDesignElement de(numberOfIndexesBefore + i);
+    BaseDesignElement de;
     de.SetLowerBound(l);
     de.SetUpperBound(u);
     de.SetDesign(v);
@@ -120,7 +106,7 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
     }
   }
   UpdateCoordinates();
-  
+
   assert(aux_design_.GetSize() == nshapeparams);
 }
 
@@ -189,10 +175,6 @@ bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const S
     }
   }
   return(!allIsZero);
-}
-
-StdVector<ShapeDesign::ShapeConstraint>& ShapeDesign::GetShapeConstraints() {
-  return(shapeconstraints_);
 }
 
 

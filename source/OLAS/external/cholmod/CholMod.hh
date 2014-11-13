@@ -22,7 +22,7 @@ namespace CoupledField
   class BaseVector;
   
   template<typename T>
-  class CholMod : public BaseDirectSolver 
+  class CholMod : public BaseIterativeSolver 
   {
   public:
     CholMod(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::EntryType type);

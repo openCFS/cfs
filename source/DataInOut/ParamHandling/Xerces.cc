@@ -355,7 +355,9 @@ namespace CoupledField
       XMLString::release(&xval);
     }
   }
-  void Xerces::SAXHandler::characters(const XMLCh* const chars, const XMLSize_t length) {
+
+  void Xerces::SAXHandler::characters(const XMLCh* const chars, const XMLSize_t length)
+  {
     char* xstring = XMLString::transcode(chars);
     std::string s(xstring);
     boost::trim(s);

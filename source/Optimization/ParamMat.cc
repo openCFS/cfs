@@ -27,7 +27,7 @@ ParamMat::ParamMat() : ErsatzMaterial()
   // Note: this constructor is also called from constructor of ShapeOpt even when no ParamMat is used, in this case, nothing may be done
   
   if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
-    design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
+    design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
   }
   
   mech_mat_ = NULL; // set in PostInit()
@@ -75,7 +75,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   switch(app)
   {
   case MECH:
-    out = dynamic_cast<Matrix<double>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    out = mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
     break;
   case MASS:
     out = mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);

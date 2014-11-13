@@ -29,7 +29,6 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEmpcci.xsd ${DST_DIR}/Schemas/CFS_PDEmpcci.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEsmooth.xsd ${DST_DIR}/Schemas/CFS_PDEsmooth.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDEstokesFluid.xsd ${DST_DIR}/Schemas/CFS_PDEstokesFluid.xsd
-  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd ${DST_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_ParamIdent.xsd ${DST_DIR}/Schemas/CFS_ParamIdent.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PostProc.xsd ${DST_DIR}/Schemas/CFS_PostProc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Preconds.xsd ${DST_DIR}/Schemas/CFS_Preconds.xsd

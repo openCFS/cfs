@@ -274,18 +274,9 @@ template<typename T> class NodeStoreSol;
     
     T Inner(const SingleVector& vec) const;
 
-    /** computes the inner product only for a defined range
-     * @param start first index
-     * @param end not included index */
-    T Inner(const SingleVector& vec, unsigned int start, unsigned int end) const;
-
-
     //! Override SingleVector functions
     //    virtual void Inner(const SingleVector& vec,Double& s) const;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
-
-    //! Compute the square of the Euclidean norm of this vector object
-    Double NormL2Squared() const;
 
     //! Compute Euclidean norm of this vector object
     Double NormL2() const;
@@ -452,10 +443,6 @@ template<typename T> class NodeStoreSol;
     //! rows contain the vector's entries, so row (k+1) contains entry
     //! \f$a_k\f$.
     virtual void Export( const char *fname ) const;
-
-    /** Read vector from an ascii file with one entry per line */
-    void Import(const std::string& name);
-
 
     //@}
 

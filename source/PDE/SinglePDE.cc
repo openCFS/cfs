@@ -1477,6 +1477,8 @@ namespace CoupledField {
 
 
   void SinglePDE::ReadBCs() {
+
+
     // fetch "bcsAndLoads" parameter node, if present.
     // otherwise leave
     PtrParamNode bcsNode = myParam_->Get("bcsAndLoads", ParamNode::PASS );
@@ -1782,54 +1784,12 @@ namespace CoupledField {
                      << slaveName << "' have different size" );
         }
 
-        // get center of gravity of bounding box for each list
-        Vector<Double> mLoc, sLoc, mMin (dim_), sMin (dim_), mMax (dim_), sMax (dim_), mCOG, sCOG;
-        EntityIterator masterIt = masterList.GetIterator();
-        EntityIterator slaveIt = slaveList.GetIterator();
-        for( UInt i=0; i<dim_; i++) {
-          mMin[i] = 1e42;
-          sMin[i] = 1e42;
-          mMax[i] = -1e42;
-          sMax[i] = -1e42;
-        }
-        // get bounding box of master nodes
-        for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
-          // obtain nodal coordinate
-          ptgrid_->GetNodeCoordinate( mLoc, masterIt.GetNode() );
-          for( UInt i=0; i<dim_; i++) {
-            if( mLoc[i] < mMin[i]) {
-              mMin[i] = mLoc[i];
-            }
-            if( mLoc[i] > mMax[i] ) {
-              mMax[i] = mLoc[i];
-            }
-          }
-        }
-        // get bounding box of slave nodes
-        for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
-          // obtain nodal coordinate
-          ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
-          for( UInt i=0; i<dim_; i++) {
-            if( sLoc[i] < sMin[i]) {
-              sMin[i] = sLoc[i];
-            }
-            if( sLoc[i] > sMax[i] ) {
-              sMax[i] = sLoc[i];
-            }
-          }
-        }
-        mCOG = (mMax + mMin);
-        sCOG = (sMax + sMin);
-        for( UInt i=0; i<dim_; i++) {
-          mCOG[i] = mCOG[i]/2;
-          sCOG[i] = sCOG[i]/2;
-        }
-
         // iterate over all master nodes and try to find "nearest"
         // node in slave list
-        Vector<Double> diff;
+        Vector<Double> mLoc, sLoc, diff;
         Double minDist, dist;
         StdVector<UInt> nodes(2);
+        EntityIterator masterIt = masterList.GetIterator();
         for( masterIt.Begin(); !masterIt.IsEnd(); masterIt++ ) {
 
           minDist = 1e42;
@@ -1844,7 +1804,7 @@ namespace CoupledField {
           EntityIterator slaveIt = slaveList.GetIterator();
           for( slaveIt.Begin(); !slaveIt.IsEnd(); slaveIt++ ) {
             ptgrid_->GetNodeCoordinate( sLoc, slaveIt.GetNode() );
-            diff = mLoc - sLoc - (mCOG - sCOG);
+            diff = mLoc - sLoc;
             dist = diff.NormL2();
             if( dist < minDist) {
               minDist = dist;

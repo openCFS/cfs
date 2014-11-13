@@ -26,7 +26,7 @@ DEFINE_LOG(ppm, "piezo_para_mat")
 
 PiezoParamMat::PiezoParamMat() : PiezoSIMP()
 {
-  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
+  design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()));
 }
 
 PiezoParamMat::~PiezoParamMat()
@@ -47,7 +47,7 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   switch(app)
   {
   case MECH:
-    out = dynamic_cast<Matrix<double>& >(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+    out = piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt);
     break;
 
   case ELEC:

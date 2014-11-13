@@ -64,7 +64,6 @@ IF(EXISTS "${HDF5_LIBRARY}"
     AND EXISTS "${HDF5_INCLUDE_DIR}/hdf5.h")
   
   SET(HDF5_FOUND 1)
-  SET(HDF5_LIBRARY "${HDF5_LIBRARY};-ldl")
   INCLUDE_DIRECTORIES("${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/include/cpp")
   
 ELSE(EXISTS "${HDF5_LIBRARY}"
@@ -80,8 +79,7 @@ ENDIF(EXISTS "${HDF5_LIBRARY}"
 
 
 IF(NOT WIN32)
-# for gcc 4.8 we need the dynamic link library libdl otherwise dlopen(), ... is not found
-SET(HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY};-lpthread;-ldl")
+SET(HDF5_LIBRARY "${HDF5_LIBRARY};${ZLIB_LIBRARY};-lpthread")
 ENDIF(NOT WIN32)
 
 IF(HDF5_FOUND)

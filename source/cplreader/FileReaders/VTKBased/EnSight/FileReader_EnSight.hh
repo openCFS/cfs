@@ -28,11 +28,6 @@ namespace CoupledField
                          const std::vector<bool>& activeParts,
                          const UInt timeStepIdx);
 
-    /* get element values from the corresponding fluid datafile and interpolate to nodes */
-    virtual void ReadElemValues(std::vector<FlowDataType>& nodalFlowData,
-                                const std::vector<bool>& activeParts,
-                                const UInt timeStepIdx);
-
     //! get user data from file reader
     virtual void GetUserData(std::map<std::string, std::string>& userData);
   protected:
@@ -41,12 +36,9 @@ namespace CoupledField
     void GetTimeValues();
     void SetTimeValue(Double val);
 
-    virtual void InitElemNodeMapping();
-
   private:
     std::string vx_, vy_, vz_;
     std::string pres_;
-    std::string presD2_;
   };
 
 } // end of namespace

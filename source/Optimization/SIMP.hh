@@ -127,7 +127,7 @@ protected:
 private:
 
   /** This private, as no virtual templates are possible with C++ */
-  template <class T1, class T2>
+  template <class T>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode, bool derivative = true);
 
   /** This private, as no virtual templates are possible with C++ */

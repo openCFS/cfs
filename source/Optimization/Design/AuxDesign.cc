@@ -57,9 +57,9 @@ void AuxDesign::PostInit(int objectives, int constraints)
     full_data[offset + i] = &(aux_design_[i]);
 }
 
-void AuxDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void AuxDesign::ToInfo(PtrParamNode in)
 {
-  DesignSpace::ToInfo(in, em);
+  DesignSpace::ToInfo(in);
 
   if(slack_ != NULL)
   {
@@ -135,9 +135,10 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
   bool write_aux = true;
-  if(alsomatopt_ && ( g == NULL || g->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
+  if(alsomatopt_)
   {
     // the number of DesignSpace variables is complicated because of constant region.
+    // The method is expensive as it counts
     unsigned int data_size = DesignSpace::GetNumberOfVariables(); // is virtual
 
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
@@ -168,13 +169,8 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
   // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
   // a single designBound value with 0 from aux_design_.
-  if(write_aux) {
-    if(g == NULL || g->HasDenseJacobian()) {
-      WriteAuxGradientToExtern(out, g, scaling);
-    }else{
-      WriteSparseAuxGradientToExtern(out, g, scaling);
-    }
-  }
+  if(write_aux)
+    WriteAuxGradientToExtern(out, g, scaling);
 }
 
 
@@ -196,24 +192,6 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Condition* g, b
     LOG_DBG3(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " out[" << base+i << "]=" << out[base+i]
                       << " slack case=" << (HasSlackVariable() && g != NULL && g->HasSlackBound());
   }
-}
-
-void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<double>& out, Condition* g, bool scale) const {
-  assert(g != NULL); // only constraints can have sparse Jacobians
-  assert(! HasSlackVariable() && ! g->HasSlackBound());
-
-  StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
-
-  unsigned int nonaux_size = DesignSpace::GetNumberOfVariables(); // is virtual
-
-  assert(out.window.GetSize() == sparsity.GetSize());
-  unsigned int base = out.window.GetStart();
-  double s = scale ? scaling_ : 1.0;
-  for(unsigned int i = 0; i < sparsity.GetSize(); i++)
-  {
-    assert(out.InWindow(base + i));
-    out[base + i] = aux_design_[sparsity[i]-nonaux_size].GetPlainGradient(NULL, g) * s; 
-  }  
 }
 
 void AuxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
@@ -261,10 +239,6 @@ void AuxDesign::AddAuxDerivatives(Objective* f, Condition* g, StdVector<double>&
     LOG_DBG3(aux_des) << "AAD[" << i << "]+=" << d[i] << "*" << weight << "=" << d[i]*weight;
     aux_design_[i].AddGradient(f, g, d[i]*weight);
   }
-}
-
-BaseDesignElement* AuxDesign::GetAuxDesignElement(unsigned int idx){
- return(&aux_design_[idx]);
 }
 
 inline

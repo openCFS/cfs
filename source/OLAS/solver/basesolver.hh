@@ -50,7 +50,7 @@ namespace CoupledField {
     //! - LDL_SOLVER2
     typedef enum {NOSOLVER, DIRECT, RICHARDSON, CG, LANCZOS, QMR, GMRES,
                   MINRES, SYMMLQ, LAPACK_LU, LAPACK_LL, PARDISO,  ILUPACK, LU_SOLVER, CHOLMOD, 
-                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER, PARDISO64, CONTACTIPOPT } SolverType;    
+                  LDL_SOLVER, LDL_SOLVER2, DIAGSOLVER, PARDISO64 } SolverType;    
     static Enum<SolverType> solverType;
 
   public:
@@ -92,11 +92,6 @@ namespace CoupledField {
 
     void SetUsingPenalty(bool usingPenalty) {
       usingPenalty_ = usingPenalty;
-    }
-    
-    /** Prepare for solution of adjoint problem, in contact case, the constraints have to be changed */
-    virtual void PrepareForAdjoint(BaseVector& sol) {
-      // usually nothing needs to be done here
     }
     
   protected:

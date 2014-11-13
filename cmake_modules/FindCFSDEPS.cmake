@@ -44,7 +44,8 @@ ENDIF(NOT ${CFS_FORCE_DEPS_DUMMY} STREQUAL "")
 IF(NOT EXISTS "${CFS_DEPS_ROOT}/build_common.pl")
   MESSAGE(FATAL_ERROR "You obviously do not have 'build_common.pl' in "
     "'${CFS_DEPS_ROOT}'. Get CFSDEPS from svn+ssh://lse10/software/cfsdeps/trunk "
-    "and place it in /opt/CFSDEPS. If you want to use different "
+    "and place it in /opt/CFSDEPS. You can also just copy the contents of the "
+    "directory /home/data/libraries/CFSDEPS. If you want to use different "
     "directories for CFS_DEPS_ROOT and CFS_DEPS_CACHE_DIR, please set "
     "environment variables with the same name before starting CMake or use "
     "its -D switch.")
@@ -300,14 +301,6 @@ ENDIF(CPLREADER_OPENFOAM OR CPLREADER_ENSIGHT OR CPLREADER_FLUENT)
 IF(CPLREADER_CGNS)
   INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCGNS.cmake")
 ENDIF(CPLREADER_CGNS)
-
-#-----------------------------------------------------------------------------
-# Find ccmio for STARCCM+ reader
-#-----------------------------------------------------------------------------
-IF(CPLREADER_STARCCM)
-  INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindCCMIO.cmake")
-ENDIF(CPLREADER_STARCCM)
-
 
 #-----------------------------------------------------------------------------
 # Find ParaView postprocessor

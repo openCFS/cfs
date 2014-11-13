@@ -70,9 +70,7 @@
                 <xsd:element name="dirichletHom" type="DT_MagneticHD"/>
                 <xsd:element name="dirichletInhom" type="DT_MagneticID"/>
                 <xsd:element name="neumannInhom" type="DT_MagneticIN"/>
-                <xsd:element name="surfCurrent"  type="DT_MagSurfCurrent"  />
                 <xsd:element name="constraint" type="DT_MagneticCS"/>
-                <xsd:element name="periodic"       type="DT_MagneticPeriodic"   />
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -205,19 +203,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for pressure loads -->
-  <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MagSurfCurrent">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-        default="0.0"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
 
   <!-- Element type for constraint condition -->
   <!-- We derive it by extending the base type -->
@@ -232,19 +217,6 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
-  <!-- Element type for periodic boundary condition -->
-  <xsd:complexType name="DT_MagneticPeriodic">
-    <xsd:complexContent>
-      <xsd:extension base="DT_BCBasic">
-        <xsd:attribute name="master" type="xsd:token" use="required"/>
-        <xsd:attribute name="slave"  type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="magPotential" type="DT_MagneticUnknownType"/>
-        <xsd:attribute name="dof" type="DT_MagneticDOF" use="required"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
 
 
   <!-- ******************************************************************* -->

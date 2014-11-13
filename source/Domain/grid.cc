@@ -2195,49 +2195,6 @@ namespace CoupledField
 
   }
 
-    StdVector<UInt> Grid::GetBoundaries(RegionIdType region)
-    {
-      StdVector<UInt> n(3);
-      n.Init(0.0);
-      if(!IsRegionRegular(region))
-        return n;
-
-      StdVector<double> min(3);
-      StdVector<double> max(3);
-      UInt dim = this->GetDim();
-      min.Init(1e10);
-      max.Init(1e-10);
-
-      StdVector <Elem*> elems;
-      this->GetElems(elems,region);
-
-      this->SetElementBarycenters(0,false);
-      for (UInt i = 0; i < elems.GetSize(); ++i) {
-          for (UInt j = 0; j < dim; ++j) {
-            if (elems[i]->barycenter[j] > max[j])
-              max[j] = elems[i]->barycenter[j];
-            if (elems[i]->barycenter[j] < min[j])
-              min[j] = elems[i]->barycenter[j];
-          }
-      }
-
-      // Computes lattice spacing
-      StdVector<double> spacing; // the output
-      Matrix<double> coords; // temporary
-      Elem* elem = elems[0];
-      this->GetElemNodesCoord(coords, elem->connect);
-      elem->ptElem->GetEdgeLength(coords, spacing);
-
-      if (dim == 2)
-        n[2] = 1;
-      for (UInt i = 0; i < dim; ++i)
-         n[i] = 1.00001 * (max[i] - min[i]) / spacing[i] + 1;
-
-      LOG_DBG2(grid) << "GB(" << region << ") min=" << min.ToString() << " max=" << max.ToString() << " spacing=" << spacing.ToString() << " -> " << n.ToString();
-
-      return n;
-    }
-
   // =======================================================================
   // Method wrappers for scripting
   // =======================================================================

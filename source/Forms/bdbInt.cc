@@ -21,8 +21,7 @@
 
 namespace CoupledField {
 
-  template<typename T>
-  void BDBInt::CalcElementMatrix( Matrix<T>& elemMat,
+  void BDBInt::CalcElementMatrix( Matrix<Double>& elemMat,
                                   EntityIterator& ent1,
                                   EntityIterator& ent2,
                                   DesignElement::Type direction ) {
@@ -41,10 +40,9 @@ namespace CoupledField {
     double jacDet;
 
     Matrix<Double> bMat;
-    Matrix<T> dMat;
-    Matrix<T> dbMat;
-    Double aux, fac, *ptr1;
-    T *ptr2, *ptr3;
+    Matrix<Double> dMat;
+    Matrix<Double> dbMat;
+    Double aux, fac, *ptr1, *ptr2, *ptr3;
 
     UInt bRows(getDimD());
     UInt bCols(nrFncs * nrDofs);
@@ -128,8 +126,7 @@ namespace CoupledField {
         }
 
         // Compute the matrix product D * B and store as intermediate matrix
-        //dMat.Mult( bMat, dbMat );
-        dbMat = dMat*bMat;
+        dMat.Mult( bMat, dbMat );
 
         // We now compute B^T * D * B and scale it by the determinant
         // of the Jacobian and the weight of the current integration

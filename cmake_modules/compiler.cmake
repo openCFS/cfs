@@ -2,13 +2,10 @@
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
 #-------------------------------------------------------------------------------
-EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out_tmp.cmake"
+EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl g++ ${CFS_SOURCE_DIR}/share/scripts/IdentifyCXXCompiler.cpp cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake"
   ARGS
   OUTPUT_VARIABLE CC_COMPILER_INFO
   RETURN_VALUE RETVAL)
-
-# newer perl complains about given when which spoils out.cmake
-EXEC_PROGRAM("grep SET ${CFS_BINARY_DIR}/CMakeFiles/out_tmp.cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
 
 INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 
@@ -31,9 +28,6 @@ EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMA
   OUTPUT_VARIABLE CXX_COMPILER_INFO
   RETURN_VALUE RETVAL)
 
-# newer perl complains about given when which spoils out.cmake
-EXEC_PROGRAM("grep SET ${CFS_BINARY_DIR}/CMakeFiles/out_tmp.cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
-
 INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 #-------------------------------------------------------------------------------
 # Set the C++ compiler name and compiler version
@@ -47,9 +41,6 @@ EXEC_PROGRAM("${PERL} ${CFS_SOURCE_DIR}/share/scripts/identify_compiler.pl ${CMA
   OUTPUT_VARIABLE FORTRAN_COMPILER_INFO
   RETURN_VALUE RETVAL)
 
-# newer perl complains about given when which spoils out.cmake
-EXEC_PROGRAM("grep SET ${CFS_BINARY_DIR}/CMakeFiles/out_tmp.cmake > ${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
-
 INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 
 #-------------------------------------------------------------------------------
@@ -57,7 +48,6 @@ INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/out.cmake)
 #-------------------------------------------------------------------------------
 SET(CFS_FORTRAN_COMPILER_NAME ${FC_ID})
 SET(CFS_FORTRAN_COMPILER_VER "${FC_VERSION}")
-
 
 #-------------------------------------------------------------------------------
 # Check if we are using the GNU C++ compiler
@@ -88,13 +78,13 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
     # -frounding-math: is needed for CGAL library
-    # -Wno-unused-local-typedefs: for boost with gcc 4.8
     SET(CFS_CXX_FLAGS "-ftemplate-depth-200 -frounding-math")
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused-local-typedefs")
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused-local-typedefs")
+
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
     SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-200")
 
@@ -154,7 +144,6 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
   ENDIF(NOT USE_INTERPOLATION)
 
 ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
-
 
 #-------------------------------------------------------------------------------
 # Check for Intel C++ compiler
@@ -273,17 +262,6 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
     
 ENDIF(CFS_FORTRAN_COMPILER_NAME STREQUAL "IFORT")
 
-# the current TCL lib requires that option
-IF(USE_TCL)
-  SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
-ENDIF(USE_TCL)
-
-# the current TCL lib requires that option
-IF(USE_TCL)
-  SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
-ENDIF(USE_TCL) 
-
-
 
 #-------------------------------------------------------------------------------
 # Check if we have a valid combination of C++ and Fortran compilers.
@@ -305,7 +283,6 @@ SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LI
 SET(CMAKE_MODULE_LINKER_FLAGS "${CMAKE_MODULE_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
 SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} ${CFS_PROF_FLAGS} ${CFS_LINKER_FLAGS}")
 
-# MESSAGE("C++ flags: ${CMAKE_CXX_FLAGS}")
 # MESSAGE("C++ name: ${CFS_CXX_COMPILER_NAME}")
 # MESSAGE("C++ version: ${CFS_CXX_COMPILER_VER}")
 # MESSAGE("FORTRAN Compiler ${CFS_FORTRAN_COMPILER_NAME}")
