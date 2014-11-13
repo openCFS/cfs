@@ -7,16 +7,8 @@ import libxml2
 import numpy
 import math
 from optimization_tools import *
+import argparse
 
-# we assume a unit cube (2D/3D) 
-# edge discretization
-divider = 80 
-vol_list = ["0.5"]
-dim = 2 
-# what is the maximal order (1 is linar, 2 quadratic, ...)
-order = 6 
-# the maximal number of spheres as edge basis (1*1, 2*2, 3*3, .., or 1*1*1, 2*2*2, 3*3.3, ...)
-edge = 1
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
@@ -201,9 +193,21 @@ def create_density_file(dim, divider,  vol, max_edge, max_order):
       data_list.append(data)
       setname_list.append("spheres_n_" + str(e) + "-order_" + str(o))   
 
-  write_density_file(filename, data_list, setname_list) 
+  write_density_file(filename, data_list, setname_list)
+  print 'generated file ' + filename 
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
+parser.add_argument('--vol', help="volume fraction", type=float, default=0.5)
+parser.add_argument('--dim', help="square (2) or cube (3)", type=int, default=2)
+parser.add_argument('--order', help="the maximal order of generated shperes", type=int, default=6)
+parser.add_argument('--edge', help="the maximal number of spheres as edge basis", type=int, default=1)
+
+args = parser.parse_args()
+
+divider = args.res
   
-for vol in vol_list:  
-  create_density_file(dim, divider, float(vol), edge, order)  
+create_density_file(args.dim, args.res, args.vol, args.edge, args.order)  
 
 
