@@ -23,7 +23,8 @@ template <class TYPE> class StdVector;
     
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE } Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT,
+      REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING } Type;
     
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
@@ -84,6 +85,9 @@ template <class TYPE> class StdVector;
     /** the actual notation is not stored but assumed as HILL_MANDEL for FMO problems.
      * The enum is necessary for the constraint parameter notation. */
     static Enum<Notation> notation;
+
+    const Elem* current_elem;
+
 
   protected:
 
@@ -151,6 +155,17 @@ template <class TYPE> class StdVector;
 
     /**Computes the homogenized tensor from the reduced-order model obtaind for the homogenization formula */
     inline void GetModRedTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
+
+    void GetMappingTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation);
+
+    //Computes the gradient of the mapping inside the element considered
+    void GetMappingGradient(Matrix<double>& G);
+
+    //Computes the gradient of the gradient of the mapping inside the element considered with respect to all the variables considered
+    void GetMappingGradient(Matrix<double>& G, DesignElement::Type direction);
+
+
+
 
     /**Computes the homogenized tensor from the reduced-order model obtained for the homogenization formula with the greedy algorithm*/
     inline void GetGreedyTensor(Matrix<double>& t, DesignElement::Type direction, Notation notation);
@@ -251,7 +266,6 @@ template <class TYPE> class StdVector;
 
     //Contains the infomation about the parameters for the corrector problem in the greedy case
     StdVector<Matrix<double> > matrices_param_;
-
 
 
 

@@ -598,10 +598,18 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
   {
-    if (harmonic)
-    return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+    //Special case when doing mapping optimization
+    if ((method_== PARAM_MAT) && ( (design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) )
+    {
+      return CalcU1KU2_mapping(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+    }
     else
-    return CalcU1KU2<double>(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+    {
+        if (harmonic)
+        return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+        else
+        return CalcU1KU2<double>(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
+    }
   }
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
@@ -688,6 +696,267 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     return sum;
   }
+
+
+
+  double ErsatzMaterial::CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
+      {
+
+    std::cout << "derivative compliance" << std::endl;
+    LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+                     << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
+        // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
+        assert(u1.GetSize() != 0);
+        assert(u1.GetSize() == u2.GetSize());
+        double sum = 0.0;
+        // mat will be filled by SetElementK where also the derivative form most cases is built in
+        // the dimensions of our matrix is determined by u1_vec and u2_vec.
+        Matrix<double> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
+        Vector<double> mat_vec(u1[0]->GetSize());
+        TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
+        // traverse over our elements
+        // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
+        int elements = design->GetNumberOfElements();
+        int base_lower = 0;
+        int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
+        if(!design->HasErsatzMaterialTensor() && !design->HasMultiMaterial())
+        {
+          base_lower = design->FindDesign(tf->GetDesign()) * elements;
+          base_upper = base_lower + elements;
+        }
+        LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+        // create an element list to gain the iterator in the loop
+        ElemList elemList(grid);
+        // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
+        for(int base = base_lower; base < base_upper; base += elements)
+        {
+          for(int e = 0; e < elements; e++)
+          {
+            double grad =0;
+
+            DesignElement* de = &design->data[e + base];
+            // de->GetIndex()
+            //design->Find(de->elem, true);
+
+            DesignElement::Type type = de->GetType();
+
+            Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
+            Vector<double>& u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
+
+
+            //We must pay attention to whether the element is in the ghost region or not
+
+
+            //We begin with the elements in the mech region: they must have right and upper neighbours
+            if ( (de->vicinity->HasNeighbor(VicinityElement::X_P)) && (de->vicinity->HasNeighbor(VicinityElement::Y_P)))
+            {
+                //We need to check for all neighbours of e
+                //------------------------------------------------ First: same cell
+                if (type == DesignElement::G_MAP_X)
+                {
+                    SetElementKMapping(de, DesignElement::GX_0, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                }
+                else
+                {
+                    SetElementKMapping(de, DesignElement::GY_0, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                }
+                mat_vec = mat * u2_vec;
+
+                if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+                if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+                double sp;
+                if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_vec, sp);
+                else sp = mat_vec * u1_vec;
+
+                double this_value = factor;
+                if(harmonic && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                else this_value *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+
+                grad = grad + this_value;
+            }
+
+              //-------------------- Now, north_west cell --------------------------
+
+              if ( (de->vicinity->HasNeighbor(VicinityElement::X_N)) )
+              {
+
+                  DesignElement* dep_nw = de->vicinity->GetNeighbour(VicinityElement::X_N);
+                  // We need to check if dep_nw is in the ghost region or not
+
+                  if ( (dep_nw->vicinity->HasNeighbor(VicinityElement::Y_P)) )
+                  {
+                        int e_nw = dep_nw->elem->elemNum;
+
+                        Vector<double>& u1_nw = dynamic_cast<Vector<double>& >(*u1[e_nw]);
+                        Vector<double>& u2_nw = dynamic_cast<Vector<double>& >(*u2[e_nw]);
+
+                        if (type == DesignElement::G_MAP_X)
+                        {
+                            SetElementKMapping(dep_nw, DesignElement::GX_PX, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                            LOG_DBG3(em) << "mat: " << mat.ToString();
+                        }
+                        else
+                        {
+                          SetElementKMapping(dep_nw, DesignElement::GY_PX, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                          LOG_DBG3(em) << "mat: " << mat.ToString();
+                        }
+
+                        mat_vec = mat * u2_nw;
+                        LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+
+
+                        if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+                        if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+                        double sp;
+                        if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_nw, sp);// u1 = u2 = u!
+                        else sp = mat_vec * u1_nw;
+
+                        double this_value_nw = factor;
+                        if(harmonic && calcMode != CONJ_QUAD) this_value_nw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                        else this_value_nw *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+
+                        grad = grad + this_value_nw;
+
+                  }
+
+
+
+                  // Now south west cell
+
+                  if ( (dep_nw->vicinity->HasNeighbor(VicinityElement::Y_N)) )
+                {
+
+                    //Normally, it should be automatically in the true region
+                  DesignElement* dep_sw = dep_nw->vicinity->GetNeighbour(VicinityElement::Y_N);
+
+                  int e_sw = dep_sw->elem->elemNum;
+
+                  Vector<double>& u1_sw = dynamic_cast<Vector<double>& >(*u1[e_sw]);
+                  Vector<double>& u2_sw = dynamic_cast<Vector<double>& >(*u2[e_sw]);
+
+
+                  LOG_DBG3(em) << "nodes:" << e_sw << ": " << dep_sw->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e_sw=" << dep_sw->elem->elemNum;
+                  LOG_DBG3(em) << "u1:" << e_sw << ": " << u1_sw.ToString();
+                  LOG_DBG3(em) << "u2:" << e_sw << ": " << u2_sw.ToString();
+
+                  //We need to check for all neighbours of e
+                  //------------------------------------------------ First: same cell
+                  if (type == DesignElement::G_MAP_X)
+                  {
+                    SetElementKMapping(dep_sw, DesignElement::GX_PXY, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                    LOG_DBG3(em) << "mat: " << mat.ToString();
+                  }
+                  else
+                  {
+                    SetElementKMapping(dep_sw, DesignElement::GY_PXY, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                    LOG_DBG3(em) << "mat: " << mat.ToString();
+                  }
+
+                  // We generally solve u1^T (K' u2 - f') as u1^T (K' u2 - f')
+                  // u1^T (K' u2 - f') -> calc K' u2"
+                  mat_vec = mat * u2_sw;
+                  LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+
+                  // u1^T (K' u2 - f') -> calc "- f'"
+                  assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
+                  assert(!(rtf != NULL && IsStrainExcitedSystem()));
+
+                  if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+                  if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+                  LOG_DBG3(em) << "-f': " << mat_vec.ToString();
+
+                  // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
+                  // the difference is the conjugate complex in the harmonic inner product case!
+                  double sp;
+                  if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_sw, sp);// u1 = u2 = u!
+                  else sp = mat_vec * u1_sw;
+
+                  double this_value_sw = factor;
+                  if(harmonic && calcMode != CONJ_QUAD) this_value_sw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                  else this_value_sw *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+
+                  grad = grad + this_value_sw;
+
+                }
+
+              }
+
+              // Now the south/east cell
+
+              if ( (de->vicinity->HasNeighbor(VicinityElement::Y_N)) )
+              {
+
+                DesignElement* dep_se = de->vicinity->GetNeighbour(VicinityElement::Y_N);
+
+                //Check if dep_se in in the true region
+
+                if ((dep_se->vicinity->HasNeighbor(VicinityElement::X_P)) )
+                {
+                    int e_se = dep_se->elem->elemNum;
+
+                    Vector<double>& u1_se = dynamic_cast<Vector<double>& >(*u1[e_se]);
+                    Vector<double>& u2_se = dynamic_cast<Vector<double>& >(*u2[e_se]);
+
+
+                    LOG_DBG3(em) << "nodes:" << e_se << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e_se=" << dep_se->elem->elemNum;
+                    LOG_DBG3(em) << "u1:" << e_se << ": " << u1_se.ToString();
+                    LOG_DBG3(em) << "u2:" << e_se << ": " << u2_se.ToString();
+
+                    if (type == DesignElement::G_MAP_X)
+                    {
+                      SetElementKMapping(dep_se, DesignElement::GX_PY, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                      LOG_DBG3(em) << "mat: " << mat.ToString();
+                    }
+                    else
+                    {
+                      SetElementKMapping(dep_se, DesignElement::GY_PY, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+                      LOG_DBG3(em) << "mat: " << mat.ToString();
+                    }
+
+                    mat_vec = mat * u2_se;
+                    LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
+
+                    if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+                    if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+                    LOG_DBG3(em) << "-f': " << mat_vec.ToString();
+
+
+                    double sp;
+                    if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_se, sp);// u1 = u2 = u!
+                    else sp = mat_vec * u1_se;
+
+                    double this_value_se = factor;
+                    if(harmonic && calcMode != CONJ_QUAD) this_value_se *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                    else this_value_se *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+
+                    grad = grad + this_value_se;
+                }
+
+              }
+              //---------------- At the end ---------------------------------
+              de->AddGradient(f, grad);
+
+              //LOG_DBG3(em) << "CU1Ku2:" << de->elem->elemNum << " <l,K'*u-f'>  = "
+              //<< grad << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
+
+
+              //sum += this_value;
+
+              //if(res_idx != -1) de->specialResult[res_idx] = this_value;
+
+          }
+        }
+        return sum;
+      }
+
+
+
+
+
 
   template<class T>
   void ErsatzMaterial::SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out)
@@ -886,6 +1155,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::DETERMINANT_MATRIX:
       case Function::ROTATIONAL_MATRIX_1:
       case Function::ROTATIONAL_MATRIX_2:
+      case Function::DETERMINANT_MAPPING:
+      case Function::TRACE_MAPPING:
       case Function::DESIGN_BOUND:
       case Function::MULTIMATERIAL_SUM:
       assert(c == NULL);

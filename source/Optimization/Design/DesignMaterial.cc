@@ -9,6 +9,7 @@
 #include "General/defs.hh"
 #include "General/exception.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Elements/2D/quad9fe.hh"
@@ -27,6 +28,8 @@ using std::string;
 Enum<DesignMaterial::Type>         DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation>     DesignMaterial::notation;
+
+
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design)
 {
@@ -119,7 +122,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   }
 
 
-  if((type_ == GREEDY_FREE) | (type_ == GREEDY_PARAM))
+  if((type_ == GREEDY_FREE) | (type_ == GREEDY_PARAM) | (type_ == GREEDY_MAPPING))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
     Xerces xerces(file);
@@ -279,6 +282,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
            }
   }
 
+  std::cout << "Matrices filled" << std::endl;
 
 }
 
@@ -623,6 +627,8 @@ unsigned int DesignMaterial::RequiredParameters(OptimizationMaterial::System mat
   case GREEDY_PARAM:
   case GREEDY_FREE:
 	  return r+4;
+  case GREEDY_MAPPING:
+    return r+2;
   }
 
   assert(false);
@@ -717,6 +723,11 @@ bool DesignMaterial::CheckRequiredDesigns(StdVector<DesignElement::Type>& design
           && design.Find(DesignElement::G12) >= 0
           && design.Find(DesignElement::G21) >= 0
           && design.Find(DesignElement::G22) >= 0);
+  case GREEDY_MAPPING:
+      return(design.Find(DesignElement::G_MAP_X) >= 0
+          && design.Find(DesignElement::G_MAP_Y) >= 0
+          );
+
   }
   assert(false);
   return false;
@@ -1336,7 +1347,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, DesignElement::Type dir
 
 void DesignMaterial::GetRedBasCorrector(StdVector<Vector<double> >& corrector_, const Matrix<double>& G)
 {
-   corrector_ = StdVector<Vector<double> >(3);
+   corrector_ = StdVector<Vector<double> >(3 );
   //std::cout << "corrector"<< std::endl;
     double G11 = G[1-1][1-1];
     double G12 = G[1-1][2-1];
@@ -1477,7 +1488,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
 
   UInt dimbas =0;
   if ((type_ == REDBAS_PARAM) | (type_ == REDBAS_FREE)) dimbas = dimension_;
-  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE)) dimbas = 3*dimension_;
+  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE) | (type_ == GREEDY_MAPPING)) dimbas = 3*dimension_;
 
   Matrix<double> mat(dimbas, dimbas);
   mat.Init();
@@ -1710,6 +1721,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
    }
 }
 
+
 void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>& G, const Matrix<double>& Gderiv, const StdVector<Vector<double> >& corrector_, Notation notation)
 {
 
@@ -1729,7 +1741,7 @@ void DesignMaterial::GetModRedHomTensor(Matrix<double>& E, const Matrix<double>&
 
   UInt dimbas =0;
   if ((type_ == REDBAS_PARAM) | (type_ == REDBAS_FREE)) dimbas = dimension_;
-  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE)) dimbas = 3*dimension_;
+  if ((type_ == GREEDY_PARAM) | (type_ == GREEDY_FREE) | (type_ == GREEDY_MAPPING) ) dimbas = 3*dimension_;
 
   Matrix<double> matd(dimbas, dimbas);
   matd.Init();
@@ -1959,7 +1971,7 @@ void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type dir
   G.Resize(2,2);
   G.Init();
 
-  assert((type_== REDBAS_PARAM) | (type_== REDBAS_FREE) | (type_== GREEDY_PARAM) | (type_== GREEDY_FREE));
+  assert((type_== REDBAS_PARAM) || (type_== REDBAS_FREE) || (type_== GREEDY_PARAM) || (type_== GREEDY_FREE));
 
   if((type_ == REDBAS_PARAM) | (type_ == GREEDY_PARAM))
   {
@@ -2139,11 +2151,351 @@ void DesignMaterial::GetModRedGTensor(Matrix<double>& G, DesignElement::Type dir
 
 }
 
+void DesignMaterial::GetMappingTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
+{
+
+    //std::string str = direction->ToString();
+    //std::cout << "direction = " << str << std::endl;
+
+    assert((type_== GREEDY_MAPPING));
+
+    //assert( (direction==DesignElement::GX_0) || (direction==DesignElement::GY_0) || (direction==DesignElement::GX_PX)  || (direction==DesignElement::GY_PX)   || (direction==DesignElement::GX_PY)  || (direction==DesignElement::GY_PY)   || (direction==DesignElement::GX_PXY)  || (direction==DesignElement::GY_PXY)  || (direction==DesignElement::NO_DERIVATIVE)   );
+
+    Matrix<double> G(2,2);
+    //We begin with calculating the gradient of the mapping in the element
+    GetMappingGradient(G);
+
+     Vector<double> paramvec(4);
+     GetModRedParamVector(paramvec);
+
+     StdVector<Vector<double> > corrector_(3);
+     GetGreedyCorrector(corrector_, paramvec, true);
+
+     if ((direction == DesignElement::NO_DERIVATIVE))
+     {
+       GetModRedHomTensor(E, G,corrector_, notation);
+     }
+     else
+     {
+       Matrix<double> Gderiv(2,2);
+       GetMappingGradient(Gderiv,direction);
+
+       GetModRedHomTensor(E, G, Gderiv, corrector_, notation);
+     }
+
+}
+
+void DesignMaterial::GetMappingGradient(Matrix<double>& G)
+{
+  //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+  //    4____________3
+  //    |            |
+  //    |            |
+  //    |            |
+  //    |            |
+  //    |____________|
+  //    1            2
+  //
+  //
+  //An element contains the value of the mappings gx and gy on its south_west node
+
+
+  G.Resize(2,2);
+  G.Init();
+
+
+  int south_west = 0;
+  int south_east = 1;
+  int north_east = 2;
+  int north_west = 3;
+
+
+  assert((type_== GREEDY_MAPPING));
+
+  DesignSpace* space = domain->GetErsatzMaterial();
+
+  DesignElement* de0_x = space->Find(current_elem->elemNum, DesignElement::G_MAP_X);
+  DesignElement* de0_y = space->Find(current_elem->elemNum, DesignElement::G_MAP_Y);
+
+  assert( (de0_x != NULL) && (de0_y!= NULL ));
+
+  if ( (de0_x->vicinity->HasNeighbor(VicinityElement::X_P)) && ((de0_x->vicinity->HasNeighbor(VicinityElement::Y_P))) )
+  {
+     //Here we check that de0_y has the same vicinity pattern
+    assert((de0_y->vicinity->HasNeighbor(VicinityElement::X_P)) && ((de0_y->vicinity->HasNeighbor(VicinityElement::Y_P))));
+
+    DesignElement* depx_x = de0_x->vicinity->GetNeighbour(VicinityElement::X_P);
+    DesignElement* depx_y = de0_y->vicinity->GetNeighbour(VicinityElement::X_P);
+
+    DesignElement* depy_x = de0_x->vicinity->GetNeighbour(VicinityElement::Y_P);
+    DesignElement* depy_y = de0_y->vicinity->GetNeighbour(VicinityElement::Y_P);
+
+    if (depx_x->vicinity->HasNeighbor(VicinityElement::Y_P))
+    {
+        assert( (depx_y->vicinity->HasNeighbor(VicinityElement::Y_P)) && (depy_x->vicinity->HasNeighbor(VicinityElement::X_P)) && (depy_y->vicinity->HasNeighbor(VicinityElement::X_P)) );
+
+        DesignElement* depxy_x = (depx_x->vicinity->GetNeighbour(VicinityElement::Y_P));
+        DesignElement* depxy_y = (depx_y->vicinity->GetNeighbour(VicinityElement::Y_P));
+
+
+        //I need to know the coordinates of the nodes of the cells I am working with
+        Matrix<double>  coords; // we ignore the n times constructs
+
+        StdVector<unsigned int> connect = current_elem->connect;
+        // do not use updated coordinates up to now!!
+        domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+        double x_0 = coords(0,south_west);
+        double y_0 = coords(1,south_west);
+
+        double x_px = coords(0,south_east);
+        double y_px = coords(1,south_east);
+
+        double x_pxy = coords(0,north_east);
+        double y_pxy = coords(1,north_east);
+
+        double x_py = coords(0,north_west);
+        double y_py = coords(1,north_west);
+
+
+        double gx_0 = de0_x->GetDesign(DesignElement::SMART);
+        double gy_0 = de0_y->GetDesign(DesignElement::SMART);
+
+        double gx_px = depx_x->GetDesign(DesignElement::SMART);
+        double gy_px = depx_y->GetDesign(DesignElement::SMART);
+
+
+        double gx_py = depy_x->GetDesign(DesignElement::SMART);
+        double gy_py = depy_y->GetDesign(DesignElement::SMART);
+
+        double gx_pxy = depxy_x->GetDesign(DesignElement::SMART);
+        double gy_pxy = depxy_y->GetDesign(DesignElement::SMART);
+
+        // G(0,0) = d_x g_x
+        // G(0,1) = d_y g_x
+        // G(1,0) = d_x g_y
+        // G(1,1) = d_y g_y
+
+        G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+        G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+        G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+        G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+    }
+    else
+    {
+      std::cout << "WARNING!!  We are computing the gradient of the mapping in cells of the ghost layer!!" << std::endl;
+    }
+
+  }
+  else
+  {
+    std::cout << "WARNING!!  We are computing the gradient of the mapping in cells of the ghost layer!!" << std::endl;
+  }
+
+}
+
+
+void DesignMaterial::GetMappingGradient(Matrix<double>& G, DesignElement::Type direction)
+{
+  //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+  //    4____________3
+  //    |            |
+  //    |            |
+  //    |            |
+  //    |            |
+  //    |____________|
+  //    1            2
+  //
+  //
+  //An element contains the value of the mappings gx and gy on its south_west node
+
+
+  G.Resize(2,2);
+  G.Init();
+
+
+  int south_west = 0;
+  int south_east = 1;
+  int north_east = 2;
+  int north_west = 3;
+
+
+  assert((type_== GREEDY_MAPPING));
+
+  DesignSpace* space = domain->GetErsatzMaterial();
+
+  DesignElement* de0_x = space->Find(current_elem->elemNum, DesignElement::G_MAP_X);
+//  DesignElement* de0_y = space->Find(current_elem->elemNum, DesignElement::G_MAP_Y);
+
+  //assert( (de0_x != NULL) && (de0_y!= NULL ));
+
+  if ( (de0_x->vicinity->HasNeighbor(VicinityElement::X_P)) && ((de0_x->vicinity->HasNeighbor(VicinityElement::Y_P))) )
+  {
+     //Here we check that de0_y has the same vicinity pattern
+    assert((de0_y->vicinity->HasNeighbor(VicinityElement::X_P)) && ((de0_y->vicinity->HasNeighbor(VicinityElement::Y_P))));
+
+    DesignElement* depx_x = de0_x->vicinity->GetNeighbour(VicinityElement::X_P);
+    //DesignElement* depx_y = de0_y->vicinity->GetNeighbour(VicinityElement::X_P);
+
+    //DesignElement* depy_x = de0_x->vicinity->GetNeighbour(VicinityElement::Y_P);
+    //DesignElement* depy_y = de0_y->vicinity->GetNeighbour(VicinityElement::Y_P);
+
+    if (depx_x->vicinity->HasNeighbor(VicinityElement::Y_P))
+    {
+        //assert( (depx_y->vicinity->HasNeighbor(VicinityElement::Y_P)) && (depy_x->vicinity->HasNeighbor(VicinityElement::X_P)) && (depy_y->vicinity->HasNeighbor(VicinityElement::X_P)) );
+
+        //We do not need these anymore
+        //DesignElement* depxy_x = (depx_x->vicinity->GetNeighbour(VicinityElement::Y_P));
+        //DesignElement* depxy_y = (depx_y->vicinity->GetNeighbour(VicinityElement::Y_P));
+
+
+        //I need to know the coordinates of the nodes of the cells I am working with
+        Matrix<double>  coords; // we ignore the n times constructs
+
+        StdVector<unsigned int> connect = current_elem->connect;
+        // do not use updated coordinates up to now!!
+        domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+        double x_0 = coords(0,south_west);
+        double y_0 = coords(1,south_west);
+
+        double x_px = coords(0,south_east);
+        double y_px = coords(1,south_east);
+
+        double x_pxy = coords(0,north_east);
+        double y_pxy = coords(1,north_east);
+
+        double x_py = coords(0,north_west);
+        double y_py = coords(1,north_west);
+
+        switch(direction)
+        {
+
+          case DesignElement::GX_0:
+          {
+
+              G(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+              G(1,0) = 0;
+              G(1,1) = 0;
+
+                break;
+            }
+
+
+            case DesignElement::GX_PX:
+            {
+
+              G(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+              G(1,0) = 0;
+              G(1,1) = 0;
+
+              break;
+            }
+
+            case DesignElement::GX_PY:
+            {
+
+              G(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+              G(1,0) = 0;
+              G(1,1) = 0;
+
+              break;
+            }
+
+            case DesignElement::GX_PXY:
+            {
+
+              G(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+              G(1,0) = 0;
+              G(1,1) = 0;
+              break;
+            }
+
+
+            case DesignElement::GY_0:
+            {
+
+              G(0,0) = 0;
+              G(0,1) = 0;
+              G(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+
+                break;
+            }
+
+
+            case DesignElement::GY_PX:
+            {
+
+              G(0,0) = 0;
+              G(0,1) = 0;
+              G(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+              break;
+            }
+
+            case DesignElement::GY_PY:
+            {
+
+              G(0,0) = 0;
+              G(0,1) = 0;
+              G(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+              break;
+            }
+
+            case DesignElement::GY_PXY:
+            {
+              G(0,0) = 0;
+              G(0,1) = 0;
+              G(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+              G(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+              break;
+            }
+          default:
+          //Zero matrix
+            G(0,0) =0.0;
+            G(0,1) =0.0;
+            G(1,0) =0.0;
+            G(1,1) =0.0;
+            break;
+
+        }
+
+
+    }
+    else
+    {
+      std::cout << "WARNING!!  We are computing the gradient of the mapping in cells of the ghost layer!!" << std::endl;
+    }
+
+  }
+  else
+  {
+    std::cout << "WARNING!!  We are computing the gradient of the mapping in cells of the ghost layer!!" << std::endl;
+  }
+
+}
+
+
+
+
 void DesignMaterial::GetModRedTensor(Matrix<double>& E, DesignElement::Type direction, Notation notation)
 {
 
   //if type_ == REDBAS_FREE or type_ == GREEDY_FREE then we must have all_param_
-  assert((all_param_) | (type_ == REDBAS_PARAM) | (type_ == GREEDY_PARAM));
+  assert((all_param_) || (type_ == REDBAS_PARAM) || (type_ == GREEDY_PARAM) );
 
   E.Resize(3,3);
   E.Init();
@@ -2211,6 +2563,13 @@ void DesignMaterial::GetModRedParamVector(Vector<double>& params)
       GetSVDGTensorParameters(G, params);
 
   }
+  else if (type_ == GREEDY_MAPPING)
+  {
+    Matrix<double> G(2,2);
+      GetMappingGradient(G);
+
+      GetSVDGTensorParameters(G, params);
+  }
 }
 
 
@@ -2232,7 +2591,7 @@ void DesignMaterial::GetModRedParamVector(Vector<double>& params)
 void DesignMaterial::GetGreedyCorrector(StdVector<Vector<double> >& corrector_, const Vector<double>& params, const bool& all_param)
 {
 
-  assert((type_== GREEDY_PARAM) | (type_ == GREEDY_FREE));
+  assert((type_== GREEDY_PARAM) || (type_ == GREEDY_FREE) || (type_ == GREEDY_MAPPING));
 
   double theta = params[0];
   double phi = params[1];
@@ -2660,7 +3019,7 @@ double DesignMaterial::GetIsoMass(double D, double G){
 
 void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
 {
-  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE));
+  assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != HOM_RECT && type_ != REDBAS_PARAM && type_ != REDBAS_FREE && type_ != GREEDY_PARAM && type_ != GREEDY_FREE && type_ != GREEDY_MAPPING));
   switch(type_){
   case FMO:
     GetAnisotropicTensor(t, direction, notation);
@@ -2694,6 +3053,9 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case REDBAS_PARAM:
   case REDBAS_FREE:
     GetModRedTensor(t, direction, notation);
+    break;
+  case GREEDY_MAPPING:
+    GetMappingTensor(t, direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
@@ -2869,6 +3231,7 @@ void DesignMaterial::SetEnums()
   type.Add(REDBAS_FREE, "reducedBasis-free");
   type.Add(GREEDY_PARAM, "greedy-param");
   type.Add(GREEDY_FREE, "greedy-free");
+  type.Add(GREEDY_MAPPING, "greedy-mapping");
 
   transIsoType.SetName("DesignMaterial::TransIsoType");
   transIsoType.Add(TRANSISO_XY, "xy");

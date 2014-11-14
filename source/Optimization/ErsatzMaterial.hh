@@ -291,6 +291,8 @@ public:
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD
   };
+
+
   /*!< add <u, K' u> which is in the real case as STANDARD
    and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
   /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
@@ -316,6 +318,13 @@ public:
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+
+
+  double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+
+
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
@@ -332,6 +341,19 @@ public:
   {
     throw Exception("not implemented");
   }
+
+
+  /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
+   * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
+   * Also bi-material is nicely considered.
+   * The template stuff is private, as C++ does not allow virtual templates. */
+  virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf,
+      Application app, DenseMatrix* out, CalcMode calcMode, bool derivative =
+          true)
+  {
+    throw Exception("not implemented");
+  }
+
 
   virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
       Application app, SingleVector* out, CalcMode calcMode, bool derivative =

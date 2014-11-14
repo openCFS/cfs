@@ -78,6 +78,16 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case G12:
     case G21:
     case G22:
+    case G_MAP_X:
+    case G_MAP_Y:
+    case GX_0:
+    case GY_0:
+    case GX_PX:
+    case GY_PX:
+    case GX_PY:
+    case GY_PY:
+    case GX_PXY:
+    case GY_PXY:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -720,6 +730,16 @@ void DesignElement::SetEnums()
   type.Add(G12, "G12");
   type.Add(G21, "G21");
   type.Add(G22, "G22");
+  type.Add(G_MAP_X, "G_MAP_X");
+  type.Add(G_MAP_Y, "G_MAP_Y");
+  type.Add(GX_0, "GX_0");
+  type.Add(GY_0, "GY_0");
+  type.Add(GX_PX, "GX_PX");
+  type.Add(GY_PX, "GY_PX");
+  type.Add(GX_PY, "GX_PY");
+  type.Add(GY_PY, "GY_PY");
+  type.Add(GX_PXY, "GX_PXY");
+  type.Add(GY_PXY, "GY_PXY");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(SLACK, "slack");

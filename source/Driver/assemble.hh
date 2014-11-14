@@ -114,6 +114,9 @@ template <class TYPE> class Matrix;
     /** Returns the load list for external modification */
     LoadList& GetLoads() { return loads_; }
 
+    /** Do we use the region? */
+    bool UseRegion(RegionIdType reg) const;
+
     /** Overwrites the loads to implmented the adjoint solution for SIMP
      * mechanism optimization */
     void SetLoads(LoadList& new_loads) { loads_ = new_loads; }

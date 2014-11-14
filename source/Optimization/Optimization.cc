@@ -342,6 +342,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
   Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
   Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
+  Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
+  Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
@@ -349,6 +351,7 @@ void Optimization::SetEnums()
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
   Function::Local::locality.Add(Function::Local::NEXT, "next");
+  Function::Local::locality.Add(Function::Local::NEXT_DIAG, "next_diag");
   Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
   Function::Local::locality.Add(Function::Local::PREV_NEXT, "prev_next");
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");

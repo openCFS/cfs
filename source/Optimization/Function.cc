@@ -146,6 +146,8 @@ Function::Function(PtrParamNode pn)
   case DETERMINANT_MATRIX:
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
     if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL && design_ != DesignElement::ALL_DESIGNS)
           throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
         break;
@@ -476,6 +478,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     case DETERMINANT_MATRIX:
     case ROTATIONAL_MATRIX_1:
     case ROTATIONAL_MATRIX_2:
+    case DETERMINANT_MAPPING:
+    case TRACE_MAPPING:
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
@@ -632,6 +636,8 @@ bool Function::IsLocal(Type t)
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
     return true;
@@ -741,6 +747,8 @@ bool Function::ForSensitivityFiltering() const
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -898,6 +906,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
   case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
@@ -1102,6 +1112,13 @@ Function::Local::Local(Function* func, DesignSpace* space)
     locality_ = MULT_DESIGNS_ELEMENT;
     break;
 
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
+    if(locality_ != NEXT_DIAG && locality_ != DEFAULT)
+          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+        locality_ = NEXT_DIAG;
+        break;
+
   case BUMP:
     if(locality_ != PREV_NEXT && locality_ != DEFAULT)
       throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
@@ -1143,6 +1160,14 @@ Function::Local::Local(Function* func, DesignSpace* space)
     SetupMultDesignsVirtualElementMap(func);
     break;
 
+  case NEXT_DIAG:
+   // if(!pn)
+   // throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
+   //    structure_ = new NeighborhoodStructure(this, pn);
+       SetupVirtualStarLocalElementMap(func);
+       break;
+
+
   default:
     SetupVirtualElementMap(phase_);
     break;
@@ -1169,6 +1194,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
   bool prev    = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next    = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
+
    assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
@@ -1201,6 +1227,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
         if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
       }
 
+
       LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
 
       if(full)
@@ -1213,10 +1240,97 @@ void Function::Local::SetupVirtualElementMap(Phase ph)
           virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
           if(two_signs)
             virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
+
         }
+
       }
     }
   }
+}
+
+
+
+void Function::Local::SetupVirtualStarLocalElementMap(const Function* f)
+{
+  // we construct locality_ into reverse, prev and next
+  // reverse means we have a REVERSE option which makes two constraints with different signs
+  assert(locality_==NEXT_DIAG); // It is not clean, but I do it by hand to be sure of what I am doing
+
+//  int  dim  = domain->GetGrid()->GetDim();
+
+  //So far works only for d=2
+
+ // assert (dim == 2);
+
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+
+  UInt elems = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * elems);
+
+  assert(space->design.GetSize()== 2);
+  if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+    throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if( (space->design[0].design != DesignElement::G_MAP_X))
+         throw Exception("'Expect first design to be 'G_MAP_X");
+
+  for(unsigned int e = 0; e < elems; e++)
+   {
+     DesignElement* de = func_->elements[e]; // -> GX_0
+     assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+
+       VicinityElement* ve = de->vicinity;
+
+      // do we have a full neighborhood? All or none as in the original slope paper
+      bool full = true;
+        if(ve->design[VicinityElement::X_P] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+        if (full)
+        {
+        VicinityElement* ve_px = ve->design[VicinityElement::X_P]->vicinity;
+          if(ve_px->design[VicinityElement::Y_P] == NULL) full = false;
+        }
+
+
+      LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+
+      if(full)
+      {
+
+          DesignElement* de_px = ve->GetNeighbour(VicinityElement::X_P); //-GX_PX
+          DesignElement* de_py = ve->GetNeighbour(VicinityElement::Y_P); //GX_PY
+          VicinityElement* ve_px = ve->design[VicinityElement::X_P]->vicinity;
+          DesignElement* de_pxy = ve_px->GetNeighbour(VicinityElement::Y_P); //GX_PXY
+
+          DesignElement* other = &(space->data[elems * 1 + e]); //GY_0
+
+          VicinityElement* vother = other->vicinity;
+
+          DesignElement* other_px = vother->GetNeighbour(VicinityElement::X_P); //-GY_PX
+          DesignElement* other_py = vother->GetNeighbour(VicinityElement::Y_P); //GY_PY
+          VicinityElement* vother_px = vother->design[VicinityElement::X_P]->vicinity;
+          DesignElement* other_pxy = vother_px->GetNeighbour(VicinityElement::Y_P); //GY_PXY
+          //Add other
+
+          StdVector<DesignElement*> buddies;
+          buddies.Push_back(de_px);
+          buddies.Push_back(de_py);
+          buddies.Push_back(de_pxy);
+
+          buddies.Push_back(other);
+          buddies.Push_back(other_px);
+          buddies.Push_back(other_py);
+          buddies.Push_back(other_pxy);
+
+          virtual_elem_map.Push_back(Identifier(de, buddies, 1));
+
+          // So in the order, we have:
+          //GX_0(-1)  GX_PX(0)  GX_PY(1) GX_PXY(2) GY_0(3) GY_PX(4) GY_PY(5) GY_PXY(6)
+
+
+
+      }
+    }
 }
 
 void Function::Local::SetupStarLocalityElementMap(Phase ph)
@@ -1482,7 +1596,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f)
     if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
           throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
        if( (space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE) )
-         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
+         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE' or 'G_MAP_X");
     //assert(space->design.GetSize() >= 4);
     //des_idx.Push_back(space->FindDesign(DesignElement::G11));
        if (space->design[0].design == DesignElement::G11)
@@ -1927,7 +2041,15 @@ double Function::Local::Identifier::EvalFunction(const Local* local, bool grad_g
     fv = CalcRotGTensor(-1, local, false, f->type_);
   break;
 
+  //We need to add the constraints on all the detrminants of the neighbouring elements of the node
+  //So there is ne, nw, sw, amd se
+  case DETERMINANT_MAPPING:
+    fv = CalcDetGMappingTensor(-1, local, false);
+  break;
 
+  case TRACE_MAPPING:
+    fv = CalcTraceGMappingTensor(-1, local, false);
+  break;
 
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
@@ -2081,10 +2203,17 @@ void Function::Local::Identifier::EvalGradient(const Local* local)
       gv = CalcRotGTensor(n, local, true, ft);
       break;
 
-
     case DETERMINANT_MATRIX:
       gv = CalcDetGTensor(n, local, true);
     break;
+
+    case DETERMINANT_MAPPING:
+      gv = CalcDetGMappingTensor(n, local, true);
+      break;
+
+    case TRACE_MAPPING:
+      gv = CalcTraceGMappingTensor(n, local, true);
+      break;
 
     case TENSOR_TRACE:
     case GLOBAL_TENSOR_TRACE:
@@ -2621,8 +2750,6 @@ double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* l
 
 double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
 {
-
-
   assert((local->locality_ == MULT_DESIGNS_NEXT_AND_REVERSE));
   //This means that in neighbor, we have
   //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
@@ -2871,6 +2998,384 @@ double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
                   break;
                   }
           }
+
+
+ }
+
+
+
+
+
+
+double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+{
+  assert((local->locality_ == NEXT_DIAG));
+    //This means that in neighbor, we have
+    //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+    //So, normally (2d case), neighbor has size 11.
+    //int  dim     = domain->GetGrid()->GetDim();
+    //assert(dim==2);
+
+    assert(this->neighbor.GetSize() == 7);
+
+    assert(this->sign==1);
+
+
+    //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+    //    4____________3
+    //    |            |
+    //    |            |
+    //    |            |
+    //    |            |
+    //    |____________|
+    //    1            2
+    //
+    //
+    //An element contains the value of the mappings gx and gy on its south_west node
+
+
+    Matrix<double> G(2,2);
+    G.Init();
+
+    int south_west = 0;
+    int south_east = 1;
+    int north_east = 2;
+    int north_west = 3;
+
+   double ret=0.0;
+
+   double gx_0 =element->GetDesign(DesignElement::SMART);
+   double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+   double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+   double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+
+   double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+   double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+   double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+   double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+
+    //I need to know the coordinates of the nodes of the cells I am working with
+    Matrix<double>  coords; // we ignore the n times constructs
+
+    StdVector<unsigned int> connect = element->elem->connect;
+    // do not use updated coordinates up to now!!
+    domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+    double x_0 = coords(0,south_west);
+    double y_0 = coords(1,south_west);
+
+    double x_px = coords(0,south_east);
+    double y_px = coords(1,south_east);
+
+    double x_pxy = coords(0,north_east);
+    double y_pxy = coords(1,north_east);
+
+    double x_py = coords(0,north_west);
+    double y_py = coords(1,north_west);
+
+    G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+    G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+    G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+    G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+
+
+   if (!derivative)
+     {
+           ret = G(0,0)*G(1,1) - G(0,1)*G(1,0);
+           return ret;
+     }
+   else
+   {
+     Matrix<double> Gd(2,2);
+     Gd.Init();
+
+     switch(neigh_idx)
+     {
+
+           case (-1): //Derivative with respect to GX_0
+
+                   Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+             break;
+
+           case (0): //Derivative with respect to GX_PX
+
+
+
+                   Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (1): //Derivative with respect to GX_PY
+
+                   Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+            break;
+
+           case (2): //Derivative with respect to GX_PXY
+
+                   Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+              break;
+
+           case (3): //Derivative with respect to GY_0
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+             break;
+
+           case (4): //Derivative with respect to GY_PX
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (5): //Derivative with respect to GY_PY
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (6): //Derivative with respect to GY_PXY
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+              break;
+
+           default:
+             return 0;
+             break;
+       }
+
+
+     }
+ }
+
+
+double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+{
+
+  assert((local->locality_ == NEXT_DIAG));
+   //This means that in neighbor, we have
+   //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+   //So, normally (2d case), neighbor has size 11.
+   //int  dim     = domain->GetGrid()->GetDim();
+   //assert(dim==2);
+   assert(this->neighbor.GetSize() == 7);
+
+   assert(this->sign==1);
+
+
+   //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+   //    4____________3
+   //    |            |
+   //    |            |
+   //    |            |
+   //    |            |
+   //    |____________|
+   //    1            2
+   //
+   //
+   //An element contains the value of the mappings gx and gy on its south_west node
+
+
+   Matrix<double> G(2,2);
+   G.Init();
+
+   int south_west = 0;
+   int south_east = 1;
+   int north_east = 2;
+   int north_west = 3;
+
+  double ret=0.0;
+
+  double gx_0 =element->GetDesign(DesignElement::SMART);
+  double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+  double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+  double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+
+  double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+  double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+  double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+  double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+
+   //I need to know the coordinates of the nodes of the cells I am working with
+   Matrix<double>  coords; // we ignore the n times constructs
+
+   StdVector<unsigned int> connect = element->elem->connect;
+   // do not use updated coordinates up to now!!
+   domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+   double x_0 = coords(0,south_west);
+   double y_0 = coords(1,south_west);
+
+   double x_px = coords(0,south_east);
+   double y_px = coords(1,south_east);
+
+   double x_pxy = coords(0,north_east);
+   double y_pxy = coords(1,north_east);
+
+   double x_py = coords(0,north_west);
+   double y_py = coords(1,north_west);
+
+   G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+   G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+   G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+   G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+
+
+  if (!derivative)
+    {
+          ret = G(0,0) + G(1,1);
+          return ret;
+    }
+  else
+  {
+    Matrix<double> Gd(2,2);
+    Gd.Init();
+
+    switch(neigh_idx)
+    {
+
+          case (-1): //Derivative with respect to GX_0
+
+                  Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+            break;
+
+          case (0): //Derivative with respect to GX_PX
+
+
+
+                  Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (1): //Derivative with respect to GX_PY
+
+                  Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+           break;
+
+          case (2): //Derivative with respect to GX_PXY
+
+                  Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+             break;
+
+          case (3): //Derivative with respect to GY_0
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+            break;
+
+          case (4): //Derivative with respect to GY_PX
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (5): //Derivative with respect to GY_PY
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (6): //Derivative with respect to GY_PXY
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+             break;
+
+          default:
+            return 0;
+            break;
+      }
+
+
+    }
 
 
  }

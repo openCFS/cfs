@@ -138,7 +138,7 @@ public:
    * @return a pointer to the Element Stiffness Matrix*/
   const Matrix<double>& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
-  /** overwrites OptimizationMaterial::Stiffness */
+ /** overwrites OptimizationMaterial::Stiffness */
   const Matrix<double>& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
     return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }

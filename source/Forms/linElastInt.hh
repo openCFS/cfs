@@ -45,7 +45,6 @@ template <class TYPE> class Matrix;
       CalcElementMatrix( elemMat, ent1, ent2, DesignElement::NO_DERIVATIVE);
     }
 
-
     /** Function for calculation bdb matrix using incompatible modes. Uses */ 
     void CalcElementMatrixICM( Matrix<Double>& elemMat,
                             EntityIterator& ent1, 

@@ -54,7 +54,7 @@ public:
   int GetNumberOfEntries() const;
 
   /** This are indices for the entries to design. */
-  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1 };
+  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, XY_P = 6, XY_N = 7, NONE = -1 };
 
   /** Helper which translates X_P and X_N to 0, Y_P and Y_N to 1, Z_P and Z_N to 2. Nothing else! */
   static int ToMainAxis(Neighbour neigh)
@@ -86,7 +86,6 @@ public:
 
   /** @see GetNeighbour(Neighbour idx, int n) */
   static bool HasNeighbor(DesignElement* base, Neighbour idx, int n);
-
 
   /** dump method for logging */
   std::string ToString() const;
@@ -154,7 +153,8 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, STIFF1, STIFF2, G11,G12,G21,G22, G_ALL, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, STIFF1, STIFF2, G11,G12,G21,G22, G_ALL,
+                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, MULTIMATERIAL, ALL_DESIGNS} Type;
 
   BaseDesignElement(Type type = NO_TYPE);
   virtual ~BaseDesignElement() {};

@@ -100,7 +100,11 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
     case DETERMINANT_MATRIX:
-      if(!pn->Has("parameter"))
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
+    case DETERMINANT_MAPPING:
+    case TRACE_MAPPING:
+    if(!pn->Has("parameter"))
         throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
     case ISOTROPY:
@@ -708,6 +712,8 @@ bool Condition::IsFeasibilityConstraint() const
   case DETERMINANT_MATRIX:
   case ROTATIONAL_MATRIX_1:
   case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
     return true;
   default:

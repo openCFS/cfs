@@ -357,6 +357,9 @@
                <!--  In case of model reduction, ensures that the rotational of the matrix is small enough -->
                 <xsd:enumeration value="rotationalMatrix1"/>
                 <xsd:enumeration value="rotationalMatrix2"/>
+                <!--  For the mapping case of model reduction techniques -->
+                <xsd:enumeration value="determinantMapping"/>
+                <xsd:enumeration value="traceMapping"/>
                 <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
                 <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
@@ -1139,6 +1142,7 @@
                             <xsd:enumeration value="reducedBasis-free"/>
                             <xsd:enumeration value="greedy-param"/>
                             <xsd:enumeration value="greedy-free"/>
+   			    <xsd:enumeration value="greedy-mapping"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1397,6 +1401,16 @@
       <xsd:enumeration value="G12"/>
       <xsd:enumeration value="G21"/>
       <xsd:enumeration value="G22"/>
+      <xsd:enumeration value="G_MAP_X"/>
+      <xsd:enumeration value="G_MAP_Y"/>
+      <xsd:enumeration value="GX_0"/>
+      <xsd:enumeration value="GY_0"/>
+      <xsd:enumeration value="GX_PX"/>
+      <xsd:enumeration value="GY_PX"/>
+      <xsd:enumeration value="GX_PY"/>
+      <xsd:enumeration value="GY_PY"/>
+      <xsd:enumeration value="GX_PXY"/>
+      <xsd:enumeration value="GY_PXY"/>
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
     </xsd:restriction>
@@ -1654,13 +1668,19 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="default"/>
           <xsd:enumeration value="next"/>
+          <xsd:enumeration value="next_diag"/>
           <xsd:enumeration value="next_and_reverse"/>
           <xsd:enumeration value="prev_next"/>
           <xsd:enumeration value="prev_next_and_reverse"/>
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
           <xsd:enumeration value="element"/>
-        </xsd:restriction>
+          <xsd:enumeration value="multiple_designs_element"/>
+          <xsd:enumeration value="multiple_designs_next"/>
+          <xsd:enumeration value="multiple_designs_next_and_reverse"/>
+          <xsd:enumeration value="multiple_designs_prev_next"/>
+          <xsd:enumeration value="multiple_designs_prev_next_and_reverse"/>
+     </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
     

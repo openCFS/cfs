@@ -133,6 +133,15 @@ namespace CoupledField
      return result;
   }
 
+  bool Assemble::UseRegion(RegionIdType reg) const
+  {
+    for(StdVector<BiLinFormContext*>::iterator iter = biLinForms_->Begin(); iter != biLinForms_->End(); iter++)
+      if((*iter)->GetFirstEntities()->GetRegion() == reg)
+        return true;
+
+     return false;
+  }
+
   LinearFormContext* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent, Global::ComplexPart entryType)
   {
      // the EntityList has the region name as name but not the id

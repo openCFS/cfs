@@ -69,6 +69,12 @@ namespace CoupledField
       * @param dm ParamNode in XML */
      void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material);
 
+     /** returns the type of the DesignMaterial of the Ersatzmaterial **/
+     DesignMaterial::Type getDesignMaterialType()
+     {
+       return designMaterial->GetType();
+     }
+
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
      void SetOptimizer(BaseOptimizer* bo) { optimizer_ = bo; }

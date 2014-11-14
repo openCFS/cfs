@@ -667,6 +667,8 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
     DesignElement* de = &data[index];
     designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
+  designMaterial->current_elem = elem;
+
   return(true);
 }
 
@@ -701,6 +703,7 @@ bool DesignSpace::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
 
 bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
+
   if(CollectMaterialParametersForElement(elem)){
     designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
     return(true);
