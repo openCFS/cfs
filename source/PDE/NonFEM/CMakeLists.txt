@@ -1,5 +1,6 @@
 SET(NON_FEM_SRCS
   LatticeBoltzmann.cc
+  LatticeBoltzmann3D.cc
   )
 
 ADD_LIBRARY(non_fem_pde STATIC ${NON_FEM_SRCS})

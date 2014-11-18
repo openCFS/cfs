@@ -1,5 +1,5 @@
-#ifndef LATTICEBOLTZMANN_HH_
-#define LATTICEBOLTZMANN_HH_
+#ifndef LATTICEBOLTZMANN3D_HH_
+#define LATTICEBOLTZMANN3D_HH_
 
 
 #include <set>
@@ -18,41 +18,8 @@ namespace CoupledField
   // following value are treated as zeros.
   #define NON_ZERO_TOLERANCE  1.0e-20
 
-  // Number of velocity directions per element, e.g. 9 for D2Q9 model
-  #define N_DIR 9
-
-//  #define Q9_0  0
-//  #define Q9_E  1
-//  #define Q9_N  2
-//  #define Q9_W  3
-//  #define Q9_S  4
-//  #define Q9_NE 5
-//  #define Q9_NW 6
-//  #define Q9_SW 7
-//  #define Q9_SE 8
-
-//typedef enum { N = 0, S = 4, W = 2,
-
-//  #define Q9_INV_0  Q9_0
-//  #define Q9_INV_E  Q9_W
-//  #define Q9_INV_N  Q9_S
-//  #define Q9_INV_W  Q9_E
-//  #define Q9_INV_S  Q9_N
-//  #define Q9_INV_NE Q9_SW
-//  #define Q9_INV_NW Q9_SE
-//  #define Q9_INV_SW Q9_NE
-//  #define Q9_INV_SE Q9_NW
-
-
-//  #define T_Q9_0   (4.0 /  9.0)
-//  #define T_Q9_E   (1.0 /  9.0)
-//  #define T_Q9_N   (1.0 /  9.0)
-//  #define T_Q9_W   (1.0 /  9.0)
-//  #define T_Q9_S   (1.0 /  9.0)
-//  #define T_Q9_NE  (1.0 / 36.0)
-//  #define T_Q9_NW  (1.0 / 36.0)
-//  #define T_Q9_SW  (1.0 / 36.0)
-//  #define T_Q9_SE  (1.0 / 36.0)
+  // Number of velocity directions per element, e.g. 19 for D3Q19 model
+  #define N_DIR 19
 
   #ifndef __LX__
     #define __LX__  m_sizeX
@@ -62,6 +29,11 @@ namespace CoupledField
     #define __LY__  m_sizeY
   #endif
 
+  #ifndef __LZ__
+    #define __LZ__  m_sizeZ
+  #endif
+
+
   #ifndef __PDFS__
     #define __PDFS__ m_pdfs
   #endif
@@ -70,7 +42,7 @@ namespace CoupledField
 
     // Address PDFs via Coordinates and Direction.
     // Assuming array of structures layout.
-    #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((_y) * __LX__ + (_x)) * N_DIR + (_direction)]
+    #define PDF(_arrayIndex, _x, _y, _z,  _direction)  __PDFS__[_arrayIndex][ ((_z) * __LX__ * __LY__  + (_y) * __LX__ + (_x)) * N_DIR + (_direction)]
 
     // Address PDFs via Index and Direction only.
     // Assuming array of structures layout.
@@ -91,14 +63,14 @@ namespace CoupledField
     #define LBM_NODE_TYPE_INLET   (-2.0)
     #define LBM_NODE_TYPE_OUTLET  (-3.0)
 
-  class LatticeBoltzmann
+  class LatticeBoltzmann3D
   {
-public:
+  public:
 
 
-    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot);
+    LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot);
 
-    ~LatticeBoltzmann();
+    ~LatticeBoltzmann3D();
 
     /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
      * @param info stores current and final info there. Saves under way
@@ -112,15 +84,33 @@ public:
     struct PropTransform{
       int off_x;
       int off_y;
-      PropTransform(int offx, int offy): off_x(offx), off_y(offy){}
-      PropTransform(): off_x(0),off_y(0){}
+      int off_z;
+      PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+      PropTransform(): off_x(0),off_y(0), off_z(0){}
     };
 
     // Boundary C corresponds to interior
-    typedef enum {C=0, E=1, N=2, W=3, S=4, NE=5, NW=6, SW=7, SE=8} Boundary;
-    typedef enum {Q9_0=0, Q9_E=1, Q9_N=2, Q9_W=3, Q9_S=4, Q9_NE=5, Q9_NW=6, Q9_SW=7, Q9_SE=8} Direction;
-    static Enum<Boundary> boundaries;
+//    typedef enum {C=0, E=1, N=2, W=3, S=4, NE=5, NW=6, SW=7, SE=8} Boundary;
+    // Corner C stands for center element
+//    typedef enum {C = 0, B_NW = 1, B_SW = 2, B_SE = 3, B_NE = 4, T_NW = 5, T_SW = 6, T_SE = 7, T_NE = 8} Corner;
+//    typedef enum {TN = 0, TW = 1, TS = 2, TE = 3, NW = 4, SW = 5, SE = 6, NE = 7, BN = 8, BW = 9, BS = 10, BE = 11} Edge;
+    // corners: B_NW to T_NE, edges: TN to BE
+    typedef enum {C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, TNW = 5, TSW = 6, TSE = 7, TNE = 8, TN = 9,
+                  TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20} Boundary;
+    typedef enum {Q19_0 = 0, Q19_E = 1, Q19_W = 2, Q19_N = 3, Q19_S = 4, Q19_T = 5, Q19_B = 6,
+                  Q19_NE = 7, Q19_SW = 8, Q19_NW = 9, Q19_SE = 10,
+                  Q19_TN = 11, Q19_BS = 12, Q19_TS = 13, Q19_BN = 14,
+                  Q19_TE = 15, Q19_BW = 16, Q19_TW = 17, Q19_BE = 18} Direction;
+//    typedef enum{ Q19_INV_0 = Q19_0, Q19_INV_E = Q19_W, Q19_INV_W = Q19_E, Q19_INV_N = Q19_S, Q19_INV_S = Q19_N, Q19_INV_T = Q19_B, Q19_INV_B = Q19_T,
+//                  Q19_INV_NE = Q19_SW, Q19_INV_SW = Q19_NE, Q19_INV_NW = Q19_SE, Q19_INV_SE = Q19_NW,
+//                  Q19_INV_TN = Q19_BS, Q19_INV_BS = Q19_TN, Q19_INV_TS = Q19_BS, Q19_INV_BN = Q19_TS,
+//                  Q19_INV_TE = Q19_BW, Q19_INV_BW = Q19_TE, Q19_INV_TW = Q19_BE, Q19_INV_BE = Q19_TW} DirectionInv;
+
     static Enum<Direction> directions;
+    static Enum<Boundary> boundaries;
+//    static Enum<Corner> corners;
+//    static Enum<Edge> edges;
+//    static Enum<DirectionInv> directionsInv;
 
     void SetupDataStructures(const StdVector<double>& elements);
 
@@ -129,11 +119,31 @@ public:
 
     /**
      * returns associated integer value of velocity direction two given principal directions
-     * e.g. getDir(S,E) returns Q9_SE
+     * e.g. getIndexDir(S,E) returns Q19_SE
      */
     int GetIndexDir(Direction dir1);
     int GetIndexDir(Direction dir1, Direction dir2);
 
+    /**
+     * returns associated integer value of boundary of a cube
+     * e.g. getIndexBound(T,N,E) returns right top back corner
+     *
+     * dir1 can only be top, bottom, north or south
+     * dir2 can only be north, south, west or east
+     */
+    int GetIndexBound(Direction dir1, Direction dir2);
+
+    /**
+      dir1 can only be top or bottom
+      dir2 can only be north or south
+      dir3 can only be east or west
+    */
+    int GetIndexBound(Direction dir1, Direction dir2, Direction dir3);
+
+    // validates GetIndexbound function
+    void TestGetIndexbound();
+
+    // validates GetIndexDir function
     void TestDirectionIndex();
 
     /**
@@ -141,25 +151,29 @@ public:
      */
     void SetupTransformation();
 
-    /** debugging prop_map */
+    /** dump propagation maps */
     void WritePropMap();
 
     /** set enumerations for directions and boundaries*/
     void SetEnums();
 
-    /** Set LBM weights for D2Q9 model*/
+    /** Set LBM weights for D3Q19 model*/
     void InitWeights();
 
+    /** Set lookup table for inverse directions */
+    void SetInvDirections();
+
     /** get inverse direction of D2Q9 direction */
-//    int GetInvDirection(Direction dir);
     int GetInvDirection(Direction dir);
 
     void TestInvDirections();
 
+
+
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
 
-    /** fills given propagation map with given offset value*/
+    /** fills given propagation map with given default offset values (0 in all directions)*/
     void InitPropMap(StdVector<PropTransform>& map);
 
     inline bool LbmNodeTypeIsFluid(double value)
@@ -195,9 +209,11 @@ public:
 
     int m_sizeX;
     int m_sizeY;
+    int m_sizeZ;
     int m_nNodes;     // Number of total nodes (fluid + obstacle)
     double m_ux;      // Inlet x velocity
     double m_uy;      // Inlet y velocity
+    double m_uz;      // Inlet z velocity
     double m_omega;
     int m_maxIter;
     double m_maxTol;
@@ -210,8 +226,14 @@ public:
 
     StdVector< StdVector<double> > m_pdfs;
 
+//    // contains propagation rules for all corners of the domain
+//    StdVector< StdVector<PropTransform> > prop_corners;
+//    // contains propagation rules for all edges of the domain
+//    StdVector< StdVector<PropTransform> > prop_edges;
     // contains propagation rules for all types of elements (edge, corner, interior)
     StdVector< StdVector<PropTransform> > prop_maps;
+    // lookup table to get inverse directions
+    StdVector<Direction> directionsInv;
     //double * m_pdfs[2];
     int m_cur;
     int m_next;
@@ -220,7 +242,7 @@ public:
     StdVector<StdVector<int> > outlet;
     StdVector<StdVector<int> > bb;
     StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
-  }; // end LatticeBoltzmann
+  }; // end LatticeBoltzmann3D
 
 
 
