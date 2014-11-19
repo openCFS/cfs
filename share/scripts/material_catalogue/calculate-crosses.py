@@ -389,7 +389,7 @@ if dim == 2:
         # add new job to jobfile
         jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
         # create xml file for cfs
-        os.system('cp inv_tensor_msfem.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml') 
+        os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml') 
   
 elif dim == 3:
   # 3D cross structure

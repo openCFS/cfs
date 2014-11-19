@@ -40,6 +40,7 @@ parser.add_argument('--densfile', help="output .density.xml with only 'mech' den
 parser.add_argument('--multi_d', help="number of design variables in density.xml file", type=int, default=1)
 parser.add_argument('--shearangle', help="shearing angle of mesh in degree", type=float, default=0.0)
 parser.add_argument('--colorregion', help="interpret colors as other regions", action='store_true')
+parser.add_argument('--pressure', help='sets region for pressure in the meshfile')
 
 mesh = Mesh()
 
@@ -69,12 +70,15 @@ else:
     print "Warning: mode is stupid, may give unusable results!"
   if not args.colorregion:
     img = img.convert("L") 
-  create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
+  if args.pressure:
+    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
+  else:
+    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle), True)
 
 if not args.noshow:
   dimension = None
   if args.multi_d > 1:
-    dimensions = (multi_d.shape[0],multi_d.shape[1])
+    dimensions = (multi_d.shape[0], multi_d.shape[1])
   elif '.xml' in args.input or '.txt' in args.input:
     dimensions = d.shape
   else:

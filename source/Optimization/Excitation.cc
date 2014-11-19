@@ -252,8 +252,14 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     {
       Excitation& ex = excitations[i];
       ex.index = i;
-
-      ex.normalized_weight = ex.weight / weight_sum;
+      // fixes bug for pressure loads
+      if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
+        // multiple pressure loads not implemented
+        assert(excitations.GetSize() == 1);
+        ex.normalized_weight = 1.;
+      } else {
+        ex.normalized_weight = ex.weight / weight_sum;
+      }
 
       PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
       exin->Get("index")->SetValue(ex.index);
