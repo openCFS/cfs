@@ -189,7 +189,7 @@ void linElastInt::CalcBMat( Matrix<Double> &bMat, UInt ip,
   
   // LOG_DBG3(lin_elast_int) << "calcBMat: xiDx: " << xiDx.ToString() << std::endl;
   
-  ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
+   ReorderBLikeMatrix(xiDx, bMat, ip, ptelem, ptCoord);
 
   // LOG_DBG2(lin_elast_int) << "calcBMat: bMat: " << bMat.ToString() << std::endl;
 

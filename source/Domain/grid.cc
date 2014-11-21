@@ -2195,19 +2195,19 @@ namespace CoupledField
 
   }
 
-    StdVector<UInt> Grid::GetBoundaries(RegionIdType region) {
+    StdVector<UInt> Grid::GetBoundaries(RegionIdType region)
+    {
       StdVector<UInt> n(3);
+      n.Init(0.0);
+      if(!IsRegionRegular(region))
+        return n;
+
       StdVector<double> min(3);
       StdVector<double> max(3);
       UInt dim = this->GetDim();
       min.Init(1e10);
       max.Init(1e-10);
 
-//      StdVector<RegionIdType> regionIds;
-//
-//      reg.Insert(region,region);
-      if (!IsRegionRegular(region))
-          return n;
       StdVector <Elem*> elems;
       this->GetElems(elems,region);
 
@@ -2231,7 +2231,10 @@ namespace CoupledField
       if (dim == 2)
         n[2] = 1;
       for (UInt i = 0; i < dim; ++i)
-         n[i] = (max[i] - min[i])/spacing[0] + 1;
+         n[i] = 1.00001 * (max[i] - min[i]) / spacing[i] + 1;
+
+      LOG_DBG2(grid) << "GB(" << region << ") min=" << min.ToString() << " max=" << max.ToString() << " spacing=" << spacing.ToString() << " -> " << n.ToString();
+
       return n;
     }
 

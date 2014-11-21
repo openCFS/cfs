@@ -201,7 +201,7 @@ unsigned int DesignMaterial::RequiredParameters(
     return r + 2;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-    return r + 4 + (dim == 3 ? 1 : 0);
+    return domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? r + 4 : r + 5;
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
   case LAMINATES:
@@ -270,7 +270,7 @@ bool DesignMaterial::CheckRequiredDesigns(
             && design.Find(DesignElement::EMODUL) >= 0
             && design.Find(DesignElement::POISSON) >= 0
             && design.Find(DesignElement::GMODUL) >= 0
-            && (dim != 3 || design.Find(DesignElement::POISSONISO) >= 0) );
+            && domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? true : design.Find(DesignElement::POISSONISO) >= 0);
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     return (design.Find(DesignElement::DENSITY) >= 0
@@ -487,7 +487,6 @@ double DesignMaterial::GetLameMaterialMass(DesignElement::Type direction) {
 
 void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   LOG_DBG2(dm) << "GetTransIsoMaterialTensor called with direction=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction)) << " and notation=" << notation;
-  assert(subTensor != PLANE_STRAIN);
   assert(type_ != DENSITY_TIMES_ROT_PA12 || subTensor == FULL);
   double E3(0.0);
   double E = params_[DesignElement::EMODULISO];
@@ -629,6 +628,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     return;
   } // PLANE_STRESS
   
+  // 3D AND PLANE_STRAIN
   double nu = params_[DesignElement::POISSONISO];
   double nu3;
   double n3;

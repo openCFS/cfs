@@ -304,6 +304,11 @@ double BaseForm::MaterialDescriptor::GetErsatzMaterial(BaseForm* form, const Ele
   }
 
 
+  void BaseForm::SetSum4Boperator () {
+    isSumBoperator_ = true;
+  }
+
+
 #ifndef INTEGLIB
   void BaseForm::ExtractElemInfo( EntityIterator& it ) {
     ptelem = it.GetElem()->ptElem;

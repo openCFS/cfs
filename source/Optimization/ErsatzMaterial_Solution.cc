@@ -189,10 +189,13 @@ void ErsatzMaterial::Solution::Write(StdPDE* pde)
 {
   T* ptr = NULL;
   Vector<T>* v = static_cast<Vector<T>*>(raw);
-  ptr = v->GetPointer();
-  assert(ptr != NULL);
-  assert(raw->GetSize() != 0);
-  pde->SaveSolution(ptr, raw->GetSize());
+  if(v != NULL) // TODO make robust for LBM
+  {
+    ptr = v->GetPointer();
+    assert(ptr != NULL);
+    assert(raw->GetSize() != 0);
+    pde->SaveSolution(ptr, raw->GetSize());
+  }
 }
 
 
@@ -319,6 +322,9 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, StdPDE* pde, Applic
   case LAPLACE:
     app = MECH;
     solt = MECH_DISPLACEMENT;
+    break;
+  case LBM:
+    solt = LBM_PROBABILITY_DISTRIBUTION;
     break;
   default:
     EXCEPTION("Solution type not implemented");

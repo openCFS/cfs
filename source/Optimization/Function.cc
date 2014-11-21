@@ -189,7 +189,7 @@ Function::Function(PtrParamNode pn) {
     if (design_ != DesignElement::ALL_DESIGNS)
       linear_ = false;
     else
-      linear_ = false;
+      linear_ = true;
     break;
   default:
     linear_ = false;
@@ -494,10 +494,11 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case TENSOR_TRACE:
   case TENSOR_NORM:
   case GLOBAL_TENSOR_TRACE:
+  case SHAPE_INF:
+  case PRESSURE_DROP:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
-  case SHAPE_INF:
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
@@ -701,6 +702,7 @@ bool Function::ForSensitivityFiltering() const {
   case ABS_OUTPUT:
   case STRESS:
   case STRESS_DENSITY:
+  case PRESSURE_DROP:
     return true;
 
   case VOLUME:

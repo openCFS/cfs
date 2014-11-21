@@ -72,7 +72,7 @@ public:
    * @param ev_only_excite EvaluateOnly has the special feature to perform a sweep over multiple
    *        frequencies and calculate the mono-harmonic objective. Only EvaluateOnly shall use this
    *        parameter. */
-  void SolveStateProblem(Excitation* ev_only_excite = NULL);
+  virtual void SolveStateProblem(Excitation* ev_only_excite = NULL);
 
   /** This solves all Adjoint problems */
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
@@ -399,7 +399,7 @@ public:
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
   /** Calculates the objective only, no derivative */
-  double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
+  double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
@@ -623,6 +623,12 @@ private:
 
   /** for CalcFunction() */
   double CalcHomTensor(Objective* c, Condition* g, bool derivative);
+
+  double CalcMaxwellHomTensor(Objective* c, Condition* g, bool derivative);
+
+  double CalcMaxwellHomTracking(Function* f, bool derivative);
+
+  double CalcMaxwellHomBitensor(Objective* c, Condition* g, bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .

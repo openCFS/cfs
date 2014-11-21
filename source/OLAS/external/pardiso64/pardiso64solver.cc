@@ -405,6 +405,19 @@ void Pardiso64Solver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step )
   iparm_[2] = 1;
   //#endif
 
+  // by default not transposed (IPARM(12))
+  std::string transposed = sNode->Has("Transposed") ? sNode->Get("Transposed")->As<std::string>() :  "non_transposed";
+  iparm_[11] = 0;
+  if(sNode->Has("Transposed")) {
+    std::string par = sNode->Get("Transposed")->As<std::string>();
+    if(par == "conjugate_transposed")
+      iparm_[11] = 1;
+    if(par == "transposed")
+      iparm_[11] = 2;
+  }
+  LOG_DBG(pardiso64Solver) << "transposed setting IPAR(12) = " << iparm_[11] << " with 0 for non-transposed";
+
+
   // Determine the re-ordering strategy: We can either fo nested dissection
   // or minimum degree re-ordering or no re-ordering at all (i.e. we use
   // the initial ordering of the linear system, which might already have been

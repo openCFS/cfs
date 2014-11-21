@@ -49,6 +49,7 @@ namespace CoupledField {
     nne_                = 0;
     blockSize_          = 1;
     numDirichletValues_ = 0;
+    isIDBC_            = true;
 
     algSysType_     = NOALGSYSTYPE;
     

@@ -168,7 +168,7 @@ def read_density_as_vector(filename, attribute="design"):
 # @param setname_inp the name of the set or a list of setnames
 # @param elemnr if set, the element number is taken from this elemnr ndarray.
 #               The data can be obtained from read_density(...,elemnr=True)
-def write_density_file(filename, data_inp, setname_inp, param=0, elemnr=None):
+def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=None):
   # check if we deal with lists or not
   data_list = []
   setname_list = []
@@ -506,36 +506,51 @@ def enlarge_matrix(data, times_x, times_y=1, times_z=1):
 # @param infile the density file with the densities to be blown upper
 # @param outfile name of the output file
 # @param returns also the new ndata array
-def refine_density(infile, outfile):
-  org = read_density(infile)
-
-  x, y, z = getDim(org)
-  dim = org.ndim
+def refine_density(infile, outfile, design1=None, design2=None, design3=None, design4=None, design5 = None):
+  if design1 is None:
+    org = read_density(infile)
+    x, y, z = getDim(org)
+    ndes = 1
+    dim = org.ndim
+  else:
+    org = read_multi_design(infile, design1, design2, design3, design4, design5, True)
+    x, y, z, ndes = getDim(org, True)
+    if ndes is None:
+      ndes = z
+    dim = org.ndim - 1
   # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
+  
   out = numpy.zeros((x * 2, y * 2))
 
   # In 3D we need to overwrite with 3D array or else setNDArrayEntry will not work properly
-  if(org.ndim == 3):
+  if(dim == 3):
     out = numpy.zeros((x * 2, y * 2, z * 2))
+    
+  output = numpy.zeros((out.size, ndes))
 
   # print "debug: x=" + str(x) + ", y=" + str(y) + ", z=" + str(z) + ", dim=" + str(dim)
-
-  for i in range(x):
-    for j in range(y):
-      for k in range(z):
-        val = getNDArrayEntry(org, i, j, k)
-        # in 2D the z-component is ignored and we set the value twice
-        setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 0, val)
-        setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 1, val)
-        setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 0, val)
-        setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 1, val)
-        setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 0, val)
-        setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 1, val)
-        setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 0, val)
-        setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 1, val)
-        
-  write_density_file(outfile, out, "refined")
-  return out 
+  for d in range(ndes):
+    for i in range(x):
+      for j in range(y):
+        for k in range(z):
+          val = getNDArrayEntry(org, i, j, k, d)
+          # in 2D the z-component is ignored and we set the value twice
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 0, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 0, j * 2 + 1, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 0, k * 2 + 1, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 0, val)
+          setNDArrayEntry(out, i * 2 + 1, j * 2 + 1, k * 2 + 1, val)
+    if design1 is None:
+      write_density_file(outfile, out, "refined")
+      return out
+    else:
+      output[:,d] = numpy.ravel(out,order='F')
+  
+  write_multi_design_file(outfile, output, (design1, design2, design3, design4, design5)[0:ndes])
+  return output
 
 # Assuming there is a sequence of CFS runs by a parameter study. This method finds the closes
 # valid run

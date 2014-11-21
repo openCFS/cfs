@@ -443,8 +443,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign();
-      else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(true);
+      else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
+        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
       else
         out[0] = GetValue(rd.value, rd.access);
     }
@@ -551,17 +551,14 @@ double DesignElement::GetDesign() const
   EXCEPTION("use DesignElement::GetDesign(Access)");
 }
 
-double DesignElement::GetPhysicalDesign(bool densForElec) const
+double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
 {
-  TransferFunction* tf = space_->GetTransferFunction(type_, densForElec ? Optimization::ELEC : TransferFunction::Default(type_), true);
+  assert(space_ != NULL);
+  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
 
   return tf->Transform(this, SMART);
-
-  //const TransferFunction* tf = const_cast<const TransferFunction*>(space_->GetTransferFunction(type_, ErsatzMaterial::MECH, true));
- // return tf->Transform(this);
-
-  // we need the transfer function
 }
+
 
 bool DesignElement::HasPhysicalDesign() const
 {

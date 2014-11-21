@@ -50,7 +50,10 @@ class Mesh:
   def __init__(self):
    self.nodes = []    # list 2d tupels (float, float) or 3d tuples
    self.elements = [] # list of Element
-   self.bc = []       # list of tupel (name, <list of zero based nodes>)  
+   # list of boundary conditon nodes
+   self.bc = []       # list of tupel (name, <list of zero based nodes>)
+   # list of named nodes (save element in gd)
+   self.ne = []       # list of tupel (name, <list of zero based elements>)
 
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
@@ -65,7 +68,7 @@ def show_dense_mesh_image(mesh, shape, binary, size):
       val = 1-e.density # black is 0 in the image but 1 as density
       # print str(val) + " - " + str(barrier)
       show = (200,10,10) if binary else (int(val*255),int(val*255),int(val*255)) 
-      check_pix[x,ny-y-1] = show if e.region == 'mech' else (10,10,200)
+      check_pix[x,ny-y-1] = show if e.region == 'mech' else (10,10,200) if e.region == 'void' else (200,10,10)
       
   check_img = check_img.resize((size, ny * size/nx))    
   check_img.show()     
@@ -74,25 +77,30 @@ def show_dense_mesh_image(mesh, shape, binary, size):
 def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin,True,1,shearAngle)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle)
 
-def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin,multi_d=1):
+def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   if multi_d == 1:
     nx, ny = numpy_array.shape
   else:
     nx,ny,nz,m = numpy_array.shape
-  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin,False,multi_design = multi_d,shearAngle = 0.0)
+  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design = multi_d, shearAngle = 0.0)
   
-def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img = True,multi_design=1,shearAngle=0):
+def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0):
   # convert angle to rad and check for feasibility
   angle = shearAngle/180 * math.pi
   if (abs(angle) > math.pi/2 - 1e-6):
     print 'angle has to be between -pi/2 + 1e-6 and pi/2 - 1e-6'
     return 0 
-  input_pix = input_array
   dx = scale/nx/math.cos(angle)
   # from daniel ?! dy = scale/ny
   dy = dx
+  
+  # input_array can be one of three cases: grayscale imgae (array of ints), color image (array of tuples (r,g,b(,a)), numpy.ndarray
+  is_data  = isinstance(input_array, numpy.ndarray)
+  is_gray  = False if is_data else isinstance(input_array[0,0], int)
+  is_color = False if is_data else isinstance(input_array[0,0], tuple)
+  assert(is_data or is_gray or is_color)
   
   # create mesh.nodes
   for y in range(ny + 1):
@@ -106,21 +114,28 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
         mesh.nodes.append((x_Coord,y * dy))
   # print mesh.nodes 
   mech_count = 0
+  colorful_count = 0
+  
   for x in range(nx):
     for y in range(ny):
       e = Element()
       e.type = QUAD4
-      if img:
+      # assign preliminary data value
+      if is_gray:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_pix[x,y] / 255.0)
-      else:
+        e.density = 1.0 - (input_array[x,y] / 255.0)
+      if is_color:
+        val = sum(input_array[x,y][0:3]) / 3.0
+        e.density = 1.0 - (val / 255.0)
+      if is_data:
         if multi_design == 1:
-          e.density = input_pix[x,y]
+          e.density = input_array[x,y]
         else:
-          e.stiff1 = input_pix[x,y,0,0]
-          e.stiff2 = input_pix[x,y,0,1]
+          e.stiff1 = input_array[x,y,0,0]
+          e.stiff2 = input_array[x,y,0,1]
           if multi_design == 3:
-            e.rotAngle = input_pix[x,y,0,2]
+            e.rotAngle = input_array[x,y,0,2]
+      # compare data against threshold value
       if multi_design == 1:
         if e.density < rhomin:
           e.density = rhomin
@@ -129,14 +144,30 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
           e.stiff1 = rhomin
         elif e.stiff2 < rhomin:
           e.stiff2 = rhomin
-      if multi_design == 1:    
-        if float(e.density) >= float(threshold):
-          e.region = 'mech'
-          mech_count += 1
+      # assign region    
+      if multi_design == 1:
+        # are we gray or not?
+        if is_gray or (input_array[x,y][0] == input_array[x,y][1] and input_array[x,y][1] == input_array[x,y][2]):  
+          if e.density >= threshold:
+            e.region = 'mech'
+            mech_count += 1
+          else:
+            e.region = 'void'
         else:
-          e.region = 'void'
+          if input_array[x,y][0] > 0 and input_array[x,y][1] == 0 and input_array[x,y][1] == input_array[x,y][2] == 0:
+            e.region = 'red'
+            colorful_count += 1
+          elif input_array[x,y][0] == 0 and input_array[x,y][1] > 0 and input_array[x,y][1] == input_array[x,y][2] == 0:
+            e.region = 'green'
+            colorful_count += 1
+          elif input_array[x,y][0] == 0 and input_array[x,y][1] == 0 and input_array[x,y][1] == input_array[x,y][2] > 0:
+            e.region = 'blue'
+            colorful_count += 1
+          else:
+            e.region = 'colorful'
+            colorful_count += 1
       else:
-        if (float(e.stiff1) >= float(threshold)) | (float(e.stiff2) >= float(threshold)):  
+        if e.stiff1 >= threshold or float(e.stiff2) >= threshold:  
           e.region = 'mech'
           mech_count += 1
         else:
@@ -157,6 +188,8 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin,img =
   print "dense resolution: " + str(nx) + " x " + str(ny) + " elements (" + str(scale) + "m x " + str(float(ny)/nx * scale) + "m)",
   print " -> " + str(mech_count) + " mech elements out of " + str(nx*ny) + " (" + str(float(mech_count) / (nx*ny) * 100.0) + " %)",
   print " with threshold " + str(threshold) 
+  if colorful_count > 0:
+    print 'plus ' + str(colorful_count) + ' non gray elements'
 
 # @param mesh dense mesh (input)
 # @return sparse mesh
@@ -169,7 +202,7 @@ def convert_to_sparse_mesh(dense):
   # copy element, the indices of the nodes will be replaced later
   for i in range(len(dense.elements)):
     e = dense.elements[i]
-    if e.region == 'mech':
+    if e.region <> 'void':
       sparse.elements.append(copy.deepcopy(e))
       for n in range(len(e.nodes)):
         nns.add(e.nodes[n])
@@ -231,9 +264,6 @@ def write_gid_elements(out, elements, dim):
 
 
 def write_gid_mesh(mesh, filename):
-  
-  
-  
   quad4  = count_elements(mesh.elements, QUAD4)
   hexa8  = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
@@ -256,8 +286,11 @@ def write_gid_mesh(mesh, filename):
   for i in range(len(mesh.bc)):
     bcn += len(mesh.bc[i][1])
   out.write('NumNodeBC ' + str(bcn) + '\n')
+  nen = 0
+  for i in range(len(mesh.ne)):
+    nen += len(mesh.ne[i][1])
   out.write('NumSaveNodes 0\n')
-  out.write('NumSaveElements 0\n')
+  out.write('NumSaveElements ' + str(nen) + '\n')
   out.write('Num 2d-line      : 0\n')
   out.write('Num 2d-line,quad : 0\n')
   out.write('Num 3d-line      : 0\n')
@@ -309,21 +342,39 @@ def write_gid_mesh(mesh, filename):
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
   out.write('#ElemNr Level\n\n')
+  for e in range(len(mesh.ne)):
+    ne = mesh.ne[e]
+    for n in range(len(ne[1])):
+      out.write(str(ne[1][n]+1) + " " + ne[0] + "\n")
 
   out.close()
   
-## creates a mesh of predefined geometry
-def create_cantilever2d_mesh(type, resolution):
+## creates a 2D mesh of predefined geometry
+def create_2d_mesh(type, x_res, y_res):
   mesh = Mesh()
   
-  width = 3.0
-  height = 2.0
+  # mbb reinforced does not work!!! check and fix the mbb stuff!
   
-  nx = resolution
-  ny = int(nx * (2./3.))
+  nx = x_res
   
+  # buld2d case
+  ny = y_res if y_res <> None else x_res
+  width = 1.0
+  height = float(ny)/nx 
+
+  if type.startswith('cantilever2d'):
+    width = 3.0
+    height = 2.0
+    ny = int(nx * (2./3.))
+  if type.startswith('mbb'):
+    width = 2.0
+    height = 1.0
+    ny = int(nx * 0.5)
+    
   dx = width / nx
-  dy = height / ny 
+  dy = height / ny
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
 
   for y in range(ny + 1):
     for x in range(nx + 1):
@@ -337,6 +388,10 @@ def create_cantilever2d_mesh(type, resolution):
       e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
+      # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
+      elif type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
+        e.region = 'reinforce'
+        
       else:
         e.region = 'mech'
 
@@ -359,24 +414,122 @@ def create_cantilever2d_mesh(type, resolution):
   return mesh
 
 ## creates a mesh of predefined geometry
-def create_mbb_mesh(type, resolution):
+def create_3d_mesh(x_res, y_res, z_res):
   mesh = Mesh()
+
+  nx = x_res
+  ny = y_res if y_res <> None else x_res
+  nz = z_res if z_res <> None else x_res
+
+  nnx = nx+1
+  nny = ny+1
+  nnz = nz+1
   
-  width = 2.0
-  height = 1.0
-  
-  nx = resolution
-  ny = int(nx * 0.5)
-  
+  width = 1.0
   dx = width / nx
-  dy = height / ny 
   
-  e = 1e-4
+  height = float(ny)/nx
+  dy = height / ny
+  
+  depth = float(nz)/nx
+  dz = depth / nz
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
+  
+  
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #       2 --------- 3         
+  #      /|          /|
+  #     / |         / |
+  #    6 --------- 7  |
+  #    |  |        |  |
+  #    |  |        |  |
+  #    |  0 -------|- 1
+  #    | /         | /
+  #    |/          |/
+  #    4 --------- 5
+  
+
+  for z in range(nnz): # slowest variable
+    for y in range(nny):
+      for x in range(nnx): # fastest variable
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+ 
+  for z in range(nz):
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.density = 1.0
+        e.type = HEXA8
+        e.region = 'mech'
+  
+        # assign nodes
+        # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane
+        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))  
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        
+        mesh.elements.append(e)
+
+  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny)*nnx+x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny+ny)*nnx+x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx+1)*(ny+1))))
+  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))
 
 
-  for y in range(ny + 1):
+  mesh.bc.append(("left_bottom_back",   [0]))
+  mesh.bc.append(("right_bottom_back",  [nx]))
+  mesh.bc.append(("left_top_back",      [nnx*ny]))
+  mesh.bc.append(("right_top_back",     [nnx*nny-1]))
+  mesh.bc.append(("left_bottom_front",  [nnx*nny*nz]))
+  mesh.bc.append(("right_bottom_front", [nnx*nny*nz+nx]))
+  mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
+  mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
+  
+  return mesh
+
+## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
+# @param case pipe_bend or two_inlet_one_outlet 
+def create_lbm(resolution, case):
+  mesh = Mesh()
+ 
+  size = 1.0 
+   
+  nx = resolution
+  ny = nx
+  
+  dx = size / nx
+  
+  eps = 1e-4
+
+
+  for y in range(nx + 1):
     for x in range(nx + 1):
-      mesh.nodes.append((x * dx, y * dy))
+      mesh.nodes.append((x * dx, y * dx))
  
   # print mesh.nodes 
   for y in range(ny):
@@ -384,30 +537,28 @@ def create_mbb_mesh(type, resolution):
       e = Element()
       e.type = QUAD4
       e.density = 1.0
-      # if type == 'mbb_reinforced' and (float(x) <= (.03 * nx + e) or float(x) >= (.97 * nx - e) or float(y) <= (.03 * ny + e) or float(y) >= (.97 * ny - e)):
-      if type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
-          e.region = 'reinforce'
+      if x > 0 and y > 0 and x < nx-1 and y < nx -1: 
+        e.region = 'design'
       else:
-        e.region = 'mech'
-
-      #if y == 0:
-      #  print "x=" + str(x) + " -> " + str(.015 * nx) + " r=" + e.region
-
+        e.region = 'boundary'
 
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
       mesh.elements.append(e)
-  
-  mesh.bc.append(("south", range(0, nx+1)))
-  mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
-  mesh.bc.append(("west", range(0, (nx+1)*ny+1, nx+1)))
-  mesh.bc.append(("east", range(nx, (nx+1)*(ny+1), nx+1)))
-
+ 
   mesh.bc.append(("left_lower", [0]))
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
-  
+
+  if case == 'pipe_bend': 
+    mesh.ne.append(('inlet', range(int(0.1*nx*ny + eps), int(0.3*nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('outlet', range(int((ny-1)*nx + 0.7*nx - eps), int((ny-1)*nx + 0.9*nx + eps)) ))
+  elif case == 'two_inlet_one_outlet':
+    mesh.ne.append(('inlet', range(int((0.25 - 1./16) *nx*ny + eps), int((0.25 + 1./16) *nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))
+    mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
+      
   return mesh
