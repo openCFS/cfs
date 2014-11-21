@@ -1131,9 +1131,12 @@
                             <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="density-times-rotated-pa12"/>
+                            <xsd:enumeration value="density-times-interpolated-tensor"/>
+                            <xsd:enumeration value="density-times-rotated-interpolated-tensor"/>
                             <xsd:enumeration value="laminates"/>
                             <xsd:enumeration value="density-times-laminates"/>
-                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
+                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requires homRect element -->
                             <xsd:enumeration value="hom-rect"/>
                             <xsd:enumeration value="density-times-hom-rect"/>
                             <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
@@ -1399,6 +1402,7 @@
       <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
+      <xsd:enumeration value="interpolation"/>
     </xsd:restriction>
   </xsd:simpleType>
 

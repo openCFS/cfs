@@ -3032,8 +3032,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     if (!alter_rhs)
       org_loads = assemble_->GetLoads();
 
-    // overwrite the assemble loads with "pseudo loads"s loads
-    assemble_->SetLoads(f->output_nodes);
+    if (f->GetType() != Objective::CONJUGATE_COMPLIANCE){
+      // overwrite the assemble loads with "pseudo loads"s loads
+      assemble_->SetLoads(f->output_nodes);
+    }
     // set our own RHS but delete first as Assemble adds
     assemble_->GetAlgSys()->InitRHS();
     // assemble the output nodes

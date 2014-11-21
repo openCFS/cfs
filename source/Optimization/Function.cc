@@ -189,7 +189,7 @@ Function::Function(PtrParamNode pn) {
     if (design_ != DesignElement::ALL_DESIGNS)
       linear_ = false;
     else
-      linear_ = false;
+      linear_ = true;
     break;
   default:
     linear_ = false;
@@ -579,7 +579,7 @@ bool Function::IsAdjointBased() const {
 bool Function::NeedsSelectionVector() const {
   switch (type_) {
   case OUTPUT:
-//    case CONJUGATE_COMPLIANCE: ??
+  case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
   case ENERGY_FLUX:
@@ -1742,16 +1742,26 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseD
   this->sign = si;
 }
 
-BaseDesignElement* Function::Local::Identifier::GetElement(BaseDesignElement::Type type)
+const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignElement::Type type) const
 {
   for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
   {
-    BaseDesignElement* de = GetElement(i);
+    const BaseDesignElement* de = GetElement(i);
     if (de->GetType() == type)
       return de; // do not check for non-uniqueness
   }
-  assert(false);
+//  assert(false); (design of Type type may be param in ParamMat -> see GetDesign)
   return NULL;
+}
+
+double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, const bool getParameter) const
+{
+  const BaseDesignElement* de = GetElementByType(type);
+  if (de != NULL)
+    return de->GetDesign(access);
+  if (getParameter)
+    return local->space->designMaterial->GetParameter(type);
+  throw Exception("Designtype not found! If it is a ParamMat parameter make sure to query for parameters.");
 }
 
 double Function::Local::Identifier::EvalFunction(const Local* local,
@@ -1800,7 +1810,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-    fv = CalcSumModuli(DesignElement::PLAIN);
+    fv = CalcSumModuli(local, DesignElement::PLAIN);
     break;
 
   case LAMINATES_VOL:
@@ -1811,7 +1821,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     break;
 
   case PARAM_PS_POS_DEF:
-    fv = CalcParamPSPosDef(-1, false);
+    fv = CalcParamPSPosDef(local, DesignElement::SMART, -1, false);
     break;
 
   case POS_DEF_DET_MINOR_1:
@@ -1966,7 +1976,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
-      gv = CalcSumModuli(DesignElement::PLAIN, n, true);
+      gv = CalcSumModuli(local, DesignElement::PLAIN, n, true);
       break;
 
     case LAMINATES_VOL:
@@ -1977,7 +1987,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case PARAM_PS_POS_DEF:
-      gv = CalcParamPSPosDef(n, true);
+      gv = CalcParamPSPosDef(local, DesignElement::SMART, n, true);
       break;
 
     case POS_DEF_DET_MINOR_1:
@@ -2378,91 +2388,82 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
 }
 
 
-double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, int neigh_idx, bool derivative) const
+double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  double E1(0.0), E3(0.0), G(0.0), theta(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::GMODUL:
-      G = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::POISSON:
-      theta = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::POISSONISO:
-    case DesignElement::DENSITY:
-    case DesignElement::ROTANGLE:
-      break;
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double G = GetDesign(DesignElement::GMODUL, local, access, true);
+  double theta = GetDesign(DesignElement::POISSON, local, access, true);
 
-    default:
-      assert(false);
-      break;
-    }
-  }
-
-  if(derivative)
-  {
-    switch(GetElement(neigh_idx)->GetType())
+  int dim = domain->GetGrid()->GetDim();
+  if(dim ==2){ //case PLANE_STRESS, reformulated theta version
+    if(derivative)
     {
-    case DesignElement::EMODULISO:
-    case DesignElement::EMODUL:
-      return 1.0/(1.0-theta);
-    case DesignElement::GMODUL:
-      return 2.0;
-    case DesignElement::POISSON:
-    {
-      double nninvtmp = 1/((1.0-theta)*(1.0-theta));
-      return E1*nninvtmp+E3*nninvtmp;
+      switch(GetElement(neigh_idx)->GetType())
+      {
+      case DesignElement::EMODULISO:
+      case DesignElement::EMODUL:
+        return 1.0/(1.0-theta);
+      case DesignElement::GMODUL:
+        return 2.0;
+      case DesignElement::POISSON:
+      {
+        double nninvtmp = 1/((1.0-theta)*(1.0-theta));
+        return E1*nninvtmp+E3*nninvtmp;
+      }
+      default:
+        return 0.0;
+      }
     }
-    default:
-      return 0.0;
-    }
+    return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
   }
+  else { // 3D case original version without theta, theta = nu_{oi}
+    double nuiso = GetDesign(DesignElement::POISSONISO, local, access, true);
+    double nuoisqrd = theta*theta;
+    if(derivative)
+    {
+      switch(GetElement(neigh_idx)->GetType())
+      {
+      case DesignElement::EMODULISO:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return (8*nuoisqrd*nuoisqrd)/(4*nuoisqrd*nuoisqrd*(1+nuiso)) - (E3*E3*(2*nuoisqrd + 1)*(nuiso - 1))/(n*n);
+      }
+      case DesignElement::EMODUL:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return 1 - (2*E1*E1*nuoisqrd*(2*nuoisqrd + 1))/(n*n);
+      }
+      case DesignElement::GMODUL:
+        return 4.0;
+      case DesignElement::POISSON:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return (4*E3*E1*theta*(E3 + E1 - E3*nuiso))/(n*n);
+      }
+      case DesignElement::POISSONISO:
+      {
+        double n = (nuiso + (2*E1*nuoisqrd)/E3 - 1);
+        return (E1*(2*nuoisqrd + 1))/(n*n) - (2*E1)/((nuiso + 1)*(nuiso + 1));
+      }
 
-  return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
+      default:
+        return 0.0;
+      }
+    }
+    return E3 + 4*G - (2*E1*nuoisqrd + E1)/(nuiso + (2*E1*nuoisqrd)/E3 - 1) + (2*E1)/(nuiso + 1);
+  }
 }
 
 
 double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  double e11(0.0), e22(0.0), e33(0.0), e12(0.0), lowerEigBound(-123.45);
-  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
-  {
-    switch(GetElement(i)->GetType())
-    {
-    case DesignElement::TENSOR11:
-      e11 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR22:
-      e22 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR33:
-      e33 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR12:
-      e12 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::LOWER_EIG_BOUND:
-      lowerEigBound = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::DENSITY:
-    case DesignElement::ROTANGLE:
-      break;
-    default:
-      assert(false);
-      break;
-    }
-  }
-  if (lowerEigBound == -123.45)
-  {
-    lowerEigBound = local->space->designMaterial->GetParameter(DesignElement::LOWER_EIG_BOUND);
-  }
+  double e11 = GetDesign(DesignElement::TENSOR11, local, access, true);
+  double e22 = GetDesign(DesignElement::TENSOR22, local, access, true);
+  double e33 = GetDesign(DesignElement::TENSOR33, local, access, true);
+  double e12 = GetDesign(DesignElement::TENSOR12, local, access, true);
+  double lowerEigBound = GetDesign(DesignElement::LOWER_EIG_BOUND, local, access, true);
+
   if(derivative)
   {
     DesignElement::Type type = GetElement(neigh_idx)->GetType();
@@ -2725,27 +2726,11 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 
 
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-  double stiff1(0.0), stiff2(0.0), stiff3(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF3:
-      stiff3 = GetElement(i)->GetDesign(access);
-      break;
-    default:
-      break;
-    }
-  }
   // temporary data structure
   Vector<double> p(3);
-  p[0] = stiff1;
-  p[1] = stiff2;
-  p[2] = stiff3;
+  p[0] = GetDesign(DesignElement::STIFF1, local, access, true);;
+  p[1] = GetDesign(DesignElement::STIFF2, local, access, true);;
+  p[2] = GetDesign(DesignElement::STIFF3, local, access, true);;
   double direction;
   if (!derivative) {
     direction = 0.;
@@ -2771,124 +2756,63 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
   return -1.0;
 }
 
-double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
-{
-  double stiff1(0.0), stiff2(0.0);
-  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
-  {
-    switch(GetElement(i)->GetType())
-    {
-    case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(access);
-      break;
-    default:
-      break;
-    }
+double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+  DesignElement* de = dynamic_cast<DesignElement*>(element);
+  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
+  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
+  double vol;
+  int dim = domain->GetGrid()->GetDim();
+  bool regular = local->space->IsRegular();
+  /** if grid is nonregular, the volume has to be scaled by element size */
+  if (!regular) {
+    assert(local->total_vol_ != 0);
   }
-  if(!derivative)
-    return stiff1+stiff2-stiff1*stiff2;
-  else
-  {
-    switch(GetElement(neigh_idx)->GetType())
-    {
+  /**svol is a scaling factor for unstructured, nonregular grids. */
+  double svol = regular ? 1.0 : de->CalcVolume();
+  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+  if (!derivative) {
+    if (dim == 2) {
+      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
+    } else {
+      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+    }
+  } else {
+    switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:
-      return 1.0-stiff2;
+      if (dim == 2) {
+        return svol*(1.0 - stiff2);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
     case DesignElement::STIFF2:
-      return 1.0-stiff1;
+      if (dim == 2) {
+        return svol*(1.0 - stiff1);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
+    case DesignElement::STIFF3:
+      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+      assert(vol!= -1);
+      return vol;
+
     default:
       return 0.0;
     }
   }
+  //should never be reached
+  return -1.0;
 }
 
-//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-//  DesignElement* de = dynamic_cast<DesignElement*>(element);
-//  double stiff1(0.0), stiff2(0.0), vol;
-//  int dim = domain->GetGrid()->GetDim();
-//  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-//    switch (GetElement(i)->GetType()) {
-//    case DesignElement::STIFF1:
-//      stiff1 = GetElement(i)->GetDesign(access);
-//      break;
-//    case DesignElement::STIFF2:
-//      stiff2 = GetElement(i)->GetDesign(access);
-//      break;
-//    default:
-//      break;
-//    }
-//  }
-//  bool regular = local->space->IsRegular();
-//  /** if grid is nonregular, the volume has to be scaled by element size */
-//  if (!regular) {
-//    assert(local->total_vol_ != 0);
-//  }
-//  /**svol is a scaling factor for unstructured, nonregular grids. */
-//  double svol = regular ? 1.0 : de->CalcVolume();
-//  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
-//  if (!derivative) {
-//    if (dim == 2) {
-//      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
-//    } else {
-//      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//    }
-//  } else {
-//    switch (GetElement(neigh_idx)->GetType()) {
-//    case DesignElement::STIFF1:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff2);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF2:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff1);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF3:
-//      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//      assert(vol!= -1);
-//      return vol;
-//
-//    default:
-//      return 0.0;
-//    }
-//  }
-//  //should never be reached
-//  return -1.0;
-//}
-
-double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
+double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx,
     bool derivative) const {
-  double E1(0.0), E3(0.0), nu31(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::POISSON:
-      nu31 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::GMODUL:
-    case DesignElement::POISSONISO:
-    case DesignElement::DENSITY:
-      break;
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double nu31 = GetDesign(DesignElement::POISSON, local, access, true);
 
-    default:
-      assert(false);
-      break;
-    }
-  }
   if (derivative)
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::EMODULISO:

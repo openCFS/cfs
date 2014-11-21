@@ -131,6 +131,7 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::TENSOR22:
   case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
+  case DesignElement::INTERPOLATION:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;

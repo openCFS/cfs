@@ -1609,6 +1609,7 @@ source/PDE/elecPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/elecPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/eqnMap.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/eqnMap.hh svneol=native#text/x-c%2B%2Bhdr
+source/PDE/extLBMPDE.cc -text
 source/PDE/fluidMechPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/fluidMechPDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/heatCondPDE.cc svneol=native#text/x-c%2B%2Bsrc

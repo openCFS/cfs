@@ -464,6 +464,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
     v = [0,0]
     v[0] = s1[i,0] / numpy.max((scale, 1.))
     v[1] = s2[i,0] / numpy.max((scale, 1.))
+    theta = angle[i]
     c = [0,0]
     c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
