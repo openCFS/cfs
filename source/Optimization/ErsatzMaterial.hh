@@ -324,6 +324,10 @@ public:
       Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
+  double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',

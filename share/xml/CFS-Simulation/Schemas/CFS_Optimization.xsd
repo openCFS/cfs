@@ -1140,9 +1140,10 @@
                             <!--  model reduction  -->
                             <xsd:enumeration value="reducedBasis-param"/>
                             <xsd:enumeration value="reducedBasis-free"/>
+                            <xsd:enumeration value="reducedBasis-mapping"/>
                             <xsd:enumeration value="greedy-param"/>
                             <xsd:enumeration value="greedy-free"/>
-   			    <xsd:enumeration value="greedy-mapping"/>
+   			                    <xsd:enumeration value="greedy-mapping"/>
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>

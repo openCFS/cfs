@@ -599,7 +599,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
   {
     //Special case when doing mapping optimization
-    if ((method_== PARAM_MAT) && ( (design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) )
+    if ((method_== PARAM_MAT) && ( ((design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) || ((design->getDesignMaterialType()) == DesignMaterial::REDBAS_MAPPING)) )
     {
       return CalcU1KU2_mapping(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
     }
@@ -699,16 +699,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
 
 
-  double ErsatzMaterial::CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
+  double ErsatzMaterial::CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
       {
 
-    std::cout << "derivative compliance" << std::endl;
+    // std::cout << "true compliance" << std::endl;
     LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
                      << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
         // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
         assert(u1.GetSize() != 0);
         assert(u1.GetSize() == u2.GetSize());
-        double sum = 0.0;
+
         // mat will be filled by SetElementK where also the derivative form most cases is built in
         // the dimensions of our matrix is determined by u1_vec and u2_vec.
         Matrix<double> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
@@ -728,6 +728,89 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         // create an element list to gain the iterator in the loop
         ElemList elemList(grid);
         // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
+
+        double grad =0;
+
+          for(int e = 0; e < elements; e++)
+          {
+
+            DesignElement* de = &design->data[e];
+
+            //design->Find(de->elem, true);
+
+            Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
+            Vector<double>& u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
+
+
+            //We must pay attention to whether the element is in the ghost region or not
+            //std::cout << (de->vicinity->HasNeighbor(VicinityElement::X_P)) << " " << (de->vicinity->HasNeighbor(VicinityElement::Y_P)) << std::endl;
+
+            //We only deal with the elements in the mech region: they must have right and upper neighbours
+            if ( (de->vicinity->HasNeighbor(VicinityElement::X_P)) && (de->vicinity->HasNeighbor(VicinityElement::Y_P)))
+            {
+                //We need to check for all neighbours of e
+                //------------------------------------------------ First: same cell
+
+                SetElementKMapping(de, DesignElement::NO_DERIVATIVE, tf, app, dynamic_cast<DenseMatrix*>(&mat), calcMode);
+
+                mat_vec = mat * u2_vec;
+
+                if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+                if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+
+                double sp;
+                if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_vec, sp);
+                else sp = mat_vec * u1_vec;
+
+                double this_value = factor;
+                if(harmonic && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                else this_value *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+
+                grad = grad + this_value;
+            }
+          }
+
+
+        return grad;
+      }
+
+
+
+
+
+  double ErsatzMaterial::CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
+      {
+
+    //std::cout << "derivative compliance" << std::endl;
+    LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+                     << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
+        // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
+        assert(u1.GetSize() != 0);
+        assert(u1.GetSize() == u2.GetSize());
+        double sum = 0.0;
+        // mat will be filled by SetElementK where also the derivative form most cases is built in
+        // the dimensions of our matrix is determined by u1_vec and u2_vec.
+        Matrix<double> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
+        Vector<double> mat_vec(u1[0]->GetSize());
+        TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
+        // traverse over our elements
+        // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
+        int elements = design->GetNumberOfElements();
+
+
+        //std::cout << "Number of design elements = " << elements << endl;
+        int base_lower = 0;
+        int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
+        if(!design->HasErsatzMaterialTensor() && !design->HasMultiMaterial())
+        {
+          base_lower = design->FindDesign(tf->GetDesign()) * elements;
+          base_upper = base_lower + elements;
+        }
+        LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
+        // create an element list to gain the iterator in the loop
+        ElemList elemList(grid);
+        // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
+
         for(int base = base_lower; base < base_upper; base += elements)
         {
           for(int e = 0; e < elements; e++)
@@ -735,8 +818,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
             double grad =0;
 
             DesignElement* de = &design->data[e + base];
-            // de->GetIndex()
-            //design->Find(de->elem, true);
+
+
+           // std::cout << "de = " << de->GetIndex() << std::endl;
+           //std::cout << "e + base = " << e+base << " e = " << e << std::endl;
+           //std::cout << "alternative = " << design->Find(de->elem, true) << std::endl;
+           //std::cout << "elemNum = " << de->elem->elemNum << std::endl;
 
             DesignElement::Type type = de->GetType();
 
@@ -745,12 +832,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
 
             //We must pay attention to whether the element is in the ghost region or not
-
+            //std::cout << (de->vicinity->HasNeighbor(VicinityElement::X_P)) << " " << (de->vicinity->HasNeighbor(VicinityElement::Y_P)) << std::endl;
 
             //We begin with the elements in the mech region: they must have right and upper neighbours
             if ( (de->vicinity->HasNeighbor(VicinityElement::X_P)) && (de->vicinity->HasNeighbor(VicinityElement::Y_P)))
             {
-                //We need to check for all neighbours of e
+
+            //	std::cout << "The element is not in the ghost region" << endl;
+            	//We need to check for all neighbours of e
                 //------------------------------------------------ First: same cell
                 if (type == DesignElement::G_MAP_X)
                 {
@@ -778,15 +867,20 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
               //-------------------- Now, north_west cell --------------------------
 
-              if ( (de->vicinity->HasNeighbor(VicinityElement::X_N)) )
+              if ( (de->vicinity->HasNeighbor(VicinityElement::X_N))  )
               {
 
                   DesignElement* dep_nw = de->vicinity->GetNeighbour(VicinityElement::X_N);
                   // We need to check if dep_nw is in the ghost region or not
+              //    std::cout << "elemNum = " << dep_nw->elem->elemNum << std::endl;
 
                   if ( (dep_nw->vicinity->HasNeighbor(VicinityElement::Y_P)) )
                   {
-                        int e_nw = dep_nw->elem->elemNum;
+                        int e_nw = design->Find(dep_nw->elem, true);
+
+                //        std::cout << "e_nw = " << e_nw << std::endl;
+
+                        // std::cout << "alternative = " << design->Find(dep_nw->elem, true) << std::endl;
 
                         Vector<double>& u1_nw = dynamic_cast<Vector<double>& >(*u1[e_nw]);
                         Vector<double>& u2_nw = dynamic_cast<Vector<double>& >(*u2[e_nw]);
@@ -822,7 +916,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                   }
 
 
-
                   // Now south west cell
 
                   if ( (dep_nw->vicinity->HasNeighbor(VicinityElement::Y_N)) )
@@ -831,7 +924,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
                     //Normally, it should be automatically in the true region
                   DesignElement* dep_sw = dep_nw->vicinity->GetNeighbour(VicinityElement::Y_N);
 
-                  int e_sw = dep_sw->elem->elemNum;
+                  //std::cout << "elemNum = " << dep_sw->elem->elemNum << std::endl;
+
+
+                  int e_sw = design->Find(dep_sw->elem, true);
+
+                  //std::cout << "e_sw = " << e_sw << std::endl;
+                  //std::cout << "alternative = " << design->Find(dep_sw->elem, true) << std::endl;
 
                   Vector<double>& u1_sw = dynamic_cast<Vector<double>& >(*u1[e_sw]);
                   Vector<double>& u2_sw = dynamic_cast<Vector<double>& >(*u2[e_sw]);
@@ -891,11 +990,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
                 DesignElement* dep_se = de->vicinity->GetNeighbour(VicinityElement::Y_N);
 
+                //std::cout << "elemNum = " << dep_se->elem->elemNum << std::endl;
                 //Check if dep_se in in the true region
 
                 if ((dep_se->vicinity->HasNeighbor(VicinityElement::X_P)) )
                 {
-                    int e_se = dep_se->elem->elemNum;
+                    int e_se = design->Find(dep_se->elem, true);
+
+                  //  std::cout << "e_se = " << e_se << std::endl;
 
                     Vector<double>& u1_se = dynamic_cast<Vector<double>& >(*u1[e_se]);
                     Vector<double>& u2_se = dynamic_cast<Vector<double>& >(*u2[e_se]);
@@ -938,15 +1040,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
               }
               //---------------- At the end ---------------------------------
-              de->AddGradient(f, grad);
-
-              //LOG_DBG3(em) << "CU1Ku2:" << de->elem->elemNum << " <l,K'*u-f'>  = "
-              //<< grad << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
-
-
-              //sum += this_value;
-
-              //if(res_idx != -1) de->specialResult[res_idx] = this_value;
+              de->AddGradient(f, -grad);
 
           }
         }
@@ -1816,6 +1910,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         u.Inner(rhs, sp);
         result += sp * excite.GetFactor(func) * GetStepWeight(ts);
         LOG_DBG(em) << "CalcCompliance(): result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
+
+            if ((method_== PARAM_MAT) && ( ((design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) || ((design->getDesignMaterialType()) == DesignMaterial::REDBAS_MAPPING)) )
+            {
+                TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , MECH, true);
+                double factor = excite.GetWeightedFactor(func);
+              result =  CalcU1KU2_mapping2(tf, forward.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, func);
+            }
+
+
+
       }
     }
     return result;

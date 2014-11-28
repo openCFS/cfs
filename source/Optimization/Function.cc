@@ -3184,13 +3184,13 @@ double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
               break;
 
            default:
-             return 0;
+             return 5;
              break;
        }
+   }
 
-
-     }
- }
+   return 5;
+}
 
 
 double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
@@ -3373,12 +3373,10 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
             return 0;
             break;
       }
+  }
 
-
-    }
-
-
- }
+  return 5;
+}
 
 
 
@@ -3783,4 +3781,5 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
 
     return ret;
   }
+
 

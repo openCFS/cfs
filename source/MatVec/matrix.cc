@@ -794,8 +794,8 @@ namespace CoupledField
         }
         else
         {
-          std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
-          std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
+          //std::cerr<<"\n Matrix::DirectSolve Step " << k <<std::endl;
+         //std::cerr<<"\n The element at position ("<< k << "," << k << ") of the matrix is zero. "<<std::endl;
           //                std::exit(0);
         }
       }
