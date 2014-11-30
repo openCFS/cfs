@@ -49,6 +49,7 @@ namespace CoupledField {
     nne_                = 0;
     blockSize_          = 1;
     numDirichletValues_ = 0;
+    isIDBC_            = true;
 
     algSysType_     = NOALGSYSTYPE;
     
@@ -366,5 +367,9 @@ namespace CoupledField {
   Integer BaseSystem::GetNumIter() {
     return olasInfo_->Get( "NumIter" )->As<Integer>();
   }
-
+  
+  void BaseSystem::PrepareForAdjoint(BaseVector& sol){
+    solver_->PrepareForAdjoint(sol);
+  }
+  
 }// end of Namespace

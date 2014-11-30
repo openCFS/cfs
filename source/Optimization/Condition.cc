@@ -18,12 +18,15 @@
 #include "MatVec/matrix.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
 
 using std::string;
+using boost::make_tuple;
+using std::pair;
 
 using namespace CoupledField;
 class DesignStructure;
@@ -667,9 +670,6 @@ double Condition::GetBoundValue() const
 {
   // see GetSlackBoundValue()
   return HasSlackBound() ? 0.0 : boundValue_; // all slack constraints g <= slack need to be g - slack <= 0
-
-  assert(!HasSlackBound());
-  return boundValue_;
 }
 
 
@@ -738,6 +738,10 @@ string Condition::ToString(MultipleExcitation* me) const
 
   if(type_ == HOM_TENSOR)
     os << ToString(coords);
+
+  // with multiple output constraints we need to identify
+  if(type_ == OUTPUT && !output_nodes.IsEmpty())
+    os << "_" << output_nodes[0]->entities->GetName();
 
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
@@ -846,7 +850,10 @@ Function::Local::Identifier& LocalCondition::GetCurrentVirtualContext()
 
 unsigned int LocalCondition::GetSparsityPatternSize() const
 {
-  return local->virtual_elem_map[0].neighbor.GetSize() + 1;
+  if(!this->ForDensityFiltering())
+    return local->virtual_elem_map[0].neighbor.GetSize() + 1; // why the fuck +1
+  else
+    return ((Condition*) this)->GetSparsityPattern().GetSize();
 }
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
@@ -861,10 +868,14 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = id.GetElement(i);
+    BaseDesignElement* de = id.GetElement(i);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
+    if (this->ForDensityFiltering()) {
+      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
+    }
   }
 
   // sort and copy
@@ -895,11 +906,11 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(t22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(t12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetIndex();
 
     break;
   }
@@ -907,41 +918,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(2, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(3, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
 
-    hess_sparsity_(4, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(5, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(6, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(7, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(8, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(9, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(10, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(11, 0) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
     break;
   default:
@@ -949,7 +960,7 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     break;
   }
 
-  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << DesignElement::ToString(id.neighbor, true);
+  LOG_DBG3(conditions) << "LC:GHSP: g=" << ToString() << " -> " << hess_sparsity_.ToString() << " n=" << BaseDesignElement::ToString(id.neighbor, true);
   return hess_sparsity_;
 }
 
@@ -975,7 +986,7 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     double eps = 1.0 * GetBoundValue();
 
     Function::Local::Identifier& id = GetCurrentVirtualContext();
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, id.element->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
+    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
     double e12 = E[0][1]; // 2
     double e22 = E[1][1]; // 3
@@ -1342,7 +1353,8 @@ void ConditionContainer::VirtualView::Done()
       for(unsigned int i = 0; i < vem.GetSize(); i++)
       {
         Function::Local::Identifier& id = vem[i];
-        DesignElement* de =  id.element;
+        assert(lc->GetType() !=  Function::SHAPE_INF);
+        DesignElement* de =  dynamic_cast<DesignElement*>(id.element);
         double sv = id.EvalFunction(lc->local);
 
         // in checkerboard we must not use abs

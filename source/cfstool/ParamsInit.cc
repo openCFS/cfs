@@ -37,6 +37,9 @@ namespace CoupledField
     std::string param_freeCoord = "";
     std::string param_mode = "scalardiff";
     std::string param_forceSegFault = "false";
+    std::string param_frequencyRange = "";
+    std::string param_maxMemory = "0";
+    std::string param_outputfields = "all";
     // copy command line into vector
     std::vector<std::string> args;
     //args.resize( argc-1 );
@@ -66,10 +69,22 @@ namespace CoupledField
         ("mode,m", \
             po::value<std::string>(&param_mode)->default_value("scalardiff"),
             "Type of mode:  \n\
-            calcAverage | convert | scalardiff |meshdiff | meshdiffnormed")
+calcAverage | convert | scalardiff |meshdiff | meshdiffnormed | fft")
         ("forceSegFault", \
             po::value<std::string>(&param_forceSegFault)->default_value("false"),
             "force a segmentation fault at exceptions")
+        ("frequencyRange", \
+            po::value<std::string>(&param_frequencyRange)->default_value(""),
+            "frequency range for fft")
+        ("maxMemory", \
+            po::value<std::string>(&param_maxMemory)->default_value("0"),
+            "maximal memory in MB allowed to use for calculation.\n\
+Beware: During writing this may trippel.\n\
+Default (0) results in a 0.1 of main memory, \
+more than 0.2 should not be used.")
+        ("outputfields", \
+            po::value<std::string>(&param_outputfields)->default_value("all"),
+            "The physical quantities to perform a FFT.")
         ;
       po::options_description cmdInvisible("Files needed");
 
@@ -132,6 +147,9 @@ namespace CoupledField
         std::cout <<
           "\tCall: cfstool --mode meshdiffnormed -f 'reference_file compare_file outfile' \n\ti.e. out = (in_1 - in_2) / max(in_2 "
           << std::endl;
+        std::cout <<
+          "'fft' calculates the fft of a whole domain \n"
+          << "\tOther possible cals are 'window' and 'ifft'" << std::endl;
         exit(0);
       }
 
@@ -170,6 +188,15 @@ namespace CoupledField
     leafs.Push_back(PtrParamNode(new ParamNode()));
     leafs[leafs.GetSize()-1]->SetName("forceSegFault");
     leafs[leafs.GetSize()-1]->SetValue(param_forceSegFault);
+    leafs.Push_back(PtrParamNode(new ParamNode()));
+    leafs[leafs.GetSize()-1]->SetName("frequencyRange");
+    leafs[leafs.GetSize()-1]->SetValue(param_frequencyRange);
+    leafs.Push_back(PtrParamNode(new ParamNode()));
+    leafs[leafs.GetSize()-1]->SetName("maxMemory");
+    leafs[leafs.GetSize()-1]->SetValue(param_maxMemory);
+    leafs.Push_back(PtrParamNode(new ParamNode()));
+    leafs[leafs.GetSize()-1]->SetName("outputfields");
+    leafs[leafs.GetSize()-1]->SetValue(param_outputfields);
 
   }
 }

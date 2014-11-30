@@ -665,7 +665,7 @@ template <class TYPE> class Matrix;
     //!
     //! \note The return buffer is guaranteed to retain the current solution
     //! until the next call of this method (after solving the next step)!
-    virtual void GetSolutionVal( SingleVector& ptSol,
+    virtual void GetSolutionVal( SingleVector& ptSol, 
                                  const PdeIdType identifierPDE
                                  = NO_PDE_ID ) = 0;
 
@@ -786,6 +786,15 @@ template <class TYPE> class Matrix;
     //! while computing solution updates
     virtual void RemoveIDBCInfoFromMatrix() const {;};
     //@}
+    
+    //! This method prepares the solver for solution of the adjoint problem
+    //! for contact problems, the adjoint is not exactly equal to the original problem
+    virtual void PrepareForAdjoint(BaseVector& sol);
+    
+    //! set / unset inhomogeneous Dirichlet BCs
+    virtual void SetIDBC( bool setUnset ) {
+      isIDBC_ = setUnset;
+    }
 
   protected:
 
@@ -882,6 +891,9 @@ template <class TYPE> class Matrix;
     PtrParamNode olasInfo_;
     
     bool usingPenalty_;
+
+    //consider inhomogeneous Dirichlet BCs
+    bool isIDBC_;
   };
 
 } // namespace

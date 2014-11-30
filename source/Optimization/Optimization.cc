@@ -33,6 +33,7 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
+#include "Optimization/LBMSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -271,6 +272,17 @@ void Optimization::PostInitSecond()
       this->log.fileHeader += "designGradient";
     }
   }
+  if (this->log.designConstraintGradients) {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++) {
+      Condition* g = constraints.all[i];
+      if(!g->IsLocalCondition()) {
+        for (unsigned int i = 0; i < n; ++i) {
+          this->log.fileHeader += "\t";
+          this->log.fileHeader += "constraintGradient";
+        }
+      }
+    }
+  }
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
   this->log.fileHeader += baseOptimizer_->LogFileHeader();
@@ -329,6 +341,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
   Function::type.Add(Function::LAMINATES_VOL, "laminatesVolume");
   Function::type.Add(Function::GLOBAL_LAMINATES_VOL, "globalLaminatesVolume");
+  Function::type.Add(Function::ORTHOTROPIC_TENSOR_TRACE, "orthotropicTensorTrace");
+  Function::type.Add(Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE, "globalOrthotropicTensorTrace");
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");
   Function::type.Add(Function::GLOBAL_TENSOR_TRACE, "globalTensorTrace");
   Function::type.Add(Function::TENSOR_NORM, "tensorNorm");
@@ -347,6 +361,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
+  Function::type.Add(Function::SHAPE_INF, "shape_inf");
+  Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
 
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
@@ -364,6 +380,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE, "multiple_designs_next_and_reverse");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT, "multiple_designs_prev_next");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE, "multiple_designs_prev_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::SHAPE, "shape");
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
@@ -422,6 +439,7 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::HEAT, "heat");
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::ELEC, "maxwellHom");
+  OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
   application.SetName("Optimization::Application");
   application.Add(NO_APP, "no_app");
@@ -435,6 +453,7 @@ void Optimization::SetEnums()
   application.Add(PRESSURE, "pressure");
   application.Add(CHARGE_DENSITY, "chargeDensity");
   application.Add(STRESS, "stress");
+  application.Add(LBM, "lbm");
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
@@ -550,6 +569,10 @@ Optimization* Optimization::CreateInstance()
       opt = new PiezoSIMP();
       break;
       
+    case OptimizationMaterial::LBM:
+      opt = new LBMSIMP();
+      break;
+
     default:
       assert(false);
       break;
@@ -1011,6 +1034,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
+    if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
 
     if(g->IsLocalCondition())
     {
@@ -1054,6 +1078,26 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
       *out << "\t" << d[i];
+    }
+  }
+  
+  if(out && log.designConstraintGradients){
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
+      Condition* g = constraints.all[i]; // Now traverse in global mode
+      if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
+
+      if(g->IsLocalCondition()) continue; // this would be huge
+      else
+      {
+        StdVector<double> d;
+        d.Resize(design->GetNumberOfVariables());
+        d.window.Set(d);
+        design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
+        for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
+          *out << "\t" << d[i];
+        }
+      }
     }
   }
 
@@ -1154,7 +1198,13 @@ void Optimization::SetPDEs(OptimizationMaterial::System sys)
     pdes[ELEC] = pde;
     break;
 
+  case OptimizationMaterial::LBM:
+    pde = domain->GetSinglePDE("LatticeBoltzmann", true);
+    pdes[LBM] = pde;
+    break;
+
   default:
+    std::cout << "sys = " << sys << std::endl;
     assert(false);
   }
 
@@ -1198,6 +1248,7 @@ Optimization::Application Optimization::ToApp(DesignElement::Type dt)
 DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
 {
   if(pde->GetName() == "electrostatic") return DesignElement::POLARIZATION;
+  if(pde->GetName() == "LatticeBoltzmann") return DesignElement::DENSITY;
   if(pde->GetName() == "mechanic") return DesignElement::DENSITY;
   if(pde->GetName() == "acoustic") return DesignElement::ACOU_DENSITY;
 
@@ -1210,6 +1261,7 @@ Optimization::Application Optimization::ToApp(const SinglePDE* pde) const
   if(pde->GetName() == "mechanic") return MECH;
   if(pde->GetName() == "heatConduction") return HEAT;
   if(pde->GetName() == "acoustic") return ACOUSTIC;
+  if(pde->GetName() == "LatticeBoltzmann") return LBM;
 
   throw Exception("invalid");
 }
@@ -1220,6 +1272,7 @@ Optimization::Log::Log()
 {
   this->design = false;
   this->designGradient = false;
+  this->designConstraintGradients = false;
   this->file = NULL;
   this->fileHeader = "";
 }
@@ -1237,6 +1290,7 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
     {
       design = pn_log->Get("design")->As<bool>();
       designGradient = pn_log->Get("designGradient")->As<bool>();
+      designConstraintGradients = pn_log->Get("designConstraintGradients")->As<bool>();
     }
   }
 }

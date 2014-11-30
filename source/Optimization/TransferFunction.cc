@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/elem.hh"
 #include "General/exception.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
@@ -95,33 +96,47 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
 
 Optimization::Application TransferFunction::Default(const SinglePDE* pde)
 {
-  if(pde->GetName() == "electrostatic") return Optimization::ELEC;
-  if(pde->GetName() == "mechanic") return Optimization::MECH;
-  if(pde->GetName() == "heatConduction") return Optimization::LAPLACE;
-  if(pde->GetName() == "acoustic") return Optimization::LAPLACE;
+  if(pde->GetName() == "electrostatic")    return Optimization::ELEC;
+  if(pde->GetName() == "mechanic")         return Optimization::MECH;
+  if(pde->GetName() == "heatConduction")   return Optimization::LAPLACE;
+  if(pde->GetName() == "acoustic")         return Optimization::LAPLACE;
+  if(pde->GetName() == "LatticeBoltzmann") return Optimization::LBM;
   throw Exception("invalid");
 }
 
 /** see the other Default */
-Optimization::Application TransferFunction::Default(DesignElement::Type type)
+Optimization::Application TransferFunction::Default(DesignElement::Type type, const SinglePDE* pde)
 {
   switch(type)
   {
   case DesignElement::DENSITY:
+  {
+    if(pde)
+      return Default(pde);
+  }
   case DesignElement::EMODUL:
   case DesignElement::EMODULISO:
   case DesignElement::GMODUL:
   case DesignElement::POISSON:
   case DesignElement::POISSONISO:
   case DesignElement::ROTANGLE:
+  case DesignElement::ROTANGLEX:
+  case DesignElement::ROTANGLEY:
+  case DesignElement::ROTANGLEZ:
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
+  case DesignElement::STIFF3:
   case DesignElement::ROTANGLE2:
   case DesignElement::SCALING1:
   case DesignElement::SCALING2:
   case DesignElement::G_MAP_X:
   case DesignElement::G_MAP_Y:
+  case DesignElement::TENSOR11:
+  case DesignElement::TENSOR12:
+  case DesignElement::TENSOR22:
+  case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
+  case DesignElement::INTERPOLATION:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
@@ -277,7 +292,8 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
   double value = de->GetValue(DesignElement::DESIGN, access);
 
   #ifdef CHECK_INDEX
-    if(de->GetType() != design_) throw Exception("type missmatch");
+    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+      throw Exception("type mismatch for the transfer function");
   #endif
     switch(type_)
     {

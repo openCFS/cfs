@@ -72,7 +72,7 @@ public:
    * @param ev_only_excite EvaluateOnly has the special feature to perform a sweep over multiple
    *        frequencies and calculate the mono-harmonic objective. Only EvaluateOnly shall use this
    *        parameter. */
-  void SolveStateProblem(Excitation* ev_only_excite = NULL);
+  virtual void SolveStateProblem(Excitation* ev_only_excite = NULL);
 
   /** This solves all Adjoint problems */
   void SolveAdjointProblems(Excitation* ev_only_excite = NULL);
@@ -376,15 +376,18 @@ public:
    * It works for both (mechanical) SIMP and PiezoSIMP. 
    * gradient is used to calculate some adjoints only for gradient calculations, some for function evaluations */
   void SolveAdjointProblem(Excitation* excite, Function* f);
+
   /** Determines the selection vector by a "pseudo loading" for output like objectives.
    * Stores in adjoint.select. Used by SolveAdjointProblem()
    * @param alter_rsh false if you want only selection and the system shall not be changed! */
   void ConstructSelection(Excitation& excite, Function* f, bool alter_rhs);
+
   /** This is helper SolveAdjointProblem().
    * There is a template method (which cannot be virtual) with distinct implementation.
    * Assumes adjont.select is set (by ConstructSelection())
    * This is for output loads or general real/complex rhs. */
   virtual void ConstructAdjointRHS(Excitation& excite, Function* f);
+
   /** A simple variant of IntegrateDesignVariable() which works also for non-simp transfer function.
    * Handles also non-regular and physical
    * @param normalized @see CalcVolume() */
@@ -422,7 +425,7 @@ public:
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
   /** Calculates the objective only, no derivative */
-  double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
+  double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
@@ -651,15 +654,18 @@ private:
   /** for CalcFunction() */
   double CalcHomTensor(Objective* c, Condition* g, bool derivative);
 
+  double CalcMaxwellHomTensor(Objective* c, Condition* g, bool derivative);
+
+  double CalcMaxwellHomTracking(Function* f, bool derivative);
+
+  double CalcMaxwellHomBitensor(Objective* c, Condition* g, bool derivative);
+
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .
    * This calculation is done for the adjoint rhs and also for calculate the radiation objective.
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
-
-  /** When we optimize output we store here the nodes */
-  LoadList output_nodes_;
 
   /** do we perform homogenization induced by any of the objective or constraints? */
   bool homogenization_;

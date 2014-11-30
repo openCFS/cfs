@@ -21,6 +21,8 @@
 
 namespace CoupledField {
 
+using boost::char_separator;
+
 // Define / declare logging stream
 DECLARE_LOG(bisa)
 DEFINE_LOG(bisa, "biotSavart")
@@ -46,8 +48,7 @@ DEFINE_LOG(bisa, "biotSavart")
     eqnMap_ = map;
     
     dim_ = ptGrid_->GetDim();
-    isAxi_ = param->Get("domain")->
-        Get("geometryType")->As<std::string>() == "axi";
+    isAxi_ = domain->IsAxisymmetric();
     
     // Read number of coils
     ParamNodeList coils = myParam_->GetList("coil");

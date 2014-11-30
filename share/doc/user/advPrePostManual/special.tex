@@ -45,7 +45,170 @@ Lines $\rightarrow$ Snap
 
 GMV may however crash during the operation, due to OpenGL problems.
 
-\section{Calculation of Some Aeroacoustic Variables}
+\section{Calculation of Aeroacoustic Sources}
+
+There are multiple possibilities to determine the acoustic source induced by
+fluid dynamics. One of the is via \emph{CFS++}, but this should be self
+explanatory. Covered here are external the external tools OpenFOAM and
+Paraview.  
+
+\subsection{OpenFOAM}
+OpenFOAM is a CFD code based on the finite volume method. If the fluid data,
+for further aeroacoustic simulation, is in this format it is possible to
+determine the acoustic source terms without \emph{CFS++}.
+As it has already several routines for solving derivative it is well suited
+for the task. Just follow these steps:
+\begin{enumerate}
+  \item Get OpenFOAM to work on your system
+  \item Inside the ``src''-directory of OpenFOAM, normally:
+    \begin{verbatim}$HOME/OpenFOAM/OpenFOAM-x.x.x/src\end{verbatim}
+    unzip following files
+    \attachfile[icon=PushPin,description={OpenFOAM pre processing routine for
+      acoustic source
+    terms},mimetype=zip/application]{sources/OpenFOAM_postProcess.zip}.
+  \item This creates 4 folders:
+    \begin{itemize}
+      \item \texttt{divLamVector}, to calculate the divergence of the Lamb
+        vector
+      \item \texttt{lambApproxLight}, to calculate
+        $0.5\Delta(\vec{v}\cdot\vec{v})$. If this term is added to the
+        ``divLambVector'' it will result in an approximation of the Lighthill
+        tensor according to \cite{Howe2007}.
+      \item \texttt{laplaceP}, to calculate the Laplacian of the pressure.
+      \item \texttt{lighthillTensor}, to calculate the second derivative of
+        the Lighthill tensor.
+    \end{itemize}
+  \item Go into the desired folder and run \texttt{wmake}.
+  \item After sourcing OpenFOAM correctly (see OpenFOAM README) it is now
+    possible to call the newly build method directly from the terminal.
+  \item Go into the directory containing the OpenFOAM fluid data.
+  \item Open \texttt{system/fvSchemes} and insert, depending on what kind of
+    result:
+    \begin{itemize}
+      \item \texttt{divLamVector}
+        \begin{verbatim}
+        divSchemes
+        {
+          ...
+          div((vorticity^U)) Gauss linear;
+          ...
+        }
+        \end{verbatim}
+      \item \texttt{lambApproxLight}
+        \begin{verbatim}
+        laplacianSchemes
+        {
+          ...
+          sqrU Gauss linear corrected;
+          laplacian(sqrU) Gauss linear corrected;
+
+          ...
+        }
+        \end{verbatim}
+      \item \texttt{laplaceP}
+        \begin{verbatim}
+        divSchemes
+        {
+          ...
+          laplacian(p) Gauss linear corrected;
+          ...
+        }
+        \end{verbatim}
+      \item \texttt{lighthillTensor}
+        \begin{verbatim}
+        divSchemes
+        {
+          ...
+          tensUU Gauss linear;
+          div(tensUU) Gauss linear;
+          divUU Gauss linear;
+          div(divUU) Gauss linear;
+          ...
+        }
+        \end{verbatim}
+        \textbf{Remark:} Although all four terms are given, only the
+        Lighthill tensor will be written (see \ref{ssec:postOF}). I do not
+        know why ``vorticity'' does not need to be set in ``divLambVec'' but
+        ``tensUU'' does. Maybe it is the double brackets, although this has
+        been tested.
+    \end{itemize}
+  \item Call the desired function
+    \texttt{divLamVector}, \texttt{lambApproxLight}, \texttt{laplaceP},
+    \texttt{lighthillTensor}.
+  \item With Paraview these results can now be looked at.
+  \item \textbf{Or} use cplreader to convert them to the h5-format, to
+    further perform calculations, e.g., FFT with the cfstool etc.
+\end{enumerate}
+
+\subsubsection{Creating a OpenFOAM post-processing calculator}
+\label{ssec:postOF}
+Check the '*.C' file in one of the directories, the implementation from there
+should be fairly self explanatory. Nevertheless, for sake of completion some
+pointers. Lets look at ``divLamVector.C''.
+\begin{enumerate}
+  \item This gets the fluid velocity and stores the in the variable
+    \texttt{U}
+    \begin{verbatim}
+    IOobject Uheader
+    (
+      "U",
+      runTime.timeName(),
+      mesh,
+      IOobject::MUST_READ
+    );
+    ...
+    volVectorField U(Uheader, mesh); 
+    \end{verbatim}
+  \item To first calculate the vorticity and store it in the variable
+    \texttt{vorticity}, the curl operator is needed
+    \begin{verbatim}
+    volVectorField vorticity
+    (
+      IOobject
+      (
+        "vorticity",
+        runTime.timeName(),
+        mesh,
+        IOobject::NO_READ
+      ),
+      fvc::curl(U)
+    );
+    \end{verbatim}
+  \item Analogously the divergence of the Lamb vector is calculated.
+  \item To write out only the divergence of the Lamb vector use the write method
+    \begin{verbatim}
+      divLambVector.write();
+    \end{verbatim}
+  \item For the \texttt{system/fvSchemes} file, the according definition
+    needs to be given, in this case
+    \begin{verbatim}
+      div(( vorticity^U ))
+    \end{verbatim}
+    needs to be added in the \texttt{divSchemes} section.\\
+\end{enumerate}
+\textbf{Remark:} I do not know why vorticity does not need to be defined
+in the \texttt{fvSchemes} file, as \texttt{sqrU} does need to be declared
+for \texttt{lambApproxLight}.\\
+\textbf{Some tips and commands:}
+\begin{itemize}
+  \item \textbf{\^{ }} is the curl operator
+  \item \textbf{\&} is the scalar product operator
+  \item Set the type correctly, if it is a scalar or a vector by using the
+    type \texttt{volScalarField}, \texttt{volVectorField}, \dots
+  \item To make a new post processing calculation:
+    \begin{enumerate}
+      \item copy the folder
+      \item rename folder and '*.C' file
+      \item delete the directory \texttt{linux64GccDPOpt} inside
+        \texttt{Make}
+      \item grep all files for the old file name and replace them with the
+        new one
+      \item To test if the first step were correct, type \texttt{wmake}
+      \item Now implement your method
+    \end{enumerate}
+  \item Everything goes, just give it a try
+\end{itemize}
+
 
 \subsection{ParaView}
 Given a flow field from a  CFD simulation (e.g. obtained through cplreader) it

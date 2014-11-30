@@ -1,5 +1,7 @@
+
+
 #-----------------------------------------------------------------------------
-# Don't build anything unless the version of CMake is high enough.
+# Do not build anything unless the version of CMake is high enough.
 #-----------------------------------------------------------------------------
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8 FATAL_ERROR)
 
@@ -35,8 +37,8 @@ PROJECT(CFS C CXX Fortran)
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "12")
-SET(CFS_VERSION_MONTH "09")
+SET(CFS_VERSION_YEAR "14")
+SET(CFS_VERSION_MONTH "03")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -457,8 +459,17 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.git")
     OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
     RETURN_VALUE RETVAL)
 ELSE(EXISTS "${CFS_SOURCE_DIR}/.git")
-  FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
-  STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  # old svn has the data in the hidden subdirectory, new svn has it in the database
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    FILE(READ "${CFS_SOURCE_DIR}/.svn/entries" SVNSTR)
+    STRING(REGEX MATCH "[a-z+]+://[a-zA-Z0-9_+-/@]+:[a-zA-Z0-9_+-/@]+" CFS_SUBVERSION_REPOS "${SVNSTR}")
+  ELSE(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    # newer subversion hast URL: and Relative URL: entries. Take the first one only
+    EXEC_PROGRAM("cd ${CFS_SOURCE_DIR} && svn info | grep 'URL: ht' | cut -d' ' -f2"
+      ARGS 
+      OUTPUT_VARIABLE CFS_SUBVERSION_REPOS
+      RETURN_VALUE RETVAL)
+  ENDIF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
 ENDIF(EXISTS "${CFS_SOURCE_DIR}/.git")
 
 #-----------------------------------------------------------------------------
@@ -558,6 +569,10 @@ IF(USE_PARDISO64)
   SUBDIRS(source/OLAS/external/pardiso64)
 ENDIF(USE_PARDISO64)
 
+IF(USE_IPOPT)
+  SUBDIRS(source/OLAS/external/contact-ipopt)
+ENDIF(USE_IPOPT)
+
 SUBDIRS(source/CoupledPDE)
 SUBDIRS(source/DataInOut)
 SUBDIRS(source/DataInOut/DefineFiles)
@@ -624,6 +639,7 @@ SUBDIRS(source/MatVec)
 SUBDIRS(source/ODESolve)
 SUBDIRS(source/ParamIdent)
 SUBDIRS(source/PDE)
+SUBDIRS(source/PDE/NonFEM)
 SUBDIRS(source/Utils)
 SUBDIRS(source/Optimization/Optimizer)
 SUBDIRS(source/Optimization/Design)

@@ -68,6 +68,10 @@ namespace CoupledField
     void CalculateSurfaceIntegral(const int surfRegionIdx,
                                       std::vector<FlowDataType> & flowData);
 
+    //! This method calculates a surface mechanical force for FSI one-way coupling
+    void CalculateMechSurfaceForce(const UInt surfRegionIdx,
+        FlowDataType& flowData);
+
     //!Method for the determination of element neighbours for a given surface region
     //! the resulting datastructure stores for each element of the surface region the
     //! regionidx and the local elemIdx for the volume element
@@ -87,6 +91,9 @@ namespace CoupledField
 
     ///compute the temporal mean flow field for velocity or for pressure
     void ComputeMeanValues(std::vector<FlowDataType> & flowData);
+
+    ///Compute the 2nd time derivative of hydrodynamic pressure
+    void UpdatePressure2ndTimeDeriv(const std::vector<Double> & actPresField, const int regIdx);
 
     ///Compute the time derivative of hydrodynamic pressure
     void UpdatePressureTimeDeriv(const std::vector<Double> & actPresField, const int regIdx);
@@ -117,6 +124,9 @@ namespace CoupledField
     //! stores time derivative
     std::map<UInt, std::vector<Double> > pressureTimeDeriv_;
 
+    //! stores 2nd time derivative
+    std::map<UInt, std::vector<Double> > pressure2ndTimeDeriv_;
+
     //! stores the perturbed pressure field
     std::map<UInt, std::vector<Double> > perturbedPressureField_;
 
@@ -124,6 +134,14 @@ namespace CoupledField
     std::map<UInt, std::vector<Double> > oldPressureField_n_1_;
 
     std::map<UInt, std::vector<Double> > oldPressureField_n_2_;
+
+    std::map<UInt, std::vector<Double> > oldPressureFieldF2nd_n_1_;
+    std::map<UInt, std::vector<Double> > oldPressureFieldF2nd_n_2_;
+    std::map<UInt, std::vector<Double> > oldPressureFieldF2nd_n_3_;
+    std::map<UInt, std::vector<Double> > oldPressureFieldF2nd_n_4_;
+
+    //! stores future timestep for time derivative computation
+    std::map<UInt, std::vector<Double> > futurePressureField_nP1_;
 
     shared_ptr<FileReader>  ptFileReader_;
     std::vector<Double> nodalCoords_;

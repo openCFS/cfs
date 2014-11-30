@@ -25,6 +25,10 @@ namespace CoupledField
      * This is e.g. to test hand made designs and is nicer than max_iterations = 1.
      * A further benefit is, that we can handle multiple frequencies and sweep over the objectives! */
     void SolveProblem();
+    
+    /** whether to evaluate the gradient of the objective (default) or not
+     * allows to specify in xml to skip gradient calculation */
+    bool eval_grad;
   };
 
 
