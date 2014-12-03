@@ -350,10 +350,13 @@ def write_gid_mesh(mesh, filename):
   out.close()
   
 ## creates a 2D mesh of predefined geometry
-def create_2d_mesh(type, x_res, y_res):
+def create_2d_mesh(type, x_res, y_res, inclusion, inclusion_size):
   mesh = Mesh()
   
-  # mbb reinforced does not work!!! check and fix the mbb stuff!
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
+  assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
+  assert(inclusion_size == None or inclusion_size <= 1.0)
+  
   
   nx = x_res
   
@@ -366,10 +369,6 @@ def create_2d_mesh(type, x_res, y_res):
     width = 3.0
     height = 2.0
     ny = int(nx * (2./3.))
-  if type.startswith('mbb'):
-    width = 2.0
-    height = 1.0
-    ny = int(nx * 0.5)
     
   dx = width / nx
   dy = height / ny
@@ -380,6 +379,10 @@ def create_2d_mesh(type, x_res, y_res):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dy))
  
+ 
+  # count second region
+  second = 0 
+ 
   # print mesh.nodes 
   for y in range(ny):
     for x in range(nx):
@@ -388,10 +391,14 @@ def create_2d_mesh(type, x_res, y_res):
       e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
-      # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
-      elif type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
-        e.region = 'reinforce'
-        
+        second += 1
+      elif inclusion == 'rect' and x >= nx/2 * (1 - inclusion_size) and x < nx/2 * (1 + inclusion_size) \
+                               and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
+        e.region = 'inner'
+        second += 1        
+      elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*inclusion_size:
+        e.region = 'inner'
+        second += 1        
       else:
         e.region = 'mech'
 
@@ -410,6 +417,9 @@ def create_2d_mesh(type, x_res, y_res):
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  if second > 0:
+    print str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)'
   
   return mesh
 
