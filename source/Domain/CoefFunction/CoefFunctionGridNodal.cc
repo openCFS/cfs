@@ -246,7 +246,8 @@ namespace CoupledField{
   }
 
   template<class DATA_TYPE>
-  void CoefFunctionGridNodal<DATA_TYPE>::UpdateSolution(){
+  bool CoefFunctionGridNodal<DATA_TYPE>::UpdateSolution(){
+    bool updated=false;
     if(this->GetDependency() != CoefFunction::CONSTANT){
       UInt stepnumber=0;
       bool needTinterp=false;
@@ -258,6 +259,7 @@ namespace CoupledField{
         if(lastStepRead_ != stepnumber){
           this->ReadSolution(stepnumber,this->solVec_);
           lastStepRead_ = stepnumber;
+          updated = true;
         }
       }else{
         stepnumber = GetStepNum(needTinterp,factor1,factor2);
@@ -270,6 +272,7 @@ namespace CoupledField{
           if(lastStepRead_ != stepnumber){
             this->solVecOld_ = this->solVecFuture_;
             this->ReadSolution(stepnumber,this->solVecFuture_);
+            updated = true;
           }
           //should not happen anyway
           if(this->solVecOld_.GetSize() == 0){
@@ -286,10 +289,12 @@ namespace CoupledField{
           if(lastStepRead_ != stepnumber){
             this->ReadSolution(stepnumber,this->solVec_);
             lastStepRead_ = stepnumber;
+            updated = true;
           }
         }
       }
     }
+    return updated;
   }
 
   template<class DATA_TYPE>
