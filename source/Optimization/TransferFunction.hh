@@ -80,14 +80,17 @@ namespace CoupledField
       
       static Enum<Type> type;
 
+      DesignElement::Type design_;
+
+
     private:
       /** our design type (DENSITY, POLARIZATION)  */
-      DesignElement::Type design_;
+      //DesignElement::Type design_;
        
       /** our own type of transfer function (SIMP, IDENTIY). Might be IDENTY if disabled. */
       Type type_;
       
-      /** our real type of transder function, only set if disabled, else NO_TYPE. */
+      /** our real type of transfer function, only set if disabled, else NO_TYPE. */
       Type orgType_; 
        
       /** on of the ELAST, MECH, PIEZO_COUPLING */ 

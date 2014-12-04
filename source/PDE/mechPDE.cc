@@ -2366,6 +2366,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
     case OPT_RESULT_10:
     case OPT_RESULT_11:
     case OPT_RESULT_12:
+    case OPT_RESULT_13:
+    case OPT_RESULT_14:
+    case OPT_RESULT_15:
+    case OPT_RESULT_16:
+    case OPT_RESULT_17:
+    case OPT_RESULT_18:
+    case OPT_RESULT_19:
+    case OPT_RESULT_20:
       // design should work, this is checked in AvailabeResults()
       domain->GetErsatzMaterial()->ExtractResults(result, isComplex_);
       break;
@@ -2682,6 +2690,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         pressPhase.Push_back( phase );
       }
     }
+
     void MechPDE::CalcHomogenizedTensor(shared_ptr<BaseResult> base_result)
     {
       // TODO: Either the calculation moves here ore the data interchange
@@ -2698,6 +2707,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode )
         for(unsigned int c = 0; c < tcols; ++c)
           vals[r * trows + c] = tensor[r][c];
     }
+
     template <class TYPE>
     void MechPDE::CalcEnergy( shared_ptr<BaseResult> vals )
     {

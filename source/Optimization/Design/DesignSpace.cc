@@ -574,6 +574,14 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_10: return 9;
       case OPT_RESULT_11: return 10;
       case OPT_RESULT_12: return 11;
+      case OPT_RESULT_13: return 12;
+      case OPT_RESULT_14: return 13;
+      case OPT_RESULT_15: return 14;
+      case OPT_RESULT_16: return 15;
+      case OPT_RESULT_17: return 16;
+      case OPT_RESULT_18: return 17;
+      case OPT_RESULT_19: return 18;
+      case OPT_RESULT_20: return 19;
       default: throw Exception("invalid solution type");
     }
   }
@@ -667,6 +675,8 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
     DesignElement* de = &data[index];
     designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
+  designMaterial->current_elem = elem;
+
   return(true);
 }
 
@@ -690,8 +700,19 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
   return false;
 }
 
+bool DesignSpace::GetModRedGTensor(Matrix<double>& T, const Elem* elem)
+{
+  if(CollectMaterialParametersForElement(elem)) {
+    designMaterial->GetModRedGTensor(T, DesignElement::NO_DERIVATIVE, true);
+    return true;
+  }
+  else
+    return false;
+}
+
 bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
+
   if(CollectMaterialParametersForElement(elem)){
     designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
     return(true);
