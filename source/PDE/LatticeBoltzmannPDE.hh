@@ -26,6 +26,7 @@ class PDECoupling;
 class DesignElement;
 class Function;
 class LatticeBoltzmann;
+class LatticeBoltzmann3D;
 
 using boost::numeric::ublas::compressed_matrix;
 using boost::numeric::ublas::mapped_matrix;
@@ -129,19 +130,25 @@ private:
 
   inline double CalcVelocityY(unsigned int idx, double density) const;
 
+  inline double CalcVelocityZ(unsigned int idx, double density) const;
+
   inline double CalcPressure(unsigned int idx) const;
 
   double pdf(unsigned int idx, int dir) const  {
-    return pdfs[idx * 9 + dir];
+    return pdfs[idx * n_q_ + dir];
   };
 
   double& pdf(unsigned int idx, int dir) {
-    return pdfs.GetPointer()[idx * 9 + dir];
+    return pdfs.GetPointer()[idx * n_q_ + dir];
   };
 
   unsigned int index(unsigned int x, unsigned int y) const {
     return y * n_x_ + x;
   }
+
+  unsigned int index(unsigned int x, unsigned int y, unsigned int z ) const {
+      return z * n_x_ * n_y_ + y * n_x_ + x;
+    }
 
   //! Calculate macroscopic velocities
   void CalcVelocities(shared_ptr<BaseResult> res);
@@ -153,6 +160,9 @@ private:
 
   // reads discrete velocities from extern LBM simulation
   void ReadProbabilityDistribution(const std::string& file);
+
+  // extract probability distributions for output
+  void ExtractDistribution(shared_ptr<BaseResult> base_result);
 
   /** Setup structure for calling solver */
   void SetupElements();
@@ -220,6 +230,9 @@ private:
    * @see elem_to_idx */
   StdVector<int> idx_to_elem;
 
+  /** number of discrete velocities: 9 for D2Q9 or 19 for D3Q19 */
+  unsigned int n_q_;
+
   /** extents of computational grid */
   unsigned int n_x_, n_y_, n_z_;
 
@@ -256,7 +269,8 @@ private:
   std::string executable;
 
   /** internal lbm solver */
-  LatticeBoltzmann* lbm;
+  LatticeBoltzmann3D* lbm;
+//  LatticeBoltzmann* lbm;
 
   /** type of interface */
   Iface iface_;
@@ -267,6 +281,7 @@ private:
 
   /** total time of adjoint solution */
   Timer adjoint_;
+
 };
 
 } // end of namespace

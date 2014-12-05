@@ -18,9 +18,6 @@ namespace CoupledField
   // following value are treated as zeros.
   #define NON_ZERO_TOLERANCE  1.0e-20
 
-  // Number of velocity directions per element, e.g. 19 for D3Q19 model
-  #define N_DIR 19
-
   #ifndef __LX__
     #define __LX__  m_sizeX
   #endif
@@ -42,11 +39,11 @@ namespace CoupledField
 
     // Address PDFs via Coordinates and Direction.
     // Assuming array of structures layout.
-    #define PDF(_arrayIndex, _x, _y, _z,  _direction)  __PDFS__[_arrayIndex][ ((_z) * __LX__ * __LY__  + (_y) * __LX__ + (_x)) * N_DIR + (_direction)]
+    #define PDF(_arrayIndex, _x, _y, _z,  _direction)  __PDFS__[_arrayIndex][ ((_z) * __LX__ * __LY__  + (_y) * __LX__ + (_x)) * n_q_ + (_direction)]
 
     // Address PDFs via Index and Direction only.
     // Assuming array of structures layout.
-    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * N_DIR + (_direction)]
+    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * n_q_ + (_direction)]
 
     // -- STRUCTURES OF ARRAYS LAYOUT --
 
@@ -89,28 +86,16 @@ namespace CoupledField
       PropTransform(): off_x(0),off_y(0), off_z(0){}
     };
 
-    // Boundary C corresponds to interior
-//    typedef enum {C=0, E=1, N=2, W=3, S=4, NE=5, NW=6, SW=7, SE=8} Boundary;
-    // Corner C stands for center element
-//    typedef enum {C = 0, B_NW = 1, B_SW = 2, B_SE = 3, B_NE = 4, T_NW = 5, T_SW = 6, T_SE = 7, T_NE = 8} Corner;
-//    typedef enum {TN = 0, TW = 1, TS = 2, TE = 3, NW = 4, SW = 5, SE = 6, NE = 7, BN = 8, BW = 9, BS = 10, BE = 11} Edge;
-    // corners: B_NW to T_NE, edges: TN to BE
+    // Corner C stands for interior elements
     typedef enum {C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, TNW = 5, TSW = 6, TSE = 7, TNE = 8, TN = 9,
                   TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20} Boundary;
     typedef enum {Q19_0 = 0, Q19_E = 1, Q19_W = 2, Q19_N = 3, Q19_S = 4, Q19_T = 5, Q19_B = 6,
                   Q19_NE = 7, Q19_SW = 8, Q19_NW = 9, Q19_SE = 10,
                   Q19_TN = 11, Q19_BS = 12, Q19_TS = 13, Q19_BN = 14,
                   Q19_TE = 15, Q19_BW = 16, Q19_TW = 17, Q19_BE = 18} Direction;
-//    typedef enum{ Q19_INV_0 = Q19_0, Q19_INV_E = Q19_W, Q19_INV_W = Q19_E, Q19_INV_N = Q19_S, Q19_INV_S = Q19_N, Q19_INV_T = Q19_B, Q19_INV_B = Q19_T,
-//                  Q19_INV_NE = Q19_SW, Q19_INV_SW = Q19_NE, Q19_INV_NW = Q19_SE, Q19_INV_SE = Q19_NW,
-//                  Q19_INV_TN = Q19_BS, Q19_INV_BS = Q19_TN, Q19_INV_TS = Q19_BS, Q19_INV_BN = Q19_TS,
-//                  Q19_INV_TE = Q19_BW, Q19_INV_BW = Q19_TE, Q19_INV_TW = Q19_BE, Q19_INV_BE = Q19_TW} DirectionInv;
 
     static Enum<Direction> directions;
     static Enum<Boundary> boundaries;
-//    static Enum<Corner> corners;
-//    static Enum<Edge> edges;
-//    static Enum<DirectionInv> directionsInv;
 
     void SetupDataStructures(const StdVector<double>& elements);
 
@@ -201,7 +186,7 @@ namespace CoupledField
 
     void prop_coll_step(int m_cur, int m_next, double omega);
 
-    void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY);
+    void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
     void prop_coll_bounce_back(int cur, StdVector<StdVector<int> >& bb);
 
@@ -220,6 +205,9 @@ namespace CoupledField
     /** plot the residuum over lbm iterations */
     bool m_plot;
 
+    // number of discrete velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+    unsigned int n_q_;
+
     StdVector<double> Scales;
 
     StdVector<double> weights;
@@ -232,11 +220,15 @@ namespace CoupledField
 //    StdVector< StdVector<PropTransform> > prop_edges;
     // contains propagation rules for all types of elements (edge, corner, interior)
     StdVector< StdVector<PropTransform> > prop_maps;
+    // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q19_N: e_N = (0,1,0)
+    StdVector<PropTransform> microVelocities;
     // lookup table to get inverse directions
     StdVector<Direction> directionsInv;
     //double * m_pdfs[2];
     int m_cur;
     int m_next;
+
+
 
     StdVector<StdVector<int> > inlet;
     StdVector<StdVector<int> > outlet;

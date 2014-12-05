@@ -192,12 +192,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   in->Get("MFLUP_s")->SetValue(performance);
   in->Get("walltime")->SetValue(wt);
 
-  // debugging
-//  std::cout << "Propagation and collision: " << t_step/wt << "%; " << t_step << " sec" << std::endl;
-//  std::cout << "Bounce back: " << t_bb/wt << "%; " << t_bb << " sec" << std::endl;
-//  std::cout << "Propagation at velocity inlet: " << t_in/wt << "%; " << t_in << " sec" << std::endl;
-//  std::cout << "Propagatin at density inlet: " << t_out/wt << "%; " << t_out << " sec" << std::endl;
-
   if(R >= 1000) 
     EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");
 
@@ -664,26 +658,57 @@ void LatticeBoltzmann::prop_coll_step(int m_cur, int m_next, double omega)
       tmp_uy = 0;
       tmp_us = 0;
 
+//      for (int i = 0; i < N_DIR; i++) {
+////        dir = allDirections[i];
+//        //store current pdf values in array for better accessing
+//        pdfs[i] = PDF(m_cur, x+map[i].off_x,     y+map[i].off_y,     i);
+//        // add up all distribution functions of one element
+//        sum += pdfs[i];
+//        if (i != Q9_0) {
+//          if (i != Q9_N && i != Q9_S) {
+//            tmp_ux += map[GetInvDirection((Direction)i)].off_x*pdfs[i];
+//          }
+//          if (i != Q9_E && i != Q9_W)
+//            tmp_uy += map[GetInvDirection((Direction)i)].off_y*pdfs[i];
+//        }
+//      }
+//      pdfs[Q9_0]  = PDF(m_cur, x,     y,     Q9_0);
+//      pdfs[Q9_E]  = PDF(m_cur, x - 1, y,     Q9_E);
+//      pdfs[Q9_N]  = PDF(m_cur, x,     y - 1, Q9_N);
+//      pdfs[Q9_W]  = PDF(m_cur, x + 1, y,     Q9_W);
+//      pdfs[Q9_S]  = PDF(m_cur, x,     y + 1, Q9_S);
+//      pdfs[Q9_NE] = PDF(m_cur, x - 1, y - 1, Q9_NE);
+//      pdfs[Q9_NW] = PDF(m_cur, x + 1, y - 1, Q9_NW);
+//      pdfs[Q9_SW] = PDF(m_cur, x + 1, y + 1, Q9_SW);
+//      pdfs[Q9_SE] = PDF(m_cur, x - 1, y + 1, Q9_SE);
+
+      sum = 0;
       for (int i = 0; i < N_DIR; i++) {
-//        dir = allDirections[i];
-        //store current pdf values in array for better accessing
         pdfs[i] = PDF(m_cur, x+map[i].off_x,     y+map[i].off_y,     i);
-        // add up all distribution functions of one element
         sum += pdfs[i];
-        if (i != Q9_0) {
-          if (i != Q9_N && i != Q9_S) {
-            tmp_ux += map[GetInvDirection((Direction)i)].off_x*pdfs[i];
-          }
-          if (i != Q9_E && i != Q9_W)
-            tmp_uy += map[GetInvDirection((Direction)i)].off_y*pdfs[i];
-        }
+        tmp_ux += (-1) * map[i].off_x*pdfs[i];
+        tmp_uy += (-1) * map[i].off_y*pdfs[i];
       }
+
+//      if (sum > 2) {
+//        std::cout << "sum = " << sum << " x = " << x << " y = " << y <<  std::endl;
+//      }
+//      if (tmp_ux < 1) {
+//        std::cout << "tmp_ux = " << tmp_ux << " x = " << x << " y = " << y << std::endl;
+//      }
+//      if (tmp_uy < 1) {
+//        std::cout << "tmp_uy = " << tmp_uy << " x = " << x << " y = " << y << std::endl;
+//      }
+
+//      sum = pdfs[Q9_0] + pdfs[Q9_E] + pdfs[Q9_N] + pdfs[Q9_W] + pdfs[Q9_S] + pdfs[Q9_NE] + pdfs[Q9_NW] + pdfs[Q9_SW] + pdfs[Q9_SE];
 
       // macroscopic scaling by design variable
       scale = scales[index];
 
       tmp_ux = scale * tmp_ux / sum;
       tmp_uy = scale * tmp_uy / sum;
+//      tmp_ux = scale * (pdfs[Q9_E] + pdfs[Q9_NE] + pdfs[Q9_SE] - pdfs[Q9_W] - pdfs[Q9_NW] - pdfs[Q9_SW]) / sum;
+//      tmp_uy = scale * (pdfs[Q9_N] + pdfs[Q9_NE] + pdfs[Q9_NW] - pdfs[Q9_S] - pdfs[Q9_SW] - pdfs[Q9_SE]) / sum;
       tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
 
       tmp_ux = 3.0 * tmp_ux;
