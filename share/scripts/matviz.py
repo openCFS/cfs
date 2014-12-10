@@ -46,11 +46,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
-    rho = pow(rho, args.penalty)
+    rho = pow(rho, float(args.penalty))
     s1 *= rho
     s2 *= rho
     s3 *= rho
-    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho))  
+    print "scale stiffness values by design_density_" + args.hom_access + " with average value " + str(numpy.mean(rho)) + " and penalty " + str(args.penalty)
   
   angle = numpy.zeros(((len(s1),3)))
   

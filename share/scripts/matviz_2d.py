@@ -194,11 +194,11 @@ def convert_two_data_interpolation_input(centers, s1, s2, angle):
   c[:,0] = [x[0] for x in centers]
   c[:,1] = [x[1] for x in centers]
 
-  v = numpy.zeros((len(s1),  2 if angle == None else 3))
+  v = numpy.zeros((len(s1),  2 if angle is None else 3))
   for i in range(len(s1)):
     v[i][0] = s1[i][0]
     v[i][1] = s2[i][0]
-    if angle <> None:
+    if angle is not None:
       v[i][2] = angle[i]
       
   return c, v    
@@ -212,10 +212,10 @@ def convert_single_data_interpolation_input(centers, s1, angle):
   c[:,0] = [x[0] for x in centers]
   c[:,1] = [x[1] for x in centers]
 
-  v = numpy.zeros((len(s1),  1 if angle == None else 2))
+  v = numpy.zeros((len(s1),  1 if angle is None else 2))
   for i in range(len(s1)):
     v[i][0] = s1[i][0]
-    if angle <> None:
+    if angle is not None:
       v[i][1] = angle[i]
       
   return c, v    
