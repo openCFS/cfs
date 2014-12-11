@@ -27,6 +27,9 @@ class DesignElement;
 class Function;
 class LatticeBoltzmann;
 class LatticeBoltzmann3D;
+class TransferFunction;
+class Function;
+class DesignSpace;
 
 using boost::numeric::ublas::compressed_matrix;
 using boost::numeric::ublas::mapped_matrix;
@@ -92,6 +95,9 @@ public:
 
   //! returns if PDE can compute the quantity
   virtual bool HasOutput(SolutionType output);
+
+  // returns how often CalcResults() was called. We need this to write out the last simulation step
+  int GetNumWriteResults();
 
   virtual void ReadSpecialResults();
 
@@ -201,7 +207,7 @@ private:
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
   void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
 
-  /** ist solved for current "data". Cleared by Solve(). checked by CalcResults() to handle simulation w/o optimization.
+  /** is solved for current "data". Cleared by Solve(). checked by CalcResults() to handle simulation w/o optimization.
    * @see SetDirty() */
   bool dirty_;
 
@@ -239,6 +245,9 @@ private:
   /** total number of elements */
   unsigned int n_elems;
 
+  // stores how often CalcResults() was called. We need this for StoreResults() for last time step
+  unsigned int numWriteResults_;
+
   /** the complete structure, special elements (negative) and densities */
   StdVector<double> elements;
 
@@ -259,6 +268,7 @@ private:
   double maxWallTime_;
   unsigned int maxIter_;
   double convergence_;
+  unsigned int writeFrequency_;
 
   // inlet velocities
   double u_x_;
@@ -269,8 +279,8 @@ private:
   std::string executable;
 
   /** internal lbm solver */
-  LatticeBoltzmann3D* lbm;
-//  LatticeBoltzmann* lbm;
+//  LatticeBoltzmann3D* lbm;
+  LatticeBoltzmann* lbm;
 
   /** type of interface */
   Iface iface_;

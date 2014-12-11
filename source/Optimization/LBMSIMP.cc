@@ -25,7 +25,6 @@ void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
   LOG_DBG(simp) << "SSP -> solve";
   lbm->Solve();
-
 }
 
 /** overloads SIMP::CalcFunction()

@@ -22,6 +22,7 @@
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/programOptions.hh"
+#include "DataInOut/resultHandler.hh"
 #include "Domain/ansatzFct.hh"
 #include "Domain/elem.hh"
 #include "Domain/domain.hh"
@@ -41,8 +42,8 @@
 #include "PDE/eqnMap.hh"
 #include "PDE/timestepping.hh"
 #include "PDE/pseudoTS.hh"
-//#include "PDE/NonFEM/LatticeBoltzmann.hh"
-#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
+#include "PDE/NonFEM/LatticeBoltzmann.hh"
+//#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -140,6 +141,7 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   firstTurn_ = true;
   nonLin_ = false;
   lbm = NULL;
+  numWriteResults_ = 0;
 
   method_ = "mechanic";
   dirty_ = true; // not solved yet!
@@ -151,6 +153,7 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   maxWallTime_ = myParam_->Get("LBM/maxWallTime")->As<double>();
   maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
   convergence_ = myParam_->Get("LBM/convergence")->As<double>();
+  writeFrequency_ = myParam_->Get("LBM/writeFrequency")->As<unsigned int>();
   bool plot    = myParam_->Get("LBM/plot")->As<bool>();
 
   PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
@@ -197,8 +200,8 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   pdfs.Resize(n_elems * n_q_);
 
   if(iface_ == INTERNAL) {
-//    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot);
-    lbm = new LatticeBoltzmann3D(n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot);
+    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot,writeFrequency_);
+//    lbm = new LatticeBoltzmann3D(n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
   }
 }
 
@@ -299,9 +302,24 @@ void LatticeBoltzmannPDE::DefineSolveStep()
 {
   solveStep_ = new StdSolveStep(*this);
 }
+// returns number of iterations needed in LBM calculation until convergence
+int LatticeBoltzmannPDE::GetNumWriteResults()
+{
+  return numWriteResults_;
+}
 
 void LatticeBoltzmannPDE::Solve()
 {
+  SetDirty(false); // assume the calculation will succeed. By this we may call WriteResults() which will call CalcResuls() which will not recursively call Salve() when dirty is set to false.
+
+//  ResultHandler* rh = NULL;
+
+//  if (writeFrequency_ > 1) {
+//    rh = domain->GetResultHandler();
+//    unsigned int mss = domain->GetDriver()->GetActSequenceStep();
+//    // max steps is high. The number is only relevant for hdf5, but there a hard limit
+//    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999);
+//  }
   // infoNode_ is not set yet in the constructor
   PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
   in->Get("omega")->SetValue(omega_);
@@ -363,7 +381,6 @@ void LatticeBoltzmannPDE::Solve()
     // We need to perform an additional propagation step as base for the adjoint system setup
     StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
-
     pdfs = *tmp;
     in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
@@ -372,6 +389,8 @@ void LatticeBoltzmannPDE::Solve()
 
     pdfs = *tmp;
     in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
+
+    numWriteResults_ = lbm->GetNumWriteResults();
 
     break;
   }
@@ -387,7 +406,13 @@ void LatticeBoltzmannPDE::Solve()
   in->Get("totalTimer/wall")->SetValue(state_.GetWallTime());
   in->Get("totalTimer/calls")->SetValue(state_.GetCalls());
 
-  dirty_ = false;
+//  if (writeFrequency_ > 1) {
+//    FinalizeStoreResults(); // when we have strides the results are written
+//    rh->FinishMultiSequenceStep();
+//    rh->Finalize();
+//  }
+
+  // dirty_ = false; already set to false in the beginning
 }
 
 void LatticeBoltzmannPDE::SetupSensitivityAnalysis(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weights)
@@ -1361,9 +1386,9 @@ bool LatticeBoltzmannPDE::HasOutput(SolutionType output) {
 
 void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
 {
-  // in case we do not do optimzation, triggers solution
-  if(dirty_)
-    Solve();
+  // get the current state from the LBM Calculation.
+  // we might come here AFTER LBM->Iterate() or during Iterate() when writing intermediate LBM iterations
+  pdfs = lbm->GetPdfs();
 
   SolutionType solType = res->GetResultInfo()->resultType ;
   switch (solType) {
@@ -1546,27 +1571,27 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
   StdVector<std::string> probDofNames;
   probDofNames.Resize(n_q_); // "f_0", "f_1", ....
-//  for(unsigned int i=0, n = n_q_; i < n; i++ )
-//    probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
-  probDofNames[0] = "C";
-  probDofNames[1] = "E";
-  probDofNames[2] = "W";
-  probDofNames[3] = "N";
-  probDofNames[4] = "S";
-  probDofNames[5] = "T";
-  probDofNames[6] = "B";
-  probDofNames[7] = "NE";
-  probDofNames[8] = "SW";
-  probDofNames[9] = "NW";
-  probDofNames[10] = "SE";
-  probDofNames[11] = "TN";
-  probDofNames[12] = "BS";
-  probDofNames[13] = "TS";
-  probDofNames[14] = "BN";
-  probDofNames[15] = "TE";
-  probDofNames[16] = "BW";
-  probDofNames[17] = "TW";
-  probDofNames[18] = "BE";
+  for(unsigned int i=0, n = n_q_; i < n; i++ )
+    probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
+//  probDofNames[0] = "C";
+//  probDofNames[1] = "E";
+//  probDofNames[2] = "W";
+//  probDofNames[3] = "N";
+//  probDofNames[4] = "S";
+//  probDofNames[5] = "T";
+//  probDofNames[6] = "B";
+//  probDofNames[7] = "NE";
+//  probDofNames[8] = "SW";
+//  probDofNames[9] = "NW";
+//  probDofNames[10] = "SE";
+//  probDofNames[11] = "TN";
+//  probDofNames[12] = "BS";
+//  probDofNames[13] = "TS";
+//  probDofNames[14] = "BN";
+//  probDofNames[15] = "TE";
+//  probDofNames[16] = "BW";
+//  probDofNames[17] = "TW";
+//  probDofNames[18] = "BE";
   prob->dofNames = probDofNames;
   prob->unit = "";
   prob->entryType = ResultInfo::VECTOR;

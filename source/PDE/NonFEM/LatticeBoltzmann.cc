@@ -8,8 +8,13 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/basedriver.hh"
+#include "PDE/SinglePDE.hh"
 #include "PDE/NonFEM/LatticeBoltzmann.hh"
 #include "Utils/Timer.hh"
+
 
 namespace CoupledField
 {
@@ -24,7 +29,7 @@ DEFINE_LOG(lattice, "lattice")
 Enum<LatticeBoltzmann::Boundary>        LatticeBoltzmann::boundaries;
 Enum<LatticeBoltzmann::Direction>        LatticeBoltzmann::directions;
 
- LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot)
+ LatticeBoltzmann::LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
  {
    m_sizeX = sizeX;
    m_sizeY = sizeY;
@@ -37,6 +42,11 @@ Enum<LatticeBoltzmann::Direction>        LatticeBoltzmann::directions;
    m_nNodes = m_sizeX * m_sizeY;
 
    m_plot = plot;
+
+   m_writeFrequency = writeFrequency;
+   m_numWriteResults = 0;
+
+   LOG_DBG(lattice) << "Write frequency for hdf5 file: " << m_writeFrequency;
 
    //matrix of the probability distributions
    LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * N_DIR * 2.0 / 1024.0 / 1024.0) << " MiB)";
@@ -75,7 +85,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 {
   int index;
   int it = 0;
-  int count;
+  int count = 0;
 
   double res = -1.;
   double R = 1.0;
@@ -104,43 +114,26 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   in->Get("converged")->SetValue("running");
 
-  double t_step = 0, t_bb = 0, t_in = 0, t_out = 0;
-  clock_t begin, end;
+//  domain->GetDriver()->StoreResults(0,0.0);
+
   while(it < m_maxIter && !steady_state && R <= 1000)
   {
     // -- Combined propagation and collision step -------------------------
-    begin = clock();
     prop_coll_step(m_cur, m_next, m_omega);
-    end = clock();
-
-    t_step += (double) (end-begin) / CLOCKS_PER_SEC;
 
     // -- Bounce back step ------------------------------------------------
-    begin = clock();
     prop_coll_bounce_back(m_next, bb);
-    end = clock();
-    t_bb += (double) (end-begin) / CLOCKS_PER_SEC;
-
 
     // -- Inlet condition -------------------------------------------------
-    begin = clock();
     prop_coll_velinlet(m_next, inlet, m_ux, m_uy);
-    end = clock();
-
-    t_in += (double) (end-begin) / CLOCKS_PER_SEC;
 
     // -- Outlet condition ------------------------------------------------
-    begin = clock();
     prop_coll_densoutlet(m_next, outlet);
-    end = clock();
-
-    t_out += (double) (end-begin) / CLOCKS_PER_SEC;
 
     if((it == 0 || it % 100 == 0))
     {
       //Calculation of the residual
       R = 0.;
-      count = 0;
 
       // TODO: parallel computation of residual, take care of non_sing and
       //       summation of residual.
@@ -154,7 +147,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
           {
             res = PDF_IDX(m_next, index, k) - PDF_IDX(m_cur, index, k);
             R += res * res;
-            count++;
           }
         }
       }
@@ -175,6 +167,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     m_next = (m_next + 1) % 2;
 
     it++;
+
+    if (it % m_writeFrequency == 0) {
+      count++;
+      domain->GetDriver()->StoreResults(count,(double)count);
+    }
   }
   timer.Stop();
 
@@ -198,7 +195,13 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   if(!steady_state)
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
+  m_numWriteResults = count;
   return &(m_pdfs[m_cur]);
+}
+
+int LatticeBoltzmann::GetNumWriteResults()
+{
+  return m_numWriteResults;
 }
 
 
@@ -247,6 +250,10 @@ inline int LatticeBoltzmann::GetIndexDir(Direction dir1, Direction dir2)
   assert((dir1 == Q9_S) || (dir1 == Q9_N));
   assert((dir2 == Q9_E) || (dir2 == Q9_W));
   return 2*dir1+1.5*dir2-0.5*dir1*dir2+0.5;
+}
+
+StdVector<double> LatticeBoltzmann::GetPdfs() {
+  return m_pdfs[m_cur];
 }
 
 // validates GetIndexDir function

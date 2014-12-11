@@ -337,8 +337,8 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Get()-calls will always create a child elements
   if (insertNew || action == APPEND)
   {
-
-    PtrParamNode ret = this->Get(parent, action);
+    //changed 2nd parameter to APPEND
+    PtrParamNode ret = this->Get(parent, APPEND);
     ret->Get(child, action)->SetValue(value);
     return ret;
   }

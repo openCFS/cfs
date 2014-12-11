@@ -96,7 +96,7 @@ namespace CoupledField
 public:
 
 
-    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot);
+    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot,int writeFrequency);
 
     ~LatticeBoltzmann();
 
@@ -107,6 +107,16 @@ public:
 
     /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
     void prop_step();
+
+    /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
+     *  @retun copy of pdfs
+     */
+    StdVector<double> GetPdfs();
+
+    /**
+     * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
+     */
+    int GetNumWriteResults();
 
   private:
     struct PropTransform{
@@ -134,6 +144,7 @@ public:
     int GetIndexDir(Direction dir1);
     int GetIndexDir(Direction dir1, Direction dir2);
 
+    // tests function GetDirectionIndex()
     void TestDirectionIndex();
 
     /**
@@ -203,6 +214,9 @@ public:
     double m_maxTol;
     /** plot the residuum over lbm iterations */
     bool m_plot;
+    int m_writeFrequency;
+    // stores how often results written
+    int m_numWriteResults;
 
     StdVector<double> Scales;
 

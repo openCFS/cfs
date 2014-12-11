@@ -65,7 +65,7 @@ namespace CoupledField
   public:
 
 
-    LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot);
+    LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
     ~LatticeBoltzmann3D();
 
@@ -204,6 +204,7 @@ namespace CoupledField
     double m_maxTol;
     /** plot the residuum over lbm iterations */
     bool m_plot;
+    int m_writeFrequency;
 
     // number of discrete velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
     unsigned int n_q_;
@@ -229,11 +230,12 @@ namespace CoupledField
     int m_next;
 
 
-
     StdVector<StdVector<int> > inlet;
     StdVector<StdVector<int> > outlet;
     StdVector<StdVector<int> > bb;
     StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
+
+    ResultHandler* rh = NULL;
   }; // end LatticeBoltzmann3D
 
 

@@ -8,8 +8,16 @@
 #include "DataInOut/programOptions.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "DataInOut/resultHandler.hh"
+#include "Domain/domain.hh"
+#include "Driver/basedriver.hh"
+#include "Driver/staticdriver.hh"
+#include "Driver/assemble.hh"
+#include "Driver/baseSolveStep.hh"
+#include "Driver/formsContext.hh"
 #include "PDE/NonFEM/LatticeBoltzmann3D.hh"
 #include "Utils/Timer.hh"
+#include "PDE/basePDE.hh"
 
 namespace CoupledField
 {
@@ -23,21 +31,21 @@ DEFINE_LOG(lattice, "lattice")
 // instantiation of the static elements
 Enum<LatticeBoltzmann3D::Boundary>        LatticeBoltzmann3D::boundaries;
 Enum<LatticeBoltzmann3D::Direction>         LatticeBoltzmann3D::directions;
-//Enum<LatticeBoltzmann3D::Corner>            LatticeBoltzmann3D::corners;
-//Enum<LatticeBoltzmann3D::Edge>              LatticeBoltzmann3D::edges;
 
- LatticeBoltzmann3D::LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot)
+ LatticeBoltzmann3D::LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
  {
+//   domain->GetResultHandler()->BeginMultiSequenceStep(1,BasePDE::STATIC,9999);
+   rh = domain->GetResultHandler();
    m_sizeX = sizeX;
    m_sizeY = sizeY;
    m_sizeZ = sizeZ;
-
    m_ux = ux;
    m_uy = uy;
    m_uz = uz;
    m_omega = omega;
    m_maxIter = maxIterations;
    m_maxTol = maxTolerance;
+   m_writeFrequency = writeFrequency;
 
    m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
 
@@ -89,8 +97,10 @@ Enum<LatticeBoltzmann3D::Direction>         LatticeBoltzmann3D::directions;
 
 StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
-//  int index;
   int it = 0;
+
+  // count number of written steps
+  int counter = 0;
 
   double res = -1.;
   double R = 1.0;
@@ -113,30 +123,38 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
 
   // create_output("node.dat", m_cur);
 
-  LOG_DBG(lattice) << "bb = " << ToString(bb);
-  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
-  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
-  LOG_DBG(lattice) << "rel = " << ToString(rel);
+//  LOG_DBG(lattice) << "bb = " << ToString(bb);
+//  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+//  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+//  LOG_DBG(lattice) << "rel = " << ToString(rel);
 
   in->Get("converged")->SetValue("running");
 
-//  while(it < m_maxIter && !steady_state && R <= 1000)
-//  {
+  while(it < m_maxIter && !steady_state && R <= 1000)
+  {
     // -- Combined propagation and collision step -------------------------
     prop_coll_step(m_cur, m_next, m_omega);
 
-    create_output("out.txt",m_cur);
+    // -- Bounce back step ------------------------------------------------
+    prop_coll_bounce_back(m_next, bb);
 
-    return &(m_pdfs[m_next]);
+    // -- Inlet condition -------------------------------------------------
+    prop_coll_velinlet(m_next, inlet, m_ux, m_uy, m_uz);
 
-//    // -- Bounce back step ------------------------------------------------
-//    prop_coll_bounce_back(m_next, bb);
-//
-//    // -- Inlet condition -------------------------------------------------
-//    prop_coll_velinlet(m_next, inlet, m_ux, m_uy, m_uz);
-//
-//    // -- Outlet condition ------------------------------------------------
-//    prop_coll_densoutlet(m_next, outlet);
+    // -- Outlet condition ------------------------------------------------
+    prop_coll_densoutlet(m_next, outlet);
+
+//    std::cout << "it: " << it << std::endl;
+    if (it % m_writeFrequency == 0) {
+//      std::cout << "Write out results at iteration " << it << std::endl;
+//      std::cout << "counter: " << counter << std::endl;
+      counter++;
+//      std::cout << "act sequence step: " << domain->GetDriver()->GetActSequenceStep() << std::endl;
+      rh->BeginMultiSequenceStep(counter, BasePDE::TRANSIENT, 9999);
+      domain->GetDriver()->StoreResults(counter,(double)counter);
+    }
+
+//    std::cout << "here" << std::endl;
 
     if((it == 0 || it % 100 == 0))
     {
@@ -154,7 +172,6 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
 
             for(unsigned int dir = 0; dir < n_q_; dir++)
             {
-//              res = PDF_IDX(m_next, index, k) - PDF_IDX(m_cur, index, k);
               res = PDF(m_next, i, j, k, dir) - PDF(m_cur, i, j, k, dir);
               R += res * res;
             }
@@ -163,6 +180,8 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
       }
 
       R = sqrt(R);
+
+      std::cout << "residual: " << R << std::endl;
 
       if(R <= m_maxTol)
         steady_state = true;
@@ -173,27 +192,13 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
       in->Get("iterations")->SetValue(it);
       in->Get("residuum")->SetValue(R);
       info->ToFile(); // is not written when called too often
-      std::cout << "residual: " << R << std::endl;
-
-//      std::stringstream stream1;
-//      stream1 << "cur_" << it;
-//      create_output(stream1.str().c_str(),m_cur);
-//      std::stringstream stream2;
-//      stream2 << "next_" << it;
-//      create_output(stream2.str().c_str(),m_next);
     }
 
-//    if (it == 100) {
-//      std::cout << m_pdfs.ToString() << std::endl;
-//      std::cout << "Residuum: " << R << std::endl;
-//      exit(-1);
-//    }
+    m_cur  = (m_cur  + 1) % 2;
+    m_next = (m_next + 1) % 2;
 
-//    m_cur  = (m_cur  + 1) % 2;
-//    m_next = (m_next + 1) % 2;
-//
-//    it++;
-//  }
+    it++;
+  }
   timer.Stop();
 
   in->Get("iterations")->SetValue(it);
@@ -260,7 +265,7 @@ void LatticeBoltzmann3D::InitializePdfs()
       }
     }
   }
-  create_output("initpdfs.txt",0);
+//  create_output("initpdfs.txt",0);
 }
 
 //returns associated integer value of velocity direction two given principal directions
@@ -936,9 +941,6 @@ void LatticeBoltzmann3D::prop_step()
 
 void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
 {
-  static int it = 0;
-
-  it++;
   // perform a propagation step
   int x, y, z;
 //  const Boundary corners[] = {BNW, BSW, BNE, BSE, TNW, TSW, TNE, TSE};
@@ -1059,15 +1061,18 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
     }
   }
 
-  return;
+//  return;
   const StdVector<PropTransform>& map_interior = prop_maps[0];
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
+//  double ux, uy, uz;
   double * scales  = Scales.GetPointer();
 
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
   int index;
   double tmp;
+
+//  create_output("before.txt", m_next);
 
   for (z = 1; z < m_sizeZ - 1; ++z) {
     for (y = 1; y < m_sizeY - 1; ++y) {
@@ -1092,29 +1097,37 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
 
 //        std::cout << "tmp_uz from loop: " << tmp_uz << std::endl;
 
-//        tmp_uz = pdfs[Q19_T] + pdfs[Q19_TN] + pdfs[Q19_TS] + pdfs[Q19_TE] + pdfs[Q19_TW] - pdfs[Q19_B] - pdfs[Q19_BN] - pdfs[Q19_BS] - pdfs[Q19_BE] - pdfs[Q19_BW];
+//        ux = pdfs[Q19_E] + pdfs[Q19_SE] + pdfs[Q19_NE] + pdfs[Q19_TE] + pdfs[Q19_BE] - pdfs[Q19_W] - pdfs[Q19_TW] - pdfs[Q19_NW] - pdfs[Q19_BW] - pdfs[Q19_SW];
+//        uy = pdfs[Q19_N] + pdfs[Q19_NW] + pdfs[Q19_NE] + pdfs[Q19_TN] + pdfs[Q19_BN] - pdfs[Q19_S] - pdfs[Q19_TS] - pdfs[Q19_SE] - pdfs[Q19_BS] - pdfs[Q19_SW];
+//        uz = pdfs[Q19_T] + pdfs[Q19_TN] + pdfs[Q19_TS] + pdfs[Q19_TE] + pdfs[Q19_TW] - pdfs[Q19_B] - pdfs[Q19_BN] - pdfs[Q19_BS] - pdfs[Q19_BE] - pdfs[Q19_BW];
 //        std::cout << "tmp_uz calculated manually: " << tmp_uz << std::endl;
+
+//        assert(tmp_ux - ux < 1e-7);
+//        assert(tmp_uy - uy < 1e-7);
+//        assert(tmp_uz - uz < 1e-7);
+
+//        std::cout << "ux = " << ux << " uy = " << uy << " uz = " << uz << std::endl;
 
         if (sum < 0)
         {
           std::cerr << "sum < 0:" << " sum = " << sum << " x = " << x << " y = " << y << " z = " << z << std::endl;
         }
-        if (sum > 1.5)
-        {
-          std::cerr << "sum > 1.5:" << " sum = " << sum << " x = " << x << " y = " << y << " z = " << z << std::endl;
-        }
-        if (tmp_ux < -0.5)
-        {
-          std::cerr << "tmp_ux < -0.5:" << " tmp_ux = " << tmp_ux << " x = " << x << " y = " << y << " z = " << z << std::endl;
-        }
-        if (tmp_uy < -0.5)
-        {
-          std::cerr << "tmp_uy < -0.5:" << " tmp_uy = " << tmp_uy << " x = " << x << " y = " << y << " z = " << z << std::endl;
-        }
-        if (tmp_uz < -0.5)
-        {
-          std::cerr << "tmp_uz < -0.5:" << " tmp_uz = " << tmp_uz << " x = " << x << " y = " << y << " z = " << z << std::endl;
-        }
+//        if (sum > 1.5)
+//        {
+//          std::cerr << "sum > 1.5:" << " sum = " << sum << " x = " << x << " y = " << y << " z = " << z << std::endl;
+//        }
+//        if (tmp_ux < -0.5)
+//        {
+//          std::cerr << "tmp_ux < -0.5:" << " tmp_ux = " << tmp_ux << " x = " << x << " y = " << y << " z = " << z << std::endl;
+//        }
+//        if (tmp_uy < -0.5)
+//        {
+//          std::cerr << "tmp_uy < -0.5:" << " tmp_uy = " << tmp_uy << " x = " << x << " y = " << y << " z = " << z << std::endl;
+//        }
+//        if (tmp_uz < -0.5)
+//        {
+//          std::cerr << "tmp_uz < -0.5:" << " tmp_uz = " << tmp_uz << " x = " << x << " y = " << y << " z = " << z << std::endl;
+//        }
 
 //        assert(sum > 0);
 //        assert(sum < 1.5);
@@ -1152,26 +1165,11 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
         for (unsigned int i = 0; i < n_q_; i++) {
           tmp = microVelocities[i].off_x * tmp_ux + microVelocities[i].off_y * tmp_uy + microVelocities[i].off_z * tmp_uz;
           PDF(m_next, x, y, z, i) = pdfs[i] + omega * ((sum * weights[i]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[i]);
-
-//          if (PDF(m_next, x, y, z, i) < 0)
-//          {
-//            std::cout << "At iteration " << it << std::endl;
-//            std::cout << "scale = " << scale << " ux = " << tmp_ux << " uy = " << tmp_uy << " uz = " << tmp_uz << std::endl;
-//            std::cout << "tmp = " << tmp  << " w = " << weights[i] << " sum = " << sum << " omega = " << omega << std::endl;
-//            std::cout << "x = " << x << " y =" << y << " z =" << z << " dir = " << i << " pdf = " << PDF(m_next, x, y, z, i) << std::endl;
-//            abort();
-//          }
-//
-//          if (PDF(m_next, x, y, z, i) > 100) {
-//            std::cout << "At iteration " << it << std::endl;
-//            std::cout << "tmp = " << tmp  << " w = " << weights[i] << " sum = " << sum << " omega = " << omega << std::endl;
-//            std::cout << "x = " << x << " y =" << y << " z =" << z << " dir = " << i << " pdf = " << PDF(m_next, x, y, z, i) << std::endl;
-//            abort();
-//          }
         }
       }
     }
   }
+//  create_output("after.txt", m_next);
   return;
 }
 
