@@ -3,8 +3,8 @@ from hdf5_tools import *
 
 import Image, ImageDraw
 import matplotlib
-#necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
-#matplotlib.use('Agg')
+# necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
+# matplotlib.use('Agg')
 import matplotlib.patches
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -12,7 +12,8 @@ import matplotlib.cm as cmx
 from matplotlib.path import Path
 from scipy import ndimage
 import numpy as np
-import scipy.interpolate as ip 
+import scipy.interpolate as ip
+import math
 
 
 # # create and prepare a matplot figure where patched might be "added" to
@@ -32,20 +33,20 @@ def create_figure(min, max, res, for_save):
     ratio = dpi_x / dpi_y 
     dpi_x *= res / wrong[0]  
     dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
-    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x, dpi_y))
     matplotlib.pyplot.axis('off')
     ax = fig.add_subplot(111)
     # the second figure would make problems with matplotlib.pyplot.show()
   
-  ax.set_xlim(min[0],max[0])
-  ax.set_ylim(min[1],max[1])
+  ax.set_xlim(min[0], max[0])
+  ax.set_ylim(min[1], max[1])
   return fig, ax
 
-## @param centers barycenters
+# # @param centers barycenters
 # @param min/max minimal/maximal real node (not barycenter)
 # @retuen image, draw, dim of image, dx to scale from node coord to image coords  
-def create_image(min, max, nx, color = "white"):
-  dim = (nx, int(nx *  (max[1] + min[1]) / (max[0] + min[0])))
+def create_image(min, max, nx, color="white"):
+  dim = (nx, int(nx * (max[1] + min[1]) / (max[0] + min[0])))
   
   dx = dim[0] / (max[0] + 2.0 * min[0])
   dy = dim[1] / (max[1] + 2.0 * min[1])
@@ -69,10 +70,10 @@ def calc_volume(s1, s2):
   vol = 0.0
   for i in range(len(s1)):
     vol += s1[i] + s2[i] - s1[i] * s2[i]
-  return (vol / len(s1))[0] # somehow this is a numpy.ndarry
+  return (vol / len(s1))[0]  # somehow this is a numpy.ndarry
 
 
-## generate polygon vertices out of rotation data
+# # generate polygon vertices out of rotation data
 # to be applied as draw.polygon(result, fill="green", outline="black")
 #
 # from paraview_fmo import *
@@ -201,8 +202,8 @@ def convert_two_data_interpolation_input(centers, s1, s2, angle):
 
 
 
-## helper for get_interpolation and Fields
-#@return 2d locations and 2d data
+# # helper for get_interpolation and Fields
+# @return 2d locations and 2d data
 def convert_single_data_interpolation_input(centers, s1, angle):
   # convert to 2D
   c = numpy.zeros((len(centers), 2))
@@ -264,12 +265,12 @@ def get_interpolation(coords, grad, sample, s1, s2, angle=None):
   return ip_data, ip_near, out, nx, ny 
 
 # # visualize the orientational stiffness
-# @param grad is 'none' or 'linar'
+# @param grad is 'none' or 'linear'
 # @return the image
 def show_frame_grad(coords, s1, s2, grad, direction, nx):
 
   centers, min, max, elem = coords
-  im, draw, dim, dx, dy = create_image(min, max, nx,"white")
+  im, draw, dim, dx, dy = create_image(min, max, nx, "white")
 
   height = elem[1] * dy 
   length = elem[0] * dx
@@ -362,7 +363,7 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_sa
         start, v_start = get_interpol_data(out, ip_data, ip_near, nx + y * (2 * nx + 1) + x)
         right, v_right = get_interpol_data(out, ip_data, ip_near, nx + y * (2 * nx + 1) + x + 1)
 
-        center = ((0.5 * (start[0] + right[0]),start[1]))
+        center = ((0.5 * (start[0] + right[0]), start[1]))
         # print 'start=' + str(start) + ' v_start=' + str(v_start)
 
         pol = to_frustum_center(v_start, v_right, center, elem, scale, 'horizontal')
@@ -371,23 +372,105 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_sa
   if not direction == 'horizontal':
     for y in range(ny):
       for x in range(nx):
-        start, v_start = get_interpol_data(out, ip_data, ip_near, (y+1) * (2*nx+1) + x)
-        upper, v_upper = get_interpol_data(out, ip_data, ip_near,  y * (2*nx+1) + x)
+        start, v_start = get_interpol_data(out, ip_data, ip_near, (y + 1) * (2 * nx + 1) + x)
+        upper, v_upper = get_interpol_data(out, ip_data, ip_near, y * (2 * nx + 1) + x)
         center = ((start[0], 0.5 * (start[1] + upper[1])))
         pol = to_frustum_center(v_upper, v_start, center, elem, scale, 'vertical') 
         draw_verts(pol, sub, 'black') 
 
+  return (fig, sub)
+  
+# visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
+def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_save):
+  print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary'
+  centers, min, max, elem = coords
+  fig, sub = create_figure(min, max, nx, do_save)
+  delta_angle = numpy.max(angle) - numpy.max(angle) 
+
+  if scale == -1.0:
+    scale = 1.02 if delta_angle == 0.0 else 0.8 
+  length = scale * (elem[0])
+  
+  max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
+  min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
+
+  for i in range(len(s1)):
+  
+    coord = centers[i]
+
+    x_off = (coord[0] + min[0])
+    y_off = (coord[1] + min[1])
+
+    # we need downscale the values when we overscale due to overlapping 
+    v = [0, 0]
+    v[0] = s1[i, 0] / numpy.max((scale, 1.))
+    v[1] = s2[i, 0] / numpy.max((scale, 1.))
+    theta = angle[i]
+    c = [0, 0]
+    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
+    
+    # vmax, vmin are indices which decide whether s1-rectangle or s2-rectangle are drawn first 
+    vmax = 0 if v[0] > v[1] else 1
+    vmin = (vmax + 1) % 2
+    pol = to_rectangle_center(length, length, theta + vmin * numpy.pi / 2, x_off, y_off)
+    draw_verts(pol, sub, 'black')
+    
+    pol = to_rectangle_center(length * (1. - 2.*v[0]), length * (1. - 2.*v[1]), theta + vmax * numpy.pi / 2, x_off, y_off)
+    draw_verts(pol, sub, 'white')
+    
+    r = (1. - 2.*v[0]) * length / 3. if (1. - 2.*v[0]) * length / 3. >= (1. - 2.*v[1]) * length / 3. else (1. - 2.*v[1]) * length / 3.
+    l1 = length * (1. - 2.*v[0])
+    l2 = length * (1. - 2.*v[1])
+    t1 = abs(l1 / 2. - r / 2.)
+    t2 = abs(l2 / 2. - r / 2.)
+    c1 = abs(l1 / 2. - r)
+    c2 = abs(l2 / 2. - r)
+    eps = 1./nx
+    
+    print 'theta = '+str(theta)
+    vmax = 0.
+    # lower left corner
+    t = (cos(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * abs(l2 / 2. - r / 2.))
+    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2 , x_off - t[0], y_off - t[1])
+    draw_verts(pol, sub, 'black')
+    c = (x_off - c1, y_off - c2)
+    center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
+    #draw_circle(center, r-eps, sub, 'white')
+
+    vmax = 1.
+    t = (cos(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * abs(l2 / 2. - r / 2.))
+    # lower right corner
+    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off + t[0], y_off - t[1])
+    #draw_verts(pol, sub, 'black')
+    c = (x_off + c1, y_off - c2)
+    center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
+    #draw_circle(center, r-eps, sub, 'white')
+    
+    vmax = 0.
+    # upper right corner
+    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off + t[0], y_off + t[1])
+    #draw_verts(pol, sub, 'black')
+    c = (x_off + c1, y_off + c2)
+    center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
+    #draw_circle(center, r-eps, sub, 'white')
+    
+    vmax = 1.
+    # upper left corner
+    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off - t[0], y_off + t[1])
+    #draw_verts(pol, sub, 'black')
+    c = (x_off - c1, y_off + c2)
+    center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
+    #draw_circle(center, r-eps, sub, 'white')    
   return (fig, sub)  
 
-
-
 # # visualize the orientational stiffness
-# @param grad is 'none' or 'linar'
+# @param grad is 'none' or 'linear'
 # @return the image
 def show_frame(coords, s1, s2, directions, nx):
 
   centers, min, max, elem = coords
-  im, draw, dim, dx, dy = create_image(min, max, nx,"white")
+  im, draw, dim, dx, dy = create_image(min, max, nx, "white")
   height = elem[1] * dy 
   length = elem[0] * dx
  
@@ -398,8 +481,8 @@ def show_frame(coords, s1, s2, directions, nx):
          
     x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
     y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dy
-    hor = s2[i,0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
-    ver = s1[i,0]
+    hor = s2[i, 0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
+    ver = s1[i, 0]
     # print "hor=" + str(hor) + " ver=" + str(ver) 
     
     if not directions == 'vertical': 
@@ -432,7 +515,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
 
   if scale == -1.0:
     scale = 1.02 if delta_angle == 0.0 else 0.8 
-  length =  scale * (elem[0])
+  length = scale * (elem[0])
   
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
@@ -445,15 +528,15 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
     y_off = (coord[1] + min[1])
 
     # we need downscale the values when we overscale due to overlapping 
-    v = [0,0]
-    v[0] = s1[i,0] / numpy.max((scale, 1.))
-    v[1] = s2[i,0] / numpy.max((scale, 1.))
+    v = [0, 0]
+    v[0] = s1[i, 0] / numpy.max((scale, 1.))
+    v[1] = s2[i, 0] / numpy.max((scale, 1.))
     theta = angle[i]
     c = [0, 0]
     c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
 
-    #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
+    # print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
 
     # a
     if direction == 'horizontal': 
@@ -461,15 +544,16 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
       draw_verts(pol, sub, c[0])    
     # b
     elif direction == 'vertical':
-      pol = to_rectangle_center(length * v[1], length, theta + numpy.pi/2, x_off, y_off)
+      pol = to_rectangle_center(length * v[1], length, theta + numpy.pi / 2, x_off, y_off)
       draw_verts(pol, sub, c[1])
     else:
+      # vmax, vmin are indices which decide whether s1-rectangle or s2-rectangle are drawn first 
       vmax = 0 if v[0] > v[1] else 1
       vmin = (vmax + 1) % 2
-      pol = to_rectangle_center(length * v[vmin], length, theta + vmin*numpy.pi/2, x_off, y_off)
-      #draw_verts(pol, sub, str(1.0 - c[vmin]))
+      pol = to_rectangle_center(length * v[vmin], length, theta + vmin * numpy.pi / 2, x_off, y_off)
+      # draw_verts(pol, sub, str(1.0 - c[vmin]))
       draw_verts(pol, sub, c[vmin])
-      pol = to_rectangle_center(length * v[vmax], length, theta + vmax*numpy.pi/2, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length, theta + vmax * numpy.pi / 2, x_off, y_off)
       draw_verts(pol, sub, c[vmax])
   return (fig, sub)
 
@@ -487,6 +571,9 @@ def draw_verts(verts, axsubplot, color):
   patch = matplotlib.patches.PathPatch(path, edgecolor='none', facecolor=color, lw=1)
   axsubplot.add_patch(patch)
   
+def draw_circle(center, radius, axsubplot, col):
+  circle = matplotlib.pyplot.Circle(center, radius, color=col, fill=True)
+  axsubplot.add_artist(circle)
   
 # draws a thick circle, where the thickness is determined automatically by the radius 
 def draw_thick_circle(draw, center, radius):
@@ -532,7 +619,7 @@ def orientational_stiffness(coords, angle, data, nx, scale=-1.0):
   
 # @param aux see  perform_cfs_rotation()
 # @return list of angles and list of data which might be aux   
-def perform_rotations(tensors, notation, samples, name = "mechTensor", aux_code = None):
+def perform_rotations(tensors, notation, samples, name="mechTensor", aux_code=None):
 
   res_angle = []
   res_data = []

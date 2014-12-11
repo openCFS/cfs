@@ -2,7 +2,6 @@ import sys
 import h5py
 import numpy
 import operator
-from mesh_tool import *
 
 
 # open a hdf5 file as
@@ -33,18 +32,6 @@ def num_nodes_by_type(type_id):
   if type_id == 11:
     return 8
   assert(False)
-  
-def mesh_type_from_hdf5(type_id):
-  if type_id == 6:
-    return QUAD4
-  if type_id == 16:
-    return WEDGE6
-  if type_id == 11:
-    return HEXA8
-  if type_id == 4:
-    return TRIANGLE3
-  assert(False)
-    
 
 # # give back elements with barycenters
 # works 2D and 3D
@@ -195,72 +182,4 @@ def get_element(hdf5_file, name, region, given_step=99999):
     return hdf5_file[key].value
   except:
     raise Exception("cannot access '" + key + "' in " + str(hdf5_file.filename))
-# creates a mesh from hdf5 file  
-def create_mesh_from_hdf5(hdf5_file, region, region_force=None, region_support=None):
-  all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
-  reg_elements_des = hdf5_file['/Mesh/Regions/' + region[0] + '/Elements'].value
-  if len(region) > 1:
-    reg_elements_nondes = hdf5_file['/Mesh/Regions/' + region[1] + '/Elements'].value
-    reg_elements_void = hdf5_file['/Mesh/Regions/' + region[2] + '/Elements'].value
-  types = hdf5_file['/Mesh/Elements/Types'].value
-  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
-  length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'].value)
-  reg_nodes = [[0 for col in range(len(region))] for row in range(length)]
-  for i in range(len(region)):
-    reg_nodes[i][:] = hdf5_file['/Mesh/Regions/' + region[i] + '/Nodes']
-  design_var = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/physicalPseudoDensity/mech/Elements/Real'].value
-    
-  # Create mesh  
-  mesh = Mesh()
-  # extract boundary force nodes from region_force if available
-  if region_force <> None:
-    reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
-    mesh.bc.append((region_force, reg_force_nodes[:] - 1))
 
-  # extract boundary force nodes from region_force if available
-  if region_support <> None:
-    reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
-    mesh.bc.append((region_support, reg_support_nodes[:] - 1))
-
-  
-  for i in range(len(all_nodes)):
-    mesh.nodes.append(all_nodes[i])
-  idx = 0
-  idx2 = 0
-  idx3 = 0  
-  for i in range(len(all_elements[:, 0])):
-    e = Element()
-    e.nodes = (all_elements[i, :] - 1)
-    e.density = design_var[i]
-    if idx < len(reg_elements_des):
-      if i + 1 == reg_elements_des[idx]:
-        e.region = region[0]
-        idx += 1
-    if len(region) > 1:
-      if idx2 < len(reg_elements_nondes):
-        if i + 1 == reg_elements_nondes[idx2]:
-          e.region = 'nondesign'
-          idx2 += 1
-      if idx3 < len(reg_elements_void):
-        if i + 1 == reg_elements_void[idx3]:
-          e.region = 'void'
-          idx3 += 1
-    # e.region = 'design'
-    e.type = mesh_type_from_hdf5(types[i])
-    mesh.elements.append(e) 
-  return mesh
-# f = h5py.File("/home/fwein/project/simp/hook.h5")
-# s1 = get_element(f, "design_stiff1_plain", "mech")
-# s2 = get_element(f, "design_stiff2_plain", "mech") 
-# angle = get_element(f, "design_rotAngle_plain", "mech")
- 
-# t = to_mech_tensor(eval("[2.607069, 1.484705, 0.1626158, 0,0, 0.3030707]")) 
- 
-# f = h5py.File("/home/fwein/project/simp/piezo_fmo.h5")
-# f = h5py.File("/home/fwein/tmp/l_sl-m_20-g_al-p_0.1-gamma_1e-07-tau_0.01.h5")
-# r  = centered_elements(f)
-# tensor = get_element(f, "mechTensor", "piezo")
-# tensor = get_element(f, "mechTensor", "mech")
-# rot = perform_rotations(tensor, 10)
-# rot = perform_rotations(tensor, t21=True)
-# orientational_stiffness(r, rot, 1500, 2.5).show()

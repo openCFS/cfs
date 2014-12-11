@@ -39,6 +39,35 @@ def save_image_as_densfile(im, outfile):
 
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
+def insert_modified_frame(array, minres, x, y, steps):
+  # 2D frame structure
+  array = np.ones((minres, minres))
+  offx = int((minres / 2.) * (float(x) / (steps)) + 0.5)
+  offy = int((minres / 2.) * (float(y) / (steps)) + 0.5)
+  for i in range(offx, minres - offx):
+    for j in range(offy, minres - offy):
+      array[i][j] = 1e-9
+      
+  # modify frame for stress minimization
+  for i in range(offx, minres - offx):
+    for j in range(offy, minres - offy):
+      if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
+        r = math.ceil((minres - 2.*offx) / 3.)
+      else:
+        r = math.ceil((minres - 2.*offy) / 3.) 
+      m = [offx + r, offy + r]
+      if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+        array[i][j] = 1.
+      m = [minres - offx - r - 1, offy + r]
+      if i >= minres - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+        array[i][j] = 1.
+      m = [minres - offx - r - 1, minres - offy - r - 1]
+      if i >= minres - offx - r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+        array[i][j] = 1.
+      m = [offx + r, minres - offy - r - 1]
+      if i - offx < r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+        array[i][j] = 1.  
+  return array  
 
 def insert_rotated_bar(tx, ty, rot, array, minres, midx, midy):
   # rotationg angle should be between [0,pi] 
@@ -225,7 +254,7 @@ print outfile
 jobfile = open(outfile, "w")
 if dim == 2:
   if args.msfem:
-    array = 1e-6 * np.ones((minres, minres))
+    array = 1e-9 * np.ones((minres, minres))
     # steps_rot = 4
     # drot = math.pi/float(steps_rot)
     midx = minres / 2
@@ -234,12 +263,13 @@ if dim == 2:
     rot = 0.
     for x in range(steps + 1):
       for y in range(steps + 1):
-        offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
-        offy = int((minres / 2.) * (1 - float(y) / (steps)) + 0.5)
+        offx = int((minres / 2.) * (1. - float(x) / (steps)) + 0.5)
+        offy = int((minres / 2.) * (1. - float(y) / (steps)) + 0.5)
         print 'offx = ' + str(offx) + ' midx = ' + str(midx) + ' offy = ' + str(offy) + ' midy = ' + str(midy)
         tx = minres - 2 * offy            
         ty = minres - 2 * offx
-        array = insert_rotated_bar(tx, ty, rot, array, minres, midx, midy)          
+        # array = insert_rotated_bar(tx, ty, rot, array, minres, midx, midy)
+        array = insert_modified_frame(array, minres, x, y, steps)        
         # plot of debugging
         # plt.imshow(array)
         # plt.gray()
@@ -249,7 +279,7 @@ if dim == 2:
         # filtering of the data
         array_filter = ndimage.uniform_filter(array, size=6)
         write_density_file(str(steps) + "_msfem/" + densfilename, array_filter, "set")
-        array = 1e-6 * np.ones((minres, minres))
+        array = 1e-9 * np.ones((minres, minres))
         if args.triangle_msfem:
           # create xml file for cfs
           doc = libxml2.parseFile("triangle_msfem.xml")
@@ -369,7 +399,7 @@ if dim == 2:
               index += 1
   else:
     # 2D cross structure
-    array = 1e-6 * np.ones((minres, minres))
+    array = 1e-9 * np.ones((minres, minres))
     for x in range(steps + 1):
       for y in range(steps + 1):
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
@@ -385,7 +415,7 @@ if dim == 2:
         # filtering of the data
         array_filter = ndimage.uniform_filter(array, size=6)
         write_density_file(str(steps) + "/" + densfilename, array_filter, "set")
-        array = 1e-6 * np.ones((minres, minres))
+        array = 1e-9 * np.ones((minres, minres))
         # add new job to jobfile
         jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
         # create xml file for cfs
@@ -396,7 +426,7 @@ elif dim == 3:
   for x in range(steps + 1):
     for y in range(steps + 1):
       for z in range(steps + 1):
-        array = 1e-6 * np.ones((minres, minres, minres))
+        array = 1e-9 * np.ones((minres, minres, minres))
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
         offy = int((minres / 2.) * (1 - float(y) / (steps)) + 0.5)
         offz = int((minres / 2.) * (1 - float(z) / (steps)) + 0.5)
@@ -439,7 +469,7 @@ elif dim == 10:
       print "test: x " + str(x) + " test: y " + str(y) + "-> " + str(float(x) / steps) + ", " + str(float(y) / steps)
       for i in range(offx, minres - offx):
         for j in range(offy, minres - offy):
-          array[i][j] = 1e-6
+          array[i][j] = 1e-9
       densfilename = str(x) + "-" + str(y) + ".dens.xml"
       print str(numpy.sum(array) / (minres * minres)) + " vs " + str(float(x) / steps + float(y) / steps - (float(x) / steps) * (float(y) / steps))
       # filtering of the data

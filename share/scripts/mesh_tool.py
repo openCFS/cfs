@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import Image, sys, os, copy, numpy, math
+from hdf5_tools import *
+
 
 # writes a dense two region mesh
 # def write_dense_mesh(pixels, size, file, threshold):
@@ -8,9 +10,11 @@ import Image, sys, os, copy, numpy, math
 # element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
 TRIANGLE3 = 4
 QUAD4 = 6
+TET4 = 8
 HEXA8 = 10
 WEDGE6 = 14
 LINE = 100
+
 
 def nodes_by_type(type):
   if type == QUAD4:
@@ -23,10 +27,25 @@ def nodes_by_type(type):
     return  3
   if type == LINE:
     return 2
+  if type == TET4:
+    return 4
+  assert(False)
+ 
+def mesh_type_from_hdf5(type_id):
+  if type_id == 6:
+    return QUAD4
+  if type_id == 16:
+    return WEDGE6
+  if type_id == 11:
+    return HEXA8
+  if type_id == 4:
+    return TRIANGLE3
+  if type_id == 8:
+    return TET4
   assert(False)
 
 def elem_dim(type):
-  if type == HEXA8 or type == WEDGE6:
+  if type == HEXA8 or type == WEDGE6 or type == TET4:
     return 3
   elif type == LINE:
     return 1
@@ -85,10 +104,10 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle,pressure=False):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle, pressure=False):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle,pressure)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle, pressure)
 
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   if multi_d == 1:
@@ -97,7 +116,7 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi
     nx, ny, nz, m = numpy_array.shape
   create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=multi_d, shearAngle=0.0)
   
-def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0,pressure=False):
+def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, pressure=False):
   # convert angle to rad and check for feasibility
   angle = shearAngle / 180 * math.pi
   if (abs(angle) > math.pi / 2 - 1e-6):
@@ -111,6 +130,9 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   is_data = isinstance(input_array, numpy.ndarray)
   is_gray = False if is_data else isinstance(input_array[0, 0], int)
   is_color = False if is_data else isinstance(input_array[0, 0], tuple)
+  
+  print is_data, is_gray, is_color
+
   assert(is_data or is_gray or is_color)
   
   # create mesh.nodes
@@ -164,6 +186,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
           else:
             e.region = 'void'
         else:
+          print 'war hier'
           if input_array[x, y][0] > 0 and input_array[x, y][1] == 0 and input_array[x, y][1] == input_array[x, y][2] == 0:
             e.region = 'red'
             colorful_count += 1
@@ -176,6 +199,17 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
           else:
             e.region = 'colorful'
             colorful_count += 1
+        if pressure:
+          if (x >= int(0.8 * nx) and y == ny - 1):
+            b = Element()
+            b.type = LINE
+            ll = x
+            b.nodes = ((ll, ll + 1))
+            if e.region == 'mech' or e.region == 'colorful' or e.region == 'red': 
+              b.region = 'pressure2'
+            else:
+              b.region = 'void'
+            mesh.elements.append(b)
       else:
         if e.stiff1 >= threshold or float(e.stiff2) >= threshold:  
           e.region = 'mech'
@@ -189,13 +223,6 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       # e.dump()
   if pressure:
     print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
-    for x in range(int(0.8 * nx), nx):
-      b = Element()
-      b.type = LINE
-      ll = x
-      b.nodes = ((ll, ll + 1)) 
-      b.region = 'pressure2'
-      mesh.elements.append(b)
   mesh.bc.append(("south", range(0, nx + 1)))
   mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
   mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
@@ -288,9 +315,14 @@ def write_gid_mesh(mesh, filename):
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
+  tet4 = count_elements(mesh.elements,TET4)
   num_1d = line
   num_2d = quad4
-  num_3d = hexa8 + wedge6
+  num_3d = hexa8 + wedge6 + tet4
+  print 'len mesh '+ str(len(mesh.elements))
+  print num_1d
+  print num_2d
+  print num_3d
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
   dim = 3 if num_3d > 0 else 2
   
@@ -320,7 +352,7 @@ def write_gid_mesh(mesh, filename):
   out.write('Num triangle,quad: 0\n')
   out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
-  out.write('Num tetra        : 0\n')
+  out.write('Num tetra        : '+ str(tet4)+'\n')
   out.write('Num tetra,quad   : 0\n')
   out.write('Num brick        : ' + str(hexa8) + '\n')
   out.write('Num brick,quad   : 0\n')
@@ -675,4 +707,82 @@ def create_lbm(resolution, case):
     mesh.ne.append(('inlet', range(int((0.75 - 1. / 16) * nx * ny + eps), int((0.75 + 1. / 16) * nx * ny + nx + eps), nx)))
     mesh.ne.append(('outlet', range(int(0.375 * nx * ny - 1 + eps), int(0.625 * nx * ny - 1 + eps), nx)))
       
+  return mesh
+
+# creates a mesh from hdf5 file  
+def create_mesh_from_hdf5(hdf5_file, region, region_force=None, region_support=None):
+  all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
+  reg_elements_des = hdf5_file['/Mesh/Regions/' + region[0] + '/Elements'].value
+  if len(region) > 1:
+    reg_elements_nondes = hdf5_file['/Mesh/Regions/' + region[1] + '/Elements'].value
+    reg_elements_void = hdf5_file['/Mesh/Regions/' + region[2] + '/Elements'].value
+  types = hdf5_file['/Mesh/Elements/Types'].value
+  all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
+  length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'].value)
+  reg_nodes = [[0 for col in range(len(region))] for row in range(length)]
+  for i in range(len(region)):
+    reg_nodes[i][:] = hdf5_file['/Mesh/Regions/' + region[i] + '/Nodes']
+  design_var = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/physicalPseudoDensity/mech/Elements/Real'].value
+    
+  # Create mesh  
+  mesh = Mesh()
+  # extract boundary force nodes from region_force if available
+  if region_force <> None:
+    reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
+    mesh.bc.append((region_force, reg_force_nodes[:] - 1))
+
+  # extract boundary force nodes from region_force if available
+  if region_support <> None:
+    reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
+    mesh.bc.append((region_support, reg_support_nodes[:] - 1))
+
+  
+  for i in range(len(all_nodes)):
+    mesh.nodes.append(all_nodes[i])
+  idx = 0
+  idx2 = 0
+  idx3 = 0  
+  for i in range(len(all_elements[:, 0])):
+    e = Element()
+    e.nodes = (all_elements[i, :] - 1)
+    e.density = design_var[i]
+    if idx < len(reg_elements_des):
+      if i + 1 == reg_elements_des[idx]:
+        e.region = region[0]
+        idx += 1
+    if len(region) > 1:
+      if idx2 < len(reg_elements_nondes):
+        if i + 1 == reg_elements_nondes[idx2]:
+          e.region = 'nondesign'
+          idx2 += 1
+      if idx3 < len(reg_elements_void):
+        if i + 1 == reg_elements_void[idx3]:
+          e.region = 'void'
+          idx3 += 1
+    e.type = mesh_type_from_hdf5(types[i])
+    mesh.elements.append(e) 
+  return mesh
+
+
+def create_mesh_from_tetgen(meshfile, region):
+  print meshfile+'.1.ele'
+  all_elements = numpy.loadtxt(meshfile+'.1.ele',dtype='int' ,skiprows=1)
+  print 'read all_elements done'
+  all_nodes = numpy.loadtxt(meshfile+'.1.node',skiprows= 1)
+  print 'read all_nodes done'
+  #all_faces = numpy.loadtxt(meshfile+'1.face',skiprows=1)
+  #all_edges = numpy.loadtxt(meshfile+'1.edge',skiprows=1)
+  
+    
+  # Create mesh  
+  mesh = Mesh()  
+  for i in range(len(all_nodes)):
+    mesh.nodes.append(all_nodes[i,1:])  
+  for i in range(len(all_elements[:, 0])):
+    e = Element()
+    e.nodes = (all_elements[i, 1:] - 1)
+    e.density = 1.
+    e.region = region
+    e.type = TET4
+    mesh.elements.append(e) 
   return mesh

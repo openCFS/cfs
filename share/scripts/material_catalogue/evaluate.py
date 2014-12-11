@@ -10,9 +10,9 @@ from numpy import sqrt
 from lxml import etree
 import argparse
 import scipy, scipy.sparse, scipy.sparse.linalg 
-
-from optimization_tools import *
 from hdf5_tools import *
+from optimization_tools import *
+from mesh_tool import *
 from decimal import *
 
 
@@ -33,7 +33,7 @@ def Kelem(E, nu, dx, dy, dof, dim, points=None):
     (B, detJ) = CalcBMat(1., 1., dx, dy, dof, points)
     KE = 0.5 * B.T * C * B
   # only valid for regular, uniform grids
-  #print KE
+  # print KE
   KE *= detJ
   return KE 
 def CalcBMat(x, y, dx, dy, dof, points=None):
@@ -116,7 +116,7 @@ def CalcElementMat(dim, dof, dens, E, nu, R, mesh):
   dx = 1.
   dy = 1.
   K = Kglob(E, nu, dens, dx, dy, dim, dof, mesh)
-  #scipy.io.savemat('K.mat', mdict={'K': K})
+  # scipy.io.savemat('K.mat', mdict={'K': K})
   elemMat = R * K * R.T
   return elemMat
 
@@ -183,13 +183,14 @@ elif dim == 3:
 
   # out.write('# x   y 11           12           22           33\n')
 if dim == 2:
-  if dof == 8:
-    h5file = str(steps) + "_msfem/0-0_msfem0_x.h5"
-  elif dof == 6:
-    h5file = str(steps) + "triangle_msfem/0-0_msfem0_x.h5"
-  f = h5py.File(h5file, 'r')
-  mesh = create_mesh_from_hdf5(f, ['mech'])
-  f.close()
+  if args.msfem:
+    if dof == 8:
+      h5file = str(steps) + "_msfem/0-0_msfem0_x.h5"
+    elif dof == 6:
+      h5file = str(steps) + "triangle_msfem/0-0_msfem0_x.h5"
+    f = h5py.File(h5file, 'r')
+    mesh = create_mesh_from_hdf5(f, ['mech'])
+    f.close()
   for x in range(steps + 1):
   # x = 2
   # y = 2
@@ -216,9 +217,9 @@ if dim == 2:
           f = h5py.File(h5file, 'r')
           mesh = create_mesh_from_hdf5(f, ['mech'])
           tmp = read_displacement(f)
-          #if dof == 8:
+          # if dof == 8:
           #  index1 = [0, 4, 1, 5, 2, 6, 3, 7]
-          #elif dof == 6:
+          # elif dof == 6:
           #  index1 = [0, 3, 1, 4, 2, 5]
           # for j in range(len(mesh.nodes)):
           #    R[index1[i], j] = tmp[j][0]

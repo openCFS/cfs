@@ -71,9 +71,9 @@ else:
   if not args.colorregion:
     img = img.convert("L") 
   if args.pressure:
-    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
-  else:
     create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle), True)
+  else:
+    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
 
 if not args.noshow:
   dimension = None

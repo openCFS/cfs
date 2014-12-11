@@ -18,7 +18,7 @@ import xml.dom.minidom
 # @return s1, s2, s3, angle 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
-  if args.parametrization == 'hom_rect':
+  if args.parametrization == 'hom_rect' or args.parametrization == 'hom_rect_mod':
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers), 1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers), 1)) * .1
     s3 = numpy.ones((len(centers), 1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
@@ -39,12 +39,12 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
     t22 = get_element(f, "design_tensor22_" + args.hom_access, args.h5_region, args.h5_step)
     t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
-    s1 = t11*t11+t12*t12
-    s2 = t12*t12+t22*t22
-    m = 2*numpy.max([numpy.max(s1), numpy.max(s2)])
-    s1 *= 1/m
-    s2 *= 1/m
-    s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+    s1 = t11 * t11 + t12 * t12
+    s2 = t12 * t12 + t22 * t22
+    m = 2 * numpy.max([numpy.max(s1), numpy.max(s2)])
+    s1 *= 1 / m
+    s2 *= 1 / m
+    s3 = numpy.ones((len(centers), 1)) * .1  # fix for 3D
   if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
@@ -55,7 +55,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
   
   angle = numpy.zeros(((len(s1), 3)))
   
-  if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
+  if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream" or args.show == 'hom_rect_mod':
     try:
       if dim_2D:
       	try:
@@ -103,9 +103,9 @@ def show_or_write(viz, args):
       if args.save.split('.')[-1] <> 'pdf':      
         # I war not able to  render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 
-        tmp = Image.open(args.save).convert('L') # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
+        tmp = Image.open(args.save).convert('L')  # make gray, otherwise data has the dimension x*y*4 (rgm + alpha)
         dat = numpy.array(tmp)
-        volume = len(numpy.where(dat.reshape(dat.size,1) < 128)[0]) / float(dat.size) # cont fields below 128 which is become black with a thrshold of 0.5
+        volume = len(numpy.where(dat.reshape(dat.size, 1) < 128)[0]) / float(dat.size)  # cont fields below 128 which is become black with a thrshold of 0.5
         print 'volume fraction from image : ' + str(volume)
         if info <> None:
           vol = xml.etree.ElementTree.SubElement(info, "volume")
@@ -131,25 +131,25 @@ def plot_angle_data(file, angle, data):
 # we extract the main processing such that we can run it within a loop to find the optimal scaling
 # @param force_scale overwrites args.scale
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
   
-  volume = None # might ne set
+  volume = None  # might ne set
   
   scale = force_scale if force_scale else args.scale
   
   
-  #perform 2D and 3D from file
+  # perform 2D and 3D from file
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
+    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream' or 'hom_rect_mod':
   
       s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
       v = calc_volume(s1, s2)
       print "volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas
-      angle += args.angle_bias * numpy.pi/180
+      angle += args.angle_bias * numpy.pi / 180
       # scale angle, e.g  by -1 to correct jannis 
       if args.angle_factor <> 1.0:
         print 'scale angle by ' + str(args.angle_factor)
@@ -166,30 +166,32 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
             viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
           else:
             viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
+        elif args.show == "hom_rect_mod":
+          viz = show_modified_frame(coords, s1, s2, angle[:, 0], "all", args.res, scale, args.color, args.save)
         elif args.show == "hom_rot_cross" or args.show == "rot":
           # add optional angle bias
           print 'change angle'
           if args.hom_grad == 'none':
-            viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, scale, args.color, args.save)
+            viz = show_rot_cross(coords, s1, s2, angle[:, 0], args.hom_dir, args.res, scale, args.color, args.save)
           else:
-            viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
+            viz = show_rot_cross_grad(coords, s1, s2, angle[:, 0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "stream":
-            viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
+            viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
         else:
           assert(False)
       # the 3D VTK stuff      
       else:       
         if args.show == "rot":
-          s1 = ones((len(s1),1)) * 0.25
-          s2 = ones((len(s1),1)) * 0.25
-          s3 = ones((len(s1),1)) * 0.25
+          s1 = ones((len(s1), 1)) * 0.25
+          s2 = ones((len(s1), 1)) * 0.25
+          s3 = ones((len(s1), 1)) * 0.25
         if args.hom_samples:
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
           else:
             viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale)
-        else: # no sample
+        else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
           elif args.unstructured:
@@ -216,7 +218,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
     else:
       if args.tensor == 'mechTensor':
         print "Input data is read as as " + args.notation
-      #tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+      # tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot <> None:
@@ -237,7 +239,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
   
     print "largest stiffness: " + str(numpy.max(data)) + " smallest stiffness: " + str(numpy.min(data))
     if len(aux) > 0:
-      print "largest " + args.show +": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
+      print "largest " + args.show + ": " + str(numpy.max(aux)) + " smallest " + args.show + ": " + str(numpy.min(aux))
     
     poly = create_vtk_poly_data(angle, data if args.show == "default" else aux)
     
@@ -279,7 +281,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream', 'hom_rect_mod'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -290,14 +292,14 @@ parser.add_argument("--hom_access", help="the 'plain ' or 'smart' hom values (de
 parser.add_argument("--hom_grad", help="interpolation of design: 'none', 'nearest', linear', 'cubic' (default 'linear')", default="linear", choices=['none', 'nearest', 'linear', 'cubic'])
 parser.add_argument("--hom_dir", help="visualization of stiffness directions (default 'all')", default="all", choices=['all', 'horizontal', 'vertical', 'sagittal'])
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float)
-parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float )
+parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float)
 parser.add_argument("--hom_samples", help="activates interpolation and, the value gives samples in x-direction", type=int)
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
 parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
 parser.add_argument("--stream_max_traces_per_cell", help="maximum number of traces such that we may start a trace (>= 1)", type=int, default=1)
-parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'] )
-parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'] )
+parser.add_argument("--stream_ode", help="method to solve the ODE", default="euler", choices=['euler', 'midpoint'])
+parser.add_argument("--stream_force", help="force streamlines for special cases", choices=['right_lower', 'rhombus'])
 parser.add_argument("--minimal", help="minimal stiffness to be drawn, will be scaled", type=float, default=0.0)
 parser.add_argument("--parametrization", help="parametrization of the stiffness tensor", default="hom_rect", choices=['hom_rect', 'trans-iso', 'ortho'])
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
@@ -398,8 +400,8 @@ else:
   upper = 2.0
   level = 0  
   best_err = 999
-  err      = 999
-  best_s   = -1
+  err = 999
+  best_s = -1
   while upper - lower > 0.000001 and abs(best_err) > 0.0001:
     for s in numpy.arange(lower, upper, (upper - lower) / 5.):
       vol = perform(args, h5_read, dim_2D, tensor, centers, aux_code, s)
@@ -413,7 +415,7 @@ else:
       tv.set("scale_argument", str(s))
       tv.set("err", str(err))
        
-      tvs =  xml.etree.ElementTree.SubElement(tv, "search")
+      tvs = xml.etree.ElementTree.SubElement(tv, "search")
       tvs.set("level", str(level))
       tvs.set("lower", str(lower))
       tvs.set("upper", str(upper))
@@ -421,8 +423,8 @@ else:
       tvs.set("best_err", str(best_err))
       if(err < best_err):
         best_err = err
-        best_s   = s
-      print ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper- lower) + " best=" + str(best_err) + " test=" + str(s),
+        best_s = s
+      print ">>>> target_volume: level=" + str(level) + " lower= " + str(lower) + " upper= " + str(upper) + " delta= " + str(upper - lower) + " best=" + str(best_err) + " test=" + str(s),
       print " -> " + str(vol) + " err=" + str(err) + (" *" if err == best_err else "")
             
     lower = numpy.max((1e-4, best_s - 0.5 * (upper - lower) / 5.)) 

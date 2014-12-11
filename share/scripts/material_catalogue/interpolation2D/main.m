@@ -1,11 +1,10 @@
-function [Coeff11,Coeff12,Coeff22,Coeff33,a,b,E11,E12,E22,E33] = main(file)
+function [Coeff11,Coeff12,Coeff22,Coeff33,a,b,E11,E12,E22,E33] = main(inputfile,outputfile)
 %Einlesen_der Materialtensoren aus dem Materialkatalog
-load detailed_stats_10
 % Rotation des Materialkatalogs
 %angle = 0;%pi/4;
 %list = detailed_stats_10;
 %list = rotate_list(detailed_stats_10,angle);
-list = detailed_stats_10;
+list = load(inputfile);
 m = list(1,1);
 n = list(1,2);
 da = 1/m;
@@ -31,9 +30,9 @@ for i=2:size(list,1)
 end
 % Coefficients for bicubic interpolation polynomial
 [Coeff11] = bicubic_offline(a,b,E11);
-[Coeff12] = bicubic_offline(a,b,E12;
+[Coeff12] = bicubic_offline(a,b,E12);
 [Coeff22] = bicubic_offline(a,b,E22);
 [Coeff33] = bicubic_offline(a,b,E33);
 %test(a,b,E11);
-write_to_xml(file,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33);
+write_to_xml(outputfile,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33);
 end
