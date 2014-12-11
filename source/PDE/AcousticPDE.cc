@@ -813,12 +813,31 @@ namespace CoupledField{
                                     CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, 
                                                                  CoefXpr::OP_DIV),
                                                     CoefXpr::OP_SQRT) );
+        
+        // the following part was missing which is why abc did not function for acouPotential + mechanic
+	  // if pde couples with mechanic, we have to multiply the density by -1
+	  PtrCoefFct factor;
+	  if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+	    // Important: In case of a general / quadratic EV problem, we must
+	    // ensure to have a "positive definite" matrix, i.e. we are not allowed
+	    // to multiply all matrices by -1!
+	    std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+
+	    factor = CoefFunction::Generate( mp_, Global::REAL,
+	 					    CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
+	  } else {
+	    factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+	  }
+
+/*
         // In the case of acou-mech coupling we have to multiply the
         // abc-Integrator matrix with -1
         std::string factor = "1.0";
+
         if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
           factor = "-1.0";
         }
+*/                
         
         // factor for damping matrix: factor / c0
         PtrCoefFct coeffDamp = 
