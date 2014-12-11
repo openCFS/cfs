@@ -46,6 +46,7 @@ Enum<LatticeBoltzmann3D::Direction>         LatticeBoltzmann3D::directions;
    m_maxIter = maxIterations;
    m_maxTol = maxTolerance;
    m_writeFrequency = writeFrequency;
+   m_numWriteResults = 0;
 
    m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
 
@@ -100,7 +101,7 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
   int it = 0;
 
   // count number of written steps
-  int counter = 0;
+  int count = 0;
 
   double res = -1.;
   double R = 1.0;
@@ -120,8 +121,6 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
 
   Timer timer;
   timer.Start();
-
-  // create_output("node.dat", m_cur);
 
 //  LOG_DBG(lattice) << "bb = " << ToString(bb);
 //  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
@@ -143,18 +142,6 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
 
     // -- Outlet condition ------------------------------------------------
     prop_coll_densoutlet(m_next, outlet);
-
-//    std::cout << "it: " << it << std::endl;
-    if (it % m_writeFrequency == 0) {
-//      std::cout << "Write out results at iteration " << it << std::endl;
-//      std::cout << "counter: " << counter << std::endl;
-      counter++;
-//      std::cout << "act sequence step: " << domain->GetDriver()->GetActSequenceStep() << std::endl;
-      rh->BeginMultiSequenceStep(counter, BasePDE::TRANSIENT, 9999);
-      domain->GetDriver()->StoreResults(counter,(double)counter);
-    }
-
-//    std::cout << "here" << std::endl;
 
     if((it == 0 || it % 100 == 0))
     {
@@ -198,6 +185,12 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
     m_next = (m_next + 1) % 2;
 
     it++;
+
+    // check if intermediate results should te written to hdf5 file
+    if (it % m_writeFrequency == 0) {
+      count++;
+      domain->GetDriver()->StoreResults(count,(double)count);
+    }
   }
   timer.Stop();
 
@@ -221,9 +214,19 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
   if(!steady_state)
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
+  m_numWriteResults = count;
+
   return &(m_pdfs[m_cur]);
 }
 
+int LatticeBoltzmann3D::GetNumWriteResults()
+{
+  return m_numWriteResults;
+}
+
+StdVector<double> LatticeBoltzmann3D::GetPdfs() {
+  return m_pdfs[m_cur];
+}
 
 void LatticeBoltzmann3D::InitializePdfs()
 {
@@ -903,28 +906,38 @@ void LatticeBoltzmann3D::prop_step()
 
   // start and end values for loops
   unsigned int startx, starty, startz, endx, endy, endz;
-  for (unsigned int dir = 0; dir < n_q_; dir++) {
+
+  startx = 1;
+  endx = lx-1;
+  starty = 1;
+  endy = ly-1;
+  startz = 1;
+  endz = lz-1;
+
+  create_output("before.txt",m_cur);
+
+  for (unsigned int dir = 1; dir < n_q_; dir++) {
     trafo = map[dir];
-    startx = 0;
-    endx = lx;
-    if (trafo.off_x == 1)
-      endx = lx - 1;
-    if (trafo.off_x == -1)
-      startx = 1;
-
-    starty = 0;
-    endy = ly;
-    if (trafo.off_y == 1)
-      endy = ly - 1;
-    if (trafo.off_y == -1)
-      starty = 1;
-
-    startz = 0;
-    endz = lz;
-    if (trafo.off_z == 1)
-      endz = lz - 1;
-    if (trafo.off_z == -1)
-      startz = 1;
+//    startx = 0;
+//    endx = lx;
+//    if (trafo.off_x == 1)
+//      endx = lx - 1;
+//    if (trafo.off_x == -1)
+//      startx = 1;
+//
+//    starty = 0;
+//    endy = ly;
+//    if (trafo.off_y == 1)
+//      endy = ly - 1;
+//    if (trafo.off_y == -1)
+//      starty = 1;
+//
+//    startz = 0;
+//    endz = lz;
+//    if (trafo.off_z == 1)
+//      endz = lz - 1;
+//    if (trafo.off_z == -1)
+//      startz = 1;
 
     for (x = startx; x < endx; x++) {
       for (y = starty; y < endy; y++) {
@@ -934,7 +947,7 @@ void LatticeBoltzmann3D::prop_step()
       }
     }
   }
-
+  create_output("after.txt",m_cur);
   return;
 }
 
@@ -953,8 +966,8 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
   // ---------------------------------------------------------------------
   // Propagation for nodes in the corners....
   // ---------------------------------------------------------------------
-  // propagation maps for corners stored in prop_maps from 1 to 9
-  for (int i = 1; i < 8; i++) {
+  // propagation maps for corners stored in prop_maps from 1 to 8
+  for (int i = 1; i <= 8; i++) {
 //    bound = corners[i];
 //    switch(bound)
     switch(i)
@@ -1095,60 +1108,9 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
           tmp_uz += microVelocities[i].off_z*pdfs[i];
         }
 
-//        std::cout << "tmp_uz from loop: " << tmp_uz << std::endl;
-
-//        ux = pdfs[Q19_E] + pdfs[Q19_SE] + pdfs[Q19_NE] + pdfs[Q19_TE] + pdfs[Q19_BE] - pdfs[Q19_W] - pdfs[Q19_TW] - pdfs[Q19_NW] - pdfs[Q19_BW] - pdfs[Q19_SW];
-//        uy = pdfs[Q19_N] + pdfs[Q19_NW] + pdfs[Q19_NE] + pdfs[Q19_TN] + pdfs[Q19_BN] - pdfs[Q19_S] - pdfs[Q19_TS] - pdfs[Q19_SE] - pdfs[Q19_BS] - pdfs[Q19_SW];
-//        uz = pdfs[Q19_T] + pdfs[Q19_TN] + pdfs[Q19_TS] + pdfs[Q19_TE] + pdfs[Q19_TW] - pdfs[Q19_B] - pdfs[Q19_BN] - pdfs[Q19_BS] - pdfs[Q19_BE] - pdfs[Q19_BW];
-//        std::cout << "tmp_uz calculated manually: " << tmp_uz << std::endl;
-
-//        assert(tmp_ux - ux < 1e-7);
-//        assert(tmp_uy - uy < 1e-7);
-//        assert(tmp_uz - uz < 1e-7);
-
-//        std::cout << "ux = " << ux << " uy = " << uy << " uz = " << uz << std::endl;
-
-        if (sum < 0)
-        {
-          std::cerr << "sum < 0:" << " sum = " << sum << " x = " << x << " y = " << y << " z = " << z << std::endl;
-        }
-//        if (sum > 1.5)
-//        {
-//          std::cerr << "sum > 1.5:" << " sum = " << sum << " x = " << x << " y = " << y << " z = " << z << std::endl;
-//        }
-//        if (tmp_ux < -0.5)
-//        {
-//          std::cerr << "tmp_ux < -0.5:" << " tmp_ux = " << tmp_ux << " x = " << x << " y = " << y << " z = " << z << std::endl;
-//        }
-//        if (tmp_uy < -0.5)
-//        {
-//          std::cerr << "tmp_uy < -0.5:" << " tmp_uy = " << tmp_uy << " x = " << x << " y = " << y << " z = " << z << std::endl;
-//        }
-//        if (tmp_uz < -0.5)
-//        {
-//          std::cerr << "tmp_uz < -0.5:" << " tmp_uz = " << tmp_uz << " x = " << x << " y = " << y << " z = " << z << std::endl;
-//        }
-
-//        assert(sum > 0);
-//        assert(sum < 1.5);
-//        assert(tmp_ux > -0.5);
-//        assert(tmp_uy > -0.5);
-//        assert(tmp_uz > -0.5);
-
-//        if (sum < 0)
-//        {
-//          std::cout << "At iteration " << it << ": sum < 0" << std::endl;
-//          create_output("check",m_cur);
-//          for (unsigned int i = 0; i < n_q_; i++) {
-//            std::cout << PDF(m_cur, x + map_interior[i].off_x, y + map_interior[i].off_y,  z + map_interior[i].off_z, i);
-//            std::cout << " + ";
-//          }
-//          std::cout << std::endl;
-//          exit(-1);
-//        }
-
-//        std::cout << "sum = " << sum << std::endl;
-//        std::cout << "tmp_ux = " << tmp_ux << " tmp_uy = " << tmp_uy << " tmp_uz = " << tmp_uz << std::endl;
+        //        ux = pdfs[Q19_E] + pdfs[Q19_SE] + pdfs[Q19_NE] + pdfs[Q19_TE] + pdfs[Q19_BE] - pdfs[Q19_W] - pdfs[Q19_TW] - pdfs[Q19_NW] - pdfs[Q19_BW] - pdfs[Q19_SW];
+        //        uy = pdfs[Q19_N] + pdfs[Q19_NW] + pdfs[Q19_NE] + pdfs[Q19_TN] + pdfs[Q19_BN] - pdfs[Q19_S] - pdfs[Q19_TS] - pdfs[Q19_SE] - pdfs[Q19_BS] - pdfs[Q19_SW];
+        //        uz = pdfs[Q19_T] + pdfs[Q19_TN] + pdfs[Q19_TS] + pdfs[Q19_TE] + pdfs[Q19_TW] - pdfs[Q19_B] - pdfs[Q19_BN] - pdfs[Q19_BS] - pdfs[Q19_BE] - pdfs[Q19_BW];
 
         // macroscopic scaling by design variable
         scale = scales[index];

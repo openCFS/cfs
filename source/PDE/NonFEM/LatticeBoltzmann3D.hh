@@ -77,6 +77,16 @@ namespace CoupledField
     /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
     void prop_step();
 
+    /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
+     *  @retun copy of pdfs
+     */
+    StdVector<double> GetPdfs();
+
+    /**
+     * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
+     */
+    int GetNumWriteResults();
+
   private:
     struct PropTransform{
       int off_x;
@@ -153,8 +163,6 @@ namespace CoupledField
 
     void TestInvDirections();
 
-
-
     /** debug information */
     std::string ToString(const StdVector<StdVector<int> >& data);
 
@@ -205,6 +213,8 @@ namespace CoupledField
     /** plot the residuum over lbm iterations */
     bool m_plot;
     int m_writeFrequency;
+    // counts how many intermediate steps we have already written to hdf5 file
+    int m_numWriteResults;
 
     // number of discrete velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
     unsigned int n_q_;

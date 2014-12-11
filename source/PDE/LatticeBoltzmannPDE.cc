@@ -42,8 +42,8 @@
 #include "PDE/eqnMap.hh"
 #include "PDE/timestepping.hh"
 #include "PDE/pseudoTS.hh"
-#include "PDE/NonFEM/LatticeBoltzmann.hh"
-//#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
+//#include "PDE/NonFEM/LatticeBoltzmann.hh"
+#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
@@ -200,8 +200,8 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   pdfs.Resize(n_elems * n_q_);
 
   if(iface_ == INTERNAL) {
-    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot,writeFrequency_);
-//    lbm = new LatticeBoltzmann3D(n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
+//    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot,writeFrequency_);
+    lbm = new LatticeBoltzmann3D(n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
   }
 }
 

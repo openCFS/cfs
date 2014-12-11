@@ -279,8 +279,8 @@ private:
   std::string executable;
 
   /** internal lbm solver */
-//  LatticeBoltzmann3D* lbm;
-  LatticeBoltzmann* lbm;
+  LatticeBoltzmann3D* lbm;
+//  LatticeBoltzmann* lbm;
 
   /** type of interface */
   Iface iface_;
