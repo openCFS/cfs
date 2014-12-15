@@ -382,7 +382,9 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_sa
   
 # visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
 def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_save):
-  print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary'
+  print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently'
+  s1 /= 2.
+  s2 /= 2.
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
   delta_angle = numpy.max(angle) - numpy.max(angle) 
@@ -411,7 +413,7 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
     
     # vmax, vmin are indices which decide whether s1-rectangle or s2-rectangle are drawn first 
-    vmax = 0 if v[0] > v[1] else 1
+    vmax,vmin = (0,1) if v[0] > v[1] else (1,0)
     vmin = (vmax + 1) % 2
     pol = to_rectangle_center(length, length, theta + vmin * numpy.pi / 2, x_off, y_off)
     draw_verts(pol, sub, 'black')
@@ -422,46 +424,46 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
     r = (1. - 2.*v[0]) * length / 3. if (1. - 2.*v[0]) * length / 3. >= (1. - 2.*v[1]) * length / 3. else (1. - 2.*v[1]) * length / 3.
     l1 = length * (1. - 2.*v[0])
     l2 = length * (1. - 2.*v[1])
-    t1 = abs(l1 / 2. - r / 2.)
-    t2 = abs(l2 / 2. - r / 2.)
+    t = [abs(l1 / 2. - r / 2.), abs(l2 / 2. - r / 2.)]
     c1 = abs(l1 / 2. - r)
     c2 = abs(l2 / 2. - r)
     eps = 1./nx
     
-    print 'theta = '+str(theta)
+    # TODO: rotation not implemented yet
+    theta = 0.
     vmax = 0.
+    vmin = 0.
     # lower left corner
-    t = (cos(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * abs(l2 / 2. - r / 2.))
-    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2 , x_off - t[0], y_off - t[1])
+    #t = (cos(theta + vmax * numpy.pi / 2) * -abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *-abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * -abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * -abs(l2 / 2. - r / 2.))
+    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi/2, x_off-t[0], y_off-t[1])
+    #pol[:][0] -= t[0]
+    #pol[:][1] -= t[1]
     draw_verts(pol, sub, 'black')
     c = (x_off - c1, y_off - c2)
     center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
-    #draw_circle(center, r-eps, sub, 'white')
-
-    vmax = 1.
-    t = (cos(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * abs(l2 / 2. - r / 2.))
+    draw_circle(center, r-eps, sub, 'white')
+  
+    #t = (cos(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) - sin(theta + vmax * numpy.pi / 2) *abs(l2 / 2. - r / 2.), sin(theta + vmax * numpy.pi / 2) * abs(l1 / 2. - r / 2.) + cos(theta + vmax * numpy.pi / 2) * abs(l2 / 2. - r / 2.))
     # lower right corner
-    pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off + t[0], y_off - t[1])
-    #draw_verts(pol, sub, 'black')
+    pol = to_rectangle_center(r, r, 0., x_off + t[0], y_off - t[1])
+    draw_verts(pol, sub, 'black')
     c = (x_off + c1, y_off - c2)
     center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
-    #draw_circle(center, r-eps, sub, 'white')
+    draw_circle(center, r-eps, sub, 'white')
     
-    vmax = 0.
     # upper right corner
     pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off + t[0], y_off + t[1])
-    #draw_verts(pol, sub, 'black')
+    draw_verts(pol, sub, 'black')
     c = (x_off + c1, y_off + c2)
     center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
-    #draw_circle(center, r-eps, sub, 'white')
+    draw_circle(center, r-eps, sub, 'white')
     
-    vmax = 1.
     # upper left corner
     pol = to_rectangle_center(r, r, theta + vmax * numpy.pi / 2, x_off - t[0], y_off + t[1])
-    #draw_verts(pol, sub, 'black')
+    draw_verts(pol, sub, 'black')
     c = (x_off - c1, y_off + c2)
     center = (cos(theta) * c[0] - sin(theta) * c[1], sin(theta) * c[0] + cos(theta) * c[1])
-    #draw_circle(center, r-eps, sub, 'white')    
+    draw_circle(center, r-eps, sub, 'white')    
   return (fig, sub)  
 
 # # visualize the orientational stiffness
@@ -548,8 +550,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
       draw_verts(pol, sub, c[1])
     else:
       # vmax, vmin are indices which decide whether s1-rectangle or s2-rectangle are drawn first 
-      vmax = 0 if v[0] > v[1] else 1
-      vmin = (vmax + 1) % 2
+      vmax,vmin = (0,1) if v[0] > v[1] else (1,0)
       pol = to_rectangle_center(length * v[vmin], length, theta + vmin * numpy.pi / 2, x_off, y_off)
       # draw_verts(pol, sub, str(1.0 - c[vmin]))
       draw_verts(pol, sub, c[vmin])

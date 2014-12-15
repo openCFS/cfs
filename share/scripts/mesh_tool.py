@@ -186,7 +186,6 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
           else:
             e.region = 'void'
         else:
-          print 'war hier'
           if input_array[x, y][0] > 0 and input_array[x, y][1] == 0 and input_array[x, y][1] == input_array[x, y][2] == 0:
             e.region = 'red'
             colorful_count += 1
