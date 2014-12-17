@@ -118,6 +118,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < m_maxIter && !steady_state && R <= 1000)
   {
+    if (it % m_writeFrequency == 0) {
+      domain->GetDriver()->StoreResults(count,(double)count);
+      count++;
+    }
     // -- Combined propagation and collision step -------------------------
     prop_coll_step(m_cur, m_next, m_omega);
 
@@ -167,11 +171,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     m_next = (m_next + 1) % 2;
 
     it++;
-
-    if (it % m_writeFrequency == 0) {
-      count++;
-      domain->GetDriver()->StoreResults(count,(double)count);
-    }
   }
   timer.Stop();
 

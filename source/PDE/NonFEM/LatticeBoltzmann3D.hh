@@ -97,8 +97,11 @@ namespace CoupledField
     };
 
     // Corner C stands for interior elements
+    // BNW, ..., TNE are corners
+    // TN, ..., BE are edges
+    // LEFT, ..., BACK are faces
     typedef enum {C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, TNW = 5, TSW = 6, TSE = 7, TNE = 8, TN = 9,
-                  TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20} Boundary;
+                  TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20, W, E, T, B, S, N} Boundary;
     typedef enum {Q19_0 = 0, Q19_E = 1, Q19_W = 2, Q19_N = 3, Q19_S = 4, Q19_T = 5, Q19_B = 6,
                   Q19_NE = 7, Q19_SW = 8, Q19_NW = 9, Q19_SE = 10,
                   Q19_TN = 11, Q19_BS = 12, Q19_TS = 13, Q19_BN = 14,
@@ -121,7 +124,15 @@ namespace CoupledField
 
     /**
      * returns associated integer value of boundary of a cube
-     * e.g. getIndexBound(T,N,E) returns right top back corner
+     * e.g. getIndexBound(T) returns the index of the top face
+     *
+     */
+    int GetIndexBound(Direction dir1);
+
+
+    /**
+     * returns associated integer value of boundary of a cube
+     * e.g. getIndexBound(T,N,E) returns the index of the right top back corner
      *
      * dir1 can only be top, bottom, north or south
      * dir2 can only be north, south, west or east
@@ -140,6 +151,19 @@ namespace CoupledField
 
     // validates GetIndexDir function
     void TestDirectionIndex();
+
+    // Velocities at boundaries must be zero due to no-slip b.c.
+    void CheckBoundaryVelocities();
+
+    /**
+     * Calculates x, y and z velocity for element with coordinate (i,j,k)
+     */
+    void CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz);
+
+    /**
+     * Calculates macroscopic density for given element
+     */
+    double CalcDensity(int i, int j, int k);
 
     /**
      * Sets transformation map to handle propagation at boundaries (corners and edges)
@@ -192,7 +216,7 @@ namespace CoupledField
     void create_output(const char * file, int cur);
 
 
-    void prop_coll_step(int m_cur, int m_next, double omega);
+    void prop_coll_step(int cur, int next, double omega);
 
     void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
@@ -225,10 +249,6 @@ namespace CoupledField
 
     StdVector< StdVector<double> > m_pdfs;
 
-//    // contains propagation rules for all corners of the domain
-//    StdVector< StdVector<PropTransform> > prop_corners;
-//    // contains propagation rules for all edges of the domain
-//    StdVector< StdVector<PropTransform> > prop_edges;
     // contains propagation rules for all types of elements (edge, corner, interior)
     StdVector< StdVector<PropTransform> > prop_maps;
     // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q19_N: e_N = (0,1,0)

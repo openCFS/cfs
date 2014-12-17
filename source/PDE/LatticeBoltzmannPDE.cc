@@ -406,12 +406,6 @@ void LatticeBoltzmannPDE::Solve()
   in->Get("totalTimer/wall")->SetValue(state_.GetWallTime());
   in->Get("totalTimer/calls")->SetValue(state_.GetCalls());
 
-//  if (writeFrequency_ > 1) {
-//    FinalizeStoreResults(); // when we have strides the results are written
-//    rh->FinishMultiSequenceStep();
-//    rh->Finalize();
-//  }
-
   // dirty_ = false; already set to false in the beginning
 }
 
@@ -1430,10 +1424,14 @@ double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
 
 double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
 {
+//  Q19_0 = 0, Q19_E = 1, Q19_W = 2, Q19_N = 3, Q19_S = 4, Q19_T = 5, Q19_B = 6,
+//  Q19_NE = 7, Q19_SW = 8, Q19_NW = 9, Q19_SE = 10,
+//  Q19_TN = 11, Q19_BS = 12, Q19_TS = 13, Q19_BN = 14,
+//  Q19_TE = 15, Q19_BW = 16, Q19_TW = 17, Q19_BE = 18
   if (n_q_ == 9)
     return (pdf(idx, 1) + pdf(idx, 5) + pdf(idx, 8) - pdf(idx, 3) - pdf(idx, 6) - pdf(idx, 7)) / density;
   else
-    return (pdf(idx, 1) + pdf(idx, 7) + pdf(idx, 10) + pdf(idx, 15) + pdf(idx, 18) - pdf(idx, 3) - pdf(idx, 8) - pdf(idx, 9) - pdf(idx, 16) - pdf(idx, 17)) / density;
+    return (pdf(idx, 1) + pdf(idx, 7) + pdf(idx, 10) + pdf(idx, 15) + pdf(idx, 18) - pdf(idx, 2) - pdf(idx, 8) - pdf(idx, 9) - pdf(idx, 16) - pdf(idx, 17)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
@@ -1441,7 +1439,7 @@ double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) cons
   if (n_q_ == 9)
     return (pdf(idx, 2) + pdf(idx, 5) + pdf(idx, 6) - pdf(idx, 4) - pdf(idx, 7) - pdf(idx, 8)) / density;
   else
-    return (pdf(idx, 3) - pdf(idx, 4) + pdf(idx, 7) - pdf(idx, 8) - pdf(idx, 9) + pdf(idx, 10) + pdf(idx, 11) - pdf(idx, 12) - pdf(idx, 13) + pdf(idx, 14)) / density;
+    return (pdf(idx, 3)  + pdf(idx, 7) + pdf(idx, 9) + pdf(idx, 11) + pdf(idx, 14) - pdf(idx, 4)- pdf(idx, 8) - pdf(idx, 10)  - pdf(idx, 12) - pdf(idx, 13)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
@@ -1449,7 +1447,7 @@ double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) cons
   if (n_q_ == 9)
     return 0;
   else
-    return (pdf(idx, 5) - pdf(idx, 6) + pdf(idx, 11) - pdf(idx, 12) + pdf(idx, 13) - pdf(idx, 14) + pdf(idx, 15) - pdf(idx, 16) + pdf(idx, 17) - pdf(idx, 18)) / density;
+    return (pdf(idx, 5) + pdf(idx, 11) + pdf(idx, 13) + pdf(idx, 15) + pdf(idx, 17) - pdf(idx, 6) - pdf(idx, 12) - pdf(idx, 14) - pdf(idx, 16) - pdf(idx, 18)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const

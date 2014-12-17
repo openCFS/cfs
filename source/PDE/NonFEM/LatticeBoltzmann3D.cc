@@ -32,73 +32,100 @@ DEFINE_LOG(lattice, "lattice")
 Enum<LatticeBoltzmann3D::Boundary>        LatticeBoltzmann3D::boundaries;
 Enum<LatticeBoltzmann3D::Direction>         LatticeBoltzmann3D::directions;
 
- LatticeBoltzmann3D::LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
- {
-//   domain->GetResultHandler()->BeginMultiSequenceStep(1,BasePDE::STATIC,9999);
-   rh = domain->GetResultHandler();
-   m_sizeX = sizeX;
-   m_sizeY = sizeY;
-   m_sizeZ = sizeZ;
-   m_ux = ux;
-   m_uy = uy;
-   m_uz = uz;
-   m_omega = omega;
-   m_maxIter = maxIterations;
-   m_maxTol = maxTolerance;
-   m_writeFrequency = writeFrequency;
-   m_numWriteResults = 0;
+LatticeBoltzmann3D::LatticeBoltzmann3D(int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
+{
+  //   domain->GetResultHandler()->BeginMultiSequenceStep(1,BasePDE::STATIC,9999);
+  rh = domain->GetResultHandler();
+  m_sizeX = sizeX;
+  m_sizeY = sizeY;
+  m_sizeZ = sizeZ;
+  m_ux = ux;
+  m_uy = uy;
+  m_uz = uz;
+  m_omega = omega;
+  m_maxIter = maxIterations;
+  m_maxTol = maxTolerance;
+  m_writeFrequency = writeFrequency;
+  m_numWriteResults = 0;
 
-   m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
+  m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
 
-   n_q_ = 19;
+  n_q_ = 19;
 
-   m_plot = plot;
+  m_plot = plot;
 
-   //matrix of the probability distributions
-   LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * n_q_ * 2.0 / 1024.0 / 1024.0) << " MiB)";
+  //matrix of the probability distributions
+  LOG_DBG(lattice) << "Allocating arrays for " << m_nNodes << " PDFs (" << (sizeof(double) * m_nNodes * n_q_ * 2.0 / 1024.0 / 1024.0) << " MiB)";
 
-   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
-   m_pdfs.Resize(2);
-   m_pdfs[0].Resize(m_nNodes * n_q_);
-   m_pdfs[1].Resize(m_nNodes * n_q_);
+  // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
+  m_pdfs.Resize(2);
+  m_pdfs[0].Resize(m_nNodes * n_q_);
+  m_pdfs[1].Resize(m_nNodes * n_q_);
 
-   // 8 corners + 12 edges + 1 map for interior nodes
-   prop_maps.Resize(n_q_ + 2);
-   for (unsigned int i = 0; i < n_q_ + 2; i++ ){
-     prop_maps[i].Resize(n_q_ + 2);
-   }
+  // 8 corners + 12 edges + +6 faces + 1 map for interior nodes
+  prop_maps.Resize(n_q_ + 8);
+  for (unsigned int i = 0; i < n_q_ + 8; i++ ){
+    prop_maps[i].Resize(n_q_ + 8);
+  }
 
-   // microVelocities stores information about the 19 microscopic velocities/directions of D3Q19 model
-   microVelocities.Resize(n_q_);
+  // microVelocities stores information about the 19 microscopic velocities/directions of D3Q19 model
+  microVelocities.Resize(n_q_);
 
-   weights.Resize(n_q_);
+  weights.Resize(n_q_);
 
-   SetEnums();
-   InitWeights();
-   SetInvDirections();
-   TestDirectionIndex();
-   TestInvDirections();
-   TestGetIndexbound();
-   SetupTransformation();
+  SetEnums();
+  InitWeights();
+  SetInvDirections();
+  TestDirectionIndex();
+  TestInvDirections();
+  TestGetIndexbound();
+  SetupTransformation();
 
-   // for debugging
-   WritePropMap();
+  // for debugging
+  WritePropMap();
 
-   Scales.Resize(m_nNodes);
-   rel.Resize(m_nNodes);
-   bb.Resize(2 * m_sizeX + 2 * m_sizeY + 2 * m_sizeZ);
+  Scales.Resize(m_nNodes);
+  rel.Resize(m_nNodes);
+  bb.Resize(2 * m_sizeX + 2 * m_sizeY + 2 * m_sizeZ);
 
-   m_cur  = 0;
-   m_next = 1;
- }
+  m_cur  = 0;
+  m_next = 1;
+}
 
- LatticeBoltzmann3D::~LatticeBoltzmann3D()
- {
- }
+LatticeBoltzmann3D::~LatticeBoltzmann3D()
+{
+}
+
+void LatticeBoltzmann3D::CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz)
+{
+
+  double density = CalcDensity(i, j, k);
+  double tmp_ux = 0;
+  double tmp_uy = 0;
+  double tmp_uz = 0;
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
+
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    //store current pdf values in array for better accessing
+    pdfs[dir] = PDF(cur, i, j, k, dir);
+    tmp_ux += microVelocities[dir].off_x*pdfs[dir];
+    tmp_uy += microVelocities[dir].off_y*pdfs[dir];
+    tmp_uz += microVelocities[dir].off_z*pdfs[dir];
+  }
+
+  ux = tmp_ux / density;
+  uy = tmp_uy / density;
+  uz = tmp_uz / density;
+}
 
 StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
   int it = 0;
+
+  StdVector<double> inletpdfs, comparepdfs;
+  inletpdfs.Resize(n_q_);
+  comparepdfs.Resize(n_q_);
 
   // count number of written steps
   int count = 0;
@@ -122,10 +149,10 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
   Timer timer;
   timer.Start();
 
-//  LOG_DBG(lattice) << "bb = " << ToString(bb);
-//  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
-//  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
-//  LOG_DBG(lattice) << "rel = " << ToString(rel);
+    LOG_DBG(lattice) << "bb = " << ToString(bb);
+  //  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+    LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+  //  LOG_DBG(lattice) << "rel = " << ToString(rel);
 
   in->Get("converged")->SetValue("running");
 
@@ -133,6 +160,8 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
   {
     // -- Combined propagation and collision step -------------------------
     prop_coll_step(m_cur, m_next, m_omega);
+
+//    if (it == 3) abort();
 
     // -- Bounce back step ------------------------------------------------
     prop_coll_bounce_back(m_next, bb);
@@ -142,6 +171,9 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
 
     // -- Outlet condition ------------------------------------------------
     prop_coll_densoutlet(m_next, outlet);
+
+//    CheckBoundaryVelocities();
+
 
     if((it == 0 || it % 100 == 0))
     {
@@ -155,7 +187,7 @@ StdVector<double>* LatticeBoltzmann3D::Iterate(const StdVector<double>& elements
       for (int k = 0; k < m_sizeZ; k++) {
         for(int j = 0; j < m_sizeY; j++) {
           for(int i = 0; i < m_sizeX; i++) {
-//            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
+            //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
 
             for(unsigned int dir = 0; dir < n_q_; dir++)
             {
@@ -225,17 +257,17 @@ int LatticeBoltzmann3D::GetNumWriteResults()
 }
 
 StdVector<double> LatticeBoltzmann3D::GetPdfs() {
-  return m_pdfs[m_cur];
+  return m_pdfs[m_next];
 }
 
 void LatticeBoltzmann3D::InitializePdfs()
 {
   int i;
 
-  #ifdef _OPENMP
-    // Perform NUMA-correct placement.
-    #pragma omp parallel for default(none), private(i), collapse(2)
-  #endif
+#ifdef _OPENMP
+  // Perform NUMA-correct placement.
+#pragma omp parallel for default(none), private(i), collapse(2)
+#endif
   double weight;
 
   for (int z = 0; z < m_sizeZ; ++z) {
@@ -268,7 +300,7 @@ void LatticeBoltzmann3D::InitializePdfs()
       }
     }
   }
-//  create_output("initpdfs.txt",0);
+  //  create_output("initpdfs.txt",0);
 }
 
 //returns associated integer value of velocity direction two given principal directions
@@ -295,17 +327,17 @@ inline int LatticeBoltzmann3D::GetIndexDir(Direction dir1, Direction dir2)
   if (dir1 ==  Q19_N && dir2 ==  Q19_W)
     return  Q19_NW;
   if (dir1 == Q19_S  && dir2 == Q19_W)
-      return  Q19_SW;
+    return  Q19_SW;
   if (dir1 ==  Q19_S && dir2 == Q19_E)
-      return Q19_SE ;
+    return Q19_SE ;
   if (dir1 == Q19_T  && dir2 == Q19_N)
-      return  Q19_TN;
+    return  Q19_TN;
   if (dir1 == Q19_B  && dir2 ==  Q19_S)
-      return  Q19_BS;
+    return  Q19_BS;
   if (dir1 == Q19_T  && dir2 == Q19_S)
-      return Q19_TS ;
+    return Q19_TS ;
   if (dir1 == Q19_B  && dir2 ==  Q19_N)
-      return  Q19_BN;
+    return  Q19_BN;
   if (dir1 ==  Q19_T && dir2 == Q19_E)
     return  Q19_TE;
   if (dir1 == Q19_B  && dir2 == Q19_W)
@@ -318,6 +350,28 @@ inline int LatticeBoltzmann3D::GetIndexDir(Direction dir1, Direction dir2)
   WARN("I should not be here!");
   return -1;
 }
+
+//returns associated integer value of boundary of a cube
+//e.g. getIndexBound(T) returns the index of the top face
+//
+int LatticeBoltzmann3D::GetIndexBound(Direction dir1)
+{
+  assert(directions.IsValid(dir1));
+  if (dir1 == Q19_T)
+    return T;
+  if (dir1 == Q19_B)
+    return B;
+  if (dir1 == Q19_W)
+    return W;
+  if (dir1 == Q19_E)
+    return E;
+  if (dir1 == Q19_N)
+    return N;
+  if (dir1 == Q19_S)
+    return S;
+  return -1;
+}
+
 
 //returns associated integer value of boundary enum(edges)
 // dir1 can only be top, bottom, north or south
@@ -336,11 +390,11 @@ inline int LatticeBoltzmann3D::GetIndexBound(Direction dir1, Direction dir2)
   if (dir1 == Q19_T && dir2 == Q19_E)
     return TE;
   if (dir1 == Q19_S && dir2 == Q19_W)
-      return SW;
+    return SW;
   if (dir1 == Q19_S && dir2 == Q19_E)
     return SE;
   if (dir1 == Q19_N && dir2 == Q19_W)
-      return NW;
+    return NW;
   if (dir1 == Q19_N && dir2 == Q19_E)
     return NE;
   if (dir1 == Q19_B && dir2 == Q19_N)
@@ -372,11 +426,11 @@ inline int LatticeBoltzmann3D::GetIndexBound(Direction dir1, Direction dir2, Dir
   if (dir1 == Q19_B && dir2 == Q19_N && dir3 == Q19_W )
     return BNW;
   if (dir1 == Q19_B && dir2 == Q19_S && dir3 == Q19_W)
-      return BSW;
+    return BSW;
   if (dir1 == Q19_B && dir2 == Q19_N && dir3 == Q19_E)
-      return BNE;
+    return BNE;
   if (dir1 == Q19_B && dir2 == Q19_S && dir3 == Q19_E)
-      return BSE;
+    return BSE;
   if (dir1 == Q19_T && dir2 == Q19_N && dir3 == Q19_W )
     return TNW;
   if (dir1 == Q19_T && dir2 == Q19_S && dir3 == Q19_W)
@@ -387,6 +441,8 @@ inline int LatticeBoltzmann3D::GetIndexBound(Direction dir1, Direction dir2, Dir
     return TSE;
   return -1;
 }
+
+
 
 // validates GetIndexbound function
 void LatticeBoltzmann3D::TestGetIndexbound()
@@ -411,6 +467,12 @@ void LatticeBoltzmann3D::TestGetIndexbound()
   assert(GetIndexBound(Q19_B,Q19_W) == 18);
   assert(GetIndexBound(Q19_B,Q19_S) == 19);
   assert(GetIndexBound(Q19_B,Q19_E) == 20);
+  assert(GetIndexBound(Q19_W) == 21);
+  assert(GetIndexBound(Q19_E) == 22);
+  assert(GetIndexBound(Q19_T) == 23);
+  assert(GetIndexBound(Q19_B) == 24);
+  assert(GetIndexBound(Q19_S) == 25);
+  assert(GetIndexBound(Q19_N) == 26);
 }
 
 
@@ -439,13 +501,39 @@ void LatticeBoltzmann3D::TestDirectionIndex()
   assert(GetIndexDir(Q19_B, Q19_E) == 18);
 }
 
+// make sure that velocities on the boundaries (bb nodes) are always zero (no-slip b.c.)
+void LatticeBoltzmann3D::CheckBoundaryVelocities()
+{
+  int x, y, z;
+  double tmp_ux, tmp_uy, tmp_uz;
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
+  double eps = 1e-10;
+
+  for(unsigned int i = 0; i < bb.GetSize(); i++) {
+    x = bb[i][0];
+    y = bb[i][1];
+    z = bb[i][2];
+
+    CalcVelocitites(m_next, x, y, z, tmp_ux, tmp_uy, tmp_uz);
+
+    if (tmp_ux > eps)
+      std::cout << "Element (" << x << "," << y << "," << z << ") has velocityX: " << tmp_ux << std::endl;
+    assert(tmp_ux < eps);
+    if (tmp_uy > eps)
+      std::cout << "Element (" << x << "," << y << "," << z << ") has velocityY: " << tmp_uy << std::endl;
+    assert(tmp_uy < eps);
+    if (tmp_uz > eps)
+      std::cout << "Element (" << x << "," << y << "," << z << ") has velocityZ: " << tmp_uz << std::endl;
+    assert(tmp_uz < eps);
+  }
+}
+
 void LatticeBoltzmann3D::SetupTransformation()
 {
-  // in 3D: 20 maps (8 corners + 12 edges)
+  // in 3D: 27 maps (8 corners + 12 edges + 6 faces + 1 map for interior elements)
   StdVector<PropTransform> map;
   map.Resize(n_q_);
-//  const Direction xDirs[] = {Q19_E,Q19_W};
-//  const Direction yDirs[] = {Q19_N,Q19_S};
   Direction d1, d2, d3;
   const Direction dirs1[] = {Q19_T, Q19_B};
   const Direction dirs2[] = {Q19_N, Q19_S};
@@ -585,6 +673,46 @@ void LatticeBoltzmann3D::SetupTransformation()
   }
   prop_maps[C] = map;
 
+  // we start with the map for the interior elements and delete some entries for the corresponding cube face
+  map = prop_maps[C];
+  PropTransform transform;
+  int invDir;
+  for (int i = 0; i < 2; i++) { // T,B
+    d1 = dirs1[i];
+    invDir = GetInvDirection(d1);
+    transform = map[invDir];
+    map = prop_maps[C];
+    for (unsigned int dir = 0; dir < n_q_; dir++) {
+      if(map[dir].off_z != 0 && map[dir].off_z == transform.off_z)
+        map[dir] = PropTransform();
+    }
+    prop_maps[GetIndexBound(d1)] = map;
+  }
+
+  for (int i = 0; i < 2; i++) { // N, S
+    d2 = dirs2[i];
+    invDir = GetInvDirection(d2);
+    transform = map[invDir];
+    map = prop_maps[C];
+    for (unsigned int dir = 0; dir < n_q_; dir++) {
+      if(map[dir].off_y != 0 && map[dir].off_y == transform.off_y)
+        map[dir] = PropTransform();
+    }
+    prop_maps[GetIndexBound(d2)] = map;
+  }
+
+  for (int i = 0; i < 2; i++) { // E, W
+    d3 = dirs3[i];
+    invDir = GetInvDirection(d3);
+    transform = map[invDir];
+    map = prop_maps[C];
+    for (unsigned int dir = 0; dir < n_q_; dir++) {
+      if(map[dir].off_x != 0 && map[dir].off_x == transform.off_x)
+        map[dir] = PropTransform();
+    }
+    prop_maps[GetIndexBound(d3)] = map;
+  }
+
 
 }
 
@@ -624,6 +752,24 @@ void LatticeBoltzmann3D::WritePropMap()
   }
   f.close();
 
+  // write out propagation maps for interior nodes
+  StdVector<PropTransform>& mymap  = prop_maps[C];
+  f << boundaries.ToString(C) << std::endl;
+  for (unsigned int j = 0; j < n_q_; j++) {
+    f << "PDF(cur, x, y, z, " << directions.ToString(order[j]) << ") = PDF(cur, x + " << mymap[order[j]].off_x << ", y +" << mymap[order[j]].off_y << ", z + "
+        << mymap[order[j]].off_z << ", " << directions.ToString(order[j]) << ") \n";
+  }
+  f << std::endl;
+  f.close();
+
+  f.open("micro_velocities.txt", ios::out);
+  for (unsigned int j = 0; j < n_q_; j++) {
+    f << "PDF(cur, x, y, z, " << directions.ToString(order[j]) << ") = PDF(cur, x + " << microVelocities[order[j]].off_x << ", y +" << microVelocities[order[j]].off_y << ", z + "
+        << microVelocities[order[j]].off_z << ", " << directions.ToString(order[j]) << ") \n";
+  }
+  f << std::endl;
+  f.close();
+
   // write out propagation maps for edges
   const Boundary edges[] = {TN, TW, TS, TE, NW, SW, SE, NE, BN, BW, BS, BE};
   f.open("propagation_edges.txt", ios::out);
@@ -651,24 +797,37 @@ void LatticeBoltzmann3D::WritePropMap()
     }
     f << std::endl;
   }
-
-  // write out propagation maps for interior nodes
-  StdVector<PropTransform>& mymap  = prop_maps[C];
-  f << boundaries.ToString(C) << std::endl;
-  for (unsigned int j = 0; j < n_q_; j++) {
-    f << "PDF(cur, x, y, z, " << directions.ToString(order[j]) << ") = PDF(cur, x + " << mymap[order[j]].off_x << ", y +" << mymap[order[j]].off_y << ", z + "
-        << mymap[order[j]].off_z << ", " << directions.ToString(order[j]) << ") \n";
-  }
-  f << std::endl;
   f.close();
 
-  f.open("micro_velocities.txt", ios::out);
-  for (unsigned int j = 0; j < n_q_; j++) {
-    f << "PDF(cur, x, y, z, " << directions.ToString(order[j]) << ") = PDF(cur, x + " << microVelocities[order[j]].off_x << ", y +" << microVelocities[order[j]].off_y << ", z + "
-            << microVelocities[order[j]].off_z << ", " << directions.ToString(order[j]) << ") \n";
+  // write out propagation maps for faces
+  const Boundary faces[] = {T, B, S, N, W, E};
+  f.open("propagation_faces.txt", ios::out);
+  for (int i = 0; i < 6; i++) {
+    StdVector<PropTransform>& mymap  = prop_maps[faces[i]];
+    f << boundaries.ToString(faces[i]) << std::endl;
+    for (unsigned int j = 0; j < n_q_; j++) {
+      f << "PDF(cur, x, y, z, " << directions.ToString(order[j]) << ") = PDF(cur, x ";
+      if (mymap[order[j]].off_x == 1)
+        f << " + 1";
+      else if (mymap[order[j]].off_x == -1)
+        f <<  " - 1";
+      f << ", y";
+      if (mymap[order[j]].off_y == 1)
+        f << " + 1";
+      else if (mymap[order[j]].off_y == -1)
+        f << " - 1";
+      f << ", z";
+      if (mymap[order[j]].off_z == 1)
+        f << " + 1";
+      else if(mymap[order[j]].off_z == -1)
+        f << " - 1";
+
+      f << ", " << directions.ToString(order[j]) << ") \n";
+    }
+    f << std::endl;
   }
-  f << std::endl;
-  f.close();
+
+
 }
 
 void LatticeBoltzmann3D::SetEnums()
@@ -716,6 +875,12 @@ void LatticeBoltzmann3D::SetEnums()
   boundaries.Add(BW ,"bottom left");
   boundaries.Add(BS ,"bottom front");
   boundaries.Add(BE ,"bottom right");
+  boundaries.Add(W,"left face");
+  boundaries.Add(E,"right face");
+  boundaries.Add(T,"top face");
+  boundaries.Add(B,"bottom face");
+  boundaries.Add(S,"front face");
+  boundaries.Add(N,"back face");
 }
 
 void LatticeBoltzmann3D::InitWeights()
@@ -855,7 +1020,7 @@ std::string LatticeBoltzmann3D::ToString(const StdVector<StdVector<int> >& data)
     {
       ss << data[e][d];
       if(d < data[e].GetSize() - 1)
-       ss << ", ";
+        ss << ", ";
     }
     ss << ") ";
   }
@@ -893,83 +1058,179 @@ void LatticeBoltzmann3D::prop_step()
 {
 
   // perform a propagation step
-  unsigned int x, y, z;
+  int x, y, z;
 
   int lx = m_sizeX;
   int ly = m_sizeY;
   int lz = m_sizeZ;
 
-  int cur = m_cur;
-
-  const StdVector<PropTransform> map = prop_maps[0];
-  PropTransform trafo;
-
-  // start and end values for loops
-  unsigned int startx, starty, startz, endx, endy, endz;
-
-  startx = 1;
-  endx = lx-1;
-  starty = 1;
-  endy = ly-1;
-  startz = 1;
-  endz = lz-1;
-
-  create_output("before.txt",m_cur);
-
-  for (unsigned int dir = 1; dir < n_q_; dir++) {
-    trafo = map[dir];
-//    startx = 0;
-//    endx = lx;
-//    if (trafo.off_x == 1)
-//      endx = lx - 1;
-//    if (trafo.off_x == -1)
-//      startx = 1;
-//
-//    starty = 0;
-//    endy = ly;
-//    if (trafo.off_y == 1)
-//      endy = ly - 1;
-//    if (trafo.off_y == -1)
-//      starty = 1;
-//
-//    startz = 0;
-//    endz = lz;
-//    if (trafo.off_z == 1)
-//      endz = lz - 1;
-//    if (trafo.off_z == -1)
-//      startz = 1;
-
-    for (x = startx; x < endx; x++) {
-      for (y = starty; y < endy; y++) {
-        for (z = startz; z < endz; z++) {
-          PDF(cur, x, y, z, dir) = PDF(cur, x + trafo.off_x, y + trafo.off_y, z + trafo.off_z, dir);
-        }
+  for(z = lz - 1; z >= 0; z--) {
+    for(y = ly - 1; y >= 0; y--) {
+      for(x = lx - 1; x > 0; x--) {
+        PDF(m_cur, x, y, z, Q19_E)  = PDF(m_cur, x - 1  , y     , z     , Q19_E);
+      }
+      for(x = 0; x < lx - 1; x++) {
+        PDF(m_cur, x, y, z, Q19_W)  = PDF(m_cur, x + 1  , y     , z     , Q19_W);
+      }
+    }
+    for(y = ly - 1; y > 0; y--) {
+      for(x = lx - 1; x > 0; x--) {
+        PDF(m_cur, x, y, z, Q19_NE) = PDF(m_cur, x - 1  , y - 1 , z     , Q19_NE);
+      }
+      for(x = 0; x < lx - 1; x++) {
+        PDF(m_cur, x, y, z, Q19_NW) = PDF(m_cur, x + 1  , y - 1 , z     , Q19_NW);
+      }
+    }
+    for(y = 0; y < ly - 1; y++) {
+      for(x = lx - 1; x > 0; x--) {
+        PDF(m_cur, x, y, z, Q19_SE) = PDF(m_cur, x -  1 , y + 1 , z     , Q19_SE);
+      }
+      for(x = 0; x < lx - 1; x++) {
+        PDF(m_cur, x, y, z, Q19_SW) = PDF(m_cur, x + 1  , y + 1 , z     , Q19_SW);
+      }
+    }
+    for(x = 0; x < lx; x++) {
+      for(y = ly - 1; y > 0; y--) {
+        PDF(m_cur, x, y, z, Q19_N)  = PDF(m_cur, x      , y - 1 , z     , Q19_N);
+      }
+      for(y = 0; y < ly - 1; y++) {
+        PDF(m_cur, x, y, z, Q19_S)  = PDF(m_cur, x      , y + 1 , z     , Q19_S);
       }
     }
   }
-  create_output("after.txt",m_cur);
+
+  for(z = lz - 1; z > 0; z--) {
+    for(y = ly - 1; y >= 0; y--) {
+      for(x = lx - 1; x >= 0; x--) {
+        PDF(m_cur, x, y, z, Q19_T)  = PDF(m_cur, x      , y     , z - 1 , Q19_T);
+      }
+    }
+    for(x = lx - 1; x >= 0; x--) {
+      for(y = ly - 1; y > 0; y--) {
+        PDF(m_cur, x, y, z, Q19_TN) = PDF(m_cur, x      , y - 1 , z - 1 , Q19_TN);
+      }
+      for(y = 0; y < ly - 1; y++) {
+        PDF(m_cur, x, y, z, Q19_TS) = PDF(m_cur, x      , y + 1 , z - 1 , Q19_TS);
+      }
+    }
+    for(y = ly - 1; y >= 0; y--) {
+      for(x = lx - 1; x > 0; x--) {
+        PDF(m_cur, x, y, z, Q19_TE) = PDF(m_cur, x - 1  , y     , z - 1 , Q19_TE);
+      }
+      for(x = 0; x < lx - 1; x++) {
+        PDF(m_cur, x, y, z, Q19_TW) = PDF(m_cur, x + 1  , y     , z - 1 , Q19_TW);
+      }
+    }
+  }
+
+  for(z = 0; z < lz - 1; z++) {
+    for(y = ly - 1; y >= 0; y--) {
+      for(x = lx - 1; x >= 0; x--) {
+        PDF(m_cur, x, y, z, Q19_B)  = PDF(m_cur, x      , y     , z + 1 , Q19_B);
+      }
+    }
+    for(x = lx - 1; x >= 0; x--) {
+      for(y = 0; y < ly - 1; y++) {
+        PDF(m_cur, x, y, z, Q19_BS) = PDF(m_cur, x      , y + 1 , z + 1 , Q19_BS);
+      }
+      for(y = ly - 1; y > 0; y--) {
+        PDF(m_cur, x, y, z, Q19_BN) = PDF(m_cur, x      , y - 1 , z + 1 , Q19_BN);
+      }
+    }
+    for(y = ly - 1; y >= 0; y--) {
+      for(x = lx - 1; x > 0; x--) {
+        PDF(m_cur, x, y, z, Q19_BE) = PDF(m_cur, x - 1  , y     , z + 1 , Q19_BE);
+      }
+      for(x = 0; x < lx - 1; x++) {
+        PDF(m_cur, x, y, z, Q19_BW) = PDF(m_cur, x + 1  , y     , z + 1 , Q19_BW);
+      }
+    }
+  }
+
+//  CheckBoundaryVelocities();
+
+  //  const StdVector<PropTransform> map = prop_maps[0];
+  //  PropTransform trafo;
+  //
+  //  // start and end values for loops
+  //  int startx, starty, startz, endx, endy, endz;
+  //
+  //  startx = 1;
+  //  endx = lx;
+  //  starty = 1;
+  //  endy = ly;
+  //  startz = 1;
+  //  endz = lz;
+
+  //  create_output("before.txt",m_cur);
+
+  //  for (unsigned int dir = 1; dir < n_q_; dir++) {
+  //    trafo = map[dir];
+  //    startx = 0;
+  //    endx = lx;
+  //    if (trafo.off_x == 1)
+  //      endx = lx - 1;
+  //    if (trafo.off_x == -1)
+  //      startx = 1;
+  //
+  //    starty = 0;
+  //    endy = ly;
+  //    if (trafo.off_y == 1)
+  //      endy = ly - 1;
+  //    if (trafo.off_y == -1)
+  //      starty = 1;
+  //
+  //    startz = 0;
+  //    endz = lz;
+  //    if (trafo.off_z == 1)
+  //      endz = lz - 1;
+  //    if (trafo.off_z == -1)
+  //      startz = 1;
+  //
+  //    std::cout << "dir: " << dir << "(" << trafo.off_x << "," << trafo.off_y << "," << trafo.off_z << ")";
+  //    std::cout << " x = [" << startx << "," << endx << "]  y = [" << starty << "," << endy << "]   z = [" << startz << "," << endz << "]" << std::endl;
+  //
+  //    for (z = endz-1; z >= startz; z--) {
+  //      for (y = endy-1; y >= starty; y--) {
+  //        for (x = endx-1; x >= startx; x--) {
+  //          PDF(cur, x, y, z, dir) = PDF(cur, x + trafo.off_x, y + trafo.off_y, z + trafo.off_z, dir);
+  //        }
+  //      }
+  //    }
+  //  }
+
+  //  create_output("after.txt",m_cur);
+
   return;
 }
 
+// Calculates macroscopic density for given element
+double LatticeBoltzmann3D::CalcDensity(int i, int j, int k)
+{
+  double sum = 0;
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    sum += PDF(m_cur, i, j, k, dir);
+  }
+  return sum;
+}
 
-void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
+
+
+void LatticeBoltzmann3D::prop_coll_step(int cur, int next, double omega)
 {
   // perform a propagation step
   int x, y, z;
-//  const Boundary corners[] = {BNW, BSW, BNE, BSE, TNW, TSW, TNE, TSE};
-//  const Boundary edges[] = {TN, TW, TS, TE, NW, SW, SE, NE, BN, BW, BS, BE};
+  StdVector<int> node;
+  node.Resize(3);
 
   StdVector<PropTransform>* map1, *map2, *map3, *map4;
   PropTransform* transform1, *transform2, *transform3, *transform4;
-//  Boundary bound;
 
   // ---------------------------------------------------------------------
   // Propagation for nodes in the corners....
   // ---------------------------------------------------------------------
   // propagation maps for corners stored in prop_maps from 1 to 8
   for (int i = 1; i <= 8; i++) {
-//    bound = corners[i];
-//    switch(bound)
     switch(i)
     {
     case BNW: x = 0; y = m_sizeY - 1 ; z = 0; break;
@@ -987,8 +1248,13 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
 
     for (unsigned int j = 0; j < n_q_; j++) {
       transform1 = &(*map1)[j];
-      PDF(m_next, x, y, z, j)  = PDF(m_cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, j);
+      PDF(next, x, y, z, j)  = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, j);
     }
+    // check if we are really on the boundary (bb nodes)
+    node[0] = x;
+    node[1] = y;
+    node[2] = z;
+    assert(bb.Contains(node));
   }
 
   // Propagation along the boundaries of the X dimension.
@@ -1005,16 +1271,43 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
       transform4 = &(*map4)[i];
       // BS: bottom front
       y = 0; z = 0;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // TS: top front
       y = 0; z = m_sizeZ - 1;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // BN: bottom back
       y = m_sizeY - 1; z = 0;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // TN: top back
       y = m_sizeY - 1; z = m_sizeZ - 1;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
     }
   }
 
@@ -1025,25 +1318,53 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
   map3 = &prop_maps[BE];
   map4 = &prop_maps[TE];
   for (int y = 1; y < m_sizeY - 1; ++y) {
-      for (unsigned int i = 0; i < n_q_; i++) {
-        transform1 = &(*map1)[i];
-        transform2 = &(*map2)[i];
-        transform3 = &(*map3)[i];
-        transform4 = &(*map4)[i];
+    for (unsigned int i = 0; i < n_q_; i++) {
+      transform1 = &(*map1)[i];
+      transform2 = &(*map2)[i];
+      transform3 = &(*map3)[i];
+      transform4 = &(*map4)[i];
 
-        // BW: bottom left
-        x = 0; z = 0;
-        PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
-        // TW: top left
-        x = 0; z = m_sizeZ - 1;
-        PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
-        // BE: bottom right
-        x = m_sizeX - 1; z = 0;
-        PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
-        // TE: top right
-        x = m_sizeX - 1; z = m_sizeZ - 1;
-        PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
-      }
+      // BW: bottom left
+      x = 0; z = 0;
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
+      // TW: top left
+      x = 0; z = m_sizeZ - 1;
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
+      // BE: bottom right
+      x = m_sizeX - 1; z = 0;
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
+
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
+      // TE: top right
+      x = m_sizeX - 1; z = m_sizeZ - 1;
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+    }
   }
 
   // Propagation along the boundaries of the Z dimension.
@@ -1061,23 +1382,142 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
 
       // SW: left front
       x = 0; y = 0;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // NW: left back
       x = 0; y = m_sizeY - 1;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // SE: right front
       x = m_sizeX - 1; y = 0;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform3->off_x, y + transform3->off_y, z + transform3->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+
       // NE: right back
       x = m_sizeX - 1; y = m_sizeY - 1;
-      PDF(m_next, x, y, z, i)  = PDF(m_cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
+      PDF(next, x, y, z, i)  = PDF(cur, x + transform4->off_x, y + transform4->off_y, z + transform4->off_z, i);
+
+      // check if we are really on the boundary
+      node[0] = x;
+      node[1] = y;
+      node[2] = z;
+      assert(!rel.Contains(node));
+    }
+  }
+  //propagation along top and bottom face
+  map1 = &prop_maps[T];
+  map2 = &prop_maps[B];
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    transform1 = &(*map1)[dir];
+    transform2 = &(*map2)[dir];
+    for (y = 1; y < m_sizeY - 1; y++) {
+      for (x = 1; x < m_sizeX - 1; x++) {
+
+        z = m_sizeZ - 1; // top face
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+        //        std::cout << " x = " << x << " y = " << y << " z = " << z << " dir = " << dir << std::endl;
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+
+        z = 0; // bottom face
+        //        std::cout << " x = " << x << " y = " << y << " z = " << z << " dir = " << dir << std::endl;
+        //        std::cout << "offx = " << transform1->off_x << " offy = " << transform1->off_y << " offz = " << transform1->off_z << std::endl;
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, dir);
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+      }
     }
   }
 
-//  return;
+  //propagation along front and back face
+  map1 = &prop_maps[N];
+  map2 = &prop_maps[S];
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    transform1 = &(*map1)[dir];
+    transform2 = &(*map2)[dir];
+    for (z = 1; z < m_sizeZ - 1; z++) {
+      for (x = 1; x < m_sizeX - 1; x++) {
+
+        y = m_sizeY - 1; // back face
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+
+        y = 0; // front face
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, dir);
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+      }
+    }
+  }
+
+  //propagation along left and right face
+  map1 = &prop_maps[W];
+  map2 = &prop_maps[E];
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    transform1 = &(*map1)[dir];
+    transform2 = &(*map2)[dir];
+    for (z = 1; z < m_sizeZ - 1; z++) {
+      for (y = 1; y < m_sizeY - 1; y++) {
+        x = 0; // left face
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+
+        x = m_sizeX - 1; // right face
+        PDF(next, x, y, z, dir) = PDF(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, dir);
+
+        // check if we are really on the boundary
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(!rel.Contains(node));
+      }
+    }
+  }
+
+
+  //--------------------- propagation over inner elements--------------------------------------------------------------------
+
   const StdVector<PropTransform>& map_interior = prop_maps[0];
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
-//  double ux, uy, uz;
   double * scales  = Scales.GetPointer();
 
   StdVector<double> pdfs;
@@ -1085,12 +1525,17 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
   int index;
   double tmp;
 
-//  create_output("before.txt", m_next);
-
   for (z = 1; z < m_sizeZ - 1; ++z) {
     for (y = 1; y < m_sizeY - 1; ++y) {
       for (x = 1; x < m_sizeX - 1; ++x) {
         index= z * m_sizeX * m_sizeY + y * m_sizeX + x;
+
+        // check if we are really working on the inner elements
+        node[0] = x;
+        node[1] = y;
+        node[2] = z;
+        assert(rel.Contains(node));
+        //        std::cout << "\n----- x = " << x << " y = " << y << " z = " << z << " -----" << std::endl;
 
         // sum: macroscopic density is sum over all discrete distributions of an element
         sum = 0;
@@ -1101,16 +1546,12 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
 
         for (unsigned int i = 0; i < n_q_; i++) {
           //store current pdf values in array for better accessing
-          pdfs[i] = PDF(m_cur, x + map_interior[i].off_x, y + map_interior[i].off_y,  z + map_interior[i].off_z, i);
+          pdfs[i] = PDF(cur, x + map_interior[i].off_x, y + map_interior[i].off_y,  z + map_interior[i].off_z, i);
           sum += pdfs[i];
           tmp_ux += microVelocities[i].off_x*pdfs[i];
           tmp_uy += microVelocities[i].off_y*pdfs[i];
           tmp_uz += microVelocities[i].off_z*pdfs[i];
         }
-
-        //        ux = pdfs[Q19_E] + pdfs[Q19_SE] + pdfs[Q19_NE] + pdfs[Q19_TE] + pdfs[Q19_BE] - pdfs[Q19_W] - pdfs[Q19_TW] - pdfs[Q19_NW] - pdfs[Q19_BW] - pdfs[Q19_SW];
-        //        uy = pdfs[Q19_N] + pdfs[Q19_NW] + pdfs[Q19_NE] + pdfs[Q19_TN] + pdfs[Q19_BN] - pdfs[Q19_S] - pdfs[Q19_TS] - pdfs[Q19_SE] - pdfs[Q19_BS] - pdfs[Q19_SW];
-        //        uz = pdfs[Q19_T] + pdfs[Q19_TN] + pdfs[Q19_TS] + pdfs[Q19_TE] + pdfs[Q19_TW] - pdfs[Q19_B] - pdfs[Q19_BN] - pdfs[Q19_BS] - pdfs[Q19_BE] - pdfs[Q19_BW];
 
         // macroscopic scaling by design variable
         scale = scales[index];
@@ -1124,14 +1565,17 @@ void LatticeBoltzmann3D::prop_coll_step(int m_cur, int m_next, double omega)
         tmp_uy = 3.0 * tmp_uy;
         tmp_uz = 3.0 * tmp_uz;
 
+        //        std::cout << "sum = " << sum << " ux = " << tmp_ux << " uy = " << tmp_uy << " uz = " << tmp_uz  << " us = " << tmp_us << std::endl;
+
         for (unsigned int i = 0; i < n_q_; i++) {
           tmp = microVelocities[i].off_x * tmp_ux + microVelocities[i].off_y * tmp_uy + microVelocities[i].off_z * tmp_uz;
-          PDF(m_next, x, y, z, i) = pdfs[i] + omega * ((sum * weights[i]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[i]);
+          PDF(next, x, y, z, i) = pdfs[i] + omega * ((sum * weights[i]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[i]);
+          //          std::cout << "dir = " << i << " pdf = " << pdfs[i] << " omg = " << omega << " weight = " << weights[i] << " sol = " << PDF(next, x, y, z, i) << std::endl;
         }
+
       }
     }
   }
-//  create_output("after.txt", m_next);
   return;
 }
 
@@ -1144,17 +1588,14 @@ void LatticeBoltzmann3D::prop_coll_velinlet(int cur, StdVector<StdVector<int> >&
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
 
+  //  std::cout << "At inlet:" << std::endl;
+
   for(unsigned int i = 0; i < inlet.GetSize(); i++) {
     x = inlet[i][0];
     y = inlet[i][1];
     z = inlet[i][2];
 
-    sum = 0;
-
-    for (unsigned int j = 0; j < n_q_; j++) {
-      pdfs[j] = PDF(cur, x, y, z, j);
-      sum += pdfs[j];
-    }
+    sum = CalcDensity(x, y, z);
 
     tmp_ux = UX;
     tmp_uy = UY;
@@ -1165,6 +1606,7 @@ void LatticeBoltzmann3D::prop_coll_velinlet(int cur, StdVector<StdVector<int> >&
     tmp_uz = 3.0 * tmp_uz;
 
     LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << " tuz=" << tmp_uz << std::endl;
+
 
     for (unsigned int i = 0; i < n_q_; i++) {
       tmp = microVelocities[i].off_x * tmp_ux + microVelocities[i].off_y * tmp_uy + microVelocities[i].off_z * tmp_uz;
@@ -1181,24 +1623,23 @@ void LatticeBoltzmann3D::prop_coll_velinlet(int cur, StdVector<StdVector<int> >&
 //
 void LatticeBoltzmann3D::prop_coll_bounce_back(int cur, StdVector<StdVector<int> >& bb)
 {
-  int x, y, z;
 
-//  StdVector<double> pdfs;
-//  pdfs.Resize(n_q_);
+  int x, y, z;
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
 
   for(unsigned int i = 0; i < bb.GetSize(); i++) {
     x = bb[i][0];
     y = bb[i][1];
     z = bb[i][2];
 
-//    for (unsigned int j = 0; j < n_q_; j++) {
-//      pdfs[j] = PDF(cur, x, y, z, j);
-//    }
     for (unsigned int j = 0; j < n_q_; j++) {
-      PDF(cur, x, y, z, GetInvDirection((Direction)j)) = PDF(cur, x, y, z, j);
+      pdfs[j] = PDF(cur, x, y, z, j);
+    }
+    for (unsigned int j = 0; j < n_q_; j++) {
+      PDF(cur, x, y, z, GetInvDirection((Direction)j)) = pdfs[j];
     }
   }
-
   return;
 }
 
@@ -1219,24 +1660,7 @@ void LatticeBoltzmann3D::prop_coll_densoutlet(int cur, StdVector<StdVector<int> 
     y = outlet[i][1];
     z = outlet[i][2];
 
-    sum = 0;
-    tmp_ux = 0;
-    tmp_uy = 0;
-    tmp_uz = 0;
-
-    for (unsigned int i = 0; i < n_q_; i++) {
-      //store current pdf values in array for better accessing
-      pdfs[i] = PDF(cur, x, y, z, i);
-      // add up all distribution functions of one element
-      sum += pdfs[i];
-      tmp_ux += microVelocities[i].off_x*pdfs[i];
-      tmp_uy += microVelocities[i].off_y*pdfs[i];
-      tmp_uz += microVelocities[i].off_z*pdfs[i];
-    }
-
-    tmp_ux = tmp_ux / sum;
-    tmp_uy = tmp_uy / sum;
-    tmp_uz = tmp_uz / sum;
+    CalcVelocitites(cur, x, y, z, tmp_ux, tmp_uy, tmp_uz);
 
     sum = 1.0; // the enforced density
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
