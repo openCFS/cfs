@@ -48,7 +48,6 @@ args = parser.parse_args()
 if not os.path.exists(args.input):
   print 'input file not found: ' + args.input
   sys.exit() 
-print args.multi_d
 # do it to generate statistical output of what would happen
 if args.multi_d == 3:
   multi_d = read_multi_design(args.input, 'stiff1', 'stiff2', 'rotAngle', matrix=True)
@@ -63,17 +62,16 @@ elif '.txt' in args.input:
   d = load_matrix_from_file(args.input)
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
 else:
-    # read the png into a list
+  # read the png into a list
   img = Image.open(args.input).transpose(Image.FLIP_TOP_BOTTOM)
   print "original image mode: " + img.mode
   if img.mode == 'I':
     print "Warning: mode is stupid, may give unusable results!"
   if not args.colorregion:
-    img = img.convert("L") 
-  if args.pressure:
-    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle), True)
+    img = img.convert("L")
   else:
-    create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle))
+    img = img.convert("RGB")
+  create_dense_mesh_img(img, mesh, float(args.threshold), float(args.scale), float(args.rhomin), float(args.shearangle),args.pressure,img.mode)
 
 if not args.noshow:
   dimension = None

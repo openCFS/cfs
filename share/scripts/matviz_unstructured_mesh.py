@@ -5,7 +5,7 @@ from matviz_rot import *
 from matviz_vtk import *
 from mesh_tool import *
 # polyhedron lib from: http://cens.ioc.ee/projects/polyhedron/
-from polyhedron import Vrep, Hrep
+#from polyhedron import Vrep, Hrep
 import scipy.interpolate as ip
 
 # def create_3d_mesh_unstructured_5(coords, nondes_coords, nodes_force, nodes_support, st1, st2, st3, angles, ip_nx, ip_ny, ip_nz, grad, scale):
@@ -723,9 +723,9 @@ def valid_position(pos, coords):
   return True 
 
 
-def mkhull(points):
-    p = Vrep (points)
-    return Hrep (p.A, p.b)
+#def mkhull(points):
+#    p = Vrep (points)
+#    return Hrep (p.A, p.b)
   
 def point_inside_polygon(point, poly):
   #     -----------------------------------------------

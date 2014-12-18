@@ -94,12 +94,10 @@ def show_or_write(viz, args):
   elif isinstance(viz, tuple):
     fig = viz[0]
     sub = viz[1]
-    
     if args.save:
       extent = sub.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
       print 'write file: ' + args.save
       fig.savefig(args.save, bbox_inches=extent)
-
       if args.save.split('.')[-1] <> 'pdf':      
         # I war not able to  render a memory image first, make an array out of the data and determine the grayness
         # So read again from file :( 

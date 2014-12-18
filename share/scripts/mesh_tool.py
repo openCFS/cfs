@@ -104,10 +104,10 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle, pressure=False):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle, pressure=False,color_mode="random"):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle, pressure)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle, pressure,color_mode)
 
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   if multi_d == 1:
@@ -116,7 +116,7 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi
     nx, ny, nz, m = numpy_array.shape
   create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=multi_d, shearAngle=0.0)
   
-def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, pressure=False):
+def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, pressure=False,color_mode="random"):
   # convert angle to rad and check for feasibility
   angle = shearAngle / 180 * math.pi
   if (abs(angle) > math.pi / 2 - 1e-6):
@@ -128,11 +128,11 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   
   # input_array can be one of three cases: grayscale imgae (array of ints), color image (array of tuples (r,g,b(,a)), numpy.ndarray
   is_data = isinstance(input_array, numpy.ndarray)
-  is_gray = False if is_data else isinstance(input_array[0, 0], int)
-  is_color = False if is_data else isinstance(input_array[0, 0], tuple)
+  is_gray = True if color_mode == "L" and not is_data else False
+  is_color = True if color_mode == "RGB" and not is_data else False
   
-  print is_data, is_gray, is_color
 
+  
   assert(is_data or is_gray or is_color)
   
   # create mesh.nodes
@@ -155,7 +155,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       # assign preliminary data value
       if is_gray:
         # convert to black is one and white = 0
-        e.density = 1.0 - (input_array[x, y] / 255.0)
+        e.density = 1-(input_array[x, y] / 255.0)
       if is_color:
         val = sum(input_array[x, y][0:3]) / 3.0
         e.density = 1.0 - (val / 255.0)
@@ -198,17 +198,6 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
           else:
             e.region = 'colorful'
             colorful_count += 1
-        if pressure:
-          if (x >= int(0.8 * nx) and y == ny - 1):
-            b = Element()
-            b.type = LINE
-            ll = x
-            b.nodes = ((ll, ll + 1))
-            if e.region == 'mech' or e.region == 'colorful' or e.region == 'red': 
-              b.region = 'pressure2'
-            else:
-              b.region = 'void'
-            mesh.elements.append(b)
       else:
         if e.stiff1 >= threshold or float(e.stiff2) >= threshold:  
           e.region = 'mech'
@@ -221,6 +210,18 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       mesh.elements.append(e)
       # e.dump()
   if pressure:
+    y = ny-1
+    for x in range(nx):
+      if (x >= int(0.8 * nx) and y == ny - 1):
+        b = Element()
+        b.type = LINE
+        ll = x
+        b.nodes = ((ll, ll + 1))
+        if e.region == 'mech' or e.region == 'colorful' or e.region == 'red': 
+          b.region = 'pressure2'
+        else:
+          b.region = 'void'
+        mesh.elements.append(b)
     print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
   mesh.bc.append(("south", range(0, nx + 1)))
   mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
@@ -318,10 +319,6 @@ def write_gid_mesh(mesh, filename):
   num_1d = line
   num_2d = quad4
   num_3d = hexa8 + wedge6 + tet4
-  print 'len mesh '+ str(len(mesh.elements))
-  print num_1d
-  print num_2d
-  print num_3d
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
   dim = 3 if num_3d > 0 else 2
   
@@ -436,8 +433,6 @@ def create_2d_mesh(type, x_res, y_res):
     
   dx = width / nx
   dy = height / ny
-
-  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
 
   for y in range(ny + 1):
     for x in range(nx + 1):
