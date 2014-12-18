@@ -130,9 +130,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   is_data = isinstance(input_array, numpy.ndarray)
   is_gray = True if color_mode == "L" and not is_data else False
   is_color = True if color_mode == "RGB" and not is_data else False
-  
 
-  
   assert(is_data or is_gray or is_color)
   
   # create mesh.nodes

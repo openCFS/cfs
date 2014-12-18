@@ -472,39 +472,24 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
 def show_frame(coords, s1, s2, directions, nx):
 
   centers, min, max, elem = coords
-  im, draw, dim, dx, dy = create_image(min, max, nx, "white")
+  im, draw, dim, dx, dy = create_image(min, max, nx, "black")
   height = elem[1] * dy 
   length = elem[0] * dx
- 
   for i in range(len(s1)):
-  
     coord = centers[i]
     
          
     x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
     y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dy
-    hor = s2[i, 0]  # it seems that stiff1 and stiff2 are mixed up. This tries to correct it
-    ver = s1[i, 0]
-    # print "hor=" + str(hor) + " ver=" + str(ver) 
-    
-    if not directions == 'vertical': 
-      # lower horizontal line  
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length, dim[1] - y_off - height * 0.5 * ver - 0.5))
-      draw.polygon(pol, fill="black")
-  
-      # upper horizontal line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off - height + height * 0.5 * ver - 0.5), (x_off + length, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
-
-    if not directions == 'horizontal':
-      # left vertical line
-      pol = to_rectangle_corner((x_off, dim[1] - y_off), (x_off + length * 0.5 * hor + 0.5, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
-  
-      # right vertical line
-      pol = to_rectangle_corner((x_off + length - length * 0.5 * hor - 0.5, dim[1] - y_off), (x_off + length, dim[1] - y_off - height))
-      draw.polygon(pol, fill="black")
-
+    ver = s2[i, 0]
+    hor = s1[i, 0]
+      
+    pix = im.load()   
+    offx = int((length / 2.) * (ver) + 0.5)
+    offy = int((height / 2.) * (hor) + 0.5)
+    for i in range(offx, int(length - offx)):
+       for j in range(offy, int(height - offy)):
+          pix[int(x_off)+i,int(y_off)+j] = (255,255,255)
   return im  
 
 
