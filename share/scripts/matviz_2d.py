@@ -470,25 +470,22 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
 # @param grad is 'none' or 'linear'
 # @return the image
 def show_frame(coords, s1, s2, directions, nx):
-
   centers, min, max, elem = coords
   im, draw, dim, dx, dy = create_image(min, max, nx, "black")
   height = elem[1] * dy 
   length = elem[0] * dx
   for i in range(len(s1)):
-    coord = centers[i]
-    
-         
-    x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dx 
-    y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dy
+    coord = centers[i]     
+    x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
+    y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
     ver = s2[i, 0]
     hor = s1[i, 0]
       
     pix = im.load()   
     offx = int((length / 2.) * (ver) + 0.5)
     offy = int((height / 2.) * (hor) + 0.5)
-    for i in range(offx, int(length - offx)):
-       for j in range(offy, int(height - offy)):
+    for i in range(offx, int(length) - offx):
+       for j in range(offy, int(height) - offy):
           pix[int(x_off)+i,int(y_off)+j] = (255,255,255)
   return im  
 
