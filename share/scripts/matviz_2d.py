@@ -469,7 +469,8 @@ def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_s
 # # visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
-def show_frame(coords, s1, s2, directions, nx):
+def show_frame(coords, s1, s2, directions, nx,scale=1.):
+  #TODO: implement scale
   centers, min, max, elem = coords
   im, draw, dim, dx, dy = create_image(min, max, nx, "black")
   height = elem[1] * dy 
@@ -481,12 +482,13 @@ def show_frame(coords, s1, s2, directions, nx):
     ver = s2[i, 0]
     hor = s1[i, 0]
       
-    pix = im.load()   
-    offx = int((length / 2.) * (ver) + 0.5)
-    offy = int((height / 2.) * (hor) + 0.5)
+    pix = im.load()
+    eps = 1e-8   
+    offx = int((length / 2.) * (ver) + 0.5+eps)
+    offy = int((height / 2.) * (hor) + 0.5+eps)
     for i in range(offx, int(length) - offx):
        for j in range(offy, int(height) - offy):
-          pix[int(x_off)+i,int(y_off)+j] = (255,255,255)
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (255,255,255)
   return im  
 
 

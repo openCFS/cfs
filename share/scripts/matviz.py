@@ -163,7 +163,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
       if dim_2D:
         if args.show == "hom_rect": 
           if args.hom_grad == 'none':
-            viz = show_frame(coords, s1, s2, args.hom_dir, args.res)
+            viz = show_frame(coords, s1, s2, args.hom_dir, args.res, args.scale)
           else:
             viz = show_frame_grad(coords, s1, s2, args.hom_grad, args.hom_dir, args.res)
         elif args.show == "hom_rect_mod":
