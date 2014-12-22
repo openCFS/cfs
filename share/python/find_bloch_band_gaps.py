@@ -10,9 +10,9 @@ from random import choice
 gap_count = 1
 offset = None
 
-
 def check_gap(data, test_col, range_start, range_end, eps, gnuplot):
   global gap_count
+  #print "check_gap(rs=" + str(range_start) + ", re=" + str(range_end) + ")"
   
   mi = min(data[range_start:range_end+1,test_col])
   ma = max(data[range_start:range_end+1,test_col-1])
@@ -29,9 +29,38 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot):
       print type + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1),
       print ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel)
 
+
+# tries to determine dimension. searches for k_z in comment if there is a comment. 
+# if dim is given at arguement and there is a mismatch prints a warning 
+def get_dim(args):
+  
+  header = ""
+  with open(args.bloch) as f:
+    for line in f:
+       if line.startswith('#'):
+         header += line
+       else:
+         break
+  
+  has_header = header.find("k_y") > -1  
+  header_dim = 3 if header.find("k_z") > -1 else 2 # check has_header!
+
+  if args.dim is None:
+    if has_header:
+      if not args.gnuplot:
+        print "detect dim " + str(header_dim) + " from comment in file " + args.bloch
+      return header_dim  
+    else:  
+      raise "no --dim given and no valid comment in '" + args.bloch + "' to derive the dimension"
+  else:
+    if has_header:
+      if args.dim <> header_dim and not args.gnuplot:
+        print "--dim " + str(args.dim) + " given but header in '" + args.bloch + "' suggests dimension " + str(header_dim)
+    return args.dim                                                                                                     
+  
 parser = argparse.ArgumentParser()
 parser.add_argument("bloch", help="a sorted bloch.dat file. You might use sort_bloch.py first")
-parser.add_argument("--dim", help="2 or three dimensions", type=int, required=True, choices=[2,3])
+parser.add_argument("--dim", help="2 or three dimensions", type=int, required=False, choices=[2,3])
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
 parser.add_argument('--maxmode', help="maximal mode number to be considered (default 9999)", default=9999, type=int)
@@ -40,20 +69,30 @@ parser.add_argument('--gnuplot', action='store_true', help='create gnuplot outpu
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
+parser.add_argument('--horizontal', action='store_true', help='display only the horizontal part of the wavevector (G->X)')
 args = parser.parse_args()
 
 org = numpy.loadtxt(args.bloch)
-assert(org[-1][0] == 0.0) # the last step shall be a repetition of the first step
  
-dim = args.dim 
+dim = get_dim(args)
 
 offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
+segment = org.shape[0]/offset # number of k for G->X = X->M = M -> G
 
 # we search also for partial band gaps. The points are X=0, M, G, (R for 3D), Y=X=0 (again)
 M = (org.shape[0]-1) / (dim+1) # -1 because the real data is %3 and %4 but the first line is repeated
+if args.horizontal:
+  # if only horizontal wave vectors were calculated, we need to correct segment
+  non_hor = numpy.where(org[:,2] > 0.0)[0].shape[0] # number of rows where k_y is > 0.0
+  if non_hor == 0:
+    segment = org.shape[0] # don't divide   
+    M = segment
+
 G = 2 * M
 R = 3 * M # ignored in 2D
 Y = org.shape[0] + 1 # one over the top
+
+# print "M=" + str(M) + " G=" + str(G) + " R=" + str(G) + " Y=" + str(Y) + " shape=" + str(org.shape[0])
 
 eps = float(args.mingap) 
 max_mode = min((args.maxmode + offset + 1,org.shape[1]))
@@ -71,21 +110,27 @@ if args.info and not args.gnuplot:
 
 
 if args.gnuplot:
+  print 'set size ratio 2.0'
+  print 'set terminal postscript eps enhanced "Helvetica, 20" monochrome'
+  print 'set output "tmp.eps"'
   if args.commonsymbol:
     print 'set yrange [0:*]'
   else:
     print 'set yrange [0:' + str(max_freq * 1.2) + ']' # leave space for the labels
-  for d in range(1, dim+1):
-    print 'set arrow ' + str(d) + '  from ' + str(d * org.shape[0]/offset) + ',0 to ' + str(d * org.shape[0]/offset) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2'  
+  if args.horizontal:
+    print 'set xrange [0:' + str(segment) + ']'    
+  else:
+    for d in range(1, dim+1):
+      print 'set arrow ' + str(d) + '  from ' + str(d * segment) + ',0 to ' + str(d * segment) + ',' + str(max_freq) + ' nohead lt rgb "gray" lw 2'  
   
   if args.nicelabel:
      print 'set ylabel "eigenfrequency in Hz"'
-     print 'set xlabel "wave vector (IBZ)"'
-     print 'set xtics ("G" 0, "X" ' + str(org.shape[0]/offset),
+     print 'set xlabel "wave vector (' + ('horizontal ' if args.horizontal else '') + 'IBZ)"'
+     print 'set xtics ("G" 0, "X" ' + str(segment),
      if dim == 2:
-       print ', "M" ' + str(2 * org.shape[0]/offset) + ', "G" ' + str(org.shape[0]-1) + ')'
+       print ', "M" ' + str(2 * segment) + ', "G" ' + str(org.shape[0]-1) + ')'
      else:
-       print ', "M" ' + str(2 * org.shape[0]/offset) + ', "R" ' + str(3 * org.shape[0]/offset) + ', "G" ' + str(org.shape[0]-1) + ')'
+       print ', "M" ' + str(2 * segment) + ', "R" ' + str(3 * segment) + ', "G" ' + str(org.shape[0]-1) + ')'
   else:
     print 'unset ylabel' 
     print 'unset xlabel'     
@@ -97,6 +142,7 @@ if args.gnuplot:
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol else ' t "' + str(i-offset+1) + '. mode" ' 
     print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
+  print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
   print 'replot' # necessary to show the boxes   
   
 # search for partial band gaps
@@ -106,18 +152,20 @@ if not args.nopartial:
     print "---------------------------------------"
   for i in range(offset+1, max_mode):
     check_gap(org, i, 0, M, eps, args.gnuplot)
-    check_gap(org, i, M, G, eps, args.gnuplot)
-    if dim == 2:
-      check_gap(org, i, G, Y, eps, args.gnuplot)
-    else:
-      check_gap(org, i, G, R, eps, args.gnuplot)
-      check_gap(org, i, R, Y, eps, args.gnuplot)
+    if not args.horizontal:
+      check_gap(org, i, M, G, eps, args.gnuplot)
+      if dim == 2:
+        check_gap(org, i, G, Y, eps, args.gnuplot)
+      else:
+        check_gap(org, i, G, R, eps, args.gnuplot)
+        check_gap(org, i, R, Y, eps, args.gnuplot)
   
 # search for full band gaps
-if not args.gnuplot:
-  print "\nfull band gaps >= rel.size " + str(eps)
-  print "---------------------------------------"
-for i in range(offset+1,  max_mode): # we start comparing the second to the first
-  check_gap(org, i, 0, Y, eps, args.gnuplot)
+if not args.horizontal:
+  if not args.gnuplot:
+    print "\nfull band gaps >= rel.size " + str(eps)
+    print "---------------------------------------"
+  for i in range(offset+1,  max_mode): # we start comparing the second to the first
+    check_gap(org, i, 0, Y, eps, args.gnuplot)
  
       

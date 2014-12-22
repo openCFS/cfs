@@ -3,7 +3,6 @@
 #-----------------------------------------------------------------------------
 # SET(USE_ILUPACK_DEFAULT ON)
 
-SET(CFS_DEPS_ROOT_DEFAULT "$ENV{HOME}/Documents/dev/CFSDEPS")
 SET(CFS_DEPS_CACHE_DIR_DEFAULT "$ENV{HOME}/Documents/dev/CFSDEPSCACHE")
 
 SET(CFS_BLAS_LAPACK_DEFAULT "MKL")

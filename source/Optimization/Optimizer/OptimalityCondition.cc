@@ -199,7 +199,7 @@ void OptimalityCondition::SolveProblem()
   {
     in->Get("converged")->SetValue("no");
     in->Get("reason/msg")->SetValue("Maximum iterations exceeded");
-    std::cout << " max iterations reached" << std::endl;
+    std::cout << "++ max iterations reached" << std::endl;
   }
   assert(in->GetChildren().GetSize() > 0);
 } 

@@ -15,45 +15,11 @@ set(scpip_source  "${scpip_prefix}/src/scpip")
 set(scpip_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 #-------------------------------------------------------------------------------
-# Configure target for downloading SCPIP sources using CMake ExternalData
-# mechanism.
-#-------------------------------------------------------------------------------
-# Add standard remote object stores to user's configuration.
-list(APPEND ExternalData_URL_TEMPLATES
-  "${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/%(algo)/%(hash)"
-  )
-
-# Set standard local object stores.
-SET(ExternalData_OBJECT_STORES
-  "${CFS_DEPS_CACHE_DIR}/sources/scpip"
-)
-
-# Give a hint about downloading the source archive to the developer.
-FILE(READ "cfsdeps/scpip/scpip.tar.bz2.md5" SCPIP_HASH)
-STRING(STRIP ${SCPIP_HASH} SCPIP_HASH)
-
-IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}")
-  SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
-  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}'.")
-
-  colormsg(HIYELLOW "${MSG}")
-ENDIF()
-
-set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
-
-# Expand all arguments as a single string to preserve escaped semicolons.
-ExternalData_expand_arguments(scpip_external_data
-  targetArgs "${SCPIP_EXTERNAL_DATA}")
-
-# Add a build target to populate the real data.
-ExternalData_Add_Target(scpip_external_data)
-
-#-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${scpip_install}
+  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
   -DCMAKE_Fortran_FLAGS:FILEPATH=-w
@@ -83,14 +49,33 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/scpip/scpip-patch.cmake.in")
 SET(PFN "${scpip_prefix}/scpip-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
+# SCPIP is closed source, the code and binary may only be used after 
+# signing an agreement with Ch. Zillober
+# CFS expects scpip.tar.bz2 in CFS_DEPS_CACHE_DIR/source/scpip
+
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
+SET(MD5_SUM ${8afaf8d8d79981d68b8c726ea508471d})
+
+SET(DLFN "${ARPACK_prefix}/scpip-download.cmake")
+CONFIGURE_FILE(
+  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
+  "${DLFN}"
+  @ONLY
+  ) 
+
+set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
+
+MESSAGE(${SCPIP_EXTERNAL_DATA})
+
 #-------------------------------------------------------------------------------
 # The scpip external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(scpip
-  DEPENDS scpip_external_data
+  #DEPENDS SCPIP_EXTERNAL_DATA
   PREFIX "${scpip_prefix}"
   SOURCE_DIR "${scpip_source}"
-  URL ${SCPIP_PATH}/${SCPIP_BZ2}
+  # URL ${SCPIP_PATH}/${SCPIP_BZ2}
+  URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
   URL_MD5 ${SCPIP_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
   CMAKE_ARGS
@@ -112,7 +97,7 @@ SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(SCPIP_LIBRARY
-  "${LD}/libDscpip.a;${LD}/libZscpip.a;${LD}/libblaslike.a;${LD}/libsparspak.a;${LD}/libamd.a"
+  "${LD}/libscpip.a"
   CACHE FILEPATH "SCPIP library.")
 
 MARK_AS_ADVANCED(SCPIP_LIBRARY)

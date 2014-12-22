@@ -16,7 +16,6 @@ if not os.path.exists(args.input):
   sys.exit() 
 
 org = numpy.loadtxt(args.input)
-assert(org[-1][0] == 0.0) # the last step shall be a repetition of the first step
  
 dim = args.dim 
 

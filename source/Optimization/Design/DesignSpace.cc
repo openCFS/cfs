@@ -775,6 +775,7 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
 bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
 {
   assert(false);
+  return false;
   /* FIXME
   if(CollectMaterialParametersForElement(elem)){
     double dummy = 0.0;

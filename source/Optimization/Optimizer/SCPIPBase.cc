@@ -9,7 +9,6 @@
   #include "General/Exception.hh"
   #include "Optimization/Optimizer/SCPIPBase.hh"
   #include "Optimization/Optimizer/scpip30.hh"
-  #include "def_use_feas_scp.hh"
 
   using namespace CoupledField;
 
