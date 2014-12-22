@@ -1347,6 +1347,7 @@ source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
 source/Domain/CoefFunction/CoefFunctionMulti.hh -text
+source/Domain/CoefFunction/CoefFunctionOpt.cc -text
 source/Domain/CoefFunction/CoefFunctionOpt.hh -text
 source/Domain/CoefFunction/CoefFunctionPML.cc -text
 source/Domain/CoefFunction/CoefFunctionPML.hh -text
@@ -1402,6 +1403,7 @@ source/Domain/Results/ResultFunctor.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultFunctor.hh svneol=native#text/x-c%2B%2Bhdr
 source/Domain/Results/ResultInfo.cc svneol=native#text/x-c%2B%2Bsrc
 source/Domain/Results/ResultInfo.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/AnalysisID.cc -text
 source/Driver/AnalysisID.hh -text
 source/Driver/Assemble.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/Assemble.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1792,6 +1794,7 @@ source/Optimization/Design/DesignSpace.cc -text
 source/Optimization/Design/DesignSpace.hh -text
 source/Optimization/Design/DesignStructure.cc -text
 source/Optimization/Design/DesignStructure.hh -text
+source/Optimization/Design/DesignTypes.hh -text
 source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
