@@ -369,7 +369,7 @@ IF(USE_FLANN)
 ENDIF(USE_FLANN)
 
 #-----------------------------------------------------------------------------
-# Find SCPIP
+# Find SCPIP - A special optimizer for topology optimization 
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
@@ -378,6 +378,19 @@ IF(USE_SCPIP)
 
   INCLUDE("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
+
+
+#-----------------------------------------------------------------------------
+# Find SNOPT - A general optimizer 
+#-----------------------------------------------------------------------------
+IF(USE_SNOPT)
+  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(SNOPT_BZ2 "snopt-7.2.8-cfsdeps.zip")
+  SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
+
+  INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
+ENDIF(USE_SNOPT)
+
 
 #-----------------------------------------------------------------------------
 # Find ANSYS Customizations

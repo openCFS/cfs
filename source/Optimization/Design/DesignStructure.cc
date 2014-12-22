@@ -483,35 +483,36 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
   Matrix<double>  coords;
   domain->GetGrid()->GetElemNodesCoord(coords, de->elem->connect, false );
 
-  double radius, tmp, max;
 
   switch(space)
   {
     case RADIUS:
-      radius = value;
-      break;
+      return value;
 
     case VOLUME_RADIUS:
+    {
       // TODO really check for axis symmetry off
-      tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
+      double tmp = domain->GetGrid()->GetElemShapeMap(de->elem, false)->CalcVolume();
       // The radius is <value> times square/cube edge length where the
       // square/cube has the volume of the element
-      radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
+      double radius = value * std::pow(tmp, 1.0/ (double) domain->GetGrid()->GetDim());
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " from volume " << tmp << " to radius " << radius;
-      break;
+      return radius;
+    }
 
     case MAX_EDGE:
-
+    {
+      double max, tmp;
       domain->GetGrid()->GetElemShapeMap(de->elem, false)->GetMaxMinEdgeLength(max, tmp);
-      radius = value * max;
+      double radius = value * max;
       LOG_DBG3(ds) << "FFR: de=" << de->ToString() << " edge max=" << max << " min=" << tmp << " to radius " << radius;
-      break;
+      return radius;
+    }
 
     default:
       assert(false); // NO_FILTER
+      return -1.0;
   }
-
-  return radius;
 }
 
 void DesignStructure::SetPeriodicConstraintMapping()

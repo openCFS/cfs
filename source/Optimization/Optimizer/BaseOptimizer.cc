@@ -223,8 +223,8 @@ void BaseOptimizer::SolveOptimizationProblem()
   SolveProblem();
 
   // dirty fix to have the final status streamed for iTop
-  if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
-    optimization->CommitIteration(true);
+   // if(/* FIXME domain->GetResultHandler()->GetOutputWriter("streaming", true) != NULL && */this->type_ != Optimization::EVALUATE_INITIAL_DESIGN)
+  // optimization->CommitIteration(true);
 
   timer_->Stop();
 }

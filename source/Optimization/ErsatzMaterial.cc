@@ -1948,6 +1948,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
     assert(false);
+    return -1.0;
     /* FIXME
     Function* f = Function::Cast(c, g);
     UInt timesteps = domain->GetDriver()->GetNumSteps();
