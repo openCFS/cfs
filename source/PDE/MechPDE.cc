@@ -1346,7 +1346,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       intensNormal->unit =  "N/ms";
       intensNormal->entryType = ResultInfo::SCALAR;
       intensNormal->definedOn = ResultInfo::SURF_ELEM;
-      sNormStructIntens.reset(new CoefFunctionSurf(true, intensNormal));
+      sNormStructIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormStructIntens, intensNormal );
       surfCoefFcts_[sNormStructIntens] = intensFct;
       
@@ -1449,7 +1449,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     dispNormal->entryType = ResultInfo::SCALAR;
     dispNormal->definedOn = ResultInfo::SURF_ELEM;
 
-    dispFctNormal.reset(new CoefFunctionSurf(true, dispNormal));
+    dispFctNormal.reset(new CoefFunctionSurf(true, 1.0, dispNormal));
     DefineFieldResult(dispFctNormal, dispNormal);
     surfCoefFcts_[dispFctNormal] = feFct;
 
@@ -1482,7 +1482,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     normalStressInfo->entryType = ResultInfo::VECTOR;
     normalStressInfo->definedOn = ResultInfo::SURF_ELEM;
     
-    normalStressFct.reset(new CoefFunctionSurf(true, normalStressInfo));
+    normalStressFct.reset(new CoefFunctionSurf(true, 1.0, normalStressInfo));
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
   }

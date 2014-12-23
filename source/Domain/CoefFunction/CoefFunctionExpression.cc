@@ -579,7 +579,7 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
                                                                Grid* ptGrid,
                                                                const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
-  assert(this->dimType_ == CoefFunction::VECTOR);
+  assert(this->dimType_ == CoefFunction::VECTOR || this->dimType_ == SCALAR);
   Vector<Double> temp;
   Vector<Complex> locVector;
 

@@ -7,6 +7,7 @@ namespace CoupledField {
 
 
 CoefFunctionSurf::CoefFunctionSurf( bool mapNormal, 
+                                    Double factor,
                                     shared_ptr<ResultInfo> surfInfo ) 
 : CoefFunction() {
 
@@ -16,7 +17,8 @@ CoefFunctionSurf::CoefFunctionSurf( bool mapNormal,
   isAnalytic_ = false;
   isComplex_ =  false;
   mapNormal_ = mapNormal;
-
+  factor_ = factor;
+  
   if( this->mapNormal_) {
     if( !surfInfo) {
       EXCEPTION( "The resultinfo object must be set in case of normal mapping!")
@@ -110,6 +112,7 @@ void CoefFunctionSurf::GetVector(Vector<Double>& coefVec,
   } else {
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
   }
+  coefVec *= factor_;
 }
 
 void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec, 
@@ -127,6 +130,7 @@ void CoefFunctionSurf::GetVector(Vector<Complex>& coefVec,
   } else {
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
   }
+  coefVec *= factor_;
 }
 
 
@@ -145,6 +149,7 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
+  coefScalar *= factor_;
 }
 
 void CoefFunctionSurf::GetScalar(Complex& coefScalar, 
@@ -162,6 +167,7 @@ void CoefFunctionSurf::GetScalar(Complex& coefScalar,
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
+  coefScalar *= factor_;
 }
 
 UInt CoefFunctionSurf::GetVecSize() const {

@@ -187,9 +187,9 @@ namespace CoupledField {
     StdVector<std::string> dofNames;
 
     // Note; in the piezoelectric case we have to multiply by -1
-    // Double factor = 1.0;
-    // if ( isPiezoCoupled_ )
-    //   factor = -1.0;
+     Double factor = 1.0;
+     if ( isPiezoCoupled_ )
+       factor = -1.0;
 
     
     // Flag, if coefficient function lives on updated geoemtry
@@ -215,15 +215,10 @@ namespace CoupledField {
         }
 
         UInt numNodes = ent[i]->GetSize();
-        if( numNodes > 1 ) {
-          // Here we would divide the nodal force by the number of nodes
-          // in the list, in order to ensure that the whole force corresponds
-          // to the prescribed value. However, this requires modification of 
-          // the expressions of the coefficient functions, which depends on real/harm
-          // and the specific type (const, timefreq, variable).
-          WARN("The charge value will not be divided by the number of nodes and thus "
-              << "depends on the number of nodes" );
-        }
+        Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;  
+        coef[i] = CoefFunction::Generate(mp_, part, 
+                                         CoefXprBinOp(mp_, coef[i], 
+                                         boost::lexical_cast<std::string>(numNodes*factor), CoefXpr::OP_DIV) );
 
         lin = new SingleEntryInt(coef[i]);
         lin->SetName("NodalChargeInt");
@@ -247,10 +242,10 @@ namespace CoupledField {
                    boost::lexical_cast<std::string>(volume), CoefXpr::OP_DIV) );
         if(isComplex_) {
           lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                           Complex(1.0), coef[i],coefUpdateGeo);
+                                           Complex(factor), coef[i],coefUpdateGeo);
         } else  {
           lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-                                          1.0, coef[i],coefUpdateGeo);
+                                          factor, coef[i],coefUpdateGeo);
         }
         lin->SetName("ChargeDensityInt");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -274,10 +269,10 @@ namespace CoupledField {
       }
       if(isComplex_) {
         lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                         Complex(1.0), coef[i], coefUpdateGeo);
+                                         Complex(factor), coef[i], coefUpdateGeo);
       } else  {
         lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-                                        1.0, coef[i], coefUpdateGeo);
+                                        factor, coef[i], coefUpdateGeo);
       }
       lin->SetName("ChargeDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -314,18 +309,18 @@ namespace CoupledField {
         if( dim_ == 2) {
           if(isComplex_) {
             lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,2>(),
-                                                   Complex(1.0), coef[i], volRegions, coefUpdateGeo);
+                                                   Complex(factor), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,2>(),
-                                                  1.0, coef[i], volRegions, coefUpdateGeo);
+                                                  factor, coef[i], volRegions, coefUpdateGeo);
           } 
         }else {
           if(isComplex_) {
             lin = new BUIntegrator<Complex, true>( new IdentityOperatorNormal<FeH1,3>(),
-                                                   Complex(1.0), coef[i], volRegions, coefUpdateGeo);
+                                                   Complex(factor), coef[i], volRegions, coefUpdateGeo);
           } else  {
             lin = new BUIntegrator<Double, true>( new IdentityOperatorNormal<FeH1,3>(),
-                                                 1.0, coef[i], volRegions, coefUpdateGeo);
+                                                  factor, coef[i], volRegions, coefUpdateGeo);
           } 
         }
         lin->SetName("SurfaceFluxDensityInt");
@@ -560,9 +555,9 @@ namespace CoupledField {
     flux->entryType = ResultInfo::VECTOR;
     shared_ptr<CoefFunctionFormBased> fluxFunc;
     if( isComplex_ ) {
-      fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux));
+      fluxFunc.reset(new CoefFunctionFlux<Complex>(feFct, flux, -1.0));
     } else {
-      fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux));
+      fluxFunc.reset(new CoefFunctionFlux<Double>(feFct, flux, -1.0));
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
@@ -576,7 +571,9 @@ namespace CoupledField {
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
     // the coefficient function is defined later
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
+    // Note: The positive normal direction in this case is defined as the
+    //       inward facing one. 
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, -1.0, chargeD));
     surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===
