@@ -519,7 +519,8 @@ namespace CoupledField
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
-        LOG_DBG2(assemble) << "\telems are " << it1.GetElem()->elemNum  << " and " << it2.GetElem()->elemNum;
+        LOG_DBG2(assemble) << "\telems are " <<  it1.GetIdString()  << 
+            " and " <<  it2.GetIdString();
 
       it1.Begin();
       it2.Begin();

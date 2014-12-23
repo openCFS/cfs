@@ -476,7 +476,7 @@ namespace CoupledField {
     fluxNormal->definedOn = ResultInfo::SURF_ELEM;
 
     shared_ptr<CoefFunctionSurf> fluxFctNormal;
-    fluxFctNormal.reset(new CoefFunctionSurf(true, fluxNormal));
+    fluxFctNormal.reset(new CoefFunctionSurf(true, 1.0, fluxNormal));
     DefineFieldResult( fluxFctNormal, fluxNormal );
     surfCoefFcts_[fluxFctNormal] = fluxFunc;
 

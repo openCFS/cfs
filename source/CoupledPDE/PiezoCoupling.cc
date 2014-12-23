@@ -155,10 +155,7 @@ namespace CoupledField {
     PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
     
     // b) coupling part -> use own ADB-form
-    // Note: As the "B"-operator of the ADB operator only calculates 
-    //       the gradient and we need the electric field (E = - grad(V_p)),
-    //       we have to multiply the entries by -1.0.
-    Double cplFactor = -1.0;
+    Double cplFactor = 1.0;
     shared_ptr<CoefFunctionFormBased> cplFunc;
     if( isComplex_ ) {
       cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, cplFactor));
@@ -190,16 +187,18 @@ namespace CoupledField {
     shared_ptr<CoefFunctionFormBased> stressCplFunc;
     // Note: As the "B"-operator of the ADB operator only calculates 
     //       the gradient and we need the electric field (E = - grad(V_p)),
-    //       we have to multiply the entries by -1.0.
-    Double stressCplFactor = -1.0;
+    //       we have to multiply the entries by -1.0. However, due to the 
+    //       constitutive law, an additional -1 is needed, so we just
+    //       need scaling factor 1.0.
+    Double stressCplFactor = 1.0;
     if( isComplex_ ) {
       stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, stressCplFactor));
     } else {
       stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
     }
     PtrCoefFct coefStress = CoefFunction::Generate(mp,part,
-                            CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
-                                         CoefXpr::OP_SUB ) ); 
+                                                   CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
+                                                                CoefXpr::OP_ADD) ); 
     DefineFieldResult(coefStress, stress);
 
 
@@ -211,7 +210,9 @@ namespace CoupledField {
     chargeD->definedOn = ResultInfo::SURF_ELEM;
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
+    // Note: The positive normal direction in this case is defined as the
+        //       inward facing one. 
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, -1.0, chargeD));
     DefineFieldResult( sChargeDens, chargeD);
     
     // === Electric Charge (integrated) ===
