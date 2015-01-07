@@ -295,6 +295,8 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <!--  the global perimeter constraint  -->
+                <xsd:enumeration value="perimeter"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
                 <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->

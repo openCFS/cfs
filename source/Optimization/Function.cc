@@ -133,6 +133,7 @@ Function::Function(PtrParamNode pn) {
   case GLOBAL_MOLE:
   case STRESS:
   case STRESS_DENSITY:
+  case PERIMETER:
     if (!pn->Has("parameter"))
       throw Exception(
           "function '" + type.ToString(type_)
@@ -178,7 +179,6 @@ Function::Function(PtrParamNode pn) {
   switch (type_) {
   case VOLUME: // the volume is not linear on heaviside densities
   case SLOPE:
-  case GLOBAL_SLOPE:
   case SLACK:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
@@ -464,6 +464,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case YOUNGS_MODULUS_E2:
   case SLOPE:
   case GLOBAL_SLOPE:
+  case PERIMETER:
   case ISOTROPY:
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
@@ -713,6 +714,7 @@ bool Function::ForSensitivityFiltering() const {
   case REALVOLUME:
   case SLOPE:
   case GLOBAL_SLOPE:
+  case PERIMETER:
   case MOLE:
   case GLOBAL_MOLE:
   case OSCILLATION:
@@ -866,6 +868,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
   switch (type_) {
   case SLOPE:
   case GLOBAL_SLOPE:
+  case PERIMETER:
   case MOLE:
   case GLOBAL_MOLE:
   case OSCILLATION:
@@ -963,48 +966,40 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
 
-  this->beta_ =
-      pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
-  this->eps_ =
-      pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
-  this->power_ =
-      pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
-  this->phase_ =
-      pn != NULL && pn->Has("phase") ?
-          phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
+  this->beta_ =  pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
+  this->eps_ =   pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
+  this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
+  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
-  //read interpolation data for volume calculation in 3D
-  std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
-  Xerces xerces(file);
-  PtrParamNode root = xerces.CreateParamNodeInstance();
-  int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
-  int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
-  int dim3 = root->Get("a/matrix/dim1")->As<int>();
-  int dim4 = root->Get("b/matrix/dim1")->As<int>();
-  int dim5 = root->Get("c/matrix/dim1")->As<int>();
-  ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1,
-      this->vol_a_);
-  ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1,
-      this->vol_b_);
-  ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1,
-      this->vol_c_);
-  ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2,
-      this->vol_coeff_);
+    //read interpolation data for volume calculation in 3D
+    std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
+    Xerces xerces(file);
+    PtrParamNode root = xerces.CreateParamNodeInstance();
+    int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
+    int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
+    int dim3 = root->Get("a/matrix/dim1")->As<int>();
+    int dim4 = root->Get("b/matrix/dim1")->As<int>();
+    int dim5 = root->Get("c/matrix/dim1")->As<int>();
+    ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, this->vol_a_);
+    ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
+    ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
+    ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2,  this->vol_coeff_);
   }
   //total volume in the non-regular case is needed for the volume calculations
   bool regular = space->IsRegular();
   this->total_vol_ = 0.0;
-  if (!regular) {
-      for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++) {
-        this->total_vol_ += this->func_->elements[i]->CalcVolume();
-      }
-  } else {
-      this->total_vol_ = 1.0;
-  }
-  switch (ftype) {
+  if(!regular)
+    for (unsigned int i = 0, n = this->func_->elements.GetSize(); i < n;i++)
+     this->total_vol_ += this->func_->elements[i]->CalcVolume();
+  else
+   this->total_vol_ = 1.0;
+
+  switch (ftype)
+  {
+  // the PERIMETER is not globalized in the sense of the sum max(f,0)^p function.
   case GLOBAL_JUMP:
   case GLOBAL_MOLE:
   case GLOBAL_OSCILLATION:
@@ -1019,9 +1014,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
-      info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue(
-          "function '" + fname + "' has local/power "
-              + lexical_cast<string>(power_) + ", for sum one needs power=1");
+      info->Get("optimization/header")->Get(ParamNode::WARNING)->SetValue("function '" + fname + "' has local/power " + lexical_cast<string>(power_) + ", for sum one needs power=1");
     this->globalized_ = true;
     break;
 
@@ -1033,34 +1026,24 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // check beta
   if (ftype == OSCILLATION || ftype == GLOBAL_OSCILLATION) {
     if (pn == NULL || !pn->Has("beta"))
-      throw Exception(
-          "function '" + fname
-              + "' requires the 'beta' attribute in a 'local' element");
-    if ((func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive())
-        && beta_ < 0)
-      throw Exception(
-          "'function '" + fname
-              + "' allows beta=-1 only for condition in observe mode");
+      throw Exception("function '" + fname + "' requires the 'beta' attribute in a 'local' element");
+    if ((func->IsObjective() || dynamic_cast<Condition*>(func)->IsActive()) && beta_ < 0)
+      throw Exception("'function '" + fname  + "' allows beta=-1 only for condition in observe mode");
   }
 
   // check eps
   if ((ftype == MOLE || ftype == GLOBAL_MOLE)
       && (pn == NULL || !pn->Has("eps")))
-    throw Exception(
-        "function '" + fname
-            + "' requires the 'eps' attribute in a 'local' element");
+    throw Exception("function '" + fname + "' requires the 'eps' attribute in a 'local' element");
 
   // check phase
   if (phase_ != BOTH && ftype != OSCILLATION && ftype != GLOBAL_OSCILLATION)
     throw Exception("'phase' may only be set for (global) oscillation");
 
   // set locality
-  this->locality_ =
-      pn != NULL && pn->Has("locality") ?
-          locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
+  this->locality_ = pn != NULL && pn->Has("locality") ? locality.Parse(pn->Get("locality")->As<string>()) : DEFAULT;
   Locality user = locality_; // default or set by user
-  bool snopt = param->Get("optimization/optimizer/type")->As<string>()
-      == "snopt";
+  bool snopt = param->Get("optimization/optimizer/type")->As<string>() == "snopt";
 
   switch (ftype) {
   case SLOPE:
@@ -1069,20 +1052,21 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     if (user == DEFAULT && !snopt)
       locality_ = NEXT_AND_REVERSE;
     if (!snopt && locality_ != NEXT_AND_REVERSE)
-      throw Exception(
-          "The optimizer has no bounds for constraints: your choice for 'local' is invalid");
+      throw Exception("The optimizer has no bounds for constraints: your choice for 'local' is invalid");
     if (locality_ != NEXT && locality_ != NEXT_AND_REVERSE)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     break;
 
   case GLOBAL_SLOPE:
     if (locality_ != NEXT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = NEXT_AND_REVERSE;
+    break;
+
+  case PERIMETER:
+    if (locality_ != NEXT && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = NEXT;
     break;
 
   case OSCILLATION:
@@ -1091,9 +1075,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
         && locality_ != PREV_NEXT_AND_REVERSE && locality_ != DEFAULT)
         || (phase_ != BOTH && locality_ != DEG_45_STAR && locality_ != PREV_NEXT
             && locality_ != DEFAULT))
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "' and phase '" + phase.ToString(phase_) + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "' and phase '" + phase.ToString(phase_) + "'");
     if (locality_ == DEFAULT)
       locality_ = phase_ == BOTH ? DEG_45_STAR_AND_REVERSE : DEG_45_STAR;
     break;
@@ -1101,18 +1083,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case MOLE:
   case GLOBAL_MOLE:
     if (locality_ != DEG_45_STAR && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = DEG_45_STAR;
     break;
 
   case JUMP:
   case GLOBAL_JUMP:
     if (locality_ != BOUNDARY && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = BOUNDARY;
     break;
 
@@ -1120,9 +1098,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case STRESS_DENSITY:
   case DESIGN_BOUND:
     if (locality_ != ELEMENT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = ELEMENT;
     break;
 
@@ -1144,17 +1120,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case BENSON_VANDERBEI_3:
   case MULTIMATERIAL_SUM:
     if (locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
     break;
 
   case BUMP:
     if (locality_ != PREV_NEXT && locality_ != DEFAULT)
-      throw Exception(
-          "Invalid locality '" + locality.ToString(locality_) + "' within '"
-              + fname + "'");
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
     locality_ = PREV_NEXT;
     break;
     
@@ -1173,9 +1145,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case DEG_45_STAR_AND_REVERSE:
   case BOUNDARY:
     if (!pn)
-      throw Exception(
-          "sub element 'local' with neighborhood information mandatory for '"
-              + fname + "'");
+      throw Exception("sub element 'local' with neighborhood information mandatory for '"  + fname + "'");
     structure_ = new NeighborhoodStructure(this, pn);
     if (locality_ == BOUNDARY)
       SetupBoundaryElementMap();
@@ -1201,9 +1171,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   }
 
   if (virtual_elem_map.GetSize() == 0)
-    throw Exception(
-        "mesh too small for locality of function '" + fname
-            + "' or wrong design attribute");
+    throw Exception("mesh too small for locality of function '" + fname + "' or wrong design attribute");
 
   // needs to be set prior CalcSlopeConstraint() as the optimizers need the size
   values.Resize(virtual_elem_map.GetSize(), -1.0);
@@ -1754,8 +1722,8 @@ BaseDesignElement* Function::Local::Identifier::GetElement(BaseDesignElement::Ty
   return NULL;
 }
 
-double Function::Local::Identifier::EvalFunction(const Local* local,
-    bool grad_glob, double von_mises_stress) const {
+double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_glob, double von_mises_stress) const
+{
   // function value
   double fv = 0.0;
   Function* f = local->func_;
@@ -1777,6 +1745,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case SLOPE:
   case GLOBAL_SLOPE:
     fv = CalcSlope();
+    break;
+
+  case PERIMETER:
+    fv = CalcPerimeter(local->func_->parameter_);
     break;
 
   case OSCILLATION:
@@ -1860,7 +1832,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   }
 
   LOG_DBG2(func) << "L:I:EF: f=" << f->type.ToString(f->type_)
-                 << " de=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " fv=" << fv;
+                 << " de=" << element->GetIndex() << " sign=" << sign << " fv=" << fv;
 
   // handle globalization
   switch (f->type_) {
@@ -1897,7 +1869,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     res *= factor;
 
     LOG_DBG2(func)<< "L:I:EF: global! bound=" << f->GetParameter() << " fv=" << fv << " v=" << v << " p=" << p
-    << " factor=" << factor << " gg=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
+       << " factor=" << factor << " gg=" << grad_glob << " power=" << std::pow(v, local->GetPower()) << " -> " << res;
 
     return res;
   }
@@ -1916,28 +1888,32 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                     << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
+                     << element->GetIndex() << " sign=" << sign;
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
   // EvalFunction() is very fast for power=1!
-  double grad_glob_fv =
-      local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
+  double grad_glob_fv = local->IsGlobalized() ? EvalFunction(local, true) : -1.0; // if not global we don't need grad_glob_fv
 
   if(local->IsGlobalized() && grad_glob_fv == 0.0) {
-    LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " fv=0.0 -> return immediately";
+    LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de=" << element->GetIndex() << " sign=" << sign << " fv=0.0 -> return immediately";
     return;
   }
   assert(local->IsGlobalized() || g != NULL); // only constraints are local
 
-  for (int n = -1, nn = neighbor.GetSize(); n < nn; n++) {
+  for (int n = -1, nn = neighbor.GetSize(); n < nn; n++)
+  {
     double gv = -5.0;
 
-    switch (ft) {
+    switch (ft)
+    {
     case SLOPE:
     case GLOBAL_SLOPE:
       gv = CalcSlopeGradient(n);
+      break;
+
+    case PERIMETER:
+      gv = CalcPerimeterGradient(n, local->func_->parameter_);
       break;
 
     case OSCILLATION:
@@ -2026,8 +2002,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     }
 
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
-                   << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 ) << " gv=" << gv;
+                   << element->GetIndex() << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
+                   << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv;
 
     // post process the globalized functions
     if (local->IsGlobalized()) {
@@ -2042,14 +2018,16 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       }
       gv  *= grad_glob_fv * factor;
       LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                     << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n
-                     << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 )
+                     << element->GetIndex() << " sign=" << sign << " n=" << n
+                     << " curr=" << GetElement(n)->GetIndex()
                      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
     BaseDesignElement* de = GetElement(n);
 
-    if (!local->IsGlobalized()) {
+    // the perimeter is not globalized by sum max(g-g*, 0)^p but it is not local!
+    if(!local->IsGlobalized() && ft != PERIMETER)
+    {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
       de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
       if(g->ForDensityFiltering())
@@ -2068,24 +2046,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     de->AddGradient(f, g, gv);
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                   << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign << " n=" << n
-                   << " curr=" << ( typeid(GetElement(n)) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(GetElement(n))->elem->elemNum : -1 ) << " gv=" << gv
+                   << element->GetIndex() << " sign=" << sign << " n=" << n
+                   << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv
                    << " stored_gv=" << de->GetPlainGradient(f, g)
                    << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
-
-//    if (de->GetIndex() == 89)
-//    {
-//      std::cout << "AddGradient: " << de->GetIndex() << std::endl;
-//      std::cout << de->GetType() << std::endl;
-//      for(int i = -1, ni = (int) de->simp->neighborhood.GetSize(); i < ni; i++)
-//      {
-//        const SIMPElement::NeighbourElement* ne = i == -1 ? NULL : &de->simp->neighborhood[i];
-//        const DesignElement* de2 = i == -1 ? de : ne->neighbour;
-//        std::cout << de2->GetIndex() << ": " << de2->GetPlainValue(DesignElement::CONSTRAINT_GRADIENT, g) << std::endl;
-//      }
-//      std::cout << std::endl;
-//    }
-
 
   }
 }
@@ -2097,7 +2061,7 @@ double Function::Local::Identifier::CalcSlope() const {
 
   double s = this->sign == -1 ? -1.0 : 1.0;
 
-  LOG_DBG3(func)<< "L:I:CS de=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
+  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
   << " sign=" << sign << " slope -> " << (s * (mine - other));
   return s * (mine - other);
 }
@@ -2110,6 +2074,45 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
   else
     return sign == -1 ? 1.0 : -1.0;
 }
+
+double Function::Local::Identifier::CalcPerimeter(double eps) const
+{
+  // P = sum_k^K l_k ( sqrt( (<p>_k)**2 + eps**2 ) - eps )
+  // where K is the number of interfaces and l_k is the length of the interface
+  // <p>_k is the jump at the interface rho_i - rho_i+1
+  // We use the NEXT locality with right and upper neighbor. We don't want to count interfaces double
+  // eps is param as this constraint does not look like a local one in the xml file
+  // We ignore the interfaces to the boundaries
+  assert(this->neighbor.GetSize() == 1);
+
+  double mine  = element->GetDesign(DesignElement::SMART);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+  double res   = sqrt( (mine-other) * (mine-other) + eps * eps ) - eps;
+
+  LOG_DBG3(func) << "L:I:CP de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
+                 << " mine=" << mine << " other=" << other << " eps=" << eps << " -> " << res;
+  return res;
+}
+
+double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double eps) const
+{
+  // P = sum_k p_k
+  // p_k' = l_k * 0.5 * ((rho_i - rho_i+1)**2 + eps**2)**-0.5 * 2 * (rho_i - rho_i+1) * s
+  // s = 1 for d p_k / d rho_i and -1 for d p_k / d rho_i+1
+
+  double mine  = element->GetDesign(DesignElement::SMART);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+  double s = neigh_idx == -1 ? 1.0 : -1.0;
+
+  double res = pow((mine-other)*(mine-other) + eps*eps, -0.5) * (mine-other) * s;
+
+  LOG_DBG3(func) << "L:I:CPG de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
+                 << " mine=" << mine << " other=" << other << " eps=" << eps << " neigh_idx=" << neigh_idx << " -> " << res;
+  return res;
+}
+
+
+
 
 double Function::Local::Identifier::CalcOscillation(double beta) const {
   assert(sign == 1 || sign == -1);
@@ -2150,8 +2153,8 @@ double Function::Local::Identifier::CalcOscillation(double beta) const {
   return res;
 }
 
-double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx,
-    double beta) {
+double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx, double beta)
+{
   assert(beta >= 0);
 
   // the own value is not within the min/max stuff
@@ -2180,23 +2183,14 @@ double Function::Local::Identifier::CalcOscillationGradient(int neigh_idx,
   int side = neigh_idx < (int) half ? -1 : 1;
 
   // outer is simple
-  double outer =
-      sign == 1 ?
-          DerivSmoothMax(prev, next, beta, side) :
-          DerivSmoothMin(prev, next, beta, side);
+  double outer =  sign == 1 ? DerivSmoothMax(prev, next, beta, side) :  DerivSmoothMin(prev, next, beta, side);
   // we do not handle neighbor.GetSize() == 2 special as the Smooth tools are fast for this special case
   // inner depends on neigh_idx within the first or the next
   double inner = 0.0;
   if (side == -1)
-    inner =
-        sign == -1 ?
-            DerivSmoothMax(tmp1, beta, neigh_idx) :
-            DerivSmoothMin(tmp1, beta, neigh_idx);
+    inner = sign == -1 ? DerivSmoothMax(tmp1, beta, neigh_idx) : DerivSmoothMin(tmp1, beta, neigh_idx);
   else
-    inner =
-        sign == -1 ?
-            DerivSmoothMax(tmp2, beta, neigh_idx - half) :
-            DerivSmoothMin(tmp2, beta, neigh_idx - half);
+    inner = sign == -1 ? DerivSmoothMax(tmp2, beta, neigh_idx - half) : DerivSmoothMin(tmp2, beta, neigh_idx - half);
   assert(neighbor.GetSize() > 2 || close(inner, 1.0));
 
   return (sign == 1 ? -1.0 : 1.0) * outer * inner;
@@ -2243,8 +2237,7 @@ double Function::Local::Identifier::CalcMole(double eps) const {
   return result;
 }
 
-double Function::Local::Identifier::CalcMoleGradient(int neigh_idx,
-    double eps) {
+double Function::Local::Identifier::CalcMoleGradient(int neigh_idx, double eps) {
   // see comments in the forward function implementation
   // three cases for the sensitivity analysis: first, intermediate, last
 
@@ -2902,7 +2895,7 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
       return 0.0;
     }
   else {
-    LOG_DBG3(func) << "Local::Local e_num=" << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
+    LOG_DBG3(func) << "Local::Local e_num=" << element->GetIndex() << ", E3-E1*nu31^2=" << E3-E1*nu31*nu31;
     return E3-E1*nu31*nu31;
   }
 }
@@ -3046,7 +3039,7 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
     break;
   } // end switch f->GetType()
   assert(ret != 12345678.0);
-  LOG_DBG3(func)<< "L::I::CPDD e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
+  LOG_DBG3(func)<< "L::I::CPDD e_num=" << element->GetIndex() << " g=" << Function::type.ToString(g->GetType()) << " for " << Function::type.ToString(type)
   << " ni=" << neigh_idx << " v=" << v << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
@@ -3065,7 +3058,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
   local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
 
-  LOG_DBG3(func) << "L::I::CBV e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CBV e_num=" << element->GetIndex() << " v=" << v << " E=" << E.ToString(0, false);
 
   double ret = -12345678.0;
 
@@ -3196,7 +3189,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
     break;
   } // end switch f->GetType()
   assert(ret != 12345678.0);
-  LOG_DBG3(func)<< "L::I::CBV e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " g=" << Function::type.ToString(g->GetType())
+  LOG_DBG3(func)<< "L::I::CBV e_num=" << element->GetIndex() << " g=" << Function::type.ToString(g->GetType())
   << " ni=" << neigh_idx << "  des=" << DesignElement::type.ToString(GetElement(neigh_idx)->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
@@ -3212,19 +3205,19 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
       for(int i=-1; i < (int) neighbor.GetSize(); ++i)
       {
         ret += GetElement(i)->GetDesign(DesignElement::PLAIN);
-        LOG_DBG3(func) << "L::I::CMMS e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
+        LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " i=" << i << " e=" <<  dynamic_cast<const DesignElement*>(GetElement(i))->elem->elemNum << " mi=" << dynamic_cast<const DesignElement*>(GetElement(i))->multimaterial->index << " -> " << ret;
       }
     }
     else
     {
       ret = 1.0;
     }
-    LOG_DBG3(func) << "L::I::CMMS e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CMMS e_num=" << element->GetIndex() << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
     return ret;
   }
 
-double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
-    const Local* local, bool derivative) const {
+double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
+{
   Matrix<double> E;
 
   DesignMaterial::Notation notation = local->func_->notation_;
@@ -3234,33 +3227,27 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
       dynamic_cast<DesignElement*>(element)->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
   assert(ok);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
-  LOG_DBG3(func) << "L::I::CTT e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
 
-  assert(
-      !(derivative
-          && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE
-          && ret != -1.0));
-  assert(
-      !(derivative && notation == DesignMaterial::HILL_MANDEL
-          && de->GetType() == DesignElement::TENSOR33 && ret != 1.0));
-  assert(
-      !(derivative && notation == DesignMaterial::VOIGT
-          && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+  assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
+  assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::TENSOR33 && ret != 1.0));
+  assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
 
   LOG_DBG3(func)<< "L::I::CTT e_num=" << de->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
 }
 
-double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const {
+double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* local, bool derivative) const
+{
   Matrix<double> E;
   const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
   // as we square we do not need the linear derivative
   local->space->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
-  LOG_DBG3(func) << "L::I::CTN e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " E=" << E.ToString(0, false);
+  LOG_DBG3(func) << "L::I::CTN e_num=" << element->GetIndex() << " E=" << E.ToString(0, false);
 
   double ret = 0.0;
 
@@ -3292,7 +3279,7 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
     }
   }
 
-  LOG_DBG3(func)<< "L::I::CTN e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
+  LOG_DBG3(func)<< "L::I::CTN e_num=" << element->GetIndex() << " ni=" << neigh_idx << " d=" << derivative << " -> " << ret;
   return ret;
 }
 
@@ -3305,7 +3292,7 @@ double Function::Local::Identifier::CalcDesignBound(bool derivative) const {
 
   double ret = derivative ? 1.0 : val;
 
-    LOG_DBG3(func) << "L::I::CDB e=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
+    LOG_DBG3(func) << "L::I::CDB e=" << element->GetIndex() << " d=" << element->type.ToString(element->GetType()) << " v=" << val << " d=" << derivative << " -> " << ret;
 
   return ret;
 }

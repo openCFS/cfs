@@ -350,7 +350,7 @@ def write_gid_mesh(mesh, filename):
   out.close()
   
 ## creates a 2D mesh of predefined geometry
-def create_2d_mesh(type, x_res, y_res, inclusion, inclusion_size):
+def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None):
   mesh = Mesh()
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
@@ -359,11 +359,9 @@ def create_2d_mesh(type, x_res, y_res, inclusion, inclusion_size):
   
   
   nx = x_res
+  ny = x_res if y_res is None else y_res
   
-  # buld2d case
-  ny = y_res if y_res <> None else x_res
-  width = 1.0
-  height = float(ny)/nx 
+  height = float(ny)/nx if opt_height is None else opt_height  
 
   if type.startswith('cantilever2d'):
     width = 3.0
@@ -396,7 +394,7 @@ def create_2d_mesh(type, x_res, y_res, inclusion, inclusion_size):
                                and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
         e.region = 'inner'
         second += 1        
-      elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*inclusion_size:
+      elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size:
         e.region = 'inner'
         second += 1        
       else:
