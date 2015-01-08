@@ -1433,6 +1433,7 @@
       <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
+      <xsd:enumeration value="perimeter"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>

@@ -1748,7 +1748,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     break;
 
   case PERIMETER:
-    fv = CalcPerimeter(local->func_->parameter_);
+    fv = CalcPerimeter(local->func_->parameter_, 1. / local->virtual_elem_map.GetSize());
     break;
 
   case OSCILLATION:
@@ -1899,7 +1899,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de=" << element->GetIndex() << " sign=" << sign << " fv=0.0 -> return immediately";
     return;
   }
-  assert(local->IsGlobalized() || g != NULL); // only constraints are local
+  assert(local->IsGlobalized() || ft == PERIMETER || g != NULL); // only constraints are local
 
   for (int n = -1, nn = neighbor.GetSize(); n < nn; n++)
   {
@@ -1913,7 +1913,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case PERIMETER:
-      gv = CalcPerimeterGradient(n, local->func_->parameter_);
+      gv = CalcPerimeterGradient(n, local->func_->parameter_, 1. / local->virtual_elem_map.GetSize());
       break;
 
     case OSCILLATION:
@@ -2005,7 +2005,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                    << element->GetIndex() << " sign=" << sign << " n=" << n << " des=" << DesignElement::type.ToString(GetElement(n)->GetType())
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv;
 
-    // post process the globalized functions
+    // post process the globalized functions. The perimeter is not globalized in that sense
     if (local->IsGlobalized()) {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
       double factor = 1.0;
@@ -2050,7 +2050,6 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv
                    << " stored_gv=" << de->GetPlainGradient(f, g)
                    << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
-
   }
 }
 
@@ -2075,7 +2074,7 @@ double Function::Local::Identifier::CalcSlopeGradient(int neigh_idx) const {
     return sign == -1 ? 1.0 : -1.0;
 }
 
-double Function::Local::Identifier::CalcPerimeter(double eps) const
+double Function::Local::Identifier::CalcPerimeter(double eps, double l_k) const
 {
   // P = sum_k^K l_k ( sqrt( (<p>_k)**2 + eps**2 ) - eps )
   // where K is the number of interfaces and l_k is the length of the interface
@@ -2087,14 +2086,14 @@ double Function::Local::Identifier::CalcPerimeter(double eps) const
 
   double mine  = element->GetDesign(DesignElement::SMART);
   double other = neighbor[0]->GetDesign(DesignElement::SMART);
-  double res   = sqrt( (mine-other) * (mine-other) + eps * eps ) - eps;
+  double res   = l_k * (sqrt( (mine-other) * (mine-other) + eps * eps ) - eps);
 
   LOG_DBG3(func) << "L:I:CP de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
-                 << " mine=" << mine << " other=" << other << " eps=" << eps << " -> " << res;
+                 << " mine=" << mine << " other=" << other << " eps=" << eps << " l_k=" << l_k << " -> " << res;
   return res;
 }
 
-double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double eps) const
+double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const
 {
   // P = sum_k p_k
   // p_k' = l_k * 0.5 * ((rho_i - rho_i+1)**2 + eps**2)**-0.5 * 2 * (rho_i - rho_i+1) * s
@@ -2104,10 +2103,11 @@ double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double 
   double other = neighbor[0]->GetDesign(DesignElement::SMART);
   double s = neigh_idx == -1 ? 1.0 : -1.0;
 
-  double res = pow((mine-other)*(mine-other) + eps*eps, -0.5) * (mine-other) * s;
+  // using not the std::pow() gives wrong results!
+  double res = l_k * std::pow((mine-other)*(mine-other) + eps*eps, -0.5) * (mine-other) * s;
 
   LOG_DBG3(func) << "L:I:CPG de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
-                 << " mine=" << mine << " other=" << other << " eps=" << eps << " neigh_idx=" << neigh_idx << " -> " << res;
+                 << " mine=" << mine << " other=" << other << " eps=" << eps << " l_k=" << l_k << " neigh_idx=" << neigh_idx << " -> " << res;
   return res;
 }
 

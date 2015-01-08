@@ -418,8 +418,8 @@ class Function
         double CalcSlopeGradient(int neigh_idx) const;
 
         /** the perimeter is similar to the slope constraint but always globalized (sum) */
-        double CalcPerimeter(double eps) const;
-        double CalcPerimeterGradient(int neigh_idx, double eps) const;
+        double CalcPerimeter(double eps, double l_k) const;
+        double CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const;
 
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
