@@ -316,7 +316,7 @@ namespace CoupledField {
     if(isBloch_  && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
-      if(wave_vector_step == wave_vectors_.GetSize() - 1)
+      if(wave_vector_step == Integer(wave_vectors_.GetSize()) - 1)
          bloch_plot_ << first_plot_line_;
       bloch_plot_.flush();
     }

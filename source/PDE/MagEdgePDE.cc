@@ -582,6 +582,36 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
       bRHSRegions_[ent[i]->GetRegion()] = coef[i];
     } // for
+    
+    // ==================
+    //  FIELD INTENSITY
+    // ==================
+    LOG_DBG(magEdgePde) << "Reading prescribed field intensity";
+
+    ReadRhsExcitation( "fieldIntensity", vecDofNames, ResultInfo::VECTOR, isComplex_, 
+                       ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST ||
+          ent[i]->GetType() == EntityList::SURF_ELEM_LIST ) {
+        EXCEPTION("Prescribed magnetic field intensity can only be specified in a volume!")
+      }
+
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex>( new CurlOperator<FeHCurl,3, Complex>(),
+                                         Complex(1.0), coef[i], coefUpdateGeo);
+      } else {
+        lin = new BUIntegrator<Double>( new CurlOperator<FeHCurl,3, Double>(),
+                                        1.0, coef[i], coefUpdateGeo);
+      }
+      lin->SetName("FieldIntensityIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+
+    } // for
   }
   
 
@@ -760,7 +790,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     normFlux->entryType = ResultInfo::SCALAR;
     normFlux->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionSurf> sNormFDens;
-    sNormFDens.reset(new CoefFunctionSurf(true, normFlux));
+    sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
     DefineFieldResult( sNormFDens, normFlux );
     surfCoefFcts_[sNormFDens] = bFunc;
 
@@ -826,7 +856,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       availResults_.insert( ec );
 
       // first, create normal mapping
-      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, ec));
+      shared_ptr<CoefFunctionSurf> ncd(new CoefFunctionSurf(true, 1.0, ec));
       surfCoefFcts_[ncd] = jFunc;
 
       // then, integrate values

@@ -76,7 +76,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://www.gidhome.com/pub/Tools/${GIDPOST_ZIP}"
+  "ftp://www.gidhome.com/pub/Tools/gidpost/${GIDPOST_ZIP}"
   "${GIDPOST_URL}/${GIDPOST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")

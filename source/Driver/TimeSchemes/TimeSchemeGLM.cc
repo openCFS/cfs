@@ -394,6 +394,7 @@ namespace CoupledField{
 
     availSchemes[GLMScheme::NEWMARK] = new Newmark(0.5,0.25);
     availSchemes[GLMScheme::BDF2] = new Bdf2();
+    availSchemes[GLMScheme::RK4] = new RungeKutta4();
   }
 
 }

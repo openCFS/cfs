@@ -131,8 +131,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
     std::cout.flush();
   }else{
     if(this->dependType_ != CoefFunction::CONSTANT){
-      this->UpdateSolution();
-      this->interpolFunction_->ApplyExternalData();
+      if(this->UpdateSolution())
+        this->interpolFunction_->ApplyExternalData();
     }
   }
 

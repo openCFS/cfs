@@ -410,7 +410,9 @@ namespace CoupledField{
           flowvelocityNormal->entryType = ResultInfo::SCALAR;
 
 
-          shared_ptr<CoefFunctionSurf> normVel = shared_ptr<CoefFunctionSurf>(new CoefFunctionSurf(true,flowvelocityNormal));
+          shared_ptr<CoefFunctionSurf> normVel = 
+              shared_ptr<CoefFunctionSurf>(new CoefFunctionSurf(true, 1.0, 
+                                                                flowvelocityNormal));
 
           normVel->AddVolumeCoef(actRegion,meanFlowCoef_);
 
@@ -929,7 +931,6 @@ namespace CoupledField{
        shared_ptr<BaseTimeScheme> mySchemeQ(new TimeSchemeGLM(GLMScheme::BDF2, 0) );
        feFunctions_[ACOU_PMLAUXVEC]->SetTimeScheme(mySchemeQ);
      }
-
    }
 
    void AcousticMixedPDE::ReadDampingInformation() {

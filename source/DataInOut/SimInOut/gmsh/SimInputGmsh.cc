@@ -123,8 +123,9 @@ namespace CoupledField {
     }
 
     while( in.good() ) {
-      in.getline(line,sizeof(line));
+      in.getline(line, sizeof(line), '\n');
       std::string sline(line);
+      boost::trim(sline);
 
       // std::cout << line << std::endl;
 

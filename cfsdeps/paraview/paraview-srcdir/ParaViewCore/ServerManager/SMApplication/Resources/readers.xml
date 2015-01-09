@@ -7358,7 +7358,7 @@
      </StringVectorProperty>
 
 <Hints>
-<ReaderFactory extensions="h5 h5ref" file_description="CFS++/NACS HDF5 files" />
+<ReaderFactory extensions="h5 h5ref nmf nrf" file_description="CFS++/NACS HDF5 files" />
 <Property name="FileName" show="1"/>
 <Property name="Refresh" show="0"/>
 </Hints>
