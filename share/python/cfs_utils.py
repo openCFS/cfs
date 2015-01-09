@@ -80,7 +80,9 @@ def toGnuPlot(complex_string):
   return string.replace(ret, ",", "\t")
 
 # execute cmd and rais error when not 0
-def execute(cmd):
+def execute(cmd, output = False):
+ if output:
+   print output 
  ret = os.system(cmd) <> 0
  if(ret <> 0):
    raise RuntimeError("execution of '" + cmd + "' -> " + str(ret))
