@@ -21,12 +21,17 @@ class CoefFunctionSurf : public CoefFunction {
 public:
 
   //! Constructor
-  
+
   //! Constructor for the class
   //! \param mapNormal If true, only the normal component w.r.t. to the
-  //!                  surface element is taken into account.
+  //!                  surface element is taken into account.By default,
+  //!                  the normal direction points OUT of the related volumes.
+  //! \param factor Additional scaling factor 
   //! \param surfInfo Result info object for surface result
-  CoefFunctionSurf( bool mapNormal, shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
+
+  CoefFunctionSurf( bool mapNormal,
+                    Double factor = 1.0,
+                    shared_ptr<ResultInfo> surfInfo =  shared_ptr<ResultInfo>());
 
   //! Destructor
   virtual ~CoefFunctionSurf();
@@ -97,6 +102,9 @@ private:
 
   //! Flag, if normal mapping should be performed
   bool mapNormal_;
+  
+  //! Factor in case of surface mapping
+  Double factor_;
 };
 
 

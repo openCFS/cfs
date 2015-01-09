@@ -51,7 +51,8 @@ namespace CoupledField {
     //@{
     typedef enum { 
       NO_INTERPOLATION = 0, 
-      NEAREST_NEIGHBOR = 1, 
+      CONSTANT = 1,
+      NEAREST_NEIGHBOR = 2, 
       LINEAR } InterpolType;
     static Enum<InterpolType> InterpolTypeEnum;
     //@}

@@ -761,6 +761,19 @@ void HeatPDE::DefinePrimaryResults() {
 void HeatPDE::DefinePostProcResults() {
   shared_ptr<BaseFeFunction> feFct = feFunctions_[HEAT_TEMPERATURE];
 
+  if ( analysistype_ != STATIC ) {
+    // === TEMPERATURE D1===
+    shared_ptr<ResultInfo> heatD1( new ResultInfo);
+    heatD1->resultType = HEAT_TEMPERATURE_D1;
+
+    heatD1->dofNames = "";
+    heatD1->unit = "K/s";
+    heatD1->definedOn = ResultInfo::NODE;
+    heatD1->entryType = ResultInfo::SCALAR;
+    availResults_.insert( heatD1 );
+    DefineTimeDerivResult( HEAT_TEMPERATURE_D1, 1, HEAT_TEMPERATURE );
+  }
+  
   // === HEAT FLUX DENSITY ===
   shared_ptr<ResultInfo> flux ( new ResultInfo );
   flux->resultType = HEAT_FLUX_DENSITY;

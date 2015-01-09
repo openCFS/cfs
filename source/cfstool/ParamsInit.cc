@@ -11,6 +11,12 @@
 
 #if defined(WIN32) || defined(__MINGW32__)
 #include <shlobj.h>
+#else
+#if defined(__APPLE__) // OSX
+#include <mach-o/dyld.h>
+#else // Linux
+#include <unistd.h>
+#endif
 #endif
 
 namespace fs = boost::filesystem;
@@ -60,8 +66,20 @@ namespace CFSTool
 
     // Obtain paths of cfstoolbin, the CFS++ base and home directory and build
     // a list of possible locations of the cfstool config file.
+    // cf. http://stackoverflow.com/questions/1023306/finding-current-executables-path-without-proc-self-exe
     StdVector<fs::path> configFiles;
-    fs::path cfstoolbin = fs::canonical(argv[0]);
+    char buf[4096];
+#if defined(WIN32) || defined(__MINGW32__) // Windows
+    GetModuleFileName(NULL, buf, sizeof(buf));
+#else
+#if defined(__APPLE__) // OSX
+    uint32_t size = sizeof(buf);
+    _NSGetExecutablePath(buf, &size);
+#else // Linux
+    readlink("/proc/self/exe", buf, sizeof(buf));
+#endif    
+#endif
+    fs::path cfstoolbin = fs::canonical(buf);
     fs::path cfsbasedir;
     cfsbasedir = cfstoolbin.parent_path().parent_path().parent_path();
     fs::path cfstoolconfig;
@@ -413,7 +431,7 @@ namespace CFSTool
       }
     }
 
-    param->ToXML(std::cout);
+    // param->ToXML(std::cout);
     
 
     logConf.reset(new LogConfigurator(param_logConfFile));

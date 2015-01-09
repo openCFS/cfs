@@ -1656,6 +1656,7 @@ namespace CoupledField {
           seqInfo->Get("stepNum")->SetValue(stepNum);
 
           // update to last step number
+          inState->SetInterpolation(SimState::CONSTANT, mp_, analysistype_, 0);
           inState->UpdateToStep(sequenceStep, stepNum);
 
           // Obtain same PDE from new domain
@@ -2378,6 +2379,7 @@ namespace CoupledField {
         if( tfmString == "constant") {
 
           // set domain to one specific step
+          inState->SetInterpolation( SimState::CONSTANT, mp_, analysistype_ , 0 );
           UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
           inState->UpdateToStep(sequenceStep, stepNum);
 

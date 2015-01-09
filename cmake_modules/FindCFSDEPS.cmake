@@ -179,7 +179,7 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find Netlib BLAS/LAPACK library
   #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  IF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
     
     SET(LAPACK_URL "${CFS_DS_SOURCES_DIR}/lapack")
     SET(LAPACK_GZ "lapack-3.4.2.tgz")
@@ -187,7 +187,7 @@ IF(USE_BLAS OR USE_LAPACK)
     
     INCLUDE("${CFSDEPS_DIR}/lapack/External_LAPACK.cmake")
     
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "NETLIB" OR USE_ILUPACK )
 
   #-----------------------------------------------------------------------------
   # Find OpenBLAS/LAPACK library
