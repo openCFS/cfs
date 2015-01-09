@@ -119,18 +119,6 @@ namespace CoupledField {
 
   inline bool IsNoise(UInt val) { return false; }
 
-  //! power of value
-  template<class T>
-  T pow(T x, UInt power)
-  { T p=x;
-    if (!power)
-      return 1;
-
-    for (UInt i=2; i<=power; i++)
-      p*=x;
-    return p;
-  }
-
   /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
   template <typename T> int sgn(T val) {
       return (T(0) < val) - (val < T(0));
