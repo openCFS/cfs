@@ -46,7 +46,7 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
-    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>

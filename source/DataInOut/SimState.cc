@@ -392,8 +392,7 @@ class MaterialHandler;
 
 
   void SimState::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type ) {
-    LOG_TRACE(simState) << "Begin new MS step " << step  << " of type "
-        << BasePDE::analysisType.ToString( type );
+    LOG_TRACE(simState) << "Begin new MS step " << step  << " of type "   << BasePDE::analysisType.ToString( type );
     // Ensure initialized object
     Init();
     

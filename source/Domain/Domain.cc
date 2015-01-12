@@ -331,7 +331,8 @@ void Domain::PostInit(UInt sequenceStep)
     optimization_->PostInitSecond();
   }
 
-
+  if(multiSequenceDriver_ && !isParentDomain_)
+    multiSequenceDriver_->SetSequenceStep(sequenceStep);
 
 }
 

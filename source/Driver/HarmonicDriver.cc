@@ -110,10 +110,6 @@ namespace CoupledField
     in->Get("end")->SetValue(stopFreq_);
     in->Get("numFreq")->SetValue(numFreq_);
 
-    // Initialize first multisequence step, as the method "CheckStoreResults" 
-    // relies on the result handler to know already about the current
-    // sequencestep. However, in case of optimization, the sequence step
-    // gets initialized in Optimization::SolveProblem()
     InitializePDEs();
   }
 
