@@ -372,20 +372,19 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           actSDList->SetRegion( actRegion );
           LinearForm* curInt = NULL;
 
-         
-            // generate source current vector
-            CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
+          // generate source current vector
+          CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
                                                      CoefXpr::OP_MULT);
-            PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
+          PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
 
-            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), 
+          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                      CoefXpr::OP_DIV);
-            PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
+          PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
 
+          if( dim_ == 3 ) {
             // ===========
             //  3D CASE
             // ===========
-            if( dim_ == 3 ) {
             if( isComplex_ ) {
               curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
                                                   1.0, jFct, updatedGeo_);
@@ -400,13 +399,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             // ===============
             //  2D / AXI CASE
             // ===============
-//            CoefXprBinOp jVec = CoefXprBinOp(mp_,  actCoil.srcVal_,
-//                                             boost::lexical_cast<std::string>(actPart.wireCrossSect), 
-//                                             CoefXpr::OP_DIV);
-//            PtrCoefFct jScal = CoefFunction::Generate(mp_, part, jVec);
-//            
-//            // Generate 1-component vector function
-//            PtrCoefFct jFct = CoefFunction::Generate(mp_, part, )
             
             coilCurrentDens_[actRegion] = jFct;
             if( isComplex_ ) {
@@ -418,7 +410,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             }
           }
 
-
           curInt->SetName("CoilIntegrator");
           LinearFormContext * coilContext =
               new LinearFormContext( curInt );
@@ -427,6 +418,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           assemble_->AddLinearForm( coilContext );
           // obtain coefficient function
         } // loop: parts
+
       } else {
 
         /*
