@@ -231,28 +231,21 @@ int CFS::Run()
     
     cout << ">> Total time: wall clock: '";
     
-    const int walltime((int) timer->GetWallTime());
-    const int cputime((int) timer->GetCPUTime());
+    int walltime = (int) timer->GetWallTime();
+    double cputime = timer->GetCPUTime();
 
     if(walltime > 120) 
     {
-      const int wallmin((int) (walltime / 60.0));
-      const int cpumin((int) (cputime / 60.0));
+      int wallmin((int) (walltime / 60.0));
+      int cpumin((int) (cputime / 60.0));
       if(wallmin > 60)
-      {
-        cout << wallmin / 60 << "h " << (wallmin % 60) 
-             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
-      }
+        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
       else
-      {
-        cout << wallmin << "m " << (walltime % 60) 
-             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
-      }
+        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
     }
     else
     {
-      cout << walltime << "s' CPU time: '" 
-           << cputime << "s'";
+      cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
     
     cout << endl << endl;

@@ -138,10 +138,8 @@ namespace CoupledField {
     LOG_TRACE(resHandler) << "Finished registering result" << std::endl;
   }
   
-  void ResultHandler::BeginMultiSequenceStep( UInt step,
-                                              BasePDE::AnalysisType type,
-                                              UInt numSteps ) {
-        
+  void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
+  {
     LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
 
     // store current sequencestep

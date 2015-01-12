@@ -11,6 +11,11 @@
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/SimState.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DECLARE_LOG(stdr)
+DEFINE_LOG(stdr, "staticDriver")
+
 
 namespace CoupledField {
 
@@ -35,13 +40,6 @@ namespace CoupledField {
   void StaticDriver::Init(bool restart)
   {
     InitializePDEs();
-
-    // Initialize first multisequence step, as the method "CheckStoreResults"
-    // relies on the result handler to know already about the current
-    // sequencestep. However, in case of optimization, the sequence step
-    // gets initialized in Optimization::SolveProblem()
-    if(!domain->GetOptimization())
-      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
   }
 
 
@@ -57,6 +55,17 @@ namespace CoupledField {
   // *****************
   void StaticDriver::SolveProblem(bool write_results)
   {
+    LOG_DBG(stdr) << "SP: write_results=" << write_results << " writeAllSteps_=" << writeAllSteps_ << " isPartOfSequence_=" << isPartOfSequence_
+                  << " sequenceStep_=" << sequenceStep_ << " analysis_=" << analysis_;
+
+    // Initialize first multisequence step, as the method "CheckStoreResults"
+    // relies on the result handler to know already about the current
+    // sequencestep. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if(!domain_->GetOptimization())
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+
+
     // In case we allow general postprocessing or this analysis is part of 
     // a multisequence (in which case the subsequent run could need this
     // simulation as restart information)

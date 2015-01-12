@@ -53,7 +53,9 @@ DEFINE_LOG(msDriver, "msDriver")
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results) {
+  void MultiSequenceDriver::SolveProblem(bool write_results)
+  {
+    LOG_DBG(msDriver) << "SP: wr=" << write_results;
 
     std::cout << "++ Starting to solve problem" << std::endl;
 
@@ -122,8 +124,7 @@ DEFINE_LOG(msDriver, "msDriver")
   // *****************
   void MultiSequenceDriver::Init(bool restart) 
   {
-    LOG_DBG(msDriver) << "Initializing MultiSequenceDriver (restart: " 
-        << (restart ? "true" : "false");
+    LOG_DBG(msDriver) << "Init: restart= " << restart;
     
     isRestarted_ = restart;
 
