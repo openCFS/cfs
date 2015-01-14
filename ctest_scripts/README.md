@@ -4,9 +4,9 @@ Nightly Build/Test scripts for CFS++
 Description
 -----------
 
-The scripts in  this directory are used to produce nightly  test reports for a
-[CDash](http://www.cdash.org)            server           running           at
-[lse17](https://lse17.e-technik.uni-erlangen.de:2001/cdash).
+The scripts in  this directory are used to produce nightly  test reports for 
+[CDash](http://www.cdash.org) running on the
+[CFS++ development server](@CFS_DS_HTTPS@/cdash).
 
 Furthermore, the scripts are used  to build nightly binaries for certain Linux
  and  Windows platforms  at [Measurement  and Actuator  Division,  Institute of
@@ -15,9 +15,9 @@ Furthermore, the scripts are used  to build nightly binaries for certain Linux
 Overview
 --------
 
-We  use   a  password-less  SSH  key   to  log  into   the  Subversion  server
-[lse17](https://lse17.e-technik.uni-erlangen.de:2001/svn)                    at
-Erlangen. Therefore we can run automatical updates of the working copies (WCs)
+We  use   a  password-less  SSH  key   to  log  into   the  [Subversion  server
+](@CFS_DS_SVN@) at Erlangen.
+Therefore we can run automatical updates of the working copies (WCs)
 on          `wiki.mdmt.tuwien.ac.at`          from         the          script
 `sites/wiki/site_specific_init.cmake`.
 
@@ -29,8 +29,8 @@ provisioning mechanism](http://docs.vagrantup.com/v2/provisioning/shell.html).
 The  Vagrant base  `.box` image  files are  stored locally  on  `wiki.mdmt` at
 `/var/www/html/boxes`.   They are  therefore, accessible  through  the [Apache
 server](http://wiki.mdmt.tuwien.ac.at/boxes) from within  TU Wien.  The images
-are        also        mirrored         on        the        [lse17        FTP
-server](ftp://lse17.e-technik.uni-erlangen.de:40065/boxes).
+are        also        mirrored         on        the        [FTP
+server](@CFS_DS_FTP@/boxes).
 
 The  VBoxes get  configured by  the `Vagrantfile`s  in the  corresponding site
 directories     to      mount     the     directories      `/opt/pckg`     and

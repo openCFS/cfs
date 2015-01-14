@@ -4,10 +4,12 @@
 #include <def_use_lapack.hh>
 #include <def_build_type_options.hh>
 
+#include <boost/type_traits/is_complex.hpp>
+
 #include "MatVec/promote.hh"
 #include "MatVec/SingleVector.hh"
+#include "MatVec/opdefs.hh"
 #include "Utils/tools.hh"
-
 
 #ifdef EXPR_TEMPLATES
 #include "MatVec/exprt/xpr2.hh"
@@ -124,9 +126,18 @@ namespace CoupledField
 
     //! Check if the matrix is symmetric
 
-    //! Return true, if the matrix is symmetric
-    //! \note The results might be incorrect due to numeric rounding errors
-    inline bool IsSymmetric() const;
+    /** return true, if the matrix is symmetric.
+     * Does a binary comparison
+     * @see IsSymmetric(bool) */
+    bool IsSymmetric() const;
+
+    /** symmetry check with eps sensitivity. */
+    inline bool IsSymmetric(double eps) const;
+
+    /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
+     * @param eps if true use close() to compare the values by an eps  */
+    bool IsHermitian(double eps = 1e-6) const;
+
 
     //! Get the number of rows
     inline UInt GetNumRows() const
@@ -257,8 +268,9 @@ namespace CoupledField
     /** Set this matrix with a multiple of another matrix.
      * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
-     * this = factor * other_mat */
-    void Assign(const Matrix<TYPE>& other_mat, TYPE factor);
+     * this = factor * other_mat
+     * @param size_tolerant if set this matrix and other_mat may have different size with 0 entries for the unused. */
+    void Assign(const Matrix<TYPE>& other_mat, TYPE factor, bool size_tolerant = false);
     
     //! Perform a matrix-matrix multiplication rMat = this*mMat
     void Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const;
@@ -280,13 +292,14 @@ namespace CoupledField
     //!        state
     //! \param alpha additional scalar factor for matrix-matrix product
     //! \param beta scalar factor for re-use of \a rMat
+    //! \param conjugate interpret in complex case the transposed by conjugate complex transpose?
     //! \note Currently we assume the \a rMat to have the correct size already
     //! \note If CFS is compiled without BLAS support, we use as fallback the
     //!       internal matrix-matrix multiplication.
     void Mult_Blas(const Matrix& mMat, Matrix& rMat, 
                    bool trans_a, bool trans_b, TYPE alpha,
-                   TYPE beta) const;
-    
+                   TYPE beta, bool conjugate = false) const;
+
     //! Perform a matrix-matrix multiplication rMat = Transpose(this)*mMat
     void MultT(const DenseMatrix & mMat, DenseMatrix & rMat) const;
 
@@ -414,8 +427,7 @@ namespace CoupledField
     //! \note The matrix itself gets not changed.
     //! \note If the transposed of a matrix is needed for a operation
     //! with a vector, the according function like 'MultT' should be used
-    void Transpose( Matrix<TYPE> & transposedMat ) const;  
-
+    void Transpose( Matrix<TYPE> & transposedMat ) const;
     
     /** Check if the matrix contains NAN. To be used by asserts() */
     bool ContainsNaN() const;
@@ -617,7 +629,7 @@ namespace CoupledField
     void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
     /** Dumps for developers or internal use
-     * @param level -1=list of all, 0=all data with structure, 1=summary info */
+     * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
 
     /** Creates a xml string of the following form.
@@ -653,6 +665,9 @@ namespace CoupledField
   private:
     /** Helper method for Parse() */
     unsigned int ParseLineHelper(const std::string& input, StdVector<TYPE>& out);
+
+    /** Helper for MultBLAS() */
+    void CallGEMM(char* transa, char* transb, int* m, int* n, int* k, TYPE* alpha, TYPE* a, int* lda, TYPE* b, int* ldb, TYPE* beta, TYPE* c, int* ldc) const;
 
     //! Calculates the adjunct of the matrix at position (i,j)
     TYPE Adjunct (UInt i, UInt j) const;
@@ -767,7 +782,23 @@ namespace CoupledField
   //! Explicit Hermitian of matrix
   template<class TYPE>
   Matrix<TYPE> Herm( const Matrix<TYPE>&m);
-#endif
+
+  #endif
+
+  //! Explicit Transpose function
+  template<class TYPE>
+  Matrix<TYPE> TransposeConjugate( const Matrix<TYPE>& m )
+  {
+    Matrix<TYPE> trans(m.GetNumCols(), m.GetNumRows());
+
+    for( UInt i = 0, in = m.GetNumCols(); i < in; i++ )
+      for (UInt j = 0, jn = m.GetNumRows(); j < jn; j++ )
+        trans[i][j] = Conj(m[j][i]);
+
+    return trans;
+  }
+
+
 
   // =======================================================================
   // INLINE MEMBER IMPLEMENTATION

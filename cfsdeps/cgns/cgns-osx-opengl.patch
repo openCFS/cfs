@@ -1,0 +1,26 @@
+--- src/cgnstools/tkogl/CMakeLists.txt.orig	2014-04-14 20:00:31.139778154 +0200
++++ src/cgnstools/tkogl/CMakeLists.txt	2014-04-14 20:01:06.371778149 +0200
+@@ -2,7 +2,9 @@
+ # tkogl #
+ #########
+ 
+-include_directories(${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH})
++include_directories(${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH}
++  ${CMAKE_OSX_SYSROOT}/${OPENGL_INCLUDE_DIR}
++)
+ 
+ set(tkogl_FILES 
+ 	tkogl.c
+--- src/cgnstools/cgnsplot/CMakeLists.txt.orig	2014-04-14 20:01:21.356778146 +0200
++++ src/cgnstools/cgnsplot/CMakeLists.txt	2014-04-14 20:01:53.267778141 +0200
+@@ -2,7 +2,9 @@
+ # cgnsplot #
+ ############
+ 
+-include_directories(${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH} ${OPENGL_INCLUDE_DIR})
++include_directories(${TCL_INCLUDE_PATH} ${TK_INCLUDE_PATH}
++  ${CMAKE_OSX_SYSROOT}/${OPENGL_INCLUDE_DIR}
++)
+ include_directories(../common)
+ link_directories(. ../tkogl)
+ if (CGNS_USE_SHARED)

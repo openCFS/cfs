@@ -1,0 +1,15 @@
+digraph G {
+	"CFS++" -> ".cdb/.inp";
+        ".cdb/.inp" -> "CFS++";
+
+        ".cdb/.inp" -> "ANSYS Classic";
+        "ANSYS Classic" -> ".cdb/.inp";
+
+        "ANSYS WB FeModeler" -> ".cdb/.inp";
+        "Siemens NX PLM" -> ".cdb/.inp";
+
+        "CFS++" [shape=box,color=darkgrey,style=filled];
+        "ANSYS Classic" [shape=box];
+        "ANSYS WB FeModeler" [shape=box];
+        "Siemens NX PLM" [shape=box];
+}

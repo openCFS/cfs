@@ -62,13 +62,14 @@ namespace CoupledField
     virtual std::map<SolutionType, shared_ptr<FeSpace> > 
     CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
-    //! Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
-    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
+    /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
+     * @param isComplex either from complex material or bloch mode */
+    BaseBDBInt* GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex );
     
     //! Return strain operator 
-    BaseBOperator * GetStrainOperator( bool isComplex, bool icModes );
+    BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);
 
     // ========================
     // set solution information
@@ -87,6 +88,15 @@ namespace CoupledField
     
     //! Define available postprocessing results
     void DefinePostProcResults();
+    
+    //! Define concentrated mechanical elements
+    void DefineConcentratedElems();
+
+    //! Create CoefFunction for preStressing
+    PtrCoefFct CreatePreStressFct( bool isComplex, PtrParamNode stressNode);
+
+    //! Returns a MechStress CoefFunction from a preceeding sequence step
+    PtrCoefFct GetStressCoefFromSeqStep(UInt seqStep);
 
     //! Stores softening for each region
     std::map<RegionIdType, std::string> regionSoftening_;

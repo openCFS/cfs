@@ -44,28 +44,35 @@ namespace CoupledField {
     bool UseStiffInNMat ( ) { return useStiffInNMat_; } ;
 
     //! Performs the operation ( A - sigma * B ) y = x
-    void MultShiftOpV( Double* x, Double* y );
+    template <class TYPE>
+    void MultShiftOpV(TYPE* x, TYPE* y);
 
     //! Performs the operation ( B * y = A * x )
-    void MultRegularOpV( Double* x, Double* y );
+    template <class TYPE>
+    void MultRegularOpV(TYPE* x, TYPE* y);
     
     //! Performs the operation y=A*x
-    void MultAV( Double* x, Double* y );
+    template <class TYPE>
+    void MultAV(TYPE* x, TYPE* y);
 
     //! Performs the operation y=B*x
-    void MultBV( Double* x, Double* y );
+    template <class TYPE>
+    void MultBV(TYPE* x, TYPE* y);
+
+
+    // TODO Bloch rename complex methods to Quad and implement complex methods (with old name) for bloch
 
     //! Performs the operation ( A - sigma * B ) y = x
-    void MultShiftOpV( Complex* x, Complex* y );
+    void MultShiftOpVQuad( Complex* x, Complex* y );
 
     //! Performs the operation ( B * y = A * x )
-    void MultRegularOpV( Complex* x, Complex* y );
+    void MultRegularOpVQuad( Complex* x, Complex* y );
     
     //! Performs the operation y=A*x
-    void MultAV( Complex* x, Complex* y );
+    void MultAVQuad( Complex* x, Complex* y );
 
     //! Performs the operation y=B*x
-    void MultBV( Complex* x, Complex* y );
+    void MultBVQuad( Complex* x, Complex* y );
     
     //! Perform the operation y=complex(Stiff|Mass|Damp)*x
     void MultZStiffV( Complex* x, Complex* y );
@@ -107,5 +114,7 @@ namespace CoupledField {
     bool useStiffInNMat_;
   };
 }
+
+
 
 #endif

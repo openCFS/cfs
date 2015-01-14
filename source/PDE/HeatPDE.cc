@@ -347,18 +347,18 @@ void HeatPDE::DefineIntegrators() {
     if( dim_ == 2) {
       if(isComplex_) {
         lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2>(),
-                                          Complex(2.0), coef[i], updatedGeo_ );
+                                          Complex(1.0), coef[i], updatedGeo_ );
       } else {
         lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2>(),
-                                         2.0, coef[i], updatedGeo_ );
+                                         1.0, coef[i], updatedGeo_ );
       }
     } else  {
       if(isComplex_) {
         lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3>(),
-                                          Complex(2.0), coef[i], updatedGeo_ );
+                                          Complex(1.0), coef[i], updatedGeo_ );
       } else {
         lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3>(),
-                                         2.0, coef[i], updatedGeo_ );
+                                         1.0, coef[i], updatedGeo_ );
       }
     }
     lin->SetName("ElectricPowerDensityInt");
@@ -708,7 +708,7 @@ void HeatPDE::InitTimeStepping() {
 
   // Until now no effective mass formulation in the trapezoidal
   //  integration scheme is implemented!
-  Double gamma = 0.5;
+  Double gamma = 0.5; 
   GLMScheme * scheme = new Trapezoidal(gamma);
 
   if ( nonLinTotalFormulation_ ) {
@@ -761,6 +761,19 @@ void HeatPDE::DefinePrimaryResults() {
 void HeatPDE::DefinePostProcResults() {
   shared_ptr<BaseFeFunction> feFct = feFunctions_[HEAT_TEMPERATURE];
 
+  if ( analysistype_ != STATIC ) {
+    // === TEMPERATURE D1===
+    shared_ptr<ResultInfo> heatD1( new ResultInfo);
+    heatD1->resultType = HEAT_TEMPERATURE_D1;
+
+    heatD1->dofNames = "";
+    heatD1->unit = "K/s";
+    heatD1->definedOn = ResultInfo::NODE;
+    heatD1->entryType = ResultInfo::SCALAR;
+    availResults_.insert( heatD1 );
+    DefineTimeDerivResult( HEAT_TEMPERATURE_D1, 1, HEAT_TEMPERATURE );
+  }
+  
   // === HEAT FLUX DENSITY ===
   shared_ptr<ResultInfo> flux ( new ResultInfo );
   flux->resultType = HEAT_FLUX_DENSITY;

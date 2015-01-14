@@ -97,7 +97,7 @@ public:
                   std::map<std::string, PtrCoefFct >& vars );
 
   //! Set Tensor valued expression
-  void SetTensor( StdVector<std::string>& expr,
+void SetTensor( StdVector<std::string>& expr,
                   UInt numRows, UInt numCols,
                   std::map<std::string, PtrCoefFct >& vars );
 
@@ -133,6 +133,9 @@ protected:
   
   //! Mathparser object
   MathParser* parser_;
+  
+  //! Default coordinate system 
+  CoordSystem* coordSysDefault_;
   
   //! Map variable names to coefficient functions
   std::map<std::string, PtrCoefFct > coefs_;
@@ -227,6 +230,9 @@ protected:
   
   //! Mathparser object
   MathParser* parser_;
+  
+  //! Default coordinate system 
+  CoordSystem* coordSysDefault_;
   
   //! Map variable names to coefficient functions
   std::map<std::string, PtrCoefFct > coefs_;

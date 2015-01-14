@@ -144,14 +144,14 @@ H5TN_init_interface(void)
     H5T_t	*dt = NULL;
     herr_t	ret_value = SUCCEED;
 
-    FUNC_ENTER_NOAPI(H5TN_init_interface, FAIL)
+    FUNC_ENTER_NOAPI(FAIL)
 
    /*
     *    0
     * IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -172,7 +172,7 @@ H5TN_init_interface(void)
     * UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -192,7 +192,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -213,7 +213,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -233,7 +233,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -254,7 +254,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -276,7 +276,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -299,7 +299,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -319,7 +319,7 @@ H5TN_init_interface(void)
     * IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -339,7 +339,7 @@ H5TN_init_interface(void)
     * UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -359,7 +359,7 @@ H5TN_init_interface(void)
     * IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -379,7 +379,7 @@ H5TN_init_interface(void)
     * UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -399,7 +399,7 @@ H5TN_init_interface(void)
     * IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -419,7 +419,7 @@ H5TN_init_interface(void)
     * UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -439,7 +439,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -459,7 +459,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -479,7 +479,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -499,7 +499,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -519,7 +519,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -539,7 +539,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -559,7 +559,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -579,7 +579,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -599,7 +599,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -619,7 +619,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -639,7 +639,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -659,7 +659,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -681,7 +681,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -703,7 +703,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -725,7 +725,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -747,7 +747,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -769,7 +769,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -791,7 +791,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -813,7 +813,7 @@ H5TN_init_interface(void)
     * IIIIIIII IIIIIIII IIIIIIII IIIIIIII
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -836,7 +836,7 @@ H5TN_init_interface(void)
     * UUUUUUUU UUUUUUUU UUUUUUUU UUUUUUUU
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_INTEGER;
@@ -857,7 +857,7 @@ H5TN_init_interface(void)
     * Implicit bit? yes
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_FLOAT;
@@ -888,7 +888,7 @@ H5TN_init_interface(void)
     * Implicit bit? yes
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_FLOAT;
@@ -923,7 +923,7 @@ H5TN_init_interface(void)
     * Implicit bit? no
     * Alignment: none
     */
-    if(NULL == (dt = H5T_alloc()))
+    if(NULL == (dt = H5T__alloc()))
         HGOTO_ERROR(H5E_DATATYPE, H5E_NOSPACE, FAIL, "datatype allocation failed")
     dt->shared->state = H5T_STATE_IMMUTABLE;
     dt->shared->type = H5T_FLOAT;

@@ -59,6 +59,7 @@ public:
       isAnalytical_ = false;
       isComplex_ = false;
       dependType_ = CoefFunction::CONSTANT;
+      coordSys_ = NULL;
       dimType_ = CoefFunction::NO_DIM;
       mp_ = mp;
     }
@@ -95,6 +96,11 @@ public:
       return isComplex_;
     }
     
+    //! Get associated coordinate system
+    CoordSystem* GetCoordinateSystem() const {
+      return coordSys_;
+    }
+    
     //! Get MathParser instance
     MathParser * GetMathParser() {
       return mp_;
@@ -113,13 +119,16 @@ public:
     OP_MULT_CONJ,             /*!< Binary * operation (scal-scal, scalar-vector), conjugated */
     OP_MULT_VOIGT_TENSOR_VEC, /*!< Binary * operation (tensor-vector, Voigt case) */
     OP_MULT_VOIGT_TENSOR_VEC_CONJ, /*!< Binary * operation (tensor-vector, Voigt case), conjugated */
+    OP_MULT_TENSOR,           /*!< Binary * operation (tensor-tensor) e.g. dyad in case of vector-vector */
     OP_DIV,                   /*!< Binary / operation */
     OP_CROSS,                 /*!< Binary x operation (cross product 3D and 2D) */
     OP_CROSS_AXI,             /*!< Binary x operation (axisymmetric cross product) */
     OP_POW,                   /*!< Binary x^y operation */
     OP_NORM,                  /*!< Unary L2-Norm operation */
     OP_SQRT,                   /*!< Unary square root operation */
-    OP_TRACE                  /*!< Unary trace of tensor operation  */
+    OP_TRACE,                  /*!< Unary trace of tensor operation  */
+    OP_INV,                   /*!< Unary inversion operation */
+    OP_DET                    /*!< Unary operation, returning the determinant of a square tensor*/
   } OpType;
   
   //! Get number of operands for OpType
@@ -259,6 +268,9 @@ protected:
   
   //! Dependency type of the coefficient function
   CoefFunction::CoefDependType dependType_;
+  
+  //! Pointer to coordinate system
+  CoordSystem* coordSys_;
   
   //! Pointer to MathParser
   MathParser * mp_;

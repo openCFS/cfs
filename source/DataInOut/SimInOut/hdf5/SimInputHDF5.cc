@@ -249,21 +249,24 @@ namespace CoupledField {
 
     // Make sure we have only entities in linearizeEntities_ which are
     // also part of readEntities_
-    if ( *linearizeEntities_.begin() == "__none__" ) {
-      linearizeEntities_.clear();
-    } else if ( *linearizeEntities_.begin() == "__all__" ) {
-      linearizeEntities_.insert(readEntities_.begin(), readEntities_.end());
-    } else {
-      it = linearizeEntities_.begin();
-      end = linearizeEntities_.end();
-      for ( ; it != end; ) {
-        if ( readEntities_.find(*it) == readEntities_.end() ) {
-          linearizeEntities_.erase(it++);
-        } else {
-          ++it;
+    if(!linearizeEntities_.empty()) 
+    {      
+      if ( *linearizeEntities_.begin() == "__none__" ) {
+        linearizeEntities_.clear();
+      } else if ( *linearizeEntities_.begin() == "__all__" ) {
+        linearizeEntities_.insert(readEntities_.begin(), readEntities_.end());
+      } else {
+        it = linearizeEntities_.begin();
+        end = linearizeEntities_.end();
+        for ( ; it != end; ) {
+          if ( readEntities_.find(*it) == readEntities_.end() ) {
+            linearizeEntities_.erase(it++);
+          } else {
+            ++it;
+          }
         }
       }
-    }
+    }    
 
     // Remove nodal entities from linearizeEntities_
     StdVector<std::string>::iterator findIt, endIt = nodeNames_.End();

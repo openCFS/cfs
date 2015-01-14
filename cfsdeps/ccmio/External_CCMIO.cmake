@@ -77,7 +77,7 @@ CONFIGURE_FILE(
 # The CCMIO-static external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ccmio-static
-  DEPENDS cgns-static
+  DEPENDS cgns
   PREFIX ${ccmio_prefix}
   SOURCE_DIR ${ccmio_source}
   URL ${LOCAL_FILE}
@@ -118,3 +118,4 @@ SET(CCMIO_LIBRARY
 SET(CCMIO_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CCMIO include directory")
 
 MARK_AS_ADVANCED(CCMIO_INCLUDE_DIR)
+MARK_AS_ADVANCED(CCMIO_LIBRARY)

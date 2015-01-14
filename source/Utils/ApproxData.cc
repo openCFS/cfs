@@ -253,17 +253,20 @@ DEFINE_LOG(approxdata, "approxdata")
     for (UInt k=1; k< blockSizes.size(); k ++ ){
       // blocks have to be the same size
       if (blockSizes[k] != firstBlockSize) 
-        EXCEPTION("each block size must be the same in the data file");
+        EXCEPTION("each block size must be the same in the data file: "
+                        << fncName);
       // the x1 coordinates must be the same for each block
       for (UInt l=0; l< firstBlockSize; l++) {
         if (xx1[l] != xx1[k*firstBlockSize + l])
-          EXCEPTION("coordinate x1 must be the same in each block of the data file");
+          EXCEPTION("coordinate x1 must be the same in each block of the data file: "
+                         << fncName );
       }
     }
     for (UInt k=0; k<blockSizes.size(); k++) {
       for (UInt l=0; l<firstBlockSize; l++) {
         if (xx0[k*firstBlockSize] != xx0[k*firstBlockSize + l])
-          EXCEPTION("coordinate x0 must be the same throughout a block of the data file");
+          EXCEPTION("coordinate x0 must be the same throughout a block of the data file: "
+                          << fncName);
       }
     }
   
@@ -282,7 +285,8 @@ DEFINE_LOG(approxdata, "approxdata")
     for (UInt l=1; l<firstBlockSize; l++) {
       if ( x1_[l-1] >= x1_[l]){
         LOG_DBG(approxdata) << "x1 Vector: " << x1_.ToString();
-        EXCEPTION("coordinate x1 must increase monotonically");
+        EXCEPTION("coordinate x1 must increase monotonically. In file : "
+                        << fncName);
 	}
     }
       
@@ -296,7 +300,8 @@ DEFINE_LOG(approxdata, "approxdata")
     for (UInt l=1; l<nblocks; l++) {
       if ( x_[l-1] >= x_[l]){
         LOG_DBG(approxdata) << "x0 Vector: " << x_.ToString();
-        EXCEPTION("coordinate x0 must increase monotonically");
+        EXCEPTION("coordinate x0 must increase monotonically. In file: "
+                        << fncName);
 	}
       
     }

@@ -291,7 +291,7 @@ Bdf2::Bdf2()
   sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
 
   lastStageIsSolution_ = false;
-  usePredictors_ = true;
+  usePredictors_ = false;
 
   //prepare coefficient matrix
   UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
@@ -351,6 +351,162 @@ void Bdf2::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
     schemeCoefs_[4][2] = (0.5/curTStepSize_);
     schemeCoefs_[4][3] = 0;
     break;
+  }
+}
+
+
+//================================================================
+// RUNGE KUTTA fourth ORDER SCHEME
+//================================================================
+
+RungeKutta4::RungeKutta4()
+         : GLMScheme() {
+
+  maxDerivOrder_ = 1;
+  numStages_ = 4;
+  numOldSols_ = 1;
+  numSol1stDerivs_ = 1;
+  numSol2ndDerivs_ = 0;
+  sizeGLMVec_ = numOldSols_ + numSol1stDerivs_;
+
+  lastStageIsSolution_ = false;
+  usePredictors_ = false;
+
+  //prepare coefficient matrix
+  UInt numCols = numStages_ + ((maxDerivOrder_+1) * numOldSols_);
+  UInt numRows = (maxDerivOrder_+1)*(numStages_) + sizeGLMVec_;
+  //THis is the effective mass tableau
+  schemeCoefs_.Resize(numRows,numCols);
+  schemeCoefs_.Init();
+}
+
+Double RungeKutta4::TransformBC(const StdVector< SingleVector* > & glm,
+                                 Double value,
+                                 UInt valDerivOrder,
+                                 Integer eqnNumber){
+  //test if the value deriv order is 0 if so, we compute an approximated time derivative
+  if(valDerivOrder == solDerivOrder_){
+      return value;
+    }else if (valDerivOrder == 0){
+      std::cerr << "WARNING: in case of Explicit schemes you need to specify the time derivative of the dirichlet value" << std::endl;
+      return value;
+      //Double retVal = 0.0;
+      ////temporarily transform the coefMatrix to valDerivOrder
+      //UInt tmpSolDeriv = solDerivOrder_;
+      //ComputeCoefficients(valDerivOrder,curTStepSize_);
+      ////we just take the corresponding line of the V-Matrix and multiply the glm entiries
+      //UInt row = numStages_ * (maxDerivOrder_+1) + tmpSolDeriv;
+      //UInt col = numStages_;
+      //for(UInt i=0;i<sizeGLMVec_;i++){
+      //  Double tmpVal = 0.0;
+      //  glm[i]->GetEntry(eqnNumber-1,tmpVal);
+      //  retVal += tmpVal * schemeCoefs_[row][col+i];
+      //}
+      ////now we multiply value by the special entry and we are good to go
+      //retVal += value * schemeCoefs_[row][col-1];
+      ////restore the coefficient matrix
+      //ComputeCoefficients(tmpSolDeriv,curTStepSize_);
+      //return retVal;
+    }
+  return -1;
+}
+
+void RungeKutta4::ComputeCoefficients(UInt solDerivOrder,Double deltaT){
+  curTStepSize_ = deltaT;
+  solDerivOrder_ = solDerivOrder;
+
+  switch(solDerivOrder){
+  case 0:
+    EXCEPTION("RK4 scheme cannot solve for solution itself")
+    break;
+  case 1 :
+    solDerivOrder_ = 1;
+
+    //FIRST STAGE
+    //zero order part
+    schemeCoefs_[0][0] = 0.0;
+    schemeCoefs_[0][1] = 0.0;
+    schemeCoefs_[0][2] = 0.0;
+    schemeCoefs_[0][3] = 0.0;
+    schemeCoefs_[0][4] = -1.0;
+    schemeCoefs_[0][5] = 0.0;
+    //fist order part
+    schemeCoefs_[1][0] = 1.0;
+    schemeCoefs_[1][1] = 0.0;
+    schemeCoefs_[1][2] = 0.0;
+    schemeCoefs_[1][3] = 0.0;
+    schemeCoefs_[1][4] = 0.0;
+    schemeCoefs_[1][5] = 0.0;
+
+    //SECOND STAGE
+    //zero order part
+    schemeCoefs_[2][0] = -curTStepSize_/2.0;
+    schemeCoefs_[2][1] = 0.0;
+    schemeCoefs_[2][2] = 0.0;
+    schemeCoefs_[2][3] = 0.0;
+    schemeCoefs_[2][4] = -1.0;
+    schemeCoefs_[2][5] = 0.0;
+    //fist order part
+    schemeCoefs_[3][0] = 0.0;
+    schemeCoefs_[3][1] = 1.0;
+    schemeCoefs_[3][2] = 0.0;
+    schemeCoefs_[3][3] = 0.0;
+    schemeCoefs_[3][4] = 0.0;
+    schemeCoefs_[3][5] = 0.0;
+
+    //THIRD STAGE
+    //zero order part
+    schemeCoefs_[4][0] = 0.0;
+    schemeCoefs_[4][1] = -curTStepSize_/2.0;
+    schemeCoefs_[4][2] = 0.0;
+    schemeCoefs_[4][3] = 0.0;
+    schemeCoefs_[4][4] = -1.0;
+    schemeCoefs_[4][5] = 0.0;
+    //fist order part
+    schemeCoefs_[5][0] = 0.0;
+    schemeCoefs_[5][1] = 0.0;
+    schemeCoefs_[5][2] = 1.0;
+    schemeCoefs_[5][3] = 0.0;
+    schemeCoefs_[5][4] = 0.0;
+    schemeCoefs_[5][5] = 0.0;
+
+    //FOURTH STAGE
+    // zero order part
+    schemeCoefs_[6][0] = 0.0;
+    schemeCoefs_[6][1] = 0.0;
+    schemeCoefs_[6][2] = -1.0*curTStepSize_;
+    schemeCoefs_[6][3] = 0.0;
+    schemeCoefs_[6][4] = -1.0;
+    schemeCoefs_[6][5] = 0.0;
+    // first order part
+    schemeCoefs_[7][0] = 0.0;
+    schemeCoefs_[7][1] = 0.0;
+    schemeCoefs_[7][2] = 0.0;
+    schemeCoefs_[7][3] = 1.0;
+    schemeCoefs_[7][4] = 0.0;
+    schemeCoefs_[7][5] = 0.0;
+
+
+    //UPDATE PART zero order
+    schemeCoefs_[8][0] = (1.0/6.0)*curTStepSize_;
+    schemeCoefs_[8][1] = (1.0/3.0)*curTStepSize_;
+    schemeCoefs_[8][2] = (1.0/3.0)*curTStepSize_;
+    schemeCoefs_[8][3] = (1.0/6.0)*curTStepSize_;
+    schemeCoefs_[8][4] = 1.0;
+    schemeCoefs_[8][5] = 0.0;
+
+    //UPDATE PART first order
+    schemeCoefs_[9][0] = 1.0/6.0;
+    schemeCoefs_[9][1] = 1.0/3.0;
+    schemeCoefs_[9][2] = 1.0/3.0;
+    schemeCoefs_[9][3] = 1.0/6.0;
+    schemeCoefs_[9][4] = 0.0;
+    schemeCoefs_[9][5] = 0.0;
+    break;
+  default:
+    EXCEPTION("Specified time derivative order not supported by RK4");
+    break;
+
   }
 }
 

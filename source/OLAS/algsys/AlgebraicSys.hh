@@ -52,12 +52,12 @@ namespace CoupledField {
   //! associated with this FeFunction / FeSpace.
   //! The corresponding mapping
   //! \f[ \mathrm{(FeFunctionId, eqnNr) \rightarrow (sbmBlock, index)} \f]
-  //! can be externally defined. This allows different ways of splittings
+  //! can an be externally defined. This allows different ways of splittings
   //! for different solution strategies. In addition, single SBM blocks
   //! can be re-ordered to minimize the bandwidth. 
   //!
   //! Furthermore we can define a sub-matrix structure, so called sub-blocks.
-  //! which can be used e.g. for block-preconditioners. They are only
+  //! which camn be used e.g. for block-preconditioners. They are only
   //! stored as additional indices within one matrix block.
   //! 
   //! \note The indices for FeFunctionId and SBM-blockindices are 0-based,
@@ -173,8 +173,8 @@ namespace CoupledField {
     //! \param shift Frequency shift applied to the system
     //! \param quadratic Flag indicating if a quadratic eigenvalue problem
     //!        (true) or a generalized problem (false) is to be solved
-    void SetupEigenSolver( UInt numFreq, Double shift,
-                           bool quadratic );
+    //! \param bloch mode problems are complex but not quadratic
+    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool bloch);
 
 
     //! Solve the linear system.
@@ -210,7 +210,7 @@ namespace CoupledField {
     //! \return Number of converged eigenvalues
     //! \note This method may only be calaled if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Double>& frequencies,
+    void CalcEigenFrequencies( Vector<Double>& frequencies, // TODO bloch implement export system
                                Vector<Double>& err );
  
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
@@ -410,7 +410,7 @@ namespace CoupledField {
                                   StdVector<UInt>& indices );
     
     //! @see MapFctIdEqnToIndex()
-    //! Return for each SBM block all indices for a given fctId.
+    //! Return all for each SBM block all indices for a given fctId.
     //! In case of the elimination approach to handle IDBCs, the second
     //! set contains all indices corresponding to the auxiliary matrices
     //! stored in the IDBC handler. 
@@ -531,6 +531,9 @@ namespace CoupledField {
     //!                numbers are interchanged. Note that this is only
     //!                supported for off-diagonal blocks, i.e. for cases
     //!                with different Fct identifiers.
+    //! \param noStaticCond If set to false, no static condensation will be
+    //!                     applied to this element matrix. This is needed e.g.
+    //!                     for matrices not being assembled to the system matrix.
     template<typename T>
     void SetElementMatrix( FEMatrixType matrixType, 
                            Matrix<T>& elemmat,
@@ -538,7 +541,8 @@ namespace CoupledField {
                            const StdVector<Integer>& eqnNrs1,
                            FeFctIdType fctId2,
                            const StdVector<Integer>& eqnNrs2,
-                           bool setCounterPart,bool unsetStaticCond );
+                           bool setCounterPart, 
+                           bool noStaticCond );
 
     //! Assemble the local rhs vector to the global one
 
@@ -782,7 +786,9 @@ namespace CoupledField {
     //! for example STIFFNESS, MASS...
     //! \param matrixTypes set of enums of global matrices
     void GetFEMatrixTypes( std::set<FEMatrixType> &matrixTypes ) const;
-    
+
+    /** This is meant mainly for debug purpose */
+    SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_[type]; }
     
     //! Return, if a non-zero static condensation block is present
     bool UseStaticCondensation() {
@@ -860,6 +866,10 @@ namespace CoupledField {
     //!       functionality.
     void CheckConsistency();
     
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+     * Shall be called for each phase, set each time exactly one parameter to true */
+    void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
+
     //! Generate  SBM matrix according to graph information
     
     //! This method generates the SBM matrix for a given entry type. In

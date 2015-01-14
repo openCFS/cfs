@@ -57,21 +57,6 @@ DECLARE_LOG(genSolver)
 DEFINE_LOG(genSolver, "genSolver")
 
 
-// **********************************************************
-//   Macro for generation of a solver object intended for
-//   the case that the solver depends not only on the entry
-//   type, but also on the block size of the matrix.
-// *********************************************************
-#define SOLVER_OBJ( entryType, solverObjType ) \
-  if ( entryType == eType  ) { \
-    retSolver = new solverObjType( solverNode, olasInfo ); \
-    LOG_DBG(genSolver) << " GenerateSolver: Generated " \
-    << MACRO2STRING( solverObjType ) \
-    << " solver";\
-  }
-
-
-
 // ****************************
 //   Generate a solver object
 // ****************************
@@ -202,8 +187,24 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
     // Get block size of matrix entries (we need an StdMatrix for this,
     // but, if it's not, an LDL_Solver makes no sense anyhow)
   {
-    SOLVER_OBJ( BaseMatrix::DOUBLE,   LDLSolver<Double>  );
-    SOLVER_OBJ( BaseMatrix::COMPLEX,  LDLSolver<Complex> );
+    if(eType == BaseMatrix::DOUBLE) {
+      retSolver = new LDLSolver<Double>( solverNode, olasInfo );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated LDLSolver<Double>";
+    }
+    else if(eType == BaseMatrix::COMPLEX)  {
+      retSolver = new LDLSolver<Complex>( solverNode, olasInfo );
+      LOG_DBG(genSolver) << " GenerateSolver: Generated LDLSolver<COMPLEX>";
+    }
+
+#define SOLVER_OBJ( entryType, solverObjType ) \
+  if ( entryType == eType  ) { \
+    retSolver = new solverObjType( solverNode, olasInfo ); \
+    LOG_DBG(genSolver) << " GenerateSolver: Generated " \
+    << MACRO2STRING( solverObjType ) \
+    << " solver";\
+  }
+
+
   }
   break;
 

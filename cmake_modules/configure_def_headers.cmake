@@ -30,13 +30,9 @@ IF(CFS_BLAS_LAPACK STREQUAL "MKL")
   SET(USE_MKL 1)
 ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
 
-IF(CFS_BLAS_LAPACK STREQUAL "ACML")
-  SET(USE_ACML 1)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "ACML")
-
-IF(CFS_BLAS_LAPACK STREQUAL "GOTO")
-  SET(USE_GOTO 1)
-ENDIF(CFS_BLAS_LAPACK STREQUAL "GOTO")
+IF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
+  SET(USE_OPENBLAS 1)
+ENDIF(CFS_BLAS_LAPACK STREQUAL "OPENBLAS")
 
 IF(CFS_BLAS_LAPACK STREQUAL "NETLIB")
   SET(USE_NETLIB 1)
@@ -68,6 +64,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_knitro.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_cgal.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_cgal.hh")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_flann.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_flann.hh")
 
 IF(USE_LIBFBI)
   SET(USE_LIBFBI 1)
@@ -103,6 +101,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_gmv.hh.in"
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_unv.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_unv.hh")
+
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_comsol.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_comsol.hh")
 
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ansysrst.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_ansysrst.hh")

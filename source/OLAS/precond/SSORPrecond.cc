@@ -1,7 +1,7 @@
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "MatVec/opdefs.hh"
-
+#include "DataInOut/ProgramOptions.hh"
 #include "OLAS/precond/SSORPrecond.hh"
 
 namespace CoupledField {
@@ -18,7 +18,7 @@ namespace CoupledField {
         "numbering, i.e. it will NOT work correctly!" );
     
     this->xml_ = precondNode;
-    this->infoNode_ = olasInfo->Get("ssor", ParamNode::APPEND);
+    this->infoNode_ = olasInfo->Get("ssor", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }

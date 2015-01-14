@@ -104,15 +104,14 @@ public:
   //! Return pointer to <precond>
   virtual std::string GetPrecondId() = 0;
   
-  //! Return pointer to <exportLinSys> element
-  virtual PtrParamNode GetExportLinSysNode() = 0;
-  
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode() = 0;
   
   //! Return pointer to <timeStepping> element
   virtual PtrParamNode GetTimeSteppingNode() = 0;
   
+  PtrParamNode GetParamNode() { return param_; }
+
 protected:
   
   //! Paramnode for strategy element
@@ -196,9 +195,6 @@ public:
   //! Return pointer to <precond>
   virtual std::string GetPrecondId();
 
-  //! Return pointer to <exportLinSys> element
-  virtual PtrParamNode GetExportLinSysNode();
-
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
@@ -209,9 +205,6 @@ protected:
   
   //! <setup> element
   PtrParamNode setupNode_;
-  
-  //! <exportLinSys> element
-  PtrParamNode exportNode_;
   
   //! <matrix> element
   PtrParamNode matrixNode_;
@@ -235,7 +228,7 @@ protected:
 
 //! Two-Level Solution Strategy
 
-//! This class represents the "stanard" solution strategy, i.e. we have a
+//! This class represents the "standard" solution strategy, i.e. we have a
 //! SBM-system with only one block and we use a standard solver / 
 //! preconditioner combination with optional static condensation.
 //! The FeSpace does not have to perform a specific numbering strategy 
@@ -297,9 +290,6 @@ public:
   //! Return pointer to <precond>
   virtual std::string GetPrecondId();
 
-  //! Return pointer to <exportLinSys> element
-  virtual PtrParamNode GetExportLinSysNode();
-
   //! Return pointer to <nonLinear> element
   virtual PtrParamNode GetNonLinNode();
 
@@ -310,9 +300,6 @@ protected:
   
   //! <setup> node
   PtrParamNode setupNode_;
-
-  //! <exportLinSys> node
-  PtrParamNode exportNode_;
 
   //! Matrix nodes s per level
   ParamNodeList matrixNodes_;

@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <cmath>
+#include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
 
@@ -96,20 +97,27 @@ namespace CoupledField {
   //     VARIOUS OTHER METHODS AND CLASSES
   // =========================================================================
 
+
   /** Compares if two doubles are close to each other */
-  bool close(Double d1, Double d2);
+  inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
+
+
+  /** separate eps version to be faster! */
+  inline bool close(Double d1, Double d2, double eps) { return std::abs(d1-d2) < eps; }
 
   /** Compared if two complex are close (if both the real and imaginary part are close) */
-  bool close(Complex c1, Complex c2);
+  inline bool close(Complex c1, Complex c2) { return close(c1.real(), c2.real()) && close(c1.imag(), c2.imag()); }
+
+  inline bool close(Complex c1, Complex c2, double eps) { return close(c1.real(), c2.real(), eps) && close(c1.imag(), c2.imag(), eps); }
 
   /** identifies numerical noise */
-  bool IsNoise(Double val);
+  inline bool IsNoise(Double val) { return std::abs(val) < 1e-13; }
 
-  bool IsNoise(Complex val);
+  inline bool IsNoise(Complex val) { return IsNoise(val.real()) && IsNoise(val.imag()); }
 
-  bool IsNoise(int val);
+  inline bool IsNoise(int val) { return false; }
 
-  bool IsNoise(UInt val);
+  inline bool IsNoise(UInt val) { return false; }
 
   //! power of value
   template<class T>
@@ -190,6 +198,9 @@ namespace CoupledField {
        out[r][c] += fac * other[r][c];
   }
 
+  /** transforms a complex matrix to its complex conjugate */
+  void Conj(Matrix<Complex>& mat);
+
 
   /** makes sure the string is a valid xml element and attribute name */
   std::string ToValidXML(const std::string& input);
@@ -203,6 +214,14 @@ namespace CoupledField {
 
   /** Calculate the Standard Deviation of an array */
   double StandardDeviation(const double* data, unsigned int size);
+
+  template <class TYPE>
+  std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line = false);
+
+  /** converts data arrays to strings such that they can be copy & pasted from log to matlab.
+   * Redundant to StdVector::ToString() but there the complex special implementation was not possible */
+  template <class TYPE>
+  std::string ToString(const TYPE* data, unsigned int size);
 
   /** Returns the sign of a value 
    * @return 0 if 0 or +/- 1 */ 

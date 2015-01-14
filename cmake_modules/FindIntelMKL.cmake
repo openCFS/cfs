@@ -46,10 +46,19 @@ IF(MINGW OR MSVC)
   ENDIF()
 
 
-  #-----------------------------------------------------------------------------
-  # Read mkl.h and try to determine MKL version.
-  #-----------------------------------------------------------------------------
-  FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+  IF(EXISTS "${MKL_ROOT_DIR}/include/mkl.h")
+    #---------------------------------------------------------------------------
+    # Read mkl.h and try to determine MKL version.
+    #---------------------------------------------------------------------------
+    FILE(STRINGS "${MKL_ROOT_DIR}/include/mkl.h" MKL_HEADER)
+  ELSE()
+    SET(MSG "Please download the file ")
+    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/mkl/mkl_win.zip'")
+    SET(MSG "${MSG}, unpack it and set a proper MKL_ROOT_DIR.")
+    
+    colormsg(HIRED "${MSG}")
+    MESSAGE(FATAL_ERROR "MKL for Windows could not be found!")
+  ENDIF()
 
   foreach(line IN LISTS MKL_HEADER)
     IF(line MATCHES "#define __INTEL_MKL")
@@ -91,7 +100,7 @@ IF(MINGW OR MSVC)
         -Wl,--end-group
         # libiomp5md is not needed for mkl_sequential lib
 	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
-	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
+	${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
 	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
@@ -109,7 +118,7 @@ IF(MINGW OR MSVC)
 	${MKL_LIB_DIR}/mkl_core.lib
         -Wl,--end-group
 	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
-	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc100/amd64/runtmchk.lib
+	${MKL_ROOT_DIR}/../msvcrt/msvc100/amd64/runtmchk.lib
 	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
@@ -130,7 +139,7 @@ IF(MINGW OR MSVC)
         )
       IF(MINGW)
         LIST(APPEND MKL_BLAS_LIB 
-          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/ia32/runtmchk.lib
+          ${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
         )
       ENDIF()
 
@@ -155,7 +164,7 @@ IF(MINGW OR MSVC)
         )
       IF(MINGW)
         LIST(APPEND MKL_BLAS_LIB 
-          ${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+          ${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
         )
       ENDIF()
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
@@ -172,7 +181,7 @@ IF(MINGW OR MSVC)
 	${MKL_LIB_DIR}/mkl_intel_lp64.lib
 	${MKL_LIB_DIR}/mkl_sequential.lib
 	${MKL_LIB_DIR}/libiomp5mt.lib
-	${CFS_SOURCE_DIR}/cfsdeps/mkl/msvc90/amd64/runtmchk.lib
+	${MKL_ROOT_DIR}/../msvcrt/msvc90/amd64/runtmchk.lib
 	#    ${MKL_LIB_DIR}/libguide40.lib
 	#    /home/strieben/Documents/MKL/test/runtmchk.lib
 	)
@@ -244,6 +253,7 @@ FIND_FILE(MKL_ROOT_DIR
   NO_CMAKE_SYSTEM_PATH
   )
 
+
 #-------------------------------------------------------------------------------
 # Replace include/mkl.h with nothing to get the MKL root dir.
 #-------------------------------------------------------------------------------
@@ -267,7 +277,7 @@ IF(NOT MKL_ROOT_DIR)
     " 3. Or adapt the MKL_POSSIBLE_PATHS at the beginning of cmake_modules/FindIntelMKL.cmake. "
     "You may also just copy MKL from LSE /home/shareAll/linux_bin/intel/mkl. "
     "Another option is to change CFS_BLAS_LAPACK and CFS_PARDISO to different "
-    "implementations. GotoBLAS and ACML should provide similar performance like MKL.")
+    "implementations. OpenBLAS and should provide similar performance to MKL.")
 ELSE(NOT MKL_ROOT_DIR)
   SET(MKL_FOUND 1)
 ENDIF(NOT MKL_ROOT_DIR)

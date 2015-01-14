@@ -34,6 +34,8 @@ fi
 eval $($DISTRO_SH -s)
 OS_DUMMY=$(echo $OS | sed 's/ //g')
 OS=$OS_DUMMY
+OS_DUMMY=$(echo $OS | sed 's/_.*//g')
+OS=$OS_DUMMY
 
 # Get architecture and distribution
 if [ ! "$DIST_FAMILY" = "" ]; then
@@ -119,6 +121,36 @@ case "$OS" in
 		    break
 		fi
 	    done
+	fi
+	;;
+    MINGW32)
+	OS_SUPPORTED=1	
+	if [ ! -d "$CFS_ROOT_DIR/bin/MINGW_$ARCH" ]; then
+	    ARCH_STR=MINGW_$ARCH
+	    ARCH_STR_FOUND=0
+	    
+        if [ "$PROCESSOR_ARCHITEW6432" = "AMD64" ]; then
+            POSSIBLE_ARCHS="X86_64 $POSSIBLE_ARCHS"
+        fi
+	    
+	    for a in $POSSIBLE_ARCHS; do
+		MINGW_BIN="$CFS_ROOT_DIR/bin/MINGW_${a}/cfsbin.exe"
+		if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+		    echo "Trying $MINGW_BIN..."
+		fi
+                if [ -f "$MINGW_BIN" ]; then
+		    if [ "$CFS_SCRIPT_DEBUG" = "1" ]; then
+			echo "Found $MINGW_BIN!"
+			fi
+		    ARCH=$a
+		    ARCH_STR="MINGW_${ARCH}"
+		    ARCH_STR_FOUND=1
+		    break;
+                fi
+	    done
+	else
+	    ARCH_STR=MINGW_$ARCH
+	    ARCH_STR_FOUND=1	
 	fi
 	;;
     *)

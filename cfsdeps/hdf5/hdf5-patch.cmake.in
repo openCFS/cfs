@@ -16,6 +16,7 @@ SET(WIN32 "@WIN32@")
 SET(MSVC "@MSVC@")
 SET(APPLE "@APPLE@")
 SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
+SET(HDF5_BUILD_TYPE "@HDF5_BUILD_TYPE@")
 
 #=============================================================================
 # Include some convenient macros (e.g. for applying patches).
@@ -23,6 +24,7 @@ SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
 INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
 
 IF(MINGW OR APPLE)
+
   IF(CMAKE_CROSSCOMPILING)
     IF(CFS_ARCH STREQUAL "X86_64")
       IF(APPLE)
@@ -51,31 +53,31 @@ IF(MINGW OR APPLE)
       # platform.
       "hdf5-cross-compile.patch"
       )
-      
+
     EXECUTE_PROCESS(
       COMMAND ${CMAKE_COMMAND}
       -E make_directory
-      "${hdf5_prefix}/src/hdf5-static-build"
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build"
       )
 
     EXECUTE_PROCESS(
       COMMAND ${CMAKE_COMMAND}
       -E copy_if_different
       "${H5TINIT_C}"
-      "${hdf5_prefix}/src/hdf5-static-build/H5Tinit.c"
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build/H5Tinit.c"
       )
     
     EXECUTE_PROCESS(
       COMMAND ${CMAKE_COMMAND}
       -E copy_if_different
       "${H5LIB_SETTINGS_C}"
-      "${hdf5_prefix}/src/hdf5-static-build/H5lib_settings.c"
+      "${hdf5_prefix}/src/hdf5-${HDF5_BUILD_TYPE}-build/H5lib_settings.c"
       )
+  ENDIF()
 
-  ELSE()
-      SET(patches
-	# The H5detect and H5_libsettings executables need to be linked
-        # against ws2_32.lib
+  IF(MINGW)
+      LIST(APPEND patches
+	# Adjust library names to MinGW conventions.
 	"hdf5-mingw.patch"
 	)
   ENDIF()
@@ -88,5 +90,10 @@ ELSE()
       )
   ENDIF()
 ENDIF(MINGW OR APPLE)
+
+# If we already built the static library the patches have already been applied.
+IF(HDF5_BUILD_TYPE STREQUAL "shared")
+  SET(patches "")
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/hdf5")

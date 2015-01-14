@@ -23,6 +23,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${zlib_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
@@ -66,8 +67,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/zlib-1.2.7.tar.gz"
-  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/zlib-1.2.7.tar.gz"
+  "ftp://ftp.pl.pgpi.org/vol/rzm1/GraphicsMagick/delegates/zlib-1.2.8.tar.gz"
+  "ftp://ftp.uwsg.indiana.edu/linux/gentoo/distfiles/zlib-1.2.8.tar.gz"
   "${ZLIB_URL}/${ZLIB_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zlib/${ZLIB_GZ}")
@@ -107,26 +108,87 @@ ExternalProject_Add_Step(zlib cfsdeps_download
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  zlib
-)
+LIST(APPEND CFSDEPS zlib)
 
 IF(MINGW)
   SET(ZLIB_LIB zlibstatic)
+  SET(ZLIB_SHARED_LIB zlib)
 ELSE(MINGW)
   IF(UNIX)
     SET(ZLIB_LIB z)
+    SET(ZLIB_SHARED_LIB z)
   ELSE(UNIX)
     SET(ZLIB_LIB zlibstatic)
+    SET(ZLIB_SHARED_LIB zlib)
     IF(DEBUG)
       SET(ZLIB_LIB "${ZLIB_LIB}d")
+      SET(ZLIB_SHARED_LIB "${ZLIB_SHARED_LIB}d")
     ENDIF()
   ENDIF(UNIX)
 ENDIF(MINGW)
 
-SET(ZLIB_LIBRARY ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX} CACHE FILEPATH "zlib library")
+SET(LD ${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR})
+SET(ZLIB_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_LIB}${CMAKE_STATIC_LIBRARY_SUFFIX}
+  CACHE FILEPATH "zlib library")
+SET(ZLIB_SHARED_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${ZLIB_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+IF(MINGW)
+  SET(ZLIB_SHARED_LIBRARY "${ZLIB_SHARED_LIBRARY}.a")
+ENDIF(MINGW)
+SET(ZLIB_SHARED_LIBRARY ${ZLIB_SHARED_LIBRARY} CACHE FILEPATH "zlib shared library")
 SET(ZLIB_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "zlib include directory")
 
 MARK_AS_ADVANCED(ZLIB_LIBRARY)
+MARK_AS_ADVANCED(ZLIB_SHARED_LIBRARY)
 MARK_AS_ADVANCED(ZLIB_INCLUDE_DIR)
+
+#-------------------------------------------------------------------------------
+# The minizip external project
+#-------------------------------------------------------------------------------
+ExternalProject_Add(minizip
+  DEPENDS zlib
+  PREFIX ${zlib_prefix}
+  SOURCE_DIR ${zlib_source}/contrib/minizip
+  DOWNLOAD_COMMAND ""
+  PATCH_COMMAND ""
+  CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DZLIB_INCLUDE_DIR:PATH=${ZLIB_INCLUDE_DIR}
+    -DZLIB_LIBRARY:PATH=${ZLIB_SHARED_LIBRARY}
+)
+
+#-------------------------------------------------------------------------------
+# Add project to global list of CFSDEPS
+#-------------------------------------------------------------------------------
+LIST(APPEND CFSDEPS minizip)
+
+SET(MINIZIP_SHARED_LIB minizip)
+IF(MINGW OR WIN32)
+  SET(MINIZIP_SHARED_LIB minizipdll)
+ENDIF()
+
+SET(MINIZIP_LIBRARY 
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}minizip_static${CMAKE_STATIC_LIBRARY_SUFFIX}
+  CACHE FILEPATH "minizip library")
+SET(MINIZIP_SHARED_LIBRARY
+  ${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}${MINIZIP_SHARED_LIB}${CMAKE_SHARED_LIBRARY_SUFFIX})
+IF(MINGW)
+  SET(MINIZIP_SHARED_LIBRARY "${MINIZIP_SHARED_LIBRARY}.a")
+ENDIF(MINGW)
+SET(MINIZIP_SHARED_LIBRARY ${MINIZIP_SHARED_LIBRARY}
+  CACHE FILEPATH "minizip shared library")
+SET(MINIZIP_INCLUDE_DIR ${CFS_BINARY_DIR}/include/minizip
+  CACHE PATH "minizip include directory")
+
+MARK_AS_ADVANCED(MINIZIP_LIBRARY)
+MARK_AS_ADVANCED(MINIZIP_SHARED_LIBRARY)
+MARK_AS_ADVANCED(MINIZIP_INCLUDE_DIR)
+
+# Determine version of Minizip by reading its header.
+IF(EXISTS "${MINIZIP_INCLUDE_DIR}/zip.h")
+  FILE(STRINGS "${MINIZIP_INCLUDE_DIR}/zip.h" MINIZIP_VERSION REGEX "Version [0-9]")
+  STRING(STRIP "${MINIZIP_VERSION}" MINIZIP_VERSION)
+ELSE()
+  SET(MINIZIP_VERSION "N/A")
+ENDIF()

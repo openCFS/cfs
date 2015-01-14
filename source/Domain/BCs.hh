@@ -47,6 +47,9 @@ namespace CoupledField {
 
     //! Constructor
     InhomDirichletBc();
+    
+    //! 
+    virtual ~InhomDirichletBc();
 
     //! Coefficient function for the values
     PtrCoefFct value; 

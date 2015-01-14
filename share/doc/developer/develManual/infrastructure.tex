@@ -34,7 +34,7 @@ is how to conveniently perform this operation:
 \begin{itemize}
 \item go to the working copy directory
 \item issue: {\tt OLD\_REPO=\$(cat .svn/entries | grep 'CFS++/trunk')}
-\item issue: {\tt svn switch --relocate \$OLD\_REPO https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk}
+\item issue: {\tt svn switch --relocate \$OLD\_REPO \CFSDSSVN/CFS++/trunk}
 \item repeat analogue steps for CFSDEPS and testsuite
 \end{itemize}
 
@@ -388,8 +388,7 @@ source /home/shareAll/linux_bin/intel/fc(e for 64Bit!)/COMPILER_VERSION/bin/ifor
 \end{verbatim}
 
 
-\todo[inline]{Put                           info                          from
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac/wiki/CMake} here.}
+\todo[inline]{Put info from \url{\CFSDSHTTPS/trac/wiki/CMake} here.}
 
 \subsubsection{Building 32-bit Binaries on 64-bit Linux Host}
 
@@ -686,7 +685,7 @@ Fig.  \ref{fig:cfsdeps_structure}.
 the depencencies  of CFS++ from  source, since March 2009.   The corresponding
 Subversion repository can still be found at
 
-\noindent \url{https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsdeps/trunk}
+\noindent \url{\CFSDSSVN/cfsdeps/trunk}
 
 The Perl based  build mechanism has been inspired from  the Python based build
 system
@@ -1469,8 +1468,8 @@ different clients \cite{cdash}.  We use it to gather information about nightly
 builds  on various  platforms. This  way we  can track  down errors  which are
 platform-dependent (e.g. 32 bit vs.  64 bit) more efficiently.
 
-The  central dashboard  for  CFS++ is  located  on the  development server  at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/cdash}.
+The  central dashboard  for  CFS++ is  located on  the  development server  at
+\url{\CFSDSHTTPS/cdash}.
 
 \todo[inline]{Write   about  nightly  builds   in  Klagenfurt   and  Erlangen,
 ctest scripts, VBoxes etc.}
@@ -1533,6 +1532,64 @@ of 1 to on.
   \label{fig:cdash_user2project}
 \end{figure}%
 
+\section{Nightly Tests}
+\label{sec:nightly_tests}
+
+The  motivation  for nightly  testing  is  obviously  to  make sure  the  code
+continually  passes  all  tests  in  the   test  suite  on  a  wide  range  of
+platforms. Also a documentation of howto  build on these platforms is provided
+therewith. On  top of that,  the generated binaries  can be provided  to CFS++
+users in a day-to-day fashion:
+\begin{enumerate}
+\item Developer fixes reported bug today and commits to SVN.
+\item Binaries get automatically rebuilt over night.
+\item Developer and user can check outcome of build on CDash.
+\item User can happily simulate on next day.
+\end{enumerate}%
+%
+In order to obtain a stable environment  we have the CMake scripts which drive
+the nightly tests  under version control and  we hold Vagrant\footnote{Vagrant
+  website:  \url{http://www.vagrantup.com/}} base  box images  on a  number of
+mirrors for the different test platforms.%
+
+\noindent Nightly  testing is  implemented on {\tt  wiki.mdmt.tuwien.ac.at} at
+the   moment.    The   nightly   binaries    can   be   obtained   from   {\tt
+  wiki}\footnote{Nightly      CFS++      binaries     on      {\tt      wiki}:
+  \url{http://wiki.mdmt.tuwien.ac.at/cfs_nightly}}  inside  of  and  from  the
+CFS++  development  server\footnote{Nightly   binaries  on  CFS++  development
+  server: \url{\CFSDSWEBDAV/nightly-builds}} outside of  TU Wien.  The Vagrant
+base boxes  are available  on {\tt wiki}\footnote{Vagrant  base boxes  on {\tt
+    wiki}:  \url{http://wiki.mdmt.tuwien.ac.at/boxes}} or  on the  development
+server\footnote{Vagrant     base     boxes      on     development     server:
+  \url{\CFSDSFTP/boxes}}.
+
+\subsection{Test Scripts}
+\label{sec:nightly_test_scripts}
+
+The      nightly     testing      infrastructure      resides     in      {\tt
+  CFS\_SOURCE\_DIR/ctest\_scripts}. The entry point for nightly testing is the
+{\tt nightly\_test.cmake}  script.  This script  gets either called  from {\tt
+  /etc/crontab}  or {\tt  schtasks.exe} on  a  physical machine  or through  a
+provisioning  shell  script  inside  a  Vagrant  box.   Please  cf.   to  {\tt
+  README.md}  and {\tt  nightly\_doc.graphml}\footnote{Open  with yEd  diagram
+  editor: \url{http://www.yworks.com/de/products_yed_about.html}}  diagram for
+further documentation  on the control  flow during nightly testing.   The logs
+for the tests are generated in {\tt sites/sitename/logs}.
+
+\subsection{Vagrant Boxes}
+\label{sec:nightly_vagrant_boxes}
+
+We  apply  Vagrant for  automatically  obtaining,  starting and  disposing  of
+Virtual Box VMs\footnote{Virtual Box website: \url{http://www.virtualbox.org}}
+for nightly  testing. The  use of Vagrant  is however by  no means  limited to
+nightly testing. If a test fails on a certain box, a developer can use Vagrant
+to get the base  image of that box, fix the problems and  then dispose the box
+again. He  therefore needs  to have  VirtualBox and  Vagrant installed  on his
+machine.
+
+\noindent Start box, login, shutdown and destruction:
+\input{pygmentized/vagrant_box.tex}
+
 
 \section{Trac}
 \label{sec:trac}
@@ -1544,4 +1601,227 @@ repository, can look at the changes been made between different versions, etc.
 \cite{trac}
 
 The  Trac  system   for  CFS++  is  located  on   the  development  server  at
-\url{https://lse17.e-technik.uni-erlangen.de:2001/trac}.
+\url{\CFSDSHTTPS/trac}.
+
+\section{ParaView}
+\label{sec:paraview}
+
+If you can settle with an older prebuilt versions, these are available via the
+CFS++ development server, which is described  in the next section. If this not
+the case, read on.
+
+ Building  ParaView is  usually  only required  every half  year,  when a  new
+ version  comes out.   Even if  it has  improved in  recent years  through the
+ Superbuild                project\footnote{ParaView                Superbuild
+   project:\url{http://paraview.org/Wiki/ParaView/Superbuild}}    the    build
+ process can still  be very nerve and  time consuming.  This is  mainly due to
+ two reasons:
+
+\begin{enumerate}
+\item Due to  its shear size, extending ParaView or  finding and fixing errors
+  can be a very time-consuming task.
+\item Its dependency on the Qt  library, introduces another huge library which
+  may need to be built by hand.
+\end{enumerate}%
+%
+Therefore,  we use  the  system version  of Qt  whenenever  possible and  only
+compile it ourselves  if it cannot be found.  Luckily,  ParaView only switches
+the  required  version  for  Qt  every   three  years  or  so.   The  modified
+(Super-)build of ParaView for CFS++ is  included in CFSDEPS and gets described
+in the following sections.
+
+\subsection{Obtaining ParaView}
+
+Prebuilt    binaries   of    ParaView   for    CFS++   can    be   found    at
+\url{\CFSDSFTP/binaries/paraview}.
+
+\subsection{Building ParaView}
+
+The build of ParaView  can be switched on inside the  CFS++ CMake system using
+the advanced boolean  flag {\tt BUILD\_PARAVIEW}.  Building  ParaView with the
+HDF5  reader plugin  for CFS++  is  a two  step process.   First the  ParaView
+Superbuild gets downloaded  and configured as the {\tt  pvsb} external project
+from  the  {\tt  External\_ParaViewSuperbuild.cmake}  script.   This  involves
+obtaining a  Git clone of  the PV Superbuild  repository, either by  using Git
+itself or by downloading a zipped archive of the repository, in the case where
+the Git executable is not available.%
+%
+In order to save  some time during the build, we modify  the Superbuild to use
+our  own  versions  of  Boost,  CGNS,  HDF5 and  zlib  and  not  compile  them
+again.  Additionally,  the  paths  to  Qt and  Python  are  forwarded  to  the
+Superbuild.%
+%
+In the  patch step of the  {\tt pvsb} external  project a number of  files get
+copied from {\tt cfsdeps/paraview/paraview-superbuild-srcdir}  to the Git repo
+via the {\tt paraview-superbuild-patch.cmake.in}  script.  These files reflect
+the changes  which are necessary, so  that the PV Superbuild  blends in nicely
+with  the CFS++  build.  This  means, that  the Superbuild,  should reuse  the
+already downloaded archives  in our {\tt CFS\_DEPS\_CACHE\_DIR},  and also put
+its own  downloads there.   Moreover, an  extra patch step  gets added  to the
+paraview    external    project    inside     the    PV    Superbuild    ({\tt
+  Projects/paraview.cmake} and {\tt Projects/paraview.patch.cmake.in}).%
+%
+The changes to the ParaView Superbuild reside in the following files:
+
+\begin{verbatim}
+  paraview-superbuild-srcdir/
+  +-- CMake
+  |   +-- ParaViewModules.cmake
+  +-- Projects
+  |   +-- hdf5.cmake
+  |   +-- paraview.cmake
+  |   +-- paraview.patch.cmake.in
+  |   +-- zlib.cmake
+  +-- versions.cmake
+\end{verbatim}%
+%
+The additional  patch step introduced  in the {\tt paraview}  external project
+({\tt Projects/paraview.cmake} in PV Superbuild) makes sure, that the contents
+of  the  {\tt  cfsdeps/paraview/paraview-srcdir}, which  reflect  the  changes
+needed for  the CFS++  features, get  copied over to  the PV  source directory
+during the patch phase of ParaView.
+
+Our additions to the off-the-shelf ParaView include at the moment:
+\begin{enumerate}
+  \item The CFS++/NACS HDF5 reader
+
+  \item A  reader for Geomview  .off polyhedral surface geometry  files, which
+    are e.g. produced by CGAL.
+
+  \item Some additional color maps (GiD, Matlab, etc.).
+
+  \item Fixes  to the  calculation of  derivatives on  second order  quads and
+    triangles (cf. \url{http://www.vtk.org/Bug/view.php?id=13455}).
+
+  \item A reduced list of VisItBridge readers,  to make sure our own reader is
+    the only one, which  can read .h5 files. Otherwise the  user always has to
+    choose the correct reader, when opening a file
+
+  \item Some small  fixes to the VisItBridge CGNS reader  for TRIA6 and PYRA13
+    element types.
+\end{enumerate}
+
+These additions reside in the following files:
+
+\begin{verbatim}
+  paraview-srcdir/
+  +-- ParaViewCore
+  |   +-- ServerManager
+  |       +-- SMApplication
+  |           +-- Resources
+  |               +-- readers.xml (1) & (2)
+  +-- Qt
+  |   +-- Components
+  |       +-- Resources
+  |           +-- XML
+  |               +-- ColorMaps.xml (3)
+  +-- Utilities
+  |   +-- VisItBridge
+  |       +-- databases (5)
+  |           +-- CGNS
+  |           |   +-- avtCGNSFileFormat.C (6)
+  |           +-- CMakeLists.txt
+  |           +-- visit_readers.xml
+  +-- VTK
+      +-- Common
+      |   +-- DataModel (4)
+      |       +-- vtkBiQuadraticQuad.cxx
+      |       +-- vtkQuadraticQuad.cxx
+      |       +-- vtkQuadraticTriangle.cxx
+      +-- IO 
+      |   +-- CFSReader (1)
+      |   |   +-- CMakeLists.txt
+      |   |   +-- hdf5Common.cc
+      |   |   +-- hdf5Common.h
+      |   |   +-- hdf5Reader.cc
+      |   |   +-- hdf5Reader.h
+      |   |   +-- module.cmake
+      |   |   +-- vtkCFSReader.cxx
+      |   |   +-- vtkCFSReader.h
+      |   |   +-- vtkNACSReader_2013-03-18.cxx
+      |   |   +-- vtkNACSReader_2013-03-18.h
+      |   |   +-- vtkNACSReader_2013-08-12.cxx
+      |   |   +-- vtkNACSReader_2013-08-12.h
+      |   +-- OFFReader (2)
+      |       +-- CMakeLists.txt
+      |       +-- module.cmake
+      |       +-- vtkOFFReader.cxx
+      |       +-- vtkOFFReader.h
+      +-- ThirdParty
+          +-- hdf5
+              +-- CMakeLists.txt (1)
+\end{verbatim}
+
+\subsubsection{Tips for Development}
+
+As with any  external project inside CFS++, the source  and binary directories
+for     PV      Superbuild     and     ParaView     reside      under     {\tt
+  \${CFS\_BINARY\_DIR}/cfsdeps}.  Therefore, the  ParaView  source and  binary
+directories end up under:
+
+\begin{verbatim}
+${CFS_BINARY_DIR}/cfsdeps/pvsb/src/ \
+                 pvsb-build/paraview/src
+                  +-- paraview        ->  PARAVIEW_SOURCE_DIR
+                  +-- paraview-build  ->  PARAVIEW_BINARY_DIR
+                  +-- paraview-stamp
+\end{verbatim}%
+%
+ Once   the  Superbuild   is  finished,   one   can  therefore   go  to   {\tt
+   PARAVIEW\_BINARY\_DIR} and  do ordinary development, since  all changes due
+ to  CFS++  are  already  included in  {\tt  PARAVIEW\_SOURCE\_DIR}.  If  {\tt
+   CMAKE\_BUILD\_TYPE} is set to Debug  in the {\tt CFS\_BINARY\_DIR}, it will
+ also be set to Debug for ParaView.  Once development is finished, the changes
+ need       to       be       just       copied       back       to       {\tt
+   CFS\_SOURCE\_DIR/cfsdeps/paraview/paraview-srcdir}.
+
+
+\subsubsection{Linux}
+
+The (Super-)build of ParaView has been tested on machines running CentOS 6 and
+Ubuntu 12.04  x86\_64, on which the  {\tt bootstrap\_devel\_machine.sh} script
+has been run.
+
+\subsubsection{Mac OS X}
+
+The same as for Linux is true for Mac OS X. Once the bootstrap script has been
+run, the build of  ParaView should work on Mac. A  noteworthy specialty on Mac
+is,   that    the   CFS++    library   directory    gets   copied    to   {\tt
+  \${CFS\_BINARY\_DIR}/cfsdeps/pvsb/src/pvsb-build/install/lib}  in order  for
+the bundle finishing script to find the libs (HDF5, CGNS, Boost, zlib).
+
+\subsubsection{Windows}
+
+It is in principle possible to  compile ParaView using the MinGW environments,
+that have  been set up  using our  bootstrap script. The  environments contain
+prebuilt versions of the Qt 4.8  library, which is required to build ParaView.
+The    required    patches   are    contained    in    the   directory    {\tt
+  cfsdeps/paraview/paraview-srcdir-mingw}.%
+%
+The build  still requires some  user interaction, since problems  connected to
+too long command line parameters are  almost certain to occur.  These problems
+usually  manifest themselves  in  CreateProcess errors  during  calls to  {\tt
+cc1plus} from {\tt g++}. This has been debugged using the {\tt -v} flag on the
+command line  to {\tt g++}  which lead  to the error.  It has been  found that
+mapping the  {\tt cfsdeps/pvsb/src/pvsb-build/paraview/src} folder to  a drive
+using     {\tt     subst},     replacing     the     paths     inside     {\tt
+paraview-build/CMakeCache.txt} accordingly and deleting everything else inside
+{\tt paraview-build} resolves these problems.%
+%
+Once the initial  configuration of ParaView is complete and  the build starts,
+cancel   the  build   process  by   hitting  {\tt   Ctrl-C},  goto   the  {\tt
+  PARAVIEW\_BINARY\_DIR}    and    replace     any    occurrence    of    {\tt
+  CFS\_BINARY\_DIR/cfsdeps/pvsb/src/pvsb-build/paraview}  with  e.g. {\tt  X:}
+and afterwards  run the  following sequence  of commands,  which map  the base
+directory of  {\tt PARAVIEW\_BINARY\_DIR} to  drive letter {\tt X:},  clean up
+the binary directory and start the build once again:
+
+\begin{verbatim}
+cd /d CFS_BINARY_DIR\cfsdeps\pvsb\src\pvsb-build\paraview\src
+subst x: %CD%
+cd /d x:\paraview-build
+cp CMakeCache.txt ..
+rm -rf *
+cp ..\CMakeCache.txt .
+cmake . && make install
+\end{verbatim}

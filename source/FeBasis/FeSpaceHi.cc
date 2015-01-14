@@ -536,8 +536,9 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
                             << SolutionTypeEnum.ToString(feFct->GetResultInfo()->resultType);
   }
 
-  if( coefFct->GetDependency() == CoefFunction::CONSTANT ||
-      coefFct->GetDependency() == CoefFunction::TIMEFREQ ) {
+  if( (coefFct->GetDependency() == CoefFunction::CONSTANT ||
+      coefFct->GetDependency() == CoefFunction::TIMEFREQ) && 
+      type_ != HCURL) {
     // --------------------------
     //  SIMPLE MAPPING MECHANISM
     // --------------------------

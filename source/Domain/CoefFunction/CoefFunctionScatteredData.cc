@@ -9,43 +9,78 @@
 #include "CoefFunctionScatteredData.hh"
 #include "FeBasis/FeSpace.hh"
 
-#include "def_use_ccmio.hh"
-#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh"
-#ifdef USE_CCMIO
-#include "DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh"
-#endif
+#include "DataInOut/ScatteredDataInOut/ScatteredDataReader.hh"
 
 namespace CoupledField{
 
   template<typename T, UInt DOFS>
   CoefFunctionScatteredData<T,DOFS>::CoefFunctionScatteredData(PtrParamNode& scatteredDataNode)
     : CoefFunction(),
-      fileName_(""),
+      qid_("default"),
       factor_(1.0),
       interpolAlgo_(SHEPARD),
       numNeighbors_(20),
-      p_(2)
+      p_(2),
+      knnLib_(CGAL)
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
 
-    fileName_ = scatteredDataNode->Get("fileName")->As<std::string>();
+    // Obtain id of quantity this CoefFunctionScatteredData should handle.
+    qid_ = scatteredDataNode->Get("quantityId")->As<std::string>();
 
-    format_ = scatteredDataNode->Get("format")->As<std::string>();
+    // Obtain base node for all scattered data inputs.
+    PtrParamNode scatteredInputNode = scatteredDataNode->GetRoot()
+      ->Get("fileFormats")->Get("scatteredData");
 
-    if(scatteredDataNode->Has("interpolAlgo")) 
+    // Create all listed scattered data input readers.
+    ScatteredDataReader::CreateReaders(scatteredInputNode);
+
+    // Now let's register our desired quantity with the corresponding reader.
+    ScatteredDataReader::RegisterQuantity(qid_);
+
+    // Get hold of quantity node for obtaining our parameters.
+    ParamNodeList scatteredNodes;
+    scatteredNodes = scatteredInputNode->GetChildren();
+    for(UInt i=0, n=scatteredNodes.GetSize(); i<n; i++) {
+      std::string id = scatteredNodes[i]->Get("id")->As<std::string>();
+
+      ParamNodeList quantityNodes;
+      quantityNodes = scatteredNodes[i]->GetList("quantity");
+      // Let's first check if we have unique ids.
+      for(UInt j=0, m=quantityNodes.GetSize(); j<m; j++) {
+        std::string qid = quantityNodes[j]->Get("id")->As<std::string>();
+
+        if(qid == qid_)
+        {
+          quantityNode_ = quantityNodes[j];
+        }
+      }
+    }
+
+    if(quantityNode_->Has("interpolAlgo")) 
     {
       std::string interpolAlgo;
-      interpolAlgo = scatteredDataNode->Get("interpolAlgo")->As<std::string>();
+      interpolAlgo = quantityNode_->Get("interpolAlgo")->As<std::string>();
       if(interpolAlgo == "nearest-neighbor") 
       {
         interpolAlgo_ = NEAREST_NEIGHBOR;
       }
     }    
 
-    if(scatteredDataNode->Has("numNeighbors")) 
+    if(quantityNode_->Has("knnLib")) 
     {
-      numNeighbors_ = scatteredDataNode->Get("numNeighbors")->As<UInt>();
+      std::string knnLib;
+      knnLib = quantityNode_->Get("knnLib")->As<std::string>();
+      if(knnLib == "flann") 
+      {
+        knnLib_ = FLANN;
+      } 
+    }    
+
+    if(quantityNode_->Has("numNeighbors")) 
+    {
+      numNeighbors_ = quantityNode_->Get("numNeighbors")->As<UInt>();
       
       if(numNeighbors_ < 2) 
       {
@@ -54,125 +89,177 @@ namespace CoupledField{
       }
     }
 
-    if(scatteredDataNode->Has("p")) 
+    if(quantityNode_->Has("p")) 
     {
-      p_ = scatteredDataNode->Get("p")->As<Double>();
+      p_ = quantityNode_->Get("p")->As<Double>();
     }
     
-    if(format_ == "csv") 
+    if(quantityNode_->Has("factor")) 
     {
-      ParamNodeList coordList;
-      coordList = scatteredDataNode->Get("coordinates")->GetList("comp");
-      for(UInt i=0, n=coordList.GetSize(); i<n; i++) {
-        std::string dof = coordList[i]->Get("dof")->As<std::string>();
-        
-        if( dof == "x" ) {
-          dof2CoordColumn_[0] = coordList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "y" ) {
-          dof2CoordColumn_[1] = coordList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "z" ) {
-          dof2CoordColumn_[2] = coordList[i]->Get("col")->As<UInt>();
-        }
-      }
-      
-      ParamNodeList valueList;
-      valueList = scatteredDataNode->Get("values")->GetList("comp");
-      for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
-        std::string dof = valueList[i]->Get("dof")->As<std::string>();
-        
-        if( dof == "x" ) {
-          dof2ValueColumn_[0] = valueList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "y" ) {
-          dof2ValueColumn_[1] = valueList[i]->Get("col")->As<UInt>();
-        }
-        if( dof == "z" ) {
-          dof2ValueColumn_[2] = valueList[i]->Get("col")->As<UInt>();
-        }      
-      }
-    } else 
-    {
-      dof2CoordColumn_[0] = 0;
-      dof2CoordColumn_[1] = 1;
-      dof2CoordColumn_[2] = 2;
-      
-      dof2ValueColumn_[0] = 3;
-      dof2ValueColumn_[1] = 4;
-      dof2ValueColumn_[2] = 5;
-    }    
-    
-    factor_ = scatteredDataNode->Get("factor")->As<Double>();
+      factor_ = quantityNode_->Get("factor")->As<Double>();
+    }
   }
   
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::Read() 
+  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData() 
   {
-    if(!boost::filesystem::exists(fileName_))
+    ScatteredDataReader::Read();
+
+    if(quantityNode_->Has("bbox")) 
     {
-      EXCEPTION("Scattered data file '" << fileName_ << "' does not exist!")
+      PtrParamNode bboxNode = quantityNode_->Get("bbox");
+
+      boost::array<Double,6> bbox;
+      bbox[0] = bboxNode->Get("xmin")->As<Double>();
+      bbox[1] = bboxNode->Get("ymin")->As<Double>();
+      bbox[2] = bboxNode->Get("zmin")->As<Double>();
+      bbox[3] = bboxNode->Get("xmax")->As<Double>();
+      bbox[4] = bboxNode->Get("ymax")->As<Double>();
+      bbox[5] = bboxNode->Get("zmax")->As<Double>();
+
+      std::vector< std::vector<double> > coords;
+      std::vector< std::vector<double> > data;
+      ScatteredDataReader::GetQuantity(qid_, coords, data);
+
+      UInt n = data.size();
+
+      for(UInt i=0; i<n; i++)
+      {
+        Double& x = coords[i][0];
+        Double& y = coords[i][1];
+        Double& z = coords[i][2];
+        
+        if( x >= bbox[0] && x <= bbox[3] &&
+            y >= bbox[1] && x <= bbox[4] &&
+            z >= bbox[2] && z <= bbox[5]) 
+        {
+          coordinates_.push_back(coords[i]);
+          scatteredData_.push_back(data[i]);
+        }      
+      }
     }
-
-#ifdef USE_CGAL
-    ScatteredDataReaderPtr sdataReader;
-
-    if(format_ == "csv") 
+    else
     {
-      ScatteredDataReaderCSV* SCRCSV = new ScatteredDataReaderCSV(fileName_);
-      SCRCSV->SetNumSkipLines(1);
-      sdataReader.reset(SCRCSV);
-    } else if (format_ == "ccm") {
-#ifdef USE_CCMIO
-      ScatteredDataReaderCCM* SCRCCM = new ScatteredDataReaderCCM(fileName_);
-      std::vector<std::string> componentShortNames(3);
-      componentShortNames[0] = "SU";
-      componentShortNames[1] = "SV";
-      componentShortNames[2] = "SW";
-      SCRCCM->SetComponentShortNames(componentShortNames);
-      sdataReader.reset(SCRCCM);
-#else
-      EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
-#endif
-    } else {
-      EXCEPTION("No format for scattered data file specified!");
-    }      
-    sdataReader->Read(scatteredData_);
+      ScatteredDataReader::GetQuantity(qid_, coordinates_, scatteredData_);
+    }
+  }
 
-    std::list<Point> points;
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::DumpData() 
+  {
+    if(!quantityNode_->Has("dump")) 
+    {
+      return;
+    }
+    
+    PtrParamNode dumpNode = quantityNode_->Get("dump");
+    std::string fileName = dumpNode->Get("fileName")->As<std::string>();
+    std::string format = "csv";
+    if(dumpNode->Has("format")) 
+    {
+      format = dumpNode->Get("format")->As<std::string>();
+    }
+    
+    std::ofstream csv(fileName.c_str(), std::ios_base::binary);
+    if(!csv) 
+    {
+      EXCEPTION("Could not open scattered data dump file '" << fileName << "'.");
+    }
+    
+    // Write title line to CSV
+    UInt m=scatteredData_[0].size();
+    csv << "x,y,z";
+    for(UInt i=0; i<m; i++)
+    {
+      csv << "," << qid_ << ":" << i;
+    }    
+    csv << std::endl;
 
+    // Write actual data to CSV
     UInt n = scatteredData_.size();
     for(UInt i=0; i<n; i++)
     {
-      switch(dof2CoordColumn_.size())
+      Double& x = coordinates_[i][0];
+      Double& y = coordinates_[i][1];
+      Double& z = coordinates_[i][2];
+      
+      csv << x << ","
+          << y << ","
+          << z;
+      for(UInt j=0; j<m; j++)
       {
-      case 2:
-        points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-        scatteredData_[i][dof2CoordColumn_[1]],
-        0.0,
-        scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-        scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-        0.0));
-        break;        
-      case 3:
-        points.push_back(Point(scatteredData_[i][dof2CoordColumn_[0]],
-        scatteredData_[i][dof2CoordColumn_[1]],
-        scatteredData_[i][dof2CoordColumn_[2]],
-        scatteredData_[i][dof2ValueColumn_[0]] * factor_,
-        scatteredData_[i][dof2ValueColumn_[1]] * factor_,
-        scatteredData_[i][dof2ValueColumn_[2]] * factor_));
-        break;        
+        csv << "," << scatteredData_[i][j] * factor_;
       }    
+      csv << std::endl;
     }
+    csv.close();
+  }
+
+  template<typename T, UInt DOFS>
+  void CoefFunctionScatteredData<T,DOFS>::Read() 
+  {
+    GetQuantityData();
+    DumpData();
+
+    UInt n = scatteredData_.size();
+
+    switch(knnLib_)
+    {
+    case CGAL:
+#ifdef USE_CGAL
+      {
+      std::list<Point> points;
+
+      for(UInt i=0; i<n; i++)
+      {
+        points.push_back(Point(coordinates_[i][0],
+                               coordinates_[i][1],
+                               coordinates_[i][2],
+                               scatteredData_[i][0] * factor_,
+                               scatteredData_[i][1] * factor_,
+                               scatteredData_[i][2] * factor_));
+      }
+
+      searchTree_.reset(new Tree(points.begin(), points.end()));
+    }
+#else
+      EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
+#endif
+      break;
+
+    case FLANN:
+#ifdef USE_FLANN
+      {
+      dataset_.reset(new flann::Matrix<Double>(new Double[n*3], n, 3));
+      Double *dPtr = dataset_->ptr();
+      for(UInt i=0; i<n; i++)
+      {
+        UInt idx = i*3;
+        
+        dPtr[idx+0] = coordinates_[i][0];
+        dPtr[idx+1] = coordinates_[i][1];
+        dPtr[idx+2] = coordinates_[i][2];
+      }
+      
+      // construct an randomized kd-tree index using a single kd-tree
+      index_.reset(new flann::Index<flann::L2<Double> >(*dataset_.get(),
+                                                        flann::KDTreeSingleIndexParams(12)));
+      index_->buildIndex();
+      }
+#else
+      EXCEPTION("FLANN not supported! Compile with USE_FLANN=ON.")
+#endif
+      break;
+    default:
+      EXCEPTION("Unknown k-nearest neighbors library '" << knnLib_ 
+                << "' specified for quantity id '" << qid_ << "'.")
+      break;
+    }
+
     if(n < numNeighbors_) 
     {
       numNeighbors_ = n;
     }    
-
-    searchTree_.reset(new Tree(points.begin(), points.end()));
-#else
-    EXCEPTION("Switch on USE_CGAL for nearest-neighbor mapping!")
-#endif
   }
   
   template<typename T, UInt DOFS>
@@ -256,13 +343,104 @@ namespace CoupledField{
       Read();
     }
 
+    StdVector< Vector<Double> > neighbors;
+    StdVector< Double > l2dists;
+    StdVector< Vector<T> > vectors;
 
+    switch(knnLib_) 
+    {
+    case CGAL:
 #ifdef USE_CGAL
+      KNNSearch_CGAL(globPoint, neighbors, l2dists, vectors);
+#else
+      EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
+#endif
+      break;
+      
+    case FLANN:
+#ifdef USE_FLANN
+      KNNSearch_FLANN(globPoint, neighbors, l2dists, vectors);
+#else
+      EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_FLANN=ON!");
+#endif
+      break;
+    default:
+      break;
+    }
+
     vec.Resize(DOFS);
-    //    UInt size = scatteredData_.size();
 
-    Vector<T> diff(DOFS);
+    Double dmin = l2dists[0];
+    Double dmax = dmin;
+    StdVector< Double >::iterator it, end;
+    it = l2dists.Begin();
+    end = l2dists.End();    
 
+    for( ; it != end; ++it) {
+      Double dist = (*it);
+      dmin = dmin < dist ? dmin : dist;
+      dmax = dmax > dist ? dmax : dist;
+    }
+
+    if(numNeighbors_ == 1 ||
+       interpolAlgo_ == NEAREST_NEIGHBOR ||
+       l2dists.GetSize() == 1 ||
+       dmin/dmax < 1e-6)
+    {
+      // Apply nearest neigbor interpolation.
+      for(UInt dof=0; dof < DOFS; dof++) 
+      {
+        vec[dof] = vectors[0][dof];
+      }
+    }
+    else
+    {
+      // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
+      // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
+      // /Inverse_Distance_Weighted/Shepards_Method.htm
+      Vector<T> sum(3);
+      Double weights = 0.0;
+      // The point which is farthest away, should at least have a non-zero
+      // weight of 0.01. If we would choose R = dmax, it would not contribute
+      // at all.
+      Double R = 1.01 * dmax;
+
+      // report the N nearest neighbors and their distance
+      // This should sort all N points by increasing distance from origin
+      it = l2dists.Begin();
+      for(UInt i=0; it != end; ++it, i++) {
+        Double d = *it;
+        Double w = std::pow((R-d)/(R*d), p_);
+        weights += w;
+        
+        for(UInt dof=0; dof < DOFS; dof++) 
+        {
+          sum[dof] += vectors[i][dof] * w;
+        }
+      }
+
+      for(UInt dof=0; dof < DOFS; dof++) 
+      {
+        vec[dof] = sum[dof] / weights;
+      }
+    }
+  }
+
+
+  template<typename T, UInt DOFS>
+    std::string CoefFunctionScatteredData<T,DOFS>::ToString() const {
+    std::stringstream out;
+    out << "CoefFunctionScatteredData<" << typeid(T).name() << ", " << DOFS << ">";
+    return out.str();
+  }
+  
+#ifdef USE_CGAL
+  template<typename T, UInt DOFS>
+    void CoefFunctionScatteredData<T,DOFS>::KNNSearch_CGAL(const Vector<Double> globPoint,
+      StdVector< Vector<Double> >& neighbors,
+      StdVector< Double >& l2Distances,
+      StdVector< Vector<T> >& vectors)
+  {
     Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     if(DOFS == 2)
     {
@@ -284,85 +462,93 @@ namespace CoupledField{
       EXCEPTION("Could not find a nearest neighbor for " << globPoint << "!");
     }
 
-    Double dmin = it->second;
-    Double dmax = dmin;
-    for( ; it != search.end(); ++it) {
-      dmin = dmin < it->second ? dmin : it->second;
-      dmax = dmax > it->second ? dmax : it->second;
-    }
-    dmin = std::sqrt(dmin);
-    dmax = std::sqrt(dmax);
+    UInt nn = std::distance(search.begin(), search.end());    
+    neighbors.Resize(nn);
+    l2Distances.Resize(nn);
+    vectors.Resize(nn);
+    
+    for(UInt i=0 ; it != search.end(); ++it, i++) {
+      l2Distances[i] = std::sqrt(it->second);
+      neighbors[i].Resize(DOFS);
+      vectors[i].Resize(DOFS);
 
-    if(numNeighbors_ == 1 ||
-        interpolAlgo_ == NEAREST_NEIGHBOR ||
-        std::distance(search.begin(), search.end()) == 1 ||
-        dmin/dmax < 1e-6)
-    {
-      it = search.begin();
-
-      // Apply nearest neigbor interpolation.
       if(DOFS == 2)
       {
-        vec[0] = it->first.vx();
-        vec[1] = it->first.vy();
+        vectors[i][0] = it->first.vx();
+        vectors[i][1] = it->first.vy();
+
+        neighbors[i][0] = it->first.x();
+        neighbors[i][1] = it->first.y();
       }
       else
       {
-        vec[0] = it->first.vx();
-        vec[1] = it->first.vy();
-        vec[2] = it->first.vz();
+        vectors[i][0] = it->first.vx();
+        vectors[i][1] = it->first.vy();
+        vectors[i][2] = it->first.vz();
+
+        neighbors[i][0] = it->first.x();
+        neighbors[i][1] = it->first.y();
+        neighbors[i][2] = it->first.z();
       }
+    }
+  }
+#endif  
+
+#ifdef USE_FLANN
+  template<typename T, UInt DOFS>
+    void CoefFunctionScatteredData<T,DOFS>::KNNSearch_FLANN(const Vector<Double> globPoint,
+      StdVector< Vector<Double> >& neighbors,
+      StdVector< Double >& l2Distances,
+      StdVector< Vector<T> >& vectors) 
+  {
+    Double q[3];
+
+    if(DOFS == 2)
+    {
+      q[0] = globPoint[0];
+      q[1] = globPoint[1];
+      q[2] = 0.0;
     }
     else
     {
-      // Apply Shepard interpolation cf. Numerical Recipes 3rd ed. p. 143ff.
-      // or http://www.ems-i.com/gmshelp/Interpolation/Interpolation_Schemes \
-      // /Inverse_Distance_Weighted/Shepards_Method.htm
-      Vector<T> sum(3);
-      Double weights = 0.0;
-      // The point which is farthest away, should at least have a non-zero
-      // weight of 0.01. If we would choose R = dmax, it would not contribute
-      // at all.
-      Double R = 1.01 * dmax;
+      q[0] = globPoint[0];
+      q[1] = globPoint[1];
+      q[2] = globPoint[2];
+    }
 
-      // report the N nearest neighbors and their distance
-      // This should sort all N points by increasing distance from origin
-      for(it = search.begin(); it != search.end(); ++it) {
-        Double d = std::sqrt(it->second);
-        Double w = std::pow((R-d)/(R*d), p_);
-        weights += w;
-        sum[0] += it->first.vx() * w;
-        sum[1] += it->first.vy() * w;
-        sum[2] += it->first.vz() * w;
-      }
+    flann::Matrix<Double> query(q, 1,3);
 
-      if(DOFS == 2)
+    flann::Matrix<int> indices(new int[query.rows*numNeighbors_], query.rows, numNeighbors_);
+    flann::Matrix<Double> dists(new Double[query.rows*numNeighbors_], query.rows, numNeighbors_);
+    // do a knn search, using 3 checks
+    index_->knnSearch(query, indices, dists, numNeighbors_, flann::SearchParams(flann::FLANN_CHECKS_UNLIMITED));
+
+    neighbors.Resize(numNeighbors_);
+    l2Distances.Resize(numNeighbors_);    
+    vectors.Resize(numNeighbors_);    
+    for(UInt i=0; i<indices.rows; i++) 
+    {
+      for(UInt j=0; j<numNeighbors_; j++) 
       {
-        vec[0] = sum[0] / weights;
-        vec[1] = sum[1] / weights;
-      }
-      else
-      {
-        vec[0] = sum[0] / weights;
-        vec[1] = sum[1] / weights;
-        vec[2] = sum[2] / weights;
+        l2Distances[j] = std::sqrt(dists[i][j]);
+
+        UInt idx = indices[i][j];
+        
+        neighbors[j].Resize(DOFS);
+        vectors[j].Resize(DOFS);
+
+        for(UInt d=0; d<DOFS; d++) 
+        {
+          vectors[j][d] = scatteredData_[idx][d] * factor_;
+          neighbors[j][d] = coordinates_[idx][d];
+        }
       }
     }
 
-#else
-    EXCEPTION("CoefFunctionScatteredData needs to be compiled with USE_CGAL=ON!");
-#endif
-    }
-
-
-
-
-  template<typename T, UInt DOFS>
-  std::string CoefFunctionScatteredData<T,DOFS>::ToString() const {
-  std::stringstream out;
-  out << "CoefFunctionScatteredData<" << typeid(T).name() << ", " << DOFS << ">";
-  return out.str();
-}
+    delete[] indices.ptr();
+    delete[] dists.ptr();
+  }
+#endif  
 
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION

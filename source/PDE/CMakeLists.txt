@@ -15,6 +15,7 @@ SET(PDE_SRCS
   AcousticPDE.cc
   AcousticMixedPDE.cc
   ElecCurrentPDE.cc
+  WaterWavePDE.cc
   FlowPDE.cc
   TestPDE.cc
   )
@@ -28,8 +29,8 @@ SET(TARGET_LL
   driver
   mathparser
   paramh
+  utils  
   matvec
-  utils
   timeschemes
   mesh
   results

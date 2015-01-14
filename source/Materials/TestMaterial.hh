@@ -31,7 +31,7 @@ namespace CoupledField {
 
     //! Default constructor
     TestMaterial(MathParser* mp,
-                     CoordSystem * defaultCoosy);
+                 CoordSystem * defaultCoosy);
 
     //! Destructor
     ~TestMaterial();

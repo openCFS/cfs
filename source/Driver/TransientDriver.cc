@@ -179,7 +179,7 @@ namespace CoupledField {
      return;
     }
     
-       resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
+    resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, numstep_+restartStep_ );
     
     // Outer loop over all timesteps
     UInt count = 0;

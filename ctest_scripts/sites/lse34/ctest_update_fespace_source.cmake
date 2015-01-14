@@ -41,7 +41,7 @@ SET(BUILDNAME "Update CFS FeSpace")
 SET(CTEST_SOURCE_DIRECTORY "/home/local/lse/jens/cfs/sbm_fespace_090409/src")
 SET(CTEST_BINARY_DIRECTORY "/home/local/lse/jens/cfs/sbm_fespace_090409/build")
 
-SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/branches/sbm_fespace_090409")
+SET(REPO "${CFS_DS_SVN}/CFS++/branches/sbm_fespace_090409")
 SET(USER ${CFS_TESTUSER})
 
 INCLUDE(${SITE_DIR}/ctest_update.cmake)

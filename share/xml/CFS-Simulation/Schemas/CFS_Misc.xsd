@@ -54,6 +54,14 @@
       <xsd:maxInclusive value="360"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  <!-- Data type for specifying direction orientation (-/+1) -->
+  <xsd:simpleType name="DT_DirFlag">
+    <xsd:restriction base="xsd:integer">
+      <xsd:enumeration value="-1"/>
+      <xsd:enumeration value="+1"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
 
   <!-- Data type for setting flags -->

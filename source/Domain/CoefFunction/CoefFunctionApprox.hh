@@ -7,7 +7,7 @@
 
 namespace CoupledField {
 
-// forward clas declaration
+// forward class declaration
 class ApproxData;
 class BaseBOperator;
 class Grid;
@@ -291,6 +291,10 @@ public:
   void GetTensor(Matrix<Double>& coefMat, 
                  const LocPointMapped& lpm );
 
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar,
+                 const LocPointMapped& lpm );
+
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -327,8 +331,9 @@ public:
 
   //! Initialize with data
   void Init( Double coefScalar, 
-             StdVector<ApproxData*>  nLinFnc,
+             StdVector<shared_ptr<CoefFunction> > nLinFnc,
              StdVector<Double> angles,
+             StdVector<Double> zScalings,
              PtrCoefFct dependCoef );
 
   //! \see CoefFunction::GetScalar
@@ -344,10 +349,16 @@ protected:
   Double coefScalar_;
   
   //! Vector containing the approximations of the curves
-  StdVector<ApproxData* > nLinFnc_;
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
+  
+  //! Scaling factor of anisotropic behavior in z-direction
+  //! -> Since we do not yet have nonlinear curves in z direction we use the same
+  //! curves as given for the xy-plane but scale it with an appropriate factor.
+  //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
+  StdVector<Double> zScalings_;
   
   //! Coefficient function which this one depends one
   PtrCoefFct dependCoef_;
@@ -369,8 +380,9 @@ public:
   virtual ~CoefFunctionApproxDerivAniso();
   
   //! Initialize with data
-  void Init( StdVector<ApproxData*>  nLinFnc,
+  void Init( StdVector<shared_ptr<CoefFunction> > nLinFnc,
              StdVector<Double> angles,
+             StdVector<Double> zScalings,
              UInt dimDMat,
              PtrCoefFct dependCoef );
 
@@ -387,10 +399,16 @@ protected:
   UInt dimDMat_;
   
   //! Vector containing the approximations of the curves
-  StdVector<ApproxData* > nLinFnc_;
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
+  
+  //! Scaling factor of anisotropic behavior in z-direction
+  //! -> Since we do not yet have nonlinear curves in z direction we use the same
+  //! curves as given for the xy-plane but scale it with an appropriate factor.
+  //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
+  StdVector<Double> zScalings_;
   
   //! Coefficient function which this one depends one
   PtrCoefFct dependCoef_;

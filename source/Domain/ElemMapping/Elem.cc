@@ -80,42 +80,100 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::CorrectConnectivity( const Grid& grid )
  {
-    UInt dummy;
+   UInt dummy;
 
-    // This function rearanges the connectivity of the element so
-    // that the orientation is in such a way that the Jacobion determinant
-    // will always be positive. 
-    switch(type) 
-    {
-    case ET_TRIA6:
-      dummy = connect[4];
-      connect[4] = connect[5];
-      connect[5] = dummy;
-    case ET_TRIA3:
-      dummy = connect[0];
-      connect[0] = connect[1];
-      connect[1] = dummy;
-      break;
-    case ET_QUAD9:
-    case ET_QUAD8:
-      dummy = connect[4];
-      connect[4] = connect[7];
-      connect[7] = dummy;
-      dummy = connect[5];
-      connect[5] = connect[6];
-      connect[6] = dummy;
-    case ET_QUAD4:
-      dummy = connect[1];
-      connect[1] = connect[3];
-      connect[3] = dummy;
-      break;
-    default:
-      EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
-                << elemNum << " in region "
-                << grid.GetRegion().ToString(regionId)
-                << " is not properly oriented!" );
-      break;
-    }
+   // This funtion rearanges the connectivity of the element so
+   // that the orientation is in such a way that the Jacobian determinant
+   // will always be positive.
+   switch(type)
+   {
+   case ET_TRIA6:
+     dummy = connect[4];
+     connect[4] = connect[5];
+     connect[5] = dummy;
+   case ET_TRIA3:
+     dummy = connect[0];
+     connect[0] = connect[1];
+     connect[1] = dummy;
+     break;
+   case ET_QUAD8:
+   case ET_QUAD9:
+     dummy = connect[4];
+     connect[4] = connect[7];
+     connect[7] = dummy;
+     dummy = connect[5];
+     connect[5] = connect[6];
+     connect[6] = dummy;
+   case ET_QUAD4:
+     dummy = connect[1];
+     connect[1] = connect[3];
+     connect[3] = dummy;
+     break;
+   case ET_TET10:
+     dummy = connect[4];
+     connect[4] = connect[7];
+     connect[7] = connect[9];
+     connect[9] = connect[5];
+     connect[5] = dummy;
+     dummy = connect[6];
+     connect[6] = connect[8];
+     connect[8] = dummy;
+   case ET_TET4:
+     dummy = connect[3];
+     connect[3] = connect[2];
+     connect[2] = connect[1];
+     connect[1] = connect[0];
+     connect[0] = dummy;
+     dummy = connect[3];
+     break;
+   case ET_HEXA20:
+     for (int n1=8; n1<=11; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+4];
+       connect[n1+4] = dummy;
+     }
+   case ET_HEXA8:
+     for (int n1=0; n1<=3; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+4];
+       connect[n1+4] = dummy;
+     }
+     break;
+   case ET_PYRA13:
+     dummy = connect[8];
+     connect[8] = connect[6];
+     connect[6] = dummy;
+     dummy = connect[7];
+     connect[7] = connect[5];
+     connect[5] = dummy;
+     dummy = connect[12];
+     connect[12] = connect[10];
+     connect[10] = dummy;
+   case ET_PYRA5:
+     dummy = connect[1];
+     connect[1] = connect[3];
+     connect[3] = dummy;
+     break;
+   case ET_WEDGE15:
+     for (int n1=6; n1<=8; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+3];
+       connect[n1+3] = dummy;
+     }
+   case ET_WEDGE6:
+     for (int n1=0; n1<=2; n1++) {
+       dummy = connect[n1];
+       connect[n1] = connect[n1+3];
+       connect[n1+3] = dummy;
+     }
+     break;
+   default:
+     EXCEPTION("Connectivity for " << feType.ToString(type) << " element "
+               << elemNum << " in region "
+               << grid.GetRegion().ToString(regionId)
+               << " is not properly oriented!" );
+     break;
+   }
   }
   
   void SetElemInfo( ElemShape& shape,
@@ -839,9 +897,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt edgeVertices[] =
       { 1, 2, // #1
-        1, 3, // #2
-        1, 4, // #3
-        2, 3, // #4
+        2, 3, // #2
+        1, 3, // #3
+        1, 4, // #4
         2, 4, // #5
         3, 4, // #6
       };
@@ -885,7 +943,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        {-1,-1}, // #1
        {-1,-1}, // #2
        {-1,-1}, // #3
-       {-1,-1} // #4
+       {-1,-1}  // #4
       };
       Elem::FEType surfElems[] =
       {
@@ -947,9 +1005,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt edgeVertices[] =
       { 1, 2, // #1
-        1, 3, // #2
-        1, 4, // #3
-        2, 3, // #4
+        2, 3, // #2
+        1, 3, // #3
+        1, 4, // #4 
         2, 4, // #5
         3, 4, // #6
       };
@@ -964,9 +1022,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt edgeNodes[] =
       { 1, 2, 5,  // #1
+        2, 3, 6,  // #4
         1, 3, 7,  // #2
         1, 4, 8,  // #3
-        2, 3, 6,  // #4
         2, 4, 9,  // #5
         3, 4, 10  // #6
       };
@@ -1066,14 +1124,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         2, 3, // #2
         4, 3, // #3
         1, 4, // #4
-        1, 5, // #5
-        2, 6, // #6
-        3, 7, // #7
-        4, 8, // #8
-        5, 6, // #9
-        6, 7, // #10
-        8, 7, // #11
-        5, 8  // #12
+        5, 6, // #5
+        6, 7, // #6
+        8, 7, // #7
+        5, 8, // #8
+        1, 5, // #9
+        2, 6, // #10
+        3, 7, // #11
+        4, 8  // #12
       };
       UInt numEdgeNodes[] = 
       {
@@ -1097,14 +1155,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        1, // #2
        0, // #3
        1, // #4
-       2, // #5
-       2, // #6
-       2, // #7
-       2, // #8
-       0, // #9
-       1, // #10
-       0, // #11
-       1  // #12
+       0, // #5
+       1, // #6
+       0, // #7
+       1, // #8
+       2, // #9
+       2, // #10
+       2, // #11
+       2, // #12
       };
       UInt numFaceVertices[] = 
       {
@@ -1117,22 +1175,22 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt faceVertices[] = 
       {
-       1, 2, 3, 4, // #1
-       1, 2, 6, 5, // #2
-       2, 3, 7, 6, // #3
-       4, 3, 7, 8, // #4
-       1, 4, 8, 5, // #5
+       1, 2, 6, 5, // #1
+       2, 3, 7, 6, // #2
+       4, 3, 7, 8, // #3
+       1, 4, 8, 5, // #4
+       1, 2, 3, 4, // #5
        5, 6, 7, 8  // #6
       };
       UInt * numFaceNodes = numFaceVertices;
       UInt * faceNodes = faceVertices;
       Integer faceLocDirs[][2] =
       {
-       {0, 1}, // #1
-       {0, 2}, // #2
-       {1, 2}, // #3
-       {0, 2}, // #4
-       {1, 2}, // #5
+       {0, 2}, // #1
+       {1, 2}, // #2
+       {0, 2}, // #3
+       {1, 2}, // #4
+       {0, 1}, // #5
        {0 ,1}  // #6
       };
       Elem::FEType surfElems[] =
@@ -1177,24 +1235,24 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       Double midPoint[3] = {0.0, 0.0, 0.0};
       Double nodeCoords[] = 
       { -1.0, -1.0, -1.0, //  #1
-        1.0, -1.0, -1.0, //  #2
-        1.0,  1.0, -1.0, //  #3
+         1.0, -1.0, -1.0, //  #2
+         1.0,  1.0, -1.0, //  #3
         -1.0,  1.0, -1.0, //  #4
         -1.0, -1.0,  1.0, //  #5
-        1.0, -1.0,  1.0, //  #6
-        1.0,  1.0,  1.0, //  #7
+         1.0, -1.0,  1.0, //  #6
+         1.0,  1.0,  1.0, //  #7
         -1.0,  1.0,  1.0, //  #8
-        0.0, -1.0, -1.0, //  #9
-        1.0,  0.0, -1.0, // #10
-        0.0,  1.0, -1.0, // #11
+         0.0, -1.0, -1.0, //  #9
+         1.0,  0.0, -1.0, // #10
+         0.0,  1.0, -1.0, // #11
         -1.0,  0.0, -1.0, // #12
-        0.0, -1.0,  1.0, // #13
-        1.0,  0.0,  1.0, // #14
-        0.0,  1.0,  1.0, // #15
+         0.0, -1.0,  1.0, // #13
+         1.0,  0.0,  1.0, // #14
+         0.0,  1.0,  1.0, // #15
         -1.0,  0.0,  1.0, // #16
         -1.0, -1.0,  0.0, // #17
-        1.0, -1.0,  0.0, // #18
-        1.0,  1.0,  0.0, // #19
+         1.0, -1.0,  0.0, // #18
+         1.0,  1.0,  0.0, // #19
         -1.0,  1.0,  0.0  // #20
 
       };
@@ -1203,14 +1261,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         2, 3, // #2
         4, 3, // #3
         1, 4, // #4
-        1, 5, // #5
-        2, 6, // #6
-        3, 7, // #7
-        4, 8, // #8
-        5, 6, // #9
-        6, 7, // #10
-        8, 7, // #11
-        5, 8  // #12
+        5, 6, // #5
+        6, 7, // #6
+        8, 7, // #7
+        5, 8, // #8
+        1, 5, // #9
+        2, 6, // #10
+        3, 7, // #11
+        4, 8  // #12
       };
       UInt numEdgeNodes[] = 
       {
@@ -1233,14 +1291,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        2, 3, 10, // #2
        4, 3, 11, // #3
        1, 4, 12, // #4
-       1, 5, 17, // #5
-       2, 6, 18, // #6
-       3, 7, 19, // #7
-       4, 8, 20, // #8
-       5, 6, 13, // #9
-       6, 7, 14, // #10
-       8, 7, 15, // #11
-       5, 8, 16  // #12
+       5, 6, 13, // #5
+       6, 7, 14, // #6
+       8, 7, 15, // #7
+       5, 8, 16, // #8
+       1, 5, 17, // #9
+       2, 6, 18, // #10
+       3, 7, 19, // #11
+       4, 8, 20  // #12
       };
       Integer edgeLocDirs[] =
       {
@@ -1248,14 +1306,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        1, // #2
        0, // #3
        1, // #4
-       2, // #5
-       2, // #6
-       2, // #7
-       2, // #8
-       0, // #9
-       1, // #10
-       0, // #11
-       1  // #12
+       0, // #5
+       1, // #6
+       0, // #7
+       1, // #8
+       2, // #9
+       2, // #10
+       2, // #11
+       2  // #12
       };
       UInt numFaceVertices[] = 
       {
@@ -1268,11 +1326,11 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt faceVertices[] = 
       {
-       1, 2, 3, 4, // #1
-       1, 2, 6, 5, // #2
-       2, 3, 7, 6, // #3
-       4, 3, 7, 8, // #4
-       1, 4, 8, 5, // #5
+       1, 2, 6, 5, // #1
+       2, 3, 7, 6, // #2
+       4, 3, 7, 8, // #3
+       1, 4, 8, 5, // #4
+       1, 2, 3, 4, // #5
        5, 6, 7, 8  // #6
       };
       UInt numFaceNodes[] = 
@@ -1286,20 +1344,20 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt faceNodes[] = 
       {
-       1, 2, 3, 4,  9, 10, 11, 12, // #1
        1, 2, 6, 5,  9, 18, 13, 17, // #2
        2, 3, 7, 6, 10, 19, 14, 18, // #3
        4, 3, 7, 8, 11, 19, 15, 20, // #4
        1, 4, 8, 5, 12, 20, 16, 17, // #5
+       1, 2, 3, 4,  9, 10, 11, 12, // #1
        5, 6, 7, 8, 13, 14, 15, 16  // #6
       };
       Integer faceLocDirs[][2] =
       {
-       {0, 1}, // #1
        {0, 2}, // #2
        {1, 2}, // #3
        {0, 2}, // #4
        {1, 2}, // #5
+       {0, 1}, // #1
        {0 ,1}  // #6
       };
       Elem::FEType surfElems[] =
@@ -1328,48 +1386,49 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       Double midPoint[3] = {0.0, 0.0, 0.0};
       Double nodeCoords[] =
       { -1.0, -1.0, -1.0, //  #1
-        1.0, -1.0, -1.0, //  #2
-        1.0,  1.0, -1.0, //  #3
+         1.0, -1.0, -1.0, //  #2
+         1.0,  1.0, -1.0, //  #3
         -1.0,  1.0, -1.0, //  #4
         -1.0, -1.0,  1.0, //  #5
-        1.0, -1.0,  1.0, //  #6
-        1.0,  1.0,  1.0, //  #7
+         1.0, -1.0,  1.0, //  #6
+         1.0,  1.0,  1.0, //  #7
         -1.0,  1.0,  1.0, //  #8
-        0.0, -1.0, -1.0, //  #9
-        1.0,  0.0, -1.0, // #10
-        0.0,  1.0, -1.0, // #11
+         0.0, -1.0, -1.0, //  #9
+         1.0,  0.0, -1.0, // #10
+         0.0,  1.0, -1.0, // #11
         -1.0,  0.0, -1.0, // #12
-        0.0, -1.0,  1.0, // #13
-        1.0,  0.0,  1.0, // #14
-        0.0,  1.0,  1.0, // #15
+         0.0, -1.0,  1.0, // #13
+         1.0,  0.0,  1.0, // #14
+         0.0,  1.0,  1.0, // #15
         -1.0,  0.0,  1.0, // #16
         -1.0, -1.0,  0.0, // #17
-        1.0, -1.0,  0.0, // #18
-        1.0,  1.0,  0.0, // #19
+         1.0, -1.0,  0.0, // #18
+         1.0,  1.0,  0.0, // #19
         -1.0,  1.0,  0.0, // #20
 
-        0.0, -1.0,  0.0, // #21
-        1.0,  0.0,  0.0, // #22
-        0.0,  1.0,  0.0, // #23
+         0.0, -1.0,  0.0, // #21
+         1.0,  0.0,  0.0, // #22
+         0.0,  1.0,  0.0, // #23
         -1.0,  0.0,  0.0, // #24
 
-        0.0,  0.0, -1.0, // #25
-        0.0,  0.0,  0.0, // #26
-        0.0,  0.0,  1.0, // #27
+         0.0,  0.0, -1.0, // #25
+         0.0,  0.0,  1.0, // #26
+         0.0,  0.0,  0.0, // #27
+         
       };
-      UInt edgeVertices[] =
+      UInt edgeVertices[] = 
       { 1, 2, // #1
         2, 3, // #2
         4, 3, // #3
         1, 4, // #4
-        1, 5, // #5
-        2, 6, // #6
-        3, 7, // #7
-        4, 8, // #8
-        5, 6, // #9
-        6, 7, // #10
-        8, 7, // #11
-        5, 8  // #12
+        5, 6, // #5
+        6, 7, // #6
+        8, 7, // #7
+        5, 8, // #8
+        1, 5, // #9
+        2, 6, // #10
+        3, 7, // #11
+        4, 8  // #12
       };
       UInt numEdgeNodes[] =
       {
@@ -1387,19 +1446,19 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        3  // #12
       };
       UInt edgeNodes[] =
-      {
+      { 
        1, 2,  9, // #1
        2, 3, 10, // #2
        4, 3, 11, // #3
        1, 4, 12, // #4
-       1, 5, 17, // #5
-       2, 6, 18, // #6
-       3, 7, 19, // #7
-       4, 8, 20, // #8
-       5, 6, 13, // #9
-       6, 7, 14, // #10
-       8, 7, 15, // #11
-       5, 8, 16  // #12
+       5, 6, 13, // #5
+       6, 7, 14, // #6
+       8, 7, 15, // #7
+       5, 8, 16, // #8
+       1, 5, 17, // #9
+       2, 6, 18, // #10
+       3, 7, 19, // #11
+       4, 8, 20  // #12
       };
       Integer edgeLocDirs[] =
       {
@@ -1407,14 +1466,14 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        1, // #2
        0, // #3
        1, // #4
-       2, // #5
-       2, // #6
-       2, // #7
-       2, // #8
-       0, // #9
-       1, // #10
-       0, // #11
-       1  // #12
+       0, // #5
+       1, // #6
+       0, // #7
+       1, // #8
+       2, // #9
+       2, // #10
+       2, // #11
+       2  // #12
       };
       UInt numFaceVertices[] =
       {
@@ -1427,11 +1486,11 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt faceVertices[] =
       {
-       1, 2, 3, 4, // #1
-       1, 2, 6, 5, // #2
-       2, 3, 7, 6, // #3
-       4, 3, 7, 8, // #4
-       1, 4, 8, 5, // #5
+       1, 2, 6, 5, // #1
+       2, 3, 7, 6, // #2
+       4, 3, 7, 8, // #3
+       1, 4, 8, 5, // #4
+       1, 2, 3, 4, // #5
        5, 6, 7, 8  // #6
       };
       UInt numFaceNodes[] =
@@ -1445,20 +1504,20 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
       };
       UInt faceNodes[] =
       {
-       1, 2, 3, 4,  9, 10, 11, 12, 25, // #1
        1, 2, 6, 5,  9, 18, 13, 17, 21, // #2
        2, 3, 7, 6, 10, 19, 14, 18, 22, // #3
        4, 3, 7, 8, 11, 19, 15, 20, 23, // #4
        1, 4, 8, 5, 12, 20, 16, 17, 24, // #5
+       1, 2, 3, 4,  9, 10, 11, 12, 25, // #1
        5, 6, 7, 8, 13, 14, 15, 16, 26  // #6
       };
       Integer faceLocDirs[][2] =
       {
-       {0, 1}, // #1
        {0, 2}, // #2
        {1, 2}, // #3
        {0, 2}, // #4
        {1, 2}, // #5
+       {0, 1}, // #1
        {0 ,1}  // #6
       };
       Elem::FEType surfElems[] =

@@ -14,8 +14,13 @@ inline std::string B(const std::string& xpr ) {
 const std::string zero1 = boost::lexical_cast<std::string>(0.0);
 const std::string zero2 = "0.0";
 const std::string zero3 = "0";
+const std::string zero4 = B(zero1);
+const std::string zero5 = B(zero2);
+const std::string zero6 = B(zero3);
+
 inline bool IsZero( const std::string& arg ) {
-  return (arg == zero1 || arg == zero2 || arg == zero3);
+  return (arg == zero1 || arg == zero2 || arg == zero3 || 
+          arg == zero4 || arg == zero5 || arg == zero6);
 }
 
 // initialize static variable
@@ -35,6 +40,8 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_NORM:
     case OP_SQRT:
     case OP_TRACE:
+    case OP_INV:
+    case OP_DET:
       return 1;
       break;
         
@@ -45,6 +52,7 @@ UInt CoefXpr::GetNumOperands(OpType op ) {
     case OP_MULT_CONJ:
     case OP_MULT_VOIGT_TENSOR_VEC:
     case OP_MULT_VOIGT_TENSOR_VEC_CONJ:
+    case OP_MULT_TENSOR:
     case OP_DIV:
     case OP_CROSS:
     case OP_CROSS_AXI:
@@ -76,6 +84,9 @@ std::string CoefXpr::OpToString( OpType op ) {
       break;
     case OP_DIV:
       return "/";
+      break;
+    case OP_MULT_TENSOR:
+      return "\u2297";
       break;
     default:
       EXCEPTION("No string representation for operand type");
@@ -109,6 +120,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
     case CoefFunction::TENSOR:
       switch( op ) {
         case OP_NORM:
+        case OP_DET:
           dim = CoefFunction::SCALAR;
           break;
         default:
@@ -162,6 +174,9 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_DIV:
              EXCEPTION( "Division of two vectors not defined");
              break;
+           case OP_MULT_TENSOR:
+             dim = CoefFunction::TENSOR;
+             break;
            default:
              EXCEPTION( "Operation for vector type not defined" );
              break;
@@ -174,6 +189,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
            case OP_SUB:
            case OP_MULT:
            case OP_MULT_CONJ:
+           case OP_MULT_TENSOR:
              dim = CoefFunction::TENSOR;
              break;
            case OP_DIV:
@@ -207,7 +223,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
     // case: tensor - vec
     else if( a->GetDimType() == CoefFunction::TENSOR &&  
              b->GetDimType() == CoefFunction::VECTOR ) {
-      dim = CoefFunction::VECTOR;
+        dim = CoefFunction::VECTOR;
     } else {
       EXCEPTION( "Can not apply a function on arguments of type "
           << CoefFunction::CoefDimType_.ToString(a->GetDimType())
@@ -260,6 +276,11 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, const std::string& argReal,
       args = "sqrt(", B(argReal), ")";
       retReal = B(args.Serialize(' '));
       break;
+      
+    case OP_INV:
+      args = "1.0/(", B(argReal), ")";
+      retReal = B(args.Serialize(' '));
+      break;
     
     default:
       EXCEPTION(" Unknown operand type '" << OpToString(op) 
@@ -282,6 +303,11 @@ void CoefXpr::ApplyUnaryFunc( std::string& retReal, std::string& retImag,
     
     case OP_SQRT:
       EXCEPTION( "Complex square root not implemented" );
+      break;
+      
+    case OP_INV:
+      // Simply apply binary function
+      ApplyBinaryFunc( retReal, retImag, "1.0", argReal, "0.0" , argImag, OP_DIV );
       break;
     
     default:
@@ -314,7 +340,14 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal,
       args = B(arg1Real), "^", B(arg2Real);
       retReal = B(args.Serialize(' ' ));
       break;
-
+    case OP_MULT_TENSOR:
+      if( IsZero(arg1Real) && IsZero(arg2Real) ) {
+        retReal = zero2;
+      } else {
+        args =  B(arg1Real), "*" , B(arg2Real);
+        retReal = B(args.Serialize(' ') );
+      }
+      break;
     default:
       EXCEPTION(" Unknown operand type '" << OpToString(op) 
                 << "' to ApplyBinaryFunc");
@@ -359,6 +392,7 @@ void CoefXpr::ApplyBinaryFunc( std::string& retReal, std::string& retImag,
       break;
 
     case OP_MULT:
+    case OP_MULT_TENSOR:
       // if one of the two operands is zero, just take the shortcut
       if( ( z1Real && z1Imag ) || (z2Real && z2Imag) ) { 
         retReal = zero2;
@@ -514,6 +548,7 @@ void CoefXprUnaryOp::Init( PtrCoefFct a,
    dimType_ = CoefXpr::GetDimType( a, op );
    isAnalytical_ = a->IsAnalytic();
    dependType_ = a->GetDependency();
+   coordSys_ = a->GetCoordinateSystem();
    isComplex_ = CoefXpr::IsComplex(a, op );
    a_ = a;
    aName_ = CoefXpr::GetUniqueVarName();
@@ -544,17 +579,17 @@ CoefXprUnaryOp::CoefXprUnaryOp( MathParser * mp,
 }
 
 void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const {
-  
+
   // Switch depending on type of argument
   if( a_->GetDimType() == CoefFunction::SCALAR ) {
     // -------------
     //  SCALAR CASE
     // -------------
     std::string aR, aI;
-    
+
     if( isAnalytical_) {
       CoefFunctionAnalytic & coefA = 
-              dynamic_cast<CoefFunctionAnalytic&>(*a_);
+          dynamic_cast<CoefFunctionAnalytic&>(*a_);
       coefA.GetStrScalar( aR, aI );
     } else {
       CoefFunction::GenScalCompNames(aR, aI, aName_, a_);
@@ -571,7 +606,7 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
   //  VECTOR CASE
   // -------------
   else if( a_->GetDimType() == CoefFunction::VECTOR ) {
-    
+
     // only allowed vec->scalar operation is NORM
     if( op_ == OP_NORM ) {
       StdVector<std::string> aR, aI;
@@ -598,18 +633,125 @@ void CoefXprUnaryOp::GetScalarXpr( std::string& real, std::string& imag ) const 
         imag = "0.0";
         real = args.Serialize(' ');
       } else {
-        EXCEPTION("Norm of complex valued vector not implemented yet");
+        args = "( sqrt(";
+        // Although we create temporary return variables for real- and imaginary part, 
+        // we only get a real-part in case of multiplication with conjugate transposed.
+        std::string tmpR, tmpI;
+        CoefXpr::ApplyBinaryFunc( tmpR, tmpI,  aR[0], aR[0], aI[0], aI[0], OP_MULT_CONJ );
+        args.Push_back(tmpR);
+        for( UInt i = 1; i < aR.GetSize(); ++ i ) {
+          CoefXpr::ApplyBinaryFunc( tmpR, tmpI, aR[i], aR[i], aI[i], aI[i], OP_MULT_CONJ );
+          args.Push_back("+");
+          args.Push_back(tmpR);
+        }
+        args.Push_back(") )");
+        imag = "0.0";
+        real = args.Serialize(' ');
+        }
+      } else {
+        EXCEPTION( "Unary operation of type " << op_ 
+                   << " not supported for vector type functions!" );
       }
     }
-  }
   // -------------
-   //  TENSOR CASE
-   // -------------
-   else if( a_->GetDimType() == CoefFunction::TENSOR ) {
-     if( op_ == OP_TRACE ) {
-       EXCEPTION("CoefXprUnaryOp::GetScalarXpr: TENSOR trace not implemented");
-     }
-   }
+  //  TENSOR CASE
+  // -------------
+  else if( a_->GetDimType() == CoefFunction::TENSOR ) {
+    StdVector<std::string> aR, aI;
+    UInt numRowsA, numColsA;
+
+    if( isAnalytical_) {
+      CoefFunctionAnalytic & coefA = 
+          dynamic_cast<CoefFunctionAnalytic&>(*a_);
+      coefA.GetStrTensor( numRowsA, numColsA, aR, aI );
+    } else {
+      CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+      a_->GetTensorSize(numRowsA, numColsA);
+    }
+    if( op_ == OP_DET ) { 
+      if( numRowsA != numColsA)  {
+        EXCEPTION( "Can not calculate determinant of tensor of size "
+            << numRowsA << "x"<< numColsA );
+      }
+      if( numRowsA == 1 ) {
+        real = B(aR[0]);
+        imag = B(aI[0]);
+      } else if( numRowsA == 2 ) {
+        std::string tmpR, tmpI;
+        if( !isComplex_ ) {
+          ApplyBinaryFunc( tmpR, aR[0], aR[3], OP_MULT );
+          real = tmpR + "-";
+          ApplyBinaryFunc( tmpR, aR[1], aR[2], OP_MULT );
+          real += tmpR;
+          real = B(real);
+        } else {
+          ApplyBinaryFunc( tmpR, tmpI, aR[0], aI[0], aR[3], aI[3], OP_MULT );
+          real = tmpR + "-";
+          imag = tmpI + "-";
+          ApplyBinaryFunc( tmpR, tmpI, aR[1], aI[1], aR[2], aI[2], OP_MULT );
+          real += tmpR;
+          imag += tmpI;
+          real = B(real);
+          imag = B(imag);
+        }
+      } else if( numRowsA == 3 ) {
+        std::string tmpR, tmpI;
+        if( !isComplex_ ) {
+          ApplyTernaryFunc( tmpR, aR[0], aR[4], aR[8], OP_MULT, OP_MULT);
+          real = tmpR;
+          ApplyTernaryFunc( tmpR, aR[1], aR[5], aR[6], OP_MULT, OP_MULT);
+          real += " + " + tmpR;
+          ApplyTernaryFunc( tmpR, aR[2], aR[3], aR[7], OP_MULT, OP_MULT);
+          real += " + " + tmpR;
+
+          ApplyTernaryFunc( tmpR, aR[2], aR[4], aR[6], OP_MULT, OP_MULT);
+          real += " - " + tmpR;
+          ApplyTernaryFunc( tmpR, aR[1], aR[3], aR[8], OP_MULT, OP_MULT);
+          real += " - " + tmpR;
+          ApplyTernaryFunc( tmpR, aR[0], aR[5], aR[7], OP_MULT, OP_MULT);
+          real += " - " + tmpR;
+          real = B(real);
+        } else {
+          ApplyTernaryFunc( tmpR, tmpI, aR[0], aI[0], aR[4], aI[4],
+                            aR[8], aI[8], OP_MULT, OP_MULT);
+          real = tmpR;
+          imag = tmpI;
+
+          ApplyTernaryFunc( tmpR, tmpI, aR[1], aI[1], aR[5], aI[5],
+                            aR[6], aI[6], OP_MULT, OP_MULT);
+          real += " + " + tmpR;
+          imag += " + " + tmpI;
+
+          ApplyTernaryFunc( tmpR, tmpI, aR[2], aI[2], aR[3], aI[3],
+                            aR[7], aI[7], OP_MULT, OP_MULT);
+          real += " + " + tmpR;
+          imag += " + " + tmpI;
+          ApplyTernaryFunc( tmpR, tmpI, aR[2], aI[2], aR[4], aI[4],
+                            aR[6], aI[6], OP_MULT, OP_MULT);
+          real += " - " + tmpR;
+          imag += " - " + tmpI;
+
+          ApplyTernaryFunc( tmpR, tmpI, aR[1], aI[1], aR[3], aI[3],
+                            aR[8], aI[8], OP_MULT, OP_MULT);
+
+          real += " - " + tmpR;
+          imag += " - " + tmpI;
+          ApplyTernaryFunc( tmpR, tmpI, aR[0], aI[0], aR[5], aI[5],
+                            aR[7], aI[7], OP_MULT, OP_MULT);
+          real += " - " + tmpR;
+          imag += " - " + tmpI;
+          real = B(real);
+          imag = B(imag);
+        }
+      } else {
+        EXCEPTION( "General tensor inversion only implemented up to size 3x3");
+      }
+
+    } else {
+      EXCEPTION( "Unary operation of type " << op_ 
+                 << " not supported for matrix type functions!" );
+    }
+  }// if tensor
 }
 
 void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real, 
@@ -619,9 +761,61 @@ void CoefXprUnaryOp::GetVectorXpr( StdVector<std::string>& real,
 }
 
 void CoefXprUnaryOp::GetTensorXpr( UInt& numRows, UInt& numCols,
-                                 StdVector<std::string>& real, 
-                                 StdVector<std::string>& imag ) const {
-  EXCEPTION( "No tensor valued unary function available")
+                                   StdVector<std::string>& real, 
+                                   StdVector<std::string>& imag ) const {
+  assert((this->dimType_ == CoefFunction::NO_DIM) || 
+         (this->dimType_ == CoefFunction::TENSOR) );
+
+  StdVector<std::string> aR, aI;
+  UInt numRowsA, numColsA;
+
+  if( isAnalytical_) {
+    CoefFunctionAnalytic & coefA = 
+        dynamic_cast<CoefFunctionAnalytic&>(*a_);
+    coefA.GetStrTensor( numRowsA, numColsA, aR, aI );
+  } else {
+    CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+    a_->GetTensorSize(numRowsA, numColsA);
+  }
+  if( op_ == OP_INV) {
+    // Choose algorithm depending on size of "tensor"
+    if( numRowsA != numColsA)  {
+      EXCEPTION( "Tensor is of size " << numRowsA << "x"
+                 << numColsA << " and can not be inverted! ");
+    }
+    // Obtain Jacobian detmerinant
+    std::string detR, detI;
+    CoefXprUnaryOp detOp = CoefXprUnaryOp( mp_, a_, OP_DET );
+    detOp.GetScalarXpr( detR, detI );
+
+
+    if( numRowsA == 1 ) {
+      real.Resize(1);
+      imag.Resize(1);
+      ApplyUnaryFunc( real[0], imag[0], aR[0], aI[0], OP_INV );
+
+    } else if( numRowsA == 2 ) {
+      EXCEPTION( "Inversion of 2x2 matrix not fully implemented yet");
+      //      real.Resize(4);
+      //      std::string det;
+      //      if( !isComplex_ ) {
+      //        real[0] = aR[0];
+      //        real[3] = aR[3];
+      //        real[1] = B("-"+aR[1]);
+      //        real[2] = B("-"+aR[2]);
+      //      } else {
+      //        imag.Resize(4);
+      //      }
+      //      
+
+    } else if( numRowsA == 3 ) {
+      EXCEPTION( "Inversion of 3x3 matrix not fully implemented yet");
+    } else {
+      EXCEPTION( "General tensor inversion only implemented up to size 3x3");
+    }
+  } else {
+    EXCEPTION( "Unary tensor operation " << op_ << " not implemented" );
+  }
 }
 
 void CoefXprUnaryOp::
@@ -645,6 +839,23 @@ void CoefXprBinOp::Init( PtrCoefFct a,
    isComplex_ = a->IsComplex() || b->IsComplex();
    dependType_ = std::max(a->GetDependency(), 
                           b->GetDependency());
+   
+   // check for distinct coordinate systems
+   CoordSystem* aCoord = a->GetCoordinateSystem();
+   CoordSystem* bCoord = b->GetCoordinateSystem();
+   if( aCoord != NULL || bCoord != NULL) {
+     if (aCoord != NULL && bCoord == NULL) {
+       coordSys_ = aCoord;
+     } else if (aCoord == NULL && bCoord != NULL) {
+       coordSys_ = bCoord;
+     } else if (aCoord == bCoord) {
+       coordSys_ = aCoord;
+     } else {
+       EXCEPTION("Case of two distinct coordinate systemw within "\
+                 "one expression is not tested yet");
+     }
+   }
+   
    a_ = a;
    b_ = b;
    aName_ = CoefXpr::GetUniqueVarName();
@@ -1320,11 +1531,111 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
        }
        
        
-     } else {
+     } else if( op_ == OP_MULT_TENSOR ){
+       numRows = numRowsA * numRowsB;
+       numCols = numColsA * numColsB;
+       real.Resize( numRows * numCols );
+       imag.Resize( numRows * numCols );
+
+       if(!isComplex_){
+         std::string temp1;
+         for(UInt iA = 0; iA < aR.GetSize(); iA++){
+           std::string aReal = aR[iA];
+           for(UInt iB = 0; iB < bR.GetSize(); iB++){
+             temp1 = "";
+             UInt rowA = iA / numColsA;
+             UInt colA = iA % numColsA;
+             UInt rowB = iB / numColsB;
+             UInt colB = iB % numColsB;
+
+             UInt targetRow = rowA*numRowsB+rowB;
+             UInt targetCol = colA*numColsB+colB;
+
+             CoefXpr::ApplyBinaryFunc( temp1, aReal, bR[iB], op_ );
+             if( IsZero(temp1)) {
+               real[targetRow*numRows+targetCol] = zero2;
+             } else {
+               real[targetRow*numRows+targetCol] = Bracket(temp1);
+             }
+           }
+         }
+       }else{
+         std::string temp1,temp2,temp3,temp4;
+         for(UInt iA = 0; iA < aR.GetSize(); iA++){
+           std::string aReal = aR[iA];
+           std::string aImag = aI[iA];
+           for(UInt iB = 0; iB < bR.GetSize(); iB++){
+             temp1 = "";
+             UInt rowA = iA / numColsA;
+             UInt colA = iA % numColsA;
+             UInt rowB = iB / numColsB;
+             UInt colB = iB % numColsB;
+
+             UInt targetRow = rowA*numRowsB+rowB;
+             UInt targetCol = colA*numColsB+colB;
+
+             CoefXpr::ApplyBinaryFunc( temp1, aReal, bR[iB], op_ );
+             CoefXpr::ApplyBinaryFunc( temp2, aImag, bI[iB], op_ );
+             CoefXpr::ApplyBinaryFunc( temp3, aReal, bI[iB], op_ );
+             CoefXpr::ApplyBinaryFunc( temp4, aImag, bR[iB], op_ );
+             if( IsZero(temp1) && IsZero(temp2) ) {
+               real[targetRow*numRows+targetCol] = zero2;
+             } else {
+               real[targetRow*numRows+targetCol] = Bracket(temp1+"-"+temp2);
+             }
+             if(IsZero(temp3) && IsZero(temp4) ){
+               imag[targetRow*numRows+targetCol] = zero2;
+             }else{
+               imag[targetRow*numRows+targetCol] = Bracket(temp3+"+"+temp4);
+             }
+           }
+         }
+      }
+     }else {
        EXCEPTION( "The only allowed (tensor,tensor)->tensor operations "
-                << "are OP_ADD, OP_SUB, OP_MULT and OP_MULT_CONJ");
+                << "are OP_ADD, OP_SUB, OP_MULT, OP_MULT_CONJ and OP_MULT_TENSOR");
      }
-  } else {
+  } else if( a_->GetDimType() == CoefFunction::VECTOR  &&
+             b_->GetDimType() == CoefFunction::VECTOR ) {
+    StdVector<std::string> aR, aI, bR, bI;
+    UInt sizeA, sizeB;
+    if( isAnalytical_) {
+      CoefFunctionAnalytic & coefA =
+          dynamic_cast<CoefFunctionAnalytic&>(*a_);
+      CoefFunctionAnalytic & coefB =
+          dynamic_cast<CoefFunctionAnalytic&>(*b_);
+      coefA.GetStrVector( aR, aI );
+      coefB.GetStrVector( bR, bI );
+      sizeA = aR.GetSize();
+      sizeB = bR.GetSize();
+    } else {
+      sizeA = a_->GetVecSize();
+      sizeB = b_->GetVecSize();
+    }
+    numRows = sizeA;
+    numCols = sizeB;
+    real.Resize( numRows * numCols );
+    imag.Resize( numRows * numCols );
+
+    if(!isComplex_){
+      std::string temp1;
+      for(UInt iA = 0; iA < aR.GetSize(); iA++){
+        std::string aReal = aR[iA];
+        for(UInt iB = 0; iB < bR.GetSize(); iB++){
+          temp1 = "";
+          CoefXpr::ApplyBinaryFunc( temp1, aReal, bR[iB], op_ );
+          if( IsZero(temp1)) {
+            real[iA*numRows+iB] = zero2;
+          } else {
+            real[iA*numRows+iB] = Bracket(temp1);
+          }
+        }
+      }
+    }else{
+      EXCEPTION("Dyadic multiplication not available for complex valued vectors.")
+    }
+  }else {
+
     EXCEPTION("Arguments must be both of tensor type.")
   }
 }
@@ -1359,6 +1670,23 @@ void CoefXprVecScalOp::Init( PtrCoefFct a,
   isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
   dependType_ = std::max(a->GetDependency(), 
                          b->GetDependency());
+  
+  // check for distinct coordinate systems
+  CoordSystem* aCoord = a->GetCoordinateSystem();
+  CoordSystem* bCoord = b->GetCoordinateSystem();
+  if( aCoord != NULL || bCoord != NULL) {
+    if (aCoord != NULL && bCoord == NULL) {
+      coordSys_ = aCoord;
+    } else if (aCoord == NULL && bCoord != NULL) {
+      coordSys_ = bCoord;
+    } else if (aCoord == bCoord) {
+      coordSys_ = aCoord;
+    } else {
+      EXCEPTION("Case of two distinct coordinate systems within "\
+                "one expression is not tested yet");
+    }
+  }
+  
   isComplex_ = a->IsComplex() || b->IsComplex();
   a_ = a;
   b_ = b;
@@ -1479,9 +1807,25 @@ void CoefXprTensScalOp::Init( PtrCoefFct a,
 
   dimType_ = a->GetDimType();
   isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
-  isComplex_ = a->IsComplex() || b->IsComplex();
   dependType_ = std::max(a->GetDependency(), 
                          b->GetDependency());
+  
+  // check for distinct coordinate systems
+  CoordSystem* aCoord = a->GetCoordinateSystem();
+  CoordSystem* bCoord = b->GetCoordinateSystem();
+  if( aCoord != NULL || bCoord != NULL) {
+    if (aCoord != NULL && bCoord == NULL) {
+      coordSys_ = aCoord;
+    } else if (aCoord == NULL && bCoord != NULL) {
+      coordSys_ = bCoord;
+    } else if (aCoord == bCoord) {
+      coordSys_ = aCoord;
+    } else {
+      EXCEPTION("Case of two distinct coordinate systemw within "\
+                "one expression is not tested yet");
+    }
+  }
+  isComplex_ = a->IsComplex() || b->IsComplex();
   a_ = a;
   b_ = b;
   aName_ = CoefXpr::GetUniqueVarName();
@@ -1598,6 +1942,7 @@ void CoefXprMechSubTensor::Init( PtrCoefFct a ) {
   dimType_ = CoefFunction::TENSOR;
   isAnalytical_ = a->IsAnalytic();
   dependType_ = a->GetDependency();
+  coordSys_ = a->GetCoordinateSystem();
   isComplex_ = a->IsComplex();
   a_ = a;
   aName_ = CoefXpr::GetUniqueVarName();

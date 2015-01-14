@@ -124,7 +124,7 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
     void ReadSolution(UInt step,Vector<DATA_TYPE> & sol);
     
     //! Updates the solution vector
-    void UpdateSolution();
+    bool UpdateSolution();
 
     //! Perform a simple equation mapping for nodal grids
     //! to make solution access simpler
@@ -169,6 +169,9 @@ class CoefFunctionGridNodal : public CoefFunctionGrid{
 
     //! stroes the stepnumber of the las read solution process
     UInt lastStepRead_;
+
+    //! flag indicating if the timevalue map of input should be ignored
+    bool snapToCFSStep_;
 
   private:
 

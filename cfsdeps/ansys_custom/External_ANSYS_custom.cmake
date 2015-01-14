@@ -25,10 +25,92 @@ SET(INST_TEMPL
 SET(INST "${ansys_custom_prefix}/ansys_custom-install.cmake")
 CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY) 
 
+
+#-------------------------------------------------------------------------------
+# Configure target for downloading ANSYS customization archives using CMake
+# ExternalData mechanism.
+#-------------------------------------------------------------------------------
+# Add standard remote object stores to user's configuration.
+SET(ExternalData_URL_TEMPLATES
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/ansys_custom/%(algo)/%(hash)"
+  )
+
+# Set standard local object stores.
+SET(ExternalData_OBJECT_STORES
+  "${CFS_DEPS_CACHE_DIR}/sources/ansys_custom"
+)
+
+SET(ARCHIVES
+  "v100_include"
+  "v110_include"
+  "v120_include"
+  "v121_include"
+  "v130_include"
+  "v140_include"
+
+  "v100_linop64"
+  "v110_linop64"
+
+  "v100_linem64t"
+  "v110_linem64t"
+
+  "v120_linx64"
+  "v121_linem64t"
+  "v130_linx64"
+  "v140_linx64"
+
+  "v110_linia64"
+
+  "v100_linia32"
+  "v110_linia32"
+  "v121_linia32"
+  
+  "v110_winx64"
+  "v120_winx64"
+  "v121_winx64"
+  "v130_winx64"
+  "v140_winx64"
+  
+  "v100_win32"
+  "v110_win32"
+  "v120_win32"
+  "v121_win32"
+  "v130_win32"
+  "v140_win32"
+)
+
+foreach(archive ${ARCHIVES})
+  set(ANSYS_CUSTOM_EXTERNAL_DATA
+    "${ANSYS_CUSTOM_EXTERNAL_DATA}
+DATA{cfsdeps/ansys_custom/ansys_custom_${archive}.tar.bz2}")
+
+  # Give a hint about downloading the source archive to the developer.
+  FILE(READ "cfsdeps/ansys_custom/ansys_custom_${archive}.tar.bz2.md5" ANSCUST_HASH)
+  STRING(STRIP ${ANSCUST_HASH} ANSCUST_HASH)
+
+  IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ANSCUST_HASH}")
+    SET(MSG "Please download the file ")
+    SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/ansys_custom/MD5/${ANSCUST_HASH}'")
+    SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ANSCUST_HASH}'.")
+    
+    colormsg(HIYELLOW "${MSG}")
+  ENDIF()
+
+endforeach(archive)
+
+# Expand all arguments as a single string to preserve escaped semicolons.
+ExternalData_expand_arguments(ansys_custom_external_data
+  targetArgs "${ANSYS_CUSTOM_EXTERNAL_DATA}")
+
+# Add a build target to populate the real data.
+ExternalData_Add_Target(ansys_custom_external_data)
+
+
 #-------------------------------------------------------------------------------
 # The ansys_custom external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(ansys_custom
+  DEPENDS ansys_custom_external_data
   PREFIX "${ansys_custom_prefix}"
   SOURCE_DIR "${ansys_custom_source}"
   BUILD_IN_SOURCE 1

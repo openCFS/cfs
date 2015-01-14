@@ -128,11 +128,13 @@ void FeSpaceNodal::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > enti
       // get all coordinates of the nodes and their equation numbers
       this->GetCoordinateRepresentation(actList,idxMap,globalCoords);
 
-      // get solution of coefficient function at these coordinates
+      StdVector<shared_ptr<EntityList> > lists(1);
+      lists[0] = actList; 
+
       // Only search for coordinates in elements belonging to the
       // regions where the current FeSpace is defined.
       coefFct->GetVectorValuesAtCoords(globalCoords,valuesAtCoords,
-                                       ptGrid_, regions_);
+                                       ptGrid_, lists);
       for( UInt aNode = 0; aNode < idxMap.GetSize(); ++aNode ) {
         StdVector<UInt> curEqs = idxMap[aNode];
         // loop over all dofs

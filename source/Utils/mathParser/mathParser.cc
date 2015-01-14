@@ -520,6 +520,7 @@ namespace CoupledField {
     parser.DefineFun("sinBurst", SinBurst, false );
     parser.DefineFun("fadeIn", FadeIn, false );
     parser.DefineFun("spike", Spike, false );
+    parser.DefineFun("chirp", Chirp, false );
     //parser.DefineFun("cosPulseComb", CosPulseComb, false );
     parser.DefineFun("squareBurst", SquarePulse, false );
     parser.DefineFun("gauss", Gauss, false );
@@ -749,9 +750,9 @@ namespace CoupledField {
     }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(3), glob(3);
-    loc[0] = x;
-    loc[1] = y;
-    loc[2] = z;
+    glob[0] = x;
+    glob[1] = y;
+    glob[2] = z;
     cosy->Global2LocalCoord(loc, glob);
     return loc[(UInt)dof-1];
   }
@@ -766,8 +767,8 @@ namespace CoupledField {
     }
     CoordSystem * cosy = domain->GetCoordSystem(coordSysId);
     Vector<Double> loc(2), glob(2);
-    loc[0] = x;
-    loc[1] = y;
+    glob[0] = x;
+    glob[1] = y;
     cosy->Global2LocalCoord(loc, glob);
     
     return loc[(UInt)dof-1];

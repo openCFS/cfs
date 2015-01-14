@@ -293,31 +293,43 @@ DEFINE_LOG(msDriver, "msDriver")
     simState_->GetSequenceSteps( analysis, accTime, isFinished);
     std::map<UInt, BasePDE::AnalysisType>::const_iterator it;
     it = analysis.begin();
-    UInt lastFinishedStep = 0;
+    UInt lastStepFinished = 0;
     for( ; it != analysis.end(); ++it ) {
       UInt actMsStep = it->first;
       // set sequenceStep
       if( isFinished[actMsStep]) {
         accumulatedTime_ = accTime[actMsStep];
-        lastFinishedStep = actMsStep;
-      } else {
-        sequenceStep_ = actMsStep;
+        lastStepFinished = actMsStep;
       }
+      // we always set the last multisequence step to continue
+      sequenceStep_ = actMsStep;
+    }
+    
+    // additional check: In case the last multisequence "finished" in the 
+    // HDF5 file is the last one of the total simulation, it could still be
+    // extended (e.g. by adding more steps by hand in the xml file). 
+    // In this case we set the accumulated time to the previous step and
+    // let the last SingeleDriver determine, if mroe steps have to be simulated.
+    if( lastStepFinished == numSteps_ ) {
+      accumulatedTime_ = accTime[lastStepFinished-1];
     }
     
     LOG_DBG(msDriver) << "\tSequence Step to continue: " << sequenceStep_;
     LOG_DBG(msDriver) << "\tAccumulated time so far: " << accumulatedTime_;
+    // Note: the following piece of code is not necessary, as always
+    //       the SingleDriver is repsonsible to determine, if a 
+    //       a step has to be continued.
     
     // Check in the end, if all multisequence steps are already finished
-    if( lastFinishedStep == numSteps_ ) {
-      std::cout << "\n\n";
-      std::cout<< "*******************************************************\n";
-      std::cout << " No restart necessary, as the desired number of \n";
-      std::cout << " multi sequence steps are already computed. \n";
-      std::cout << "*******************************************************\n\n";
+    //if( lastFinishedStep == numSteps_ ) {
+    //  std::cout << "\n\n";
+    //  std::cout<< "*******************************************************\n";
+    //  std::cout << " No restart necessary, as the desired number of \n";
+    //  std::cout << " multi sequence steps are already computed. \n";
+    //  std::cout << "*******************************************************\n\n";
       
-      sequenceStep_ = numSteps_+1;
-    }
+    //  sequenceStep_ = numSteps_+1;
+    //}
     
   }
   

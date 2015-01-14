@@ -70,12 +70,12 @@ inside the disk images.
 The     nightly     binaries     are    available     via     two     mirrors.
 [`wiki.mdmt`](http://wiki.mdmt.tuwien.ac.at/cfs_nightly)  is   only  available
 from                                 within                                 TU
-Vienna. [`lse17`](https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds)
+Vienna. The [CFS++ development server](@CFS_DS_WEBDAV@/nightly-builds)
 is available to any registered CFS++ developer.
 
 ## Documentation
 
 Along  with the  binaries  also  the documentation  gets  rebuilt.  It can  be
 accessed    via   [`wiki.mdmt`](http://wiki.mdmt.tuwien.ac.at/cfs_docu)    and
-[`lse17`](https://lse17.e-technik.uni-erlangen.de:2001/files/doc/cfs_docu_nightly.zip).
+the [development server](@CFS_DS_WEBDAV@/doc/cfs_docu_nightly.zip).
 

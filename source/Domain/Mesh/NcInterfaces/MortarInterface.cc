@@ -10,6 +10,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
 #include "Driver/TransientDriver.hh"
 #include "Utils/StdVector.hh"
@@ -24,6 +25,7 @@ namespace CoupledField {
 MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   BaseNcInterface(grid),
   isCoplanar_(false),
+  isEulerian_(false),
   isMoving_(false),
   moveMaster_(false),
   exportToGrid_(true),
@@ -94,6 +96,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
                  motionNode->Get("rpm")->As<Double>());
     moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
                     ->As<std::string>() == "master");
+    motionNode->GetValue("eulerianSystem", isEulerian_, ParamNode::PASS);
   }
   
   motionNode = nciNode->Get("generalMotion", ParamNode::PASS);
@@ -116,6 +119,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
 
     moveMaster_ = (motionNode->Get("movingSide", ParamNode::INSERT)
                     ->As<std::string>() == "master");
+    motionNode->GetValue("eulerianSystem", isEulerian_, ParamNode::PASS);
   }
 
   //if ( !isMoving_ ) {
@@ -156,6 +160,16 @@ void MortarInterface::SetRotation(const std::string &coordSysId, Double rpm) {
   offsetExpr_[1] = sstr.str();
 
   SetMotion(offsetExpr_, coordSysId);
+
+  StdVector<std::string> veloExpr(coordSys_->GetDim());
+  veloExpr[0] = "0.0";
+  if (veloExpr.GetSize() == 3) veloExpr[2] = "0.0";
+  sstr.str("");
+  sstr.clear();
+  sstr << "2*pi*" << (rpm/60.0) << "*sqrt(x^2+y^2)";
+  veloExpr[1] = sstr.str();
+  gridVelo_ = CoefFunction::Generate(mParser_, Global::REAL, veloExpr);
+  gridVelo_->SetCoordinateSystem(coordSys_);
 }
 
 void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
@@ -191,6 +205,7 @@ void MortarInterface::SetMotion(const StdVector<std::string> &offsetExpr,
     ptGrid_->GetNodesByRegion(nodeNums, slaveVolRegion_);
     nullOffsets.Resize(nodeNums.GetSize()*dim, 0.0);
     ptGrid_->SetNodeOffset(nodeNums, nullOffsets);
+    // TODO: create CoefFunction of grid velocity for general case
   } else {
     WARN("You supplied constant expressions as time-dependent "
          << "displacements for moving ncInterface '" << name_

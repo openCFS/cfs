@@ -152,7 +152,7 @@ template<typename T>
 void CoefFunctionConst<T>:: GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                      StdVector<T >  & vals,
                                                      Grid* ptGrid,
-                                                     const std::set<RegionIdType>& srcRegions){
+                                                     const StdVector<shared_ptr<EntityList> >& srcEntities){
   assert(this->dimType_ == SCALAR);
   vals.Resize(points.GetSize());
   vals.Init();
@@ -165,7 +165,7 @@ void CoefFunctionConst<T>:: GetScalarValuesAtCoords( const StdVector<Vector<Doub
 template<typename T>
 void CoefFunctionConst<T>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                            StdVector<Vector<T> >  & vals, Grid* ptGrid,
-                                           const std::set<RegionIdType>& srcRegions){
+                                           const StdVector<shared_ptr<EntityList> >& srcEntities){
   assert(this->dimType_ == VECTOR ||
          this->dimType_ == SCALAR );
 
@@ -198,7 +198,7 @@ template<typename T>
 void CoefFunctionConst<T>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                     StdVector<Matrix<T> >  & vals,
                                                     Grid* ptGrid ,
-                                                    const std::set<RegionIdType>& srcRegions)
+                                                    const StdVector<shared_ptr<EntityList> >& srcEntities)
 {
   assert(this->dimType_ == TENSOR);
   vals.Resize(points.GetSize());

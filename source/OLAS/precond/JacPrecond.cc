@@ -8,7 +8,7 @@
 #include "MatVec/VBR_Matrix.hh"
 #include "MatVec/BLASLAPACKInterface.hh"
 #include "MatVec/generatematvec.hh"
-
+#include "DataInOut/ProgramOptions.hh"
 #include "JacPrecond.hh"
 
 // in case of debugging
@@ -39,7 +39,7 @@ namespace CoupledField {
                                        PtrParamNode precondNode,
 				                               PtrParamNode olasInfo )  {
     this->xml_ = precondNode;
-    this->infoNode_ = olasInfo->Get("jacobi",ParamNode::APPEND);
+    this->infoNode_ = olasInfo->Get("jacobi",progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     size_     = mat.GetNumRows();
     NEWARRAY( diagInv_, T, size_ );
   }
@@ -282,7 +282,7 @@ namespace CoupledField {
                                                   PtrParamNode precondNode,
                                                   PtrParamNode olasInfo )  {
      this->xml_ = precondNode;
-     this->infoNode_ = olasInfo->Get("blockJacobi",ParamNode::APPEND);
+     this->infoNode_ = olasInfo->Get("blockJacobi",progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
      //numRows_ = 0;
      this->pimpl_ = new BlockJacPrecondImpl<T>(mat );
      

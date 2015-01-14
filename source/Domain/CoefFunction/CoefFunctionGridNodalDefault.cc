@@ -345,17 +345,19 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetElemsForPoints(const StdVector<
                                                                   StdVector<LocPoint> & locals){
   //build up set of source regions
   std::set<std::string>::iterator regIter = this->srcRegions_.begin();
-  std::set<RegionIdType> scrRegIds;
+  StdVector<shared_ptr<EntityList> > lists; 
   for( ; regIter != this->srcRegions_.end(); ++regIter) {
     RegionIdType curId = this->srcGrid_->GetRegion().Parse(*regIter);
-    scrRegIds.insert(curId);
+    shared_ptr<ElemList> newList(new ElemList(this->srcGrid_));
+    newList->SetRegion(curId);
+    lists.Push_back(newList);
   }
 
   //this is unfortunate but we need to search even for the defaultGridCase...
   this->srcGrid_->GetElemsAtGlobalCoords( points,
                                           locals,
                                           elements,
-                                          scrRegIds);
+                                          lists);
 
 }
 

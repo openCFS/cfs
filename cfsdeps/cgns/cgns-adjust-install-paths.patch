@@ -1,0 +1,203 @@
+--- src/CMakeLists.txt.orig	2014-02-21 14:59:17.503001754 +0100
++++ src/CMakeLists.txt	2014-02-21 15:04:08.565001709 +0100
+@@ -244,10 +244,10 @@
+ if(CGNS_BUILD_SHARED)
+   # for windows, need to install both cgnsdll.dll and cgnsdll.lib
+   if (WIN32 OR CYGWIN)
+-    install(TARGETS cgns_shared ARCHIVE DESTINATION lib)
+-    install(TARGETS cgns_shared RUNTIME DESTINATION lib)
++    install(TARGETS cgns_shared ARCHIVE DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
++    install(TARGETS cgns_shared RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+   else (WIN32 OR CYGWIN)
+-    install(TARGETS cgns_shared LIBRARY DESTINATION lib)
++    install(TARGETS cgns_shared LIBRARY DESTINATION ${LIB_SUFFIX}/${CFS_ARCH_STR})
+   endif (WIN32 OR CYGWIN)
+ endif(CGNS_BUILD_SHARED)
+ 
+--- ./src/tools/CMakeLists.txt.orig	2014-02-21 15:12:25.759001634 +0100
++++ ./src/tools/CMakeLists.txt	2014-02-21 15:14:19.541001616 +0100
+@@ -72,33 +72,33 @@
+         cgnscompress
+ 	cgnsversion
+ 	cgnsreplace
+-	RUNTIME DESTINATION bin)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+ 
+ if (WIN32)
+   install(PROGRAMS
+         cgnsupdate.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   # lets also put the dll in here so they run
+   if (CGNS_USE_SHARED)
+     install(PROGRAMS
+         ${CMAKE_BINARY_DIR}/src/cgnsdll.dll
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   endif (CGNS_USE_SHARED)
+   if (ENABLE_HDF5)
+     install(PROGRAMS
+         adf2hdf.bat
+         hdf2adf.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   endif (ENABLE_HDF5)
+ else (WIN32)
+   install(PROGRAMS
+         cgnsupdate
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   if (ENABLE_HDF5)
+     install(PROGRAMS
+         adf2hdf
+         hdf2adf
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   endif (ENABLE_HDF5)
+ endif (WIN32)
+ 
+--- ./src/cgnstools/CMakeLists.txt.orig	2014-02-21 15:15:10.390001608 +0100
++++ ./src/cgnstools/CMakeLists.txt	2014-02-21 15:29:56.070001473 +0100
+@@ -64,7 +64,7 @@
+ if (WIN32)
+   file(TO_NATIVE_PATH ${CMAKE_INSTALL_PREFIX} WIN_INSTALL_DIR)
+   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cgconfig.bat
+-"set CG_BIN_DIR=${WIN_INSTALL_DIR}\\bin
++"set CG_BIN_DIR=${WIN_INSTALL_DIR}\\bin\\${CFS_ARCH_STR}
+ set CG_LIB_DIR=${WIN_INSTALL_DIR}\\share
+ ")
+ # don't need this since dll is put in the bin directory
+@@ -84,14 +84,14 @@
+ 
+   install(PROGRAMS
+ 	${CMAKE_CURRENT_BINARY_DIR}/cgconfig.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+ else (WIN32)
+   file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/cgconfig
+-"CG_BIN_DIR=${CMAKE_INSTALL_PREFIX}/bin; export CG_BIN_DIR
++"CG_BIN_DIR=${CMAKE_INSTALL_PREFIX}/bin/${CFS_ARCH_STR}; export CG_BIN_DIR
+ CG_LIB_DIR=${CMAKE_INSTALL_PREFIX}/share/cgnstools; export CG_LIB_DIR
+ ")
+ 
+   install(PROGRAMS
+ 	${CMAKE_CURRENT_BINARY_DIR}/cgconfig
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+ endif (WIN32)
+--- ./src/cgnstools/cgnsview/CMakeLists.txt.orig	2014-02-21 15:19:36.542001568 +0100
++++ ./src/cgnstools/cgnsview/CMakeLists.txt	2014-02-21 15:20:14.845001562 +0100
+@@ -55,11 +55,11 @@
+ if (WIN32)
+   install(TARGETS
+ 	cgiowish
+-	RUNTIME DESTINATION bin)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+   install(PROGRAMS
+ 	cgnsview.bat
+ 	cgnsnodes.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   install(FILES
+ 	cgnsview.tcl
+ 	cgns.tcl
+@@ -71,14 +71,14 @@
+ else (WIN32)
+   install(TARGETS
+ 	cgiowish
+-	RUNTIME DESTINATION bin/cgnstools)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR}/cgnstools)
+   install(PROGRAMS
+ 	cgnsview.sh
+-	DESTINATION bin
++	DESTINATION bin/${CFS_ARCH_STR}
+ 	RENAME cgnsview)
+   install(PROGRAMS
+ 	cgnsnodes.sh
+-	DESTINATION bin
++	DESTINATION bin/${CFS_ARCH_STR}
+ 	RENAME cgnsnodes)
+   install(FILES
+ 	cgnsview.tcl
+--- ./src/cgnstools/cgnsplot/CMakeLists.txt.orig	2014-02-21 15:18:34.598001577 +0100
++++ ./src/cgnstools/cgnsplot/CMakeLists.txt	2014-02-21 15:19:15.701001570 +0100
+@@ -55,10 +55,10 @@
+ if (WIN32)
+   install(TARGETS
+ 	plotwish
+-	RUNTIME DESTINATION bin)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+   install(PROGRAMS
+ 	cgnsplot.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   install(FILES
+ 	cgnsplot.tcl
+ 	cgnsplot.ico
+@@ -69,10 +69,10 @@
+ else (WIN32)
+   install(TARGETS
+ 	plotwish
+-	RUNTIME DESTINATION bin/cgnstools)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR}/cgnstools)
+   install(PROGRAMS
+ 	cgnsplot.sh
+-	DESTINATION bin
++	DESTINATION bin/${CFS_ARCH_STR}
+ 	RENAME cgnsplot)
+   install(FILES
+ 	cgnsplot.tcl
+--- ./src/cgnstools/cgnscalc/CMakeLists.txt.orig	2014-02-21 15:17:07.054001590 +0100
++++ ./src/cgnstools/cgnscalc/CMakeLists.txt	2014-02-21 15:17:59.517001582 +0100
+@@ -53,11 +53,11 @@
+ if (WIN32)
+   install(TARGETS
+ 	calcwish
+-	RUNTIME DESTINATION bin)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+   install(PROGRAMS
+ 	cgnscalc.bat
+ 	unitconv.bat
+-	DESTINATION bin)
++	DESTINATION bin/${CFS_ARCH_STR})
+   install(FILES
+ 	cgnscalc.tcl
+ 	unitconv.tcl
+@@ -72,14 +72,14 @@
+ else (WIN32)
+   install(TARGETS
+ 	calcwish
+-	RUNTIME DESTINATION bin/cgnstools)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR}/cgnstools)
+   install(PROGRAMS
+ 	cgnscalc.sh
+-	DESTINATION bin
++	DESTINATION bin/${CFS_ARCH_STR}
+ 	RENAME cgnscalc)
+   install(PROGRAMS
+ 	unitconv.sh
+-	DESTINATION bin
++	DESTINATION bin/${CFS_ARCH_STR}
+ 	RENAME unitconv)
+   install(FILES
+ 	cgnscalc.tcl
+--- ./src/cgnstools/utilities/CMakeLists.txt.orig	2014-02-21 15:21:14.422001553 +0100
++++ ./src/cgnstools/utilities/CMakeLists.txt	2014-02-21 15:21:42.797001549 +0100
+@@ -157,7 +157,7 @@
+ 	convert_dataclass
+ 	extract_subset
+ 	interpolate_cgns
+-	RUNTIME DESTINATION bin)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR})
+   install(FILES
+ 	conserved.cnv
+ 	convert.tcl
+@@ -183,7 +183,7 @@
+ 	convert_dataclass
+ 	extract_subset
+ 	interpolate_cgns
+-	RUNTIME DESTINATION bin/cgnstools)
++	RUNTIME DESTINATION bin/${CFS_ARCH_STR}/cgnstools)
+   install(FILES
+ 	conserved.cnv
+ 	convert.tcl

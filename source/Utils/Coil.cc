@@ -1,292 +1,513 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
 #include "Coil.hh"
-#include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Domain.hh"
-#include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include <fstream>
 
+// header for logging
+#include "DataInOut/Logging/LogConfigurator.hh"
 
+// declare logging stream
+DECLARE_LOG(coil)
+DEFINE_LOG(coil, "coil")
 
 namespace CoupledField {
 
-  // ------------------------------------
-  //   Default Constructor (disallowed)
-  // ------------------------------------
-  Coil::Coil() {
-  lastSaveStep_ = -1;
-  }
+  Coil::Coil() {EXCEPTION("Must not be called");}
 
 
-  // ---------------------------------
-  //   Copy Constructor (disallowed)
-  // ---------------------------------
   Coil::Coil( const Coil &c ) {}
 
-
-  // ----------------------
-  //   Default Destructor
-  // ----------------------
   Coil::~Coil() {
-    if ( fileL_ != NULL ) {
-      fileL_->close();
-      delete fileL_;
-    }
-    if ( fileU_ != NULL ) {
-      fileU_->close();
-      delete fileU_;
-    }
   }
 
 
   // -----------------------
   //   Allowed Constructor
   // -----------------------
-  Coil::Coil( RegionIdType coilRegionId, 
-              PtrParamNode coilNode,
-              Grid * ptGrid ) {
-
-    lastSaveStep_ = -1;
+  Coil::Coil( PtrParamNode coilNode, 
+              PtrParamNode infoNode,
+              Grid * ptGrid,
+              MathParser * mp,
+              Global::ComplexPart type) {
+    myParam_ = coilNode;
+    myInfo_ = infoNode;
+    ptGrid_ = ptGrid;
+    mParser_ = mp;
     
-    // We already know our name
-    coilRegionId_ = coilRegionId;
+    
+    // initialize data members
+    sourceType_ = NO_SOURCE_TYPE;
+    coilId_ = "";
 
-    // Set all attributes to default values
-    windingCrossSection_ = 0;
-    value_               = "0";
-    phase_               = "0";
-    resistance_          = 0;
-    id_                  = 0;
-    isRotational_        = false;
-    saveFileL_           = "none";
-    saveFileU_           = "none";
-    fileL_               = NULL;
-    fileU_               = NULL;
-    flowCoordSys_        = NULL;
+    // obtain coilId
+    coilId_ = myParam_->Get("id")->As<std::string>();
+    
+    // Read source type (only if present: for measurement coils,
+    // no excitation is given)
+    if( myParam_->Has("source") ) { 
+      std::string exType = myParam_->Get("source")->Get("type")->As<std::string>();
+      if ( exType == "current" ) {
+        sourceType_ = CURRENT;
+      } else if ( exType == "voltage" ) {
+        sourceType_ = VOLTAGE;
+      }
 
-    // **************************
-    //   Determine type of coil
-    // **************************
-    // get region name of coil
-    coilNode->GetValue( "name", coilRegionName_ );
-
-
-    // get coil-type
-    coilTypeS_ = coilNode->GetName();
-
-    if ( coilTypeS_ == "measurementCoil2d" ) {
-      coilType_ = MEASUREMENT2D;
+      // Read value and phase and generate scalar coefficient function
+      std::string value, phase;
+      value = myParam_->Get("source")->Get("value")->As<std::string>();
+      phase = myParam_->Get("source")->Get("phase")->As<std::string>();
+      srcVal_ = CoefFunction::Generate(mParser_, type, value, phase);
     }
-    else if ( coilTypeS_ == "measurementCoil3d" ) {
-      coilType_ = MEASUREMENT3D;
-    }
-    else if ( coilTypeS_ == "voltageCoil2d" ) {
-      coilType_ = VOLTAGE2D;
-    }
-    else if ( coilTypeS_ == "voltageCoil3d" ) {
-      coilType_ = VOLTAGE3D;
-    }
-    else if ( coilTypeS_ == "currentCoil2d" ) {
-      coilType_ = CURRENT2D;
-    }
-    else if ( coilTypeS_ == "currentCoil3d" ) {
-      coilType_ = CURRENT3D;
-    }
-    else {
-      EXCEPTION( "Encountered unsupported type of coil: " << coilTypeS_ );
-    }
-
-    // *******************************************
-    //   Read Parameters for 2D Measurement Coil
-    // *******************************************
-    if ( coilType_ == MEASUREMENT2D ) {
-
-      windingCrossSection_ = 
-                coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
-      coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
-      coilNode->GetValue( "id", id_ );
-    }
-
-    // *******************************************
-    //   Read Parameters for 3D Measurement Coil
-    // *******************************************
-    if ( coilType_ == MEASUREMENT3D ) {
+//    
+//    
+//    // Print information
+//    std::string sourceString = "- (measurement)";
+//    if( sourceType_ == CURRENT) 
+//      sourceString = "current";
+//    if( sourceType_ == VOLTAGE) 
+//      sourceString = "voltage";
+//    Info->PrintF( "", 
+//                  "\n\n------------------\n"
+//                  " COIL DESCRIPTION\n"
+//                  "------------------\n");
+//    Info->PrintF("", "Coil-ID:\t\t%s\n" , coilId_.c_str());
+//    Info->PrintF("", "Source-Type:\t\t%s\n", sourceString.c_str());
+//    Info->PrintF("", "Source-Value:\t\t%s\n", value_.c_str());
+//    Info->PrintF("", "Source-Phase:\t\t%s\n\n", phase_.c_str());
+                      
+    
+    
+    // ============================
+    //  Loop over parts
+    // ============================
+    ParamNodeList parts = myParam_->GetList("part");
+    for( UInt iPart = 0; iPart < parts.GetSize(); ++iPart ) {
+     
+//      Info->PrintF( "", "=== PART %d ===\n",iPart+1);
+//
+      PtrParamNode actPartNode = parts[iPart];
       
-      windingCrossSection_ = 
-          coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
-      coilNode->GetValue( "saveFileU", saveFileU_, ParamNode::PASS );
-    }
-
-    // ***************************************
-    //   Read Parameters for 2D Voltage Coil
-    // ***************************************
-    else if ( coilType_ == VOLTAGE2D ) {
-
-      windingCrossSection_ = 
-                coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "value", value_ );
-      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
-      coilNode->GetValue( "resistance", resistance_ );
-      coilNode->GetValue( "id", id_ );
-    }
-
-    // ***************************************
-    //   Read Parameters for 3D Voltage Coil
-    // ***************************************
-    else if ( coilType_ == VOLTAGE3D ) {
-
-      windingCrossSection_ = 
-                coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "value", value_ );
-      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
-      coilNode->GetValue( "resistance", resistance_ );
-
-    }
-
-    // ***************************************
-    //   Read Parameters for 2D Current Coil
-    // ***************************************
-    else if ( coilType_ == CURRENT2D ) {
-
-      windingCrossSection_ = 
-                coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "value", value_ );
-      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
-      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
-      coilNode->GetValue( "id", id_ );
+      shared_ptr<Part> partPtr(new Part());
+      Part& actPart = *partPtr;
       
-    }
-
-    // ***************************************
-    //   Read Parameters for 3D Current Coil
-    // ***************************************
-    else if ( coilType_ == CURRENT3D ) {
-
-      windingCrossSection_ = 
-                coilNode->Get( "windingCrossSection")->MathParse<Double>();
-      coilNode->GetValue( "value", value_ );
-      coilNode->GetValue( "phase", phase_, ParamNode::PASS );
-      coilNode->GetValue( "saveFileL",  saveFileL_, ParamNode::PASS );
-
-      // Try to lead flow direction
-      ParamNodeList dirNodes= 
-        coilNode->Get("flowDirection")->GetList("direction");
-      
-      std::string refCoordSysName = 
-        coilNode->Get("flowDirection")->Get("coordSysId")->As<std::string>();
-      flowCoordSys_ = domain->GetCoordSystem( refCoordSysName );
-
-      locFlowDir_.Resize( flowCoordSys_->GetDim());
-      locFlowDir_.Init();
-      for( UInt i = 0; i < dirNodes.GetSize(); i++ ) {
-        std::string dir = dirNodes[i]->Get("dof")->As<std::string>();
-        Double val = dirNodes[i]->Get("value")->As<Double>();
-        // Get local vector component index
-        UInt index = flowCoordSys_->GetVecComponent(dir);
-        locFlowDir_[index-1] = val;
+      // read region lists
+      ParamNodeList regions = actPartNode->Get("regionList")->GetChildren();
+//      Info->PrintF("", "Regions:\n");
+      for( UInt iReg = 0; iReg  < regions.GetSize(); ++iReg ) {
+       std::string regionName = regions[iReg]->Get("name")->As<std::string>();
+       RegionIdType regionId = ptGrid->GetRegion().Parse(regionName);
+       actPart.regions.Push_back(regionId);
+//       Info->PrintF("", "\t%s\n",regionName.c_str());
       }
       
+      // read direction
+      PtrParamNode dirNode = actPartNode->Get("direction");
       
-    }
+      actPart.orientFlag = dirNode->Get("orientation")->As<Integer>();
+//      Info->PrintF("", "Orientation:\t\t%d\n",actPart.orientFlag);
+      
+      // read uniformity of current density
+      actPart.uniformCurrentDens_ = dirNode->Get("uniformCurrentDensity")->As<bool>();
+      std::string conducModel = (actPart.uniformCurrentDens_) ? "stranded" : "solid";
+//      Info->PrintF("", "Conductor model:\t%s\n",conducModel.c_str());
+      
+      // Check if current direction is given analytical or in the form of
+      // automatic current direction calculation
+      if( dirNode->Has("analytic")) {
 
-    // *******************************************
-    //   Open results files for measurement coil
-    // *******************************************
-    if ( coilType_ == CURRENT2D 
-        || coilType_ == MEASUREMENT2D
-        || coilType_ == MEASUREMENT3D
-        || coilType_ == CURRENT3D ) {
+        PtrParamNode alNode = dirNode->Get("analytic");
 
-      // Open file stream for storing inductivity
-      if ( saveFileL_ != "none" ) {
+        // Note: in case of a 2D coil, we only have direction in phi (axi) or z (plane)
+        if( ptGrid_->GetDim() == 2 ) {
+          StdVector<std::string> dirReal(1), dirImag(1);
+          // it is a vector so that the code for generation is the same in the PDE for 2D and 3D
+          // but it has only one component
+          dirReal[0] = "1";
+          dirImag[0] = "0";
+          if ( actPart.orientFlag < 0 ) {
+            dirReal[0] = "-1";
+          }
+          actPart.jUnitVec = CoefFunction::Generate(mParser_, type, dirReal, dirImag );
+          
+        } else {
 
-        // TODO better use the magPDE infoNode_
-        //info->Get("PDE/coil/inductivity/file")->SetValue(saveFileL_);
+          // Read in coordinate system
+          std::string coordSysId = "default";
+          alNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+          CoordSystem *  coordSys = domain->GetCoordSystem(coordSysId);
 
-        fileL_ = new std::ofstream( saveFileL_.c_str() );
 
-        if ( fileL_ == NULL ) {
-          EXCEPTION( "Could not open " << saveFileL_ );
+          // Read in components
+          ParamNodeList compList = alNode->GetList("comp");
+          UInt dim = ptGrid_->GetDim();
+          StdVector<std::string> real(dim), imag(dim);
+          imag.Init("0.0");
+          real.Init("0.0");
+          std::string dof, val;
+          for( UInt j = 0; j < compList.GetSize(); ++j  ) {
+            compList[j]->GetValue("dof", dof);
+            compList[j]->GetValue("value", val, ParamNode::PASS );
+            Integer index = coordSys->GetVecComponent(dof)-1;
+            real[index] = val;
+          }
+          // Generate coil coefficient function for current direction
+          PtrCoefFct dirCoef = CoefFunction::Generate(mParser_, type, real, imag );
+          CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mParser_, dirCoef, CoefXpr::OP_NORM );
+          PtrCoefFct dirAbs = CoefFunction::Generate( mParser_, type, dirAbsOp );
+          CoefXprVecScalOp unitOp = CoefXprVecScalOp( mParser_, dirCoef, dirAbs, CoefXpr::OP_DIV );
+
+          PtrCoefFct unitDir = CoefFunction::Generate(mParser_, type, unitOp );
+
+          // in the end multiply by the orientation factor
+          CoefXprVecScalOp orientOp = CoefXprVecScalOp( mParser_, unitDir, 
+                                                        boost::lexical_cast<std::string>(actPart.orientFlag),
+                                                        CoefXpr::OP_MULT );
+
+          actPart.jUnitVec = CoefFunction::Generate(mParser_, type, orientOp );
+
+
+          if( coordSysId != "default" ) {
+            actPart.jUnitVec->SetCoordinateSystem( coordSys );
+          }
         }
+        
+      } else if(dirNode->Has("automatic")) {
+        EXCEPTION("Not implemented yet")
+      } else {
+        EXCEPTION("Only analytic or automatic current directions are allowed");
       }
-    }
-
-    if ( coilType_ == MEASUREMENT2D || coilType_ == MEASUREMENT3D ) {
-      // Open file stream for storing current/voltages
-      if ( saveFileU_ != "none" ) {
-
-        // TODO better use the magPDE infoNode_
-        //info->Get("PDE/coil/currents_voltages/file")->SetValue(saveFileU_);
-
-        fileU_ = new std::ofstream( saveFileU_.c_str() );
-
-        if ( fileU_ == NULL ) {
-          EXCEPTION( "Could not open " << saveFileU_ );
-        }
-      }
-    }
-
-    // ***********************
-    //   Read flow direction
-    // ***********************
-    StdVector<std::string> aux;
-
-    // Note: Not working, as a re-design of this class is issued anyway
-
-    //    if ( coilType_ == CURRENT3D )
-//  {
       
-//       // Check for currentFlow specification
-//       keyVec  = pdeName, "coils", "currentCoil3d", "currentFlow";
-//       attrVec = "", "", "name";
-//       valVec  = "", "", coilRegionName_;
-//       params->GetList( keyVec, attrVec, valVec, aux );
-
-//       if ( aux.GetSize() == 1 ) {
-//         if ( aux[0] == "xDir" ) {
-//           flowDir_ = XDIR;
-//         }
-//         else if ( aux[0] == "yDir" ) {
-//           flowDir_ = YDIR;
-//         }
-//         else if ( aux[0] == "zDir" ) {
-//           flowDir_ = ZDIR;
-//         }
-//         else {
-//           EXCEPTION( "Unknown currentFlow " + aux[0] );
-//         }
-//       }
-//       else if ( aux.GetSize() > 1 ) {
-//         EXCEPTION( "More than 1 currentFlow specification for coil " +
-//                      coilRegionName_);
-//       }
-
-//       // Check for rotational specification
-//       else {
-//         isRotational_ = true;
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "midPointX";
-//         params->Get( keyVec, attrVec, valVec, midX_ );
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "midPointY";
-//         params->Get( keyVec, attrVec, valVec, midY_ );
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "midPointZ";
-//         params->Get( keyVec, attrVec, valVec, midZ_ );
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisX";
-//         params->Get( keyVec, attrVec, valVec, rotAxisX_ );
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisY";
-//         params->Get( keyVec, attrVec, valVec, rotAxisY_ );
-
-//         keyVec  = pdeName, "coils", "currentCoil3d", "rotAxisZ";
-//         params->Get( keyVec, attrVec, valVec, rotAxisZ_ );
-//       }
-
-//     }
-
+//      
+//      // winding surfaces are only sensible in 3D
+//      if( ptGrid->GetDim() == 3 ) {
+//        
+//        // ---------------
+//        //  3D Case 
+//        // ---------------
+//
+//        // sum up areas for input and output surfaces
+//        Double inArea = 0.0, outArea = 0.0;
+//        
+//        // === INFLOW SURFACES ===
+//        ParamNodeList inSurfNodes = dirNode->Get("inputSurfaceList")->GetList("surface");
+//        for( UInt iSurf = 0; iSurf < inSurfNodes.GetSize(); ++iSurf ) {
+//          std::string surfName = inSurfNodes[iSurf]->Get("name")->AsString();
+//          
+//          // check if surface was already provided
+//          if( actPart.inputSurfRegions.Find(surfName) != -1  ) {
+//            EXCEPTION("Surface '" << surfName 
+//                      << "' was already given as inflow surface for one part of coil '"
+//                      << coilId_ << "'." );
+//          }
+//          
+//          // check if all elements of the surface are neighboring a volume element
+//          // of this part
+//          StdVector<UInt> missingSurfelemNums;
+//          StdVector<RegionIdType> empty;
+//          shared_ptr<EntityList> actList =  
+//                        ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, surfName );
+//          ptGrid_->CheckSurfNeighbors(actList, actPart.regions, empty, 
+//                                      missingSurfelemNums, false );
+//          if( missingSurfelemNums.GetSize() > 0 ) {
+//            EXCEPTION("Not all surface elements of '" << surfName 
+//                      << "' have a coil volume element neighbor for coil '"
+//                      << coilId_ << "'. Please check the coil definition!");
+//               
+//          }
+//          
+//          actPart.inputSurfRegions.Push_back(surfName);
+//          // Note: We always have to consider the "surface area" of the input
+//          // output surfaces. Thus we are never allowed to calculate the depth
+//          // of the setup, i.e. isAxi is always false
+//          bool isAxi = false;
+//          inArea += ptGrid_->CalcVolumeOfElems(actList, isAxi, false );
+//        }
+//        
+//        // === OUTFLOW SURFACES ===
+//        ParamNodeList outSurfNodes = dirNode->Get("outputSurfaceList")->GetList("surface");
+//        for( UInt iSurf = 0; iSurf < inSurfNodes.GetSize(); ++iSurf ) {
+//          std::string surfName = outSurfNodes[iSurf]->Get("name")->AsString();
+//          actPart.outputSurfRegions.Push_back(surfName);
+//          
+//          if( actPart.inputSurfRegions.Find(surfName) != -1 ) {
+//            EXCEPTION("Surface '" << surfName 
+//                      << "' was already defined as outflow surface one part of coil '"
+//                      << coilId_ << "'." );
+//          }
+//          
+//          // security check: assure, that none of the output surfaces is contained in the
+//          // list of input surfaces
+//          if( actPart.inputSurfRegions.Find(surfName) != -1 ) {
+//            EXCEPTION("The surface region '" << surfName << "' is already used for "
+//                      "specifying the inflow current direction of one part of coil '"
+//                      << coilId_ << "'. Inflow and outflow surfaces have to be distinct!");
+//          }
+//          
+//          // check if all elements of the surface are neighboring a volume element
+//          // of this part
+//          StdVector<UInt> missingSurfelemNums;
+//          StdVector<RegionIdType> empty;
+//          shared_ptr<EntityList> actList =  
+//              ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, surfName );
+//          ptGrid_->CheckSurfNeighbors(actList, actPart.regions, empty, 
+//                                      missingSurfelemNums, false );
+//          if( missingSurfelemNums.GetSize() > 0 ) {
+//            EXCEPTION("Not all surface elements of '" << surfName 
+//                      << "' have a coil volume element neighbor for coil '"
+//                      << coilId_ << "'. Please check the coil definition!");
+//
+//          }
+//          // Note: We always have to consider the "surface area" of the input
+//          // output surfaces. Thus we are never allowed to calculate the depth
+//          // of the setup, i.e. isAxi is always false
+//          bool isAxi = false;
+//          outArea += ptGrid_->CalcVolumeOfElems(actList, isAxi, false );
+//        }
+//        
+//        // ensure that input and output areas have (almost) the same area
+//        if( std::abs(inArea - outArea) > EPS ) {
+//          std::stringstream w;
+//          w << "Inflow and outflow surface area of part " << iPart+1 << " of coil '"
+//              << coilId_ << "' have different area:\n";
+//          w << "\tinput: " << inArea << std::endl
+//          << "\toutput: " << outArea << std::endl;
+//          Warning(w.str().c_str());
+//        }
+//        
+//        actPart.coilCrossSect  = inArea;
+//        
+//        
+//        
+//        // insert correct values (if not a measurement coil )
+//        if( value_ == "0.0") {
+//          actPart.sourceVal = "0.0";
+//        } else {
+//          // Note: in 3D we have always a free coordiante system associated with 
+//          // the coil, so we have just one DOF to set, which always the first one.
+//          actPart.sourceVal = "("+ value_ + "*" + GenStr(actPart.orientFlag ) + ")";
+//        }
+//        
+//        // calculate current direction using free coordinate system
+//        actPart.coordSys = SetupCoosy( iPart+1,
+//                                       actPart,
+//                                       actPart.regions, 
+//                                       actPart.inputSurfRegions, 
+//                                       actPart.outputSurfRegions );
+//        
+//      } else {
+//        // ---------------
+//        //  2D Case 
+//        // ---------------
+//        // We just take all the regions as "surfaces" and calculate their
+//        // "volume" i.e. area * 1m
+//        
+//        for( UInt iReg = 0; iReg < actPart.regions.GetSize(); ++iReg) {
+//          std::string regionName = 
+//              ptGrid_->RegionIdToName(actPart.regions[iReg]);
+//          shared_ptr<EntityList> actList =  
+//              ptGrid_->GetEntityList( EntityList::ELEM_LIST, regionName );
+//          // Note: We always have to consider the "surface area" of the input
+//          // output surfaces. Thus we are never allowed to calculate the depth
+//          // of the setup, i.e. isAxi is always false
+//          bool isAxi = false;
+//          actPart.coilCrossSect += 
+//              ptGrid_->CalcVolumeOfElems(actList, isAxi, false );
+//        }
+//        
+//        // in case of measurement coil set value to zero
+//        if( value_ == "0.0") {
+//          actPart.sourceVal = "0.0";
+//        } else { 
+//          // insert value_ * directionFlag into value vector at z-position
+//          //
+//          actPart.sourceVal ="("+ value_ + "*" + GenStr(actPart.orientFlag ) + ")";
+//        }
+//        
+//        // in 2D, we always have the global Cartesian coordinate system
+//        actPart.coordSys.reset(new DefaultCoordSystem(ptGrid_, false));
+//      }
+//
+      // ========================================================
+      //  Intiialize setup of coil (geometry, current direction)
+      // ========================================================
+      // initialize geometry setup (turns, cross section, orientation) 
+      // a) wire cross section / kappa -> evaluate number of turns
+      if( actPartNode->Has("wireCrossSection") ) {
+        actPart.wireCrossSect = 
+            actPartNode->Get("wireCrossSection")->Get("area")->As<Double>();
+        actPart.fillFactor = 
+            actPartNode->Get("wireCrossSection")->Get("fillFactor")->As<Double>();
+        
+        //actPart.numTurns = UInt((actPart.coilCrossSect * actPart.fillFactor) 
+        //                        / actPart.wireCrossSect );
+      } else 
+        
+      // b) turns / kappa given -> determine wire crossSection
+      if( actPartNode->Has("windingTurns") ) {
+        EXCEPTION("Currently the windingTurns can not be specified")
+//        actPart.numTurns = 
+//            actPartNode->Get("windingTurns")->Get("number")->AsDouble();
+//        actPart.fillFactor = 
+//            actPartNode->Get("windingTurns")->Get("fillFactor")->AsDouble();
+//
+//        
+//        // switch type of 
+//        actPart.wireCrossSect = (actPart.coilCrossSect * actPart.fillFactor) 
+//                                / Double(actPart.numTurns);
+      } else {
+        EXCEPTION( "Either the wireCrossSection or the number of turns has to be "
+                   "specified." );
+      }
+//      
+//      
+//      // ==========================================
+//      // CHECK FOR SOLID / STRANDED COIL
+//      // ==========================================
+//      // in case of a solid conductor model, we effectively have only one
+//      // turn and thus set hard-coded the number of turns to 1 and the cross-
+//      // section of the wire to the cross-section of the whole coil
+//      if( !actPart.uniformCurrentDens_ ) {
+//        actPart.numTurns = 1;
+//        actPart.wireCrossSect = actPart.coilCrossSect;
+//      }
+//      
+//      Info->PrintF("","Number of Turns:\t%d\n",actPart.numTurns);
+//      Info->PrintF("","Fill Factor:\t\t%g\n",actPart.fillFactor);
+//      Info->PrintF("","Wire Cross Section:\t%g\n",actPart.wireCrossSect);
+//      Info->PrintF("","Input Cross Section:\t%g\n",actPart.coilCrossSect);
+//      
+      // read coil resistance (if given)
+      if( actPartNode->Has("resistance") ) {
+        actPartNode->Get("resistance")->GetValue("value",actPart.resistance);
+//        Info->PrintF("","Coil Resistance:\t%s\n",actPart.resistance.c_str());
+      }
+//      
+      // In the end, loop over all regions and add part to every region
+      for( UInt i = 0; i < actPart.regions.GetSize(); ++i ) {
+        parts_[actPart.regions[i]] = partPtr;
+      }
+//      Info->PrintF("","\n");
+    } // loop over parts
   }
+  
+  Coil::Coil( const std::string& id, Grid * ptGrid ) {
+    EXCEPTION("Implement me");
+//    ptGrid_ = ptGrid;
+//    coilId_ = id;
+//    
+//    // myParam_ is not set
+//    
+//    // initialize data members
+//    isAxi_ = false;
+//    sourceType_ = NO_SOURCE_TYPE;
+//    coilId_ = "";
+//    value_ = "0.0";
+//    phase_ = "0.0";
+//    
+//    // obtain math parser handle
+//    mParser_ = domain->GetMathParser();
+//    
+//    valueHandle_ = MathParser::GLOB_HANDLER;
+//    phaseHandle_ = MathParser::GLOB_HANDLER;
+  }
+  
+  shared_ptr<CoordSystem>
+  Coil:: SetupCoosy( UInt iPart,
+                     const Part& actPart,
+                     StdVector<RegionIdType>& regions,
+                     const StdVector<std::string>& inSurfaces,
+                     const StdVector<std::string>& outSurfaces ) {
+//    /*
+//       <free id="coil-f">
+//              <regionList>
+//                <region name="coil"/>
+//              </regionList>
+//              <dirName> r </dirName>
+//              <surf1> coil-back </surf1>
+//              <surf2> coil-front </surf2>
+//            </free>
+//        */
+//       
+//       // calculate coordinate system
+//    std::string idString = "_coil_"+coilId_+"_part_"+GenStr(iPart);
+//    PtrParamNode root ( new ParamNode("free", ParamNode::ELEM) );
+//    root->AddChildAttribute("id",idString, true );
+//    
+//    // Important: pass flag, if coil current should get normalized to one!
+//    if( actPart.uniformCurrentDens_ ) {
+//      root->AddChildAttribute("normalize","true", true );
+//    } else {
+//      root->AddChildAttribute("normalize","false", true );
+//    }
+//    
+//    PtrParamNode rList (new ParamNode("regionList", ParamNode::ELEM ) );
+//    root->AddChild(rList, true);
+//    // add all regions
+//    for( UInt i = 0; i < regions.GetSize(); ++i ) {
+//      PtrParamNode rNode(new ParamNode("region", ParamNode::ELEM));
+//      rNode->AddChildAttribute("name",ptGrid_->RegionIdToName(regions[i]), true );
+//      rList->AddChild( rNode, false );
+//    }
+//    root->AddChildElem("dirName", "r", true );
+//    
+//    // WARNING: Currently, the free coordinate system only supports
+//    // 1 surface for inflow/outflow. 
+//    // Thus, we issue a warning, if the user has provided several interfaces
+//    if( inSurfaces.GetSize() > 1 || outSurfaces.GetSize() > 1 ) {
+//      EXCEPTION("Currently, NACS supports just 1 surfaces for in/out flow of "
+//                "coil current");
+//    }
+//    root->AddChildElem("surf1", inSurfaces[0], true );
+//    root->AddChildElem("surf2", outSurfaces[0], true );
+//    
+//    // debugging: dump tree
+//    //root->Dump();
+//    
+//    
+//    shared_ptr<FreeCoordSystem> cSys;
+//    try {
+//     cSys.reset(new FreeCoordSystem(idString, ptGrid_, root, false, false) );
+//    } catch (Exception& e) {
+//      RETHROW_EXCEPTION(e, "Can not determine current direction in coil '" << coilId_ << "'");
+//    }
+//    return cSys;
+    return shared_ptr<CoordSystem>();
+  }
+  
+  shared_ptr<EntityList> Coil::GetElems() {
+    shared_ptr<ElemList> elems;
+    elems.reset( new ElemList( ptGrid_ ) );
+    std::map<RegionIdType, shared_ptr<Coil::Part> >::iterator partIt =
+        parts_.begin();
+    while( partIt != parts_.end() ){
+      StdVector<Elem*> elemsReg;
+      ptGrid_->GetElems( elemsReg, partIt->first );
+      elems->AddElements( elemsReg );
+      partIt++;
+    }
+    return elems;
+  }
+  
+  Coil::Part::Part() {
+    orientFlag = 0;
+    resistance = "0.0";
+    numTurns = 0;
+    coilCrossSect = 0.0;
+    wireCrossSect = 0.0;
+    fillFactor = 1.0;
+    uniformCurrentDens_ = true;
+    hasAnalyticalDir_ = true;
+  }
+ 
+  Coil::Part::~Part() {
+  }
+  
 
 }

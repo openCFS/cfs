@@ -66,6 +66,9 @@ public:
   //! Finalize initialization
   virtual void Finalize() = 0;
   
+  //! Cleanup date. To b called before destruction. 
+  virtual void CleanUp() = 0;
+  
   //! Query for complex-valued results
   virtual bool IsComplex() const = 0;
   
@@ -327,6 +330,9 @@ public:
   
   //! \see BaseFeFunction::Finalize()
   void Finalize();
+  
+  //! \see BaseFeFunction::CleanUp 
+  void CleanUp();
   
   
   virtual bool IsComplex() const {

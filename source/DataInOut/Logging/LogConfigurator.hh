@@ -54,7 +54,7 @@ namespace CoupledField {
   public:
     
     //! Constructor 
-    LogConfigurator();
+    LogConfigurator(const std::string& confFile);
     
     //! Destructor
     virtual ~LogConfigurator() {}
@@ -73,7 +73,8 @@ namespace CoupledField {
     
   protected:
     
-
+    //! Name of XML file containing the settings for logging.
+    std::string confFile_;
   };
 
 }

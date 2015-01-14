@@ -10,6 +10,8 @@ CoefFunctionAccumulator::CoefFunctionAccumulator(PtrCoefFct fct,
 : CoefFunction(), integrate_(integrate) {
   squaredSum_ = 0.0;
   fct_ = fct;
+  dependType_ = fct->GetDependency(); 
+  
 //  sum_.Resize(fct_->GetVecSize());
   
 }

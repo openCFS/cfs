@@ -4,6 +4,7 @@
 #include <map>
 #include "SinglePDE.hh" 
 #include "Driver/SolveSteps/SolveStepMagEdge.hh"
+#include "Utils/Coil.hh"
 
 namespace CoupledField
 {
@@ -29,7 +30,11 @@ namespace CoupledField
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
-    
+
+    //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
+    //! specifying coil results.
+    shared_ptr<Coil> GetCoilById(const Coil::IdType& id);
+
   protected:
     
     //! Initialize NonLinearities
@@ -77,18 +82,20 @@ namespace CoupledField
     // =======================================================================
     //   COILS
     // =======================================================================
-    
+
     //@{ \name Attributes related to coils
-    
-    //! Names of coils resp. their subdomains
-    StdVector<RegionIdType> coilRegionId_;  
-    
-    //! Parameters of the individual coils;
-    StdVector<shared_ptr<Coil> > coilDef_;
+    //! Map CoilID to coil definition
+    std::map<Coil::IdType, shared_ptr<Coil> > coils_;
+
+    //! Map regionIds to coil definitions 
+    typedef std::map<RegionIdType, shared_ptr<Coil> > CoilRegionMap;
+    CoilRegionMap coilRegions_;
     
     //! Coefficients holding the current density for each coil
-    std::map<RegionIdType, PtrCoefFct> coilCoefs_;
-    
+    std::map<RegionIdType, PtrCoefFct> coilCurrentDens_;
+
+    //! Tells if there are coils excited by voltage
+    bool hasVoltCoils_;
     //@}
 
 
@@ -102,7 +109,11 @@ namespace CoupledField
     
     //! Coefficient function, containing the overall conductivity
     shared_ptr<CoefFunctionMulti> conduc_;
-    
+
+    //! Map containing the remanence (B excitation on RHS)
+    //! needed for calculating H field
+    std::map<RegionIdType,PtrCoefFct> bRHSRegions_;
+
     //! Set containing all regions with regularized conductivity
     
     //! This set contains all regions, which have no physical conductivity,
