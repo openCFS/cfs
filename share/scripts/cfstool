@@ -29,7 +29,7 @@ SetANSYSParameters()
     esac
 
     # If ANSYS directory does not exist, try to determine it from executable.
-    if [ ! -d "$ANSYS_ROOT_DIR" ]
+    if [ "$OS" = "LINUX" ] && [ ! -d "$ANSYS_ROOT_DIR" ]
     then
         PGFLIB=`$LDD $CFSTOOL_EXE | grep libpgf90.so | cut -d' ' -f3`
 
@@ -181,16 +181,18 @@ then
     $LDD $CFSTOOL_EXE
 fi
 
-# Check if some system libraries are missing.
-CFSTOOL_EXE_LDD=`$LDD $CFSTOOL_EXE | grep "not found"`
+if [ "$OS" = "LINUX" ]; then
+    # Check if some system libraries are missing.
+    CFSTOOL_EXE_LDD=`$LDD $CFSTOOL_EXE | grep "not found"`
 
-if [ "$CFSTOOL_EXE_LDD" != "" ]
-then 
-    echo "Some dependencies on system libraries could not be resolved."
-    echo "These were:"
-    echo "$CFSTOOL_EXE_LDD";
-    echo
-    exit 4
+    if [ "$CFSTOOL_EXE_LDD" != "" ]
+    then 
+        echo "Some dependencies on system libraries could not be resolved."
+        echo "These were:"
+        echo "$CFSTOOL_EXE_LDD";
+        echo
+        exit 4
+    fi
 fi
 
 # Execute the CFS exutable with arguments from this script

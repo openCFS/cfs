@@ -1,18 +1,21 @@
 #include <limits>
 
+#include "ArpackSolver.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
+#include "MatVec/Vector.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include <boost/type_traits/is_complex.hpp>
 
-#include "ArpackSolver.hh"
+DECLARE_LOG(as)
+DEFINE_LOG(as, "arpackSolver")
+
 
 namespace CoupledField {
 
   ArpackSolver::ArpackSolver() :
     eigenValues_(NULL),
-    zEigenValues_(NULL),
-    eigenTolerances_(NULL),
-    eigenVectors_(NULL),
-    zEigenVectors_(NULL)
+    eigenVectors_(NULL)
   {
 
       shiftAndInvert_ = true;
@@ -24,23 +27,22 @@ namespace CoupledField {
 			// cast to char* or receive compiler warning
       which_ = (char*) "LM";
       type_ = (char*) "G";
+      size_ = 0;
+      numFreq_ = 0;
 
   }
   
   ArpackSolver::~ArpackSolver() {
     
-      delete[] eigenValues_;
-      delete[] zEigenValues_;
-      delete[] eigenTolerances_;
-      delete[] eigenVectors_;
-      delete[] zEigenVectors_;
+      delete eigenValues_;
+      delete eigenVectors_;
       interface_ = NULL;
 
   }
 
   void ArpackSolver::Setup( ArpackMatInterface *matInterface, UInt size, 
                             UInt numFreq, Double freqShift, char* which, 
-                            char* type, bool shiftMode ) {
+                            char* type, bool shiftMode, bool bloch ) {
 
       size_ = size;
 
@@ -69,12 +71,19 @@ namespace CoupledField {
               << " 1/2 the number of unknowns of the system");
       }
       
-
-      // eigenvalues, tolerances and vectors
-      eigenValues_ = new Double [numArnoldiVec_];
-      eigenTolerances_ = new Double [numArnoldiVec_];
-      eigenVectors_ = new Double [numFreq_*size_];
-
+      // Setup() is called for each wave_vector
+      if(eigenValues_ == NULL || eigenVectors_ == NULL)
+      {
+        // eigenvalues, tolerances and vectors
+        if(bloch) {
+          eigenValues_  = new Vector<Complex>(numArnoldiVec_);
+          eigenVectors_ = new Vector<Complex>(numFreq_*size_);
+        } else {
+          eigenValues_  = new Vector<double>(numArnoldiVec_);
+          eigenVectors_ = new Vector<double>(numFreq_*size_);
+        }
+      }
+      eigenTolerances_.Resize(numArnoldiVec_);
   }
 
 
@@ -117,12 +126,13 @@ namespace CoupledField {
               << newNumFreq << " as the number of eigenfrequencies may only be"
               << " 1/2 the number of unknowns of the system" );
       }
-      
+      Vector<Complex>* t = new Vector<Complex>(5);
 
+      t++;
       // eigenvalues, tolerances and vectors
-      zEigenValues_ = new Complex [numArnoldiVec_];
-      eigenTolerances_ = new Double [numArnoldiVec_];
-      zEigenVectors_ = new Complex [numFreq_*size_];
+      eigenValues_  = new Vector<Complex>(numArnoldiVec_);
+      eigenVectors_ = new Vector<Complex>(numFreq_*size_);
+      eigenTolerances_.Resize(numArnoldiVec_);
 
       DebugOff();
 
@@ -167,155 +177,213 @@ namespace CoupledField {
       return numArnoldiVec_;
   }
 
-  UInt ArpackSolver::FindEigenvalues( ) {
+  template <class TYPE>
+  UInt ArpackSolver::FindEigenvalues()
+  {
+    // based on zndrv4.f and dsdrv4.f
 
-      bool converged = false;
-      Integer  ido = 0, info = 0;
+    bool bloch = boost::is_complex<TYPE>::value;
 
-      // temp vector to store B*x
-      Double *tempV = new Double [size_];
-      // pointers to the position of x and y in workD
-      Double *vecX, *vecY;
+    bool converged = false;
+    Integer  ido = 0, info = 0;
 
-      // temp working space required in dsaupd
-      Double *workD = new Double [3*size_];
-      Double *residual = new Double [size_];
-      Double *workL = new Double [numArnoldiVec_*(numArnoldiVec_+8)];
-      Double *matrixV = new Double [size_*numArnoldiVec_];
+    // temp vector to store B*x
+    StdVector<TYPE> tempV(size_); // TYPE* tempV = new Double[size_];
+    // pointers to the position of x and y in workD
+    TYPE* vecX, *vecY;
 
-      InitTempSpace(tempV, residual, workD, workL, matrixV);
+    // temp working space required in *aupd
+    StdVector<TYPE> workD(3*size_);
+    StdVector<TYPE> residual(size_);
+    int lenWorkL = (bloch ? numArnoldiVec_ * (3 * numArnoldiVec_ + 5): numArnoldiVec_ * (numArnoldiVec_ + 8));
+    StdVector<TYPE> workL(lenWorkL);
+    StdVector<TYPE> matrixV(size_*numArnoldiVec_); // TYPE* matrixV = new Double[size_*numArnoldiVec_];
 
-      Integer lenWorkL = numArnoldiVec_*(numArnoldiVec_+8);
+    // this double array is only for the complex part
+    StdVector<double> rwork(size_);
 
-      Integer iparams[21], ipntr[21];
-      for (Integer i=0; i<21; i++) {
-           iparams[i] = 0;
-           ipntr[i] = 0;
+
+    StdVector<int> iparams(21); // int iparams[21], ipntr[21];
+    StdVector<int> ipntr(21);
+
+    iparams[0] = 1;
+    iparams[2] = maxIterations_;
+    iparams[6] = 3;
+
+    UInt itNum;
+    for (itNum=0; itNum<maxIterations_; itNum++)
+    {
+      // additionally rwork is ignored for the real case
+      CallAUPD(&ido, type_, &size_, which_, &numFreq_, &tolerance_, residual.GetPointer(),
+            &numArnoldiVec_, matrixV.GetPointer(), &size_, iparams.GetPointer(), ipntr.GetPointer(),
+            workD.GetPointer(), workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
+
+      switch (ido)
+      {
+      case -1:
+        // NOTE: addresses in workd are given as FORTRAN addreses
+        // solve (A-shift*B)*y = B*x
+        // x is returned by dsaupd in workd(ipntr[1]:ipntr[1]+size-1)
+        // y is expected by dsaupd in workd(ipntr[2]:ipntr[2]+size-1)
+
+        vecX = workD.GetPointer() + (ipntr[0] -1);
+        vecY = workD.GetPointer() + (ipntr[1] -1);
+
+        interface_->MultBV(vecX, tempV.GetPointer());
+        interface_->MultShiftOpV(tempV.GetPointer(), vecY);
+        break;
+
+      case 1:
+        // solve (A-shift*B)*y = x = B*z
+        // B*x is returned by dsaupd in workd(ipntr[3]:ipntr[3]+size-1)
+        // y is expected by dsaupd in workd(ipntr[2]:ipntr(2]+size-1)
+        vecX = workD.GetPointer() + (ipntr[2]-1);
+        vecY = workD.GetPointer() + (ipntr[1]-1);
+        interface_->MultShiftOpV(vecX,vecY);
+        break;
+
+      case 2:
+        // calculate y = B*x
+        // x is returned by dsaupd in workd(ipntr[1]:ipntr[1]+size-1)
+        // y is expected by dsaupd in workd(ipntr[2]:ipntr[2]+size-1)
+        vecX = workD.GetPointer() + (ipntr[0]-1);
+        vecY = workD.GetPointer() + (ipntr[1]-1);
+        interface_->MultBV(vecX,vecY);
+        break;
+
+      case 3:
+        // algorithm requires shifts - > not implemented
+        EXCEPTION( "User required shifts not yet implemented!\nARPACK requested ido=3 in DSAUPD!" );
+        break;
+
+      case 99:
+        converged = true;
+        break;
+
+      default:
+        // something went wrong -> arpack requires undefind ido
+        EXCEPTION( "ARPACK requested not implemented ido=" << ido << " in DSAUPD!" );
+        break;
       }
 
-      iparams[0] = 1;
-      iparams[2] = maxIterations_;
-      iparams[6] = 3;
+      LOG_DBG3(as) << "FE: bloch=" << bloch << " it=" << itNum << " ido=" << ido << " info=" << info;
+      LOG_DBG3(as) << " x=" << ToString<TYPE>(vecX, size_);
+      LOG_DBG3(as) << " y=" << ToString<TYPE>(vecY, size_);
 
-      UInt itNum;
-      for (itNum=0; itNum<maxIterations_; itNum++) {
+      // if convergence has been achieved, exit loop
+      if (converged)
+        break;
 
-          // cast to char* or receive compiler warning
-          dsaupd(&ido, type_, (Integer*) &size_, which_, (Integer*) &numFreq_, 
-                &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
-                (Integer*) &size_, iparams, ipntr,
-                workD, workL, &lenWorkL, &info);
+    }
 
-          switch (ido)  {
+    // check whether everything went well
+    if (info<0)
+      EXCEPTION("Error reported in Ritz value calculation:\n" << ArpackError(info) );
 
-          case -1:
-              // NOTE: addresses in workd are given as FORTRAN addreses
-              // solve (A-shift*B)*y = B*x
-              // x is returned by dsaupd in workd(ipntr[1]:ipntr[1]+size-1)
-              // y is expected by dsaupd in workd(ipntr[2]:ipntr[2]+size-1)
 
-             vecX = workD + --ipntr[0];
-             vecY = workD + --ipntr[1];
-             interface_->MultBV(vecX, tempV); 
-             interface_->MultShiftOpV(tempV, vecY); 
-             break;
+    if ( itNum>maxIterations_ && info != 99 ) {
+      EXCEPTION("Maximum number of iterations has been reached, but no solution"
+          << "could be obtained which satisfies requested tolerance setting.\n"
+          << "Increase maxIt (=" << maxIterations_ << ") in xml file!" );
+    }
 
-          case 1:
-              // solve (A-shift*B)*y = B*x
-              // B*x is returned by dsaupd in workd(ipntr[3]:ipntr[3]+size-1)
-              // y is expected by dsaupd in workd(ipntr[2]:ipntr(2]+size-1)
-             vecX = workD + --ipntr[2];
-             vecY = workD + --ipntr[1];
-             interface_->MultShiftOpV(vecX,vecY);
-             break;
+    // proceed with calculation of eigenvectors, values, and tolerances
 
-          case 2:
-              // calculate y = B*x
-              // x is returned by dsaupd in workd(ipntr[1]:ipntr[1]+size-1)
-              // y is expected by dsaupd in workd(ipntr[2]:ipntr[2]+size-1)
-              vecX = workD + --ipntr[0];
-              vecY = workD + --ipntr[1];
-              interface_->MultBV(vecX,vecY);
-              break;
+    // NOTE: in the FORTRAN routine dseupd d and eigenVector_ array are
+    //       treated as 2-dimensional arrays of dimension
+    //       (numFreq_,2) and (size_,numArnoldiVec_), respectively.
+    //       However, taking account of FORTRAN storage scheme for arrays
+    //       (column first) in data transfer, we use a simple 1d vector
+    //       memory allocation here!
 
-          case 3:
-              // algorithm requires shifts - > not implemented
-            EXCEPTION( "User required shifts not yet implemented!\n"
-                       << "ARPACK requested ido=3 in DSAUPD!" );
-            break;
+    bool rvec = true;
+    StdVector<double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
+    StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
+    TYPE omgShift = pow(freqShift_*8.0*atan(1.0), bloch ? 1 : 2);
 
-          case 99:
-            converged = true;
-            break;
+    Vector<TYPE>& eval = dynamic_cast<Vector<TYPE>&>(*eigenValues_);
+    Vector<TYPE>& evec = dynamic_cast<Vector<TYPE>&>(*eigenVectors_);
 
-          default:
-              // something went wrong -> arpack requires undefind ido
-            EXCEPTION( "ARPACK requested not implemented ido=" << ido 
-                       << " in DSAUPD!" );
-            break;
 
-          }
+    // only complex part
+    StdVector<TYPE> workev(2 * numArnoldiVec_);
 
-          // if convergence has been achieved, exit loop
-          if (converged)
-              break;
+    // cast to char* or receive compiler warning
+    CallEUPD(&rvec, (char*) "A", select.GetPointer(), d.GetPointer(), evec.GetPointer(), &size_,
+        &omgShift, workev.GetPointer() , (char*) "G", &size_, which_, &numFreq_,
+        &tolerance_, residual.GetPointer(), &numArnoldiVec_, matrixV.GetPointer(),
+        &size_, iparams.GetPointer(), ipntr.GetPointer(), workD.GetPointer(),
+        workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
 
+    LOG_DBG3(as) << "FE post d=" << d.ToString();
+
+    if(info != 0)
+      EXCEPTION("error postprocessing arpack: info=" << info);
+
+    Integer numEVConverged = iparams[4];
+    for (Integer i=0; i< numEVConverged; i++)
+    {
+      eval[i] = d[i];                 // cf. note above!
+      // calculate error norm of obtained solution
+      vecX = matrixV.GetPointer() + i*size_;
+      vecY = workD.GetPointer() + size_;
+      interface_->MultBV(vecX, vecY);
+      vecY = workD.GetPointer();
+      interface_->MultAV(vecX, vecY);
+      double vNrm2 = 0.0;
+      for (Integer j=0; j<size_; j++) {
+        vecX[j] = vecY[j] - d[i]*vecY[j+size_];
+        vNrm2 += abs(vecX[j])*abs(vecX[j]);
       }
+      eigenTolerances_[i] = sqrt(vNrm2)/abs(d[i]);    // cf. note above!
+    }
 
-      // check whether everything went well
-      if (info<0) {
-          EXCEPTION("Error reported in ritz value calculation:\n"
-           << ArpackError(info) );
-      }
-
-      if ( itNum>maxIterations_ && info != 99 ) {
-        EXCEPTION("Maximum number of iterations has been reached, but no solution"
-                 << "could be obtained which satisfies requested tolerance setting.\n"
-                 << "Increase maxIt (=" << maxIterations_ << ") in xml file!" );
-      }
-
-      // proceed with calculation of eigenvectors, values, and tolerances
-
-      // NOTE: in the FORTRAN routine dseupd d and eigenVector_ array are
-      //       treated as 2-dimensional arrays of dimension
-      //       (numFreq_,2) and (size_,numArnoldiVec_), respectively.
-      //       However, taking account of FORTRAN storage scheme for arrays 
-      //       (column first) in data transfer, we use a simple 1d vector 
-      //       memory allocation here!
-
-      bool rvec = true;
-      Double *select = new Double [numArnoldiVec_];
-      Double *d = new Double [numArnoldiVec_*2];
-      Double omgShift = pow(freqShift_*8.0*atan(1.0),2);
-
-			// cast to char* or receive compiler warning
-      dseupd(&rvec, (char*) "A", select, d, eigenVectors_, (Integer*) &size_, 
-                      &omgShift, (char*) "G", (Integer*) &size_, which_, (Integer*) &numFreq_,
-                      &tolerance_, residual, (Integer*) &numArnoldiVec_, matrixV, 
-                      (Integer*) &size_, iparams, ipntr, workD, workL, &lenWorkL, &info);
-
-      Integer numEVConverged = iparams[4];
-      for (Integer i=0; i< numEVConverged; i++) {
-          eigenValues_[i] = d[i];                 // cf. note above!
-          // calculate error norm of obtained solution
-          vecX = matrixV + i*size_;
-          vecY = workD + size_;
-          interface_->MultBV(vecX, vecY); 
-          vecY = workD;
-          interface_->MultAV(vecX, vecY); 
-          Double vNrm2 = 0.0;
-          for (UInt j=0; j<size_; j++) {
-              vecX[j] = vecY[j] - d[i]*vecY[j+size_];
-              vNrm2 += vecX[j]*vecX[j];
-          }
-          eigenTolerances_[i] = sqrt(vNrm2)/d[i];    // cf. note above!
-          //(*cla) << " Mode no. " << i << ", tol = " << eigenTolerances_[i] << "\n";
-      }
-    
-      return numEVConverged;
+    return numEVConverged;
   }
 
+  template <>
+  void ArpackSolver::CallAUPD<double>(Integer* ido, char* bmat, Integer* n, char* which, Integer* nev, Double* tol,
+      Double *resid, Integer *ncv, Double *V, Integer *ldv, Integer *iparam, Integer *ipntr,
+      Double *workd, Double *workl, Integer *lworkl, Double *workDbleD, Integer *info)
+  {
+    dsaupd(ido, bmat, n, which, nev, tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, info);
+  }
+
+
+  template <>
+  void ArpackSolver::CallAUPD<Complex>(Integer* ido, char* bmat, Integer* n, char* which, Integer* nev, Double* tol,
+      Complex *resid, Integer *ncv, Complex *V, Integer *ldv, Integer *iparam, Integer *ipntr,
+      Complex *workd, Complex *workl, Integer *lworkl, Double *workDbleD, Integer *info)
+  {
+    znaupd(ido, bmat, n, which, nev, tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, workDbleD, info);
+  }
+
+  template <>
+  void ArpackSolver::CallEUPD<Complex>(bool *rvec, char *howMny, Double *select, Complex *d, Complex *z, Integer *ldz,
+      Complex *shift, Complex *zwork, char *bmat, Integer* size, char *which, Integer *nev, Double *tol,
+      Complex *resid, Integer *ncv, Complex *V, Integer *ldv, Integer *iparam, Integer *ipntr,
+      Complex *workd, Complex *workl, Integer *lworkl, Double *workDbleD, Integer *info)
+  {
+    zneupd(rvec, howMny, select, d, z, ldz, shift, zwork, bmat, size, which, nev, tol,
+        resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, workDbleD, info);
+  }
+
+  template <>
+  void ArpackSolver::CallEUPD<double>(bool *rvec, char *howMny, Double *select, double *d, double *z, Integer *ldz,
+      double *shift, double *zwork, char *bmat, Integer* size, char *which, Integer *nev, Double *tol,
+      double *resid, Integer *ncv, double *V, Integer *ldv, Integer *iparam, Integer *ipntr,
+      double *workd, double *workl, Integer *lworkl, Double *workDbleD, Integer *info)
+  {
+    dseupd(rvec, howMny, select, d, z, ldz, shift, bmat, size, which, nev, tol,
+        resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, info);
+  }
+
+
+
   UInt ArpackSolver::FindQuadEigenvalues( ) {
+
+      Vector<Complex>& eval = dynamic_cast<Vector<Complex>& >(*eigenValues_);
+      Vector<Complex>& evec = dynamic_cast<Vector<Complex>& >(*eigenVectors_);
 
       bool converged = false;
       Integer  ido = 0, info = 0;
@@ -348,10 +416,8 @@ namespace CoupledField {
       UInt itNum;
       for (itNum=1; itNum<=maxIterations_; itNum++) {
 
-        znaupd(&ido, (char*) "G", (Integer*) &size_, which_,
-                        (Integer*) &numFreq_, &tolerance_, residual,
-                        (Integer*) &numArnoldiVec_, matrixV,
-                        (Integer*) &size_, iparams, ipntr, workD, workL,
+        znaupd(&ido, (char*) "G", &size_, which_, &numFreq_, &tolerance_, residual,
+                        &numArnoldiVec_, matrixV, &size_, iparams, ipntr, workD, workL,
                         &lenWorkL, workDbleD, &info);
 
           switch (ido)  {
@@ -364,8 +430,8 @@ namespace CoupledField {
 
              vecX = workD + --ipntr[0];
              vecY = workD + --ipntr[1];
-             interface_->MultBV(vecX, tempV); 
-             interface_->MultShiftOpV(tempV, vecY); 
+             interface_->MultBVQuad(vecX, tempV);
+             interface_->MultShiftOpVQuad(tempV, vecY);
              break;
 
           case 1:
@@ -374,7 +440,7 @@ namespace CoupledField {
               // y is expected by znaupd in workd(ipntr[2]:ipntr(2]+size-1)
              vecX = workD + --ipntr[2];
              vecY = workD + --ipntr[1];
-             interface_->MultShiftOpV(vecX,vecY);
+             interface_->MultShiftOpVQuad(vecX,vecY);
              break;
 
           case 2:
@@ -383,7 +449,7 @@ namespace CoupledField {
               // y is expected by znaupd in workd(ipntr[2]:ipntr[2]+size-1)
               vecX = workD + --ipntr[0];
               vecY = workD + --ipntr[1];
-              interface_->MultBV(vecX,vecY);
+              interface_->MultBVQuad(vecX,vecY);
               break;
 
           case 3:
@@ -403,6 +469,10 @@ namespace CoupledField {
               break;
 
           }
+
+          LOG_DBG3(as) << "FQE: it=" << itNum << " ido=" << ido << " info=" << info;
+          LOG_DBG3(as) << " x=" << StdVector<Complex>::ToString(size_, vecX);
+          LOG_DBG3(as) << " y=" << StdVector<Complex>::ToString(size_, vecY);
 
           // if convergence has been achieved, exit loop
           if (converged)
@@ -442,23 +512,23 @@ namespace CoupledField {
       // zEigenVectors_ will only store data for positive freqs.
       Complex *zEV = new Complex [numFreq_*size_];
 
-      for (UInt i=0; i< numArnoldiVec_*2; i++) {
+      for (int i=0; i< numArnoldiVec_*2; i++) {
         d[i] = (Complex) 0.0;
-	zwv[i] = (Complex) 0.0;
+        zwv[i] = (Complex) 0.0;
       }
-      for (UInt i=0; i< numFreq_*size_; i++) {
-        zEV[i]            = (Complex) 0.0;
-        zEigenVectors_[i] = (Complex) 0.0;
+      for (int i=0; i< numFreq_*size_; i++) {
+        zEV[i]  = (Complex) 0.0;
+        evec[i] = (Complex) 0.0;
       }
 
       Complex omgShift = (Complex) freqShift_*8.0*atan(1.0);
 
-      zneupd(&rvec, (char*) "A", select, d, zEV,
-                      (Integer*) &size_, &omgShift, zwv, (char*) "G",
-                      (Integer*) &size_, which_, (Integer*) &numFreq_,
-                      &tolerance_, residual, (Integer*) &numArnoldiVec_,
-                      matrixV, (Integer*) &size_, iparams, ipntr, workD,
+      zneupd(&rvec, (char*) "A", select, d, zEV, &size_, &omgShift, zwv, (char*) "G",
+                      &size_, which_, &numFreq_, &tolerance_, residual, &numArnoldiVec_,
+                      matrixV, &size_, iparams, ipntr, workD,
                       workL, &lenWorkL, workDbleD, &info);
+
+      LOG_DBG3(as) << "FQE post d=" << ToString(d, numArnoldiVec_*2);
 
       Integer numEVConverged = iparams[4];
 
@@ -512,74 +582,72 @@ namespace CoupledField {
         evPos[pos] = -1;
       }
       for (Integer pos=0; pos<found; pos++) {
-	if (sortedEV[pos] >= 0) {
+        if (sortedEV[pos] >= 0) {
           evPos[sortedEV[pos]] = pos;
         }
       }
       
-//      std::cout << "evPos " << std::endl;
-//      for (Integer pos=0; pos<numEVConverged; pos++) {
-//        std::cout << "pos " << pos << " nev " << evPos[pos] << std::endl;
-//      }
-
       for (Integer ncv=0; ncv < numEVConverged; ncv++) {
 
         if (d[ncv].imag() >= 0.0) {
 
           pos = evPos[ncv];
-	  if (pos >= 0) {
-            zEigenValues_[pos] = d[ncv];
-            for (UInt j=0; j<size_; j++) {
-              zEigenVectors_[pos*size_+j] = zEV[ncv*size_+j];
+          if (pos >= 0) {
+            eval[pos] = d[ncv];
+
+            LOG_DBG3(as) << "CQV post ncv=" << ncv << " pos=" << pos << " eval=" << eval[pos];
+
+            for (int j=0; j<size_; j++) {
+              evec[pos*size_+j] = zEV[ncv*size_+j];
             }
 
-            ztmp = zEigenVectors_ + pos*size_;
-            for (UInt j=0; j<size_/2; j++) {
+            ztmp = evec.GetPointer() + pos*size_;
+            for (int j=0; j<size_/2; j++) {
               z3[j] = ztmp[j];
             }
             interface_->MultZDampV(ztmp, z1); 
             ztmp += size_/2;
             interface_->MultZStiffV(ztmp, z2); 
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               z1[j] = -z1[j] - z2[j];
             }
   
             if ( interface_->UseStiffInNMat() ) {
-              for (UInt j=0; j<size_/2; j++) {
+              for (int j=0; j<size_/2; j++) {
                 z2[j] = z3[j];
               }
               interface_->MultZStiffV(z2, z3); 
             }
             interface_->ScaleDiag(z3);
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
                 zA[j]         = z1[j];
                 zA[j+size_/2] = z3[j];
             }
   
-            ztmp = zEigenVectors_ + pos*size_;
-            for (UInt j=0; j<size_/2; j++) {
+            ztmp = evec.GetPointer() + pos*size_;
+            for (int j=0; j<size_/2; j++) {
                z3[j] = ztmp[j+size_/2];
             }
             interface_->MultZMassV(ztmp, z1); 
   
             if ( interface_->UseStiffInNMat() ) {
-              for (UInt j=0; j<size_/2; j++) {
+              for (int j=0; j<size_/2; j++) {
                   z2[j] = z3[j];
               }
               interface_->MultZStiffV(z2, z3); 
             }
             interface_->ScaleDiag(z3);
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               zB[j]         = z1[j];
               zB[j+size_/2] = z3[j];
             }
   
             Double vNrm2 = 0.0,v2Nrm2 = 0.0;
-            for (UInt j=0; j<size_/2; j++) {
+            for (int j=0; j<size_/2; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
               vNrm2 += pow(abs(zC[j]),2);
             }
-            for (UInt j=size_/2; j<size_; j++) {
+            for (int j=size_/2; j<size_; j++) {
               zC[j] = zA[j]-d[ncv]*zB[j];
               v2Nrm2 += pow(abs(zC[j]),2);
             }
@@ -587,21 +655,21 @@ namespace CoupledField {
             eigenTolerances_[pos] = sqrt(vNrm2)/abs(d[ncv]);
   
             // "normalize" eigenvectors: 
-            ztmp = zEigenVectors_ + pos*size_;
+            ztmp = evec.GetPointer() + pos*size_;
             Double  epsTest = 1.0e-6;
             // 1) for a unit vector
             Complex vLen = (Complex) 0.0;
-            for (UInt j=size_/2; j<size_; j++) {
+            for (int j=size_/2; j<size_; j++) {
               vLen += ztmp[j]*std::conj(ztmp[j]);
             }
             vLen = sqrt(vLen);
-            for (UInt j=0; j<size_; j++) {
+            for (int j=0; j<size_; j++) {
               ztmp[j] /= vLen;
             }
   
             // 2) start at size_/2, i.e. use "essential part" of the eigenvector
             //    and look for first non-noisy entry
-            UInt jNorm = size_/2, jFound=0;
+            int jNorm = size_/2, jFound=0;
             while (jFound==0 && jNorm<size_) {
               if (std::abs(ztmp[jNorm]) > epsTest)
                 jFound = 1;
@@ -617,7 +685,7 @@ namespace CoupledField {
   
             Complex zbase = Complex (1.,1.);
             Complex zNorm = ztmp[jNorm]*zbase;
-            for (UInt j=0; j<size_; j++) {
+            for (int j=0; j<size_; j++) {
               ztmp[j] /= zNorm;
             }
 
@@ -639,40 +707,18 @@ namespace CoupledField {
 
       }
       for (pos=0; pos<found; pos++) {
-          (*cla) << " EV no. " << pos << ", EV  = " << zEigenValues_[pos] << "\n";
+          (*cla) << " EV no. " << pos << ", EV  = " << eval[pos] << "\n";
           (*cla) << " EV no. " << pos << ", tol = " << eigenTolerances_[pos] << "\n";
       }
     
       return found;
   }
 
-  void ArpackSolver::InitTempSpace(Double *tempV,Double *residual,
-             Double* workD, Double* workL, Double* matrixV) {
-
-
-      Integer i;
-      for (i=0; i < (int) size_;i++) {
-           tempV[i] = 0.0;
-           residual[i] = 0.0;
-      }
-
-      for (i=0; i < 3*((int) size_);i++)
-           workD[i] = 0.0;
-
-      Integer len = numArnoldiVec_*(numArnoldiVec_+8);
-      for (i=0; i < len; i++)
-          workL[i] = 0.0;
-
-      len = size_*numArnoldiVec_;
-      for (i=0; i < len; i++)
-           matrixV[i] = 0.0;
-
-  }
 
   void ArpackSolver::InitQuadTempSpace(Complex *tempV,Complex *residual,
          Complex* workD, Complex* workL, Complex* matrixV, Double* workDbleD) {
 
-      UInt i;
+      int i;
       for (i=0; i < size_;i++) {
            tempV[i] = (Complex) 0.0;
            residual[i] = (Complex) 0.0;
@@ -681,7 +727,7 @@ namespace CoupledField {
       for (i=0; i < 3*size_;i++)
            workD[i] = (Complex) 0.0;
 
-      UInt len = numArnoldiVec_*(3*numArnoldiVec_+5);
+      int len = numArnoldiVec_*(3*numArnoldiVec_+5);
       for (i=0; i < len; i++)
           workL[i] = (Complex) 0.0;
 
@@ -694,11 +740,15 @@ namespace CoupledField {
   }
 
   Double ArpackSolver::Eigenvalue(UInt i) {
-      return eigenValues_[i];
+      Double v;
+      eigenValues_->GetEntry(i, v);
+      return v;
   }
 
   Complex ArpackSolver::CmplxEigenvalue(UInt i) {
-      return zEigenValues_[i];
+      Complex v;
+      eigenValues_->GetEntry(i, v);
+      return v;
   }
 
   Double ArpackSolver::Tolerance(UInt i) {
@@ -706,11 +756,11 @@ namespace CoupledField {
   }
 
   Double *ArpackSolver::GetEigenvector( UInt modeNr ) {
-      return eigenVectors_ + modeNr*size_;
+      return dynamic_cast<Vector<Double>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
-  Complex *ArpackSolver::GetQuadEigenvector( UInt modeNr ) {
-      return zEigenVectors_ + modeNr*size_;
+  Complex *ArpackSolver::GetComplexEigenvector( UInt modeNr ) {
+    return dynamic_cast<Vector<Complex>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
   std::string ArpackSolver::ArpackError( Integer errNo ) {
@@ -865,4 +915,8 @@ namespace CoupledField {
 
   }
 
-}
+  // Explicit template instantiation
+  template UInt ArpackSolver::FindEigenvalues<Double>();
+  template UInt ArpackSolver::FindEigenvalues<Complex>();
+
+} // end of namespace

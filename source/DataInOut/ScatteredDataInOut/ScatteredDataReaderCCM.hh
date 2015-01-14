@@ -24,22 +24,18 @@ namespace CoupledField
   class ScatteredDataReaderCCM : public ScatteredDataReader
   {
   public:
-    ScatteredDataReaderCCM(const std::string& fileName,
-                           bool verbose = false) :
-      ScatteredDataReader(fileName, verbose) 
-    {};
+    ScatteredDataReaderCCM(PtrParamNode& scatteredDataNode,
+                           bool verbose = false);
     virtual ~ScatteredDataReaderCCM();
   
   
     void ReadInput();
-    void WriteCellCenters();
+    void Dump();
 
-    void SetComponentShortNames(const std::vector<std::string>& componentShortNames) 
-    {
-      componentShortNames_ = componentShortNames;
-    }
+  protected:
+    virtual void ReadData();
 
-    virtual void Read(std::vector< std::vector<double> >& scatteredData);
+    void ParseParamNode();
 
   private:
 
@@ -52,32 +48,62 @@ namespace CoupledField
     void ReadSolverInfo( CCMIOError &err, CCMIOID &solution);
     void ReadPost( CCMIOError &err, CCMIOID &solution );
     void ReadScalar( CCMIOError &err, CCMIOID& field, std::vector<int> &mapData,
-                     std::vector<float> &data, bool readingVector = false );
+                     std::vector<double> &data, bool readingVector = false,
+                     const char* shortName = NULL);
     void ReadSets( CCMIOError &err, CCMIOID &problem );
     void CheckError( CCMIOError const &err, char const *str );
     void PrintData( int n, int id, DataType type, void *data,
                     void *data2 = NULL );
   
   private:
-    static int const kNValues; // Number of values of each element to print
+    //! File name of input CCM file.
+    std::string fileName_;
+
+    //! Id of reader.
+    std::string id_;
+
+    //! Shall we dump the point cloud data to a CSV file?
+    bool dump_;
+
+    //! Do we need to read data from cell centers?
+    bool cellCenters_;
+
+    //! Do we need to read data from face centers?
+    bool faceCenters_;
+
+    //! Number of values of each element to print when in verbose mode
+    static int const kNValues;
     static char const kUnitsName[];
     static int const kVertOffset;
     static int const kCellInc;
 
+    //! Data type for associating a node number with coordinates
     typedef std::map< int, std::vector< double > > VertexMap;
+    //! Vertices of face and cell nodes
     VertexMap vertices_;
 
-    typedef std::map< int, std::set< int > > Cell2VertexMap;
-    Cell2VertexMap cell2Verts_;
+    //! Data type for uniquely associating vertex ids to cell or face ids
+    typedef std::map< int, std::set< int > > Entity2VertexMap;
+    //! Vertices belonging to cells
+    Entity2VertexMap cellVertices_;
+    //! Vertices belonging to faces
+    Entity2VertexMap faceVertices_;
 
-    typedef std::map< std::string, float > Name2FloatMap;
-    typedef std::map< int, Name2FloatMap > Cell2DataMap;
+    typedef std::map< std::string, double > Name2FloatMap;
+    typedef std::map< int, Name2FloatMap > Entity2DataMap;
 
-    Cell2DataMap dMap_;
+    //! Map from global cell number to data defined on it.
+    Entity2DataMap cell2Data_;
 
-    std::vector<std::string> componentShortNames_;
-  };
-  
+    //! Map from global face number to data defined on it.
+    Entity2DataMap face2Data_;
+
+    //! Map from quantity id to map of quantity dof indices to short names.
+    std::map< std::string, std::map<UInt, std::string> > qidDof2ShortName_;
+
+    //! Set of short names of quantity dofs which are to be read.
+    std::set< std::string > componentShortNames_;
+  };  
 }
 
-#endif  
+#endif

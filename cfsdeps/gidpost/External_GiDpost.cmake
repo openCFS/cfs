@@ -19,6 +19,7 @@ ELSE()
 ENDIF()
 
 STRING(REPLACE ";" "," GID_FORTRAN_LIBS "${CFS_FORTRAN_LIBS}")
+STRING(REPLACE ";" "," GID_HDF5_LIBRARY "${HDF5_LIBRARY}")
 
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${gidpost_install}
@@ -35,8 +36,9 @@ SET(CMAKE_ARGS
   -DZLIB_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
   -DZLIB_LIBRARIES:FILEPATH=${ZLIB_LIBRARY}
-  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}
-  -DHDF5_INCLUDE_DIRS:FILEPATH=${CFS_BINARY_DIR}/include
+  -DHDF5_DIR:FILEPATH=${CFS_BINARY_DIR}/cmake/hdf5
+  -DHDF5_C_LIBRARY:PATH=${GID_HDF5_LIBRARY}
+  -DHDF5_INCLUDE_DIR:FILEPATH=${CFS_BINARY_DIR}/include
   -DHDF5_LT_LIBRARY:FILEPATH=${HDF5_LT_LIBRARY}
   -DHDF5:BOOL=ON
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
@@ -74,7 +76,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://www.gidhome.com/pub/Tools/${GIDPOST_ZIP}"
+  "ftp://www.gidhome.com/pub/Tools/gidpost/${GIDPOST_ZIP}"
   "${GIDPOST_URL}/${GIDPOST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")

@@ -7,7 +7,7 @@
 
 #include "General/Environment.hh"
 #include "Utils/StdVector.hh"
-
+#include "Utils/Coil.hh"
 
 namespace CoupledField {
 
@@ -149,6 +149,9 @@ namespace CoupledField {
     //! Add an element to the list
     virtual void AddElement( const Elem* elem );
     
+    //! Add vector of elements to the list
+    void AddElements( const StdVector<Elem*>& elems );
+
     //! Get RegionId
     RegionIdType GetRegion() const;
     
@@ -364,7 +367,7 @@ namespace CoupledField {
 
     //! Get iterator
     EntityIterator GetIterator() const;
-    
+
   private:
     StdVector<shared_ptr<Coil> > list_;
 
@@ -500,7 +503,7 @@ namespace CoupledField {
     //! ELEM_LIST, SURF_ELEM_LIST, NC_ELEM_LIST: number of element 
     //! NODE_LIST: node number
     //! REGION_LIST: region name
-    //! COIL_LIST: coild id
+    //! COIL_LIST: coil id
     //! NUMBER_LIST: unknown number
     std::string GetIdString() const;
     

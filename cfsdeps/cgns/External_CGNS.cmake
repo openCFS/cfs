@@ -1,9 +1,10 @@
 #-------------------------------------------------------------------------------
 # CFD General Notation System (CGNS)
-# Needed for ADF routines by STARCCM+ reader. Also provides adfview.
-#                                           
-# Project Homepage                          
-# http://www.cgns.org                       
+# Needed for ADF routines by STARCCM+ reader. Also provides cgnsview, which
+# can be used to view .cgns files (HDF5 and ADF) and .ccm files (ADF).
+#
+# Project Homepage
+# http://www.cgns.org
 #-------------------------------------------------------------------------------
 
 #-------------------------------------------------------------------------------
@@ -19,41 +20,60 @@ set(cgns_source  "${cgns_prefix}/src/cgns")
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${cgns_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
+  -DCMAKE_MAKE_PROGRAM:FILEPATH=${CMAKE_MAKE_PROGRAM}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DEXECUTABLE_OUTPUT_PATH:PATH=${cgns_install}/bin/${CFS_ARCH_STR}
-  -DLIBRARY_OUTPUT_PATH:PATH=${cgns_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DENABLE_HDF5:BOOL=ON
-  -DENABLE_TESTS:BOOL=ON
+  -DENABLE_LEGACY:BOOL=ON
+  -DENABLE_64BIT:BOOL=OFF
+  -DENABLE_TESTS:BOOL=OFF
   -DHDF5_INCLUDE_PATH:PATH=${cgns_install}/include
-  -DHDF5_LIBRARY:FILEPATH=${HDF5_LIBRARY},-lm
+  -DHDF5_LIBRARY:FILEPATH=${HDF5_SHARED_LIBRARY}
   -DHDF5_NEED_ZLIB:BOOL=ON
-  -DZLIB_LIBRARY:FILEPATH=${ZLIB_LIBRARY}
-  -DCGNS_BUILD_SHARED:BOOL=OFF
+  -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
+  -DCGNS_BUILD_SHARED:BOOL=ON
   -DCGNS_USE_SHARED:BOOL=OFF
-  -DBUILD_SHARED_LIBS:BOOL=OFF
+  -DBUILD_CGNSTOOLS:BOOL=ON
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=${CFLAGS}
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
-SET(BUILD_CGNSTOOLS ON)
+Find_Package(TCL)
+Find_Package(X11)
+Find_Package(OpenGL)
 
-IF(MINGW)
-  SET(BUILD_CGNSTOOLS OFF)
-ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
-  IF(CMAKE_CROSSCOMPILING)
+IF(TCLTK_FOUND AND
+   TCL_INCLUDE_PATH AND
+   TK_INCLUDE_PATH AND
+   X11_Xmu_FOUND AND
+   X11_Xmu_INCLUDE_PATH AND
+   OPENGL_FOUND AND
+   OPENGLU_FOUND AND
+   OPENGL_INCLUDE_PATH)
+  SET(BUILD_CGNSTOOLS ON)
+ELSE()
+  #-------------------------------------------------------------------------------
+  # Let's only build the CGNS tools on platforms, which provide a TCL 
+  # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
+  # have not installed them on our nightly test systems.
+  #-------------------------------------------------------------------------------
+  SET(BUILD_CGNSTOOLS ON)
+  IF(MINGW)
     SET(BUILD_CGNSTOOLS OFF)
+  ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
+    IF(CMAKE_CROSSCOMPILING)
+      SET(BUILD_CGNSTOOLS OFF)
+    ENDIF()
   ENDIF()
 ENDIF()
 
 LIST(APPEND CMAKE_ARGS
   -DBUILD_CGNSTOOLS:BOOL=${BUILD_CGNSTOOLS}
 )
-
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   # Explicitly set build architectures and  system SDK root dir to match
@@ -85,8 +105,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1-2.tar.gz"
-  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.3-2.tar.gz"
+  "http://heanet.dl.sourceforge.net/project/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
+  "http://mirror.transact.net.au/pub/sourceforge/c/project/cg/cgns/cgnslib_3.1/cgnslib_3.1.4-2.tar.gz"
   "${CGNS_URL}/${CGNS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/cgns/${CGNS_GZ}")
@@ -100,10 +120,10 @@ CONFIGURE_FILE(
   )
 
 #-------------------------------------------------------------------------------
-# The CGNS-static external project
+# The CGNS external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(cgns-static
-  DEPENDS hdf5-static zlib
+ExternalProject_Add(cgns
+  DEPENDS hdf5-shared zlib
   PREFIX ${cgns_prefix}
   SOURCE_DIR ${cgns_source}
   URL ${LOCAL_FILE}
@@ -118,19 +138,20 @@ ExternalProject_Add(cgns-static
 # Add custom download step to be able to download from a list of mirrors
 # instead of just a single URL.
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(cgns-static cfsdeps_download
+ExternalProject_Add_Step(cgns cfsdeps_download
    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
    DEPENDERS download
    DEPENDS "${DLFN}"
    WORKING_DIRECTORY ${cgns_prefix}
 )
 
+
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
 SET(CFSDEPS
   ${CFSDEPS}
-  cgns-static
+  cgns
 )
 
 #-------------------------------------------------------------------------------
@@ -141,9 +162,24 @@ SET(CGNS_LIBRARY
   "${LD}/${CMAKE_STATIC_LIBRARY_PREFIX}cgns${CMAKE_STATIC_LIBRARY_SUFFIX}"
   CACHE FILEPATH "CGNS library.")
 
+IF(CFS_OS STREQUAL LINUX)
+  SET(CGNS_SHARED_LIBRARY
+    "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    CACHE FILEPATH "CGNS shared library.")
+ELSE()
+  IF(WIN32)
+    SET(CGNS_SHARED_LIBRARY
+      "${LD}/${CMAKE_IMPORT_LIBRARY_PREFIX}cgnsdll${CMAKE_IMPORT_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
+  ELSE()
+    SET(CGNS_SHARED_LIBRARY
+      "${LD}/${CMAKE_SHARED_LIBRARY_PREFIX}cgns${CMAKE_SHARED_LIBRARY_SUFFIX}"
+      CACHE FILEPATH "CGNS shared library.")
+  ENDIF()
+ENDIF()
 
 SET(CGNS_INCLUDE_DIR ${CFS_BINARY_DIR}/include CACHE PATH "CGNS include directory")
 
-INCLUDE_DIRECTORIES("${CFS_BINARY_DIR}/include" "${CFS_BINARY_DIR}/include/cpp")
-
 MARK_AS_ADVANCED(CGNS_INCLUDE_DIR)
+MARK_AS_ADVANCED(CGNS_LIBRARY)
+MARK_AS_ADVANCED(CGNS_SHARED_LIBRARY)

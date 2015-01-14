@@ -36,16 +36,18 @@ using namespace CoupledField;
 
 namespace CFSTool {
 
-  // Definition of WVT input file type mappings
-  static EnumTuple inputFileTypeTuples[] = {
+  // Definition of WVT input and output file type mappings
+  static EnumTuple fileTypeTuples[] = {
     EnumTuple(WVT::PRIMARY_MODE,   "primary mode"), 
     EnumTuple(WVT::SECONDARY_MODE, "secondary mode"),
-    EnumTuple(WVT::MEAN_FLOW,      "mean flow")
+    EnumTuple(WVT::MEAN_FLOW,      "mean flow"),
+    EnumTuple(WVT::EVAL_GRID,      "evaluation grid"),
+    EnumTuple(WVT::OUTPUT,         "output")
   };
-  Enum<WVT::InputFileType> WVT::inputFileType =                       \
-       Enum<WVT::InputFileType>("WVT input file types",
-           sizeof(inputFileTypeTuples) / sizeof(EnumTuple),
-           inputFileTypeTuples);
+  Enum<WVT::FileType> WVT::fileType =                       \
+       Enum<WVT::FileType>("WVT file types",
+           sizeof(fileTypeTuples) / sizeof(EnumTuple),
+           fileTypeTuples);
 
   // Definition of WVT mean flow data type mappings
   static EnumTuple meanFlowDataTypeTuples[] = {
@@ -69,91 +71,129 @@ namespace CFSTool {
     integOrder_(1),
     dirCoupled_(false),
     u_p_(1.0, 0.0),
+    nodalResults_(true),
     meanFlowType_(MF_GRID_DATA),
     writeIntPointsFile_(false),
     intPointsFileName_("intpoints.vtk"),
     intPointsFilePos_(0),
     numIntPoints_(0)
   {
+  }
+
+
+  void WVT::Initialize() 
+  {
     PtrParamNode wvtNode = param_->Get("wvt");
+    PtrParamNode inputNode = param_->Get("fileFormats")->Get("input");
+    PtrParamNode outputNode = param_->Get("fileFormats")->Get("output");
 
-    std::string f1 = param_->Get("file1")->As<std::string>();
-    std::string f2 = param_->Get("file2")->As<std::string>();
-    std::string f3 = param_->Get("file3")->As<std::string>();
-    std::string f4 = param_->Get("file4")->As<std::string>();
+    std::string evalGridId = "evalGrid";
+    std::string priModeType = "grid";
+    std::string priModeId = "u1";
+    std::string secModeType = "grid";
+    std::string secModeId = "u2";
+    std::string meanFlowType = "grid";
+    std::string meanFlowId = "V";
 
-    // get filenames from parameter
-    priModeFile_ = f1;
-    secModeFile_ = f2;
-
-    if(f4 == "") 
+    priModeType = wvtNode->Get("primaryMode")->Get("type")->As<std::string>();
+    if(priModeType == "grid") 
     {
-      if(f3 != "") 
-      {
-        meanFlowFile_ = f3;
-        outFile_ = "";
+      priModeId = wvtNode->Get("primaryMode")->Get("grid")
+                  ->Get("id")->As<std::string>();
 
-        if(wvtNode->Has("V")) {
-          PtrParamNode vNode = wvtNode->Get("V");
-        
-          if(vNode->Has("scatteredData")) {
-            meanFlowFile_ = "";
-            outFile_ = f3;
-            writeOutputFile_ = true;
-          }
-        }
-      }
+      // TODO: Hier auch andere reader als HDF5 zulassen
+      priModeFile_ = inputNode->GetByVal("hdf5", "id", priModeId)
+                     ->Get("fileName")->As<std::string>();
+      std::cout << "Primary mode file: " << priModeFile_ << std::endl;
+
+      // Generate input (HDF5) readers for primary and secondary modes.
+      inputs_[PRIMARY_MODE] = GetInputReader( priModeFile_, param_, info_ );
     }
     else
     {
-      meanFlowFile_ = f3;
-
-      outFile_ = f4;
-      writeOutputFile_ = true;
+      EXCEPTION("Primary mode type '" << priModeType
+                << "' cannot be handled yet!");      
     }
 
-    std::cout << "Primary mode input file: '" << priModeFile_ << "'" << std::endl;
-    std::cout << "Secondary mode input file: '" << secModeFile_ << "'" << std::endl;
-    std::cout << "Mean flow input file: '" << meanFlowFile_ << "'" << std::endl;
-    std::cout << "Postproc output file: '" << outFile_ << "'" << std::endl;
-
-    if(meanFlowFile_ == "") 
+    secModeType = wvtNode->Get("secondaryMode")->Get("type")->As<std::string>();
+    if(secModeType == "grid") 
     {
-      if(wvtNode->Has("V")) {
-        PtrParamNode vNode = wvtNode->Get("V");
-        
-        if(vNode->Has("scatteredData")) {
-          meanFlowType_ = MF_SCATTERED_DATA;
-        }
-        else 
-        {
-          EXCEPTION("If no mean flow file is provided, "
-                    << "then {\"wvt\":{\"V\":{\"scatteredData\":{...}}}} is required!");
-        }        
-      }
-      else 
-      {
-        EXCEPTION("Neither mean flow file nor 'V' node in WVT arguments file provided.");
-      }
+      secModeId = wvtNode->Get("secondaryMode")->Get("grid")
+                  ->Get("id")->As<std::string>();
+
+      // TODO: Hier auch andere reader als HDF5 zulassen
+      secModeFile_ = inputNode->GetByVal("hdf5", "id", secModeId)
+                     ->Get("fileName")->As<std::string>();
+      std::cout << "Secondary mode file: " << secModeFile_ << std::endl;
+
+      inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
+    }
+    else
+    {
+      EXCEPTION("Secondary mode type '" << secModeType
+                << "' cannot be handled yet!");      
+    }
+
+    meanFlowType = wvtNode->Get("meanFlow")->Get("type")->As<std::string>();
+    if(meanFlowType == "grid") 
+    {
+      meanFlowId = wvtNode->Get("meanFlow")->Get("grid")
+                  ->Get("id")->As<std::string>();
+
+      // TODO: Hier auch andere reader als HDF5 zulassen
+      meanFlowFile_ = inputNode->GetByVal("hdf5", "id", meanFlowId)
+                     ->Get("fileName")->As<std::string>();
+      std::cout << "Mean flow file: " << meanFlowFile_ << std::endl;
+      meanFlowType_ = MF_GRID_DATA;
+    }
+    else if(meanFlowType == "scatteredData") 
+    {
+      meanFlowFile_ = "";
+      meanFlowType_ = MF_SCATTERED_DATA;
+    }
+    else if(meanFlowType == "analytical") 
+    {
+      meanFlowFile_ = "";
+      meanFlowType_ = MF_ANALYTIC_EXP;
+    }
+    else
+    {
+      EXCEPTION("Mean flow type '" << meanFlowType
+                << "' cannot be handled yet!");      
+    }
+
+    if(wvtNode->Has("evaluationGrid"))
+    {
+      // TODO: Hier noch die Regionen angeben, auf denen ausgwertet werden soll.
+      evalGridId = wvtNode->Get("evaluationGrid")->Get("id")->As<std::string>();
     }
     else 
     {
-      if(wvtNode->Has("V")) {
-        PtrParamNode vNode = wvtNode->Get("V");
-        
-        if(vNode->Has("csv")) {
-          EXCEPTION("If a mean flow file is provided, "
-                    << "then no {\"wvt\":{\"V\":{\"csv\":\"file\"}}} may be specified!");
-        }
-        else 
-        {
-          if(vNode->Has("profile")) {
-            meanFlowType_ = MF_ANALYTIC_EXP;
-          }
-        }        
-      }
-    }    
+      evalGridId = priModeId;
+    }
+    evalGridFile_ = inputNode->GetByVal("hdf5", "id", evalGridId)
+                    ->Get("fileName")->As<std::string>();
+    std::cout << "Evaluation grid file: " << evalGridFile_ << std::endl;    
 
+
+    if(wvtNode->Has("output"))
+    {
+      PtrParamNode wvtOutputNode = wvtNode->Get("output");
+      
+      if(wvtOutputNode->Has("gridResults"))
+      {
+        std::string id;
+        id = wvtOutputNode->Get("gridResults")->Get("id")->As<std::string>();
+        outFile_ = outputNode->GetByVal("hdf5", "id", id)
+                   ->Get("fileName")->As<std::string>();
+        writeOutputFile_ = true;        
+
+        std::cout << "Output file for grid results: " << outFile_ << std::endl;
+      }
+
+      // TODO: Hier noch abchecken, ob .csv oder .mat geschrieben werden soll
+    }
+    
     if(wvtNode->Has("integOrder")) {
       PtrParamNode integOrderNode = wvtNode->Get("integOrder");
       
@@ -176,6 +216,9 @@ namespace CFSTool {
       
       sensorNodeName_  = sensorNodeNameNode->As<std::string>();
     }
+
+    wvtNode->GetValue("nodalResults", nodalResults_, ParamNode::PASS );
+
   }
 
   WVT::~WVT()
@@ -187,6 +230,8 @@ namespace CFSTool {
   {
     PtrParamNode wvtNode = param_->Get("wvt");
 
+    Initialize();    
+
     OpenIntPointsFile();
 
     std::cout << "Integration order: " << integOrder_ << std::endl;
@@ -197,20 +242,17 @@ namespace CFSTool {
     // over the fluid domain to the desired mean flow. Valid only for straight pipe!
     Double correct = 0.0;
 
-    // Generate input (HDF5) readers for primary and secondary modes.
-    inputs_[PRIMARY_MODE] = GetInputReader( priModeFile_, param_, info_ );
-    inputs_[SECONDARY_MODE] = GetInputReader( secModeFile_, param_, info_ );
 
     mp_.reset(new MathParser());
 
     // check capabilities of input class
-    InputsType::iterator iit, iend;
+    IOType::iterator iit, iend;
     iit = inputs_.begin();
     iend = inputs_.end();    
     for( ; iit != iend; iit++) 
     {
       std::string readerCapsResult;
-      if(!CheckReaderCapabilities(inputFileType.ToString(iit->first),
+      if(!CheckReaderCapabilities(fileType.ToString(iit->first),
                                   iit->second,
                                   readerCapsResult))
       {
@@ -243,7 +285,16 @@ namespace CFSTool {
     
     ParamNodeList list;
     
-    PtrParamNode multiSeqStep1 = pNode->GetByVal("sequenceStep", "index", 1);
+    PtrParamNode multiSeqStep1;
+    list = pNode->GetList("sequenceStep");
+    if(list.GetSize() > 1) 
+    {
+      multiSeqStep1 = pNode->GetByVal("sequenceStep", "index", 1);
+    }
+    else
+    {
+      multiSeqStep1 = pNode->Get("sequenceStep");
+    }
 
     bool ms1HasMech = multiSeqStep1->Get("pdeList")->Has("mechanic");
     bool ms1HasFlow = multiSeqStep1->Get("pdeList")->Has("fluidMech");
@@ -462,12 +513,29 @@ namespace CFSTool {
     switch(meanFlowType_)
     {
     case MF_GRID_DATA:
-    case MF_ANALYTIC_EXP:
-      inputs_[MEAN_FLOW] = GetInputReader( meanFlowFile_, param_, info_ );
-
-      // read in mesh of input3
-      inputs_[MEAN_FLOW]->InitModule();
       ptGrid3 = new GridCFS(dim_, param_, info_);
+
+      inputs_[MEAN_FLOW] = GetInputReader( meanFlowFile_, param_, info_ );
+      inputs_[MEAN_FLOW]->InitModule();
+      // read in mesh of input3
+      inputs_[MEAN_FLOW]->ReadMesh(ptGrid3);
+      ptGrid3->FinishInit();
+      break;
+      
+    case MF_ANALYTIC_EXP:
+      ptGrid3 = new GridCFS(dim_, param_, info_);
+
+      if(evalGridFile_ == priModeFile_) 
+      {
+        inputs_[MEAN_FLOW] = inputs_[PRIMARY_MODE];
+      }
+      else
+      {
+        inputs_[MEAN_FLOW] = GetInputReader( evalGridFile_, param_, info_ );
+        inputs_[MEAN_FLOW]->InitModule();
+      }
+      
+      // read in mesh of input3
       inputs_[MEAN_FLOW]->ReadMesh(ptGrid3);
       ptGrid3->FinishInit();
 
@@ -477,21 +545,11 @@ namespace CFSTool {
       break;
       
     case MF_SCATTERED_DATA:
-      if(wvtNode->Has("V")) {
-        PtrParamNode vNode = wvtNode->Get("V");
-        
-        if(vNode->Has("scatteredData")) {
-          PtrParamNode scatteredDataNode = vNode->Get("scatteredData");
+      PtrParamNode scatteredDataNode = wvtNode->Get("meanFlow")->Get("scatteredData");
 
-          std::cout << "Reading " << meanFlowDataType.ToString(meanFlowType_)
-                    << " from '" << scatteredDataNode->Get("fileName")->As<std::string>() << "'"
-                    << "..." << std::endl;
-          
-          meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Double, 3>(
-                                         scatteredDataNode)
-            );
-        }
-      }
+      meanFlowCoefScattered_.reset(new CoefFunctionScatteredData<Double, 3>(
+                                     scatteredDataNode)
+        );
       break;
     }
 
@@ -563,16 +621,19 @@ namespace CFSTool {
     
     std::map<std::string, bool> surfMap;
     
-    if(meanFlowType_ != MF_SCATTERED_DATA) 
+    if(meanFlowType_ == MF_GRID_DATA) 
     {
       // First determine number of results in current multi sequence step in mean flow file
       // since it can be different than in the lateral and coriolis mode files.    
       for( UInt iRes = 0; iRes < infos3.GetSize(); iRes++) {
         shared_ptr<ResultInfo> actRes3 = infos3[iRes];
         
-        if(actRes3->resultType != FLUIDMECH_VELOCITY) 
+        if(actRes3->resultType != FLUIDMECH_VELOCITY)
         {
+          if(actRes3->resultType != MEAN_FLUIDMECH_VELOCITY) 
+          {
           continue;
+          }
         }
         
         // get stepvalues of mean flow file
@@ -741,7 +802,9 @@ namespace CFSTool {
         // Since derivatives need to be taken the output entities need to be elements
         Enum<RegionIdType> regionEnum = ptGrid1->GetRegion();
         RegionIdType regionId = regionEnum.Parse(regions[iRegion]->GetName());
-        
+        ResultInfo::EntityUnknownType definedOn;
+        definedOn = nodalResults_ ? ResultInfo::NODE : ResultInfo::ELEMENT;
+
         ElemList* outElemEntities = new ElemList(ptGrid1);
         outElemEntities->SetRegion(regionId);
         shared_ptr<EntityList> outElems(outElemEntities);             
@@ -763,7 +826,7 @@ namespace CFSTool {
         outInfo->dofNames = dofNames_;
         outInfo->unit = MapSolTypeToUnit(outInfo->resultType);
         outInfo->entryType = ResultInfo::VECTOR;
-        outInfo->definedOn = ResultInfo::ELEMENT;
+        outInfo->definedOn = definedOn;
         
         outResult->SetResultInfo( outInfo );
         
@@ -773,7 +836,7 @@ namespace CFSTool {
         outInfo2->dofNames = dofNames_;
         outInfo2->unit = MapSolTypeToUnit(outInfo2->resultType);
         outInfo2->entryType = ResultInfo::VECTOR;
-        outInfo2->definedOn = ResultInfo::ELEMENT;
+        outInfo2->definedOn = definedOn;
         
         outResult2->SetResultInfo( outInfo2 );
         
@@ -783,7 +846,7 @@ namespace CFSTool {
         outInfo3->dofNames = "";
         outInfo3->unit = MapSolTypeToUnit(outInfo3->resultType);
         outInfo3->entryType = ResultInfo::SCALAR;
-        outInfo3->definedOn = ResultInfo::ELEMENT;
+        outInfo3->definedOn = definedOn;
         
         outResult3->SetResultInfo( outInfo3 );
         
@@ -793,7 +856,7 @@ namespace CFSTool {
         outInfo4->dofNames = dofNames_;
         outInfo4->unit = MapSolTypeToUnit(outInfo4->resultType);
         outInfo4->entryType = ResultInfo::VECTOR;
-        outInfo4->definedOn = ResultInfo::ELEMENT;
+        outInfo4->definedOn = definedOn;
         
         outResult4->SetResultInfo( outInfo4 );
         
@@ -803,7 +866,7 @@ namespace CFSTool {
         outInfo5->dofNames = "";
         outInfo5->unit = MapSolTypeToUnit(outInfo5->resultType);
         outInfo5->entryType = ResultInfo::SCALAR;
-        outInfo5->definedOn = ResultInfo::ELEMENT;
+        outInfo5->definedOn = definedOn;
         
         outResult5->SetResultInfo( outInfo5 );
 
@@ -813,7 +876,7 @@ namespace CFSTool {
         outInfo6->dofNames = dofNames_;
         outInfo6->unit = MapSolTypeToUnit(outInfo6->resultType);
         outInfo6->entryType = ResultInfo::VECTOR;
-        outInfo6->definedOn = ResultInfo::ELEMENT;
+        outInfo6->definedOn = definedOn;
         
         outResult6->SetResultInfo( outInfo6 );
 
@@ -823,7 +886,7 @@ namespace CFSTool {
         outInfo7->dofNames = dofNames_;
         outInfo7->unit = MapSolTypeToUnit(outInfo7->resultType);
         outInfo7->entryType = ResultInfo::VECTOR;
-        outInfo7->definedOn = ResultInfo::ELEMENT;
+        outInfo7->definedOn = definedOn;
         
         outResult7->SetResultInfo( outInfo7 );
 
@@ -833,7 +896,7 @@ namespace CFSTool {
         outInfo8->dofNames = dofNames_;
         outInfo8->unit = MapSolTypeToUnit(outInfo8->resultType);
         outInfo8->entryType = ResultInfo::VECTOR;
-        outInfo8->definedOn = ResultInfo::ELEMENT;
+        outInfo8->definedOn = definedOn;
         
         outResult8->SetResultInfo( outInfo8 );
         
@@ -848,7 +911,7 @@ namespace CFSTool {
         outResults7.Push_back( outResult7 );
         outResults8.Push_back( outResult8 );
 
-        if(meanFlowType_ != MF_SCATTERED_DATA) 
+        if(meanFlowType_ == MF_GRID_DATA) 
         {
           inResult3 = shared_ptr<BaseResult>( new Result<Double>() );          
           inResult3->SetEntityList( meanFlowRegions[iRegion] );
@@ -954,14 +1017,15 @@ namespace CFSTool {
         // obtain both result objects for current step
         std::set<std::string> volRegionNames;
         std::set<std::string> meanFlowVolRegionNames;
-        inputs_[PRIMARY_MODE]->GetResult( actMsStep, actStepNum, inResults1[iRes], false );
-        inputs_[SECONDARY_MODE]->GetResult( actMsStep, actStepNum, inResults2[iRes], false );
-        if(meanFlowType_ != MF_SCATTERED_DATA) 
+        inputs_[PRIMARY_MODE]->GetResult( actMsStep, actStepNum,
+                                          inResults1[iRes], false );
+        inputs_[SECONDARY_MODE]->GetResult( actMsStep, actStepNum,
+                                            inResults2[iRes], false );
+        if(meanFlowType_ == MF_GRID_DATA) 
         {
-          inputs_[MEAN_FLOW]->GetResult( actMsStep, actStepNum, inResults_mean_flow[iRes], false );
-        
-          
-          // meanFlowVolRegionNames.insert( "fluid__________________________________________________________________________" );
+          inputs_[MEAN_FLOW]->GetResult( actMsStep, actStepNum,
+                                         inResults_mean_flow[iRes],
+                                         false );
           meanFlowVolRegionNames.insert( regionName );
         }
         
@@ -972,7 +1036,8 @@ namespace CFSTool {
         end = regionDensityMap.end();
         for( ; it != end; it++ ) {
           const std::string& regionName = it->first;
-          std::cout << "Density of region " << it->first << ": " << it->second << std::endl;
+          std::cout << "Density of region " << it->first << ": "
+                    << it->second << std::endl;
           volRegionNames.insert( regionName );
           
           for( UInt rd=0, rnd=ptGrid1->regionData.GetSize(); rd < rnd; rd++ ) {
@@ -1010,16 +1075,33 @@ namespace CFSTool {
             dynamic_cast<Result<Complex>& >(*outResults7[iRes]).GetVector();
           Vector<Complex> & outVec8 =
             dynamic_cast<Result<Complex>& >(*outResults8[iRes]).GetVector();
-          UInt numElems = outResults[iRes]->GetEntityList()->GetSize();
           
-          outVec.Resize( numElems * numDofs_ );
-          outVec2.Resize( numElems * numDofs_ );
-          outVec3.Resize( numElems );
-          outVec4.Resize( numElems * numDofs_ );
-          outVec5.Resize( numElems );
-          outVec6.Resize( numElems * numDofs_ );
-          outVec7.Resize( numElems * numDofs_ );
-          outVec8.Resize( numElems * numDofs_ );
+          std::string entityListName = outResults[iRes]->GetEntityList()->GetName();
+          RegionIdType regionId = ptGrid1->GetRegion().Parse(entityListName);
+
+          shared_ptr<EntityList> entityList;
+          NodeList* nl = new NodeList(ptGrid1);
+          nl->SetNodesOfRegion(regionId);
+          entityList.reset(nl);  
+          const StdVector<UInt> & nodes = nl->GetNodes();
+
+          UInt numEntities = nodalResults_ ? nodes.GetSize() : 
+                             ptGrid1->GetNumElems(regionId);
+
+          outVec.Resize( numEntities * numDofs_ );  outVec.Init();
+          outVec2.Resize( numEntities * numDofs_ ); outVec2.Init();
+          outVec3.Resize( numEntities );            outVec3.Init();
+          outVec4.Resize( numEntities * numDofs_ ); outVec4.Init();
+          outVec5.Resize( numEntities );            outVec5.Init();
+          outVec6.Resize( numEntities * numDofs_ ); outVec6.Init();
+          outVec7.Resize( numEntities * numDofs_ ); outVec7.Init();
+          outVec8.Resize( numEntities * numDofs_ ); outVec8.Init();
+
+          Vector<Double> nodalWeights;
+          if(nodalResults_) 
+          {
+            nodalWeights.Resize(numEntities); nodalWeights.Init();
+          }
 
           shared_ptr<BaseFeFunction> u1FeFunc =
             inputs_[PRIMARY_MODE]->GetFeFunction<Complex>( actMsStep,
@@ -1034,7 +1116,7 @@ namespace CFSTool {
           
           
           shared_ptr<BaseFeFunction> VFeFunc;
-          if(meanFlowType_ != MF_SCATTERED_DATA) 
+          if(meanFlowType_ == MF_GRID_DATA) 
           {
             VFeFunc = 
             inputs_[MEAN_FLOW]->GetFeFunction<Double>( actMsStep,
@@ -1115,10 +1197,11 @@ namespace CFSTool {
           shared_ptr<DefaultCoordSystem> coordSys( new DefaultCoordSystem(ptGrid1) );
           shared_ptr<BaseFeFunction> meanFlowFeFct;
 
-          if(meanFlowType_ != MF_SCATTERED_DATA) 
+          if(meanFlowType_ == MF_ANALYTIC_EXP) 
           {          
-            if(wvtNode->Has("V")) {
-              PtrParamNode vNode = wvtNode->Get("V");
+            PtrParamNode meanFlowNode = wvtNode->Get("meanFlow");
+            if(meanFlowNode->Has("analytical")) {
+              PtrParamNode vNode = meanFlowNode->Get("analytical");
               
               if(vNode->Has("meanVel")) {
                 meanVel = vNode->Get("meanVel")->As<Double>();
@@ -1137,24 +1220,13 @@ namespace CFSTool {
                 
               }
             }
+          }
           
-          
+          if(meanFlowType_ == MF_GRID_DATA) 
+          {          
             // If we have an analytical mean flow field, we use it. Otherwise we use
             // the one read from the mean flow grid file.
-            if(feFctVPtr) 
-            {
-              meanFlowFeFct.reset(feFctVPtr);
-              meanFlowFeFct->SetFeSpace( VFeFunc->GetFeSpace() );
-              meanFlowFeFct->AddEntityList( inResults_mean_flow[0]->GetEntityList() );
-              meanFlowFeFct->SetGrid(ptGrid3);
-              meanFlowFeFct->SetResultInfo(inResults_mean_flow[iRes]->GetResultInfo());
-              meanFlowFeFct->AddExternalDataSource( coefFctV,
-                                                    inResults_mean_flow[0]->GetEntityList() ); // <--- Hier muss unbedingt die zugehörige Volumenregion zur Oberflächenregion hinein!
-              meanFlowFeFct->SetFctId(PSEUDO_FCT_ID);
-              meanFlowFeFct->Finalize();
-              meanFlowFeFct->ApplyExternalData();
-            }
-            else
+            if(!feFctVPtr) 
             {
               meanFlowFeFct = VFeFunc;
             }
@@ -1268,36 +1340,7 @@ namespace CFSTool {
             
             //               std::cout << "Integration order " << order.GetIsoOrder() << " num. int points: " << intPoints.GetSize() << " weight: " << weights[0] << std::endl;
             
-            for( UInt i=0; i < numDofs_; i++ )
-            {
-              // Init weight vector
-              outVec[elIdx*numDofs_+i] = 0.0;
-              
-              // Init mean velocity
-              outVec2[elIdx*numDofs_+i] = 0.0;
-              
-              // Init weight vector W_Phi as given in Hemp1994 (19).
-              outVec4[elIdx*numDofs_+i] = 0.0;
-
-              // Init (u_1).
-              outVec6[elIdx*numDofs_+i] = 0.0;
-
-              // Init (u_2).
-              outVec7[elIdx*numDofs_+i] = 0.0;
-
-              // Init f.
-              outVec8[elIdx*numDofs_+i] = 0.0;
-            }
-            
-            // Init weight vector density result
-            outVec3[elIdx] = 0.0;
-            
-            // Init weight  vector density  result  as inner  product
-            // between V and W_Phi as given in Hemp1994 (18).
-            outVec5[elIdx] = 0.0;
-            
             Double elementVolume = 0.0;
-            
             
             shared_ptr<LocPointMapped> lpm1, lpm2, lpm3;
             LocPointMapped lpm1Surf, lpm2Surf, lpm3Surf;
@@ -1387,7 +1430,11 @@ namespace CFSTool {
                   
                   lpm3->Set( lp3, esm3, 0.0 );
                   
-                  ptFe3 = meanFlowFeFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );                  
+                  if(meanFlowType_ == MF_GRID_DATA) 
+                  {          
+                    ptFe3 = meanFlowFeFct->GetFeSpace()->GetFe( lpm3->ptEl->elemNum );                  
+                  }
+                  
                 }
               }
               
@@ -1424,8 +1471,11 @@ namespace CFSTool {
               switch(meanFlowType_)
               {
               case MF_GRID_DATA:
-              case MF_ANALYTIC_EXP:
                 meanFlowFeFct->GetVector(V, *lpm3);
+                break;
+                
+              case MF_ANALYTIC_EXP:
+                coefFctV->GetVector(V, *lpm3);
                 break;
                 
               case MF_SCATTERED_DATA:
@@ -1438,7 +1488,10 @@ namespace CFSTool {
 
               if(ptGrid3) 
               {
-                dynamic_cast<FeFunction<Double>*>(meanFlowFeFct.get())->GetElemSolution( eSol3, el3 );
+                  if(meanFlowType_ == MF_GRID_DATA) 
+                  {          
+                    dynamic_cast<FeFunction<Double>*>(meanFlowFeFct.get())->GetElemSolution( eSol3, el3 );
+                  }
               }
               
               StdVector< Vector<Complex> > u1Derivs(numDofs_), u2Derivs(numDofs_);
@@ -1464,7 +1517,10 @@ namespace CFSTool {
                   eSol2Comp[dof][eI] = eSol2[eI*numDofs_+dof];
                   if(ptGrid3) 
                   {
-                    eSol3Comp[dof][eI] = eSol3[eI*numDofs_+dof];
+                    if(meanFlowType_ == MF_GRID_DATA) 
+                    {          
+                      eSol3Comp[dof][eI] = eSol3[eI*numDofs_+dof];
+                    }
                   }
                 }
                    
@@ -1477,7 +1533,10 @@ namespace CFSTool {
                  
               if(ptGrid3) 
               {
-                curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
+                if(meanFlowType_ == MF_GRID_DATA) 
+                {
+                  curlOp->ApplyOp( curlV, *lpm3, ptFe3, eSol3 );
+                }
               }
               
               //                std::cout << "elemNum " << el1->elemNum << " numDofs_ " << numDofs_ << " dim " << dim << std::endl;
@@ -1596,96 +1655,148 @@ namespace CFSTool {
                    
                 for( UInt i=0; i < numDofs_; i++ )
                 {
-                  // Prepare weight vector
-                  outVec[elIdx*numDofs_+i] += X[i] * volume;
-                     
-                  // Prepare mean velocity
-                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
-                     
-                  // Prepare weight vector density result
-                  outVec3[elIdx] += X[i]*curlV[i] * volume;
-                     
-                     
-                  // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs_+i] = curlV[i] * volume;
-                     
-                  // Prepare  weight  vector density  result  as inner  product
-                  // between V and W_Phi as given in Hemp1994 (18).
-                  //                     outVec5[elIdx] += W[i]/u_p * V[i];
-
-                  outVec5[elIdx] += X[i]/u_p_ * curlV[i] * volume;
+                  if(!nodalResults_) 
+                  {
+                    // Prepare weight vector
+                    outVec[elIdx*numDofs_+i] += X[i] * volume;
+                    
+                    // Prepare mean velocity
+                    outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
+                    
+                    // Prepare weight vector density result
+                    outVec3[elIdx] += X[i]*curlV[i] * volume;
+                    
+                    
+                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                    outVec4[elIdx*numDofs_+i] = curlV[i] * volume;
+                    
+                    // Prepare  weight  vector density  result  as inner  product
+                    // between V and W_Phi as given in Hemp1994 (18).
+                    //                     outVec5[elIdx] += W[i]/u_p * V[i];
+                    
+                    outVec5[elIdx] += X[i]/u_p_ * curlV[i] * volume;
+                  }
                 }
 
               }
               else 
-              {         
-                for( UInt i=0; i < numDofs_; i++ )
-                {
-                  // Prepare weight vector
-                  outVec[elIdx*numDofs_+i] += W[i] * volume;
-                     
-                  // Prepare mean velocity
-                  //                   V[i] *= meanVel;                   
-                     
-                  durchfluss += V[i] * volume;
-                     
-                  // Prepare mean velocity output vector
-                  outVec2[elIdx*numDofs_+i] += Complex(V[i], 0) * volume;
-                     
-                  // Prepare weight vector density result
-                  Complex wvtDensity = W[i]*V[i]*volume;
-                  outVec3[elIdx] += wvtDensity;
+              {
+                  Vector<Complex> out(numDofs_);  out.Init();
+                  Vector<Complex> out2(numDofs_); out2.Init();
+                  Complex out3 = Complex(0,0);
+                  Vector<Complex> out4(numDofs_); out4.Init();
+                  Complex out5 = Complex(0,0);
+                  Vector<Complex> out6(numDofs_); out6.Init();
+                  Vector<Complex> out7(numDofs_); out7.Init();
+                  Vector<Complex> out8(numDofs_); out8.Init();
 
-                  // Compute u_p_prime as given in Hemp1994 (13).
-                  u_p_prime += wvtDensity;
+                  for( UInt i=0; i < numDofs_; i++ )
+                  {
+                    // Prepare weight vector
+                    out[i] += W[i] * volume;
 
-                  f[i] = - rho_0 * (
-                    u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
+                    durchfluss += V[i] * volume;
+                      
+                    // Prepare mean velocity output vector
+                    out2[i] += Complex(V[i], 0) * volume;
+                      
+                    // Prepare weight vector density result
+                    Complex wvtDensity = W[i]*V[i]*volume;
+                    out3 += wvtDensity;
+                      
+                    // Compute u_p_prime as given in Hemp1994 (13).
+                    u_p_prime += wvtDensity;
+                      
+                    f[i] = - rho_0 * (
+                      u1Derivs[i][0] * V[0] + u1Derivs[i][1] * V[1] + u1Derivs[i][2] * V[2] // + // C1
                       // + VDerivs[i][0] * u1[0] + VDerivs[i][1] * u1[1] + VDerivs[i][2] * u1[2] // C2
-                    );
-                     
-                  // Prepare weight vector W_Phi as given in Hemp1994 (19).
-                  outVec4[elIdx*numDofs_+i] += W[i]/u_p_ * volume;
-                  
-                  // Prepare  weight  vector density  result  as inner  product
-                  // between V and W_Phi as given in Hemp1994 (18).
-                  Complex wvtDensityPhi(0,0);
+                      );
+                      
+                    // Prepare weight vector W_Phi as given in Hemp1994 (19).
+                    out4[i] += W[i]/u_p_ * volume;
+                      
+                    // Prepare  weight  vector density  result  as inner  product
+                    // between V and W_Phi as given in Hemp1994 (18).
+                    Complex wvtDensityPhi(0,0);
+                      
+                    wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                      
+                    // Compute "weight vector density" result from force and u2
+                    // Just take 2*C1 also with WVT!
+                    // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
+                      
+                    out5 += wvtDensityPhi;
+                      
+                    // Prepare u1 velocity output vector
+                    out6[i] += u1[i] * volume;
+                      
+                    // Prepare u2 velocity output vector
+                    out7[i] += u2[i] * volume;
+                      
+                    // Prepare force output vector
+                    out8[i] += f[i] * volume;
+                      
+                    // Compute deltaPhi as given in Hemp1994 (18) and (19).
+                    deltaPhi += wvtDensityPhi.imag();
+                  }
 
-                  wvtDensityPhi = W[i]/u_p_ * V[i] * volume;
+                if(!nodalResults_) 
+                {
+                  // Assemble values to element vectors                  
+                  for( UInt i=0; i < numDofs_; i++ )
+                  {
+                    outVec[elIdx*numDofs_+i] += out[i];
+                    outVec2[elIdx*numDofs_+i] += out2[i];
+                    outVec3[elIdx] += out3;
+                    outVec4[elIdx*numDofs_+i] += out4[i];
+                    outVec5[elIdx] += out5;
+                    outVec6[elIdx*numDofs_+i] += out6[i];
+                    outVec7[elIdx*numDofs_+i] += out7[i];
+                    outVec8[elIdx*numDofs_+i] += out8[i];
+                  }
+                }
+                else 
+                {
+                  // Assemble values to nodal vectors
+                  for(UInt nIdx=0, numNodes=el1->connect.GetSize(); nIdx < numNodes; nIdx++)
+                  {
+                    StdVector<UInt>::const_iterator nodeIt = std::find(nodes.Begin(), nodes.End(), el1->connect[nIdx]);
+                    UInt nodeIndex = std::distance(nodes.Begin(), nodeIt);
 
-                  // Compute "weight vector density" result from force and u2
-                  // Just take 2*C1 also with WVT!
-                  // wvtDensityPhi = 2*(f[i] * u2[i])/u_p_ * volume;
+                    nodalWeights[nodeIndex] += volume;
 
-                  outVec5[elIdx] += wvtDensityPhi;
-
-                  // Prepare u1 velocity output vector
-                  outVec6[elIdx*numDofs_+i] += u1[i] * volume;
-
-                  // Prepare u2 velocity output vector
-                  outVec7[elIdx*numDofs_+i] += u2[i] * volume;
-
-                  // Prepare force output vector
-                  outVec8[elIdx*numDofs_+i] += f[i] * volume;
-
-                  // Compute deltaPhi as given in Hemp1994 (18) and (19).
-                  deltaPhi += wvtDensityPhi.imag();
+                    for( UInt i=0; i < numDofs_; i++ )
+                    {
+                      outVec[nodeIndex*numDofs_+i] += out[i];
+                      outVec2[nodeIndex*numDofs_+i] += out2[i];
+                      outVec3[nodeIndex] += out3;
+                      outVec4[nodeIndex*numDofs_+i] += out4[i];
+                      outVec5[nodeIndex] += out5;
+                      outVec6[nodeIndex*numDofs_+i] += out6[i];
+                      outVec7[nodeIndex*numDofs_+i] += out7[i];
+                      outVec8[nodeIndex*numDofs_+i] += out8[i];
+                    }
+                  }
                 }
               }
             } // loop over integration points
 
-            for( UInt i=0; i < numDofs_; i++ )
+            // Normalize element results by element volume
+            if(!nodalResults_) 
             {
-              outVec[elIdx*numDofs_+i] /= elementVolume;
-              outVec2[elIdx*numDofs_+i] /= elementVolume;
-              outVec4[elIdx*numDofs_+i] /= elementVolume;
-              outVec6[elIdx*numDofs_+i] /= elementVolume;
-              outVec7[elIdx*numDofs_+i] /= elementVolume;
-              outVec8[elIdx*numDofs_+i] /= elementVolume;
-            }               
-            outVec3[elIdx] /= elementVolume;
-            outVec5[elIdx] /= elementVolume;
-
+              for( UInt i=0; i < numDofs_; i++ )
+              {
+                outVec[elIdx*numDofs_+i] /= elementVolume;
+                outVec2[elIdx*numDofs_+i] /= elementVolume;
+                outVec4[elIdx*numDofs_+i] /= elementVolume;
+                outVec6[elIdx*numDofs_+i] /= elementVolume;
+                outVec7[elIdx*numDofs_+i] /= elementVolume;
+                outVec8[elIdx*numDofs_+i] /= elementVolume;
+              }               
+              outVec3[elIdx] /= elementVolume;
+              outVec5[elIdx] /= elementVolume;
+            }
+            
             vol += elementVolume;
           }
 
@@ -1709,6 +1820,27 @@ namespace CFSTool {
           //             outVec2 *= correct;
              
           // deltaPhi *= correct;
+
+          // Normalize node results by nodal weights
+          if(nodalResults_) 
+          {
+            for(UInt nodeIndex=0, n=nodalWeights.GetSize(); nodeIndex < n; nodeIndex++)
+            {
+              Double w = nodalWeights[nodeIndex];
+              
+              for( UInt i=0; i < numDofs_; i++ )
+              {
+                outVec[nodeIndex*numDofs_+i] /= w;
+                outVec2[nodeIndex*numDofs_+i] /= w;
+                outVec4[nodeIndex*numDofs_+i] /= w;
+                outVec6[nodeIndex*numDofs_+i] /= w;
+                outVec7[nodeIndex*numDofs_+i] /= w;
+                outVec8[nodeIndex*numDofs_+i] /= w;
+              }               
+              outVec3[nodeIndex] /= w;
+              outVec5[nodeIndex] /= w;
+            }
+          }
              
           WriteResultsToCSV(freq, u_p_prime, deltaPhi, 0,
                             vol, meanVel, correct);
@@ -1716,6 +1848,8 @@ namespace CFSTool {
                                vol, meanVel, correct);
 
         } // switch: Analysis type
+
+
         // add result to output file
         if (output ) {
           output->AddResult( outResults[iRes] );

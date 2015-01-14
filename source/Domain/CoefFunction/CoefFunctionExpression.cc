@@ -1,6 +1,8 @@
 #include "CoefFunctionExpression.hh"
 
 #include "Domain/CoordinateSystems/CoordSystem.hh"
+#include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
+
 namespace CoupledField{
 
 
@@ -22,19 +24,25 @@ CoefFunctionExpression<Double>::CoefFunctionExpression(MathParser * mp) :
   
   isComplex_ = false;
   
-  // do not use rotated coordsys initially
-  if( domain ) {
-    this->coordSys_ = domain->GetCoordSystem();
-  } else 
-  {
-    this->coordSys_ = NULL;
-  }  
+  // obtain global coordinate system for registering coordinates (x,y,z)
+//  if(domain) 
+//  {
+    coordSysDefault_ = domain->GetCoordSystem();
+//  }
+//  else
+//  {
+//    coordSysDefault_ = new DefaultCoordSystem( NULL );
+//  }
 }   
 
 CoefFunctionExpression<Double>::~CoefFunctionExpression(){
   if( domain ) {
     mp_->ReleaseHandle(mHandle_);
   }
+//  else 
+//  {
+//    delete coordSysDefault_;
+//  }
 }
 
 PtrCoefFct CoefFunctionExpression<Double>::GetComplexPart( Global::ComplexPart part ) {
@@ -57,12 +65,12 @@ void CoefFunctionExpression<Double>::GetTensor( Matrix<Double>& coefMat,
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
+  this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
   this->mp_->EvalMatrix(mHandle_, locMatrix, 
                         this->numRows_, this->numCols_ ); 
 
   // Rotate material, if coordinate system is not the global one
-  if( coordSys_->GetName() != "default") {
+  if( this->coordSys_ ) {
     // Obtain rotation matrix
     Matrix<Double> rotMatrix;
     coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
@@ -84,9 +92,10 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
                                                 const LocPointMapped& lpm ){
   assert(this->dimType_ == CoefFunction::VECTOR ||
          this->dimType_ == CoefFunction::SCALAR);
-
   Vector<Double> pointCoord, locVector;
-
+  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
+   
   // in case of scalars, just set one entry in the vector
   if( this->dimType_ == SCALAR ) {
     coefVec.Resize(1);
@@ -94,12 +103,14 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
   } else {
     // First, obtain global coordinates of current point, register it at the mathParser
     // and compute local coefficient vector
-    lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
     this->mp_->EvalVector(mHandle_, locVector );
 
-    // Afterwards rotate the local vector back to global coordinates
-    this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+    if (this->coordSys_ ) {
+      // Afterwards rotate the local vector back to global coordinates
+      this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+    } else {
+      coefVec = locVector;
+    }
   }
 }
 
@@ -108,7 +119,7 @@ void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar,
   // First, obtain global coordinates of current point and  register it at the mathParser
   Vector<Double> pointCoord;;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), pointCoord);
+  this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){
     assert(this->dimType_ == CoefFunction::SCALAR);
     coefScalar = this->mp_->Eval(mHandle_);
@@ -227,12 +238,7 @@ CoefFunctionExpression<Complex>::CoefFunctionExpression(MathParser * mp) :
   isComplex_ = true;
 
   // always store default coordinate system
-  if( domain ) {
-    this->coordSys_ = domain->GetCoordSystem();
-  } else 
-  {
-    this->coordSys_ = NULL;
-  }  
+  this->coordSysDefault_ = domain->GetCoordSystem();
 }   
 
 CoefFunctionExpression<Complex>::~CoefFunctionExpression(){
@@ -286,8 +292,8 @@ void CoefFunctionExpression<Complex>::GetTensor( Matrix<Complex>& coefMat,
   // First, obtain global coordinates of current point, register it at the mathParser
   // and compute local coefficient vector
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), pointCoord);
-  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), pointCoord);
+  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
+  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
   this->mp_->EvalMatrix(mHandleReal_, temp, 
                         this->numRows_, this->numCols_ );
   locMatrix.SetPart(Global::REAL, temp);
@@ -296,7 +302,7 @@ void CoefFunctionExpression<Complex>::GetTensor( Matrix<Complex>& coefMat,
   locMatrix.SetPart(Global::IMAG, temp);
   
   // Rotate material, if coordinate system is not the global one
-  if( coordSys_->GetName() != "default") {
+  if( this->coordSys_) {
     // Obtain rotation matrix
     Matrix<Double> rotMatrix;
     coordSys_->GetFullGlobRotationMatrix( rotMatrix, pointCoord );
@@ -319,25 +325,29 @@ void CoefFunctionExpression<Complex>::GetVector( Vector<Complex>& coefVec,
   assert(this->dimType_ == CoefFunction::VECTOR);
   Vector<Double> temp, pointCoord;
   Vector<Complex> locVector;
-
+  lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
+  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
+  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
+     
   if( this->dimType_ == SCALAR ) {
      coefVec.Resize(1);
      GetScalar(coefVec[0], lpm);
    } else {
-
-     // First, obtain global coordinates of current point, register it at the mathParser
-     // and compute local coefficient vector
-     lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-     this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), pointCoord);
-     this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), pointCoord);
+     
+     // Compute local coefficient vector
      this->mp_->EvalVector(mHandleReal_, temp );
      locVector.Resize(temp.GetSize());
      locVector.SetPart(Global::REAL, temp);
      this->mp_->EvalVector(mHandleImag_, temp );
      locVector.SetPart(Global::IMAG, temp);
 
-     // Afterwards rotate the local vector back to global coordinates
-     this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+     if( this->coordSys_ )  {
+
+       // Afterwards rotate the local vector back to global coordinates
+       this->coordSys_->Local2GlobalVector( coefVec, locVector, pointCoord );
+     } else {
+       coefVec = locVector;
+     }
    }
 }
 
@@ -347,8 +357,8 @@ void CoefFunctionExpression<Complex>::GetScalar(Complex& coefScalar,
   Double real, imag;
   Vector<Double> pointCoord;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
-  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), pointCoord);
-  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), pointCoord);
+  this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), pointCoord);
+  this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){
     assert(this->dimType_ == CoefFunction::SCALAR);
     real = this->mp_->Eval(mHandleReal_);
@@ -417,9 +427,9 @@ std::string CoefFunctionExpression<Complex>::ToString() const {
       break;
     case SCALAR:
       ret = std::string("(") + this->coefScalarReal_;
-      ret + ", ";
+      ret += ", ";
       ret += this->coefScalarImag_;
-      ret +" )";
+      ret += " )";
       return ret;
       break;
     case VECTOR:
@@ -468,14 +478,14 @@ GetStrTensor( UInt& numRows, UInt& numCols,
 void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Double >  & vals,
                                                               Grid* ptGrid,
-                                                              const std::set<RegionIdType>& srcRegions )
+                                                              const StdVector<shared_ptr<EntityList> >& srcEntities)
 {
   assert(this->dimType_ == CoefFunction::SCALAR);
 
   vals.Resize(points.GetSize());
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), points[curPoint]);
     vals[curPoint] = this->mp_->Eval(mHandle_);
   }
 }
@@ -483,12 +493,12 @@ void CoefFunctionExpression<Double>::GetScalarValuesAtCoords( const StdVector<Ve
 void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Vector<Double> >  & vals,
                                                               Grid* ptGrid,
-                                                              const std::set<RegionIdType>& srcRegions )
+                                                              const StdVector<shared_ptr<EntityList> >& srcEntities)
 {
   Vector<Double> locVector;
   if( this->dimType_ == SCALAR ) {
     StdVector<Double> tmpVals;
-    this->GetScalarValuesAtCoords(points, tmpVals, ptGrid, srcRegions);
+    this->GetScalarValuesAtCoords(points,tmpVals,ptGrid);
     vals.Resize(tmpVals.GetSize(), Vector<Double>(1));
     for(UInt i=0;i<tmpVals.GetSize();i++){
       vals[i][0] = tmpVals[i];
@@ -497,9 +507,13 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
     vals.Resize(points.GetSize());
     vals.Init();
     for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-      this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+      this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), points[curPoint]);
       this->mp_->EvalVector(mHandle_, locVector );
-      this->coordSys_->Local2GlobalVector( vals[curPoint], locVector, points[curPoint] );
+      if(this->coordSys_) {
+        this->coordSys_->Local2GlobalVector( vals[curPoint], locVector, points[curPoint] );
+      } else {
+        vals[curPoint] = locVector;
+      }
     }
   }
 
@@ -508,7 +522,7 @@ void CoefFunctionExpression<Double>::GetVectorValuesAtCoords( const StdVector<Ve
 void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                               StdVector<Matrix<Double> >  & vals,
                                                               Grid* ptGrid,
-                                                              const std::set<RegionIdType>& srcRegions )
+                                                              const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   assert(this->dimType_ == CoefFunction::TENSOR);
 
@@ -516,11 +530,11 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
   vals.Resize(points.GetSize(),Matrix<Double>(this->numRows_,this->numCols_));
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-    this->mp_->SetCoordinates(mHandle_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), points[curPoint]);
     this->mp_->EvalMatrix(mHandle_, locMatrix,
                           this->numRows_, this->numCols_ );
 
-    if( coordSys_->GetName() != "default") {
+    if( coordSys_) {
       // Obtain rotation matrix
       Matrix<Double> rotMatrix;
       coordSys_->GetFullGlobRotationMatrix( rotMatrix, points[curPoint] );
@@ -543,7 +557,7 @@ void CoefFunctionExpression<Double>::GetTensorValuesAtCoords( const StdVector<Ve
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Complex >  & vals,
                                                                Grid* ptGrid,
-                                                               const std::set<RegionIdType>& srcRegions )
+                                                               const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
@@ -552,8 +566,8 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
   vals.Resize(points.GetSize());
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
-    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), points[curPoint]);
     real = this->mp_->Eval(mHandleReal_);
     imag = this->mp_->Eval(mHandleImag_);
     vals[curPoint] = Complex(real, imag);
@@ -563,15 +577,15 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Vector<Complex> >  & vals,
                                                                Grid* ptGrid,
-                                                               const std::set<RegionIdType>& srcRegions )
+                                                               const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
-  assert(this->dimType_ == CoefFunction::VECTOR);
+  assert(this->dimType_ == CoefFunction::VECTOR || this->dimType_ == SCALAR);
   Vector<Double> temp;
   Vector<Complex> locVector;
 
   if( this->dimType_ == SCALAR ) {
      StdVector<Complex> tmpVals;
-     this->GetVectorValuesAtCoords(points, tmpVals, ptGrid, srcRegions);
+     this->GetVectorValuesAtCoords(points,tmpVals,ptGrid);
      vals.Resize(tmpVals.GetSize(), Vector<Complex>(1));
      for(UInt i=0;i<tmpVals.GetSize();i++){
        vals[i][0] = tmpVals[i];
@@ -580,16 +594,19 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
      vals.Resize(points.GetSize());
      vals.Init();
      for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-       this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
-       this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+       this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), points[curPoint]);
+       this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), points[curPoint]);
        this->mp_->EvalVector(mHandleReal_, temp );
        locVector.Resize(temp.GetSize());
        locVector.SetPart(Global::REAL, temp);
        this->mp_->EvalVector(mHandleImag_, temp );
        locVector.SetPart(Global::IMAG, temp);
-
+       if( this->coordSys_) {
        // Afterwards rotate the local vector back to global coordinates
        this->coordSys_->Local2GlobalVector( vals[curPoint], locVector, points[curPoint] );
+       } else {
+         vals[curPoint] = locVector;
+       }
      }
    }
 }
@@ -597,7 +614,7 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
 void CoefFunctionExpression<Complex>::GetTensorValuesAtCoords( const StdVector<Vector<Double> >  & points,
                                                                StdVector<Matrix<Complex> >  & vals,
                                                                Grid* ptGrid,
-                                                               const std::set<RegionIdType>& srcRegions )
+                                                               const StdVector<shared_ptr<EntityList> >& srcEntities )
 {
   assert(this->dimType_ == CoefFunction::TENSOR);
   Matrix<Complex> locMatrix(this->numRows_, this->numCols_);
@@ -606,8 +623,8 @@ void CoefFunctionExpression<Complex>::GetTensorValuesAtCoords( const StdVector<V
   vals.Resize(points.GetSize(),Matrix<Complex>(this->numRows_,this->numCols_));
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){
-    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSys_), points[curPoint]);
-    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSys_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleReal_, *(this->coordSysDefault_), points[curPoint]);
+    this->mp_->SetCoordinates(mHandleImag_, *(this->coordSysDefault_), points[curPoint]);
     this->mp_->EvalMatrix(mHandleReal_, temp,
                           this->numRows_, this->numCols_ );
     locMatrix.SetPart(Global::REAL, temp);

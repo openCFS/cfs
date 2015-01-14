@@ -95,6 +95,8 @@ elif [ "${OS}" = "Linux" ] ; then
                 DESC=$ID
             fi
         fi
+        # Check for RHEL
+        IS_RHEL=$(echo $ID | sed -n '/RedHatEnterprise/{s|\(RedHatEnterprise\)\(.*\)|\1|};p')
         DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
         REV=$($LSB_REL -r -s)
         PSEUDONAME=$($LSB_REL -c -s)
@@ -103,6 +105,10 @@ elif [ "${OS}" = "Linux" ] ; then
             "SUSE") DIST="SLE" ;;
             "Debian") REV=$(echo $REV | sed 's/\.[0-9]*$//') ;;
             "Enterprise") DIST="ORACLE" ;;
+            "Red") if [ "$IS_RHEL" = "RedHatEnterprise" ]; then                       
+                       DIST="RHEL"
+                       REV=$(echo $REV | sed 's/\.[0-9]*$//') 
+                   fi ;;
         esac
     elif [ -f /etc/lsb-release ]; then
         . /etc/lsb-release;
@@ -127,7 +133,10 @@ elif [ "${OS}" = "Linux" ] ; then
                DIST="ORACLE"
                PSEUDONAME=$(cat /etc/enterprise-release | cut -d'(' -f2 | cut -d ')' -f1)
                ;;
-            *) DIST=$(cat /etc/redhat-release | cut -d' ' -f1) 
+            *) DIST=$(cat /etc/redhat-release | cut -d' ' -f1)
+               if [ "$DIST" = "Red" ]; then
+                   DIST="RHEL";
+               fi
                PSEUDONAME=`cat /etc/redhat-release | sed s/.*\(// | sed s/\)//`
                ;;
         esac

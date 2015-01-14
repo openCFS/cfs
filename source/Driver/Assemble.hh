@@ -70,6 +70,11 @@ namespace CoupledField {
 
     //! Trigger assembly of the matrices
     void AssembleMatrices(bool isNewtonPart=false);
+    
+    //! Assemble matrices with static condensation for transient simulations
+        void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, 
+                                        std::map<FeFctIdType, 
+                                        std::map<FEMatrixType,Double> > timeStepFactors);
 
     //! Trigger assembly of all linear right hand side terms
     void AssembleLinRHS();
@@ -97,19 +102,13 @@ namespace CoupledField {
     /** Append info about registered (bi)linearforms */
     void ToInfo(PtrParamNode in);
 
-    /** <p>The PDEs don't know their own Integrators (the Element matrices K_{uu},
-     *  ...) but when one wants to use it, we have to get it back from the
-     * assemble class.</p>
-     * <p>The query needs to define a unique form.</p>
-     * @param regionId guess what!
-     * @param pde1 this is the first pde
+    /** search for an integrator.
      * @param pde2 the second pde, note the order -> see debug file.
-     * @param integrator: linElastInt, MassInt, linElecInt, linPiezoCoupling
-     * @param silent exception or NULL if nothing found
-     * @return the defined context, never NULL
-     * @exception error when nothing found or not unique specification */
-    BiLinFormContext* GetBiLinForm(RegionIdType regionId, StdPDE* pde1, 
-                                   StdPDE* pde2, const std::string& integrator, bool silent = false);
+     * @param pde1/pde2 this is the first and second pde. If NULL not compared.
+     * @param silent if false no NULL can be returned
+     * @return the form is GetIntegrator() of the context. NULL only for silent true
+     * @exception if not silent and nothing found */
+    BiLinFormContext* GetBiLinForm(const std::string& integrator, RegionIdType regionId, SinglePDE* pde1 = NULL, SinglePDE* pde2 = NULL, bool silent = false);
 
     /** @see GetBiLinForm() */
     LinearForm* GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent = false);
@@ -128,18 +127,15 @@ namespace CoupledField {
     /** Returns the linear forms list for external modification */
     StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
 
-    //! Assemble matrices with satic condensation for transient simulations
-    void AssembleMatrices_CondTrans(bool isNewtonPart,UInt currentStage, std::map<FeFctIdType, std::map<FEMatrixType,Double> > timeStepFactors);
-
-
   protected:
 
     //! Assemble matrices without static condensation
     void AssembleMatrices_Std(bool isNewtonPart=false);
     
-    //! Assemble matrices with satic condensation
+    //! Assemble matrices with static condensation
     void AssembleMatrices_Cond(bool isNewtonPart=false);
 
+    
     //! Assemble linearForms of right hand side
     void AssembleRHSLinForms(bool nonLin );
 
@@ -150,7 +146,7 @@ namespace CoupledField {
                           Global::ComplexPart matDataType,
                           Double omega );
 
-    //! Transform complex-valued element matrix to harmonic representation
+    /**  Transform complex-valued element matrix to harmonic representation */
     void Matrix2Harmonic( Matrix<Complex>& harmMat,
                           Matrix<Complex>& origMat,
                           FEMatrixType matrixType,
@@ -170,13 +166,15 @@ namespace CoupledField {
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Double>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2,bool unsetStaticCondensation = false );
+                       FeFctIdType fctId1, FeFctIdType fctId2,
+                       bool preventStaticCondensation = false );
 
     //! Insert complex matrix into algebraic system and adapt harmonic matrices
     void InsertMatrix( FEMatrixType dest, BiLinFormContext& context,
                        Matrix<Complex>& elemMat, StdVector<Integer>& eqnVec1,
                        StdVector<Integer>& eqnVec2,
-                       FeFctIdType fctId1, FeFctIdType fctId2,bool unsetStaticCondensation = false );
+                       FeFctIdType fctId1, FeFctIdType fctId2,
+                       bool preventStaticCondensation = false );
 
     //! Check which integrator is non-linear due to solution-dependent
     //! non-linearities or updated lagrangian formulation

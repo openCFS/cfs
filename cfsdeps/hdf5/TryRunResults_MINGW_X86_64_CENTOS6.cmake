@@ -341,3 +341,19 @@ SET( H5_NO_ALIGNMENT_RESTRICTIONS_RUN__TRYRUN_OUTPUT
      ""
      CACHE STRING "Output from TRY_RUN" FORCE)
 
+# HAVE_IOEO_EXITCODE
+#    indicates whether the executable would have been able to run on its
+#    target platform. If so, set HAVE_IOEO_EXITCODE to
+#    the exit code (in many cases 0 for success), otherwise enter "FAILED_TO_RUN".
+# The HAVE_IOEO_COMPILED variable holds the build result for this TRY_RUN().
+#
+# Source file   : /local/strieben/CFS_BUILD/FESPACE_WIN64/cfsdeps/hdf5/src/hdf5/config/cmake/HDF5Tests.c
+# Executable    : /local/strieben/CFS_BUILD/FESPACE_WIN64/cfsdeps/hdf5/src/hdf5-static-build/CMakeFiles/cmTryCompileExec1867559077-HAVE_IOEO_EXITCODE.exe
+# Run arguments :
+#    Called from: [2]   /local/strieben/CFS_BUILD/FESPACE_WIN64/cfsdeps/hdf5/src/hdf5/config/cmake/ConfigureChecks.cmake
+#                 [1]   /local/strieben/CFS_BUILD/FESPACE_WIN64/cfsdeps/hdf5/src/hdf5/CMakeLists.txt
+
+SET( HAVE_IOEO_EXITCODE
+     "0"
+     CACHE STRING "Result from TRY_RUN" FORCE)
+

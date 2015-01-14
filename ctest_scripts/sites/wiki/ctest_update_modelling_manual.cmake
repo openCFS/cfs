@@ -41,7 +41,7 @@ SET(BUILDNAME "Update Modelling Manual")
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/MODELLING_MANUAL_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/MODELLING_MANUAL_NIGHTLY")
 
-SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/cfsXmlManual/trunk")
+SET(REPO "${CFS_DS_SVN}/cfsXmlManual/trunk")
 SET(USER ${CFS_TESTUSER})
 
 INCLUDE(${SITE_DIR}/ctest_update.cmake)

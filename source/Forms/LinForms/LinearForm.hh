@@ -42,6 +42,7 @@ namespace CoupledField{
     public:
       LinearForm(bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
+        isSolDependent_ = false;
       }
 
       virtual ~LinearForm(){
@@ -72,12 +73,15 @@ namespace CoupledField{
       }
       
       //! Return if element matrix is solution dependend
-      virtual bool IsSolDependent() = 0;
+      virtual bool IsSolDependent() { return isSolDependent_;}
       
       //! Return if inearform uses updated Lagrangian formulation
       bool IsCoordUpdate() { 
         return coordUpdate_;
       }
+      
+      //! Set explicit that linearform is solution dependent
+      virtual void SetSolDependent() {isSolDependent_ = true;}
 
     protected:
       //! name of linearform
@@ -85,6 +89,9 @@ namespace CoupledField{
 
       //! flag for use of updated Lagrangian formulation
       bool coordUpdate_; 
+      
+      //! flag if linearform is solution dependent
+      bool isSolDependent_;
 
       //! pointer to finite element space 1
       shared_ptr<FeSpace> ptFeSpace_;

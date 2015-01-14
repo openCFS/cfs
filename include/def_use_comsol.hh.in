@@ -1,4 +1,5 @@
-// Define used to check if COMSOL .mphtxt mesh input is activate
+// Define used to check if COMSOL .mphtxt/.mph input is used
 
 #cmakedefine USE_COMSOL
 
+#define MINIZIP_VERSION "@MINIZIP_VERSION@"

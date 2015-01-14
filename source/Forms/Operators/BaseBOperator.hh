@@ -56,6 +56,8 @@ public:
     const UInt nrow = realMat.GetNumRows();
     const UInt ncol = realMat.GetNumCols();
     bMat.Resize(nrow,ncol);
+    // bMat.Init();
+    // bMat = realMat * Complex(1.0, 0.0);
     bMat.SetPart(Global::REAL, realMat, true);
   }
 

@@ -14,6 +14,9 @@
 #include <boost/tr1/type_traits.hpp>
 
 #include <def_use_cgal.hh>
+#include <def_use_flann.hh>
+
+#include "CoefFunction.hh"
 
 #ifdef USE_CGAL
 #include <CGAL/Simple_cartesian.h>
@@ -21,11 +24,7 @@
 #include <CGAL/Search_traits.h>
 #include <list>
 #include <cmath>
-#endif
 
-#include "CoefFunction.hh"
-
-#ifdef USE_CGAL
 struct Point {
   double vec[3];
   double vel[3];
@@ -144,6 +143,11 @@ typedef K_neighbor_search::Tree Tree;
 
 #endif // USE_CGAL
 
+#ifdef USE_FLANN
+#include <flann/flann.hpp>
+#endif // USE_FLANN
+
+
 namespace CoupledField {
 
   //! Interpolation of scattered data
@@ -154,6 +158,11 @@ namespace CoupledField {
     enum InterpolationAlgorithm
     {
       SHEPARD, NEAREST_NEIGHBOR
+    };
+
+    enum KNNLibary
+    {
+      CGAL, FLANN
     };
     
     //! Constructor
@@ -212,20 +221,16 @@ namespace CoupledField {
     void InterpolateVector(Vector<Double> globPoint, Vector<T> & vec);
 
     void Read();
+    void GetQuantityData();
+    void DumpData();
     
+    std::vector< std::vector<double> > coordinates_;
     std::vector< std::vector<double> > scatteredData_;
 
-    std::string fileName_;
+    std::string qid_;
           
-    std::map<UInt, UInt> dof2CoordColumn_;
-    std::map<UInt, UInt> dof2ValueColumn_;
-
     // Scale factor for values.
     Double factor_;
-
-    //! Format of input file. Comma separated value files (csv) and STAR-CCM+
-    //! binary .ccm files (ccm) are supported.
-    std::string format_;
 
     //! Type of interpolation algorithm.
     InterpolationAlgorithm interpolAlgo_;
@@ -236,9 +241,30 @@ namespace CoupledField {
     //! Exponent for calculation of interpolation weight function.
     Double p_;
 
+    //! Library used to find the k nearest neighbors of a point.
+    KNNLibary knnLib_;
+
+    PtrParamNode quantityNode_;
+    
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
+
+    void KNNSearch_CGAL(const Vector<Double> globPoint,
+                        StdVector< Vector<Double> >& neighbors,
+                        StdVector< Double >& l2Distances,
+                        StdVector< Vector<T> >& vectors);
 #endif
+
+#ifdef USE_FLANN
+    boost::shared_ptr< flann::Index<flann::L2<Double> > > index_;
+    boost::shared_ptr< flann::Matrix<Double> > dataset_;
+
+    void KNNSearch_FLANN(const Vector<Double> globPoint,
+                         StdVector< Vector<Double> >& neighbors,
+                         StdVector< Double >& l2Distances,
+                         StdVector< Vector<T> >& vectors);
+#endif
+
   };
 }
 

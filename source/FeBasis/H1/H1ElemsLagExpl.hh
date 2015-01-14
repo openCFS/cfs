@@ -100,6 +100,9 @@ public:
   //! Overloaded method for lagrange Elements
   //virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
 
+  //! @copydoc BaseFE::GetLocalDOFCoordinates
+  virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
+  
 protected:
 
   //! @copydoc FeNodal::SetFunctionsAtIp
@@ -123,9 +126,6 @@ protected:
   
   //! Polynomial order of the finite element
   UInt order_;
-
-  //! Flag indicating if the element is of serendepedy type
-  bool serendipity_;
 };
 
 
@@ -562,6 +562,7 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+  
 };
 
 //! Lagrangian tetrahedron element of 1st order (ET_TET4)

@@ -44,13 +44,17 @@
 #include "PDE/MechPDE.hh"
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
+#include "PDE/WaterWavePDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "CoupledPDE/MagnetoStrictCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
+#include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
+#include "CoupledPDE/WaterWaveMechCoupling.hh"
 
 // Include driver
 #include "Driver/BaseDriver.hh"
@@ -570,7 +574,6 @@ void Domain::InitPDEs(UInt sequenceStep)
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
     if( isParentDomain_) 
-      std::cout << "++ Initializing direct coupling" << std::endl;
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
@@ -669,6 +672,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "elecConduction") {
         ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode,
                                       	  	  simState_, this );
+    }
+    else if (actPdeName == "waterWave") {
+        ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode,
+                                              simState_, this );
     }
     else
     {
@@ -816,6 +823,21 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i], info_,
                                       simState_, this );
     }
+    
+    else if (couplingName == "magnetoStrictDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("magnetic");
+
+      // in the case of acou-Mech coupling, the acoustic
+      // entries have to be multiplied by -1
+      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling();
+
+      coupling = new MagnetoStrictCoupling(pde1, pde2, pairNodes[i], info_,
+                                      simState_, this );
+    }
+    
     // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
     {
@@ -829,6 +851,25 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
       coupling = new FluidMechCoupling(pde1, pde2, pairNodes[i], info_,
                                        simState_, this );
+    }
+    // *** WATER WAVE-ACOUSTIC Coupling ***
+    else if (couplingName == "waterWaveAcouDirect")
+    {
+      pde1 = GetSinglePDE("waterWave");
+      pde2 = GetSinglePDE("acoustic");
+
+      coupling = new WaterWaveAcousticCoupling(pde1, pde2, pairNodes[i], info_,
+                                               simState_, this );
+    }
+    // *** Water Wave-MECH Coupling ***
+    else if (couplingName == "waterWaveMechDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("waterWave");
+
+      coupling = new WaterWaveMechCoupling(pde1, pde2, pairNodes[i], info_,
+                                           simState_, this );
     }
 //
 //    // ------------------------------------------------------------------------
@@ -1088,6 +1129,18 @@ void Domain::Dump()
         << std::endl;
   }
 
+}
+
+
+void Domain::ToInfo(PtrParamNode in)
+{
+  PtrParamNode in_ = in->Get("coordinateSystems");
+  for(std::map<std::string, CoordSystem*>::iterator it = coordSys_.begin(); it != coordSys_.end(); ++it)
+  {
+    PtrParamNode s = in_->Get("system", ParamNode::APPEND);
+    s->Get("name")->SetValue(it->first);
+    it->second->ToInfo(s);
+  }
 }
 
 }

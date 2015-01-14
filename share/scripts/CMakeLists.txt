@@ -18,12 +18,10 @@ ADD_CUSTOM_TARGET(common_script ALL
   COMMENT "Copying \"${COMMON_SCRIPT}\" script to ${CFS_BINARY_DIR}/bin folder...")
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(common_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
-      COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(common_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/common.sh ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/common.sh
+    COMMENT "Copying \"common.sh\" script to ${CFS_BINARY_DIR}/bin folder...")
 ENDIF()
 
 #-------------------------------------------------------------------------------
@@ -42,12 +40,10 @@ ADD_CUSTOM_TARGET(cfs_script ALL
   ${CFS_BINARY_DIR}/bin folder...")
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(cfs_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
-      COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(cfs_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfs ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfs
+    COMMENT "Copying \"cfs\" script to ${CFS_BINARY_DIR}/bin folder...")
 ENDIF()
 
 #-------------------------------------------------------------------------------
@@ -80,12 +76,10 @@ IF(CFSTOOL)
     ${CFS_BINARY_DIR}/bin folder...")
 
   IF(MINGW)
-    IF(CMAKE_CROSSCOMPILING)
-      ADD_CUSTOM_TARGET(cfstool_script_sh ALL
-	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
-	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
-	COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
-    ENDIF()
+    ADD_CUSTOM_TARGET(cfstool_script_sh ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfstool ${CFS_BINARY_DIR}/bin
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfstool
+      COMMENT "Copying \"cfstool\" script to ${CFS_BINARY_DIR}/bin folder...")
   ENDIF()
 
 ENDIF(CFSTOOL)
@@ -121,10 +115,8 @@ ADD_CUSTOM_TARGET(distro_script ALL
   )
 
 IF(MINGW)
-  IF(CMAKE_CROSSCOMPILING)
-    ADD_CUSTOM_TARGET(distro_script_sh ALL
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
-      COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
-  ENDIF()
+  ADD_CUSTOM_TARGET(distro_script_sh ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh ${CFS_BINARY_DIR}/share/scripts
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/distro.sh
+    COMMENT "Copying \"distro.sh\" script to ${CFS_BINARY_DIR}/share/scripts folder...")
 ENDIF()

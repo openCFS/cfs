@@ -30,18 +30,6 @@ DEFINE_LOG(genMatVec, "genMatVec")
   // >>>>>>>>>>>>>>>>>>>>>>>>>>>> VECTOR PART <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
 
-
-  // *********************************************
-  //   Macro for generation of templated vectors
-  // *********************************************
-#define CREATE_VECTOR( MATRIX_ENTRY, VECTORCLASS ) \
-if ( ( eType == MATRIX_ENTRY )  ) {\
-   retVector = new VECTORCLASS( length );\
-   ASSERTMEM( retVector, sizeof( VECTORCLASS ) );\
-   }\
-  LOG_DBG(genMatVec) << " GenerateSingleVectorObject: Generated "\
-          << MACRO2STRING(VECTORCLASS) << " of dimension ";
-
   // *******************************************************
   //   Dynamic generation of vector associated with matrix
   // *******************************************************
@@ -115,16 +103,17 @@ BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType ent
 
     SingleVector *retVector = NULL;
 
-    // real valued vectors
-    CREATE_VECTOR( BaseMatrix::DOUBLE,  Vector<Double>      );
-
-    // complex valued vectors
-    CREATE_VECTOR( BaseMatrix::COMPLEX, Vector<Complex>     );
+    if(eType == BaseMatrix::DOUBLE)
+      retVector = new Vector<Double>(length);
+    if(eType == BaseMatrix::COMPLEX)
+      retVector = new Vector<Complex>(length);
 
     // scalar vectors to go together with LAPACK matrices
 #ifdef USE_LAPACK
-    CREATE_VECTOR( BaseMatrix::F77REAL8    , Vector<Double>  );
-    CREATE_VECTOR( BaseMatrix::F77COMPLEX16, Vector<Complex> );
+    if(eType == BaseMatrix::F77REAL8)
+      retVector = new Vector<Double>(length);
+    if(eType == BaseMatrix::F77COMPLEX16)
+      retVector = new Vector<Complex>(length);
 #endif
 
     // Check, if we were able to generate a vector object. If not, complain.

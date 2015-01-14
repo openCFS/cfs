@@ -15,6 +15,41 @@ set(scpip_source  "${scpip_prefix}/src/scpip")
 set(scpip_install  "${CMAKE_CURRENT_BINARY_DIR}")
 
 #-------------------------------------------------------------------------------
+# Configure target for downloading SCPIP sources using CMake ExternalData
+# mechanism.
+#-------------------------------------------------------------------------------
+# Add standard remote object stores to user's configuration.
+list(APPEND ExternalData_URL_TEMPLATES
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/%(algo)/%(hash)"
+  )
+
+# Set standard local object stores.
+SET(ExternalData_OBJECT_STORES
+  "${CFS_DEPS_CACHE_DIR}/sources/scpip"
+)
+
+# Give a hint about downloading the source archive to the developer.
+FILE(READ "cfsdeps/scpip/scpip.tar.bz2.md5" SCPIP_HASH)
+STRING(STRIP ${SCPIP_HASH} SCPIP_HASH)
+
+IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}")
+  SET(MSG "Please download the file ")
+  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/scpip/MD5/${SCPIP_HASH}'")
+  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${SCPIP_HASH}'.")
+
+  colormsg(HIYELLOW "${MSG}")
+ENDIF()
+
+set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
+
+# Expand all arguments as a single string to preserve escaped semicolons.
+ExternalData_expand_arguments(scpip_external_data
+  targetArgs "${SCPIP_EXTERNAL_DATA}")
+
+# Add a build target to populate the real data.
+ExternalData_Add_Target(scpip_external_data)
+
+#-------------------------------------------------------------------------------
 # Set common CMake arguments
 #-------------------------------------------------------------------------------
 SET(CMAKE_ARGS
@@ -52,6 +87,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # The scpip external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(scpip
+  DEPENDS scpip_external_data
   PREFIX "${scpip_prefix}"
   SOURCE_DIR "${scpip_source}"
   URL ${SCPIP_PATH}/${SCPIP_BZ2}

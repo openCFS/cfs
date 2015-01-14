@@ -40,8 +40,12 @@ namespace CoupledField {
   : FeH1(), FeNodal() {
     order_ = 0;
     preComputShFnc_ = true;
+    
+    // All elements here consist of TENSOR_TYPE polynomials
+    completeType_ = TENSOR_TYPE;
+    
     // Precalculate the supporting Points up do order 10
-      CalcAllSupportingPoints(10);
+    CalcAllSupportingPoints(10);
     }
 
     FeH1LagrangeVar::~FeH1LagrangeVar(){
@@ -324,10 +328,10 @@ namespace CoupledField {
     //vertices:
     coordMat[0][0] = supPoints1D[0];
     coordMat[1][0] = supPoints1D[order_];
-
+    
     //edges
     for(UInt i=1;i<order_;i++){
-      coordMat[i][0] = supPoints1D[i];
+      coordMat[i+1][0] = supPoints1D[i];
     }
   }
   //=========================================================================
@@ -597,14 +601,16 @@ namespace CoupledField {
        FILL_EDGE( 2, shapeY, shapeX[order_], shapeZ[0] );
        FILL_EDGE( 3, shapeX, shapeY[order_], shapeZ[0] );
        FILL_EDGE( 4, shapeY, shapeX[0],     shapeZ[0] );
-       FILL_EDGE( 5, shapeZ, shapeX[0],     shapeY[0] );
-       FILL_EDGE( 6, shapeZ, shapeX[order_], shapeY[0] );
-       FILL_EDGE( 7, shapeZ, shapeX[order_], shapeY[order_] );
-       FILL_EDGE( 8, shapeZ, shapeX[0],     shapeY[order_] );
-       FILL_EDGE( 9, shapeX, shapeY[0],     shapeZ[order_] );
-       FILL_EDGE(10, shapeY, shapeX[order_], shapeZ[order_] );
-       FILL_EDGE(11, shapeX, shapeY[order_], shapeZ[order_] );
-       FILL_EDGE(12, shapeY, shapeX[0],     shapeZ[order_] );
+
+       FILL_EDGE( 5, shapeX, shapeY[0],     shapeZ[order_] );
+       FILL_EDGE( 6, shapeY, shapeX[order_], shapeZ[order_] );
+       FILL_EDGE( 7, shapeX, shapeY[order_], shapeZ[order_] );
+       FILL_EDGE( 8, shapeY, shapeX[0],     shapeZ[order_] );
+       
+       FILL_EDGE( 9, shapeZ, shapeX[0],     shapeY[0] );
+       FILL_EDGE(10, shapeZ, shapeX[order_], shapeY[0] );
+       FILL_EDGE(11, shapeZ, shapeX[order_], shapeY[order_] );
+       FILL_EDGE(12, shapeZ, shapeX[0],     shapeY[order_] );
 
        // --------------------
        //  c) face functions
@@ -619,11 +625,11 @@ namespace CoupledField {
            }                                                          \
          }
 
-       FILL_FACE( 1, shapeX, shapeY, shapeZ[0] );
-       FILL_FACE( 2, shapeX, shapeZ, shapeY[0] );
-       FILL_FACE( 3, shapeY, shapeZ, shapeX[order_] );
-       FILL_FACE( 4, shapeX, shapeZ, shapeY[order_] );
-       FILL_FACE( 5, shapeY, shapeZ, shapeX[0] );
+       FILL_FACE( 1, shapeX, shapeZ, shapeY[0] );
+       FILL_FACE( 2, shapeY, shapeZ, shapeX[order_] );
+       FILL_FACE( 3, shapeX, shapeZ, shapeY[order_] );
+       FILL_FACE( 4, shapeY, shapeZ, shapeX[0] );
+       FILL_FACE( 5, shapeX, shapeY, shapeZ[0] );
        FILL_FACE( 6, shapeX, shapeY, shapeZ[order_] );
 
 
@@ -740,6 +746,16 @@ namespace CoupledField {
       HEX_E_DERIV(3, 0, order_, 0, 1 );
        // EDGE #4
       HEX_E_DERIV(4, 0, 0, 0, 2);
+      
+      // EDGE #9
+      HEX_E_DERIV(9, 0, 0, order_, 1);
+      // EDGE #10
+      HEX_E_DERIV(10, order_, 0, order_, 2);
+      // EDGE #11
+      HEX_E_DERIV(11, 0, order_, order_, 1);
+      // EDGE #12
+      HEX_E_DERIV(12, 0, 0, order_, 2);
+      
        // EDGE #5
       HEX_E_DERIV(5, 0, 0, 0, 3);
        // EDGE #6
@@ -748,14 +764,7 @@ namespace CoupledField {
       HEX_E_DERIV(7, order_, order_, 0, 3);
        // EDGE #8
       HEX_E_DERIV(8, 0, order_, 0, 3);
-       // EDGE #9
-      HEX_E_DERIV(9, 0, 0, order_, 1);
-       // EDGE #10
-      HEX_E_DERIV(10, order_, 0, order_, 2);
-       // EDGE #11
-      HEX_E_DERIV(11, 0, order_, order_, 1);
-      // EDGE #12
-      HEX_E_DERIV(12, 0, 0, order_, 2);
+    
 
       // -------------------
       //  c) face functions
@@ -794,11 +803,12 @@ namespace CoupledField {
       }                                                                                \
     }                                                                                  \
 
-      HEX_F_DERIV( 1, shapeX, shapeDerivX, shapeY, shapeDerivY, shapeZ[0],      shapeDerivZ[0], 3 );
-      HEX_F_DERIV( 2, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[0],      shapeDerivY[0], 2 );
-      HEX_F_DERIV( 3, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[order_], shapeDerivX[order_], 1 );
-      HEX_F_DERIV( 4, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[order_], shapeDerivY[order_], 2 );
-      HEX_F_DERIV( 5, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[0],      shapeDerivX[0], 1 );
+      
+      HEX_F_DERIV( 1, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[0],      shapeDerivY[0], 2 );
+      HEX_F_DERIV( 2, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[order_], shapeDerivX[order_], 1 );
+      HEX_F_DERIV( 3, shapeX, shapeDerivX, shapeZ, shapeDerivZ, shapeY[order_], shapeDerivY[order_], 2 );
+      HEX_F_DERIV( 4, shapeY, shapeDerivY, shapeZ, shapeDerivZ, shapeX[0],      shapeDerivX[0], 1 );
+      HEX_F_DERIV( 5, shapeX, shapeDerivX, shapeY, shapeDerivY, shapeZ[0],      shapeDerivZ[0], 3 );
       HEX_F_DERIV( 6, shapeX, shapeDerivX, shapeY, shapeDerivY, shapeZ[order_], shapeDerivZ[order_], 3 );
 
       // ---------------------
@@ -888,6 +898,31 @@ namespace CoupledField {
           coordMat[c++][2] = supPoints1D[0];
         }
 
+        //edge9
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[0];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge10
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[order_];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge11
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[i];
+          coordMat[c][1] = supPoints1D[order_];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        //edge12
+        for(UInt i=1;i<order_;i++){
+          coordMat[c][0] = supPoints1D[0];
+          coordMat[c][1] = supPoints1D[i];
+          coordMat[c++][2] = supPoints1D[order_];
+        }
+        
         //edge5
         for(UInt i=1;i<order_;i++){
           coordMat[c][0] = supPoints1D[0];
@@ -913,41 +948,7 @@ namespace CoupledField {
           coordMat[c++][2] = supPoints1D[i];
         }
 
-        //edge9
-        for(UInt i=1;i<order_;i++){
-          coordMat[c][0] = supPoints1D[i];
-          coordMat[c][1] = supPoints1D[0];
-          coordMat[c++][2] = supPoints1D[order_];
-        }
-        //edge10
-        for(UInt i=1;i<order_;i++){
-          coordMat[c][0] = supPoints1D[order_];
-          coordMat[c][1] = supPoints1D[i];
-          coordMat[c++][2] = supPoints1D[order_];
-        }
-        //edge11
-        for(UInt i=1;i<order_;i++){
-          coordMat[c][0] = supPoints1D[i];
-          coordMat[c][1] = supPoints1D[order_];
-          coordMat[c++][2] = supPoints1D[order_];
-        }
-        //edge12
-        for(UInt i=1;i<order_;i++){
-          coordMat[c][0] = supPoints1D[0];
-          coordMat[c][1] = supPoints1D[i];
-          coordMat[c++][2] = supPoints1D[order_];
-        }
-
         //face1
-        for(UInt i=1;i<order_;i++){
-          for(UInt j=1;j<order_;j++){
-            coordMat[c][0] = supPoints1D[j];
-            coordMat[c][1] = supPoints1D[i];
-            coordMat[c++][2] = supPoints1D[0];
-          }
-        }
-
-        //face2
         for(UInt i=1;i<order_;i++){
           for(UInt j=1;j<order_;j++){
             coordMat[c][0] = supPoints1D[j];
@@ -956,7 +957,7 @@ namespace CoupledField {
           }
         }
 
-        //face3
+        //face2
         for(UInt i=1;i<order_;i++){
           for(UInt j=1;j<order_;j++){
             coordMat[c][0] = supPoints1D[order_];
@@ -965,7 +966,7 @@ namespace CoupledField {
           }
         }
 
-        //face4
+        //face3
         for(UInt i=1;i<order_;i++){
           for(UInt j=1;j<order_;j++){
             coordMat[c][0] = supPoints1D[j];
@@ -974,7 +975,7 @@ namespace CoupledField {
           }
         }
 
-        //face5
+        //face4
         for(UInt i=1;i<order_;i++){
           for(UInt j=1;j<order_;j++){
             coordMat[c][0] = supPoints1D[0];
@@ -982,6 +983,16 @@ namespace CoupledField {
             coordMat[c++][2] = supPoints1D[i];
           }
         }
+        
+        //face5
+        for(UInt i=1;i<order_;i++){
+          for(UInt j=1;j<order_;j++){
+            coordMat[c][0] = supPoints1D[j];
+            coordMat[c][1] = supPoints1D[i];
+            coordMat[c++][2] = supPoints1D[0];
+          }
+        }
+
 
         //face6
         for(UInt i=1;i<order_;i++){

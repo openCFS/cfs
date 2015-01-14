@@ -40,7 +40,8 @@ class GLMScheme{
   typedef enum{
     TRAPEZOIDAL = 1,
     NEWMARK = 2,
-     BDF2 = 3
+     BDF2 = 3,
+     RK4 = 4
   } SchemeType;
 
   
@@ -301,6 +302,51 @@ class Bdf2 : public GLMScheme{
      ///                                    "t", aTime+(alpha_*curTStepSize_) );
     }
   private:
+
+};
+
+
+class RungeKutta4 : public GLMScheme{
+  public:
+
+    RungeKutta4();
+
+    //! \copydoc GLMSchem::GetType
+    virtual SchemeType GetType() const {
+      return RK4;
+    }
+
+    //! \copydoc GLMScheme::ComputeCoefficients(UInt,Double)
+    virtual void ComputeCoefficients(UInt solDerivOrder,Double deltaT);
+
+    Double TransformBC(const StdVector< SingleVector* > & glm,
+                       Double value,
+                       UInt valDerivOrder,
+                       Integer eqnNumber);
+
+    virtual void PrepareStage(UInt i,Double aTime){
+      //obtain current time
+      switch(i){
+        case 0:
+        case 2:
+          break;
+        case 3:
+          //set current time to t+dt
+          domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                             "t", aTime+curTStepSize_ );
+          break;
+        case 1:
+          //set current time to t+dt/2
+          domain->GetMathParser()->SetValue( MathParser::GLOB_HANDLER,
+                                             "t", aTime+(0.5*curTStepSize_) );
+          break;
+        default:
+          EXCEPTION("RK4 Called with invalid stage number!");
+          break;
+       }
+    };
+  private:
+
 
 };
 

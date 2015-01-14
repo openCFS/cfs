@@ -874,7 +874,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> pressure( new ResultInfo);
     pressure->resultType = FLUIDMECH_PRESSURE;
     pressure->dofNames = "";
-    pressure->unit = "Pa";
+    pressure->unit = MapSolTypeToUnit(pressure->resultType);
 
     pressure->definedOn = ResultInfo::NODE;
     pressure->entryType = ResultInfo::SCALAR;
@@ -889,7 +889,7 @@ namespace CoupledField {
     shared_ptr<ResultInfo> velocity( new ResultInfo);
     velocity->resultType = FLUIDMECH_VELOCITY;
     velocity->dofNames = velDofNames;
-    velocity->unit = "m/s";
+    velocity->unit = MapSolTypeToUnit(velocity->resultType);
 
     velocity->definedOn = ResultInfo::NODE;
     velocity->entryType = ResultInfo::VECTOR;

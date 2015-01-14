@@ -217,18 +217,26 @@ namespace CoupledField{
 
     //ToDo: save the information...
     // QUERY FOR USER PARAMS IS STILL TO COME
+    refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
     refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
     
+    refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
 
-
+    refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
 
+    refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
+    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+
 
     
     // set order for every region
@@ -272,7 +280,7 @@ namespace CoupledField{
 
         // important: do not adjust the entity order here, as the
         // edge / face order is not yet initialized
-        SetElemGrad( elems[i], myFe, false );
+        SetElemGrad( elems[i], myFe, regionId, false );
 
         // a) loop over all edges
         // -----------------------
@@ -368,13 +376,15 @@ namespace CoupledField{
     
   }
   
-  void FeSpaceHCurlHi::SetElemGrad( const Elem* ptEl, FeHCurlHi* ptFe, 
+  void FeSpaceHCurlHi::SetElemGrad( const Elem* ptEl, FeHCurlHi* ptFe,
+                                    RegionIdType regionId,
                                     bool applyMaxRule ) {
     LOG_DBG(feSpaceHCurlHi) << "In SetElemGrad for elem " << ptEl->elemNum 
                         << ", maxRule: " << applyMaxRule;
      
-     // Stage 1: Set gradient as given from the region template.
-    ptFe->SetUseGradients(useGradients_[ptEl->regionId]);
+
+    // Stage 1: Set gradient as given from the region template.
+    ptFe->SetUseGradients(useGradients_[regionId]);
     LOG_DBG(feSpaceHCurlHi) << "\t->Gradient: " << 
         (useGradients_[ptEl->regionId] ? "true" : "false");
 
@@ -568,7 +578,7 @@ namespace CoupledField{
       myFe = refElems_[eRegion][ent.GetElem()->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ent.GetElem(), myFe, it->second, true );
-      SetElemGrad( ent.GetElem(), myFe, true );
+      SetElemGrad( ent.GetElem(), myFe, eRegion, true );
       myFe = refElems_[eRegion][ent.GetElem()->type];
     }
 
@@ -607,7 +617,7 @@ namespace CoupledField{
       myFe = refElems_[eRegion][ptElem->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ptElem, myFe, it->second, true );
-      SetElemGrad( ptElem, myFe, true );
+      SetElemGrad( ptElem, myFe, eRegion, true );
       myFe = refElems_[eRegion][ptElem->type];
     }
     

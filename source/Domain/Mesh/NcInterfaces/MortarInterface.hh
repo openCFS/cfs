@@ -39,10 +39,14 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType GetSlaveVolRegion() const { return slaveVolRegion_; }
     
     bool IsPlanar() const { return isCoplanar_; }
+    
+    bool IsEulerian() const { return isEulerian_; }
 
     bool NeedsUpdate() const { return isMoving_; }
     
     const std::string& GetCoordSys() const { return coordSysId_; }
+    
+    PtrCoefFct GetGridVelocity() const { return gridVelo_; };
 
     void ResetInterface();
 
@@ -158,6 +162,7 @@ class MortarInterface : public BaseNcInterface {
     RegionIdType masterVolRegion_;
     RegionIdType slaveVolRegion_;
     bool isCoplanar_;
+    bool isEulerian_;
     bool isMoving_;
     bool moveMaster_;
     bool exportToGrid_;
@@ -165,6 +170,7 @@ class MortarInterface : public BaseNcInterface {
     std::string coordSysId_;
     CoordSystem* coordSys_;
     MathParser* mParser_;
+    PtrCoefFct gridVelo_;
     StdVector<std::string> offsetExpr_;
     UInt mphOffset_[3];
     NcIntersectAlgo intersectAlgo_;

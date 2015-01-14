@@ -2,7 +2,7 @@
 #include <iterator>
 
 #include "MatVec/CRS_Matrix.hh"
-
+#include "DataInOut/ProgramOptions.hh"
 #include "OLAS/precond/ILUK_Precond.hh"
 
 // Include source code of CroutLU class for template instantiation
@@ -24,7 +24,7 @@ namespace CoupledField {
 
     // Set pointers to communication objects
     this->xml_ = precondNode;
-    this->infoNode_ = olasInfo->Get("iluk", ParamNode::APPEND);
+    this->infoNode_ = olasInfo->Get("iluk", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
 
     // No factorisation was performed yet
     this->readyToUse_ = false;

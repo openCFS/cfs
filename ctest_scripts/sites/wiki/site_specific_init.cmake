@@ -16,7 +16,7 @@ ${CFS_TESTUSER_PW}
 K 15
 svn:realmstring
 V 68
-<https://lse17.e-technik.uni-erlangen.de:2001> Subversion repository
+<${CFS_DS_HTTPS}> Subversion repository
 K 8
 username
 V 12
@@ -88,13 +88,13 @@ FILE(REMOVE_RECURSE
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-  ctest_update_fespace_wien.cmake
-  ctest_update_fespace_testsuite_wien.cmake
-
-  # Checkout or update trunk working copies
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
-  ctest_update_cfsdeps_trunk_wien.cmake
+
+  # Checkout or update trunk working copies
+  ctest_update_trunkOld_wien.cmake
+  ctest_update_trunkOld_testsuite_wien.cmake
+  ctest_update_cfsdeps_trunkOld_wien.cmake
 
   # Checkout or update modelling manual working copy
   ctest_update_modelling_manual.cmake
@@ -104,7 +104,15 @@ FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
 
   # Checkout or update CFS++ FeSpace
   EXECUTE_PROCESS(
-    COMMAND ${CTEST_COMMAND} -V -DSITE_DIR:PATH=${SITE_DIR} -DCFS_TESTUSER:STRING=${CFS_TESTUSER} -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW} -S "${SITE_DIR}/${SCRIPT}"
+    COMMAND ${CTEST_COMMAND} -V
+      -DSITE_DIR:PATH=${SITE_DIR}
+      -DCFS_DS_HOSTNAME:STRING=${CFS_DS_HOSTNAME}
+      -DCFS_DS_SVN:STRING=${CFS_DS_SVN}
+#disable this since PW would be submitted to cdash in clean text      
+      -DCFS_DS_CDASH_DROP_SITE:STRING=${CFS_DS_CDASH_DROP_SITE}
+      -DCFS_TESTUSER:STRING=${CFS_TESTUSER}
+      -DCFS_TESTUSER_PW:STRING=${CFS_TESTUSER_PW}
+      -S "${SITE_DIR}/${SCRIPT}"
     RESULT_VARIABLE RETVAL
     )
 

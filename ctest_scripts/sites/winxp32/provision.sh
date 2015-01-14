@@ -20,7 +20,7 @@ SHUTDOWN_EXE="%SystemRoot%\\System32\\shutdown.exe"
 
 # Build up start command for nightly tests.
 CTEST_EXE="\"c:\\Program Files\\cmake-2.8.11-win32-x86\\bin\\ctest.exe\""
-NIGHTLY_TEST_CMAKE="z:\\CFS_FESPACE_NIGHTLY\\ctest_scripts\\nightly_test.cmake"
+NIGHTLY_TEST_CMAKE="z:\\CFS_TRUNK_NIGHTLY\\ctest_scripts\\nightly_test.cmake"
 NIGHTLY_TEST_BAT="/cygdrive/c/start_nightly_tests.bat"
 LOG_FILE="v:\\logs\\nightly_test.log"
 TEST_CMD="$CTEST_EXE -V -S $NIGHTLY_TEST_CMAKE > $LOG_FILE 2>&1"

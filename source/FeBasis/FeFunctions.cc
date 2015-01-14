@@ -41,6 +41,8 @@ DECLARE_LOG(fefunc)
   }
 
   BaseFeFunction::~BaseFeFunction(){
+    idBcs_.Clear();
+
   }
   
   
@@ -136,12 +138,18 @@ DECLARE_LOG(fefunc)
     LOG_DBG(fefunc) << PREFIX << "AddHomDirichletBc()";
     hdBcs_.Push_back( bc );
     entities_.Push_back(bc->entities);
+    if( bc->entities->GetDefineType() == EntityList::REGION) {
+      regions_.insert( bc->entities->GetRegion());
+    }
   }
 
   void BaseFeFunction::AddInhomDirichletBc( shared_ptr<InhomDirichletBc> bc ){
     LOG_DBG(fefunc) << PREFIX << "AddInhomDirichletBc()";
     idBcs_.Push_back(bc);
     entities_.Push_back(bc->entities);
+    if( bc->entities->GetDefineType() == EntityList::REGION) {
+          regions_.insert( bc->entities->GetRegion());
+        }
   }
 
   void BaseFeFunction::AddLoadCoefFunction( PtrCoefFct load,
@@ -160,12 +168,7 @@ DECLARE_LOG(fefunc)
 
   void BaseFeFunction::AddExternalDataSource( PtrCoefFct coef,
                                               const StdVector<shared_ptr<EntityList> >& lists){
-    std::cerr << "size of lists is " << lists.GetSize() << std::endl;
     LOG_DBG(fefunc) << PREFIX << "AddExternalDataSource()" << "size of lists is " << lists.GetSize();
-    for( UInt i = 0; i < lists.GetSize(); ++i ) {
-      std::cerr << "\tregion: " << lists[i]->GetName() << std::endl;
-      LOG_DBG(fefunc) << "\tregion: " << lists[i]->GetName() ;
-    }
     this->externalDataCoefs_[coef] = lists;
   }
 
@@ -195,8 +198,7 @@ DECLARE_LOG(fefunc)
   
   std::string BaseFeFunction::ToString() const {
     std::string ret;
-    ret += "FeFunction for result '" + 
-        SolutionTypeEnum.ToString(result_->resultType) + "'";
+    ret += "FeFunction for result '" + SolutionTypeEnum.ToString(result_->resultType) + "'";
     return ret;
   }
   
@@ -232,11 +234,14 @@ DECLARE_LOG(fefunc)
 
   template<typename T>
   FeFunction<T>::~FeFunction(){
-    if( domain) {
-      if (mp_) {
-        mp_->ReleaseHandle( mHandle_ );
-      }
-    }
+
+    // Note: Currently we can not release the handle in a safe way,
+    // as Fefunctions are only passed as shared_ptr, so we can not
+    // know exactly, when the last FeFunction is freed. If this is within
+    // a child Domain, the mathParser might already be deleted when
+    // we try to attempt this.
+    
+    
     if( idOp_ )
       delete idOp_;
     idOp_ = NULL;
@@ -299,6 +304,7 @@ DECLARE_LOG(fefunc)
   void FeFunction<T>::Finalize(){
     
     // assert that functionId was set
+    // FIXME
     static bool warn = false;
     if(warn) 
     {
@@ -357,6 +363,16 @@ DECLARE_LOG(fefunc)
             << "conditions:\n\n" << nodeListNames 
             << "\nPlease consider changing them to (surface) element lists "
             << "or use Lagrangian polynomials with grid order!")
+      }
+    }
+  }
+  
+  template<typename T>
+  void FeFunction<T>::CleanUp(){
+    if( domain) {
+      if (mp_) {
+        mp_->ReleaseHandle( mHandle_ );
+        mp_ = NULL;
       }
     }
   }
@@ -434,7 +450,8 @@ DECLARE_LOG(fefunc)
         // this fefunction
         LocPoint lp;
         const Elem* myElem = 
-            grid_->GetElemAtNode(nodeNum, lp, regions_ ); 
+            grid_->GetElemAtNode(nodeNum, lp, regions_ );
+        
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
           for(UInt iDim = 0; iDim < numDofs; iDim++ ) {
@@ -448,7 +465,6 @@ DECLARE_LOG(fefunc)
         LocPointMapped lpm;
         lpm.Set(lp,esm,0.0);
         
-
         this->GetElemSolution(elemSolution,myElem);
         BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
         idOp_->ApplyOp(dofSol, lpm, ptFe, elemSolution );
@@ -493,13 +509,12 @@ DECLARE_LOG(fefunc)
         }
         break;
       case FeSpace::HCURL:
-        if(dim==2){
-          if(dofDim==1)
-            myOP = new IdentityOperator<FeHCurl,2,1,T>();
-        }else{
-          if(dofDim==1)
-            myOP = new IdentityOperator<FeHCurl,3,1,T>();
-        }
+        // currently the HCURL space exists only in 3D
+        myOP = new IdentityOperator<FeHCurl,3,1,T>();
+        break;
+      case FeSpace::CONSTANT:
+        // this space does not approximate space
+        WARN("The interpolation operator for FeSpaceConst is not initialized.");
         break;
       default:
         EXCEPTION("FeSpace type not suited for interpolation");
@@ -566,8 +581,19 @@ DECLARE_LOG(fefunc)
           }
         }
         break;
+        
       case FeSpace::HCURL:
+        if( spaceDim == 3 ) {
+          // =============
+          //  3D Entities
+          // =============
+            massInt = new BBInt<T>(new IdentityOperator<FeHCurl,3,1,T>(), 
+                                   unity, 1.0, updatedGeo );
+        } else {
+          EXCEPTION("HCURL mapping only working in 3D")
+        }
         break;
+        
       default:
         EXCEPTION("FeSpace type not suited for interpolation");
         break;
@@ -618,8 +644,19 @@ DECLARE_LOG(fefunc)
           }
         }
         break;
+        
       case FeSpace::HCURL:
+        if( spaceDim == 3 ) {
+          // =============
+          //  3D Entities
+          // =============
+          rhsInt = new BUIntegrator<T>(new IdentityOperator<FeHCurl,3,1,T>(), 1.0, coefFct, updatedGeo );
+        } else {
+          EXCEPTION("HCURL mapping only working in 3D")
+        }
+
         break;
+        
       default:
         EXCEPTION("FeSpace type not suited for interpolation");
         break;
@@ -636,11 +673,51 @@ DECLARE_LOG(fefunc)
     Vector<T> & vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
     temp.Resize(eqns.GetSize());
-    for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
-      if( eqns[iDof] != 0 ) {
-        temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
-      } else {
-        temp[iDof] = 0.0;
+    // In case no equation was found, this indicates that the nodes, for which
+    // the results should be calculated could not be found. Thus we have
+    // to use interpolation to interpolate the continuous result to the
+    // nodal locations in the entity list
+    if( eqns.GetSize() == 0){
+      //ok so the space does not know about this particular entity
+      //we try to determine its value via interpolation
+      Vector<T> elemSolution;
+      UInt nodeNum = 0;
+      if(it.GetType()== EntityList::NODE_LIST){
+        //now we obtain the global coords of the
+        //node assuming that everything is the same grid. if not, we are in trouble anyway
+        nodeNum = it.GetNode();
+      }else if(it.GetType() == EntityList::ELEM_LIST ||
+          it.GetType() == EntityList::SURF_ELEM_LIST){
+        //determine global coord of element midpoint
+        EXCEPTION("Interpolation for extract result not implemented for the Element case");
+      }
+      // try to find the correct element, being one belonging to the regionlist of
+      // this fefunction
+      LocPoint lp;
+      const Elem* myElem = 
+          grid_->GetElemAtNode(nodeNum, lp, regions_ );
+      if( !myElem ) {
+        WARN("Some elements were skipped during the interpolation");
+        temp.Init();
+      }
+
+      shared_ptr<ElemShapeMap> esm = grid_->GetElemShapeMap( myElem, true );
+
+      LocPointMapped lpm;
+      lpm.Set(lp,esm,0.0);
+
+      this->GetElemSolution(elemSolution,myElem);
+      BaseFE * ptFe = feSpace_->GetFe(lpm.ptEl->elemNum);
+      idOp_->ApplyOp(temp, lpm, ptFe, elemSolution );
+    } else {
+
+
+      for(UInt iDof = 0 ; iDof < eqns.GetSize(); iDof++){
+        if( eqns[iDof] != 0 ) {
+          temp[iDof] = factor_ * vals[std::abs(eqns[iDof])-1];
+        } else {
+          temp[iDof] = 0.0;
+        }
       }
     }
   }
@@ -839,10 +916,15 @@ DECLARE_LOG(fefunc)
     
     
     // Get common entity lists
-    FeFunction<T> & otherFct =  
-          dynamic_cast<FeFunction<T>& >(*feFct);
+    //FeFunction<T> & otherFct =
+    //      dynamic_cast<FeFunction<T>& >(*feFct);
+    //feFct->entities_
+    //
+
+    bool convertDoubleToComplex = (std::tr1::is_same<T,Complex>::value && !feFct->IsComplex());
+
     StdVector<shared_ptr<EntityList> > intersect;
-    EntityList::Intersect( this->entities_, otherFct.entities_, intersect );
+    EntityList::Intersect( this->entities_, feFct->GetEntityList(), intersect );
 
     // Loop over all entities
     LOG_DBG3(fefunc) << PREFIX << "Entities to be transferred: ";
@@ -879,26 +961,51 @@ DECLARE_LOG(fefunc)
       LOG_DBG(fefunc)<< "=> Applying Copy Based Algorithm <= ";
       Vector<T> & myVec = *(this->coeffs_);
       myVec.Init();
-      
-      for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
-        shared_ptr<EntityList> actList = intersect[iList];
-        
-        EntityIterator it = actList->GetIterator();
-        StdVector<Integer> eqns;
-        // loop over all elements
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-          Vector<T> elemSol;
-          otherFct.GetEntitySolution( elemSol, it);
-          feSpace_->GetEqns( eqns, it);
-          UInt numEqns = eqns.GetSize();
-          // Loop over all equations
-          for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
-            if( eqns[iEqn] > 0 ) {
-              myVec[eqns[iEqn]-1] = elemSol[iEqn];
-            }
-          } // loop: eqns
-        } // loop: elements
-      } // loop: lists
+      if(convertDoubleToComplex){
+        FeFunction<Double> & otherFct =
+              dynamic_cast<FeFunction<Double>& >(*feFct);
+        for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+          shared_ptr<EntityList> actList = intersect[iList];
+
+          EntityIterator it = actList->GetIterator();
+          StdVector<Integer> eqns;
+          // loop over all elements
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            Vector<Double> elemSol;
+            otherFct.GetEntitySolution( elemSol, it);
+            feSpace_->GetEqns( eqns, it);
+            UInt numEqns = eqns.GetSize();
+            // Loop over all equations
+            for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+              if( eqns[iEqn] > 0 ) {
+                myVec[eqns[iEqn]-1] = elemSol[iEqn];
+              }
+            } // loop: eqns
+          } // loop: elements
+        } // loop: lists
+      }else{
+        FeFunction<T> & otherFct =
+                      dynamic_cast<FeFunction<T>& >(*feFct);
+        for( UInt iList = 0; iList < intersect.GetSize(); ++iList ) {
+          shared_ptr<EntityList> actList = intersect[iList];
+
+          EntityIterator it = actList->GetIterator();
+          StdVector<Integer> eqns;
+          // loop over all elements
+          for( it.Begin(); !it.IsEnd(); it++ ) {
+            Vector<T> elemSol;
+            otherFct.GetEntitySolution( elemSol, it);
+            feSpace_->GetEqns( eqns, it);
+            UInt numEqns = eqns.GetSize();
+            // Loop over all equations
+            for( UInt iEqn = 0; iEqn < numEqns; ++iEqn ) {
+              if( eqns[iEqn] > 0 ) {
+                myVec[eqns[iEqn]-1] = elemSol[iEqn];
+              }
+            } // loop: eqns
+          } // loop: elements
+        } // loop: lists
+      }
     }
     LOG_DBG(fefunc) << PREFIX << "Finished initialization from other FeFunction";
   }

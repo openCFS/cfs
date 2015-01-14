@@ -103,15 +103,15 @@ public:
   virtual void GetVectorValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< Vector<DATA_TYPE> >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                          = std::set<RegionIdType>());
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >() );
 
   //! Give Values at global coordinate locations
   virtual void GetScalarValuesAtCoords( const StdVector<Vector<Double> >& globCoord,
                                         StdVector< DATA_TYPE >& values, 
                                         Grid* ptGrid,
-                                        const std::set<RegionIdType>& srcRegions
-                                        = std::set<RegionIdType>() );
+                                        const StdVector<shared_ptr<EntityList> >& srcEntities =
+                                        StdVector<shared_ptr<EntityList> >()  );
 
   //@}
 
@@ -132,6 +132,10 @@ private:
   // =====================================
   ///Compute datastructures for conservative interpolation
   void MapElemNodesConservative();
+
+  //! print unmaped nodes to CSV file for paraview read in
+  virtual void PrintNodesToCSV(const StdVector<const Elem*>& foundElements,
+                                  const StdVector< Vector<Double> >& nodeGlobCoords);
 
   //@{ \name Conservative interpolation datastructures
   ///flag to determine if everything is ready to go
@@ -198,6 +202,12 @@ private:
 
   //! Pointer to destination grid for interpolation (usually "default" grid)
   Grid * destGrid_;
+
+  //! cache global coords in case of standard interpolation of transient data
+  StdVector<LocPoint> localCoords_;
+
+  // cache found elements in case of standard interpolation of transient data
+  StdVector< const Elem* > foundElements_;
 
 };
 

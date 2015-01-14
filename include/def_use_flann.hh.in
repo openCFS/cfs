@@ -1,0 +1,4 @@
+// Define  used to  check  if FLANN  - Fast  Library  for Approximate  Nearest
+// Neighbors is activated
+
+#cmakedefine USE_FLANN

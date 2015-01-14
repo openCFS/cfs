@@ -1,0 +1,50 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(pvsb_cfsdeps_srcdir 
+  "${CFS_SOURCE_DIR}/cfsdeps/paraview/paraview-superbuild-srcdir")
+SET(pvsb_source "@pvsb_source@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Copy some sources over to source directory.
+#=============================================================================
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_directory
+  "${pvsb_cfsdeps_srcdir}"
+  "${pvsb_source}"
+  RESULT_VARIABLE RETVAL
+)
+
+IF(NOT RETVAL EQUAL 0) 
+  MESSAGE(FATAL_ERROR
+    "A problem occurred while trying to copy paraview-superbuild-srcdir: ${RETVAL}")
+ENDIF()
+
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND}
+  -E copy_directory
+  "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "${pvsb_source}-build/install/lib"
+  RESULT_VARIABLE RETVAL
+)
+
+IF(NOT RETVAL EQUAL 0) 
+  MESSAGE(FATAL_ERROR
+    "A problem occurred while trying to copy libraries to Superbuild build dir: ${RETVAL}")
+ENDIF()

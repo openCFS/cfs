@@ -12,6 +12,9 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "Driver/Assemble.hh"
 
+#include "DataInOut/SimState.hh"
+#include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
+#include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
 // include elements
 #include "FeBasis/H1/H1Elems.hh"
@@ -27,6 +30,8 @@
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/Operators/PreStressOperator.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -39,6 +44,7 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 
@@ -297,11 +303,13 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
     
+    // determine if we do bloch eigenfrequency analysis
+    bool do_bloch = domain->GetDriver()->DoBlochModeEigenfrequency();
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-      
-      
+    for ( it = materials_.begin(); it != materials_.end(); it++ )
+    {
       // Set current region and material
       actRegion = it->first;
       actSDMat = it->second;
@@ -325,14 +333,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // ====================================================================
       //  Standard Linear Stiffness
       // ====================================================================
-      if( !nonLin_ ) {
-        BaseBDBInt * stiffInt = 
-            GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] );
+      if( !nonLin_ )
+      {
+        // either complex material or bloch mode with complex B-matrices
+        bool complex = do_bloch | complexMatData_[actRegion];
+        BaseBDBInt * stiffInt =  GetStiffIntegrator( actSDMat, actRegion, complex );
         stiffInt->SetName("LinElastInt");
         stiffInt->SetFeSpace( mySpace);
         
-        BiLinFormContext * stiffIntDescr =
-            new BiLinFormContext(stiffInt, STIFFNESS );
+        BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
         
         stiffIntDescr->SetEntities( actSDList, actSDList );
         stiffIntDescr->SetFeFunctions( myFct, myFct );
@@ -351,17 +360,89 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         
       }
       
+
+      PtrParamNode preStressNode;
+      PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
+      if(bcNode){
+        preStressNode = bcNode->GetByVal("preStress","region",regionName.c_str(),ParamNode::PASS);
+      }
+
+      if( preStressNode ){
+
+        // either complex material or bloch mode with complex B-matrices
+        bool complexPre = (do_bloch  );
+
+        PtrCoefFct preStressFct = CreatePreStressFct(complexPre,preStressNode);
+
+        if(do_bloch || subType_ == "axi"){
+          EXCEPTION("Prestressing is not available for Block periodic or axi-symmetric computations");
+        }
+        BaseBDBInt *preStressInt = NULL;
+        if(dim_==2){
+          if( regionSoftening_[actRegion] == "icModesTW") {
+            if(complexPre){
+              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,2,Complex>(true),
+                                                     new PreStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
+            }else{
+              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,2,Double>(true),
+                                                    new PreStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
+            }
+          }else{
+            if(complexPre){
+              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
+            }else{
+              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,2>(false),preStressFct,1.0);
+            }
+          }
+        }else{
+          if( regionSoftening_[actRegion] == "icModesTW") {
+            if(complexPre){
+              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,3,Complex>(true),
+                                                     new PreStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
+            }else{
+              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,3,Double>(true),
+                                                    new PreStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
+            }
+          }else{
+            if(complexPre){
+              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
+            }else{
+              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,3>(false),preStressFct,1.0);
+            }
+          }
+        }
+
+        preStressInt->SetName("PreStressInt");
+        preStressInt->SetFeSpace( mySpace );
+
+        BiLinFormContext *preStressContext =  new BiLinFormContext( preStressInt, STIFFNESS );
+        preStressContext->SetEntities( actSDList, actSDList );
+        preStressContext->SetFeFunctions( myFct, myFct );
+
+        assemble_->AddBiLinearForm( preStressContext );
+      }
+
       // ====================================================================
       //  Standard Mass Integrator
       // ====================================================================
       PtrCoefFct densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
-      
+
+      // BLOCH TODO
+      // PtrCoefFct densCoeff = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+
       BaseBDBInt *massInt = NULL;
-      if( dim_ == 2 ) {
+
+      // complex mass integrator due to complex bloch stiffness matrix
+
+      if(dim_== 2 && do_bloch)
+        massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
+      if(dim_== 2 && !do_bloch)
         massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
-      } else {
-        massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>, densCoeff, 1.0);
-      }
+      if(dim_== 3 && do_bloch)
+        massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
+      if(dim_== 3 && !do_bloch)
+        massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
+
       massInt->SetName("MassInt");
       massInt->SetFeSpace( mySpace );
 
@@ -384,6 +465,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // in the end, at the region to the feFunction      // to be implemented
       myFct->AddEntityList( actSDList );
     }
+    
+    // ====================================================================
+    //  Concentrated Mechanical Network Elements
+    // ====================================================================
+    DefineConcentratedElems();
   }
   
   
@@ -553,6 +639,135 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
     }
   }
+  
+  void MechPDE::DefineConcentratedElems() {
+
+     // Get FESpace and FeFunction of mechanical displacement
+     shared_ptr<BaseFeFunction> myFct = feFunctions_[MECH_DISPLACEMENT];
+     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+     
+      // try to get bcsAndLoads node
+      PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+      if( !bcNode )
+        return;
+
+      // fetch parameter node specifying spring
+      ParamNodeList springNodes =
+          bcNode->GetList("concentratedElem");
+
+      // Iterate over all springs
+      std::string name, dofName;
+      std::string massVal, dampVal, stiffVal;
+      for( UInt i = 0; i < springNodes.GetSize(); i++ ) {
+
+        // get data from node
+        springNodes[i]->GetValue( "name", name );
+        springNodes[i]->GetValue( "dof", dofName );
+        springNodes[i]->GetValue( "massValue", massVal );
+        springNodes[i]->GetValue( "dampingValue", dampVal );
+        springNodes[i]->GetValue( "stiffnessValue", stiffVal );
+
+        UInt dof = results_[0]->GetDofIndex( dofName );
+
+        shared_ptr<EntityList> nodes = 
+            ptGrid_->GetEntityList(EntityList::NODE_LIST, name);
+        UInt numNodes = nodes->GetSize();
+
+        // Ensure, that only lists with 1 or 2 nodes are present
+        if( numNodes > 2 ) {
+          WARN( "Concentrated mechanical element on '" 
+                 << name << "' is omitted, as it consists of more than "
+                 << "2 nodes!"; );
+          continue;
+        }
+
+        StdVector<FEMatrixType> matrices;
+        matrices = STIFFNESS, MASS, DAMPING;
+        StdVector<std::string> vals;
+        vals = stiffVal, massVal, dampVal;
+
+        if( numNodes == 1 ) {
+          // ============================
+          //  POINT CONCENTRATED ELEMENT
+          // ============================
+          
+          for( UInt i = 0; i < matrices.GetSize(); ++i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            
+            SingleEntryBiLinInt * myInt = new SingleEntryBiLinInt( dim_, vals[i], dof,
+                                                                   mp_ );
+            BiLinFormContext * intCtx =
+                new BiLinFormContext( myInt, matrices[i] );
+            intCtx->SetEntities( nodes, nodes );
+            intCtx->SetFeFunctions( myFct, myFct );
+            
+            assemble_->AddBiLinearForm( intCtx );
+          } // loop over mass/stiffness/damp
+
+        } else {
+          // =================================
+          //  PAIR-WISE CONCENTRATED ELEMENTS
+          // =================================
+
+          // extract both nodes and put them into a new node list
+          shared_ptr<NodeList> node1(new NodeList(ptGrid_));
+          shared_ptr<NodeList> node2(new NodeList(ptGrid_));
+          StdVector<UInt> tmp(1);
+          EntityIterator it = nodes->GetIterator();
+          tmp[0] = it.GetNode();
+          node1->SetNodes( tmp );
+          it++;
+          tmp[0] = it.GetNode();
+          node2->SetNodes( tmp );
+
+          // loop over stiffness, mass and dampingvalue
+          std::string diagVal, offDiagVal;
+          for( UInt i = 0; i < matrices.GetSize(); ++ i ) {
+            // if value is zero, just continue
+            if( vals[i] == "0" || vals[i] == "0.0" ) {
+              continue;
+            }
+            if( matrices[i] == STIFFNESS ) {
+              diagVal = "1.0 * (" + vals[i] + ")";
+              offDiagVal = "-1.0 * (" + vals[i] + ")";
+            } else {
+              diagVal = "(" + vals[i] + ") * 1.0 / 3.0";
+              offDiagVal = "(" + vals[i] + ") * 1.0 / 6.0";
+            }
+
+            // a) diagonal entries
+            SingleEntryBiLinInt * diagInt1 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx1 =
+                new BiLinFormContext( diagInt1, matrices[i] );
+            diagCtx1->SetEntities( node1, node1 );
+            diagCtx1->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx1 );
+
+            SingleEntryBiLinInt * diagInt2 = new SingleEntryBiLinInt( dim_, diagVal, dof, mp_);
+            BiLinFormContext * diagCtx2 =
+                new BiLinFormContext( diagInt2, matrices[i] );
+            diagCtx2->SetEntities( node2, node2 );
+            diagCtx2 ->SetFeFunctions( myFct, myFct );
+            assemble_->AddBiLinearForm( diagCtx2 );
+
+            // b) off-diagonal entries
+            SingleEntryBiLinInt * offDiagInt = 
+                new SingleEntryBiLinInt( dim_, offDiagVal, dof, mp_);
+            BiLinFormContext * offDiagCtx = 
+                new BiLinFormContext( offDiagInt, matrices[i] );
+            offDiagCtx->SetEntities( node1, node2 );
+            offDiagCtx->SetFeFunctions( myFct, myFct );
+            offDiagCtx->SetCounterPart( true );
+            assemble_->AddBiLinearForm( offDiagCtx );
+          } // loop matrix types
+        } // if: 1 / 2 nodes
+
+      } // loop concentrated elements
+
+    }
   
   void MechPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
@@ -840,7 +1055,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       } // for
 
       // ==================
-      //  SURFACE TRACTION
+      //  RHS NODAL VALUES
       // ==================
       LOG_DBG(mechpde) << "Reading direct right hand side values";
 
@@ -854,7 +1069,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
   }
 
-  BaseBDBInt *
+  BaseBDBInt*
   MechPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
                                RegionIdType regionId,
                                bool isComplex )
@@ -882,8 +1097,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  Determine correct stiffness integrator 
     // ----------------------------------------
     
-    BaseBDBInt * integ = NULL;
-    BaseBOperator * bOp = GetStrainOperator( isComplex, false );
+    BaseBDBInt* integ = NULL;
+    BaseBOperator* bOp = GetStrainOperator(isComplex, false);
     
     if( regionSoftening_[regionId] == "icModesTW") {
       // ===================
@@ -909,33 +1124,59 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   }
 
   
-  BaseBOperator * MechPDE::GetStrainOperator( bool isComplex, bool icModes ){
-    BaseBOperator * bOp = NULL;
-    if( isComplex ) {
-      if( subType_ == "axi" ) {
-        bOp = new StrainOperatorAxi<FeH1,Complex>(icModes);
-      } else if( subType_ == "planeStrain" ) {
-        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
-      } else if( subType_ == "planeStress" ) {
-        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
-      } else if( subType_ == "3d") {
-        bOp = new StrainOperator3D<FeH1,Complex>(icModes);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+
+  BaseBOperator* MechPDE::GetStrainOperator(bool isComplex, bool icModes)
+  {
+    BaseBOperator* bOp = NULL;
+    // determine if we do bloch eigenfrequency analysis
+    bool do_bloch = domain->GetDriver()->DoBlochModeEigenfrequency();
+    assert(!(do_bloch && !isComplex));
+
+
+    if(isComplex)
+    {
+      if( subType_ == "planeStrain" )
+      {
+        if(do_bloch)
+        {
+          bOp = new StrainOperatorBloch2D<FeH1,Complex>(icModes);
+          EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
+          dynamic_cast<StrainOperatorBloch2D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
+        }
+        else
+          bOp = new StrainOperator2D<FeH1,Complex>(icModes);
       }
-    } else {
-      if( subType_ == "axi" ) {
-        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
-      } else if( subType_ == "planeStrain" ) {
-        bOp = new StrainOperator2D<FeH1,Double>(icModes);
-      } else if( subType_ == "planeStress" ) {
-        bOp = new StrainOperator2D<FeH1,Double>(icModes);
-      } else if( subType_ == "3d") {
-        bOp = new StrainOperator3D<FeH1,Double>(icModes);
-      } else {
-        EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
+      if( subType_ == "axi" )
+        bOp = new StrainOperatorAxi<FeH1,Complex>(icModes);
+      if(subType_ == "planeStress")
+        bOp = new StrainOperator2D<FeH1,Complex>(icModes);
+      if(subType_ == "3d")
+      {
+        if(do_bloch)
+        {
+          bOp = new StrainOperatorBloch3D<FeH1,Complex>(icModes);
+          EigenFrequencyDriver* efd = dynamic_cast<EigenFrequencyDriver*>(domain->GetSingleDriver());
+          dynamic_cast<StrainOperatorBloch3D<FeH1,Complex>* >(bOp)->SetWaveVector(efd->GetCurrentWaveVector());
+        }
+        else
+          bOp = new StrainOperator3D<FeH1,Complex>(icModes);
       }
     }
+    else // not complex
+    {
+      if(subType_ == "axi")
+        bOp = new StrainOperatorAxi<FeH1,Double>(icModes);
+      if(subType_ == "planeStrain")
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      if(subType_ == "planeStress")
+        bOp = new StrainOperator2D<FeH1,Double>(icModes);
+      if(subType_ == "3d")
+        bOp = new StrainOperator3D<FeH1,Double>(icModes);
+    }
+
+    if(bOp == NULL)
+      EXCEPTION("strain operator not implemented for analysis type");
+
     return bOp;
   }
 
@@ -1237,7 +1478,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       intensNormal->unit =  "N/ms";
       intensNormal->entryType = ResultInfo::SCALAR;
       intensNormal->definedOn = ResultInfo::SURF_ELEM;
-      sNormStructIntens.reset(new CoefFunctionSurf(true, intensNormal));
+      sNormStructIntens.reset(new CoefFunctionSurf(true, 1.0, intensNormal));
       DefineFieldResult( sNormStructIntens, intensNormal );
       surfCoefFcts_[sNormStructIntens] = intensFct;
       
@@ -1340,7 +1581,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     dispNormal->entryType = ResultInfo::SCALAR;
     dispNormal->definedOn = ResultInfo::SURF_ELEM;
 
-    dispFctNormal.reset(new CoefFunctionSurf(true, dispNormal));
+    dispFctNormal.reset(new CoefFunctionSurf(true, 1.0, dispNormal));
     DefineFieldResult(dispFctNormal, dispNormal);
     surfCoefFcts_[dispFctNormal] = feFct;
 
@@ -1373,7 +1614,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     normalStressInfo->entryType = ResultInfo::VECTOR;
     normalStressInfo->definedOn = ResultInfo::SURF_ELEM;
     
-    normalStressFct.reset(new CoefFunctionSurf(true, normalStressInfo));
+    normalStressFct.reset(new CoefFunctionSurf(true, 1.0, normalStressInfo));
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
   }
@@ -1395,5 +1636,208 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
      }
      return crSpaces;
    }
+
+  //+++++++++++++++++++++++++++++++++++++++++++++++++
+  // PreStressing CoefFunction Creation
+
+  //Helper
+  void MakeBigPreStressVector(StdVector<std::string>& bigVec, StdVector<std::string> smallVec, UInt dim){
+    if(dim ==2){
+      bigVec.Resize(16);
+      bigVec.Init("0.0");
+      bigVec[0] = smallVec[0];
+      bigVec[1] = smallVec[2];
+      bigVec[4] = smallVec[2];
+      bigVec[5] = smallVec[1];
+      bigVec[10] = smallVec[0];
+      bigVec[11] = smallVec[2];
+      bigVec[14] = smallVec[2];
+      bigVec[15] = smallVec[1];
+    }else if (dim ==3){
+      bigVec.Resize(81);
+      bigVec.Init("0.0");
+      for(UInt i=0;i<3;i++){
+        bigVec[i*30+0] = smallVec[0];
+        bigVec[i*30+1] = smallVec[3];
+        bigVec[i*30+2] = smallVec[5];
+
+        bigVec[i*30+9] = smallVec[3];
+        bigVec[i*30+10] = smallVec[1];
+        bigVec[i*30+11] = smallVec[4];
+
+        bigVec[i*30+18] = smallVec[5];
+        bigVec[i*30+19] = smallVec[4];
+        bigVec[i*30+20] = smallVec[2];
+      }
+    }
+  }
+
+  PtrCoefFct MechPDE::CreatePreStressFct( bool isComplex, PtrParamNode stressNode){
+    PtrParamNode preNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
+    PtrParamNode compNode = stressNode->Get("computeLHS",ParamNode::PASS);
+    PtrCoefFct coef;
+    if(preNode){
+      //TODO: This does not support coordinate systems. If this is needed,
+      // one possibility would be to create a stress tensor coeffunction first, apply coordinate systems and then blow it up
+      // according to the space dimension
+
+      //execute strTok and cast
+      typedef boost::tokenizer<boost::char_separator<char> >
+          tokenizer;
+      boost::char_separator<char> sep(" ");
+
+
+      StdVector<std::string> preVecR;
+      StdVector<std::string> preVecI;
+
+      std::string valueRStr =  preNode->Get("value")->As<std::string>();
+      tokenizer tokensR(valueRStr, sep);
+      for (tokenizer::iterator tok_iter = tokensR.begin();
+             tok_iter != tokensR.end(); ++tok_iter){
+        preVecR.Push_back(*tok_iter);
+      }
+
+      //some consistency checks
+      if(dim_==2 && preVecR.GetSize() != 3){
+        Exception("For a 2D simulation, we expect 3 values for real preStress tensor in Voigt notation.");
+      }
+      if(dim_==3 && preVecR.GetSize() != 6){
+        Exception("For a 3D simulation, we expect 6 values for real preStress tensor in Voigt notation.");
+      }
+
+      //first we create the big tensor for real values
+      StdVector<std::string> bigVecR;
+      StdVector<std::string> bigVecI;
+      MakeBigPreStressVector(bigVecR,preVecR,dim_);
+
+      if(isComplex){
+        //create just an empty tensor
+        preVecI.Resize(preVecR.GetSize());
+        preVecI.Init("0.0");
+        MakeBigPreStressVector(bigVecI,preVecI,dim_);
+      }
+
+      if(isComplex){
+        coef =  CoefFunction::Generate(mp_,Global::COMPLEX,dim_*dim_,dim_*dim_,bigVecR,bigVecI);
+      }else{
+        coef =  CoefFunction::Generate(mp_,Global::REAL,dim_*dim_,dim_*dim_,bigVecR);
+      }
+      return coef;
+    }else if(compNode){
+
+      UInt aSStep = 0;
+      //redefine if user passes the argument
+      if( compNode->Get("sequenceStep",ParamNode::PASS) ){
+          aSStep = compNode->Get("sequenceStep",ParamNode::PASS)->As<UInt>();
+      }
+
+      if(aSStep < 1){
+        // GetPreceeding sequence step
+        aSStep = domain_->GetDriver()->GetActSequenceStep();
+        aSStep--;
+      }
+
+      //only real valued coefFunctions supported
+      PtrCoefFct stressVec = GetStressCoefFromSeqStep(aSStep);
+      std::map<std::string, PtrCoefFct> var;
+      var["a"]  = stressVec;
+
+      StdVector<std::string> preVecR;
+      StdVector<std::string> preVecI;
+      StdVector<std::string> bigVecR;
+      StdVector<std::string> bigVecI;
+
+      if(dim_ == 2){
+        const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" };
+        preVecR.Import(vecR,3);
+        MakeBigPreStressVector(bigVecR,preVecR,2);
+        if(isComplex){
+          const std::string vecI[] = { "0.0" , "0.0" , "0.0" };
+          preVecI.Import(vecI,3);
+          MakeBigPreStressVector(bigVecI,preVecI,2);
+        }
+      }else{
+        const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" , "a_3_R" , "a_4_R" , "a_5_R"};
+        preVecR.Import(vecR,6);
+        MakeBigPreStressVector(bigVecR,preVecR,3);
+        if(isComplex){
+          const std::string vecI[] = { "0.0" , "0.0" , "0.0" , "0.0" , "0.0" , "0.0" };
+          preVecI.Import(vecI,6);
+          MakeBigPreStressVector(bigVecI,preVecI,3);
+        }
+      }
+      //create the coefFunction object
+      if(bigVecI.GetSize()>0){
+        coef.reset(new CoefFunctionCompound<Complex>(mp_));
+        CoefFunctionCompound<Complex>*  stressTens = dynamic_cast< CoefFunctionCompound<Complex>* > (coef.get());
+        stressTens->SetTensor(bigVecR,bigVecI,dim_*dim_,dim_*dim_,var);
+      }else{
+        coef.reset(new CoefFunctionCompound<Double>(mp_));
+        CoefFunctionCompound<Double>*  stressTens = dynamic_cast< CoefFunctionCompound<Double>* > (coef.get());
+        stressTens->SetTensor(bigVecR,dim_*dim_,dim_*dim_,var);
+      }
+      return coef;
+    }else{
+      EXCEPTION("Cannot read definition of prestressing!");
+      return coef;
+    }
+  }
+
+  PtrCoefFct MechPDE::GetStressCoefFromSeqStep(UInt seqStep){
+    //This function uses mostly the simState algorithms from SinglePDE
+    //TODO: This is the third(?) time this code is used (see ReadUserFieldValues and ReadInitialConditions).
+    //Define some function to handle feFunction extraction from other sequence steps or external simulations
+
+    Domain * inDomain = NULL;
+    PtrCoefFct stressVec;
+    //Get Stress CoefFunction from previous state
+    boost::shared_ptr<SimState> inState(new SimState(true, domain_));
+
+    PtrParamNode icInfo = infoNode_->Get("Prestressing");
+    PtrParamNode isInfo = icInfo->Get("ComputedLHS");
+    try{
+      std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+      PtrParamNode node(new ParamNode());
+      PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
+                                          false));
+      boost::shared_ptr<SimInputHDF5> in;
+      in.reset(new SimInputHDF5(fileName, node, infoNode));
+      inState->SetInputHdf5Reader(in);
+      SimState::GridMap gridMap = domain_->GetGridMap();
+
+      inDomain = inState->GetDomain(seqStep, gridMap);
+      Double stepVal = 0.0;
+      UInt lastStepNum = 0;
+      inState->GetLastStepNum(seqStep, lastStepNum, stepVal);
+      // log to info node
+      isInfo->Get("inputSequenceStep")->SetValue(seqStep);
+      isInfo->Get("inputStepNumber")->SetValue(lastStepNum);
+      // update to last step number
+      inState->SetInterpolation(SimState::CONSTANT, mp_, analysistype_, 0);
+      inState->UpdateToStep(seqStep, lastStepNum);
+      SinglePDE * inPDE = inDomain->GetSinglePDE(pdename_);
+      if( inPDE->GetAnalysisType() != STATIC && inPDE->GetAnalysisType() != TRANSIENT){
+        EXCEPTION("Prestressing is only supported for a preceeding transient or static analysis");
+      }
+      
+      // Directly aquire the mechanical stress from the previous sequence step
+      stressVec = inPDE->GetCoefFct(MECH_STRESS);
+      
+      // Store the data input for later. It will be destroyed in the destructor
+      // of the SinglePDE
+      inputs_[inState] = inDomain;
+     } catch (Exception& e){
+      if( inState ) {
+        inState->Finalize();
+        inState.reset();
+      }
+      if(inDomain)
+        delete inDomain;
+
+      RETHROW_EXCEPTION(e, "Cannot obtain mechanic Stress coefficient function from last sequence step for prestressing."
+                        << "' from sequenceStep " << seqStep );
+    }
+    return stressVec;
+  }
 
 } // end namespace CoupledField

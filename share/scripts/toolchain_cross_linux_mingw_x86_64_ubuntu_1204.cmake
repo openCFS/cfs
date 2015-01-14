@@ -13,6 +13,7 @@ SET(CMAKE_SYSTEM_NAME Windows)
 #CMAKE_FORCE_CXX_COMPILER(/usr/bin/x86_64-w64-mingw32-g++ GNU)
 
 SET(CMAKE_TOOLCHAIN_PREFIX "x86_64-w64-mingw32")
+SET(BUILD_PREFIX "x86_64-unknown-linux-gnu")
 
 # which compilers to use for C and C++
 SET(CMAKE_C_COMPILER /usr/bin/x86_64-w64-mingw32-gcc)

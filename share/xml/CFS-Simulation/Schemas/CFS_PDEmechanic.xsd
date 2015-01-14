@@ -130,9 +130,11 @@
 
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="constraint"    type="DT_MechCS" />
+                <xsd:element name="concentratedElem" type="DT_MechConcElem"    />
+                <xsd:element name="preStress"     type="DT_MechPreStress"/>
                 
             <!--<xsd:element name="spring"        type="DT_MechSpring"    />
-                <xsd:element name="preStress"     type="DT_MechPreStress" />
+                
                 <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
                 <xsd:element name="periodic"      type="DT_BcPeriodic"    />
 		<xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
@@ -375,22 +377,20 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for spring elements -->
+  <!-- Element type for concentrated mechanical elements -->
   <!-- We derive it by extending the base type -->
-  <xsd:complexType name="DT_MechSpring">
+  <xsd:complexType name="DT_MechConcElem">
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
         <xsd:attribute name="dof" type="DT_MechDOF" use="required"/>
-        <xsd:attribute name="massValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="dampingValue" type="xsd:double" use="required"/>
-        <xsd:attribute name="stiffnessValue" type="xsd:double"
-          use="required"/>
-        <xsd:attribute name="relStiffness" type="xsd:boolean" use="optional" 
-          default="false" />        
+        <xsd:attribute name="massValue" type="xsd:token" default="0.0"/>
+        <xsd:attribute name="dampingValue" type="xsd:token" default="0.0"/>
+        <xsd:attribute name="stiffnessValue" type="xsd:token" default="0.0"/>
       </xsd:extension>
     </xsd:complexContent>
-  </xsd:complexType>
+  </xsd:complexType> 
+  
   
   <!-- Element type for constraint condition -->
   <!-- We derive it by extending the base type -->
@@ -593,7 +593,7 @@
      <xsd:choice>
        <xsd:element name="prescribedLHS">
          <xsd:complexType>
-           <xsd:attribute name="value">
+           <xsd:attribute name="value" use="required">
              <xsd:simpleType>
                <xsd:restriction base="DT_DoubleList">
                  <xsd:maxLength value="6"/>
@@ -602,7 +602,11 @@
            </xsd:attribute>
          </xsd:complexType>
        </xsd:element>
-       <xsd:element name="computeLHS"/>
+       <xsd:element name="computeLHS">
+         <xsd:complexType>
+           <xsd:attribute name="sequenceStep" use="optional" type="xsd:unsignedInt" default="0"/>
+         </xsd:complexType>
+       </xsd:element>
      </xsd:choice>
      <xsd:attribute name="region"  type="xsd:token"/>
    </xsd:complexType>

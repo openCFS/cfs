@@ -65,6 +65,7 @@ using std::string;
 #include "Domain/CoefFunction/CoefFunctionGrid.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -77,10 +78,11 @@ using std::string;
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 #include "Forms/Operators/SurfaceNormalStressOperator.hh"
+#include "Forms/Operators/ConvectiveOperator.hh"
 
-// TEMPORARY
+// used for getting coils from the pde
 #include "MagEdgePDE.hh"
-#include "FeBasis/HCurl/FeSpaceHCurlHi.hh"
+#include "MagneticPDE.hh"
 
 
 namespace CoupledField {
@@ -114,7 +116,6 @@ namespace CoupledField {
   //   Destructor
   // **************
   SinglePDE::~SinglePDE() {
-
     // Delete algebraic system only if
     // PDE is not direct coupled
     if ( isDirectCoupled_ == false ) {
@@ -139,7 +140,28 @@ namespace CoupledField {
     }
     materials_.clear();
     
-    // delete simstates and externally loaded domains
+    // Loop overall feFunctions and finalize them
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator feIt;
+    for( feIt = feFunctions_.begin(); feIt != feFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+    for( feIt = prevFeFunctions_.begin(); feIt != prevFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+    for( feIt = rhsFeFunctions_.begin(); feIt != rhsFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+
+    for( feIt = timeDerivFeFunctions_.begin(); feIt != timeDerivFeFunctions_.end(); ++feIt)  {
+      feIt->second->CleanUp();
+    }
+
+    feFunctions_.clear();
+    prevFeFunctions_.clear();
+    rhsFeFunctions_.clear();
+    timeDerivFeFunctions_.clear();
+    
+    // delete external domains
     std::map<shared_ptr<SimState>, Domain* >::iterator inputIt = inputs_.begin();
     for( ; inputIt != inputs_.end(); ++inputIt) {
       inputIt->first->Finalize();
@@ -185,8 +207,7 @@ namespace CoupledField {
 
 
     // Obtain regions the pde is defined on
-    ParamNodeList regionNodes =
-      myParam_->Get("regionList")->GetList("region");
+    ParamNodeList regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
     PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
@@ -195,21 +216,20 @@ namespace CoupledField {
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
     {
       PtrParamNode in_ = list->Get("region");
-      in_->Get("name")->SetValue(regionNodes[i]->Get("name")->As<std::string>());
+      std::string name = regionNodes[i]->Get("name")->As<std::string>();
+      in_->Get("name")->SetValue(name);
       bool complexMat = false;
       regionNodes[i]->GetValue("complexMaterial",  complexMat, ParamNode::PASS );
       
-      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(regionNodes[i]->Get("name")->As<std::string>());
+      RegionIdType actRegionId = ptGrid_->GetRegion().Parse(name);
       
       // Check, if region was already defined an issue a warning otherwise
-      if( std::find(regions_.Begin(), regions_.End(), actRegionId ) 
-          != regions_.End() )  {
+      if( std::find(regions_.Begin(), regions_.End(), actRegionId )!= regions_.End() )
         WARN( "The region '" << regionNodes[i]->Get("name")->As<std::string>()
               << "' was already defined for PDE '" << pdename_ 
               << "'. Please remove duplicate entries." );
-      }
           
-      regions_.Push_back( actRegionId );
+      regions_.Push_back(actRegionId);
 
       complexMatData_[actRegionId] = complexMat;
     }
@@ -218,7 +238,9 @@ namespace CoupledField {
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
     if( needsAlgsys_ == true || !simState_->HasInput()) {
+	    
       if ( isDirectCoupled_ == false) {
+		
         olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
         solStrat_ = algsys_->GetSolStrategy();
@@ -273,7 +295,7 @@ namespace CoupledField {
       actFct->SetFctId(fctId);
       fncIt++;
     }
-
+	 
     // =====================================================================
     // trigger definition of available results
     // =====================================================================
@@ -295,7 +317,7 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Initializing material depenencies";
     InitMaterialDependencies();
-
+	 
     // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
@@ -347,7 +369,7 @@ namespace CoupledField {
     DefineRhsLoadIntegrators();
 
     // Print information about defined integrators
-    if( needsAlgsys_ == true && !isDirectCoupled_ ) 
+    if( needsAlgsys_ == true && !isDirectCoupled_ )
       assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
   }
 
@@ -372,6 +394,11 @@ namespace CoupledField {
       // register FeFunctions with SimState class
       simState_->RegisterFeFct( actFct );
       
+      // pass regions of primary function also RHS one
+      StdVector< shared_ptr<EntityList> > support =  actFct->GetEntityList();
+      for( UInt i = 0; i < support.GetSize(); ++i ) {
+        rhsFeFunctions_[fncIt->first]->AddEntityList( support[i] );
+      }
 
       // Pass feFctId of primary result also to RHS result
       rhsFeFunctions_[fncIt->first]->SetFctId(actFct->GetFctId());
@@ -421,7 +448,9 @@ namespace CoupledField {
     // =====================================================================
     // Set the initial conditions
     // =====================================================================
-    ReadInitialConditions();
+    if( !simState_->HasInput()) {
+      ReadInitialConditions();
+	}
     
     // Finally set the initialization flag to true
     isInitialized_ = true;
@@ -729,12 +758,14 @@ namespace CoupledField {
     elemNames.insert(make_pair(ResultInfo::SURF_ELEM, "surfElemResult"));
     elemNames.insert(make_pair(ResultInfo::REGION, "regionResult"));
     elemNames.insert(make_pair(ResultInfo::SURF_REGION, "surfRegionResult"));
+    elemNames.insert(make_pair(ResultInfo::COIL, "coilResult"));
 
     isHistory.insert(make_pair(ResultInfo::NODE, false));
     isHistory.insert(make_pair(ResultInfo::ELEMENT, false));
     isHistory.insert(make_pair(ResultInfo::SURF_ELEM, false));
     isHistory.insert(make_pair(ResultInfo::REGION, true));
     isHistory.insert(make_pair(ResultInfo::SURF_REGION, true));
+    isHistory.insert(make_pair(ResultInfo::COIL, true));
     
 
     // fetch result node and leave, if none is present
@@ -775,6 +806,9 @@ namespace CoupledField {
           break;
         case ResultInfo::ELEMENT:
           entityType = EntityList::ELEM_LIST;
+          break;
+        case ResultInfo::COIL:
+          entityType = EntityList::COIL_LIST;
           break;
         default:
           EXCEPTION("Type of 'definedOn' was not found");
@@ -917,7 +951,7 @@ namespace CoupledField {
         }
 
 
-        // ========== Look for defineType  node/elemList (history)  ==========
+        // ========== Look for defineType node/elemList/coilList (history) ==========
 
         std::string entityTypeName;
         StdVector<std::string> histNames;
@@ -945,11 +979,14 @@ namespace CoupledField {
           entityTypeName = "surfElems";
 
           // fetch entry with neighboring regions
-          // fetch entry with neighboring regions
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
             neighborRegions.Push_back( histEntities[i]->
                                        Get("neighborRegion")->As<std::string>() );
           }
+        } else if(candidate->definedOn == ResultInfo::COIL ) {
+          histNode = actResultNode->Get("coilList", ParamNode::PASS);
+          if( histNode )
+            histEntities = histNode->GetList("coil");
         }
 
         // only proceed, if any history result is defined
@@ -966,7 +1003,10 @@ namespace CoupledField {
           outDestNames.Clear();
           writeResults.Clear();
           for( UInt i = 0; i < histEntities.GetSize(); i++ ) {
-            histNames.Push_back( histEntities[i]->Get("name")->As<std::string>() );
+            std::string nameType = "name";
+            if( candidate->definedOn == ResultInfo::COIL )
+              nameType = "id";
+            histNames.Push_back( histEntities[i]->Get(nameType)->As<std::string>() );
             postProcNames.Push_back( histEntities[i]->Get("postProcId")->As<std::string>() );
             outDestNames.Push_back( histEntities[i]->Get("outputIds")->As<std::string>() );
             writeResults.Push_back( histEntities[i]->Get("writeResult")->As<std::string>() );
@@ -980,7 +1020,24 @@ namespace CoupledField {
           // iterate over all entityNames
           for( UInt i = 0; i < histNames.GetSize(); i++ )
           {
-            actList = ptGrid_->GetEntityList( entityType, histNames[i] );
+            if( candidate->definedOn != ResultInfo::COIL ){
+              actList = ptGrid_->GetEntityList( entityType, histNames[i] );
+            } else {
+              // The grid does not know about coils beause depending on the space used
+              // we don't know if we need approximation in space, e.g. with the FeSpaceConst.
+              // But we know that we want only one result per coil, not for each element in the coil.
+              shared_ptr<Coil> actCoil;
+              if( pdename_ == "magneticEdge" ){
+                MagEdgePDE* askThePDE = dynamic_cast<MagEdgePDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              } else {
+                MagneticPDE* askThePDE = dynamic_cast<MagneticPDE*>(this);
+                actCoil = askThePDE->GetCoilById( histNames[i] );
+              }
+              shared_ptr<CoilList> singleCoilList( new CoilList( ptGrid_ ) );
+              singleCoilList->AddCoil( actCoil );
+              actList = singleCoilList;
+            }
             shared_ptr<BaseResult> actSol;
             if( isComplex_ ) {
               actSol = shared_ptr<BaseResult>(new Result<Complex>());
@@ -1088,9 +1145,10 @@ namespace CoupledField {
         shared_ptr<BaseFeFunction> primFeFct = feFunctions_[timeDerivPrimaryResults_[it->first]];
         shared_ptr<BaseFeFunction> derivFeFct = it->second;
         if( !primFeFct || !derivFeFct ) {
-          EXCEPTION( "The time derivative information for PDE '" << pdename_
-                     << "' is not set correctly!" );
+          EXCEPTION( "The time derivative information for PDE '" << pdename_  << "' is not set correctly!" );
         }
+        LOG_DBG(singlepde) << "FPPR: " << pdename_ << " derivFeFct =" << derivFeFct->ToString() << " complex:" << derivFeFct->IsComplex();
+
         // Now loop over all regions of the primary FeFunction and pass the
         // all regions of the primary one
         StdVector< shared_ptr<EntityList> > support =  primFeFct->GetEntityList();
@@ -1102,26 +1160,20 @@ namespace CoupledField {
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
         if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
-          FeFunction<Complex> & cDerivFct = 
-              dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
-          shared_ptr<FeFunction<Complex> > cPrimFct = 
-              dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
+          FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
+          shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
-
         } else {
-          primFeFct->GetTimeScheme()
-                                         ->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector() );
-          simState_->RegisterFeFct( derivFeFct );
+          primFeFct->GetTimeScheme()->SetTimeDerivVector(timeDerivOrder, derivFeFct->GetSingleVector());
+          simState_->RegisterFeFct(derivFeFct);
         }
       }
     }
   }
-      
+
 
   PtrCoefFct SinglePDE::GetCoefFct( SolutionType type ) {
-    LOG_DBG(singlepde) <<  pdename_ << 
-        ": Requesting coefficient function for solution type "
-        << SolutionTypeEnum.ToString( type );
+    LOG_DBG(singlepde) <<  pdename_ << ": Requesting coefficient function for solution type " << SolutionTypeEnum.ToString(type);
     
     PtrCoefFct ret;
     // 1) look in fieldCoefs
@@ -1307,9 +1359,11 @@ namespace CoupledField {
           shared_ptr<ElemShapeMap> esm = 
               ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
           esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+          
+          fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
           // write to file
           out << fap.elems[iPoint]->elemNum << delim;
-          out << globPoint.ToString(0, delim) << delim;
+          out << globPointcSys.ToString(0, delim) << delim;
           for(UInt j = 0; j < numDofs; ++j ) {
             out << vec[iPoint*numDofs + j] << delim;
           }
@@ -1402,7 +1456,13 @@ namespace CoupledField {
         actField.field = new Vector<Double>();
       }
       
-      std::set<RegionIdType> regions(regions_.Begin(), regions_.End());
+      StdVector<shared_ptr<EntityList> > lists;
+      StdVector<RegionIdType>::iterator regIt = regions_.Begin();
+      for(; regIt != regions_.End(); regIt++ ) {
+        shared_ptr<ElemList> newList(new ElemList(ptGrid_));
+        newList->SetRegion(*regIt);
+        lists.Push_back(newList);
+      }
 
       StdVector< Vector<Double> > globPoints( numSamples[0] *
                                               numSamples[1] *
@@ -1438,7 +1498,7 @@ namespace CoupledField {
       ptGrid_->GetElemsAtGlobalCoords( globPoints,
                                        locPoints,
                                        elems,
-                                       regions,
+                                       lists,
                                        0.0, 1.0e-2,
                                        false );
 
@@ -1589,6 +1649,7 @@ namespace CoupledField {
           seqInfo->Get("stepNum")->SetValue(stepNum);
 
           // update to last step number
+          inState->SetInterpolation(SimState::CONSTANT, mp_, analysistype_, 0);
           inState->UpdateToStep(sequenceStep, stepNum);
 
           // Obtain same PDE from new domain
@@ -1761,7 +1822,11 @@ namespace CoupledField {
           std::set<UInt> definedDofs;
           PtrCoefFct coef;
           bool coefUpdatedGeo = false;
-          ReadUserFieldValues( actList, hdbcNodes[i], dofNames, ResultInfo::VECTOR,
+          ResultInfo::EntryType entryType = ResultInfo::VECTOR;
+          if(dofNames.GetSize() == 0 || dofNames.GetSize() == 1 ) {
+            entryType = ResultInfo::SCALAR;
+          }
+          ReadUserFieldValues( actList, hdbcNodes[i], dofNames, entryType,
                                isComplex_, coef, definedDofs,  coefUpdatedGeo );
           
           // ensure, that only the default coordinate system is used
@@ -1797,10 +1862,10 @@ namespace CoupledField {
       StdVector<std::string>  dofNames = info->dofNames;
       // additional check: if we have a vector-valued function approximation,
       // we might have scalar unknowns
-      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
-        dofNames.Clear();
-        dofNames.Push_back("_");
-      }
+//      if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+//        dofNames.Clear();
+//        dofNames.Push_back("_");
+//      }
       ParamNodeList idbcNodes = bcsNode->GetList(elemName);
 
       // iterate over all parameter nodes
@@ -1826,7 +1891,11 @@ namespace CoupledField {
         std::set<UInt> definedDofs;
         PtrCoefFct coef;
         bool updatedGeo;
-        ReadUserFieldValues( actList, idbcNodes[i], dofNames, ResultInfo::VECTOR,
+        ResultInfo::EntryType entryType = ResultInfo::VECTOR;
+        if(dofNames.GetSize() == 0 || dofNames.GetSize() == 1 ) {
+          entryType = ResultInfo::SCALAR;
+        }
+        ReadUserFieldValues( actList, idbcNodes[i], dofNames, entryType,
                              isComplex_, coef, definedDofs, updatedGeo );
         
         // ensure, that only the default coordinate system is used
@@ -1839,7 +1908,12 @@ namespace CoupledField {
 
         actBc->entities = actList;
         actBc->result = actFeFunction->GetResultInfo();
-        actBc->dofs = definedDofs;
+        if( actFeFunction->GetFeSpace()->GetNumDofs() == 1 ) {
+          actBc->dofs.insert(0);
+        } else {
+          actBc->dofs = definedDofs;        
+        }
+        
         actBc->value = coef;
         actBc->updatedGeo = updatedGeo;
 
@@ -2218,34 +2292,57 @@ namespace CoupledField {
       // here we assume no updated geometry
       updateGeo = false;
       
-    } else if( valueNode->Has("externalSimulation") ) {
-      // =====================
-      //  EXTERNAL SIMULATION 
-      // =====================
-      PtrParamNode esNode = valueNode->Get("externalSimulation");
+    } else if( valueNode->Has("externalSimulation") ||
+               valueNode->Has("sequenceStep") ) {
+      // ===========================================
+      //  EXTERNAL SIMULATION / MULTISEQUENCE STEP
+      // ============================================
+      PtrParamNode esNode;
+      if( valueNode->Has("externalSimulation") ) {
+        esNode = valueNode->Get("externalSimulation");
+      } else {
+        esNode = valueNode->Get("sequenceStep");
+      }
       PtrParamNode qNode = esNode->Get("quantity");
       PtrParamNode tfm = esNode->Get("timeFreqMapping");
-      
+
       // obtain fileId and SequenceStep
-      std::string fileId = esNode->Get("inputId")->As<std::string>();
-      UInt sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+      std::string fileId;
+      UInt sequenceStep = 0; 
       std::string quantityName = qNode->Get("name")->As<std::string>();
       std::string pdeName = qNode->Get("pdeName")->As<std::string>();
+      SolutionType solType = SolutionTypeEnum.Parse(quantityName);
+      
       try {
-
-        SolutionType solType = SolutionTypeEnum.Parse(quantityName);
-
         Domain * inDomain = NULL;
 
         // create SimState (for input)
         boost::shared_ptr<SimState> inState(new SimState(true, domain_));
-        shared_ptr<SimInput> reader = domain_->GetResultHandler()->GetInputReader(fileId);
+        shared_ptr<SimInput> reader;
         shared_ptr<SimInputHDF5> in;
-        try {
-          in = dynamic_pointer_cast<SimInputHDF5>(reader);
-        } catch (...) {
-          EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+
+        if( valueNode->Has("externalSimulation") ) {
+          sequenceStep = esNode->Get("sequenceStep")->As<UInt>();
+          fileId = esNode->Get("inputId")->As<std::string>();
+          reader = domain_->GetResultHandler()->GetInputReader(fileId);
+          try {
+            in = dynamic_pointer_cast<SimInputHDF5>(reader);
+          } catch (...) {
+            EXCEPTION( "Reader with id'" << fileId << "' has not HDF5 format." );
+          }
+        } else { 
+          
+          sequenceStep = esNode->Get("index")->As<UInt>();
+          // create new simState from current hdf file
+          std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
+          // create new param and info node (without logging to console) for the
+          // newly created Domain object
+          PtrParamNode node(new ParamNode());
+          PtrParamNode infoNode(new ParamNode(ParamNode::APPEND, ParamNode::ELEMENT,
+                                              false));
+          in.reset(new SimInputHDF5(fileName, node, infoNode));
         }
+
         inState->SetInputHdf5Reader(in);
 
         // Get grid map of own domain, as the grids can be re-used
@@ -2274,6 +2371,7 @@ namespace CoupledField {
         if( tfmString == "constant") {
 
           // set domain to one specific step
+          inState->SetInterpolation( SimState::CONSTANT, mp_, analysistype_ , 0 );
           UInt stepNum = tfm->Get("constant")->Get("step")->As<UInt>();
           inState->UpdateToStep(sequenceStep, stepNum);
 
@@ -2321,7 +2419,10 @@ namespace CoupledField {
             << "Please check, if desired quantity and physic are defined for the "
             << "requested sequence step " << sequenceStep << ".");
       }
-      
+      // add the defined components
+      for( UInt i = 0; i < numComp; ++i ) {
+        definedDofs.insert(i);
+      }
       
       
     } else if( valueNode->Has("coupling") ) {
@@ -2420,6 +2521,14 @@ namespace CoupledField {
 
       } else if (type == ResultInfo::VECTOR) {
         
+        
+        CoordSystem * coordSys = NULL;
+        std::string coordSysId = "default";
+        valueNode->GetValue("coordSysId", coordSysId, ParamNode::PASS);
+        if( coordSysId != "default" ) {
+          coordSys = domain_->GetCoordSystem(coordSysId);
+        }
+        
         // --------------
         //  V E C T O R
         // --------------
@@ -2467,7 +2576,13 @@ namespace CoupledField {
              index = 0;
              definedDofs.insert(0);
            } else {
-             index = compNames.Find(dof);
+             // try to map found component name to coordinate-system local one
+             if(coordSys) {
+               index = coordSys->GetVecComponent(dof)-1; 
+             } else {
+               index = compNames.Find(dof);
+             }
+             
              if( index == -1 ) {
                EXCEPTION("Could not find component with name '" << dof << "'");
              }
@@ -2591,7 +2706,7 @@ namespace CoupledField {
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
         if( !rotNode ) {
-          if( dim_ == 2) {
+          if( dim_ == 2) {  
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
             materials_[actRegionId]->
@@ -2982,8 +3097,11 @@ namespace CoupledField {
     
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_ && iface.movingMortarForm
-        && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    bool isMoving = updatedGeo_;
+    bool changeForms = iface.movingMortarForm 
+                     && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    
+    bool isEulerian = isMoving && mortarIf->IsEulerian();
     
     // create ElemLists for slave surface and intersection
     shared_ptr<SurfElemList> elMaster(new SurfElemList(ptGrid_)),
@@ -3034,7 +3152,7 @@ namespace CoupledField {
     BiLinearForm *massInt = NULL, *massInt2 = NULL;
     massInt = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
     massInt->SetName("MortarMassInt");
-    if (isMoving) {
+    if (isMoving && changeForms) {
       massInt2 = new BBInt<>( new IdentityOperator<FeH1,DIM,D_DOF>, unity, 1.0, updatedGeo_);
       massInt2->SetName("MortarMassInt");
     }
@@ -3043,10 +3161,10 @@ namespace CoupledField {
     BiLinFormContext *massContext = new BiLinFormContext(massInt, STIFFNESS);
     massContext->SetEntities(elSlave, elSlave);
     massContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    massContext->SetCounterPart(!isMoving);
+    massContext->SetCounterPart(!(isMoving && changeForms));
     assemble_->AddBiLinearForm(massContext);
     
-    if (isMoving) {
+    if (isMoving && changeForms) {
       BiLinFormContext *massContext2 = new BiLinFormContext(massInt2, DAMPING);
       massContext2->SetEntities(elSlave, elSlave);
       massContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
@@ -3064,7 +3182,7 @@ namespace CoupledField {
         mortarIf->IsPlanar(),
         updatedGeo_ );
     ncInt->SetName("MortarNcInt");
-    if (isMoving) {
+    if (isMoving && changeForms) {
       ncInt2 = new SurfaceMortarABInt<>( new IdentityOperator<FeH1,DIM,D_DOF>(),
           new IdentityOperator<FeH1,DIM,D_DOF>(),
           unity, -1.0,
@@ -3078,20 +3196,53 @@ namespace CoupledField {
     NcBiLinFormContext *ncContext = new NcBiLinFormContext(ncInt, STIFFNESS);
     ncContext->SetEntities(elMortar, elMortar);
     ncContext->SetFeFunctions( feFunctions_[solType], feFunctions_[LAGRANGE_MULT] );
-    ncContext->SetCounterPart(!isMoving);
+    ncContext->SetCounterPart(!(isMoving && changeForms));
     assemble_->AddBiLinearForm(ncContext);
     ncIf->RegisterIntegrator(ncContext);
-    
-    if (isMoving) {
-      ncContext->SetMotion(true);
 
-      NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt2, DAMPING);
-      ncContext2->SetEntities(elMortar, elMortar);
-      ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
-      ncContext2->SetCounterPart(false);
-      ncContext2->SetMotion(true);
-      assemble_->AddBiLinearForm(ncContext2);
-      ncIf->RegisterIntegrator(ncContext2);
+    if (isMoving) {
+      if(changeForms){
+        NcBiLinFormContext *ncContext2 = new NcBiLinFormContext(ncInt2, DAMPING);
+        ncContext2->SetEntities(elMortar, elMortar);
+        ncContext2->SetFeFunctions( feFunctions_[LAGRANGE_MULT], feFunctions_[solType] );
+        ncContext2->SetCounterPart(false);
+        ncContext2->SetMotion(true);
+        assemble_->AddBiLinearForm(ncContext2);
+        ncIf->RegisterIntegrator(ncContext2);
+      }
+      ncContext->SetMotion(true);
+    }
+    
+    // assemble additional terms for Eulerian formulation of slave region
+    if (isEulerian) {
+      RegionIdType slaveRegion = mortarIf->GetSlaveVolRegion();
+      PtrCoefFct massCoef = massInts_[slaveRegion]->GetCoef();
+      PtrCoefFct gridVelocity = mortarIf->GetGridVelocity();
+      shared_ptr<ElemList> slaveEL(new ElemList(ptGrid_));
+      slaveEL->SetRegion(slaveRegion);
+      
+      BiLinearForm *eulerDampInt = new ABInt<>(
+          new IdentityOperator<FeH1,DIM,D_DOF>(),
+          new ConvectiveOperator<FeH1,DIM,D_DOF>(),
+          massCoef, -2.0, updatedGeo_);
+      eulerDampInt->SetBCoefFunctionOpB(gridVelocity);
+      eulerDampInt->SetName("eulerDampingInt");
+      
+      BiLinFormContext *eulerDampContext = new BiLinFormContext(eulerDampInt, DAMPING);
+      eulerDampContext->SetEntities(slaveEL, slaveEL);
+      eulerDampContext->SetFeFunctions(feFunctions_[solType], feFunctions_[solType]);
+      assemble_->AddBiLinearForm(eulerDampContext);
+      
+      BiLinearForm *eulerStiffInt = new BBInt<>(
+          new ConvectiveOperator<FeH1,DIM,D_DOF>(),
+          massCoef, 1.0, updatedGeo_);
+      eulerStiffInt->SetBCoefFunctionOpB(gridVelocity);
+      eulerStiffInt->SetName("eulerStiffnessInt");
+      
+      BiLinFormContext *eulerStiffContext = new BiLinFormContext(eulerStiffInt, STIFFNESS);
+      eulerStiffContext->SetEntities(slaveEL, slaveEL);
+      eulerStiffContext->SetFeFunctions(feFunctions_[solType], feFunctions_[solType]);
+      assemble_->AddBiLinearForm(eulerStiffContext);      
     }
   }
   
@@ -3111,8 +3262,8 @@ namespace CoupledField {
 
     // currently we have a moving formulation only for acoustics
     updatedGeo_ = updatedGeo_ || ncIf->NeedsUpdate(); // TODO jens: isn't is this too late?
-    bool isMoving = updatedGeo_ && iface.movingMortarForm
-       && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
+    bool isMoving = updatedGeo_;
+    bool changeForms =   iface.movingMortarForm  && (solType == ACOU_PRESSURE || solType == ACOU_POTENTIAL);
 
     // create new entity list
     shared_ptr<ElemList> actSDList = ncIf->GetElemList();
@@ -3140,6 +3291,30 @@ namespace CoupledField {
     else if ( solType == ELEC_POTENTIAL ) {
       factor = materials_[nitscheIf->GetMasterVolRegion()]
                        ->GetScalCoefFnc( ELEC_CONDUCTIVITY, Global::REAL );
+    }
+    else if ( solType == MAG_POTENTIAL) {
+      PtrCoefFct nu1, nu2;
+      PtrCoefFct oneHalf = CoefFunction::Generate( mp_, Global::REAL, "0.5");
+      factor = materials_[nitscheIf->GetMasterVolRegion()]
+                             ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+//      nu2 = materials_[nitscheIf->GetSlaveVolRegion()]
+//                                   ->GetScalCoefFnc( MAG_RELUCTIVITY, Global::REAL );
+//      factor = CoefFunction::Generate( mp_, Global::REAL,
+//                         CoefXprBinOp(mp_, nu1, nu2, CoefXpr::OP_ADD));
+//      factor = nu2;
+//      factor = CoefFunction::Generate( mp_, Global::REAL,
+//                         CoefXprBinOp(mp_, factor, oneHalf, CoefXpr::OP_MULT));
+
+//      //get correct scaling of penalty term
+//      StdVector<Vector<Double> > points(1);
+//      Vector<Double> p1(DIM);
+//      p1.Init();
+//      points[0]= p1;
+//      StdVector<Double> values;
+//      nu1->GetScalarValuesAtCoords(points,values,this->ptGrid_);
+//      std::cout << "Nu1: " << values[0] << std::endl;
+//      nu2->GetScalarValuesAtCoords(points,values,this->ptGrid_);
+//      std::cout << "Nu2: " << values[0] << std::endl;
     }
     else
       factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
@@ -3277,8 +3452,6 @@ namespace CoupledField {
           new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
           factor, beta, curcpl, updatedGeo_, true, true);
 
-
-
     SurfaceBiLinFormContext *penalty_u1_v1_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v1_Context   = NULL;
     SurfaceBiLinFormContext *flux_u1_dv1_Context   = NULL;
@@ -3286,91 +3459,81 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
 
+    curcpl = BiLinearForm::MASTER_MASTER;
+    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
+    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
+    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_SLAVE;
+    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    curcpl = BiLinearForm::MASTER_SLAVE;
+    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
+    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
+    curcpl = BiLinearForm::SLAVE_MASTER;
+
     if (isMoving) {
-      Double betaDamp = iface.nitscheFactorDamp;
-      BiLinearForm *penalty_u1_v1_M = NULL;
-      BiLinearForm *penalty_u1_v2_M = NULL;
-      BiLinearForm *penalty_u2_v2_M = NULL;
-      SurfaceBiLinFormContext *penalty_u2_v2_M_Context = NULL;
-      SurfaceBiLinFormContext *penalty_u1_v2_M_Context = NULL;
-      SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
+      if(changeForms){
+        Double betaDamp = iface.nitscheFactorDamp;
+        BiLinearForm *penalty_u1_v1_M = NULL;
+        BiLinearForm *penalty_u1_v2_M = NULL;
+        BiLinearForm *penalty_u2_v2_M = NULL;
+        SurfaceBiLinFormContext *penalty_u2_v2_M_Context = NULL;
+        SurfaceBiLinFormContext *penalty_u1_v2_M_Context = NULL;
+        SurfaceBiLinFormContext *penalty_u1_v1_M_Context = NULL;
 
-      curcpl = BiLinearForm::MASTER_MASTER;
+        curcpl = BiLinearForm::MASTER_MASTER;
+        penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
 
-      penalty_u1_v1_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp, curcpl, updatedGeo_, true, true);
+        curcpl = BiLinearForm::SLAVE_SLAVE;
+        penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp, curcpl, updatedGeo_, true, true);
+        penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
 
-
-      penalty_u1_v1_M_Context = new SurfaceBiLinFormContext(penalty_u1_v1_M, DAMPING, curcpl);
-      penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-      flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1, STIFFNESS, curcpl);
-      flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1, STIFFNESS, curcpl);
-
-
-      curcpl = BiLinearForm::SLAVE_SLAVE;
-      penalty_u2_v2_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp, curcpl, updatedGeo_, true, true);
-
-
-      penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
-      penalty_u2_v2_M_Context = new SurfaceBiLinFormContext(penalty_u2_v2_M, DAMPING, curcpl);
-
-      curcpl = BiLinearForm::MASTER_SLAVE;
-      penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
-          ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
-            factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
-
-      penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-      penalty_u1_v2_M_Context = new SurfaceBiLinFormContext(penalty_u1_v2_M, DAMPING, curcpl);
-      flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2, STIFFNESS, curcpl);
+        curcpl = BiLinearForm::MASTER_SLAVE;
+        penalty_u1_v2_M = new SurfaceNitscheABInt<Double,Double>
+            ( new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              new SurfaceIdentityOperator<FeH1,DIM,D_DOF>(),
+              factor, betaDamp * -1.0, curcpl, updatedGeo_, true, true);
+        penalty_u1_v2_M_Context = new SurfaceBiLinFormContext(penalty_u1_v2_M, DAMPING, curcpl);
 
 
+        penalty_u1_v1_M_Context->SetMotion(true);
+        penalty_u2_v2_M_Context->SetMotion(true);
+        penalty_u1_v2_M_Context->SetMotion(true);
+
+        penalty_u2_v2_M->SetName("penalty_u2_v2_M");
+        penalty_u1_v2_M->SetName("penalty_u1_v2_M");
+        penalty_u1_v1_M->SetName("penalty_u1_v1_M");
+        penalty_u1_v1_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u2_v2_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v2_M_Context->SetEntities(actSDList,actSDList);
+        penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType],
+                                               feFunctions_[solType] );
+        penalty_u1_v2_M_Context->SetCounterPart(true);
+        assemble_->AddBiLinearForm( penalty_u1_v1_M_Context );
+        assemble_->AddBiLinearForm( penalty_u2_v2_M_Context );
+        assemble_->AddBiLinearForm( penalty_u1_v2_M_Context );
+        ncIf->RegisterIntegrator( penalty_u1_v1_M_Context );
+        ncIf->RegisterIntegrator( penalty_u2_v2_M_Context );
+        ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
+      }
       penalty_u1_v1_Context->SetMotion(true);
       penalty_u2_v2_Context->SetMotion(true);
       penalty_u1_v2_Context->SetMotion(true);
-      penalty_u1_v1_M_Context->SetMotion(true);
-      penalty_u2_v2_M_Context->SetMotion(true);
-      penalty_u1_v2_M_Context->SetMotion(true);
       flux_du1_v1_Context->SetMotion(true);
       flux_u1_dv1_Context->SetMotion(true);
       flux_du1_v2_Context->SetMotion(true);
-
-      penalty_u2_v2_M->SetName("penalty_u2_v2_M");
-      penalty_u1_v2_M->SetName("penalty_u1_v2_M");
-      penalty_u1_v1_M->SetName("penalty_u1_v1_M");
-      penalty_u1_v1_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u2_v2_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u1_v2_M_Context->SetEntities(actSDList,actSDList);
-      penalty_u1_v1_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u2_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u1_v2_M_Context->SetFeFunctions( feFunctions_[solType],
-                                             feFunctions_[solType] );
-      penalty_u1_v2_M_Context->SetCounterPart(true);
-      assemble_->AddBiLinearForm( penalty_u1_v1_M_Context );
-      assemble_->AddBiLinearForm( penalty_u2_v2_M_Context );
-      assemble_->AddBiLinearForm( penalty_u1_v2_M_Context );
-      ncIf->RegisterIntegrator( penalty_u1_v1_M_Context );
-      ncIf->RegisterIntegrator( penalty_u2_v2_M_Context );
-      ncIf->RegisterIntegrator( penalty_u1_v2_M_Context );
-    }else{
-      curcpl = BiLinearForm::MASTER_MASTER;
-      penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-      flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
-      flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
-      curcpl = BiLinearForm::SLAVE_SLAVE;
-      penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
-      curcpl = BiLinearForm::MASTER_SLAVE;
-      penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-      flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
-      curcpl = BiLinearForm::SLAVE_MASTER;
     }
+
     penalty_u2_v2->SetName("penalty_u2_v2");
     penalty_u1_v2->SetName("penalty_u1_v2");
     penalty_u1_v1->SetName("penalty_u1_v1");

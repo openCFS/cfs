@@ -12,139 +12,366 @@ using namespace std;
 namespace CoupledField 
 {
 
-  int const ScatteredDataReaderCCM::kNValues = 10; // Number of values of each element to print
+  // Number of values of each element to print
+  int const ScatteredDataReaderCCM::kNValues = 10; 
   char const ScatteredDataReaderCCM::kUnitsName[] = "Units";
   int const ScatteredDataReaderCCM::kVertOffset = 0;
   int const ScatteredDataReaderCCM::kCellInc = 4;
-  
-  void ScatteredDataReaderCCM::WriteCellCenters()
-  {
-    std::ofstream csv;
-    
-    csv.open("cellcenters.csv", std::ios_base::binary);
-    csv << "x,y,z";
 
-    Name2FloatMap::iterator nit, nend;
-    if(!dMap_.empty()) 
+  ScatteredDataReaderCCM::ScatteredDataReaderCCM(PtrParamNode& scatteredDataNode,
+                                                 bool verbose) :
+    ScatteredDataReader(scatteredDataNode, verbose),
+    dump_(false),
+    cellCenters_(true),
+    faceCenters_(true)
+  {
+  }
+
+  void ScatteredDataReaderCCM::ParseParamNode() 
+  {
+    fileName_ = myParamNode_->Get("fileName")->As<std::string>();
+    id_ = myParamNode_->Get("id")->As<std::string>();
+
+    if(myParamNode_->Has("dump")) 
     {
-      csv << ",";
-      
-      nit = dMap_.begin()->second.begin();
-      nend = dMap_.begin()->second.end();
-      for( ; nit != nend; nit++ )
-      {
-        csv << nit->first << ",";
-      }
+      dump_ = myParamNode_->Get("dump")->As<bool>();
     }
 
-    csv << std::endl;
-
-    Cell2VertexMap::iterator it, end;
-    it = cell2Verts_.begin();
-    end = cell2Verts_.end();
-    Cell2DataMap::iterator c2dIt = dMap_.begin();
-
-    // std::cout << "cell2Verts_.size(): " << cell2Verts_.size() << std::endl;
-    // std::cout << "dMap_.size(): " << dMap_.size() << std::endl;
-    
-
-    for( ; it != end; it++ )
+    if(myParamNode_->Has("cellCenters")) 
     {
-      std::set<int>::iterator vit, vend;
-      vit = it->second.begin();
-      vend = it->second.end();
+      cellCenters_ = myParamNode_->Get("cellCenters")->As<bool>();
+    }
 
-      int nVerts = it->second.size();
-      double x = 0.0;
-      double y = 0.0;
-      double z = 0.0;
+    if(myParamNode_->Has("faceCenters")) 
+    {
+      faceCenters_ = myParamNode_->Get("faceCenters")->As<bool>();
+    }
+    
+    ParamNodeList quantityList;
+    quantityList = myParamNode_->GetList("quantity");
+    for(UInt j=0, m=quantityList.GetSize(); j<m; j++) {
+      std::string qid = quantityList[j]->Get("id")->As<std::string>();
 
-      for( ; vit != vend; vit++ )
-      {
-        x += vertices_[*vit][0];
-        y += vertices_[*vit][1];
-        z += vertices_[*vit][2];        
+      ParamNodeList valueList;
+      std::set<std::string> dofs;
+      std::set<std::string> shortNames;
+      valueList = quantityList[j]->GetList("comp");
+      for(UInt i=0, n=valueList.GetSize(); i<n; i++) {
+        std::string dof = valueList[i]->Get("dof")->As<std::string>();
+        std::string shortName = valueList[i]->Get("shortName")->As<std::string>();
+
+        if(dofs.find(dof) != dofs.end()) 
+        {
+          EXCEPTION("Dof '" << dof << "' specified multiple times for "
+                    << "scattered data quantity id '" << qid << "'." );
+        }
+        else
+        {
+          dofs.insert(dof);
+        }
+        
+        if( dof == "x" ) {
+          qidDof2ShortName_[qid][0] = shortName;
+        }
+        if( dof == "y" ) {
+          qidDof2ShortName_[qid][1] = shortName;
+        }
+        if( dof == "z" ) {
+          qidDof2ShortName_[qid][2] = shortName;
+        }
+
+        if(shortNames.find(shortName) != shortNames.end()) 
+        {
+          EXCEPTION("Short name '" << shortName << "' specified multiple "
+                    << "times for scattered data quantity id '"
+                    << qid << "'." );
+        }
+        else
+        {
+          shortNames.insert(shortName);
+
+          // Tell reader which components to read
+          componentShortNames_.insert(shortName);
+        }
       }
+    }
+  }
 
-      x /= nVerts;
-      y /= nVerts;
-      z /= nVerts;
+  void ScatteredDataReaderCCM::Dump()
+  {
+    std::ofstream csv;
+    Name2FloatMap::iterator nit, nend;
+    Entity2DataMap::iterator e2dIt;
+    std::ostringstream sstr;
+
+    if(cellCenters_) 
+    {
+      sstr << "cellcenters_" << id_ << ".csv";
+      csv.open(sstr.str().c_str(), std::ios_base::binary);
+      csv << "x,y,z";
       
-      csv << x << "," << y << "," << z;
-
-      if(!dMap_.empty()) 
+      if(!cell2Data_.empty()) 
       {
         csv << ",";
-
-        nit = c2dIt->second.begin();
-        nend = c2dIt->second.end();
+        
+        nit = cell2Data_.begin()->second.begin();
+        nend = cell2Data_.begin()->second.end();
         for( ; nit != nend; nit++ )
         {
-          csv << nit->second << ",";
+          csv << nit->first << ",";
         }
-        c2dIt++;
+      }      
+      csv << std::endl;
+      
+      Entity2VertexMap::iterator it, end;
+      it = cellVertices_.begin();
+      end = cellVertices_.end();
+      e2dIt = cell2Data_.begin();
+      
+      // std::cout << "cellVertices_.size(): " << cellVertices_.size() << std::endl;
+      // std::cout << "cell2Data_.size(): " << cell2Data_.size() << std::endl;
+      
+      for( ; it != end; it++ )
+      {
+        std::set<int>::iterator vit, vend;
+        vit = it->second.begin();
+        vend = it->second.end();
+        
+        int nVerts = it->second.size();
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        
+        for( ; vit != vend; vit++ )
+        {
+          x += vertices_[*vit][0];
+          y += vertices_[*vit][1];
+          z += vertices_[*vit][2];        
+        }
+        
+        x /= nVerts;
+        y /= nVerts;
+        z /= nVerts;
+        
+        csv << x << "," << y << "," << z;
+        
+        if(!cell2Data_.empty()) 
+        {
+          csv << ",";
+          
+          nit = e2dIt->second.begin();
+          nend = e2dIt->second.end();
+          for( ; nit != nend; nit++ )
+          {
+            csv << nit->second << ",";
+          }
+          e2dIt++;
+        }
+        
+        csv << std::endl;
+      }
+      csv.close();
+    }
+    
+    if(faceCenters_) 
+    {
+      sstr.clear(); sstr.str("");
+      sstr << "facecenters_" << id_ << ".csv";
+      csv.open(sstr.str().c_str(), std::ios_base::binary);
+      csv << "x,y,z";
+      
+      if(!face2Data_.empty()) 
+      {
+        csv << ",";
+        
+        nit = face2Data_.begin()->second.begin();
+        nend = face2Data_.begin()->second.end();
+        for( ; nit != nend; nit++ )
+        {
+          csv << nit->first << ",";
+        }
       }
       
       csv << std::endl;
-    }
-    
-
-    csv.close();
+      
+      if(!face2Data_.empty()) 
+      {
+        e2dIt = face2Data_.begin();
+      
+        for( ; e2dIt != face2Data_.end(); e2dIt++ )
+        {
+          int face = e2dIt->first;        
+          std::set<int>::iterator vit, vend;
+          vit = faceVertices_[face].begin();
+          vend = faceVertices_[face].end();
+          
+          int nVerts = faceVertices_[face].size();
+          double x = 0.0;
+          double y = 0.0;
+          double z = 0.0;
+          
+          for( ; vit != vend; vit++ )
+          {
+            x += vertices_[*vit][0];
+            y += vertices_[*vit][1];
+            z += vertices_[*vit][2];        
+          }
+          
+          x /= nVerts;
+          y /= nVerts;
+          z /= nVerts;
+        
+          csv << x << "," << y << "," << z << ",";
+          
+          nit = e2dIt->second.begin();
+          nend = e2dIt->second.end();
+          for( ; nit != nend; nit++ )
+          {
+            csv << nit->second << ",";
+          }
+          
+          csv << std::endl;
+        }
+      }
+      csv.close();
+    }    
   }
 
-  void ScatteredDataReaderCCM::Read(std::vector< std::vector<double> >& scatteredData)
+  void ScatteredDataReaderCCM::ReadData()
   {
-    if(cell2Verts_.empty()) 
+    if(registeredQuantities_.empty())
+    {
+      return;
+    }
+
+    ParseParamNode();
+
+    if(cellVertices_.empty()) 
     {
       ReadInput();
     }
-    
-    unsigned int numCells = cell2Verts_.size();
-    scatteredData.resize(numCells);
-    
-    Cell2VertexMap::iterator it, end;
-    it = cell2Verts_.begin();
-    end = cell2Verts_.end();
-    Cell2DataMap::iterator c2dIt = dMap_.begin();
 
-    // Iterate over all global cells.
-    unsigned int i = 0;
-    for( ; it != end; it++, i++ )
+    if(dump_) 
     {
-      scatteredData[i].resize(6);
-      
-      std::set<int>::iterator vit, vend;
-      vit = it->second.begin();
-      vend = it->second.end();
+      Dump();
+    }
+    
+    // Quantity array iterators
+    std::set<std::string>::iterator qIt, qEnd;
+    
+    Entity2VertexMap::iterator it, end;
+    it = cellVertices_.begin();
+    end = cellVertices_.end();
+    std::map<UInt, std::string>::iterator dofIt, dofEnd;  
+    Entity2DataMap::iterator e2dIt = cell2Data_.begin();
 
-      // Compute cell centers
-      int nVerts = it->second.size();
-      double x = 0.0;
-      double y = 0.0;
-      double z = 0.0;
+    std::vector<double> coord(3);
+    std::vector<double> qdofs;
 
-      for( ; vit != vend; vit++ )
+    if(cellCenters_) 
+    {
+      // Iterate over all global cells.
+      unsigned int i = 0;
+      for( ; it != end; it++, i++)
       {
-        x += vertices_[*vit][0];
-        y += vertices_[*vit][1];
-        z += vertices_[*vit][2];        
-      }
-      
-      scatteredData[i][0] = x / nVerts;
-      scatteredData[i][1] = y / nVerts;
-      scatteredData[i][2] = z / nVerts;
-      
-      if(!dMap_.empty()) 
-      {
-        for(unsigned int j=0, n=componentShortNames_.size(); j<n; j++) 
+        std::set<int>::iterator vit, vend;
+        vit = it->second.begin();
+        vend = it->second.end();
+        
+        // Compute cell centers
+        int nVerts = it->second.size();
+        double x = 0.0;
+        double y = 0.0;
+        double z = 0.0;
+        
+        for( ; vit != vend; vit++ )
         {
-          scatteredData[i][3+j] = c2dIt->second[componentShortNames_[j]];
+          x += vertices_[*vit][0];
+          y += vertices_[*vit][1];
+          z += vertices_[*vit][2];        
         }
-        c2dIt++;
+        
+        coord[0] = x / nVerts;
+        coord[1] = y / nVerts;
+        coord[2] = z / nVerts;
+        coordinates_.push_back(coord);
+        
+        if(!cell2Data_.empty())
+        {
+          qIt = registeredQuantities_.begin();
+          qEnd = registeredQuantities_.end();
+          
+          for( ; qIt != qEnd; qIt++ ) 
+          {
+            dofIt = qidDof2ShortName_[*qIt].begin();
+            dofEnd = qidDof2ShortName_[*qIt].end();
+            qdofs.resize(std::distance(dofIt, dofEnd));
+            
+            for( ; dofIt != dofEnd; dofIt++ ) 
+            {
+              qdofs[dofIt->first] = e2dIt->second[dofIt->second];
+            }
+            
+            scatteredDataPerQuantity_[*qIt].push_back(qdofs);
+          }
+          
+          e2dIt++;
+        }
+      }
+    }
+
+    if(faceCenters_) 
+    {      
+      // Iterate  over faces  and add  data on  boundary face  centers to  point
+      // cloud.
+      if(!face2Data_.empty()) 
+      {
+        e2dIt = face2Data_.begin();
+        
+        for( ; e2dIt != face2Data_.end(); e2dIt++ )
+        {
+          int face = e2dIt->first;        
+          std::set<int>::iterator vit, vend;
+          vit = faceVertices_[face].begin();
+          vend = faceVertices_[face].end();
+          
+          int nVerts = faceVertices_[face].size();
+          double x = 0.0;
+          double y = 0.0;
+          double z = 0.0;
+          
+          for( ; vit != vend; vit++ )
+          {
+            x += vertices_[*vit][0];
+            y += vertices_[*vit][1];
+            z += vertices_[*vit][2];        
+          }
+          
+          coord[0] = x / nVerts;
+          coord[1] = y / nVerts;
+          coord[2] = z / nVerts;
+          coordinates_.push_back(coord);
+          
+          qIt = registeredQuantities_.begin();
+          qEnd = registeredQuantities_.end();
+          for( ; qIt != qEnd; qIt++ ) 
+          {
+            dofIt = qidDof2ShortName_[*qIt].begin();
+            dofEnd = qidDof2ShortName_[*qIt].end();
+            qdofs.resize(std::distance(dofIt, dofEnd));
+            
+            for( ; dofIt != dofEnd; dofIt++ ) 
+            {
+              qdofs[dofIt->first] = e2dIt->second[dofIt->second];
+            }
+            
+            scatteredDataPerQuantity_[*qIt].push_back(qdofs);
+          }
+        }
       }
     }
   }
-
+  
   void ScatteredDataReaderCCM::ReadInput()
   {
     bool hasSolution = true;
@@ -353,9 +580,11 @@ namespace CoupledField
       int cell1 = faceCells[2 * i];
       int cell2 = faceCells[2 * i + 1];
       int nVerts = faces[pos];
-      cell2Verts_[cell1].insert(&faces[pos+1], &faces[pos+1+nVerts]);
-      cell2Verts_[cell2].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+      cellVertices_[cell1].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+      cellVertices_[cell2].insert(&faces[pos+1], &faces[pos+1+nVerts]);
       
+      faceVertices_[mapData[i]].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+
       PrintData(i, mapData[i], kInternalFace, &faces[pos], &faceCells[2 * i]);
       pos += faces[pos] + 1;
       i++;
@@ -401,7 +630,9 @@ namespace CoupledField
         // Insert nodes of boundary face into set for the connected cell.
         int cell = faceCells[j];
         int nVerts = faces[pos];
-        cell2Verts_[cell].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+        cellVertices_[cell].insert(&faces[pos+1], &faces[pos+1+nVerts]);
+
+        faceVertices_[mapData[j]].insert(&faces[pos+1], &faces[pos+1+nVerts]);
 
         PrintData(j, mapData[j], kBoundaryFace, &faces[pos],
                   &faceCells[j]);
@@ -417,9 +648,10 @@ namespace CoupledField
   {
     int dims = 1;
     unsigned int i, nVertices, size;
+    unsigned int kNVals = kNValues;    
     float scale;
     vector<int> mapData;
-    vector<float> verts;
+    vector<double> verts;
     CCMIOID mapID;
 
     // Read the vertices.  This involves reading both the vertex data and
@@ -430,7 +662,7 @@ namespace CoupledField
     CCMIOEntitySize(&err, vertices, &nVertices, NULL);
     mapData.resize(nVertices);
     verts.resize(nVertices*3);
-    CCMIOReadVerticesf(&err, vertices, &dims, &scale, &mapID, &verts[0],
+    CCMIOReadVerticesd(&err, vertices, &dims, &scale, &mapID, &verts[0],
                        offset, offset + nVertices);
     CCMIOReadMap(&err, mapID, &mapData[0], offset, offset + nVertices);
 
@@ -440,32 +672,7 @@ namespace CoupledField
     cout << "label: '" << label << "'" << endl;
     delete [] label;
 
-    std::ofstream csv;
-    
-    csv.open("output.csv", std::ios_base::binary);
-    csv << "id,x,y,z" << std::endl;
-    for (i = 0;  i < nVertices && err == kCCMIONoErr;  ++i)
-    {
-      verts[dims * i    ] *= scale;
-      verts[dims * i + 1] *= scale;
-      verts[dims * i + 2] *= scale;   // This example assumes three
-      // dimensional vertices.
-
-      vertices_[mapData[i]].push_back(verts[dims * i    ]);
-      vertices_[mapData[i]].push_back(verts[dims * i + 1]);
-      vertices_[mapData[i]].push_back(verts[dims * i + 2]);
-
-      csv << mapData[i] << ","
-          << verts[dims * i    ] << ","
-          << verts[dims * i + 1] << ","
-          << verts[dims * i + 2] << std::endl;
-        
-    }
-    csv.close();         
-
     cout << "\t" << nVertices << " " << counter << endl;
-    if (nVertices > (unsigned int)kNValues)
-      nVertices = kNValues;
     for (i = 0;  i < nVertices && err == kCCMIONoErr;  ++i)
     {
       verts[dims * i    ] *= scale;
@@ -476,9 +683,12 @@ namespace CoupledField
       vertices_[mapData[i]].push_back(verts[dims * i    ]);
       vertices_[mapData[i]].push_back(verts[dims * i + 1]);
       vertices_[mapData[i]].push_back(verts[dims * i + 2]);
-        
+
+      if(i >= kNVals) continue;
+      
       PrintData(i, mapData[i], kVertex, &verts[dims * i]);
     }
+
     cout << "\t\t..." << endl;
     CheckError(err, "Error reading vertices");
 
@@ -518,7 +728,7 @@ namespace CoupledField
     CCMIOID field, phase;
     CCMIODimensionality dims;
     vector<int> mapData;
-    vector<float> data;
+    vector<double> data;
 
     oldFile = (CCMIONextEntity(NULL, solution, kCCMIOFieldPhase, &h, &phase)
                != kCCMIONoErr);
@@ -543,6 +753,7 @@ namespace CoupledField
         // Read the information about the field so that we know how to
         // process this field.
         char shortName[kCCMIOProstarShortNameLength+1], *units = NULL;
+
         int usize;
         CCMIODataType datatype;
         CCMIOReadField(&err, field, name, shortName, &dims, &datatype);
@@ -552,6 +763,15 @@ namespace CoupledField
           units = new char[usize + 1];
           CCMIOReadOptstr(&err, field, kUnitsName, NULL, units);
         }
+
+        if(std::find(componentShortNames_.begin(),
+                     componentShortNames_.end(), shortName) 
+           == componentShortNames_.end())
+        {
+          if(componentShortNames_.empty()) continue;
+          if(*componentShortNames_.begin() != "all") continue;
+        }
+        
         cout << "\tPost field '" << name << "'  (" << shortName << "):\t(";
         if (dims == 1)    // datatype is not meaningful for vectors/tensors
         {
@@ -571,19 +791,17 @@ namespace CoupledField
         {
         case kCCMIOScalar:
           {
-            ReadScalar(err, field, mapData, data);
+            ReadScalar(err, field, mapData, data, false, shortName);
 
             for (unsigned int k = 0;  k < data.size();  ++k)
             {   
-              dMap_[mapData[k]][shortName] = data[k];
-                        
               PrintData(k, mapData[i], kScalar, &data[k]); 
             }
           }
           break;
         case kCCMIOVector:
           {
-            vector<float> u, v, w;
+            vector<double> u, v, w;
             CCMIOID scalar;
             CCMIOReadMultiDimensionalFieldData(&err, field,
                                                kCCMIOVectorX, &scalar);
@@ -641,8 +859,9 @@ namespace CoupledField
   }
 
   void ScatteredDataReaderCCM::ReadScalar( CCMIOError &err, CCMIOID& field,
-                                           vector<int> &mapData, vector<float> &data,
-                                           bool readingVector /* = false */)
+                                           vector<int> &mapData, vector<double> &data,
+                                           bool readingVector /* = false */,
+                                           const char* shortName /* = NULL */)
   {
     CCMIOSize n;
     CCMIOIndex max;
@@ -660,9 +879,14 @@ namespace CoupledField
       // make the array that size.
       CCMIOEntitySize(&err, fieldData, &n, &max);
       mapData.resize(n);
-      CCMIOReadFieldDataf(&err, fieldData, &mapID, &type, NULL,
+      CCMIOReadFieldDatad(&err, fieldData, &mapID, &type, NULL,
                           kCCMIOStart, kCCMIOEnd);
       CCMIOReadMap(&err, mapID, &mapData[0], kCCMIOStart, kCCMIOEnd);
+
+      if (readingVector)
+        data.resize(3 * n);
+      else
+        data.resize(n);
 
       // We are only going to process cell data.  Vertex data would
       // be processed similarly. If your appliation has only one value
@@ -671,17 +895,44 @@ namespace CoupledField
       // stores boundary data on each face you could read it in using
       // similar procedures for the cell and vertex data.  Note that
       // the file may not contain all types of data.
-      if (type == kCCMIOCell)
+      switch(type)
       {
-        if (readingVector)
-          data.resize(3 * n);
-        else
-          data.resize(n);
-        // If we want double precision we should use
-        // CCMIOReadFieldDatad().
-        CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
-                            &data[0], kCCMIOStart, kCCMIOEnd);
-
+      case kCCMIOCell:
+        if(cellCenters_) 
+        {
+          // If we want double precision we should use
+          CCMIOReadFieldDatad(&err, fieldData, &mapID, NULL,
+                              &data[0], kCCMIOStart, kCCMIOEnd);
+          
+          //CCMIOReadFieldDataf(&err, fieldData, &mapID, NULL,
+          //                    &data[0], kCCMIOStart, kCCMIOEnd);
+          
+          if(shortName) 
+          {
+            for (unsigned int k = 0, dataLen = data.size();  k < dataLen;  ++k)
+            {   
+              cell2Data_[mapData[k]][shortName] = data[k];                        
+            }
+          }
+        }
+        break;
+      case kCCMIOFace:
+        if(faceCenters_)
+        {
+          CCMIOReadFieldDatad(&err, fieldData, &mapID, NULL,
+                              &data[0], kCCMIOStart, kCCMIOEnd);
+          
+          if(shortName) 
+          {
+            for (unsigned int k = 0, dataLen = data.size();  k < dataLen;  ++k)
+            {   
+              face2Data_[mapData[k]][shortName] = data[k];                        
+            }
+          }
+        }
+        break;
+      default:
+        // Do nothing
         break;
       }
 
@@ -767,7 +1018,8 @@ namespace CoupledField
     EXCEPTION(str << " (error " << err << ")");
   }
 
-  void ScatteredDataReaderCCM::PrintData( int n, int id, DataType type, void *data, void *data2 /*=NULL*/ )
+  void ScatteredDataReaderCCM::PrintData( int n, int id, DataType type,
+                                          void *data, void *data2 /*=NULL*/ )
   {
     if(verbose_) 
     {

@@ -5,6 +5,11 @@
     
     <fileFormats>
         <input>
+            <!--
+              Generate the mesh file from command line:
+
+              gmsh -2 -bin -n -nopopup plateMesh.geo
+            -->
             <gmsh fileName="plateMesh.msh"/>
         </input>
         <output>

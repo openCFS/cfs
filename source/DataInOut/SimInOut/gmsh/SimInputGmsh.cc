@@ -123,8 +123,9 @@ namespace CoupledField {
     }
 
     while( in.good() ) {
-      in.getline(line,sizeof(line));
+      in.getline(line, sizeof(line), '\n');
       std::string sline(line);
+      boost::trim(sline);
 
       // std::cout << line << std::endl;
 
@@ -630,6 +631,23 @@ namespace CoupledField {
     regEnd = physEntities2RegionNames_.end();
 
     UInt numElements = 0;
+
+    // Go over all elements and check if any complete quadratic elements
+    // are present. Gmsh at least until version 2.8.3 has the bug that
+    // complete pyramids will be generated, even if incomplete elements
+    // have been switched on.
+    bool incompleteElems = true;
+    for( UInt i=0, ne = elementTypes_.size(); i < ne; i++ ) {
+      Elem::FEType feType = elementTypes_[i];
+      
+      if(feType == Elem::ET_QUAD9 ||
+         feType == Elem::ET_WEDGE18 ||
+         feType == Elem::ET_HEXA27) 
+      {
+        incompleteElems = false;
+        break;
+      }
+    }
     
     for( ; regIt != regEnd; regIt++) {
       RegionIdType actRegionId;
@@ -655,6 +673,13 @@ namespace CoupledField {
         // If elements in this region need to be linearized do so
         if(linearizeRegions_[regIt->second])
           LinearizeElem(&elementTypes_[i]);
+
+        // Make incomplete pyramids out of complete ones, if otherwise
+        // only incomplete elements are used.
+        if(incompleteElems && (elementTypes_[i] == Elem::ET_PYRA14))
+        {
+          elementTypes_[i] = Elem::ET_PYRA13;
+        }        
 
         // Iterate over all nodes of element and build up map of nodes
         // which must be transferred to the Grid.

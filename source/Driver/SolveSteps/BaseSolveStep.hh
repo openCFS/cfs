@@ -82,10 +82,11 @@ namespace CoupledField
       return 0;
     }
 
-    //! Calculate the Eigenfrequencies of a quadratic eigenvalue problem
+    /** Calculate the Eigenfrequencies of a quadratic eigenvalue problem
+    @param bloch quadratic problem or bloch modes */
     virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
                                        Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift ) {
+                                       UInt numFreq, Double shift, bool bloch) {
       EXCEPTION( "Not implemented here!" );
       return 0;
     }

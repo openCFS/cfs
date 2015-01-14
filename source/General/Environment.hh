@@ -26,7 +26,9 @@ namespace OutInfo{
 
 }
 
-#define REFACTOR WARN("Commented out due to refactoring");
+
+// KILLME #define REFACTOR WARN("Commented out due to refactoring");
+#define REFACTOR
 
 //! \file environment.hh
 //! This file contains some global macro, class and enumeration data type
@@ -147,6 +149,11 @@ namespace CoupledField {
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND,
 
+      // ==========
+      //  WATER WAVES
+      // ==========
+      WATER_PRESSURE, WATER_PMLAUXVEC, WATER_PMLAUXSCALAR, WATER_RHS_LOAD,
+
       // =========
       // AEROACOUSTIC SOURCE TERMS
       // =========
@@ -165,14 +172,14 @@ namespace CoupledField {
       
       // --- flux / derived quantities --
       MAG_FLUX_DENSITY, MAG_FLUX, MAG_NORMAL_FLUX_DENSITY, MAG_FIELD_INTENSITY, MAG_EDDY_CURRENT_DENSITY,
-      MAG_TOTAL_CURRENT_DENSITY, MAG_POTENTIAL_DIV, MAG_FORCE_LORENTZ_DENSITY,
+      MAG_COIL_CURRENT_DENSITY, MAG_TOTAL_CURRENT_DENSITY, MAG_POTENTIAL_DIV, MAG_FORCE_LORENTZ_DENSITY,
       MAG_EDDY_POWER_DENSITY, MAG_ENERGY_DENSITY,
       
       // -- integrated quantities --
       MAG_FORCE_VWP, MAG_FORCE_LORENTZ, MAG_ENERGY, MAG_EDDY_POWER, MAG_EDDY_CURRENT,
       
       // -- coil quantities --
-      MAG_COIL_CURRENT_DENSITY,
+      COIL_INDUCTANCE, COIL_INDUCED_VOLTAGE, COIL_CURRENT, COIL_LINKED_FLUX, COIL_CURRENT_DERIV1,
       
       // -- material related results --
       MAG_ELEM_PERMEABILITY,
@@ -180,7 +187,7 @@ namespace CoupledField {
       // =================
       //  HEAT CONDUCTION
       // =================
-      HEAT_TEMPERATURE, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY, HEAT_FLUX_DENSITY,
+      HEAT_TEMPERATURE, HEAT_TEMPERATURE_D1, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY, HEAT_FLUX_DENSITY,
       
       // ===============
       //  FLUIDMECHANIC
@@ -240,7 +247,7 @@ namespace CoupledField {
       ACOU_ALPHA, FRACTIONAL_ALG, FRACTIONAL_MEMORY, FRACTIONAL_INTERPOL,
       FRACTIONAL_EXPONENT,
       HEAT_CONDUCTIVITY, HEAT_CAPACITY, PIEZO_TENSOR, HEAT_CONDUCTIVITY_TENSOR,
-      MAGNETOSTRICTION_TENSOR,
+      MAGNETOSTRICTION_TENSOR_h,
       X_SATURATION, Y_SATURATION, Y_REMANENCE, PREISACH_WEIGHTS, A_JILES,
       ALPHA_JILES, K_JILES, C_JILES, P_DIRECTION, HYST_MODEL,
       NONLIN_COEFFICIENT, NONLIN_DEPENDENCY, NONLIN_APPROXIMATION_TYPE,

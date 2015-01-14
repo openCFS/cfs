@@ -36,6 +36,9 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     isoOrder_ = 0;
     maxOrder_ = 0;
     
+    // All elements here consist of TENSOR_TYPE polynomials
+    completeType_ = TENSOR_TYPE;
+    
     // important: all higher order functions can not
     // pre-compute the shape functions, as the functions depend on the global
     // orientation, i.e. numbering of the nodal connectivity

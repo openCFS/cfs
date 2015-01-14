@@ -263,60 +263,140 @@ namespace CoupledField{
 
       mapType_ = POLYNOMIAL;
       infoNode->Get("order")->SetValue(isoOrder);
+      if(order.GetPolyMapType() == ApproxOrder::SERENDIPITY_TYPE) {
+        infoNode->Get("polyMapType")->SetValue("serendipity");
+      } else {
+        infoNode->Get("polyMapType")->SetValue("tensor");
+      }
+      
+      
       order_ = isoOrder;
 
-
-      refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
-      refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
-      refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
-      refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
-      refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
-      refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuadVar();
-      refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
-      refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
-
-      std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
-      for( ; i != refElems_[region].end(); ++i ) {
-        FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
-        ptFe->SetIsoOrder(isoOrder+orderOffset_);
-      }
-    
-
-      switch(isoOrder) 
-      {
-      case 1:
+      // In case we have polynomial order 1, we can simply use the explicit
+      // type elements. In all other cases, we have to check, if TENSOR_TYPE
+      // or SERENDIPITY_TYPE elements are desired and create the related ones.
+      if( isoOrder == 1 ) {
+        refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine1();
+        refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine1();
+        
         refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria1();
         refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria1();
+        
+        refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad1();
+        refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad1();
+        refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuad1();
 
-        refElems_[region][Elem::ET_TET4]  = new FeH1LagrangeTet1();
+        refElems_[region][Elem::ET_TET4]   = new FeH1LagrangeTet1();
         refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet1();
-
-        refElems_[region][Elem::ET_WEDGE6] = new FeH1LagrangeWedge1();
+        
+        refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex1();
+        refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex1();
+        refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex1();
+        
+        refElems_[region][Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
         refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge1();
         refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge1();
-
+        
         refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra1();
         refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra1();
         refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra1();
-        break;
-      case 2:
-        refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
+      } 
+      
+      if(isoOrder == 2) {
+        if(order.GetPolyMapType() == ApproxOrder::SERENDIPITY_TYPE) {
+        // In this case we can utilize the explicit second order elements 
+        // of serendipity type
+          refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLine2();
+          refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLine2();
 
-        refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+          refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria2();
+          refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
 
-        // ET_WEDGE15 elements are not compatible with tensor product hexas.
-        // refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-        refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+          refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuad2();
+          refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuad2();
+          refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuad2();
 
-        // ET_PYRA13 elements are not compatible with tensor product hexas.
-        // refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
-        refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
-        break;
-      default:
-        break;
+          refElems_[region][Elem::ET_TET4]   = new FeH1LagrangeTet2();
+          refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+
+          refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex2();
+          refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex2();
+          refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex2();
+
+          refElems_[region][Elem::ET_WEDGE6]  = new FeH1LagrangeWedge2();
+          refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+          refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge2();
+
+          refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra2();
+          refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra2();
+          refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra2();
+          
+        } else if(order.GetPolyMapType() == ApproxOrder::TENSOR_TYPE) {
+          // In this case we can utilize the explicit second order elements 
+          // of serendipity type
+          refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
+          refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
+
+          refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
+          refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
+          refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuadVar();
+
+          refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
+          refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+          refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
+
+          std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
+          for( ; i != refElems_[region].end(); ++i ) {
+            FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
+            ptFe->SetIsoOrder(isoOrder+orderOffset_);
+          }
+          // triangular and tetrahedral elements have no mid-face nodes,
+          // so here the serendipity type and tensor-type elements
+          // are the same
+          refElems_[region][Elem::ET_TRIA3]  = new FeH1LagrangeTria2();
+          refElems_[region][Elem::ET_TRIA6]  = new FeH1LagrangeTria2();
+
+          refElems_[region][Elem::ET_TET10]  = new FeH1LagrangeTet2();
+          refElems_[region][Elem::ET_TET4]   = new FeH1LagrangeTet2();
+
+          // Use explicit tensor type hexas
+//          refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHex27();
+//          refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHex27();
+//          refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHex27();
+          
+          // Use explicit tensor type wedges
+          refElems_[region][Elem::ET_WEDGE6]  = new FeH1LagrangeWedge18();
+          refElems_[region][Elem::ET_WEDGE15] = new FeH1LagrangeWedge18();
+          refElems_[region][Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+
+          // Use explicit tensor type pyramids
+          refElems_[region][Elem::ET_PYRA5]  = new FeH1LagrangePyra14();
+          refElems_[region][Elem::ET_PYRA13] = new FeH1LagrangePyra14();
+          refElems_[region][Elem::ET_PYRA14] = new FeH1LagrangePyra14();
+        }
       }
 
-    }
+      if( isoOrder > 2 && order.GetPolyMapType() == ApproxOrder::TENSOR_TYPE) {
+        // Here we have now arbitrary order elements wit tensor-type
+        // polynomial order.
+        refElems_[region][Elem::ET_LINE2]  = new FeH1LagrangeLineVar();
+        refElems_[region][Elem::ET_LINE3]  = new FeH1LagrangeLineVar();
+
+        refElems_[region][Elem::ET_QUAD4]  = new FeH1LagrangeQuadVar();
+        refElems_[region][Elem::ET_QUAD8]  = new FeH1LagrangeQuadVar();
+        refElems_[region][Elem::ET_QUAD9]  = new FeH1LagrangeQuadVar();
+
+        refElems_[region][Elem::ET_HEXA8]  = new FeH1LagrangeHexVar();
+        refElems_[region][Elem::ET_HEXA20] = new FeH1LagrangeHexVar();
+        refElems_[region][Elem::ET_HEXA27] = new FeH1LagrangeHexVar();
+
+        std::map<Elem::FEType, FeH1* >::iterator i = refElems_[region].begin();
+        for( ; i != refElems_[region].end(); ++i ) {
+          FeH1LagrangeVar * ptFe = dynamic_cast<FeH1LagrangeVar*>(i->second);
+          ptFe->SetIsoOrder(isoOrder+orderOffset_);
+        }
+      }
+    }// IF: MappingType
 
     // Store mapping type for this region
     mappingType_[region] = mType;

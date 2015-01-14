@@ -89,6 +89,10 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case WATER_PRESSURE:
+        return "Pa";
+        break;
+
       case ACOU_ACCELERATION:
         return "m/s^2";
         break;
@@ -288,6 +292,10 @@ namespace CoupledField {
       case HEAT_TEMPERATURE:
         return "K";
         break;
+        
+      case HEAT_TEMPERATURE_D1:
+        return "K/s";
+        break;
 
       case HEAT_FLUX_DENSITY:
         return "W/m^2";
@@ -302,6 +310,8 @@ namespace CoupledField {
         break;
 
       case MAG_FLUX_DENSITY:
+      case MAG_NORMAL_FLUX_DENSITY:
+      case COIL_LINKED_FLUX:
         return "Vs/m^2";
         break;
 
@@ -309,16 +319,11 @@ namespace CoupledField {
         return "Vs";
         break;
 
-      case MAG_NORMAL_FLUX_DENSITY:
-        return "Vs/m^2";
-        break;
-
       case MAG_FIELD_INTENSITY:
         return "A/m";
         break;
 
       case MAG_EDDY_CURRENT_DENSITY:
-      case MAG_COIL_CURRENT_DENSITY:
       case MAG_TOTAL_CURRENT_DENSITY:
         return "A/m^2";
         break;
@@ -332,7 +337,12 @@ namespace CoupledField {
         break;
 
       case MAG_SCALAR_POTENTIAL:
+      case COIL_CURRENT:
         return "A";
+        break;
+
+      case COIL_CURRENT_DERIV1:
+        return "A/s";
         break;
 
       case MAG_RHS_LOAD:
@@ -382,8 +392,6 @@ namespace CoupledField {
       case MECH_DEFORM_ENERGY: 
       case MECH_TOTAL_ENERGY:
         return "Ws";
-        break;
-
         break;
 
       case MECH_STRESS:
@@ -1205,6 +1213,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
 
+    //water waves
+    SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");
+    SolutionTypeEnum.Add(WATER_PMLAUXVEC,"waterPmlAuxVec");
+    SolutionTypeEnum.Add(WATER_PMLAUXSCALAR, "waterPmlAuxScalar");
+    SolutionTypeEnum.Add(WATER_RHS_LOAD, "waterRhsLoad");
+
     //magnetics
     SolutionTypeEnum.Add(MAG_POTENTIAL, "magPotential");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DERIV1, "magPotentialD1");
@@ -1216,6 +1230,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_NORMAL_FLUX_DENSITY, "magNormalFluxDensity");
     SolutionTypeEnum.Add(MAG_FIELD_INTENSITY, "magFieldIntensity");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT_DENSITY, "magEddyCurrentDensity");
+    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
     SolutionTypeEnum.Add(MAG_TOTAL_CURRENT_DENSITY, "magTotalCurrentDensity");
     SolutionTypeEnum.Add(MAG_POTENTIAL_DIV, "magPotentialDiv");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
@@ -1227,12 +1242,19 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_ENERGY, "magEnergy");
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
-
-    SolutionTypeEnum.Add(MAG_COIL_CURRENT_DENSITY, "magCoilCurrentDensity");
-    
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
+
+    // magnetic - coil results
+    SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
+    SolutionTypeEnum.Add(COIL_CURRENT_DERIV1, "coilCurrentD1");
+    
+    SolutionTypeEnum.Add(COIL_INDUCED_VOLTAGE, "coilInducedVoltage");
+    SolutionTypeEnum.Add(COIL_INDUCTANCE, "coilInductance");
+    SolutionTypeEnum.Add(COIL_LINKED_FLUX, "coilLinkedFlux");
+    
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
+    SolutionTypeEnum.Add(HEAT_TEMPERATURE_D1, "heatTemperatureD1");
     SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");
     SolutionTypeEnum.Add(HEAT_SOURCE_DENSITY, "heatSourceDensity");
@@ -1357,7 +1379,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR, "Magnetostriction_Tensor" ); 
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" ); 
     MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 

@@ -41,11 +41,11 @@ MACRO(COPY_ZIPS_TO_APACHE)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different "${ZIP}" "${APACHE_NIGHTLY_DIR}/${FN}"
         RESULT_VARIABLE RETVAL)
 
-      MESSAGE("Submitting ${FN} to lse17...")
+      MESSAGE("Submitting ${FN} to development server...")
       EXECUTE_PROCESS(
         COMMAND curl -u ${CFS_TESTUSER}:${CFS_TESTUSER_PW} 
                      -k -T ${FN}
-                     https://lse17.e-technik.uni-erlangen.de:2001/files/nightly-builds/${FN}
+                     ${CFS_DS_WEBDAV}/nightly-builds/${FN}
         WORKING_DIRECTORY "${NIGHTLY_ARCHIVES_DIR}"
         RESULT_VARIABLE RETVAL
       )

@@ -13,7 +13,6 @@ namespace CoupledField {
   : FeH1(), FeNodal() {
    order_ = 0;
    preComputShFnc_ = true;
-   serendipity_ = false;
   }
     
   FeH1LagrangeExpl::~FeH1LagrangeExpl() {
@@ -27,9 +26,26 @@ namespace CoupledField {
       numFcns.Resize( shape_.numVertices );
       numFcns.Init( 1 );
     }else if( fctEntityType == EDGE ) {
-      numFcns.Resize((order_-1)*shape_.numEdges);
+      numFcns.Resize(shape_.numEdges);
+      numFcns.Init((order_-1));
+    }else if( fctEntityType == FACE 
+        && completeType_ == TENSOR_TYPE) {
+      // we only have face nodes, if we have the full tensorial
+      // elements. Here only 4-sided faces have interior nodes.
+      // collect all faces with 4 nodes
+      numFcns.Resize(shape_.numFaces);
+      numFcns.Init(0);
+      for( UInt i = 0; i < shape_.numFaces; ++i ) {
+        if( shape_.faceVertices[i].GetSize() == 4 ) {
+          numFcns[i] = (order_-1)*(order_-1);
+        }
+      }
+    }else if( fctEntityType == INTERIOR
+            && feType_ == Elem::ET_HEXA27 ){
+      numFcns.Resize(1);
       numFcns.Init(1);
     }else if( fctEntityType == ALL){
+      
       numFcns.Resize(shape_.numNodes);
       numFcns.Init(1);
     }else{
@@ -50,7 +66,7 @@ namespace CoupledField {
         fncPermutation[i] = i;
       }
     }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
-      if(!serendipity_){
+      if(completeType_ == TENSOR_TYPE){
         //WARNING: for order > 2 we would need to check for orientation. See H1ElemsLagVar.cc
         fncPermutation.Resize((order_-1) * (order_-1));
         for(UInt i = 0; i< order_-1 ; i++){
@@ -68,7 +84,7 @@ namespace CoupledField {
         fncPermutation.Resize(0);
       }
     }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() > 3){
-      if(serendipity_){
+      if(completeType_ == SERENDIPITY_TYPE){
         if(order_>3){
           Exception("Function FeH1LagrangeExpl::GetNodalPermutation needs to be extended for higher order serendipity elements!");
         }else{
@@ -128,6 +144,19 @@ namespace CoupledField {
   }
   
   
+  void FeH1LagrangeExpl::GetLocalDOFCoordinates(Matrix<Double> & coordMat) {
+    coordMat.Resize(actNumFncs_, shape_.dim);
+    coordMat.Init();
+    
+    for( UInt iNode = 0; iNode < shape_.numNodes; ++iNode ) {
+      for( UInt iDim = 0; iDim < shape_.dim; ++iDim ) {
+        coordMat[iNode][iDim] = shape_.nodeCoords[iNode][iDim];  
+      }
+    }
+  }
+
+  
+  
   // ========================================================================
   //  Lagrangian Elements of 1st order
   // ========================================================================
@@ -136,6 +165,7 @@ namespace CoupledField {
   
   FeH1LagrangeLine1::FeH1LagrangeLine1() : FeH1LagrangeLine() {
     feType_ = Elem::ET_LINE2;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 2;
     order_ = 1;
@@ -184,6 +214,7 @@ namespace CoupledField {
 
   FeH1LagrangeTria1::FeH1LagrangeTria1()  : FeH1LagrangeTria(){
     feType_ = Elem::ET_TRIA3;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 1; 
@@ -313,6 +344,7 @@ namespace CoupledField {
    
   FeH1LagrangeQuad1::FeH1LagrangeQuad1() : FeH1LagrangeQuad() {
     feType_ = Elem::ET_QUAD4;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 4;
     order_ = 1; 
@@ -477,6 +509,7 @@ namespace CoupledField {
   // --- Hex 1st order ---
   FeH1LagrangeHex1::FeH1LagrangeHex1() : FeH1LagrangeHex() {
     feType_ = Elem::ET_HEXA8;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
     order_ = 1; 
@@ -681,6 +714,7 @@ namespace CoupledField {
   // --- Wedge 1st order ---
   FeH1LagrangeWedge1::FeH1LagrangeWedge1() : FeH1LagrangeWedge() {
     feType_ = Elem::ET_WEDGE6;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 6;
     order_ = 1; 
@@ -898,10 +932,10 @@ namespace CoupledField {
   
   FeH1LagrangeLine2::FeH1LagrangeLine2() : FeH1LagrangeLine() {
     feType_ = Elem::ET_LINE3;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 3;
     order_ = 2; 
-    serendipity_ = true;
   }
   FeH1LagrangeLine2::~FeH1LagrangeLine2() {
     
@@ -933,10 +967,10 @@ namespace CoupledField {
 
   FeH1LagrangeTria2::FeH1LagrangeTria2()  : FeH1LagrangeTria() {
     feType_ = Elem::ET_TRIA6;
+    completeType_ = SERENDIPITY_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 6;
     order_ = 2;
-    serendipity_ = true;
   }
 
   FeH1LagrangeTria2::~FeH1LagrangeTria2() {
@@ -971,32 +1005,32 @@ namespace CoupledField {
 
     deriv.Resize( 6, 2 );
 
-    deriv[0][0] =  4*point[0] + 4*point[1] - 3.0;
-    deriv[0][1] =  4*point[0] + 4*point[1] - 3.0;
+    deriv[0][0] =  4.0*point[0] + 4.0*point[1] - 3.0;
+    deriv[0][1] =  4.0*point[0] + 4.0*point[1] - 3.0;
 
-    deriv[1][0] =  4*point[0]-1;
+    deriv[1][0] =  4.0 * point[0] - 1.0;
     deriv[1][1] =  0;
 
     deriv[2][0] =  0;
-    deriv[2][1] =  4*point[1]-1;
+    deriv[2][1] =  4.0 * point[1] - 1.0;
 
-    deriv[3][0] =  4*(1 - 2*point[0] - point[1]);
-    deriv[3][1] = -4*point[0];
+    deriv[3][0] =  4.0 * (1.0 - 2.0*point[0] - point[1]);
+    deriv[3][1] = -4.0 * point[0];
 
-    deriv[4][0] =  4* point[1];
-    deriv[4][1] =  4* point[0];
+    deriv[4][0] =  4.0 * point[1];
+    deriv[4][1] =  4.0 * point[0];
 
-    deriv[5][0] = -4*point[1];
-    deriv[5][1] =  4*(1 - 2*point[1] - point[0]);
+    deriv[5][0] = -4.0 * point[1];
+    deriv[5][1] =  4.0 * (1.0 - 2.0*point[1] - point[0]);
   }
 
   // --- Quad 2nd order ---
   FeH1LagrangeQuad2::FeH1LagrangeQuad2() : FeH1LagrangeQuad() {
     feType_ = Elem::ET_QUAD8;
+    completeType_ = SERENDIPITY_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 8;
     order_ = 2;
-    serendipity_ = true;
   }
     
   FeH1LagrangeQuad2::~FeH1LagrangeQuad2() {
@@ -1060,6 +1094,7 @@ namespace CoupledField {
   // --- Quad 2nd order tensor product ---
   FeH1LagrangeQuad9::FeH1LagrangeQuad9() : FeH1LagrangeQuad(){
     feType_ = Elem::ET_QUAD9;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 9;
     order_ = 2;
@@ -1153,10 +1188,10 @@ namespace CoupledField {
   // --- Hex 2nd order ---
   FeH1LagrangeHex2::FeH1LagrangeHex2() : FeH1LagrangeHex() {
     feType_ = Elem::ET_HEXA20;
+    completeType_ = SERENDIPITY_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 20;
     order_ = 2;
-    serendipity_ = true;
   }
     
   FeH1LagrangeHex2::~FeH1LagrangeHex2() {
@@ -1294,6 +1329,7 @@ namespace CoupledField {
   // --- Hex 2nd order ---
   FeH1LagrangeHex27::FeH1LagrangeHex27() : FeH1LagrangeHex() {
     feType_ = Elem::ET_HEXA27;
+    completeType_ = TENSOR_TYPE;
     shape_ = Elem::shapes[feType_];
     actNumFncs_ = 27;
     order_ = 2;
@@ -1517,10 +1553,10 @@ namespace CoupledField {
   // --- Wedge 2nd order ---
    FeH1LagrangeWedge2::FeH1LagrangeWedge2() : FeH1LagrangeWedge() {
      feType_ = Elem::ET_WEDGE15;
+     completeType_ = SERENDIPITY_TYPE;
      shape_ = Elem::shapes[feType_];
      actNumFncs_ = 15;
      order_ = 2; 
-     serendipity_ = true;
    }
      
    FeH1LagrangeWedge2::~FeH1LagrangeWedge2() {
@@ -1636,6 +1672,7 @@ namespace CoupledField {
    // --- Complete wedge 2nd order ---
     FeH1LagrangeWedge18::FeH1LagrangeWedge18() : FeH1LagrangeWedge() {
       feType_ = Elem::ET_WEDGE18;
+      completeType_ = TENSOR_TYPE;
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 18;
       order_ = 2;
@@ -1798,6 +1835,7 @@ namespace CoupledField {
    // --- Tetra 1st order ---
     FeH1LagrangeTet1::FeH1LagrangeTet1() : FeH1LagrangeTet() {
       feType_ = Elem::ET_TET4;
+      completeType_ = TENSOR_TYPE;
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 4;
       order_ = 1;
@@ -1839,10 +1877,10 @@ namespace CoupledField {
    // --- Tetra 2nd order ---
     FeH1LagrangeTet2::FeH1LagrangeTet2() : FeH1LagrangeTet() {
       feType_ = Elem::ET_TET10;
+      completeType_ = SERENDIPITY_TYPE;
       shape_ = Elem::shapes[feType_];
       actNumFncs_ = 10;
       order_ = 2;
-      serendipity_ = true;
     }
 
     FeH1LagrangeTet2::~FeH1LagrangeTet2() {
@@ -2040,6 +2078,7 @@ namespace CoupledField {
     // --- Pyramid 1st order ---
      FeH1LagrangePyra1::FeH1LagrangePyra1() : FeH1LagrangePyra() {
        feType_ = Elem::ET_PYRA5;
+       completeType_ = TENSOR_TYPE;
        shape_ = Elem::shapes[feType_];
        actNumFncs_ = 5;
        order_ = 1;
@@ -2126,10 +2165,10 @@ namespace CoupledField {
     // --- Pyra 2nd order ---
      FeH1LagrangePyra2::FeH1LagrangePyra2() : FeH1LagrangePyra() {
        feType_ = Elem::ET_PYRA13;
+       completeType_ = SERENDIPITY_TYPE;
        shape_ = Elem::shapes[feType_];
        actNumFncs_ = 13;
        order_ = 2;
-       serendipity_ = true;
      }
 
      FeH1LagrangePyra2::~FeH1LagrangePyra2() {
@@ -2398,6 +2437,7 @@ namespace CoupledField {
      // --- Pyra 2nd order ---
       FeH1LagrangePyra14::FeH1LagrangePyra14() : FeH1LagrangePyra() {
         feType_ = Elem::ET_PYRA14;
+        completeType_ = TENSOR_TYPE;
         shape_ = Elem::shapes[feType_];
         actNumFncs_ = 14;
         order_ = 2;

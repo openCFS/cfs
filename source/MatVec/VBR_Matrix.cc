@@ -683,10 +683,9 @@ namespace CoupledField {
   }
 
   template<typename T>
-  void VBR_Matrix<T>::ExportMatrixMarket( const char *fname,
-                                          const char *comment ) const{
+  void VBR_Matrix<T>::ExportMatrixMarket(const std::string& fname, const std::string& comment ) const{
     // Open output file and check for errors
-    FILE *fp = fopen( fname, "w" );
+    FILE *fp = fopen( fname.c_str(), "w" );
     if ( fp == NULL ) {
       EXCEPTION( "Cannot open file " << fname << " for writing!" );
     }
@@ -707,8 +706,8 @@ namespace CoupledField {
     }
 
     // User-supplied private comment
-    if ( comment != NULL ) {
-      fprintf( fp, "%%\n%% %s\n%%\n", comment );
+    if ( comment != "" ) {
+      fprintf( fp, "%%\n%% %s\n%%\n", comment.c_str() );
     }
     else {
       fprintf( fp, "%%\n%% Matrix exported by CFS++\n%%\n" );
@@ -973,7 +972,9 @@ namespace CoupledField {
   void VBR_Matrix<T>::FindDiagonalEntries() {
 
     // loop over all rows
-    UInt bRow, bCol, offset;
+    UInt bRow = 0;
+    UInt bCol = 0;
+    UInt offset = 0;
     for( UInt i = 0; i < this->nrows_; ++i ) {
       FindBlock( i, i, bRow, bCol, offset );
       diagPtr_[i] = offset;

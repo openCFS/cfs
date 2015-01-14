@@ -11,10 +11,8 @@ namespace CoupledField
   class ScatteredDataReaderCSV : public ScatteredDataReader
   {
   public:
-    ScatteredDataReaderCSV(const std::string& fileName,
-                           bool verbose = false) :
-      ScatteredDataReader(fileName, verbose)
-    {};
+    ScatteredDataReaderCSV(PtrParamNode& scatteredDataNode,
+                           bool verbose = false);
     virtual ~ScatteredDataReaderCSV();
   
   
@@ -23,12 +21,20 @@ namespace CoupledField
       skipLines_ = skipLines;
     }
 
-    virtual void Read(std::vector< std::vector<double> >& scatteredData);
+  protected:
+    virtual void ReadData();
+
+    void ParseParamNode();
 
   private:
+    //! File name of input CSV file.
+    std::string fileName_;
 
     //! Number of heading lines in .csv to skip.
     UInt skipLines_;
+
+    std::map<UInt, UInt> dof2CoordColumn_;
+    std::map< std::string, std::map<UInt, UInt> > qidDof2Column_;
   };
   
 }

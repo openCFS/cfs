@@ -41,7 +41,7 @@ SET(BUILDNAME "Update CFS Trunk")
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
 
-SET(REPO "https://lse17.e-technik.uni-erlangen.de:2001/svn/CFS++/trunk")
+SET(REPO "${CFS_DS_SVN}/CFS++/trunk")
 SET(USER ${CFS_TESTUSER})
 
 INCLUDE(${SITE_DIR}/ctest_update.cmake)
