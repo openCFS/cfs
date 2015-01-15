@@ -76,9 +76,21 @@ namespace CFSTool
     uint32_t size = sizeof(buf);
     _NSGetExecutablePath(buf, &size);
 #else // Linux
-    readlink("/proc/self/exe", buf, sizeof(buf));
+//    std::cout << "EMPTY BUFFER: "<< buf << std::endl;
+    int success_ = readlink("/proc/self/exe", buf, sizeof(buf));
+    
+//    std::cout << success_ << std::endl;
+//    std::cout << "BUFFER AFTER READLINK: " << buf << std::endl;
+    
+    // added char(0) to end of the read in path to ensure that the path ends correctly
+    // reason: during the last build I sometimes encountered errors when starting cfstoolsbin;
+    // errormsg: boost::filesystem::canonical: No such file or directory: "/home/lse21/staff/mnierla/5_FESPACE_magstrict/fespace_mnierla/cfstoolbin`�O��~
+
+    buf[success_] = char(0);
+//    std::cout << "BUFFER AFTER MOD: " << buf << std::endl;    
 #endif    
 #endif
+
     fs::path cfstoolbin = fs::canonical(buf);
     fs::path cfsbasedir;
     cfsbasedir = cfstoolbin.parent_path().parent_path().parent_path();
