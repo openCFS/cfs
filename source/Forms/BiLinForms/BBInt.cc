@@ -286,6 +286,7 @@ namespace CoupledField{
 
        // Calculate scalar factor
        this->coefScalar_->GetScalar(fac, lp);
+
        fac *= MAT_DATA_TYPE(lp.jacDet * weights[i]); 
 
 #ifdef USE_BLAS_VERSION
@@ -352,14 +353,14 @@ namespace CoupledField{
        // porposal: let PDE decide via constructor parameter
        this->coefScalar_->GetScalar(fac, lp1);
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
-
+    //  std::cout << fac << std::endl;
 
 #ifdef USE_BLAS_VERSION
        bMatT_.Mult_Blas(this->bMat_, elemMat, false, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat_) * bMat_ * this->factor_ * fac;
 #endif
-
+  //     std::cout << elemMat.ToString(0,true) << std::endl;
      }
    }
 

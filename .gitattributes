@@ -416,6 +416,8 @@ ctest_scripts/sites/sles11/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/sles11/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/sles11/site_specific_vars.cmake -text
 ctest_scripts/sites/trusty/Vagrantfile -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/trusty/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/trusty/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/trusty/site_specific_init.cmake -text
@@ -1153,6 +1155,8 @@ source/CoupledPDE/FluidMechCoupling.cc -text
 source/CoupledPDE/FluidMechCoupling.hh -text
 source/CoupledPDE/IterCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/IterCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/CoupledPDE/MagnetoStrictCoupling.cc -text
+source/CoupledPDE/MagnetoStrictCoupling.hh -text
 source/CoupledPDE/PiezoCoupling.cc -text
 source/CoupledPDE/PiezoCoupling.hh -text
 source/CoupledPDE/WaterWaveAcousticsCoupling.cc -text
@@ -1309,6 +1313,9 @@ source/DataInOut/SimInOut/hdf5/hdf5io.hh svneol=native#text/plain
 source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.cc -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
+source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
+source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
+source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
 source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1605,6 +1612,8 @@ source/Materials/PiezoMaterial.cc -text
 source/Materials/PiezoMaterial.hh -text
 source/Materials/TestMaterial.cc -text
 source/Materials/TestMaterial.hh -text
+source/Materials/magStrictMaterial.cc -text
+source/Materials/magStrictMaterial.hh -text
 source/ODESolve/BaseODEProblem.hh svneol=native#text/plain
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain

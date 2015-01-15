@@ -30,7 +30,7 @@ namespace CoupledField
     //! The default destructor is responsible for freeing the Coil objects
     //! the ReadCoils() method brought into being.
     ~MagEdgePDE();
-    
+
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
     shared_ptr<Coil> GetCoilById(const Coil::IdType& id);

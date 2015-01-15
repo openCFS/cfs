@@ -20,7 +20,7 @@
 #include "Materials/ElectricConductionMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
-//#include "Materials/magStrictMaterial.hh"
+#include "Materials/magStrictMaterial.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -136,9 +136,9 @@ namespace CoupledField {
       //ReadThermoelastic( material, pn );
     }
     else if ( matClass == MAGNETOSTRICTIVE ) {
-      REFACTOR;
-      //material = new MagStrictMaterial();
-      //ReadMagStrict( material, pn );
+      //REFACTOR;
+      material = new MagStrictMaterial(mp,cs);
+      ReadMagStrict( material, pn );
     }
     else if ( matClass == ELECTRICCONDUCTION ) {
       material = new ElectricConductionMaterial(mp, cs);
@@ -1288,17 +1288,17 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadMagStrict(BaseMaterial *material,
                                          PtrParamNode pn) {
     //read real magmech coupling tensor
-    if(pn->Has("magnetoStrictionTensor")) {
+    if(pn->Has("magnetoStrictionTensor_h")) {
       Matrix<Double> couplingTensor(3,6);
 
-      PtrParamNode mst = pn->Get("magnetoStrictionTensor");
+      PtrParamNode mst = pn->Get("magnetoStrictionTensor_h");
       if(mst->Has("real")) {
         ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::REAL );
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::REAL );
       }
       if(mst->Has("imag")) {
         ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::IMAG );
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::IMAG );
       }
     }
   }

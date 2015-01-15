@@ -54,6 +54,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   //! Always use updated Lagrangian formulation 
   updatedGeo_        = true;
+  isMagnetoStrictCoupled_ = false;
   
   reluc_.reset(new CoefFunctionMulti(CoefFunction::TENSOR, dim_, dim_, isComplex_));
 
@@ -80,6 +81,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
   }
 
+  void MagneticPDE::SetMagnetoStrictCoupling()
+  {
+  
+    isMagnetoStrictCoupled_ = true;
+
+  }
+  
   shared_ptr<Coil> MagneticPDE::GetCoilById(const Coil::IdType& id) {
     return coils_.at(id);
   }
@@ -181,6 +189,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // ================================================
           //  Nonlinear Stiffness Integrator (only Newton )
           // ================================================
+          // Note: currently we set the nonlinear method hard-coded to NEWTON for
+          // testing purpose
           if( nonLinMethod_ == NEWTON ) {
             PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
                                                                  Global::REAL, magFluxCoef );
@@ -380,7 +390,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                      CoefXpr::OP_DIV);
           PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
-
+            
+            CoefFunction * tmp = jFct.get();
+            std::cerr << "jFct is " << tmp->ToString() << std::endl;
           if( dim_ == 3 ) {
             // ===========
             //  3D CASE
@@ -948,6 +960,22 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       DefineFieldResult( bFunc, flux );
       stiffFormCoefs_.insert(bFunc);
 
+     // === MAGNETIC FIELD INTENSITY ===
+      shared_ptr<ResultInfo> magIntens ( new ResultInfo );
+    magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->SetVectorDOFs(dim_, isaxi_);
+    magIntens->unit = "A/m";
+    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->entryType = ResultInfo::VECTOR;
+    shared_ptr<CoefFunctionFormBased> magIntensFunc;
+    if( isComplex_ ) {
+      magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+    } else {
+      magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+    }
+    DefineFieldResult( magIntensFunc, magIntens );
+    stiffFormCoefs_.insert(magIntensFunc);
+      
       // === EDDY CURRENT DENSITY ===
       shared_ptr<CoefFunctionFormBased> jFunc;
       if( analysistype_ != STATIC ) {

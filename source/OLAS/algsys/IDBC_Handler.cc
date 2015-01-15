@@ -194,6 +194,7 @@ namespace CoupledField {
 
       // Check that we have a factor and a FE matrix
       if ( auxMat_[(*it).first] != NULL  && (*it).second != 0.0 ) {
+
         // generate empty set of indices (= all rows)
         std::map<UInt, std::set<UInt> > rowInd;
 
@@ -278,8 +279,7 @@ namespace CoupledField {
     LOG_DBG2(idbcElim) << "\tcolBlock: " << colBlock;
     LOG_DBG2(idbcElim) << "\trowInd:   " << rowInd;
     LOG_DBG2(idbcElim) << "\tcolInd:   " << colInd;
-    
-    
+
     StdMatrix *stdMat = auxMat_[matID]->GetPointer(rowBlock, colBlock);
     stdMat->AddToMatrixEntry( rowInd, colInd, val );
   }

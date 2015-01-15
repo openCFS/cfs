@@ -773,6 +773,9 @@ namespace CoupledField
       
       case GENERAL:
         // in this case we have already the full permeability tensor
+        
+        //std::cout << "WTF?" << std::endl;
+        GetTensor( muTensor, MAG_PERMEABILITY, Global::COMPLEX );
         break;
         
       case ISOTROPIC:
@@ -803,6 +806,16 @@ namespace CoupledField
     Matrix<Double> nuTensor(3,3), temp;
     temp = muTensor.GetPart(Global::REAL);
     temp.Invert(nuTensor);
+  
+  /*  
+    std::cout << "-----------" << std::endl;
+    std::cout << "NU" << std::endl;
+    std::cout << temp << std::endl;
+    std::cout << "MU" << std::endl;   
+    std::cout << nuTensor << std::endl;
+    std::cout << "-----------" << std::endl;
+   */
+        
     SetTensor( nuTensor, MAG_RELUCTIVITY, Global::REAL );
     
     GetTensor( temp, MAG_RELUCTIVITY, Global::REAL );

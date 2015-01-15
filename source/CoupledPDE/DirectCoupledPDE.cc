@@ -115,7 +115,6 @@ namespace CoupledField {
     sequenceStep_ = sequenceStep;
 
     infoNode_ = myInfo_->Get("PDE")->Get("directCoupledPDE", ParamNode::APPEND);
-
     
     // Create algebraic system and pass it to SinglePDEs
     isComplex_ = IsComplex();
@@ -137,7 +136,7 @@ namespace CoupledField {
 //     if ( analysistype_ == BasePDE::TRANSIENT ) {
 //       InitTimeStepping();
 //     }
-
+    
     // activate direct coupling information
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
       singlePDEs_[i]->SetDirectCoupling();
@@ -146,6 +145,7 @@ namespace CoupledField {
     // activate direct coupling information
     // and initialize all single pdes
     for (UInt i=0; i<singlePDEs_.GetSize(); i++) {
+	
       singlePDEs_[i]->algsys_ = algsys_;
       singlePDEs_[i]->assemble_ = assemble_;
       singlePDEs_[i]->solStrat_ = solStrat_;
@@ -154,7 +154,7 @@ namespace CoupledField {
       // define primary results)
       singlePDEs_[i]->Init_Stage1( sequenceStep, infoNode_);
     }
-
+    
     // Collect all feFunctions defined in single PDEs
     for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
       
@@ -163,7 +163,7 @@ namespace CoupledField {
      rhsFeFunctions_.insert(singlePDEs_[i]->rhsFeFunctions_.begin(),
                             singlePDEs_[i]->rhsFeFunctions_.end() );
     }
-
+    
     // Initialize all Coupling Objects
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       couplings_[i]->SetAlgSys( algsys_ );
@@ -171,7 +171,7 @@ namespace CoupledField {
       couplings_[i]->SetAssemble( assemble_ );
       couplings_[i]->Init( sequenceStep_ );
     }
-
+    
     // Perform stage 2 initialization (boundary conditions, integerators)
     for( UInt i = 0; i < singlePDEs_.GetSize(); ++i ) {
      singlePDEs_[i]->Init_Stage2();
@@ -190,6 +190,7 @@ namespace CoupledField {
     // Print list of defined integrators of assembly object
     assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
     
+    
     // Collect all feFunctions defined in BasePairCouplings
     for (UInt i=0; i<couplings_.GetSize(); i++) {
       feFunctions_.insert( couplings_[i]->feFunctions_.begin(),
@@ -197,16 +198,18 @@ namespace CoupledField {
       rhsFeFunctions_.insert(couplings_[i]->rhsFeFunctions_.begin(),
                              couplings_[i]->rhsFeFunctions_.end() );
     }
-    
+     
     // define solveStep-driver
     DefineSolveStep();
 
     // Pass SolveStep object to all single pdes
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
+     
       singlePDEs_[i]->solveStep_ = solveStep_;
     }
 
     isIterCoupled_ = false;
+     
     for ( UInt i = 0; i < singlePDEs_.GetSize(); i++ ) {
       isIterCoupled_ |= singlePDEs_[i]->IsIterCoupled();
     }

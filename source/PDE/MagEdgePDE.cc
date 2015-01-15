@@ -1002,6 +1002,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // === MAGNETIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> magIntens(new ResultInfo);
     magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->SetVectorDOFs(dim_, isaxi_);
     magIntens->dofNames = vecComponents;
     magIntens->unit = "A/m";
     magIntens->definedOn = ResultInfo::ELEMENT;
