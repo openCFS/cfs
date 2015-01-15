@@ -377,7 +377,7 @@ SetupCMake() {
 
     # Define list of mirrors
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
-             ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
+             ftp://cfs.mdmt.tuwien.ac.at/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
     MD5SUM="17c6513483d23590cbce6957ec6d1e66"
 
