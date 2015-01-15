@@ -64,11 +64,7 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/xerces/${XERCES_GZ}")
 SET(MD5_SUM ${XERCES_MD5})
 
 SET(DLFN "${xerces_prefix}/xerces-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  )
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The xerces external project
@@ -96,10 +92,7 @@ ExternalProject_Add_Step(xerces cfsdeps_download
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  xerces
-)
+SET(CFSDEPS ${CFSDEPS} xerces)
 
 SET(XERCES_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 

@@ -175,6 +175,9 @@ cfsdeps/ilupack/ilupack-sparspak-revrse.patch -text
 cfsdeps/ilupack/ilupack-use-lapack-driver.patch -text
 cfsdeps/ilupack/ilupack2.2.1_src.tgz.md5 -text
 cfsdeps/ilupack/ilupack_config.h.in -text
+cfsdeps/ipopt/External_IPOPT.cmake -text
+cfsdeps/ipopt/ipopt-patch.cmake.in -text
+cfsdeps/ipopt/ipopt_hsl.zip -text svneol=unset#application/zip
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
 cfsdeps/lapack/lapack-for-cfs.patch -text
@@ -277,6 +280,8 @@ cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2.md5 -text
+cfsdeps/snopt/External_SNOPT.cmake -text
+cfsdeps/snopt/snopt-post_install.cmake.in -text
 cfsdeps/spacepart/External_spacepart.cmake -text
 cfsdeps/spacepart/libfbi-patch.cmake.in -text
 cfsdeps/spacepart/libfbi_cpp11.patch -text

@@ -1,12 +1,17 @@
 #-------------------------------------------------------------------------------
 # SCPIP - - an efficient software tool for the solution of
-# structural optimization problems.
+# structural optimization problems. 
+# Implements the Method of Moving Asymptotes (MMA) from Krister Svanberg
 #
 # Project Homepage
 # http://www.mathematik.uni-wuerzburg.de/~zillober
 # http://www.mathematik.uni-wuerzburg.de/~zillober/pubs/manual30.pdf
 #-------------------------------------------------------------------------------
-
+#
+# SCPIP is not open source! Users need to obtain a permission to use the
+# code for academic purupose!  
+# 
+# The code 
 #-------------------------------------------------------------------------------
 # Set paths to scpip sources according to ExternalProject.cmake 
 #-------------------------------------------------------------------------------
@@ -54,27 +59,13 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # CFS expects scpip.tar.bz2 in CFS_DEPS_CACHE_DIR/source/scpip
 
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
-SET(MD5_SUM ${8afaf8d8d79981d68b8c726ea508471d})
-
-SET(DLFN "${ARPACK_prefix}/scpip-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  ) 
-
-set(SCPIP_EXTERNAL_DATA "DATA{cfsdeps/scpip/scpip.tar.bz2}")
-
-MESSAGE(${SCPIP_EXTERNAL_DATA})
-
+SET(MD5_SUM ${SCPIP_MD5})
 #-------------------------------------------------------------------------------
 # The scpip external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(scpip
-  #DEPENDS SCPIP_EXTERNAL_DATA
   PREFIX "${scpip_prefix}"
   SOURCE_DIR "${scpip_source}"
-  # URL ${SCPIP_PATH}/${SCPIP_BZ2}
   URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
   URL_MD5 ${SCPIP_MD5}
   PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
@@ -96,9 +87,7 @@ SET(SCPIP_INCLUDE_DIR "${CFS_BINARY_DIR}/include")
 # Determine paths of SCPIP libraries.
 #-----------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(SCPIP_LIBRARY
-  "${LD}/libscpip.a"
-  CACHE FILEPATH "SCPIP library.")
+SET(SCPIP_LIBRARY "${LD}/libscpip.a" CACHE FILEPATH "SCPIP library.")
 
 MARK_AS_ADVANCED(SCPIP_LIBRARY)
 MARK_AS_ADVANCED(SCPIP_INCLUDE_DIR)

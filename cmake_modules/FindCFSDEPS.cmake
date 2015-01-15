@@ -375,21 +375,34 @@ IF(USE_SCPIP)
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
   SET(SCPIP_BZ2 "scpip.tar.bz2")
   SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")
-
+   
   INCLUDE("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
 
 
 #-----------------------------------------------------------------------------
-# Find SNOPT - A general optimizer 
+# Find SNOPT - A general purpose commercial optimizer 
 #-----------------------------------------------------------------------------
 IF(USE_SNOPT)
   SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
-  SET(SNOPT_BZ2 "snopt-7.2.8-cfsdeps.zip")
-  SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196")
-
+  SET(SNOPT_ZIP "snopt-7.2.8-cfsdeps.zip")
+  # SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196") we don't check
+  
   INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
 ENDIF(USE_SNOPT)
+
+#-----------------------------------------------------------------------------
+# Find IPOPT - A general purpos open source optimizer 
+#-----------------------------------------------------------------------------
+IF(USE_IPOPT)
+  SET(IPOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(IPOPT_ID "Ipopt-3.11.9")
+  SET(IPOPT_TGZ "${IPOPT_ID}.tgz")
+  SET(IPOPT_MD5 "657fa0f2f301f0d7b2a4e5b43e2370f5") 
+  
+  INCLUDE("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+ENDIF(USE_IPOPT)
+
 
 
 #-----------------------------------------------------------------------------

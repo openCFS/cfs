@@ -1,12 +1,11 @@
 #include "Optimization/Optimizer/FeasPP.hh"
 #include "Optimization/Design/DesignSpace.hh"
-#include "MatVec/scrs_Matrix.hh"
+#include "MatVec/Matrix.hh"
 #include "Utils/tools.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
 #include <limits>
-
 
 DECLARE_LOG(feasPP)
 DEFINE_LOG(feasPP, "feas_pp")
@@ -177,12 +176,12 @@ void FeasPP::PostInit()
     {
       Function::Type det = TranslateFeasibilityConstraint(g->GetType()); // the other function
       if(!cc.Has(det, g->GetDesignType(), false)) { // also observation
-        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("using benson vanderbei constraints requires to have positive definite determinat constraints in observation");
+        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("using benson vanderbei constraints requires to have positive definite determinant constraints in observation");
         continue;
       }
       LocalCondition* other = dynamic_cast<LocalCondition*>(cc.Get(det, g->GetDesignType(), false));
       if(!other->IsObservation()) {
-        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("having benson vanderbei constraints requires the positive definite determinat constraints to be in observation mode");
+        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("having benson vanderbei constraints requires the positive definite determinant constraints to be in observation mode");
         continue;
       }
 
@@ -196,7 +195,7 @@ void FeasPP::PostInit()
           constr[a]->determinant_shift = shift;
 
       if((other->GetBoundValue() != loc_g->GetBoundValue()) || (other->GetParameter() != loc_g->GetParameter()) || (other->GetBound() != loc_g->GetBound()) || (other->GetDesignType() != loc_g->GetDesignType()))
-        info->Get("optimization/optimizer")->Get(ParamNode::HEADER)->Get("feasPP")->Get(ParamNode::WARNING)->SetValue("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
+        info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("bound (value) or parameter or design are not identical for constraint " + g->ToString() + " and " + loc_g->ToString());
 
       approx_vanderbei_by_determinants = true;
       break;
@@ -417,7 +416,7 @@ FeasPP::LSR FeasPP::Backtracking(const Vector<double>& x_old, const Vector<doubl
   for(double ov = std::numeric_limits<double>::max(); ov >= obj->outer_val && t >= min_step_; result.steps++) // enter at least once!
   {
     t *= 0.5;
-    x_new = t * d; // temporary only!
+    x_new = d * t; // temporary only!
     result.curr_dx = x_new.NormL2();
     LOG_DBG2(feasPP) << "FP:B dx_new=" << x_new.ToString(0, ' ');
     x_new += x_old;
@@ -487,9 +486,9 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   }
   double sigma = 1.0;
   Vector<double> x_next(n);
-  x_next = x + sigma * dx;
+  x_next = x + dx * sigma;
   Vector<double> y_next(m);
-  y_next = y + sigma * dy;
+  y_next = y + dy * sigma;
 
   // perform Armijo
   // descent condition (23)
@@ -503,8 +502,8 @@ FeasPP::LSR FeasPP::AugmentedLagrangianLineSearch(int k, const Vector<double>& x
   {
     LOG_DBG2(feasPP) << "FP:ALLS sigma_phi=" << sigma_phi << " > phi=" << phi << " dec=" << decrease_ << " sig=" << sigma << " sp=" << grad_phi_d << " (" << (phi + decrease_ * sigma * grad_phi_d) << ")";
     sigma *= stepwidth_;
-    x_next = x + sigma * dx;
-    y_next = y + sigma * dy;
+    x_next = x + dx * sigma;
+    y_next = y + dy * sigma;
 
     sigma_phi = CalcAugmentedLagrangian(x_next, y_next, rho);
 

@@ -2,7 +2,7 @@
 #include "Optimization/Optimizer/FeasPP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Condition.hh"
-#include "MatVec/scrs_Matrix.hh"
+#include "MatVec/Matrix.hh"
 #include "General/Exception.hh"
 #include "Utils/StdVector.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"

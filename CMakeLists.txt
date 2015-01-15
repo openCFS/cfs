@@ -289,7 +289,18 @@ ENDIF()
 #-----------------------------------------------------------------------------
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
-OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+OPTION(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# commercial SNOPT optimizer library.
+#-----------------------------------------------------------------------------
+OPTION(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# open source IPOPT optimizer library.
+#-----------------------------------------------------------------------------
+OPTION(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
+
 
 #-----------------------------------------------------------------------------
 # Use cgal toggles the inclusion of the CGAL library.
