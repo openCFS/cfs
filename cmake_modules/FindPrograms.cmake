@@ -146,3 +146,5 @@ MARK_AS_ADVANCED(PYGMENTIZE_EXECUTABLE)
 #-----------------------------------------------------------------------------
 FIND_PROGRAM(PATCH_EXECUTABLE patch)
 MARK_AS_ADVANCED(PATCH_EXECUTABLE)
+
+

@@ -189,7 +189,7 @@ std::string BaseOptimizer::Scale::ToString()
 BaseOptimizer::BaseOptimizer(Optimization* opt, PtrParamNode pn, Optimization::Optimizer type) :
   optimization(opt),
   type_(type),
-  info_(domain->GetInfoRoot()->Get("optimization")->Get("optimizer")),
+  info_(opt->optInfoNode->Get("optimizer")),
   objective(NULL),
   restart_requested(false),
   timer_(new Timer()),

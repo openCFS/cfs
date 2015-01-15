@@ -397,6 +397,19 @@
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="mechShape"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -409,12 +422,34 @@
       <xsd:enumeration value="mechThermalStress"/>
       
       <xsd:enumeration value="mechStructIntensity"/>
-      <xsd:enumeration value="vonMises"/>
+      <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="mechKinEnergyDensity"/>
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
       <xsd:enumeration value="mechNormalStructIntensity"/>
+      
+      <!-- non-physical design variable for simp topology optimization --> 
+      <xsd:enumeration value="mechPseudoDensity"/>
+      <!-- physical application of design variable in the simulation -->
+      <xsd:enumeration value="physicalPseudoDensity"/>
+      <!-- For parametrized or free material optimization the local tensor trace -->
+      <xsd:enumeration value="mechTensorTrace"/>
+      <!-- For parametrized or free material optimization the complete local tensor-->
+      <xsd:enumeration value="mechTensor"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>      
+      
     </xsd:restriction>
   </xsd:simpleType>
   

@@ -209,6 +209,8 @@ namespace CoupledField {
    * don't use one of our vectors. E.g. with IPOPT */
   Double NormL2(const Double* data, const UInt size);
 
+  Double NormL2(const Double* data, const Double* data2, const UInt size);
+
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
 

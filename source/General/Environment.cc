@@ -1150,7 +1150,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
-    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMises");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
     SolutionTypeEnum.Add(MECH_DEFORM_ENERGY_DENS, "mechDeformEnergyDensity");
@@ -1329,9 +1329,6 @@ namespace CoupledField {
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
-    SolutionTypeEnum.Add(GRAD_X_DISPLACEMENT, "gradXDisplacement"); // node property!
-    SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
-    SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
     SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");

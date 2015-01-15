@@ -156,6 +156,16 @@ namespace CoupledField {
     return std::sqrt(result);
   }
 
+  Double NormL2(const Double* data1, const Double* data2, const UInt size)
+  {
+    Double result = 0.0;
+    for(UInt i = 0; i < size; i++)
+      result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+
+    return std::sqrt(result);
+  }
+
+
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size)
   {
