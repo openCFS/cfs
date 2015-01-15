@@ -1379,7 +1379,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR, "Magnetostriction_Tensor" ); 
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" ); 
     MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 

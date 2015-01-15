@@ -250,6 +250,7 @@
   <xsd:simpleType name="DT_MagneticElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>
       <xsd:enumeration value="magEddyCurrentDensity"/>
       <xsd:enumeration value="magCoilCurrentDensity"/>
       <xsd:enumeration value="magTotalCurrentDensity"/>

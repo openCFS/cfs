@@ -76,8 +76,11 @@ namespace CoupledField {
     // 'TimeStepping' is here the optimization iteration
     ptPDE_->GetSolveStep()->SetActTime(0.0);
     ptPDE_->GetSolveStep()->SetActStep(1);
+    
     ptPDE_->GetSolveStep()->PreStepStatic();
+    
     ptPDE_->GetSolveStep()->SolveStepStatic(analysis_id_);
+    
     ptPDE_->GetSolveStep()->PostStepStatic();
 
     StoreResults(1,0.0);

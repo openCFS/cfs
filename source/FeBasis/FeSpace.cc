@@ -1525,7 +1525,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       // 2nd block: contains all element interior equations (in 2D: faces)
       
       // Preliminary first set: all equations
-      // If we have lateron no interior equations, we can directly return
+      // If we have later on no interior equations, we can directly return
       // this set
       std::set<Integer>  nonIntEqns;
       for( UInt i = 0; i < numEqns_; ++i ) {

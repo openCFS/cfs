@@ -2,7 +2,7 @@
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 
-#include "PiezoCoupling.hh"
+#include "MagnetoStrictCoupling.hh"
 
 #include "PDE/SinglePDE.hh"
 #include "CoupledPDE/BasePairCoupling.hh"
@@ -26,6 +26,7 @@
 // new integrator concept
 #include "Forms/BiLinForms/ADBInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/CurlOperator.hh"
 #include "Forms/Operators/StrainOperator.hh"
 
 // new postprocessing concept
@@ -38,16 +39,15 @@ namespace CoupledField {
   // ***************
   //   Constructor
   // ***************
-  PiezoCoupling::PiezoCoupling( SinglePDE *pde1, SinglePDE *pde2,
+  MagnetoStrictCoupling::MagnetoStrictCoupling( SinglePDE *pde1, SinglePDE *pde2,
                                 PtrParamNode paramNode,
                                 PtrParamNode infoNode,
                                 shared_ptr<SimState> simState,
                                 Domain* domain)
     : BasePairCoupling( pde1, pde2, paramNode, infoNode, simState, domain )
   {
-    couplingName_ = "piezoDirect";
-    materialClass_ = PIEZO;
-
+    couplingName_ = "magnetoStrictDirect";
+    materialClass_ = MAGNETOSTRICTIVE;
     // determine subtype from mechanic pde
     pde1_->GetParamNode()->GetValue( "subType", subType_ );
 
@@ -55,32 +55,31 @@ namespace CoupledField {
     
     // Initialize nonlinearities
     InitNonLin();
-
   }
 
   // **************
   //   Destructor
   // **************
-  PiezoCoupling::~PiezoCoupling() {
+  MagnetoStrictCoupling::~MagnetoStrictCoupling() {
   }
 
 
   // *********************
   //   DefineIntegrators
   // *********************
-  void PiezoCoupling::DefineIntegrators() {
+  void MagnetoStrictCoupling::DefineIntegrators() {
 
     // get hold of both feFunctions
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
-    shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+    shared_ptr<BaseFeFunction> magFct = pde2_->GetFeFunction(MAG_POTENTIAL);
     shared_ptr<FeSpace> dispSpace = dispFct->GetFeSpace();
-    shared_ptr<FeSpace> elecSpace = elecFct->GetFeSpace();
+    shared_ptr<FeSpace> magSpace = magFct->GetFeSpace();
     
     
     // Global::ComplexPart matType = Global::REAL;
     RegionIdType actRegion;
     BaseMaterial * actSDMat = NULL;
-    
+   
     // Define integrators for "standard" materials
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
@@ -104,12 +103,12 @@ namespace CoupledField {
       // ==================================================================
       BaseBDBInt * stiffInt = 
           GetStiffIntegrator( actSDMat, actRegion, complexMatData_[actRegion] );
-      stiffInt->SetName("PiezoCouplingInt");
+      stiffInt->SetName("MagnetoStrictCouplingInt");
       BiLinFormContext * stiffIntDescr =
           new BiLinFormContext(stiffInt, STIFFNESS );
 
       stiffIntDescr->SetEntities( actSDList, actSDList );
-      stiffIntDescr->SetFeFunctions( dispFct, elecFct );
+      stiffIntDescr->SetFeFunctions( dispFct, magFct );
       stiffIntDescr->SetCounterPart(true);
 
       assemble_->AddBiLinearForm( stiffIntDescr );
@@ -122,10 +121,10 @@ namespace CoupledField {
 
   
   
-  void PiezoCoupling::DefinePostProcResults() {
+  void MagnetoStrictCoupling::DefinePostProcResults() {
     
     shared_ptr<BaseFeFunction> dispFct = pde1_->GetFeFunction(MECH_DISPLACEMENT);
-    shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+    shared_ptr<BaseFeFunction> magFct = pde2_->GetFeFunction(MAG_POTENTIAL);
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     MathParser * mp = domain_->GetMathParser();
     
@@ -139,35 +138,35 @@ namespace CoupledField {
     } else if( subType_ == "axi" ) {
       stressComponents = "rr", "zz", "rz", "phiphi";
     }
-    
-    // === Electric Flux Density ===
-    shared_ptr<ResultInfo> flux ( new ResultInfo );
-    flux->resultType = ELEC_FLUX_DENSITY;
-    flux->SetVectorDOFs(dim_, isaxi_);
-    flux->unit = "C/m^2";
-    flux->definedOn = ResultInfo::ELEMENT;
-    flux->entryType = ResultInfo::VECTOR;
-    availResults_.insert( flux );
-    
-    // The electric flux density in the coupled case calculates as 
-    // D = [e]*S + [eps]*E
-    // a) electric part -> take from electrostatic PDE
-    PtrCoefFct coefElecD = pde2_->GetCoefFct( ELEC_FLUX_DENSITY);
-    
-    // b) coupling part -> use own ADB-form
+   
+    // === MAGNETIC FIELD INTENSITY ===
+    shared_ptr<ResultInfo> magIntens(new ResultInfo);
+    magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->SetVectorDOFs(dim_, isaxi_);
+    magIntens->unit = "A/m";
+    magIntens->definedOn = ResultInfo::ELEMENT;
+    magIntens->entryType = ResultInfo::VECTOR;
+    availResults_.insert( magIntens );
+        
+    // The magnetic field intensity in the coupled case calculates as 
+    // H = -[h]*S + [nu]*B
+    // a) magnetic part -> take from magnetic PDE
+    PtrCoefFct coefMagH = pde2_->GetCoefFct( MAG_FIELD_INTENSITY);
+   
     Double cplFactor = 1.0;
     shared_ptr<CoefFunctionFormBased> cplFunc;
     if( isComplex_ ) {
-      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, flux, cplFactor));
+      cplFunc.reset(new CoefFunctionFlux<Complex,true>(dispFct, magIntens, cplFactor));
     } else {
-      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, flux, cplFactor));
+      cplFunc.reset(new CoefFunctionFlux<Double,true>(dispFct, magIntens, cplFactor));
     }
-    // Build compound coefficient function for flux density
-    PtrCoefFct coefFlux = CoefFunction::Generate(mp,part,
-                         CoefXprBinOp(mp,coefElecD, cplFunc,
-                                      CoefXpr::OP_ADD) );
-    DefineFieldResult( coefFlux, flux );
+  
+    // Build compound coefficient function for field intensity
+    PtrCoefFct coefIntens = CoefFunction::Generate(mp,part,
+                         CoefXprBinOp(mp,coefMagH, cplFunc,
+                                      CoefXpr::OP_SUB) );
 
+    DefineFieldResult( coefIntens, magIntens );
 
     // ==== Mechanic Stress ===
     shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -179,29 +178,25 @@ namespace CoupledField {
     availResults_.insert( stress );
     
     // The mechanic stress calculates as 
-    // [sigma] = [c]*S - [e]*E
+    // [sigma] = [c]*S - [h]*B
     // a) mechanic  -> take from mechanic PDE
     PtrCoefFct coefMechSigma = pde1_->GetCoefFct( MECH_STRESS );
         
-    // b) coupling part [e]*E = - [e] grad(V_p) -> use own ADB-form
+    // b) coupling part [h]*B = [h] rot(A) -> use own ADB-form
     shared_ptr<CoefFunctionFormBased> stressCplFunc;
-    // Note: As the "B"-operator of the ADB operator only calculates 
-    //       the gradient and we need the electric field (E = - grad(V_p)),
-    //       we have to multiply the entries by -1.0. However, due to the 
-    //       constitutive law, an additional -1 is needed, so we just
-    //       need scaling factor 1.0.
-    Double stressCplFactor = 1.0;
+   Double stressCplFactor = 1.0;
     if( isComplex_ ) {
-      stressCplFunc.reset(new CoefFunctionFlux<Complex>(elecFct, stress, stressCplFactor));
+      stressCplFunc.reset(new CoefFunctionFlux<Complex>(magFct, stress, stressCplFactor));
     } else {
-      stressCplFunc.reset(new CoefFunctionFlux<Double>(elecFct, stress, stressCplFactor));
+      stressCplFunc.reset(new CoefFunctionFlux<Double>(magFct, stress, stressCplFactor));
     }
     PtrCoefFct coefStress = CoefFunction::Generate(mp,part,
-                                                   CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
-                                                                CoefXpr::OP_ADD) ); 
+                            CoefXprBinOp(mp,coefMechSigma, stressCplFunc, 
+                                         CoefXpr::OP_SUB ) ); 
     DefineFieldResult(coefStress, stress);
 
-
+// keep as reference 
+/*
     // === Electric Charge Density (surface) ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
     chargeD->resultType = ELEC_CHARGE_DENSITY;
@@ -210,9 +205,7 @@ namespace CoupledField {
     chargeD->definedOn = ResultInfo::SURF_ELEM;
     chargeD->entryType = ResultInfo::SCALAR;
     availResults_.insert( chargeD );
-    // Note: The positive normal direction in this case is defined as the
-        //       inward facing one. 
-    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, -1.0, chargeD));
+    shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, chargeD));
     DefineFieldResult( sChargeDens, chargeD);
     
     // === Electric Charge (integrated) ===
@@ -232,7 +225,7 @@ namespace CoupledField {
       chargeFunc.reset(new ResultFunctorIntegrate<Double>(sChargeDens, dispFct, charge ) );
     }
     resultFunctors_[ELEC_CHARGE] = chargeFunc;
-    
+*/    
     
     // ============================
     // Initialize result functors:
@@ -246,28 +239,17 @@ namespace CoupledField {
       // 2) pass integrators to functors
       cplFunc->AddIntegrator(bdb, region);
       stressCplFunc->AddIntegrator(bdb, region);
-      sChargeDens->AddVolumeCoef(region, coefFlux);
+      //sChargeDens->AddVolumeCoef(region, coefFlux);
     }
   }
   
   
 
-  void PiezoCoupling::DefineAvailResults() {
-
-//
-//    // === ELECTRIC CHARGE ===
-//    shared_ptr<ResultInfo> charge(new ResultInfo);
-//    charge->resultType = ELEC_CHARGE;
-//    charge->dofNames = "";
-//    charge->unit = "C";
-//    charge->definedOn = ResultInfo::SURF_ELEM;
-//    charge->entryType = ResultInfo::SCALAR;
-//    charge->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//    availResults_.insert( charge );
+  void MagnetoStrictCoupling::DefineAvailResults() {
   }
 
   BaseBDBInt *
-  PiezoCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
+  MagnetoStrictCoupling::GetStiffIntegrator( BaseMaterial* actSDMat,
                                      RegionIdType regionId,
                                      bool isComplex ) {
     
@@ -289,37 +271,47 @@ namespace CoupledField {
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
     if( isComplex ) {
-      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+      curCoef = actSDMat->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h, tensorType, 
                                           Global::COMPLEX, true  );
     } else {
-      curCoef = actSDMat->GetTensorCoefFnc(PIEZO_TENSOR, tensorType, 
+      curCoef = actSDMat->GetTensorCoefFnc(MAGNETOSTRICTION_TENSOR_h, tensorType, 
                                            Global::REAL, true );
     }
-    
+
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
 
-    // NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
-    // -> no factor -1 here
+    // NOTE: the used set of governing equations
+    //   H = -[h]*S + [nu]*B
+    //   [sigma] = [c]*S - [h]*B
+    // couple with a negative sign, so we have to use a factor of -1 for the coupling matrices 
+    double factor = -1.0;
+
     BaseBDBInt * integ = NULL;
     if ( isComplex ) {
       if( subType_ == "axi" ) {
         integ = new ADBInt<Complex>(new StrainOperatorAxi<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true );
+						new CurlOperatorAxi<Complex>(),
+                                    //new GradientOperator<FeH1,2,1,Complex>(),
+                                    curCoef, factor, true );
       } else if( subType_ == "planeStrain" ) {
+			
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true);
+						new CurlOperator<FeH1,2, Complex>(),
+                                    //new GradientOperator<FeH1,2,1,Complex>(),
+                                    curCoef, factor, true);
       } else if( subType_ == "planeStress" ) {
+
         integ = new ADBInt<Complex>(new StrainOperator2D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,2,1,Complex>(),
-                                    curCoef, 1.0, true);
+						new CurlOperator<FeH1,2, Complex>(),
+                                    //new GradientOperator<FeH1,2,1,Complex>(),
+                                    curCoef, factor, true);
       } else if( subType_ == "3d") {
         integ = new ADBInt<Complex>(new StrainOperator3D<FeH1,Complex>(),
-                                    new GradientOperator<FeH1,3,1,Complex>(),
-                                    curCoef, 1.0, true);
+						new CurlOperator<FeH1,3, Complex>(),
+                                    //new GradientOperator<FeH1,3,1,Complex>(),
+                                    curCoef, factor, true);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }
@@ -327,20 +319,25 @@ namespace CoupledField {
     else {
       if( subType_ == "axi" ) {
         integ = new ADBInt<Double>(new StrainOperatorAxi<FeH1>(),
-                                   new GradientOperator<FeH1,2>(),
-                                   curCoef, 1.0, true );
+        				     new CurlOperatorAxi<Double>(),
+                                   //new GradientOperator<FeH1,2>(),
+                                   curCoef, factor, true );
       } else if( subType_ == "planeStrain" ) {
+		
         integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
-                                   new GradientOperator<FeH1,2>(),
-                                   curCoef, 1.0, true);
+        				     new CurlOperator<FeH1,2, Double>(),
+                                   //new GradientOperator<FeH1,2>(),
+                                   curCoef, factor, true);
       } else if( subType_ == "planeStress" ) {
         integ = new ADBInt<Double>(new StrainOperator2D<FeH1>(),
-                                   new GradientOperator<FeH1,2>(), 
-                                   curCoef, 1.0, true);
+        				     new CurlOperator<FeH1,2, Double>(),
+                                   //new GradientOperator<FeH1,2>(),
+                                   curCoef, factor, true);
       } else if( subType_ == "3d") {
         integ = new ADBInt<Double>(new StrainOperator3D<FeH1>(),
-                                   new GradientOperator<FeH1,3>(), 
-                                   curCoef, 1.0, true);
+        				     new CurlOperator<FeH1,3, Double>(),
+                                   //new GradientOperator<FeH1,2>(), 
+                                   curCoef, factor, true);
       } else {
         EXCEPTION( "Subtype '" << subType_ << "' unknown for mechanic physic" );
       }
@@ -350,7 +347,7 @@ namespace CoupledField {
 
   }
   
-  void PiezoCoupling::InitTimeStepping(){
+  void MagnetoStrictCoupling::InitTimeStepping(){
 
     if ( analysisType_ == BasePDE::TRANSIENT ) {
       Double dt;
@@ -358,13 +355,13 @@ namespace CoupledField {
                 ->GetDeltaT();
 
       //in this case we additionally need to define
-      //a timestepping for the elecPDE
-      shared_ptr<BaseFeFunction> elecFct = pde2_->GetFeFunction(ELEC_POTENTIAL);
+      //a timestepping for the magPDE
+      shared_ptr<BaseFeFunction> magFct = pde2_->GetFeFunction(MAG_POTENTIAL);
 
-      shared_ptr<BaseTimeScheme> elecScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+      shared_ptr<BaseTimeScheme> magScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
 
-      elecFct->SetTimeScheme(elecScheme);
-      elecFct->GetTimeScheme()->Init(elecFct->GetSingleVector(),dt);
+      magFct->SetTimeScheme(magScheme);
+      magFct->GetTimeScheme()->Init(magFct->GetSingleVector(),dt);
     }
   }
 

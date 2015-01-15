@@ -137,6 +137,7 @@
                 
                 <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
                 <xsd:element name="periodic"      type="DT_BcPeriodic"    />
+		<xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
               </xsd:choice>
 
             </xsd:complexType>
@@ -404,7 +405,18 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
+  
+  <!-- Element type for specifying absorbing boundary conditions -->
+  <!-- Identical to that of acoustic case -->
+  <!--
+  <xsd:complexType name="DT_AbsorbingBC">
+    <xsd:complexContent>
+      <xsd:extension base="DT_AcousticHD">
+       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+  -->
   <!-- ******************************************************************* -->
   <!--   Definition of syntax for specifying output quantities of CFS -->
   <!-- ******************************************************************* -->

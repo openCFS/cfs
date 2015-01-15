@@ -238,7 +238,9 @@ namespace CoupledField {
     // Generate a fitting algebraic system only if PDE is NOT
     // direct coupled
     if( needsAlgsys_ == true || !simState_->HasInput()) {
+	    
       if ( isDirectCoupled_ == false) {
+		
         olasInfo_ = myInfo_->Get("OLAS")->Get(pdename_);
         algsys_ = new AlgebraicSys(olasNode_, olasInfo_, isComplex_);
         solStrat_ = algsys_->GetSolStrategy();
@@ -293,7 +295,7 @@ namespace CoupledField {
       actFct->SetFctId(fctId);
       fncIt++;
     }
-
+	 
     // =====================================================================
     // trigger definition of available results
     // =====================================================================
@@ -315,7 +317,7 @@ namespace CoupledField {
     // =====================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Initializing material depenencies";
     InitMaterialDependencies();
-
+	 
     // Todo: Move this part to the definition of damping
     PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
@@ -2704,7 +2706,7 @@ namespace CoupledField {
         // alpha = -90 and gamma = -90 degree,
         // so that we pick by default the yz-plane
         if( !rotNode ) {
-          if( dim_ == 2) {
+          if( dim_ == 2) {  
             rotVec[0] = -90.0;
             rotVec[2] = -90.0;
             materials_[actRegionId]->
