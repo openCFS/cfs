@@ -465,6 +465,7 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
     sum += pseudoDesigns_[i].GetSize();
   return sum;
 }
+
 void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
 {
   if(transfer.GetSize() > 0)
@@ -472,14 +473,15 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::Syste
   transfer.Push_back(TransferFunction()); // create an identity transfer function
   designMaterial = new DesignMaterial(dm, material, design, em);
 }
+
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
 {
   // set the result descriptions which identify the solution types
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
-          ResultDescription& rd = resultDescriptions[i];
-    ResultInfo* ri = GetResultInfo(rd);
-    shared_ptr<ResultInfo> opt_res(ri);
+    ResultDescription& rd = resultDescriptions[i];
+    shared_ptr<ResultInfo> opt_res = CreateResultInfo(rd);
+    pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     bool added = pde->CheckStoreResult(opt_res);
     if(!added)
     {
@@ -489,7 +491,8 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     }
   }
 }
-double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
+
+  double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs)
 {
   ShapeOptimizer* shopt = dynamic_cast<ShapeOptimizer*>(optimizer_);
   if(shopt == NULL) EXCEPTION("No level set optimizer activated");
@@ -521,10 +524,12 @@ double DesignSpace::GetNodalValue(unsigned int nodeNumber, DesignElement::ValueS
     EXCEPTION("case not implemented")
   }
 }
-ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
+
+shared_ptr<ResultInfo> DesignSpace::CreateResultInfo(ResultDescription& rd)
 {
   // <result id="optResult_1" design="density" access="plain" value="costGradient"/>
-  ResultInfo* ri = new ResultInfo();
+  shared_ptr<ResultInfo> ri(new ResultInfo);
+
   // I hate it!!! :(
   ri->resultType = (SolutionType) rd.solutionType;
   // no space and brackets to have no problems with info.xml and no problems with the paraview calculator
@@ -536,6 +541,8 @@ ResultInfo* DesignSpace::GetResultInfo(ResultDescription& rd)
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
+  ri->fromOptimization = true;
+
   // in most cases we are on elements,
   switch(rd.value)
   {

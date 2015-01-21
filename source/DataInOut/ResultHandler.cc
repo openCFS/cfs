@@ -112,12 +112,11 @@ namespace CoupledField {
       for( UInt i = 0; i < newDest.GetSize(); i++ ) {
         
         // check, if output is registered
-        if( outFiles_.find( newDest[i] ) == outFiles_.end() ) {
-          EXCEPTION( "Output writer '" << newDest[i] 
-                     << "' was not registered yet!" );
-        }
-        LOG_DBG(resHandler) << "Registering output '" << newDest[i]
-                            << "' with result '" << actDof.resultName;
+        if( outFiles_.find( newDest[i] ) == outFiles_.end() )
+          EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
+
+        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
+
         actContext->outputIds.Push_back( newDest[i] );
         
         // register results also at the output writer class
@@ -227,10 +226,8 @@ namespace CoupledField {
       ResultContext & actContext = *(resultContexts_[*it]);
 
       if( actContext.functor ) {
-        LOG_DBG(resHandler) << "Evaluating result '" << 
-           SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
-           << "' on '" << actContext.result->GetEntityList()->GetName() 
-           << "'";
+        LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
+                            << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
         actContext.functor->EvalResult( actContext.result);
         UpdateResult(actContext.result);
       }

@@ -17,6 +17,7 @@
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
 // include elements
+#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/H1Elems.hh"
 
 // new integrator concept
@@ -1230,8 +1231,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     misesStress->entryType = ResultInfo::SCALAR;
     misesStress->definedOn = ResultInfo::ELEMENT;
     if ( !isComplex_ ) {
-      shared_ptr<CoefFunctionCompound<Double> >
-        misesCoef(new CoefFunctionCompound<Double>(mp_));
+      shared_ptr<CoefFunctionCompound<Double> > misesCoef(new CoefFunctionCompound<Double>(mp_));
       std::map<std::string, PtrCoefFct> var;
       std::string misesStr;
 
@@ -1503,6 +1503,62 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     normalStressFct.reset(new CoefFunctionSurf(true, 1.0, normalStressInfo));
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
+
+    // optimization results are provided in DesignSpace::ExtractResults()
+
+    // === MECH_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> mpd(new ResultInfo);
+    mpd->resultType = MECH_PSEUDO_DENSITY;
+    mpd->entryType = ResultInfo::SCALAR;
+    mpd->definedOn = ResultInfo::ELEMENT;
+    mpd->dofNames = "";
+    mpd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
+
+    // === PHYSICAL_PSEUDO_DENISTY ===
+    shared_ptr<ResultInfo> ppd(new ResultInfo);
+    ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
+    ppd->entryType = ResultInfo::SCALAR;
+    ppd->definedOn = ResultInfo::ELEMENT;
+    ppd->dofNames = "";
+    ppd->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
+
+    // === MECH_TENSOR for free and parameterized material optimization
+    shared_ptr<ResultInfo> mt(new ResultInfo);
+    mt->resultType = MECH_TENSOR;
+    mt->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    mt->unit = "Pa";
+    mt->entryType = ResultInfo::TENSOR;
+    mt->definedOn = ResultInfo::ELEMENT;
+    mt->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
+
+    // === MECH_TENSOR_TRACE for free and parameterized material optimization
+    shared_ptr<ResultInfo> mtt(new ResultInfo);
+    mtt->resultType = MECH_TENSOR_TRACE;
+    mtt->dofNames = "Tr(E)";
+    mtt->unit = "Pa";
+    mtt->entryType = ResultInfo::SCALAR;
+    mtt->definedOn = ResultInfo::ELEMENT;
+    mtt->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
+
+    // === MECH_SHAPE for ms optimization ===
+    shared_ptr<ResultInfo> ms(new ResultInfo);
+    ms->resultType = MECH_SHAPE;
+    ms->dofNames = dispDofNames;
+    ms->unit = "m";
+    ms->entryType = ResultInfo::VECTOR;
+    ms->definedOn = ResultInfo::NODE;
+    ms->fromOptimization = true;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
+
+    std::cout << "Optimization is " << (domain->GetOptimization() == NULL ? "null" : "set") << "\n";
+
+    // this is added via the optimization stuff in DesignSpace.
+
+
   }
   
   std::map<SolutionType, shared_ptr<FeSpace> >

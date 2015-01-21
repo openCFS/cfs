@@ -113,14 +113,18 @@ namespace CoupledField
     /** Return the native solution type, MECH_DISPLACEMENT, ... */
     virtual SolutionType GetNativeSolutionType() const { EXCEPTION("not implemented"); }
 
-    /**<p>This is part of ReadStoreResults(). If candiate is defined in the xml file
+    /**<p>This is part of ReadStoreResults(). If candidate is defined in the xml file
      * it is added to resultLists_.</p>
      * <p>This method is to be called by ReadStoreResults() for every element in
-     * availResults_. Additionally an Otimization instance calls when there a
-     * result element defines one of the solution types optResult_1/2/3 in more detail  
+     * availResults_. Additionally an Optimization instance calls when there a
+     * result element defines one of the solution types optResult_*in more detail
      * @param candidate normally an element of the (mathematical) set availResults_
      * @return true if in xml and added */
-    bool CheckStoreResult(shared_ptr<ResultInfo> canditate);
+    bool CheckStoreResult(shared_ptr<ResultInfo> candidate);
+
+    //! Define a field result
+    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
+
 
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
@@ -225,7 +229,6 @@ namespace CoupledField
     //! desired output quantities and translate their literal description into
     //! the internal format by setting the corresponding class attributes.
     void ReadStoreResults();
-
 
     //! define all (bilinearform) integrators needed for this pde
     virtual void DefineIntegrators( )=0;
@@ -371,8 +374,6 @@ namespace CoupledField
     //@{
     //! \name Attributes connected to storing information
     
-    //! Define a field result
-    void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
     
     //! Define result based on the time derivative of the main results
     void DefineTimeDerivResult( SolutionType derivSolType,

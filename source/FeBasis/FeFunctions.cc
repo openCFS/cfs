@@ -403,12 +403,9 @@ DECLARE_LOG(fefunc)
                     << "are handled" );
          break;
      }
-     if( feSpace_ ) {
-     if( feSpace_->GetSpaceType() == FeSpace::HCURL ) {
-          dimType_ = CoefFunction::VECTOR;
-        }
-     }
-     
+     if(feSpace_ && feSpace_->GetSpaceType() == FeSpace::HCURL)
+         dimType_ = CoefFunction::VECTOR;
+
      // Create interpolation operator
      UInt dim = grid_->GetDim();
      UInt numDofs = feSpace_->GetNumDofs();
@@ -458,8 +455,7 @@ DECLARE_LOG(fefunc)
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
         LocPoint lp;
-        const Elem* myElem = 
-            grid_->GetElemAtNode(nodeNum, lp, regions_ );
+        const Elem* myElem = grid_->GetElemAtNode(nodeNum, lp, regions_ );
         
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");

@@ -97,8 +97,8 @@ namespace CoupledField {
     //! Type of entity the unknowns are defined on
     EntityUnknownType definedOn;
 
-    /////! Type of approximation used for the result
-    ///shared_ptr<AnsatzFct> fctType;
+    //! Is this result provided from the optimization part
+    bool fromOptimization;
 
     /** Gives back a debug summary of the result info */
     std::string ToString() const; 

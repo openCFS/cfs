@@ -727,7 +727,7 @@ namespace CoupledField {
     if( !resultNode )
       return;
 
-    // Iterate over all availabe results
+    // Iterate over all available results
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
        CheckStoreResult(*it);
     }
@@ -773,8 +773,7 @@ namespace CoupledField {
 
       // Convert enum
       quantity = SolutionTypeEnum.ToString(candidate->resultType);
-      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '"
-                   << quantity << "'";
+      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '" << quantity << "'";
 
       // try to catch possible errors
       try {
@@ -932,11 +931,10 @@ namespace CoupledField {
             
             // try to get result functor
             shared_ptr<ResultFunctor> fnc;
-            if( resultFunctors_.find(candidate->resultType) == 
-                resultFunctors_.end() ) {
-              EXCEPTION( "No result functor defined for results of type '"
-                  << quantity << "'");
-            }
+            if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end())
+              return false;
+              // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
+
             fnc = resultFunctors_[candidate->resultType];
             
             // pass result to resulthandler
@@ -2900,8 +2898,7 @@ namespace CoupledField {
   
   void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 
-    LOG_DBG(singlepde) << pdename_ << ": Defining field result " 
-        << SolutionTypeEnum.ToString(res->resultType);
+    LOG_DBG(singlepde) << pdename_ << ": Defining field result " << SolutionTypeEnum.ToString(res->resultType);
     
     // create new result functor based on coefficient
     shared_ptr<ResultFunctor> func;
