@@ -1,4 +1,6 @@
 #include "ResultFunctor.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Domain/Domain.hh"
 
 namespace CoupledField {
 
@@ -13,23 +15,33 @@ template<class TYPE> FieldCoefFunctor<TYPE>::
     coef_ = coef;
   }
 
-template<class TYPE> FieldCoefFunctor<TYPE>::
-~FieldCoefFunctor() {
+template<class TYPE> FieldCoefFunctor<TYPE>::~FieldCoefFunctor() {
 }
 
   
-template<class TYPE> void FieldCoefFunctor<TYPE>::
-EvalResult( shared_ptr<BaseResult> res ) {
-
+template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseResult> res )
+{
   EntityList::ListType entityListType = res->GetEntityList()->GetType();
+
+  // optimization results are generated in DesignSpace(). This includes complicated ones like opt_result_*
+  if(res->GetResultInfo()->fromOptimization)
+  {
+    if(domain->GetOptimization() != NULL)
+      domain->GetOptimization()->GetDesign()->ExtractResults(res, coef_->IsComplex());
+    else {
+      Vector<TYPE>* data = dynamic_cast<Vector<TYPE>* >(res->GetSingleVector());
+      data->Resize(res->GetEntityList()->GetSize(), 0.0);
+    }
+    return;
+  }
+
 
   // check for (combination of node list and fefunction) or coil list
   // since the coil list is used with the FeSpaceConst which does not have elements
-  if( ( entityListType == EntityList::NODE_LIST
-      && typeid(*coef_) == typeid(FeFunction<TYPE>) ) ||
-      (entityListType == EntityList::COIL_LIST) ) {
-    FeFunction<TYPE> & feFct= 
-        dynamic_cast<FeFunction<TYPE>&> (*coef_);
+  if( ( entityListType == EntityList::NODE_LIST && typeid(*coef_) == typeid(FeFunction<TYPE>) )
+      || (entityListType == EntityList::COIL_LIST) )
+  {
+    FeFunction<TYPE> & feFct=  dynamic_cast<FeFunction<TYPE>&> (*coef_);
     feFct.ExtractResult(res);
     return;
   }
@@ -116,10 +128,8 @@ EvalResult( shared_ptr<BaseResult> res ) {
   
 }
 
-template<class TYPE> void FieldCoefFunctor<TYPE>::
-GetVector(Vector<TYPE>& vec, 
-          const LocPointMapped& lpm) {
-
+template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
+{
   switch( coef_->GetDimType()) {
     case CoefFunction::VECTOR:
       coef_->GetVector( vec, lpm );
@@ -144,11 +154,9 @@ template class FieldCoefFunctor<Complex>;
 //  FIELDS BASED ON ENERGY
 // --------------------------------------------------------------------------
 
-template<class TYPE> EnergyResultFunctor<TYPE>::
-EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
-                    shared_ptr<ResultInfo> inf,
-                    TYPE factor) :
-                    ResultFunctor( inf) {
+template<class TYPE> EnergyResultFunctor<TYPE>::EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct, shared_ptr<ResultInfo> inf, TYPE factor)
+                      : ResultFunctor( inf)
+{
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
   factor_ = factor;
   derivType_ = INTEGRATED;
@@ -157,22 +165,18 @@ EnergyResultFunctor(shared_ptr<BaseFeFunction> feFct,
   accuracy_ = FULL;
 }
   
-template<class TYPE> EnergyResultFunctor<TYPE>::
-  ~EnergyResultFunctor() {
+template<class TYPE> EnergyResultFunctor<TYPE>:: ~EnergyResultFunctor() {
 }
 
-template<class TYPE> void EnergyResultFunctor<TYPE>::
-SetIntegAccuracy( IntegAccuracy acc ){
+template<class TYPE> void EnergyResultFunctor<TYPE>::SetIntegAccuracy( IntegAccuracy acc ){
   accuracy_ = acc;
 }
 
-template<class TYPE> void EnergyResultFunctor<TYPE>::
-EvalResult(shared_ptr<BaseResult> res ) {
+template<class TYPE> void EnergyResultFunctor<TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
   EXCEPTION("General implementation not available");
 }
 
-template<> void EnergyResultFunctor<Double>::
-EvalResult(shared_ptr<BaseResult> res ) {
+template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> res ) {
   Result<Double>& actSol = static_cast<Result<Double>& >(*res);
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
   Vector<Double>& vec = actSol.GetVector();
@@ -237,8 +241,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
   }
 }
 
-template<> void EnergyResultFunctor<Complex>::
-EvalResult(shared_ptr<BaseResult> res ) {
+template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> res ) {
   Result<Complex>& actSol = static_cast<Result<Complex>& >(*res);
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
   Vector<Complex>& vec = actSol.GetVector();
@@ -328,8 +331,7 @@ template class EnergyResultFunctor<Double>;
 //  QUANTITIES DERIVED BY SURFACE / VOLUME INTEGRATION
 // --------------------------------------------------------------------------
 
-template<class TYPE> ResultFunctorIntegrate<TYPE>::
-ResultFunctorIntegrate( PtrCoefFct coef,
+template<class TYPE> ResultFunctorIntegrate<TYPE>::ResultFunctorIntegrate( PtrCoefFct coef,
                         shared_ptr<BaseFeFunction> feFct,
                         shared_ptr<ResultInfo> inf ) :
                         ResultFunctor( inf) {
@@ -338,14 +340,12 @@ ResultFunctorIntegrate( PtrCoefFct coef,
   feFct_ = feFct;
 }
     
-template<class TYPE> ResultFunctorIntegrate<TYPE>::
-~ResultFunctorIntegrate() {
+template<class TYPE> ResultFunctorIntegrate<TYPE>::~ResultFunctorIntegrate() {
   
 }
   
 
-template<class TYPE> void ResultFunctorIntegrate<TYPE>:: 
- EvalResult(shared_ptr<BaseResult> res ) {
+template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<BaseResult> res ) {
   Result<TYPE>& actSol = static_cast<Result<TYPE>& >(*res);
   EntityIterator nameIt = actSol.GetEntityList()->GetIterator();
   shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();

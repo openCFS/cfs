@@ -472,7 +472,7 @@ namespace CoupledField
       * @param solutionType switch to typedef when Environment.hh is gone
       * @return null if this solution type was not given in xml or a filled version.
       *         The deletion of the object is the duty of the caller (or shared pointer) */
-     ResultInfo* GetResultInfo(ResultDescription& rd);
+     shared_ptr<ResultInfo> CreateResultInfo(ResultDescription& rd);
 
 
 

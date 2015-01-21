@@ -75,10 +75,6 @@ namespace CoupledField
     
   protected:
     
-    /** @see virtual SinglePDE::GetNativeDOF() */
-    virtual UInt GetNativeDOF() const { return 1; }
-
-
     //! SubType of electrostatic section
     std::string subType_;
 

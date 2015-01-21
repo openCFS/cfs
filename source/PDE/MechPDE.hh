@@ -31,11 +31,19 @@ namespace CoupledField
     //!  Deconstructor
     virtual ~MechPDE();
 
+    /** constants for test-strains, used for homogenization. We depend on the int values! */
+    typedef enum { NOT_SET=-1, X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+
     /** @param see SinglePDE::GetSubTensorType() */
     SubTensorType GetSubTensorType() const { return tensorType_; }
 
-    /** constants for test-strains, used for homogenization. We depend on the int values! */
-    typedef enum { NOT_SET=-1, X=0, Y=1, Z=2, YZ=3, XZ=4, XY=5 } TestStrain;
+    /** small helper which translates the test strain code on a vector of size 3/6 with one entry 1.0, the other zero
+     * @param reduced in 2d case the result size is 3 otherwise 6 as it is always in 6 */
+    Vector<Double> CalcTestStrainVector(TestStrain ts, bool reduced = false);
+
+    /** return the von Mises matrix (stress^T * M * stress = von Mises Stress)
+     * @param dim desired dimension. axis is ignored currently :( */
+    const Matrix<double>& GetVonMisesMatrix(int dim);
 
     static Enum<TestStrain> testStrain;
 
@@ -66,14 +74,11 @@ namespace CoupledField
     void ReadSpecialResults();
 
     //! \copydoc SinglePDE::CreateFeSpaces
-    virtual std::map<SolutionType, shared_ptr<FeSpace> > 
-    CreateFeSpaces( const std::string&  formulation,
-                    PtrParamNode infoNode );
+    virtual std::map<SolutionType, shared_ptr<FeSpace> >  CreateFeSpaces(const std::string&  formulation, PtrParamNode infoNode );
+
     /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
      * @param isComplex either from complex material or bloch mode */
-    BaseBDBInt* GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     RegionIdType regionId,
-                                     bool isComplex );
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex);
     
     //! Return strain operator 
     BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);
@@ -141,17 +146,6 @@ namespace CoupledField
   //! \purpose
   //! This class defines the mechanical field PDE and the according
   //! postprocessing methods.
-  //!
-  //! \collab
-  //!
-  //! \implement
-  //!
-  //! \status In use
-  //!
-  //! \unused
-  //!
-  //! \improve
-  //!
 
 #endif
 
