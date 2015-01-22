@@ -671,6 +671,10 @@ share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/material_catalogue/calculate-crosses.py -text
+share/scripts/material_catalogue/cellproblem_fine.xml -text
+share/scripts/material_catalogue/compliance_plain.xml -text
+share/scripts/material_catalogue/create_hom_catalogue.py -text
+share/scripts/material_catalogue/create_msfem_catalogue.py -text
 share/scripts/material_catalogue/evaluate.py -text
 share/scripts/material_catalogue/interpolation2D/bicubic_coeff.m -text
 share/scripts/material_catalogue/interpolation2D/bicubic_deriv.m -text
@@ -714,6 +718,7 @@ share/scripts/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/scripts/material_catalogue/inv_tensor.xml -text
 share/scripts/material_catalogue/inv_tensor_3D.xml -text
 share/scripts/material_catalogue/mat.xml -text
+share/scripts/material_catalogue/process_sparse.py -text
 share/scripts/matviz.py -text
 share/scripts/matviz_2d.py -text
 share/scripts/matviz_rot.py -text
