@@ -44,7 +44,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     m = 2 * numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1 / m
     s2 *= 1 / m
-    s3 = numpy.ones((len(centers), 1)) * .1  # fix for 3D
+    s3 = numpy.ones((len(centers), 1)) * .1  # fix for 3D    
   if has_element(hdf_file, "design_density_" + args.hom_access):
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))

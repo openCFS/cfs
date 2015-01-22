@@ -39,34 +39,43 @@ def save_image_as_densfile(im, outfile):
 
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
-def insert_modified_frame(array, minres, x, y, steps):
+def insert_modified_frame(array, minres, x, y, steps,void,modify=True,triangle=False):
   # 2D frame structure
-  array = np.ones((minres, minres))
-  offx = int((minres / 2.) * (float(x) / (steps)) + 0.5)
-  offy = int((minres / 2.) * (float(y) / (steps)) + 0.5)
-  for i in range(offx, minres - offx):
-    for j in range(offy, minres - offy):
-      array[i][j] = 1e-9
-      
-  # modify frame for stress minimization
-  for i in range(offx, minres - offx):
-    for j in range(offy, minres - offy):
-      if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
-        r = math.ceil((minres - 2.*offx) / 3.)
+  if triangle:
+    array = np.ones((2*minres,minres))
+  else:
+    array = np.ones((minres, minres))
+  eps = 1e-8
+  offx = int((minres / 2.) * (float(x) / (steps)) + 0.5+eps)
+  offy = int((minres / 2.) * (float(y) / (steps)) + 0.5+eps)
+  for i in range(offx, (minres - offx)):
+    for j in range(offy, (minres - offy)):
+      if not triangle:
+        array[i][j] = void
       else:
-        r = math.ceil((minres - 2.*offy) / 3.) 
-      m = [offx + r, offy + r]
-      if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-        array[i][j] = 1.
-      m = [minres - offx - r - 1, offy + r]
-      if i >= minres - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-        array[i][j] = 1.
-      m = [minres - offx - r - 1, minres - offy - r - 1]
-      if i >= minres - offx - r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-        array[i][j] = 1.
-      m = [offx + r, minres - offy - r - 1]
-      if i - offx < r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-        array[i][j] = 1.  
+        array[2*i][j] = void
+        array[2*i+1][j] = void
+  # TODO: does not work for triangles yet
+  if modify:    
+    # modify frame for stress minimization
+    for i in range(offx, minres - offx):
+      for j in range(offy, minres - offy):
+        if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
+          r = math.ceil((minres - 2.*offx) / 3.)
+        else:
+          r = math.ceil((minres - 2.*offy) / 3.) 
+        m = [offx + r, offy + r]
+        if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          array[i][j] = 1.
+        m = [minres - offx - r - 1, offy + r]
+        if i >= minres - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          array[i][j] = 1.
+        m = [minres - offx - r - 1, minres - offy - r - 1]
+        if i >= minres - offx - r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          array[i][j] = 1.
+        m = [offx + r, minres - offy - r - 1]
+        if i - offx < r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          array[i][j] = 1.  
   return array  
 
 def insert_rotated_bar(tx, ty, rot, array, minres, midx, midy):
@@ -202,9 +211,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("stp", help="number of grid points in one direction", type=int)
 parser.add_argument("dimension", help="Dimension of the problem", type=int, default=2)
 parser.add_argument("res", help="grid size", type=int)
+parser.add_argument("folder", help="specify the output folder")
 parser.add_argument("--point", help="point list", type=np.array, default=np.zeros((1, 1)))
 parser.add_argument("--msfem", help="name of msfem grid file on the fine scale")
+parser.add_argument("--hom", help="name of grid file for homogenization cell problem")
+parser.add_argument("--sparse_msfem",help = "sparse msfem option true or false")
+parser.add_argument("--shape", help="choose between frame or cross",choices=['frame', 'cross','frame_modified','frame_w_triangles'])
 parser.add_argument("--triangle_msfem", help="true or false")
+parser.add_argument("--filter",help = "filtered densities on or off")
+parser.add_argument("--void_material",help = "set value for void material",type=float,default = 1e-9)
+
 
 
 
@@ -213,48 +229,39 @@ pl = parser.parse_args()
 dim = args.dimension
 minres = args.res
 steps = args.stp
+folder = args.folder
+void = args.void_material
 
-p = 1.0
 if dim == 2:
   if args.msfem:
     if args.triangle_msfem:
-      outfile = str(steps) + 'triangle_msfem/jobs'
-      if os.path.isdir(str(steps) + "triangle_msfem"):
-        print "already computed with " + str(steps) + "_msfem steps, just saying..."
-      else: 
-        print "computing with " + str(steps) + "_msfem steps!"
-        os.mkdir(str(steps) + "triangle_msfem")
-        os.system('cp mat.xml ' + str(steps) + 'triangle_msfem/')
-    else:
-      outfile = str(steps) + '_msfem/jobs'
-      if os.path.isdir(str(steps) + "_msfem"):
-        print "already computed with " + str(steps) + "_msfem steps, just saying..."
-      else: 
-        print "computing with " + str(steps) + "_msfem steps!"
-        os.mkdir(str(steps) + "_msfem")
-        os.system('cp mat.xml ' + str(steps) + '_msfem/')
-  else:
-    outfile = str(steps) + '/jobs'
-    if os.path.isdir(str(steps)):
-      print "already computed with " + str(steps) + " steps, just saying..."
-    else:
+      outfile = str(folder)+'_/jobs' 
       print "computing with " + str(steps) + " steps!"
-      os.mkdir(str(steps) + "_msfem")
-      os.system('cp mat.xml ' + str(steps) + '_msfem/')
-if dim == 3:
-  outfile = str(steps) + '_3D/jobs'
-  if os.path.isdir(str(steps) + '_3D'):
-    print "already computed with " + str(steps) + " steps, just saying..."
+      if not os.path.exists(str(folder)):
+        os.mkdir(str(folder))
+      os.system('cp mat.xml ' + str(folder))
+    else:
+      outfile = str(folder)+'/jobs' 
+      print "computing with " + str(steps) + " steps!"
+      if not os.path.exists(str(folder)+ "/"):
+        os.mkdir(str(folder))
+      os.system('cp mat.xml ' + str(folder)+'/')
   else:
-    print "computing with " + str(steps) + " steps!"
-    os.mkdir(str(steps) + '_3D')
-    os.system('cp mat.xml ' + str(steps) + '_3D/')
+    outfile = str(folder)+'/jobs'
+    print "computing with " + str(steps)+ " steps!"
+    os.mkdir(str(folder)+ "/")
+    os.system('cp mat.xml ' + str(folder)+'/')
+if dim == 3:
+  outfile = str(folder)+ '/jobs'
+  print "computing with " + str(steps) + " steps!"
+  os.mkdir(str(folder)+'')
+  os.system('cp mat.xml ' + str(folder)+ '/')
   
 print outfile
 jobfile = open(outfile, "w")
 if dim == 2:
   if args.msfem:
-    array = 1e-9 * np.ones((minres, minres))
+    array = void * np.ones((minres, minres))
     # steps_rot = 4
     # drot = math.pi/float(steps_rot)
     midx = minres / 2
@@ -265,21 +272,29 @@ if dim == 2:
       for y in range(steps + 1):
         offx = int((minres / 2.) * (1. - float(x) / (steps)) + 0.5)
         offy = int((minres / 2.) * (1. - float(y) / (steps)) + 0.5)
-        print 'offx = ' + str(offx) + ' midx = ' + str(midx) + ' offy = ' + str(offy) + ' midy = ' + str(midy)
         tx = minres - 2 * offy            
         ty = minres - 2 * offx
-        # array = insert_rotated_bar(tx, ty, rot, array, minres, midx, midy)
-        array = insert_modified_frame(array, minres, x, y, steps)        
-        # plot of debugging
-        # plt.imshow(array)
-        # plt.gray()
-        # plt.show()
+        if args.shape == 'frame_modified':
+          array = insert_modified_frame(array, minres, y, x, steps,void,True)
+        elif args.shape == 'cross':
+          array =  insert_rotated_bar(tx, ty, 0., array, minres, midx, midy)
+        elif args.shape == 'frame':
+          array = insert_modified_frame(array, minres, y, x, steps,void,False)
+        elif args.shape == 'frame_w_triangles':
+          array = insert_modified_frame(array, minres, y, x, steps,void,False,True)
+        else:
+          print 'Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]'
+
         densfilename = str(x) + "-" + str(y) + "_msfem.dens.xml"
-        print str(numpy.sum(array) / (minres * minres)) + " vs " + str(float(x) / steps + float(y) / steps - (float(x) / steps) * (float(y) / steps))
-        # filtering of the data
-        array_filter = ndimage.uniform_filter(array, size=6)
-        write_density_file(str(steps) + "_msfem/" + densfilename, array_filter, "set")
-        array = 1e-9 * np.ones((minres, minres))
+        if args.filter == 'on':
+          # filtering of the data
+          array_filter = ndimage.uniform_filter(array, size=6)
+        else:
+          array_filter = array
+        if not args.sparse_msfem:
+          write_density_file(str(folder)+ "/" + densfilename, array_filter, "set")
+        array = void * np.ones((minres, minres))
+        # WARNING: not tested any more
         if args.triangle_msfem:
           # create xml file for cfs
           doc = libxml2.parseFile("triangle_msfem.xml")
@@ -330,13 +345,15 @@ if dim == 2:
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
-              os.system('cp triangle_msfem.xml ' + str(steps) + 'triangle_msfem/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+              os.system('cp triangle_msfem.xml ' + str(folder)+'/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
-              os.system('cp triangle_msfem.xml ' + str(steps) + 'triangle_msfem/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              os.system('cp triangle_msfem.xml ' + str(folder)+'/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
+          print str(x)+' '+str(y)+ ' is done'
         else:
+          # MSFEM for quadrileteral elements 
           # create xml file for cfs
           doc = libxml2.parseFile("compliance_plain.xml")
           xml = doc.xpathNewContext()
@@ -388,18 +405,48 @@ if dim == 2:
               index1 += 1
               index2 += 1         
             doc.saveFile("compliance_plain.xml")
+            # sparse is not working currently
+            if args.sparse_msfem:
+              mesh = str(x) + "-" + str(y) + '.mesh'
+            else:
+              mesh = '~/meshes/'+args.msfem
             if i % 2 == 0:
               # add new job to jobfile
-              jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
-              os.system('cp compliance_plain.xml ' + str(steps) + '_msfem/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+              jobfile.write('cfs.rel -m ' + mesh + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
+              os.system('cp compliance_plain.xml ' + str(folder)+'/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
               # add new job to jobfile
-              jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
-              os.system('cp compliance_plain.xml ' + str(steps) + '_msfem/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              jobfile.write('cfs.rel -m ' + mesh + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
+              os.system('cp compliance_plain.xml ' + str(folder)+'/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
-  else:
+          os.system('cp cellproblem_fine.xml ' + str(folder)+'/' + str(x) + "-" + str(y) + '_msfem.xml')
+          jobfile.write('cfs.rel -m ~/meshes/'+str(args.msfem)+ ' -x ' + densfilename + ' ' +str(x) + "-" + str(y) +'_msfem \n')
+          print str(x)+' '+str(y)+ ' is done'
+  elif args.shape == "frame" or args.shape=="frame_modified":
+    # 2D frame structure
+    array = void*np.ones((minres, minres))
+    for x in range(steps + 1):
+      for y in range(steps + 1):
+        if args.shape == "frame_modified":
+          array = insert_modified_frame(array, minres, y, x, steps,void,True) 
+        else:
+          array = insert_modified_frame(array, minres, y, x, steps,void,False)     
+        densfilename = str(x) + "-" + str(y) + ".dens.xml"
+        # filtering of the data
+        if args.filter == 'on':   
+          array_filter = ndimage.uniform_filter(array, size=6)
+        else:
+          array_filter = array
+        write_density_file(str(folder)+ "/" + densfilename, array_filter, "set")
+        array = np.ones((minres, minres))
+        # add new job to jobfile
+        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
+        # create xml file for cfs
+        os.system('cp inv_tensor.xml ' +str(folder) +'/' + str(x) + "-" + str(y) + '.xml')  
+        print str(x)+' '+str(y)+ ' is done' 
+  elif args.shape == "cross":
     # 2D cross structure
-    array = 1e-9 * np.ones((minres, minres))
+    array = void * np.ones((minres, minres))
     for x in range(steps + 1):
       for y in range(steps + 1):
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
@@ -411,22 +458,26 @@ if dim == 2:
           for j in range(0, minres):
             array[i][j] = 1.
         densfilename = str(x) + "-" + str(y) + ".dens.xml"
-        print str(numpy.sum(array) / (minres * minres)) + " vs " + str(float(x) / steps + float(y) / steps - (float(x) / steps) * (float(y) / steps))
         # filtering of the data
-        array_filter = ndimage.uniform_filter(array, size=6)
-        write_density_file(str(steps) + "/" + densfilename, array_filter, "set")
-        array = 1e-9 * np.ones((minres, minres))
+        if args.filter == 'on':   
+          array_filter = ndimage.uniform_filter(array, size=6)
+        else:
+          array_filter = array        
+        write_density_file(str(folder)+ "/" + densfilename, array_filter, "set")
+        array = void * np.ones((minres, minres))
         # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
+        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
         # create xml file for cfs
-        os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml') 
-  
+        os.system('cp inv_tensor.xml ' +str(folder)+'/' + str(x) + "-" + str(y) + '.xml')
+        print str(x)+' '+str(y)+ ' is done'
+  else:
+    print 'option not defined' 
 elif dim == 3:
   # 3D cross structure
   for x in range(steps + 1):
     for y in range(steps + 1):
       for z in range(steps + 1):
-        array = 1e-9 * np.ones((minres, minres, minres))
+        array = void * np.ones((minres, minres, minres))
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
         offy = int((minres / 2.) * (1 - float(y) / (steps)) + 0.5)
         offz = int((minres / 2.) * (1 - float(z) / (steps)) + 0.5)
@@ -444,43 +495,24 @@ elif dim == 3:
             for k in range(0, minres):
               array[i][j][k] = 1.
         densfilename = str(x) + "-" + str(y) + "-" + str(z) + ".dens.xml"
-        array_filter = ndimage.uniform_filter(array, size=2)
-        write_density_file(str(steps) + "_3D/" + densfilename, array_filter, "set")
+        if args.filter == 'on':   
+          array_filter = ndimage.uniform_filter(array, size=2)
+        else:
+          array_filter = array        
+        write_density_file(str(folder)+ "/" + densfilename, array_filter, "set")
         array = np.ones((minres, minres, minres))
         # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/' + '20x20x20' + '.mesh ' + str(x) + '-' + str(y) + '-' + str(z) + ' \n')
+        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' ' + str(x) + '-' + str(y) + '-' + str(z) + ' \n')
         # create xml file for cfs
-        os.system('cp inv_tensor_3D.xml ' + str(steps) + '_3D/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml')
-        file = str(steps) + '_3D/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml'
+        os.system('cp inv_tensor_3D.xml ' + str(folder)+ '/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml')
+        file = str(folder)+'/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml'
         if os.path.isfile(file):      
           doc = libxml2.parseFile(file)
           xml = doc.xpathNewContext()
           xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
           replace(xml, "//cfs:loadErsatzMaterial/@file", str(x) + '-' + str(y) + '-' + str(z) + '.dens.xml')
           doc.saveFile(file)
-elif dim == 10:    
-  # 2D frame structure
-  array = np.ones((minres, minres))
-  for x in range(steps + 1):
-    for y in range(steps + 1):
-      offx = int((minres / 2.) * (float(x) / (steps)) + 0.5)
-      offy = int((minres / 2.) * (float(y) / (steps)) + 0.5)
-      print "test: offx " + str(offx) + " test: offy " + str(offy)
-      print "test: x " + str(x) + " test: y " + str(y) + "-> " + str(float(x) / steps) + ", " + str(float(y) / steps)
-      for i in range(offx, minres - offx):
-        for j in range(offy, minres - offy):
-          array[i][j] = 1e-9
-      densfilename = str(x) + "-" + str(y) + ".dens.xml"
-      print str(numpy.sum(array) / (minres * minres)) + " vs " + str(float(x) / steps + float(y) / steps - (float(x) / steps) * (float(y) / steps))
-      # filtering of the data
-   
-      array_filter = ndimage.uniform_filter(array, size=6)
-      write_density_file(str(steps) + "/" + densfilename, array_filter, "set")
-      array = np.ones((minres, minres))
-      # add new job to jobfile
-      jobfile.write('cfs.rel -m ~/meshes/' + str(minres) + '.mesh -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
-      # create xml file for cfs
-      os.system('cp inv_tensor.xml ' + str(steps) + '/' + str(x) + "-" + str(y) + '.xml')           
+        print str(x)+' '+str(y)+ ' '+str(z)+ ' is done'      
 jobfile.close()
 sys.exit()
 

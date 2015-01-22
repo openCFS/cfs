@@ -285,8 +285,6 @@ def convert_to_sparse_mesh(dense):
       if map[dnn[n]] <> -1:
         nodes.append(map[dnn[n]])
     sparse.bc.append((bc[0], nodes))
-    print "sparse boundary condition '" + bc[0] + "' with " + str(len(nodes)) + " nodes"
-
   return sparse
 
 def count_elements(elements, type):
@@ -314,8 +312,10 @@ def write_gid_mesh(mesh, filename):
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
   tet4 = count_elements(mesh.elements,TET4)
+  tri3 = count_elements(mesh.elements,TRIANGLE3)
+  print 'number of elements ' + str(tri3)
   num_1d = line
-  num_2d = quad4
+  num_2d = quad4+tri3
   num_3d = hexa8 + wedge6 + tet4
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
   dim = 3 if num_3d > 0 else 2
@@ -342,7 +342,7 @@ def write_gid_mesh(mesh, filename):
   out.write('Num 2d-line,quad : 0\n')
   out.write('Num 3d-line      : 0\n')
   out.write('Num 3d-line,quad : 0\n')
-  out.write('Num triangle     : 0\n')
+  out.write('Num triangle     : '+str(tri3)+'\n')
   out.write('Num triangle,quad: 0\n')
   out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
@@ -409,7 +409,9 @@ def create_2d_mesh(type, x_res, y_res):
   ny = y_res if y_res <> None else x_res
   width = 1.0
   height = float(ny) / nx 
-
+  # offset for node coordinates
+  offx = 0.
+  offy = 0.
   if type.startswith('cantilever2d'):
     width = 3.0
     height = 2.0
@@ -428,20 +430,27 @@ def create_2d_mesh(type, x_res, y_res):
     width = 1.0
     height = 1.0
     ny = nx
-    
+
+  if type == 'triangle_msfem':
+    offx = -1.
+    offy = -1.
+    width = 2. 
+    height = 2. 
+     
   dx = width / nx
   dy = height / ny
 
   for y in range(ny + 1):
     for x in range(nx + 1):
-      mesh.nodes.append((x * dx, y * dy))
- 
+      mesh.nodes.append((offx + x * dx,offy + y * dy))
+  
+  scale = 2 if type == 'triangle_msfem' else 1
   # print mesh.nodes 
   for y in range(ny):
     for x in range(nx):
       e = Element()
       e.density = 1.0
-      e.type = QUAD4
+      e.type = TRIANGLE3 if type == 'triangle_msfem' else QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28. / 30. * nx):
         e.region = 'reinforce'
       # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
@@ -451,22 +460,37 @@ def create_2d_mesh(type, x_res, y_res):
         if (x == nx - 1 or y == ny - 1):
           e.region = 'ghost'
         else:
-          e.region = 'mech'     
+          e.region = 'mech'
+      elif type == 'msfem_test':
+        if False:
+          e.region = 'reinforce'
+        else:
+          e.region = 'mech'
       else:
         e.region = 'mech'
       # assign nodes
       ll = (nx + 1) * y + x  # lowerleft
-      e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
-      mesh.elements.append(e)
-  if type == 'msfem_test':
-    for y in range(ny):
-      b = Element()
-      b.type = LINE
-      ll = (nx + 1) * y + nx - 1
-      b.nodes = ((ll + 1, ll + 1 + nx + 1)) 
-      b.region = 'pressure'
-      mesh.elements.append(b)
-  # elif type == 'msfem_test2':
+      if type == 'triangle_msfem':
+        e.nodes = ((ll,ll+1,ll+1+nx+1))
+        e2 = Element()
+        e2.density = e.density
+        e2.region = e.region
+        e2.type = e.type
+        e2.nodes = ((ll+1+nx+1,ll+nx+1,ll))
+        mesh.elements.append(e)
+        mesh.elements.append(e2)
+      else:  
+        e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
+        mesh.elements.append(e)
+  #if type == 'msfem_test':
+  #  for y in range(ny):
+  #    b = Element()
+  #    b.type = LINE
+  #    ll = (nx + 1) * y + nx - 1
+  #    b.nodes = ((ll + 1, ll + 1 + nx + 1)) 
+  #    b.region = 'pressure'
+  #   mesh.elements.append(b)
+  if type == 'msfem_test2':
     for x in range(int(0.8 * nx), nx):
       b = Element()
       b.type = LINE
@@ -506,6 +530,29 @@ def create_2d_mesh(type, x_res, y_res):
     mesh.bc.append(("west_mid", [int(round(0.5 * ((nx + 1) * (ny - 1))))]))
     mesh.bc.append(("east_mid", [int(round(0.5 * ((nx + 1) * (ny - 1) + nx - 1 - (nx - 1)) + (nx - 1)))]))
     return mesh, nx, ny, dx, dy
+  elif type == 'pressure2':
+    mesh.bc.append(("south", range(0, nx + 1)))
+    mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+    mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+    mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+    mesh.bc.append(("pressure2",range(int(0.8*nx),nx+1)))
+  
+    mesh.bc.append(("left_lower", [0]))
+    mesh.bc.append(("right_lower", [nx]))
+    mesh.bc.append(("left_upper", [(nx + 1) * ny]))
+    mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
+    return mesh
+  elif type == 'triangle_msfem':
+    mesh.bc.append(("bottom", range(0, nx + 1)))
+    mesh.bc.append(("top", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+    mesh.bc.append(("left", range(0, (nx + 1) * ny + 1, nx + 1)))
+    mesh.bc.append(("right", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  
+    mesh.bc.append(("left_lower", [0]))
+    mesh.bc.append(("right_lower", [nx]))
+    mesh.bc.append(("left_upper", [(nx + 1) * ny]))
+    mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
+    return mesh
   else:
     mesh.bc.append(("south", range(0, nx + 1)))
     mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
@@ -702,7 +749,7 @@ def create_lbm(resolution, case):
   return mesh
 
 # creates a mesh from hdf5 file  
-def create_mesh_from_hdf5(hdf5_file, region, region_force=None, region_support=None):
+def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, region_support=None,threshold = 0.):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   reg_elements_des = hdf5_file['/Mesh/Regions/' + region[0] + '/Elements'].value
   if len(region) > 1:
@@ -722,12 +769,14 @@ def create_mesh_from_hdf5(hdf5_file, region, region_force=None, region_support=N
   if region_force <> None:
     reg_force_nodes = hdf5_file['/Mesh/Groups/' + region_force + '/Nodes']
     mesh.bc.append((region_force, reg_force_nodes[:] - 1))
-
   # extract boundary force nodes from region_force if available
-  if region_support <> None:
+  elif region_support <> None:
     reg_support_nodes = hdf5_file['/Mesh/Groups/' + region_support + '/Nodes']
     mesh.bc.append((region_support, reg_support_nodes[:] - 1))
-
+  else:
+    for i in range(len(bcregions)):
+      bc_nodes = hdf5_file['Mesh/Groups/'+str(bcregions[i])+'/Nodes']
+      mesh.bc.append((bcregions[i], bc_nodes[:] - 1))
   
   for i in range(len(all_nodes)):
     mesh.nodes.append(all_nodes[i])
@@ -740,7 +789,10 @@ def create_mesh_from_hdf5(hdf5_file, region, region_force=None, region_support=N
     e.density = design_var[i]
     if idx < len(reg_elements_des):
       if i + 1 == reg_elements_des[idx]:
-        e.region = region[0]
+        if e.density >= threshold:
+          e.region = region[0]
+        else:
+          e.region = 'void'
         idx += 1
     if len(region) > 1:
       if idx2 < len(reg_elements_nondes):

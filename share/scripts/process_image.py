@@ -27,7 +27,7 @@ def load_matrix_from_file(f):
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="a greyscale image (any format, use gif when png makes problems)")
+parser.add_argument("input", help="a greyscale image (any format, use gif when png makes problems) or .xml file or .txt file or h5 file")
 parser.add_argument("--densemesh", help="writes a dense two region mesh (void/mech) with given name")
 parser.add_argument("--sparsemesh", help="writes a sparse mesh with region mech with given name")
 parser.add_argument("--threshold", help="threshold for void material with 0 and 1 (default 0.5)", default=0.5, type=float)
@@ -61,6 +61,15 @@ elif '.xml' in args.input:
 elif '.txt' in args.input:
   d = load_matrix_from_file(args.input)
   create_dense_mesh_density(d, mesh, args.threshold, args.scale, args.rhomin)
+elif '.h5' in args.input:
+  f = h5py.File(args.input, 'r')
+  mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'], threshold = float(args.threshold))
+  if args.sparsemesh:
+    sparse = convert_to_sparse_mesh(mesh)
+    mesh = sparse
+  write_gid_mesh(mesh, args.sparsemesh if args.sparsemesh else args.densemesh)
+  
+
 else:
   # read the png into a list
   img = Image.open(args.input).transpose(Image.FLIP_TOP_BOTTOM)
@@ -79,9 +88,12 @@ if not args.noshow:
     dimensions = (multi_d.shape[0], multi_d.shape[1])
   elif '.xml' in args.input or '.txt' in args.input:
     dimensions = d.shape
+  elif '.h5' in args.input:
+    dimensions = int(math.sqrt(len(mesh.elements))),int(math.sqrt(len(mesh.elements)))
   else:
     dimensions = img.size
-
+    
+if not '.h5' in args.input:
   show_dense_mesh_image(mesh, dimensions, args.showbinary, args.showsize)
   
 if args.densemesh:

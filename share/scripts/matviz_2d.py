@@ -379,9 +379,50 @@ def show_rot_cross_grad(coords, s1, s2, angle, grad, direction, nx, scale, do_sa
         draw_verts(pol, sub, 'black') 
 
   return (fig, sub)
-  
-# visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
+
 def show_modified_frame(coords, s1, s2, angle, direction, nx, scale, color, do_save):
+    #TODO: implement scale
+  centers, min, max, elem = coords
+  im, draw, dim, dx, dy = create_image(min, max, nx, "black")
+  height = elem[1] * dy 
+  length = elem[0] * dx
+  for i in range(len(s1)):
+    coord = centers[i]     
+    x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
+    y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
+    ver = s2[i, 0]
+    hor = s1[i, 0]
+      
+    pix = im.load()
+    eps = 1e-8   
+    offx = int((length / 2.) * (ver) + 0.5+eps)
+    offy = int((height / 2.) * (hor) + 0.5+eps)
+    for i in range(offx, int(length+eps) - offx):
+       for j in range(offy, int(height+eps) - offy):
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (255,255,255)
+      # 2D frame structure        
+    # modify frame for stress minimization
+    for i in range(offx, int(length - offx+eps)):
+      for j in range(offy, int(height - offy+eps)):
+        if math.ceil((int(length+eps) - 2.*offx) / 3.) <= math.ceil((int(height+eps) - 2.*offy) / 3.):
+          r = math.ceil((int(length+eps) - 2.*offx) / 3.)
+        else:
+          r = math.ceil((int(height+eps) - 2.*offy) / 3.) 
+        m = [offx + r, offy + r]
+        if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (0,0,0)
+        m = [int(length+eps) - offx - r - 1, offy + r]
+        if i >= int(length+eps) - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (0,0,0)
+        m = [int(length+eps) - offx - r - 1, int(height+eps) - offy - r - 1]
+        if i >= int(length+eps) - offx - r and j >= int(height+eps) - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (0,0,0)
+        m = [offx + r, int(height+eps) - offy - r - 1]
+        if i - offx < r and j >= int(height+eps) - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+          pix[int(x_off+i+eps),int(y_off+j+eps)] = (0,0,0)
+  return im 
+# visualizes the oriental stiffness as frame with smooth inner corners; creates a vector image
+def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, do_save):
   print 'image is only correct if eps<= s1,s2 <= 0.5, otherwise scaling is necessary; rotation is not implemented currently'
   s1 /= 2.
   s2 /= 2.

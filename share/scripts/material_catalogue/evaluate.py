@@ -15,13 +15,26 @@ from optimization_tools import *
 from mesh_tool import *
 from decimal import *
 
-
+def force(dim,mesh,R,region):
+  f = scipy.sparse.lil_matrix((dim * len(mesh.nodes), 1))
+  # volume force
+  #for i in range(len(mesh.nodes)):
+  #  f[2*i+1,0] = -1./(51.*51.)
+  # boundary force
+  for i in range(len(mesh.bc)):
+    if mesh.bc[i][0] == region:
+      for j in range(len(mesh.bc[i][1])):
+        index = mesh.bc[i][1][j]
+        f[2*index+1,0] = -1/51.
+  return R*f
+  
 def Kelem(E, nu, dx, dy, dof, dim, points=None):
   if dof == 8:
     b = [-math.sqrt(1. / 3.), math.sqrt(1. / 3.)]
   elif dof == 6:
     # are not used for linear triangle elements
     b = [0.5 - 0.5 * math.sqrt(1. / 3.), 0.5 + 0.5 * math.sqrt(1. / 3.)]
+    
   C = E / (1. - nu ** 2) * np.matrix([[1., nu, 0.], [nu, 1., 0.], [0., 0., (1. - nu) / 2. ]]);
   KE = np.matrix(np.zeros((dof, dof)))
   if dof == 8:
@@ -90,7 +103,7 @@ def CalcBMat(x, y, dx, dy, dof, points=None):
     print 'error: degree of freedom not defined'
   return (B, detJ)
 
-def Kglob(E, nu, dens, dx, dy, dim, dof, mesh):
+def Kglob(E, nu, dx, dy, dim, dof, mesh):
   K = scipy.sparse.lil_matrix((dim * len(mesh.nodes), dim * len(mesh.nodes))) 
   points = np.matrix(np.zeros((dof / dim, dim)))
   for t in range(len(mesh.elements)):
@@ -112,11 +125,13 @@ def Kglob(E, nu, dens, dx, dy, dim, dof, mesh):
   # scipy.io.savemat('KE.mat', mdict={'KE': KE})
   return K
 
-def CalcElementMat(dim, dof, dens, E, nu, R, mesh):
+def CalcElementMat(dim, dof, E, nu, R, mesh,Kmat):
   dx = 1.
   dy = 1.
-  K = Kglob(E, nu, dens, dx, dy, dim, dof, mesh)
+  #K = Kglob(E, nu, dx, dy, dim, dof, mesh)
+  K = scipy.io.mmread(Kmat)
   # scipy.io.savemat('K.mat', mdict={'K': K})
+  #scipy.io.savemat('tmp.mat', mdict={'K': tmp})
   elemMat = R * K * R.T
   return elemMat
 
@@ -147,12 +162,16 @@ def get_rot_3x3(angle):
 parser = argparse.ArgumentParser()
 parser.add_argument("stp", help="number of grid points in one direction", type=int)
 parser.add_argument("dimension", help="Dimension of the problem", type=int, default=2)
+parser.add_argument("folder",help="specify the folder of the h5 files")
 parser.add_argument("--msfem", help="msfem basis functions are evaluated, insert E-modulus and Poisson ratio", default="")
 parser.add_argument("--triangle", help="triangle msfem elements on/off", default="")
+parser.add_argument("--force_msfem",help="option calculates the force catalogue for MSFEM")
+parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations")
 args = parser.parse_args()
 getcontext().prec = 16
 
 steps = args.stp
+folder = args.folder
 dim = args.dimension
 if dim == 2:
   if args.msfem:
@@ -161,61 +180,62 @@ if dim == 2:
     nu = float(n[1])
     if args.triangle:
       dof = 6
-      filename = "detailed_stats_" + str(steps) + "triangle_msfem"
+      filename = "detailed_stats_" + str(folder)
     else:
       dof = 8
-      filename = "detailed_stats_" + str(steps) + "_msfem"
+      filename = "detailed_stats_" + str(folder)
+    if args.force_msfem:
+      filename = "force_msfem" + str(folder)
     out = open(filename, "w")
-    out.write(str(1. / args.stp) + '  ' + str(1. / args.stp) + ' ')
-
-    for i in range((dof + 1) * dof / 2):
-      out.write('0.0  ')
-    out.write('\n\n')
+    out.write(str(1. / args.stp) + '  ' + str(1. / args.stp) + ' ')    
+    if not args.force_msfem:
+      for i in range((dof + 1) * dof / 2):
+        out.write('0.0  ')
+      out.write('\n\n')
   else:
-    filename = "detailed_stats_" + str(steps)
+    filename = "detailed_stats_" + str(folder)
     out = open(filename, "w")
     out.write('  ' + str(steps) + '   ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 \n')
 elif dim == 3:
-  filename = "detailed_stats_" + str(steps) + '_3D'
+  filename = "detailed_stats_" + str(folder)
   out = open(filename, "w")
   out.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00    0.000000e+00 0.000000e+00 0.000000e+00\n')
   
 
   # out.write('# x   y 11           12           22           33\n')
 if dim == 2:
-  if args.msfem:
-    if dof == 8:
-      h5file = str(steps) + "_msfem/0-0_msfem0_x.h5"
-    elif dof == 6:
-      h5file = str(steps) + "triangle_msfem/0-0_msfem0_x.h5"
-    f = h5py.File(h5file, 'r')
-    mesh = create_mesh_from_hdf5(f, ['mech'])
-    f.close()
+  #if args.msfem:
+    #if dof == 8:
+      #h5file = str(folder) + "/1-0_msfem0_x.h5"
+    #elif dof == 6:
+      #h5file = str(folder) +"/1-0_msfem0_x.h5"
+    #f = h5py.File(h5file, 'r')
+    #mesh = create_mesh_from_hdf5(f, ['mech'],[])
+    #f.close()
   for x in range(steps + 1):
-  # x = 2
-  # y = 2
-  # if True:
+  #x = 5
+  #for ii in range(1):
     if args.msfem:
-      # if True:
+      #for jj in range(1):
       for y in range(steps + 1):
-        R = np.matrix(np.zeros((dof, dim * len(mesh.nodes))))
+        #y = 0
         # if True:
         index = 0
+        h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
+        if args.sparse and x == 0 and y == 0:
+          continue
+        f = h5py.File(h5file, 'r')
+        mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'])
+        R = np.matrix(np.zeros((dof, dim * len(mesh.nodes))))
+        f.close()
         for i in range(dof):
           if i % 2 == 0:
-            if dof == 8:
-              h5file = str(steps) + "_msfem/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_x.h5"
-            elif dof == 6:
-              h5file = str(steps) + "triangle_msfem/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_x.h5"
+            h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_x.h5"
           else:
-            if dof == 8:
-              h5file = str(steps) + "_msfem/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_y.h5"
-            elif dof == 6:
-              h5file = str(steps) + "triangle_msfem/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_y.h5"
-
-          print h5file
+            h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_y.h5"
+          if args.sparse and x == 0 and y == 0:
+            continue
           f = h5py.File(h5file, 'r')
-          mesh = create_mesh_from_hdf5(f, ['mech'])
           tmp = read_displacement(f)
           # if dof == 8:
           #  index1 = [0, 4, 1, 5, 2, 6, 3, 7]
@@ -233,27 +253,38 @@ if dim == 2:
             index += 1
           f.close()
         # just a sample density xml file
-        if dof == 8:
-          h5file = str(steps) + "_msfem/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
+        #if dof == 8:
+        #  h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
+        #else:
+        #  print 'Option not implemented yet, for triangles'
+        #if x== 0 and y == 0:
+        #  continue
+        if args.force_msfem:
+          print 'WARNING: force has to be set manually in the code'
+          f = force(dim,mesh,R,'bottom')
+          out.write(str(x) + ' ' + str(y) + ' ')
+          for i in range(dof):
+            out.write(str(f[i]) + ' ')
+          out.write('\n')
+          #scipy.io.savemat('R.mat', mdict={'R': R})
+          print 'Calculation of force for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
         else:
-          print 'Option not implemented yet, for triangles'
-        f = h5py.File(h5file, 'r')
-        dens = read_density(f)
-        A = CalcElementMat(dim, dof, dens, E, nu, R, mesh)
-        f.close()
-        out.write(str(x) + ' ' + str(y) + ' ')
-        for i in range(dof):
-          for j in range(i, dof):
-            out.write(str(A[i, j]) + ' ')
-        out.write('\n')
-        # scipy.io.savemat('A.mat', mdict={'A': A})
-        # for i in range(dof):
-        #    print '  ' + str(A[i, :])
-        # scipy.io.savemat('R.mat', mdict={'R': R})
-        print 'Calculation of element matrix for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'
+          A = CalcElementMat(dim, dof, E, nu, R, mesh,folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.mtx')
+          out.write(str(x) + ' ' + str(y) + ' ')
+          for i in range(dof):
+            for j in range(i, dof):
+              out.write(str(A[i, j]) + ' ')
+          out.write('\n')
+          # scipy.io.savemat('A.mat', mdict={'A': A})
+          # for i in range(dof):
+          #    print '  ' + str(A[i, :])
+          # scipy.io.savemat('R.mat', mdict={'R': R})
+          print 'Calculation of element matrix for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
+        
+
     else:
       for y in range(x + 1):  
-        infoxml = str(steps) + "/" + str(x) + "-" + str(y) + ".info.xml"
+        infoxml = str(folder) + "/" + str(x) + "-" + str(y) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
           doc = libxml2.parseFile(infoxml)
@@ -292,7 +323,7 @@ elif dim == 3:
   for x in range(steps + 1):
     for y in range(steps + 1):
       for z in range(steps + 1):
-        infoxml = str(steps) + "_3D/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
+        infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
           doc = libxml2.parseFile(infoxml)
