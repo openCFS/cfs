@@ -437,7 +437,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
-          coilCurrentDens_[actRegion] = eJscaled;
+          coilCurrentDens_[actRegion] = eJscaled; // this must be multiplied by i
 
           // === -f_A ===
           LinearForm* psiDotInt;
@@ -1110,10 +1110,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }
     }
 
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
     // === H field ===
     // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
     // the remanence is the RHS load flux density
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<CoefFunctionMulti> hCoef =
         dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     regIt = regions_.Begin();
