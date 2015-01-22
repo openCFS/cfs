@@ -20,14 +20,8 @@ class LinearFormContext;
 class ObjectiveContainer;
 class SinglePDE;
 
-// FIXME typedef LoadBc TrackingBc;
-
-// FIXME typedef LoadList TrackingList;
-
-
 /** For multiple loads (compliance or multiple frequency optimization) we use
- * the summarized term multiple excitations. This object encapsulates the such a excitation.
- * This excitations are weighted.  */
+ * the summarized term multiple excitations. This object encapsulates a excitation inclusive weight. */
 class Excitation
 {
 public:
@@ -66,15 +60,11 @@ public:
   /** the index of this excitation in the excitations array. If -1 something went wront */
   int index;
 
-  /** For static/single harmonic optimization with different load-cases. Now allowing also multiple loads in one case.
-   * empty and apply_linForms=false if not applicable */
+  /** For static/single harmonic optimization with different load-cases. */
   StdVector<shared_ptr<EntityList> > loads;
 
   /** For static optimization with different pressure or regionLoads */
   StdVector<LinearFormContext*>* linForms;
-
-  /** Different possible trackings for tracking objective */
-  // FIXME TrackingList trackings;
 
   /** This is a link to the Frequency description from the harmonic driver.
    * It is used for calling the HarmonicDriver to solve the problems */
@@ -105,10 +95,6 @@ public:
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
 
-  /** for the calculation of a homogenized material tensor, we use the test
-   * charges defined in ErsatzMaterial::SetMaxwellHomogenizationTestCharges() */
-  Vector<double> test_charge;
-
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -122,7 +108,7 @@ public:
 
   void ToInfo(PtrParamNode in) const;
 
-  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS, MAXWELL_HOMOGENIZATION_TEST_STRAINS} Type;
+  typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
   /** Do we do multiple excitation at all? */
@@ -136,8 +122,6 @@ public:
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
-
-  bool DoMaxwellHomogenization() const { return type_ == MAXWELL_HOMOGENIZATION_TEST_STRAINS; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -165,9 +149,6 @@ private:
 
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
-
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded maxwell homogenization test charges */
-  int SetMaxwellHomogenizationTestCharges();
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;

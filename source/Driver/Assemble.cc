@@ -1364,7 +1364,7 @@ namespace CoupledField
       PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
 
       // get integrator
-      LinearFormContext & context = **linIt;
+      LinearFormContext& context = **linIt;
 
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
 
@@ -1377,16 +1377,12 @@ namespace CoupledField
       std::string regionName;
       if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
       {
-        shared_ptr<ElemList> list =
-          boost::dynamic_pointer_cast<ElemList,EntityList>
-          (context.GetEntities());
+        shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
       else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
       {
-        shared_ptr<SurfElemList> list =
-          boost::dynamic_pointer_cast<SurfElemList,EntityList>
-          (context.GetEntities());
+        shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 

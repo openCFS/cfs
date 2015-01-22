@@ -104,6 +104,7 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
   pde->GetAssemble()->GetLinForms().GetSize();
 
   int num_loads = pde->GetAssemble()->GetLinForms().GetSize();  // to be faked later for homogenization test strains
+  LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads;
 
   ParamNodeList pnexcitations;
 
@@ -129,13 +130,6 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     if(DoHomogenization())
     {
       num_loads = SetHomogenizationTestStrains();
-      weight_sum = 1; // all 0 but the first 1
-    }
-
-    // sets and resizes excitations with test charges
-    if(DoMaxwellHomogenization())
-    {
-      num_loads = SetMaxwellHomogenizationTestCharges();
       weight_sum = 1; // all 0 but the first 1
     }
 
@@ -165,21 +159,12 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
     {
       Excitation& ex = excitations[i];
       ex.index = i;
-      if (DoMaxwellHomogenization()) {
-        ex.frequency = hd->freqs[0].freq;
-        ex.label = lexical_cast<string>(ex.frequency);
-        //ex.weight    = hd->freqs[0].weight;
-        ex.f_link    = &hd->freqs[0];
-      }
-      else {
-        ex.frequency = hd->freqs[i].freq;
-        ex.label = lexical_cast<string>(ex.frequency);
-        ex.weight    = hd->freqs[i].weight;
-        ex.f_link    = &hd->freqs[i];
+      ex.frequency = hd->freqs[i].freq;
+      ex.label = lexical_cast<string>(ex.frequency);
+      ex.weight    = hd->freqs[i].weight;
+      ex.f_link    = &hd->freqs[i];
 
-        weight_sum += ex.weight;
-      }
-
+      weight_sum += ex.weight;
     }
   }
   if(!harmonic && IsEnabled()) // multiple loads case
@@ -203,12 +188,31 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
       }
 
     }
-    if(pnexcitations.GetSize() == 0
-        && !DoHomogenization()
-        && !DoMaxwellHomogenization())
+    if(pnexcitations.GetSize() == 0 && !DoHomogenization())
     {
       assert(false);
       /* FIXME
+      StdVector<LinearFormContext*>& forms = pde->GetAssemble()->GetLinForms();
+
+      for(unsigned int i = 0; i < excitations.GetSize(); i++) // via num_loads or num_freq
+      {
+        if(num_loads > (int) i)
+        {
+          // static load case
+          excitations[i].loads.Push_back(loads[i]);
+
+          parser->SetExpr(handle, loads[i]->weight);
+          const double weight = parser->Eval(handle);
+          excitations[i].weight = weight;
+
+          weight_sum += weight;
+        }
+      }
+      assert(num_)
+      pde->GetAssemble()->GetLinForms()
+
+      assert(false);
+
       LoadList loads = pde->GetAssemble()->GetLoads();
 
       for(unsigned int i = 0; i < excitations.GetSize(); i++)
@@ -273,8 +277,6 @@ void MultipleExcitation::PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode
         exin->Get("frequency")->SetValue(ex.frequency);
       if(ex.test_strain.GetSize() > 0)
         exin->Get("testStrain")->SetValue(ex.test_strain.ToString());
-      if(ex.test_charge.GetSize() > 0)
-          exin->Get("testCharge")->SetValue(ex.test_charge.ToString());
     }
   }
 
@@ -310,42 +312,6 @@ int MultipleExcitation::SetHomogenizationTestStrains()
     ex.label = MechPDE::testStrain.ToString(ts);
 
     ex.ReadTestStrain(ts);
-    // The homogenized tensor can only be evaluated for the last excitation!
-    ex.weight = i < cases-1 ? 0.0 : 1.0;
-    ++cnt;
-  }
-
-  return excitations.GetSize();
-}
-
-int MultipleExcitation::SetMaxwellHomogenizationTestCharges()
-{
-  double ts[3][3] =  { {1.0, 0.0, 0.0 },
-                        {0.0, 1.0, 0.0 },
-                        {0.0, 0.0, 1.0 } };
-
-  Vector<double> vec;
-
-  unsigned int dim = domain->GetGrid()->GetDim();
-
-  int cases = dim == 2 ? 2 : 3;
-  excitations.Resize(cases);
-
-  for(int i = 0, cnt = 0; i < cases; ++i)
-  {
-    Excitation& ex = excitations[cnt];
-
-    // in 2D only 0, and 1
-    if(dim == 2 && (i == 2 )) continue;
-
-    if(i == 0) ex.label = "x";
-    if(i == 1) ex.label = "y";
-    if(i == 2) ex.label = "z";
-
-    vec.Fill(ts[i], dim);
- //   std::cout << vec.ToString() << std::endl;
-
-    ex.ReadTestCharges(vec);
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
     ++cnt;
@@ -540,17 +506,5 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
   */
 }
 
-void Excitation::ReadTestCharges(const Vector<double>& vec)
-{
-  assert(false);
-  /** FIXME
-  this->test_charge = vec;
-
-  loads.Clear();
-  ElecPDE* elec = dynamic_cast<ElecPDE*>(domain->GetSinglePDE("electrostatic"));
-  elec->SetRegionCharges(vec);
-  elec->DefineMaxwellHomIntegrators(linForms);
-  */
-}
 
 

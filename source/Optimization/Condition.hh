@@ -212,10 +212,6 @@ namespace CoupledField
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
-      /** Helper for Addcondition().
-      Adds the conditions for isotropy y*/
-      static void AddMaxwellIsotropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, bool biisotropy = false);
-
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 

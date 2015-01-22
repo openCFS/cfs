@@ -98,26 +98,6 @@ Function::Function(PtrParamNode pn) {
   if (type_ == HOM_TRACKING && (!pn->Has("tensor") && !pn->Has("isotropic")))
     throw Exception("a 'tensor' is mandatory for homogenization tracking");
 
-  HasSelectionTensor_ = false;
-  HasSelectionTensor_ = ReadMaxwellTensor(pn, this->selectionTensor_, true);
-  bool maxwell_tensor_ok = ReadMaxwellTensor(pn, this->maxwellTensor_); // is save and sets default
-  if (HasSelectionTensor()) {
-    maxwellTensor_.SetPart(Global::REAL,
-        maxwellTensor_.GetPart(Global::REAL).EntryMult(
-            GetSelectionTensor().GetPart(Global::REAL)));
-    maxwellTensor_.SetPart(Global::IMAG,
-        maxwellTensor_.GetPart(Global::IMAG).EntryMult(
-            GetSelectionTensor().GetPart(Global::IMAG)));
-  }
-
-  if (type_ == MAXWELL_HOM_TRACKING && !maxwell_tensor_ok)
-    EXCEPTION(
-        "A 'maxwellTensor' element is mandatory  for 'maxwellHomTracking'");
-
-  if (type_ == MAXWELL_HOM_TRACKING
-      && (!pn->Has("maxwellTensor") && !pn->Has("isotropic")))
-    throw Exception("a 'maxwellTensor' is mandatory for homogenization tracking");
-
   // check parameter
   switch (type_) {
   case PENALIZED_VOLUME:
@@ -294,85 +274,6 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
   return tensor_read;
 }
 
-bool Function::ReadMaxwellTensor(PtrParamNode pn, Matrix<Complex>& matrix,
-    bool selectionTensor) {
-  matrix.Resize(1, 1); // minimal size, as 0,0 is not defined.
-
-  bool tensor_read(false);
-  PtrParamNode tens;
-  if (!selectionTensor) {
-    // sanity checks
-    if (!pn->Has("maxwellTensor") && !pn->Has("isotropic"))
-      return false;
-
-    if (pn->Has("maxwellTensor") && pn->Has("isotropic"))
-      EXCEPTION(
-          "please specify either <maxwellTensor> or <isotropic>, not both");
-
-//    tens = pn->Get("isotropic", ParamNode::PASS);
-//    if(tens != NULL)
-//    {
-//      UInt dim = domain->GetDim();
-//      double real = tens->Get("permReal")->As<double>();
-//      double imag = tens->Get("permImag")->As<double>();
-//      matrix.Resize(dim, dim);
-//      matrix.Init();
-//      for (UInt i=0; i<dim; ++i){
-//        matrix(i, i) = Complex(real, imag);
-//      }
-//      tensor_read = true;
-//    }
-
-    // check for tensor element
-    tens = pn->Get("maxwellTensor", ParamNode::PASS);
-  } else
-    tens = pn->Get("selectionTensor", ParamNode::PASS);
-  if (tens != NULL) {
-    int dim = tens->Get("dim1")->As<int>();
-    if (dim != 2 && dim != 3)
-      EXCEPTION(
-          "The 'tensor' for Maxwell homogenization needs to be 2x2 or 3x3");
-    if (tens->Has("dim2") && dim != tens->Get("dim2")->As<int>())
-      EXCEPTION("The 'tensor' for homogenization needs to be symmetric");
-
-    matrix.Resize(dim, dim);
-    matrix.Init();
-    Matrix<double> tmp_mat(dim, dim);
-    ParamTools::AsTensor<double>(tens->Get("real"), dim, dim, tmp_mat);
-    matrix.SetPart(Global::REAL, tmp_mat);
-    if (tens->Has("imag")) {
-      ParamTools::AsTensor<double>(tens->Get("imag"), dim, dim, tmp_mat);
-      matrix.SetPart(Global::IMAG, tmp_mat);
-    }
-
-    // check for a scaling factor
-    const double factor(tens->Get("factor")->As<double>());
-    if (factor != 1.0)
-      matrix *= factor;
-
-    tensor_read = true;
-  }
-
-  if (tensor_read) {
-    if (!selectionTensor) {
-      // output the target tensor to xml-file
-      // to get a reference and be able to do quick checks
-      // FIXME
-      PtrParamNode in_mat = domain->GetInfoRoot()->Get("target_tensor");
-      in_mat->SetType(ParamNode::ELEMENT);
-      in_mat->Get("maxwellTensor")->SetValue(matrix);
-    } else {
-      // output the selection tensor to xml-file
-      // to get a reference and be able to do quick checks
-      // FIXME
-      PtrParamNode in_mat = domain->GetInfoRoot()->Get("selection_tensor");
-      in_mat->SetType(ParamNode::ELEMENT);
-      in_mat->Get("selectionTensor")->SetValue(matrix);
-    }
-  }
-
-  return tensor_read;
-}
 
 void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
@@ -440,11 +341,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case TYCHONOFF:
   case GREYNESS:
   case HOM_TENSOR:
-  case MAXWELL_HOM_TENSOR:
   case HOM_TRACKING:
-  case MAXWELL_HOM_TRACKING:
   case HOM_FROBENIUS_PRODUCT:
-  case BITENSOR:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case YOUNGS_MODULUS_E1:
@@ -460,8 +358,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case GLOBAL_OSCILLATION:
   case JUMP:
   case GLOBAL_JUMP:
-  case MAXWELL_ISOTROPY:
-  case BIISOTROPY:
   case BUMP:
   case DESIGN_TRACKING:
   case PROJECTION:
@@ -624,20 +520,6 @@ bool Function::IsLocal(Type t) {
   }
 }
 
-bool Function::IsMaxwellHomogenization() const {
-  switch (type_) {
-  case MAXWELL_HOM_TENSOR:
-  case MAXWELL_HOM_TRACKING:
-  case BITENSOR:
-  case MAXWELL_ISOTROPY:
-  case BIISOTROPY:
-    return true;
-
-  default:
-    return false;
-  }
-}
-
 bool Function::ForDensityFiltering() const {
   switch (type_) {
   case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
@@ -676,11 +558,8 @@ bool Function::ForSensitivityFiltering() const {
   case COMPLIANCE:
   case TRACKING:
   case HOM_TENSOR:
-  case MAXWELL_HOM_TENSOR:
   case HOM_TRACKING:
-  case MAXWELL_HOM_TRACKING:
   case HOM_FROBENIUS_PRODUCT:
-  case BITENSOR:
   case POISSONS_RATIO:
   case YOUNGS_MODULUS:
   case YOUNGS_MODULUS_E1:
@@ -735,8 +614,6 @@ bool Function::ForSensitivityFiltering() const {
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
   case MULTI_OBJECTIVE:
-  case MAXWELL_ISOTROPY:
-  case BIISOTROPY:
     EXCEPTION("Invalid query: " << type.ToString(type_))
     ;
     break;

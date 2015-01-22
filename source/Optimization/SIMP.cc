@@ -190,40 +190,6 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   } // end switch
 }
 
-void SIMP::SetElementRHS(DesignElement* de, const TransferFunction* tf, Application app, SingleVector* vec_out, CalcMode calcMode, bool derivative)
-{
-  switch(app)
-  {
-  case ELEC:
-  {
-    Vector<Complex>& out = dynamic_cast<Vector<Complex>& >(*vec_out);
-    Vector<Complex> rhs = dynamic_cast<ElecMat *>(material)->MaxwellHomRHS(de->elem, false); // no bimaterial
-
-    // Find the transfer function for K (e.g. DENSITY, MECH)
-    double k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
-
-    // copy from real mechStiffness to potential complex out and factor the derivative
-    Assign(out, rhs, k_factor);
-    // This log is very expensive, it blows up inv_tensor in the debug mode
-    // LOG_DBG3(simp) << "SetElementK: K_org=" <<  stiffness.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
-
-    if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
-    {
-      Vector<Complex> bimat_rhs = dynamic_cast<ElecMat *>(material)->MaxwellHomRHS(de->elem, true); // yes, bimaterial
-      // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-      k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
-      bimat_rhs *= k_factor;
-      Add(out, k_factor, bimat_rhs);
-      // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
-    }
-    break;
-  }
-
-  default:
-    assert(false); // other cases should be handled in PiezoSIMP
-  } // end switch
-}
-
 
 void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool derivative, bool bimaterial)
 {

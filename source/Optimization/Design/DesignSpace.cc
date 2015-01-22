@@ -479,9 +479,13 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
   // set the result descriptions which identify the solution types
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
   {
+    // this stuff is from the optimization results in the xml file
     ResultDescription& rd = resultDescriptions[i];
-    shared_ptr<ResultInfo> opt_res = CreateResultInfo(rd);
+    // generate ResultInfo objects with the names, ... generated from the description
+    shared_ptr<ResultInfo> opt_res = GenerateResultInfo(rd);
+    // this also addes the result as available result
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
+    // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
     if(!added)
     {
@@ -525,7 +529,7 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
   }
 }
 
-shared_ptr<ResultInfo> DesignSpace::CreateResultInfo(ResultDescription& rd)
+shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
 {
   // <result id="optResult_1" design="density" access="plain" value="costGradient"/>
   shared_ptr<ResultInfo> ri(new ResultInfo);

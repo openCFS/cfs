@@ -2884,13 +2884,17 @@ namespace CoupledField {
 
     list = in->Get("namedNodes");
     for(unsigned int i = 0; i < namedNodes_.GetSize(); i++)
-      list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND)
-      ->Get("count")->SetValue(namedNodes_[i].GetSize());
+    {
+      PtrParamNode pn = list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND);
+      pn->Get("count")->SetValue(namedNodes_[i].GetSize());
+      std::cout << "nN=" << namedNodes_[i].GetSize() << "\n";
+      if(namedNodes_[i].GetSize() == 1)
+       pn->Get("coord")->SetValue(coords_[namedNodes_[i][0]-1].ToString());
+    }
 
     list = in->Get("namedElements");
     for(unsigned int i = 0; i < namedElems_.GetSize(); i++)
-      list->GetByVal("elements", "name", namedElemNames_[i], ParamNode::APPEND)
-      ->Get("count")->SetValue(namedElems_[i].GetSize());
+      list->GetByVal("elements", "name", namedElemNames_[i], ParamNode::APPEND)->Get("count")->SetValue(namedElems_[i].GetSize());
     
     // coordinate systems
     if(domain) // does not exist for cfstool
