@@ -390,9 +390,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                      CoefXpr::OP_DIV);
           PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
-            
-            CoefFunction * tmp = jFct.get();
-            std::cerr << "jFct is " << tmp->ToString() << std::endl;
+
           if( dim_ == 3 ) {
             // ===========
             //  3D CASE
@@ -976,9 +974,8 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     DefineFieldResult( magIntensFunc, magIntens );
     stiffFormCoefs_.insert(magIntensFunc);
       
-      // === EDDY CURRENT DENSITY ===
-      shared_ptr<CoefFunctionFormBased> jFunc;
       if( analysistype_ != STATIC ) {
+        // === EDDY CURRENT DENSITY ===
         shared_ptr<BaseFeFunction> aDotFct = 
             timeDerivFeFunctions_[MAG_POTENTIAL_DERIV1];
         shared_ptr<ResultInfo> eddy(new ResultInfo);
@@ -988,7 +985,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         eddy->definedOn = ResultInfo::ELEMENT;
         eddy->entryType = ResultInfo::VECTOR;
         availResults_.insert( eddy );
-
+        shared_ptr<CoefFunctionFormBased> jFunc;
         if( isMixed_) 
           WARN("Adjust eddy currents for mixed case");
         if( isComplex_ ) {
@@ -1035,6 +1032,28 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         }
         resultFunctors_[MAG_EDDY_POWER] = epFunctor;
         massFormFunctors_.insert(epFunctor);
+
+        // === COIL LINKED FLUX - 1ST DERIVATIVE, CORRESPONDS TO INDUCED VOLTAGE ===
+        shared_ptr<ResultInfo> psiDotRes(new ResultInfo());
+        psiDotRes->resultType = COIL_INDUCED_VOLTAGE;
+        psiDotRes->dofNames = "";
+        psiDotRes->unit = "V";
+        psiDotRes->definedOn = ResultInfo::COIL;
+        psiDotRes->entryType = ResultInfo::SCALAR;
+
+        availResults_.insert( psiDotRes );
+        shared_ptr<ResultFunctor> psiDotFunc;
+        shared_ptr<CoefFunctionMulti> psiDotDens(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                                        isComplex_));
+        if( isComplex_ ){
+          psiDotFunc.reset( new ResultFunctorIntegrate<Complex>(psiDotDens, aDotFct, psiDotRes) );
+        } else {
+          psiDotFunc.reset( new ResultFunctorIntegrate<Double>(psiDotDens, aDotFct, psiDotRes) );
+        }
+        resultFunctors_[COIL_INDUCED_VOLTAGE] = psiDotFunc;
+        // it is an integrated result but we need to save the coef function
+        // somewhere for the finalization
+        fieldCoefs_[COIL_INDUCED_VOLTAGE] = psiDotDens;
       }
 
       // determine dimensionality of current density
@@ -1119,6 +1138,28 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       resultFunctors_[MAG_ENERGY] = energyFunc;
       stiffFormFunctors_.insert(energyFunc);
 
+      // === COIL LINKED FLUX  ===
+      shared_ptr<ResultInfo> psiRes(new ResultInfo());
+      psiRes->resultType = COIL_LINKED_FLUX;
+      psiRes->dofNames = "";
+      psiRes->unit = "Vs/m^2";
+      psiRes->definedOn = ResultInfo::COIL;
+      psiRes->entryType = ResultInfo::SCALAR;
+
+      availResults_.insert( psiRes );
+      shared_ptr<ResultFunctor> psiFunc;
+      shared_ptr<CoefFunctionMulti> psiDens(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+                                                                      isComplex_));
+      if( isComplex_ ){
+        psiFunc.reset( new ResultFunctorIntegrate<Complex>(psiDens, feFct, psiRes) );
+      } else {
+        psiFunc.reset( new ResultFunctorIntegrate<Double>(psiDens, feFct, psiRes) );
+      }
+      resultFunctors_[COIL_LINKED_FLUX] = psiFunc;
+      // it is an integrated result but we need to save the coef function
+      // somewhere for the finalization
+      fieldCoefs_[COIL_LINKED_FLUX] = psiDens;
+
   }
   
   void MagneticPDE::FinalizePostProcResults() {
@@ -1156,6 +1197,54 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         }
       }
     }
+
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
+    // === INDUCED VOLTAGE ===
+    // This code assembles a CoefFunctionMulti containing all coil regions, which
+    // is integrated by a ResultFunctorIntegrate. Ref: M. Kaltenbacher, Numer. Sim.
+    // of. Mech. Sens. and Act., 2nd edition, p. 212, Eq. (7.19)
+    // Every coil part has an own CoefFunction for the current density, which is
+    // why the coil regions are searched to find the corresponding part.
+    // It is assumed implicitly that a part cannot contain a region contained by
+    // another part. If that happens, the CoefFunctionMulti throws.
+    if( analysistype_ == TRANSIENT || analysistype_ == HARMONIC ) {
+      PtrCoefFct temp = GetCoefFct(COIL_INDUCED_VOLTAGE);
+      shared_ptr<CoefFunctionMulti> psiDotDens =
+          dynamic_pointer_cast<CoefFunctionMulti>(temp);
+      CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
+      for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
+        std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
+            coilRegsIt->second->parts_.find( coilRegsIt->first );
+        CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
+            boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
+        PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+        CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
+            GetCoefFct( MAG_POTENTIAL_DERIV1 ), CoefXpr::OP_MULT );
+        PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
+        psiDotDens->AddRegion( coilRegsIt->first, integrand );
+      }
+    }
+
+    // === COIL LINKED FLUX ===
+    // same as for induced voltage, but with the vector potential instead
+    // of the first time derivative of the vector potential
+    PtrCoefFct temp = GetCoefFct(COIL_LINKED_FLUX);
+    shared_ptr<CoefFunctionMulti> psiDotDens =
+        dynamic_pointer_cast<CoefFunctionMulti>(temp);
+    CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
+    for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
+      std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
+          coilRegsIt->second->parts_.find( coilRegsIt->first );
+      CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
+          boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
+      PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+      CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
+          GetCoefFct( MAG_POTENTIAL ), CoefXpr::OP_MULT );
+      PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
+      psiDotDens->AddRegion( coilRegsIt->first, integrand );
+    }
+
   }
   
   
