@@ -295,7 +295,6 @@ public:
    * @return a pointer to the Element Stiffness Matrix*/
   Matrix<std::complex<double> >& ElecStiffness(const Elem* elem, bool bimaterial = false, const DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
-  Vector<std::complex<double> > MaxwellHomRHS(const Elem* elem, bool bimaterial);
 
 //  /** overwrites OptimizationMaterial::Stiffness */
 //  Matrix<std::complex<double> >& Stiffness(const Elem* elem, bool bimaterial = false) {

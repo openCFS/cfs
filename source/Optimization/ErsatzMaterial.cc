@@ -102,26 +102,6 @@ ErsatzMaterial::ErsatzMaterial() :
   homogenizedTensor.Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
   homogenizedTensor.Init();
 
-  maxwellHomogenization_ = false;
-  bitensor_ = false;
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-  {
-    if(objectives.data[i]->IsMaxwellHomogenization())
-    {
-      maxwellHomogenization_ = true;
-      maxwellHomogenizedTensor.Resize(dim);
-      maxwellHomogenizedTensor.Init();
-
-      if (objectives.data[i]->IsBitensor())
-      {
-        bitensor_ = true;
-        maxwellHomogenizedTensorPermeability.Resize(dim);
-        maxwellHomogenizedTensorPermeability.Init();
-      }
-    }
-  }
-  optInfoNode->Get(ParamNode::HEADER)->Get("maxwellHomogenization")->SetValue(maxwellHomogenization_);
-
 
   // region stuff
   ParamNodeList region_list = pn->GetList("region");
@@ -162,11 +142,6 @@ ErsatzMaterial::ErsatzMaterial() :
 
 
   harmonic = domain->GetDriver()->IsComplex();
-
-  /* FIXME
-  if((homogenization_ || maxwellHomogenization_) && !pde->HasPeriodicBC())
-    throw Exception("homogenization requires periodic boundary conditions");
-   */
 
   // check our constraints, the shall have only valid designs
   for(unsigned int i = 0; i < constraints.all.GetSize();  i++)
@@ -320,13 +295,7 @@ void ErsatzMaterial::PostInit()
   if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
     throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
 
-  // plausibility check for maxwell homogenization
-  if(maxwellHomogenization_ && (!me->IsEnabled() || !(me->DoMaxwellHomogenization())))
-    throw Exception("A maxwell homogenization objective is set but no homogenization test charge excitation");
-  if(me->IsEnabled() && me->DoMaxwellHomogenization() && !maxwellHomogenization_)
-    throw Exception("No maxwell homogenization objective for homogenization test charge excitation");
-
-  // make basic loggings
+  // make basic logings
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
 }
 
@@ -417,20 +386,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       orth->Get(ortho[i].first)->SetValue(ortho[i].second);
 
     in->Get("tensor")->SetValue(homogenizedTensor);
-  }
-
-  if(maxwellHomogenization_)
-  {
-    PtrParamNode in = iter->Get("maxwellHomogenizedTensor");
-    in->Get("real_norm_L2")->SetValue(maxwellHomogenizedTensor.GetPart(Global::REAL).NormL2());
-
-    in->Get("tensor")->SetValue(new Matrix<Complex>(maxwellHomogenizedTensor));
-    if (bitensor_){
-      PtrParamNode in = iter->Get("permeability");
-      in->Get("real_norm_L2")->SetValue(maxwellHomogenizedTensorPermeability.GetPart(Global::REAL).NormL2());
-
-      in->Get("tensor")->SetValue(new Matrix<Complex>(maxwellHomogenizedTensorPermeability));
-    }
   }
 
   if(densityFile != NULL)
@@ -811,180 +766,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return 0.0;
   }
 
-  double ErsatzMaterial::CalcMaxwellHomTensor(Objective* c, Condition* g, bool derivative)
-  {
-    double result = 0.0;
-    if (c != NULL && derivative && c->HasHomogenizationEntry())
-    {
-      // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-      StdVector<Complex> tmp;
-      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
-      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-        design->data[e].AddGradient(c, NULL, tmp[e].real());
-    }
-    if (c != NULL && !derivative)
-    {
-      Matrix<Complex> hom_tensor;
-      if (IsHarmonic())
-        hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
-      else
-        hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
-      if (c->HasHomogenizationEntry())
-      {
-        result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
-      }
-      else
-      {
-        std::cout << "Homogenized Tensor: " << std::endl
-            << hom_tensor.ToString(0, true);
-        {
-          Complex det;
-          hom_tensor.Determinant(det);
-          std::cout << "Determinant of homogenized tensor: " << det
-              << std::endl;
-        }
-        std::cout << "\n";
-
-        result = hom_tensor.GetPart(Global::REAL).Trace();
-      }
-    }
-    if (g != NULL)
-    {
-      result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
-    }
-    return result;
-  }
-
-  double ErsatzMaterial::CalcMaxwellHomTracking(Function* f,  bool derivative)
-  {
-    double result = 0.0;
-
-    Matrix<Complex> maxwellHomogenizedTensor_tmp;
-    if (IsHarmonic())
-      maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Complex>(forward);
-    else
-      maxwellHomogenizedTensor_tmp = CalcMaxwellHomogenizedTensor<Double>(forward);
-
-    if (f->HasSelectionTensor())
-    {
-      maxwellHomogenizedTensor_tmp.SetPart(Global::REAL, maxwellHomogenizedTensor_tmp.GetPart(Global::REAL).EntryMult(f->GetSelectionTensor().GetPart(Global::REAL)));
-      maxwellHomogenizedTensor_tmp.SetPart(Global::IMAG, maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG).EntryMult(f->GetSelectionTensor().GetPart(Global::IMAG)));
-    }
-    //    std::cout << maxwellHomogenizedTensor_tmp.ToString() << std::endl;
-    if (derivative)
-    {
-      if (IsHarmonic())
-        CalcMaxwellHomogenizedTrackingGradient<Complex>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
-      else
-        CalcMaxwellHomogenizedTrackingGradient<Double>(f->GetMaxwellTensor(), maxwellHomogenizedTensor_tmp, f);
-    }
-    else
-    {
-      double diff = f->GetMaxwellTensor().GetPart(Global::REAL).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::REAL));
-      result = 0.5 * diff * diff;
-      diff = f->GetMaxwellTensor().GetPart(Global::IMAG).DiffNormL2(maxwellHomogenizedTensor_tmp.GetPart(Global::IMAG));
-      result += 0.5 * diff * diff;
-    }
-    return result;
-  }
-
-  double ErsatzMaterial::CalcMaxwellHomBitensor(Objective* c, Condition* g, bool derivative)
-  {
-    double result = 0.0;
-
-    if (c != NULL && derivative && c->HasHomogenizationEntry())
-    {
-      // if there s no "coord" set it is only meant for evaluateInitialDesign for forward homogenization
-      StdVector<Complex> tmp;
-
-      SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-      dynamic_cast<ElecMat *>(material)->ReInit();
-      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, forward);
-      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-        design->data[e].AddGradient(c, NULL, tmp[e].real());
-
-      SetMaxwellHomMatType(MAG_PERMEABILITY);
-      dynamic_cast<ElecMat *>(material)->ReInit();
-      CalcMaxwellHomogenizedTensorEntry(c->coord, true, tmp, adjoint);
-      for (unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
-        design->data[e].AddGradient(c, NULL, tmp[e].real());
-    }
-    if (c != NULL && !derivative)
-    {
-      Matrix<Complex> hom_tensor;
-      if (IsHarmonic())
-      {
-        SetMaxwellHomMatType(MAG_PERMEABILITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        if (c->HasHomogenizationEntry())
-          hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(adjoint);
-        maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-        result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
-
-        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        hom_tensor = CalcMaxwellHomogenizedTensor<Complex>(forward);
-        if (c->HasHomogenizationEntry())
-          result += (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
-      }
-      else
-      {
-        SetMaxwellHomMatType(MAG_PERMEABILITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        if (c->HasHomogenizationEntry())
-          hom_tensor = CalcMaxwellHomogenizedTensor<Double>(adjoint);
-        maxwellHomogenizedTensorPermeability.Assign(hom_tensor, 1.0);
-        if (c->HasHomogenizationEntry())
-          result = (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
-        else
-        {
-          std::cout << "Homogenized Permeability: " << std::endl << hom_tensor.ToString(0, true);
-          {
-            Complex det;
-            hom_tensor.Determinant(det);
-            std::cout << "Determinant of homogenized tensor: " << det << std::endl;
-          }
-          std::cout << "\n";
-        }
-
-        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        hom_tensor = CalcMaxwellHomogenizedTensor<Double>(forward);
-        if (c->HasHomogenizationEntry())
-          result += (hom_tensor[boost::get<0>(c->coord) - 1][boost::get<1>(c->coord) - 1]).real();
-        else
-        {
-          std::cout << "Homogenized Permittivity: " << std::endl
-              << hom_tensor.ToString(0, true);
-          {
-            Complex det;
-            hom_tensor.Determinant(det);
-            std::cout << "Determinant of homogenized tensor: " << det << std::endl;
-          }
-          std::cout << "\n";
-
-          result = hom_tensor.GetPart(Global::REAL).Trace();
-        }
-      }
-    }
-    if (g != NULL)
-    {
-      if (g->IsBiisotropy())
-      {
-        SetMaxwellHomMatType(MAG_PERMEABILITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, adjoint);
-      }
-      else
-      {
-        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-        dynamic_cast<ElecMat *>(material)->ReInit();
-        result = CalcMaxwellHomogenizedTensorConstraint(g, derivative, forward);
-      }
-    }
-    return result;
-  }
-
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     assert(f != NULL);
@@ -1084,10 +865,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       result = CalcHomTensor(c, g, derivative);
       break;
 
-      case Function::MAXWELL_HOM_TENSOR:
-      result = CalcMaxwellHomTensor(c, g, derivative);
-      break;
-
       case Function::HOM_TRACKING:
       if(derivative)
       {
@@ -1105,14 +882,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           CalcHomFrobeniusProductGradient(f->GetTensor(), CalcHomogenizedTensor(), f);
         else
           return f->GetTensor().FrobeniusProduct(CalcHomogenizedTensor());
-        break;
-
-      case Function::MAXWELL_HOM_TRACKING:
-        result = CalcMaxwellHomTracking(f, derivative);
-        break;
-
-      case Function::BITENSOR:
-        result = CalcMaxwellHomBitensor(c, g, derivative);
         break;
 
       case Function::POISSONS_RATIO:
@@ -1167,8 +936,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::ISO_ORTHOTROPY:
       case Function::ORTHOTROPY:
       case Function::MULTI_OBJECTIVE:
-      case Function::MAXWELL_ISOTROPY:
-      case Function::BIISOTROPY:
       assert(false);// no valid function
       break;
       // no default, gcc warns
@@ -2185,51 +1952,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return result;
   }
 
-  template<class T>
-  Matrix<Complex> ErsatzMaterial::CalcMaxwellHomogenizedTensor(Solutions sol)
-  {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
-    unsigned int ex_size = me->excitations.GetSize();
-    assert((dim == 2 && ex_size == 2) || (dim == 3 && ex_size == 3));
-    Matrix<Complex> result(ex_size, ex_size);
-    result.Init();
-    for (unsigned int k = 0;k < ex_size;++k)
-    {
-      StdVector<SingleVector*>& u1 = sol.Get(k)->elem[ELEC]; // equal to \u^{k}
-      // std::cout << "u^" << k << ": " << forward.Get(k)->GetComplexVector(Solution::RAW_VECTOR) << std::endl;
-      for (unsigned int l = 0;l < ex_size;++l)
-      {
-        if (k > l) // already computed this entry!
-        {
-          // by construction, the resulting matrix must be symmetric
-          // so we can skip the calculation and do a simple assignment instead
-          result[k][l] = result[l][k];
-          continue;
-        }
-        StdVector<SingleVector*>& u2 = sol.Get(l)->elem[ELEC]; // equal to \u^{l}
-        // loop over elements. In the gradient case not summed up
-        for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
-        {
-          DesignElement* de = &design->data[e];
-          Vector<T>& u1_vec = dynamic_cast<Vector<T>&>(*u1[e]);
-          //        if (e % 100 - 25 == 0){
-          //        std::cout << "u^" << k+1 << ":(" << e << "): " << u1_vec.ToString() << std::endl;
-          //        }
-          Vector<T>& u2_vec = dynamic_cast<Vector<T>&>(*u2[e]);
-          // prepare for calculation
-          Complex p = CalcMaxwellHomogenizedElementProduct(this, de, false, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-          result[k][l] += p / cube_vol;// normalize for volume
-        }
-      } // end of l loop
-
-    } // end of k loop
-
-// save e.g. for CommitIteration()
-    maxwellHomogenizedTensor.Assign(result, 1.0);
-    return result;
-  }
-
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
     assert(false);
@@ -2305,53 +2027,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   }
 
-  template<class T>
-  void ErsatzMaterial::CalcMaxwellHomogenizedTrackingGradient(const Matrix<Complex>& target, const Matrix<Complex>& hom, Function* f)
-  {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
-//  std::cout << "sol length: " << forward.Get(1)->GetComplexVector(Solution::RAW_VECTOR).GetSize() << std::endl;
-// TODO Would be E^* - E^H if expression templates would work
-    Matrix<Complex> diff_tensor;
-    diff_tensor = target - hom;
-    const unsigned int ex_size(me->excitations.GetSize());
-    assert((dim == 2 && ex_size == 2) || (dim == 3 && ex_size == 3));
-// our derivative tensor
-    Matrix<Complex> hom_tensor_deriv(ex_size, ex_size);
-    hom_tensor_deriv.Init();// we set and do not add - hence one init is enough
-// loop over elements. In the gradient case not summed up
-    for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
-    {
-      DesignElement* de = &design->data[e];
-      for (unsigned int k = 0;k < ex_size;++k)
-      {
-        StdVector<SingleVector*>& u1 = forward.Get(k)->elem[ELEC]; // equal to \u^{k}
-        Vector<T>& u1_vec = dynamic_cast<Vector<T>&>(*u1[e]);
-        for (unsigned int l = 0;l < ex_size;++l)
-        {
-          if (k > l) // already computed this entry!
-          {
-            // by construction, the resulting matrix must be symmetric
-            // so we can skip the calculation and do a simple assignment instead
-            hom_tensor_deriv[k][l] = hom_tensor_deriv[l][k];
-            continue;
-          }
-          StdVector<SingleVector*>& u2 = forward.Get(l)->elem[ELEC]; // equal to \u^{l}
-          Vector<T>& u2_vec = dynamic_cast<Vector<T>&>(*u2[e]);
-          // prepare for calculation
-          Complex p = CalcMaxwellHomogenizedElementProduct(this, de, true, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-          hom_tensor_deriv[k][l] = p / cube_vol;// normalize for volume
-        } // end of l loop
-
-      } // end of k loop
-
-      // hom_tensor_deriv is completely set.
-      // (E^* - E^H) * - d(E^H)/d(rho_e) -> therefore the minus !
-      double grad = -diff_tensor.GetPart(Global::REAL).FrobeniusProduct(hom_tensor_deriv.GetPart(Global::REAL)) - diff_tensor.GetPart(Global::IMAG).FrobeniusProduct(hom_tensor_deriv.GetPart(Global::IMAG));
-      de->AddGradient(f, grad);//dJ/d(rho) part
-    } // element loop
-
-  }
 
   double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool derivative)
   {
@@ -2422,81 +2097,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return result; // in the non-derivative case this is the sum.
   }
 
-  double ErsatzMaterial::CalcMaxwellHomogenizedTensorConstraint(Condition* g, bool derivative, Solutions sol)
-  {
-// me make use of the multi-purpose CalcMaxwellHomogenizedTensorEntry()
-    StdVector<Complex> grad;
-    Complex result = 0.0;
-// we have a list of int,int,double tuples which are added with the double factor.
-// epsilon11 = <0,0,x>
-    for(unsigned int i = 0; i < g->coords.GetSize(); i++)
-    {
-      tuple<int, int, double>& entry = g->coords[i];
-      Complex t = CalcMaxwellHomogenizedTensorEntry(entry, derivative, grad, sol);
-      double factor = boost::get<2>(entry);
-
-      if(derivative)
-      {
-        if(!g->IsImag())
-        {
-          for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
-          design->data[e].AddGradient(NULL, g, factor * grad[e].real());
-        }
-        else
-        {
-          for(int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
-          design->data[e].AddGradient(NULL, g, factor * grad[e].imag());
-
-        }
-      }
-      else
-      {
-        result += factor * t;
-
-//      maxwellHomogenizedTensor[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
-//      // all tensors are symmetric. Makes reading easier!
-//      maxwellHomogenizedTensor[boost::get<1>(entry)-1][boost::get<0>(entry)-1] = t;
-
-        //LOG_DBG(em) << "CMHTC: g=" << g->ToString() << " coord=" << i << " ["
-        //    << g->coords[i].first << "-1][" << g->coords[i].second << "-1] = " << t;
-      }
-    }
-    if (!g->IsImag())
-    return result.real();
-    else
-    return result.imag();
-  }
-  Complex ErsatzMaterial::CalcMaxwellHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<Complex>& grad_out, Solutions sol)
-  {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
-    assert((dim == 2 && me->excitations.GetSize() == 2) || (dim == 3 && me->excitations.GetSize() == 3));
-    const unsigned int k = boost::get<0>(entry) - 1;
-    const unsigned int l = boost::get<1>(entry) - 1;
-    StdVector<SingleVector*>& u1 = sol.Get(k)->elem[ELEC]; // equal to \u^{k}
-    StdVector<SingleVector*>& u2 = sol.Get(l)->elem[ELEC];// equal to \u^{l}
-    Complex result(0.0, 0.0);
-    if (derivative)
-      grad_out.Resize(design->GetNumberOfElements());
-
-// loop over elements. In the gradient case not summed up
-    for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
-    {
-      DesignElement* de = &design->data[e];
-      Vector<Complex>& u1_vec = dynamic_cast<Vector<Complex>&>(*u1[e]);
-      Vector<Complex>& u2_vec = dynamic_cast<Vector<Complex>&>(*u2[e]);
-      // prepare for calculation
-      Complex p = CalcMaxwellHomogenizedElementProduct(this, de, derivative, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-      result += p / cube_vol;// normalize for volume
-      if (derivative)
-      {
-        grad_out[e] = result;
-        result = 0.0; // reset such that we do not sum up for the next case!
-      }
-    }
-
-    return result; // in the non-derivative case this is the sum.
-  }
 
   double ErsatzMaterial::CalcHomogenizedElementProduct(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl)
   {
@@ -2545,85 +2145,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return result;
   }
 
-  Complex ErsatzMaterial::CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex>& u1_vec, Vector<Complex>& u2_vec, Vector<double>& test_k, Vector<double>& test_l)
-  {
-    assert(u1_vec.GetSize() == u2_vec.GetSize());
-    LOG_DBG3(em) << "CMHEP: de=" << de->ToString() << " u1_vec=" << u1_vec.ToString() << " u2_vec=" << u2_vec.ToString();
-// TODO too many temporary matrices and vectors!
-// from the coordinates of this element we build a "test displacement" vector
-// u1(,2)_0. it contains linear values which are assembled in the following lines
-// these functions are not unique! an arbitrary constant can be added without change
-// coordinates of "this" element
-    Matrix<double> tmp_mat;
-// coordinates of current element
-    domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
-    Vector<double> tmp_vec;
-    tmp_mat.MultT(test_k, tmp_vec);
-    Vector<Complex> u1_0;
-    u1_0.Resize(tmp_mat.GetNumCols(), 0.0);
-    u1_0.SetPart(Global::REAL, tmp_vec);
-    tmp_mat.MultT(test_l, tmp_vec);
-    Vector<Complex> u2_0;
-    u2_0.Resize(tmp_mat.GetNumCols(), 0.0);
-    u2_0.SetPart(Global::REAL, tmp_vec);
-    assert(u1_0.GetSize() == u2_0.GetSize());
-    u1_0 -= u1_vec;
-    u2_0 -= u2_vec;
-    Matrix<Complex> tmp_matC;
-    TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, ELEC);
-    obj->SetElementK(de, tf, ELEC, &tmp_matC, STANDARD, derivative);
-    Vector<Complex> mat_vec;
-    mat_vec = tmp_matC * u2_0;
-    Complex result = mat_vec * u1_0;
-    LOG_DBG3(em) << "CMHEP de=" << de->ToString() << " result=" << result;
-    return result;
-  }
-
-  Complex ErsatzMaterial::CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<double>& u1_vec, Vector<double>& u2_vec, Vector<double>& test_k, Vector<double>& test_l)
-  {
-    assert(u1_vec.GetSize() == u2_vec.GetSize());
-    LOG_DBG3(em) << "CMHEP: de=" << de->ToString() << " u1_vec=" << u1_vec.ToString() << " u2_vec=" << u2_vec.ToString();
-// TODO too many temporary matrices and vectors!
-// from the coordinates of this element we build a "test displacement" vector
-// u1(,2)_0. it contains linear values which are assembled in the following lines
-// these functions are not unique! an arbitrary constant can be added without change
-// coordinates of "this" element
-    Matrix<double> tmp_mat;
-// coordinates of current element
-    domain->GetGrid()->GetElemNodesCoord(tmp_mat, de->elem->connect, true);
-    Vector<double> u1_0;
-    tmp_mat.MultT(test_k, u1_0);
-    Vector<double> u2_0;
-    tmp_mat.MultT(test_l, u2_0);
-    assert(u1_0.GetSize() == u2_0.GetSize());
-    u1_0 -= u1_vec;
-    u2_0 -= u2_vec;
-    Matrix<double> tmp_matC;
-    TransferFunction* tf = obj->design->GetTransferFunction(DesignElement::DENSITY, ELEC);
-    obj->SetElementK(de, tf, ELEC, &tmp_matC, STANDARD, derivative);
-    Vector<double> mat_vec;
-    mat_vec = tmp_matC * u2_0;
-    Complex result = mat_vec * u1_0;
-    LOG_DBG3(em) << "CMHEP de=" << de->ToString() << " result=" << result;
-    return result;
-  }
-
-  void ErsatzMaterial::SetMaxwellHomMatType(MaterialType type)
-  {
-    assert(false);
-    /* FIXME
-    StdVector<BiLinFormContext*> bilinForms = assemble_->GetBiLinForms();
-    for (UInt i = 0;i < bilinForms.GetSize();++i)
-    {
-      dynamic_cast<linGradBDBInt*>(bilinForms[i]->GetIntegrator())->setDMaterialType(type);
-    }
-    StdVector<LinearFormContext*> linForms = assemble_->GetLinForms();
-    for (UInt i = 0;i < linForms.GetSize();++i)
-    {
-      dynamic_cast<VolChargeHomInt*>(linForms[i]->GetIntegrator())->GetBDBInt()->setDMaterialType(type);
-    }
-    */
-  }
 
   Complex ErsatzMaterial::CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec)
   {
@@ -2801,20 +2322,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         StorePDESolution(forward, excite, NULL, 0, true, true, false, NO_DERIVTYPE, "forward");
       }
 
-      if(bitensor_)
-      {
-        //Compute again for permeability and store solutions in "adjoint" (not needed for this objective)
-
-        SetMaxwellHomMatType(MAG_PERMEABILITY);
-        adjoint.SetIsForward(true);
-
-        // this is true for all problem types
-        Optimization::SolveStateProblem(&excite);
-        StorePDESolution(adjoint, excite, NULL, 0, true, true, false, NO_DERIVTYPE, "permeability");
-
-        SetMaxwellHomMatType(ELEC_PERMITTIVITY);
-      }
-
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
       {
         Function* f = funcs[fi];
@@ -2825,7 +2332,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
         // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
-        if(harmonic && me->excitations.GetSize() > 1 && !maxwellHomogenization_)
+        if(harmonic && me->excitations.GetSize() > 1)
           SolveAdjointProblem(&excite, f);
 
         // when we do multiple excitations with adjusted weights we calculate the objective here

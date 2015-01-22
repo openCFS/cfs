@@ -1554,8 +1554,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
 
-    std::cout << "Optimization is " << (domain->GetOptimization() == NULL ? "null" : "set") << "\n";
-
     // this is added via the optimization stuff in DesignSpace.
 
 

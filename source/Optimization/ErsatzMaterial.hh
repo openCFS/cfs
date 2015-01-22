@@ -99,14 +99,6 @@ public:
    * MechPDE reads it when "homogenizedTensor" is a region result! */
   Matrix<double> homogenizedTensor;
 
-  /** This is the current homogenized tensor.
-   * Evaluated by MAXWELL_HOM_TRACKING and MAXWELL_HOM_TENSOR (as objective only).
-   * ElecPDE reads it when "maxwellHomogenizedTensor" is a region result! */
-  Matrix<Complex> maxwellHomogenizedTensor;
-  
-  //this is only used for BITENSOR objective
-  Matrix<Complex> maxwellHomogenizedTensorPermeability;
-
   OptimizationMaterial* GetMaterial() { return material; }
 
   /** This class holds the solution of the PDE. It is in a class such that it
@@ -332,13 +324,6 @@ public:
     throw Exception("not implemented");
   }
 
-  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
-      Application app, SingleVector* out, CalcMode calcMode, bool derivative =
-          true)
-  {
-    throw Exception("not implemented");
-  }
-
   /** Helper that asks MechanicMaterial. Works only for a single region.
    * @return empty if multiple regions */
   StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
@@ -414,54 +399,53 @@ public:
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
+
   /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
   double CalcProjection(Function* f, bool derivative);
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
    * @param u_glob the complete equation index global solution vector
    * @param adjoint switch action
    * @param q_u_glob output depending on adjoint flag. see u_glob */
-  void SetEnergyFluxVector(Function* f,
-      const Vector<std::complex<double> >& u_glob, bool adjoint,
-      Vector<std::complex<double> >& q_u_glob);
+  void SetEnergyFluxVector(Function* f, const Vector<std::complex<double> >& u_glob, bool adjoint, Vector<std::complex<double> >& q_u_glob);
+
   /** Find the node numbers which are common from a surface element and a volume element.
    * This maps from a surface element to the volume element.
    * @param common_nodes e.g. a center surface element node is lost on a 20-hex-volume element */
-  void FindCommonNodes(const SurfElem* se, const Elem* vol,
-      StdVector<unsigned int>& common_nodes) const;
+  void FindCommonNodes(const SurfElem* se, const Elem* vol,  StdVector<unsigned int>& common_nodes) const;
+
   /** does the substep of solving K z = Proj(u - u0) for z */
-  void SolveTrackingProblem(Excitation& excite, bool designelem = true,
-      bool gridelem = false);
+  void SolveTrackingProblem(Excitation& excite, bool designelem = true, bool gridelem = false);
+
   /** converts the teststrain vector in voigt notation to the corresponding matrix
    * @param matrix output
    * @param vec input */
   void SetTestStrainMatrix(Matrix<double>& matrix, const Vector<double>& vec);
+
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
    *  It must be called only for the last excitation when all test strains are known.
    *  Writes the tensor to info.log */
   virtual Matrix<double> CalcHomogenizedTensor();
-  template<class T> Matrix<Complex> CalcMaxwellHomogenizedTensor(Solutions sol);
+
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
    * @param target E^* what we want
    * @param hom the pre calculated tensor E^H */
-  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target,
-      const Matrix<double>& hom, Function* f);
-  template<class T> void CalcMaxwellHomogenizedTrackingGradient(
-      const Matrix<Complex>& target, const Matrix<Complex>& hom, Function* f);
+  virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
+
   /** Calculates the gradient for the Frobenius inner prodcut. */
-  void CalcHomFrobeniusProductGradient(const Matrix<double>& target,
-      const Matrix<double>& hom, Function* f);
+  void CalcHomFrobeniusProductGradient(const Matrix<double>& target,  const Matrix<double>& hom, Function* f);
+
   /** Calculates the gradient if the constraints E^H = E^* where for each interested
    * tensor entry a own HOM_TENSOR constraint is required.
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param g the constraint is mandatory. It defines in the coord pair the tensor entry
    * @return the E^H tensor entry if !derivative */
   double CalcHomogenizedTensorConstraint(Condition* g, bool derivative);
-  double CalcMaxwellHomogenizedTensorConstraint(Condition* g, bool derivative,
-      Solutions sol);
+
   /** Calculates a single homogenized tensor entry or it's derivative.
    * This is a helper for CalcHomogenizedTensorConstraint() but more general.
    * CalcHomogenizedTensor() could multiple times calls this but this would be slower.
@@ -469,16 +453,14 @@ public:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry,
-      bool derivative, StdVector<double>& grad_out);
-  Complex CalcMaxwellHomogenizedTensorEntry(const tuple<int, int, double> entry,
-      bool derivative, StdVector<Complex>& grad_out, Solutions sol);
+  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out);
+
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
    * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
-  double CalcGlobalFunction(Function* f, bool derivative,
-      const Vector<double>* von_mises_stress = NULL);
+  double CalcGlobalFunction(Function* f, bool derivative,  const Vector<double>* von_mises_stress = NULL);
+
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
   Solutions forward;
   /** Here we store the solution of the adjoint problem. */
@@ -539,21 +521,9 @@ private:
       DesignElement* de, bool derivative, Vector<double>& u1,
       Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
       Matrix<double>& test_strain_matrix_kl);
-  /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
-   * This is the inner of the sum for the homogenized tensor or the derivative formulation
-   * @param u1 the element solution vector
-   * @return the product test strain diff * (K or K') * test strain diff
-   */
-  static Complex CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj,
-      DesignElement* de, bool derivative, Vector<Complex>& u1_vec,
-      Vector<Complex>& u2_vec, Vector<double>& test_k, Vector<double>& test_l);
-  static Complex CalcMaxwellHomogenizedElementProduct(ErsatzMaterial* obj,
-      DesignElement* de, bool derivative, Vector<double>& u1_vec,
-      Vector<double>& u2_vec, Vector<double>& test_k, Vector<double>& test_l);
-  /** Helper to switch between permittivity and permeability in the (bi)linearforms */
-  void SetMaxwellHomMatType(MaterialType type);
-  static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de,
-      bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
+
+  static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
+
   /** See the non-template version for documentation! */
   template<class T> double CalcU1KU2(TransferFunction* tf,
       StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
@@ -585,7 +555,7 @@ private:
   virtual void SetAdjointRhs(AdjointParameters* adjointParams);
   /** Set the rhs for the tracking adjoint */
   void SetTrackingAdjointRhs(Excitation& excite, int ts);
-  void SetMaxwellHomTrackingAdjointRhs(Excitation& excite);
+
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
   template<class T> void SetAndSolveAdjointRHS(Excitation& excite,
       Function* cost);
@@ -624,12 +594,6 @@ private:
 
   /** for CalcFunction() */
   double CalcHomTensor(Objective* c, Condition* g, bool derivative);
-
-  double CalcMaxwellHomTensor(Objective* c, Condition* g, bool derivative);
-
-  double CalcMaxwellHomTracking(Function* f, bool derivative);
-
-  double CalcMaxwellHomBitensor(Objective* c, Condition* g, bool derivative);
 
   /** Calculates the product of the (system) surface normal matrix with the solution already in OLAS.
    * Note that we have to use 1 based OLAS vectors as the sparse system matrix is from OLAS .

@@ -467,14 +467,13 @@ namespace CoupledField
      template <class T>
      void FillNodeResults(Result<T>& result, ResultDescription& descr);
 
-     /** Sets a ResultInfo object by a result type optResult_1/2/3 where the detailed
-      * description is in the optimization/SIMP element in the xml file
+     /** Creates a ResultInfo object by a result type optResult_* where the detailed
+      * description is in the optimization/SIMP element in the xml file.
+      * stuff like definedOn, label, units, ...
       * @param solutionType switch to typedef when Environment.hh is gone
       * @return null if this solution type was not given in xml or a filled version.
       *         The deletion of the object is the duty of the caller (or shared pointer) */
-     shared_ptr<ResultInfo> CreateResultInfo(ResultDescription& rd);
-
-
+     shared_ptr<ResultInfo> GenerateResultInfo(ResultDescription& rd);
 
      /** Setup the multimaterial vector and do sanity checks */
      void SetupMultiMaterial(ParamNodeList design_list);

@@ -220,9 +220,6 @@ namespace CoupledField
         /** The applied excitation */
         Excitation* applied_excitation;
         
-        /** do we perform maxwell homogenization induced by any of the objective or constraints? */
-        bool maxwellHomogenization_;
-
         /** is called from transientDriver after each time step is finished, to store the solution */
         virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
         

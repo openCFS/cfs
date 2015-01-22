@@ -52,8 +52,6 @@
                       <xsd:all>
                         <!-- this is the tensor for the homogenizationTracking objective -->
                         <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
-                        <!-- this is the tensor for the maxwellHomogenizationTracking objective -->
-                        <xsd:element name="maxwellTensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
                         <!-- the tensor can optionally be specified by emod and poisson ratio -->
                         <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
                         <!-- some (global) local constraints have optional or mandatory local properties -->
@@ -176,7 +174,6 @@
                       <xsd:enumeration value="fixed_weights"/>
                       <xsd:enumeration value="meta_objective"/>
                       <xsd:enumeration value="homogenizationTestStrains"/>
-                      <xsd:enumeration value="maxwellHomogenizationTestStrains"/>
                     </xsd:restriction>
                   </xsd:simpleType>
                 </xsd:attribute>  
@@ -187,10 +184,6 @@
             
             <!-- this is the tensor for the homogenizationTracking objective -->
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
-            <!-- this is the tensor for the maxwellHomogenizationTracking objective -->
-            <xsd:element name="maxwellTensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
-            <!-- this is the tensor for the entry selection of maxwellHomogenizationTracking objective -->
-            <xsd:element name="selectionTensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
 
@@ -276,10 +269,7 @@
                 <xsd:enumeration value="greyness"/>
                 <xsd:enumeration value="realvolume"/>
                 <xsd:enumeration value="homTensor"/>
-                <xsd:enumeration value="maxwellHomTensor"/>
-                <xsd:enumeration value="bitensor"/>
                 <xsd:enumeration value="homTracking"/>
-                <xsd:enumeration value="maxwellHomTracking"/>
                 <!-- Calulates the Frobenius inner product -->
                 <xsd:enumeration value="homFrobeniusProduct"/>
                 <xsd:enumeration value="poissonsRatio"/>
@@ -300,8 +290,6 @@
                 <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->
                 <xsd:enumeration value="bump"/>
                 <xsd:enumeration value="stress"/>
-                <xsd:enumeration value="maxwellIsotropy"/>
-                <xsd:enumeration value="biIsotropy"/>
                 <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
                 <xsd:enumeration value="stressDensity"/>
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
@@ -1214,7 +1202,6 @@
                 <xsd:enumeration value="mechanic"/>
                 <xsd:enumeration value="heat"/>
                 <xsd:enumeration value="acoustic"/>
-                <xsd:enumeration value="maxwellHom"/>
                 <xsd:enumeration value="lbm"/>
               </xsd:restriction>
             </xsd:simpleType>
@@ -1414,10 +1401,7 @@
       <xsd:enumeration value="tracking"/>
       <xsd:enumeration value="elecEnergy"/>
       <xsd:enumeration value="homTensor"/>
-      <xsd:enumeration value="maxwellHomTensor"/>
-      <xsd:enumeration value="bitensor"/>
       <xsd:enumeration value="homTracking"/>
-      <xsd:enumeration value="maxwellHomTracking"/>
       <xsd:enumeration value="homFrobeniusProduct"/>
       <xsd:enumeration value="poissonsRatio"/>
       <xsd:enumeration value="youngsModulus"/>
@@ -1627,7 +1611,6 @@
       <xsd:enumeration value="greyness"/>
       <xsd:enumeration value="realvolume"/>
       <xsd:enumeration value="homTracking"/>
-      <xsd:enumeration value="maxwellHomTracking"/>
       <xsd:enumeration value="homFrobeniusProduct"/>
       <xsd:enumeration value="poissonsRatio"/>
       <xsd:enumeration value="youngsModulus"/>

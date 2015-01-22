@@ -711,36 +711,6 @@ void ElecMat::ReInit(){
 }
 
 
-Vector<Complex> ElecMat::MaxwellHomRHS(const Elem* elem, bool bimaterial)
-{
-  Vector<Complex> rhs;
-  assert(false);
-  /* FIXME
-  Vector<double> tmp_vec;
-
-
-  if(!bimaterial){
-    GetElementVector((LinearForm*) opt->GetForm(elem->regionId, elec, NULL, "VolChargeHomInt", true, Global::REAL), tmp_vec);
-    rhs.Resize(tmp_vec.GetSize());
-    rhs.SetPart(Global::REAL, tmp_vec);
-    GetElementVector((LinearForm*) opt->GetForm(elem->regionId, elec, NULL, "VolChargeHomInt", true, Global::IMAG), tmp_vec);
-    rhs.SetPart(Global::IMAG, tmp_vec);
-    //  GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].first, elem, NULL, direction);
-  }
-  else
-  {
-    BaseMaterial* bm = opt->GetDesign()->GetRegion(elem->regionId)->GetBiMaterial(ELECTROSTATIC);
-    GetElementVector((LinearForm*) opt->GetForm(elem->regionId, elec, NULL, "VolChargeHomInt", true, Global::REAL), tmp_vec, NULL, bm);
-    rhs.Resize(tmp_vec.GetSize());
-    rhs.SetPart(Global::REAL, tmp_vec);
-    GetElementVector((LinearForm*) opt->GetForm(elem->regionId, elec, NULL, "VolChargeHomInt", true, Global::IMAG), tmp_vec, NULL, bm);
-    rhs.SetPart(Global::IMAG, tmp_vec);
-    //  GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].second, elem, bm, direction);
-  }
-  */
-  return rhs;
-}
-
 Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bimaterial, DesignElement::Type direction)
 {
   if(!opt->IsDomainStructured() || direction != DesignElement::NO_DERIVATIVE)
