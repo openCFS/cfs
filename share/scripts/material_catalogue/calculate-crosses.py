@@ -39,43 +39,46 @@ def save_image_as_densfile(im, outfile):
 
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
-def insert_modified_frame(array, minres, x, y, steps,void,modify=True,triangle=False):
+def insert_modified_frame(array, minres, x, y, steps,void,number,modify=True,triangle=False):
   # 2D frame structure
   if triangle:
     array = np.ones((2*minres,minres))
   else:
     array = np.ones((minres, minres))
   eps = 1e-8
-  offx = int((minres / 2.) * (float(x) / (steps)) + 0.5+eps)
-  offy = int((minres / 2.) * (float(y) / (steps)) + 0.5+eps)
-  for i in range(offx, (minres - offx)):
-    for j in range(offy, (minres - offy)):
-      if not triangle:
-        array[i][j] = void
-      else:
-        array[2*i][j] = void
-        array[2*i+1][j] = void
-  # TODO: does not work for triangles yet
-  if modify:    
-    # modify frame for stress minimization
-    for i in range(offx, minres - offx):
-      for j in range(offy, minres - offy):
-        if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
-          r = math.ceil((minres - 2.*offx) / 3.)
+  offsetx = int((minres / 2.) * (float(x) / (steps)) + 0.5+eps)
+  offsety = int((minres / 2.) * (float(y) / (steps)) + 0.5+eps)
+  for n in range(1,number+1):
+    offx = int(float(n)/float(number) * offsetx + 0.5 + eps)
+    offy = int(float(n)/float(number) * offsety + 0.5 + eps)
+    for i in range(offx, int(float(n)/float(number)*minres - offx + 0.5 + eps)):
+      for j in range(offy, int(float(n)/float(number)*minres - offy + 0.5 + eps)):
+        if not triangle:
+          array[i][j] = void
         else:
-          r = math.ceil((minres - 2.*offy) / 3.) 
-        m = [offx + r, offy + r]
-        if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-          array[i][j] = 1.
-        m = [minres - offx - r - 1, offy + r]
-        if i >= minres - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-          array[i][j] = 1.
-        m = [minres - offx - r - 1, minres - offy - r - 1]
-        if i >= minres - offx - r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-          array[i][j] = 1.
-        m = [offx + r, minres - offy - r - 1]
-        if i - offx < r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
-          array[i][j] = 1.  
+          array[2*i][j] = void
+          array[2*i+1][j] = void
+    # TODO: does not work for triangles yet
+    if modify:    
+      # modify frame for stress minimization
+      for i in range(offx, minres - offx):
+        for j in range(offy, minres - offy):
+          if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
+            r = math.ceil((minres - 2.*offx) / 3.)
+          else:
+            r = math.ceil((minres - 2.*offy) / 3.) 
+          m = [offx + r, offy + r]
+          if i - offx < r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+            array[i][j] = 1.
+          m = [minres - offx - r - 1, offy + r]
+          if i >= minres - offx - r and j - offy < r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+            array[i][j] = 1.
+          m = [minres - offx - r - 1, minres - offy - r - 1]
+          if i >= minres - offx - r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+            array[i][j] = 1.
+          m = [offx + r, minres - offy - r - 1]
+          if i - offx < r and j >= minres - offy - r and (i - m[0]) * (i - m[0]) + (j - m[1]) * (j - m[1]) >= r * r:
+            array[i][j] = 1.  
   return array  
 
 def insert_rotated_bar(tx, ty, rot, array, minres, midx, midy):
@@ -220,6 +223,7 @@ parser.add_argument("--shape", help="choose between frame or cross",choices=['fr
 parser.add_argument("--triangle_msfem", help="true or false")
 parser.add_argument("--filter",help = "filtered densities on or off")
 parser.add_argument("--void_material",help = "set value for void material",type=float,default = 1e-9)
+parser.add_argument("--epsilon",help="number of frames/crosses in the cell problem",type = int,default = 1)
 
 
 
@@ -275,13 +279,13 @@ if dim == 2:
         tx = minres - 2 * offy            
         ty = minres - 2 * offx
         if args.shape == 'frame_modified':
-          array = insert_modified_frame(array, minres, y, x, steps,void,True)
+          array = insert_modified_frame(array, minres, y, x, steps,void,args.epsilon,True)
         elif args.shape == 'cross':
           array =  insert_rotated_bar(tx, ty, 0., array, minres, midx, midy)
         elif args.shape == 'frame':
-          array = insert_modified_frame(array, minres, y, x, steps,void,False)
+          array = insert_modified_frame(array, minres, y, x, steps,void,args.epsilon,False)
         elif args.shape == 'frame_w_triangles':
-          array = insert_modified_frame(array, minres, y, x, steps,void,False,True)
+          array = insert_modified_frame(array, minres, y, x, steps,void,args.epsilon,False,True)
         else:
           print 'Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]'
 
@@ -428,9 +432,9 @@ if dim == 2:
     for x in range(steps + 1):
       for y in range(steps + 1):
         if args.shape == "frame_modified":
-          array = insert_modified_frame(array, minres, y, x, steps,void,True) 
+          array = insert_modified_frame(array, minres, y, x, steps,void,args.epsilon,True) 
         else:
-          array = insert_modified_frame(array, minres, y, x, steps,void,False)     
+          array = insert_modified_frame(array, minres, y, x, steps,void,args.epsilon,False)     
         densfilename = str(x) + "-" + str(y) + ".dens.xml"
         # filtering of the data
         if args.filter == 'on':   
