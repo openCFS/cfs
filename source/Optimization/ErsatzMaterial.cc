@@ -194,7 +194,7 @@ void ErsatzMaterial::PostInit()
   Optimization::PostInit();
 
   // check for multiple loadcases (might be frequencies)
-  me->PrepareMultipleExcitations(pde, optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
+  me->PrepareMultipleExcitations(optInfoNode, harmonic, optimizer_ == EVALUATE_INITIAL_DESIGN);
 
 
   // add optimization results to the pde
@@ -676,9 +676,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     StdVector<LinearFormContext*>& lf = assemble_->GetLinForms();
 // ignore the regions!!
-    for (unsigned int i = 0;i < lf.GetSize();i++)
-    if (lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
-    return true;
+    for(unsigned int i = 0;i < lf.GetSize();i++)
+      if (lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
+      return true;
     return false;
   }
   template<class T>

@@ -51,7 +51,7 @@ namespace CoupledField
     printProgressBar_ = false;
     info_ = infoNode;
     
-    linForms_ = new StdVector<LinearFormContext*>();
+    lin_forms_given_ = false;
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones
@@ -72,14 +72,12 @@ namespace CoupledField
     for( ; it != allBiLinForms_.end(); ++it){
       delete (*it);
     }
-    
 
-    // Delete linear contexts
-    for(unsigned int i = 0; i < linForms_->GetSize(); ++i){
-      delete (*linForms_)[i];
-    }
+    // Delete linear contexts only it this is not done by optimization excitation in the multiload case
+    if(!lin_forms_given_)
+      for(unsigned int i = 0; i < linForms_.GetSize(); ++i)
+        delete linForms_[i];
     
-    delete linForms_;
     mp_->ReleaseHandle(mHandle_);
   }
 
@@ -143,10 +141,10 @@ namespace CoupledField
      LinearForm* result = NULL;
 
      // iterate over all descriptors
-     for(unsigned int i = 0; i < linForms_->GetSize(); i++)
+     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
      {
        // we are wrong if the region does not match
-       LinearFormContext* lfc = (*linForms_)[i];
+       LinearFormContext* lfc = linForms_[i];
 
 
        // when pde1 is given we compare it by name and continue if the names are different
@@ -264,7 +262,7 @@ namespace CoupledField
     // assert that some entites are set
     assert( linContext->GetEntities() != NULL );
 
-    linForms_->Push_back( linContext );
+    linForms_.Push_back( linContext );
 
   }
 
@@ -1163,21 +1161,19 @@ namespace CoupledField
     StdVector<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
-    for ( formsIt = linForms_->Begin();
-          formsIt != linForms_->End();
-          formsIt++ ) {
-
+    for ( formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++ )
+    {
       // get integrator
       LinearFormContext & actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin ) {
+      if( actContext.IsNonLin() != nonLin )
         continue;
-      }
 
-      LinearForm * form = actContext.GetIntegrator();
+      LinearForm* form = actContext.GetIntegrator();
 
-      try {
+      try
+      {
 
         // get entity iterator
         
@@ -1359,7 +1355,7 @@ namespace CoupledField
 
     // iterate over all descriptors
     StdVector<LinearFormContext*>::iterator linIt;
-    for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
+    for (linIt = linForms_.Begin(); linIt != linForms_.End(); linIt++)
     {
       PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
 

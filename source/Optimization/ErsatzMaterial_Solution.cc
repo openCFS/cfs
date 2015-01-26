@@ -268,22 +268,16 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f
 
 void ErsatzMaterial::Solution::Write(SinglePDE* pde, SingleVector* vec)
 {
-  // we are static
-  assert(false);
-  /* FIXME
-  bool harmonic = domain->GetDriver()->IsComplex());
-  LOG_DBG2(emsol) << "S:W pde=" << pde->GetName() << " h=" << harmonic << " vec=" << vec->ToString();
-  if(harmonic)
-  {
-    Vector<complex<double> >& sol = dynamic_cast<Vector<complex<double> >& >(*vec);
-    pde->SaveSolution(sol.GetPointer(), sol.GetSize());
-  }
-  else
-  {
-    Vector<double>& sol = dynamic_cast<Vector<double>& >(*vec);
-    pde->SaveSolution(sol.GetPointer(), sol.GetSize());
-  }
-  */
+  LOG_DBG2(emsol) << "S:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
+
+  // get the coefficients from the fefunction
+  SingleVector* sys = pde->GetFeFunction(pde->GetNativeSolutionType())->GetSingleVector();
+  assert(sys != NULL && sys->GetSize() == vec->GetSize());
+
+  // let the assignment operator do the job
+  *sys = *vec;
+
+  LOG_DBG3(emsol) << "S:W sys -> " << sys->ToString(0);
 }
 
 template <class T>

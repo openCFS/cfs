@@ -419,9 +419,9 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
   SinglePDE* mech = domain->GetSinglePDE("mechanic", false);
   if(mech == NULL) return false; // wrong pde -> extend if you need it!
 
-  StdVector<LinearFormContext*>* forms = &(mech->GetAssemble()->GetLinForms());
+  StdVector<LinearFormContext*>& forms = mech->GetAssemble()->GetLinForms();
 
-  for(StdVector<LinearFormContext*>::iterator it = forms->Begin(); it != forms->End(); it++)
+  for(StdVector<LinearFormContext*>::iterator it = forms.Begin(); it != forms.End(); it++)
   {
     // get integrator
     actContext = *it;

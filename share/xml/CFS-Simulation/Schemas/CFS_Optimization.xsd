@@ -11,6 +11,9 @@
     </xsd:documentation>
   </xsd:annotation>
   
+  
+  <!-- works with eclips but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
+  
   <!-- ******************************************************************** -->
   <!--   Definition of an optimization problem at all                       -->
   <!-- ******************************************************************** -->
@@ -138,29 +141,16 @@
                       <xsd:sequence>
                         <xsd:element name="excitation" minOccurs="1" maxOccurs="unbounded">
                           <xsd:complexType>
-                            <xsd:all>
-                              <xsd:element name="loads" minOccurs="1" maxOccurs="1">
-                                <xsd:complexType>
-                                  <xsd:choice minOccurs="0" maxOccurs="unbounded">
-                                    <xsd:element name="load"           type="DT_Load"      />
-                                    <xsd:element name="pressure"       type="DT_Load"  />
-                                    <xsd:element name="regionLoad"     type="DT_Load"/>
-                                  </xsd:choice>
-                                </xsd:complexType>
-                              </xsd:element>
-                              <xsd:element name="trackings" minOccurs="0" maxOccurs="1">
-                                <xsd:complexType>
-                                  <xsd:sequence>
-                                    <xsd:element name="tracking" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
-                                  </xsd:sequence>
-                                </xsd:complexType>
-                                <xsd:unique name="uTrackingInExcitation">
-                                  <xsd:selector xpath="cfs:tracking"/>
-                                  <xsd:field xpath="@name"/>
-                                  <xsd:field xpath="@dof"/>
-                                </xsd:unique>                                
-                              </xsd:element>
-                            </xsd:all>
+                             <!-- temoporary removes the traction stuff. Removed after revision 13506 -->
+                             <xsd:choice minOccurs="1" maxOccurs="unbounded">
+                               <xsd:element name="stress"        type="DT_BcInhomTensor"/>
+                               <xsd:element name="strain"        type="DT_BcInhomTensor"/>
+                               <xsd:element name="traction"      type="DT_BcInhomVector"/>
+                               <xsd:element name="pressure"      type="DT_BcInhomScalar"/>
+                               <xsd:element name="force"         type="DT_BcInhomVector"/>
+                               <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
+                               <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
+                             </xsd:choice>
                             <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>
                           </xsd:complexType>
                         </xsd:element>
@@ -1911,5 +1901,20 @@
     <xsd:attribute name="value" type="xsd:token" use="required"/>
     <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>  
   </xsd:complexType>
+
+
+  <xsd:complexType name="InhomVector">
+    <xsd:sequence>
+      <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+        <xsd:complexType>
+          <xsd:attribute name="dof" type="xsd:token" use="required" />
+          <xsd:attribute name="value" type="xsd:token" use="required" />
+          <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0" />
+        </xsd:complexType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="name" type="xsd:token" use="required" />
+  </xsd:complexType>
+
 </xsd:schema>
 
