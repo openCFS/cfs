@@ -496,8 +496,7 @@ namespace CoupledField {
   }
 
   template<>
-  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector,
-                                 bool zeroOtherPart ) {
+  void Vector<Complex>::SetPart( Global::ComplexPart part, const Vector<Double> & partVector, bool zeroOtherPart ) {
     if(size_ != partVector.GetSize())
       EXCEPTION( "Vector<Complex>::SetPart: Dimension of vectors do not match!" );
 

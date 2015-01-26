@@ -14,7 +14,7 @@
 
 namespace CoupledField
 {
-
+class Assemble;
 class Function;
 class LinearFormContext;
 class ObjectiveContainer;
@@ -28,6 +28,8 @@ public:
 
   /** default constructor for StdVector() */
   Excitation();
+
+  ~Excitation();
 
   /** This method makes the current load active.
    * For multiple frequencies it does nothing. The actual frequency is chosen by default. */
@@ -52,19 +54,16 @@ public:
 
   void ReadTestCharges(const Vector<double>& vec);
 
-  void AddLinFormsFromAssemble();
-
-  /** return pointer to linForms, used by Shape-Optimization */
-  StdVector<LinearFormContext*>& GetLinForms() { return *linForms; }
-
   /** the index of this excitation in the excitations array. If -1 something went wront */
   int index;
 
-  /** For static/single harmonic optimization with different load-cases. */
-  StdVector<shared_ptr<EntityList> > loads;
-
-  /** For static optimization with different pressure or regionLoads */
-  StdVector<LinearFormContext*>* linForms;
+  /** For several loads, we need to store the form context with the entities but also the dof and the value!
+   * When no excitations are given in the optimization part the bcsAndLoads are used.
+   * For the bcsAndLoads case there is one form per excitation and the ownership (destruction) is taken
+   * from ~Assemble() to ~Excitation() via Assemble::lin_forms_given_.
+   * When excitations are used the original Assemble::linForms_ are deleted and multiple forms are allowed per
+   * excitation. see Excitation::ReadLoads() */
+  StdVector<LinearFormContext*> forms;
 
   /** This is a link to the Frequency description from the harmonic driver.
    * It is used for calling the HarmonicDriver to solve the problems */
@@ -95,6 +94,7 @@ public:
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
 
+  Assemble* assemble;
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -116,7 +116,7 @@ public:
 
   /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations(SinglePDE* pde, PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design);
+  void PrepareMultipleExcitations(PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design);
 
   /** Do we do adjust weights */
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }

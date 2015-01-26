@@ -65,7 +65,7 @@ namespace CoupledField
     void DefineSurfaceIntegrators( ){};
 
     //! Define all RHS linearforms for load / excitation 
-    void DefineRhsLoadIntegrators();
+    void DefineRhsLoadIntegrators(PtrParamNode input = PtrParamNode());
     
     //! define the SoltionStep-Driver
     void DefineSolveStep();

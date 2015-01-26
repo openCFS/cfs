@@ -2887,9 +2887,8 @@ namespace CoupledField {
     {
       PtrParamNode pn = list->GetByVal("nodes", "name", namedNodeNames_[i],ParamNode::APPEND);
       pn->Get("count")->SetValue(namedNodes_[i].GetSize());
-      std::cout << "nN=" << namedNodes_[i].GetSize() << "\n";
       if(namedNodes_[i].GetSize() == 1)
-       pn->Get("coord")->SetValue(coords_[namedNodes_[i][0]-1].ToString());
+       pn->Get("coord")->SetValue("(" + coords_[namedNodes_[i][0]-1].ToString(0,',') + ")");
     }
 
     list = in->Get("namedElements");

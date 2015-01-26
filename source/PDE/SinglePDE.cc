@@ -2220,8 +2220,7 @@ namespace CoupledField {
 
         switch( ptGrid_->GetEntityType(entName) ) {
           case EntityList::NAMED_NODES:
-            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
-                                                  entName );
+            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
             break;
           case EntityList::REGION:
           case EntityList::NAMED_ELEMS:

@@ -178,6 +178,10 @@ namespace CoupledField
                               std::set<UInt>& definedDofs,
                               bool& updateGeo);
 
+    /** Define all RHS linearforms for load / excitation
+     * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
+    virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
+    virtual void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
   protected:
 
     //! Constructor
@@ -236,8 +240,6 @@ namespace CoupledField
     //! define surface integrators needed for this pde
     virtual void DefineSurfaceIntegrators( )=0;
 
-    //! Define all RHS linearforms for load / excitation 
-    virtual void DefineRhsLoadIntegrators( ) {}
 
     //! Read material depenecy information
 

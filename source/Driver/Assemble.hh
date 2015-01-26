@@ -113,9 +113,6 @@ namespace CoupledField {
     /** @see GetBiLinForm() */
     LinearForm* GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent = false);
 
-    /** Overwrites the linearForms to implement the multi-load optimization */
-    void SetLinForms(StdVector<LinearFormContext*>* linForms) { linForms_ = linForms; }
-
     /** Returns the algebraic system
      * TODO check if really used */
     AlgebraicSys* GetAlgSys() { return algsys_; }
@@ -125,7 +122,12 @@ namespace CoupledField {
     
 
     /** Returns the linear forms list for external modification */
-    StdVector<LinearFormContext*>& GetLinForms() { return *linForms_; }
+    StdVector<LinearFormContext*>& GetLinForms(bool take_ownership = false)
+    {
+      if(take_ownership)
+        lin_forms_given_ = true; // we won't delete it
+      return linForms_;
+    }
 
   protected:
 
@@ -214,8 +216,14 @@ namespace CoupledField {
     //! Set containing all bilinear integrator contexts
     std::set<BiLinFormContext*> allBiLinForms_;
     
-    //! List of linear integrator contexts
-    StdVector<LinearFormContext*>* linForms_;
+    /** List of linear integrator contexts. They are generated in the PDEs deletet here.
+     * When we do muliload optimization Excitations gains ownership and linForms_ is manipulated.
+     * @see Excitytion::form */
+    StdVector<LinearFormContext*> linForms_;
+
+    /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
+    bool lin_forms_given_;
+
 
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;

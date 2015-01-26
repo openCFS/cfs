@@ -644,7 +644,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     }
   
-  void MechPDE::DefineRhsLoadIntegrators() {
+  void MechPDE::DefineRhsLoadIntegrators(PtrParamNode input) {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
     
     // Get FESpace and FeFunction of mechanical displacement
@@ -671,8 +671,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  FORCES (volume, nodal)
     // ========================
     LOG_DBG(mechpde) << "Reading forces";
-    ReadRhsExcitation( "force", dispDofNames, ResultInfo::VECTOR, isComplex_,
-                       ent, coef, coefUpdateGeo );
+    ReadRhsExcitation("force", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
@@ -721,8 +720,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // ===============
     LOG_DBG(mechpde) << "Reading force densities";
     
-    ReadRhsExcitation( "forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef, coefUpdateGeo );
+    ReadRhsExcitation("forceDensity", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -760,8 +758,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // ==================
     LOG_DBG(mechpde) << "Reading thermal strain definition";
 
-    ReadRhsExcitation( "thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_,
-                       ent, coef, coefUpdateGeo );
+    ReadRhsExcitation("thermalStrain", dispDofNames, ResultInfo::SCALAR, isComplex_, ent, coef, coefUpdateGeo, input);
 
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
 
@@ -837,8 +834,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // ===============
     LOG_DBG(mechpde) << "Reading mechanical pressure";
     StdVector<std::string> empty;
-    ReadRhsExcitation( "pressure", empty, ResultInfo::VECTOR, isComplex_, 
-                        ent, coef, coefUpdateGeo );
+    ReadRhsExcitation("pressure", empty, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
     
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -889,8 +885,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // ==================
     LOG_DBG(mechpde) << "Reading surface tractions";
       
-      ReadRhsExcitation( "traction", dispDofNames, ResultInfo::VECTOR, isComplex_, 
-                          ent, coef, coefUpdateGeo );
+      ReadRhsExcitation("traction", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         // check type of entitylist
         if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -933,8 +928,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // ==================
       LOG_DBG(mechpde) << "Reading direct right hand side values";
 
-      ReadRhsExcitation( "rhsValues", dispDofNames, ResultInfo::VECTOR, isComplex_,
-                          ent, coef, coefUpdateGeo );
+      ReadRhsExcitation("rhsValues", dispDofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo, input);
 
       for( UInt i = 0; i < ent.GetSize(); ++i ) {
         //for non-linear simulations we might need a conservative interpolation in each timestep...
