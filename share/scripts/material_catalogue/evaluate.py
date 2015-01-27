@@ -167,6 +167,8 @@ parser.add_argument("--msfem", help="msfem basis functions are evaluated, insert
 parser.add_argument("--triangle", help="triangle msfem elements on/off", default="")
 parser.add_argument("--force_msfem",help="option calculates the force catalogue for MSFEM")
 parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations")
+parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
+
 args = parser.parse_args()
 getcontext().prec = 16
 
@@ -212,12 +214,15 @@ if dim == 2:
     #f = h5py.File(h5file, 'r')
     #mesh = create_mesh_from_hdf5(f, ['mech'],[])
     #f.close()
-  for x in range(steps + 1):
-  #x = 5
-  #for ii in range(1):
+  x = 0
+  while x < steps + 1:  #x = 5
     if args.msfem:
-      #for jj in range(1):
-      for y in range(steps + 1):
+      y = 0
+      while y < steps + 1:
+        if args.design:
+          tmp = args.design.split(',')
+          x = int(steps * float(tmp[0]))
+          y = int(steps * float(tmp[1]))
         #y = 0
         # if True:
         index = 0
@@ -280,10 +285,21 @@ if dim == 2:
           #    print '  ' + str(A[i, :])
           # scipy.io.savemat('R.mat', mdict={'R': R})
           print 'Calculation of element matrix for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
-        
+        if args.design:
+          # stop calculations if only one point is needed (debug)
+          x = steps + 1
+          y = steps + 1
+        else:
+          x += 1
+          y += 1   
 
     else:
-      for y in range(x + 1):  
+      y = 0
+      while y < x + 1:
+        if args.design:
+          tmp = args.design.split(',')
+          x = int(steps * float(tmp[0]))
+          y = int(steps * float(tmp[1]))  
         infoxml = str(folder) + "/" + str(x) + "-" + str(y) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
@@ -319,10 +335,25 @@ if dim == 2:
             out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' {:.6e} {:.6e} {:.6e} {:.6e}\n'.format(rott[0, 0], rott[0, 1], rott[1, 1], rott[2, 2]))
         else:
           print 'file ' + infoxml + ' not found'
+        if args.design:
+          # stop calculations if only one point is needed (debug)
+          x = steps + 1
+          y = steps + 1
+        else:
+          x += 1
+          y += 1
 elif dim == 3:
-  for x in range(steps + 1):
-    for y in range(steps + 1):
-      for z in range(steps + 1):
+  x = 0
+  while x < steps + 1:
+    y = 0
+    while y < steps + 1:
+      z= 0
+      while z < steps + 1:
+        if args.design:
+          tmp = args.design.split(',')
+          x = int(steps * float(tmp[0]))
+          y = int(steps * float(tmp[1]))
+          z = int(steps * float(tmp[2]))
         infoxml = str(folder) + "/" + str(x) + "-" + str(y) + "-" + str(z) + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
@@ -342,7 +373,15 @@ elif dim == 3:
           #  out.write(str(y).rjust(3) + ' ' + str(x).rjust(3) + ' ' + ts[4] + ' ' + ts[1] + ' ' + ts[0] + ' ' + ts[8] + '\n')
         else:
           print 'file ' + infoxml + ' not found'
-
+        if args.design:
+          # stop calculations if only one point is needed (debug)
+          x = steps + 1
+          y = steps + 1
+          z = steps + 1
+        else:
+          x += 1
+          y += 1
+          z += 1
 # print "number of tensors computed = " + str(count) + " / " + str(countall) + " (= {0:2.2f}%)".format(100.0*float(count)/float(countall))
 # out.write("number of tensors computed = " + str(count) + "\n")
 
