@@ -271,6 +271,13 @@ OPTION(PERFORMANCE_TESTS
    OFF)
 
 #-----------------------------------------------------------------------------
+# Enables visualization tests for matviz.py
+#-----------------------------------------------------------------------------
+OPTION(MATVIZ_TESTS
+  "Adds visualization tests for matviz.py to the test-cases"
+   OFF)
+
+#-----------------------------------------------------------------------------
 # Shall we build ParaView?
 #-----------------------------------------------------------------------------
 OPTION(BUILD_PARAVIEW
