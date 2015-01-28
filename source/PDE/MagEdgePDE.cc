@@ -437,7 +437,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
-          coilCurrentDens_[actRegion] = eJscaled; // this must be multiplied by i
+
+          // dummy current density for later implementation (difficult because of FeSpaceConst)
+          coilCurrentDens_[actRegion] = actPart.jUnitVec;
 
           // === -f_A ===
           LinearForm* psiDotInt;

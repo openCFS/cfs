@@ -421,24 +421,28 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       angleBPhi = 90.0;
     }
     
+    bool is3d = elemSol.GetSize() > 2;
+
     // ---------------------------------
     //  compute angle theta of B vector
     // ---------------------------------
-    Double angleBTheta;
-    angleBTheta = std::acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] + 
-        elemSol[1]*elemSol[1] + elemSol[2]*elemSol[2] ));
-    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
-    
-    // theta in spherical coordinates is defined as the angle between the 
-    // zenith direction and the line segment (origin->point) with a range [0°;180°]
-    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
-    angleBTheta = abs(90 - angleBTheta);   
+    Double angleBTheta = 0.0;
+    if( is3d ) {
+      angleBTheta = std::acos( elemSol[2] / sqrt(elemSol[0]*elemSol[0] +
+                               elemSol[1]*elemSol[1] + elemSol[2]*elemSol[2] ));
+      angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
-    // take care that theta does not exceed its limits 
-    // TODO-avolk: Improve handling like it is done for phi!
-    if (angleBTheta > 90) {
-      angleBTheta = 90;
-      WARN("GetScalar(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      // theta in spherical coordinates is defined as the angle between the
+      // zenith direction and the line segment (origin->point) with a range [0°;180°]
+      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      angleBTheta = abs(90 - angleBTheta);
+
+      // take care that theta does not exceed its limits
+      // TODO-avolk: Improve handling like it is done for phi!
+      if (angleBTheta > 90) {
+        angleBTheta = 90;
+        WARN("GetScalar(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      }
     }
     
     
@@ -531,6 +535,11 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       nLinFnc_[klo]->GetScalar(VALklo, lpm);
       nLinFnc_[khi]->GetScalar(VALkhi, lpm);
       coefScalarXY =   ahi * VALklo + alo * VALkhi;
+    }
+
+    if( ! is3d ){
+      coefScalar = coefScalarXY;
+      return;
     }
        
     // --------------------------------------------------------------------
@@ -682,26 +691,29 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       angleBPhi = 90.0;
     }
 
+    bool is3d = elemB.GetSize() > 2;
+
     // ---------------------------------
     //  compute angle theta of B vector
     // ---------------------------------
-    Double angleBTheta;
-    angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] + 
-                              elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
-    angleBTheta *= 180.0/3.141592654; // conversion rad to deg
+    Double angleBTheta = 0.0;
+    if( is3d ){
+      angleBTheta = std::acos( elemB[2] / sqrt(elemB[0]*elemB[0] +
+                               elemB[1]*elemB[1] + elemB[2]*elemB[2] ));
+      angleBTheta *= 180.0/3.141592654; // conversion rad to deg
 
-    // theta in spherical coordinates is defined as the angle between the 
-    // zenith direction and the line segment (origin->point) with a range [0°;180°]
-    // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
-    angleBTheta = abs(90 - angleBTheta);
+      // theta in spherical coordinates is defined as the angle between the
+      // zenith direction and the line segment (origin->point) with a range [0°;180°]
+      // therefore change range to [90°;-90°] and only use absolute value of it (-> symmetry!)
+      angleBTheta = abs(90 - angleBTheta);
 
-    // take care that theta does not exceed its limits 
-    // TODO-avolk: Improve handling like it is done for phi!
-    if (angleBTheta > 90) {
-      angleBTheta = 90;
-      WARN("GetTensor(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      // take care that theta does not exceed its limits
+      // TODO-avolk: Improve handling like it is done for phi!
+      if (angleBTheta > 90) {
+        angleBTheta = 90;
+        WARN("GetTensor(): theta of element " << lpm.ptEl->elemNum << " was greater than 90 degrees! :-(")
+      }
     }
-    
     
     // ---------------------------- 
     //  Nearest neighbour approach
@@ -791,6 +803,15 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       nuPrimeXY =   ahi * VALklo + alo * VALkhi;
 //      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs)
 //                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
+    }
+
+    if( ! is3d ){
+      // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B
+      Vector<Double> eB(dimDMat_);
+      eB = elemB / fieldAbs;
+      coefMat.DyadicMult( eB );
+      coefMat *= nuPrimeXY * fieldAbs;
+      return;
     }
     
     // --------------------------------------------------------------------
