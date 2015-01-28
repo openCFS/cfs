@@ -87,24 +87,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     if ( subType_ == "3d" && probGeo == "3d" ) {
       stressDim_ = 6;
       tensorType_ = FULL;
+      dofNames_ = "x", "y", "z";
     }
     else if ( subType_ == "axi" && probGeo == "axi" ) {
       isaxi_ = true;
       stressDim_ = 4;
       tensorType_ = AXI;
+      dofNames_ = "r", "z";
     }
     else if ( subType_ == "planeStrain" && probGeo == "plane" ) {
       stressDim_ = 3;
       tensorType_ = PLANE_STRAIN;
+      dofNames_ = "x", "y";
     }
 
     else if ( subType_ == "planeStress" && probGeo == "plane" ) {
       stressDim_ = 3;
       tensorType_ = PLANE_STRESS;
+      dofNames_ = "x", "y";
     }
 
     else if ( subType_ == "flatShell" ) {
       stressDim_ = 3;
+      dofNames_ = "x", "y";
     }
     else {
       EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
@@ -1079,29 +1084,21 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   void MechPDE::DefinePrimaryResults()
   {
     // Check for subType
-    StdVector<std::string> dispDofNames, stressDofNames;
+    StdVector<std::string> stressDofNames;
 
-    if( subType_ == "3d" ) {
-      dispDofNames = "x", "y", "z";
+    if(subType_ == "3d")
       stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
-
-    } else if( subType_ == "planeStrain" ) {
-      dispDofNames = "x", "y";
+    else if(subType_ == "planeStrain")
       stressDofNames = "xx", "yy", "xy";
-
-    } else if( subType_ == "planeStress" ) {
-      dispDofNames = "x", "y";
+    else if(subType_ == "planeStress")
       stressDofNames = "xx", "yy", "xy";
-
-    } else if( subType_ == "axi" ) {
-      dispDofNames = "r", "z";
+    else if(subType_ == "axi")
       stressDofNames = "rr", "zz", "rz", "phiphi";
-    }
 
     // === MECHANIC DISPLACEMENT ===
     shared_ptr<ResultInfo> disp(new ResultInfo);
     disp->resultType = MECH_DISPLACEMENT;
-    disp->dofNames = dispDofNames;
+    disp->dofNames = dofNames_;
     disp->unit = "m";
     disp->entryType = ResultInfo::VECTOR;
     disp->SetFeFunction(feFunctions_[MECH_DISPLACEMENT]);

@@ -21,6 +21,8 @@
 #include "Driver/TransientDriver.hh"
 #include "FeBasis/BaseFE.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "Forms/LinForms/SingleEntryInt.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 #include "General/Enum.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
@@ -252,23 +254,49 @@ void ErsatzMaterial::PostInit()
     case Function::OUTPUT:
     case Function::DYNAMIC_OUTPUT:
     case Function::ABS_OUTPUT:
-    { /* FIXME
+    {
       if(!f->pn->Has("output"))
         throw Exception("element 'output' is mandatory for function 'output'");
       PtrParamNode output = f->pn->Get("output");
 
+      StdVector<shared_ptr<EntityList> > ent;
+      StdVector<PtrCoefFct > coef;
+      bool geo = false;
+
       if(output->Has("displacement"))
-        pde->ReadLoads(output->GetList("displacement"), f->output_nodes);
+        pde->ReadRhsExcitation("displacement", pde->GetDofNames(MECH_DISPLACEMENT), ResultInfo::VECTOR, pde->IsComplex(), ent, coef, geo, output);
+
       if(output->Has("elecPotential"))
-        domain->GetSinglePDE("electrostatic")->ReadLoads(output->GetList("elecPotential"), f->output_nodes);
+        pde->ReadRhsExcitation("elecPotential", pde->GetDofNames(ELEC_POTENTIAL), ResultInfo::SCALAR, pde->IsComplex(), ent, coef, geo, output);
+
       if(output->Has("acoustic"))
-        domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
+        assert(false);
+        //domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
 
-      LOG_DBG2(em) << "PI: o:" << f->IsObjective() << " added " << f->output_nodes[0]->ToString();
+      // we store the loads in forms of linear forms
+      for(unsigned int i = 0; i < ent.GetSize(); ++i )
+      {
+        assert(ent[i]->GetType() == EntityList::NODE_LIST);
 
-      if(f->output_nodes.GetSize() == 0)
+        if(ent[i]->GetSize() > 1 ) { // MechPDE.cc -> "force"
+          Global::ComplexPart part = pde->IsComplex() ? Global::COMPLEX : Global::REAL;
+          coef[i] = CoefFunction::Generate(domain->GetMathParser(), part, CoefXprVecScalOp(domain->GetMathParser(), coef[i], boost::lexical_cast<std::string>(ent[i]->GetSize()), CoefXpr::OP_DIV));
+        }
+
+        LinearForm* lin = new SingleEntryInt(coef[i]);
+        lin->SetName("NodalForceInt");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( ent[i] );
+        ctx->SetFeFunction(pde->GetFeFunction(pde->GetNativeSolutionType()));
+
+        LOG_DBG2(em) << "PI: o:" << f->IsObjective() << " add output form " << ent[i]->GetName() << " size=" << ent[i]->GetSize();
+
+        f->output_forms.Push_back(ctx);
+      }
+
+      if(f->output_forms.GetSize() == 0)
         throw Exception("no output optimization targets given");
-      break; */
+      break;
     }
     // we do energy flux in realtime
     default:
@@ -2432,12 +2460,15 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       }
     }
   }
-
+/*
   StdVector<pair<SinglePDE*,IdBcList> > ErsatzMaterial::SetHDBC()
   {
     // IDBC values in the forward problem are homogeneous in the adjoint PDE. Consider elec and mech
     // store org value as idbc_list per pde
     StdVector<pair<SinglePDE*,IdBcList> > org_idbc;
+    assert(false);
+
+
     org_idbc.Reserve(pdes.size());
     for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
     {
@@ -2445,18 +2476,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       org_idbc.Push_back(make_pair(it->second, IdBcList()));
 
       // get the idbc list of the current pde
-      assert(false);
-      IdBcList idbc_list; // FIXME = it->second->GetIDBCList();
+      shared_ptr<BaseFeFunction> fe = it->second->GetFeFunction(it->second->GetNativeSolutionType());
+
+      IdBcList idbc_list = fe->GetInHomDirichletBCs();
       for(unsigned int bc = 0; bc < idbc_list.GetSize(); bc++)
       {
         // store original value -> we have to do a deep copy!
         org_idbc.Last().second.Push_back(shared_ptr<InhomDirichletBc>(new InhomDirichletBc(*(idbc_list[bc]))));
         // make homogeneous values! -> this is only stored in the PDE, we have to call SetBCs() later!
         assert(false);
-        // FIXME (*idbc_list[bc]).value = "0.0";
-        // FIXME (*idbc_list[bc]).phase = "0.0";
-        // LOG_DBG(em) << "Set IDBC to HDBC (" << it->second->GetName() << ") -> value "
-        //             << (*(org_idbc.Last().second[bc])).value << " -> " << (*(it->second->GetIDBCList()[bc])).value;
+        (*idbc_list[bc]).value->Get = "0.0";
+        (*idbc_list[bc]).phase = "0.0";
+        LOG_DBG(em) << "Set IDBC to HDBC (" << it->second->GetName() << ") -> value "
+                     << (*(org_idbc.Last().second[bc])).value << " -> " << (*(it->second->GetIDBCList()[bc])).value;
       }
 
       // apply the new boundary condition
@@ -2469,7 +2501,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     // reset the original IDBC which were HDBC for the adjoint PDE
     assert(false);
-    /* FIXME
     for(unsigned int p = 0; p < org_idbc.GetSize(); p++)
     {
       // get the idbc list of the current pde
@@ -2484,9 +2515,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       }
       org_idbc[p].first->SetBCs();
     }
-    */
-  }
 
+  }
+*/
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
     if (harmonic)
@@ -2556,53 +2587,73 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
   {
-    assert(false);
-    /* FIXME
-
     // the adjoint RHS might be an output stuff, then the loads are changed.
     // save and restore them in any case.
-    LoadList org_loads = assemble_->GetLoads();
+    StdVector<LinearFormContext*> org_forms = assemble_->GetLinForms();
     // set pseudo loads (if there are output nodes)
     if (f->NeedsSelectionVector())
       ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
 
-    // any adjoint PDE has HDBC instead of IDBC -> will be undone later ResetHDBC()
-    StdVector<pair<SinglePDE*,IdBcList> > org_idbc = SetHDBC();
+    // FIXME we will have to do this for all pdes and all fe-Functions.
+    // any adjoint PDE has HDBC instead of IDBC. We Store the IDBC, add the BC as HDBC, solve, reset the IDBC and remove the additional HDBC
+    shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(pde->GetNativeSolutionType()); // no reference but copy constructor
+    IdBcList  org_idbc = fe->GetInHomDirichletBCs();
+    fe->GetHomDirichletBCs().Reserve(org_idbc.GetSize()); // what will be added temporarily
+    for(unsigned int i = 0; i < org_idbc.GetSize(); i++)
+    {
+      shared_ptr<HomDirichletBc> hdbc(new HomDirichletBc);
+      hdbc->dofs = org_idbc[i]->dofs;
+      hdbc->entities = org_idbc[i]->entities;
+      hdbc->result = org_idbc[i]->result;
+      fe->GetHomDirichletBCs().Push_back(hdbc);
+    }
+    fe->GetInHomDirichletBCs().Resize(0);
+    fe->ApplyBC();
+
     // set the adjoint rhs
     ConstructAdjointRHS(excite, f);
     // calculate adjoint problem
-    assemble_->GetAlgSys()->Solve(CreateAdjointAnalysisIdNode());
-    ResetHDBC(org_idbc);
-    // reset the original loads, they have been changed in the output case
-    assemble_->SetLoads(org_loads);
+    assert(domain->GetDriver()->GetAnalysisId().adjoint == false);
+    domain->GetDriver()->GetAnalysisId().adjoint = true;
 
-    */
+    assemble_->GetAlgSys()->Solve();
+
+    domain->GetDriver()->GetAnalysisId().adjoint = false;
+
+    // reset the boundary conditions
+    fe->GetInHomDirichletBCs() = org_idbc; // I love copy constructors
+    fe->GetHomDirichletBCs().Resize(fe->GetHomDirichletBCs().GetSize() - org_idbc.GetSize()); // remove "artificial" hdbc
+    fe->ApplyBC();
+
+    // reset the original loads, they have been changed in the output case
+    assemble_->GetLinForms() = org_forms;
   }
+
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {
-    assert(false);
-    /* FIXME
     // in SolveStateProblem() the clean variant for the objective
-    LoadList org_loads;
+    StdVector<LinearFormContext*> org_forms;
     if (!alter_rhs)
-      org_loads = assemble_->GetLoads();
+      org_forms = assemble_->GetLinForms();
 
     // overwrite the assemble loads with "pseudo loads"s loads
-    assemble_->SetLoads(f->output_nodes);
+    assemble_->GetLinForms() = f->output_forms;
+
     // set our own RHS but delete first as Assemble adds
     assemble_->GetAlgSys()->InitRHS();
     // assemble the output nodes
-    assemble_->AssembleRHSLoads();
+    assemble_->AssembleLinRHS();
+
     // save the "pseudo loading" which is the selection as the rhs for the adjoint
     // This is exactly what has been constructed. Not that for an adjoint RHS it needs
     // post processing.
     adjoint.Get(excite, f)->Read(Solution::SEL_VECTOR, pde);
     if (!alter_rhs)
-      assemble_->SetLoads(org_loads);
+      assemble_->GetLinForms() = org_forms;
 
     LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
         << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
-    */
+
   }
   void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
   {
@@ -2627,10 +2678,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       assert(false);
       break;
     }
-    assert(false);
-    // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
-    // assert(rhs.NormMax() != 0.0);
+
+    shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(pde->GetNativeSolutionType());
+    // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
+    fe->GetSystem()->InitRHS(fe->GetFctId());
+    fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
+
     LOG_DBG2(em) << "CARHS<double>: f=" << f->ToString() << " obj=" << f->IsObjective() << " rhs before solving: " << rhs.ToString(1) << " max_norm=" << rhs.NormMax();
+    assert(rhs.NormMax() != 0.0);
   }
 
   void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)

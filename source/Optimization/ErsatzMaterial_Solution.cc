@@ -373,10 +373,12 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
     {
       if(save_sol)
       {
-        assert(false); // still needed!
-        // FIXME Vector<T> tmpSol;
-        // FIXME em_->assemble_->GetAlgSys()->GetSolutionVal(tmpSol);
-        // FIXME pde->SaveSolution(tmpSol.GetPointer(), tmpSol.GetSize() );
+        // we need to copy the solution from the algebraic system to the feFunction
+        LOG_DBG3(emsol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString();
+        Vector<T> tmpSol;
+        fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
+        LOG_DBG3(emsol) << "S:R: sys sol=" << tmpSol.ToString();
+        dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
       }
 
       // we save the element vectors in elem_vec. Might be empty the first call

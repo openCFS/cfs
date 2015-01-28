@@ -13,6 +13,7 @@
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -598,8 +599,8 @@ string Condition::ToString(MultipleExcitation* me) const
     os << ToString(coords);
 
   // with multiple output constraints we need to identify
-  // FIXME if(type_ == OUTPUT && !output_nodes.IsEmpty())
-  //  os << "_" << output_nodes[0]->entities->GetName();
+  if(type_ == OUTPUT && !output_forms.IsEmpty())
+    os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())

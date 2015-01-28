@@ -170,15 +170,20 @@ Function::Function(PtrParamNode pn) {
 
 }
 
-Function::~Function() {
+Function::~Function()
+{
   if (local != NULL) {
     delete local;
     local = NULL;
   }
+
   if (projectionDesign_ != NULL) {
     delete projectionDesign_;
     projectionDesign_ = NULL;
   }
+
+  // this might lead to problems when they are active in Assemble and ~Assemble deletes them
+  output_forms.Clear();
 }
 
 void Function::Init() {
