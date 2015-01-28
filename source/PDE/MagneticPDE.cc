@@ -468,6 +468,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
 
+          // dummy current density for later implementation (difficult because of FeSpaceConst)
+          coilCurrentDens_[actRegion] = actPart.jUnitVec;
+          /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
+              GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
+          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+          coilCurrentDens_[actRegion] = test;*/
+
           // === -f_A ===
           LinearForm* psiDotInt;
           if( dim_ == 3 ) {

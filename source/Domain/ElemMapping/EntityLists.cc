@@ -442,6 +442,7 @@ namespace CoupledField {
      it.coilList_ = this;
      it.pos_ = 0;
      it.size_ = list_.GetSize();
+     it.ptGrid_ = grid_;
      return it;
    }
 
