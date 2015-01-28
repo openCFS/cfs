@@ -52,7 +52,7 @@ namespace CoupledField {
     // ======================================================
 
     //! Returns the feFunction which holds a result related to the specified solutionType
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType);
+    shared_ptr<BaseFeFunction> GetFeFunction(SolutionType solType);
     
     //! Return all solution FeFunctions
     virtual  
@@ -174,6 +174,11 @@ namespace CoupledField {
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
+    /** Shortcut for the DOF names */
+    StdVector<std::string>& GetDofNames(SolutionType st) {
+      return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
   protected:
 
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)

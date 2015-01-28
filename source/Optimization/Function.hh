@@ -604,8 +604,8 @@ class Function
      * Created on request */
     StdVector<DesignElement*> elements;
 
-    /** When we optimize output we store here the nodes */
-    // FIXME LoadList output_nodes;
+    /** When we optimize output we store here the rhs loads */
+    StdVector<LinearFormContext*> output_forms;
 
   protected:
 

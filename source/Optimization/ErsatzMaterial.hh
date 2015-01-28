@@ -557,37 +557,38 @@ private:
   void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
-  template<class T> void SetAndSolveAdjointRHS(Excitation& excite,
-      Function* cost);
+  template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
+
   /** Helper for CommitIteration. Appends or replaces a design line */
   void SetCurrentExportDesign();
-  /** Stores the IDBC and sets the to HDBC for calculating the adjoint PDE. Also applies
-   * @return this are the original IDBC values for RestHDBC*/
-  StdVector<pair<SinglePDE*, IdBcList> > SetHDBC();
-  /** Rests HDBC after adjoint PDE is solved */
-  void ResetHDBC(StdVector<pair<SinglePDE*, IdBcList> >& org_idbc);
+
   /** In ErsatzMaterial: Saves the original loads and sets the output nodes as adjoint pde rhs
    * Has distinct implementations for complex and real part.
    * @see virtual ConstructAdjointRHS() */
   void ConstructRealAdjointRHS(Excitation& excite, Function* f);
   void ConstructComplexAdjointRHS(Excitation& excite, Function* f);
+
   /** Calculates the Greyness OR gauss-greyness! and the derivative of the (gauss) greyness.
    * @param derivative if false the return value is calculated. Otherwise the value in
    *                   the design element is set. Optionally also grad_out
    * @param grad_out if derivative is set and grad_out is not null it is set.
    * @return invalid in derivative case*/
   double CalcGreyness(Condition* g, bool derivative);
+
   /** Evaluates virtually blown up local constraints based on the Function::Local neighborhood.
    * E.g. slope and mole. Note, that there are also the globalized variants.
    * @see CalcGlobalFunction() */
   double CalcLocalConstraint(Condition* g, bool derivative);
+
   /** IntegrateDesignVariables() can do a lot, but no one wants to extend it to hande the derivative
    * case of the gap constraint: volume - penalized volume */
   void CalcRegularGapConstraint(Function* f, DesignElement::Type dt);
+
   /** The design tracking matches a given pattern of physcial design by a certain extend (e.g. 90 %). T
    * The designTarget attribute is mandatory. If the region attribute is not given the periodic border
    * elements are used. If the region is given it might make sense to use the pattern definition in within the domain. */
   double CalcDesignTracking(Condition* g, bool derivative);
+
   /** Homogenization objective/ constraint.
    * Is once evaluate only! */
   double CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative);

@@ -1876,7 +1876,7 @@
 
   <xsd:complexType name="DT_output">
     <xsd:sequence>
-      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector"/>
       <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
       <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
       <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>

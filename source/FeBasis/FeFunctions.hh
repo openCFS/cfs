@@ -164,15 +164,18 @@ public:
   //! Remove external data sources
   void RemoveExternalDataSource();
 
-  //! Get Homogenious Boundary Conditions
-  const HdBcList GetHomDirichletBCs(){
+  /** Get Homogenious Boundary Conditions
+  * Note that we return a reference to allow the modification of the list for optimization purpose */
+  HdBcList& GetHomDirichletBCs(){
     return hdBcs_;
   }
 
-  //! Get Inhomogenious Dirichlet Boundary Conditions
-  const IdBcList GetInHomDirichletBCs(){
+  /** Get Inhomogenious Dirichlet Boundary Conditions.
+   * Note that we return a reference to allow the modification of the list for optimization purpose */
+  IdBcList& GetInHomDirichletBCs(){
     return idBcs_;
   }
+
   
   //! Get Constraint Boundary Conditions
   const ConstraintList GetConstraints(){

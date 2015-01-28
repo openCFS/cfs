@@ -303,7 +303,7 @@ namespace CoupledField {
   //FeFunction Methods
   //============================================================================================
 
-  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction( SolutionType solType ) {
+  shared_ptr<BaseFeFunction> StdPDE::GetFeFunction(SolutionType solType) {
 
     shared_ptr<BaseFeFunction> feFct;    
     

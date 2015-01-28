@@ -133,6 +133,8 @@ namespace CoupledField
     //! coefFunctzion for thermal stress
     shared_ptr<CoefFunctionMulti> thermalStress_;
 
+    StdVector<std::string> dofNames_;
+
   };
 
 #ifdef DOXYGEN_DETAILED_DOC
