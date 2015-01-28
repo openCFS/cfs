@@ -93,7 +93,7 @@ if not args.noshow:
   else:
     dimensions = img.size
     
-if not '.h5' in args.input:
+if not '.h5' in args.input and not args.noshow:
   show_dense_mesh_image(mesh, dimensions, args.showbinary, args.showsize)
   
 if args.densemesh:

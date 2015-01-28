@@ -208,7 +208,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       mesh.elements.append(e)
       # e.dump()
   if pressure:
-    y = ny-1
+    y = 0
     for x in range(nx):
       if (x >= int(0.8 * nx) and y == ny - 1):
         b = Element()
@@ -225,6 +225,8 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
   mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
   mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  mesh.bc.append(("pressure2",range(int(0.8*nx),nx+1)))
+
 
 
   

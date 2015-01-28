@@ -203,19 +203,10 @@ elif dim == 3:
   out = open(filename, "w")
   out.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00    0.000000e+00 0.000000e+00 0.000000e+00\n')
   
-
-  # out.write('# x   y 11           12           22           33\n')
+  
 if dim == 2:
-  #if args.msfem:
-    #if dof == 8:
-      #h5file = str(folder) + "/1-0_msfem0_x.h5"
-    #elif dof == 6:
-      #h5file = str(folder) +"/1-0_msfem0_x.h5"
-    #f = h5py.File(h5file, 'r')
-    #mesh = create_mesh_from_hdf5(f, ['mech'],[])
-    #f.close()
   x = 0
-  while x < steps + 1:  #x = 5
+  while x < steps + 1:
     if args.msfem:
       y = 0
       while y < steps + 1:
@@ -295,7 +286,7 @@ if dim == 2:
 
     else:
       y = 0
-      while y < x + 1:
+      while y < steps + 1:
         if args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))

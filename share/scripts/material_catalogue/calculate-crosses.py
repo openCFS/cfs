@@ -277,8 +277,8 @@ if dim == 2:
     # for rot in range(-1.57,drot,1.57):
     rot = 0.
     x = 0
-    y = 0
     while x < steps + 1:
+      y = 0
       while y < steps + 1:
         if args.design:
           tmp = args.design.split(',')
@@ -449,7 +449,9 @@ if dim == 2:
   elif args.shape == "frame" or args.shape == "frame_modified":
     # 2D frame structure
     array = void * np.ones((minres, minres))
+    x = 0
     while x < steps + 1:
+      y= 0
       while y < steps + 1:
         if args.design:
           tmp = args.design.split(',')
@@ -482,7 +484,9 @@ if dim == 2:
   elif args.shape == "cross":
     # 2D cross structure
     array = void * np.ones((minres, minres))
+    x = 0
     while x < steps + 1:
+      y = 0
       while y < steps + 1:
         if args.design:
           tmp = args.design.split(',')
@@ -520,8 +524,11 @@ if dim == 2:
     print 'option not defined' 
 elif dim == 3:
   # 3D cross structure
+  x = 0
   while x < steps + 1:
+    y = 0
     while y < steps + 1:
+      z = 0
       while z < steps + 1:
         if args.design:
           tmp = args.design.split(',')
