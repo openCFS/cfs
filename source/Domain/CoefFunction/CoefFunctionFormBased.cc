@@ -321,13 +321,11 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::
   ~CoefFunctionBdBKernel() {
 }
-template<class TYPE> void CoefFunctionBdBKernel<TYPE>::
-GetScalar( TYPE& coefScal,
-           const LocPointMapped& lpm ) {
-  
-  
+template<class TYPE> void CoefFunctionBdBKernel<TYPE>::GetScalar( TYPE& coefScal, const LocPointMapped& lpm )
+{
   // energy density is factor * elemSol^T * kernel * elemSol
   this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
+  
   Vector<TYPE> temp;
   if( !this->forms_[lpm.ptEl->regionId]->IsComplex() ) {
     this->forms_[lpm.ptEl->regionId]->CalcKernel(kernelR_, lpm);
@@ -336,11 +334,11 @@ GetScalar( TYPE& coefScal,
     this->forms_[lpm.ptEl->regionId]->CalcKernel(kernel_, lpm);
     temp = kernel_ * elemSol_;
   }
-  coefScal = (temp * Conj(elemSol_) ) * factor_;
+  coefScal = temp.Inner(elemSol_) * factor_;
   
 }
-template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::
-ToString() const {
+template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
+{
   std::stringstream out;
   out << "CoefFunctionBdBKernel\n";
   out << "Result: " << 

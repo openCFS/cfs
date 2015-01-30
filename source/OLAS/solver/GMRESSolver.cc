@@ -362,7 +362,7 @@ namespace CoupledField {
       for ( k = 2; k <= i; k++ ) {
         aux = hMat_[k-1][i];
         hMat_[k-1][i] =       c_[k-1]  * aux + s_[k-1] * hMat_[k][i];
-        hMat_[ k ][i] = -Conj(s_[k-1]) * aux + c_[k-1] * hMat_[k][i];
+        hMat_[ k ][i] = -conj(s_[k-1]) * aux + c_[k-1] * hMat_[k][i];
       }
 
 
@@ -377,8 +377,8 @@ namespace CoupledField {
       //   Compute the effect of the Givens rotation on the right-hand
       //   side vector in the least-squares problem
       // ---------------------------------------------------------------
-      bVec_[i+1] = -Conj(s_[i]) * bVec_[i];
-      bVec_[ i ] =     c_[i]    * bVec_[i];
+      bVec_[i+1] = -conj(s_[i]) * bVec_[i];
+      bVec_[ i ] =       c_[i]  * bVec_[i];
 
 
       // -----------------------------------------------------------------

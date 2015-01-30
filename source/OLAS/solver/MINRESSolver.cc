@@ -291,7 +291,7 @@ namespace CoupledField {
       // Replay Givens rotation from step (k-1)
       // This yields the final l1 and alters l0
       l1 = cNew * beta0 +      sNew  * alpha;
-      l0 = cNew * alpha - Conj(sNew) * beta0;
+      l0 = cNew * alpha - conj(sNew) * beta0;
 
       // Shift Givens coefficients
       cOld = cNew;
@@ -305,7 +305,7 @@ namespace CoupledField {
       // right-hand side vector of the least-squares problem
       bV_->GetEntry( k, aux );
 
-      tmp = -Conj(sNew) * aux;
+      tmp = -conj(sNew) * aux;
       bV_->SetEntry( k+1, tmp );
 
       tmp =       cNew  * aux;

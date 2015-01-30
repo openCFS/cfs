@@ -807,7 +807,7 @@ namespace CoupledField
 
     for( UInt i = 0, in = m.GetNumCols(); i < in; i++ )
       for (UInt j = 0, jn = m.GetNumRows(); j < jn; j++ )
-        trans[i][j] = Conj(m[j][i]);
+        trans[i][j] = conj(m[j][i]);
 
     return trans;
   }
