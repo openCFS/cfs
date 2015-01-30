@@ -706,8 +706,4 @@ template<typename T> class ElemStoreSol;
 }
 
 
-#ifndef EXPLICIT_TEMPLATE_INSTANTIATION
-//#include "vector.cc"
-#endif
-
 #endif // OLAS_VECTOR_HH

@@ -270,15 +270,13 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
         // in the complex valued case, we can have either
         // real-valued matrices or complex ones.
         if( forms_[el->regionId]->IsComplex() )  {
-          forms_[el->regionId]->CalcElementMatrix(elemMatC, 
-                                                  elemIt, elemIt);
+          forms_[el->regionId]->CalcElementMatrix(elemMatC, elemIt, elemIt);
           temp = elemMatC * elemSol;
         } else {
-          forms_[el->regionId]->CalcElementMatrix(elemMatR, 
-                                                  elemIt, elemIt);
+          forms_[el->regionId]->CalcElementMatrix(elemMatR, elemIt, elemIt);
           temp = elemMatR * elemSol;
         }
-        tempEnergy += (temp * Conj(elemSol) ) * factor_;
+        tempEnergy += (temp.Inner(elemSol) ) * factor_;
       }  else if( accuracy_ == MIDPOINT ) {
 
         // =====================
@@ -314,7 +312,7 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
             forms_[el->regionId]->CalcKernel(elemMatR, lpm );
             temp = elemMatR * elemSol;
           }
-          tempEnergy += (temp * Conj(elemSol) ) * factor_ * lpm.jacDet * weights[i]; 
+          tempEnergy += temp.Inner(elemSol) * factor_ * lpm.jacDet * weights[i];
         } // loop integration points
       } else {
         EXCEPTION("No valid integration method defined");

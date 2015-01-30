@@ -1028,6 +1028,7 @@ namespace CoupledField {
   template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
   template Vector<Double> Conj<Double>(const Vector<Double>&);
+  template Vector<Complex> Conj<Complex>(const Vector<Complex>&);
 #endif
 
 
