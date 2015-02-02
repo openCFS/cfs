@@ -267,10 +267,18 @@ namespace CoupledField {
 
   }
 
-  BaseSolveStep * StdPDE::GetSolveStep() {
-    
+  BaseSolveStep * StdPDE::GetSolveStep()
+  {
     return solveStep_;
   }
+
+  DampingType StdPDE::GetDamping(RegionIdType reg_id) const
+  {
+    std::map<RegionIdType,DampingType>::const_iterator it = dampingList_.find(reg_id);
+
+    return it != dampingList_.end() ? it->second : NONE;
+  }
+
 
 
   // ======================================================

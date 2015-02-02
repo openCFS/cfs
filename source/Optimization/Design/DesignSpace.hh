@@ -77,9 +77,13 @@ namespace CoupledField
      /** Check if a region is subject to optimization (in principle, might be more complicated for piezo, ... */
      int FindRegion(RegionIdType regionId) const;
 
-     /** Performs the optimization.
-      * @return true if design and coefMat is set */
-     bool TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+     /** Performs the optimization for the matrix case. This
+      * @return true if design and retMat is set */
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+
+     /** Performs the optimization for the matrix case. This
+      * @return true if design and retScal is set */
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
@@ -181,11 +185,9 @@ namespace CoupledField
       * Note, that the result might come from the 'predefined' MECH_PSEUDO_DENSITY or ELEC_PSEUDO_POLARIZATION
       * or from the OPT_RESULT_1/2/3 where the actual result is defined in a xml element under
       * optimization/SIMP</p> */
-     void ExtractResults(shared_ptr<BaseResult> result, bool isComplex)
-     {
-       if(isComplex) ExtractResults<std::complex<double> >(result);
-                else ExtractResults<double>(result);
-     }
+     template <class T>
+     void ExtractResults(shared_ptr<BaseResult> result);
+
 
      /** <p>Take the design space from an external optimizer and apply it on the problem.
       * Do not solve the problem, but call this method before CalcCostFunction() :)</p>
@@ -456,9 +458,6 @@ namespace CoupledField
 
      /** Extracts a nodal value */
      double GetNodalValue(unsigned int nodeNumber, DesignElement::ValueSpecifier vs);
-
-     template <class T>
-     void ExtractResults(shared_ptr<BaseResult> result);
 
      /** Helper method for ExtraxtResults() */
      template <class T>

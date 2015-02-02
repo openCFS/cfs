@@ -333,6 +333,9 @@ namespace CoupledField
     actFreq_ = freqs[actFreqStep-1].freq; // 1 based!
     assert(freqs[actFreqStep-1].step == actFreqStep);
 
+    this->analysis_id_.step = actFreqStep;
+    this->analysis_id_.time = actFreq_;
+
     // analysis_id_ = info_->Get(ParamNode::PROCESS)->Get("step", ParamNode::APPEND);
     // analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     // analysis_id_->Get("step")->SetValue(actFreqStep_);

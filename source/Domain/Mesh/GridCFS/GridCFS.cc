@@ -650,10 +650,9 @@ namespace CoupledField {
     if(name == "") return NO_REGION_ID;
 
     // read the pattern file
-    Xerces* xerces = new Xerces();
-    xerces->SetFile(file);
-    PtrParamNode xml = xerces->CreateParamNodeInstance();
-    delete xerces;
+    Xerces xerces;
+    xerces.SetFile(file);
+    PtrParamNode xml = xerces.CreateParamNodeInstance();
 
     // check this file
     if (xml->Count("set") == 0)

@@ -228,19 +228,17 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   double alpha_m  = 0.0;
   double pamping_m = 0.0; // add on without omega
 
-  assert(false);
-  /* FIXME
   // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
   RegionIdType regionId = de->elem->regionId;
-  
+
   if(pde->GetDamping(regionId) == RAYLEIGH)
   {
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
-    alpha_k = assemble_->GetBiLinForm(regionId, pde, pde, "LinElastInt")->EvalSecMatFac();
+    alpha_k = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
 
     // now alpha_m
-    alpha_m = assemble_->GetBiLinForm(regionId, pde, pde, "MassInt")->EvalSecMatFac();
+    alpha_m = assemble_->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
 
     assert(omega > 0);
 
@@ -251,8 +249,6 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
     else // pamping*rho'(1-2*rho)
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
   }
-
-  */
 
 	const unsigned int srows(S.GetNumRows());
 	const unsigned int scols(S.GetNumCols());

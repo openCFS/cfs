@@ -319,7 +319,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
-    for ( it = materials_.begin(); it != materials_.end(); it++ )
+    for(it = materials_.begin(); it != materials_.end(); it++)
     {
       // Set current region and material
       actRegion = it->first;
@@ -348,7 +348,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       {
         // either complex material or bloch mode with complex B-matrices
         bool complex = do_bloch | complexMatData_[actRegion];
-        BaseBDBInt * stiffInt =  GetStiffIntegrator( actSDMat, actRegion, complex );
+        // in the optimization case the coef fucntion will be CoefFunctionOpt
+        BaseBDBInt* stiffInt =  GetStiffIntegrator( actSDMat, actRegion, complex );
         stiffInt->SetName("LinElastInt");
         stiffInt->SetFeSpace( mySpace);
         
@@ -438,8 +439,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // ====================================================================
       PtrCoefFct densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
 
-      // BLOCH TODO
-      // PtrCoefFct densCoeff = CoefFunction::Generate(Global::REAL, lexical_cast<std::string>(density));
+      // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
+      if(domain->GetErsatzMaterial(false) != NULL)
+      {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), densCoeff);
+        densCoeff.reset(tmpFnc);
+      }
 
       BaseBDBInt *massInt = NULL;
 
@@ -456,6 +461,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
       massInt->SetName("MassInt");
       massInt->SetFeSpace( mySpace );
+
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->GetErsatzMaterial(false) != NULL)
+        dynamic_pointer_cast<CoefFunctionOpt>(densCoeff)->SetForm(massInt);
 
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
       massContext->SetEntities( actSDList, actSDList );
@@ -955,13 +964,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     //  Obtain linear material
     // ------------------------
     shared_ptr<CoefFunction > curCoef;
-    if( isComplex ) {
-      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::COMPLEX );
-    } else {
-      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR,
-                                          tensorType_, Global::REAL );
-    }
+    if( isComplex )
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
+    else
+      curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
     
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
     if(domain->GetErsatzMaterial(false) != NULL)
@@ -1003,6 +1009,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         integ = new BDBInt<Double>(bOp, curCoef, 1.0);
     }
 
+    // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
     if(domain->GetErsatzMaterial(false) != NULL)
       dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(integ);
 

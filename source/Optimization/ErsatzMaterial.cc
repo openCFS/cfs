@@ -2690,12 +2690,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   {
-// we handle only complex cases
+    // we handle only complex cases
     Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
     Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(Solution::SEL_VECTOR);
     LOG_DBG2(em) << "AdjustComplexAdjointRHS: u = " << u.ToString();
     LOG_DBG2(em) << "AdjustComplexAdjointRHS: l = " << l.ToString();
-// create a OLAS vector
+
+    // create a OLAS vector
     Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(Solution::RHS_VECTOR);
     rhs.Resize(u.GetSize());
     switch(f->GetType())
@@ -2759,19 +2760,21 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       default:
       assert(true); // e.g. for ELEC_ENERGY the rhs is set in PiezoSIMP::ConstructAdjointRHS()
     }
-    assert(false);
-    // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
-    // assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
+    shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(pde->GetNativeSolutionType());
+    // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
+    fe->GetSystem()->InitRHS(fe->GetFctId());
+    fe->GetSystem()->SetFncRHS(rhs, fe->GetFctId());
+    assert(!(rhs.NormMax() == 0.0 && f->GetLocal() != NULL)); // globalized stuff might have zero adjoint!
     LOG_DBG2(em) << "CARHS<complex>: f=" << domain->GetDriver()->GetActStep(pde->GetName()) << " rhs before solving: " << rhs.ToString(1);
   }
 
   void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
   {
-// cannot be inlined due to linker problems
+    // cannot be inlined due to linker problems
     if (harmonic)
-    ConstructComplexAdjointRHS(excite, f);
+      ConstructComplexAdjointRHS(excite, f);
     else
-    ConstructRealAdjointRHS(excite, f);
+      ConstructRealAdjointRHS(excite, f);
   }
 
 

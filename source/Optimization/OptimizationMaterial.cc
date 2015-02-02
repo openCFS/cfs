@@ -347,7 +347,7 @@ void MechMat::Init()
       {
         mechMass_map[reg_id].Push_back(Matrix<double>());
 
-        GetElementMatrix(GetForm(reg_id, "MassInt"), mechMass_map[reg_id].Last(), NULL, bm, DesignElement::NO_MULTIMATERIAL);
+        GetElementMatrix(mechMass_map[reg_id].Last(), "MassInt");
         LOG_DBG(om) << "OptMechMat MechMass region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << std::endl << mechMass_map[reg_id].Last().ToString(0,true);
 
         if(dr->HasBiMaterial())

@@ -621,7 +621,8 @@ void Optimization::SolveProblem()
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+  SingleDriver* driver = domain->GetSingleDriver();
+  AnalysisID& id = driver->GetAnalysisId();
   id.iteration = currentIteration;
 
   assert(excite != NULL);
@@ -642,14 +643,13 @@ void Optimization::SolveStateProblem(Excitation* excite)
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic || excite == NULL)
   {
-    domain->GetDriver()->SolveProblem(false);
+    driver->SolveProblem(false);
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
   else
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
-    assert(false);
-    // FIXME dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step, analysis_id);
+    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step);
   }
 
   problemSolvedCounter++;
@@ -931,10 +931,13 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   PtrParamNode iteration = optInfoNode->Get(ParamNode::PROCESS)->Get("iteration", ParamNode::APPEND);
 
   // write the header only once - we might keep the iteration number
-  if(log.file) if(objectives.GetHistorySize() == 1) *log.file << log.fileHeader << endl;
+  if(log.file)
+    if(objectives.GetHistorySize() == 1)
+      *log.file << log.fileHeader << endl;
   LogFileLine(log.file, iteration); // also ParamNode is to be written
   baseOptimizer_->LogFileLine(log.file, iteration);
-  if(log.file) *log.file << endl;
+  if(log.file)
+    *log.file << endl;
 
   // this writes the most current solved forward problem via the driver to gid or whatever
   bool store = currentIteration == 0 || commitStride == 1 || (commitStride > 0 && currentIteration % commitStride == 0);

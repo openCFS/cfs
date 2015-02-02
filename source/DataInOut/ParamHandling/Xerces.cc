@@ -41,8 +41,7 @@ namespace CoupledField
     }
     catch(const XMLException &event )
     {
-        EXCEPTION("Error initializing xerces-c"
-                  << Transcode(event.getMessage()));
+        EXCEPTION("Error initializing xerces-c" << Transcode(event.getMessage()));
     }
   }
 

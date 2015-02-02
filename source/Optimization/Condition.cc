@@ -502,9 +502,9 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
   if(!pn->Has("designTarget"))
     throw Exception("Attribute 'designTarget' holding a density file name is mandatory of 'designTracking'");
   string file = pn->Get("designTarget")->As<string>();
-  Xerces* xerces = new Xerces(file);
-  PtrParamNode xml = xerces->CreateParamNodeInstance();
-  delete xerces;
+  Xerces xerces;
+  xerces.SetFile(file);
+  PtrParamNode xml = xerces.CreateParamNodeInstance();
 
   // check this file
   if (xml->Count("set") == 0)
