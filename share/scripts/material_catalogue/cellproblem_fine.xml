@@ -59,25 +59,25 @@
     
   </sequenceStep>
   
-  <optimization log="[problem]">
-    <costFunction type="volume" task="minimize">
-      <stopping queue="10" value="1.0E-7"/>
-    </costFunction>
-<!--     <constraint type="volume" value="0.5" mode="constraint" bound="equal" /> -->
-<!--     <constraint type="volume" physical="true" mode="observation" /> -->
-<!--     <constraint type="greyness" mode="observation" /> -->
-<!--     <constraint type="greyness" mode="observation" physical="true" /> -->
+<!--   <optimization log="[problem]"> -->
+<!--     <costFunction type="volume" task="minimize"> -->
+<!--       <stopping queue="10" value="1.0E-7"/> -->
+<!--     </costFunction> -->
+<!--     <constraint type="volume" value="0.5" mode="constraint" bound="equal" /> --> 
+<!--      <constraint type="volume" physical="true" mode="observation" /> -->
+<!--      <constraint type="greyness" mode="observation" /> --> 
+<!--     <constraint type="greyness" mode="observation" physical="true" /> --> 
 
-    <optimizer type="evaluate" maxIterations="30">
-      <autoscale target="1" tolerance="1.0"/>
-    </optimizer>
+<!--     <optimizer type="evaluate" maxIterations="30"> -->
+<!--       <autoscale target="1" tolerance="1.0"/> -->
+<!--     </optimizer> -->
  
-    <ersatzMaterial region="mech" material="mechanic" method="simp">
-      <design name="density" initial="1.0" lower="1e-16" upper="1.0"/>
-      <transferFunction type="simp" application="mech" design="density" param="1.0"/>
-      <export save="last" write="iteration"/>
-    </ersatzMaterial>
-    <commit mode="forward" stride="1"/>
-  </optimization> 	  
+<!--     <ersatzMaterial region="mech" material="mechanic" method="simp"> -->
+<!--       <design name="density" initial="1.0" lower="1e-16" upper="1.0"/> -->
+<!--       <transferFunction type="simp" application="mech" design="density" param="1.0"/> -->
+<!--       <export save="last" write="iteration"/> -->
+<!--     </ersatzMaterial> -->
+<!--     <commit mode="forward" stride="1"/> -->
+<!--   </optimization> 	   -->
   
 </cfsSimulation>

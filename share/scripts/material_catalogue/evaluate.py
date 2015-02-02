@@ -14,6 +14,9 @@ from hdf5_tools import *
 from optimization_tools import *
 from mesh_tool import *
 from decimal import *
+import os.path
+import os
+from cfs_utils import *
 
 def force(dim,mesh,R,region):
   f = scipy.sparse.lil_matrix((dim * len(mesh.nodes), 1))
@@ -168,6 +171,7 @@ parser.add_argument("--triangle", help="triangle msfem elements on/off", default
 parser.add_argument("--force_msfem",help="option calculates the force catalogue for MSFEM")
 parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations")
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
+parser.add_argument("--big", help="mesh file for cfs, if turned on mtx files and vec files are not saved")
 
 args = parser.parse_args()
 getcontext().prec = 16
@@ -214,12 +218,22 @@ if dim == 2:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
-        #y = 0
-        # if True:
-        index = 0
-        h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
         if args.sparse and x == 0 and y == 0:
           continue
+        if args.big:
+          index = 0
+          pwd = os.path.dirname(os.path.abspath(__file__))
+          os.chdir(str(pwd)+'/'+str(folder))
+          for i in range(dof):
+            if i % 2 == 0:
+              execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
+            else:
+              execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
+              index += 1
+          execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem \n'))
+          os.chdir(str(pwd))
+        index = 0
+        h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
         f = h5py.File(h5file, 'r')
         mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'])
         R = np.matrix(np.zeros((dof, dim * len(mesh.nodes))))
@@ -233,13 +247,6 @@ if dim == 2:
             continue
           f = h5py.File(h5file, 'r')
           tmp = read_displacement(f)
-          # if dof == 8:
-          #  index1 = [0, 4, 1, 5, 2, 6, 3, 7]
-          # elif dof == 6:
-          #  index1 = [0, 3, 1, 4, 2, 5]
-          # for j in range(len(mesh.nodes)):
-          #    R[index1[i], j] = tmp[j][0]
-          #    R[index1[i], j + len(mesh.nodes)] = tmp[j][1]
           count = 0
           for j in range(len(mesh.nodes)):
             R[i, count] = tmp[j][0]
@@ -248,13 +255,7 @@ if dim == 2:
           if i % 2 != 0:
             index += 1
           f.close()
-        # just a sample density xml file
-        #if dof == 8:
-        #  h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
-        #else:
-        #  print 'Option not implemented yet, for triangles'
-        #if x== 0 and y == 0:
-        #  continue
+          
         if args.force_msfem:
           print 'WARNING: force has to be set manually in the code'
           f = force(dim,mesh,R,'bottom')
@@ -271,6 +272,9 @@ if dim == 2:
             for j in range(i, dof):
               out.write(str(A[i, j]) + ' ')
           out.write('\n')
+          if args.big:
+            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.mtx')
+            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.vec')
           # scipy.io.savemat('A.mat', mdict={'A': A})
           # for i in range(dof):
           #    print '  ' + str(A[i, :])

@@ -17,6 +17,8 @@ parser.add_argument("--filt",help="filter for cell problem on or off",default="o
 parser.add_argument("--void",help="density of the void material",type=float,default=1e-9)
 parser.add_argument("--epsilon",help="number of repetitions of base cells in msfem cell problem",type=int)
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
+parser.add_argument("--big", help="mesh file for cfs, if turned on mtx files and vec files are not saved")
+
 
 args = parser.parse_args()
 stp = args.stp
@@ -30,10 +32,20 @@ filt = args.filt
 void = args.void
 
 pwd = os.path.dirname(os.path.abspath(__file__))
+if args.design:
+  execute("./calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon) + ' --design '+str(args.design))
+else:
+  execute("./calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon))
 
-execute("./calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon) + ' --design '+str(args.design))
-os.chdir(str(pwd)+'/'+str(folder))
-execute("bash jobs")
-os.chdir(str(pwd))
-execute("./evaluate.py "+str(stp)+' '+str(dim)+' '+str(folder)+ ' --msfem ' + str(msfem)+ ' --design '+str(args.design))
+if args.big:
+    execute("./evaluate.py "+str(stp)+' '+str(dim)+' '+str(folder)+ ' --msfem ' + str(msfem)+' --big '+str(args.mesh))
+else:
+  os.chdir(str(pwd)+'/'+str(folder))
+  execute("bash jobs")
+  os.chdir(str(pwd))
+  if args.design:
+    execute("./evaluate.py "+str(stp)+' '+str(dim)+' '+str(folder)+ ' --msfem ' + str(msfem)+ ' --design '+str(args.design))
+  else:
+    execute("./evaluate.py "+str(stp)+' '+str(dim)+' '+str(folder)+ ' --msfem ' + str(msfem))
+
 

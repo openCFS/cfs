@@ -299,6 +299,9 @@ if dim == 2:
         if args.filter == 'on':
           # filtering of the data
           array_filter = ndimage.uniform_filter(array, size=6)
+          plt.gray()
+          plt.imshow(array_filter)
+          plt.show()
         else:
           array_filter = array
         if not args.sparse_msfem:
@@ -351,7 +354,10 @@ if dim == 2:
                 index2 = -1
               index1 += 1
               index2 += 1         
-            doc.saveFile("triangle_msfem.xml")
+            if i % 2 == 0:         
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+            else:
+	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
@@ -362,13 +368,6 @@ if dim == 2:
               os.system('cp triangle_msfem.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
           print str(x) + ' ' + str(y) + ' is done'
-          if args.design:
-            # stop calculations if only one point is needed (debug)
-            x = steps + 1
-            y = steps + 1
-          else:
-            x += 1
-            y += 1 
         else:
           # MSFEM for quadrileteral elements 
           # create xml file for cfs
@@ -420,8 +419,11 @@ if dim == 2:
               if index2 == 3:
                 index2 = -1
               index1 += 1
-              index2 += 1         
-            doc.saveFile("compliance_plain.xml")
+              index2 += 1
+            if i % 2 == 0:         
+              doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+            else:
+	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             # sparse is not working currently
             if args.sparse_msfem:
               mesh = str(x) + "-" + str(y) + '.mesh'
@@ -430,22 +432,23 @@ if dim == 2:
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + mesh + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
-              os.system('cp compliance_plain.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
+              #os.system('cp compliance_plain.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + mesh + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
-              os.system('cp compliance_plain.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
+              #os.system('cp compliance_plain.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
           os.system('cp cellproblem_fine.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem.xml')
           jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
           print str(x) + ' ' + str(y) + ' is done'
-          if args.design:
+        if args.design:
             # stop calculations if only one point is needed (debug)
             x = steps + 1
             y = steps + 1
-          else:
-            x += 1
-            y += 1 
+        else:
+            y += 1
+      if not args.design:
+        x +=1    
   elif args.shape == "frame" or args.shape == "frame_modified":
     # 2D frame structure
     array = void * np.ones((minres, minres))
@@ -479,8 +482,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
-          x += 1
           y += 1
+      if not args.design:
+        x += 1 
   elif args.shape == "cross":
     # 2D cross structure
     array = void * np.ones((minres, minres))
@@ -518,8 +522,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
-          x += 1
           y += 1
+      if not args.design:
+        x+=1
   else:
     print 'option not defined' 
 elif dim == 3:
@@ -577,9 +582,11 @@ elif dim == 3:
           y = steps + 1
           z = steps + 1
         else:
-          x += 1
-          y += 1
-          z += 1     
+          z += 1
+      if not args.design:
+        y += 1
+    if not args.design:
+      x += 1      
 jobfile.close()
 sys.exit()
 
