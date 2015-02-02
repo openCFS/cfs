@@ -26,7 +26,11 @@ public:
   virtual ~CoefFunctionOpt() { }
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm );
+  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(double& scal, const LocPointMapped& lpm);
+
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {

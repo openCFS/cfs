@@ -40,9 +40,9 @@ void ShapeDesign::Configure(PtrParamNode pn, int objectives, int constraints){
   std::string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/Schemas/CFS_MeshDeformations.xsd";
   Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>(), schema); */
-  Xerces* xerces = new Xerces(pn->Get("meshdeformationfile")->As<std::string>());
-  PtrParamNode xml = xerces->CreateParamNodeInstance();
-  delete xerces;
+  Xerces xerces;
+  xerces.SetFile(pn->Get("meshdeformationfile")->As<std::string>());
+  PtrParamNode xml = xerces.CreateParamNodeInstance();
   PtrParamNode meshdefs = xml->Get("meshdeformations");
   unsigned int nshapeparams = meshdefs->Get("parameters")->As<Integer>();
   ParamNodeList deformations = meshdefs->GetList("deformation");

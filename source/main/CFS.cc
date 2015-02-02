@@ -352,14 +352,13 @@ void CFS::ReadXMLFile()
   schema += "/CFS-Simulation/CFS.xsd";
 
   // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(schema);
-  xerces->SetFile(xmlFile);
+  Xerces xerces(schema);
+  xerces.SetFile(xmlFile);
 
   // set the global ParamNode tree pointer
-  paramNode_ = xerces->CreateParamNodeInstance();
+  paramNode_ = xerces.CreateParamNodeInstance();
   // save us in the info stuff, with defaults but no comments
   // release the xerces ressources, param is not affected
-  delete xerces;
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )

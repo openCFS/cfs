@@ -257,6 +257,8 @@ template<typename T> class ElemStoreSol;
     
     T Inner(const SingleVector& vec) const;
 
+    Vector<T> Conj() const;
+
     //! Override SingleVector functions
     //    virtual void Inner(const SingleVector& vec,Double& s) const;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
@@ -338,7 +340,8 @@ template<typename T> class ElemStoreSol;
       return this->assignFrom(rhs); 
     }
     
-    //! Inner product for general vector expression as second argument
+    //! vector product for general vector expression as second argument.
+    //! Not that in the complex case not the complex conjugate is used! Use Inner() for that purpose!
     template <class V> 
     T operator*( const Xpr1<T,V>& rhs ) {
       T ret = 0.0;
@@ -591,7 +594,7 @@ template<typename T> class ElemStoreSol;
 
 
   // *******************************************
-  //   Dot product between two vectors
+  //   Vector product, but not the scalar product, which would use the complex conjugate as Inner() does!
   // *******************************************
   template<typename T> template<typename T2>
   PROMOTE(T,T2) Vector<T>::
@@ -620,10 +623,6 @@ template<typename T> class ElemStoreSol;
   //  INLINE MEMBER DEFINITIONS FOR NON-TEMPLATE EXPRESSION CASE
   // ************************************************************
 #ifndef EXPR_TEMPLATES
-  
-  //! Explicit conjugate operation (general case)
-  template<typename T>
-  Vector<T> Conj(const Vector<T>& m);
   
   template<typename T> template<typename T2>
   Vector<PROMOTE(T,T2)> Vector<T>::

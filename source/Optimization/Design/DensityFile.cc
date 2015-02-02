@@ -95,11 +95,11 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
 
   // we read something like <loadErsatzMaterial region="piezo" file="piezo_density.xml" set="last"/>
   // Initialize our xerces dom parser to handle the external xml file
-  Xerces* xerces = new Xerces(file);
+  Xerces x;
+  x.SetFile(file);
   // set the global ParamNode tree pointer
-  PtrParamNode xml = xerces->CreateParamNodeInstance();
+  PtrParamNode xml = x.CreateParamNodeInstance();
   // release the xerces ressources, param is not affected
-  delete xerces;
   // check this file
   if (xml->Count("set") == 0)
     throw Exception("There are no design sets in the ersatz material file");

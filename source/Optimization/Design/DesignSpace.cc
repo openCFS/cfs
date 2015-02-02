@@ -13,6 +13,7 @@
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
+#include "Driver/BaseDriver.hh"
 #include "General/Enum.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -376,7 +377,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
 {
   if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
-    if(domain->GetBasePDE()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+    if(domain->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silent
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
         // std::cout << domain->GetBasePDE()->GetName() << std::endl;
@@ -623,7 +624,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
 
 /** Performs the optimization.
  * @return true if design and coefMat is set */
-bool DesignSpace::TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm)
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm)
 {
   // we cannot check for the region here, if form is a linear form (e.g.
   // pressure) but the design variable comes from elements one dimension higher
@@ -636,6 +637,28 @@ bool DesignSpace::TryApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matri
   double factor = GetErsatzMaterialFactor(idx, app, false); // FIXME ignore bi-material
   coef->orgMat->GetTensor(retMat, *lpm);
   retMat *= factor;
+
+  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
+
+  return true;
+}
+
+
+/** Performs the optimization.
+ * @return true if it is a design  variable and retScal is set */
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm)
+{
+  // we cannot check for the region here, if form is a linear form (e.g.
+  // pressure) but the design variable comes from elements one dimension higher
+  int idx = Find(lpm->ptEl->elemNum, false);
+  if(idx == -1)
+    return false;
+
+  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+
+  double factor = GetErsatzMaterialFactor(idx, app, false); // FIXME ignore bi-material
+  coef->orgMat->GetScalar(retScal, *lpm);
+  retScal *= factor;
 
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
 

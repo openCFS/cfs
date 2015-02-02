@@ -205,7 +205,20 @@ namespace CoupledField {
     return sum;
   }
   
-  
+  template<typename T>
+  Vector<T> Vector<T>::Conj() const {
+    return *this;
+  }
+
+  template<>
+  Vector<Complex> Vector<Complex>::Conj() const {
+    Vector<Complex> ret(size_);
+    for( UInt i = 0; i < size_; ++i )
+      ret[i] = std::conj(data_[i]);
+
+    return ret;
+  }
+
   /*
   template <typename T>
   void Vector<T>::Inner(const SingleVector& vec,Double& s) const {
@@ -938,6 +951,8 @@ namespace CoupledField {
       EXCEPTION("Vector: undefined Vector in operator +()" );
 #endif
     
+
+    // this is not the addition operator but the positive sign, therefore nothing changes!
     return *this;
   }
 
@@ -1001,20 +1016,6 @@ namespace CoupledField {
      return out;
    }
 
-   template<typename T>
-   Vector<T> Conj(const Vector<T>& m) {
-     return m;
-   }
-
-   template<>
-   Vector<Complex> Conj<Complex>(const Vector<Complex>& m) {
-     const UInt size = m.GetSize();
-     Vector<Complex> ret(size);
-     for( UInt i = 0; i < size; ++i ) {
-       ret[i] = std::conj(m[i]);
-     }
-     return ret;
-   }
    
    
 // Explicit template instantiation
@@ -1027,8 +1028,6 @@ namespace CoupledField {
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
   template std::ostream & operator<<<unsigned int> (std::ostream & , const Vector<unsigned int> &);
   template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> &);
-  template Vector<Double> Conj<Double>(const Vector<Double>&);
-  template Vector<Complex> Conj<Complex>(const Vector<Complex>&);
 #endif
 
 
