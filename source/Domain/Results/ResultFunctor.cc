@@ -275,7 +275,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
                                                   elemIt, elemIt);
           temp = elemMatR * elemSol;
         }
-        tempEnergy += (temp * Conj(elemSol) ) * factor_;
+        tempEnergy += temp.Inner(elemSol)  * factor_;
       }  else if( accuracy_ == MIDPOINT ) {
 
         // =====================
@@ -311,7 +311,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
             forms_[el->regionId]->CalcKernel(elemMatR, lpm );
             temp = elemMatR * elemSol;
           }
-          tempEnergy += (temp * Conj(elemSol) ) * factor_ * lpm.jacDet * weights[i]; 
+          tempEnergy += temp.Inner(elemSol) * factor_ * lpm.jacDet * weights[i]; 
         } // loop integration points
       } else {
         EXCEPTION("No valid integration method defined");
