@@ -49,13 +49,13 @@ def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True,
   offx = int((minres / (2.*number)) * (float(x) / (steps)) + 0.5 + eps)
   offy = int((minres / (2.*number)) * (float(y) / (steps)) + 0.5 + eps)
   for nx in range(0, number):
-    for ny in range(0,number):
-      rx = int(float(nx)/float(number)* minres+0.5+eps)
-      ry = int(float(ny)/float(number)* minres+0.5+eps)
-      endx = int(float(nx+1)/float(number)*minres+ 0.5 +eps)-offx
-      endy = int(float(ny+1)/float(number)*minres+ 0.5 +eps)-offy
-      for i in range(offx+rx, endx):
-        for j in range(offy+ry, endy):
+    for ny in range(0, number):
+      rx = int(float(nx) / float(number) * minres + 0.5 + eps)
+      ry = int(float(ny) / float(number) * minres + 0.5 + eps)
+      endx = int(float(nx + 1) / float(number) * minres + 0.5 + eps) - offx
+      endy = int(float(ny + 1) / float(number) * minres + 0.5 + eps) - offy
+      for i in range(offx + rx, endx):
+        for j in range(offy + ry, endy):
           if not triangle:
             array[i][j] = void
           else:

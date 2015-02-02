@@ -104,10 +104,10 @@ def show_dense_mesh_image(mesh, shape, binary, size):
   check_img.show()     
 
 
-def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle, pressure=False,color_mode="random"):
+def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle, pressure=False, color_mode="random"):
   input_pix = input_img.load()
   nx, ny = input_img.size
-  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle, pressure,color_mode)
+  create_dense_mesh(input_pix, nx, ny, mesh, threshold, scale, rhomin, 1, shearAngle, pressure, color_mode)
 
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   if multi_d == 1:
@@ -116,7 +116,7 @@ def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi
     nx, ny, nz, m = numpy_array.shape
   create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=multi_d, shearAngle=0.0)
   
-def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, pressure=False,color_mode="random"):
+def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, pressure=False, color_mode="random"):
   # convert angle to rad and check for feasibility
   angle = shearAngle / 180 * math.pi
   if (abs(angle) > math.pi / 2 - 1e-6):
@@ -153,7 +153,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       # assign preliminary data value
       if is_gray:
         # convert to black is one and white = 0
-        e.density = 1-(input_array[x, y] / 255.0)
+        e.density = 1 - (input_array[x, y] / 255.0)
       if is_color:
         val = sum(input_array[x, y][0:3]) / 3.0
         e.density = 1.0 - (val / 255.0)
@@ -208,7 +208,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       mesh.elements.append(e)
       # e.dump()
   if pressure:
-    y = 0
+    y = ny - 1
     for x in range(nx):
       if (x >= int(0.8 * nx) and y == ny - 1):
         b = Element()
@@ -313,7 +313,7 @@ def write_gid_mesh(mesh, filename):
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
-  tet4 = count_elements(mesh.elements,TET4)
+  tet4 = count_elements(mesh.elements, TET4)
   tri3 = count_elements(mesh.elements,TRIANGLE3)
   print 'number of elements ' + str(tri3)
   num_1d = line
@@ -348,7 +348,7 @@ def write_gid_mesh(mesh, filename):
   out.write('Num triangle,quad: 0\n')
   out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
-  out.write('Num tetra        : '+ str(tet4)+'\n')
+  out.write('Num tetra        : ' + str(tet4) + '\n')
   out.write('Num tetra,quad   : 0\n')
   out.write('Num brick        : ' + str(hexa8) + '\n')
   out.write('Num brick,quad   : 0\n')
@@ -811,19 +811,19 @@ def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, regio
 
 
 def create_mesh_from_tetgen(meshfile, region):
-  print meshfile+'.1.ele'
-  all_elements = numpy.loadtxt(meshfile+'.1.ele',dtype='int' ,skiprows=1)
+  print meshfile + '.1.ele'
+  all_elements = numpy.loadtxt(meshfile + '.1.ele', dtype='int' , skiprows=1)
   print 'read all_elements done'
-  all_nodes = numpy.loadtxt(meshfile+'.1.node',skiprows= 1)
+  all_nodes = numpy.loadtxt(meshfile + '.1.node', skiprows=1)
   print 'read all_nodes done'
-  #all_faces = numpy.loadtxt(meshfile+'1.face',skiprows=1)
-  #all_edges = numpy.loadtxt(meshfile+'1.edge',skiprows=1)
+  # all_faces = numpy.loadtxt(meshfile+'1.face',skiprows=1)
+  # all_edges = numpy.loadtxt(meshfile+'1.edge',skiprows=1)
   
     
   # Create mesh  
   mesh = Mesh()  
   for i in range(len(all_nodes)):
-    mesh.nodes.append(all_nodes[i,1:])  
+    mesh.nodes.append(all_nodes[i, 1:])  
   for i in range(len(all_elements[:, 0])):
     e = Element()
     e.nodes = (all_elements[i, 1:] - 1)
