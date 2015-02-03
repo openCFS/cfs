@@ -32,12 +32,12 @@
           <nodeResult type="mechDisplacement">
             <allRegions/>
           </nodeResult>
-          <elemResult type="mechPseudoDensity">  
-            <allRegions/>
-          </elemResult>
-          <elemResult type="physicalPseudoDensity">  
-            <allRegions/>
-          </elemResult>
+<!--           <elemResult type="mechPseudoDensity">   -->
+<!--             <allRegions/> -->
+<!--           </elemResult> -->
+<!--           <elemResult type="physicalPseudoDensity">   -->
+<!--             <allRegions/> -->
+<!--           </elemResult> -->
           <regionResult type="mechEnergy">
             <allRegions/>
           </regionResult>
@@ -51,9 +51,7 @@
         <exportLinSys format="matrix-market" stiffness="true"/>
         <solver type="cg" precond="noPrecond" > 
           <cg> <maxIter>1</maxIter></cg>
-        </solver>
-
-        
+        </solver>        
       </system>
     </linearSystems>
     

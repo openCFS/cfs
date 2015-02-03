@@ -17,6 +17,25 @@ from decimal import *
 import os.path
 import os
 from cfs_utils import *
+from subprocess import PIPE
+import subprocess
+import time
+
+
+def submit_job_max_len(job_list, max_processes):
+  sleep_time = 0.1
+  processes = list()
+  for command in job_list:
+    print 'running {n} processes. Submitting {proc}.'.format(n=len(processes),
+        proc=str(command))
+    processes.append(subprocess.Popen(command, shell=False, stdout=None,
+      stdin=PIPE))
+    while len(processes) >= max_processes:
+      time.sleep(sleep_time)
+      processes = [proc for proc in processes if proc.poll() is None]
+  while len(processes) > 0:
+    time.sleep(sleep_time)
+    processes = [proc for proc in processes if proc.poll() is None]
 
 def force(dim,mesh,R,region):
   f = scipy.sparse.lil_matrix((dim * len(mesh.nodes), 1))
@@ -128,7 +147,7 @@ def Kglob(E, nu, dx, dy, dim, dof, mesh):
   # scipy.io.savemat('KE.mat', mdict={'KE': KE})
   return K
 
-def CalcElementMat(dim, dof, E, nu, R, mesh,Kmat):
+def CalcElementMat(R,Kmat):
   dx = 1.
   dy = 1.
   #K = Kglob(E, nu, dx, dy, dim, dof, mesh)
@@ -165,13 +184,16 @@ def get_rot_3x3(angle):
 parser = argparse.ArgumentParser()
 parser.add_argument("stp", help="number of grid points in one direction", type=int)
 parser.add_argument("dimension", help="Dimension of the problem", type=int, default=2)
+parser.add_argument("res", help="resolution of the cell problem in x-direction", type=int)
 parser.add_argument("folder",help="specify the folder of the h5 files")
+parser.add_argument("--mesh", help="mesh file from ~/meshes/ folder")
 parser.add_argument("--msfem", help="msfem basis functions are evaluated, insert E-modulus and Poisson ratio", default="")
 parser.add_argument("--triangle", help="triangle msfem elements on/off", default="")
 parser.add_argument("--force_msfem",help="option calculates the force catalogue for MSFEM")
 parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations")
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
-parser.add_argument("--big", help="mesh file for cfs, if turned on mtx files and vec files are not saved")
+parser.add_argument("--big", help="specify number of cfs.rel runs in parallel, if turned on mtx files and vec files are not saved")
+
 
 args = parser.parse_args()
 getcontext().prec = 16
@@ -224,19 +246,24 @@ if dim == 2:
           index = 0
           pwd = os.path.dirname(os.path.abspath(__file__))
           os.chdir(str(pwd)+'/'+str(folder))
+          joblist = ()
+          print os.path.dirname(os.path.abspath(__file__))
           for i in range(dof):
             if i % 2 == 0:
-              execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
+              joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x', )
             else:
-              execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
+              joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y', )
               index += 1
-          execute('cfs.rel -m ~/meshes/' + str(args.big) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem \n'))
+          joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem', )
+          print joblist
+          submit_job_max_len(joblist, max_processes=int(args.big))
           os.chdir(str(pwd))
         index = 0
         h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem0_x.h5"
         f = h5py.File(h5file, 'r')
-        mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'])
-        R = np.matrix(np.zeros((dof, dim * len(mesh.nodes))))
+        if args.force_msfem:
+          mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'])
+        R = np.matrix(np.zeros((dof, dim * (args.res+1)**2)))
         f.close()
         for i in range(dof):
           if i % 2 == 0:
@@ -246,9 +273,9 @@ if dim == 2:
           if args.sparse and x == 0 and y == 0:
             continue
           f = h5py.File(h5file, 'r')
-          tmp = read_displacement(f)
+          tmp = read_displacement(f,1 if args.big else 0)
           count = 0
-          for j in range(len(mesh.nodes)):
+          for j in range((args.res+1)**2):
             R[i, count] = tmp[j][0]
             R[i, count + 1] = tmp[j][1]
             count += 2
@@ -266,15 +293,16 @@ if dim == 2:
           #scipy.io.savemat('R.mat', mdict={'R': R})
           print 'Calculation of force for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
         else:
-          A = CalcElementMat(dim, dof, E, nu, R, mesh,folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.mtx')
+          A = CalcElementMat(R,folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx' if args.big else '_msfem_iter_0_excite_0.mtx')
           out.write(str(x) + ' ' + str(y) + ' ')
           for i in range(dof):
             for j in range(i, dof):
               out.write(str(A[i, j]) + ' ')
           out.write('\n')
           if args.big:
-            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.mtx')
-            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_iter_0_excite_0.vec')
+            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx')
+            execute('rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_0.vec')
+            #print 'rm -f '+folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx'
           # scipy.io.savemat('A.mat', mdict={'A': A})
           # for i in range(dof):
           #    print '  ' + str(A[i, :])
@@ -285,9 +313,7 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
-          x += 1
-          y += 1   
-
+          y += 1 
     else:
       y = 0
       while y < steps + 1:
@@ -335,8 +361,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
-          x += 1
           y += 1
+    if not args.design:
+      x += 1
 elif dim == 3:
   x = 0
   while x < steps + 1:
@@ -374,9 +401,11 @@ elif dim == 3:
           y = steps + 1
           z = steps + 1
         else:
-          x += 1
-          y += 1
           z += 1
+      if args.design:
+        y += 1
+    if args.design:
+      x += 1
 # print "number of tensors computed = " + str(count) + " / " + str(countall) + " (= {0:2.2f}%)".format(100.0*float(count)/float(countall))
 # out.write("number of tensors computed = " + str(count) + "\n")
 
