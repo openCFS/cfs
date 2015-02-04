@@ -76,7 +76,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 # @save filename for output
 # @return the volume fraction if determined or None
 def show_or_write(viz, args):
-  assert(viz <> None)
+  assert(viz is not None)
   volume = None
   
   global info
@@ -213,7 +213,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
   
-    if viz == None:
+    if viz is None:
       print 'Error: no visualization calculated!'
     else:
       volume = show_or_write(viz, args)
