@@ -655,7 +655,8 @@ void CoefFunctionApproxDerivAniso::Init( StdVector<shared_ptr<CoefFunction> > nL
                                          StdVector<Double> angles,
                                          StdVector<Double> zScalings,
                                          UInt dimDMat,
-                                         PtrCoefFct dependCoef ) {
+                                         PtrCoefFct dependCoef,
+                                         shared_ptr<CoefFunctionApproxAniso> baseCoef) {
   // set type to TENSOR
   dimType_ = TENSOR;
   nLinFnc_ = nLinFnc;
@@ -663,6 +664,7 @@ void CoefFunctionApproxDerivAniso::Init( StdVector<shared_ptr<CoefFunction> > nL
   zScalings_ = zScalings;
   dimDMat_ = dimDMat;
   dependCoef_ = dependCoef;
+  baseCoef_ = baseCoef;
 }
 
 void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat, 
@@ -803,16 +805,39 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
       nuPrimeXY =   ahi * VALklo + alo * VALkhi;
 //      nuPrimeXY =   ahi * nLinFnc_[klo]->EvaluatePrimeNu(fieldAbs)
 //                  + alo * nLinFnc_[khi]->EvaluatePrimeNu(fieldAbs);
-    }
+    //}
 
-    if( ! is3d ){
-      // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B
-      Vector<Double> eB(dimDMat_);
-      eB = elemB / fieldAbs;
-      coefMat.DyadicMult( eB );
-      coefMat *= nuPrimeXY * fieldAbs;
-      return;
-    }
+      if( ! is3d ){
+        // coefMat = B^T [ e_B^T * nu' * |B| * e_B] B
+        /*Vector<Double> eB(dimDMat_);
+        eB = elemB / fieldAbs;
+        coefMat.DyadicMult( eB );
+        coefMat *= nuPrimeXY * fieldAbs;*/
+
+        // this matrix also accounts for the change of nu in phi direction
+        // the change with respect to phi is approximated by the difference quotient between two angles
+        // basic idea: total derivative of nu with respect to B
+        // for x component:
+        // dnu(|B|,phi)/dBx = dnu/d|B| * d|B|/dBx + dnu/dphi * dphi/dBx
+        // d|B|/dBx = Bx/|B|
+        // phi = atan(By/Bx) => dphi/dBx = - By/|B|^2
+        //                      dphi/dBy = Bx/|B|^2
+        // still not sure how this tensor really is built
+        // but I figured out it is equivalent to (dnu/d\vec{B})^T * \vec{B}^T where
+        // (dnu/d\vec{B})^T is the transposed Jacobian of nu with respect to \vec{B}
+        // which is how I build the coefMat
+        Double nuValLo, nuValHi;
+        baseCoef_->nLinFnc_[klo]->GetScalar( nuValLo, lpm );
+        baseCoef_->nLinFnc_[khi]->GetScalar( nuValHi, lpm );
+        Double dnudPhi = (nuValHi - nuValLo)/dPhiVal;
+        Vector<Double> dnudB(2);
+        dnudB[0] = nuPrimeXY*elemB[0]/fieldAbs - dnudPhi*elemB[1]/(fieldAbs*fieldAbs);
+        dnudB[1] = nuPrimeXY*elemB[1]/fieldAbs + dnudPhi*elemB[0]/(fieldAbs*fieldAbs);
+        coefMat.DyadicMult(dnudB,elemB);
+
+        return;
+      } // end if !is3d
+    } // end if angle out of bounds
     
     // --------------------------------------------------------------------
     //  Angular based interpolation according to z direction (angle theta)
