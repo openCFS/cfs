@@ -2,6 +2,7 @@
 #define ELECTROMAGNETICMATERIAL_DATA
 
 #include "BaseMaterial.hh"
+#include "Domain/CoefFunction/CoefFunctionApprox.hh"
 
 namespace CoupledField {
 
@@ -132,6 +133,10 @@ namespace CoupledField {
     Vector<Double> matDiffprevious_;
 
     Double Xsat_, Ysat_;
+
+    //! CoefFunction for anisotropic material which is passed to its derivative
+    //! used to calculate an approximation of the derivative with respect to the angle
+    shared_ptr<CoefFunctionApproxAniso> baseCoefAniso_;
   };
 
 } // end of namespace

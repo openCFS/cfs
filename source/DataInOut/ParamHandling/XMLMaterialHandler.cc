@@ -972,11 +972,11 @@ namespace CoupledField {
 
           // read analytic function of material parameter
           if(iso->Has("nuExpr"))
-            material->SetScalar(iso->Get("nuExpr")->As<std::string>(),MAG_RELUCTIVITY);
+            info.analyticExpr = iso->Get("nuExpr")->As<std::string>();
 
           // read analytic derivative of material parameter
           if(iso->Has("nuDerivExpr"))
-            material->SetScalar(iso->Get("nuDerivExpr")->As<std::string>(),MAG_RELUCTIVITY_DERIV);
+            info.analyticExprDeriv = iso->Get("nuDerivExpr")->As<std::string>();
 
           // pass info to material class
           material->SetNonLinMatIso( MAG_PERMEABILITY, info);

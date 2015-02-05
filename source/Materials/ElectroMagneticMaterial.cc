@@ -60,8 +60,7 @@ namespace CoupledField
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
 
-    if (( matType == HYST_MODEL ) || ( matType == MAG_RELUCTIVITY ) ||
-        ( matType == MAG_RELUCTIVITY_DERIV )) {
+    if ( matType == HYST_MODEL ) {
       stringParams_[matType] = param;
       isSet_.insert( matType );
     }
@@ -888,7 +887,7 @@ namespace CoupledField
          PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
          // get function of B
-         std::string nuStr = stringParams_[matType];
+         std::string nuStr = matNl.analyticExpr;
          shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
          std::map<std::string,PtrCoefFct> symbolsNu;
          symbolsNu["B"] = fluxDensAbs;
@@ -1006,6 +1005,7 @@ namespace CoupledField
        // allocate the coef-Function for handling the ansiotropy
        shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
        coef->Init( startValAveraged, approx, angles, zScalings, fluxCoef );
+       baseCoefAniso_ = coef;
        ret = coef;
      }
 
@@ -1088,13 +1088,16 @@ namespace CoupledField
            //Here, we obtain " nu' " be evaluating the analytical defined function in
            //the material file, and then we have to build the tensor due to
            // "B^T [ e_B^T * nu' * |B| * e_B] B"
+           // dperchto: should be [ nu' * |B| * e_B * e_B^T ] otherwise it would be scalar
+           //                                   3x1   1x3
+           // implemented as [ nu' / |B| * B * B^T ] which needs one mathematical operation less
 
            // get Euclidean norm of B
            CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, dependency, CoefXpr::OP_NORM );
            PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
            // get function of B
-           std::string dnudBStr = stringParams_[matType];
+           std::string dnudBStr = matNl.analyticExprDeriv;
            shared_ptr<CoefFunctionCompound<Double> > scalFnc(new CoefFunctionCompound<Double>(mp_));
            std::map<std::string,PtrCoefFct> symbolsNu;
            symbolsNu["B"] = fluxDensAbs;
@@ -1153,7 +1156,7 @@ namespace CoupledField
                actNl.approxData = sp;
              }
              //now we need the object "CoefFunctionApproxDeriv", which returns by
-             //calling coef->getScalar( nuPrime, lmp) the derivative of the reluctivity;
+             //calling coef->getScalar( nuPrime, lpm) the derivative of the reluctivity;
              //Please note: In this case, we do not need the tensor (as in the isotropic case),
              //since the method "CoefFunctionApproxDerivAniso" (see below) will do the job;
              //That's why the object "CoefFunctionApproxDeriv" has the method "GetScalar"!
@@ -1170,7 +1173,7 @@ namespace CoupledField
              PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
              // get function of B
-             std::string nuStr = actNl.analyticExprDeriv; //stringParams_[matType];
+             std::string nuStr = actNl.analyticExprDeriv;
              shared_ptr<CoefFunctionCompound<Double> > nuFncDeriv(new CoefFunctionCompound<Double>(mp_));
              std::map<std::string,PtrCoefFct> symbolsNu;
              symbolsNu["B"] = fluxDensAbs;
@@ -1219,7 +1222,7 @@ namespace CoupledField
          else if (matType == MAG_RELUCTIVITY_DERIV ) {
            //used for the bilinear form of the Newton method
            shared_ptr<CoefFunctionApproxDerivAniso> coef( new CoefFunctionApproxDerivAniso());
-           coef->Init( approx, angles, zScalings, dimDMat, dependency );
+           coef->Init( approx, angles, zScalings, dimDMat, dependency, baseCoefAniso_ );
            ret = coef;
          }
 
