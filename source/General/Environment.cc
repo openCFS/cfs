@@ -1358,6 +1358,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
+    MaterialTypeEnum.Add( MECH_VISCOALPHA_VECTOR, "Mechanic_ViscoAlpha_Vec" );
+    MaterialTypeEnum.Add( MECH_VISCOG_VECTOR, "Mechanic_ViscoG_Vec" );
+    MaterialTypeEnum.Add( MECH_VISCOK_VECTOR, "Mechanic_ViscoK_Vec" );
+
 
     MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
     MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORPLANE, "Mechanic_StiffTEC_VectorPlane" );

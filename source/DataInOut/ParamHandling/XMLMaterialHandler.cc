@@ -486,6 +486,37 @@ namespace CoupledField {
       EXCEPTION( "mechanical stiffness tensor can not be computed." );
     }
 
+    //read viscoelastic parameters
+    if(mech->Has("viscoelasticity")) {
+    	PtrParamNode visco = mech->Get("viscoelasticity");
+    	if(visco->Has("isotropic")) {
+    		PtrParamNode tens = visco->Get("isotropic");
+    		UInt dim2;
+    		if ( tens->Has("dim2") )
+    			dim2 = tens->Get("dim2")->As<Integer>();
+    		else
+    			EXCEPTION("Viscoelasticity parameters: dim2 has to be specified");
+
+    		Matrix<Double> realMat(3,dim2);
+    	    realMat.Init();
+    	    PtrCoefFct viscoelastCoef;
+    	    //read real viscoelastic coefficients
+    	    if ( tens->Has("real") ) {
+    	    	ParamTools::AsTensor( tens->Get("real"), 3, dim2, realMat );
+    	    }
+    	    Vector<Double> dummy(dim2);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[0][i];
+    	    material->SetVector( dummy, MECH_VISCOALPHA_VECTOR, Global::REAL);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[1][i];
+    	    material->SetVector( dummy, MECH_VISCOK_VECTOR, Global::REAL);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[2][i];
+    	    material->SetVector( dummy, MECH_VISCOG_VECTOR, Global::REAL);
+    	}
+    }
+
     // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
     if(mech->HasByVal("elasticityCoefficient", "nonlinear", "function"))
     {
