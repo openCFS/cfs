@@ -1381,10 +1381,10 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     return frequencies.GetSize();
   }
 
-  void StdSolveStep::CalcEigenMode( UInt numMode ) {
+  void StdSolveStep::GetEigenMode( UInt numMode ) {
 
 
-    algsys_->CalcEigenMode( numMode );
+    algsys_->GetEigenMode( numMode );
 
     // Get the solution and store it
     algsys_->GetSolutionVal(solVec_);

@@ -67,20 +67,19 @@ Function::Function(PtrParamNode pn) {
 
   this->type_ = type.Parse(pn->Get("type")->As<string>());
 
-  this->physical_ =
-      pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
+  this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
   if (pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
     this->design_ = BaseDesignElement::type.Parse(
         pn->Get("design")->As<string>());
 
-  this->parameter_ =
-      pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
+  this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
-  this->omega_omega_ =
-      pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
-  if (!harmonic_ && omega_omega_)
+  this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
+  if (!complex_ && omega_omega_)
     throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+
+  this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
   notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
@@ -109,6 +108,11 @@ Function::Function(PtrParamNode pn) {
   case STRESS_DENSITY:
     if (!pn->Has("parameter"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
+    break;
+
+  case EIGENVALUE:
+    if(!pn->Has("ev"))
+      throw Exception("function '" + type.ToString(type_) + "' requires the 'ev' with value >= 1");
     break;
 
   case PROJECTION:
@@ -187,7 +191,7 @@ Function::~Function()
 }
 
 void Function::Init() {
-  this->harmonic_ = domain->GetDriver()->IsComplex();
+  this->complex_ = domain->GetDriver()->IsComplex();
   this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
@@ -294,20 +298,20 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
-  if (harmonic_)
+  if(complex_)
     info->Get("omega_omega")->SetValue(omega_omega_);
   // we check for valid ocurence of paramter in the constructor
-  if (pn->Has("parameter") || IsLocal(type_))
+  if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
   // We might have non-standard stresses
-  if (type_ == STRESS || type_ == STRESS_DENSITY)
+  if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if (IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
+  if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
 
-  if (local != NULL)
+  if(local != NULL)
     local->ToInfo(info_);
 }
 
@@ -384,6 +388,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
+  case EIGENVALUE:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -574,6 +579,7 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
+  case EIGENVALUE:
     return true;
 
   case VOLUME:
@@ -830,15 +836,10 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   // read xml parameters -> might be null valued!
   PtrParamNode pn = func->pn->Get("local", ParamNode::PASS);
 
-  this->beta_ =
-      pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
-  this->eps_ =
-      pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
-  this->power_ =
-      pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
-  this->phase_ =
-      pn != NULL && pn->Has("phase") ?
-          phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
+  this->beta_ = pn != NULL && pn->Has("beta") ? pn->Get("beta")->As<double>() : -3.14;
+  this->eps_ = pn != NULL && pn->Has("eps") ? pn->Get("eps")->As<double>() : -3.14;
+  this->power_ = pn != NULL && pn->Has("power") ? pn->Get("power")->As<double>() : 2.0;
+  this->phase_ = pn != NULL && pn->Has("phase") ? phase.Parse(pn->Get("phase")->As<string>()) : BOTH; // only oscillation
 
   this->normalize_ = pn != NULL ? pn->Get("normalize")->As<bool>() : false;
 
@@ -852,14 +853,10 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   int dim3 = root->Get("a/matrix/dim1")->As<int>();
   int dim4 = root->Get("b/matrix/dim1")->As<int>();
   int dim5 = root->Get("c/matrix/dim1")->As<int>();
-  ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1,
-      this->vol_a_);
-  ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1,
-      this->vol_b_);
-  ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1,
-      this->vol_c_);
-  ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2,
-      this->vol_coeff_);
+  ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, this->vol_a_);
+  ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, this->vol_b_);
+  ParamTools::AsTensor<double>(root->Get("c/matrix/real"), dim5, 1, this->vol_c_);
+  ParamTools::AsTensor<double>(root->Get("volcoeff/matrix/real"), dim1, dim2, this->vol_coeff_);
   }
   //total volume in the non-regular case is needed for the volume calculations
   bool regular = space->IsRegular();

@@ -177,9 +177,15 @@ namespace CoupledField
          * Shall be called after CommitIteration() ! */
         virtual bool DoStopOptimization();
 
-        /** are we in the harmonic case? */
-        bool IsHarmonic() const { return harmonic; }
+        /** Do we have a harmonic problem? Then we are complex. Even if not, we might be eigenvalue and also complex*/
+        bool IsHarmonic() const { return harmonic_; }
         
+        /** we are complex in the harmonic or eigenvalue case */
+        bool IsComplex() const { return complex_; }
+
+        /** do we solve eigenvalue problems? Then we are complex! */
+        bool IsEigenvalue() const { return eigenvalue_; }
+
         /** are we in transient optimization? */
         static bool IsTransient();
         
@@ -335,9 +341,15 @@ namespace CoupledField
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** are we harmonic or static? */
-        bool harmonic;
+        /** are we harmonic/EV or static/transient? */
+        bool complex_;
         
+        /** only for the driver, not for complex_! */
+        bool harmonic_;
+
+        /** do we solve an eigenvalue problem. Includes block mode problems */
+        bool eigenvalue_;
+
         /** is the first step static */
         bool firstStepStatic;
         

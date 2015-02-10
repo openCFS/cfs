@@ -116,7 +116,7 @@ public:
 
   /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
    * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations(PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design);
+  void PrepareMultipleExcitations(Optimization* opt, bool eval_inital_design);
 
   /** Do we do adjust weights */
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }

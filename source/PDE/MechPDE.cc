@@ -1540,7 +1540,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     mtt->entryType = ResultInfo::SCALAR;
     mtt->definedOn = ResultInfo::ELEMENT;
     mtt->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mtt);
 
     // === MECH_SHAPE for ms optimization ===
     shared_ptr<ResultInfo> ms(new ResultInfo);
@@ -1552,9 +1552,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     ms->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ms);
 
-    // this is added via the optimization stuff in DesignSpace.
-
-
+    // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   
   std::map<SolutionType, shared_ptr<FeSpace> >

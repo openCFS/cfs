@@ -44,12 +44,23 @@ namespace CoupledField {
     writeModes_ = true;
     isQuadratic_ = false;
     isBloch_ = false;
+    blochSteps_ = 0;
     ibz_     = false;
+    eigenFreqs = NULL;
+
     // replace with a concrete element
     param_ = param_->Get("eigenFrequency");
     info_ = info_->Get("eigenFrequency");
   }
 
+  EigenFrequencyDriver::~EigenFrequencyDriver()
+  {
+    if(isBloch_)
+      bloch_plot_.close();
+
+    delete eigenFreqs;
+    eigenFreqs = NULL;
+  }
 
   void EigenFrequencyDriver::Init(bool restart)
   {
@@ -76,18 +87,14 @@ namespace CoupledField {
     if(isQuadratic_ && isBloch_)
       throw Exception("Bloch mode Eigenfrequency analysis not implemented for quadratic form");
 
+    // the eigenfrequencies are complex in the quadratic case or in bloch mode
+    if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
+                            else eigenFreqs = new Vector<Double>(numFreq_);
+
     InitializePDEs();
   }
 
 
-  // **********************
-  //   Default destructor
-  // **********************
-  EigenFrequencyDriver::~EigenFrequencyDriver()
-  {
-    if(isBloch_)
-      bloch_plot_.close();
-  }
 
 
   void EigenFrequencyDriver::FillWaveVectors(PtrParamNode bloch_pn)
@@ -203,8 +210,8 @@ namespace CoupledField {
   }
 
   template <class TYPE>
-  void EigenFrequencyDriver::PrintResult(SingleVector* freq_ptr, Vector<Double>& errBounds,
-                                         ResultHandler* resHandler, UInt numConverged, int wave_vector_step)
+  void EigenFrequencyDriver::PrintResult(SingleVector* freq_ptr, Vector<Double>& errBounds, ResultHandler* resHandler,
+                                         unsigned int numConverged, bool write_results, int wave_vector_step)
   {
     Vector<TYPE>& eigenFreqs = dynamic_cast<Vector<TYPE>&>(*freq_ptr);
     unsigned int dim = domain->GetGrid()->GetDim();
@@ -224,35 +231,44 @@ namespace CoupledField {
     }
 
     // console output (reduced form bloch)
-    if(isBloch_)
+    if(write_results)
     {
-      // single line printing
-      cout << std::endl << " step=" << wave_vector_step << " wave vector=" << current_wave_vector_.ToString() << " frequencies: ";
-      // also plot
-      std::stringstream ss;
-      ss << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
-      if(dim == 3)
-        ss << current_wave_vector_[2] << "\t";
+      if(isBloch_)
+      {
+        // single line printing
+        cout << std::endl << " step=" << wave_vector_step << " wave vector=" << current_wave_vector_.ToString() << " frequencies: ";
+        // also plot
+        std::stringstream ss;
+        ss << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
+        if(dim == 3)
+          ss << current_wave_vector_[2] << "\t";
 
-      bloch_plot_ << ss.str();
-      if(wave_vector_step == 0)
-        first_plot_line_ = ss.str();
+        bloch_plot_ << ss.str();
+        if(wave_vector_step == 0)
+          first_plot_line_ = ss.str();
+      }
+      else
+      {
+        cout << std::endl;
+        cout << setw(20) << "Frequency in Hz" << " | ";
+        if(isQuadratic_)
+          cout << setw(20) << "Damping       " << " | ";
+        cout << setw(20) << "Errorbound";
+        cout << "\n";
+        cout << std::setfill('-') << setw(isQuadratic_ ? 70 : 40) << "" << std::setfill(' ');
+        cout << "\n";
+      }
     }
-    else
-    {
-      cout << std::endl << std::endl;
-      cout << setw(20) << "Frequency [Hz]" << " | ";
-      if(isQuadratic_)
-        cout << setw(20) << "Damping       " << " | ";
-      cout << setw(20) << "Errorbound";
-      cout << "\n";
-      cout << std::setfill('-') << setw(isQuadratic_ ? 70 : 40) << "" << std::setfill(' ');
-      cout << "\n";
-    }
 
+    // also log via info node
+    PtrParamNode res = info_->Get("result", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT);
+    res->GetChildren().Resize(0);
 
+    // is not set for pure simulation
+    if(analysis_id_.ToString() != "")
+      res->Get("id")->SetValue(analysis_id_.ToString());
 
-    for( UInt i=0; i<numConverged; i++ )
+    for(unsigned int i=0; i < numConverged; i++)
     {
       // allways complex for real templated case
       Complex ev = (Complex) eigenFreqs[i];
@@ -260,26 +276,30 @@ namespace CoupledField {
       Double freq = isQuadratic_ ? ev.imag()/(8.0*atan(1.0)) : ev.real();
       Double damp = ev.real();
 
-      if(isBloch_)
+      // command line output only when not optimizing
+      if(write_results)
       {
-        cout << freq << (i < numConverged-1 ? ", " : "");
-        std::stringstream ss;
-        ss << freq << (i < numConverged-1 ? "\t" : "\n");
-        bloch_plot_ << ss.str();
-        if(wave_vector_step == 0) // to be repeated as first line!
-          first_plot_line_ += ss.str();
-      }
-      else
-      {
-        cout << setw(20) << freq <<" | ";
-        if(isQuadratic_)
-          cout << setw(20) << damp << " |  ";
-        cout << setw(20) << errBounds[i] <<  "\n";
+        if(isBloch_)
+        {
+          cout << freq << (i < numConverged-1 ? ", " : "");
+          std::stringstream ss;
+          ss << freq << (i < numConverged-1 ? "\t" : "\n");
+          bloch_plot_ << ss.str();
+          if(wave_vector_step == 0) // to be repeated as first line!
+            first_plot_line_ += ss.str();
+        }
+        else
+        {
+          cout << setw(20) << freq <<" | ";
+          if(isQuadratic_)
+            cout << setw(20) << damp << " |  ";
+          cout << setw(20) << errBounds[i] <<  "\n";
+        }
       }
 
-      // also log via info node
-      // BLOCH CECK: PtrParamNode result = info_->Get("result",ParamNode::APPEND);
-      PtrParamNode mode = info_->Get("result")->Get("mode",ParamNode::APPEND);
+      // res got cleared above, so we don't overlap with previous in case numConverged is too small
+      PtrParamNode mode = res->Get("mode", ParamNode::APPEND);
+
       if(isBloch_) {
         mode->Get("step")->SetValue(wave_vector_step);
         mode->Get("k_x")->SetValue(current_wave_vector_[0]);
@@ -289,31 +309,27 @@ namespace CoupledField {
       }
 
       mode->Get("nr")->SetValue(i+1); // not the mode but frequency in list
-
       mode->Get("frequency")->SetValue(freq);
       if(isQuadratic_)
         mode->Get("damping")->SetValue(damp);
       mode->Get("errorbound")->SetValue(errBounds[i]);
 
       // Phase 2: calculate eigenmodes
-      if ( writeModes_ == true )
+      if(write_results && writeModes_)
       {
         ptPDE_->GetSolveStep()->SetActStep(i);
         ptPDE_->GetSolveStep()->SetActFreq(std::abs(freq));
-        ptPDE_->GetSolveStep()->CalcEigenMode(i);
+        ptPDE_->GetSolveStep()->GetEigenMode(i);
         // in bloch mode analysis we solve the numFreq_ eigenmodes many_ times for different wave vectors
         unsigned int save_step = isBloch_ ? wave_vector_step * numFreq_  + i: i + 1;
         // for bloch case we label <step>.<nr> from the info.xml
         double       save_value = isBloch_ ? wave_vector_step + (i+1.0) / 100.0 : std::abs(freq);
-        resHandler->BeginStep(save_step, save_value);
-        ptPDE_->WriteResultsInFile(save_step, save_value);
-        resHandler->FinishStep();
-        if( writeAllSteps_ )
-          simState_->WriteStep(save_step, std::abs(eigenFreqs[i]) );
+
+        StoreResults(save_step, save_value);
       }
     }
 
-    if(isBloch_  && this->ibz_)
+    if(isBloch_ && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
       if(wave_vector_step == Integer(wave_vectors_.GetSize()) - 1)
@@ -323,6 +339,22 @@ namespace CoupledField {
 
   }
   
+  void EigenFrequencyDriver::StoreResults(UInt stepNum, double step_val)
+  {
+    assert(analysis_ == BasePDE::EIGENFREQUENCY);
+
+    handler_->BeginStep(stepNum, step_val);
+    ptPDE_->WriteResultsInFile(stepNum, step_val);
+    ptPDE_->WriteGeneralPDEdefines();
+    handler_->FinishStep();
+    if( writeAllSteps_ || isPartOfSequence_ )
+      simState_->WriteStep(stepNum, step_val );
+
+    domain_->GetResultHandler()->FinishMultiSequenceStep();
+
+  }
+
+
   // *****************
   //   Solve problem
   // *****************
@@ -334,20 +366,19 @@ namespace CoupledField {
     // we have to estimate the number of steps as we might loop over bloch modes
     unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1);
     // notify resultHandler about beginning of new sequence step
-    resHandler->BeginMultiSequenceStep( sequenceStep_, analysis_, n);
-    if( writeAllSteps_ )
-      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+    // see comments in StaticDriver::SolveProblem() for the interplay with optimization
+    if(!domain->GetOptimization())
+       resHandler->BeginMultiSequenceStep(sequenceStep_, analysis_, n);
 
+    if(writeAllSteps_ || isPartOfSequence_)
+      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
 
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
     // ------------------------------
     
     // the eigenfrequencies are complex in the quadratic case or in bloch mode
-    SingleVector* eigenFreqs = NULL;
-    if(isQuadratic_ || isBloch_) eigenFreqs = new Vector<Complex>(numFreq_);
-                            else eigenFreqs = new Vector<Double>(numFreq_);
-
+    eigenFreqs->Init();
     Vector<Double> errBounds( numFreq_ );
 
     // Trigger calculation 
@@ -368,31 +399,29 @@ namespace CoupledField {
 
         Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
         conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_);
-        PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, i);
+        PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, write_results, i);
       }
     }
     if(isQuadratic_ && !isBloch_)
     {
       Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
       conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_);
-      PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv);
+      PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, write_results);
     }
     if(!isQuadratic_ && !isBloch_) // real generalized
     {
       Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
       conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_);
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, conv);
+      PrintResult<Double>(eigenFreqs, errBounds, resHandler, conv, write_results);
     }
     
     // notify resultHandler about finishing of current sequence step
-    resHandler->FinishMultiSequenceStep();
-    if( !isPartOfSequence_ ) {
-      resHandler->Finalize();
-    }
-    if( writeAllSteps_ )
-      simState_->FinishMultiSequenceStep(true);
+    if(write_results && !isPartOfSequence_)
+      resHandler->Finalize(); // to be called only once in a hdf5 lifetime
 
-    delete eigenFreqs; // hopefully this is no problem for optimization
+
+    if(writeAllSteps_ || isPartOfSequence_)
+      simState_->FinishMultiSequenceStep(true);
   }
   
   

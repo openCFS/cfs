@@ -150,7 +150,6 @@ namespace CoupledField {
       EXCEPTION( "BaseVector::GetEntry: Not over-written by derived class" );
     }
 
-
     // Get/Set/AddToEntry versions for non-Double entry 
 #define DECL_ENTRY_FCN(TYPE) \
 virtual void SetEntry( UInt i, const TYPE &val ){                \

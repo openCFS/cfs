@@ -179,7 +179,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   Matrix<T> rhs_transp;
   Matrix<double> coords; // for the Jacobi determinant we need the coordinates
 
-  bool harmonic = em->IsHarmonic();
+  bool harmonic = em->IsComplex();
 
   out.Resize(forward->Get(*excite)->GetVector(ErsatzMaterial::Solution::RAW_VECTOR)->GetSize(), T());
 

@@ -123,7 +123,7 @@ protected:
   DesignSpace* space;
   
   // short cuts
-  bool harmonic_;
+  bool complex_;
   bool transient_;
   bool structured_;
 

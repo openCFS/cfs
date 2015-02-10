@@ -1,8 +1,12 @@
 #include "ResultFunctor.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
+
+DECLARE_LOG(resfunc)
+DEFINE_LOG(resfunc, "resultFunctor")
 
 
 // --------------------------------------------------------------------------
@@ -247,6 +251,8 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
   Vector<Complex>& vec = actSol.GetVector();
   vec.Resize( nameIt.GetSize() );
 
+  LOG_DBG2(resfunc) << "ERF<C>:ER " << res->GetResultInfo()->resultName << " acc=" << accuracy_ << " factor=" << factor_;
+
   // Loop over regions
   for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
     shared_ptr<EntityList> actSDList = 
@@ -277,6 +283,8 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
           temp = elemMatR * elemSol;
         }
         tempEnergy += (temp.Inner(elemSol) ) * factor_;
+        LOG_DBG3(resfunc) << "ERF<C>:ER e=" << el->elemNum << " sol=" << elemSol.ToString() << " spf=" << (temp.Inner(elemSol) ) * factor_ << " -> " << tempEnergy;
+
       }  else if( accuracy_ == MIDPOINT ) {
 
         // =====================

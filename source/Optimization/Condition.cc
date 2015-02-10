@@ -14,6 +14,7 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Driver/FormsContexts.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
@@ -606,6 +607,9 @@ string Condition::ToString(MultipleExcitation* me) const
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
+  if(type_ == EIGENVALUE)
+    os << "_" << eigenvalue_id_;
+
   return os.str();  
 }
 
@@ -1025,11 +1029,34 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
     all[i]->SetExcitation(me);
   }
 
+  // check for uniqueness of the eigenvalue id
+  if(em->IsEigenvalue())
+  {
+    unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumFreqs();
+
+    StdVector<unsigned int> ids;
+
+    for(unsigned int i = 0; i < all.GetSize(); i++)
+    {
+      if(all[i]->GetType() == Function::EIGENVALUE)
+      {
+        unsigned int id = all[i]->GetEigenValueID();
+        assert(id > 0); // ensured by xml schema
+        if(id > max)
+          EXCEPTION("eigenvalue id 'ev'" << id << " larger the the " << max << " calculated eigenfrequencies");
+
+        if(ids.Contains(id))
+          EXCEPTION("eigenvalue id 'ev'" << id << " is not unique");
+
+        ids.Push_back(id);
+      }
+    }
+  }
+
   // for stress constraints with multiple excitation we insert additional stress constraints for
   // the specific excitations. This cannot be done in all.
   Condition::AddExcitationStressConstraints(active, me);
   Condition::AddExcitationStressConstraints(observe, me);
-
 
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }

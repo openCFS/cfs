@@ -542,7 +542,7 @@ namespace CoupledField {
     condNumber = evs[evs.GetSize()-1] / evs[0];
   }
 
-  void ArpackEigenSolver::CalcEigenMode( UInt modeNr, Vector<Complex> & mode ) {
+  void ArpackEigenSolver::GetEigenMode( UInt modeNr, Vector<Complex> & mode ) {
 
     UInt size = matrixA_->GetNumRows();
     mode.Resize( size );
@@ -556,9 +556,9 @@ namespace CoupledField {
 
   }
 
-  void ArpackEigenSolver::CalcComplexEigenMode( UInt modeNr, Vector<Complex>& mode)
+  void ArpackEigenSolver::GetComplexEigenMode( UInt modeNr, Vector<Complex>& mode)
   {
-    // in bloch mode case the same as CalcEigenMode,
+    // in bloch mode case the same as GetEigenMode,
     // in quadratic case the modes have internally double size and we want the upper half
     
     UInt size = matrixA_->GetNumRows();

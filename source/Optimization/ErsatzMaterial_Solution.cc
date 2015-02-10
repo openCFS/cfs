@@ -200,7 +200,7 @@ std::string ErsatzMaterial::Solution::ToString()
 
 SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, Application app, bool save_sol, DERIVType derivative)
 {
-  if (em_->harmonic)
+  if (em_->complex_)
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
   else
     return Read<double> (st, pde, app, save_sol, derivative);
@@ -209,7 +209,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
 /** Writes the solution (raw vector) back to the pde */
 void ErsatzMaterial::Solution::Write(SinglePDE* pde)
 {
-  if (em_->harmonic)
+  if (em_->complex_)
     Write<std::complex<double> >(pde);
   else
     Write<double>(pde);

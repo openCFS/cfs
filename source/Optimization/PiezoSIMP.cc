@@ -82,7 +82,7 @@ PiezoSIMP::~PiezoSIMP()
 void PiezoSIMP::PostInit()
 {
   // ignores the SetPDE() framework :(
-  if(harmonic) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
+  if(complex_) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
           else elecRHS.Init<double>(design, CHARGE_DENSITY);
 
   SIMP::PostInit();
@@ -231,7 +231,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::ELEC_ENERGY:
     if(!derivative)
     {
-      return harmonic ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
+      return complex_ ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
     }
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 
@@ -328,7 +328,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 
 template <class T1, class T2>
-void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
@@ -355,7 +355,7 @@ void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Appli
 
   default:
     // mech and surface normal matrix are handled in SIMP
-    SIMP::SetElementK(de, tf, app, mat_out, calcMode, derivative);
+    SIMP::SetElementK(de, tf, app, mat_out, derivative, calcMode, ev);
     return; // all calculation done there (or assert!)
   }
 

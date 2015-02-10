@@ -824,17 +824,29 @@ namespace CoupledField {
 
     if(post_solve)
     {
-      // Export solution if desired
+      // Export solution if desired. In the eigenvalue case the solutions are the eigenvectors
       if(els->Get("solution")->As<bool>())
-        sol_->Export(base + "_sol", vec_format);
+      {
+        if(!eigenSolver_)
+          sol_->Export(base + "_sol", vec_format);
+        else
+        {
+          // we have not one solution but all the eigenvectors
+          assert(eigenValues_ != NULL);
+          for(unsigned int i = 0; i < eigenValues_->GetSize(); i++)
+          {
+            GetEigenMode(i);
+            sol_->Export(base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+          }
+        }
+      }
     }
   }
 
 
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Double>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating real-valued eigenfrequencies";
 
     // Trigger calculation of eigenvalues
@@ -846,11 +858,12 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true); // the modes are actually not the solution
   }
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Complex>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating complex-valued eigenfrequencies";
 
     // Check, if eigenvalue solver is quadratic, as only in this case
@@ -870,19 +883,21 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true);
   }
 
-  void AlgebraicSys::CalcEigenMode( UInt numMode )  {
+  void AlgebraicSys::GetEigenMode( UInt numMode )  {
     
-    LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
+    LOG_DBG(algSys) << "GEM #" << numMode;
     if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-       eigenSolver_->CalcComplexEigenMode( numMode, solHelp );
+       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+       eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
-      Vector<Complex> & solHelp =
-        dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-      eigenSolver_->CalcEigenMode( numMode, solHelp );
+      Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+      eigenSolver_->GetEigenMode(numMode, solHelp);
     }
+    LOG_DBG(algSys) << "GEM -> " << sol_->ToString();
   }
 
   void AlgebraicSys::GraphSetupInit( UInt numFcts, 
@@ -2493,26 +2508,31 @@ namespace CoupledField {
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
       Double entry = 0.0;
-#pragma omp parallel for private (entry)
-      for( UInt i = 0; i < size; ++i ) {
-
+      #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
-        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
           if ( setIDBC ) 
             idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
           else 
             entry = 0.0;
-        } else {
+        }
+        else
+        {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
       }
 
-    } else {
+    }
+    else
+    {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
       Complex entry = 0.0;
-#pragma omp parallel for private (entry)
+      #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value
