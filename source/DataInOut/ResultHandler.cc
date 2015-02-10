@@ -134,7 +134,7 @@ namespace CoupledField {
     if( postProcName != "" ) {
       RegisterResultRec( *actContext, postProcName );
     }
-    LOG_TRACE(resHandler) << "Finished registering result" << std::endl;
+    LOG_DBG(resHandler) << "Finished registering result" << std::endl;
   }
   
   void ResultHandler::BeginMultiSequenceStep( UInt step, BasePDE::AnalysisType type, UInt numSteps )
@@ -188,41 +188,32 @@ namespace CoupledField {
       it->second->BeginStep( stepNum, stepVal );
     }
     
-    LOG_TRACE(resHandler) << "Finished beginning of new step" << std::endl;
+    LOG_DBG(resHandler) << "Finished beginning of new step" << std::endl;
   }
 
   void ResultHandler::UpdateResult( shared_ptr<BaseResult> sol ) {
 
-    LOG_TRACE(resHandler) << "Updating results";
+    LOG_DBG(resHandler) << "UR: " << sol->GetResultInfo()->ToString();
     
     // check, if result is to be updated
-    if( isNeeded_.find(sol) == isNeeded_.end() ) {
-      WARN("Result '" 
-           << sol->GetResultInfo()->resultName
-           << "' on entitylist '"
-           << sol->GetEntityList()->GetName() 
-           << "' is not needed in step " << actStep_);
-    }
+    if(isNeeded_.find(sol) == isNeeded_.end())
+      WARN("Result '" << sol->GetResultInfo()->resultName << "' on entitylist '" << sol->GetEntityList()->GetName() << "' is not needed in step " << actStep_);
 
     // Set flag for update to true
     isUpdated_.insert( sol );
 
-    LOG_DBG(resHandler) << "Result '" 
-                        << sol->GetResultInfo()->resultName
-                        << "' was provided on '"
-                        << sol->GetEntityList()->GetName() 
-                        << "' in step " << actStep_;
+    LOG_DBG(resHandler) << "Result '" << sol->GetResultInfo()->resultName << "' was provided on '" << sol->GetEntityList()->GetName() << "' in step " << actStep_;
 
     // Update results recursively (for postprocessing results )
-    UpdateResultRec( *(resultContexts_[sol] ) );
-    LOG_TRACE(resHandler) << "Finished updating results" << std::endl;
+    UpdateResultRec(*(resultContexts_[sol]));
+    LOG_DBG(resHandler) << "UR: finished";
   }
 
   void ResultHandler::UpdateResults() {
-    LOG_TRACE(resHandler) << "Updating results" << std::endl;
+    LOG_DBG(resHandler) << "UR: needed=" << isNeeded_.size();
     // iterate over all results, which are needed
-    std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin();
-    for( ; it != isNeeded_.end(); it++ ) {
+    for(std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin(); it != isNeeded_.end(); it++)
+    {
       ResultContext & actContext = *(resultContexts_[*it]);
 
       if( actContext.functor ) {
@@ -236,7 +227,7 @@ namespace CoupledField {
 
   void ResultHandler::FinishStep( ) {
     
-    LOG_TRACE(resHandler) << "Starting to finish step " << actStep_;
+    LOG_DBG(resHandler) << "Starting to finish step " << actStep_;
 
     // -----------------------
     // First, update results
@@ -329,7 +320,7 @@ namespace CoupledField {
     fileIt->second->FinishStep( );
   }    
 
-  LOG_TRACE(resHandler) << "Finished step " << actStep_ << std::endl;
+  LOG_DBG(resHandler) << "Finished step " << actStep_ << std::endl;
 }
 
   void ResultHandler::FinishMultiSequenceStep() {
@@ -651,7 +642,7 @@ namespace CoupledField {
 
   void ResultHandler::Finalize() {
         
-    LOG_TRACE(resHandler) << "Starting to Finalize";
+    LOG_DBG(resHandler) << "Starting to Finalize";
     
     // Trigger writing and finalizing of all output writers
     std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;
@@ -661,12 +652,12 @@ namespace CoupledField {
       fileIt->second->Finalize( );
     }    
 
-    LOG_TRACE(resHandler) << "Finished Finalizing" << std::endl;
+    LOG_DBG(resHandler) << "Finished Finalizing" << std::endl;
   }
 
   void ResultHandler::FinishMultiSequenceStepRec( ResultContext& actContext ) {
 
-    LOG_TRACE(resHandler) << "Starting to finish MsStep  recursively";
+    LOG_DBG(resHandler) << "Starting to finish MsStep  recursively";
     assert( actContext.postProcs.GetSize() ==
             actContext.nextContexts.GetSize() );
     
@@ -709,7 +700,7 @@ namespace CoupledField {
       // Call FinalizeRec recursively for each next-context in any case
       FinishMultiSequenceStepRec( next );
     }
-    LOG_TRACE(resHandler) << "Finished MsStep recursively";
+    LOG_DBG(resHandler) << "Finished MsStep recursively";
   }
   
 

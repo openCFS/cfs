@@ -755,15 +755,15 @@ namespace CoupledField {
       return eigenTolerances_[i];
   }
 
-  Double *ArpackSolver::GetEigenvector( UInt modeNr ) {
+  Double* ArpackSolver::GetEigenvector(UInt modeNr) {
       return dynamic_cast<Vector<Double>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
-  Complex *ArpackSolver::GetComplexEigenvector( UInt modeNr ) {
+  Complex* ArpackSolver::GetComplexEigenvector(UInt modeNr) {
     return dynamic_cast<Vector<Complex>&>(*eigenVectors_).GetPointer() + modeNr*size_;
   }
   
-  std::string ArpackSolver::ArpackError( Integer errNo ) {
+  std::string ArpackSolver::ArpackError(Integer errNo) {
     std::string msg;
 
     switch (errNo ) {

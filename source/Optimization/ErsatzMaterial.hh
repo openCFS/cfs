@@ -131,6 +131,9 @@ public:
      *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
      * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
     SingleVector* Read(StorageType st, SinglePDE* pde, Application app = NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+
+    template<class T>
+    SingleVector* Read(StorageType st, SinglePDE* pde, Application app,  bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
     
     /** Writes the solution (raw vector) back to the pde */
     void Write(SinglePDE* pde);
@@ -169,9 +172,6 @@ public:
     std::map<Application, StdVector<SingleVector*> > gridelem;
 
   private:
-    template<class T>
-    SingleVector* Read(StorageType st, SinglePDE* pde, Application app,
-        bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
 
     template<class T>
     void Write(SinglePDE* pde);
@@ -206,7 +206,7 @@ public:
 
 
   /** As the solutions come for multiple excitations in sets we store the list and the
-   * averaged (when mutiple excitations are enabled). W/o is just some overhead with data size = 1 */
+   * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1 */
   class Solutions
   {
   public:
@@ -280,8 +280,10 @@ public:
   enum CalcMode
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
-    CONJ_QUAD
+    CONJ_QUAD,
+    EIGENVALUE    /*!< The derivative is u^T ( K' - ev M') u */
   };
+
   /*!< add <u, K' u> which is in the real case as STANDARD
    and for the harmonic case u^T K' u^* (conj. complex). u1 = u2 = u!! */
   /** Calculate the sum of  \f$ l^T K'u - f'\f$ or \f$ 2 Re{l^T K'u} - f'\f$ or \f$ <K'l,u> - f'\f$.
@@ -301,12 +303,12 @@ public:
    * @param rhs if one want to do \f$<l,K'u-f'>\f$ this contains the info for \f$-f'\f$.
    * @param factor see above, more complex in radiation case.
    * @param calcMode how to solve the product.
-   * @param f if set then an objective gradient with the set index is stored
-   * @param g as f for constrained gradient
-   * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result*/
+   * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result
+   * @param ev in the eigenvalue case factor for M' which is the eigenvalue. Then calcMode is EIGENVALUE */
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
-      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
+
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
@@ -317,9 +319,7 @@ public:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf,
-      Application app, DenseMatrix* out, CalcMode calcMode, bool derivative =
-          true)
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
   {
     throw Exception("not implemented");
   }
@@ -402,6 +402,9 @@ public:
 
   /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
   double CalcProjection(Function* f, bool derivative);
+
+  /** Standard Eigenvalue problem */
+  double CalcEigenvalue(Function* f, bool derivative);
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
@@ -528,7 +531,7 @@ private:
   template<class T> double CalcU1KU2(TransferFunction* tf,
       StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
-      int res_idx);
+      int res_idx, double ev);
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and

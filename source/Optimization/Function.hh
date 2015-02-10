@@ -96,6 +96,7 @@ class Function
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
+      EIGENVALUE,                /*!< with the attribute ev for the number of the eigenvalue */
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -173,6 +174,9 @@ class Function
     /** Shall harmonic optimization multiply with omega^2.
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
     bool FactorOmegaOmega() const { return omega_omega_; }
+
+    /** The number of the eigenvalue (mode), one based! */
+    unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?
      * Stress constraints in homogenization are triggered for a single constraint only.
@@ -638,10 +642,8 @@ class Function
     /** The current function value */
     double value_;
 
-
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
-
 
     /** @see IsPhysical() */
     bool physical_;
@@ -660,7 +662,11 @@ class Function
     /** @see FactorOmegaOmega() */
     bool omega_omega_;
 
-    bool harmonic_;
+    /** the "ev" parameter for the eigenvalue function. 1-based! */
+    int eigenvalue_id_;
+
+    /** complex for harmonic and eigenvalue problems */
+    bool complex_;
 
     /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
     bool linear_;

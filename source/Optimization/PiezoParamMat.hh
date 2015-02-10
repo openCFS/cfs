@@ -20,7 +20,7 @@ public:
 private:
 
   /** @see PiezoSIMO::SetElementK() */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 };
 
 } // end of namespace

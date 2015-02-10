@@ -203,7 +203,7 @@ namespace CoupledField {
     //! The resulting eigenfrequencies are stored into an array, as well as the
     //! resulting error.
     //! \param frequencies Read-only buffer which contains the eigenfrequencies
-    //!                    of the generalized eigenvalue problem
+    //!                    of the generalized eigenvalue problem. The eigenvalues are (2*pi*f)^2 !!
     //! \param err Reached error norm for each eigenvalue
     //! \return Number of converged eigenvalues
     //! \note This method may only be calaled if SetupEigenfrequencySolver()
@@ -239,7 +239,7 @@ namespace CoupledField {
     //!                eigenfrequency
     //! \note This method may only ba called if SetupEigenfrequencySolver()
     //!       and CalcEigenfrequencies was called previously.
-    void CalcEigenMode( UInt numMode );
+    void GetEigenMode(UInt numMode);
 
     //@}
 

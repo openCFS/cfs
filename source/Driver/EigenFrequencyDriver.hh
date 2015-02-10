@@ -49,15 +49,26 @@ class SingleVector;
     /** @see current_wave_vector_ */
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
+    /** the resent calculated eigenvalues. Might be complex */
+    SingleVector* eigenFreqs;
+
+    /** The number of the lowest eigenfrequencies to be calculated */
+    unsigned int GetNumFreqs() const { return numFreq_; }
+
+    /** @see BaseDriver::StoreResults() */
+    void StoreResults(UInt stepNum, double step_val);
+
   private:
 
     /** fill wave_vectors_ */
     void FillWaveVectors(PtrParamNode bloch_pn);
 
-    /** This is the templated form to handle the general and quadratic case */
+    /** This is the templated form to handle the general and quadratic case.
+     * Will also call StoreResults() to write the modes
+     * @param write_results is false if called within Optimization. Optimization itself will call only StoreResults() in Optimiaztion::CommitIteration() */
     template <class T>
-    void PrintResult(SingleVector* frequencies, Vector<Double>& bounds,
-                     ResultHandler* resHandler, UInt numConverged, int wave_vector_step = -1);
+    void PrintResult(SingleVector* frequencies, Vector<Double>& bounds, ResultHandler* resHandler, unsigned int numConverged,
+                     bool write_results, int wave_vector_step = -1);
     
     //! Flag indicating, if a quadratic eigenvalue problem is to
     //! be solved
@@ -67,10 +78,10 @@ class SingleVector;
     bool isBloch_;
     
     //! Number of eigenfrequencies to be calculated
-    UInt numFreq_;
+    unsigned int numFreq_;
 
     // In case we do Bloch mode analysis, the number of steps (to be multiplied by numFreq_)
-    UInt blochSteps_;
+    unsigned int blochSteps_;
 
     //! Shift for eigenvalues
     Double freqShift_;
@@ -93,6 +104,7 @@ class SingleVector;
 
     /** store the first plot.dat line to be repeated in the ibz_ case as last step */
     std::string first_plot_line_;
+
   };
 
 }

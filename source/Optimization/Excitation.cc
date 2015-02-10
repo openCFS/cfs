@@ -89,7 +89,7 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
 }
 
 
-void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bool harmonic, bool eval_inital_design)
+void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval_inital_design)
 {
   Assemble* ass = domain->GetBasePDE()->GetAssemble();
 
@@ -103,7 +103,7 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
 
-  int num_freq  = !harmonic ? 0 : dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize();
+  int num_freq  = opt->IsHarmonic() ? dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize() : 0;
 
   int num_loads = ass->GetLinForms().GetSize();  // to be faked later for homogenization test strains
   LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads;
@@ -118,7 +118,7 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
   {
     // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
     // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
-    if(!harmonic && pn->Has("multipleExcitation/excitations"))
+    if(!opt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
     {
       pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
       num_loads = pn_ex.GetSize();
@@ -153,7 +153,7 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
   // this sets the first and only excitation even when we have multiple harmonic forward case
   // but not multiple excitations. Then only the first frquency is called.
   // Fills the excitations list with the data provided in the xml file as problem description
-  if(harmonic)
+  if(opt->IsHarmonic())
   {
     HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
 
@@ -170,7 +170,7 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
       weight_sum += ex.weight;
     }
   }
-  if(!harmonic && IsEnabled()) // multiple loads case
+  if(!opt->IsHarmonic() && IsEnabled()) // multiple loads case
   {
     // when the loads are given in the optimization section of the xml file
     if(pn_ex.GetSize() > 0)
@@ -181,7 +181,7 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
 
       // don't mix optimization excitations with bcsAndLoads stuff
       if(ass->GetLinForms().GetSize() > 0)
-        optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->
+        opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->
             SetValue("Excitations are given in optimization mulitload. "
             + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
             + " loads from the bcsAndLoads section will be deleted.");
@@ -242,9 +242,9 @@ void MultipleExcitation::PrepareMultipleExcitations(PtrParamNode optInfoNode, bo
 
   // calc the inital normalized_weight and print info.
 
-  if(IsEnabled() || harmonic)
+  if(IsEnabled() || opt->IsHarmonic())
   {
-    PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
+    PtrParamNode in = opt->optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
 
     if(!IsEnabled() && num_freq > 1 && !eval_inital_design)
     {

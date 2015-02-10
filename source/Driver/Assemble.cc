@@ -586,6 +586,32 @@ namespace CoupledField
               }
             }
 
+            // info.xml logging in detailed logging case for the first element only
+            if(i == 0 && progOpts->DoDetailedInfo())
+            {
+              PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+              // make sure to have only one output for non-static case (e.g. optimization)
+              std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
+              bool found = false;
+              ParamNodeList list = in->GetListByVal("tensor", "form", form->GetName());
+              for(unsigned int li = 0; li < list.GetSize(); li++)
+                if(list[li]->HasByVal("region", reg_name) && list[li]->HasByVal("element", it1.GetElem()->elemNum))
+                  found = true;
+
+              if(!found)
+              {
+                in = in->Get("tensor", ParamNode::APPEND);
+                in->Get("form")->SetValue(form->GetName());
+                in->Get("region")->SetValue(reg_name);
+                in->Get("element")->SetValue(it1.GetElem()->elemNum);
+                // it makes sense to add the analysis id here
+                if(form->IsComplex())
+                  in->Get("matrix")->SetValue(elemMatrixC);
+                else
+                  in->Get("matrix")->SetValue(elemMatrix);
+              }
+            }
+
             // Map equation numbers
             actContext.MapEqns( it1, it2, eqnVec1, eqnVec2, fctId1, fctId2 );
             // Perform remapping

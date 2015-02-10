@@ -123,11 +123,11 @@ namespace CoupledField {
     //! Calculate a particular eigenmode as a postprocessing solution
 
     //! This method may be called after the CalcEigenFrequencies() method.
-    //! It calculates a given eigenmode and stores in a use supplied vector.
+    //! It returns a given eigenmode and stores in a use supplied vector.
     //! \param modeNr Number of the (converged) eigenmode to be calculated
     //! \param mode Vector with the eignmode
-    virtual void CalcEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
-    virtual void CalcComplexEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
+    virtual void GetEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
+    virtual void GetComplexEigenMode( UInt modeNr, Vector<Complex> & mode ) = 0;
     
     
     //! Calculate condition number

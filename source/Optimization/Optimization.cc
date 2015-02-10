@@ -85,7 +85,10 @@ Optimization::Optimization()
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
-  this->harmonic = domain->GetDriver()->IsComplex(); // no multi-sequence
+  // even a standard EV problem is in CFS complex (with imag=0). For Bloch we are complex anyways
+  this->complex_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
+  this->harmonic_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC;
+  this->eigenvalue_ = domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
@@ -94,6 +97,10 @@ Optimization::Optimization()
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
+
+  assert((complex_ && driver->IsComplex()) || (!complex_ && !driver->IsComplex()));
+
+
   if(driver->GetDriverClass() != BaseDriver::SINGLE_DRIVER)
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
 
@@ -121,7 +128,7 @@ Optimization::Optimization()
   // this->assemble_ = pde->GetAssemble();
 
   // constraints to be added later -- it is so much easier with the ParamNodes
-  this->log.fileHeader = harmonic ? "#iter\tfreq" : "#iter";
+  this->log.fileHeader = harmonic_ ? "#iter\tfreq" : "#iter";
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
     this->log.fileHeader += "\t" + objectives.data[i]->GetName();
   this->log.fileHeader += "\tchange\tproblems";
@@ -184,7 +191,6 @@ void Optimization::PostInit()
   this->assemble_ = pde->GetAssemble();
 
 }
-
 
 void Optimization::PostInitSecond()
 {
@@ -343,6 +349,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
+  Function::type.Add(Function::EIGENVALUE, "eigenvalue");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
@@ -641,7 +648,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   }
                                          
   // Do not store the results. This is to be done in CommitIteration
-  if(!harmonic || excite == NULL)
+  if(!harmonic_ || excite == NULL)
   {
     driver->SolveProblem(false);
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
@@ -671,7 +678,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   }
 
   // Do not store the results. This is adjoint.
-  if(!harmonic)
+  if(!complex_)
     assert(false);
     // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
@@ -975,7 +982,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out)
   {
     *out << currentIteration;
-    if(harmonic) *out << "\t" << GetIterationFrequency();
+    if(harmonic_) *out << "\t" << GetIterationFrequency();
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
       *out << "\t" << objectives.data[i]->GetValue();
@@ -984,7 +991,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   }
 
   iteration->Get("number")->SetValue(currentIteration);
-  if(harmonic) iteration->Get("frequency")->SetValue(GetIterationFrequency());
+  if(harmonic_) iteration->Get("frequency")->SetValue(GetIterationFrequency());
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {

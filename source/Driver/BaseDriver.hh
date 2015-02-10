@@ -49,8 +49,7 @@ namespace CoupledField
      * will have been called with write_results = true.<p>
      * <p>Note that you have to Wrap within a Multisequencestep and finalize the result handler explicitly, 
      * as this can be done only once for HDF5 -> this is done in Optimization::SolveProblem()</p> */
-    virtual void StoreResults(UInt stepNum = 1,
-                              double step_val = -1.0) { assert(false); }
+    virtual void StoreResults(UInt stepNum = 1, double step_val = -1.0) { assert(false); }
 
     //! Return current analysistype
 
@@ -88,6 +87,7 @@ namespace CoupledField
     /** Helper method which determines if an AnalyisType is complex. */
     virtual bool IsComplex() = 0;
 
+    PtrParamNode GetInfo() { return info_; }
   protected:
     
     //! type of analysis

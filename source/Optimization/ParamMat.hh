@@ -27,7 +27,7 @@ class TransferFunction;
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
+    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0);
     
     /** this is a shortcut to the material class */
     MechMat* mech_mat_;

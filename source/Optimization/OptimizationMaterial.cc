@@ -50,7 +50,7 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* spac
 
   regionIds = this->space->GetRegionIds();
 
-  harmonic_ =  domain->GetDriver()->IsComplex();
+  complex_ =  em->IsComplex();
   transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
@@ -343,7 +343,7 @@ void MechMat::Init()
         LOG_DBG(om) << "OptMechMat: MechStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial" << std::endl << K.Last().ToString(0,true);
       }
 
-      if(harmonic_ || transient_)
+      if(complex_ || transient_)
       {
         mechMass_map[reg_id].Push_back(Matrix<double>());
 
@@ -498,7 +498,7 @@ AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
     if(dr->HasBiMaterial())
       GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
 
-    if(harmonic_)
+    if(complex_)
     {
       GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
 
@@ -720,7 +720,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, NULL, direction);
       elecStiffness_map[elem->regionId].first.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].first.SetPart(Global::REAL, tmp_mat);
-      if (opt->IsHarmonic()){
+      if (opt->IsComplex()){
         GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, NULL, direction);
         elecStiffness_map[elem->regionId].first.SetPart(Global::IMAG, tmp_mat);
         //  GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].first, elem, NULL, direction);
@@ -732,7 +732,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, bm, direction);
       elecStiffness_map[elem->regionId].second.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].second.SetPart(Global::REAL, tmp_mat);
-      if (opt->IsHarmonic()){
+      if (opt->IsComplex()){
         GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, bm, direction);
         elecStiffness_map[elem->regionId].second.SetPart(Global::IMAG, tmp_mat);
         //  GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].second, elem, bm, direction);

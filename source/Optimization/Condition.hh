@@ -196,7 +196,6 @@ namespace CoupledField
        */
       bool imag_;
 
-
       /** this is the virtual base index of this condition w.r.t. all conditions.
        * For normal condition this is simple the virtual index, for local conditions this is the base*/
       int virtual_base_index_;

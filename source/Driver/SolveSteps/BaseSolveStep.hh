@@ -85,9 +85,9 @@ namespace CoupledField
       return 0;
     }
     
-    //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
+    //! extract the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
-    virtual void CalcEigenMode( UInt numMode ) {
+    virtual void GetEigenMode( UInt numMode ) {
       EXCEPTION( "Not implemented here!" );
     }
 

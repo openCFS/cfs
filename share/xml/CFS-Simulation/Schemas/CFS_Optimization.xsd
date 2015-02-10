@@ -315,6 +315,8 @@
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
                 <xsd:enumeration value="shape_inf"/>
+                <!-- eigenvalue problem where number of of the mode is in attribute ev -->
+                <xsd:enumeration value="eigenvalue"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -412,6 +414,10 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
+          
+          <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
+          <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+          
         </xsd:complexType>
         
         <xsd:unique name="opt_unique_constraint">
