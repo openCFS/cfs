@@ -280,7 +280,14 @@ namespace CoupledField {
 
     // Get component names and register them within the specified parser
     std::string tempName;
-    for ( UInt i = 1; i <= locCoord.GetSize(); i++ ) {
+
+    UInt maxDim = locCoord.GetSize();
+    if(maxDim==3 && coosy.GetDim()==2){
+      //WARN("Dimension of coordinate vector is 3 but 2D setup ignoring third component");
+      maxDim =2;
+    }
+
+    for ( UInt i = 1; i <= maxDim; i++ ) {
       tempName = coosy.GetDofName(i);
       SetValue( handler, tempName, locCoord[i-1] );
     }
