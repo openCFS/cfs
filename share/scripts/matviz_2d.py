@@ -510,25 +510,38 @@ def show_modified_frame_old(coords, s1, s2, angle, direction, nx, scale, color, 
 # # visualize the orientational stiffness
 # @param grad is 'none' or 'linear'
 # @return the image
-def show_frame(coords, s1, s2, directions, nx,scale=1.):
-  #TODO: implement scale
+def show_frame(coords, s1, s2, directions, nx,scale):
+  if scale == -1.:
+    scale = 1.
+  assert(scale <= 1.)
   centers, min, max, elem = coords
-  im, draw, dim, dx, dy = create_image(min, max, nx, "black")
-  height = elem[1] * dy 
-  length = elem[0] * dx
+  im, draw, dim, dx, dy = create_image(min, max, nx, "white")
+  height = scale*elem[1] * dy 
+  length = scale*elem[0] * dx
+  #print 'elem0 = ' +str(elem[0]) + ' dx = ' +str(dx) 
+  #print 'height = ' +str(height)+', lenght= '+str(length)
+  #print 'dim = '+str(dim)
+  eps = 1e-8
   for i in range(len(s1)):
-    coord = centers[i]     
-    x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
-    y_off = (coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
-    ver = s2[i, 0]
-    hor = s1[i, 0]
-      
+    coord = centers[i]
+    #print 'coord = '+str(coord)
+    x_off = int(coord[0]*dx+min[0]-height/(2.)+eps)
+    y_off = int(dy-coord[1]*dy+min[1]-height/(2.)+eps)     
+    #x_off = (coord[0] + min[0] - 0.5 * elem[0]) * dim[0] 
+    #y_off = nx-1-(length/scale)/2.-(coord[1] + min[1] - 0.5 * elem[1]) * dim[1]
+    ver = s2[i, 0]/numpy.max((scale, 1.))
+    hor = s1[i, 0]/numpy.max((scale, 1.))
+    #print 'hor = '+str(hor)+' ver = '+str(ver) 
+    #print 'x_off = ' +str(x_off)+', y_off= '+str(y_off)  
     pix = im.load()
-    eps = 1e-8   
+    for i in range(x_off, int(length+eps) + x_off):
+       for j in range(y_off, int(height+eps) + y_off):
+          pix[i,j] = (0,0,0)   
     offx = int((length / 2.) * (ver) + 0.5+eps)
     offy = int((height / 2.) * (hor) + 0.5+eps)
-    for i in range(offx, int(length) - offx):
-       for j in range(offy, int(height) - offy):
+    #print 'offx = ' +str(offx)+', offy= '+str(offy)  
+    for i in range(offx, int(length+eps) - offx):
+       for j in range(offy, int(height+eps) - offy):
           pix[int(x_off+i+eps),int(y_off+j+eps)] = (255,255,255)
   return im  
 

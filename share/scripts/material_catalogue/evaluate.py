@@ -24,12 +24,13 @@ import time
 
 def submit_job_max_len(job_list, max_processes):
   sleep_time = 0.1
+  FNULL = open(os.devnull, 'w')
   processes = list()
   for command in job_list:
     print 'running {n} processes. Submitting {proc}.'.format(n=len(processes),
         proc=str(command))
-    processes.append(subprocess.Popen(command, shell=False, stdout=None,
-      stdin=PIPE))
+    processes.append(subprocess.Popen(command, shell=False, stdout=FNULL,
+      stdin=PIPE,close_fds=True))
     while len(processes) >= max_processes:
       time.sleep(sleep_time)
       processes = [proc for proc in processes if proc.poll() is None]
@@ -250,12 +251,14 @@ if dim == 2:
           print os.path.dirname(os.path.abspath(__file__))
           for i in range(dof):
             if i % 2 == 0:
-              joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x', )
+              joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split(), )
             else:
-              joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y', )
+              joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y').split(), )
               index += 1
-          joblist += ('cfs.rel -m ~/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem', )
-          print joblist
+          joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem').split(), )
+          print ('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split()
+          #joblist = ("sleep 5".split(),)
+          #joblist = (['cfs.rel', '-m', '/home/snthgues/meshes/10_ref.mesh', '-x', '0-0_msfem.dens.xml', '0-0_msfem3_y'],)
           submit_job_max_len(joblist, max_processes=int(args.big))
           os.chdir(str(pwd))
         index = 0
