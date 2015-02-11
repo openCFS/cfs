@@ -650,7 +650,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   // Do not store the results. This is to be done in CommitIteration
   if(!harmonic_ || excite == NULL)
   {
-    driver->SolveProblem(false);
+    driver->SolveProblem();
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
   else
@@ -903,11 +903,11 @@ void Optimization::StoreResults(double step_val)
   // this will write the CFS result and history file
   if(!IsTransient())
   { // transient optimization saves results in a different way
-    if(step_val == -1) {
+    if(step_val == -1)
       domain->GetDriver()->StoreResults(writeCounter_, currentIteration);
-    } else {
+    else
       domain->GetDriver()->StoreResults(writeCounter_, step_val);
-    }
+
     writeCounter_++;
   }
 }

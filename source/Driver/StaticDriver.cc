@@ -53,9 +53,9 @@ namespace CoupledField {
   // *****************
   //   Solve problem
   // *****************
-  void StaticDriver::SolveProblem(bool write_results)
+  void StaticDriver::SolveProblem()
   {
-    LOG_DBG(stdr) << "SP: write_results=" << write_results << " writeAllSteps_=" << writeAllSteps_ << " isPartOfSequence_=" << isPartOfSequence_
+    LOG_DBG(stdr) << "SP: writeAllSteps_=" << writeAllSteps_ << " isPartOfSequence_=" << isPartOfSequence_
                   << " sequenceStep_=" << sequenceStep_ << " analysis_=" << analysis_;
 
     // Initialize first multisequence step, as the method "CheckStoreResults"
@@ -84,7 +84,7 @@ namespace CoupledField {
 
     // in optimization we write the results via StoreResults() because
     // we don't necessarily write every forward step.
-    if(write_results)
+    if(!domain->GetOptimization())
     {
       StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();

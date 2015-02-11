@@ -39,9 +39,8 @@ namespace CoupledField
      * <p>For optimization this defines a single forward problem, therefore
      * one might skip the writing of the results and call StoreResults()
      * explicitly</p>
-     * @param write_results if false nothing is written to the output files
      * @see StoreResults(double) */
-    virtual void SolveProblem(bool write_results = true) = 0;
+    virtual void SolveProblem() = 0;
     
     /** Only of interest for optimization, where one might not want to generate
      * output (gid, hdf5, gmv, ...) for every forward solution. 

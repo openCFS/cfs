@@ -392,11 +392,11 @@ namespace CoupledField {
     interface_->QuadSetup( solver_, precond_ );
   }
 
-  UInt ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol, BaseVector &err)
+  void ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol, BaseVector &err)
   {
     assert(!(isBloch_ && isQuadratic_));
 
-    UInt numEVs = 0;
+    unsigned int numEVs = 0;
 
     // case1: generalized real problem
     if(!isQuadratic_ && !isBloch_)
@@ -438,9 +438,6 @@ namespace CoupledField {
     for (UInt i = 0; i < numEVs; i++ ) {
         errVec[i] = arpackSolver_->Tolerance(i);
     }
-
-    // Return number of converged eigenvalues
-    return numEVs;
   }
 
   void ArpackEigenSolver::

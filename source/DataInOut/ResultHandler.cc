@@ -227,13 +227,12 @@ namespace CoupledField {
 
   void ResultHandler::FinishStep( ) {
     
-    LOG_DBG(resHandler) << "Starting to finish step " << actStep_;
+    LOG_DBG(resHandler) << "FinishStep " << actStep_ << " enter";
 
     // -----------------------
     // First, update results
     // -----------------------
     UpdateResults();
-    
     
     // === Primary results ===
     // iterate over all results, which are needed
@@ -320,7 +319,10 @@ namespace CoupledField {
     fileIt->second->FinishStep( );
   }    
 
-  LOG_DBG(resHandler) << "Finished step " << actStep_ << std::endl;
+  // something is written, so update also info
+  domain->GetInfoRoot()->ToFile();
+
+  LOG_DBG(resHandler) << "FinishStep " << actStep_ << " done";
 }
 
   void ResultHandler::FinishMultiSequenceStep() {

@@ -17,6 +17,7 @@
 
 using std::cout;
 using std::setw;
+using std::string;
 
 
 
@@ -47,6 +48,7 @@ namespace CoupledField {
     blochSteps_ = 0;
     ibz_     = false;
     eigenFreqs = NULL;
+    save_step_ = 1;
 
     // replace with a concrete element
     param_ = param_->Get("eigenFrequency");
@@ -76,7 +78,7 @@ namespace CoupledField {
     if(isBloch_)
     {
       FillWaveVectors(param_->Get("bloch"));
-      std::string file = progOpts->GetSimName() + ".bloch.dat";
+      string file = progOpts->GetSimName() + ".bloch.dat";
       bloch_plot_.open(file.c_str(), std::ios::out);
       bloch_plot_ << "#step\tk_x\tk_y";
       if(domain->GetGrid()->GetDim() == 3)
@@ -110,7 +112,7 @@ namespace CoupledField {
       if(!lst.IsEmpty())
         throw Exception("no wave vectors may be given in bloch mode analysis concurrently with ibz");
 
-      bool do_boundary = bloch_pn->Get("ibz/sample")->As<std::string>() == "boundary";
+      bool do_boundary = bloch_pn->Get("ibz/sample")->As<string>() == "boundary";
 
       blochSteps_     = bloch_pn->Get("ibz/steps")->As<int>();
       int steps = blochSteps_;
@@ -209,12 +211,157 @@ namespace CoupledField {
       throw Exception("Bloch mode Eigenfrequency analysis requires at least one wave vector.");
   }
 
-  template <class TYPE>
-  void EigenFrequencyDriver::PrintResult(SingleVector* freq_ptr, Vector<Double>& errBounds, ResultHandler* resHandler,
-                                         unsigned int numConverged, bool write_results, int wave_vector_step)
+  double EigenFrequencyDriver::GetFrequency(unsigned int idx) const
   {
-    Vector<TYPE>& eigenFreqs = dynamic_cast<Vector<TYPE>&>(*freq_ptr);
+    if(isQuadratic_)
+      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].imag() / 8.0*atan(1.0);
+    else
+      return dynamic_cast<Vector<double>&>(*eigenFreqs)[idx];
+  }
+
+  double EigenFrequencyDriver::GetDamping(unsigned int idx) const
+  {
+    if(isQuadratic_)
+      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
+    else
+      return 0.0;
+  }
+
+
+  // *****************
+  //   Solve problem
+  // *****************
+  void EigenFrequencyDriver::SolveProblem()
+  {
+    // options not implemented
+    ResultHandler* resHandler = domain_->GetResultHandler();
+
+    // we write the results only if we are not optimization. Optimization writes the results by itself via calling StoreResults().
+    // But we call PrintResults() to do the output to the info.xml even in optimization
+
+    // we have to estimate the number of steps as we might loop over bloch modes
+    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1) + 1; // one for savety
+
+    // notify resultHandler about beginning of new sequence step
+    // see comments in StaticDriver::SolveProblem() for the interplay with optimization
+    if(!domain->GetOptimization())
+       resHandler->BeginMultiSequenceStep(sequenceStep_, analysis_, n); // optimization does it by itself
+
+    if(writeAllSteps_ || isPartOfSequence_) // only for allowPostProc
+      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
+
+    // ------------------------------
+    // Phase 1: calculate eigenvalues( generalized problem)
+    // ------------------------------
+
+    // the eigenfrequencies are complex in the quadratic case or in bloch mode
+    eigenFreqs->Init();
+    errBounds_.Resize(numFreq_);
+
+    // Trigger calculation
+    ptPDE_->WriteGeneralPDEdefines();
+    BaseSolveStep* step = ptPDE_->GetSolveStep();
+
+    if(isBloch_)
+    {
+      assert(!wave_vectors_.IsEmpty() && current_wave_vector_[0] == wave_vectors_[0][0]);
+      for(unsigned int i = 0; i < wave_vectors_.GetSize(); i++)
+      {
+        ptPDE_->GetSolveStep()->SetActFreq(0.0); // otherwise it is the last freq from the prev EVA
+
+        current_wave_vector_ = wave_vectors_[i]; // StrainOperatorBloch2D has a pointer to current_wave_vector
+
+        LOG_DBG(efd) << "SP i=" << i << " wv=" << current_wave_vector_.ToString();
+
+        Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+        step->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, isBloch_);
+        PrintResult(i);
+      }
+    }
+    if(isQuadratic_ && !isBloch_)
+    {
+      Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+      step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, isBloch_);
+      PrintResult();
+    }
+    if(!isQuadratic_ && !isBloch_) // real generalized
+    {
+      Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
+      step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_);
+      PrintResult();
+    }
+
+    // in optimization we write the results via StoreResults() because
+    // we don't necessarily write every forward step.
+    if(!domain->GetOptimization()) // in other words: if not optimization
+    {
+      StoreResults(1, -1.0);
+      handler_->FinishMultiSequenceStep();
+
+      if(!isPartOfSequence_)
+        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    }
+
+    if(writeAllSteps_ || isPartOfSequence_)
+      simState_->FinishMultiSequenceStep(true);
+  }
+
+
+  void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
+  {
+    // stepNum and step_val are ignored
+    LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
+
+    unsigned int wvs = isBloch_ ? wave_vectors_.GetSize() : 1; // save wave vector size
+
+    for(unsigned int w = 0; w < wvs; w++)
+    {
+      for(unsigned int fi=0; fi < eigenFreqs->GetSize(); fi++)
+      {
+        // Phase 2: calculate eigenmodes
+        if(writeModes_)
+        {
+          ptPDE_->GetSolveStep()->SetActStep(fi);
+          ptPDE_->GetSolveStep()->SetActFreq(std::abs(GetFrequency(fi)));
+          ptPDE_->GetSolveStep()->GetEigenMode(fi);
+
+          // stupid paraview needs an increasing series of save_value :(
+
+          double save_value = -1.0;
+
+          if(domain->GetOptimization())
+          {
+            // time is step.nr
+            int total = eigenFreqs->GetSize() * wvs;
+            int digs =  boost::lexical_cast<string>(total).size();
+            double sig = std::pow(10, -digs); // 1e-2 -> 10 ^ -2
+            save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
+
+            LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
+          }
+          else // for bloch case we label <step>.<nr> from the info.xml
+            save_value = isBloch_ ? w + (fi+1.0) / 100.0 : std::abs(GetFrequency(fi));
+
+          LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
+
+          handler_->BeginStep(save_step_, save_value);
+          ptPDE_->WriteResultsInFile(save_step_, save_value);
+          handler_->FinishStep();
+
+          if(writeAllSteps_ || isPartOfSequence_)
+            simState_->WriteStep(save_step_, save_value);
+
+          save_step_++;
+        }
+      }
+    }
+  }
+
+  void EigenFrequencyDriver::PrintResult(int wave_vector_step)
+  {
     unsigned int dim = domain->GetGrid()->GetDim();
+
+    unsigned int numConverged = eigenFreqs->GetSize();
 
     // If no frequency at all converged, just leave
     if( numConverged == 0) {
@@ -226,12 +373,12 @@ namespace CoupledField {
     // number of requested ones
     if( numConverged != numFreq_ ) {
       WARN( "Only " << numConverged << " eigenfrequencies of " 
-            << numFreq_ << " converged. To improve convergence, either "
-            << "reduce the number of eigenfrequencies or the tolerance." );
+          << numFreq_ << " converged. To improve convergence, either "
+          << "reduce the number of eigenfrequencies or the tolerance." );
     }
 
     // console output (reduced form bloch)
-    if(write_results)
+    if(!domain->GetOptimization())
     {
       if(isBloch_)
       {
@@ -270,14 +417,11 @@ namespace CoupledField {
 
     for(unsigned int i=0; i < numConverged; i++)
     {
-      // allways complex for real templated case
-      Complex ev = (Complex) eigenFreqs[i];
-
-      Double freq = isQuadratic_ ? ev.imag()/(8.0*atan(1.0)) : ev.real();
-      Double damp = ev.real();
+      double freq = GetFrequency(i);
+      double damp = GetDamping(i);
 
       // command line output only when not optimizing
-      if(write_results)
+      if(!domain->GetOptimization())
       {
         if(isBloch_)
         {
@@ -293,7 +437,7 @@ namespace CoupledField {
           cout << setw(20) << freq <<" | ";
           if(isQuadratic_)
             cout << setw(20) << damp << " |  ";
-          cout << setw(20) << errBounds[i] <<  "\n";
+          cout << setw(20) << errBounds_[i] <<  "\n";
         }
       }
 
@@ -312,117 +456,17 @@ namespace CoupledField {
       mode->Get("frequency")->SetValue(freq);
       if(isQuadratic_)
         mode->Get("damping")->SetValue(damp);
-      mode->Get("errorbound")->SetValue(errBounds[i]);
-
-      // Phase 2: calculate eigenmodes
-      if(write_results && writeModes_)
-      {
-        ptPDE_->GetSolveStep()->SetActStep(i);
-        ptPDE_->GetSolveStep()->SetActFreq(std::abs(freq));
-        ptPDE_->GetSolveStep()->GetEigenMode(i);
-        // in bloch mode analysis we solve the numFreq_ eigenmodes many_ times for different wave vectors
-        unsigned int save_step = isBloch_ ? wave_vector_step * numFreq_  + i: i + 1;
-        // for bloch case we label <step>.<nr> from the info.xml
-        double       save_value = isBloch_ ? wave_vector_step + (i+1.0) / 100.0 : std::abs(freq);
-
-        StoreResults(save_step, save_value);
-      }
+      mode->Get("errorbound")->SetValue(errBounds_[i]);
     }
 
     if(isBloch_ && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
       if(wave_vector_step == Integer(wave_vectors_.GetSize()) - 1)
-         bloch_plot_ << first_plot_line_;
+        bloch_plot_ << first_plot_line_;
       bloch_plot_.flush();
     }
-
-  }
-  
-  void EigenFrequencyDriver::StoreResults(UInt stepNum, double step_val)
-  {
-    assert(analysis_ == BasePDE::EIGENFREQUENCY);
-
-    handler_->BeginStep(stepNum, step_val);
-    ptPDE_->WriteResultsInFile(stepNum, step_val);
-    ptPDE_->WriteGeneralPDEdefines();
-    handler_->FinishStep();
-    if( writeAllSteps_ || isPartOfSequence_ )
-      simState_->WriteStep(stepNum, step_val );
-
-    domain_->GetResultHandler()->FinishMultiSequenceStep();
-
   }
 
 
-  // *****************
-  //   Solve problem
-  // *****************
-  void EigenFrequencyDriver::SolveProblem(bool write_results) {
-    // options not implemented
-    
-    ResultHandler* resHandler = domain_->GetResultHandler();
-
-    // we have to estimate the number of steps as we might loop over bloch modes
-    unsigned int n = numFreq_ * (isBloch_ ? blochSteps_ : 1);
-    // notify resultHandler about beginning of new sequence step
-    // see comments in StaticDriver::SolveProblem() for the interplay with optimization
-    if(!domain->GetOptimization())
-       resHandler->BeginMultiSequenceStep(sequenceStep_, analysis_, n);
-
-    if(writeAllSteps_ || isPartOfSequence_)
-      simState_->BeginMultiSequenceStep(sequenceStep_, analysis_);
-
-    // ------------------------------
-    // Phase 1: calculate eigenvalues( generalized problem)
-    // ------------------------------
-    
-    // the eigenfrequencies are complex in the quadratic case or in bloch mode
-    eigenFreqs->Init();
-    Vector<Double> errBounds( numFreq_ );
-
-    // Trigger calculation 
-    UInt conv = 0;
-    ptPDE_->WriteGeneralPDEdefines();
-    BaseSolveStep* step = ptPDE_->GetSolveStep();
-
-    if(isBloch_)
-    {
-      assert(!wave_vectors_.IsEmpty() && current_wave_vector_[0] == wave_vectors_[0][0]);
-      for(unsigned int i = 0; i < wave_vectors_.GetSize(); i++)
-      {
-        ptPDE_->GetSolveStep()->SetActFreq(0.0); // otherwise it is the last freq from the prev EVA
-
-        current_wave_vector_ = wave_vectors_[i]; // StrainOperatorBloch2D has a pointer to current_wave_vector
-
-        LOG_DBG(efd) << "SP i=" << i << " wv=" << current_wave_vector_.ToString();
-
-        Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-        conv = step->CalcEigenFrequencies(ef , errBounds,numFreq_, freqShift_, isBloch_);
-        PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, write_results, i);
-      }
-    }
-    if(isQuadratic_ && !isBloch_)
-    {
-      Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_, isBloch_);
-      PrintResult<Complex>(eigenFreqs, errBounds, resHandler, conv, write_results);
-    }
-    if(!isQuadratic_ && !isBloch_) // real generalized
-    {
-      Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-      conv = step->CalcEigenFrequencies(ef, errBounds,numFreq_, freqShift_);
-      PrintResult<Double>(eigenFreqs, errBounds, resHandler, conv, write_results);
-    }
-    
-    // notify resultHandler about finishing of current sequence step
-    if(write_results && !isPartOfSequence_)
-      resHandler->Finalize(); // to be called only once in a hdf5 lifetime
-
-
-    if(writeAllSteps_ || isPartOfSequence_)
-      simState_->FinishMultiSequenceStep(true);
-  }
-  
-  
 } // end of namespace

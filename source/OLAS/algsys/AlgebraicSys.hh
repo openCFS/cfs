@@ -204,12 +204,11 @@ namespace CoupledField {
     //! resulting error.
     //! \param frequencies Read-only buffer which contains the eigenfrequencies
     //!                    of the generalized eigenvalue problem. The eigenvalues are (2*pi*f)^2 !!
+    //!                    The size of the vector is the number of converged ev
     //! \param err Reached error norm for each eigenvalue
-    //! \return Number of converged eigenvalues
     //! \note This method may only be calaled if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Double>& frequencies, // TODO bloch implement export system
-                               Vector<Double>& err );
+    void CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err);
  
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
 
@@ -225,8 +224,7 @@ namespace CoupledField {
     //! \return Number of converged eigenvalues
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Complex>& frequencies,
-                               Vector<Double>& err );
+    void CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err);
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
