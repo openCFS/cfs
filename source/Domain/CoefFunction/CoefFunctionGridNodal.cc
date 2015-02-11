@@ -68,6 +68,12 @@ namespace CoupledField{
         factorFnc_ = CoefFunction::Generate(mp_,Global::REAL,"1.0");
     }
 
+    //if(this->srcGrid_->GetDim() == 3 && this->domain_->GetGrid()->GetDim()==2){
+      //TODO: Set 3D coodinate system to global factor
+   //   WARN("3D->2D not supported.");
+      //factorFnc_->SetCoordinateSystem();
+   // }
+
 
   }
 
@@ -225,7 +231,6 @@ namespace CoupledField{
           UInt curNodeNum = it.GetNode();
           srcGrid_->GetNodeCoordinate(CoordVec[node],curNodeNum,true);
         }
-
 
         // CURRENTLY NOT WORKING!
         //factorFnc_->GetScalarValuesAtCoords(CoordVec,values);

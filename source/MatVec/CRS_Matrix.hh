@@ -212,7 +212,7 @@ namespace CoupledField {
     //! \note
     //! - The construct performs e re-ordering to LEX at the end
     //! \param sparseMat sparse matrix in coordinate format
-    CRS_Matrix( CoordFormat<T> &sparseMat );
+    CRS_Matrix( CoordFormat<T> &sparseMat, bool sort=true );
 
     //! Destructor
 
