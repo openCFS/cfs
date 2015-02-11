@@ -53,10 +53,8 @@ DEFINE_LOG(msDriver, "msDriver")
   }
 
 
-  void MultiSequenceDriver::SolveProblem(bool write_results)
+  void MultiSequenceDriver::SolveProblem()
   {
-    LOG_DBG(msDriver) << "SP: wr=" << write_results;
-
     std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler

@@ -110,15 +110,11 @@ namespace CoupledField {
                         const BaseMatrix & dampMat,
                         UInt numFreq, Double freqShift ) = 0;
 
-    //! Solve the linear generalized eigenvalue problem
-    
-    //! This method triggers the calculation of the eigenvalue problem.
-    //! Its return value is the number of converged eigenvalues and the
-    //! related error.
-    //! \param sol Vector with converged eigenvalues
-    //! \param err Vector with error bound of eigenvalues
-    //! \return Number of converged eigenvalues
-    virtual UInt CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;
+    /** Solve the linear generalized eigenvalue problem.
+     *  This method triggers the calculation of the eigenvalue problem.
+     * @param sol Vector with converged eigenvalues. The size of sol is the number of converged eigenvalues!
+     * @param err Vector with error bound of eigenvalues */
+    virtual void CalcEigenFrequencies( BaseVector &sol, BaseVector &err ) = 0;
 
     //! Calculate a particular eigenmode as a postprocessing solution
 

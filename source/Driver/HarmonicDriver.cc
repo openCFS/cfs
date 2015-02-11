@@ -57,10 +57,13 @@ namespace CoupledField
 
     startFreq_ = 0.0;
     stopFreq_ = 0.0;
+    stopFreqStep_ = 0;
     numFreq_ = 0;
     actFreqStep_ = 0;
     actFreq_ = 0.0;
     restartStep_ = 0;
+    timePerStep_ = 0.0;
+    samplingType_ = NO_SAMPLING_TYPE;
     
     isRestarted_ = false;
     
@@ -242,7 +245,7 @@ namespace CoupledField
   // ****************
   //   SolveProblem
   // ****************
-  void HarmonicDriver::SolveProblem(bool write_results)
+  void HarmonicDriver::SolveProblem()
   {
     // in harmonics one cannot extraxt the result writing to StoreResults() as
     // we have multiple frequencies. (exceptions is optimization)

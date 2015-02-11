@@ -33,7 +33,7 @@ class SingleVector;
 
     //! This method constitutes the actual driving method which controls the
     //! solution process for the problem.
-    void SolveProblem(bool write_results = true);
+    void SolveProblem();
     
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) { return 1;}
@@ -49,27 +49,38 @@ class SingleVector;
     /** @see current_wave_vector_ */
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
-    /** the resent calculated eigenvalues. Might be complex */
-    SingleVector* eigenFreqs;
-
     /** The number of the lowest eigenfrequencies to be calculated */
     unsigned int GetNumFreqs() const { return numFreq_; }
 
-    /** @see BaseDriver::StoreResults() */
+    /** @see BaseDriver::StoreResults()
+     * stepNum and step_val are ignored!! */
     void StoreResults(UInt stepNum, double step_val);
+
+
+    /** eigenFreqs might be complex in the quadaratic, then we need to extract the real frequency by from the imaginary part
+     * @param mode index within eigenFreq (0-based)
+     * @return might be negative! */
+    double GetFrequency(unsigned int idx) const;
+
+    /** is the real part of the quadratic eigenFrequency
+     * @return 0.0 if not quadratic */
+    double GetDamping(unsigned int idx) const;
+
+    /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
+    SingleVector* eigenFreqs;
 
   private:
 
     /** fill wave_vectors_ */
     void FillWaveVectors(PtrParamNode bloch_pn);
 
-    /** This is the templated form to handle the general and quadratic case.
-     * Will also call StoreResults() to write the modes
-     * @param write_results is false if called within Optimization. Optimization itself will call only StoreResults() in Optimiaztion::CommitIteration() */
-    template <class T>
-    void PrintResult(SingleVector* frequencies, Vector<Double>& bounds, ResultHandler* resHandler, unsigned int numConverged,
-                     bool write_results, int wave_vector_step = -1);
+    /** Prints info.xml, console and bloch.dat output. Handles if we are in the optimization case.
+     * Does NOT write stuff to output files, This is done via StoreResults() */
+    void PrintResult(int wave_vector_step = -1);
     
+    /** corresponds with eigenFreqs */
+    Vector<Double> errBounds_;
+
     //! Flag indicating, if a quadratic eigenvalue problem is to
     //! be solved
     bool isQuadratic_;
@@ -104,6 +115,9 @@ class SingleVector;
 
     /** store the first plot.dat line to be repeated in the ibz_ case as last step */
     std::string first_plot_line_;
+
+    /** the step number is complicated with bloch and or optimization. Count by ourselves here! */
+    unsigned int save_step_;
 
   };
 
