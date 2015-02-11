@@ -27,7 +27,7 @@ def submit_job_max_len(job_list, max_processes):
   FNULL = open(os.devnull, 'w')
   processes = list()
   for command in job_list:
-    print 'running {n} processes. Submitting {proc}.'.format(n=len(processes),
+    print 'running {n} processes. Submitting {proc}'.format(n=len(processes),
         proc=str(command))
     processes.append(subprocess.Popen(command, shell=False, stdout=FNULL,
       stdin=PIPE,close_fds=True))
