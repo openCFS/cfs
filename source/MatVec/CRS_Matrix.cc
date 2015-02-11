@@ -17,7 +17,7 @@ namespace CoupledField {
   //   Constructor using CoordFormat
   // *********************************
   template<typename T>
-  CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat )
+  CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat, bool sort )
     : diagPtr_( NULL ) {
 
 
@@ -84,8 +84,9 @@ namespace CoupledField {
     // By default we generate a matrix in LEX sub-format
     // Note: This will also setup the diagPtr_ array
     NEWARRAY( diagPtr_, UInt, this->nrows_ );
-    ChangeLayout( CRS_Matrix<T>::LEX );
-
+    if(sort){
+      ChangeLayout( CRS_Matrix<T>::LEX );
+    }
     
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves

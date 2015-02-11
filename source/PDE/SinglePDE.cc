@@ -3378,7 +3378,7 @@ namespace CoupledField {
     }
 
     if ( analysistype_ == HARMONIC ) {
-      EXCEPTION("HARMONIC CASE NOT IMPLEMENTED FOR ACOUSTIC NMG");
+      WARN("HARMONIC CASE NOT TESTET FOR ACOUSTIC NMG");
     }
 
     curcpl = BiLinearForm::MASTER_MASTER;
