@@ -262,7 +262,7 @@
 
 
   <!-- Definition of field variables (union of nodal and element results) -->
-  <xsd:simpleType name="DT_MagneticFieldResult">
+  <xsd:simpleType name="DT_MagneticSensorArrayResult">
     <xsd:union memberTypes="DT_MagneticNodeResult DT_MagneticElemResult"/>
   </xsd:simpleType>
   
@@ -335,12 +335,12 @@
           </xsd:complexType>
         </xsd:element>
 
-        <!-- FieldResults -->
-        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_FieldResult">
-                <xsd:attribute name="type" type="DT_MagneticFieldResult"/>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_MagneticSensorArrayResult"/>
               </xsd:extension>
             </xsd:complexContent>           
           </xsd:complexType>

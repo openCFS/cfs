@@ -431,7 +431,7 @@ namespace CoupledField {
     // Read result only if a free simulation is performed
     if( !simState_->HasInput()) {
       ReadStoreResults();
-      ReadFieldResults();
+      ReadSensorArrayResults();
     }
 
     //! Define step solution driver
@@ -1206,13 +1206,13 @@ namespace CoupledField {
     // ===================================================
     
     // Check for additional field variable
-    UInt numFields = fields_.GetSize();
+    UInt numFields = sensors_.GetSize();
     
     // loop over all fields variables
     for( UInt i = 0; i < numFields; ++i ) {
     
       // call specialized calculation method in sub-class
-      FieldAtPoints& fap = fields_[i];
+      FieldAtPoints& fap = sensors_[i];
       
       
       // Obtain field resultFunctor object
@@ -1380,21 +1380,20 @@ namespace CoupledField {
   }
   
   
-  void SinglePDE::ReadFieldResults() {
+  void SinglePDE::ReadSensorArrayResults() {
     // check, if calculation of field variables is requested at all
 
-    ParamNodeList fieldNodes;
-    fieldNodes = myParam_->Get("storeResults")->GetList("field");
+    ParamNodeList sensorNodes;
+    sensorNodes = myParam_->Get("storeResults")->GetList("sensorArray");
     std::string solTypeString;
     static std::map< SolutionType, bool> warningPrinted;
 
-    fields_.Resize(fieldNodes.GetSize());
+    sensors_.Resize(sensorNodes.GetSize());
     // loop over all parts
-    for( UInt iPart = 0; iPart <fieldNodes.GetSize(); ++iPart ) {
-      PtrParamNode  actNode = fieldNodes[iPart];
-      ParamNodeList listNodes = actNode->GetList("list");
+    for( UInt iPart = 0; iPart <sensorNodes.GetSize(); ++iPart ) {
+      PtrParamNode  actNode = sensorNodes[iPart];
       
-      FieldAtPoints & actField = fields_[iPart];
+      FieldAtPoints & actField = sensors_[iPart];
       actField.fileName = actNode->Get("fileName")->As<std::string>();
       actField.csv = actNode->Get("csv")->As<bool>();
       std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
@@ -1424,38 +1423,10 @@ namespace CoupledField {
         }
       }
       
-      // loop over all components
-      StdVector<Double> start(3), stop(3), inc(3);
-      StdVector<UInt> numSamples(3);
-      start.Init(0);
-      stop.Init(0);
-      inc.Init(1);
-      numSamples.Init(1);
-      
+      //array of global sensor coordinates
+      StdVector< Vector<Double> > globPoints;
 
-      UInt totalPoints = 1;
-      std::string comp;
-      UInt compIndex;
-      for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
-        PtrParamNode actCompNode = listNodes[iComp];
-        actCompNode->GetValue("comp", comp);
-        compIndex = actField.coordSys->GetVecComponent(comp)-1;
-        start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
-        stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
-        inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
-        numSamples[compIndex]  = 
-            UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
-        totalPoints *= numSamples[compIndex];
-      }
-      // create list
-
-      // generate new vector
-      if(isComplex_) {
-        actField.field = new Vector<Complex>();
-      } else {
-        actField.field = new Vector<Double>();
-      }
-      
+      //get entity list of current pde
       StdVector<shared_ptr<EntityList> > lists;
       StdVector<RegionIdType>::iterator regIt = regions_.Begin();
       for(; regIt != regions_.End(); regIt++ ) {
@@ -1464,33 +1435,150 @@ namespace CoupledField {
         lists.Push_back(newList);
       }
 
-      StdVector< Vector<Double> > globPoints( numSamples[0] *
-                                              numSamples[1] *
-                                              numSamples[2] );
-      UInt pIdx = 0;
-      
-      for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
-        Double actX = start[0] + xSample * inc[0];
-        for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
-          Double actY = start[1] + ySample * inc[1];
-          for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
-            Double actZ = start[2] + zSample * inc[2];
+      // create list
+      // generate new vector
+      if(isComplex_) {
+        actField.field = new Vector<Complex>();
+      } else {
+        actField.field = new Vector<Double>();
+      }
 
-            // transform global point w.r.t. to coordinate system
-            // to global point w.r.t. to global cartesian system
-            Vector<Double> globPointcSys;
-            globPointcSys.Resize(dim_);
+      if(actNode->Has("parametric")){
+        // define sensors according to parametric line definitions
+        ParamNodeList listNodes = actNode->Get("parametric")->GetList("list");
+        // loop over all components
+        StdVector<Double> start(3), stop(3), inc(3);
+        StdVector<UInt> numSamples(3);
+        start.Init(0);
+        stop.Init(0);
+        inc.Init(1);
+        numSamples.Init(1);
+        UInt totalPoints = 1;
+        std::string comp;
+        UInt compIndex;
+        for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
+          PtrParamNode actCompNode = listNodes[iComp];
+          actCompNode->GetValue("comp", comp);
+          compIndex = actField.coordSys->GetVecComponent(comp)-1;
+          start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
+          stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
+          inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
+          numSamples[compIndex]  =
+              UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
+          totalPoints *= numSamples[compIndex];
+        }
 
-            globPointcSys[0] = actX;
-            globPointcSys[1] = actY;
-            if( dim_ > 2) {
-              globPointcSys[2] = actZ;
-            } 
-            actField.coordSys->Local2GlobalCoord(globPoints[pIdx++],
-                                                 globPointcSys);
-          } // z
-        } // y
-      } // x
+        globPoints.Resize( numSamples[0] *
+                           numSamples[1] *
+                           numSamples[2] );
+        UInt pIdx = 0;
+
+        for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
+          Double actX = start[0] + xSample * inc[0];
+          for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
+            Double actY = start[1] + ySample * inc[1];
+            for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
+              Double actZ = start[2] + zSample * inc[2];
+
+              // transform global point w.r.t. to coordinate system
+              // to global point w.r.t. to global cartesian system
+              Vector<Double> globPointcSys;
+              globPointcSys.Resize(dim_);
+
+              globPointcSys[0] = actX;
+              globPointcSys[1] = actY;
+              if( dim_ > 2) {
+                globPointcSys[2] = actZ;
+              }
+              actField.coordSys->Local2GlobalCoord(globPoints[pIdx++],
+                                                   globPointcSys);
+            } // z
+          } // y
+        } // x
+      }else if(actNode->Has("coordinateFile")){
+        globPoints.Reserve(200);
+
+        PtrParamNode coordFileNode = actNode->Get("coordinateFile");
+        std::string inFileName = coordFileNode->Get("fileName")->As<std::string>();
+        std::string delim = coordFileNode->Get("delimiter")->As<std::string>();
+        std::string comment = coordFileNode->Get("commentCharacter")->As<std::string>();
+        UInt xCol = coordFileNode->Get("xCoordColumn",ParamNode::PASS)->As<UInt>();
+        UInt yCol = coordFileNode->Get("yCoordColumn",ParamNode::PASS)->As<UInt>();
+        UInt zCol = coordFileNode->Get("zCoordColumn",ParamNode::PASS)->As<UInt>();
+
+        if(xCol == 0 || yCol ==0 || zCol == 0){
+          EXCEPTION("Read coordinate file for sensor array: column indices need to be one based.");
+        }
+
+        if(comment.size()>1 || delim.size() > 1){
+          WARN("Read coordinate file for sensor array: Comment and delimiter strings need to be single characters!");
+        }
+
+
+        if(!boost::filesystem::exists(inFileName)){
+          EXCEPTION("Read coordinate file for sensor array: Could not find coordinate file \"" + inFileName + "\" to read sensor positions!");
+          continue;
+        }
+
+        std::fstream coordFile(inFileName.c_str(),std::ios::in);
+
+        std::string curLine;
+        coordFile >> std::ws;
+        UInt lineCounter = 0;
+        while(std::getline (coordFile,curLine)){
+          lineCounter++;
+          //ignore leading whitespace
+          string::size_type pos = 0;
+          while (pos < curLine.size() && std::isspace(curLine[pos], std::locale()))
+            pos++;
+
+          curLine.erase(0, pos);
+
+          //check for comment character
+          if(curLine.at(0) == comment.at(0)){
+            continue;
+          }
+
+          //tokenize line with tokenizer
+          typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+          boost::char_separator<char> sep(delim.c_str());
+          tokenizer tokens(curLine, sep);
+
+          UInt numNumbers = std::distance(tokens.begin(),tokens.end());
+
+          //ignore empty lines
+          if(numNumbers==0){
+            continue;
+          }
+
+          //ignore invalid lines and print a warning
+          //here we check for dimension
+          if( (dim_ == 2 && numNumbers < 2) ||
+              (numNumbers <= xCol) ||
+              (numNumbers <= yCol) ||
+              (numNumbers <= zCol) ){
+            WARN("Read coordinate file for sensor array: Invalid coordinate definition at line: " << lineCounter << " in file : " << inFileName );
+          }
+
+          //finally read in the tokens
+          Vector<Double> curCoord(dim_);
+          tokenizer::iterator tokIter=tokens.begin();
+          for(UInt i=0;i<dim_ && tokIter!=tokens.end();i++,tokIter++){
+            try{
+              curCoord[i] = boost::lexical_cast<Double>(*tokIter);
+            }catch(const boost::bad_lexical_cast &){
+              EXCEPTION("Read coordinate file for sensor array: Error reading coordinates in line: " << lineCounter);
+            }
+          }
+          Vector<Double> globPointcSys;
+          actField.coordSys->Local2GlobalCoord(globPointcSys,
+                                               curCoord);
+          globPoints.Push_back(globPointcSys);
+        }
+        globPoints.Trim();
+      }else{
+        EXCEPTION("Could not find valid sensor coordinate definition in xml file although tag was given.");
+      }
       StdVector< LocPoint > locPoints;
       StdVector< const Elem* > elems;
 

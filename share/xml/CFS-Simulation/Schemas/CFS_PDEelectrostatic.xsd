@@ -255,7 +255,7 @@
   </xsd:simpleType>
   
   <!-- Definition of field variables -->
-  <xsd:simpleType name="DT_ElecFieldResult">
+  <xsd:simpleType name="DT_ElecSensorArrayResult">
     <xsd:union memberTypes="DT_ElecNodeResult DT_ElecElemResult"/>
   </xsd:simpleType>
 
@@ -325,12 +325,12 @@
           </xsd:complexType>
         </xsd:element>
         
-        <!-- FieldResults -->
-        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_FieldResult">
-                <xsd:attribute name="type" type="DT_ElecFieldResult"/>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_ElecSensorArrayResult"/>
               </xsd:extension>
             </xsd:complexContent>           
           </xsd:complexType>
