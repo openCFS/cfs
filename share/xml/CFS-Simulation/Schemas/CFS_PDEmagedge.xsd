@@ -347,11 +347,11 @@
           </xsd:complexType>
         </xsd:element>
         
-        <!-- FieldResults -->
-        <xsd:element name="field" minOccurs="0" maxOccurs="unbounded">
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
-              <xsd:extension base="DT_FieldResult">
+              <xsd:extension base="DT_SensorArrayResult">
                 <xsd:attribute name="type" type="DT_MagneticEdgeElemResult"/>
               </xsd:extension>
             </xsd:complexContent>           
