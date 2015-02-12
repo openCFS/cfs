@@ -14,7 +14,7 @@
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
-#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
+#include "PDE/NonFEM/LatticeBoltzmann.hh"
 #include "SinglePDE.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/Timer.hh"
@@ -26,8 +26,7 @@ class Grid;
 class PDECoupling;
 class DesignElement;
 class Function;
-//class LatticeBoltzmann;
-class LatticeBoltzmann3D;
+class LatticeBoltzmann;
 class TransferFunction;
 class Function;
 class DesignSpace;
@@ -280,8 +279,7 @@ private:
   std::string executable;
 
   /** internal lbm solver */
-  LatticeBoltzmann3D* lbm;
-//  LatticeBoltzmann* lbm;
+  LatticeBoltzmann* lbm;
 
   /** type of interface */
   Iface iface_;

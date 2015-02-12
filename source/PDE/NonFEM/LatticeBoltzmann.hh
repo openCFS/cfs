@@ -14,226 +14,324 @@ This version makes it simpler and extends to 3D (Fabian Wein) */
 
 namespace CoupledField
 {
-  // Values in the matrix which are smaller or equal than
-  // following value are treated as zeros.
-  #define NON_ZERO_TOLERANCE  1.0e-20
+  // Fluid nodes have values in the range of [0.0; 1.0].
+#define LBM_NODE_TYPE_BB      (-1.0)
+#define LBM_NODE_TYPE_INLET   (-2.0)
+#define LBM_NODE_TYPE_OUTLET  (-3.0)
 
-  // Number of velocity directions per element, e.g. 9 for D2Q9 model
-  #define N_DIR 9
+  class LatticeBoltzmannBase
+  {
+    public:
 
-//  #define Q9_0  0
-//  #define Q9_E  1
-//  #define Q9_N  2
-//  #define Q9_W  3
-//  #define Q9_S  4
-//  #define Q9_NE 5
-//  #define Q9_NW 6
-//  #define Q9_SW 7
-//  #define Q9_SE 8
+      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
+        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
 
-//typedef enum { N = 0, S = 4, W = 2,
-
-//  #define Q9_INV_0  Q9_0
-//  #define Q9_INV_E  Q9_W
-//  #define Q9_INV_N  Q9_S
-//  #define Q9_INV_W  Q9_E
-//  #define Q9_INV_S  Q9_N
-//  #define Q9_INV_NE Q9_SW
-//  #define Q9_INV_NW Q9_SE
-//  #define Q9_INV_SW Q9_NE
-//  #define Q9_INV_SE Q9_NW
-
-
-//  #define T_Q9_0   (4.0 /  9.0)
-//  #define T_Q9_E   (1.0 /  9.0)
-//  #define T_Q9_N   (1.0 /  9.0)
-//  #define T_Q9_W   (1.0 /  9.0)
-//  #define T_Q9_S   (1.0 /  9.0)
-//  #define T_Q9_NE  (1.0 / 36.0)
-//  #define T_Q9_NW  (1.0 / 36.0)
-//  #define T_Q9_SW  (1.0 / 36.0)
-//  #define T_Q9_SE  (1.0 / 36.0)
-
-  #ifndef __LX__
-    #define __LX__  m_sizeX
-  #endif
-
-  #ifndef __LY__
-    #define __LY__  m_sizeY
-  #endif
-
-  #ifndef __PDFS__
-    #define __PDFS__ m_pdfs
-  #endif
-
-    // -- ARRAYS OF STRUCTURES LAYOUT --
-
-    // Address PDFs via Coordinates and Direction.
-    // Assuming array of structures layout.
-    #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((_y) * __LX__ + (_x)) * N_DIR + (_direction)]
-
-    // Address PDFs via Index and Direction only.
-    // Assuming array of structures layout.
-    #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][(_index) * N_DIR + (_direction)]
-
-    // -- STRUCTURES OF ARRAYS LAYOUT --
-
-    // Address PDFs via Coordinates and Direction.
-    // Assuming structures of array layout.
-//     #define PDF(_arrayIndex, _x, _y, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) +  (_y) * __LX__ + (_x) ]
-
-    // Address PDFs via Index and Direction only.
-    // Assuming structures of array layout.
-//     #define PDF_IDX(_arrayIndex, _index, _direction)  __PDFS__[_arrayIndex][ ((__LX__) * (__LY__)) * (_direction) + (_index) ]
-
-    // Fluid nodes have values in the range of [0.0; 1.0].
-    #define LBM_NODE_TYPE_BB      (-1.0)
-    #define LBM_NODE_TYPE_INLET   (-2.0)
-    #define LBM_NODE_TYPE_OUTLET  (-3.0)
+        // In 2D: 9 microscopic directions
+        // In 3D: 19 microscopic directions
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
+          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
+  };
 
   class LatticeBoltzmann
   {
-public:
+    public:
 
 
-    LatticeBoltzmann(int sizeX, int sizeY, double ux, double uy, double omega, int maxIterations, double maxTolerance, bool plot,int writeFrequency);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
-    ~LatticeBoltzmann();
+      ~LatticeBoltzmann();
 
-    /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
-     * @param info stores current and final info there. Saves under way
-     * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
-    StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
+      /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
+       * @param info stores current and final info there. Saves under way
+       * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
+      StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
 
-    /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
-    void prop_step();
+      /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
+      void prop_step();
 
-    /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
-     *  @retun copy of pdfs
-     */
-    StdVector<double> GetPdfs();
+      /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
+       *  @retun copy of pdfs
+       */
+      inline StdVector<double> GetPdfs() {return m_pdfs[m_next];}
 
-    /**
-     * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
-     */
-    int GetNumWriteResults();
+      /**
+       * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
+       */
+      inline int GetNumWriteResults() { return m_numWriteResults; }
 
-  private:
-    struct PropTransform{
-      int off_x;
-      int off_y;
-      PropTransform(int offx, int offy): off_x(offx), off_y(offy){}
-      PropTransform(): off_x(0),off_y(0){}
-    };
+    private:
+      struct PropTransform{
+        int off_x;
+        int off_y;
+        int off_z;
+        PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        PropTransform(): off_x(0),off_y(0), off_z(0){}
+      };
 
-    // Boundary C corresponds to interior
-    typedef enum {C=0, E=1, N=2, W=3, S=4, NE=5, NW=6, SW=7, SE=8} Boundary;
-    typedef enum {Q9_0=0, Q9_E=1, Q9_N=2, Q9_W=3, Q9_S=4, Q9_NE=5, Q9_NW=6, Q9_SW=7, Q9_SE=8} Direction;
-    static Enum<Boundary> boundaries;
-    static Enum<Direction> directions;
+      // Corner C stands for interior elements
+      // BNW, ..., TNE are corners
+      // TN, ..., BE are edges
+      // LEFT, ..., BACK are faces
+      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
+        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
 
-    void SetupDataStructures(const StdVector<double>& elements);
+        // In 2D: 9 microscopic directions
+        // In 3D: 19 microscopic directions
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
+          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
 
-    /** Sets distribution functions to initial value. */
-    void InitializePdfs();
+          static Enum<Direction> directions;
+          static Enum<Boundary> boundaries;
 
-    /**
-     * returns associated integer value of velocity direction two given principal directions
-     * e.g. getDir(S,E) returns Q9_SE
-     */
-    int GetIndexDir(Direction dir1);
-    int GetIndexDir(Direction dir1, Direction dir2);
+          void SetupDataStructures(const StdVector<double>& elements);
 
-    // tests function GetDirectionIndex()
-    void TestDirectionIndex();
+          /**
+           * Sets distribution functions to initial value, independently from dimension of problem (no if-statement necessary)
+           */
+          void InitializePdfs();
 
-    /**
-     * Sets transformation map to handle propagation at boundaries (corners and edges)
-     */
-    void SetupTransformation();
+          /**
+           * returns associated integer value of velocity direction two given principal directions
+           * e.g. getIndexDir(S,E) returns Q_SE
+           */
+          int GetIndexDir(Direction dir1);
+          int GetIndexDir(Direction dir1, Direction dir2);
 
-    /** debugging prop_map */
-    void WritePropMap();
-
-    /** set enumerations for directions and boundaries*/
-    void SetEnums();
-
-    /** Set LBM weights for D2Q9 model*/
-    void InitWeights();
-
-    /** get inverse direction of D2Q9 direction */
-//    int GetInvDirection(Direction dir);
-    int GetInvDirection(Direction dir);
-
-    void TestInvDirections();
-
-    /** debug information */
-    std::string ToString(const StdVector<StdVector<int> >& data);
-
-    /** fills given propagation map with given offset value*/
-    void InitPropMap(StdVector<PropTransform>& map);
-
-    inline bool LbmNodeTypeIsFluid(double value)
-    {
-      return (value >= 0.0 && value <= 1.0);
-    }
-
-    inline bool LbmNodeTypeIsBB(double value)
-    {
-      return (value > (LBM_NODE_TYPE_BB - 0.5) && value < (LBM_NODE_TYPE_BB + 0.5));
-    }
-
-    inline bool LbmNodeTypeIsInlet(double value)
-    {
-      return (value > (LBM_NODE_TYPE_INLET - 0.5) && value < (LBM_NODE_TYPE_INLET + 0.5));
-    }
-
-    inline bool LbmNodeTypeIsOutlet(double value)
-    {
-      return (value > (LBM_NODE_TYPE_OUTLET - 0.5) && value < (LBM_NODE_TYPE_OUTLET + 0.5));
-    }
-
-    void create_output(const char * file, int cur);
+          /**
+           * returns associated integer value of boundary of a cube
+           * e.g. getIndexBound(T) returns the index of the top face
+           *
+           */
+          int GetIndexBound(Direction dir1);
 
 
-    void prop_coll_step(int m_cur, int m_next, double omega);
+          /**
+           * returns associated integer value of boundary of a cube
+           * e.g. getIndexBound(T,N,E) returns the index of the right top back corner
+           *
+           * dir1 can only be top, bottom, north or south
+           * dir2 can only be north, south, west or east
+           */
+          int GetIndexBound(Direction dir1, Direction dir2);
 
-    void prop_coll_velinlet(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY);
+          /**
+            dir1 can only be top or bottom
+            dir2 can only be north or south
+            dir3 can only be east or west
+           */
+          int GetIndexBound(Direction dir1, Direction dir2, Direction dir3);
 
-    void prop_coll_bounce_back(int cur, StdVector<StdVector<int> >& bb);
+          // validates GetIndexbound function
+          void TestGetIndexbound();
 
-    void prop_coll_densoutlet(int cur, StdVector<StdVector<int> >&outlet);
+          // validates GetIndexDir function
+          void TestDirectionIndex();
 
-    int m_sizeX;
-    int m_sizeY;
-    int m_nNodes;     // Number of total nodes (fluid + obstacle)
-    double m_ux;      // Inlet x velocity
-    double m_uy;      // Inlet y velocity
-    double m_omega;
-    int m_maxIter;
-    double m_maxTol;
-    /** plot the residuum over lbm iterations */
-    bool m_plot;
-    int m_writeFrequency;
-    // stores how often results written
-    int m_numWriteResults;
+          // make sure that no-slip b.c. is imposed on the boundaries (bounce-back nodes)
+          void CheckBoundaryVelocities(int cur, StdVector<StdVector<int> >& bb);
 
-    StdVector<double> Scales;
+          /**
+           * Calculates x, y and z velocity for element with coordinate (i,j,k)
+           */
+          void CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz);
 
-    StdVector<double> weights;
+          /**
+           * Calculates macroscopic density for given element
+           */
+          double CalcDensity(int cur, int i, int j, int k);
 
-    StdVector< StdVector<double> > m_pdfs;
+          /**
+           * Sets transformation map to handle propagation at boundaries (corners and edges)
+           */
+          void SetupTransformation();
 
-    // contains propagation rules for all types of elements (edge, corner, interior)
-    StdVector< StdVector<PropTransform> > prop_maps;
-    //double * m_pdfs[2];
-    int m_cur;
-    int m_next;
+          /** dump propagation maps */
+          void WritePropMap();
 
-    StdVector<StdVector<int> > inlet;
-    StdVector<StdVector<int> > outlet;
-    StdVector<StdVector<int> > bb;
-    StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
+          /** set enumerations for directions and boundaries*/
+          void SetEnums();
+
+          /** Set LBM weights for DxQy model*/
+          void InitWeights();
+
+          /** Set lookup table for inverse directions */
+          void SetInvDirections();
+
+          /** get inverse direction of D2Q9 direction */
+          int GetInvDirection(Direction dir);
+
+          void TestInvDirections();
+
+          /** debug information */
+          std::string ToString(const StdVector<StdVector<int> >& data);
+
+          /** fills given propagation map with given default offset values (0 in all directions)*/
+          void InitPropMap(StdVector<PropTransform>& map);
+
+          inline bool LbmNodeTypeIsFluid(double value)
+          {
+            return (value >= 0.0 && value <= 1.0);
+          }
+
+          inline bool LbmNodeTypeIsBB(double value)
+          {
+            return (value > (LBM_NODE_TYPE_BB - 0.5) && value < (LBM_NODE_TYPE_BB + 0.5));
+          }
+
+          inline bool LbmNodeTypeIsInlet(double value)
+          {
+            return (value > (LBM_NODE_TYPE_INLET - 0.5) && value < (LBM_NODE_TYPE_INLET + 0.5));
+          }
+
+          inline bool LbmNodeTypeIsOutlet(double value)
+          {
+            return (value > (LBM_NODE_TYPE_OUTLET - 0.5) && value < (LBM_NODE_TYPE_OUTLET + 0.5));
+          }
+
+          // calculates array index for given grid coordinate in 3D
+          inline int GetIndex(int x, int y, int z) const
+          {
+            return z * m_sizeX * m_sizeY + y * m_sizeX + x;
+          }
+
+          // calculates array index for given grid coordinate in 2D
+          inline int GetIndex(int x, int y) const
+          {
+            return y * m_sizeX + x;
+          }
+
+          // calculates index of neighbor element we are propagating to (depends on the propagation direction)
+          // @index: index of the current element
+          //    int CalcPropIndex(int index, int dir);
+
+          //--------------- array of structures----------------------------------
+          inline double& pdf(int cur, int x, int y, int z, int direction)
+          {
+            return m_pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline const double pdf(int cur, int x, int y, int z, int direction) const
+          {
+            return m_pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline double& pdf(int cur, int elem, int direction)
+          {
+            return m_pdfs[cur][direction + n_q_ * elem];
+          }
+
+          inline const double pdf(int cur, int elem, int direction) const
+          {
+            return m_pdfs[cur][direction + n_q_ * elem];
+          }
+
+          //---------------------------------------------------------------------
+
+          //--------------- structure of arrays----------------------------------
+          //    inline const double pdf(int cur, int x, int y, int z, int direction) const
+          //    {
+          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index(x, y, z)];
+          //    }
+
+          //    inline double& pdf(int cur, int x, int y, int z, int direction)
+          //    {
+          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index(x,y,z)];
+          //    }
+          //
+          //    inline double& pdf(int cur, int index, int direction)
+          //    {
+          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index];
+          //    }
+
+          //    inline const double pdf(int cur, int index, int direction) const
+          //    {
+          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index];
+          //    }
+          //---------------------------------------------------------------------
+
+
+
+
+          void create_output(const char * file, int cur);
+
+          /**
+           * LBM operators in 2D
+           */
+
+          void prop_coll_step2D(int cur, int next, double omega);
+
+          void prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+
+          void prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
+
+          void prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
+
+
+          /**
+           * LBM operators in 3D
+           */
+          void prop_coll_step3D(int cur, int next, double omega);
+
+          void prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+
+          void prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
+
+          void prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >&outlet);
+
+          int m_dim;
+          int m_sizeX;
+          int m_sizeY;
+          int m_sizeZ;
+          int m_nNodes;     // Number of total nodes (fluid + obstacle)
+          double m_ux;      // Inlet x velocity
+          double m_uy;      // Inlet y velocity
+          double m_uz;      // Inlet z velocity
+          double m_omega;
+          int m_maxIter;
+          double m_maxTol;
+          /** plot the residuum over lbm iterations */
+          bool m_plot;
+          int m_writeFrequency;
+          // counts how many intermediate steps we have already written to hdf5 file
+          int m_numWriteResults;
+
+          // number of discrete velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+          int n_q_;
+
+          StdVector<double> Scales;
+
+          StdVector<double> weights;
+
+          StdVector< StdVector<double> > m_pdfs;
+
+          // contains propagation rules for all types of elements (edge, corner, interior)
+          StdVector< StdVector<PropTransform> > prop_maps;
+          // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
+          StdVector<PropTransform> velocityDirections;
+          // lookup table to get inverse directions
+          StdVector<Direction> directionsInv;
+          //double * m_pdfs[2];
+          int m_cur;
+          int m_next;
+
+
+          StdVector<StdVector<int> > inlet;
+          StdVector<StdVector<int> > outlet;
+          StdVector<StdVector<int> > bb;
+          StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
+
+          ResultHandler* rh = NULL;
+
+          // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
+          void (LatticeBoltzmann::*prop_coll_step)(int, int, double);
+          void (LatticeBoltzmann::*prop_coll_velinlet)(int, StdVector<StdVector<int> >&, double, double, double);
+          void (LatticeBoltzmann::*prop_coll_bounce_back)(int, StdVector<StdVector<int> >&);
+          void (LatticeBoltzmann::*prop_coll_densoutlet)(int, StdVector<StdVector<int> >&);
+
   }; // end LatticeBoltzmann
 
 
