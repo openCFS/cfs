@@ -191,8 +191,8 @@ namespace CoupledField{
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
-      shared_ptr<EntityList> nodeList = srcGrid_->GetEntityList(EntityList::NODE_LIST, regionList->GetName());
-      EntityIterator it= nodeList->GetIterator();
+      StdVector<UInt> nodeNums;
+      srcGrid_->GetNodesByRegion(nodeNums, srcGrid_->GetRegion().Parse(regionList->GetName()));
       Vector<DATA_TYPE> resVec;
       try{
         Result<DATA_TYPE>* myResult = dynamic_cast<Result<DATA_TYPE>* >(Bres.get());
@@ -215,8 +215,10 @@ namespace CoupledField{
         LocPointMapped lpm;
         factorFnc_->GetScalar(factor,lpm);
         //std::cout << "Computed Factor for timestep: " << factor << std::endl;
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-          UInt idx = nodeIdxMap_[it.GetNode()];
+
+#pragma omp parallel for
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
             sol[eqns[d]] = resVec[locPos++] * factor;
@@ -224,11 +226,12 @@ namespace CoupledField{
           }
         }
       }else{
-        StdVector<Vector<Double> > CoordVec(nodeList->GetSize());
-        StdVector< DATA_TYPE > values(nodeList->GetSize());
+        StdVector<Vector<Double> > CoordVec(nodeNums.GetSize());
+        StdVector< DATA_TYPE > values(nodeNums.GetSize());
         UInt node=0;
-        for( it.Begin() ; !it.IsEnd() ; it++ , node++ ) {
-          UInt curNodeNum = it.GetNode();
+#pragma omp parallel for
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          UInt curNodeNum = nodeIdxMap_[nodeNums[aN]];
           srcGrid_->GetNodeCoordinate(CoordVec[node],curNodeNum,true);
         }
 
@@ -237,8 +240,9 @@ namespace CoupledField{
         factorFnc_->GetScalarValuesAtCoords(CoordVec,values,this->domain_->GetGrid());
         //values.Init(1.0);
         node = 0;
-        for( it.Begin(); !it.IsEnd(); it++,node++ ) {
-          UInt idx = nodeIdxMap_[it.GetNode()];
+#pragma omp parallel for
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d,++locPos){
             sol[eqns[d]] = resVec[locPos] * values[locPos];
@@ -284,6 +288,8 @@ namespace CoupledField{
             this->solVecOld_.Resize(this->solVecFuture_.GetSize());
             this->solVecOld_.Init();
           }
+
+#pragma omp parallel for
           for(UInt i=0;i<this->solVecOld_.GetSize();i++){
             this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
           }
