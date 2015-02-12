@@ -573,7 +573,9 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    if( isParentDomain_) 
+    if( isParentDomain_) {
+	std::cout << "++ Initializing direct coupling" << std::endl;
+	}
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
