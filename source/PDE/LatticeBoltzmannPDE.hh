@@ -14,6 +14,7 @@
 #include "General/environment.hh"
 #include "MatVec/matrix.hh"
 #include "MatVec/vector.hh"
+#include "PDE/NonFEM/LatticeBoltzmann3D.hh"
 #include "SinglePDE.hh"
 #include "Utils/nodestoresol.hh"
 #include "Utils/Timer.hh"
@@ -25,7 +26,7 @@ class Grid;
 class PDECoupling;
 class DesignElement;
 class Function;
-class LatticeBoltzmann;
+//class LatticeBoltzmann;
 class LatticeBoltzmann3D;
 class TransferFunction;
 class Function;
@@ -37,7 +38,7 @@ using boost::numeric::ublas::generalized_vector_of_vector;
 
 
 //! Class for mechanic equation (no adaptivity)
-class LatticeBoltzmannPDE: public SinglePDE
+class LatticeBoltzmannPDE: public SinglePDE , LatticeBoltzmannBase
 {
 
 public:

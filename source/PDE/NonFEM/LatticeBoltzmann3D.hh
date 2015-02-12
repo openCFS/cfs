@@ -23,12 +23,15 @@ namespace CoupledField
   {
     public:
 
-      typedef enum {C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, TNW = 5, TSW = 6, TSE = 7, TNE = 8, TN = 9,
-              TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20, W, E, T, B, S, N} Boundary;
-      typedef enum {Q_0 = 0, Q_E = 1, Q_W = 2, Q_N = 3, Q_S = 4, Q_T = 5, Q_B = 6,
-                Q_NE = 7, Q_SW = 8, Q_NW = 9, Q_SE = 10,
-                Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,
-                Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;
+      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
+        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
+
+        // In 2D: 9 microscopic directions
+        // In 3D: 19 microscopic directions
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
+          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
   };
 
   class LatticeBoltzmann3D
@@ -71,12 +74,15 @@ namespace CoupledField
       // BNW, ..., TNE are corners
       // TN, ..., BE are edges
       // LEFT, ..., BACK are faces
-      typedef enum {C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, TNW = 5, TSW = 6, TSE = 7, TNE = 8, TN = 9,
-        TW = 10, TS = 11, TE = 12, NW = 13, SW = 14, SE = 15, NE = 16, BN = 17, BW = 18, BS = 19, BE = 20, W, E, T, B, S, N} Boundary;
-        typedef enum {Q_0 = 0, Q_E = 1, Q_W = 2, Q_N = 3, Q_S = 4, Q_T = 5, Q_B = 6,
-          Q_NE = 7, Q_SW = 8, Q_NW = 9, Q_SE = 10,
-          Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,
-          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;
+      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
+        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
+
+        // In 2D: 9 microscopic directions
+        // In 3D: 19 microscopic directions
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
+          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
 
           static Enum<Direction> directions;
           static Enum<Boundary> boundaries;
@@ -301,6 +307,7 @@ namespace CoupledField
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
 
           ResultHandler* rh = NULL;
+
   }; // end LatticeBoltzmann3D
 
 

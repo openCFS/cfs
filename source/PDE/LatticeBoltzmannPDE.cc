@@ -201,7 +201,7 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
 
   if(iface_ == INTERNAL) {
 //    lbm = new LatticeBoltzmann(n_x_, n_y_, u_x_, u_y_, omega_, maxIter_, convergence_, plot,writeFrequency_);
-    lbm = new LatticeBoltzmann3D(n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
+    lbm = new LatticeBoltzmann3D(dim_, n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
   }
 }
 
@@ -1396,7 +1396,6 @@ void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
     CalcPressures(res);
     break;
   case MECH_PSEUDO_DENSITY:
-//    break;
   case LBM_PHYSICAL_PSEUDO_DENSITY:
     if(domain->GetErsatzMaterial(false) == NULL) // no exception
       res->Init();
@@ -1424,22 +1423,18 @@ double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
 
 double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
 {
-//  Q19_0 = 0, Q19_E = 1, Q19_W = 2, Q19_N = 3, Q19_S = 4, Q19_T = 5, Q19_B = 6,
-//  Q19_NE = 7, Q19_SW = 8, Q19_NW = 9, Q19_SE = 10,
-//  Q19_TN = 11, Q19_BS = 12, Q19_TS = 13, Q19_BN = 14,
-//  Q19_TE = 15, Q19_BW = 16, Q19_TW = 17, Q19_BE = 18
   if (n_q_ == 9)
-    return (pdf(idx, 1) + pdf(idx, 5) + pdf(idx, 8) - pdf(idx, 3) - pdf(idx, 6) - pdf(idx, 7)) / density;
+    return (pdf(idx, Q_E) + pdf(idx, Q_NE) + pdf(idx, Q_SE) - pdf(idx, Q_W) - pdf(idx, Q_NW) - pdf(idx, Q_SW)) / density;
   else
-    return (pdf(idx, 1) + pdf(idx, 7) + pdf(idx, 10) + pdf(idx, 15) + pdf(idx, 18) - pdf(idx, 2) - pdf(idx, 8) - pdf(idx, 9) - pdf(idx, 16) - pdf(idx, 17)) / density;
+    return (pdf(idx, Q_NE) + pdf(idx, Q_E) + pdf(idx, Q_SE) + pdf(idx, Q_TE) + pdf(idx, Q_BE) - pdf(idx, Q_NW) - pdf(idx, Q_W) - pdf(idx, Q_SW) - pdf(idx, Q_TW) - pdf(idx, Q_BW)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
 {
   if (n_q_ == 9)
-    return (pdf(idx, 2) + pdf(idx, 5) + pdf(idx, 6) - pdf(idx, 4) - pdf(idx, 7) - pdf(idx, 8)) / density;
+    return (pdf(idx, Q_N) + pdf(idx, Q_NW) + pdf(idx, Q_NE) - pdf(idx, Q_S) - pdf(idx, Q_SE) - pdf(idx, Q_SW)) / density;
   else
-    return (pdf(idx, 3)  + pdf(idx, 7) + pdf(idx, 9) + pdf(idx, 11) + pdf(idx, 14) - pdf(idx, 4)- pdf(idx, 8) - pdf(idx, 10)  - pdf(idx, 12) - pdf(idx, 13)) / density;
+    return (pdf(idx, Q_N)  + pdf(idx, Q_NW) + pdf(idx, Q_NE) + pdf(idx, Q_TN) + pdf(idx, Q_BN) - pdf(idx, Q_S)- pdf(idx, Q_SE) - pdf(idx, Q_SW)  - pdf(idx, Q_TS) - pdf(idx, Q_BS)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
@@ -1447,7 +1442,7 @@ double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) cons
   if (n_q_ == 9)
     return 0;
   else
-    return (pdf(idx, 5) + pdf(idx, 11) + pdf(idx, 13) + pdf(idx, 15) + pdf(idx, 17) - pdf(idx, 6) - pdf(idx, 12) - pdf(idx, 14) - pdf(idx, 16) - pdf(idx, 18)) / density;
+    return (pdf(idx, Q_T) + pdf(idx, Q_TW) + pdf(idx, Q_TE) + pdf(idx, Q_TN) + pdf(idx, Q_TS) - pdf(idx, Q_B) - pdf(idx, Q_BW) - pdf(idx, Q_BE) - pdf(idx, Q_BN) - pdf(idx, Q_BS)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
@@ -1541,12 +1536,8 @@ void LatticeBoltzmannPDE::ExtractDistribution( shared_ptr<BaseResult> base_resul
   {
     for(unsigned int h = 0; h < n_q_; h++) {
       val[it.GetPos() * n_q_ + h] = pdf(elem_to_idx[it.GetElem()->elemNum],h);
-//      std::cout << "val[it.GetPos()]: " << val[it.GetPos() * n_q_ + h] << std::endl;
-//      abort();
     }
-//    abort();
   }
-//  std::cout << "here" << std::endl;
 }
 
 
