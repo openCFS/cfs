@@ -50,12 +50,14 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  void StdVector<TYPE>::Clear()
+  void StdVector<TYPE>::Clear(bool keepCapacity )
   {
     size_ = 0;
-    capacity_ = 0;
-    delete[] data_;
-    data_ = NULL;
+    if( keepCapacity == false ) {
+      capacity_ = 0;
+      delete[] data_;
+      data_ = NULL;
+    }
   }
 
   template<class TYPE>
@@ -202,37 +204,25 @@ namespace CoupledField {
   //   Push_back
   // *************
   template<class TYPE>
-  void StdVector<TYPE>::Push_back( const TYPE &y )
+  void StdVector<TYPE>::_Push_back_expand( const TYPE &y )
   {
-    // Check whether capacity is sufficiently large to perform
-    // a push-back operation. If not allocate memory according
-    // to the following simply scheme: Each time capacity is
-    // exceeded allocate twice as much memory as there was before.
-    if ( size_ >= capacity_ ) {
+    TYPE *help;
 
-      TYPE *help;
+    // perform memory allocation
+    capacity_ = (size_ == 0)? 1 : 2 * size_;
+    help = new TYPE[ capacity_ ];
 
-      // perform memory allocation
-      capacity_ = size_ == 0 ? 1 : 2 * size_;
-      help = new TYPE[ capacity_ ];
+    // copy old entries into new buffer if we have data
+    std::copy(data_, data_+size_, help);
 
-      // copy old entries into new buffer
-      std::copy(data_, data_+size_, help);
+    // Perform push-back and increase size
+    // note, that y might point to data, so copy before delete
+    help[size_] = y;
+    size_++;
 
-      // Perform push-back and increase size
-      // note, that y might point to data, so copy before delete
-      help[size_] = y;
-      size_++;
-
-      // delete old buffer and re-set pointer
-      delete[] data_;
-      data_ = help;
-
-    } else {
-      // Perform push-back and increase size
-      data_[size_] = y;
-      size_++;
-    }
+    // delete old buffer and re-set pointer
+    delete[] data_;
+    data_ = help;
   }
 
 

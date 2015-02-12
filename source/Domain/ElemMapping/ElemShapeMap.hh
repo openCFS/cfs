@@ -235,8 +235,7 @@ namespace CoupledField {
   //! all, as the grid could store this information ....
   //! 
   
-  class ElemShapeMap {
-  
+  class ElemShapeMap : public boost::enable_shared_from_this<ElemShapeMap>{
   public:
 
     //! Define enumeration data type
@@ -630,6 +629,12 @@ namespace CoupledField {
     
     //! Pointer to class containing the reference elements
     LagrangeMapSingleton & elems_;
+
+    //! Cached entry for local derivative (used for Jacobian)
+    Matrix<Double> deriv_;
+
+    //! Cached entry for shape functions (used for local -> global)
+    Vector<Double> shFnc_;
   };
 
 }

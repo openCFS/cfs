@@ -48,6 +48,44 @@ namespace CoupledField
 
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
+
+    numOMPThreads_ = 1;
+
+#ifdef _OPENMP
+    numOMPThreads_ = omp_get_num_threads();
+#endif
+
+    elemShapeMapOrig_.Resize(numOMPThreads_);
+    lastShapeElemNumOrig_.Resize(numOMPThreads_);
+
+    elemShapeMapUpdated_.Resize(numOMPThreads_);
+    lastShapeElemNumUpdated_.Resize(numOMPThreads_);
+
+    //elemShapeMapOrig2nd_.Resize(numOMPThreads_);
+    //lastShapeElemNumOrig2nd_.Resize(numOMPThreads_);
+    //
+    //elemShapeMapUpdated2nd_.Resize(numOMPThreads_);
+    //lastShapeElemNumUpdated2nd_.Resize(numOMPThreads_);
+
+    UInt slotsToReserve = 6;
+    for(UInt aT = 0; aT < numOMPThreads_; aT++){
+      lastShapeElemNumOrig_[aT].Reserve(slotsToReserve);
+      lastShapeElemNumUpdated_[aT].Reserve(slotsToReserve);
+      elemShapeMapOrig_[aT].Reserve(slotsToReserve);
+      elemShapeMapUpdated_[aT].Reserve(slotsToReserve);
+    }
+    //  this->elemShapeMapOrig_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapUpdated_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapOrig2nd_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapUpdated2nd_[aT].reset(new LagrangeElemShapeMap(this));
+    //
+    //  this->lastShapeElemNumOrig_[aT] = 0;
+    //  this->lastShapeElemNumUpdated_[aT] = 0;
+    //
+    //  this->lastShapeElemNumOrig2nd_[aT] = 0;
+    //  this->lastShapeElemNumUpdated2nd_[aT] = 0;
+    //}
+
   }
 
   Grid::~Grid()
@@ -109,15 +147,119 @@ namespace CoupledField
   }
 
   shared_ptr<ElemShapeMap> Grid::GetElemShapeMap( const Elem* ptElem,
-                                                  bool isUpdated ) {
+                                                  bool isUpdated,
+                                                  bool secondary ) {
+//    shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+//    ret->SetElem(ptElem, isUpdated );
+//    return ret;
+    UInt aThread = 0;
+#ifdef OPENMP
+    int at = omp_get_thread_num();
+    if(at<0){
+      EXCEPTION("Current thread number is negative, this may not happen!")
+    }
+    //do we need to check anything?
+    aThread = (UInt)at;
+#endif
+    if(isUpdated){
+      Integer idx = lastShapeElemNumUpdated_[aThread].Find(ptElem->elemNum);
+      if(idx>=0){
+        ////check for special element number 0 in case of mortar interface elements
+        if(ptElem->elemNum==0){
+          //still, there may be situations in which some object still holds references
+          //this is just due to the incosistent element numbering of mortarNcElems, as well as
+          //the projected master construct. We will have to fix this or find another way around
+          if(elemShapeMapUpdated_[aThread][(UInt)idx].use_count()>1){
+            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+            ret->SetElem(ptElem, isUpdated );
+            return ret;
+          }else{
+            elemShapeMapUpdated_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+          }
+        }
+        return elemShapeMapUpdated_[aThread][(UInt)idx];
+      }else{
+        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+        for(UInt aIdx =0;aIdx<elemShapeMapUpdated_[aThread].GetSize();aIdx++){
+          if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
+            elemShapeMapUpdated_[aThread][aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumUpdated_[aThread][aIdx] = ptElem->elemNum;
+            return elemShapeMapUpdated_[aThread][aIdx];
+          }
+        }
+        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
+        newMap->SetElem(ptElem, isUpdated );
+        elemShapeMapUpdated_[aThread].Push_back(newMap);
+        lastShapeElemNumUpdated_[aThread].Push_back(ptElem->elemNum);
+        return newMap;
+      }
+    }else{
+      Integer idx = lastShapeElemNumOrig_[aThread].Find(ptElem->elemNum);
+      if(idx>=0){
+        ////check for special element number 0 in case of mortar interface elements
+        if(ptElem->elemNum==0){
+          //still, there may be situations in which some object still holds references
+          //this is just due to the incosistent element numbering of mortarNcElems, as well as
+          //the projected master construct. We will have to fix this or find another way around
+          if(elemShapeMapOrig_[aThread][(UInt)idx].use_count()>1){
+            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+            ret->SetElem(ptElem, isUpdated );
+            return ret;
+          }else{
+            elemShapeMapOrig_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+          }
+        }
+        return elemShapeMapOrig_[aThread][(UInt)idx];
+      }else{
+        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+        for(UInt aIdx =0;aIdx<elemShapeMapOrig_[aThread].GetSize();aIdx++){
+          if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
+            elemShapeMapOrig_[aThread][aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumOrig_[aThread][aIdx] = ptElem->elemNum;
+            return elemShapeMapOrig_[aThread][aIdx];
+          }
+        }
+        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
+        newMap->SetElem(ptElem, isUpdated );
+        elemShapeMapOrig_[aThread].Push_back(newMap);
+        lastShapeElemNumOrig_[aThread].Push_back(ptElem->elemNum);
+        return newMap;
+      }
+    }
+    // 1) check for use of secondary element shape map
 
-    // Currently we support just Lagrangian-mapped elements
-    //shapeMap_->SetElem( ptElem, isUpdated );
-    //return shapeMap;
-    
-    shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-    ret->SetElem(ptElem, isUpdated );
-    return ret;
+
+    //if ( !secondary ) {
+    //  // === Primary element maps ===
+    //  if( isUpdated ) {
+    //    if (ptElem->elemNum != lastShapeElemNumUpdated_[aThread]) {
+    //      elemShapeMapUpdated_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumUpdated_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapUpdated_[aThread];
+    //  } else {
+    //    if (ptElem->elemNum != lastShapeElemNumOrig_[aThread]) {
+    //      elemShapeMapOrig_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumOrig_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapOrig_[aThread];
+    //  }
+    //} else {
+    //  // === Secondary element maps ===
+    //  if( isUpdated ) {
+    //    if (ptElem->elemNum != lastShapeElemNumUpdated2nd_[aThread]) {
+    //      elemShapeMapUpdated2nd_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumUpdated2nd_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapUpdated2nd_[aThread];
+    //  } else {
+    //    if (ptElem->elemNum != lastShapeElemNumOrig2nd_[aThread]) {
+    //      elemShapeMapOrig2nd_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumOrig2nd_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapOrig2nd_[aThread];
+    //  }
+    //}
   }
   
   RegionIdType Grid::AddRegion(const std::string& name, bool reg)
