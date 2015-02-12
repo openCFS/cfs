@@ -49,7 +49,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = 
+      shared_ptr<ElemShapeMap> esm =
         it.GetGrid()->GetElemShapeMap( el, true );
       lpm.Set( lp, esm, 0.0 );
       this->GetVector(tempField, lpm );
@@ -94,7 +94,7 @@ EvalResult( shared_ptr<BaseResult> res ) {
         const Elem * el = elems[i];
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
           it.GetGrid()->GetElemShapeMap( el, true );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
@@ -211,7 +211,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
@@ -290,7 +290,7 @@ EvalResult(shared_ptr<BaseResult> res ) {
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
@@ -391,7 +391,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
 
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
@@ -442,7 +442,7 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::
 
         feSpace->GetFe( elemIt, method, order );
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points

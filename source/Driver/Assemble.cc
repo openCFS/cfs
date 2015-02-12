@@ -490,6 +490,8 @@ namespace CoupledField
         // gets re-assembled
         // Loop over all bilinearforms
         bool anyReassemble = false;
+
+
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
           BiLinFormContext & actContext = *forms[iForm];
@@ -523,6 +525,7 @@ namespace CoupledField
 
       it1.Begin();
       it2.Begin();
+
       for( UInt i = 0; i < size; ++i  ) {
 
         LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
@@ -923,7 +926,7 @@ namespace CoupledField
           algsys_->SetElementMatrix( SYSTEM, rElemMatSummed,
                                      keyPair.first, eqnVecs[keyPair].first,
                                      keyPair.second, eqnVecs[keyPair].second,
-                                     mapIt->second,false);
+                                     mapIt->second,false,false);
 
         }
 
@@ -1684,7 +1687,8 @@ namespace CoupledField
                                  fctId1, eqnVec1,
                                  fctId2, eqnVec2,
                                  context.IsSetCounterPart(),
-                                 preventStaticCond );
+                                 preventStaticCond,
+                                 context.isDiagonal());
 
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);
@@ -1696,7 +1700,8 @@ namespace CoupledField
                                     fctId1, eqnVec1,
                                     fctId2, eqnVec2,
                                     context.IsSetCounterPart(),
-                                    preventStaticCond );
+                                    preventStaticCond,
+                                    context.isDiagonal());
     }
 
   }
@@ -1730,7 +1735,7 @@ namespace CoupledField
 
     algsys_->SetElementMatrix( mappedDest, harmMat, fctId1, eqnVec1,
                                fctId2, eqnVec2, context.IsSetCounterPart(),
-                               preventStaticCond );
+                               preventStaticCond, context.isDiagonal() );
   }
 
 

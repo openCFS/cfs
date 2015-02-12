@@ -14,6 +14,10 @@
 #include "FeSpaceConst.hh"
 
 
+#ifdef OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField {
 
 
@@ -170,7 +174,15 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     // the user gets initialized
     intScheme_ = ptGrid_->GetIntegrationScheme();
 
+    UInt numOMPThreads = 1;
 
+#ifdef _OPENMP
+    numOMPThreads = omp_get_num_threads();
+#endif
+    lastElemNum_.Resize(numOMPThreads);
+    lastElemNum_.Init(0.0);
+    lastEqns_.Resize(numOMPThreads);
+    eqnNodes_.Resize(numOMPThreads);
   }
 
   FeSpace::~FeSpace(){
@@ -424,8 +436,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
   void FeSpace::GetNodesOfElement( StdVector<UInt>& nodes,
                                    const Elem* ptElem,
                                    BaseFE::EntityType entType){
-    nodes.Clear();
-    nodes.Reserve(30);
+    nodes.Clear(true);
 
     EntityNodesType& vNodes = vNodesCont_[BaseFE::VERTEX];
     EntityNodesType& eNodes = vNodesCont_[BaseFE::EDGE];
@@ -440,7 +451,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       UInt numNodes = ptElem->connect.GetSize();
       if( entType == BaseFE::VERTEX || entType == BaseFE::ALL ) {
         for( UInt i = 0; i < numNodes; ++i ) {
-          StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
+          const StdVector<UInt>& vertexNodes = vNodes[ptElem->connect[i]];
           for( UInt j = 0; j < vertexNodes.GetSize(); ++j ) {
             nodes.Push_back(vertexNodes[j]);
           }
@@ -1171,7 +1182,6 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     if ( ent.GetType() == EntityList::NODE_LIST ) {
       UInt node = ent.GetNode();
       eqns.Resize(dofsPerUnknown);
-      eqns.Init();
       if (gridToVirtualNodes_.find(node) != gridToVirtualNodes_.end()){
         for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
           eqns[iDof] = nodeMap_[gridToVirtualNodes_[node][0]][iDof];
@@ -1186,16 +1196,41 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     } else if( ent.GetType() == EntityList::ELEM_LIST ||
         ent.GetType() == EntityList::SURF_ELEM_LIST||
         ent.GetType() == EntityList::NC_ELEM_LIST){
-      StdVector<UInt> nodes;
-      GetNodesOfElement(nodes, ent.GetElem());
-      eqns.Resize( nodes.GetSize() * dofsPerUnknown );
-      eqns.Init();
-      for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
-        for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
-          eqns[(iNode*dofsPerUnknown) + iDof] = 
-              nodeMap_[nodes[iNode]][iDof];
+      //StdVector<UInt> nodes;
+      //GetNodesOfElement(nodes, ent.GetElem());
+      //eqns.Resize( nodes.GetSize() * dofsPerUnknown );
+      //eqns.Init();
+      //for (UInt iNode = 0; iNode < nodes.GetSize(); iNode++ ) {
+      //  for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+      //    eqns[(iNode*dofsPerUnknown) + iDof] =
+      //        nodeMap_[nodes[iNode]][iDof];
+      //  }
+      //}
+      // check if last accessed element is the same as this one
+      UInt aThread = 0;
+#ifdef OPENMP
+      aThread = omp_get_thread_num();
+#endif
+
+      UInt elemNum = ent.GetElem()->elemNum;
+      if( elemNum == lastElemNum_[aThread] ) {
+        eqns = lastEqns_[aThread];
+      } else {
+        GetNodesOfElement(eqnNodes_[aThread], ent.GetElem());
+        UInt nrNodes = eqnNodes_[aThread].GetSize();
+        eqns.Resize( nrNodes * dofsPerUnknown );
+        //eqns.Init();
+        UInt pos = 0;
+        for (UInt iNode = 0; iNode < nrNodes; iNode++ ) {
+          const StdVector<Integer>& nodeEqns = nodeMap_[eqnNodes_[aThread][iNode]];
+          for(UInt iDof = 0; iDof < dofsPerUnknown; iDof++){
+            eqns[pos + iDof] = nodeEqns[iDof];
+          }
+          pos += dofsPerUnknown;
         }
-      }
+        lastElemNum_[aThread] = elemNum;
+        lastEqns_[aThread] = eqns;
+      } // if: lastElemNum == elemNum
     } else {
       EXCEPTION("In FeSpace::GetEqns(): Supplied an iterator which is not supported by FeSpace");
     }

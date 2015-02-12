@@ -410,6 +410,10 @@ void MortarInterface::UpdateInterface() {
       for ( UInt i=0; i<numElems; ++i ) {
         std::map<std::string, UInt>::iterator it = ptGrid_->entityDim_.find(name_);
 
+        //copy the element numbers to be consistent
+        elemList_->GetNcSurfElem(i)->regionId = ncElemsHelper[i]->regionId;
+        elemList_->GetNcSurfElem(i)->elemNum = ncElemsHelper[i]->elemNum;
+
         if( it != ptGrid_->entityDim_.end() ) {
           if( it->second != Elem::shapes[elemList_->GetSurfElem(i)->type].dim ) {
             EXCEPTION( "Region '" << name_
@@ -1608,7 +1612,8 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
     return false;
   // make sure there are not more cuts than possible
   if (nCuts > 2) {
-    EXCEPTION("A line cannot cut more than two edges of a convex polygon");
+    WARN("A line cannot cut more than two edges of a convex polygon. This cann occur, e.g. if two elements touch on a node or a line(2D). Ignoring this pair of elements. Still, check the intersection grid.");
+    return false;
   }
 
   // save the position of the first cut in the active polygon

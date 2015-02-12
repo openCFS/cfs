@@ -3279,7 +3279,7 @@ namespace CoupledField {
         deltCoords_.Resize(numNodes_);
       } else {
         // Please implement the general case if you need it. But beware!
-        // It's compliated, because you need to renumber all nodes and
+        // It's complicated, because you need to renumber all nodes and
         // therefore change the connectivity as well!
         numNodes_ = coords_.GetSize() - sortedNodes.size();
         coords_.Resize(numNodes_);
