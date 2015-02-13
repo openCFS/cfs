@@ -24,6 +24,14 @@ IF(COMMAND CMAKE_POLICY)
   IF(POLICY CMP0014)
     CMAKE_POLICY(SET CMP0014 NEW)
   ENDIF(POLICY CMP0014)
+  
+
+  IF(POLICY CMP0022)
+    CMAKE_POLICY(SET CMP0022 OLD)
+  ENDIF(POLICY CMP0022)
+  IF(POLICY CMP0038)
+    CMAKE_POLICY(SET CMP0038 OLD)
+  ENDIF(POLICY CMP0038)
 ENDIF(COMMAND CMAKE_POLICY)
 
 #-----------------------------------------------------------------------------
@@ -100,6 +108,9 @@ OPTION(USE_ANSYSRST
 OPTION(USE_MPCCI
   "Enable support for the Mesh parallel Code Coupling Interface."
   ${USE_MPCCI_DEFAULT})
+OPTION(USE_SGPP
+  "Enable support for sparse grid interpolation."
+  ${USE_SGPP_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Options concerning linear algebra and direct solver libraries

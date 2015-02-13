@@ -463,6 +463,9 @@ class Function
         double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
             double direction) const;
 
+        /** Get the index of the local interpolation interval*/
+        int GetInterpolationIndex(Matrix<double>, double&) const;
+
         /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
         double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
             double & dc, int & j, int & k, int & l, int & m, int & n, int &o) const;
