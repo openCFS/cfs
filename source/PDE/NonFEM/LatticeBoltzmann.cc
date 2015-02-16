@@ -3,6 +3,7 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
+#include <omp.h>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"
@@ -270,10 +271,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
 void LatticeBoltzmann::InitializePdfs()
 {
-#ifdef _OPENMP
-  // Perform NUMA-correct placement.
-#pragma omp parallel for default(none), collapse(2)
-#endif
+#pragma omp parallel for default(none)
   for (int elem = 0; elem < m_nNodes; elem++) {
     for (int dir = 0; dir < n_q_; dir++) {
       pdf(0, elem, dir) = weights[dir];
@@ -1144,9 +1142,6 @@ void LatticeBoltzmann::prop_step()
 double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
 {
   double sum = 0;
-#ifdef _OPENMP
-  #pragma omp parallel for schedule(static,chunk) reduction(+:sum)
-#endif
   for (int dir = 0; dir < n_q_; dir++) {
     sum += pdf(cur, i, j, k, dir);
   }
@@ -1226,13 +1221,6 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
   map1 = &prop_maps[EDGE_BW];
   map2 = &prop_maps[EDGE_BE];
 
-#ifdef _OPENMP
-#pragma omp parallel for \
-    private(x, y, z), \
-    private(map1, map2, map3, map4, transform1, transform2, transform3, transform4), \
-    private(node), \
-    collapse(2)
-#endif
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
@@ -1253,14 +1241,19 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
   double tmp, tmp_ux, tmp_uy, tmp_us, scale, sum;
   double * scales  = Scales.GetPointer();
 
-  StdVector<double> pdfs;
-  pdfs.Resize(n_q_);
   int index;
 
-  z = 0;
-
+#pragma omp parallel default(none)\
+    private(index), \
+    private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y), \
+    shared(z, next, cur, map_interior, scales, omega)
+{
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
+  #pragma omp for collapse(2)
   for (y = 1; y < m_sizeY - 1; ++y) {
     for (x = 1; x < m_sizeX - 1; ++x) {
+
       index= GetIndex(x,y,z);
 
       // sum: macroscopic density is sum over all discrete distributions of an element
@@ -1293,6 +1286,7 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
       }
     }
   }
+}
   return;
 }
 
@@ -1481,13 +1475,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   //additional in 3D
   map3 = &prop_maps[EDGE_TW];
   map4 = &prop_maps[EDGE_TE];
-#ifdef _OPENMP
-#pragma omp parallel for \
-    private(x, y, z), \
-    private(map1, map2, map3, map4, transform1, transform2, transform3, transform4), \
-    private(node), \
-    collapse(2)
-#endif
+
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
@@ -1604,13 +1592,16 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   double tmp, tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
   double * scales  = Scales.GetPointer();
 
-  StdVector<double> pdfs;
-  pdfs.Resize(n_q_);
   int index;
 
-  Direction d;
-  const Direction order[] = {Q_0, Q_E, Q_W, Q_N, Q_S, Q_T, Q_B, Q_NE, Q_SW, Q_NW, Q_SE, Q_TN, Q_BS, Q_TS, Q_BN, Q_TE, Q_BW, Q_TW, Q_BE};
-
+#pragma omp parallel default(none)\
+    private(index), \
+    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y,z), \
+    shared(next, cur, map_interior, scales, omega)
+{
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
+  #pragma omp for collapse(3)
   for (z = 1; z < m_sizeZ - 1; ++z) {
     for (y = 1; y < m_sizeY - 1; ++y) {
       for (x = 1; x < m_sizeX - 1; ++x) {
@@ -1645,15 +1636,14 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
         tmp_uz = 3.0 * tmp_uz;
 
         for (int dir = 0; dir < n_q_; dir++) {
-          d = order[dir];
-          tmp = velocityDirections[d].off_x * tmp_ux + velocityDirections[d].off_y * tmp_uy + velocityDirections[d].off_z * tmp_uz;
-          pdf(next, x, y, z, d) = pdfs[d] + omega * ((sum * weights[d]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[d]);
-
+          tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy + velocityDirections[dir].off_z * tmp_uz;
+          pdf(next, x, y, z, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
 
       }
     }
   }
+}
   return;
 }
 
