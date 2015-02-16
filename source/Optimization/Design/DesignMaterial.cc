@@ -232,7 +232,7 @@ unsigned int DesignMaterial::RequiredParameters(
   case D_INTERP_TENSOR:
     return r + 2;
   case D_INTERP_TENSOR_ROT:
-    return r + 2 + (dim == 3 ? 3 : 1);
+    return r + 3 + (dim == 3 ? 3 : 1);
   }
 
   assert(false);
@@ -299,6 +299,7 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::INTERPOLATION) >=0);
   case D_INTERP_TENSOR_ROT:
     return (design.Find(DesignElement::DENSITY) >= 0
+        && design.Find(DesignElement::EMODUL) >=0
         && design.Find(DesignElement::INTERPOLATION) >=0
         && (dim != 2 || design.Find(DesignElement::ROTANGLE) >= 0)
         && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) >= 0 && design.Find(DesignElement::ROTANGLEY) >= 0 && design.Find(DesignElement::ROTANGLEZ) >= 0 ) ) );
@@ -494,8 +495,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     E3 = params_[DesignElement::EMODUL];
   else
   {
-    E3 = 139.8 + 2.4*E;
-    E = 145.0 - 5.8*E;
+    E3 = 137.4e+7 + 2.4e+7*E;
+    E = 145.0e+7 - 5.8e+7*E;
   }
   double G3 = params_[DesignElement::GMODUL];
   double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
@@ -506,7 +507,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
         || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) && notation != HILL_MANDEL_NO_DENSITY)
     {
       dens = params_[DesignElement::DENSITY];
-      dens = std::pow(dens, penalty_);
+      dens = std::pow(dens, penalty_); // SIMP
+ //     dens = dens/(1.0 + 10.0*(1.0-dens)); // RAMP
     }
     if (type_ == TRANSVERSAL_ISOTROPIC
         || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
@@ -636,7 +638,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double dens = 1.0, factor = 1.0;
   if((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY){
     dens = params_[DesignElement::DENSITY];
-    factor = std::pow(dens, penalty_);
+    factor = std::pow(dens, penalty_); // SIMP
+    //factor = dens/(1.0 + penalty_*(1.0-dens)); // RAMP
   }
   if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC){
     nu3 = nu13 * E3/E;
@@ -659,7 +662,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   switch(direction){
   case DesignElement::DENSITY: // almost the same as no derivative, we only change the factor a little
     if(penalty_ != 1.0){
-      factor = penalty_ * std::pow(dens, penalty_ - 1.0);
+      factor = penalty_ * std::pow(dens, penalty_ - 1.0); // SIMP
+//      double p2 = penalty_ * penalty_;                      // R
+//      double p = penalty_;                                  // A
+//      double x = dens;                                      // M
+//      factor = (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);  // P
     }
     if(notation == HILL_MANDEL_NO_DENSITY)
       factor = 0.0;
@@ -834,6 +841,23 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
   double dD3 = ((1.0 - nu) * dE3 - dnu * E3 - (1.0 - nu) * E3 * dc / c) / c;
   double dG = 0.5 * ((1.0 + nu) * dE - E * dnu) / ((1.0 + nu) * (1.0 + nu));
   return (GetTransIsoMass(dD, dG, dD3, dG3));
+}
+
+double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
+  double dens = params_[DesignElement::DENSITY];
+  switch (direction){
+  case DesignElement::NO_DERIVATIVE:
+  {
+// for mass identity transfer function (which should normally be used) is assumed. This is messy because of lack of TransferFunctions!
+    return dens;
+  }
+  case DesignElement::DENSITY:
+  {
+    return 1.0;
+  }
+  default:
+    return 0.0;
+  }
 }
 
 void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
@@ -1492,15 +1516,24 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
     SubTensorType subTensor, DesignElement::Type direction, Notation notation){
   double a = (direction == DesignElement::INTERPOLATION) ? 1.0 : params_[DesignElement::INTERPOLATION];
   double ma = (direction == DesignElement::INTERPOLATION) ? -1.0 : 1.0-a;
+  double E = params_[DesignElement::EMODUL];
   switch (subTensor) {
   case FULL:
     t.Resize(6, 6);
     t.Init();
 //    SetOrthotropicTensor(t, subTensor, a*255.68181818+ma*294.03409091, a*99.43181818+ma*80.0, a*99.43181818+ma*114.34659091,
 //        a*255.68181818+ma*166.19318182, a*99.43181818+ma*80.0, a*255.68181818+ma*294.03409091, a*78.125+ma*70.0, a*78.125+ma*70.0, a*78.125+ma*60.0);
-    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.529863106641,
-        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.622605363985,
-        a*1.91761363636+ma*2.87356321839, a*0.5859375+ma*0.57, a*0.5859375+ma*0.57, a*0.5859375+ma*0.5078125);
+//    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.529863106641,
+//        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*1.54548810664, a*0.745738636364+ma*0.622605363985,
+//        a*1.91761363636+ma*2.87356321839, a*0.5859375+ma*0.57, a*0.5859375+ma*0.57, a*0.5859375+ma*0.5078125);
+    SetOrthotropicTensor(t, subTensor, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.529863106641,
+        a*0.745738636364+ma*0.622605363985, a*1.91761363636+ma*(1.54548810664-E/5), a*0.745738636364+ma*0.622605363985,
+        a*1.91761363636+ma*(2.87356321839+E), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.57-E/10), a*0.5859375+ma*(0.5078125-E/10));
+    break;
+  case PLANE_STRAIN:
+  case PLANE_STRESS:
+    transIsoType_ = TRANSISO_XZ;
+    SetTransIsoTensor(t, subTensor, a*1.91761363636+ma*1.54548810664, 0.0, 0.0, a*1.91761363636+ma*2.87356321839, a*0.745738636364+ma*0.529863106641, a*0.5859375+ma*0.5078125);
     break;
   default:
     throw Exception("subTensor not implemented yet");
@@ -2372,6 +2405,8 @@ double DesignMaterial::GetMaterialMass(DesignElement::Type direction) {
     case TRANSVERSAL_ISOTROPIC:
     case TRANSVERSAL_ISOTROPIC_BOXED:
       return (GetTransIsoMaterialMass(direction) * massFactor_);
+    case DENSITY_TIMES_ROT_PA12:
+      return (GetDensityTimesTensorMass(direction) * massFactor_);
     default: // case default
       throw Exception("DesignMaterial Type not implemented yet");
     }

@@ -67,6 +67,10 @@ template <class TYPE> class Vector;
      * @param tmp_displacement temporary varibale for speed */
     inline void SubtractTestDisplacement(unsigned int idx, Matrix<double>& CornerCoords, Vector<double>& result, Matrix<double>& tmp_strain, Matrix<double>& tmp_displacement);
 
+    void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true){
+      ParamMat::SetElementK(de, tf, app, out, calcMode, derivative);
+    }
+
   private:
 
     /** whether material is also optimized */

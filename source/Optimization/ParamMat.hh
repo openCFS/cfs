@@ -3,6 +3,7 @@
 
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
+#include "Domain/elem.hh"
 
 namespace CoupledField {
 
@@ -27,10 +28,27 @@ class TransferFunction;
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
+    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
+    {
+      if(harmonic){
+        if(pde->HasComplexMatData(de->elem->regionId))
+          SetElementK<Complex, Complex >(de, tf, app, out, calcMode, derivative);
+        else
+          SetElementK<Complex, double >(de, tf, app, out, calcMode, derivative);
+      }
+      else SetElementK<double,double>(de, tf, app, out, calcMode, derivative);
+    }
     
     /** this is a shortcut to the material class */
     MechMat* mech_mat_;
+
+  private:
+
+
+    template <class T1, class T2>
+    void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, CalcMode calcMode, bool derivative = true);
+
+
   };
 
 }

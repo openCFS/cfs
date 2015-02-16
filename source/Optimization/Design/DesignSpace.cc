@@ -634,7 +634,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
 }
 bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
 {
-  // see also implementation SIMP::AddMassToStiffness() for match!!!
+  // see also implementation ErsatzMaterial::AddMassToStiffness() for match!!!
   static MechMat mm = MechMat(this); // Assumes irregular mesh :(
   // pamping at all -> see Sigmund; Morphology; 2007
   assert(GetPampingValue() >= 0);
@@ -644,7 +644,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
     return false;
   // we use the physical design variable to match better
   TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
-  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
+  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
   // now the original mass matrix
   const Matrix<double>& mass = mm.Mass(de->elem);
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();

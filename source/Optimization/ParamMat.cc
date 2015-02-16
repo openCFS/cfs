@@ -64,21 +64,27 @@ void ParamMat::PostInit()
   assert(mech_mat_ != NULL);
 }
 
+template <class T1, class T2>
 void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
   // for transient problems, this does also need to return the derivative of the mass matrix
-  Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
+  Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
   int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
   switch(app)
   {
   case MECH:
-    out = dynamic_cast<Matrix<double>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    Assign(out, dynamic_cast<Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE)), 1.0);
+    if(harmonic)
+    {
+      tf = design->GetTransferFunction(de->GetType(), MASS);
+      AddMassToStiffness(tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false);
+    }
     break;
   case MASS:
-    out = mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE);
+    Assign(out, mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE), 1.0);
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");
@@ -86,3 +92,5 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   }
   LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
 }
+
+

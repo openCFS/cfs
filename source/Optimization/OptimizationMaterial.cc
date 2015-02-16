@@ -348,7 +348,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
         tmp_mat2.SetPart(Global::IMAG, tmp_mat);
         mechStiffness_mapC[elem->regionId][index] = tmp_mat2;
       }
-      else mechStiffness_map[elem->regionId][1] = tmp_mat;
+      else mechStiffness_map[elem->regionId][index] = tmp_mat;
     }
   }
 

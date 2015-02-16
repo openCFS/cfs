@@ -21,6 +21,7 @@
 #include "PDE/timestepping.hh"
 #include "Utils/StdVector.hh"
 #include "boost/tuple/tuple.hpp"
+#include "Driver/baseSolveStep.hh"
 
 namespace CoupledField {
 class DenseMatrix;
@@ -516,6 +517,9 @@ protected:
   /** Helper that gives the physical material tensor considers bi-material */
   void GetPhysicalMaterial(BaseForm* form, const DesignElement* de,
       const TransferFunction* tf, bool derivative, Matrix<double>& out);
+  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
