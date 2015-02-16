@@ -318,6 +318,7 @@ void LatticeBoltzmannPDE::Solve()
 //    // max steps is high. The number is only relevant for hdf5, but there a hard limit
 //    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999);
 //  }
+
   // infoNode_ is not set yet in the constructor
   PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
   in->Get("omega")->SetValue(omega_);
@@ -1430,7 +1431,7 @@ double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) cons
 double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
 {
   if (n_q_ == 9)
-    return (pdf(idx, Q_N) + pdf(idx, Q_NW) + pdf(idx, Q_NE) - pdf(idx, Q_S) - pdf(idx, Q_SE) - pdf(idx, Q_SW)) / density;
+    return (pdf(idx, Q_N)  + pdf(idx, Q_NE) + pdf(idx, Q_NW) - pdf(idx, Q_S) - pdf(idx, Q_SW) - pdf(idx, Q_SE)) / density;
   else
     return (pdf(idx, Q_N)  + pdf(idx, Q_NW) + pdf(idx, Q_NE) + pdf(idx, Q_TN) + pdf(idx, Q_BN) - pdf(idx, Q_S)- pdf(idx, Q_SE) - pdf(idx, Q_SW)  - pdf(idx, Q_TS) - pdf(idx, Q_BS)) / density;
 }

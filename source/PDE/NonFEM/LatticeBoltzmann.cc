@@ -36,8 +36,12 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
-  if (m_dim == 2)
-    assert(m_sizeZ == 1);
+  if (dim == 2) {
+    assert(sizeZ == 1);
+    n_q_ = 9;
+  }
+  else
+    n_q_ = 19;
 
   m_dim = dim;
   m_sizeX = sizeX;
@@ -53,12 +57,6 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   m_numWriteResults = 0;
 
   m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
-
-
-  if (m_dim == 2)
-    n_q_ = 9;
-  else
-    n_q_ = 19;
 
   m_plot = plot;
 
@@ -86,10 +84,6 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   TestDirectionIndex();
   TestInvDirections();
   TestGetIndexbound();
-  SetupTransformation();
-
-  // for debugging
-//  WritePropMap();
 
   Scales.Resize(m_nNodes);
   rel.Resize(m_nNodes);
@@ -101,6 +95,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 
   //initlialize function pointers in dependence on problem's dimension
   if (dim == 2) {
+    SetupTransformation2D();
     prop_coll_step = &LatticeBoltzmann::prop_coll_step2D;
     prop_coll_velinlet = &LatticeBoltzmann::prop_coll_velinlet2D;
     prop_coll_bounce_back = &LatticeBoltzmann::prop_coll_bounce_back2D;
@@ -108,11 +103,15 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   }
   else
   {
+    SetupTransformation3D();
     prop_coll_step = &LatticeBoltzmann::prop_coll_step3D;
     prop_coll_velinlet = &LatticeBoltzmann::prop_coll_velinlet3D;
     prop_coll_bounce_back = &LatticeBoltzmann::prop_coll_bounce_back3D;
     prop_coll_densoutlet = &LatticeBoltzmann::prop_coll_densoutlet3D;
   }
+
+  // for debugging
+//  WritePropMap();
 }
 
 LatticeBoltzmann::~LatticeBoltzmann()
@@ -182,13 +181,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     // -- Bounce back step ------------------------------------------------
     (this->*prop_coll_bounce_back)(m_next, bb);
-
     // -- Inlet condition -------------------------------------------------
     (this->*prop_coll_velinlet)(m_next, inlet, m_ux, m_uy, m_uz);
-
     // -- Outlet condition ------------------------------------------------
     (this->*prop_coll_densoutlet)(m_next, outlet);
-
     if((it == 0 || it % 100 == 0))
     {
       //Calculation of the residual
@@ -215,7 +211,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       in->Get("residuum")->SetValue(R);
       info->ToFile(); // is not written when called too often
 
-      std::cout << "residual: " << R << std::endl;
+//      std::cout << "residual: " << R << std::endl;
     }
 
     m_cur  = (m_cur  + 1) % 2;
@@ -228,11 +224,19 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       count++;
       domain->GetDriver()->StoreResults(count,(double)count);
     }
-
   }
-  timer.Stop();
 
-//  CheckBoundaryVelocities(m_cur, bb);
+  // -- Combined propagation and collision step -------------------------
+  (this->*prop_coll_step)(m_cur, m_next, m_omega);
+
+  // -- Bounce back step ------------------------------------------------
+  (this->*prop_coll_bounce_back)(m_next, bb);
+  // -- Inlet condition -------------------------------------------------
+  (this->*prop_coll_velinlet)(m_next, inlet, m_ux, m_uy, m_uz);
+  // -- Outlet condition ------------------------------------------------
+  (this->*prop_coll_densoutlet)(m_next, outlet);
+
+  timer.Stop();
 
   in->Get("iterations")->SetValue(it);
   in->Get("residuum")->SetValue(R);
@@ -278,177 +282,35 @@ void LatticeBoltzmann::InitializePdfs()
   }
 }
 
-//returns associated integer value of velocity direction two given principal directions
-inline int LatticeBoltzmann::GetIndexDir(Direction dir1)
-{
-  assert(directions.IsValid(dir1));
-  return dir1;
-}
-
-
-// first direction must be: S, N, T or B
-// second direction can only be: E, W, N, S
-inline int LatticeBoltzmann::GetIndexDir(Direction dir1, Direction dir2)
-{
-  assert(directions.IsValid(dir1));
-  assert(dir2 != 0);
-  assert(directions.IsValid(dir2));
-  assert(dir1 != dir2);
-  assert((dir1 == Q_S) || (dir1 == Q_N) || (dir1 == Q_T) || (dir1 == Q_B));
-  assert((dir2 == Q_E) || (dir2 == Q_W) || (dir2 == Q_N) || (dir2 == Q_S));
-  // this formula is dependent on indexing of directions
-  if (dir1 == Q_N && dir2 == Q_E)
-    return Q_NE;
-  if (dir1 ==  Q_N && dir2 ==  Q_W)
-    return  Q_NW;
-  if (dir1 == Q_S  && dir2 == Q_W)
-    return  Q_SW;
-  if (dir1 ==  Q_S && dir2 == Q_E)
-    return Q_SE ;
-  if (dir1 == Q_T  && dir2 == Q_N)
-    return  Q_TN;
-  if (dir1 == Q_B  && dir2 ==  Q_S)
-    return  Q_BS;
-  if (dir1 == Q_T  && dir2 == Q_S)
-    return Q_TS ;
-  if (dir1 == Q_B  && dir2 ==  Q_N)
-    return  Q_BN;
-  if (dir1 ==  Q_T && dir2 == Q_E)
-    return  Q_TE;
-  if (dir1 == Q_B  && dir2 == Q_W)
-    return  Q_BW;
-  if (dir1 == Q_T  && dir2 ==  Q_W)
-    return  Q_TW;
-  if (dir1 == Q_B  && dir2 ==  Q_E)
-    return  Q_BE;
-
-  WARN("I should not be here!");
-  return -1;
-}
-
-//returns associated integer value of boundary of a cube
-//e.g. getIndexBound(T) returns the index of the top face
-//
-int LatticeBoltzmann::GetIndexBound(Direction dir1)
-{
-  assert(directions.IsValid(dir1));
-  if (dir1 == Q_T)
-    return T;
-  if (dir1 == Q_B)
-    return B;
-  if (dir1 == Q_W)
-    return W;
-  if (dir1 == Q_E)
-    return E;
-  if (dir1 == Q_N)
-    return N;
-  if (dir1 == Q_S)
-    return S;
-  return -1;
-}
-
-
-//returns associated integer value of boundary enum(edges)
-// dir1 can only be top, bottom, north or south
-// dir2 can only be north, south, west or east
-inline int LatticeBoltzmann::GetIndexBound(Direction dir1, Direction dir2)
-{
-  assert(directions.IsValid(dir1));
-  assert(dir2 != 0);
-  assert(directions.IsValid(dir2));
-  if (dir1 == Q_T && dir2 == Q_N)
-    return TN;
-  if (dir1 == Q_T && dir2 == Q_W)
-    return TW;
-  if (dir1 == Q_T && dir2 == Q_S)
-    return TS;
-  if (dir1 == Q_T && dir2 == Q_E)
-    return TE;
-  if (dir1 == Q_S && dir2 == Q_W)
-    return SW;
-  if (dir1 == Q_S && dir2 == Q_E)
-    return SE;
-  if (dir1 == Q_N && dir2 == Q_W)
-    return NW;
-  if (dir1 == Q_N && dir2 == Q_E)
-    return NE;
-  if (dir1 == Q_B && dir2 == Q_N)
-    return BN;
-  if (dir1 == Q_B && dir2 == Q_W)
-    return BW;
-  if (dir1 == Q_B && dir2 == Q_S)
-    return BS;
-  if (dir1 == Q_B && dir2 == Q_E)
-    return BE;
-  return -1;
-}
-
-//returns associated integer value of boundary enum(corners)
-// dir1 can only be top or bottom
-// dir2 can only be north or south
-// dir3 can only be east or west
-inline int LatticeBoltzmann::GetIndexBound(Direction dir1, Direction dir2, Direction dir3)
-{
-  assert(directions.IsValid(dir1));
-  assert(dir2 != 0);
-  assert(directions.IsValid(dir2));
-  assert(dir3 != 0);
-  assert(directions.IsValid(dir3));
-  assert(dir1 == Q_T || dir1 == Q_B);
-  assert(dir2 == Q_N || dir2 == Q_S);
-  assert(dir3 == Q_E || dir3 == Q_W);
-
-  if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_W )
-    return BNW;
-  if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_W)
-    return BSW;
-  if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_E)
-    return BNE;
-  if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_E)
-    return BSE;
-  if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_W )
-    return TNW;
-  if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_W)
-    return TSW;
-  if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_E)
-    return TNE;
-  if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_E)
-    return TSE;
-  return -1;
-}
-
-
-
 // validates GetIndexbound function
 void LatticeBoltzmann::TestGetIndexbound()
 {
-  // boundary enums do'nt have the prefix Q_
-  assert(GetIndexBound(Q_B, Q_N, Q_W) == BNW);
-  assert(GetIndexBound(Q_B,Q_S,Q_W) == BSW);
-  assert(GetIndexBound(Q_B,Q_S,Q_E) == BSE);
-  assert(GetIndexBound(Q_B,Q_N,Q_E) == BNE);
-  assert(GetIndexBound(Q_T,Q_N,Q_W) == TNW);
-  assert(GetIndexBound(Q_T,Q_S,Q_W) == TSW);
-  assert(GetIndexBound(Q_T,Q_S,Q_E) == TSE);
-  assert(GetIndexBound(Q_T,Q_N,Q_E) == TNE);
-  assert(GetIndexBound(Q_T,Q_N) == TN);
-  assert(GetIndexBound(Q_T,Q_W) == TW);
-  assert(GetIndexBound(Q_T,Q_S) == TS);
-  assert(GetIndexBound(Q_T,Q_E) == TE);
-  assert(GetIndexBound(Q_N,Q_W) == NW);
-  assert(GetIndexBound(Q_S,Q_W) == SW);
-  assert(GetIndexBound(Q_S,Q_E) == SE);
-  assert(GetIndexBound(Q_N,Q_E) == NE);
-  assert(GetIndexBound(Q_B,Q_N) == BN);
-  assert(GetIndexBound(Q_B,Q_W) == BW);
-  assert(GetIndexBound(Q_B,Q_S) == BS);
-  assert(GetIndexBound(Q_B,Q_E) == BE);
-  assert(GetIndexBound(Q_W) == W);
-  assert(GetIndexBound(Q_E) == E);
-  assert(GetIndexBound(Q_T) == T);
-  assert(GetIndexBound(Q_B) == B);
-  assert(GetIndexBound(Q_S) == S);
-  assert(GetIndexBound(Q_N) == N);
+  assert(GetIndexBound(Q_B, Q_N, Q_W) == CORNER_BNW);
+  assert(GetIndexBound(Q_B,Q_S,Q_W) == CORNER_BSW);
+  assert(GetIndexBound(Q_B,Q_S,Q_E) == CORNER_BSE);
+  assert(GetIndexBound(Q_B,Q_N,Q_E) == CORNER_BNE);
+  assert(GetIndexBound(Q_T,Q_N,Q_W) == CORNER_TNW);
+  assert(GetIndexBound(Q_T,Q_S,Q_W) == CORNER_TSW);
+  assert(GetIndexBound(Q_T,Q_S,Q_E) == CORNER_TSE);
+  assert(GetIndexBound(Q_T,Q_N,Q_E) == CORNER_TNE);
+  assert(GetIndexBound(Q_T,Q_N) == EDGE_TN);
+  assert(GetIndexBound(Q_T,Q_W) == EDGE_TW);
+  assert(GetIndexBound(Q_T,Q_S) == EDGE_TS);
+  assert(GetIndexBound(Q_T,Q_E) == EDGE_TE);
+  assert(GetIndexBound(Q_N,Q_W) == EDGE_NW);
+  assert(GetIndexBound(Q_S,Q_W) == EDGE_SW);
+  assert(GetIndexBound(Q_S,Q_E) == EDGE_SE);
+  assert(GetIndexBound(Q_N,Q_E) == EDGE_NE);
+  assert(GetIndexBound(Q_B,Q_N) == EDGE_BN);
+  assert(GetIndexBound(Q_B,Q_W) == EDGE_BW);
+  assert(GetIndexBound(Q_B,Q_S) == EDGE_BS);
+  assert(GetIndexBound(Q_B,Q_E) == EDGE_BE);
+  assert(GetIndexBound(Q_W) == FACE_W);
+  assert(GetIndexBound(Q_E) == FACE_E);
+  assert(GetIndexBound(Q_T) == FACE_T);
+  assert(GetIndexBound(Q_B) == FACE_B);
+  assert(GetIndexBound(Q_S) == FACE_S);
+  assert(GetIndexBound(Q_N) == FACE_N);
 }
 
 
@@ -498,7 +360,76 @@ void LatticeBoltzmann::CheckBoundaryVelocities(int cur, StdVector<StdVector<int>
   }
 }
 
-void LatticeBoltzmann::SetupTransformation()
+void LatticeBoltzmann::SetupTransformation2D()
+{
+  // in 2D: 8 maps (4 corners + 4 edges)
+  StdVector<PropTransform> map;
+  map.Resize(n_q_);
+  const Direction xDirs[] = {Q_E,Q_W};
+  const Direction yDirs[] = {Q_N,Q_S};
+  Direction d1, d2;
+
+  // propagation in corners
+  for (int i = 0; i < 2; i++) { // E, W
+    for (int j = 0; j < 2; j++) { // N, S
+      // fill map to default offsets
+      InitPropMap(map);
+      d1 = xDirs[i];
+      map[GetIndexDir(d1)] = PropTransform((d1 == Q_W ? 1: -1 ),0);
+      d2 = yDirs[j];
+      map[GetIndexDir(d2)] = PropTransform(0,(d2 == Q_S ? 1: -1 ));
+      map[GetIndexDir(d2,d1)] = PropTransform((d1 == Q_W ? 1: -1 ),(d2 == Q_S ? 1: -1 ));
+      prop_maps[GetIndexBound(Q_B,d2,d1)] = map;
+    }
+  }
+
+  // propagation on horizontal edges
+  for (int i = 0; i < 2; i++) { // E, W
+    d1 = xDirs[i];
+    // fill map to default offsets
+    InitPropMap(map);
+    map[GetIndexDir(d1)] = PropTransform((d1 == Q_W ? 1: -1 ),0);
+    for (int j = 0; j < 2; j++) { // N, S
+      d2 = yDirs[j];
+      map[GetIndexDir(d2)] = PropTransform(0,(d2 == Q_S ? 1: -1 ));
+      map[GetIndexDir(d2,d1)] = PropTransform((d1 == Q_W ? 1: -1 ),(d2 == Q_S ? 1: -1 ));
+    }
+    prop_maps[GetIndexBound(Q_B,d1)] = map;
+  }
+
+  //propagation on vertical edges
+  for (int j = 0; j < 2; j++) { // N, S
+    d1 = yDirs[j];
+    // fill map to default offsets
+    InitPropMap(map);
+    map[GetIndexDir(d1)] = PropTransform(0,(d1 == Q_S ? 1: -1 ));
+    for (int i = 0; i < 2; i++) { // E, W
+      d2 = xDirs[i];
+      map[GetIndexDir(d2)] = PropTransform((d2 == Q_W ? 1: -1 ),0);
+      map[GetIndexDir(d1,d2)] = PropTransform((d2 == Q_W ? 1: -1 ),(d1 == Q_S ? 1: -1 ));
+    }
+    prop_maps[GetIndexBound(Q_B,d1)] = map;
+  }
+
+  InitPropMap(map);
+  //propagation inside domain
+  for (int i = 0; i < 2; i++) {
+    d1 = xDirs[i]; // E, W
+    d2 = yDirs[i]; // N, S
+    map[GetIndexDir(d1)] = PropTransform((d1 == Q_W ? 1: -1 ),0);
+    velocityDirections[GetIndexDir(d1)] = PropTransform((d1 == Q_E ? 1: -1 ),0);
+    map[GetIndexDir(d2)] = PropTransform(0,(d2 == Q_S ? 1: -1 ));
+    velocityDirections[GetIndexDir(d2)] = PropTransform(0,(d2 == Q_N ? 1: -1 ));
+    for (int j = 0; j < 2; j++) {
+      d2 = yDirs[j];
+      map[GetIndexDir(d2,d1)] = PropTransform((d1 == Q_W ? 1: -1 ),(d2 == Q_S ? 1: -1 ));
+      velocityDirections[GetIndexDir(d2,d1)] = PropTransform((d1 == Q_E ? 1: -1 ),(d2 == Q_N ? 1: -1 ));
+    }
+  }
+  prop_maps[INTERIOR] = map;
+}
+
+void LatticeBoltzmann::SetupTransformation3D()
 {
   // in 3D: 27 maps (8 corners + 12 edges + 6 faces + 1 map for interior elements)
   StdVector<PropTransform> map;
@@ -640,17 +571,17 @@ void LatticeBoltzmann::SetupTransformation()
       }
     }
   }
-  prop_maps[C] = map;
+  prop_maps[INTERIOR] = map;
 
   // we start with the map for the interior elements and delete some entries for the corresponding cube face
-  map = prop_maps[C];
+  map = prop_maps[INTERIOR];
   PropTransform transform;
   int invDir;
   for (int i = 0; i < 2; i++) { // T,B
     d1 = dirs1[i];
     invDir = GetInvDirection(d1);
     transform = map[invDir];
-    map = prop_maps[C];
+    map = prop_maps[INTERIOR];
     for (int dir = 0; dir < n_q_; dir++) {
       if(map[dir].off_z != 0 && map[dir].off_z == transform.off_z)
         map[dir] = PropTransform();
@@ -662,7 +593,7 @@ void LatticeBoltzmann::SetupTransformation()
     d2 = dirs2[i];
     invDir = GetInvDirection(d2);
     transform = map[invDir];
-    map = prop_maps[C];
+    map = prop_maps[INTERIOR];
     for (int dir = 0; dir < n_q_; dir++) {
       if(map[dir].off_y != 0 && map[dir].off_y == transform.off_y)
         map[dir] = PropTransform();
@@ -674,7 +605,7 @@ void LatticeBoltzmann::SetupTransformation()
     d3 = dirs3[i];
     invDir = GetInvDirection(d3);
     transform = map[invDir];
-    map = prop_maps[C];
+    map = prop_maps[INTERIOR];
     for (int dir = 0; dir < n_q_; dir++) {
       if(map[dir].off_x != 0 && map[dir].off_x == transform.off_x)
         map[dir] = PropTransform();
@@ -686,15 +617,59 @@ void LatticeBoltzmann::SetupTransformation()
 // for debugging purposes
 void LatticeBoltzmann::WritePropMap()
 {
-  // write out propagation maps for corners
-  const Boundary corners[] = {BNW, BSW, BNE, BSE, TNW, TSW, TNE, TSE};
-  const Direction order[] = {Q_0, Q_E, Q_W, Q_N, Q_S, Q_T, Q_B, Q_NE, Q_SW, Q_NW, Q_SE, Q_TN, Q_BS, Q_TS, Q_BN, Q_TE, Q_BW, Q_TW, Q_BE};
-  const Direction order_e[] = {Q_0, Q_E, Q_N, Q_W, Q_S, Q_T, Q_B, Q_NE, Q_NW, Q_SW, Q_SE, Q_TN, Q_TS, Q_BS, Q_BN, Q_TE, Q_BW, Q_TW, Q_BE};
+  StdVector<Boundary> corners;
+  corners.Push_back(CORNER_BSW);
+  corners.Push_back(CORNER_BSE);
+  corners.Push_back(CORNER_BNW);
+  corners.Push_back(CORNER_BNE);
+
+  StdVector<Direction> order;
+  order.Push_back(Q_0);
+  order.Push_back(Q_S);
+  order.Push_back(Q_SE);
+  order.Push_back(Q_SW);
+  order.Push_back(Q_N);
+  order.Push_back(Q_NE);
+  order.Push_back(Q_NW);
+  order.Push_back(Q_W);
+  order.Push_back(Q_E);
+
+  int n_corners = 4;
+
+  if (m_dim == 3) {
+    corners.Push_back(CORNER_TNW);
+    corners.Push_back(CORNER_TSW);
+    corners.Push_back(CORNER_TNE);
+    corners.Push_back(CORNER_TSE);
+    order.Clear();
+    order.Push_back(Q_0);
+    order.Push_back(Q_E);
+    order.Push_back(Q_W);
+    order.Push_back(Q_N);
+    order.Push_back(Q_S);
+    order.Push_back(Q_T);
+    order.Push_back(Q_B);
+    order.Push_back(Q_NE);
+    order.Push_back(Q_SW);
+    order.Push_back(Q_NW);
+    order.Push_back(Q_SE);
+    order.Push_back(Q_TN);
+    order.Push_back(Q_BS);
+    order.Push_back(Q_TS);
+    order.Push_back(Q_BN);
+    order.Push_back(Q_TE);
+    order.Push_back(Q_BW);
+    order.Push_back(Q_TW);
+    order.Push_back(Q_BE);
+    n_corners = 8;
+  }
 
   fstream f;
   f.precision(16);
+
+  // write out propagation maps for corners
   f.open("propagation_corners.txt", ios::out);
-  for (int i = 0; i < 8; i++) {
+  for (int i = 0; i < n_corners; i++) {
     StdVector<PropTransform>& mymap  = prop_maps[corners[i]];
     f << "// " << boundaries.ToString(corners[i]) << std::endl;
     for (int j = 0; j < n_q_; j++) {
@@ -720,8 +695,8 @@ void LatticeBoltzmann::WritePropMap()
   }
 
   // write out propagation maps for interior nodes
-  StdVector<PropTransform>& mymap  = prop_maps[C];
-  f << "// " << boundaries.ToString(C) << std::endl;
+  StdVector<PropTransform>& mymap  = prop_maps[INTERIOR];
+  f << "// " << boundaries.ToString(INTERIOR) << std::endl;
   for (int j = 0; j < n_q_; j++) {
     f << "pdf(cur, x, y, z, " << directions.ToString(order[j]) << ") = pdf(cur, x ";
     if (mymap[order[j]].off_x == 1)
@@ -753,40 +728,28 @@ void LatticeBoltzmann::WritePropMap()
   f.close();
 
   // write out propagation maps for edges
-  const Boundary edges[] = {TN, TW, TS, TE, NW, SW, SE, NE, BN, BW, BS, BE};
+  StdVector<Boundary> edges;
+  edges.Push_back(EDGE_BS);
+  edges.Push_back(EDGE_BN);
+  edges.Push_back(EDGE_BW);
+  edges.Push_back(EDGE_BE);
+
+  int n_edges = 4;
+  if (m_dim == 3) {
+    edges.Push_back(EDGE_TN);
+    edges.Push_back(EDGE_TW);
+    edges.Push_back(EDGE_TS);
+    edges.Push_back(EDGE_TE);
+    edges.Push_back(EDGE_NW);
+    edges.Push_back(EDGE_SW);
+    edges.Push_back(EDGE_SE);
+    edges.Push_back(EDGE_NE);
+    n_edges = 12;
+  }
   f.open("propagation_edges.txt", ios::out);
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < n_edges; i++) {
     StdVector<PropTransform>& mymap  = prop_maps[edges[i]];
     f << "// " << boundaries.ToString(edges[i]) << std::endl;
-    for (int j = 0; j < n_q_; j++) {
-      f << "pdf(cur, x, y, z, " << directions.ToString(order_e[j]) << ") = pdf(cur, x";
-      if (mymap[order_e[j]].off_x == 1)
-        f << " + 1";
-      else if (mymap[order_e[j]].off_x == -1)
-        f <<  " - 1";
-      f << ", y";
-      if (mymap[order_e[j]].off_y == 1)
-        f << " + 1";
-      else if (mymap[order_e[j]].off_y == -1)
-        f << " - 1";
-      f << ", z";
-      if (mymap[order_e[j]].off_z == 1)
-        f << " + 1";
-      else if(mymap[order_e[j]].off_z == -1)
-        f << " - 1";
-
-      f << ", " << directions.ToString(order_e[j]) << ") \n";
-    }
-    f << std::endl;
-  }
-  f.close();
-
-  // write out propagation maps for faces
-  const Boundary faces[] = {T, B, S, N, W, E};
-  f.open("propagation_faces.txt", ios::out);
-  for (int i = 0; i < 6; i++) {
-    StdVector<PropTransform>& mymap  = prop_maps[faces[i]];
-    f << "// " << boundaries.ToString(faces[i]) << std::endl;
     for (int j = 0; j < n_q_; j++) {
       f << "pdf(cur, x, y, z, " << directions.ToString(order[j]) << ") = pdf(cur, x";
       if (mymap[order[j]].off_x == 1)
@@ -808,7 +771,38 @@ void LatticeBoltzmann::WritePropMap()
     }
     f << std::endl;
   }
+  f.close();
 
+  if (m_dim == 3)
+  {
+    // write out propagation maps for faces
+    const Boundary faces[] = {FACE_T, FACE_B, FACE_S, FACE_N, FACE_W, FACE_E};
+    f.open("propagation_faces.txt", ios::out);
+    for (int i = 0; i < 6; i++) {
+      StdVector<PropTransform>& mymap  = prop_maps[faces[i]];
+      f << "// " << boundaries.ToString(faces[i]) << std::endl;
+      for (int j = 0; j < n_q_; j++) {
+        f << "pdf(cur, x, y, z, " << directions.ToString(order[j]) << ") = pdf(cur, x";
+        if (mymap[order[j]].off_x == 1)
+          f << " + 1";
+        else if (mymap[order[j]].off_x == -1)
+          f <<  " - 1";
+        f << ", y";
+        if (mymap[order[j]].off_y == 1)
+          f << " + 1";
+        else if (mymap[order[j]].off_y == -1)
+          f << " - 1";
+        f << ", z";
+        if (mymap[order[j]].off_z == 1)
+          f << " + 1";
+        else if(mymap[order[j]].off_z == -1)
+          f << " - 1";
+
+        f << ", " << directions.ToString(order[j]) << ") \n";
+      }
+      f << std::endl;
+    }
+  }
 
 }
 
@@ -836,33 +830,33 @@ void LatticeBoltzmann::SetEnums()
   directions.Add(Q_BE,"BE");
 
   boundaries.SetName("Corners and edges of a cube");
-  boundaries.Add(C,"interior");
-  boundaries.Add(BNW, "left bottom back");
-  boundaries.Add(BSW, "left bottom front");
-  boundaries.Add(BSE, "right bottom front");
-  boundaries.Add(BNE, "right bottom back");
-  boundaries.Add(TNW, "left top back");
-  boundaries.Add(TSW, "left top front");
-  boundaries.Add(TSE, "right top front");
-  boundaries.Add(TNE, "right top back");
-  boundaries.Add(TN ,"top back");
-  boundaries.Add(TW ,"top left");
-  boundaries.Add(TS ,"top front");
-  boundaries.Add(TE ,"top right");
-  boundaries.Add(NW ,"left back");
-  boundaries.Add(SW ,"left front");
-  boundaries.Add(SE ,"right front");
-  boundaries.Add(NE ,"right back");
-  boundaries.Add(BN ,"bottom back");
-  boundaries.Add(BW ,"bottom left");
-  boundaries.Add(BS ,"bottom front");
-  boundaries.Add(BE ,"bottom right");
-  boundaries.Add(W,"left face");
-  boundaries.Add(E,"right face");
-  boundaries.Add(T,"top face");
-  boundaries.Add(B,"bottom face");
-  boundaries.Add(S,"front face");
-  boundaries.Add(N,"back face");
+  boundaries.Add(INTERIOR,"interior");
+  boundaries.Add(CORNER_BNW, "left bottom back corner");
+  boundaries.Add(CORNER_BSW, "left bottom front corner");
+  boundaries.Add(CORNER_BSE, "right bottom front corner");
+  boundaries.Add(CORNER_BNE, "right bottom back corner");
+  boundaries.Add(CORNER_TNW, "left top back corner");
+  boundaries.Add(CORNER_TSW, "left top front corner");
+  boundaries.Add(CORNER_TSE, "right top front corner");
+  boundaries.Add(CORNER_TNE, "right top back corner");
+  boundaries.Add(EDGE_TN ,"top back edge");
+  boundaries.Add(EDGE_TW ,"top left edge");
+  boundaries.Add(EDGE_TS ,"top front edge");
+  boundaries.Add(EDGE_TE ,"top right edge");
+  boundaries.Add(EDGE_NW ,"left back edge");
+  boundaries.Add(EDGE_SW ,"left front edge");
+  boundaries.Add(EDGE_SE ,"right front edge");
+  boundaries.Add(EDGE_NE ,"right back edge");
+  boundaries.Add(EDGE_BN ,"bottom back edge");
+  boundaries.Add(EDGE_BW ,"bottom left edge");
+  boundaries.Add(EDGE_BS ,"bottom front edge");
+  boundaries.Add(EDGE_BE ,"bottom right edge");
+  boundaries.Add(FACE_W,"left face");
+  boundaries.Add(FACE_E,"right face");
+  boundaries.Add(FACE_T,"top face");
+  boundaries.Add(FACE_B,"bottom face");
+  boundaries.Add(FACE_S,"front face");
+  boundaries.Add(FACE_N,"back face");
 }
 
 void LatticeBoltzmann::InitWeights()
@@ -929,13 +923,6 @@ void LatticeBoltzmann::SetInvDirections()
     directionsInv[Q_TW] = Q_BE;
     directionsInv[Q_BE] = Q_TW;
   }
-}
-
-// depends on numbering of directions
-inline int LatticeBoltzmann::GetInvDirection(Direction dir)
-{
-  assert(directions.IsValid(dir));
-  return directionsInv[dir];
 }
 
 void LatticeBoltzmann::TestInvDirections()
@@ -1165,14 +1152,14 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   }
 
   // debugging
-  if (sum > 1.3 || sum < 1e-8) {
+  if (sum > 1.5 || sum < 1e-8) {
     std::cout << "i: " << i << " j: " << j << " k: " << j << " sum: " << sum << std::endl;
     for (int dir = 0; dir < n_q_; dir++) {
       std::cout << "dir " << dir << " pdf " <<  pdf(cur, i, j, k, dir) << std::endl;
     }
   }
 
-  assert(sum < 1.3);
+  assert(sum < 1.5);
   assert(sum > 1e-8);
   return sum;
 }
@@ -1183,8 +1170,8 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
 {
 
   // perform a propagation step
-  int x, y, z;
-  const Boundary corners[] = {BNW, BSW, BNE, BSE};
+  int x, y, z = 0;
+  const Boundary corners[] = {CORNER_BNW, CORNER_BSW, CORNER_BNE, CORNER_BSE};
 
   StdVector<PropTransform> *map1, *map2;
   PropTransform *transform1, *transform2;
@@ -1195,15 +1182,15 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
   // ---------------------------------------------------------------------
   // Propagation for nodes in the corners....
   // ---------------------------------------------------------------------
-  // propagation maps for corners stored in prop_maps from 1 to 8
+  // propagation maps for corners stored in prop_maps from 1 to 4
   for (int i = 0; i < n_corners; i++) {
     bound = corners[i];
     switch(bound)
     {
-      case BNW: x = 0; y = m_sizeY - 1 ; z = 0; break;
-      case BSW: x = 0; y = 0; z = 0; break;
-      case BNE: x = m_sizeX -1; y = m_sizeY - 1; z = 0; break;
-      case BSE: x = m_sizeX - 1, y = 0, z = 0; break;
+      case CORNER_BNW: x = 0; y = m_sizeY - 1 ; break;
+      case CORNER_BSW: x = 0; y = 0; break;
+      case CORNER_BNE: x = m_sizeX -1; y = m_sizeY - 1; break;
+      case CORNER_BSE: x = m_sizeX - 1; y = 0; break;
       default:
         EXCEPTION("Trying to propagate into a corner that does not exist!");
     }
@@ -1211,33 +1198,33 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
 
     for (int dir = 0; dir < n_q_; dir++) {
       transform1 = &(*map1)[dir];
-      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z, dir);
     }
   }
 
   // Propagation along the boundaries of the X dimension.
-  // edges: BS, BN
-  map1 = &prop_maps[BS];
-  map2 = &prop_maps[BN];
+  // lower and upper edge
+  map1 = &prop_maps[EDGE_BS];
+  map2 = &prop_maps[EDGE_BN];
 
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
     for (x = 1; x < m_sizeX - 1; ++x) {
-      //BS: bottom front
-      y = 0; z = 0;
-      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+      //BS
+      y = 0;
+      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z, dir);
 
-      //BN: bottom back
-      y = m_sizeY - 1; z = 0;
-      pdf(next, x, y, z, dir)  = pdf(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, dir);
+      //BN
+      y = m_sizeY - 1;
+      pdf(next, x, y, z, dir)  = pdf(cur, x + transform2->off_x, y + transform2->off_y, z, dir);
     }
   }
 
   // Propagation along the boundaries of the Y dimension.
-  // edges: TW, TE
-  map1 = &prop_maps[BW];
-  map2 = &prop_maps[BE];
+  // edges: left and right edge
+  map1 = &prop_maps[EDGE_BW];
+  map2 = &prop_maps[EDGE_BE];
 
 #ifdef _OPENMP
 #pragma omp parallel for \
@@ -1250,75 +1237,72 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
     for (y = 1; y < m_sizeY - 1; ++y) {
-      //BW: bottom left
-      x = 0; z = 0;
-      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z + transform1->off_z, dir);
+      //BW: left edge
+      x = 0;
+      pdf(next, x, y, z, dir)  = pdf(cur, x + transform1->off_x, y + transform1->off_y, z, dir);
 
-      //BE: bottom right
-      x = m_sizeX - 1; z = 0;
-      pdf(next, x, y, z, dir)  = pdf(cur, x + transform2->off_x, y + transform2->off_y, z + transform2->off_z, dir);
+      //BE: right edge
+      x = m_sizeX - 1;
+      pdf(next, x, y, z, dir)  = pdf(cur, x + transform2->off_x, y + transform2->off_y, z, dir);
     }
   }
 
   //--------------------- propagation over inner elements--------------------------------------------------------------------
 
-  const StdVector<PropTransform>& map_interior = prop_maps[C];
-  double tmp, tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
+  const StdVector<PropTransform>& map_interior = prop_maps[INTERIOR];
+  double tmp, tmp_ux, tmp_uy, tmp_us, scale, sum;
   double * scales  = Scales.GetPointer();
 
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
   int index;
 
-  for (z = 1; z < m_sizeZ - 1; ++z) {
-    for (y = 1; y < m_sizeY - 1; ++y) {
-      for (x = 1; x < m_sizeX - 1; ++x) {
-        index= GetIndex(x,y,z);
+  z = 0;
 
-        // sum: macroscopic density is sum over all discrete distributions of an element
-        sum = 0;
-        tmp_ux = 0;
-        tmp_uy = 0;
-        tmp_uz = 0;
-        tmp_us = 0;
+  for (y = 1; y < m_sizeY - 1; ++y) {
+    for (x = 1; x < m_sizeX - 1; ++x) {
+      index= GetIndex(x,y,z);
 
-        for (int dir = 0; dir < n_q_; dir++) {
-          //store current pdf values in array for better accessing
-          pdfs[dir] = pdf(cur, x + map_interior[dir].off_x, y + map_interior[dir].off_y,  z + map_interior[dir].off_z, dir);
-          sum += pdfs[dir];
-          tmp_ux += velocityDirections[dir].off_x*pdfs[dir];
-          tmp_uy += velocityDirections[dir].off_y*pdfs[dir];
-          tmp_uz += velocityDirections[dir].off_z*pdfs[dir];
-        }
+      // sum: macroscopic density is sum over all discrete distributions of an element
+      sum = 0;
+      tmp_ux = 0;
+      tmp_uy = 0;
+      tmp_us = 0;
 
-        // macroscopic scaling by design variable
-        scale = scales[index];
+      for (int dir = 0; dir < n_q_; dir++) {
+        //store current pdf values in array for better accessing
+        pdfs[dir] = pdf(cur, x + map_interior[dir].off_x, y + map_interior[dir].off_y,  z, dir);
+        sum += pdfs[dir];
+        tmp_ux += velocityDirections[dir].off_x*pdfs[dir];
+        tmp_uy += velocityDirections[dir].off_y*pdfs[dir];
+      }
 
-        tmp_ux = scale * tmp_ux / sum;
-        tmp_uy = scale * tmp_uy / sum;
-        tmp_uz = scale * tmp_uz / sum;
-        tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
+      // macroscopic scaling by design variable
+      scale = scales[index];
 
-        tmp_ux = 3.0 * tmp_ux;
-        tmp_uy = 3.0 * tmp_uy;
-        tmp_uz = 3.0 * tmp_uz;
+      tmp_ux = scale * tmp_ux / sum;
+      tmp_uy = scale * tmp_uy / sum;
+      tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
 
-        for (int dir = 0; dir < n_q_; dir++) {
-          tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy + velocityDirections[dir].off_z * tmp_uz;
-          pdf(next, x, y, z, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
-        }
+      tmp_ux = 3.0 * tmp_ux;
+      tmp_uy = 3.0 * tmp_uy;
+
+      for (int dir = 0; dir < n_q_; dir++) {
+        tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy ;
+        pdf(next, x, y, z, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
       }
     }
   }
   return;
 }
 
+
 void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ)
 {
   assert(UZ == 0);
 
-  int x, y, z;
-  double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum;
+  int x, y, z = 0;
+  double tmp_ux, tmp_uy, tmp_us, sum;
   double tmp;
 
   StdVector<double> pdfs;
@@ -1327,7 +1311,6 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
   for(unsigned int i = 0; i < inlet.GetSize(); i++) {
     x = inlet[i][0];
     y = inlet[i][1];
-    z = inlet[i][2];
 
     assert(z == 0);
 
@@ -1335,17 +1318,15 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     tmp_ux = UX;
     tmp_uy = UY;
-    tmp_uz = UZ;
 
-    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
+    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;
-    tmp_uz = 3.0 * tmp_uz;
 
-    LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << " tuz=" << tmp_uz << std::endl;
+    LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << std::endl;
 
     for (int dir = 0; dir < n_q_; dir++) {
-      tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy + velocityDirections[dir].off_z * tmp_uz;
+      tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy;
       pdf(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
@@ -1360,16 +1341,13 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 void LatticeBoltzmann::prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb)
 {
 
-  int x, y, z;
+  int x, y, z = 0;
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
 
   for(unsigned int i = 0; i < bb.GetSize(); i++) {
     x = bb[i][0];
     y = bb[i][1];
-    z = bb[i][2];
-
-    assert(z == 0);
 
     for (int dir = 0; dir < n_q_; dir++) {
       pdfs[dir] = pdf(cur, x, y, z, dir);
@@ -1386,30 +1364,29 @@ void LatticeBoltzmann::prop_coll_bounce_back2D(int cur, StdVector<StdVector<int>
 //
 void LatticeBoltzmann::prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >& outlet)
 {
-  double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum, tmp;
+  double tmp_ux, tmp_uy, tmp_us, sum, tmp;
 
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
 
-  int x, y, z;
+  int x, y, z = 0;
+
 
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
     x = outlet[i][0];
     y = outlet[i][1];
-    z = outlet[i][2];
 
     assert (z == 0);
 
-    CalcVelocitites(cur, x, y, z, tmp_ux, tmp_uy, tmp_uz);
+    CalcVelocitites(cur, x, y, z, tmp_ux, tmp_uy, tmp);
 
     sum = 1.0; // the enforced density
-    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
+    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;
-    tmp_uz = 3.0 * tmp_uz;
 
     for (int dir = 0; dir < n_q_; dir++) {
-      tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy + velocityDirections[dir].off_z * tmp_uz;
+      tmp = velocityDirections[dir].off_x * tmp_ux + velocityDirections[dir].off_y * tmp_uy;
       pdf(cur, x, y, z, dir) = sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
@@ -1424,7 +1401,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
   // perform a propagation step
   int x, y, z;
-  const Boundary corners[] = {BNW, BSW, BNE, BSE, TNW, TSW, TNE, TSE};
+  const Boundary corners[] = {CORNER_BNW, CORNER_BSW, CORNER_BNE, CORNER_BSE, CORNER_TNW, CORNER_TSW, CORNER_TNE, CORNER_TSE};
 
   StdVector<PropTransform> *map1, *map2;
   PropTransform *transform1, *transform2;
@@ -1444,14 +1421,14 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
     bound = corners[i];
     switch(bound)
     {
-      case BNW: x = 0; y = m_sizeY - 1 ; z = 0; break;
-      case BSW: x = 0; y = 0; z = 0; break;
-      case BNE: x = m_sizeX -1; y = m_sizeY - 1; z = 0; break;
-      case BSE: x = m_sizeX - 1, y = 0, z = 0; break;
-      case TNW: x = 0; y = m_sizeY - 1; z = m_sizeZ - 1; break;
-      case TSW: x = 0; y = 0; z = m_sizeZ - 1; break;
-      case TNE: x = m_sizeX - 1; y = m_sizeY - 1; z = m_sizeZ - 1; break;
-      case TSE: x = m_sizeX - 1; y = 0; z = m_sizeZ - 1; break;
+      case CORNER_BNW: x = 0; y = m_sizeY - 1 ; z = 0; break;
+      case CORNER_BSW: x = 0; y = 0; z = 0; break;
+      case CORNER_BNE: x = m_sizeX -1; y = m_sizeY - 1; z = 0; break;
+      case CORNER_BSE: x = m_sizeX - 1, y = 0, z = 0; break;
+      case CORNER_TNW: x = 0; y = m_sizeY - 1; z = m_sizeZ - 1; break;
+      case CORNER_TSW: x = 0; y = 0; z = m_sizeZ - 1; break;
+      case CORNER_TNE: x = m_sizeX - 1; y = m_sizeY - 1; z = m_sizeZ - 1; break;
+      case CORNER_TSE: x = m_sizeX - 1; y = 0; z = m_sizeZ - 1; break;
       default:
         EXCEPTION("Trying to propagate into a corner that does not exist!");
     }
@@ -1465,11 +1442,11 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
   // Propagation along the boundaries of the X dimension.
   // edges: BS, BN, TS, TN
-  map1 = &prop_maps[BS];
-  map2 = &prop_maps[BN];
+  map1 = &prop_maps[EDGE_BS];
+  map2 = &prop_maps[EDGE_BN];
 
-  map3 = &prop_maps[TS];
-  map4 = &prop_maps[TN];
+  map3 = &prop_maps[EDGE_TS];
+  map4 = &prop_maps[EDGE_TN];
 
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
@@ -1498,12 +1475,12 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   // Propagation along the boundaries of the Y dimension.
   // edges: TW, TE, BW, BE
   //required in 2D and 3D
-  map1 = &prop_maps[BW];
-  map2 = &prop_maps[BE];
+  map1 = &prop_maps[EDGE_BW];
+  map2 = &prop_maps[EDGE_BE];
 
   //additional in 3D
-  map3 = &prop_maps[TW];
-  map4 = &prop_maps[TE];
+  map3 = &prop_maps[EDGE_TW];
+  map4 = &prop_maps[EDGE_TE];
 #ifdef _OPENMP
 #pragma omp parallel for \
     private(x, y, z), \
@@ -1537,10 +1514,10 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
   // Propagation along the boundaries of the Z dimension.
   // edges: SW, NW, SE, NE
-  map1 = &prop_maps[SW];
-  map2 = &prop_maps[NW];
-  map3 = &prop_maps[SE];
-  map4 = &prop_maps[NE];
+  map1 = &prop_maps[EDGE_SW];
+  map2 = &prop_maps[EDGE_NW];
+  map3 = &prop_maps[EDGE_SE];
+  map4 = &prop_maps[EDGE_NE];
   for (z = 1; z < m_sizeZ - 1; ++z) {
     for (int i = 0; i < n_q_; i++) {
       transform1 = &(*map1)[i];
@@ -1567,8 +1544,8 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   }
 
   //propagation along top and bottom face
-  map1 = &prop_maps[T];
-  map2 = &prop_maps[B];
+  map1 = &prop_maps[FACE_T];
+  map2 = &prop_maps[FACE_B];
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
@@ -1586,8 +1563,8 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   }
 
   //propagation along front and back face
-  map1 = &prop_maps[N];
-  map2 = &prop_maps[S];
+  map1 = &prop_maps[FACE_N];
+  map2 = &prop_maps[FACE_S];
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
@@ -1604,8 +1581,8 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
   }
 
   //propagation along left and right face
-  map1 = &prop_maps[W];
-  map2 = &prop_maps[E];
+  map1 = &prop_maps[FACE_W];
+  map2 = &prop_maps[FACE_E];
   for (int dir = 0; dir < n_q_; dir++) {
     transform1 = &(*map1)[dir];
     transform2 = &(*map2)[dir];
@@ -1623,7 +1600,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
   //--------------------- propagation over inner elements--------------------------------------------------------------------
 
-  const StdVector<PropTransform>& map_interior = prop_maps[C];
+  const StdVector<PropTransform>& map_interior = prop_maps[INTERIOR];
   double tmp, tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum;
   double * scales  = Scales.GetPointer();
 

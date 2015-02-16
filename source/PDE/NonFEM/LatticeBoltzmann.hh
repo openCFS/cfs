@@ -23,9 +23,9 @@ namespace CoupledField
   {
     public:
 
-      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
-        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
-        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
+      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+        FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
+        CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
 
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
@@ -54,7 +54,8 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @retun copy of pdfs
        */
-      inline StdVector<double> GetPdfs() {return m_pdfs[m_next];}
+//      inline StdVector<double> GetPdfs() {return m_pdfs[m_next];}
+      inline StdVector<double> GetPdfs() {return m_pdfs[m_cur];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -67,6 +68,7 @@ namespace CoupledField
         int off_y;
         int off_z;
         PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        PropTransform(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
         PropTransform(): off_x(0),off_y(0), off_z(0){}
       };
 
@@ -74,9 +76,9 @@ namespace CoupledField
       // BNW, ..., TNE are corners
       // TN, ..., BE are edges
       // LEFT, ..., BACK are faces
-      typedef enum { C = 0, BNW = 1, BSW = 2, BSE = 3, BNE = 4, BN = 5, BW = 6, BS = 7, BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
-        E = 9, N = 10, W = 11, S = 12, T = 13, B = 14, NE = 15, NW = 16, SW = 17, SE = 18,    // 3D
-        TNW = 19, TSW = 20, TSE = 21, TNE = 22, TN = 23, TW = 24, TS = 25, TE = 26} Boundary; // 3D
+      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+              FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
+              CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
 
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
@@ -98,15 +100,74 @@ namespace CoupledField
            * returns associated integer value of velocity direction two given principal directions
            * e.g. getIndexDir(S,E) returns Q_SE
            */
-          int GetIndexDir(Direction dir1);
-          int GetIndexDir(Direction dir1, Direction dir2);
+          inline int GetIndexDir(Direction dir1)
+          {
+            assert(directions.IsValid(dir1));
+            return dir1;
+          }
+
+          // first direction must be: S, N, T or B
+          // second direction can only be: E, W, N, S
+          inline int GetIndexDir(Direction dir1, Direction dir2)
+          {
+            assert(directions.IsValid(dir1));
+            assert(dir2 != 0);
+            assert(directions.IsValid(dir2));
+            assert(dir1 != dir2);
+            assert((dir1 == Q_S) || (dir1 == Q_N) || (dir1 == Q_T) || (dir1 == Q_B));
+            assert((dir2 == Q_E) || (dir2 == Q_W) || (dir2 == Q_N) || (dir2 == Q_S));
+            // this formula is dependent on indexing of directions
+            if (dir1 == Q_N && dir2 == Q_E)
+              return Q_NE;
+            if (dir1 ==  Q_N && dir2 ==  Q_W)
+              return  Q_NW;
+            if (dir1 == Q_S  && dir2 == Q_W)
+              return  Q_SW;
+            if (dir1 ==  Q_S && dir2 == Q_E)
+              return Q_SE ;
+            if (dir1 == Q_T  && dir2 == Q_N)
+              return  Q_TN;
+            if (dir1 == Q_B  && dir2 ==  Q_S)
+              return  Q_BS;
+            if (dir1 == Q_T  && dir2 == Q_S)
+              return Q_TS ;
+            if (dir1 == Q_B  && dir2 ==  Q_N)
+              return  Q_BN;
+            if (dir1 ==  Q_T && dir2 == Q_E)
+              return  Q_TE;
+            if (dir1 == Q_B  && dir2 == Q_W)
+              return  Q_BW;
+            if (dir1 == Q_T  && dir2 ==  Q_W)
+              return  Q_TW;
+            if (dir1 == Q_B  && dir2 ==  Q_E)
+              return  Q_BE;
+
+            WARN("I should not be here!");
+            return -1;
+          }
 
           /**
            * returns associated integer value of boundary of a cube
            * e.g. getIndexBound(T) returns the index of the top face
            *
            */
-          int GetIndexBound(Direction dir1);
+          inline int GetIndexBound(Direction dir1)
+          {
+            assert(directions.IsValid(dir1));
+            if (dir1 == Q_T)
+              return FACE_T;
+            if (dir1 == Q_B)
+              return FACE_B;
+            if (dir1 == Q_W)
+              return FACE_W;
+            if (dir1 == Q_E)
+              return FACE_E;
+            if (dir1 == Q_N)
+              return FACE_N;
+            if (dir1 == Q_S)
+              return FACE_S;
+            return -1;
+          }
 
 
           /**
@@ -116,14 +177,73 @@ namespace CoupledField
            * dir1 can only be top, bottom, north or south
            * dir2 can only be north, south, west or east
            */
-          int GetIndexBound(Direction dir1, Direction dir2);
+          inline int GetIndexBound(Direction dir1, Direction dir2)
+          {
+            assert(directions.IsValid(dir1));
+            assert(dir2 != 0);
+            assert(directions.IsValid(dir2));
+            if (dir1 == Q_T && dir2 == Q_N)
+              return EDGE_TN;
+            if (dir1 == Q_T && dir2 == Q_W)
+              return EDGE_TW;
+            if (dir1 == Q_T && dir2 == Q_S)
+              return EDGE_TS;
+            if (dir1 == Q_T && dir2 == Q_E)
+              return EDGE_TE;
+            if (dir1 == Q_S && dir2 == Q_W)
+              return EDGE_SW;
+            if (dir1 == Q_S && dir2 == Q_E)
+              return EDGE_SE;
+            if (dir1 == Q_N && dir2 == Q_W)
+              return EDGE_NW;
+            if (dir1 == Q_N && dir2 == Q_E)
+              return EDGE_NE;
+            if (dir1 == Q_B && dir2 == Q_N)
+              return EDGE_BN;
+            if (dir1 == Q_B && dir2 == Q_W)
+              return EDGE_BW;
+            if (dir1 == Q_B && dir2 == Q_S)
+              return EDGE_BS;
+            if (dir1 == Q_B && dir2 == Q_E)
+              return EDGE_BE;
+            return -1;
+          }
+
 
           /**
             dir1 can only be top or bottom
             dir2 can only be north or south
             dir3 can only be east or west
            */
-          int GetIndexBound(Direction dir1, Direction dir2, Direction dir3);
+          inline int GetIndexBound(Direction dir1, Direction dir2, Direction dir3)
+          {
+            assert(directions.IsValid(dir1));
+            assert(dir2 != 0);
+            assert(directions.IsValid(dir2));
+            assert(dir3 != 0);
+            assert(directions.IsValid(dir3));
+            assert(dir1 == Q_T || dir1 == Q_B);
+            assert(dir2 == Q_N || dir2 == Q_S);
+            assert(dir3 == Q_E || dir3 == Q_W);
+
+            if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_W )
+              return CORNER_BNW;
+            if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_W)
+              return CORNER_BSW;
+            if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_E)
+              return CORNER_BNE;
+            if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_E)
+              return CORNER_BSE;
+            if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_W )
+              return CORNER_TNW;
+            if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_W)
+              return CORNER_TSW;
+            if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_E)
+              return CORNER_TNE;
+            if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_E)
+              return CORNER_TSE;
+            return -1;
+          }
 
           // validates GetIndexbound function
           void TestGetIndexbound();
@@ -147,7 +267,12 @@ namespace CoupledField
           /**
            * Sets transformation map to handle propagation at boundaries (corners and edges)
            */
-          void SetupTransformation();
+          void SetupTransformation2D();
+
+          /**
+           * Sets transformation map to handle propagation at boundaries (corners, edges and faces)
+           */
+          void SetupTransformation3D();
 
           /** dump propagation maps */
           void WritePropMap();
@@ -162,7 +287,12 @@ namespace CoupledField
           void SetInvDirections();
 
           /** get inverse direction of D2Q9 direction */
-          int GetInvDirection(Direction dir);
+          // depends on numbering of directions
+          inline int GetInvDirection(Direction dir)
+          {
+            assert(directions.IsValid(dir));
+            return directionsInv[dir];
+          }
 
           void TestInvDirections();
 
