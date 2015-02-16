@@ -87,8 +87,14 @@
               </xsd:attribute>
 
   					 <xsd:attribute name="convergence" type="xsd:double" use="required">
-              <xsd:annotation>
-                <xsd:documentation>convergence tolerance for the residuum of the LBM solver</xsd:documentation>
+                <xsd:annotation>
+                  <xsd:documentation>convergence tolerance for the residuum of the LBM solver</xsd:documentation>
+                </xsd:annotation>              
+             </xsd:attribute>
+             
+             <xsd:attribute name="writeFrequency" type="xsd:positiveInteger" use="optional" default="1000000">
+               <xsd:annotation>
+                  <xsd:documentation>frequency for writing out simulation results, e.g. for 10: every 10th iteration results are written out</xsd:documentation>
                </xsd:annotation>              
              </xsd:attribute>
 
@@ -167,6 +173,7 @@
 	<xsd:simpleType name="DT_ExternLBMElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="LBMVelocity"/>
+      <xsd:enumeration value="LBMProbabilityDistribution"/>
       <xsd:enumeration value="LBMDensity"/>
       <xsd:enumeration value="LBMPressure"/>      
       <xsd:enumeration value="mechPseudoDensity"/>

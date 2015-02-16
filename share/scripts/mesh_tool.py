@@ -361,6 +361,7 @@ def create_2d_mesh(type, x_res, y_res):
   ny = y_res if y_res <> None else x_res
   width = 1.0
   height = float(ny)/nx 
+  #height = 0.5
 
   if type.startswith('cantilever2d'):
     width = 3.0
@@ -433,6 +434,8 @@ def create_3d_mesh(x_res, y_res, z_res):
   
   depth = float(nz)/nx
   dz = depth / nz
+  
+  eps = 1e-4
 
   print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
   
@@ -470,7 +473,7 @@ def create_3d_mesh(x_res, y_res, z_res):
         e.density = 1.0
         e.type = HEXA8
         e.region = 'mech'
-  
+
         # assign nodes
         # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
         ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
@@ -482,7 +485,7 @@ def create_3d_mesh(x_res, y_res, z_res):
 
   mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
-
+  
   side = (("bottom", []))
   mesh.bc.append(side)
   for z in range(0, nnz):
@@ -514,7 +517,7 @@ def create_3d_mesh(x_res, y_res, z_res):
 
 ## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
 # @param case pipe_bend or two_inlet_one_outlet 
-def create_lbm(resolution, case):
+def create_lbm2d(resolution, case):
   mesh = Mesh()
  
   size = 1.0 
@@ -561,4 +564,121 @@ def create_lbm(resolution, case):
     mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))
     mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
       
+  return mesh
+  
+def create_lbm3d(x_res, y_res, z_res, case):
+  mesh = Mesh()
+
+  nx = x_res
+  ny = y_res if y_res <> None else x_res
+  nz = z_res if z_res <> None else x_res
+
+  nnx = nx+1
+  nny = ny+1
+  nnz = nz+1
+  
+  width = 1.0
+  dx = width / nx
+  
+  height = float(ny)/nx
+  dy = height / ny
+  
+  depth = float(nz)/nx
+  dz = depth / nz
+  
+  eps = 1e-4
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
+  
+  
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #       2 --------- 3         
+  #      /|          /|
+  #     / |         / |
+  #    6 --------- 7  |
+  #    |  |        |  |
+  #    |  |        |  |
+  #    |  0 -------|- 1
+  #    | /         | /
+  #    |/          |/
+  #    4 --------- 5
+  
+
+  for z in range(nnz): # slowest variable
+    for y in range(nny):
+      for x in range(nnx): # fastest variable
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+ 
+  for z in range(nz):
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.density = 1.0
+        e.type = HEXA8
+        if x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
+          e.region = 'design'
+        else:
+          e.region = 'boundary'
+    
+        # assign nodes
+        # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane
+        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))  
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        
+        mesh.elements.append(e)
+
+  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+  
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny)*nnx+x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny+ny)*nnx+x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx+1)*(ny+1))))
+  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))
+
+
+  mesh.bc.append(("left_bottom_back",   [0]))
+  mesh.bc.append(("right_bottom_back",  [nx]))
+  mesh.bc.append(("left_top_back",      [nnx*ny]))
+  mesh.bc.append(("right_top_back",     [nnx*nny-1]))
+  mesh.bc.append(("left_bottom_front",  [nnx*nny*nz]))
+  mesh.bc.append(("right_bottom_front", [nnx*nny*nz+nx]))
+  mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
+  mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
+  
+  if case == 'pipe_bend':
+    for i in range(0,int(0.2*nz)):
+      mesh.ne.append(('inlet', range(int(0.4*nx*ny*nz + 0.1*nx*ny + i*nx*ny), int(0.4*nx*ny*nz + 0.3*nx*ny + i*nx*ny), nx)))
+      mesh.ne.append(('outlet', range(int(0.4*nx*ny*nz - 0.3*nx + i*nx*ny),int(0.4*nx*ny*nz - 0.1*nx + i*nx*ny),1)))
+  elif case == 'extend_inlet':
+    for i in range (0,nz):
+        mesh.ne.append(('inlet',range(int(0.1*nx*ny + i*nx*ny), int(0.4*nx*ny + i*nx*ny),nx)))
+        mesh.ne.append(('outlet', range(int(nx*ny-0.4*nx+ i*nx*ny), int(nx*ny-0.1*nx+ i*nx*ny), 1)))
+  elif case == 'two_inlet_one_outlet':
+    print "Not implemented yet!"
+#     mesh.ne.append(('inlet', range(int((0.25 - 1./16) *nx*ny + eps), int((0.25 + 1./16) *nx*ny + nx + eps), nx) ))
+#     mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))
+#     mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
+  
   return mesh

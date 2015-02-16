@@ -102,7 +102,7 @@ class AdjointParameters;
     }
 
     // for LBM case we overwrite this data because we might write intermediate LBM iterations
-    int step = 1;
+    int step = 0;
     double value = 0.0; // step value
     if(lbm_) {
       dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->Solve(); // might call many StoreResults() for intermediate steps
@@ -114,7 +114,7 @@ class AdjointParameters;
     // we don't write every forward step. 
     if(write_results)
       {
-        if (lbm_)
+        if (lbm_ && step != 0)
           StoreResults(step+1,(double)value+1.0);
         else
           StoreResults(1,0.0);
