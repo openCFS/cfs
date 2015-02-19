@@ -12,10 +12,12 @@
 #include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/matrix.hh"
 
+#ifdef USE_SGPP
 #include "base/grid/Grid.hpp"
 #include "base/operation/OperationEval.hpp"
 #include "base/operation/OperationNaiveEvalPartialDerivative.hpp"
 #include "base/datatypes/DataVector.hpp"
+#endif
 
 namespace CoupledField {
 
@@ -138,8 +140,10 @@ class ErsatzMaterial;
 
     unsigned int dim;
 
+#ifdef USE_SGPP
     /** Grid for SGPP interpolation */
     sg::base::Grid* grid_;
+#endif
 
     /** returns the numbers of parameters required for this material */
     unsigned int RequiredParameters(OptimizationMaterial::System material);
@@ -178,14 +182,6 @@ class ErsatzMaterial;
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
     void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
-
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
-
-    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
-       * @param vector p has the values of the design variable */
-    void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
@@ -327,6 +323,15 @@ class ErsatzMaterial;
     /** Read detailed stats from file*/
     bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
 
+#ifdef USE_SGPP
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
     /** Fill sparse grid with data values*/
     void FillSparseGridWithUnhierarchisedData(Matrix<double>& data);
     void FillSparseGridWithHierarchisedData(Matrix<double>& data);
@@ -337,6 +342,7 @@ class ErsatzMaterial;
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
     double EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval, sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const;
     double EvaluateSGPPInterpolation_Deriv_Exact(sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, sg::base::DataVector& alpha, sg::base::DataVector& point, DesignElement::Type direction) const;
+#endif
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -383,10 +389,12 @@ class ErsatzMaterial;
     /** only for ROTATION to get OptimizationMaterial */
     ErsatzMaterial* em_;
 
-    /** members for SGPP interpolation */
     enum Interpolation { C1, SGPP, FULL_BSPLINE } interpolation_;
-    enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int level_;
+
+#if USE_SGPP
+    /** members for SGPP interpolation */
+    enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
     boost::shared_ptr<sg::base::DataVector> alpha1_;
     boost::shared_ptr<sg::base::DataVector> alpha2_;
@@ -400,6 +408,7 @@ class ErsatzMaterial;
     Matrix<double> full_bspline_coeff22_;
     Matrix<double> full_bspline_coeff23_;
     Matrix<double> full_bspline_coeff33_;
+#endif //USE_SGPP
   };
 
 } // namespace

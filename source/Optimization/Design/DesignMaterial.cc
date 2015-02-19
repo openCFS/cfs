@@ -23,8 +23,10 @@
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "MatVec/matrix.hh"
 
+#ifdef USE_SGPP
 #include "sgpp_base.hpp"
 #include "sgpp_opt.hpp"
+#endif
 
 DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
@@ -308,122 +310,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // read interpolation method
     std::string interpolation_str = hr->Get("interpolation")->As<std::string>();
 
-    // sparse grid interpolation
-    if (interpolation_str == "sgpp") {
-      interpolation_ = SGPP;
-      unsigned int dimension = (shearIsDesign_ ? 3 : 2);
-      std::string basis_str = hr->Get("sgpp_basis")->As<std::string>();
-      // sparse grid basis to be used
-      if ((basis_str == "bspline") || (basis_str == "modbspline")) {
-        // B-spline basis
-        bspline_degree_ = hr->Get("bspline_degree")->As<unsigned int>();
-        if (basis_str == "bspline") {
-          // B-splines
-          sgpp_basis_ = BSPLINE;
-          grid_ = sg::base::Grid::createBsplineGrid(dimension, bspline_degree_);
-        } else {
-          // modified B-splines
-          sgpp_basis_ = MODBSPLINE;
-          grid_ = sg::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
-        }
-        // optional verbosity for initial hierarchisation
-        sg::opt::tools::printer.setVerbosity(2);
-      } else if (basis_str == "modlinear") {
-        // modified linear basis
-        sgpp_basis_ = MODLINEAR;
-        grid_ = sg::base::Grid::createModLinearGrid(dimension);
-      } else {
-        // (un)modified linear basis
-        sgpp_basis_ = LINEAR;
-        grid_ = sg::base::Grid::createLinearGrid(dimension);
-      }
-      // read coefficients
-      InitializeSparseGrid(file.c_str());
-      LOG_DBG(dm)<<"Sparse grid initialized and filled.";
-
-    // full B-spline interpolation with XML coefficients
-    } else if (interpolation_str == "full_bspline") {
-      interpolation_ = FULL_BSPLINE;
-      bspline_degree_ = hr->Get("bspline_degree")->As<unsigned int>();
-      Xerces xerces(file);
-      PtrParamNode root = xerces.CreateParamNodeInstance();
-      Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
-      // read coefficients from XML
-      ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
-      ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
-      if (shearIsDesign_) {
-        ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
-      }
-      ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
-      if (shearIsDesign_) {
-        ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
-      }
-      ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
-      // apply notation
-      full_bspline_coeff33_ = full_bspline_coeff33_ * ((notation == VOIGT) ? 2.0 : 1.0);
-
-    // full B-spline interpolation with text coefficients for 2D (without shearing angle)
-    } else if (interpolation_str == "full_bspline_text_2d") {
-      interpolation_ = FULL_BSPLINE;
-      bspline_degree_ = hr->Get("bspline_degree")->As<unsigned int>();
-      // read coefficients from text file
-      std::string filename = hr->Get("file")->As<std::string>();
-      std::ifstream file(filename.c_str());
-      std::string word;
-      // read notation
-      file >> word;
-      Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
-      // read number of B-splines
-      unsigned int count;
-      file >> count;
-      // create matrices
-      Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_,
-                                    &full_bspline_coeff22_, &full_bspline_coeff33_};
-      for (unsigned int k = 0; k < 4; k++) {
-        *matrices[k] = Matrix<double>(count, 1);
-      }
-      // create matrices
-      for (unsigned int i = 0; i < count; i++) {
-        for (unsigned int k = 0; k < 4; k++) {
-          file >> (*matrices[k])[i][0];
-        }
-      }
-      // apply notation
-      full_bspline_coeff33_ = full_bspline_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-      file.close();
-
-    // full B-spline interpolation with text coefficients for 3D (with shearing angle)
-    } else if (interpolation_str == "full_bspline_text_3d") {
-      interpolation_ = FULL_BSPLINE;
-      bspline_degree_ = hr->Get("bspline_degree")->As<unsigned int>();
-      // read coefficients from text file
-      std::string filename = hr->Get("file")->As<std::string>();
-      std::ifstream file(filename.c_str());
-      std::string word;
-      // read notation
-      file >> word;
-      Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
-      // read number of B-splines
-      unsigned int count;
-      file >> count;
-      // create matrices
-      Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_, &full_bspline_coeff13_,
-                                    &full_bspline_coeff22_, &full_bspline_coeff23_, &full_bspline_coeff33_};
-      for (unsigned int k = 0; k < 6; k++) {
-        *matrices[k] = Matrix<double>(count, 1);
-      }
-      // fill matrices
-      for (unsigned int i = 0; i < count; i++) {
-        for (unsigned int k = 0; k < 6; k++) {
-          file >> (*matrices[k])[i][0];
-        }
-      }
-      // apply notation
-      full_bspline_coeff33_ = full_bspline_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
-      file.close();
-
     // full C1 interpolation with text coefficients for 2D (without shearing angle)
-    } else if (interpolation_str == "c1_text_2d") {
+    if (interpolation_str == "c1_text_2d") {
       interpolation_ = C1;
       // read coefficients from text file
       std::string filename = hr->Get("file")->As<std::string>();
@@ -512,7 +400,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       file.close();
 
     // full C1 interpolation with XML coefficients
-    } else {
+    } else if (interpolation_str == "c1") {
       interpolation_ = C1;
       Xerces xerces(file);
       PtrParamNode root = xerces.CreateParamNodeInstance();
@@ -595,6 +483,126 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 1.0 : 0.5);
         // the tensor is orthotropic
       }
+    } else {
+
+#ifdef USE_SGPP
+      // sparse grid interpolation
+      if (interpolation_str == "sgpp") {
+        interpolation_ = SGPP;
+        unsigned int dimension = (shearIsDesign_ ? 3 : 2);
+        std::string basis_str = hr->Get("sgppBasis")->As<std::string>();
+        // sparse grid basis to be used
+        if ((basis_str == "bspline") || (basis_str == "modbspline")) {
+          // B-spline basis
+          bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
+          if (basis_str == "bspline") {
+            // B-splines
+            sgpp_basis_ = BSPLINE;
+            grid_ = sg::base::Grid::createBsplineGrid(dimension, bspline_degree_);
+          } else {
+            // modified B-splines
+            sgpp_basis_ = MODBSPLINE;
+            grid_ = sg::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
+          }
+          // optional verbosity for initial hierarchisation
+          sg::opt::tools::printer.setVerbosity(2);
+        } else if (basis_str == "modlinear") {
+          // modified linear basis
+          sgpp_basis_ = MODLINEAR;
+          grid_ = sg::base::Grid::createModLinearGrid(dimension);
+        } else {
+          // (un)modified linear basis
+          sgpp_basis_ = LINEAR;
+          grid_ = sg::base::Grid::createLinearGrid(dimension);
+        }
+        // read coefficients
+        InitializeSparseGrid(file.c_str());
+        LOG_DBG(dm)<<"Sparse grid initialized and filled.";
+
+      // full B-spline interpolation with XML coefficients
+      } else if (interpolation_str == "full_bspline") {
+        interpolation_ = FULL_BSPLINE;
+        bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
+        Xerces xerces(file);
+        PtrParamNode root = xerces.CreateParamNodeInstance();
+        Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
+        // read coefficients from XML
+        ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
+        ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
+        if (shearIsDesign_) {
+          ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
+        }
+        ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
+        if (shearIsDesign_) {
+          ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
+        }
+        ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
+        // apply notation
+        full_bspline_coeff33_ = full_bspline_coeff33_ * ((notation == VOIGT) ? 2.0 : 1.0);
+
+      // full B-spline interpolation with text coefficients for 2D (without shearing angle)
+      } else if (interpolation_str == "full_bspline_text_2d") {
+        interpolation_ = FULL_BSPLINE;
+        bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
+        // read coefficients from text file
+        std::string filename = hr->Get("file")->As<std::string>();
+        std::ifstream file(filename.c_str());
+        std::string word;
+        // read notation
+        file >> word;
+        Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
+        // read number of B-splines
+        unsigned int count;
+        file >> count;
+        // create matrices
+        Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_,
+                                      &full_bspline_coeff22_, &full_bspline_coeff33_};
+        for (unsigned int k = 0; k < 4; k++) {
+          *matrices[k] = Matrix<double>(count, 1);
+        }
+        // create matrices
+        for (unsigned int i = 0; i < count; i++) {
+          for (unsigned int k = 0; k < 4; k++) {
+            file >> (*matrices[k])[i][0];
+          }
+        }
+        // apply notation
+        full_bspline_coeff33_ = full_bspline_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+        file.close();
+
+      // full B-spline interpolation with text coefficients for 3D (with shearing angle)
+      } else if (interpolation_str == "full_bspline_text_3d") {
+        interpolation_ = FULL_BSPLINE;
+        bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
+        // read coefficients from text file
+        std::string filename = hr->Get("file")->As<std::string>();
+        std::ifstream file(filename.c_str());
+        std::string word;
+        // read notation
+        file >> word;
+        Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
+        // read number of B-splines
+        unsigned int count;
+        file >> count;
+        // create matrices
+        Matrix<double>* matrices[] = {&full_bspline_coeff11_, &full_bspline_coeff12_, &full_bspline_coeff13_,
+                                      &full_bspline_coeff22_, &full_bspline_coeff23_, &full_bspline_coeff33_};
+        for (unsigned int k = 0; k < 6; k++) {
+          *matrices[k] = Matrix<double>(count, 1);
+        }
+        // fill matrices
+        for (unsigned int i = 0; i < count; i++) {
+          for (unsigned int k = 0; k < 6; k++) {
+            file >> (*matrices[k])[i][0];
+          }
+        }
+        // apply notation
+        full_bspline_coeff33_ = full_bspline_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
+        file.close();
+      }
+#else //USE_SGPP
+    EXCEPTION("You do not have the SGpp toolbox! Please choose another interpolation method.")
+#endif //USE_SGPP
     }
   }
 
@@ -1814,13 +1822,16 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
     }
     if (type_ == HOM_RECT_C1) {
-      if (interpolation_ == SGPP) {
+      if (interpolation_ == C1) {
+        ApplyHomRectC1Tensor(E,p,direction,subTensor);
+      }
+#ifdef USE_SGPP
+      else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p,direction,subTensor);
-      } else {
-        ApplyHomRectC1Tensor(E,p,direction,subTensor);
       }
+#endif //USE_SGPP
     }
     break;
   }
@@ -1840,15 +1851,18 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
       // correct scaling to local FE coordinates
       E *= 4;
       LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
-    }
-    else if(type_ == HOM_RECT_C1) {
-      if (interpolation_ == SGPP) {
+    } else if(type_ == HOM_RECT_C1) {
+      if (interpolation_ == C1) {
+        ApplyHomRectC1Tensor(E,p,direction,subTensor);
+      }
+#ifdef USE_SGPP
+      else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p,direction,subTensor);
-      } else {
-        ApplyHomRectC1Tensor(E,p,direction,subTensor);
       }
+#endif //USE_SGPP
+
       if (subTensor == FULL) {
 #ifndef NDEBUG
         if (direction == DesignElement::STIFF1) {
@@ -3231,6 +3245,308 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
 
 }
 
+#ifdef USE_SGPP
+
+void DesignMaterial::InitializeSparseGrid(const char * filename) {
+  std::ifstream file(filename);
+  if (!file) {
+    EXCEPTION("File " << filename << " does not exist.\n");
+  }
+  std::string word;
+  // read first word
+  file >> word;
+  if (word != "sparsegrid") {
+    // ==> old format
+    file.close();
+    bool dataIsHierarchised;
+    Matrix<double> data;
+    dataIsHierarchised = ReadDetailedStats(filename, data);
+    // create regular grid
+    sg::base::GridGenerator* gridGen = grid_->createGridGenerator();
+    gridGen->regular(level_);
+    delete gridGen;
+    if (dataIsHierarchised) {
+      FillSparseGridWithHierarchisedData(data);
+    } else {
+      FillSparseGridWithUnhierarchisedData(data);
+    }
+    return;
+  }
+
+  // new format
+  unsigned int N, d, m;
+  file >> N >> d >> m >> word;
+  // standard assumptions
+  assert((d == 2) || (d == 3));
+  assert((m == 4) || (m == 6));
+  // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=6))"
+  assert(!shearIsDesign_ || ((d == 3) && (m == 6)));
+  bool hierarchised = (word == "hierarchised");
+  file >> word;
+  Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
+  // initialize coefficient vectors
+  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  if (shearIsDesign_) {
+    alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+    alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  }
+  std::vector<unsigned int> level(d, 0);
+  std::vector<unsigned int> index(d, 0);
+  sg::base::GridIndex grid_point(grid_->getStorage()->dim());
+  level_ = 0; // we set that to the maximal level of the grid points
+  double duck; // dummy
+  unsigned int j = 0;
+  for (unsigned int i = 0; i < N; i++) {
+    if (shearIsDesign_) {
+      // shearing angle should be optimized ==> Read ALL The Data!
+      file >> level[0] >> level[1] >> level[2];
+      file >> index[0] >> index[1] >> index[2];
+      grid_point.set(0, level[0], index[0]);
+      grid_point.set(1, level[1], index[1]);
+      grid_point.set(2, level[2], index[2]);
+      level_ = std::max(level_, std::max(level[0], std::max(level[1], level[2])));
+    } else {
+      // shearing angle should not be optimized ==> maybe we have to pick the right data
+      if (d == 2) {
+        file >> level[0] >> level[1];
+        file >> index[0] >> index[1];
+      } else {
+        file >> level[0] >> level[1] >> level[2];
+        file >> index[0] >> index[1] >> index[2];
+        if (level[2] != 1) {
+          // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
+          if (m == 4) {
+            // Is there a "non-Ralph" way to do that?
+            file >> duck >> duck >> duck >> duck;
+          } else {
+            file >> duck >> duck >> duck >> duck >> duck >> duck;
+          }
+          continue;
+        }
+      }
+      grid_point.set(0, level[0], index[0]);
+      grid_point.set(1, level[1], index[1]);
+      level_ = std::max(level_, std::max(level[0], level[1]));
+    }
+    // add grid point
+    grid_->getStorage()->insert(grid_point);
+    if (shearIsDesign_) {
+      // shearing angle should be optimized ==> Read ALL The Data!
+      file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j]
+           >> (*alpha5_)[j] >> (*alpha6_)[j];
+      if (notation == VOIGT) {
+        (*alpha6_)[j] *= 2.0;
+      }
+    } else {
+      // shearing angle should not be optimized ==> maybe we have to pick the right data
+      if (m == 4) {
+        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j];
+      } else {
+        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j];
+      }
+      if (notation == VOIGT) {
+        (*alpha4_)[j] *= 2.0;
+      }
+    }
+    j++;
+  }
+  LOG_DBG(dm) << "DM:ISG: level = " << level_ << "\n";
+  file.close();
+  if (!shearIsDesign_) {
+    // coefficient vectors were too big, because we skipped grid points
+    alpha1_->resize(grid_->getStorage()->size());
+    alpha2_->resize(grid_->getStorage()->size());
+    alpha3_->resize(grid_->getStorage()->size());
+    alpha4_->resize(grid_->getStorage()->size());
+  }
+  // hierarchisation if needed
+  if (!hierarchised) {
+    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+      sg::base::OperationHierarchisation *hierOp =
+          sg::op_factory::createOperationHierarchisation(*grid_);
+      hierOp->doHierarchisation(*alpha1_);
+      hierOp->doHierarchisation(*alpha2_);
+      hierOp->doHierarchisation(*alpha3_);
+      hierOp->doHierarchisation(*alpha4_);
+      if (shearIsDesign_) {
+        hierOp->doHierarchisation(*alpha5_);
+        hierOp->doHierarchisation(*alpha6_);
+      }
+      delete hierOp;
+    } else {
+      std::vector<sg::base::DataVector *> alphas;
+      alphas.push_back(alpha1_.get());
+      alphas.push_back(alpha2_.get());
+      alphas.push_back(alpha3_.get());
+      alphas.push_back(alpha4_.get());
+      if (shearIsDesign_) {
+        alphas.push_back(alpha5_.get());
+        alphas.push_back(alpha6_.get());
+      }
+      sg::opt::OperationMultipleHierarchisation *hierOp =
+        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
+      hierOp->doHierarchisation(alphas);
+      delete hierOp;
+    }
+  }
+}
+
+void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) {
+  sg::base::GridStorage* gridStorage = grid_->getStorage();
+
+  // create coefficient vectors
+  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+
+  // put data values in coefficient vectors
+  unsigned int dim1, dim2, dim3, index1, index2, index3, row;
+  dim1 = catalogueSize_[0];
+  dim2 = catalogueSize_[1];
+  dim3 = catalogueSize_[2];
+  sg::base::GridIndex* gp;
+  unsigned int sz = gridStorage->size();
+  sz = sz + 1;
+  for (unsigned int i=0; i < gridStorage->size(); i++) {
+    gp = gridStorage->get(i);
+    if (catalogueSize_.GetSize() == 2) {
+      index1 = gp->abs(0)*(dim1);
+      index2 = gp->abs(1)*(dim2);
+      row = (index1-1)*dim2 + index2 - 1;
+    } else {
+      index1 = gp->abs(0)*(dim1);
+      index2 = gp->abs(1)*(dim2);
+      if(shearIsDesign_) {
+        index3 = gp->abs(2)*(dim3+1);
+      } else {
+        index3 = .5*(dim3+1);
+      }
+      row = (index1-1)*dim2*dim3 + (index2-1)*dim3 + index3 - 1;
+    }
+    alpha1_->set(i,data[row][0]);
+    alpha2_->set(i,data[row][1]);
+    if (shearIsDesign_) {
+      alpha3_->set(i,data[row][2]);
+      alpha4_->set(i,data[row][3]);
+      alpha5_->set(i,data[row][4]);
+      alpha6_->set(i,data[row][5]);
+    } else {
+      if (catalogueSize_.GetSize() == 2) {
+        alpha3_->set(i,data[row][2]);
+        alpha4_->set(i,data[row][3]);
+      } else {
+        alpha3_->set(i,data[row][3]);
+        alpha4_->set(i,data[row][5]);
+      }
+    }
+    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
+        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
+  }
+  // hierarchise data vectors
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    std::vector<sg::base::DataVector *> alphas;
+    alphas.push_back(alpha1_.get());
+    alphas.push_back(alpha2_.get());
+    alphas.push_back(alpha3_.get());
+    alphas.push_back(alpha4_.get());
+    if (shearIsDesign_) {
+      alphas.push_back(alpha5_.get());
+      alphas.push_back(alpha6_.get());
+    }
+    sg::opt::OperationMultipleHierarchisation *hierOp =
+        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
+    hierOp->doHierarchisation(alphas);
+    delete hierOp;
+  } else {
+    sg::base::OperationHierarchisation *hierOp =
+        sg::op_factory::createOperationHierarchisation(*grid_);
+    hierOp->doHierarchisation(*alpha1_);
+    hierOp->doHierarchisation(*alpha2_);
+    hierOp->doHierarchisation(*alpha3_);
+    hierOp->doHierarchisation(*alpha4_);
+    if (shearIsDesign_) {
+      hierOp->doHierarchisation(*alpha5_);
+      hierOp->doHierarchisation(*alpha6_);
+    }
+    delete hierOp;
+  }
+}
+
+void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
+  sg::base::GridStorage* gridStorage = grid_->getStorage();
+
+  // create coefficient vectors
+  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+
+  // put data values in coefficient vectors
+  sg::base::GridIndex* gp;
+  unsigned int sz = gridStorage->size();
+  sz = sz + 1;
+  for (unsigned int i=0; i < gridStorage->size(); i++) {
+    if (shearIsDesign_) {
+      alpha1_->set(i,data[i][0]);
+      alpha2_->set(i,data[i][1]);
+      alpha3_->set(i,data[i][2]);
+      alpha4_->set(i,data[i][3]);
+      alpha5_->set(i,data[i][4]);
+      alpha6_->set(i,data[i][5]);
+    } else {
+      alpha1_->set(i,data[i][0]);
+      alpha2_->set(i,data[i][1]);
+      if (catalogueSize_.GetSize() == 2) {
+        alpha3_->set(i,data[i][2]);
+        alpha4_->set(i,data[i][3]);
+      } else {
+        alpha3_->set(i,data[i][3]);
+        alpha4_->set(i,data[i][5]);
+      }
+    }
+    gp = gridStorage->get(i);
+    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
+        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
+  }
+
+  // hierarchise data vectors
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    sg::base::OperationHierarchisation *hierOp =
+        sg::op_factory::createOperationHierarchisation(*grid_);
+    hierOp->doHierarchisation(*alpha1_);
+    hierOp->doHierarchisation(*alpha2_);
+    hierOp->doHierarchisation(*alpha3_);
+    hierOp->doHierarchisation(*alpha4_);
+    if (shearIsDesign_) {
+      hierOp->doHierarchisation(*alpha5_);
+      hierOp->doHierarchisation(*alpha6_);
+    }
+    delete hierOp;
+  } else {
+    std::vector<sg::base::DataVector *> alphas;
+    alphas.push_back(alpha1_.get());
+    alphas.push_back(alpha2_.get());
+    alphas.push_back(alpha3_.get());
+    alphas.push_back(alpha4_.get());
+    if (shearIsDesign_) {
+      alphas.push_back(alpha5_.get());
+      alphas.push_back(alpha6_.get());
+    }
+    sg::opt::OperationMultipleHierarchisation *hierOp =
+        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
+    hierOp->doHierarchisation(alphas);
+    delete hierOp;
+  }
+}
+
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) const {
   // Method uses SGPP interpolation
@@ -3478,6 +3794,8 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
   return opEvalPartDeriv->evalPartialDerivative(alpha, point, dimension-1);
 }
 
+#endif //USE_SGPP
+
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
   PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
   int nRows = interval.GetNumRows();
@@ -3624,159 +3942,6 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
   return deriv;
 }
 
-void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
-
-  // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-
-  // put data values in coefficient vectors
-  unsigned int dim1, dim2, dim3, index1, index2, index3, row;
-  dim1 = catalogueSize_[0];
-  dim2 = catalogueSize_[1];
-  dim3 = catalogueSize_[2];
-  sg::base::GridIndex* gp;
-  unsigned int sz = gridStorage->size();
-  sz = sz + 1;
-  for (unsigned int i=0; i < gridStorage->size(); i++) {
-    gp = gridStorage->get(i);
-    if (catalogueSize_.GetSize() == 2) {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
-      row = (index1-1)*dim2 + index2 - 1;
-    } else {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
-      if(shearIsDesign_) {
-        index3 = gp->abs(2)*(dim3+1);
-      } else {
-        index3 = .5*(dim3+1);
-      }
-      row = (index1-1)*dim2*dim3 + (index2-1)*dim3 + index3 - 1;
-    }
-    alpha1_->set(i,data[row][0]);
-    alpha2_->set(i,data[row][1]);
-    if (shearIsDesign_) {
-      alpha3_->set(i,data[row][2]);
-      alpha4_->set(i,data[row][3]);
-      alpha5_->set(i,data[row][4]);
-      alpha6_->set(i,data[row][5]);
-    } else {
-      if (catalogueSize_.GetSize() == 2) {
-        alpha3_->set(i,data[row][2]);
-        alpha4_->set(i,data[row][3]);
-      } else {
-        alpha3_->set(i,data[row][3]);
-        alpha4_->set(i,data[row][5]);
-      }
-    }
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
-        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
-  }
-  // hierarchise data vectors
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
-    if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
-    }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-    hierOp->doHierarchisation(alphas);
-    delete hierOp;
-  } else {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
-    hierOp->doHierarchisation(*alpha1_);
-    hierOp->doHierarchisation(*alpha2_);
-    hierOp->doHierarchisation(*alpha3_);
-    hierOp->doHierarchisation(*alpha4_);
-    if (shearIsDesign_) {
-      hierOp->doHierarchisation(*alpha5_);
-      hierOp->doHierarchisation(*alpha6_);
-    }
-    delete hierOp;
-  }
-}
-
-void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
-
-  // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-
-  // put data values in coefficient vectors
-  sg::base::GridIndex* gp;
-  unsigned int sz = gridStorage->size();
-  sz = sz + 1;
-  for (unsigned int i=0; i < gridStorage->size(); i++) {
-    if (shearIsDesign_) {
-      alpha1_->set(i,data[i][0]);
-      alpha2_->set(i,data[i][1]);
-      alpha3_->set(i,data[i][2]);
-      alpha4_->set(i,data[i][3]);
-      alpha5_->set(i,data[i][4]);
-      alpha6_->set(i,data[i][5]);
-    } else {
-      alpha1_->set(i,data[i][0]);
-      alpha2_->set(i,data[i][1]);
-      if (catalogueSize_.GetSize() == 2) {
-        alpha3_->set(i,data[i][2]);
-        alpha4_->set(i,data[i][3]);
-      } else {
-        alpha3_->set(i,data[i][3]);
-        alpha4_->set(i,data[i][5]);
-      }
-    }
-    gp = gridStorage->get(i);
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
-        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
-  }
-
-  // hierarchise data vectors
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
-    hierOp->doHierarchisation(*alpha1_);
-    hierOp->doHierarchisation(*alpha2_);
-    hierOp->doHierarchisation(*alpha3_);
-    hierOp->doHierarchisation(*alpha4_);
-    if (shearIsDesign_) {
-      hierOp->doHierarchisation(*alpha5_);
-      hierOp->doHierarchisation(*alpha6_);
-    }
-    delete hierOp;
-  } else {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
-    if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
-    }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-    hierOp->doHierarchisation(alphas);
-    delete hierOp;
-  }
-}
-
 bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& ret) {
   bool isHierarchised;
   unsigned int dim1, dim2, dim3, nRows, nCols;
@@ -3854,150 +4019,6 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   LOG_DBG3(dm)<<"Data: \n"<<ret;
 
   return isHierarchised;
-}
-
-void DesignMaterial::InitializeSparseGrid(const char * filename) {
-  std::ifstream file(filename);
-  std::string word;
-  // read first word
-  file >> word;
-  if (word != "sparsegrid") {
-    // ==> old format
-    file.close();
-    bool dataIsHierarchised;
-    Matrix<double> data;
-    dataIsHierarchised = ReadDetailedStats(filename, data);
-    // create regular grid
-    sg::base::GridGenerator* gridGen = grid_->createGridGenerator();
-    gridGen->regular(level_);
-    delete gridGen;
-    if (dataIsHierarchised) {
-      FillSparseGridWithHierarchisedData(data);
-    } else {
-      FillSparseGridWithUnhierarchisedData(data);
-    }
-    return;
-  }
-
-  // new format
-  unsigned int N, d, m;
-  file >> N >> d >> m >> word;
-  // standard assumptions
-  assert((d == 2) || (d == 3));
-  assert((m == 4) || (m == 6));
-  // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=6))"
-  assert(!shearIsDesign_ || ((d == 3) && (m == 6)));
-  bool hierarchised = (word == "hierarchised");
-  file >> word;
-  Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
-  // initialize coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  if (shearIsDesign_) {
-    alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-    alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  }
-  std::vector<unsigned int> level(d, 0);
-  std::vector<unsigned int> index(d, 0);
-  sg::base::GridIndex grid_point(grid_->getStorage()->dim());
-  level_ = 0; // we set that to the maximal level of the grid points
-  double duck; // dummy
-  unsigned int j = 0;
-  for (unsigned int i = 0; i < N; i++) {
-    if (shearIsDesign_) {
-      // shearing angle should be optimized ==> Read ALL The Data!
-      file >> level[0] >> level[1] >> level[2];
-      file >> index[0] >> index[1] >> index[2];
-      grid_point.set(0, level[0], index[0]);
-      grid_point.set(1, level[1], index[1]);
-      grid_point.set(2, level[2], index[2]);
-      level_ = std::max(level_, std::max(level[0], std::max(level[1], level[2])));
-    } else {
-      // shearing angle should not be optimized ==> maybe we have to pick the right data
-      if (d == 2) {
-        file >> level[0] >> level[1];
-        file >> index[0] >> index[1];
-      } else {
-        file >> level[0] >> level[1] >> level[2];
-        file >> index[0] >> index[1] >> index[2];
-        if (level[2] != 1) {
-          // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
-          if (m == 4) {
-            // Is there a "non-Ralph" way to do that?
-            file >> duck >> duck >> duck >> duck;
-          } else {
-            file >> duck >> duck >> duck >> duck >> duck >> duck;
-          }
-          continue;
-        }
-      }
-      grid_point.set(0, level[0], index[0]);
-      grid_point.set(1, level[1], index[1]);
-      level_ = std::max(level_, std::max(level[0], level[1]));
-    }
-    // add grid point
-    grid_->getStorage()->insert(grid_point);
-    if (shearIsDesign_) {
-      // shearing angle should be optimized ==> Read ALL The Data!
-      file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j]
-           >> (*alpha5_)[j] >> (*alpha6_)[j];
-      if (notation == VOIGT) {
-        (*alpha6_)[j] *= 2.0;
-      }
-    } else {
-      // shearing angle should not be optimized ==> maybe we have to pick the right data
-      if (m == 4) {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j];
-      } else {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j];
-      }
-      if (notation == VOIGT) {
-        (*alpha4_)[j] *= 2.0;
-      }
-    }
-    j++;
-  }
-  LOG_DBG(dm) << "DM:ISG: level = " << level_ << "\n";
-  file.close();
-  if (!shearIsDesign_) {
-    // coefficient vectors were too big, because we skipped grid points
-    alpha1_->resize(grid_->getStorage()->size());
-    alpha2_->resize(grid_->getStorage()->size());
-    alpha3_->resize(grid_->getStorage()->size());
-    alpha4_->resize(grid_->getStorage()->size());
-  }
-  // hierarchisation if needed
-  if (!hierarchised) {
-    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-      sg::base::OperationHierarchisation *hierOp =
-          sg::op_factory::createOperationHierarchisation(*grid_);
-      hierOp->doHierarchisation(*alpha1_);
-      hierOp->doHierarchisation(*alpha2_);
-      hierOp->doHierarchisation(*alpha3_);
-      hierOp->doHierarchisation(*alpha4_);
-      if (shearIsDesign_) {
-        hierOp->doHierarchisation(*alpha5_);
-        hierOp->doHierarchisation(*alpha6_);
-      }
-      delete hierOp;
-    } else {
-      std::vector<sg::base::DataVector *> alphas;
-      alphas.push_back(alpha1_.get());
-      alphas.push_back(alpha2_.get());
-      alphas.push_back(alpha3_.get());
-      alphas.push_back(alpha4_.get());
-      if (shearIsDesign_) {
-        alphas.push_back(alpha5_.get());
-        alphas.push_back(alpha6_.get());
-      }
-      sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-      hierOp->doHierarchisation(alphas);
-      delete hierOp;
-    }
-  }
 }
 
 void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,

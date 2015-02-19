@@ -1166,7 +1166,7 @@
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
-                            <xsd:attribute name="sgppbasis" use="optional" default="modbspline">
+                            <xsd:attribute name="sgppBasis" use="optional" default="modbspline">
                               <xsd:simpleType>
                                 <xsd:restriction base="xsd:token">
                                   <xsd:enumeration value="bspline"/>
@@ -1176,7 +1176,7 @@
                                 </xsd:restriction>
                               </xsd:simpleType>
                             </xsd:attribute>
-                            <xsd:attribute name="bspline_degree" type="xsd:token" default="3" use="optional" />
+                            <xsd:attribute name="bsplineDegree" type="xsd:token" default="3" use="optional" />
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>                
