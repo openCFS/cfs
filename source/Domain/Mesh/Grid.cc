@@ -148,10 +148,10 @@ namespace CoupledField
 
   shared_ptr<ElemShapeMap> Grid::GetElemShapeMap( const Elem* ptElem,
                                                   bool isUpdated,
-                                                  bool secondary ) {
-//    shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
-//    ret->SetElem(ptElem, isUpdated );
-//    return ret;
+                                                bool secondary ) {
+   //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+   //  ret->SetElem(ptElem, isUpdated );
+   //  return ret;
     UInt aThread = 0;
 #ifdef OPENMP
     int at = omp_get_thread_num();
@@ -161,6 +161,10 @@ namespace CoupledField
     //do we need to check anything?
     aThread = (UInt)at;
 #endif
+    if(elemShapeMapUpdated_[aThread].GetSize() > 10){
+      WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
+    }
+
     if(isUpdated){
       Integer idx = lastShapeElemNumUpdated_[aThread].Find(ptElem->elemNum);
       if(idx>=0){
@@ -177,11 +181,17 @@ namespace CoupledField
             elemShapeMapUpdated_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
           }
         }
+        //even if we found it, we can only return it, if we really have reference count==1
+        //this is because we have cached variables inside the class itself...
+        // thereby, if we just return it, it can happen that the cached shape function
+        // inside the shape map class becomes outdated which is dangerous
+        // decision by element number is a piece of crap. we can cache some shape maps
+        // to avoid memory reallocation but otherwise, it just does not work out
         return elemShapeMapUpdated_[aThread][(UInt)idx];
       }else{
         //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapUpdated_[aThread].GetSize();aIdx++){
-          if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
+         if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
             elemShapeMapUpdated_[aThread][aIdx]->SetElem(ptElem, isUpdated );
             lastShapeElemNumUpdated_[aThread][aIdx] = ptElem->elemNum;
             return elemShapeMapUpdated_[aThread][aIdx];
@@ -213,7 +223,7 @@ namespace CoupledField
       }else{
         //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapOrig_[aThread].GetSize();aIdx++){
-          if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
+         if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
             elemShapeMapOrig_[aThread][aIdx]->SetElem(ptElem, isUpdated );
             lastShapeElemNumOrig_[aThread][aIdx] = ptElem->elemNum;
             return elemShapeMapOrig_[aThread][aIdx];
@@ -1056,7 +1066,8 @@ namespace CoupledField
   
   void Grid::CreateBBoxFromElement(const Elem* elem,
                                    Double globToler,
-                                   Double* bbox)
+                                   Double* bbox,
+                                   double updated)
   {
     Vector<Double> p;
     Double& xmin = bbox[0];
@@ -1067,7 +1078,7 @@ namespace CoupledField
     Double& zmax = bbox[5];
 
     // Create an exact bounding box from all corner nodes.
-    GetNodeCoordinate(p, elem->connect[0]);
+    GetNodeCoordinate(p, elem->connect[0],updated);
     UInt globalDim = p.GetSize();
 
     xmin = xmax = p[0];
@@ -1081,7 +1092,7 @@ namespace CoupledField
 
     for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
     {
-      GetNodeCoordinate(p, elem->connect[j]);
+      GetNodeCoordinate(p, elem->connect[j],updated);
       xmin = (p[0] < xmin) ? p[0] : xmin;
       xmax = (p[0] > xmax) ? p[0] : xmax;
       ymin = (p[1] < ymin) ? p[1] : ymin;
@@ -1094,7 +1105,7 @@ namespace CoupledField
 
     // Calculate a diameter of the  element in each coordinate direction.  Use
     // L2-length of element for directions in which no diameter is available.
-    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem);
+    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem,updated);
     Vector<Double> dia;    
     esm->CalcDiameter(dia);
     UInt elemDim = dia.GetSize();

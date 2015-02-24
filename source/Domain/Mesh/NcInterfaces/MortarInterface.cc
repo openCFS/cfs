@@ -22,6 +22,38 @@
 
 namespace CoupledField {
 
+//=================================================
+// CGAL Presort of intersection candidates
+//=================================================
+
+#ifdef USE_CGAL
+// Iterator reporter class, returning the two ids of the CGAL-Boxes
+template <class OutputIterator>
+struct CGAL_ElemElemIdReporter {
+  OutputIterator it;
+  CGAL_ElemElemIdReporter(OutputIterator i  )
+  : it(i) {} // store iterator in object
+
+  // We write the id-number of box a to the output iterator assuming
+  // that box b (the query box) is not interesting in the result.
+  void operator()( const Grid::HandleBox& a, const Grid::HandleBox& b) {
+    std::pair<UInt, UInt > pair;
+    //ids seems to be one based
+    pair.first = *a.handle();
+    pair.second = *b.handle();
+    *it++ = pair;
+  }
+};
+// helper function to create the function object
+template <class Iter>
+CGAL_ElemElemIdReporter<Iter> elemElemIdReporter(Iter it)
+{ return CGAL_ElemElemIdReporter<Iter>(it); }
+#endif
+//=================================================
+// END: CGAL Presort of intersection candidates
+//=================================================
+
+
 MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   BaseNcInterface(grid),
   isCoplanar_(false),
@@ -122,6 +154,12 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     motionNode->GetValue("eulerianSystem", isEulerian_, ParamNode::PASS);
   }
 
+  //make this perhaps accessible from xml file
+#ifdef USE_CGAL
+  precomputeIntersectionCandiates_ = true;
+#else
+  precomputeIntersectionCandiates_ = false;
+#endif
   //if ( !isMoving_ ) {
     // Calculate the intersection, if interface is stationary.
     // If there is motion, UpdateInterface will be called by TransientDriver.
@@ -257,6 +295,7 @@ void MortarInterface::MoveInterface() {
   }
 
   ptGrid_->SetNodeOffset(nodeNums, nodeOffsets);
+
 }
 
 void MortarInterface::ResetInterface(){
@@ -265,7 +304,7 @@ void MortarInterface::ResetInterface(){
   StdVector<std::string> listNodeNames;
   std::string newNodesName = name_ + "_nodes";
 
-  elemList_->Clear();
+  elemList_->Clear(true);
   if ( region_ != NO_REGION_ID ) {
     ptGrid_->ClearRegion(region_);
   }
@@ -276,6 +315,7 @@ void MortarInterface::ResetInterface(){
   isReset_ = true;
 }
 
+
 void MortarInterface::UpdateInterface() {
   
   if ( !isMoving_ && (elemList_->GetSize() > 0 || isReset_) ) return;
@@ -283,6 +323,9 @@ void MortarInterface::UpdateInterface() {
   isReset_ = false;
   StdVector<SurfElem*> masterElems;
   StdVector<SurfElem*> slaveElems;
+  //This is additional memory, but in case of CGAL
+  //the runtime should be better
+
   StdVector<SurfElem*> ifaceElems;
   StdVector<SurfElem*> ncElemsHelper;
   StdVector<UInt> masterNodes;
@@ -317,13 +360,32 @@ void MortarInterface::UpdateInterface() {
     isCoplanar_ = ptGrid_->IsSurfacePlanar(ifaceElems);
   }
 
+  //Create intersection lists here...
+  //currently only standard procedure
+  if(precomputeIntersectionCandiates_){
+#ifdef USE_CGAL
+    PreComputeIntersectionCandidatesCGAL(masterElems,slaveElems);
+#else
+    EXCEPTION("Enable CGAL Library for the precomputeIntersection feature.")
+#endif
+  }else{
+    intersectionCandiatesIdx_.resize(masterElems.GetSize()*slaveElems.GetSize());
+    UInt position=0;
+    for (UInt i = 0; i < masterElems.GetSize(); ++i) {
+      for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
+        intersectionCandiatesIdx_[position].first = i;
+        intersectionCandiatesIdx_[position].second = j;
+        position++;
+      }
+    }
+  }
+
   switch (intersectAlgo_) {
     case NCI_INTERSECT_LINE:
-#pragma omp parallel for
-      for (UInt i = 0; i < masterElems.GetSize(); ++i) {
-        for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-          IntersectLines(masterElems[i], slaveElems[j], newNodes );
-        }
+      for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
+        UInt mIdx = intersectionCandiatesIdx_[i].first;
+        UInt sIdx = intersectionCandiatesIdx_[i].second;
+        IntersectLines(masterElems[mIdx], slaveElems[sIdx], newNodes );
       }
       break;
     case NCI_INTERSECT_RECT:
@@ -331,50 +393,49 @@ void MortarInterface::UpdateInterface() {
         EXCEPTION("Only coplanar interfaces are supported with coaxial "
             << "rectangle algorithm.");
       }
-#pragma omp parallel for
-      for (UInt i = 0; i < masterElems.GetSize(); ++i) {
-        for(UInt j = 0; j < slaveElems.GetSize(); ++j) {
-          SurfElem* m_el = masterElems[i];
-          SurfElem* s_el = slaveElems[j];
-          if( (m_el->type != Elem::ET_QUAD4 )
-              || s_el->type != Elem::ET_QUAD4 )
-          {
+
+      for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
+        UInt mIdx = intersectionCandiatesIdx_[i].first;
+        UInt sIdx = intersectionCandiatesIdx_[i].second;
+        SurfElem* m_el = masterElems[mIdx];
+        SurfElem* s_el = slaveElems[sIdx];
+        if(   (m_el->type != Elem::ET_QUAD4 )
+            || s_el->type != Elem::ET_QUAD4 ){
             EXCEPTION("Only quadrilaterals can be intersected with coaxial "
                 << "rectangle algorithm.");
-          }
+        }
 
-          if(IntersectRects( masterElems[i], slaveElems[j], newNodes))
-          {
+        if(IntersectRects( masterElems[mIdx], slaveElems[sIdx], newNodes)){
             /*LOG_DBG3(grid) << "Intersection between "
                 << masterElems[i]->elemNum << " and "
                 << slaveElems[j]->elemNum << std::endl;*/
-          }
         }
       }
+
       break;
     case NCI_INTERSECT_POLYGON:
-#pragma omp parallel for
-      for (UInt i = 0; i < masterElems.GetSize(); ++i) {
-        for (UInt j = 0; j < slaveElems.GetSize(); ++j) {
-          SurfElem* m_el = masterElems[i];
-          SurfElem* s_el = slaveElems[j];
-          if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
-                && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
-                && m_el->type != Elem::ET_TRIA6)
-              || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
-                  && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
-                  && s_el->type != Elem::ET_TRIA6) )
-          {
-            EXCEPTION("Only triangles and quadrilaterals can be intersected"
-                << " with polygon algorithm.");
-          }
 
-          if (IntersectPolygons( masterElems[i], slaveElems[j], newNodes ))
-          {
-            /*LOG_DBG3(grid) << "Intersection between "
-                << masterElems[i]->elemNum << " and "
-                << slaveElems[j]->elemNum << std::endl;*/
-          }
+      for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
+        UInt mIdx = intersectionCandiatesIdx_[i].first;
+        UInt sIdx = intersectionCandiatesIdx_[i].second;
+        SurfElem* m_el = masterElems[mIdx];
+        SurfElem* s_el = slaveElems[sIdx];
+        if ( (m_el->type != Elem::ET_QUAD4 && m_el->type != Elem::ET_QUAD8
+              && m_el->type != Elem::ET_QUAD9 && m_el->type != Elem::ET_TRIA3
+              && m_el->type != Elem::ET_TRIA6)
+            || (s_el->type != Elem::ET_QUAD4 && s_el->type != Elem::ET_QUAD8
+                && s_el->type != Elem::ET_QUAD9 && s_el->type != Elem::ET_TRIA3
+                && s_el->type != Elem::ET_TRIA6) )
+        {
+          EXCEPTION("Only triangles and quadrilaterals can be intersected"
+              << " with polygon algorithm.");
+        }
+
+        if (IntersectPolygons( masterElems[mIdx], slaveElems[sIdx], newNodes ))
+        {
+          /*LOG_DBG3(grid) << "Intersection between "
+              << masterElems[i]->elemNum << " and "
+              << slaveElems[j]->elemNum << std::endl;*/
         }
       }
       break;
@@ -407,12 +468,14 @@ void MortarInterface::UpdateInterface() {
 
       ptGrid_->AddSurfaceElems(region_, ncElemsHelper, ncElemIds);
 
+      //make this consistent...
+      //for ( UInt i=0; i<numElems; ++i ) {
+      //  elemList_->GetNcSurfElem(i)->regionId = ncElemsHelper[i]->regionId;
+      //  elemList_->GetNcSurfElem(i)->elemNum = ncElemsHelper[i]->elemNum;
+      //}
+
       for ( UInt i=0; i<numElems; ++i ) {
         std::map<std::string, UInt>::iterator it = ptGrid_->entityDim_.find(name_);
-
-        //copy the element numbers to be consistent
-        elemList_->GetNcSurfElem(i)->regionId = ncElemsHelper[i]->regionId;
-        elemList_->GetNcSurfElem(i)->elemNum = ncElemsHelper[i]->elemNum;
 
         if( it != ptGrid_->entityDim_.end() ) {
           if( it->second != Elem::shapes[elemList_->GetSurfElem(i)->type].dim ) {
@@ -431,6 +494,49 @@ void MortarInterface::UpdateInterface() {
         << " interface '" << name_
         << "'. Please check your mesh file.");
   }
+
+
+}
+void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,
+                                                           const StdVector<SurfElem*>& slaveElems){
+
+  UInt numMasterElems = masterElems.GetSize(),
+       numSlaveElems = slaveElems.GetSize();
+  intersectionCandiatesIdx_.clear();
+  //check if the bbox lists are empty and fill them if needed
+  if(masterBoxes_.size() != numMasterElems || moveMaster_ ){
+    masterBoxes_.resize(numMasterElems);
+    uniqueIdxMaster_.Resize(numMasterElems);
+
+    for(UInt aBox = 0; aBox < numMasterElems; aBox++){
+      boost::array<Double,6> bbox;
+      ptGrid_->CreateBBoxFromElement(masterElems[aBox], 0.0, &bbox[0],isMoving_);
+      uniqueIdxMaster_[aBox] = aBox;
+      Grid::HandleBox hbox(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
+                            bbox[3], bbox[4], bbox[5]),
+                            &uniqueIdxMaster_[aBox] );
+
+      masterBoxes_[aBox] = hbox;
+    }
+  }
+  if(slaveBoxes_.size() != numSlaveElems || !moveMaster_){
+    slaveBoxes_.resize(numSlaveElems);
+    uniqueIdxSlave_.Resize(numSlaveElems);
+
+    for(UInt aBox = 0; aBox < numSlaveElems; aBox++){
+      boost::array<Double,6> bbox;
+      uniqueIdxSlave_[aBox] = aBox;
+      ptGrid_->CreateBBoxFromElement(slaveElems[aBox], 0.0, &bbox[0],isMoving_);
+      Grid::HandleBox hbox(Grid::BBox3D(bbox[0], bbox[1], bbox[2],
+                            bbox[3], bbox[4], bbox[5]),
+                            &uniqueIdxSlave_[aBox]);
+
+      slaveBoxes_[aBox] = hbox;
+    }
+  }
+  CGAL::box_intersection_d( masterBoxes_.begin(), masterBoxes_.end(),
+                            slaveBoxes_.begin(), slaveBoxes_.end(),
+                            elemElemIdReporter( std::back_inserter( intersectionCandiatesIdx_ )));
 }
 
 /****************************************************************************

@@ -266,7 +266,7 @@ namespace CoupledField {
     virtual void AddElement( const shared_ptr<NcSurfElem> elem );
 
     //! Deletes all elements from the list
-    virtual void Clear() { ncElems_.Clear(); size_ = 0; }
+    virtual void Clear(bool keepCapacity=false) { ncElems_.Clear(keepCapacity); size_ = 0; }
     
     //! Get iterator
     virtual EntityIterator GetIterator() const;

@@ -1510,17 +1510,15 @@ namespace CoupledField
       switch(part)
       {
         case Global::REAL:
-          for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
-            for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
-              data_[iRow][iCol]  = Complex( partMatrix[iRow][iCol], 0.0);
-            }
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = partMatrix.data_[0][k];
+            data_[0][k].imag() = 0.0;
           }
           break;
         case Global::IMAG:
-          for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
-            for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
-              data_[iRow][iCol]  = Complex( 0.0, partMatrix[iRow][iCol] );
-            }
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = 0.0;
+            data_[0][k].imag() = partMatrix.data_[0][k];
           }
           break;
         default:
@@ -1535,27 +1533,87 @@ namespace CoupledField
       switch(part)
       {
         case Global::REAL:
-          for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
-            for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
-              data_[iRow][iCol]  = Complex( partMatrix[iRow][iCol],
-                                            data_[iRow][iCol].imag() );
-            }
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = partMatrix.data_[0][k];
           }
           break;
         case Global::IMAG:
-          for ( UInt iRow = 0; iRow < size_row_; iRow++ ) {
-            for ( UInt iCol = 0; iCol < size_col_; iCol++ ) {
-              data_[iRow][iCol]  = Complex( data_[iRow][iCol].real(),
-                                            partMatrix[iRow][iCol] );
-            }
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].imag() = partMatrix.data_[0][k];
           }
           break;
         default:
           EXCEPTION( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!" );
       }
     }
-                                 }
+  }
+  template<class TYPE>
+  void Matrix<TYPE>::SetPartMult( Global::ComplexPart part, const Matrix<Double> & partMatrix,
+                                  Double factor, bool zeroOtherPart ) {
+    EXCEPTION( "Matrix::SetPart: Only Implemented for Real and Complex matrices!" );
+  }
 
+  template<>
+  void Matrix<Double>::SetPartMult( Global::ComplexPart part, const Matrix<Double> & partMatrix,
+                                    Double factor, bool zeroOtherPart)
+  {
+    assert(size_col_ == partMatrix.GetNumCols());
+    assert(size_row_ == partMatrix.GetNumRows());
+    assert((part == Global::REAL));
+
+    *this = (partMatrix * factor);
+  }
+
+  template<> void Matrix<Complex>::
+  SetPartMult( Global::ComplexPart part, const Matrix<Double> & partMatrix,
+               Double factor, bool zeroOtherPart) {
+
+    assert(size_col_ == partMatrix.GetNumCols());
+    assert(size_row_ == partMatrix.GetNumRows());
+
+    if( zeroOtherPart) {
+      // ------------------
+      //  Zero other part
+      // ------------------
+      switch(part)
+      {
+        case Global::REAL:
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = partMatrix.data_[0][k] * factor;
+            data_[0][k].imag() = 0.0;
+          }
+          break;
+        case Global::IMAG:
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = 0.0;
+            data_[0][k].imag() = partMatrix.data_[0][k] * factor;
+          }
+          break;
+        default:
+          EXCEPTION( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+      }
+    } else {
+
+      // ------------------
+      //  Keep other part
+      // ------------------
+      switch(part)
+      {
+        case Global::REAL:
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].real() = partMatrix.data_[0][k] * factor;
+          }
+          break;
+        case Global::IMAG:
+          for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
+            data_[0][k].imag() = partMatrix.data_[0][k] * factor;
+          }
+          break;
+        default:
+          EXCEPTION( "Matrix<Complex>::SetPart: Only possible for REAL or IMAG part!" );
+      }
+    }
+  }
 
   // copies a submatrix at the position (row, col) into subMat, 
   // the amount of copied elements depends on the size of subMat
