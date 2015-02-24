@@ -497,6 +497,7 @@ void MortarInterface::UpdateInterface() {
 
 
 }
+#ifdef USE_CGAL
 void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,
                                                            const StdVector<SurfElem*>& slaveElems){
 
@@ -538,6 +539,7 @@ void MortarInterface::PreComputeIntersectionCandidatesCGAL(const StdVector<SurfE
                             slaveBoxes_.begin(), slaveBoxes_.end(),
                             elemElemIdReporter( std::back_inserter( intersectionCandiatesIdx_ )));
 }
+#endif
 
 /****************************************************************************
  **
