@@ -216,38 +216,30 @@ namespace CoupledField{
         factorFnc_->GetScalar(factor,lpm);
         //std::cout << "Computed Factor for timestep: " << factor << std::endl;
 
-#pragma omp parallel for
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
           UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
             sol[eqns[d]] = resVec[locPos++] * factor;
-            //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }
       }else{
         StdVector<Vector<Double> > CoordVec(nodeNums.GetSize());
         StdVector< DATA_TYPE > values(nodeNums.GetSize());
-        UInt node=0;
 #pragma omp parallel for
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
-          UInt curNodeNum = nodeIdxMap_[nodeNums[aN]];
-          srcGrid_->GetNodeCoordinate(CoordVec[node],curNodeNum,true);
+          srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
         }
 
         // CURRENTLY NOT WORKING!
         //factorFnc_->GetScalarValuesAtCoords(CoordVec,values);
         factorFnc_->GetScalarValuesAtCoords(CoordVec,values,this->domain_->GetGrid());
         //values.Init(1.0);
-        node = 0;
-#pragma omp parallel for
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
           UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d,++locPos){
-            sol[eqns[d]] = resVec[locPos] * values[locPos];
-
-            //curVec->GetEntry(locPos++,sol[eqns[d]]);
+            sol[eqns[d]] = resVec[locPos] * values[aN];
           }
         }
       }

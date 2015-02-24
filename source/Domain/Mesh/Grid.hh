@@ -954,6 +954,9 @@ namespace CoupledField
 
     };
 
+    //! Simple typedef for element element intersection bounding box searches
+    typedef std::pair<UInt,UInt>  ElemElemMatch;
+
     //! Map a list of global points to element local points
     
     //! This method maps each global coordinate (contained in the PointElemMatch
@@ -970,12 +973,14 @@ namespace CoupledField
     //! Create a bounding box from a given element. Mapping LIBFBI 
     void CreateBBoxFromElement(const Elem* elem,
                                Double globToler,
-                               Double* bbox);
+                               Double* bbox,
+                               double updated=false);
 
   protected:
 
 #ifdef USE_CGAL
 
+  public:
     //! Define 3-dimensional bounding box
     typedef CGAL::Bbox_3 BBox3D;
 
@@ -983,6 +988,11 @@ namespace CoupledField
     typedef CGAL::Box_intersection_d
         ::Box_with_handle_d<double,3,const UInt*> HandleBox;
 
+    //! Define box handler just with an ID
+    typedef CGAL::Box_intersection_d
+        ::Box_d<double,3> IdBox;
+
+  protected:
     //! Return list of potential elements containing global points
 
     //! This method returns for every global coordinate a list

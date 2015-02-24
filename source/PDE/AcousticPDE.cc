@@ -287,11 +287,11 @@ namespace CoupledField{
       }
           
       // build coefficient for mass matrix as (factor / (c0*c0))
+      PtrCoefFct coeffc =
+          CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, dens, blk, CoefXpr::OP_DIV) );
       PtrCoefFct coeffM =
-          CoefFunction::Generate( mp_, Global::REAL,
-                                 CoefXprBinOp( mp_,factor,
-                                               CoefXprBinOp(mp_, c0,c0,CoefXpr::OP_MULT),
-                                               CoefXpr::OP_DIV ) );
+                CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffc, CoefXpr::OP_MULT) );
+
 
       // ====================================================================
       // Take account for pml (frequency domain only)
@@ -317,9 +317,6 @@ namespace CoupledField{
                                             CoefXprBinOp(mp_,coeffM,coeffPMLScal,CoefXpr::OP_MULT));
           harmonicPML = true;
         }else{
-          if(formulation_ != ACOU_PRESSURE){
-            WARN("Transient PML formulation only valid for acoustic pressure formulation. Results may be wrong!")
-          }
           if(dim_==2)
             DefineTransientPMLInts<2>(actSDList,dampId);
           else
@@ -606,24 +603,44 @@ namespace CoupledField{
   void AcousticPDE::DefineTransientPMLInts(shared_ptr<ElemList> eList, std::string id){
 
     //define some material coeffunction as above...
-    PtrCoefFct factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
     PtrCoefFct dens = materials_[eList->GetRegion()]->GetScalCoefFnc( DENSITY, Global::REAL );
     PtrCoefFct blk = materials_[eList->GetRegion()]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    PtrCoefFct one = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+
+    PtrCoefFct mechAcouFactor;
+    if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
+      // Important: In case of a general / quadratic EV problem, we must
+      // ensure to have a "positive definite" matrix, i.e. we are not allowed
+      // to multiply all matrices by -1!
+      std::string stringFac = (analysistype_ != EIGENFREQUENCY) ? "-1.0" : "1.0";
+
+      mechAcouFactor = CoefFunction::Generate( mp_, Global::REAL,
+                                      CoefXprBinOp(mp_, dens, stringFac, CoefXpr::OP_MULT ) );
+    } else {
+      mechAcouFactor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+    }
+
     // c0 = sqrt(bulk_modulus / density)
     PtrCoefFct c0 =
         CoefFunction::Generate( mp_,  Global::REAL,
                                 CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
                                 CoefXpr::OP_SQRT) );
     PtrCoefFct coeffc =
-        CoefFunction::Generate( mp_, Global::REAL,
-                               CoefXprBinOp( mp_, factor,
-                                             CoefXprBinOp(mp_, c0,c0,CoefXpr::OP_MULT),
-                                             CoefXpr::OP_DIV ) );
+        CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, dens, blk, CoefXpr::OP_DIV) );
+
+  // PtrCoefFct coeffc =
+  //      CoefFunction::Generate( mp_, Global::REAL,
+  //                             CoefXprBinOp( mp_, one,
+  //                                           CoefXprBinOp(mp_, c0,c0,CoefXpr::OP_MULT),
+  //                                           CoefXpr::OP_DIV ) );
+
 
 
     PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",id.c_str());
     shared_ptr<CoefFunction> coeffPMLVec;
     coeffPMLVec.reset(new CoefFunctionPML<Double>(pmlNode,c0,eList,regions_,true));
+    // store pml factor
+    matCoefs_[PML_DAMP_FACTOR]->AddRegion(eList->GetRegion(), coeffPMLVec);
 
     shared_ptr<CoefFunctionCompound<Double> > coefA(new CoefFunctionCompound<Double>(mp_));
     shared_ptr<CoefFunctionCompound<Double> > coefB(new CoefFunctionCompound<Double>(mp_));
@@ -675,11 +692,19 @@ namespace CoupledField{
 
     ///now lets define some integrators
     //the vectorial auxiliary variable is called U...
-    BaseBDBInt *     dampdPdt = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefAlpha, 1.0, updatedGeo_ );
-    BaseBDBInt *     dampP    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefBeta, 1.0, updatedGeo_ );
+    //in case of mechacoucoupling, we need to multiply all integrators which couple into acouPDE with -density or density
+    //if eigenfrequency
+    PtrCoefFct mAcouCorrect_CoefAlpha =
+        CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, mechAcouFactor, coefAlpha, CoefXpr::OP_MULT ) );
+    PtrCoefFct mAcouCorrect_CoefBeta =
+        CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, mechAcouFactor, coefBeta, CoefXpr::OP_MULT ) );
+
+    BaseBDBInt *     dampdPdt = new BBInt<>(new IdentityOperator<FeH1,DIM>(), mAcouCorrect_CoefAlpha, 1.0, updatedGeo_ );
+    BaseBDBInt *     dampP    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), mAcouCorrect_CoefBeta, 1.0, updatedGeo_ );
     //this is already integrated by parts...
-    BaseBDBInt *     divU     = new ABInt<>(new GradientOperator<FeH1,DIM>(), new IdentityOperator<FeH1,DIM,DIM>(),factor,1.0,updatedGeo_);
-    BaseBDBInt *     dUdt     = new BBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), factor, 1.0, updatedGeo_ );
+    BaseBDBInt *     divU     = new ABInt<>(new GradientOperator<FeH1,DIM>(), new IdentityOperator<FeH1,DIM,DIM>(),mechAcouFactor,1.0,updatedGeo_);
+
+    BaseBDBInt *     dUdt     = new BBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), one, 1.0, updatedGeo_ );
     BaseBDBInt *     AU       = new BDBInt<>(new IdentityOperator<FeH1,DIM,DIM>(), coefA,1.0, updatedGeo_ );
     BaseBDBInt *     BgradP   = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefB,1.0,updatedGeo_);
 
@@ -735,11 +760,14 @@ namespace CoupledField{
       coefC->SetTensor(matCReal,3,3,var);
       coefGamma->SetScalar(gamma,vars);
 
+      PtrCoefFct mAcouCorrect_CoefGamma =
+          CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp( mp_, mechAcouFactor, coefGamma, CoefXpr::OP_MULT ) );
+
       //the scalar auxiliary variable is called Nu...
-      BaseBDBInt *     dampNu   = new BBInt<>(new IdentityOperator<FeH1,DIM>(), coefGamma, 1.0, updatedGeo_ );
+      BaseBDBInt *     dampNu   = new BBInt<>(new IdentityOperator<FeH1,DIM>(), mAcouCorrect_CoefGamma, 1.0, updatedGeo_ );
       BaseBDBInt *     CgradNu  = new ADBInt<>(new IdentityOperator<FeH1,DIM,DIM>(),new GradientOperator<FeH1,DIM>(),coefC,-1.0,updatedGeo_);
-      BaseBDBInt *     dNudt    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, 1.0, updatedGeo_ );
-      BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), factor, -1.0, updatedGeo_ );
+      BaseBDBInt *     dNudt    = new BBInt<>(new IdentityOperator<FeH1,DIM>(), one, 1.0, updatedGeo_ );
+      BaseBDBInt *     P        = new BBInt<>(new IdentityOperator<FeH1,DIM>(), one, -1.0, updatedGeo_ );
 
       dampNu->SetName("acouPML_dampNu");
       CgradNu->SetName("acouPML_CgIdentityOperaradNu");

@@ -1554,9 +1554,9 @@ namespace CoupledField {
           //ignore invalid lines and print a warning
           //here we check for dimension
           if( (dim_ == 2 && numNumbers < 2) ||
-              (numNumbers <= xCol) ||
-              (numNumbers <= yCol) ||
-              (numNumbers <= zCol) ){
+              (numNumbers < xCol) ||
+              (numNumbers < yCol) ||
+              (numNumbers < zCol) ){
             WARN("Read coordinate file for sensor array: Invalid coordinate definition at line: " << lineCounter << " in file : " << inFileName );
           }
 
@@ -1566,8 +1566,8 @@ namespace CoupledField {
           for(UInt i=0;i<dim_ && tokIter!=tokens.end();i++,tokIter++){
             try{
               curCoord[i] = boost::lexical_cast<Double>(*tokIter);
-            }catch(const boost::bad_lexical_cast &){
-              EXCEPTION("Read coordinate file for sensor array: Error reading coordinates in line: " << lineCounter);
+            }catch(const boost::bad_lexical_cast &e){
+              EXCEPTION("Read coordinate file for sensor array: Error reading coordinates in line: " << lineCounter << ". " << *tokIter << " The line was:\n" << curLine << e.what());
             }
           }
           Vector<Double> globPointcSys;

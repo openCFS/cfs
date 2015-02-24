@@ -180,6 +180,20 @@ class MortarInterface : public BaseNcInterface {
 
     bool isReset_;
 
+    bool precomputeIntersectionCandiates_;
+
+    std::vector<Grid::ElemElemMatch> intersectionCandiatesIdx_;
+
+#ifdef USE_CGAL
+
+    void PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,const StdVector<SurfElem*>& slaveElems);
+
+    //! Map for each dimension (key) a list containing the "boxes" of elements (value)
+    StdVector<UInt> uniqueIdxMaster_;
+    StdVector<UInt> uniqueIdxSlave_;
+    std::vector<Grid::HandleBox> slaveBoxes_;
+    std::vector<Grid::HandleBox> masterBoxes_;
+#endif
 };
 
 } /* namespace CoupledField */
