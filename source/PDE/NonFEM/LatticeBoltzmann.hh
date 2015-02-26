@@ -34,10 +34,17 @@ namespace CoupledField
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
   };
 
-  class LatticeBoltzmann
+  class LatticeBoltzmann: LatticeBoltzmannBase
   {
     public:
-
+      struct PropTransform{
+        int off_x;
+        int off_y;
+        int off_z;
+        PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        PropTransform(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
+        PropTransform(): off_x(0),off_y(0), off_z(0){}
+      };
 
       LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
@@ -62,29 +69,24 @@ namespace CoupledField
        */
       inline int GetNumWriteResults() { return m_numWriteResults; }
 
+      inline StdVector<PropTransform>* GetVelocityDirections() { return &velocityDirections; }
+      inline StdVector<Direction>* GetInverseDirections() { return &directionsInv; }
+
     private:
-      struct PropTransform{
-        int off_x;
-        int off_y;
-        int off_z;
-        PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
-        PropTransform(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
-        PropTransform(): off_x(0),off_y(0), off_z(0){}
-      };
 
       // Corner C stands for interior elements
       // BNW, ..., TNE are corners
       // TN, ..., BE are edges
       // LEFT, ..., BACK are faces
-      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
-              FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
-              CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
-
-        // In 2D: 9 microscopic directions
-        // In 3D: 19 microscopic directions
-        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
-          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
-          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
+//      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
+//              FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
+//              CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
+//
+//        // In 2D: 9 microscopic directions
+//        // In 3D: 19 microscopic directions
+//        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+//          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
+//          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
 
           static Enum<Direction> directions;
           static Enum<Boundary> boundaries;

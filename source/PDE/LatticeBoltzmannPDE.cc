@@ -201,6 +201,9 @@ LatticeBoltzmannPDE::LatticeBoltzmannPDE(Grid* grid, PtrParamNode pn) : SinglePD
   if(iface_ == INTERNAL) {
     lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
   }
+
+  velocityDirections = lbm->GetVelocityDirections();
+  invDirections = lbm->GetInverseDirections();
 }
 
 LatticeBoltzmannPDE::~LatticeBoltzmannPDE()
@@ -452,8 +455,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   SetupSensitivityAnalysis(ux, uy, dloc, weights);
 
   // derivative of the residual with respect to design variables
-  Vector<double> dRdp(n_q_ * n_elems);
-  dRdp.Init(0.0);
+  Vector<double> dRds(n_q_ * n_elems);
+  dRds.Init(0.0);
 
   // derivative of the collision operator with respect to p
   mapped_matrix<double> col_jacobi(n_q_ * n_elems, n_q_ * n_elems);
@@ -476,7 +479,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       // scale = -penal * pow(por[0][index],(penal-1.));
       double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
       for (unsigned int k=0;k<n_q_;k++)
-        dRdp[index * n_q_ +k] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index]);
+        dRds[index * n_q_ +k] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index]);
     }
     else if(elements[index] == LBM_NODE_TYPE_BB) {
       d_bounceback_d_f(block); // bounce-back sensitivities
@@ -549,7 +552,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   {
     DesignElement* de = f->elements[e];
     unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-    double val = -1.0 * sol.Inner(dRdp, idx * n_q_, (idx + 1) * n_q_);
+    double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
     de->AddGradient(f, val);
   }
 
@@ -658,56 +661,73 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 {
   // gradient of the collision step with respect to the design variables
   // partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
-  double dfeqdrho[9];
-  double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
+  StdVector<double> dfeqdrho;
+  dfeqdrho.Resize(n_q_);
+//  double E[dim_][n_q_] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
   double scale = 1. - elements[index]; // 1.-pow(por[0][index],penal);
   assert(scale >= 0);
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " scale=" << scale;
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
   //partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
   double us1,us2,dot,norm;
-  for (int i=0; i<9; i++)
-  {
-    us1 = scale*ux[index];
-    us2 = scale*uy[index];
-    dot = E[0][i]*us1+E[1][i]*us2;
-    norm = us1*us1+us2*us2;
-    dfeqdrho[i] = weight[i]*(1. + 3.*dot + 9./2.*dot*dot - 3./2.* norm);
-    dfeqdux[i] = weight[i]*dloc[index]*(3. *E[0][i] + 9.*E[0][i]*dot - 3.*us1);
-    dfeqduy[i] = weight[i]*dloc[index]*(3. *E[1][i] + 9.*E[1][i]*dot - 3.*us2);
-    //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
-  }
-  //gradient of u_x with respect to f
-  double duxdf[9];
-  double tmp[9] = {0.,1.,0.,-1.,0.,1.,-1.,-1.,1.};
-  for (int i=0; i<9; i++)
-    duxdf[i] = scale*(-ux[index]/dloc[index] + 1./dloc[index] * tmp[i]);
+  double const1 = 9. / 2.;
+  double const2 = 3. / 2.;
+  LatticeBoltzmann::PropTransform* transform;
 
+  //gradient of u_x with respect to f
+  StdVector<double> duxdf;
+  duxdf.Resize(n_q_);
   //gradient of u_y with respect to f
-  double duydf[9];
-  double tmp2[9] = {0.,0.,1.,0.,-1.,1.,1.,-1.,-1.};
-  for (int i=0; i<9; i++)
-    duydf[i] = scale*(-uy[index]/dloc[index] + 1./dloc[index] * tmp2[i]);
+  StdVector<double> duydf;
+  duydf.Resize(n_q_);
+//  double tmp[n_q_] = {0.,1.,0.,-1.,0.,1.,-1.,-1.,1.};
+//  double tmp2[n_q_] = {0.,0.,1.,0.,-1.,1.,1.,-1.,-1.};
+
+  double invdloc = 1.0 / dloc[index];
+
+  for (unsigned int i = 0; i < n_q_; i++)
+  {
+    transform = &(*velocityDirections)[i];
+    us1 = scale * ux[index];
+    us2 = scale * uy[index];
+    dot = transform->off_x * us1 + transform->off_y * us2;
+    norm = us1 * us1 + us2 * us2;
+    dfeqdrho[i] = weight[i] * (1. + 3.*dot + const1*dot*dot - const2* norm);
+    dfeqdux[i] = weight[i] * dloc[index]*(3. * transform->off_x + 9. * transform->off_x * dot - 3. * us1);
+    dfeqduy[i] = weight[i] * dloc[index]*(3. * transform->off_y + 9. * transform->off_y * dot - 3. * us2);
+    //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
+
+    duxdf[i] = scale*invdloc*(-ux[index] + transform->off_x);
+    duydf[i] = scale*invdloc*(-uy[index] + transform->off_y);
+  }
 
   // partial derivatives of f^eq with respect to f: CORRECT (FDM)
-  double dfeqdf[9][9];
-  for (int i=0; i<9; i++)
-    for (int j= 0; j<9; j++)
+  StdVector< StdVector<double> > dfeqdf;
+  dfeqdf.Resize(n_q_);
+  for (unsigned int dir = 0; dir < n_q_; dir++ ){
+    dfeqdf[dir].Resize(n_q_);
+  }
+
+  for (unsigned int i=0; i<n_q_; i++)
+    for (unsigned int j= 0; j<n_q_; j++)
+//      dfeqdf[i][j] = dfeqdrho[i] * drhodf + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j]; NOTE: drhodf = [1,1,1,1,1,1,1,1,1]
       dfeqdf[i][j] = dfeqdrho[i] + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j];
 
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
-  for (int i=0;i<9;i++)
-  {
     //std::cout << "dcollision_step index=" << index << " block i=" << i << ": ";
-    for (int j= 0;j<9;j++)
+  for (unsigned int i=0;i<n_q_;i++)
+  {
+    for (unsigned int j= 0;j<n_q_;j++)
     {
-      if (i == j)
-        block[i][j] = 1. - omega_ *(1.- dfeqdf[i][j]);
-      else
-        block[i][j] = omega_ * dfeqdf[i][j];
+
+      //      if (i == j)
+      //        block[i][j] = 1. - omega_ *(1.- dfeqdf[i][j]);
+      //      else
+      //        block[i][j] = omega_ * dfeqdf[i][j];
       //std::cout << block[i][j] << " ";
+      block[i][j] = (i == j) * (1 - omega_) + omega_ * dfeqdf[i][j];
     }
     //std::cout << "\n";
   }
@@ -716,37 +736,35 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 
 void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
 {
-  // bounce-back sensitivities
-  block[0][0] = 1.;
-  block[1][3] = 1.;
-  block[2][4] = 1.;
-  block[3][1] = 1.;
-  block[4][2] = 1.;
-  block[5][7] = 1.;
-  block[6][8] = 1.;
-  block[7][5] = 1.;
-  block[8][6] = 1.;
-
+  // bounce-back sensitivities; gradient is just a permutation matrix
+  for (unsigned int dir = 0; dir < n_q_; dir++) {
+    block[dir][(*invDirections)[dir]] = 1.0;
+  }
 }
 
 void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight)
 {
   // gradient of the velocity inlet boundary with respect to the design variables
-  double dfeqdrho[9];
-  double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
+//  double dfeqdrho[9];
+  StdVector<double> dfeqdrho;
+  dfeqdrho.Resize(n_q_);
+//  double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
   double us1 = 1.0 * u_x_;
   double us2 = 1.0 * u_y_;
-  for (int i=0;i<9;i++)
+  double dot, norm;
+  LatticeBoltzmann::PropTransform* transform;
+  for (unsigned int i=0; i < n_q_; i++)
   {
-    double dot = E[0][i]*us1+E[1][i]*us2;
-    double norm = us1*us1+us2*us2;
+    transform = &(*velocityDirections)[i];
+    dot = transform->off_x * us1 + transform->off_y * us2;
+    norm = us1*us1+us2*us2;
     dfeqdrho[i] = weight[i]*(1. + 3*dot +4.5*dot*dot - 1.5* norm);
     // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << us1 << " us2=" << us2 << " dot=" << dot << " norm=" << norm;
   }
   // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
 
-  for (int i =0;i<9;i++)
-    for (int j=0;j<9;j++)
+  for (unsigned int i = 0; i < n_q_; i++)
+    for (unsigned int j = 0; j < n_q_; j++)
       block[i][j] = dfeqdrho[i];
 
 }
@@ -754,33 +772,46 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
 void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight)
 {
   // gradient of the density outlet boundary condition with respect to the design variables
-  double dfeqdux[9],dfeqduy[9];
-  double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
+//  double dfeqdux[9],dfeqduy[9];
+  StdVector<double> dfeqdux, dfeqduy;
+  dfeqdux.Resize(n_q_);
+  dfeqduy.Resize(n_q_);
+//  double E[2][9] = {{0, 1, 0, -1, 0, 1, -1, -1, 1},{0, 0, 1, 0, -1, 1, 1, -1, -1}};
+  LatticeBoltzmann::PropTransform* transform;
   double scale = 1.; // no design
   double density = 1.0;  // we have no other case
   double us1,us2, dot;
-  for (int i=0;i<9;i++)
+  for (unsigned int i = 0; i < n_q_; i++)
   {
+    transform = &(*velocityDirections)[i];
     us1 = scale*ux[index];
     us2 = scale*uy[index];
-    dot = E[0][i]*us1+E[1][i]*us2;
-    dfeqdux[i] = weight[i]*density*(3.*E[0][i] + 9.*E[0][i]*dot - 3*us1);
-    dfeqduy[i] = weight[i]*density*(3 *E[1][i] + 9.*E[1][i]*dot - 3.*us2);
+    dot = transform->off_x * us1 + transform->off_y * us2;
+    dfeqdux[i] = weight[i]*density*(3 *  transform->off_x  + 9. * transform->off_x * dot - 3 * us1);
+    dfeqduy[i] = weight[i]*density*(3 * transform->off_y + 9.* transform->off_y * dot - 3 * us2);
   }
-  //gradient of u_x with respect to f
-  double duxdf[9];
-  double tmp [9] = {0.,1.,0.,-1.,0.,1.,-1.,-1.,1.};
-  for (int i=0;i<9;i++)
-    duxdf[i] = -ux[index]/dloc[index] + 1./dloc[index] * tmp[i];
-  //gradient of u_y with respect to f
-  double duydf[9];
-  double tmp2 [9] = {0.,0.,1.,0.,-1.,1.,1.,-1.,-1.};
-  for (int i=0;i<9;i++)
-    duydf[i] = -uy[index]/dloc[index] + 1./dloc[index] * tmp2[i];
+
+//  double duxdf[9];
+//  double duydf[9];
+//  double tmp[9] = {0.,1.,0.,-1.,0.,1.,-1.,-1.,1.};
+//  double tmp2[9] = {0.,0.,1.,0.,-1.,1.,1.,-1.,-1.};
+
+  //gradient of u_x/u_y with respect to f
+  StdVector<double> duxdf, duydf;
+  duxdf.Resize(n_q_);
+  duydf.Resize(n_q_);
+
+  double invdloc = 1.0 / dloc[index];
+
+  for (unsigned int i = 0; i < n_q_ ; i++) {
+    transform = &(*velocityDirections)[i];
+    duxdf[i] = invdloc * (-ux[index] + transform->off_x);
+    duydf[i] = invdloc * (-uy[index] + transform->off_y);
+  }
 
   //gradient of u_x with respect to f
-  for (int i=0;i<9;i++)
-    for (int j=0;j<9;j++)
+  for (unsigned int i = 0; i < n_q_; i++)
+    for (unsigned int j = 0;j < n_q_; j++)
       block[i][j] = dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j];
 
 }
@@ -814,15 +845,15 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
 // void LatticeBoltzmannPDE::d_propagate_d_f(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
 void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J)
 {
-  //gradient of the propagations step with resprect to the design variables by Georg Pingen, University of Colorado (CU), Boulder, Colorado
+  //gradient of the propagations step with respect to the design variables by Georg Pingen, University of Colorado (CU), Boulder, Colorado
   // f0
   int rows1,rows2;
   // compressed_matrix<double>::const_iterator1 iter;
   mapped_matrix<double>::const_iterator1 iter;
   // fdist 0 */
-  for(unsigned int y=1;y<=n_y_;y++) {
-    for(unsigned int x=1;x<=n_x_;x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9;
+  for(unsigned int y = 0;y < n_y_;y++) {
+    for(unsigned int x = 0;x < n_x_;x++) {
+      rows1 = GetPdfIndex(x,y,Q_0);
       iter = J.find1(0, rows1, 0);
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows1,it.index2());
@@ -832,10 +863,9 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   }
 
   //* fdist 1 */
-
-  for(unsigned int y=1;y<=n_y_;y++) {
-    rows1=((y-1)*(n_x_)*9+1);
-    rows2=((y-1)*(n_x_)*9+9+1);
+  for(unsigned int y = 0; y < n_y_; y++) {
+    rows1 = GetPdfIndex(0,y,Q_E);
+    rows2 = GetPdfIndex(1,y,Q_E);
     iter = J.find1(0, rows1, 0);
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
@@ -849,10 +879,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
 
   }
 
-  for(unsigned int y=1;y<=n_y_;y++) {
-    for(unsigned int x=2;x<=(n_x_-1);x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+1;
-      rows2=rows1+9;
+  for(unsigned int y = 0; y < n_y_; y++) {
+    for(unsigned int x = 1; x < (n_x_ - 1); x++) {
+      rows1 = GetPdfIndex(x,y,Q_E);
+      rows2 = GetPdfIndex(x+1,y,Q_E);
       iter = J.find1(0, rows2, 0);
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
@@ -862,9 +892,9 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   }
 
   //* fdist2 */
-  for (unsigned int x = 1; x <= n_x_; x++) {
-    rows1 = ((x - 1) * 9 + 2);
-    rows2 = ((n_x_) * 9 + (x - 1) * 9 + 2);
+  for (unsigned int x = 0; x < n_x_; x++) {
+    rows1 = GetPdfIndex(x,0,Q_N);
+    rows2 = GetPdfIndex(x,1,Q_N);
     iter = J.find1(0, rows1, 0);
     for (mapped_matrix<double>::const_iterator2 it = iter.begin();
         it != iter.end(); ++it) {
@@ -880,10 +910,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for (unsigned int y = 2; y <= n_y_ - 1; y++) {
-    for (unsigned int x = 1; x <= n_x_; x++) {
-      rows1 = (y - 1) * n_x_ * 9 + (x - 1) * 9 + 2;
-      rows2 = rows1 + n_x_ * 9;
+  for (unsigned int y = 1; y < n_y_ - 1; y++) {
+    for (unsigned int x = 0; x < n_x_; x++) {
+      rows1 = GetPdfIndex(x,y,Q_N);
+      rows2 = GetPdfIndex(x,y+1,Q_N);
       iter = J.find1(0, rows2, 0);
 
       for (mapped_matrix<double>::const_iterator2 it = iter.begin();
@@ -895,9 +925,9 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   }
 
   //* fdist3 */
-  for(unsigned int y=1;y<=n_y_;y++) {
-    rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+3);
-    rows2=((y-1)*(n_x_)*9+(n_x_-2)*9+3);
+  for(unsigned int y = 0; y < n_y_; y++) {
+    rows1 = GetPdfIndex(n_x_-1,y,Q_W);
+    rows2 = GetPdfIndex(n_x_-2,y,Q_W);
     iter = J.find1(0, rows1, 0);
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
       Jprop(rows1,it.index2())= J(rows1,it.index2());
@@ -911,10 +941,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=1;y<=n_y_;y++) {
-    for(unsigned int x=n_x_-1;x>=2;x--) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+3;
-      rows2=rows1-9;
+  for(unsigned int y = 0; y < n_y_; y++) {
+    for(unsigned int x = n_x_- 2; x >= 1;x--) {
+      rows1 = GetPdfIndex(x,y,Q_W);
+      rows2 = GetPdfIndex(x-1,y,Q_W);
       iter = J.find1(0, rows2, 0);
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
         Jprop(rows1,it.index2())=J(rows2,it.index2());
@@ -924,9 +954,9 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   }
 
   //* fdist4 */
-  for(unsigned int x=1;x<=n_x_;x++) {
-    rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+4);
-    rows2=((n_y_-2)*(n_x_)*9+(x-1)*9+4);
+  for(unsigned int x = 0; x < n_x_;x++) {
+    rows1 = GetPdfIndex(x,n_y_-1,Q_S);
+    rows2 = GetPdfIndex(x,n_y_-2,Q_S);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -941,10 +971,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=n_y_-1;y>=2;y--) {
-    for(unsigned int x=1;x<=n_x_;x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+4;
-      rows2=rows1-n_x_*9;
+  for(unsigned int y = n_y_ - 2; y >= 1;y--) {
+    for(unsigned int x = 0; x < n_x_;x++) {
+      rows1 = GetPdfIndex(x,y,Q_S);
+      rows2 = GetPdfIndex(x,y-1,Q_S);
       iter = J.find1(0, rows2, 0);
 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -954,27 +984,12 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-
   //* fdist5 */
 
-  rows1=(5);
-  rows2=((n_x_)*9+9+5);
-  iter = J.find1(0, rows1, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2())= J(rows1,it.index2());
-    // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 14 \n";
-  }
-  iter = J.find1(0, rows2, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
-    // std::cout << "dp f_5 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 15 \n";
-  }
-
-  for(unsigned int y=2;y<=n_y_-1;y++) {
-    rows1=((y-1)*(n_x_)*9+5);
-    rows2=((y)*(n_x_)*9+9+5);
+  // left edge with lower left corner
+  for(unsigned int y = 0;y < n_y_-1; y++) {
+    rows1 = GetPdfIndex(0,y,Q_NE);
+    rows2 = GetPdfIndex(1,y+1,Q_NE);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -989,9 +1004,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int x=2;x<=n_x_-1;x++) {
-    rows1=((x-1)*9+5);
-    rows2=((n_x_)*9+(x)*9+5);
+  // lower edge
+  for(unsigned int x = 1; x < n_x_-1;x++) {
+    rows1 = GetPdfIndex(x,0,Q_NE);
+    rows2 = GetPdfIndex(x+1,1,Q_NE);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1006,10 +1022,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=2;y<=n_y_-1;y++) {
-    for(unsigned int x=2;x<=n_x_-1;x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+5;
-      rows2=rows1+n_x_*9+9;
+  // inner elements
+  for(unsigned int y = 1; y < n_y_-1;y++) {
+    for(unsigned int x = 1;x < n_x_-1;x++) {
+      rows1 = GetPdfIndex(x,y,Q_NE);
+      rows2 = GetPdfIndex(x+1,y+1,Q_NE);;
       iter = J.find1(0, rows2, 0);
 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1022,24 +1039,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
 
   //* fdist6 */
 
-  rows1=((n_x_-1)*9+6);
-  rows2=((n_x_)*9+(n_x_-2)*9+6);
-  iter = J.find1(0, rows1, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2())= J(rows1,it.index2());
-    // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 21 \n";
-  }
-  iter = J.find1(0, rows2, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
-    // std::cout << "dp f_6 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 22 \n";
-  }
-
-  for(unsigned int y=2;y<=n_y_-1;y++) {
-    rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+6);
-    rows2=((y)*(n_x_)*9+(n_x_-2)*9+6);
+  // right edge with lower right corner
+  for(unsigned int y = 0; y < n_y_-1; y++) {
+    rows1 = GetPdfIndex(n_x_-1,y,Q_NW);
+    rows2 = GetPdfIndex(n_x_-2,y+1,Q_NW);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1055,9 +1058,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int x=n_x_-1;x>=2;x--) {
-    rows1=((x-1)*9+6);
-    rows2=((n_x_)*9+(x-2)*9+6);
+  // lower edge without corners
+  for(unsigned int x = n_x_ - 2; x >= 1; x--) {
+    rows1 = GetPdfIndex(x,0,Q_NW);
+    rows2 = GetPdfIndex(x-1,1,Q_NW);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1072,10 +1076,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=2;y<=n_y_-1;y++) {
-    for(unsigned int x=n_x_-1;x>=2;x--) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+6;
-      rows2=rows1+n_x_*9-9;
+  //inner elements
+  for(unsigned int y = 1; y < n_y_-1; y++) {
+    for(unsigned int x = n_x_ - 2; x >= 1; x--) {
+      rows1 = GetPdfIndex(x,y,Q_NW);
+      rows2 = GetPdfIndex(x-1,y+1,Q_NW);
       iter = J.find1(0, rows2, 0);
 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1087,24 +1092,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
 
 
   //* fdist7 */
-  rows1=((n_y_-1)*(n_x_)*9+(n_x_-1)*9+7);
-  rows2=((n_y_-2)*(n_x_)*9+(n_x_-2)*9+7);
-  iter = J.find1(0, rows1, 0);
-  //for(compressed_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2())= J(rows1,it.index2());
-    // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 27 \n";
-  }
-  iter = J.find1(0, rows2, 0);
 
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
-    // std::cout << "dp f_7 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 28 \n";
-  }
-
-  for(unsigned int y=n_y_-1;y>=2;y--) {
-    rows1=((y-1)*(n_x_)*9+(n_x_-1)*9+7);
-    rows2=((y-2)*(n_x_)*9+(n_x_-2)*9+7);
+  // right edge with upper right corner
+  for(unsigned int y = n_y_ - 1; y >= 1;y--) {
+    rows1 = GetPdfIndex(n_x_-1,y,Q_SW);
+    rows2 = GetPdfIndex(n_x_-2,y-1,Q_SW);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1119,9 +1111,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int x=n_x_-1;x>=2;x--) {
-    rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+7);
-    rows2=((n_y_-2)*(n_x_)*9+(x-2)*9+7);
+  // upper edge without corners
+  for(unsigned int x = n_x_ - 2; x >= 1; x--) {
+    rows1 = GetPdfIndex(x,n_y_-1,Q_SW);
+    rows2 = GetPdfIndex(x-1,n_y_-2,Q_SW);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1136,10 +1129,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=n_y_-1;y>=2;y--) {
-    for(unsigned int x=n_x_-1;x>=2;x--) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+7;
-      rows2=rows1-n_x_*9-9;
+  // inner elements
+  for(unsigned int y = n_y_ - 2; y >= 1; y--) {
+    for(unsigned int x= n_x_ - 2; x >= 1; x--) {
+      rows1 = GetPdfIndex(x,y,Q_SW);
+      rows2 = GetPdfIndex(x-1,y-1,Q_SW);
       iter = J.find1(0, rows2, 0);
 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1152,25 +1146,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
 
   //* fdist8 */
 
-  rows1=((n_y_-1)*(n_x_)*9+8);
-  rows2=((n_y_-2)*(n_x_)*9+9+8);
-  iter = J.find1(0, rows1, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2())= J(rows1,it.index2());
-    // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows1 << ", " << it.index2() << ") : 34 \n";
-  }
-  iter = J.find1(0, rows2, 0);
-
-  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-    Jprop(rows1,it.index2()) = Jprop(rows1,it.index2()) + J(rows2,it.index2());
-    // std::cout << "dp f_8 (" << rows1 << ", " << it.index2() << ") <- (" << rows2 << ", " << it.index2() << ") : 35 \n";
-  }
-
-
-  for(unsigned int y=n_y_-1;y>=2;y--) {
-    rows1=((y-1)*(n_x_)*9+8);
-    rows2=((y-2)*(n_x_)*9+9+8);
+  // left edge with upper left corner
+  for(unsigned int y = n_y_ - 1; y >= 1;y--) {
+    rows1 = GetPdfIndex(0,y,Q_SE);
+    rows2 = GetPdfIndex(1,y-1,Q_SE);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1185,10 +1164,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-
-  for(unsigned int x=2;x<=n_x_-1;x++) {
-    rows1=((n_y_-1)*(n_x_)*9+(x-1)*9+8);
-    rows2=((n_y_-2)*(n_x_)*9+(x)*9+8);
+  // upper edge without corners
+  for(unsigned int x = 1; x < n_x_-1; x++) {
+    rows1 = GetPdfIndex(x,n_y_-1,Q_SE);
+    rows2 = GetPdfIndex(x+1,n_y_-2,Q_SE);
     iter = J.find1(0, rows1, 0);
 
     for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1203,10 +1182,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
     }
   }
 
-  for(unsigned int y=n_y_-1;y>=2;y--) {
-    for(unsigned int x=2;x<=n_x_-1;x++) {
-      rows1=(y-1)*n_x_*9+(x-1)*9+8;
-      rows2=rows1-n_x_*9+9;
+  // inner elements
+  for(unsigned int y = n_y_ - 2; y >= 1; y--) {
+    for(unsigned int x = 1;x < n_x_-1; x++) {
+      rows1 = GetPdfIndex(x,y,Q_SE);
+      rows2 = GetPdfIndex(x+1,y-1,Q_SE);
       iter = J.find1(0, rows2, 0);
 
       for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
@@ -1264,7 +1244,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f)
 {
   // the gradient over all lbm elements (including boundary) are computed as element wise scalar product of
-  // x_parardiso * dRdp where we could interpret dRdp as vector but it is stored as sparse matrix and not all elements are contained
+  // x_parardiso * dRds where we could interpret dRds as vector but it is stored as sparse matrix and not all elements are contained
 
 
   // the solution of the adjoint system:
@@ -1273,8 +1253,8 @@ void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& de
 
   LOG_DBG3(lbm_pde) << "SPG: x_pardiso2 -> " << x_pardiso2.ToString();
 
-  // read dRdp and store as vector, not set values keep 0.0
-  Vector<double> dRdp(n_q_ * n_elems, 0.0);
+  // read dRds and store as vector, not set values keep 0.0
+  Vector<double> dRds(n_q_ * n_elems, 0.0);
   // %%MatrixMarket matrix coordinate real symmetric
   // %
   // % Matrix exported by OLAS
@@ -1282,9 +1262,9 @@ void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& de
   // 900 100 576
   // 100 12  0.000110019427034806
   // 101 12  -0.00388473301942947
-  std::ifstream file("dRdp.mtx");
+  std::ifstream file("dRds.mtx");
   if(file.fail())
-    throw Exception("cannot read dRdp.mtx");
+    throw Exception("cannot read dRds.mtx");
 
   std::string line;
   bool meta_info_read = false;
@@ -1298,7 +1278,7 @@ void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& de
       {
         unsigned int rows, cols, nnz;
         if(!(ss >> rows >> cols >> nnz) || rows != n_q_*n_elems || cols != n_elems)
-          throw Exception("error reading dRdp.mtx, the first non-comment line has no proper meta data");
+          throw Exception("error reading dRds.mtx, the first non-comment line has no proper meta data");
         meta_info_read = true;
       }
       else
@@ -1306,15 +1286,15 @@ void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& de
         unsigned int row, col;
         double val;
         if((ss >>  row >> col >> val))
-          dRdp[row - 1] = val;
+          dRds[row - 1] = val;
         else
-          throw Exception("error reading dRdp.mtx values in out of line '" + line + "'");
+          throw Exception("error reading dRds.mtx values in out of line '" + line + "'");
       }
     }
   }
   file.close();
 
-  LOG_DBG3(lbm_pde) << "SPG: dRdp -> " << dRdp.ToString();
+  LOG_DBG3(lbm_pde) << "SPG: dRds -> " << dRds.ToString();
 
   LOG_DBG3(lbm_pde) << "SPG: design size: " << design.GetSize();
 
@@ -1323,9 +1303,9 @@ void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& de
   {
     DesignElement* de = design[e];
     unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-    double val = -1.0 * x_pardiso2.Inner(dRdp, idx * n_q_, (idx + 1) * n_q_);
+    double val = -1.0 * x_pardiso2.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
     de->AddGradient(f, val);
-    LOG_DBG3(lbm_pde) << "SPG: idx=" << idx << " e=" << de->elem->elemNum << " xp=" << StdVector<double>::ToString(n_q_, x_pardiso2.GetPointer() + n_q_ * idx) << " dRdp=" << StdVector<double>::ToString(n_q_, dRdp.GetPointer() + n_q_ * idx) << " -> " << val;
+    LOG_DBG3(lbm_pde) << "SPG: idx=" << idx << " e=" << de->elem->elemNum << " xp=" << StdVector<double>::ToString(n_q_, x_pardiso2.GetPointer() + n_q_ * idx) << " dRds=" << StdVector<double>::ToString(n_q_, dRds.GetPointer() + n_q_ * idx) << " -> " << val;
   }
 }
 

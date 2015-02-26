@@ -140,21 +140,25 @@ private:
 
   inline double CalcPressure(unsigned int idx) const;
 
-  double pdf(unsigned int idx, int dir) const  {
+  inline double pdf(unsigned int idx, int dir) const  {
     return pdfs[idx * n_q_ + dir];
   };
 
-  double& pdf(unsigned int idx, int dir) {
+  inline double& pdf(unsigned int idx, int dir) {
     return pdfs.GetPointer()[idx * n_q_ + dir];
   };
 
-  unsigned int index(unsigned int x, unsigned int y) const {
+  inline unsigned int index(unsigned int x, unsigned int y) const {
     return y * n_x_ + x;
   }
 
-  unsigned int index(unsigned int x, unsigned int y, unsigned int z ) const {
-      return z * n_x_ * n_y_ + y * n_x_ + x;
-    }
+  inline unsigned int index(unsigned int x, unsigned int y, unsigned int z ) const {
+    return z * n_x_ * n_y_ + y * n_x_ + x;
+  }
+
+  inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int dir) const {
+    return index(x,y) * n_q_ + dir;
+  }
 
   //! Calculate macroscopic velocities
   void CalcVelocities(shared_ptr<BaseResult> res);
@@ -274,6 +278,9 @@ private:
   double u_x_;
   double u_y_;
   double u_z_;
+
+  StdVector<LatticeBoltzmann::PropTransform>* velocityDirections;
+  StdVector<LatticeBoltzmannBase::Direction>* invDirections;
 
   /** external lbm */
   std::string executable;
