@@ -697,6 +697,7 @@ namespace CoupledField {
       //std::cout << "entityNodeMap_[" << regionName << "] Size " << entityNodeMap_[regionName].GetSize() << std::endl;
     } else {
       idx.Resize( numEntities );
+
 #pragma omp parallel for
       for( UInt i = 0; i < numEntities ; i++ )
         idx[i] = i;
@@ -719,6 +720,7 @@ namespace CoupledField {
       H5IO::ReadArray( resGroup, "Imag", imagVals );
 
       resVec.Resize( resVecSize );
+
 #pragma omp parallel for
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {

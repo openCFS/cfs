@@ -15,7 +15,7 @@ namespace CoupledField {
     UInt numOMPThreads = 1;
 
   #ifdef _OPENMP
-    numOMPThreads = omp_get_num_threads();
+    numOMPThreads = omp_get_max_threads();
   #endif
     locDeriv_.Resize(numOMPThreads);
   }

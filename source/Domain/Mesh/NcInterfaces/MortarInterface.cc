@@ -17,6 +17,9 @@
 #include "MatVec/Vector.hh"
 #include "Utils/mathParser/mathParser.hh"
 
+#include "Utils/Timer.hh"
+
+
 #include <sstream>
 #include <boost/shared_ptr.hpp>
 
@@ -112,6 +115,46 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
     }
     else {
       intersectAlgo_ = NCI_INTERSECT_POLYGON;
+    }
+  }
+
+  StdVector<UInt> ifNodeList;
+  bool doForceX = (nciNode->Get("forceXValue")->As<std::string>()!="");
+  bool doForceY = (nciNode->Get("forceYValue")->As<std::string>()!="");
+  bool doForceZ = (nciNode->Get("forceZValue")->As<std::string>()!="");
+  Double fX=0,fY=0,fZ=0;
+  if(doForceX)
+    nciNode->GetValue("forceXValue", fX, ParamNode::PASS);
+
+  if(doForceY)
+    nciNode->GetValue("forceYValue", fY, ParamNode::PASS);
+
+  if(doForceZ)
+    nciNode->GetValue("forceZValue", fZ, ParamNode::PASS);
+
+  // It may be a little strange to set coordinates after the grid has been initialized
+  // but hopefully it does the job
+  if(doForceX||doForceY||doForceZ){
+    ptGrid_->GetNodesByRegion(ifNodeList,masterSurfRegion_);
+    Vector<Double> curCoord(ptGrid_->GetDim());
+    Vector<Double> newCoord(ptGrid_->GetDim());
+    for(UInt i=0;i<ifNodeList.GetSize();i++){
+      ptGrid_->GetNodeCoordinate(curCoord,ifNodeList[i],false);
+      newCoord[0] = (doForceX)? fX : curCoord[0];
+      newCoord[1] = (doForceY)? fY : curCoord[1];
+      if(ptGrid_->GetDim()==3)
+        newCoord[2] = (doForceZ)? fZ : curCoord[2];
+      ptGrid_->SetNodeCoordinate(ifNodeList[i],newCoord);
+    }
+    ifNodeList.Clear(true);
+    ptGrid_->GetNodesByRegion(ifNodeList,slaveSurfRegion_);
+    for(UInt i=0;i<ifNodeList.GetSize();i++){
+      ptGrid_->GetNodeCoordinate(curCoord,ifNodeList[i],false);
+      newCoord[0] = (doForceX)? fX : curCoord[0];
+      newCoord[1] = (doForceY)? fY : curCoord[1];
+      if(ptGrid_->GetDim()==3)
+        newCoord[2] = (doForceZ)? fZ : curCoord[2];
+      ptGrid_->SetNodeCoordinate(ifNodeList[i],newCoord);
     }
   }
 
@@ -325,6 +368,7 @@ void MortarInterface::UpdateInterface() {
   StdVector<SurfElem*> slaveElems;
   //This is additional memory, but in case of CGAL
   //the runtime should be better
+  //boost::shared_ptr<Timer> myTimer(new Timer);
 
   StdVector<SurfElem*> ifaceElems;
   StdVector<SurfElem*> ncElemsHelper;
@@ -380,6 +424,8 @@ void MortarInterface::UpdateInterface() {
     }
   }
 
+  //std::cout << "Computing Interface intersections for " << name_ << std::endl;
+ // myTimer->Start();
   switch (intersectAlgo_) {
     case NCI_INTERSECT_LINE:
       for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
@@ -414,7 +460,6 @@ void MortarInterface::UpdateInterface() {
 
       break;
     case NCI_INTERSECT_POLYGON:
-
       for (UInt i = 0; i < intersectionCandiatesIdx_.size(); ++i) {
         UInt mIdx = intersectionCandiatesIdx_[i].first;
         UInt sIdx = intersectionCandiatesIdx_[i].second;
@@ -437,6 +482,7 @@ void MortarInterface::UpdateInterface() {
               << masterElems[i]->elemNum << " and "
               << slaveElems[j]->elemNum << std::endl;*/
         }
+
       }
       break;
     default:
@@ -495,6 +541,8 @@ void MortarInterface::UpdateInterface() {
         << "'. Please check your mesh file.");
   }
 
+ // myTimer->Stop();
+ // myTimer->PrintTime(std::cout);
 
 }
 #ifdef USE_CGAL
@@ -569,18 +617,26 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   //           d0 x-----------+--------------x d1
   // c0 x---------+-----------x c1
 
-  Vector<Double> c0, c1, d0, d1, tmp; // endpoint-coordinates of the two lines
-  Vector<Double> diff0, diff1;
-  Vector<Double> s, t;
-  Vector<Double> normal;
-  StdVector<UInt> connect2;
+  Vector<Double> & c0 = c0_Line_;
+  Vector<Double> & c1 = c1_Line_;
+  Vector<Double> & d0 = d0_Line_;
+  Vector<Double> & d1 = d1_Line_;
+  Vector<Double> & tmp = tmp_Line_;
+  Vector<Double> & diff0 = diff0_Line_;
+  Vector<Double> & diff1 = diff1_Line_;
+  Vector<Double> & s = s_Line_;
+  Vector<Double> & t = t_Line_;
+  Vector<Double> & normal = normal_Line_;
+
+
+  StdVector<UInt> connect2(2);
   Double dist, fac;
   UInt nodenum_c0, nodenum_c1, nodenum_d0, nodenum_d1;
   Double relativeElemVol;
 
   s.Resize(2);
   t.Resize(2);
-  connect2.Resize(2);
+
 
 
   // Get coordinates of the endpoints
@@ -1276,51 +1332,69 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
                                         StdVector<UInt> &newNodes )
 {
   UInt i, j, n, p1Size, p2Size;
-  StdVector< Vector<Double> > p1, p2, r;
 
-  switch(ifElem1->type) {
-    case Elem::ET_TRIA3:
-    case Elem::ET_TRIA6:
-      p1Size = 3;
-      break;
+  StdVector< Vector<Double> > & p1 = p1Poly_;
+  StdVector< Vector<Double> > & p2 = p2Poly_;
+  StdVector< Vector<Double> > & r = rPoly_;
 
-    case Elem::ET_QUAD4:
-    case Elem::ET_QUAD8:
-    case Elem::ET_QUAD9:
-      p1Size = 4;
-      break;
+  r.Clear(true);
 
-    default:
-      EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
-                << Elem::feType.ToString(ifElem1->type) << "!");
-      break;
-  }
-  
-  p1.Resize(p1Size);
-  for (i = 0; i < p1Size; ++i)
-    ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
+  if(oldPoly1_ != ifElem1->elemNum){
+    switch(ifElem1->type) {
+      case Elem::ET_TRIA3:
+      case Elem::ET_TRIA6:
+        p1Size = 3;
+        break;
 
-  switch(ifElem2->type) {
-    case Elem::ET_TRIA3:
-    case Elem::ET_TRIA6:
-      p2Size = 3;
-      break;
+      case Elem::ET_QUAD4:
+      case Elem::ET_QUAD8:
+      case Elem::ET_QUAD9:
+        p1Size = 4;
+        break;
 
-    case Elem::ET_QUAD4:
-    case Elem::ET_QUAD8:
-    case Elem::ET_QUAD9:
-      p2Size = 4;
-      break;
+      default:
+        EXCEPTION("First argument to PolygonOnPolygon may not be of type '"
+                  << Elem::feType.ToString(ifElem1->type) << "!");
+        break;
+    }
 
-    default:
-      EXCEPTION("Second argument to PolygonOnPolygon may not be of type '"
-          << Elem::feType.ToString(ifElem2->type) << "'!");
-      break;
+    p1.Resize(p1Size);
+
+    for (i = 0; i < p1Size; ++i)
+      ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
+
+    oldPoly1_ = ifElem1->elemNum;
+  }else{
+    p1Size = p1.GetSize();
   }
 
-  p2.Resize(p2Size);
-  for (i = 0; i < p2Size; ++i)
-    ptGrid_->GetNodeCoordinate(p2[i], ifElem2->connect[i], isMoving_);
+  if(oldPoly2_ != ifElem2->elemNum){
+    switch(ifElem2->type) {
+      case Elem::ET_TRIA3:
+      case Elem::ET_TRIA6:
+        p2Size = 3;
+        break;
+
+      case Elem::ET_QUAD4:
+      case Elem::ET_QUAD8:
+      case Elem::ET_QUAD9:
+        p2Size = 4;
+        break;
+
+      default:
+        EXCEPTION("Second argument to PolygonOnPolygon may not be of type '"
+            << Elem::feType.ToString(ifElem2->type) << "'!");
+        break;
+    }
+
+    p2.Resize(p2Size);
+    for (i = 0; i < p2Size; ++i)
+      ptGrid_->GetNodeCoordinate(p2[i], ifElem2->connect[i], isMoving_);
+
+    oldPoly2_ = ifElem2->elemNum;
+  }else{
+    p2Size = p2.GetSize();
+  }
 
   if (CutPolys(p1, p2, isCoplanar_, r))
   {
@@ -1554,12 +1628,17 @@ MortarInterface::LineIntersectType MortarInterface::CutLines(const Vector<Double
 
 bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
                     StdVector< Vector<Double> > &p2, const bool coplanar,
-                    StdVector< Vector<Double> > &r) const
+                    StdVector< Vector<Double> > &r)
 {
   Double r1, r2;
   UInt i, inside = 0, nCuts = 0, start_cur = p1.GetSize();
-  Vector<Double> c1, c2, e;
-  Vector<Double> temp1, temp2;
+
+  Vector<Double> & c1 = c1_;
+  Vector<Double> & c2 = c2_;
+  Vector<Double> & e = e_;
+  Vector<Double> & temp1 = temp1_;
+  Vector<Double> & temp2 = temp2_;
+
   struct Intersection {
     UInt index;
     UInt type;
@@ -1577,12 +1656,14 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
 #endif
 
   // compute surrounding circles of both polygons
-  r1 = PolyCentroid(p1, c1);
-  r2 = PolyCentroid(p2, c2);
+  PolyCentroid(p1, c1);
+  r1 = PolyCircumcircle(p1,c1);
+  PolyCentroid(p2, c2);
+  r2 = PolyCircumcircle(p2,c2);
 
   // quit, if surrounding circles do not intersect
   temp1 = (c1 - c2);
-  if (r1 + r2 < temp1.NormL2())
+  if ( (r1 + r2) < sqrt(temp1*temp1) )
     return false;
 
   // if interface is not coplanar then project p1 onto p2
@@ -1838,7 +1919,7 @@ bool MortarInterface::CutPolys(StdVector< Vector<Double> > &p1,
 
 bool MortarInterface::PointInsidePoly(const Vector<Double> &p,
                            const StdVector< Vector<Double> > &poly,
-                           const Vector<Double> *const c) const
+                           const Vector<Double> *const c)
 {
   bool result = false;
   LineIntersectType s;
@@ -1875,31 +1956,42 @@ bool MortarInterface::PointInsidePoly(const Vector<Double> &p,
   return result;
 }
 
-Double MortarInterface::PolyCentroid(const StdVector< Vector<Double> > &p,
-                          Vector<Double> &c) const
-{
-  UInt i, n = p.GetSize();
-  Double r, r_max = 0.0;
-  Vector<Double> temp;
-
-  // set c to 0
-  c.Resize(3);
-  c.Init();
-
-  // compute center of gravity
-  for (i = 0; i < n; ++i)
-    c += p[i];
-  c /= (Double) n;
+Double MortarInterface::PolyCircumcircle(const StdVector< Vector<Double> > &p,
+                         const Vector<Double> &c){
+  UInt i,j, d=c.GetSize(), n = p.GetSize();
+  Double r = 0.0, r_max = 0.0, tmp=0.0;
 
   // find point with maximum distance from centroid
   for (i = 0; i < n; ++i) {
-    temp = (p[i] - c);
-    r = temp.NormL2();
-    if (r > r_max)
+    tmp = 0;
+    for(j=0;j<d;j++){
+      tmp += (p[i][j] - c[j])*(p[i][j] - c[j]);
+    }
+    r = sqrt(tmp);
+    if (r > r_max){
       r_max = r;
+    }
   }
 
   return r_max;
+}
+
+void MortarInterface::PolyCentroid(const StdVector< Vector<Double> > &p,
+                          Vector<Double> &c)
+{
+  UInt i, n = p.GetSize();
+  // set c to 0
+  c.Resize(3);
+  c.Init(0.0);
+
+  // compute center of gravity
+  for (i = 0; i < n; ++i){
+    c[0] += p[i][0];
+    c[1] += p[i][1];
+    c[2] += p[i][2];
+  }
+  for(i=0;i<3;i++)
+    c[i] /= (Double) n;
 }
 
 UInt MortarInterface::TriangulatePoly(const StdVector< Vector<Double> > &p,

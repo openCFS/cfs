@@ -281,6 +281,17 @@ IF(USE_LIS)
 ENDIF(USE_LIS)
 
 #-------------------------------------------------------------------------------
+# Find Library for FFT and IFFT 
+#-------------------------------------------------------------------------------
+IF(USE_FFTW)
+  SET(FFTW_URL "${CFS_DS_SOURCES_DIR}/fftw")
+  SET(FFTW_GZ "fftw-3.3.4.tar.gz")
+  SET(FFTW_MD5 "2edab8c06b24feeb3b82bbb3ebf3e7b3")
+  
+  INCLUDE("${CFSDEPS_DIR}/fftw/External_FFTW.cmake")
+ENDIF(USE_FFTW)
+
+#-------------------------------------------------------------------------------
 # Find SuperLU
 #-------------------------------------------------------------------------------
 IF(USE_SUPERLU)

@@ -52,7 +52,7 @@ namespace CoupledField
     numOMPThreads_ = 1;
 
 #ifdef _OPENMP
-    numOMPThreads_ = omp_get_num_threads();
+    numOMPThreads_ = omp_get_max_threads();
 #endif
 
     elemShapeMapOrig_.Resize(numOMPThreads_);

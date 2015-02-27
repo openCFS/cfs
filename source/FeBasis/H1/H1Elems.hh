@@ -3,6 +3,10 @@
 
 #include "FeBasis/BaseFE.hh"
 #include <boost/unordered_map.hpp>
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+  #include <omp.h>
+#endif
 
 namespace CoupledField {
 

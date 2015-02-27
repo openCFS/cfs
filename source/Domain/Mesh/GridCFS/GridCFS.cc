@@ -3142,10 +3142,16 @@ namespace CoupledField {
       // Loop over all nodes an check, if they are already contained in
       // the list of nodes
       const StdVector<UInt> & connect = surfelems[i]->connect;
+      std::set<UInt> s;
       for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
-        if( surfRegionNodes.Find(connect[iNode]) == -1 ) {
-          surfRegionNodes.Push_back(connect[iNode]);
-        }
+        s.insert(connect[iNode]);
+       // if( surfRegionNodes.Find(connect[iNode]) == -1 ) {
+        //surfRegionNodes.Push_back(connect[iNode]);
+       // }
+      }
+      std::set<UInt>::iterator iter = s.begin();
+      for(;iter!=s.end();iter++){
+        surfRegionNodes.Push_back(*iter);
       }
     }
     

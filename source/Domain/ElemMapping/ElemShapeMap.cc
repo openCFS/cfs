@@ -1482,7 +1482,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     UInt numFaces = shape.numFaces;
     UInt locFaceNum = 0;
     //determine on which face the local point is located and the compute the normal for this face
-    for(UInt locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
+    for(locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
       if(abs(edgeFaceElem->faces[0]) == abs(volElem->faces[locFaceNum])){
         edgeFaceFound = true;
         break;

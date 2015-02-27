@@ -54,6 +54,11 @@ class Timer
    *  2. cout << GetTimeString(second (or microsec)_clock::local_time() - start_time);*/
   static const std::string GetTimeString(const boost::posix_time::time_duration period);
 
+  /** Prints the time in human readable format to specified stream
+   *  @param (in) stream output stream
+   */
+  void PrintTime(std::ostream & stream);
+
  private:
   /** The number of Start() calls since construction or the last ResetStart()+1 */
   int    calls_;

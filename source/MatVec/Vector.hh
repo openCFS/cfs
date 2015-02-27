@@ -178,14 +178,15 @@ template<typename T> class ElemStoreSol;
     //! array will be de-allocated, if it belongs to the vector object, and
     //! the internal attributes will be re-set to the state we also obtain
     //! from the default constructor.
-    void Clear() {
-      if(memBelongsToMe_)
-        delete[] data_;
-      
-      size_     = 0;
-      capacity_ = 0;
-      data_     = NULL;
+    void Clear(bool keepCapacity = false) {
+      size_ = 0;
+      if( keepCapacity == false ) {
+        if(memBelongsToMe_)
+          delete[] data_;
 
+        capacity_ = 0;
+        data_     = NULL;
+      }
       // We set this to true be default, to be able to do a re-size
       // afterwards. If a Replace() is done, it will adapt it accordingly.
       memBelongsToMe_ = true;
