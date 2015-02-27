@@ -253,12 +253,26 @@ namespace CoupledField {
   template <typename T>
   Double Vector<T>::NormL2() const
   {				
-    Double sum(0.0);
+    double sum = 0;
 
-//#pragma omp parallel for reduction(+:sum)
+    //#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
     
+    return sqrt(sum);
+  }
+
+  template <typename T>
+  double Vector<T>::NormL2(const Vector<T>& other) const
+  {
+    if(size_ != other.GetSize()) EXCEPTION("incompatible sizes");
+
+    double sum = 0;
+
+    //#pragma omp parallel for reduction(+:sum)
+    for(unsigned int i = 0; i < size_; ++i)
+      sum += OpType<T>::zConjz(data_[i] - other[i]);
+
     return sqrt(sum);
   }
 

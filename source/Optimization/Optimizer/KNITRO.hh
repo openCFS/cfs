@@ -27,8 +27,12 @@ protected:
   /** @see BaseOptimizer::GetInfBound() */
   double GetInfBound() const { return KTR_INFBOUND; }
   
-  /** @see BaseOptimizer::GetLogFileHeader() */
-  std::string LogFileHeader() { return "\tabs_feasibility\tabs_optimality"; }
+  /** @see BaseOptimizer::LogFileHeader() */
+  void LogFileHeader(Optimization::Log& log)
+  {
+    log.AddToHeader("abs_feasibility");
+    log.AddToHeader("abs_optimality");
+  }
 
   /** @see BaseOptimizer::LogFileLine() */
   void LogFileLine(std::ofstream* out, PtrParamNode iteration);

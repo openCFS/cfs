@@ -354,8 +354,7 @@ void OptimalityCondition::CalcNextTrajectoryIteration()
     {
       std::cout << "switch lamba from " << lambda_ << " to " << (lambda_ > 0 ? -1.0 : 1.0) << std::endl; 
       lambda_ = lambda_ > 0 ? -1.0 : 1.0;
-      LOG_DBG(oc) << "swap lambda sign to " << lambda_ << " at iter/err: " 
-                   << lambda_iters_ << "\t" << "\t" << err;
+      LOG_DBG(oc) << "swap lambda sign to " << lambda_ << " at iter/err: " << lambda_iters_ << "\t" << "\t" << err;
     }
     else    
     {
@@ -495,32 +494,41 @@ double OptimalityCondition::Evaluate(double lambda)
    return err;
 }
 
-std::string OptimalityCondition::LogFileHeader()
+void OptimalityCondition::LogFileHeader(Optimization::Log& log)
 {
-  std::ostringstream os;
-  os << "\tlambda\tlambda_iters";
-  if(type_ == FRAMED) os << "\tlower\tupper";
-  if(type_ == FUMBLE) os << "\tstep";
-  return os.str();
+  log.AddToHeader("lambda");
+  log.AddToHeader("lambda_iters");
+
+  if(type_ == FRAMED) {
+    log.AddToHeader("lower");
+    log.AddToHeader("upper");
+  }
+
+  if(type_ == FUMBLE)
+    log.AddToHeader("step");
+
 }
 
 
 void OptimalityCondition::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
-  if(out) *out << "\t" << lambda_ << "\t" << lambda_iters_;
+  if(out)
+    *out << " \t" << lambda_ << " \t" << lambda_iters_;
 
   iteration->Get("lambda")->SetValue(lambda_);
   iteration->Get("lambda_iters")->SetValue(lambda_iters_);
   
   if(type_ == FRAMED)
   { 
-    if(out) *out << "\t" << lower_ << "\t" << upper_;
+    if(out)
+      *out << " \t" << lower_ << " \t" << upper_;
     iteration->Get("lower")->SetValue(lower_);
     iteration->Get("upper")->SetValue(upper_);
   }
   if(type_ == FUMBLE)
   { 
-    if(out) *out << "\t" << step_;
+    if(out)
+      *out << " \t" << step_;
     iteration->Get("step")->SetValue(step_);
   }
 }

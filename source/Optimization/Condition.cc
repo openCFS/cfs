@@ -607,7 +607,7 @@ string Condition::ToString(MultipleExcitation* me) const
   if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
     os << "_" << me->excitations[excite_].label; // change to excite label
 
-  if(type_ == EIGENVALUE)
+  if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
 
   return os.str();  
@@ -1038,7 +1038,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
 
     for(unsigned int i = 0; i < all.GetSize(); i++)
     {
-      if(all[i]->GetType() == Function::EIGENVALUE)
+      if(all[i]->GetType() == Function::EIGENFREQUENCY)
       {
         unsigned int id = all[i]->GetEigenValueID();
         assert(id > 0); // ensured by xml schema

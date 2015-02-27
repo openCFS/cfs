@@ -36,7 +36,7 @@ class StressConstraint
 {
 public:
   /** Create the object for each excitation */
-  StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, ErsatzMaterial::Solutions* forward);
+  StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateSolutions* forward);
 
   /** The stress values for every f->elements */
   void CalcStresses(Vector<double>& out);
@@ -110,7 +110,7 @@ private:
   Function* f;
   ErsatzMaterial* em;
   DesignSpace* space; // shortcut
-  ErsatzMaterial::Solutions* forward;
+  StateSolutions* forward;
 };
 
 

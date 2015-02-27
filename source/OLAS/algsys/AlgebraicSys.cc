@@ -891,13 +891,13 @@ namespace CoupledField {
     
     LOG_DBG(algSys) << "GEM #" << numMode;
     if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
        eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
-      Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+      Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
       eigenSolver_->GetEigenMode(numMode, solHelp);
     }
-    LOG_DBG(algSys) << "GEM -> " << sol_->ToString();
+    LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
 
   void AlgebraicSys::GraphSetupInit( UInt numFcts, 

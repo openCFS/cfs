@@ -38,7 +38,7 @@ namespace CoupledField
 {
 
 template<typename T>
-StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, ErsatzMaterial::Solutions* forward) :
+StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateSolutions* forward) :
     elemList(domain->GetGrid())
 {
   assert(f->GetType() == Function::STRESS || f->GetType() == Function::STRESS_DENSITY);
@@ -181,7 +181,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 
   bool harmonic = em->IsComplex();
 
-  out.Resize(forward->Get(*excite)->GetVector(ErsatzMaterial::Solution::RAW_VECTOR)->GetSize(), T());
+  out.Resize(forward->Get(*excite)->GetVector(Solution::RAW_VECTOR)->GetSize(), T());
 
   StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
 

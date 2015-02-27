@@ -244,7 +244,7 @@ void ErsatzMaterial::PostInit()
         throw Exception(func + " is only for harmonic state problems");
       break;
 
-    case Function::EIGENVALUE:
+    case Function::EIGENFREQUENCY:
       if(!eigenvalue_)
         throw Exception(func + " is only for eigenvalue state problems");
       break;
@@ -328,7 +328,17 @@ void ErsatzMaterial::PostInit()
   if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
     throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
 
-  // make basic logings
+  if(eigenvalue_ && optParamNode->Has("eigenvalue/sort"))
+  {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
+      int idx = constraints.all[i]->GetEigenValueID();
+      if(idx > 0)
+        log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
+    }
+  }
+
+  // make basic logging
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
 }
 
@@ -349,7 +359,7 @@ void ErsatzMaterial::StoreResults(double step_val)
   }
 
   if(cm == FORWARD || cm == BOTH) {
-    Solution::Write(pde, forward, NULL, 0, me->excitations); // no function for forward, no time step
+    StateSolution::Write(pde, forward, NULL, 0, me->excitations); // no function for forward, no time step
     Optimization::StoreResults(step_val);
   }
 
@@ -370,7 +380,7 @@ void ErsatzMaterial::StoreResults(double step_val)
 
     if(cm == ADJOINT || cm == BOTH) {
       // sum up if there are more excitations
-      Solution::Write(pde, adjoint, funcs[fi], 0, me->excitations); // TODO no time step set!
+      StateSolution::Write(pde, adjoint, funcs[fi], 0, me->excitations); // TODO no time step set!
       Optimization::StoreResults(real_step + 0.5 + (0.5 / funcs.GetSize()) * fi);
     }
   }
@@ -421,11 +431,37 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     in->Get("tensor")->SetValue(homogenizedTensor);
   }
 
+  // log mode switching only for the functions
+  if(eigenvalue_ && ev_.DoSorting())
+  {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
+      int idx = constraints.all[i]->GetEigenValueID(); // Now traverse in global mode
+      if(idx > 0)
+        iter->Get("mode_" + boost::lexical_cast<std::string>(idx))->SetValue(ev_.permutation[idx-1]+1);
+    }
+  }
+
   if(densityFile != NULL)
     densityFile->SetCurrent(currentIteration - 1);
 
     return iter;
   }
+
+void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
+{
+  Optimization::LogFileLine(out, iteration);
+
+  if(out && eigenvalue_ && ev_.DoSorting())
+  {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
+      int idx = constraints.all[i]->GetEigenValueID(); // Now traverse in global mode
+      if(idx > 0)
+        *out << " \t" << (ev_.permutation[idx-1]+1);
+    }
+  }
+}
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
   {
@@ -490,7 +526,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return index;
   }
 
-  void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, Solutions& forward, Solutions& adjoint, double factor, Objective* c, Condition* g)
+  void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward, StateSolutions& adjoint, double factor, Objective* c, Condition* g)
   {
     // this calculates p^T (dF - dA) u
     // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
@@ -972,8 +1008,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           dynamic_cast<AuxDesign*>(design)->AddAuxDerivative(f, 0, 1.0);
       break;
 
-      case Function::EIGENVALUE:
-      result = CalcEigenvalue(f, derivative);
+      case Function::EIGENFREQUENCY:
+      result = CalcEigenfrequency(f, derivative);
       break;
 
       case Function::ISOTROPY:
@@ -1243,7 +1279,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     if(design->HasMultiMaterial())
       total_vol /= design->GetMultiMaterials().GetSize();
 
-    LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
+    LOG_DBG2(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
     for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
@@ -1313,7 +1349,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 //GLOBAL_DYNAMIC_COMPLIANCE
 // c = u^T conj(u) -> "A note on sensitivity analysis of linear dynamic systems with
 //                          harmonic excitation"; Jakob S. Jensen; June 22, 2007
-    Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
+    Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(StateSolution::RAW_VECTOR);
     assert(u.GetSize() != 0);
     complex<double> csp;
     u.Inner(u, csp);// the inner product is sum over u_i * conj(u_i);
@@ -1356,8 +1392,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       { // this formulation works for transient as well as static cases, integral over time
         // compliance is easier computed using f^T u on nodes with force
         // to avoid any work for assembling force again, we simply calculate solution times rhs from the system
-        Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR);
-        Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RHS_VECTOR);
+        Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RAW_VECTOR);
+        Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RHS_VECTOR);
         double sp = 0.0;
         u.Inner(rhs, sp);
         result += sp * excite.GetFactor(func) * GetStepWeight(ts);
@@ -1376,8 +1412,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 // We always take l from rhs and don't store it explicitly.
 // Note that one has to use the algsys RHS! The PDE RHS is still from the
 // forward simulation!
-    Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(Solution::RAW_VECTOR)));
-    Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)));
+    Vector<T>& u = dynamic_cast<Vector<T> & >(*(forward.Get(excite, NULL)->GetVector(StateSolution::RAW_VECTOR)));
+    Vector<T>& l = dynamic_cast<Vector<T>&>(*(adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)));
     assert(u.GetSize() == l.GetSize());
     LOG_DBG2(em) << "CO: f=o: " << f->IsObjective() << " adjoint sel (l): " << l.ToString(1);
     LOG_DBG2(em) << "CO: forward sol (u): " << u.ToString(0);
@@ -1503,7 +1539,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   {
     // calc 1/2 Re{j omega psi^R Q psi^*} where Q is the grad_n matrix B applied at some points L
     // this is the global element solution, indexed by equation number
-    Vector<complex<double> > u_glob = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
+    Vector<complex<double> > u_glob = forward.Get(excite)->GetComplexVector(StateSolution::RAW_VECTOR);
     // here we store Q*u^* as we have to determine the nodal entries by count
     Vector<complex<double> > q_u_glob(u_glob.GetSize());
     SetEnergyFluxVector(f, u_glob, false, q_u_glob);
@@ -1674,20 +1710,158 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     */
   }
 
-  double ErsatzMaterial::CalcEigenvalue(Function* f, bool derivative)
+  void ErsatzMaterial::SortEigenvalues()
   {
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY);
     EigenFrequencyDriver* driver = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver());
+    Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
+
+    LOG_DBG(em) << "SE ev.it=" << ev_.current_iter << " it=" << currentIteration;
+
+    assert(!ev_.last.IsEmpty()); // Init already called
+    if(ev_.current_iter == this->currentIteration) // at leas in debug we might be called multiple times, this kills permutation!
+      return;
+
+    assert(ev_.last.GetSize() == efs.GetSize());
+
+    // apply the permutation
+    Vector<double> pefs(efs.GetSize());
+    for(unsigned int i = 0; i < efs.GetSize(); i++)
+      pefs[i] = efs[ev_.permutation[i]];
+
+    // the idea to detect mode switching is the following:
+    // assume at iteration k two modes a_k and b_k with close eigenvalues
+    // if b_(k-1) is closer to a_k than a_(k-1) we presume mode switching
+    //
+    // what we need to do, is to identify clusters of close eigenvalues. Note
+    // that these might have arbitrary multiplicity and also the number of clusters is arbitrary
+    //
+    // It is OK do operate here on the level of eigenvalues and optimize for the scaled frequencies later
+
+    // identify clusters
+    StdVector<StdVector<unsigned int > > cluster; // the content is the index within the efs vector from Arpack
+
+    double close_enough = 1e-3; // relatively ev-distance. Note that the eigenfrequencies are squared
+
+    for(unsigned int s = 0; s < pefs.GetSize(); s++) // slow variable
+    {
+      double sv = pefs[s]; // slow value
+      for(unsigned int f = s+1; f < pefs.GetSize(); f++) // fast variable
+      {
+        if(std::abs((sv-pefs[f])/sv) < close_enough) // relative delta value
+        {
+          // mode s and mode f are close enough. No check if we have a new cluster
+
+          // search within all clusters of we are close to the first pair.
+          // Assume we don't need to check against all pairs in the cluster
+          bool new_cluster = true; // speculative
+          for(unsigned int c = 0; c < cluster.GetSize(); c++)
+          {
+            if(std::abs((sv-pefs[cluster[c].First()])/sv) < close_enough)
+            {
+              // be conservative and do not assume too much structure of the cluster. Check for any mode if it is unique
+              if(!cluster[c].Contains(s))
+                cluster[c].Push_back(s);
+              if(!cluster[c].Contains(f))
+                cluster[c].Push_back(f);
+              assert(cluster[c].IsUnique());
+              new_cluster = false;
+              LOG_DBG(em) << "SEV: iter=" << currentIteration << " identify cluster: s=" << s << " f=" << f << " sv=" << sv << " fv=" << pefs[f] << " extend cluster -> " << cluster[c].ToString();
+            }
+          }
+          if(new_cluster)
+          {
+            cluster.Resize(cluster.GetSize() + 1);
+            cluster.Last().Push_back(s); // add the slow index
+            cluster.Last().Push_back(f); // add the fast index, we always need pairs
+            LOG_DBG(em) << "SEV: iter=" << currentIteration << " identify cluster: s=" << s << " f=" << f << " sv=" << sv << " fv=" << pefs[f] << " new cluster -> " << cluster.Last().ToString();
+          }
+        }
+      }
+    }
+
+    StateSolution current(this);
+
+    // investigate within each cluster the optimal permutation
+    for(unsigned int c = 0; c < cluster.GetSize(); c++)
+    {
+      // we find within a cluster/ multiplicity for each mode its closest preceding mode.
+      // then the pair is removed from the multiplicity and we continue up to all pairs are removed.
+      // Note that a "pair" here is even likely to be (i,i) with size 1 when we have multiple evs but no mode switching!
+      StdVector<unsigned int>& multiplicity = cluster[c];
+
+      while(multiplicity.GetSize() > 1) // as long as no pair is left which might switch. Consider a multiplicity of 3
+      {
+        for(unsigned int s = 0; s < multiplicity.GetSize(); s++)
+        {
+          assemble_->GetAlgSys()->GetEigenMode(ev_.permutation[multiplicity[s]]);
+          current.Read(StateSolution::RAW_VECTOR, pde, MECH, true);
+          // diff norm to last mode of the same number
+          double same = NormL2(current.GetVector(StateSolution::RAW_VECTOR), ev_.last[multiplicity[s]]->GetVector(StateSolution::RAW_VECTOR));
+
+          // candidate of the best pair
+          double       closest_val = same;
+          unsigned int closest_idx = s;
+
+          for(unsigned int f = s+1; f < multiplicity.GetSize(); f++) // we compare also against our own predecessor above via 'same'
+          {
+            // diff norm to last mode of the other number
+            double other = NormL2(current.GetVector(StateSolution::RAW_VECTOR), ev_.last[multiplicity[f]]->GetVector(StateSolution::RAW_VECTOR));
+
+            // do we find a better pair?
+            if(other < 0.99 * closest_val)
+            {
+              closest_val = other;
+              closest_idx = f;
+            }
+          }
+
+          // mode switching?
+          if(closest_idx != s)
+          {
+            unsigned int civ = multiplicity[closest_idx]; // closest_idx value - we need it when erasing
+
+            unsigned int save                = ev_.permutation[multiplicity[s]];
+            ev_.permutation[multiplicity[s]] = ev_.permutation[civ];
+            ev_.permutation[civ]             = save;
+
+            LOG_DBG(em) << "SEV: iter=" << currentIteration << " mode switch " << multiplicity[s] << " vs. " << civ << " s=" << s << " ci=" << closest_idx << " -> " << ev_.permutation.ToString();
+
+            multiplicity.Erase(s);
+            multiplicity.Erase(multiplicity.Find(civ)); // Erase(s) destroys the structure. If closest_idx was the last idx the first Erase() makes the list too short
+          }
+          else
+          {
+            LOG_DBG(em) << "SEV: iter=" << currentIteration << " no switching of mode " << multiplicity[s] << " s=" << s;
+            multiplicity.Erase(s);
+          }
+          assert(ev_.permutation.IsUnique());
+        }
+      }
+    }
+
+    ev_.SaveState(); // sets ev_.current_iter
+  }
+
+
+  double ErsatzMaterial::CalcEigenfrequency(Function* f, bool derivative)
+  {
+
+    // for the bloch mode case this might be complex!
+    // the eigenvalues lambda = (2*pi*ef)^2 !!
+    EigenFrequencyDriver* driver = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver());
+    Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
+
+    // the "constructor" of ev_. We use it always, even if we don't do pertubation. ev_.pertubation is then 1:1
+    if(ev_.last.IsEmpty())
+      ev_.Init(this, efs.GetSize(), -1);
+
+    if(ev_.DoSorting())
+      SortEigenvalues();
 
     assert(f->GetEigenValueID() >= 1);
     unsigned int idx = f->GetEigenValueID() - 1; // 0-based
 
-    // for the bloch mode case this might be complex!
-    // the eigenvalues lambda = (2*pi*ef)^2 !!
-    Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
-
-    // our eigenvalue
-    double ev = std::pow(2.0 * M_PI * efs[idx], 2);
+    double freq = efs[idx];
 
     if(derivative)
     {
@@ -1695,20 +1869,26 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       // d_ev = u^T (d_K - ev d_M) u with u the mode for the i-th eigenvalue and ev the i-th eigenvalue
       // hence this is the standard CalcU1KU2() scheme
       //
+      // with ef = sqrt(ev)/(2*pi)
+      // d_ef = 1/(4*pi)*ev^-0.5 * d_ev = 1/(8*pi^2*ef) * d_ev
+      //
       // the modes are not stores via StorePDESolution() but held in the ArpackSolver
       TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , MECH, true);
 
       // stores the mode in the the solution part of algsys
-      assemble_->GetAlgSys()->GetEigenMode(idx);
+      // the pertubation is only relevant for assigning the correct mode. If no sorting this is 1:1
+      assemble_->GetAlgSys()->GetEigenMode(ev_.permutation[idx]);
 
-      Solution sol(this);
-      sol.Read(Solution::ELEMENT_VECTORS, pde, MECH, true);
+      StateSolution sol(this);
+      sol.Read(StateSolution::ELEMENT_VECTORS, pde, MECH, true);
 
-      CalcU1KU2(tf, sol.elem[MECH], MECH, sol.elem[MECH], NULL, 1.0, EIGENVALUE, f, -1, ev);
+      double factor = 1.0 / ( 8.0 * M_PI * M_PI * freq);
+      // our eigenvalue
+      double ev = std::pow(2.0 * M_PI * freq, 2);
+
+      CalcU1KU2(tf, sol.elem[MECH], MECH, sol.elem[MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }
-
-
-    return ev;
+    return freq;
   }
 
   double ErsatzMaterial::CalcProjection(Function* f, bool derivative)
@@ -2260,8 +2440,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         if(g->IsPhysical())
         {
-          lb = tf->Transform(de, DesignElement::PLAIN, de->GetLowerBound());
-          ub = tf->Transform(de, DesignElement::PLAIN, de->GetUpperBound());
+          lb = tf->Transform(de, DesignElement::PLAIN, false, de->GetLowerBound()); // no bimat
+          ub = tf->Transform(de, DesignElement::PLAIN, false, de->GetUpperBound());
           org_value = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
         }
         else
@@ -2455,9 +2635,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
   }
 
-  void ErsatzMaterial::StorePDESolution(Solutions& solutions, Excitation& excite, Function* f, unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
+  void ErsatzMaterial::StorePDESolution(StateSolutions& solutions, Excitation& excite, Function* f, unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
   {
-    Solution& sol = *(solutions.Get(excite, f, timestep, derivative));
+    StateSolution& sol = *(solutions.Get(excite, f, timestep, derivative));
     SingleVector* raw = NULL;
 
     // store solution element wise for gradient and raw vector for objective.
@@ -2470,16 +2650,16 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       if(read_sol)
       {
-        sol.Read(Solution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
-        raw = sol.Read(Solution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
+        sol.Read(StateSolution::ELEMENT_VECTORS, it->second, it->first, save_sol, derivative);
+        raw = sol.Read(StateSolution::RAW_VECTOR, it->second, it->first, save_sol, derivative);
 
         LOG_DBG2(em) << ss.str() << " sol: " << raw->ToString();
       }
 
       if(read_rhs)
       {
-        sol.Read(Solution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
-        LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(Solution::RHS_VECTOR)->ToString();
+        sol.Read(StateSolution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
+        LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
       }
     }
   }
@@ -2703,12 +2883,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // save the "pseudo loading" which is the selection as the rhs for the adjoint
     // This is exactly what has been constructed. Not that for an adjoint RHS it needs
     // post processing.
-    adjoint.Get(excite, f)->Read(Solution::SEL_VECTOR, pde);
+    adjoint.Get(excite, f)->Read(StateSolution::SEL_VECTOR, pde);
     if (!alter_rhs)
       assemble_->GetLinForms() = org_forms;
 
     LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
-        << " sel=" << adjoint.Get(excite, f)->GetVector(Solution::SEL_VECTOR)->ToString(1);
+        << " sel=" << adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)->ToString(1);
 
   }
   void ErsatzMaterial::ConstructRealAdjointRHS(Excitation& excite, Function* f)
@@ -2718,7 +2898,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       case Function::OUTPUT:
       {
-        Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(Solution::SEL_VECTOR);
+        Vector<double>& l = adjoint.Get(excite, f)->GetRealVector(StateSolution::SEL_VECTOR);
         rhs.Resize(l.GetSize());
         rhs = l * -1.0;
         break;
@@ -2747,13 +2927,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   void ErsatzMaterial::ConstructComplexAdjointRHS(Excitation& excite, Function* f)
   {
     // we handle only complex cases
-    Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(Solution::RAW_VECTOR);
-    Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(Solution::SEL_VECTOR);
+    Vector<complex<double> >& u = forward.Get(excite)->GetComplexVector(StateSolution::RAW_VECTOR);
+    Vector<complex<double> >& l = adjoint.Get(excite, f)->GetComplexVector(StateSolution::SEL_VECTOR);
     LOG_DBG2(em) << "AdjustComplexAdjointRHS: u = " << u.ToString();
     LOG_DBG2(em) << "AdjustComplexAdjointRHS: l = " << l.ToString();
 
     // create a OLAS vector
-    Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(Solution::RHS_VECTOR);
+    Vector<complex<double> >& rhs = adjoint.Get(excite, f)->GetComplexVector(StateSolution::RHS_VECTOR);
     rhs.Resize(u.GetSize());
     switch(f->GetType())
     {
@@ -2781,8 +2961,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Function::CONJUGATE_COMPLIANCE: // rhs is from original excitation, we stored it in forward...rhs
       {
-        forward.Get(excite)->Read(Solution::RHS_VECTOR, pde); // set
-        Vector<complex<double> >& org_rhs = forward.Get(excite)->GetComplexVector(Solution::RHS_VECTOR);// read
+        forward.Get(excite)->Read(StateSolution::RHS_VECTOR, pde); // set
+        Vector<complex<double> >& org_rhs = forward.Get(excite)->GetComplexVector(StateSolution::RHS_VECTOR);// read
         assert(org_rhs.GetSize() == u.GetSize());
 
         // the actual rhs for the adjoint pde is org_rhs * conj(u) -> this is only stored in OLAS!!!
@@ -2832,6 +3012,53 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     else
       ConstructRealAdjointRHS(excite, f);
   }
+
+EigenvalueState::EigenvalueState()
+{
+  current_iter = -1;
+  opt = NULL;
+  sort_tol = -1.0;
+}
+
+void EigenvalueState::Init(ErsatzMaterial* opt_, unsigned int modes, int iter)
+{
+  assert(last.IsEmpty()); // call only once
+  opt = opt_;
+
+  if(opt->optParamNode->Has("eigenvalue/sort"))
+    sort_tol = opt->optParamNode->Get("eigenvalue/sort/tol")->As<double>();
+
+  LOG_DBG(em) << "ES:I eigenvalues=" << opt->optParamNode->Has("eigenvalue") << " tol=" << sort_tol << " modes=" << modes << " iter=" << iter << " ci=" << opt->GetCurrentIteration();
+
+  // the "constructor"
+  last.Resize(modes);
+  permutation.Resize(modes);
+
+  for(unsigned int i = 0; i < modes; i++)
+  {
+    last[i] = new StateSolution(opt);
+    opt->pde->GetAssemble()->GetAlgSys()->GetEigenMode(i);
+    last[i]->Read(StateSolution::RAW_VECTOR, opt->pde, Optimization::MECH, true); // it is save to have this for the first comparison with "last"
+    permutation[i] = i; // default is no permutation
+  }
+
+  current_iter = iter;
+}
+
+void EigenvalueState::SaveState()
+{
+  LOG_DBG(em) << "ES:SS ev.ci=" << current_iter << " opt->ci " << opt->GetCurrentIteration();
+  assert(current_iter == 0 || (current_iter != opt->GetCurrentIteration())); // in the init case this is true
+
+  // only update if we are really in the next iteration! Note that we might have arbitrary multiplicity
+  for(unsigned int i = 0; i < last.GetSize(); i++) // the number of modes shall be the same!
+  {
+    opt->pde->GetAssemble()->GetAlgSys()->GetEigenMode(permutation[i]);
+    last[i]->Read(StateSolution::RAW_VECTOR, opt->pde, Optimization::MECH, true);
+  }
+
+  current_iter = opt->GetCurrentIteration();
+}
 
 
 // template instantiation stuff

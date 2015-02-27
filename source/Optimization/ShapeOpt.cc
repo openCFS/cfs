@@ -203,7 +203,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
   return 0.0;
 }
 
-void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
+void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
   assert(false);
   /* FIXME
   StdVector<double> der; // solution
@@ -450,7 +450,7 @@ void ShapeOpt::CalcMinusU1dKU2(Solutions& forward, Solutions& adjoint, Objective
   */
 }
 
-void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, double w){
+void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constraint, double w){
   assert(true);
   /* FIXME
   int np(shapedesign->GetNumberOfAuxParameters());
@@ -486,7 +486,7 @@ void ShapeOpt::CalcUdF(Solutions& adjoint, Objective* f, Condition* constraint, 
     for(unsigned int t = 0; t < timesteps; ++t){
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(t+1)); // GetPressureFactor uses this
       parser->SetValue(MathParser::GLOB_HANDLER, "step", t+1);
-      Solution* u = adjoint.Get(ex, f, t);
+      StateSolution* u = adjoint.Get(ex, f, t);
       StdVector<SingleVector*>* u_vec = &u->gridelem[MECH];
       
       Excitation& excite = me->excitations[ex];
@@ -698,10 +698,10 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
   return result;
 }
 
-void ShapeOpt::StorePDESolution(Solutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
+void ShapeOpt::StorePDESolution(StateSolutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
   ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep, derivative)->Read(Solution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
+    solutions.Get(excite, f, timestep, derivative)->Read(StateSolution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
   }
 }
 

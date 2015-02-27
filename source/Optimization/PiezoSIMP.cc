@@ -166,7 +166,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
   Matrix<T> mat(all_p[0]->GetSize(), all_p[0]->GetSize()); // store K_pp
 
   // define our new adjont RHS
-  Vector<T> rhs(forward.Get(excite)->GetVector(Solution::RHS_VECTOR)->GetSize()); // is initialized
+  Vector<T> rhs(forward.Get(excite)->GetVector(StateSolution::RHS_VECTOR)->GetSize()); // is initialized
   // TODO: up to now the rhs is not PDE specific but for the whole system!!
 
   Vector<T> mat_vec(all_p[0]->GetSize()); // for the temporary K_pp * p 
@@ -276,9 +276,9 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       int                 res_idx = -1; // we can write the details as special resul by the detail
 
       // the standard adjoint solution (u1 in the gradient)
-      Solution* adj = adjoint.Get(excite, f);
+      StateSolution* adj = adjoint.Get(excite, f);
       // the solution (u2 in the gradient)
-      Solution* sol = forward.Get(excite, NULL);
+      StateSolution* sol = forward.Get(excite, NULL);
 
 
       // sol^T A' sol^* only for elec energy = p^T K_pp' p (real) or p^T K_pp' p^* (harmonic)

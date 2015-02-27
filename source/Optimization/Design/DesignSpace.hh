@@ -373,18 +373,22 @@ namespace CoupledField
        void SetBiMaterial(const std::string& material) { bimaterial_ = material; }
 
        bool HasBiMaterial() const;
+
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material */
-       BaseMaterial* GetBiMaterial(const MaterialClass mc);
+       PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
 
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
 
      private:
+
+       /** the label for the info.xml */
        std::string bimaterial_;
-       // old bimaterial stuff
-       StdVector<std::pair<BaseMaterial*, MaterialClass> > materials_;
+
+       /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
+       std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials_;
      };
      
      /** Get DesignRegion.  */
@@ -392,8 +396,8 @@ namespace CoupledField
 
      DesignRegion* GetRegion(RegionIdType id, MultiMaterial* mm, bool throw_exception = true);
 
-     /** Convenience function */
-     BaseMaterial* GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception = true);
+     /** try to identify the design by the coefficient function */
+     DesignRegion* GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg);
 
      /** This now is a vector of design and region regions[design][region].
       Design is here the unique design. */
@@ -412,7 +416,7 @@ namespace CoupledField
       * @return if the region was added or existed already */
      bool RegisterPseudoDesignRegion(RegionIdType region, DesignElement::Type dt, StdVector<DesignElement*>* write_out = NULL);
 
-     /** ErsatzMaterial::Solution::Read() needs the pseudo design elements. */
+     /** Solution::Read() needs the pseudo design elements. */
      StdVector<StdVector<DesignElement> >& GetPseudoDesignRegions() { return pseudoDesigns_; }
 
      /** Gives all used elements. This are DesignElement/FEM elements. For all designs.
@@ -453,7 +457,7 @@ namespace CoupledField
 
      /** Helper for the constructor.
       * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!
-      * @return 'lower' or what is defined by the physical lower (e.g. by physical_lower or adapt_lower)  */
+      * @return 'lower' or what is defined by the physical lower   */
      double DetermineLowerBound(PtrParamNode pn, TransferFunction* tf);
 
      /** Extracts a nodal value */

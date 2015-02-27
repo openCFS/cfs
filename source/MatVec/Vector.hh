@@ -264,7 +264,10 @@ template<typename T> class ElemStoreSol;
     //    virtual void Inner(const SingleVector& vec,Complex& s) const;
 
     //! Compute Euclidean norm of this vector object
-    Double NormL2() const;
+    double NormL2() const;
+
+    /** diff norm */
+    double NormL2(const Vector<T>& other) const;
 
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 

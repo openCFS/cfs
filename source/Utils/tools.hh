@@ -10,6 +10,8 @@
 
 namespace CoupledField {
 
+  class SingleVector;
+
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
@@ -183,7 +185,7 @@ namespace CoupledField {
   template<class TYPE, class TYPE2>
   void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
-   assert(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols());
+   assert(out.GetNumRows() == other.GetNumRows() && out.GetNumCols() == other.GetNumCols());
    for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
      for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
        out[r][c] += fac * other[r][c];
@@ -207,9 +209,11 @@ namespace CoupledField {
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
-  Double NormL2(const Double* data, const UInt size);
+  double NormL2(const Double* data, const UInt size);
 
-  Double NormL2(const Double* data, const Double* data2, const UInt size);
+  double NormL2(const Double* data, const Double* data2, const UInt size);
+
+  double NormL2(const SingleVector* data, const SingleVector* data2);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);

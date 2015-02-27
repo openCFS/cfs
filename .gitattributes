@@ -1807,7 +1807,6 @@ source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
-source/Optimization/ErsatzMaterial_Solution.cc -text
 source/Optimization/Excitation.cc -text
 source/Optimization/Excitation.hh -text
 source/Optimization/Function.cc -text
@@ -1868,6 +1867,8 @@ source/Optimization/ShapeGrad.cc -text
 source/Optimization/ShapeGrad.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
+source/Optimization/StateSolution.cc -text
+source/Optimization/StateSolution.hh -text
 source/Optimization/StressConstraint.cc -text
 source/Optimization/StressConstraint.hh -text
 source/Optimization/TopGrad.cc -text

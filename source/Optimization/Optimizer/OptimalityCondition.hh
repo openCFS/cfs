@@ -28,7 +28,7 @@ namespace CoupledField
       /** This destructor does nothing but Optimizer has a virtual destructor */
       ~OptimalityCondition() { } 
       
-      virtual std::string LogFileHeader();
+      virtual void LogFileHeader(Optimization::Log& log);
 
       virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 

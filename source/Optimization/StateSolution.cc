@@ -1,5 +1,6 @@
 #include <map>
 
+#include "Optimization/StateSolution.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "Domain/Domain.hh"
@@ -14,17 +15,17 @@ using namespace std;
 
 namespace CoupledField {
 
-DECLARE_LOG(emsol)
-DEFINE_LOG(emsol, "ersatzMaterialSolutions")
+DECLARE_LOG(statesol)
+DEFINE_LOG(statesol, "stateSolution")
 
-ErsatzMaterial::Solutions::Solutions()
+StateSolutions::StateSolutions()
 {
   this->em_ = NULL;
   forward_data_ = NULL;
   isForward = false;
 }
 
-ErsatzMaterial::Solutions::~Solutions()
+StateSolutions::~StateSolutions()
 {
   StdVector<Function*> funcs = GetFunctions();
   for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
@@ -37,12 +38,12 @@ ErsatzMaterial::Solutions::~Solutions()
   }
 }
 
-void ErsatzMaterial::Solutions::Init(ErsatzMaterial* em)
+void StateSolutions::Init(ErsatzMaterial* em)
 {
   this->em_ = em;
 }
 
-void ErsatzMaterial::Solutions::Init(Function* f)
+void StateSolutions::Init(Function* f)
 {
   assert(em_ != NULL);
 
@@ -70,7 +71,7 @@ void ErsatzMaterial::Solutions::Init(Function* f)
 }
 
 
-ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
+StateSolutions::Unit::Unit(ErsatzMaterial* em)
 {
   // we have to delete the old data before overwriting with new stuff!
   for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
@@ -80,10 +81,10 @@ ErsatzMaterial::Solutions::Unit::Unit(ErsatzMaterial* em)
   data.Resize(em->me->excitations.GetSize());
   
   for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
-    data[i] = new Solution(em);
+    data[i] = new StateSolution(em);
 }
 
-ErsatzMaterial::Solutions::Unit::~Unit()
+StateSolutions::Unit::~Unit()
 {
   for(unsigned int i = 0, s = data.GetSize(); i < s; ++i)
   {
@@ -92,17 +93,17 @@ ErsatzMaterial::Solutions::Unit::~Unit()
   }
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(Excitation& excitation, Function* f, unsigned int timestep, const DERIVType derivative)
+StateSolution* StateSolutions::Get(Excitation& excitation, Function* f, unsigned int timestep, const DERIVType derivative)
 {
-  Solution* sol = Get(excitation.index, f, timestep, derivative);
-  LOG_DBG2(emsol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative
+  StateSolution* sol = Get(excitation.index, f, timestep, derivative);
+  LOG_DBG2(statesol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative
                   << " -> rhs=" << sol->ToString();
   return sol;
 }
 
-ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, Function* f, unsigned int timestep, const DERIVType derivative)
+StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned int timestep, const DERIVType derivative)
 {
-  LOG_DBG2(emsol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative << " iF=" << isForward;
+  LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative << " iF=" << isForward;
 
   if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
     if(forward_data_ == NULL){
@@ -121,13 +122,13 @@ ErsatzMaterial::Solution* ErsatzMaterial::Solutions::Get(int excitation_index, F
   }
 }
 
-StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
+StdVector<Function*> StateSolutions::GetFunctions() const
 {
   StdVector<Function*> result;
 
   for(map<Function*, StdVector<StdVector<Unit*> > >::const_iterator it = data_.begin(); it != data_.end(); ++it)
   {
-    // LOG_DBG2(emsol) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
+    // LOG_DBG2(statesol) << "GetFunctions(): f=" << (it->first == NULL ? "NULL" : it->first->ToString());
     if(it->first != NULL)
       result.Push_back(it->first);
   }
@@ -135,7 +136,7 @@ StdVector<Function*> ErsatzMaterial::Solutions::GetFunctions() const
   return result;
 }
 
-ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)
+StateSolution::StateSolution(ErsatzMaterial* em)
 {
   this->em_ = em;
   this->raw = NULL;
@@ -143,13 +144,13 @@ ErsatzMaterial::Solution::Solution(ErsatzMaterial* em)
   this->select = NULL;
 }
 
-ErsatzMaterial::Solution::~Solution()
+StateSolution::~StateSolution()
 {
   delete raw;
   delete rhs;
   delete select;
 
-  std::map<Application, StdVector<SingleVector* > >::iterator elem_iter;
+  std::map<Optimization::Application, StdVector<SingleVector* > >::iterator elem_iter;
   for(elem_iter = elem.begin(); elem_iter != elem.end(); elem_iter++)
   {
     StdVector<SingleVector* >& data = elem_iter->second;
@@ -160,27 +161,27 @@ ErsatzMaterial::Solution::~Solution()
   }
 }
 
-SolutionType ErsatzMaterial::Solution::GetSolutionType(SinglePDE* pde, Application app)
+SolutionType StateSolution::GetSolutionType(SinglePDE* pde, Optimization::Application app)
 {
   switch(app)
   {
-  case NO_APP: // up to now
+  case Optimization::NO_APP: // up to now
     assert(pde != NULL);
     return pde->GetNativeSolutionType();
-  case MECH:
+  case Optimization::MECH:
     return MECH_DISPLACEMENT;
-  case ELEC:
+  case Optimization::ELEC:
     return ELEC_POTENTIAL;
-  case HEAT:
+  case Optimization::HEAT:
     return HEAT_TEMPERATURE;
-  case ACOUSTIC:
+  case Optimization::ACOUSTIC:
     return ACOU_POTENTIAL;
-  case LAPLACE:
+  case Optimization::LAPLACE:
     assert(false);
     break;
     // app = MECH;
     //solt = MECH_DISPLACEMENT;
-  case LBM:
+  case Optimization::LBM:
     return LBM_PROBABILITY_DISTRIBUTION;
   default:
     EXCEPTION("Solution type not implemented");
@@ -191,14 +192,14 @@ SolutionType ErsatzMaterial::Solution::GetSolutionType(SinglePDE* pde, Applicati
 
 
 
-std::string ErsatzMaterial::Solution::ToString()
+std::string StateSolution::ToString()
 {
   std::stringstream ss;
   ss <<  "raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
   return ss.str();
 }
 
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, Application app, bool save_sol, DERIVType derivative)
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
 {
   if (em_->complex_)
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
@@ -207,7 +208,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
 }
 
 /** Writes the solution (raw vector) back to the pde */
-void ErsatzMaterial::Solution::Write(SinglePDE* pde)
+void StateSolution::Write(SinglePDE* pde)
 {
   if (em_->complex_)
     Write<std::complex<double> >(pde);
@@ -216,7 +217,7 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde)
 }
 
 template <class T>
-void ErsatzMaterial::Solution::Write(SinglePDE* pde)
+void StateSolution::Write(SinglePDE* pde)
 {
   // TODO make robust for LBM
   if(raw != NULL)
@@ -228,11 +229,11 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde)
     *(fe->GetSingleVector()) = *raw;
   }
   else
-    LOG_DBG2(emsol) << "S:W raw not written as it was not set";
+    LOG_DBG2(statesol) << "S:W raw not written as it was not set";
 }
 
 
-void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
 {
   if(domain->GetDriver()->IsComplex())
     Write<complex<double> >(pde, sol, f, time_step, excitations);
@@ -241,7 +242,7 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f
 }
 
 template <class T>
-void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
 {
   if(excitations.GetSize() == 1)
   {
@@ -250,7 +251,7 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f
   else
   {
     assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
-    Solutions::Unit* unit = sol.data_[f][NO_DERIVTYPE][time_step];
+    StateSolutions::Unit* unit = sol.data_[f][NO_DERIVTYPE][time_step];
     assert(unit->data.GetSize() == excitations.GetSize());
 
     Vector<T> sum(unit->data[0]->raw->GetSize());
@@ -258,7 +259,7 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f
 
     for(unsigned int ex = 0; ex < excitations.GetSize(); ex ++)
     {
-      Solution* s =unit->data[ex];
+      StateSolution* s =unit->data[ex];
       sum.Add((T) excitations[ex].normalized_weight, *(s->raw));
     }
     Write(pde, &sum);
@@ -266,9 +267,9 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, Solutions& sol, Function* f
 }
 
 
-void ErsatzMaterial::Solution::Write(SinglePDE* pde, SingleVector* vec)
+void StateSolution::Write(SinglePDE* pde, SingleVector* vec)
 {
-  LOG_DBG2(emsol) << "S:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
+  LOG_DBG2(statesol) << "S:W pde=" << pde->GetName() << " vec=" << vec->ToString(1);
 
   // get the coefficients from the fefunction
   SingleVector* sys = pde->GetFeFunction(pde->GetNativeSolutionType())->GetSingleVector();
@@ -277,13 +278,13 @@ void ErsatzMaterial::Solution::Write(SinglePDE* pde, SingleVector* vec)
   // let the assignment operator do the job
   *sys = *vec;
 
-  LOG_DBG3(emsol) << "S:W sys -> " << sys->ToString(0);
+  LOG_DBG3(statesol) << "S:W sys -> " << sys->ToString(0);
 }
 
 template <class T>
-SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st, bool create)
+SingleVector* StateSolution::GetVector(StorageType st, bool create)
 {
-  LOG_DBG2(emsol) << "S:GV st=" << st << ToString() << " create=" << create;
+  LOG_DBG2(statesol) << "S:GV st=" << st << ToString() << " create=" << create;
   switch(st)
   {
   case RAW_VECTOR:
@@ -311,34 +312,34 @@ SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st, bool create)
   EXCEPTION("false");
 }
 
-SingleVector* ErsatzMaterial::Solution::GetVector(StorageType st)
+SingleVector* StateSolution::GetVector(StorageType st)
 {
   // as create is false, it makes no difference of we use the double or complex variant
   return GetVector<double>(st, false);
 }
 
-Vector<double>& ErsatzMaterial::Solution::GetRealVector(StorageType st)
+Vector<double>& StateSolution::GetRealVector(StorageType st)
 {
   // we know what we want - hence we can create the result on the fly
   return dynamic_cast<Vector<double>& >(*GetVector<double>(st, true));
 }
 
-Vector<complex<double> >& ErsatzMaterial::Solution::GetComplexVector(StorageType st)
+Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
 {
   return dynamic_cast<Vector<complex<double> >& >(*GetVector<complex<double> >(st, true));
 }
 
 template <class T>
-SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, Application app, bool save_sol, DERIVType derivative)
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
 {
   assert(derivative == NO_DERIVTYPE); // would change solt!
 
   SolutionType solt = GetSolutionType(pde, app);
 
-  if(app == LAPLACE)
+  if(app == Optimization::LAPLACE)
   {
     assert(false); // FIXME
-    app = MECH;
+    app = Optimization::MECH;
     solt = MECH_DISPLACEMENT;
   }
 
@@ -374,10 +375,10 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
       if(save_sol)
       {
         // we need to copy the solution from the algebraic system to the feFunction
-        LOG_DBG3(emsol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString();
+        LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString();
         Vector<T> tmpSol;
         fe->GetSystem()->GetSolutionVal(tmpSol, fe->GetFctId(), true); // set idbc
-        LOG_DBG3(emsol) << "S:R: sys sol=" << tmpSol.ToString();
+        LOG_DBG3(statesol) << "S:R: sys sol=" << tmpSol.ToString();
         dynamic_cast<Vector<T>& >(*(fe->GetSingleVector())) = tmpSol;
       }
 
@@ -426,7 +427,9 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
       SingleVector* vec = GetVector<T>(st, true); // create when needed
       if(st == RAW_VECTOR)
       {
-        *vec = *fe->GetSingleVector();
+        // we need to copy the solution from the algebraic system to the feFunction
+        // LOG_DBG3(statesol) << "S:R: fe sol=" << fe->GetSingleVector()->ToString(); // data will be outdated
+        fe->GetSystem()->GetSolutionVal(*vec, fe->GetFctId(), true); // set idbc
         assert(derivative == NO_DERIVTYPE);
         // if not, the above might work ?!
         // FIXME **tmp = pde->getTimeStepping()->GetDeriveMap()[derivative]; // assigning, data is copied
@@ -434,7 +437,7 @@ SingleVector* ErsatzMaterial::Solution::Read(StorageType st, SinglePDE* pde, App
       else
         fe->GetSystem()->GetRHSVal(*vec, fe->GetFctId());
 
-      LOG_DBG3(emsol) << "S:R: st=" << st << " vec=" << vec->ToString();
+      LOG_DBG3(statesol) << "S:R: st=" << st << " vec=" << vec->ToString();
 
       return vec;
     }

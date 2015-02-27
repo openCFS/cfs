@@ -18,6 +18,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/StateSolution.hh"
 #include "Utils/StdVector.hh"
 #include "boost/tuple/tuple.hpp"
 
@@ -45,6 +46,35 @@ class SinglePDE;
 class TransferFunction;
 struct SurfElem;
 
+
+/** This is a helper for eigenvalue problems, collecting the required data */
+struct EigenvalueState
+{
+  EigenvalueState();
+
+  /** @param iter to what current_iter shall be set. Sets also sort_tol */
+  void Init(ErsatzMaterial* em, unsigned int modes, int iter);
+
+  /** save the state, store current_iter and consider permutation */
+  void SaveState();
+
+  bool DoSorting() const { return sort_tol > 0.0; }
+
+  /** Helper data for SortEigenvalues(). Initialized in SortEigenvalues(), beforehand we don't have the data. */
+  StdVector<StateSolution*> last;
+
+  /** Helper for SortEigenvalues() - implements the permutation after mode switching. When sorting is not enabled this is 0,1, ...n */
+  StdVector<unsigned int> permutation; // The "constructor" is in SortEigenvalues();
+
+  /** we must not compare multiple times within one iteration, otherwise we would switch back immediately*/
+  int current_iter;
+
+  ErsatzMaterial* opt;
+
+  double sort_tol;
+};
+
+
 /** Base for optimization where the design variable is correlated to finite elements.
  * The classical case is SIMP, where one optimizes for a pseudo density. The sub-classes
  * extend this idea to more complex stuff.
@@ -54,8 +84,8 @@ class ErsatzMaterial: public Optimization
 {
 public:
 
-  // forward declaration
-  class Solutions;
+  /** initially Solution was a subclass of ErsatzMaterial but then separated */
+  friend class StateSolution;
 
   /** Up to now w/o parameters */
   ErsatzMaterial();
@@ -101,174 +131,7 @@ public:
 
   OptimizationMaterial* GetMaterial() { return material; }
 
-  /** This class holds the solution of the PDE. It is in a class such that it
-   * helps to encapsulate real and complex solutions. Note that the Piezo
-   * has other solutions! */
-  class Solution
-  {
-  public:
-
-    Solution(ErsatzMaterial* em);
-
-    ~Solution();
-
-    typedef enum
-    {
-      ELEMENT_VECTORS = 0, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR, GRIDELEM_VECTORS
-    } StorageType;
-
-    static SolutionType GetSolutionType(SinglePDE* pde, Application app = NO_APP);
-
-    /** Copies the solution for the pde in our own storage.
-     * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
-     * For manual adjoint stuff you might have to do SaveSolution() first!
-     * In ELEMENT_VECTORS also the registered pseudo elements are considered.
-     * @param st if we copy the vector as RAW_VECTOR or element wise
-     * @param pde will me mech in SIMP and also elec in PiezoSIMP
-     * @param app redundant to pde. NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
-     * @param save_sol when an adjoint system was solved, one has to call
-     *        "SaveSolution()" in the pde such that we can extract it element wise.
-     *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
-     * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-    SingleVector* Read(StorageType st, SinglePDE* pde, Application app = NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
-
-    template<class T>
-    SingleVector* Read(StorageType st, SinglePDE* pde, Application app,  bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
-    
-    /** Writes the solution (raw vector) back to the pde */
-    void Write(SinglePDE* pde);
-
-    static void Write(SinglePDE* pde, SingleVector* vec);
-
-    /** average the raw solutions by the excitations.
-     * @param excitations average or solution by one entry only. Is strictly speaking already known
-     * by the em_ parameter but is more explicit this way.  */
-    static void Write(SinglePDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
-
-    /** return an existing nodal vector.
-     * As the type is not known we cannot create on the fly.
-     * @param st RHS_VECTOR, RAW_VECTOR, SEL_VECTOR
-     * asser() if vector exists (debug mode, NULL in release) */
-    SingleVector* GetVector(StorageType st);
-
-    /** return (eventually create) a nodal vector.
-     *  creates what is desired when the vector does not exist yet and hence always return a vector.
-     * @see GetVector() */
-    Vector<double>& GetRealVector(StorageType st);
-
-    /** @see GetRealVector() */
-    Vector<std::complex<double> >& GetComplexVector(StorageType st);
-
-    /** For debug output */
-    std::string ToString();
-
-    /** This is an element wise storage of the solution
-     * the Application shall be MECH or ELEC */
-    std::map<Application, StdVector<SingleVector*> > elem;
-
-    /** This is an element wise storage of the solution
-     * considering all elements from the grid instead of all design elements only
-     * needed by shape optimization */
-    std::map<Application, StdVector<SingleVector*> > gridelem;
-
-  private:
-
-    template<class T>
-    void Write(SinglePDE* pde);
-
-    template<class T>
-    static void Write(SinglePDE* pde, ErsatzMaterial::Solutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
-
-    /** common helper for the Get*Vector() stuff */
-    template<class T>
-    SingleVector* GetVector(StorageType st, bool create);
-
-    /** This is the algsys solution vector. */
-    SingleVector* raw;
-    //std::map<Application, SingleVector* > raw;
-
-    /** This stores the right hand sides in raw format.
-     * In the adjoint case this might be based on select for output like objectives.
-     * In the forward case this stores the rhs from the forward excitation to perform multiple
-     * load cases. */
-    SingleVector* rhs;
-    // std::map<Application, SingleVector* > rhs;
-
-    /** For output like objectives this stores the selection l resp. L which is found by
-     * an artificial load-case in the adjoint section. Otherwise it is not used.
-     * This kind of base for the rhs information which is additionally multiplied by -1, -1 u^*, ...*/
-    SingleVector* select;
-    //std::map<Application, SingleVector* > select;
-
-    /** Reference to our optimization problem */
-    ErsatzMaterial* em_;
-  };
-
-
-  /** As the solutions come for multiple excitations in sets we store the list and the
-   * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1 */
-  class Solutions
-  {
-  public:
-    friend class Solution;
-
-    Solutions();
-
-    ~Solutions();
-
-    /** init when em is known */
-    void Init(ErsatzMaterial* em);
-
-    /** The solution is identified by Function, excitation index (0-based) and time step.
-     * @param f the function is NULL for the forward problems, for the adjoints it needs to be given! */
-    Solution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
-
-    Solution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
-
-    /** Returns the currently stored functions. Empty for forward */
-    StdVector<Function*> GetFunctions() const;
-
-    /** Return whether this is the Solution of the forward problem */
-    bool IsForward(){ return(isForward); };
-
-    /** Set whether this Solution is the Solution of the forward problem */
-    void SetIsForward(bool forward){ isForward = forward; };
-
-  private:
-
-    /** On the fly init when the function has not been used before */
-    void Init(Function* f);
-
-    /** Contain the excitations and summarized multiple data for one problem.
-     * For almost all cases there is only one problem. */
-    struct Unit
-    {
-      Unit() { }; // only for compiler
-
-      Unit(ErsatzMaterial* em);
-
-      ~Unit();
-
-      /* Contains at least one element, more when doing multiple excitations.*/
-      StdVector<Solution*> data;
-    };
-
-    /** Stores the excitation by function and by derivative and time step.
-     * data_[function][derivative][timestep]
-     * Stored are units which contains eventually multiple excitations.
-     * @see Unit() */
-    std::map<Function*, StdVector<StdVector<Unit*> > > data_;
-
-    // if this Solutions is forward, it does not use the value in function in Get
-    bool isForward;
-
-    // Pointer to data[NULL] to speed up things
-    StdVector<StdVector<Unit*> >* forward_data_;
-
-    ErsatzMaterial* em_;
-  };
-  
-  protected:
+protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
   virtual void StoreResults(double step_val);
@@ -281,7 +144,7 @@ public:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD,
-    EIGENVALUE    /*!< The derivative is u^T ( K' - ev M') u */
+    EIGENFREQ    /*!< The derivative is u^T ( K' - ev M') u */
   };
 
   /*!< add <u, K' u> which is in the real case as STANDARD
@@ -403,8 +266,11 @@ public:
   /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
   double CalcProjection(Function* f, bool derivative);
 
-  /** Standard Eigenvalue problem */
-  double CalcEigenvalue(Function* f, bool derivative);
+  /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
+  double CalcEigenfrequency(Function* f, bool derivative);
+
+  /** Helper method that sorts the eigenvalues to handle mode switching by resorting accoring to the mode shape */
+  void SortEigenvalues();
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
@@ -464,22 +330,10 @@ public:
    * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
   double CalcGlobalFunction(Function* f, bool derivative,  const Vector<double>* von_mises_stress = NULL);
 
-  /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
-  Solutions forward;
-  /** Here we store the solution of the adjoint problem. */
-  Solutions adjoint;
-  /** do we do SIMP or FreeMat or ... */
-  Method method_;
-  /** this is the optimization->ersatzMaterial XML element */
-  PtrParamNode pn;
-  /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
-  bool assume_constant_element_matrices_;
-  /** cache the 1.0 / complete volume of the domain */
-  double volume_fraction_;
-  /** This contains our concrete material class */
-  OptimizationMaterial* material;
+  /** Add eigenvalue mode switching output
+   * @see Optimization::LogFileLine() */
+  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
-protected:
   /** Evaluates objective and constraint functiond and gradient.
    * Overloaded in PiezoSIMP for own objectives.
    * @param grad_out only used in derivative case
@@ -490,7 +344,7 @@ protected:
    * @param read_rhs is only interesting for the forward problem
    * @param save_sol set this in the adjoint problem -> see Solution::Read()
    * @param comment is just to LOG_DBG */
-  virtual void StorePDESolution(Solutions& solutions, Excitation& excite,
+  virtual void StorePDESolution(StateSolutions& solutions, Excitation& excite,
       Function* f, unsigned int timestep, bool read_sol, bool read_rhs,
       bool save_sol, DERIVType derivative, const std::string& comment);
   virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
@@ -502,24 +356,48 @@ protected:
   /** Helper that gives the physical material tensor considers bi-material */
   void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
+  /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
+  StateSolutions forward;
+
+  /** Here we store the solution of the adjoint problem. */
+  StateSolutions adjoint;
+
+  /** do we do SIMP or FreeMat or ... */
+  Method method_;
+
+  /** this is the optimization->ersatzMaterial XML element */
+  PtrParamNode pn;
+
+  /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
+  bool assume_constant_element_matrices_;
+
+  /** cache the 1.0 / complete volume of the domain */
+  double volume_fraction_;
+
+  /** This contains our concrete material class */
+  OptimizationMaterial* material;
+
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
   DesignStructure* structure_;
+
   /** This is just a shortcut for the actual dimensions (2 or 3) */
   const unsigned int dim;
+
   /** Convenience class for writing the pseudo density file*/
   DensityFile* densityFile;
+
   /** do we perform homogenization for both permittivity and permeability? */
   bool bitensor_;
 
 private:
+
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
-   * @return the product test strain diff * (K or K') * test strain diff
-   */
+   * @return the product test strain diff * (K or K') * test strain diff  */
   static double CalcHomogenizedElementProduct(ErsatzMaterial* em,
       DesignElement* de, bool derivative, Vector<double>& u1,
       Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
@@ -550,8 +428,8 @@ private:
    * @param factor factor to multiply the value by (can be excitation weight)
    * @param f objective the result is to be stored with
    * @param g constraint the result is to be stored with */
-  void CalcNewmarkDerivative(Excitation& excite, Solutions& forward,
-      Solutions& adjoint, double factor, Objective* f, Condition* g);
+  void CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward,
+      StateSolutions& adjoint, double factor, Objective* f, Condition* g);
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
   /** Set the rhs for the adjoint equation, called by assemble */
@@ -609,6 +487,8 @@ private:
   /** do we perform homogenization induced by any of the objective or constraints? */
   bool homogenization_;
 
+  /** Init the first time we call SortEigenvalue() when we know the number of ev. */
+  EigenvalueState ev_;
 };
 
 } // namespace

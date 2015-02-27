@@ -15,10 +15,17 @@ class BiLinearForm;
 /** Replaces a material data CoefFunctionConst with an ersatz material optimization version.
  * In the SIMP case this the original const material is scaled, in the bi-material it is interpolated with an additional
  * material, in multi-material it is the weighted sum of various materials and in parametric optimization the material (tensor)
- * is completely constructed out of optimization design variables. */
+ * is completely constructed out of optimization design variables.
+ * See the state! */
 class CoefFunctionOpt : public CoefFunction, public boost::enable_shared_from_this<CoefFunctionOpt>
 {
 public:
+
+  /** One of the three states for the object:
+   * OPT -> optimization and we ask DesignSpace::ApplyPhysicalDesign()
+   * ORG -> the original material CoefFunction is used as if this would be a standard CoefFunction
+   * SHADOW -> the temporary material CoefFunction is used similar to the org material */
+  typedef enum { OPT = 0, ORG = 1, SHADOW = 2 } State;
 
   /** @param orgMat the CoefFunctionConst that would be originally used to provide the material data. */
   CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat);
@@ -58,10 +65,17 @@ public:
     return form;
   }
 
-  /** flag the optimization off */
-  void SetEnable(bool val) { enabled = val; }
+  /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
+  void SetToOptimization();
 
-  /** the original material. Required if no optimization available or for SIMP and bi-material optimizaton */
+  /** only the original material CoefFunction does the job. state -> ORG */
+  void SetToOrgMaterial();
+
+  /** No optimization but use the shado material as long as the state is switched. state -> SHADOW.
+  /** Necessary for OptimizationMaterial to find basic local element matrices. */
+  void SetToShadow(PtrCoefFct shadow);
+
+  /** the original material. Required if no optimization available or for SIMP and bi-material optimization */
   PtrCoefFct orgMat;
 
 protected:
@@ -73,7 +87,10 @@ protected:
   BiLinearForm* form;
 
   /** be may switch the query of optimization off to get the real material */
-  bool enabled;
+  State state;
+
+  /** see DisableOpt() */
+  PtrCoefFct shadowMat;
 };
 
 }

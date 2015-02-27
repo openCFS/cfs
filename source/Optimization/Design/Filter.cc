@@ -69,7 +69,7 @@ void Filter::SetBeta(double val, const DesignSpace* space)
       // this is nonsense!! TODO
       // why not like
       // double mid = 0.5 * (ub + lb);
-      // double test = tf->Transform(NULL, DesignElement::PLAIN, mid);
+      // double test = tf->Transform(NULL, DesignElement::PLAIN, false, mid);
       // if(test < physical)
 
       double mid = 0.5 * (upper + lower);
