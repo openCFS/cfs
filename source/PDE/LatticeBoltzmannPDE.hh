@@ -34,6 +34,7 @@ class DesignSpace;
 using boost::numeric::ublas::compressed_matrix;
 using boost::numeric::ublas::mapped_matrix;
 using boost::numeric::ublas::generalized_vector_of_vector;
+using boost::numeric::ublas::detail::matrix_assign;
 
 
 //! Class for mechanic equation (no adaptivity)
@@ -72,13 +73,6 @@ public:
 
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
-
-  /** handle the dirty flag -> CalcResults() and Solve() */
-  void SetDirty(bool dirty) { dirty_ = dirty; }
-
-  /** actually calls LBM.
-   * Triggered also by CalcResults() if dirty_ is set */
-  void Solve();
 
   /** Sensitivity analysis (gradient) necessary for the optimization.
     Performs the missing propagation step for the sensitivity analysis. */
@@ -160,6 +154,17 @@ private:
     return index(x,y) * n_q_ + dir;
   }
 
+  inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int dir)
+  {
+    LatticeBoltzmann::PropTransform tmp = (*velocityDirections)[dir];
+    int tmp_x = x + tmp.off_x;
+    int tmp_y = y + tmp.off_y;
+    return (tmp_x < 0 || tmp_x >= (int)n_x_ || tmp_y < 0 || tmp_y >= (int)n_y_ ) ;
+  }
+
+  // testing OusideDomain()
+  void TestOutsideDomain();
+
   //! Calculate macroscopic velocities
   void CalcVelocities(shared_ptr<BaseResult> res);
 
@@ -204,16 +209,12 @@ private:
   // void d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double> & J);
   void d_propagate_d_f(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J);
 
-  void d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J,int dir);
+//  void d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J,int dir);
 
   Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
   void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
-
-  /** is solved for current "data". Cleared by Solve(). checked by CalcResults() to handle simulation w/o optimization.
-   * @see SetDirty() */
-  bool dirty_;
 
   //! Method of smoothing
   std::string method_;
@@ -281,6 +282,7 @@ private:
 
   StdVector<LatticeBoltzmann::PropTransform>* velocityDirections;
   StdVector<LatticeBoltzmannBase::Direction>* invDirections;
+  StdVector< StdVector<LatticeBoltzmann::PropTransform> >* prop_maps;
 
   /** external lbm */
   std::string executable;

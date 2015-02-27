@@ -71,6 +71,7 @@ namespace CoupledField
 
       inline StdVector<PropTransform>* GetVelocityDirections() { return &velocityDirections; }
       inline StdVector<Direction>* GetInverseDirections() { return &directionsInv; }
+      inline StdVector< StdVector<PropTransform> >* GetPropagationMaps() { return &prop_maps; }
 
     private:
 
