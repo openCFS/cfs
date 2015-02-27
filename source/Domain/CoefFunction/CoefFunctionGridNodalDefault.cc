@@ -297,10 +297,8 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::MapConservative( shared_ptr<FeSpac
     BuildNodeIdxAssoc(targetSpace);
     this->conservativeReady_ = true;
   }
-#pragma omp parallel for
   for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i){
     const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
-    #pragma omp atomic
     feFncVec[curP.first] += this->solVec_[curP.second];
   }
 }

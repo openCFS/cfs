@@ -255,6 +255,13 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
   CACHE INTERNAL "Use Metis Graph partitioning.")
 
 #-----------------------------------------------------------------------------
+# FFTW - Fastest Fourier Transform in the West (C subroutine library) 
+#-----------------------------------------------------------------------------
+OPTION(USE_FFTW
+  "Activate DFT and filtering capabilities of cfstool." 
+  ${USE_FFTW_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # CGNS - CFD General Notation System
 #-----------------------------------------------------------------------------
 OPTION(USE_CGNS "Enable support for the CFD General Notation System."
@@ -398,6 +405,7 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
@@ -703,6 +711,8 @@ ADD_SUBDIRECTORY(source/main)
 
 IF(CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
+  SET(USE_FFTW ON CACHE BOOL 
+    "Activate DFT and filtering capabilities of cfstool." FORCE)
 ENDIF(CFSTOOL)
 
 IF(CFSDAT)

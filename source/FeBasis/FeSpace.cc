@@ -177,7 +177,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
     UInt numOMPThreads = 1;
 
 #ifdef _OPENMP
-    numOMPThreads = omp_get_num_threads();
+    numOMPThreads = omp_get_max_threads();
 #endif
     lastElemNum_.Resize(numOMPThreads);
     lastElemNum_.Init(0.0);
