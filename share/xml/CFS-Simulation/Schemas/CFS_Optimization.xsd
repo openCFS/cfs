@@ -225,6 +225,25 @@
         </xsd:complexType>
       </xsd:element>
       
+      
+      <!-- bewtween the costFunction and the constraints we might define properties for eigenvalue optimizaton -->
+      <xsd:element name="eigenvalue" minOccurs="0" maxOccurs="1">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:annotation>
+              <xsd:documentation>To deal with mode setting, this block allows sorting of the eigenvector (modes) corresponding to multiple eigenvalues</xsd:documentation>
+            </xsd:annotation>
+            <xsd:element name="sort" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <!-- the closeness of eigenvalues for consdiering mode switching -->
+                <xsd:attribute name="tol" type="xsd:float" default="1e-4" use="optional"/>
+              </xsd:complexType>
+            </xsd:element>
+          </xsd:sequence>
+        </xsd:complexType>
+      </xsd:element> 
+      
+      
       <!-- constraint: e.g. <constraint type="volume" value="0.5"/> optional -->
       <xsd:element name="constraint" minOccurs="0" maxOccurs="unbounded">
         <xsd:complexType>
@@ -315,8 +334,8 @@
                 <!-- local sum of all multimaterial designs -->
                 <xsd:enumeration value="multimaterial_sum"/>
                 <xsd:enumeration value="shape_inf"/>
-                <!-- eigenvalue problem where number of of the mode is in attribute ev -->
-                <xsd:enumeration value="eigenvalue"/>
+                <!-- eigenvalue problem scaled for resonance frequency, where number of of the mode is in attribute ev -->
+                <xsd:enumeration value="eigenfrequency"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -895,18 +914,20 @@
                 <xsd:attribute name="physical_lower" use="optional" type="xsd:float"/>
                 <!-- The upper bound of the design variable -->
                 <xsd:attribute name="upper" use="optional" default="1.0" type="xsd:float"/>
-                <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
                 <xsd:attribute name="region" use="optional" type="xsd:token" default="all"/>
-                <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
-                <!-- if set true does not change the initial value. -->
-                <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
-                <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
-                <!-- If true we interpret lower as physical_lower value. Must not be concurrent with physical_lower -->
-                <xsd:attribute name="adapt_lower" use="optional" type="xsd:boolean" default="false"/>
+                
+                <!-- for bimaterial optimization this is the material for the lower bound -->
+                <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>
+                   
                 <!-- for multimaterial the material attribute is mandatory. otherwise not allowed -->
                 <xsd:attribute name="material" type="xsd:token" use="optional" />
-                <!-- KILLME FIMXE depreciated!! bimaterial optimization is optional. The value needs to be found in the material.xml -->
-                <xsd:attribute name="bimaterial" use="optional" type="xsd:token"/>
+
+                <!-- what are these attributes for? Seems to be so special that a subelement migt be the better place for them! -->
+                <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
+                <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
+                <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
+                <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
+                
               </xsd:complexType>
             </xsd:element>
             
@@ -1283,10 +1304,8 @@
         <xsd:restriction base="xsd:token">
           <!-- f(rho) = rho -->
           <xsd:enumeration value="identity"/>
-          <!-- f(rho) = rho^param; (1-rho^param) for bimaterial -->
+          <!-- f(rho) = rho^param; (1-rho)^param for bimaterial -->
           <xsd:enumeration value="simp"/>
-	  <!-- f(rho) = rho^param; (1-rho)^param for bimaterial -->
-          <xsd:enumeration value="simpVar"/>
           <xsd:enumeration value="ramp"/>
           <!-- f(rho) = param -->
           <xsd:enumeration value="fixed"/>

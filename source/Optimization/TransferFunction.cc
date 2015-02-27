@@ -183,7 +183,6 @@ bool TransferFunction::IsPenalized() const
   switch(type_)
   {
   case SIMP_TYPE:
-  case SIMP_VAR:
     return param_ != 1.0;
 
   case RAMP:
@@ -216,10 +215,13 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value, bool forBimaterial) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat, double external_value) const
 {
   assert(!(external_value != -13.456 && access == DesignElement::SMART));
   double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
+  if(lower_bimat)
+    value = 1.0 - value;
+
   double result;
   switch(type_)
   {
@@ -234,14 +236,6 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   case SIMP_TYPE:
     assert(param_ >= 0);
     result = std::pow(value, param_);
-    break;
-
-  case SIMP_VAR:
-    assert(param_ >= 0);
-    if (!forBimaterial)
-      result = std::pow(value, param_);
-    else
-      result = std::pow(1.0-value, param_);
     break;
 
   case RAMP:
@@ -259,6 +253,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     break;
     
   case HEAVISIDE:
+    assert(!lower_bimat); // first check what we do!
     // some options and the derivatives
     // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
     assert(beta_ >= 0.0);
@@ -267,6 +262,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
     break;
 
   case TANH:
+    assert(!lower_bimat); // first check what we do!
     assert(beta_ >= 0.0);
     // tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1)
     // we optionally scale the stuff when we have physical design
@@ -281,7 +277,7 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   return result;
 }     
 
-double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access, bool forBimaterial) const
+double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
   double value = de->GetValue(DesignElement::DESIGN, access);
 
@@ -292,14 +288,14 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
     switch(type_)
     {
     case NO_TYPE:
-    case IDENTITY: 
-      return 1.0;
+    case IDENTITY:
+      if(!lower_bimat)
+        return 1.0;
+      else
+        return -1.0;
 
     case SIMP_TYPE:
-          return param_ * std::pow(value, param_ - 1.0);
-
-    case SIMP_VAR:
-      if (!forBimaterial)
+      if (!lower_bimat)
         return param_ * std::pow(value, param_ - 1.0);
       else
         return - param_ * std::pow(1.0-value, param_ - 1.0);
@@ -309,11 +305,15 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
       double p2 = param_ * param_;
       double p = param_;
       double x = value;
-      return (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);
+      if(!lower_bimat)
+        return (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);
+      else
+        return -1.0/(p*x+1)-(p*(1-x))/pow(p*x+1,2);
     } 
       
     case HEAVISIDE:
     {
+      assert(!lower_bimat);
       // f = (1-hs)^hp,
       assert(beta_ > 0.0);
       double hs = std::exp(-1.0 * beta_ * value);
@@ -322,6 +322,7 @@ double TransferFunction::Derivative(const DesignElement* de, DesignElement::Acce
     }
     case TANH:
     {
+      assert(!lower_bimat);
       // tf(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
       // tf'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
       double e = std::exp(2.0 * beta_ * ( value - param_));
@@ -341,7 +342,6 @@ void TransferFunction::SetEnums()
   type.SetName("TransferFunction::Type");
   type.Add(NO_TYPE, "no_type");  
   type.Add(SIMP_TYPE, "simp");
-  type.Add(SIMP_VAR, "simpVar");
   type.Add(IDENTITY, "identity");
   type.Add(RAMP, "ramp");
   type.Add(FIXED, "fixed");

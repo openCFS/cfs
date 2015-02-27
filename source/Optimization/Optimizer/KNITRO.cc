@@ -240,7 +240,7 @@ void KNITRO::SolveProblem()
 
 void KNITRO::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
-  *out << "\t" << KTR_get_abs_feas_error(kc) << "\t" << KTR_get_abs_opt_error(kc);
+  *out << " \t" << KTR_get_abs_feas_error(kc) << " \t" << KTR_get_abs_opt_error(kc);
   
   iteration->Get("feasibility")->SetValue(KTR_get_abs_feas_error(kc));
   iteration->Get("optimality")->SetValue(KTR_get_abs_opt_error(kc));

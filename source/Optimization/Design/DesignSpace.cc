@@ -298,14 +298,11 @@ DesignSpace::~DesignSpace(){
 double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
 {
   bool pl = pn->Has("physical_lower");
-  bool al = pn->Has("adapt_lower") ? pn->Get("adapt_lower")->As<bool>() : false;
 
   // find the proper lower value. We have a design lower and a physical lower. The user can decide what to set
   if(pn->Has("lower") && pl)
     throw Exception("In 'design' the attributes 'lower' and 'physical_lower' must not be given concurrently");
-  if(al && pl)
-    throw Exception("In 'design' the attributes 'adapt_lower' and 'physical_lower' must not be given concurrently");
-  if(!pl && !al)
+  if(!pl)
   {
     if(!pn->Has("lower"))
       throw Exception("In 'design' give 'lower' or 'pyhical_lower'");
@@ -315,13 +312,11 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   // we have to find the lower bound by the transfer function.
   assert(tf != NULL);
 
-  // it is not nice to have the equal physical_lower and adapt_lower concepts the same time
   double physical = pl ? pn->Get("physical_lower")->As<double>() : pn->Get("lower")->As<double>();
 
   switch(tf->GetType())
   {
   case TransferFunction::SIMP_TYPE:
-  case TransferFunction::SIMP_VAR:
     return std::pow(physical, 1.0/tf->GetParam());
   case TransferFunction::RAMP:
     return (physical + tf->GetParam() * physical ) / (1 + tf->GetParam() * physical);
@@ -344,8 +339,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     // lower is set to physical!
     // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
     // therefore we have to set scaling and lower=physical
-    double lv = tf->Transform(NULL, DesignElement::PLAIN, physical);
-    double uv = tf->Transform(NULL, DesignElement::PLAIN, 1.0); // we hope this is always true!!!
+    double lv = tf->Transform(NULL, DesignElement::PLAIN, false, physical); // no bimat
+    double uv = tf->Transform(NULL, DesignElement::PLAIN, false, 1.0); // we hope this is always true!!!
     tf->SetScaling((1.0 - (physical - lv/uv)/(1-lv/uv))/uv);
     tf->SetOffset((physical - lv/uv) / (1 - lv/uv));
     return physical;
@@ -632,14 +627,27 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<d
   if(idx == -1)
     return false;
 
+  double bimat_factor = -1.0;
+
   Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
 
-  double factor = GetErsatzMaterialFactor(idx, app, false); // FIXME ignore bi-material
+  double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
+
   coef->orgMat->GetTensor(retMat, *lpm);
   retMat *= factor;
 
-  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
+  DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
+  if(dr->HasBiMaterial())
+  {
+    Matrix<double> tmp;
+    dr->GetBiMaterial(MECHANIC, MECH_STIFFNESS_TENSOR)->GetTensor(tmp, *lpm);
+    bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
+    retMat.Add(bimat_factor,tmp); // rho^p * E_l + (1-rho)^p * E_u
+  }
 
+
+  LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
+  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString();
   return true;
 }
 
@@ -654,11 +662,23 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& 
   if(idx == -1)
     return false;
 
+  double bimat_factor = -1.0;
+
   Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
 
-  double factor = GetErsatzMaterialFactor(idx, app, false); // FIXME ignore bi-material
+  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetScalar(retScal, *lpm);
   retScal *= factor;
+
+  DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
+  if(dr->HasBiMaterial())
+  {
+    double bimat;
+    dr->GetBiMaterial(MECHANIC, DENSITY)->GetScalar(bimat, *lpm);
+    bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
+
+    retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
+  }
 
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
 
@@ -686,7 +706,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de, DesignElement::SMART, -13.456, forBimaterial); // handles design filtering
+      double transformed = tf->Transform(de, DesignElement::SMART, forBimaterial); // handles design filtering
       LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "
@@ -1474,29 +1494,6 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, MultiMaterial
   return GetRegion(id, DesignElement::MULTIMATERIAL, mm->index, throw_exception);
 }
 
-BaseMaterial* DesignSpace::GetBiMaterial(RegionIdType reg, Optimization::Application app, bool throw_exception)
-{
-  DesignRegion* dr = GetRegion(reg, DesignElement::NO_TYPE, -1, false); // tolerant for off-design stress constraints
-  if(dr == NULL || !dr->HasBiMaterial())
-  {
-    if(!throw_exception)
-      return NULL;
-    else
-      EXCEPTION("cannot find bimaterial for region" << reg << " and application " << app);
-  }
-  switch(app)
-  {
-  case Optimization::MECH:
-    return dr->GetBiMaterial(MECHANIC);
-  case Optimization::ELEC:
-    return dr->GetBiMaterial(ELECTROSTATIC);
-  case Optimization::PIEZO_COUPLING:
-    return dr->GetBiMaterial(PIEZO);
-  default:
-    assert(false); // implement what you need!
-    return NULL;
-  }
-}
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement::Type dt, int multimaterial_index, bool throw_exception)
 {
@@ -1520,6 +1517,27 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
     return NULL;
   else
     EXCEPTION("cannot find design region");
+}
+
+DesignSpace::DesignRegion* DesignSpace::GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg)
+{
+  assert(coef);
+
+  assert(regions.GetSize() == 1); // handle only single design up to now! FIXE
+
+  for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
+  {
+    StdVector<DesignRegion>& regs = regions[d];
+
+    for(unsigned r = 0, rn = regs.GetSize(); r < rn; r++)
+    {
+      if(regs[r].regionId == reg)
+        return &regs[r];
+    }
+  }
+
+  EXCEPTION("cannot find design region for coef=" << coef->ToString() << " and region " << reg);
+
 }
 
 DesignSpace::DesignRegion::DesignRegion()
@@ -1576,17 +1594,39 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
 }
 
 
-BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
+PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialType mt)
 {
   assert(bimaterial_ != ""); // check with HasBiMaterial()!
-  for(unsigned int i = 0; i < materials_.GetSize(); i++)
-    if(materials_[i].second == mc)
-      return materials_[i].first;
-  // apparently first run
-  MaterialHandler* matLoader = domain->GetMaterialHandler();
-  BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
-  materials_.Push_back(std::make_pair(mat, mc));
-  return mat;
+
+  if(bimaterials_.count(mc) == 0 || bimaterials_[mc].count(mt) == 0)
+  {
+    // apparently first run
+    MaterialHandler* matLoader = domain->GetMaterialHandler();
+    BaseMaterial* mat = matLoader->LoadMaterial(bimaterial_, mc);
+
+    switch(mt)
+    {
+    case MECH_STIFFNESS_TENSOR:
+    {
+      SinglePDE* mech = domain->GetSinglePDE("mechanic");
+
+      if(domain->GetDriver()->DoBlochModeEigenfrequency() || mech->HasComplexMatData(regionId))
+        bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::COMPLEX);
+      else
+        bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::REAL);
+      break;
+    }
+
+    case DENSITY:
+      bimaterials_[mc][mt] = mat->GetScalCoefFnc(DENSITY,Global::REAL);
+      break;
+
+    default:
+      assert(false);
+    }
+  }
+  LOG_DBG3(designSpace) << "DS:DR:GBM: mc=" << mc << " mt=" << mt << " -> " << bimaterials_[mc][mt]->ToString();
+  return bimaterials_[mc][mt];
 }
 
 void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const

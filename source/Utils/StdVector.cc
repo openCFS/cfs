@@ -324,6 +324,19 @@ namespace CoupledField {
   }
 
   template<class TYPE>
+  bool StdVector<TYPE>::IsUnique() const
+  {
+    // possibly not the fastest algorithm as we check any pair
+    for(unsigned int s = 0; s < size_; s++) // slow variable
+      for(unsigned int f = s+1; f < size_; f++) // fast variable
+        if(data_[s] == data_[f])
+          return false;
+
+    return true;
+  }
+
+
+  template<class TYPE>
   bool StdVector<TYPE>::operator== (const StdVector<TYPE> & vec) const
   {
     if (size_ == 0 && vec.size_ == 0)

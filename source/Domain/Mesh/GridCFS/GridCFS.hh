@@ -430,6 +430,10 @@ namespace CoupledField
     //! new nodes of intersection elements after each time step.
     void DeleteNamedNodes( const std::string &name );
     
+    /** gives the element with the lowest elemNum for a region.
+     * Slow implementation with linear search */
+    Elem* SearchFistRegionElement(RegionIdType reg) const;
+
 
   private:
 
@@ -444,6 +448,7 @@ namespace CoupledField
      * Can be expensive!
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
+
 
     //! helper struct for passing information about nodes
     struct PointSelection{

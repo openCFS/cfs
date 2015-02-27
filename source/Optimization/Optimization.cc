@@ -123,15 +123,13 @@ Optimization::Optimization()
   objectives.Read(optParamNode->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  // postpone
-  // SetPDEs(OptimizationMaterial::system.Parse(pn->Get("ersatzMaterial/material")->As<string>()));
-  // this->assemble_ = pde->GetAssemble();
-
   // constraints to be added later -- it is so much easier with the ParamNodes
-  this->log.fileHeader = harmonic_ ? "#iter\tfreq" : "#iter";
+  log.AddToHeader("iter");
+  if(harmonic_)
+    log.AddToHeader("freq");
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    this->log.fileHeader += "\t" + objectives.data[i]->GetName();
-  this->log.fileHeader += "\tchange\tproblems";
+    log.AddToHeader(objectives.data[i]->GetName());
+  log.AddToHeader("problems");
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
@@ -150,11 +148,12 @@ Optimization::Optimization()
   {
     Condition* g = constraints.all[i];
     if(!g->IsLocalCondition())
-      this->log.fileHeader += "\t" + g->ToString();
-    else
-    {
-      this->log.fileHeader += "\tmax_" + g->ToString();
-      this->log.fileHeader += "\tmean_" + g->ToString();
+      log.AddToHeader(g->ToString());
+    else {
+      if(log.localDetail) {
+        log.AddToHeader("max_" + g->ToString());
+        log.AddToHeader("mean_" + g->ToString());
+      }
     }
   }
 
@@ -260,32 +259,28 @@ void Optimization::PostInitSecond()
   constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
 
   unsigned int n = design->GetNumberOfVariables();
-  if (this->log.design) {
-    for (unsigned int i = 0; i < n; ++i) {
-      this->log.fileHeader += "\t";
-      this->log.fileHeader += "design";
-    }
+  if(log.design)
+  {
+    for(unsigned int i = 0; i < n; ++i)
+      log.AddToHeader("design");
+
+    if(log.designGradient)
+    for(unsigned int i = 0; i < n; ++i)
+      log.AddToHeader("designGradient");
   }
-  if (this->log.designGradient) {
-    for (unsigned int i = 0; i < n; ++i) {
-      this->log.fileHeader += "\t";
-      this->log.fileHeader += "designGradient";
-    }
-  }
-  if (this->log.designConstraintGradients) {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++) {
+  if (this->log.designConstraintGradients)
+  {
+    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    {
       Condition* g = constraints.all[i];
-      if(!g->IsLocalCondition()) {
-        for (unsigned int i = 0; i < n; ++i) {
-          this->log.fileHeader += "\t";
-          this->log.fileHeader += "constraintGradient";
-        }
-      }
+      if(!g->IsLocalCondition())
+        for (unsigned int i = 0; i < n; ++i)
+          log.AddToHeader("constraintGradient");
     }
   }
   design->SetOptimizer(baseOptimizer_);
   // add plot logging of the optimizer
-  this->log.fileHeader += baseOptimizer_->LogFileHeader();
+  baseOptimizer_->LogFileHeader(log);
 }
 
 
@@ -349,7 +344,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
-  Function::type.Add(Function::EIGENVALUE, "eigenvalue");
+  Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
@@ -971,23 +966,23 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
     problemWithinIteration = 0;
   }
 
+  // write the current info file, if the writing frequency is not too high.
+  domain->GetInfoRoot()->ToFile();
+
   return iteration;
 }
 
 void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 {
-  // the current design as handy vector
-  double change = objectives.design_change.Last();
-
   if(out)
   {
     *out << currentIteration;
-    if(harmonic_) *out << "\t" << GetIterationFrequency();
+    if(harmonic_) *out << " \t" << GetIterationFrequency();
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-      *out << "\t" << objectives.data[i]->GetValue();
+      *out << " \t" << objectives.data[i]->GetValue();
 
-    *out << "\t" << change << "\t" << problemSolvedCounter;
+    *out << " \t" << problemSolvedCounter;
   }
 
   iteration->Get("number")->SetValue(currentIteration);
@@ -1000,9 +995,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     if(f->GetLocal() != NULL)
       iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
   }
-
-  iteration->Get("change")->SetValue(change);
-  // iteration->Get("problemsSolved")->SetValue(problemSolvedCounter);
 
   // For iteration 0 we want also the constraint values but they were not evaluated.
   // For any iteration we need to evaluate the observe constraints
@@ -1027,7 +1019,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       double max  = local->CalcMaxValue();
       double mean = local->CalcMeanValue();
       if(out)
-        *out << "\t" << max << "\t" << mean;
+        *out << " \t" << max << " \t" << mean;
       iteration->Get("max_" + g->ToString())->SetValue(max);
       iteration->Get("mean_" + g->ToString())->SetValue(mean);
     }
@@ -1035,7 +1027,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     {
       double value = g->GetValue();
       if(g->delta_logging) value = value - g->GetBoundValue();
-      if(out) *out << "\t" << value;
+      if(out) *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one
       if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
       {
@@ -1052,7 +1044,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     d.Resize(design->GetNumberOfVariables());
     design->WriteDesignToExtern(d.GetPointer(), false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-      *out << "\t" << d[i];
+      *out << " \t" << d[i];
     }
   }
   
@@ -1062,11 +1054,12 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     d.window.Set(d);
     design->WriteGradientToExtern(d, DesignElement::COST_GRADIENT, DesignElement::PLAIN, NULL, false);
     for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-      *out << "\t" << d[i];
+      *out << " \t" << d[i];
     }
   }
   
-  if(out && log.designConstraintGradients){
+  if(out && log.designConstraintGradients)
+  {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
       Condition* g = constraints.all[i]; // Now traverse in global mode
@@ -1080,7 +1073,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         d.window.Set(d);
         design->WriteGradientToExtern(d, DesignElement::CONSTRAINT_GRADIENT, DesignElement::PLAIN, g, false);
         for(unsigned int i = 0; i < design->GetNumberOfVariables(); i++){
-          *out << "\t" << d[i];
+          *out << " \t" << d[i];
         }
       }
     }
@@ -1231,9 +1224,12 @@ Optimization::Application Optimization::ToApp(const SinglePDE* pde) const
 
 Optimization::Log::Log()
 {
+  this->columns_ = 0;
   this->design = false;
   this->designGradient = false;
   this->designConstraintGradients = false;
+  this->localDetail = progOpts->DoDetailedInfo();
+  this->gradNorm = progOpts->DoDetailedInfo();
   this->file = NULL;
   this->fileHeader = "";
 }
@@ -1266,3 +1262,12 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
      file = NULL;
    }
  }
+
+void Optimization::Log::AddToHeader(string label)
+{
+  fileHeader += columns_ == 0 ? "#" : "\t";
+
+  columns_++;
+
+  fileHeader += boost::lexical_cast<string>(columns_) + ":" + label;
+}

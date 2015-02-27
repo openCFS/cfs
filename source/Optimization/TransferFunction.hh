@@ -26,7 +26,7 @@ namespace CoupledField
      * <li>HEAVISIDE:  tf(x) = (1-exp(-beta * x))^param</li>
      * <li>TANH:  tf(x) =  1 - 1/(exp(2*beta*(x-param)) + 1) scaled for x in [0:1] and y in [0:1]</li>
      * </ul> */
-    typedef enum { NO_TYPE = -1, SIMP_TYPE, SIMP_VAR, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH } Type;
+    typedef enum { NO_TYPE = -1, SIMP_TYPE, IDENTITY, RAMP, FIXED, FULL, HEAVISIDE, TANH } Type;
 
       /** dummy function for StdVector */
       TransferFunction();
@@ -41,7 +41,7 @@ namespace CoupledField
       /** applies the transformation
        * @param de containts the design value. Might be NULL if external_value is set and type is NOT full!
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
-      double Transform(const DesignElement* de, DesignElement::Access access, double external_value = -13.456, bool forBimaterial = false) const;
+      double Transform(const DesignElement* de, DesignElement::Access access, bool forBimaterial = false, double external_value = -13.456) const;
 
       /** applies the first derivative of the transformation
        * @see Transform() */

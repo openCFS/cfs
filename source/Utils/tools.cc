@@ -165,6 +165,19 @@ namespace CoupledField {
     return std::sqrt(result);
   }
 
+  double NormL2(const SingleVector* data, const SingleVector* data2)
+  {
+    assert(data != NULL && data2 != NULL);
+
+    if(data->GetSize() != data2->GetSize()) EXCEPTION("incompatible sizes");
+    if(data->GetEntryType() != data2->GetEntryType()) EXCEPTION("incompatible entry types");
+
+    if(data->GetEntryType() == BaseMatrix::COMPLEX)
+      return dynamic_cast<const Vector<Complex>& >(*data).NormL2(dynamic_cast<const Vector<Complex>& >(*data2));
+    else
+      return dynamic_cast<const Vector<double>& >(*data).NormL2(dynamic_cast<const Vector<double>& >(*data2));
+  }
+
 
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size)

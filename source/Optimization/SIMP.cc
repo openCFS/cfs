@@ -123,7 +123,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     const Matrix<T2>& stiffness = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, MECH)
-    T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
+    T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
     // copy from real mechStiffness to potential complex out and factor the derivative
     Assign(out, stiffness, k_factor);
@@ -133,7 +133,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
       const Matrix<T2>& bimat = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, true)); // yes, bimaterial
-      // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+      // rho^3 * E1 + (1-rho)^3 * E2, in the derivative case 3*rho^2 * E1 - 3*(1-rho)^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
@@ -177,7 +177,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     {
       Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(material)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-      k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, -13.456, true);
+      k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
       if (complex_)
         Add(out, k_factor, dynamic_cast<Matrix<T1>& >(bimat));
       else
@@ -197,12 +197,13 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 {
   // The result matrix is
   // S = K + i*omega*C - omega^2*M
-  // with purely imaginary C = alpha_k*K+alpha*M
+  // with purely imaginary C = alpha_k*K+alpha_m*M
   // S = K + i*omega*alpha_k*K + i*omega*alpha_m*M - omega^2*M
-  // with m_factor
+  // with m_factor which is the transfer function. The K transfer function is already in S
   // S = K + i*omega*alpha_k*K + i*omega*alpha_m*m_factor*M - omega^2*m_factor*M
-  // With S = K in the beginning this is
+  // With S = k_factor K in the beginning this is: (k_factor is transfer function or its derivative)
   // S += i*alpha_k*S + (i*alpha_m*m_factor-omega^2*m_factor)*M
+
   //
   // in case we have pamping (e.g. Sigmund; Morhology; 2007) there is to add
   // j*omega*pamping*rho*(1-rho)*M and for the derivative case
@@ -210,16 +211,14 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   //
   // the eigenvalue derivative is u^T (K' - ev M') u
 
-  double mtv =  mtf->Transform(de, DesignElement::SMART);
-  double mdv =  mtf->Derivative(de, DesignElement::SMART);
+  double mtv =  mtf->Transform(de, DesignElement::SMART, bimaterial);
+  double mdv =  mtf->Derivative(de, DesignElement::SMART, bimaterial);
 
-  assert(mode != EIGENVALUE || (derivative == true && ev > 0)); // EIGENVALUE only for derivative
+  assert(mode != EIGENFREQ || (derivative == true && ev > 0)); // EIGENVALUE only for derivative
 
   double m_factor = derivative ? mdv : mtv;
-  if(bimaterial)  // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-    m_factor = !derivative ? 1.0 - m_factor : -1.0 *  m_factor;
 
-  if(mode == EIGENVALUE)
+  if(mode == EIGENFREQ)
     m_factor *= ev;
 
   // change name only
@@ -232,7 +231,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
 
   // find alpha, beta and omega. We have no omega for the eigenvalue case and 1.0 eliminates it
-  double omega = mode != EIGENVALUE ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
+  double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
   double alpha_k = 0.0;
   double alpha_m  = 0.0;
   double pamping_m = 0.0; // add on without omega
@@ -242,7 +241,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 
   if(pde->GetDamping(regionId) == RAYLEIGH)
   {
-    assert(mode != EIGENVALUE);
+    assert(mode != EIGENFREQ);
 
     // the alpha and beta might be calculated and adjusted, get them
     // from the integrators in the form as they are used for the state problem!
@@ -261,7 +260,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
   }
 
-  assert(mode != EIGENVALUE || (omega == 1.0 && m_factor > 0 && alpha_m == 0.0 && pamping_m == 0.0));
+  assert(mode != EIGENFREQ || (omega == 1.0 && m_factor > 0 && alpha_m == 0.0 && pamping_m == 0.0));
 
 	const unsigned int srows(S.GetNumRows());
 	const unsigned int scols(S.GetNumCols());

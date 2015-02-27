@@ -259,6 +259,54 @@ namespace CoupledField
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
 
+        /** Encapsulates Logging information */
+        class Log
+        {
+        public:
+          /** Sets to meaningful defaults (don not much :) ) */
+          Log();
+
+          /** Closes the file */
+          ~Log();
+
+          /** @param log_name is interpreted. If allows a file, the logFile is created.
+           * @param pn_log pointer to the 'log' element. Might be NULL */
+          void Init(const std::string& log_name, PtrParamNode pn_log);
+
+          /** append an item to the fileHeader and adds the index to the label */
+          void AddToHeader(std::string label);
+
+          /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
+           * writes this string to logFile_ a the first execution.
+           * Don't manipulate manually but use AddToHeader() */
+           std::string fileHeader;
+
+           /** if set write the design to the logfile */
+           bool design;
+
+           /** if set write the gradient of the design to logfile */
+           bool designGradient;
+
+           /** if set write the constraint gradient of the design to the logfile */
+           bool designConstraintGradients;
+
+           /** write mean and max for local constraints */
+           bool localDetail;
+
+           /** write the gradient norms */
+           bool gradNorm;
+
+           /** optional log the iterations and cost value to a file to gnuplot it */
+           std::ofstream* file;
+        private:
+
+           /** counter for AddToHeader() */
+           int columns_;
+        };
+
+        /** Keeps all logging relevant stuff */
+        Log log;
+
         /** The order of the pdes is not defined, Therefore we use the map
          * @see ToApp()
          * @see ToPDE() */
@@ -266,6 +314,10 @@ namespace CoupledField
 
         /** This is simple one SinglePDE from pdes. */
         SinglePDE* pde;
+
+        /** Our MultipleExcitation objecte - by default disabled */
+        MultipleExcitation* me;
+
 
       protected:
         /** Set up the optimization system e.g. prepare the domain for optimization. called
@@ -328,9 +380,6 @@ namespace CoupledField
         /** the maximum number of iterations, have a default */
         int maxIterations;
 
-        /** Our MultipleExcitation objecte - by default disabled */
-        MultipleExcitation* me;
-        
         /** The actual kind of optimizer.  */
         Optimizer optimizer_;
 
@@ -364,40 +413,6 @@ namespace CoupledField
          * set in the <commit> element. In case this method makes a StoreResults (not commit)
          * if necessary. Should always be called when finished (in the good and bad sense) */
         void FinalizeStoreResults();
-
-        /** Encapsulates Logging information */
-        class Log
-        {
-        public:
-          /** Sets to meaningful defaults (don not much :) ) */
-          Log();
-
-          /** Closes the file */
-          ~Log();
-
-          /** @param log_name is interpreted. If allows a file, the logFile is created.
-           * @param pn_log pointer to the 'log' element. Might be NULL */
-          void Init(const std::string& log_name, PtrParamNode pn_log);
-
-          /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
-           * writes this string to logFile_ a the first execution */
-           std::string fileHeader;
-
-           /** if set write the design to the logfile */
-           bool design;
-
-           /** if set write the gradient of the design to logfile */
-           bool designGradient;
-           
-           /** if set write the constraint gradient of the design to the logfile */
-           bool designConstraintGradients;
-
-           /** optional log the iterations and cost value to a file to gnuplot it */
-           std::ofstream* file;
-        };
-
-        /** Keeps all logging relevant stuff */
-        Log log;
 
         /** counts the written steps, which can be higher than currentIteration if adjoints or multiples are written */
         int writeCounter_;

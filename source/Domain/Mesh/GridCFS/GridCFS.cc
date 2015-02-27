@@ -2104,6 +2104,16 @@ namespace CoupledField {
     numElems_ = idx;
   }
 
+  Elem* GridCFS::SearchFistRegionElement(RegionIdType reg) const
+  {
+    for(unsigned int i = 0, n = orderedElems_.GetSize(); i < n; i++)
+      if(orderedElems_[i]->regionId == reg)
+        return orderedElems_[i];
+
+    EXCEPTION("no elements found for region id " << reg);
+  }
+
+
 
   void GridCFS::SetElemData(UInt ielem,
                             Elem::FEType type,

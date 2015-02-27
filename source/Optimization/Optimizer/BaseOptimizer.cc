@@ -229,34 +229,37 @@ void BaseOptimizer::SolveOptimizationProblem()
   timer_->Stop();
 }
 
-std::string BaseOptimizer::LogFileHeader()
+void BaseOptimizer::LogFileHeader(Optimization::Log& log)
 {
-  std::string tmp = objective->target != 0.0 ? "\tmax_f_grad\tscale\topt_scale" : "\tmax_f_grad";
-  if(GetCurrenActiveSetSize() >= 0)
-    tmp += "\tactive_set";
+  if(log.gradNorm)
+    log.AddToHeader("max_f_grad");
+
+  if(objective->target != 0.0) {
+    log.AddToHeader("scale");
+    log.AddToHeader("opt_scale");
+  }
 
   // give the norm of the nonlinear gradients (ignore blown up)
   for(unsigned int i = 0; i < optimization->constraints.all.GetSize(); i++)
   {
     Condition* g = optimization->constraints.all[i];
-    if(g->IsLinear()) continue;
-    tmp += "\tmax_" + Function::type.ToString(g->GetType()) + "_grad";
+    if(!g->IsLinear() && log.gradNorm)
+      log.AddToHeader("max_" + g->ToString() + "_grad");
   }
-
-  return tmp;
 }
 
 
 void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
-  if(out) *out << "\t" << objective->current.value;
+  if(out) *out << " \t" << objective->current.value;
   
-  iteration->Get("max_f_grad")->SetValue(objective->current.value);
+  if(optimization->log.gradNorm)
+    iteration->Get("max_f_grad")->SetValue(objective->current.value);
 
   if(objective->target != 0.0)
   {
-    if(out) *out << "\t" << objective->scaling.value
-                 << "\t" << objective->opt_scaling.value;
+    if(out) *out << " \t" << objective->scaling.value
+                 << " \t" << objective->opt_scaling.value;
 
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
@@ -268,16 +271,17 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < optimization->constraints.all.GetSize(); i++)
   {
     Condition* g = optimization->constraints.all[i];
-    if(g->IsLinear()) continue;
+    if(!g->IsLinear() && this->optimization->log.gradNorm)
+    {
+      double mv = 0.0;
+      const StdVector<DesignElement>& data = optimization->GetDesign()->data;
 
-    double mv = 0.0;
-    const StdVector<DesignElement>& data = optimization->GetDesign()->data;
+      for(int i = 0, n = data.GetSize(); i < n; i++)
+        mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
 
-    for(int i = 0, n = data.GetSize(); i < n; i++)
-      mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
-
-    iteration->Get("max_" + Function::type.ToString(g->GetType()) + "_grad")->SetValue(mv);
-    if(out) *out << "\t" << mv;
+      iteration->Get("max_" + g->ToString() + "_grad")->SetValue(mv);
+      if(out) *out << " \t" << mv;
+    }
   }
 
 }

@@ -44,7 +44,7 @@ namespace CoupledField
     void SolveOptimizationProblem();
 
     /** Defines LogFileLine() */
-    virtual std::string LogFileHeader();
+    virtual void LogFileHeader(Optimization::Log& log);
     
     /** called by Optimization::CommitIteration(), to be overwritten to add optimizer
      * specific data. Shall match LogFileHeader().Don't add a new-line here!! */

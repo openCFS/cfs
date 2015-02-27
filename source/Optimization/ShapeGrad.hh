@@ -56,7 +56,7 @@ public:
   
   void PrepareExteriorPiezoProblem() { std::cout << "ShapeGrad, prepare the problem!!" << std::endl; }
 
-  virtual std::string LogFileHeader() { return ""; }
+  //virtual std::string LogFileHeader() { return ""; }
   virtual void LogFileLine(std::ofstream* out) {}
 
 protected:

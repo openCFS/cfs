@@ -110,7 +110,7 @@ Function::Function(PtrParamNode pn) {
       throw Exception("function '" + type.ToString(type_) + "' requires the 'parameter' attribute");
     break;
 
-  case EIGENVALUE:
+  case EIGENFREQUENCY:
     if(!pn->Has("ev"))
       throw Exception("function '" + type.ToString(type_) + "' requires the 'ev' with value >= 1");
     break;
@@ -388,7 +388,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
-  case EIGENVALUE:
+  case EIGENFREQUENCY:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -579,7 +579,7 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
-  case EIGENVALUE:
+  case EIGENFREQUENCY:
     return true;
 
   case VOLUME:

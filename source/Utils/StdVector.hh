@@ -241,18 +241,21 @@ namespace CoupledField {
     //! Build vector from std::vector
     StdVector & operator= (const std::vector<TYPE> & vec);
   
-    //! Returns las entry of vector
-    inline TYPE & Last();
-
-    //! Returns last entry of vector (read-only)
+    //! Returns the last entry of vector
+    inline TYPE& Last();
     inline TYPE Last() const;
  
 
+    //! Returns the first entry of vector
+    inline TYPE& First();
+    inline TYPE First() const;
+
+
     //! General access operator
-    inline TYPE &operator[] (const unsigned int i);
+    inline TYPE& operator[] (const unsigned int i);
 
     //! Read-Only access operator
-    inline const TYPE & operator[] (const unsigned int i) const;
+    inline const TYPE& operator[] (const unsigned int i) const;
 
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
@@ -285,6 +288,9 @@ namespace CoupledField {
       return Find(x) != -1; 
     } 
     
+    /** Checks if there are non-unique elements */
+    bool IsUnique() const;
+
     //! Overloading of operation equal for Vector
     bool operator== (const StdVector &) const;
 
@@ -458,7 +464,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  TYPE &StdVector<TYPE>::Last() {
+  TYPE& StdVector<TYPE>::Last() {
 #ifdef CHECK_INITIALIZED
     if ( size_ == 0)
       EXCEPTION("undefined Vector");
@@ -474,6 +480,25 @@ namespace CoupledField {
 #endif
     return data_[size_-1] ;
   }
+
+  template<class TYPE>
+  TYPE& StdVector<TYPE>::First() {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      EXCEPTION("undefined Vector");
+#endif
+      return data_[0] ;
+  }
+
+  template<class TYPE>
+  TYPE StdVector<TYPE>::First() const {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      EXCEPTION("Vector: undefined Vector");
+#endif
+    return data_[0] ;
+  }
+
 
   // ******************************************************
   // * Additional functions related with handling vectors *

@@ -96,7 +96,7 @@ class Function
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
-      EIGENVALUE,                /*!< with the attribute ev for the number of the eigenvalue */
+      EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
@@ -175,7 +175,8 @@ class Function
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
     bool FactorOmegaOmega() const { return omega_omega_; }
 
-    /** The number of the eigenvalue (mode), one based! */
+    /** The number of the eigenvalue (mode), one based!
+     * @return 0 if it does not apply (1-based!) */
     unsigned int GetEigenValueID() { return eigenvalue_id_; }
 
     /** Shall/must we evaluate this objective at this excitation?

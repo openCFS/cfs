@@ -563,7 +563,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   in->Get("upperBound")->SetValue(upper_);
   in->Get("lowerBound")->SetValue(lower_);
   if(tf != NULL)
-    in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, lower_));
+    in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, false, lower_)); // no bimat
   if(multimaterial != NULL)
   {
     in->Get("material")->SetValue(multimaterial->name);

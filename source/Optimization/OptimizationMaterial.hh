@@ -75,34 +75,13 @@ protected:
    * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
   OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space = NULL);
 
-  /** <p>Get the original element matrix (stiffness, mass, ...)
-   * which is constant for all isotropic elements.
-   * This method is not only for mechanical SIMP but is also used by PiezoSIMP,
-   * therefore it is generic.</p>
-   * <p>If no element is given, the one from the first design element is used.</p>
-   * <p>All transfer functions are disabled during this method. Call only for
-   * enabled transfer functions (default)</p>
-   * @param form to be extracted via GetForm()
-   * @param out here the element stiffness matrix written. e.h. K_uu which is \int B E B
-   * @param elem if not given the first design element is used, otherwise the provided one
-   * @param factor in piezoelectricity K_pp is -1* BDBInt */
-  void GetElementMatrix(BiLinearForm* form, Matrix<double>& out, const Elem* elem = NULL,
-                        BaseMaterial* bimaterial = NULL,
-                        const DesignElement::Type direction = DesignElement::NO_DERIVATIVE, double factor = 1.0);
 
-  void GetElementMatrix(Matrix<double>& out, const std::string& integrator, const Elem* elem = NULL,
-                        BaseMaterial* bimaterial = NULL, DesignElement::Type direction = DesignElement::NO_DERIVATIVE,  Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
+  void GetElementMatrix(Matrix<double>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
+                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
 
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
-  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
-                        BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
-
-  /** Helper which extracts the FormContext from assemble using the optimization region
-          * @param regionId the corresponding region
-          * @param pde1 the first pde (e.g. mech)
-          * @param pde2 this is either the same as pde1 or the coupling partner
-          * @param integrator there is no nice enum yet :( e.g. linElastInt, MechInt, ... */
-  BiLinearForm* GetForm(RegionIdType regionId, const std::string& integrator, Global::ComplexPart entryType = (Global::ComplexPart) 4711);
+    void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
+                          BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
 
   /** service function handling multimaterial
@@ -115,6 +94,8 @@ protected:
 
   virtual SinglePDE* GetPDE() = 0;
 
+  DesignElement* FirstDesignByRegion(RegionIdType reg);
+
   StdVector<RegionIdType> regionIds;
 
   /** might be NULL when using other constructor */
@@ -125,19 +106,12 @@ protected:
   // short cuts
   bool complex_;
   bool transient_;
+  // harmonic, eigenvalue, transient
+  bool needs_mass_;
   bool structured_;
 
   // what we are;
   System system_;
-
-
-
-private:
-
-  /** This is the common implementation for GetElementMatrix() and GetElementVector() */
-  void GetElementEntity(BiLinearForm* form, Matrix<double>* mat_out, Vector<double>* vec_out, const Elem* elem = NULL,
-                        BaseMaterial* bimaterial = NULL,
-                        DesignElement::Type direction = DesignElement::NO_DERIVATIVE, const Vector<double>* ts = NULL);
 
 };
 
@@ -183,7 +157,7 @@ protected:
   SinglePDE* GetPDE();
 
   /** The mechanical element stiffness matrix is constant.
-   * We store multimaterial as a vector. No material one entry and legacy bimaterial two entries */
+   * We store multimaterial as a vector. No material one entry and bimaterial two entries */
   std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
   std::map<RegionIdType, StdVector<Matrix<Complex> > > mechStiffness_mapC;
 
