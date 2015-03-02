@@ -34,7 +34,6 @@ class DesignSpace;
 using boost::numeric::ublas::compressed_matrix;
 using boost::numeric::ublas::mapped_matrix;
 using boost::numeric::ublas::generalized_vector_of_vector;
-using boost::numeric::ublas::detail::matrix_assign;
 
 
 //! Class for mechanic equation (no adaptivity)
@@ -74,6 +73,9 @@ public:
   //! calculate coupling terms
   virtual void CalcOutputCoupling();
 
+  /** actually calls LBM. */
+  void Solve();
+
   /** Sensitivity analysis (gradient) necessary for the optimization.
     Performs the missing propagation step for the sensitivity analysis. */
   void SensitivityAnalysis(TransferFunction* tf, Function* f, DesignSpace* space);
@@ -81,7 +83,7 @@ public:
   /** For the olt multi-file interface, reads the files x_pardiso2.dat and dRdp.mtx and computes the gradient */
   void SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f);
 
-  /** Üerform postprocessing on data. Conditionally calls Solve() if dirty is set */
+  /** Üerform postprocessing on data. */
   void CalcResults( shared_ptr<BaseResult> result );
 
   /** implementation of objective function */
@@ -134,29 +136,29 @@ private:
 
   inline double CalcPressure(unsigned int idx) const;
 
-  inline double pdf(unsigned int idx, int dir) const  {
+  inline double GetPdf(unsigned int idx, int dir) const  {
     return pdfs[idx * n_q_ + dir];
   };
 
-  inline double& pdf(unsigned int idx, int dir) {
+  inline double& GetPdf(unsigned int idx, int dir) {
     return pdfs.GetPointer()[idx * n_q_ + dir];
   };
 
-  inline unsigned int index(unsigned int x, unsigned int y) const {
+  inline unsigned int GetIndex(unsigned int x, unsigned int y) const {
     return y * n_x_ + x;
   }
 
-  inline unsigned int index(unsigned int x, unsigned int y, unsigned int z ) const {
+  inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
   }
 
   inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int dir) const {
-    return index(x,y) * n_q_ + dir;
+    return GetIndex(x,y) * n_q_ + dir;
   }
 
   inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int dir)
   {
-    LatticeBoltzmann::PropTransform tmp = (*velocityDirections)[dir];
+    LatticeBoltzmann::MicroVelocity tmp = (*microDirections)[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
     return (tmp_x < 0 || tmp_x >= (int)n_x_ || tmp_y < 0 || tmp_y >= (int)n_y_ ) ;
@@ -280,9 +282,8 @@ private:
   double u_y_;
   double u_z_;
 
-  StdVector<LatticeBoltzmann::PropTransform>* velocityDirections;
-  StdVector<LatticeBoltzmannBase::Direction>* invDirections;
-  StdVector< StdVector<LatticeBoltzmann::PropTransform> >* prop_maps;
+  StdVector<LatticeBoltzmann::MicroVelocity>* microDirections;
+  StdVector<LatticeBoltzmannBase::Direction>* inverseDirections;
 
   /** external lbm */
   std::string executable;

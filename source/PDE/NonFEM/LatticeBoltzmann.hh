@@ -23,10 +23,6 @@ namespace CoupledField
   {
     public:
 
-      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
-        FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
-        CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
-
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
@@ -37,13 +33,13 @@ namespace CoupledField
   class LatticeBoltzmann: LatticeBoltzmannBase
   {
     public:
-      struct PropTransform{
+      struct MicroVelocity{
         int off_x;
         int off_y;
         int off_z;
-        PropTransform(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
-        PropTransform(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
-        PropTransform(): off_x(0),off_y(0), off_z(0){}
+        MicroVelocity(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        MicroVelocity(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
+        MicroVelocity(): off_x(1),off_y(0), off_z(0){}
       };
 
       LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
@@ -69,28 +65,12 @@ namespace CoupledField
        */
       inline int GetNumWriteResults() { return m_numWriteResults; }
 
-      inline StdVector<PropTransform>* GetVelocityDirections() { return &velocityDirections; }
-      inline StdVector<Direction>* GetInverseDirections() { return &directionsInv; }
-      inline StdVector< StdVector<PropTransform> >* GetPropagationMaps() { return &prop_maps; }
+      inline StdVector<MicroVelocity>* GetVelocityDirections() { return &microDirections; }
+      inline StdVector<Direction>* GetInverseDirections() { return &inverseDirections; }
 
     private:
 
-      // Corner C stands for interior elements
-      // BNW, ..., TNE are corners
-      // TN, ..., BE are edges
-      // LEFT, ..., BACK are faces
-//      typedef enum { INTERIOR = 0, CORNER_BNW = 1, CORNER_BSW = 2, CORNER_BSE = 3, CORNER_BNE = 4, EDGE_BN = 5, EDGE_BW = 6, EDGE_BS = 7, EDGE_BE = 8,// In 2D, these enums describe the 4 edges and 4 corners
-//              FACE_E = 9, FACE_N = 10, FACE_W = 11, FACE_S = 12, FACE_T = 13, FACE_B = 14, EDGE_NE = 15, EDGE_NW = 16, EDGE_SW = 17, EDGE_SE = 18,    // 3D
-//              CORNER_TNW = 19, CORNER_TSW = 20, CORNER_TSE = 21, CORNER_TNE = 22, EDGE_TN = 23, EDGE_TW = 24, EDGE_TS = 25, EDGE_TE = 26} Boundary; // 3D
-//
-//        // In 2D: 9 microscopic directions
-//        // In 3D: 19 microscopic directions
-//        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
-//          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
-//          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
-
           static Enum<Direction> directions;
-          static Enum<Boundary> boundaries;
 
           void SetupDataStructures(const StdVector<double>& elements);
 
@@ -149,111 +129,6 @@ namespace CoupledField
             return -1;
           }
 
-          /**
-           * returns associated integer value of boundary of a cube
-           * e.g. getIndexBound(T) returns the index of the top face
-           *
-           */
-          inline int GetIndexBound(Direction dir1)
-          {
-            assert(directions.IsValid(dir1));
-            if (dir1 == Q_T)
-              return FACE_T;
-            if (dir1 == Q_B)
-              return FACE_B;
-            if (dir1 == Q_W)
-              return FACE_W;
-            if (dir1 == Q_E)
-              return FACE_E;
-            if (dir1 == Q_N)
-              return FACE_N;
-            if (dir1 == Q_S)
-              return FACE_S;
-            return -1;
-          }
-
-
-          /**
-           * returns associated integer value of boundary of a cube
-           * e.g. getIndexBound(T,N,E) returns the index of the right top back corner
-           *
-           * dir1 can only be top, bottom, north or south
-           * dir2 can only be north, south, west or east
-           */
-          inline int GetIndexBound(Direction dir1, Direction dir2)
-          {
-            assert(directions.IsValid(dir1));
-            assert(dir2 != 0);
-            assert(directions.IsValid(dir2));
-            if (dir1 == Q_T && dir2 == Q_N)
-              return EDGE_TN;
-            if (dir1 == Q_T && dir2 == Q_W)
-              return EDGE_TW;
-            if (dir1 == Q_T && dir2 == Q_S)
-              return EDGE_TS;
-            if (dir1 == Q_T && dir2 == Q_E)
-              return EDGE_TE;
-            if (dir1 == Q_S && dir2 == Q_W)
-              return EDGE_SW;
-            if (dir1 == Q_S && dir2 == Q_E)
-              return EDGE_SE;
-            if (dir1 == Q_N && dir2 == Q_W)
-              return EDGE_NW;
-            if (dir1 == Q_N && dir2 == Q_E)
-              return EDGE_NE;
-            if (dir1 == Q_B && dir2 == Q_N)
-              return EDGE_BN;
-            if (dir1 == Q_B && dir2 == Q_W)
-              return EDGE_BW;
-            if (dir1 == Q_B && dir2 == Q_S)
-              return EDGE_BS;
-            if (dir1 == Q_B && dir2 == Q_E)
-              return EDGE_BE;
-            return -1;
-          }
-
-
-          /**
-            dir1 can only be top or bottom
-            dir2 can only be north or south
-            dir3 can only be east or west
-           */
-          inline int GetIndexBound(Direction dir1, Direction dir2, Direction dir3)
-          {
-            assert(directions.IsValid(dir1));
-            assert(dir2 != 0);
-            assert(directions.IsValid(dir2));
-            assert(dir3 != 0);
-            assert(directions.IsValid(dir3));
-            assert(dir1 == Q_T || dir1 == Q_B);
-            assert(dir2 == Q_N || dir2 == Q_S);
-            assert(dir3 == Q_E || dir3 == Q_W);
-
-            if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_W )
-              return CORNER_BNW;
-            if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_W)
-              return CORNER_BSW;
-            if (dir1 == Q_B && dir2 == Q_N && dir3 == Q_E)
-              return CORNER_BNE;
-            if (dir1 == Q_B && dir2 == Q_S && dir3 == Q_E)
-              return CORNER_BSE;
-            if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_W )
-              return CORNER_TNW;
-            if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_W)
-              return CORNER_TSW;
-            if (dir1 == Q_T && dir2 == Q_N && dir3 == Q_E)
-              return CORNER_TNE;
-            if (dir1 == Q_T && dir2 == Q_S && dir3 == Q_E)
-              return CORNER_TSE;
-            return -1;
-          }
-
-          // validates GetIndexbound function
-          void TestGetIndexbound();
-
-          // validates GetIndexDir function
-          void TestDirectionIndex();
-
           // make sure that no-slip b.c. is imposed on the boundaries (bounce-back nodes)
           void CheckBoundaryVelocities(int cur, StdVector<StdVector<int> >& bb);
 
@@ -267,19 +142,6 @@ namespace CoupledField
            */
           double CalcDensity(int cur, int i, int j, int k);
 
-          /**
-           * Sets transformation map to handle propagation at boundaries (corners and edges)
-           */
-          void SetupTransformation2D();
-
-          /**
-           * Sets transformation map to handle propagation at boundaries (corners, edges and faces)
-           */
-          void SetupTransformation3D();
-
-          /** dump propagation maps */
-          void WritePropMap();
-
           /** set enumerations for directions and boundaries*/
           void SetEnums();
 
@@ -289,12 +151,15 @@ namespace CoupledField
           /** Set lookup table for inverse directions */
           void SetInvDirections();
 
+          /** Set basis vectors of DmQn model */
+          void SetMicroVelocities();
+
           /** get inverse direction of D2Q9 direction */
           // depends on numbering of directions
           inline int GetInvDirection(Direction dir)
           {
             assert(directions.IsValid(dir));
-            return directionsInv[dir];
+            return inverseDirections[dir];
           }
 
           void TestInvDirections();
@@ -302,8 +167,6 @@ namespace CoupledField
           /** debug information */
           std::string ToString(const StdVector<StdVector<int> >& data);
 
-          /** fills given propagation map with given default offset values (0 in all directions)*/
-          void InitPropMap(StdVector<PropTransform>& map);
 
           inline bool LbmNodeTypeIsFluid(double value)
           {
@@ -391,6 +254,24 @@ namespace CoupledField
 
           void create_output(const char * file, int cur);
 
+
+          inline bool OutsideDomain(int x, int y, int dir)
+          {
+            MicroVelocity tmp = microDirections[dir];
+            int tmp_x = x + tmp.off_x;
+            int tmp_y = y + tmp.off_y;
+            return (tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY ) ;
+          }
+
+          inline bool OutsideDomain(int x, int y, int z, int dir)
+          {
+            MicroVelocity tmp = microDirections[dir];
+            int tmp_x = x + tmp.off_x;
+            int tmp_y = y + tmp.off_y;
+            int tmp_z = z + tmp.off_z;
+            return (tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY || tmp_z < 0 || tmp_z >= m_sizeZ) ;
+          }
+
           /**
            * LBM operators in 2D
            */
@@ -432,7 +313,7 @@ namespace CoupledField
           // counts how many intermediate steps we have already written to hdf5 file
           int m_numWriteResults;
 
-          // number of discrete velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+          // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
 
           StdVector<double> Scales;
@@ -441,12 +322,10 @@ namespace CoupledField
 
           StdVector< StdVector<double> > m_pdfs;
 
-          // contains propagation rules for all types of elements (edge, corner, interior)
-          StdVector< StdVector<PropTransform> > prop_maps;
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
-          StdVector<PropTransform> velocityDirections;
+          StdVector<MicroVelocity> microDirections;
           // lookup table to get inverse directions
-          StdVector<Direction> directionsInv;
+          StdVector<Direction> inverseDirections;
           //double * m_pdfs[2];
           int m_cur;
           int m_next;

@@ -201,9 +201,8 @@ namespace CoupledField {
       lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
     }
 
-    velocityDirections = lbm->GetVelocityDirections();
-    invDirections = lbm->GetInverseDirections();
-    prop_maps = lbm->GetPropagationMaps();
+    microDirections = lbm->GetVelocityDirections();
+    inverseDirections = lbm->GetInverseDirections();
   }
 
   LatticeBoltzmannPDE::~LatticeBoltzmannPDE()
@@ -311,16 +310,6 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::Solve()
   {
-    SetDirty(false); // assume the calculation will succeed. By this we may call WriteResults() which will call CalcResuls() which will not recursively call Salve() when dirty is set to false.
-
-    //  ResultHandler* rh = NULL;
-
-    //  if (writeFrequency_ > 1) {
-    //    rh = domain->GetResultHandler();
-    //    unsigned int mss = domain->GetDriver()->GetActSequenceStep();
-    //    // max steps is high. The number is only relevant for hdf5, but there a hard limit
-    //    rh->BeginMultiSequenceStep(mss, BasePDE::TRANSIENT, 9999);
-    //  }
 
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
@@ -632,6 +621,7 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
         if (sing_it1 != sing.end() && sing_it2 != sing.end()) {
           // if elements found in sing
           //output(it2.index2(),it2.index1()) = val;
+          // here, matrix is being transposed!
           output(it2.index1(),it2.index2()) = val;
           LOG_DBG3(lbm_pde) << "DS: o("<< it2.index2() << ", " << it2.index1() << ") = " << val;
         }
@@ -660,8 +650,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 {
   // gradient of the collision step with respect to the design variables
   // partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
-  StdVector<double> dfeqdrho;
-  dfeqdrho.Resize(n_q_);
+  StdVector<double> dfeqdrho(n_q_);
   double scale = 1. - elements[index]; // 1.-pow(por[0][index],penal);
   assert(scale >= 0);
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " scale=" << scale;
@@ -670,20 +659,18 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   double us1,us2,dot,norm;
   double const1 = 9. / 2.;
   double const2 = 3. / 2.;
-  LatticeBoltzmann::PropTransform* transform;
+  LatticeBoltzmann::MicroVelocity* transform;
 
   //gradient of u_x with respect to f
-  StdVector<double> duxdf;
-  duxdf.Resize(n_q_);
+  StdVector<double> duxdf(n_q_);
   //gradient of u_y with respect to f
-  StdVector<double> duydf;
-  duydf.Resize(n_q_);
+  StdVector<double> duydf(n_q_);
 
   double invdloc = 1.0 / dloc[index];
 
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*velocityDirections)[i];
+    transform = &(*microDirections)[i];
     us1 = scale * ux[index];
     us2 = scale * uy[index];
     dot = transform->off_x * us1 + transform->off_y * us2;
@@ -698,8 +685,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   }
 
   // partial derivatives of f^eq with respect to f: CORRECT (FDM)
-  StdVector< StdVector<double> > dfeqdf;
-  dfeqdf.Resize(n_q_);
+  StdVector< StdVector<double> > dfeqdf(n_q_);
   for (unsigned int dir = 0; dir < n_q_; dir++ ){
     dfeqdf[dir].Resize(n_q_);
   }
@@ -726,23 +712,21 @@ void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
 {
   // bounce-back sensitivities; gradient is just a permutation matrix
   for (unsigned int dir = 0; dir < n_q_; dir++) {
-    block[dir][(*invDirections)[dir]] = 1.0;
+    block[dir][(*inverseDirections)[dir]] = 1.0;
   }
 }
 
 void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight)
 {
   // gradient of the velocity inlet boundary with respect to the design variables
-  //  double dfeqdrho[9];
-  StdVector<double> dfeqdrho;
-  dfeqdrho.Resize(n_q_);
+  StdVector<double> dfeqdrho(n_q_);
   double us1 = 1.0 * u_x_;
   double us2 = 1.0 * u_y_;
   double dot, norm;
-  LatticeBoltzmann::PropTransform* transform;
+  LatticeBoltzmann::MicroVelocity* transform;
   for (unsigned int i=0; i < n_q_; i++)
   {
-    transform = &(*velocityDirections)[i];
+    transform = &(*microDirections)[i];
     dot = transform->off_x * us1 + transform->off_y * us2;
     norm = us1*us1+us2*us2;
     dfeqdrho[i] = weight[i]*(1. + 3*dot +4.5*dot*dot - 1.5* norm);
@@ -759,16 +743,14 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
 void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight)
 {
   // gradient of the density outlet boundary condition with respect to the design variables
-  StdVector<double> dfeqdux, dfeqduy;
-  dfeqdux.Resize(n_q_);
-  dfeqduy.Resize(n_q_);
-  LatticeBoltzmann::PropTransform* transform;
+  StdVector<double> dfeqdux(n_q_), dfeqduy(n_q_);
+  LatticeBoltzmann::MicroVelocity* transform;
   double scale = 1.; // no design
   double density = 1.0;  // we have no other case
   double us1,us2, dot;
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*velocityDirections)[i];
+    transform = &(*microDirections)[i];
     us1 = scale*ux[index];
     us2 = scale*uy[index];
     dot = transform->off_x * us1 + transform->off_y * us2;
@@ -777,14 +759,12 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
   }
 
   //gradient of u_x/u_y with respect to f
-  StdVector<double> duxdf, duydf;
-  duxdf.Resize(n_q_);
-  duydf.Resize(n_q_);
+  StdVector<double> duxdf(n_q_), duydf(n_q_);
 
   double invdloc = 1.0 / dloc[index];
 
   for (unsigned int i = 0; i < n_q_ ; i++) {
-    transform = &(*velocityDirections)[i];
+    transform = &(*microDirections)[i];
     duxdf[i] = invdloc * (-ux[index] + transform->off_x);
     duydf[i] = invdloc * (-uy[index] + transform->off_y);
   }
@@ -839,12 +819,12 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   unsigned int x, y;
   int rows1,rows2;
   mapped_matrix<double>::const_iterator1 iter;
-  LatticeBoltzmann::PropTransform* transform;
+  LatticeBoltzmann::MicroVelocity* transform;
 
   for (unsigned int dir = 0; dir < n_q_; dir++) {
     for(y = 0; y < n_y_ ; y++) {
       for(x = 0; x < n_x_ ; x++) {
-        transform = &(*velocityDirections)[dir];
+        transform = &(*microDirections)[dir];
 
         // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
         if (!OutsideDomain(x,y,dir)) {
@@ -852,7 +832,7 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
           rows2 = GetPdfIndex(x + transform->off_x,y + transform->off_y,dir);
 
           // case 1; if inverse distribution function of f_* points inside the domain, f_* is tangent to its boundary edge
-          if (!OutsideDomain(x,y,(*invDirections)[dir])) {
+          if (!OutsideDomain(x,y,(*inverseDirections)[dir])) {
             iter = J.find1(0, rows2, 0);
             for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
               Jprop(rows1,it.index2()) = J(rows2,it.index2());
@@ -870,7 +850,6 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
             }
           }
         }
-
       }
     }
   }
@@ -879,41 +858,44 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
 Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc)
 {
   // Calculation of gradient of pressure drop with respect to design variable; By Georg Pingen, University of Colorado (CU), Boulder, Colorado
-  double dA[9] = {0., 1., 0., -1., 0., 1., -1., -1., 1.};
-  double dB[9] = {0., 0., 1., 0., -1., 1., 1., -1., -1.};
-  double dUX[9],dUY[9];
+  StdVector<double> dUX(n_q_), dUY(n_q_);
+
   //boost::numeric::ublas::compressed_compressed_matrix<double> dPD(dpd->size1(),dpd->size2());
   // compressed_matrix<double> dPD(n_x_*n_y_*9,1,0.);
-  mapped_matrix<double> dPD(n_elems * 9, 1, n_x_*n_y_*9);
+  mapped_matrix<double> dPD(n_elems * n_q_, 1, n_elems * n_q_);
   int index;
-  for(unsigned int y=1;y<=n_y_;y++) {
-    for(unsigned int x=1;x<=n_x_;x++) {
-      index = (y-1)*n_x_+x-1;
+  double inletSize_inv = 1.0 / (double) inlet.GetSize();
+  double outletSize_inv = 1.0 / (double) outlet.GetSize();
+  double one_third = 1.0 / 3.0;
+
+  for(unsigned int y = 0; y < n_y_; y++) {
+    for(unsigned int x = 0; x < n_x_; x++) {
+      index = GetIndex(x,y);
       if(elements[index] == LBM_NODE_TYPE_INLET) // -2
       {
-        for (int i=0;i<9;i++) {
-          dUX[i]  = (dA[i] - ux[index])/dloc[index];
-          dUY[i]  = (dB[i] - uy[index])/dloc[index];
-          dPD(((y-1)*n_x_*9+(x-1)*9+i),0) = (1./3.+0.5*(ux[index]*ux[index] + uy[index]*uy[index])+dloc[index]*(ux[index]*dUX[i] + uy[index]*dUY[i])) / (double) inlet.GetSize();
+        for (unsigned int i = 0; i < n_q_; i++) {
+          dUX[i]  = (*microDirections)[i].off_x - ux[index];
+          dUY[i]  = (*microDirections)[i].off_y - uy[index];
+          dPD(GetPdfIndex(x,y,i),0) = (one_third + 0.5 * (ux[index]*ux[index] + uy[index]*uy[index])+ux[index]*dUX[i] + uy[index]*dUY[i]) * inletSize_inv;
         }
       }
       if(elements[index] == LBM_NODE_TYPE_OUTLET) // -3
       {
-        for (int i=0;i<9;i++) {
-          dUX[i]  = (dA[i] - ux[index])/dloc[index];
-          dUY[i]  = (dB[i] - uy[index])/dloc[index];
-          dPD(((y-1)*n_x_*9+(x-1)*9+i),0) = -(1./3.+0.5*(ux[index]*ux[index] + uy[index]*uy[index])+dloc[index]*(ux[index]*dUX[i] + uy[index]*dUY[i]))/static_cast<double>(outlet.GetSize());
+        for (unsigned int i = 0; i < n_q_; i++) {
+          dUX[i]  = (*microDirections)[i].off_x - ux[index];
+          dUY[i]  = (*microDirections)[i].off_y - uy[index];
+          dPD(GetPdfIndex(x,y,i),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index]) + ux[index]*dUX[i] + uy[index]*dUY[i]) * outletSize_inv;
         }
       }
     }
   }
 
   // compressed_matrix<double> dFdf(n_elems * 9,1,0.);
-  mapped_matrix<double> dFdf(n_elems * 9, 1, n_elems * 9);
+  mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
 
   d_propagate_d_f(dFdf,dPD);
 
-  Vector<double> rhs(n_elems * 9);
+  Vector<double> rhs(n_elems * n_q_);
   for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
     rhs[i] = dFdf(i,0);
 
@@ -1074,7 +1056,7 @@ double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
 {
   double density = 0.0;
   for(unsigned int h = 0; h < n_q_; h++)
-    density += pdf(idx,h);
+    density += GetPdf(idx,h);
 
   return density;
 }
@@ -1082,17 +1064,17 @@ double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
 double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
 {
   if (n_q_ == 9)
-    return (pdf(idx, Q_E) + pdf(idx, Q_NE) + pdf(idx, Q_SE) - pdf(idx, Q_W) - pdf(idx, Q_NW) - pdf(idx, Q_SW)) / density;
+    return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
   else
-    return (pdf(idx, Q_NE) + pdf(idx, Q_E) + pdf(idx, Q_SE) + pdf(idx, Q_TE) + pdf(idx, Q_BE) - pdf(idx, Q_NW) - pdf(idx, Q_W) - pdf(idx, Q_SW) - pdf(idx, Q_TW) - pdf(idx, Q_BW)) / density;
+    return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
 {
   if (n_q_ == 9)
-    return (pdf(idx, Q_N)  + pdf(idx, Q_NE) + pdf(idx, Q_NW) - pdf(idx, Q_S) - pdf(idx, Q_SW) - pdf(idx, Q_SE)) / density;
+    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
   else
-    return (pdf(idx, Q_N)  + pdf(idx, Q_NW) + pdf(idx, Q_NE) + pdf(idx, Q_TN) + pdf(idx, Q_BN) - pdf(idx, Q_S)- pdf(idx, Q_SE) - pdf(idx, Q_SW)  - pdf(idx, Q_TS) - pdf(idx, Q_BS)) / density;
+    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
@@ -1100,7 +1082,7 @@ double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) cons
   if (n_q_ == 9)
     return 0;
   else
-    return (pdf(idx, Q_T) + pdf(idx, Q_TW) + pdf(idx, Q_TE) + pdf(idx, Q_TN) + pdf(idx, Q_TS) - pdf(idx, Q_B) - pdf(idx, Q_BW) - pdf(idx, Q_BE) - pdf(idx, Q_BN) - pdf(idx, Q_BS)) / density;
+    return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
 }
 
 double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
@@ -1193,7 +1175,7 @@ void LatticeBoltzmannPDE::ExtractDistribution( shared_ptr<BaseResult> base_resul
   for(it.Begin(); !it.IsEnd(); it++)
   {
     for(unsigned int h = 0; h < n_q_; h++) {
-      val[it.GetPos() * n_q_ + h] = pdf(elem_to_idx[it.GetElem()->elemNum],h);
+      val[it.GetPos() * n_q_ + h] = GetPdf(elem_to_idx[it.GetElem()->elemNum],h);
     }
   }
 }
@@ -1216,8 +1198,7 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   // === solution by LBM solver ===
   shared_ptr<ResultInfo> prob(new ResultInfo);
   prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
-  StdVector<std::string> probDofNames;
-  probDofNames.Resize(n_q_); // "f_0", "f_1", ....
+  StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
   for(unsigned int i=0, n = n_q_; i < n; i++ )
     probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
   //  probDofNames[0] = "C";
@@ -1319,7 +1300,7 @@ void LatticeBoltzmannPDE::ReadProbabilityDistribution(const std::string& filenam
     {
       std::istringstream ss(line);
       //if(!(ss >>  PDF_IDX(i,0) >>  PDF_IDX(i,1) >>  PDF_IDX(i,2) >>  PDF_IDX(i,3) >>  PDF_IDX(i,4) >>  PDF_IDX(i,5) >>  PDF_IDX(i,6) >>  PDF_IDX(i,7) >>  PDF_IDX(i,8)))
-      if(!(ss >>  pdf(i,0) >>  pdf(i,1) >>  pdf(i,2) >>  pdf(i,3) >>  pdf(i,4) >>  pdf(i,5) >>  pdf(i,6) >>  pdf(i,7) >>  pdf(i,8)))
+      if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8)))
         EXCEPTION("error reading nine values in line " << (i+1) << " of file " << filename);
       i++;
     }
@@ -1530,7 +1511,7 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
     {
       unsigned int base = y * n_x_ * n_q_ + x * n_q_; // 2D
       //  LOG_DBG3(lbm_pde) << "INSI: test y=" << y << " x=" << x << " k=" << k << " base=" << base << " val -> " << val;
-      if(elements[index(x,y)] != LBM_NODE_TYPE_BB) // no bounce back
+      if(elements[GetIndex(x,y)] != LBM_NODE_TYPE_BB) // no bounce back
       {
         // fluid node distribution functions are not deleted
         for(unsigned int h = 0; h < n_q_; h++) // 2D
@@ -1542,29 +1523,29 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
         // distributions which point towards a bounce-back boundary point
 
         // test, if the node in direction f_1 (x+1) is not boundary but interior, inlet or outlet
-        if(x+1 < n_x_ && elements[index(x+1, y)] != LBM_NODE_TYPE_BB) // if (inew<=lx && obst(inew,j)~=1)
+        if(x+1 < n_x_ && elements[GetIndex(x+1, y)] != LBM_NODE_TYPE_BB) // if (inew<=lx && obst(inew,j)~=1)
           non_sing.Push_back(base + 1); // x(k)=(j-1)*lx*9+(i-1)*9+2;
 
-        if(y+1 < n_y_ && elements[index(x,y+1)] != LBM_NODE_TYPE_BB) // y+1 = f_2_
+        if(y+1 < n_y_ && elements[GetIndex(x,y+1)] != LBM_NODE_TYPE_BB) // y+1 = f_2_
           non_sing.Push_back(base + 2);
 
-        if(x > 0 && elements[index(x-1,y)] != LBM_NODE_TYPE_BB) {
+        if(x > 0 && elements[GetIndex(x-1,y)] != LBM_NODE_TYPE_BB) {
           non_sing.Push_back(base + 3);
         }
 
-        if(y > 0 && elements[index(x,y-1)] != LBM_NODE_TYPE_BB)
+        if(y > 0 && elements[GetIndex(x,y-1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 4);
 
-        if(x+1 < n_x_ && y+1 < n_y_ && elements[index(x+1,y+1)] != LBM_NODE_TYPE_BB)
+        if(x+1 < n_x_ && y+1 < n_y_ && elements[GetIndex(x+1,y+1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 5);
 
-        if(x > 0 && y+1 < n_y_ && elements[index(x-1,y+1)] != LBM_NODE_TYPE_BB)
+        if(x > 0 && y+1 < n_y_ && elements[GetIndex(x-1,y+1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 6);
 
-        if(x > 0 && y > 0 && elements[index(x-1,y-1)] != LBM_NODE_TYPE_BB)
+        if(x > 0 && y > 0 && elements[GetIndex(x-1,y-1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 7);
 
-        if(x+1 < n_x_ && y > 0 && elements[index(x+1,y-1)] != LBM_NODE_TYPE_BB)
+        if(x+1 < n_x_ && y > 0 && elements[GetIndex(x+1,y-1)] != LBM_NODE_TYPE_BB)
           non_sing.Push_back(base + 8);
       }
     }
@@ -1580,7 +1561,7 @@ void LatticeBoltzmannPDE::create_output(const char * file)
   for (unsigned int i=0;i< n_elems;i++)
   {
     for (unsigned int j=0;j<n_q_;j++) {
-      f<<pdf(i,j)<<" ";
+      f<<GetPdf(i,j)<<" ";
     }
     f<<std::endl;
   }
@@ -1623,14 +1604,12 @@ void LatticeBoltzmannPDE::ToFile(const std::string& file, const mapped_matrix<do
 // automatic testing for OutsideDomain(...)
 void LatticeBoltzmannPDE::TestOutsideDomain()
 {
-  int x, y;
-  x = 0; y = 0;
-  assert(!OutsideDomain(x,y,Q_0));
-  assert(!OutsideDomain(x,y,Q_E));
-  assert(!OutsideDomain(x,y,Q_N));
-  assert(OutsideDomain(x,y,Q_W));
-  assert(OutsideDomain(x,y,Q_S));
-  assert(!OutsideDomain(x,y,Q_NE));
-  assert(OutsideDomain(x,y,Q_NW));
-  assert(OutsideDomain(x,y,Q_SW));
+  assert(!OutsideDomain(0,0,Q_0));
+  assert(!OutsideDomain(0,0,Q_E));
+  assert(!OutsideDomain(0,0,Q_N));
+  assert(OutsideDomain(0,0,Q_W));
+  assert(OutsideDomain(0,0,Q_S));
+  assert(!OutsideDomain(0,0,Q_NE));
+  assert(OutsideDomain(0,0,Q_NW));
+  assert(OutsideDomain(0,0,Q_SW));
 }
