@@ -884,7 +884,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     l = 0;
     //perform damping
     while (l < 40 && f_test >= f_old) {
-      Double dampFac = 1.0 / std::pow(2.0, l - 1.0);
+      Double dampFac = 1.0 / std::pow(2.0, (Double) l);
       xi_start = xi_k + (delta_xi * dampFac);
       Local2Global(f, xi_start);
       f = f - globalPoint;

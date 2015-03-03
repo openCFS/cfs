@@ -294,8 +294,8 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
-    SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-O3 -ansi -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS "-ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-ansi -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")
