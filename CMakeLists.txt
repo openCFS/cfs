@@ -711,8 +711,8 @@ ADD_SUBDIRECTORY(source/main)
 
 IF(CFSTOOL)
   ADD_SUBDIRECTORY(source/cfstool)
-  SET(USE_FFTW ON CACHE BOOL 
-    "Activate DFT and filtering capabilities of cfstool." FORCE)
+  #  SET(USE_FFTW ON CACHE BOOL 
+  #  "Activate DFT and filtering capabilities of cfstool." FORCE)
 ENDIF(CFSTOOL)
 
 IF(CFSDAT)
