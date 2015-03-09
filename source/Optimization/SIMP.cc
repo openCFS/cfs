@@ -98,7 +98,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 {
   if(complex_)
   {
-    if(pde->HasComplexMatData(de->elem->regionId))
+    if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
       SetElementK<Complex, Complex >(de, tf, app, out, derivative, calcMode, ev);
     else
       SetElementK<Complex, double >(de, tf, app, out, derivative, calcMode, ev);
@@ -120,7 +120,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
-    const Matrix<T2>& stiffness = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, false, mm)); // no bimaterial
+    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(material->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
@@ -132,7 +132,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
-      const Matrix<T2>& bimat = dynamic_cast<Matrix<T2>& >(material->Stiffness(de->elem, true)); // yes, bimaterial
+      const Matrix<T2>& bimat = dynamic_cast<const Matrix<T2>& >(material->Stiffness(de->elem, true)); // yes, bimaterial
       // rho^3 * E1 + (1-rho)^3 * E2, in the derivative case 3*rho^2 * E1 - 3*(1-rho)^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
@@ -224,12 +224,6 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
 
-  // multimaterial stuff
-  int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
-
-  const Matrix<double>& M = material->Mass(de->elem, bimaterial, index);
-  assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
-
   // find alpha, beta and omega. We have no omega for the eigenvalue case and 1.0 eliminates it
   double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
   double alpha_k = 0.0;
@@ -271,14 +265,25 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 
   // we the add the M part of C and the real mass part
   complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
-  for(unsigned int r = 0; r < srows; r++)
-    for(unsigned int c = 0; c < scols; c++)
-      S[r][c] += damp_mass * M[r][c];
+  // multimaterial stuff
+  int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
+  if(material->ComplexElementMatrix(de->elem->regionId))
+  {
+    const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(material->Mass(de->elem, bimaterial, index));
+    assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
+    Add<Complex, Complex>(S, damp_mass, M);
+  }
+  else
+  {
+    const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(material->Mass(de->elem, bimaterial, index));
+    assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
+    Add<Complex, double>(S, damp_mass, M);
+  }
 
   LOG_DBG2(simp) << "AddMassToStiffness: d=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial << " mode="  << mode << " ev=" << ev
                  << " m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m << " pamping_m:" << pamping_m
-                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass << " M=" << M.ToString();
+                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
 }
 
 

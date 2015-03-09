@@ -619,7 +619,8 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
 
 /** Performs the optimization.
  * @return true if design and coefMat is set */
-bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm)
+template <class T>
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm)
 {
   // we cannot check for the region here, if form is a linear form (e.g.
   // pressure) but the design variable comes from elements one dimension higher
@@ -639,7 +640,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<d
   DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
   {
-    Matrix<double> tmp;
+    Matrix<T> tmp;
     dr->GetBiMaterial(MECHANIC, MECH_STIFFNESS_TENSOR)->GetTensor(tmp, *lpm);
     bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
     retMat.Add(bimat_factor,tmp); // rho^p * E_l + (1-rho)^p * E_u
@@ -654,7 +655,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<d
 
 /** Performs the optimization.
  * @return true if it is a design  variable and retScal is set */
-bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm)
+template <class T>
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm)
 {
   // we cannot check for the region here, if form is a linear form (e.g.
   // pressure) but the design variable comes from elements one dimension higher
@@ -673,7 +675,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& 
   DesignRegion* dr = GetRegion(coef, lpm->ptEl->regionId);
   if(dr->HasBiMaterial())
   {
-    double bimat;
+    T bimat;
     dr->GetBiMaterial(MECHANIC, DENSITY)->GetScalar(bimat, *lpm);
     bimat_factor = GetErsatzMaterialFactor(idx, app, true); // this is the bimat case
 
@@ -732,7 +734,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
   double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
   // now the original mass matrix
-  const Matrix<double>& mass = mm.Mass(de->elem);
+  const Matrix<double>& mass = dynamic_cast<const Matrix<double>&>(mm.Mass(de->elem)); // FIXME might be complex!
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
   elemMat.Resize(mass.GetNumRows(), mass.GetNumCols());
   elemMat.Assign(mass, tv * (1.0-tv) * GetPampingValue());
@@ -1688,4 +1690,8 @@ template void DesignSpace::FillNodeResults<double>(Result<double>& result, Resul
 template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
 template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
 template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
 #endif

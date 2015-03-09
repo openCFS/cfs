@@ -212,10 +212,8 @@ DEFINE_LOG(msDriver, "msDriver")
     sequenceStep_ = sequenceStep;
     
     // obtain paramNode and infoNode
-    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep)
-        ->Get("analysis");
+    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep)->Get("analysis");
     PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
-    info->SetComment("=== SEQUENCE STEP ===");
     info->Get("index")->SetValue(sequenceStep);
     
     

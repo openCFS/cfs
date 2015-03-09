@@ -124,7 +124,9 @@ protected:
 
 private:
 
-  /** This private, as no virtual templates are possible with C++ */
+  /** This private, as no virtual templates are possible with C++
+   * T1 is the out matrix type
+   * T2 is the element matrix type */
   template <class T1, class T2>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 

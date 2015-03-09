@@ -511,7 +511,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     stringstream label;
     label << application.ToString(app1) << "_" << application.ToString(app2);
     if (calcMode == CONJ_QUAD)
-    label << "_quad";
+      label << "_quad";
 
     DesignElement& de = design->data[0];
     int index = -1;
@@ -703,7 +703,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *> 
         // the difference is the conjugate complex in the harmonic inner product case!
         T sp;
-        if(calcMode == CONJ_QUAD)
+        if(calcMode == CONJ_QUAD || calcMode == EIGENFREQ)
           mat_vec.Inner(u1_vec, sp);// u1 = u2 = u!
         else
           sp = mat_vec * u1_vec;
@@ -713,10 +713,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // in real case it is simple value = factor * sp.
         // factor shall be +/- 1!
         double this_value = factor;
-        if(harmonic_ && calcMode != CONJ_QUAD)
+        if(harmonic_ && calcMode == STANDARD)
           this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
         else
-          this_value *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
+          this_value *= ((complex<double>) sp).real();// CONJ_QUAD, EIGENFREQ or real STANDARD
 
         de->AddGradient(f, this_value);
 
@@ -1009,7 +1009,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       break;
 
       case Function::EIGENFREQUENCY:
-      result = CalcEigenfrequency(f, derivative);
+      result = CalcEigenfrequency(excite, f, derivative);
       break;
 
       case Function::ISOTROPY:
@@ -1843,29 +1843,33 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
 
 
-  double ErsatzMaterial::CalcEigenfrequency(Function* f, bool derivative)
+  double ErsatzMaterial::CalcEigenfrequency(Excitation& excite, Function* f, bool derivative)
   {
 
     // for the bloch mode case this might be complex!
     // the eigenvalues lambda = (2*pi*ef)^2 !!
-    EigenFrequencyDriver* driver = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver());
-    Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
+
+    // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitetation idx is the wave number
+    StdVector<double> efs = forward.CollectEigenfrequencies(excite.index);
 
     // the "constructor" of ev_. We use it always, even if we don't do pertubation. ev_.pertubation is then 1:1
     if(ev_.last.IsEmpty())
       ev_.Init(this, efs.GetSize(), -1);
 
+    assert(!ev_.DoSorting()); // does not handle data is StateSolution yet
     if(ev_.DoSorting())
       SortEigenvalues();
 
     assert(f->GetEigenValueID() >= 1);
     unsigned int idx = f->GetEigenValueID() - 1; // 0-based
 
+
     double freq = efs[idx];
+    LOG_DBG(em) << "CE idx=" << idx << " f=" << freq;;
 
     if(derivative)
     {
-      // the sensitivity for a single modal eigenvalue is (Bensdoe & Sigmund (2.2) page 73)
+      // the sensitivity for a single modal eigenvalue is (Bendsoe & Sigmund (2.2) page 73)
       // d_ev = u^T (d_K - ev d_M) u with u the mode for the i-th eigenvalue and ev the i-th eigenvalue
       // hence this is the standard CalcU1KU2() scheme
       //
@@ -1875,18 +1879,16 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // the modes are not stores via StorePDESolution() but held in the ArpackSolver
       TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , MECH, true);
 
-      // stores the mode in the the solution part of algsys
-      // the pertubation is only relevant for assigning the correct mode. If no sorting this is 1:1
-      assemble_->GetAlgSys()->GetEigenMode(ev_.permutation[idx]);
-
-      StateSolution sol(this);
-      sol.Read(StateSolution::ELEMENT_VECTORS, pde, MECH, true);
 
       double factor = 1.0 / ( 8.0 * M_PI * M_PI * freq);
       // our eigenvalue
       double ev = std::pow(2.0 * M_PI * freq, 2);
 
-      CalcU1KU2(tf, sol.elem[MECH], MECH, sol.elem[MECH], NULL, factor, EIGENFREQ, f, -1, ev);
+      StateSolution* sol = forward.Get(excite, f, idx);
+
+      LOG_DBG2(em) << "CE idx=" << idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
+
+      CalcU1KU2(tf, sol->elem[MECH], MECH, sol->elem[MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }
     return freq;
   }
@@ -2579,9 +2581,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // this is true for all problem types
       Optimization::SolveStateProblem(&excite);
 
-      if(!IsTransient() && !IsEigenvalue())
-      { // transient solutions are read per timestep
-        StorePDESolution(forward, excite, NULL, 0, true, true, false, NO_DERIVTYPE, "forward");
+      if(!IsTransient()) // transient solutions are read per timestep
+      {
+        // in the eigenvalue case we store the modes separately, similar to timesteps
+        unsigned int nm = eigenvalue_ ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->eigenFreqs->GetSize() : 1;
+        for(unsigned int m = 0; m < nm ; m++)
+          StorePDESolution(forward, excite, NULL, m, true, true, eigenvalue_ ? true : false, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the the solution
       }
 
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
@@ -2594,7 +2599,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
         // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
-        if(complex_ && me->excitations.GetSize() > 1)
+        if(complex_ && me->excitations.GetSize() > 1 && !me->DoBloch()) // bloch has no adjoint
           SolveAdjointProblem(&excite, f);
 
         // when we do multiple excitations with adjusted weights we calculate the objective here
@@ -2635,18 +2640,22 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
   }
 
-  void ErsatzMaterial::StorePDESolution(StateSolutions& solutions, Excitation& excite, Function* f, unsigned int timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
+  void ErsatzMaterial::StorePDESolution(StateSolutions& solutions, Excitation& excite, Function* f, unsigned int timestep_mode, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
   {
-    StateSolution& sol = *(solutions.Get(excite, f, timestep, derivative));
+    StateSolution& sol = *(solutions.Get(excite, f, timestep_mode, derivative));
     SingleVector* raw = NULL;
+
+    // in the eigenvalue case we have not only one solution vector but one for each mode.
+    // Stores the mode in the the solution part of algsys
+    if(eigenvalue_)
+      assemble_->GetAlgSys()->GetEigenMode(timestep_mode);
 
     // store solution element wise for gradient and raw vector for objective.
     // This is redundant as currently the solution is the global one!
     for(map<Application, SinglePDE*>::iterator it = pdes.begin(); it != pdes.end(); ++it)
     {
       stringstream ss;
-      ss << "StorePDESolution: prob=" << comment << " excite=" << excite.index << " pde: " << it->first
-      << " timestep=" << timestep;
+      ss << "SPDES: prob=" << comment << " excite=" << excite.index << " pde: " << it->first << " timestep_mode=" << timestep_mode;
 
       if(read_sol)
       {
@@ -2660,6 +2669,14 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       {
         sol.Read(StateSolution::RHS_VECTOR, it->second, it->first, save_sol, derivative);
         LOG_DBG2(em) << ss.str() << " rhs: " << sol.GetVector(StateSolution::RHS_VECTOR)->ToString();
+      }
+
+      if(domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY)
+      {
+        assert(timestep_mode >= 0);
+        SingleVector* ef = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->eigenFreqs;
+        sol.eigenfreq = ef->GetEntryType() == BaseMatrix::DOUBLE ? ef->GetDoubleEntry(timestep_mode) : ef->GetComplexEntry(timestep_mode).real();
+        LOG_DBG(em) << ss.str() << " store freq " << f;
       }
     }
   }
@@ -2756,10 +2773,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 */
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
-    if (complex_)
-    SolveAdjointProblem<std::complex<double> >(excite, f);
+    if(complex_)
+      SolveAdjointProblem<std::complex<double> >(excite, f);
     else
-    SolveAdjointProblem<double>(excite, f);
+      SolveAdjointProblem<double>(excite, f);
   }
   template<class T>
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)

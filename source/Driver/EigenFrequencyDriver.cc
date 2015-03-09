@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <math.h>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
 
@@ -44,7 +45,6 @@ namespace CoupledField {
     freqShift_ = 0.0;
     writeModes_ = true;
     isQuadratic_ = false;
-    isBloch_ = false;
     blochSteps_ = 0;
     ibz_     = false;
     eigenFreqs = NULL;
@@ -53,6 +53,9 @@ namespace CoupledField {
     // replace with a concrete element
     param_ = param_->Get("eigenFrequency");
     info_ = info_->Get("eigenFrequency");
+
+    isBloch_ = param_->Has("bloch");
+
   }
 
   EigenFrequencyDriver::~EigenFrequencyDriver()
@@ -130,7 +133,7 @@ namespace CoupledField {
       double d_x = box[0][1]-box[0][0];
       double d_y = box[1][1]-box[1][0];
       double d_z = box[2][1]-box[2][0]; // 0.0 for 2D
-      wave_vectors_.Resize(steps);
+      wave_vectors.Resize(steps);
 
       LOG_DBG(efd) << "FWV box: " << box.ToString();
       LOG_DBG(efd) << "FWV box d_x=" << d_x << " d_y=" << d_y << " d_z=" << d_z;
@@ -139,37 +142,37 @@ namespace CoupledField {
       {
         // we don't repeat the corner points, the are calculated at the start of a line
         for(int i = 0; i < steps/edges; i++) {
-          wave_vectors_[i].Resize(3);
-          wave_vectors_[i][0] = (i*edges*PI/steps) / d_x;
-          wave_vectors_[i][1] = 0.0;
-          wave_vectors_[i][2] = 0.0;
+          wave_vectors[i].Resize(3);
+          wave_vectors[i][0] = (i*edges*PI/steps) / d_x;
+          wave_vectors[i][1] = 0.0;
+          wave_vectors[i][2] = 0.0;
         }
         for(int i = 0; i < steps/edges; i++) {
-          wave_vectors_[steps/edges + i].Resize(3);
-          wave_vectors_[steps/edges + i][0] = PI/d_x;
-          wave_vectors_[steps/edges + i][1] = (i*edges*PI/steps) / d_y;
-          wave_vectors_[steps/edges + i][2] = 0.0;
+          wave_vectors[steps/edges + i].Resize(3);
+          wave_vectors[steps/edges + i][0] = PI/d_x;
+          wave_vectors[steps/edges + i][1] = (i*edges*PI/steps) / d_y;
+          wave_vectors[steps/edges + i][2] = 0.0;
         }
         if(dim == 2)
           for(int i = 0; i < steps/edges; i++) {
-            wave_vectors_[2*steps/edges + i].Resize(3);
-            wave_vectors_[2*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
-            wave_vectors_[2*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
-            wave_vectors_[2*steps/edges + i][2] = 0.0;
+            wave_vectors[2*steps/edges + i].Resize(3);
+            wave_vectors[2*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors[2*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors[2*steps/edges + i][2] = 0.0;
           }
         else
         {
           for(int i = 0; i < steps/edges; i++) {
-            wave_vectors_[2*steps/edges + i].Resize(3);
-            wave_vectors_[2*steps/edges + i][0] = PI/d_x;
-            wave_vectors_[2*steps/edges + i][1] = PI/d_y;
-            wave_vectors_[2*steps/edges + i][2] = (i*edges*PI/steps) / d_z;
+            wave_vectors[2*steps/edges + i].Resize(3);
+            wave_vectors[2*steps/edges + i][0] = PI/d_x;
+            wave_vectors[2*steps/edges + i][1] = PI/d_y;
+            wave_vectors[2*steps/edges + i][2] = (i*edges*PI/steps) / d_z;
           }
           for(int i = 0; i < steps/edges; i++) {
-            wave_vectors_[3*steps/edges + i].Resize(3);
-            wave_vectors_[3*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
-            wave_vectors_[3*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
-            wave_vectors_[3*steps/edges + i][2] = PI/d_z * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i].Resize(3);
+            wave_vectors[3*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i][2] = PI/d_z * (1.0-i * (double) edges/steps);
           }
         }
       }
@@ -179,21 +182,21 @@ namespace CoupledField {
         for(int y = 0; y < root; y++) {
           for(int x = 0; x < root; x++) {
             int idx = y * root + x;
-            wave_vectors_[idx].Resize(3);
-            wave_vectors_[idx][0] = (PI/d_x) * (x/(root-1));
-            wave_vectors_[idx][1] = (PI/d_y) * (y/(root-1));
+            wave_vectors[idx].Resize(3);
+            wave_vectors[idx][0] = (PI/d_x) * (x/(root-1));
+            wave_vectors[idx][1] = (PI/d_y) * (y/(root-1));
            }
          }
       }
     }
     else
     {
-      wave_vectors_.Resize(lst.GetSize());
+      wave_vectors.Resize(lst.GetSize());
 
       for(unsigned int i = 0; i < lst.GetSize(); i++)
       {
         PtrParamNode wv = lst[i];
-        Vector<double>& p = wave_vectors_[i];
+        Vector<double>& p = wave_vectors[i];
         p.Resize(dim);
         p[0] = wv->Get("x")->As<double>();
         p[1] = wv->Get("y")->As<double>();
@@ -203,18 +206,20 @@ namespace CoupledField {
       }
     }
 
-    LOG_DBG(efd) << "FWV -> " << ToString<double>(wave_vectors_, true);
+    LOG_DBG(efd) << "FWV -> " << ToString<double>(wave_vectors, true);
 
-    current_wave_vector_ = wave_vectors_[0]; // copy constructor :)
+    current_wave_vector_ = wave_vectors[0]; // copy constructor :)
 
-    if(wave_vectors_.IsEmpty())
+    if(wave_vectors.IsEmpty())
       throw Exception("Bloch mode Eigenfrequency analysis requires at least one wave vector.");
   }
 
   double EigenFrequencyDriver::GetFrequency(unsigned int idx) const
   {
     if(isQuadratic_)
-      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].imag() / 8.0*atan(1.0);
+      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].imag() / (2.0 * M_PI);
+    if(isBloch_)
+      return dynamic_cast<Vector<Complex>&>(*eigenFreqs)[idx].real();
     else
       return dynamic_cast<Vector<double>&>(*eigenFreqs)[idx];
   }
@@ -253,44 +258,37 @@ namespace CoupledField {
     // ------------------------------
     // Phase 1: calculate eigenvalues( generalized problem)
     // ------------------------------
-
-    // the eigenfrequencies are complex in the quadratic case or in bloch mode
-    eigenFreqs->Init();
-    errBounds_.Resize(numFreq_);
-
     // Trigger calculation
     ptPDE_->WriteGeneralPDEdefines();
     BaseSolveStep* step = ptPDE_->GetSolveStep();
 
     if(isBloch_)
     {
-      assert(!wave_vectors_.IsEmpty() && current_wave_vector_[0] == wave_vectors_[0][0]);
-      for(unsigned int i = 0; i < wave_vectors_.GetSize(); i++)
+      assert(!wave_vectors.IsEmpty());
+      for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
       {
-        ptPDE_->GetSolveStep()->SetActFreq(0.0); // otherwise it is the last freq from the prev EVA
-
-        current_wave_vector_ = wave_vectors_[i]; // StrainOperatorBloch2D has a pointer to current_wave_vector
-
-        LOG_DBG(efd) << "SP i=" << i << " wv=" << current_wave_vector_.ToString();
-
-        Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-        step->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, isBloch_);
-        PrintResult(i);
+        ComputeBlochWaveVector(i);
       }
     }
-    if(isQuadratic_ && !isBloch_)
+    else
     {
-      Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-      step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, isBloch_);
-      PrintResult();
-    }
-    if(!isQuadratic_ && !isBloch_) // real generalized
-    {
-      Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-      step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_);
-      PrintResult();
-    }
+      // the eigenfrequencies are complex in the quadratic case or in bloch mode
+      eigenFreqs->Init();
+      errBounds_.Resize(numFreq_);
 
+      if(isQuadratic_)
+      {
+        Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, isBloch_);
+        PrintResult();
+      }
+      else // real generalized
+      {
+        Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
+        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_);
+        PrintResult();
+      }
+    }
     // in optimization we write the results via StoreResults() because
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization()) // in other words: if not optimization
@@ -307,12 +305,29 @@ namespace CoupledField {
   }
 
 
+  void EigenFrequencyDriver::ComputeBlochWaveVector(int wave_vector_step)
+  {
+    eigenFreqs->Init();
+    errBounds_.Resize(numFreq_);
+
+    ptPDE_->GetSolveStep()->SetActFreq(0.0); // otherwise it is the last freq from the prev EVA
+
+    current_wave_vector_ = wave_vectors[wave_vector_step]; // StrainOperatorBloch2D has a pointer to current_wave_vector
+
+    LOG_DBG(efd) << "CBWV wv=" << current_wave_vector_.ToString();
+
+    Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
+    ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, isBloch_);
+
+    PrintResult(wave_vector_step);
+  }
+
   void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
   {
     // stepNum and step_val are ignored
     LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
 
-    unsigned int wvs = isBloch_ ? wave_vectors_.GetSize() : 1; // save wave vector size
+    unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
 
     for(unsigned int w = 0; w < wvs; w++)
     {
@@ -407,9 +422,24 @@ namespace CoupledField {
       }
     }
 
-    // also log via info node
-    PtrParamNode res = info_->Get("result", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::DEFAULT);
-    res->GetChildren().Resize(0);
+    // also log via info node.
+    // new result only on detailed output and for bloch case only for step=0
+    bool append = progOpts->DoDetailedInfo() && (!isBloch_ || wave_vector_step == 0);
+    PtrParamNode res = info_->Get("result", append ? ParamNode::APPEND : ParamNode::DEFAULT);
+
+    // the problem might be that we have no detailed output, hence the res might already exist.
+    // then, numConverged might be smaller than an older optimization iteration and the old stuff > numConverged remains
+    if(!isBloch_ || wave_vector_step == 0) // don't delete old wave_vectors
+      res->GetChildren().Resize(0);
+
+    if(isBloch_)
+    {
+      res = res->GetByVal("wave_vector", "step", wave_vector_step);
+      res->Get("k_x")->SetValue(current_wave_vector_[0]);
+      res->Get("k_y")->SetValue(current_wave_vector_[1]);
+      if(dim == 3)
+        res->Get("k_z")->SetValue(current_wave_vector_[2]);
+    }
 
     // is not set for pure simulation
     if(analysis_id_.ToString() != "")
@@ -444,14 +474,6 @@ namespace CoupledField {
       // res got cleared above, so we don't overlap with previous in case numConverged is too small
       PtrParamNode mode = res->Get("mode", ParamNode::APPEND);
 
-      if(isBloch_) {
-        mode->Get("step")->SetValue(wave_vector_step);
-        mode->Get("k_x")->SetValue(current_wave_vector_[0]);
-        mode->Get("k_y")->SetValue(current_wave_vector_[1]);
-        if(dim == 3)
-          mode->Get("k_z")->SetValue(current_wave_vector_[2]);
-      }
-
       mode->Get("nr")->SetValue(i+1); // not the mode but frequency in list
       mode->Get("frequency")->SetValue(freq);
       if(isQuadratic_)
@@ -462,7 +484,7 @@ namespace CoupledField {
     if(isBloch_ && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
-      if(wave_vector_step == Integer(wave_vectors_.GetSize()) - 1)
+      if(wave_vector_step == (int) wave_vectors.GetSize() - 1)
         bloch_plot_ << first_plot_line_;
       bloch_plot_.flush();
     }

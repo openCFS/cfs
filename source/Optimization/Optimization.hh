@@ -222,7 +222,6 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
-
         /** The applied excitation */
         Excitation* applied_excitation;
         
@@ -398,6 +397,9 @@ namespace CoupledField
 
         /** do we solve an eigenvalue problem. Includes block mode problems */
         bool eigenvalue_;
+
+        /** bloch mode analyis is also eigenvalue but special due to the wave vectors encapsualted in excitations */
+        bool bloch_;
 
         /** is the first step static */
         bool firstStepStatic;

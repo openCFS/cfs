@@ -144,7 +144,7 @@ protected:
   {
     STANDARD = 0, /*!< add u1^T (K' u2  - f') or2 * Re{ u1^T (K' u2 - f')} in the harmonic case  */
     CONJ_QUAD,
-    EIGENFREQ    /*!< The derivative is u^T ( K' - ev M') u */
+    EIGENFREQ    /*!< The derivative is <u, (K' - ev M') u> which implies CONJ_QUAD */
   };
 
   /*!< add <u, K' u> which is in the real case as STANDARD
@@ -267,7 +267,7 @@ protected:
   double CalcProjection(Function* f, bool derivative);
 
   /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
-  double CalcEigenfrequency(Function* f, bool derivative);
+  double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
   /** Helper method that sorts the eigenvalues to handle mode switching by resorting accoring to the mode shape */
   void SortEigenvalues();

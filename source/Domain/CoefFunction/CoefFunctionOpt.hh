@@ -33,10 +33,23 @@ public:
   virtual ~CoefFunctionOpt() { }
 
   //! \copydoc CoefFunction::GetTensor
-  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm);
+  void GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm) {
+    GetTensor<double>(coefMat, lpm);
+  }
+
+  void GetTensor(Matrix<Complex>& coefMat, const LocPointMapped& lpm) {
+    GetTensor<Complex>(coefMat, lpm);
+  }
 
   //! \copydoc CoefFunction::GetScalar
-  void GetScalar(double& scal, const LocPointMapped& lpm);
+  void GetScalar(double& scal, const LocPointMapped& lpm) {
+    GetScalar<double>(scal, lpm);
+  }
+
+  //! \copydoc CoefFunction::GetScalar
+  void GetScalar(Complex& scal, const LocPointMapped& lpm) {
+    GetScalar<Complex>(scal, lpm);
+  }
 
 
   //! \copydoc CoefFunction::GetTensorSize
@@ -79,6 +92,12 @@ public:
   PtrCoefFct orgMat;
 
 protected:
+
+  template <class T>
+  void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
+
+  template <class T>
+  void GetScalar(T& scal, const LocPointMapped& lpm);
 
   /** This is the DesignSpace we use -> could be also requested from domain */
   DesignSpace* design;

@@ -43,7 +43,8 @@ namespace CoupledField {
     //! Return time increment
     Double GetDeltaT() { return firstdt_;}
 
-    //! Return total number of time steps
+    /** Return total number of time steps
+     * @see BaseDriver::GetNumSteps() */
     UInt GetNumSteps() { return numstep_; }
 
     //! Return current time / frequency step of simulation

@@ -93,17 +93,36 @@ StateSolutions::Unit::~Unit()
   }
 }
 
-StateSolution* StateSolutions::Get(Excitation& excitation, Function* f, unsigned int timestep, const DERIVType derivative)
+StdVector<double> StateSolutions::CollectEigenfrequencies(unsigned int wave_vector)
 {
-  StateSolution* sol = Get(excitation.index, f, timestep, derivative);
-  LOG_DBG2(statesol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative
+  StdVector<Unit*>& dat = (*forward_data_)[0];
+  // number of modesStdVector<Unit*>
+  unsigned int modes = dat.GetSize();
+  assert(domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY && domain->GetDriver()->GetNumSteps() == modes);
+
+  StdVector<double> efs(modes);
+
+  for(unsigned int m = 0; m < modes; m++)
+  {
+    efs[m] = dat[m]->data[wave_vector]->eigenfreq;
+    assert(efs[m] != -1.0);
+  }
+
+  return efs;
+}
+
+
+StateSolution* StateSolutions::Get(Excitation& excitation, Function* f, unsigned int timestep_mode, const DERIVType derivative)
+{
+  StateSolution* sol = Get(excitation.index, f, timestep_mode, derivative);
+  LOG_DBG2(statesol) << "S:G: e=" << excitation.index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative
                   << " -> rhs=" << sol->ToString();
   return sol;
 }
 
-StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned int timestep, const DERIVType derivative)
+StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned int timestep_mode, const DERIVType derivative)
 {
-  LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep << " d=" << derivative << " iF=" << isForward;
+  LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative << " iF=" << isForward;
 
   if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
     if(forward_data_ == NULL){
@@ -112,13 +131,13 @@ StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned i
       }
       forward_data_ = &data_[NULL];
     }
-    return((*forward_data_)[derivative][timestep]->data[excitation_index]);
+    return((*forward_data_)[derivative][timestep_mode]->data[excitation_index]);
   }else{
     // do we have to init first?
     if(data_.find(f) == data_.end())
       Init(f);
     assert(data_.find(f) != data_.end());
-    return data_[f][derivative][timestep]->data[excitation_index];
+    return data_[f][derivative][timestep_mode]->data[excitation_index];
   }
 }
 
@@ -142,6 +161,7 @@ StateSolution::StateSolution(ErsatzMaterial* em)
   this->raw = NULL;
   this->rhs = NULL;
   this->select = NULL;
+  this->eigenfreq = -1.0;
 }
 
 StateSolution::~StateSolution()
@@ -195,7 +215,7 @@ SolutionType StateSolution::GetSolutionType(SinglePDE* pde, Optimization::Applic
 std::string StateSolution::ToString()
 {
   std::stringstream ss;
-  ss <<  "raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
+  ss <<  " raw=" << (raw != NULL ) << " rhs=" << (rhs != NULL) << " select=" << (select != NULL);
   return ss.str();
 }
 
@@ -242,7 +262,7 @@ void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int 
 }
 
 template <class T>
-void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
+void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int timestep_mode, StdVector<Excitation>& excitations)
 {
   if(excitations.GetSize() == 1)
   {
@@ -251,7 +271,7 @@ void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int 
   else
   {
     assert(f == NULL || sol.data_.find(f) != sol.data_.end()); // if f != NULL it has to be in the map
-    StateSolutions::Unit* unit = sol.data_[f][NO_DERIVTYPE][time_step];
+    StateSolutions::Unit* unit = sol.data_[f][NO_DERIVTYPE][timestep_mode];
     assert(unit->data.GetSize() == excitations.GetSize());
 
     Vector<T> sum(unit->data[0]->raw->GetSize());

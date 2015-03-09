@@ -60,13 +60,16 @@ public:
   System GetSystem() const { return system_; }
 
   /** works fine for standard single pde SIMP stuff */
-  virtual DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
 
-  virtual const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     EXCEPTION("overload!");
   }
+
+  /** determines if we have a complex element matrix. This is the case for damped material or Bloch mode analysis with complex BOp*/
+  bool ComplexElementMatrix(RegionIdType reg = NO_REGION_ID) const;
 
 protected:
 
@@ -76,11 +79,12 @@ protected:
   OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space = NULL);
 
 
-  void GetElementMatrix(Matrix<double>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
+  template <class T>
+  void GetElementMatrix(Matrix<T>& out, const std::string& integrator, const Elem* elem, bool lower_bimat = false,
                         DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Global::ComplexPart entryType =  (Global::ComplexPart) 4711);
 
   /** Very similar to GetElementMatrix() but for the vector, e.g. for rhs linear forms */
-    void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
+  void GetElementVector(LinearForm* form, Vector<double>& out, const Elem* elem = NULL,
                           BaseMaterial* bimaterial = NULL, const Vector<double>* ts = NULL);
 
 
@@ -128,10 +132,10 @@ public:
    * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Stiffness */
-  DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
+  const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
     return MechStiffness(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
@@ -139,10 +143,10 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const Matrix<double>& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const DenseMatrix& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
 
   /** overwrites OptimizationMaterial::Mass */
-  const Matrix<double>& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
     return MechMass(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
   }
 
@@ -164,6 +168,7 @@ protected:
   /** The mechanical element mass matrix is also constant. Only for harmonic!
    * @see mechStiffness_map*/
   std::map<RegionIdType, StdVector<Matrix<double> > > mechMass_map;
+  std::map<RegionIdType, StdVector<Matrix<Complex> > > mechMass_mapC;
   
   /** We do not cache the vectors but always precalculate them */
   Vector<double> mechStrainRHS;

@@ -616,9 +616,7 @@ namespace CoupledField
     //! This method explicitly set the real/imaginary part of a matrix.
     //! By default, the other part is left unchanged. If zeroOtherPart 
     //! is set to yes, the other part gets initialized to zero.
-    void SetPart( Global::ComplexPart part,
-                  const Matrix<Double> & partMatrix,
-                  bool zeroOtherPart = false );
+    void SetPart(Global::ComplexPart part, const Matrix<Double> & partMatrix, bool zeroOtherPart = false);
 
     //! Return a sub-part of the own matrix
     

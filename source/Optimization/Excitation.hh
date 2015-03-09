@@ -72,6 +72,9 @@ public:
   /** For multiharmonic excitation. -1.0 by default */
   double frequency;
 
+  /** For Bloch mode analysis. The excitation index is the wave vector index.  */
+  Vector<double> wave_vector;
+
   /** this is the weight from the xml file.
    * @see normalized_weight */
   double weight;
@@ -122,6 +125,8 @@ public:
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
+
+  bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */

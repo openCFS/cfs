@@ -42,8 +42,8 @@ void CoefFunctionOpt::SetToShadow(PtrCoefFct shadow)
   shadowMat = shadow;
 }
 
-
-void CoefFunctionOpt::GetTensor(Matrix<double>& coefMat, const LocPointMapped& lpm)
+template <class T>
+void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 {
  assert(this->dimType_ == TENSOR);
  // if no coordinate system is set, just
@@ -51,19 +51,12 @@ void CoefFunctionOpt::GetTensor(Matrix<double>& coefMat, const LocPointMapped& l
  if(coordSys_ != NULL)
    EXCEPTION("the rotation is not fully finished ':-(\n");
 
- PtrCoefFct f = shared_from_this();
- if(f->IsComplex())
- {
-   assert(false); // what does this case/ code mean??
-   return;
- }
-
  switch(state)
  {
  case OPT:
    // the element does not necessarily lay in the design space!
    // if ApplyPhysicalDesign() returns true, coefMat is already set
-   if(!design->ApplyPhysicalDesign(shared_from_this(), coefMat, &lpm))
+   if(!design->ApplyPhysicalDesign<T>(shared_from_this(), coefMat, &lpm))
      orgMat->GetTensor(coefMat, lpm);
    break;
  case ORG:
@@ -77,8 +70,8 @@ void CoefFunctionOpt::GetTensor(Matrix<double>& coefMat, const LocPointMapped& l
   LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << coefMat.ToString(0, false);
 }
 
-
-void CoefFunctionOpt::GetScalar(double& scal, const LocPointMapped& lpm)
+template <class T>
+void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
 {
   assert(this->dimType_ == SCALAR);
   // if no coordinate system is set, just
@@ -86,20 +79,12 @@ void CoefFunctionOpt::GetScalar(double& scal, const LocPointMapped& lpm)
   if(coordSys_ != NULL)
     EXCEPTION("the rotation is not fully finished ':-(\n");
 
-  PtrCoefFct f = shared_from_this();
-  if(f->IsComplex())
-  {
-    assert(false); // what does this case/ code mean??
-    return;
-  }
-
-
   switch(state)
   {
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
-    if(!design->ApplyPhysicalDesign(shared_from_this(), scal, &lpm))
+    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), scal, &lpm))
       orgMat->GetScalar(scal, lpm);
     break;
   case ORG:

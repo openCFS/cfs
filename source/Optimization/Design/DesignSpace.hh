@@ -79,11 +79,13 @@ namespace CoupledField
 
      /** Performs the optimization for the matrix case. This
       * @return true if design and retMat is set */
-     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+     template <class T>
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm);
 
      /** Performs the optimization for the matrix case. This
       * @return true if design and retScal is set */
-     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
+     template <class T>
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
 
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for

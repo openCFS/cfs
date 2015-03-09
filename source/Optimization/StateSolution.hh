@@ -22,7 +22,10 @@ class StateSolution;
 class SingleVector;
 
 /** As the solutions come for multiple excitations in sets we store the list and the
- * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1 */
+ * averaged (when multiple excitations are enabled). W/o is just some overhead with data size = 1.
+ *
+ * For eigenvalue problems the modes are seen as timestep_mode in StateSolutions. The excitations are here only is we
+ * do Bloch mode optimization where an excitation is a wave_vector.  */
 class StateSolutions
 {
 public:
@@ -36,13 +39,17 @@ public:
   void Init(ErsatzMaterial* em);
 
   /** The solution is identified by Function, excitation index (0-based) and time step.
-   * @param f the function is NULL for the forward problems, for the adjoints it needs to be given! */
-  StateSolution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
+   * @param f the function is NULL for the forward problems, for the adjoints it needs to be given!
+   * @param timestep_mode only for transient or eigenvalue problems */
+  StateSolution* Get(Excitation& excitation, Function* f = NULL, unsigned int timestep_mode = 0, const DERIVType derivative = NO_DERIVTYPE);
 
-  StateSolution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep = 0, const DERIVType derivative = NO_DERIVTYPE);
+  StateSolution* Get(int excitation_index,  Function* f = NULL, unsigned int timestep_mode = 0, const DERIVType derivative = NO_DERIVTYPE);
 
   /** Returns the currently stored functions. Empty for forward */
   StdVector<Function*> GetFunctions() const;
+
+  /** Helper which collects the eigenfrequencies for a wave_vector. If no Bloch the wave_vector is 0. */
+  StdVector<double> CollectEigenfrequencies(unsigned int wave_vector = 0);
 
   /** Return whether this is the Solution of the forward problem */
   bool IsForward(){ return(isForward); };
@@ -69,11 +76,12 @@ private:
     StdVector<StateSolution*> data;
   };
 
-  /** Stores the excitation by function and by derivative and time step.
-   * data_[function][derivative][timestep]
+  /** Stores the excitation by function and by derivative and time step (or mode in the eigenvalue case).
+   * data_[function][derivative][timestep/mode]
    * Stored are units which contains eventually multiple excitations.
    * @see Unit() */
   std::map<Function*, StdVector<StdVector<Unit*> > > data_;
+
 
   // if this Solutions is forward, it does not use the value in function in Get
   bool isForward;
@@ -97,7 +105,7 @@ public:
 
   typedef enum
   {
-    ELEMENT_VECTORS = 0, RAW_VECTOR, RHS_VECTOR, SEL_VECTOR, GRIDELEM_VECTORS
+    ELEMENT_VECTORS = 0, RAW_VECTOR = 1, RHS_VECTOR = 2, SEL_VECTOR = 3, GRIDELEM_VECTORS = 4
   } StorageType;
 
   static SolutionType GetSolutionType(SinglePDE* pde, Optimization::Application app = Optimization::NO_APP);
@@ -126,7 +134,7 @@ public:
   /** average the raw solutions by the excitations.
    * @param excitations average or solution by one entry only. Is strictly speaking already known
    * by the em_ parameter but is more explicit this way.  */
-  static void Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations);
+  static void Write(SinglePDE* pde, StateSolutions& sol, Function* f, int timestep_mode, StdVector<Excitation>& excitations);
 
   /** return an existing nodal vector.
    * As the type is not known we cannot create on the fly.
@@ -153,6 +161,10 @@ public:
    * considering all elements from the grid instead of all design elements only
    * needed by shape optimization */
   std::map<Optimization::Application, StdVector<SingleVector*> > gridelem;
+
+  /** for eigenvalue problems, this is the frequency (not the eigenvalue)
+   * @see StateSolutions::CollectEigenfrequencies() */
+  double eigenfreq;
 
 private:
 

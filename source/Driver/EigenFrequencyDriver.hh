@@ -35,6 +35,10 @@ class SingleVector;
     //! solution process for the problem.
     void SolveProblem();
     
+    /** part of bloch mode analysis which needs to be excitation by excitation in the optimization case.
+      Otherwise called by SolveProblem() */
+    void ComputeBlochWaveVector(int wave_vector_step);
+
     //! Return current time / frequency step of simulation
     UInt GetActStep( const std::string& pdename ) { return 1;}
 
@@ -49,8 +53,9 @@ class SingleVector;
     /** @see current_wave_vector_ */
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
-    /** The number of the lowest eigenfrequencies to be calculated */
-    unsigned int GetNumFreqs() const { return numFreq_; }
+    /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
+     * @see BaseDriver::GetNumSteps() */
+    unsigned int GetNumSteps() { return numFreq_; }
 
     /** @see BaseDriver::StoreResults()
      * stepNum and step_val are ignored!! */
@@ -68,6 +73,10 @@ class SingleVector;
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs;
+
+    /** this is the list of wave vectors we have to process.
+     * Obtained arbitrary */
+    StdVector<Vector<double> > wave_vectors;
 
   private:
 
@@ -102,10 +111,6 @@ class SingleVector;
 
     /** This is the current wave vector, a copy form the an wave_vectors_ entry */
     Vector<double> current_wave_vector_;
-
-    /** this is the list of wave vectors we have to process.
-     * Obtained arbitrary */
-    StdVector<Vector<double> > wave_vectors_;
 
     /** here we output the bloch mode data for direct plotting */
     std::ofstream bloch_plot_;
