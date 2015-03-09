@@ -14,6 +14,7 @@
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/HarmonicDriver.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -89,11 +90,13 @@ Optimization::Optimization()
   this->complex_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
   this->harmonic_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC;
   this->eigenvalue_ = domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
+  this->bloch_ = domain->GetDriver()->DoBlochModeEigenfrequency();
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
+  this->applied_excitation = NULL;
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
@@ -105,8 +108,15 @@ Optimization::Optimization()
     throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
 
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
+  PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);
   optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
   
+  header->Get("complex")->SetValue(complex_);
+  header->Get("harmonic")->SetValue(harmonic_);
+  header->Get("eigenvalue")->SetValue(eigenvalue_);
+  header->Get("bloch")->SetValue(bloch_);
+
+
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = optParamNode->Has("firstStepStatic");
   if(firstStepStatic){
@@ -135,12 +145,12 @@ Optimization::Optimization()
   // actually part of costFunction - but we store in Optimization itself!
   bool dme = optParamNode->Get("costFunction/multiple_excitation")->As<bool>();
   this->me = new MultipleExcitation(dme, dme ? optParamNode->Get("costFunction/multipleExcitation", ParamNode::PASS) : PtrParamNode());
-  if(dme) this->me->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("multipleExcitations"));
+  if(dme) this->me->ToInfo(header->Get("multipleExcitations"));
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
   ParamNodeList list = optParamNode->GetList("constraint");
   constraints.Read(list);
-  PtrParamNode in = optInfoNode->Get(ParamNode::HEADER)->Get("constraints");
+  PtrParamNode in = header->Get("constraints");
 
   // constraints.ToInfo() is called in PostInitSecond()
 
@@ -643,15 +653,21 @@ void Optimization::SolveStateProblem(Excitation* excite)
   }
                                          
   // Do not store the results. This is to be done in CommitIteration
-  if(!harmonic_ || excite == NULL)
-  {
-    driver->SolveProblem();
-      // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
-  }
-  else
+  if(harmonic_ && excite != NULL)
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step);
+  }
+  else if(bloch_)
+  {
+    LOG_DBG(opt) << "SSP: bloch step=" << excite->wave_vector.ToString();
+    dynamic_cast<EigenFrequencyDriver*>(driver)->ComputeBlochWaveVector(excite->index);
+  }
+  else
+  {
+    assert(!bloch_ || !harmonic_);
+    driver->SolveProblem();
+      // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
 
   problemSolvedCounter++;

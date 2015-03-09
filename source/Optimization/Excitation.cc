@@ -17,6 +17,7 @@
 #include "Domain/Results/ResultInfo.hh"
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
+#include "Driver/EigenFrequencyDriver.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "General/Exception.hh"
@@ -103,7 +104,10 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
 
-  int num_freq  = opt->IsHarmonic() ? dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize() : 0;
+  int num_freq = opt->IsHarmonic() ? dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize() : 0;
+
+  // bloch mode analysis wave vectors
+  int num_vec = DoBloch() ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->wave_vectors.GetSize() : 0;
 
   int num_loads = ass->GetLinForms().GetSize();  // to be faked later for homogenization test strains
   LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads;
@@ -129,6 +133,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     if(num_freq > 1 && num_loads > 1)
       throw Exception("Cannot to concurrent multiple excitations for multiple loads and multiple frequencies");
 
+    assert(!(num_vec > 0 && (num_freq > 0 || num_loads > 0)));
+
     // sets and resizes excitations with strain loads
     if(DoHomogenization())
     {
@@ -139,15 +145,30 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     // the following is validated by above and 1 frequency and 0 loads is harmless
     if(num_freq > 1)  excitations.Resize(num_freq);
     if(num_loads > 1) excitations.Resize(num_loads); // redundant for homogenization
+    if(num_vec > 1)   excitations.Resize(num_vec);
 
     // we average the solutions(s) only for output.
     // In the calculations we average the individual calculations
   }
 
-
   // read in tracking parameters from XML, for the first and only load
   if(pn->Has("trackings")){
     excitations[0].ReadTrackings(pn->Get("trackings"));
+  }
+
+  if(num_vec > 0)
+  {
+    const StdVector<Vector<double> >& wv = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->wave_vectors;
+
+    for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    {
+      Excitation& ex = excitations[i];
+      ex.index = i;
+      ex.weight = i < excitations.GetSize() - 1 ? 0 : 1; // we assume the slack variable as objective!
+      ex.wave_vector = wv[i];
+      ex.label = "(" + ex.wave_vector.ToString(0, ',') + ")";
+      weight_sum += ex.weight;
+    }
   }
 
   // this sets the first and only excitation even when we have multiple harmonic forward case
@@ -170,7 +191,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       weight_sum += ex.weight;
     }
   }
-  if(!opt->IsHarmonic() && IsEnabled()) // multiple loads case
+  if(!opt->IsHarmonic() && IsEnabled() && !DoBloch()) // multiple loads case
   {
     // when the loads are given in the optimization section of the xml file
     if(pn_ex.GetSize() > 0)
@@ -205,9 +226,10 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
 
       parser->ReleaseHandle(handle);
     }
+
     // take the loads from the bcsAndLoads section. Store them here and reduce them to one.
     // Apply() will then change the entities for this loads
-    if(pn_ex.GetSize() == 0 && !DoHomogenization())
+    if(pn_ex.GetSize() == 0 && !DoHomogenization() && !DoBloch())
     {
       // a force is a linarForm with integrator NodalForceInt
       StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
@@ -230,7 +252,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       // "remove" the loads from the simulation. From now on we Apply() ist
       forms.Resize(0); // won't delete content but set the internal size_ counter
     }
-  }
+  } // end load cases
 
   // output summary
   // -------------------
@@ -380,6 +402,8 @@ Excitation::Excitation()
   this->index = -1; // must be updated
   this->frequency = -1.0;
   this->f_link = NULL;
+  this->cost = -1.0;
+
   this->weight = 1.0;
   this->normalized_weight = 1.0;
   this->assemble = domain->GetBasePDE()->GetAssemble();
@@ -404,6 +428,9 @@ void Excitation::Apply()
   }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
+  // the same holds for the bloch mode analysis
+
+
 }
 
 double Excitation::GetOmega() const

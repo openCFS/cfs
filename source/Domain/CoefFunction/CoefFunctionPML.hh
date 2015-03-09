@@ -106,7 +106,7 @@ public:
 
   Double ComputeFactor(Double pos, Double thickness){
     Double value = constFactor/thickness;
-    value *= ( (pos / thickness) - ((sin(8*atan(1.0)*pos / thickness)/(8*atan(1.0))) ) );
+    value *= ( (pos / thickness) - ((sin(2*M_PI*pos / thickness)/(8*atan(1.0))) ) );
     return value*DampFactor;
   }
 
@@ -182,7 +182,7 @@ protected:
     //
     //! Call-back method for re-calculation
     void UpdateOmega(){
-      omega_ = this->mp_->Eval(mHandle_) * 8 * atan(1.0);
+      omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
     }
 
 private:

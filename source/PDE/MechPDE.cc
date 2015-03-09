@@ -972,9 +972,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
     if(domain->GetErsatzMaterial(false) != NULL)
     {
-      assert(!isComplex);
-
-      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef);
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef); // takes double and complex
       curCoef.reset(tmpFnc);
     }
 

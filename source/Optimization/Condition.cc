@@ -675,8 +675,8 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(!DoEvaluateAlways())
-    in->Get("excitation")->SetValue(me->excitations[excite_].label);
+  if(me->IsEnabled())
+    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].label);
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
@@ -1032,7 +1032,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   // check for uniqueness of the eigenvalue id
   if(em->IsEigenvalue())
   {
-    unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumFreqs();
+    unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumSteps();
 
     StdVector<unsigned int> ids;
 

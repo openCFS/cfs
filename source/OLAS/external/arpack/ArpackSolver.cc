@@ -299,7 +299,7 @@ namespace CoupledField {
     bool rvec = true;
     StdVector<double> select(numArnoldiVec_); // is logical in Fortran! // Double *select = new Double [numArnoldiVec_];
     StdVector<TYPE> d(numArnoldiVec_*2);  // in dsdrv4.f (maxncv,2) and in zndrv4.f (maxncv)
-    TYPE omgShift = pow(freqShift_*8.0*atan(1.0), bloch ? 1 : 2);
+    TYPE omgShift = pow(freqShift_*2*M_PI, bloch ? 1 : 2);
 
     Vector<TYPE>& eval = dynamic_cast<Vector<TYPE>&>(*eigenValues_);
     Vector<TYPE>& evec = dynamic_cast<Vector<TYPE>&>(*eigenVectors_);

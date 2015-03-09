@@ -331,7 +331,8 @@ Function* Function::GetFunction(Objective* f, Condition* g) {
   return f != NULL ? dynamic_cast<Function*>(f) : dynamic_cast<Function*>(g);
 }
 
-void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
+void Function::SetExcitation(MultipleExcitation* me, int excite_index)
+{
   assert(me != NULL && me->excitations.GetSize() > 0);
 
   // some functions need to be evaluated only once (first) for multiple excitations
@@ -340,6 +341,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   // * different frequencies
   // * several homogenization test strains
   // * time steps
+  // * bloch mode analysis wave vectors
 
   switch(type_)
   {
@@ -388,13 +390,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
-  case EIGENFREQUENCY:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
+
   case COMPLIANCE:
   case OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -404,14 +406,14 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
+  case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
   case TEMPERATURE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
       excite_ = -1; // all excitations
-    else {
+    else
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
-      excite_sensitive_ = true;
-    }
+    excite_sensitive_ = true; // was originally only set in the else case but would this make sense?
     break;
 
   case STRESS:

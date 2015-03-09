@@ -150,6 +150,20 @@ namespace CoupledField {
       EXCEPTION( "BaseVector::GetEntry: Not over-written by derived class" );
     }
 
+    /** shortcuts */
+    double GetDoubleEntry(unsigned int i) const {
+      double v;
+      GetEntry(i, v);
+      return v;
+    }
+
+    Complex GetComplexEntry(unsigned int i) const {
+      Complex v;
+      GetEntry(i, v);
+      return v;
+    }
+
+
     // Get/Set/AddToEntry versions for non-Double entry 
 #define DECL_ENTRY_FCN(TYPE) \
 virtual void SetEntry( UInt i, const TYPE &val ){                \
