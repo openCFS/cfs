@@ -156,6 +156,11 @@ private:
     return GetIndex(x,y) * n_q_ + dir;
   }
 
+  // returns if element with given index is of type bounce back
+  inline bool IsBounceBack(unsigned int index) {
+    return elements[index] == LBM_NODE_TYPE_BB;
+  }
+
   inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int dir)
   {
     LatticeBoltzmann::MicroVelocity tmp = (*microDirections)[dir];
@@ -213,7 +218,7 @@ private:
 
 //  void d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J,int dir);
 
-  Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc);
+  Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
   void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);

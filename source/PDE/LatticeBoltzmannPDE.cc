@@ -469,7 +469,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       for (unsigned int k=0;k<n_q_;k++)
         dRds[index * n_q_ +k] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index]);
     }
-    else if(elements[index] == LBM_NODE_TYPE_BB) {
+    else if(IsBounceBack(index)) {
       d_bounceback_d_f(block); // bounce-back sensitivities
     }
     else if(elements[index] == LBM_NODE_TYPE_INLET) {
@@ -494,6 +494,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // compressed_matrix<double> Jacobi(9 * n_elems , 9 * n_elems);
   d_propagate_d_f(Jacobi,col_jacobi);
 
+  // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
   for(unsigned int i=0;i < n_q_ * n_elems; i++)
     Jacobi(i,i) -= 1.;
 
@@ -505,10 +506,13 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
+  WriteMatrix("Jacobian.txt",Jacobi);
+  WriteMatrix("Jacobian_new.txt",Jacobi_new);
+
   double delete_sing_setup = timer.GetCPUTime();
 
   // right-hand side
-  Vector<double> b = d_pressuredrop_d_f(ux, uy, dloc);
+  Vector<double> b = d_pressuredrop_d_f(ux, uy);
 
   double rhs_setup = timer.GetCPUTime();
 
@@ -596,49 +600,40 @@ void LatticeBoltzmannPDE::matrix_sparse_to_crs(mapped_matrix<double>& M, double*
 }
 
 
+/**
+ * This function "deletes" the entries from the Jacobian causing its singularity. This is done by copying the valid values from the old Jacobian M to a new one.
+ * - non_sing is a vector containing indices of non singular elements
+ * - non_sing is being copied to temporary set nss due to performance reasons
+ *
+ * Basic procedure:
+ * - Iterate over all rows of M
+ * - If already row index is not contained in non_sing, we replace this row with the unit row vector to assure full rank of new matrix
+ * - If row and column indices of M is contained in non_sing, this values is copied to new Jacobian
+ */
 
-// void LatticeBoltzmannPDE::DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output)
 void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output)
 {
-  std::set<unsigned int> sing;
-  compressed_matrix<double> test(n_elems * n_q_, n_elems * n_q_, output.nnz());
-
-  for(unsigned int i = 0, n = non_sing.GetSize(); i < n; i++)
-    sing.insert(non_sing[i] + 1);
+  std::set<unsigned int> nss(non_sing.Begin(), non_sing.End()); // non_sing set, searching a set is only O(log(n)) instead of O(n) for a vector
 
   // delete singular rows of the Jacobian in the sensitivity analysis for the optimization
   double val;
-  std::set<unsigned int>::iterator sing_it1, sing_it2;
-  // for(compressed_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
-  for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) {
-    // for(compressed_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
-    for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
-      val = M(it2.index1(),it2.index2());
-      if (abs(val) > 1e-20) {
-        //it2.index1():row, it2.index2():column
-        sing_it1 = sing.find(it2.index1()+1);
-        sing_it2 = sing.find(it2.index2()+1);
-        if (sing_it1 != sing.end() && sing_it2 != sing.end()) {
-          // if elements found in sing
-          //output(it2.index2(),it2.index1()) = val;
-          // here, matrix is being transposed!
-          output(it2.index1(),it2.index2()) = val;
-          LOG_DBG3(lbm_pde) << "DS: o("<< it2.index2() << ", " << it2.index1() << ") = " << val;
-        }
-      }
+  std::set<unsigned int>::iterator nss_it1, nss_it2;
+
+  for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) { // iterate over all rows of matrix M
+
+    if (nss.find(it.index1()) == nss.end()) { // if this row causes singularity of Jacobian
+      // to assure full rank of Jacobian, fill rows that cause singularity with unit vector: diagonal entry gets value 1
+      output(it.index1(),it.index1()) = 1.0;
+      continue;
     }
-  }
-  std::set<unsigned int>::iterator it = sing.begin();
-  for(unsigned int i=0;i<output.size1();i++) {
-    if (it == sing.end()) {
-      output(i,i) = 1.;
-      LOG_DBG3(lbm_pde) << "DS: a i=" << i;
-    } else {
-      if (i+1 != *it) {
-        output(i,i) = 1.;
-        LOG_DBG3(lbm_pde) << "DS: b i=" << i;
-      } else {
-        it++;
+    else { // if row index is in non_sing vector
+      for(mapped_matrix<double>::const_iterator2 it2 = it.begin(); it2 != it.end(); ++it2) {
+        val = M(it2.index1(),it2.index2());
+        if (nss.find(it2.index2()) != nss.end()) { // if column index is also in non_sing vector
+          //it2.index1()  row index , it2.index2() column index
+          output(it2.index1(),it2.index2()) = val;
+          LOG_DBG3(lbm_pde) << "DS: o("<< it2.index1() << ", " << it2.index2() << ") = " << val;
+        }
       }
     }
   }
@@ -803,8 +798,6 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
 //}
 
 
-
-// void LatticeBoltzmannPDE::d_propagate_d_f(compressed_matrix<double>& Jprop, const compressed_matrix<double>& J)
 /*
  * 3 case have to be considered for each distribution function f_*:
  * 1. f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
@@ -855,13 +848,11 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   }
 }
 
-Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc)
+Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy)
 {
   // Calculation of gradient of pressure drop with respect to design variable; By Georg Pingen, University of Colorado (CU), Boulder, Colorado
   StdVector<double> dUX(n_q_), dUY(n_q_);
 
-  //boost::numeric::ublas::compressed_compressed_matrix<double> dPD(dpd->size1(),dpd->size2());
-  // compressed_matrix<double> dPD(n_x_*n_y_*9,1,0.);
   mapped_matrix<double> dPD(n_elems * n_q_, 1, n_elems * n_q_);
   int index;
   double inletSize_inv = 1.0 / (double) inlet.GetSize();
@@ -874,7 +865,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       if(elements[index] == LBM_NODE_TYPE_INLET) // -2
       {
         for (unsigned int i = 0; i < n_q_; i++) {
-          dUX[i]  = (*microDirections)[i].off_x - ux[index];
+          dUX[i]  = (*microDirections)[i].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
           dUY[i]  = (*microDirections)[i].off_y - uy[index];
           dPD(GetPdfIndex(x,y,i),0) = (one_third + 0.5 * (ux[index]*ux[index] + uy[index]*uy[index])+ux[index]*dUX[i] + uy[index]*dUY[i]) * inletSize_inv;
         }
@@ -890,7 +881,6 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
     }
   }
 
-  // compressed_matrix<double> dFdf(n_elems * 9,1,0.);
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
 
   d_propagate_d_f(dFdf,dPD);
@@ -1499,17 +1489,13 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
   assert(non_sing.IsEmpty());
   assert(!elements.IsEmpty());
 
-  // reimplemented matlab code
-  // we have the vector to export it as non_sing.dat for the old interface
   non_sing.Reserve(n_q_ * n_x_ * n_y_ * n_z_);
-
-
 
   for(unsigned int y = 0; y < n_y_; y++)
   {
     for(unsigned int x = 0; x < n_x_; x++)
     {
-      unsigned int base = y * n_x_ * n_q_ + x * n_q_; // 2D
+      unsigned int base = GetPdfIndex(x,y,Q_0); // 2D
       //  LOG_DBG3(lbm_pde) << "INSI: test y=" << y << " x=" << x << " k=" << k << " base=" << base << " val -> " << val;
       if(elements[GetIndex(x,y)] != LBM_NODE_TYPE_BB) // no bounce back
       {
@@ -1522,31 +1508,12 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
         // outpointing boundary distributions are not inserted and
         // distributions which point towards a bounce-back boundary point
 
-        // test, if the node in direction f_1 (x+1) is not boundary but interior, inlet or outlet
-        if(x+1 < n_x_ && elements[GetIndex(x+1, y)] != LBM_NODE_TYPE_BB) // if (inew<=lx && obst(inew,j)~=1)
-          non_sing.Push_back(base + 1); // x(k)=(j-1)*lx*9+(i-1)*9+2;
-
-        if(y+1 < n_y_ && elements[GetIndex(x,y+1)] != LBM_NODE_TYPE_BB) // y+1 = f_2_
-          non_sing.Push_back(base + 2);
-
-        if(x > 0 && elements[GetIndex(x-1,y)] != LBM_NODE_TYPE_BB) {
-          non_sing.Push_back(base + 3);
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          LatticeBoltzmann::MicroVelocity f = (*microDirections)[dir];
+          // test, if the node in direction f is not bounce back
+          if (!OutsideDomain(x,y,dir) && !IsBounceBack(GetIndex(x+f.off_x,y+f.off_y)))
+            non_sing.Push_back(base + dir);
         }
-
-        if(y > 0 && elements[GetIndex(x,y-1)] != LBM_NODE_TYPE_BB)
-          non_sing.Push_back(base + 4);
-
-        if(x+1 < n_x_ && y+1 < n_y_ && elements[GetIndex(x+1,y+1)] != LBM_NODE_TYPE_BB)
-          non_sing.Push_back(base + 5);
-
-        if(x > 0 && y+1 < n_y_ && elements[GetIndex(x-1,y+1)] != LBM_NODE_TYPE_BB)
-          non_sing.Push_back(base + 6);
-
-        if(x > 0 && y > 0 && elements[GetIndex(x-1,y-1)] != LBM_NODE_TYPE_BB)
-          non_sing.Push_back(base + 7);
-
-        if(x+1 < n_x_ && y > 0 && elements[GetIndex(x+1,y-1)] != LBM_NODE_TYPE_BB)
-          non_sing.Push_back(base + 8);
       }
     }
   }
