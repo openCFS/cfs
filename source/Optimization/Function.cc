@@ -2771,45 +2771,13 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
   return -1.0;
 }
 
-double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
-{
-  double stiff1(0.0), stiff2(0.0);
-  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
-  {
-    switch(GetElement(i)->GetType())
-    {
-    case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(access);
-      break;
-    default:
-      break;
-    }
-  }
-  if(!derivative)
-    return stiff1+stiff2-stiff1*stiff2;
-  else
-  {
-    switch(GetElement(neigh_idx)->GetType())
-    {
-    case DesignElement::STIFF1:
-      return 1.0-stiff2;
-    case DesignElement::STIFF2:
-      return 1.0-stiff1;
-    default:
-      return 0.0;
-    }
-  }
-}
-
-//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-//  DesignElement* de = dynamic_cast<DesignElement*>(element);
-//  double stiff1(0.0), stiff2(0.0), vol;
-//  int dim = domain->GetGrid()->GetDim();
-//  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-//    switch (GetElement(i)->GetType()) {
+//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
+//{
+//  double stiff1(0.0), stiff2(0.0);
+//  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
+//  {
+//    switch(GetElement(i)->GetType())
+//    {
 //    case DesignElement::STIFF1:
 //      stiff1 = GetElement(i)->GetDesign(access);
 //      break;
@@ -2820,50 +2788,82 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
 //      break;
 //    }
 //  }
-//  bool regular = local->space->IsRegular();
-//  /** if grid is nonregular, the volume has to be scaled by element size */
-//  if (!regular) {
-//    assert(local->total_vol_ != 0);
-//  }
-//  /**svol is a scaling factor for unstructured, nonregular grids. */
-//  double svol = regular ? 1.0 : de->CalcVolume();
-//  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
-//  if (!derivative) {
-//    if (dim == 2) {
-//      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
-//    } else {
-//      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//    }
-//  } else {
-//    switch (GetElement(neigh_idx)->GetType()) {
+//  if(!derivative)
+//    return stiff1+stiff2-stiff1*stiff2;
+//  else
+//  {
+//    switch(GetElement(neigh_idx)->GetType())
+//    {
 //    case DesignElement::STIFF1:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff2);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
+//      return 1.0-stiff2;
 //    case DesignElement::STIFF2:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff1);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF3:
-//      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//      assert(vol!= -1);
-//      return vol;
-//
+//      return 1.0-stiff1;
 //    default:
 //      return 0.0;
 //    }
 //  }
-//  //should never be reached
-//  return -1.0;
 //}
+
+double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+  DesignElement* de = dynamic_cast<DesignElement*>(element);
+  double stiff1(0.0), stiff2(0.0), vol;
+  int dim = domain->GetGrid()->GetDim();
+  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
+    switch (GetElement(i)->GetType()) {
+    case DesignElement::STIFF1:
+      stiff1 = GetElement(i)->GetDesign(access);
+      break;
+    case DesignElement::STIFF2:
+      stiff2 = GetElement(i)->GetDesign(access);
+      break;
+    default:
+      break;
+    }
+  }
+  bool regular = local->space->IsRegular();
+  /** if grid is nonregular, the volume has to be scaled by element size */
+  if (!regular) {
+    assert(local->total_vol_ != 0);
+  }
+  /**svol is a scaling factor for unstructured, nonregular grids. */
+  double svol = regular ? 1.0 : de->CalcVolume();
+  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+  if (!derivative) {
+    if (dim == 2) {
+      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
+    } else {
+      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+    }
+  } else {
+    switch (GetElement(neigh_idx)->GetType()) {
+    case DesignElement::STIFF1:
+      if (dim == 2) {
+        return svol*(1.0 - stiff2);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
+    case DesignElement::STIFF2:
+      if (dim == 2) {
+        return svol*(1.0 - stiff1);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
+    case DesignElement::STIFF3:
+      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+      assert(vol!= -1);
+      return vol;
+
+    default:
+      return 0.0;
+    }
+  }
+  //should never be reached
+  return -1.0;
+}
 
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
     bool derivative) const {

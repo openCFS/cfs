@@ -225,7 +225,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
   mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
   mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
-  mesh.bc.append(("pressure2",range(int(0.8*nx),nx+1)))
+  mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
 
 
 
@@ -314,12 +314,12 @@ def write_gid_mesh(mesh, filename):
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
   tet4 = count_elements(mesh.elements, TET4)
-  tri3 = count_elements(mesh.elements,TRIANGLE3)
-  print 'number of elements ' + str(tri3)
+  tri3 = count_elements(mesh.elements, TRIANGLE3)
   num_1d = line
-  num_2d = quad4+tri3
+  num_2d = quad4 + tri3
   num_3d = hexa8 + wedge6 + tet4
   assert(num_1d + num_2d + num_3d == len(mesh.elements))
+  print 'number of elements ' + str(num_1d + num_2d + num_3d)
   dim = 3 if num_3d > 0 else 2
   
   out = open(filename, "w")
@@ -344,7 +344,7 @@ def write_gid_mesh(mesh, filename):
   out.write('Num 2d-line,quad : 0\n')
   out.write('Num 3d-line      : 0\n')
   out.write('Num 3d-line,quad : 0\n')
-  out.write('Num triangle     : '+str(tri3)+'\n')
+  out.write('Num triangle     : ' + str(tri3) + '\n')
   out.write('Num triangle,quad: 0\n')
   out.write('Num quadr        : ' + str(quad4) + '\n')
   out.write('Num quadr,quad   : 0\n')
@@ -444,7 +444,7 @@ def create_2d_mesh(type, x_res, y_res):
 
   for y in range(ny + 1):
     for x in range(nx + 1):
-      mesh.nodes.append((offx + x * dx,offy + y * dy))
+      mesh.nodes.append((offx + x * dx, offy + y * dy))
   
   scale = 2 if type == 'triangle_msfem' else 1
   # print mesh.nodes 
@@ -473,18 +473,18 @@ def create_2d_mesh(type, x_res, y_res):
       # assign nodes
       ll = (nx + 1) * y + x  # lowerleft
       if type == 'triangle_msfem':
-        e.nodes = ((ll,ll+1,ll+1+nx+1))
+        e.nodes = ((ll, ll + 1, ll + 1 + nx + 1))
         e2 = Element()
         e2.density = e.density
         e2.region = e.region
         e2.type = e.type
-        e2.nodes = ((ll+1+nx+1,ll+nx+1,ll))
+        e2.nodes = ((ll + 1 + nx + 1, ll + nx + 1, ll))
         mesh.elements.append(e)
         mesh.elements.append(e2)
       else:  
         e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))    
         mesh.elements.append(e)
-  #if type == 'msfem_test':
+  # if type == 'msfem_test':
   #  for y in range(ny):
   #    b = Element()
   #    b.type = LINE
@@ -537,7 +537,7 @@ def create_2d_mesh(type, x_res, y_res):
     mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
     mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
     mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
-    mesh.bc.append(("pressure2",range(int(0.8*nx),nx+1)))
+    mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
   
     mesh.bc.append(("left_lower", [0]))
     mesh.bc.append(("right_lower", [nx]))
@@ -751,7 +751,7 @@ def create_lbm(resolution, case):
   return mesh
 
 # creates a mesh from hdf5 file  
-def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, region_support=None,threshold = 0.):
+def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, region_support=None, threshold=0.):
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
   reg_elements_des = hdf5_file['/Mesh/Regions/' + region[0] + '/Elements'].value
   if len(region) > 1:
@@ -777,7 +777,7 @@ def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, regio
     mesh.bc.append((region_support, reg_support_nodes[:] - 1))
   else:
     for i in range(len(bcregions)):
-      bc_nodes = hdf5_file['Mesh/Groups/'+str(bcregions[i])+'/Nodes']
+      bc_nodes = hdf5_file['Mesh/Groups/' + str(bcregions[i]) + '/Nodes']
       mesh.bc.append((bcregions[i], bc_nodes[:] - 1))
   
   for i in range(len(all_nodes)):
@@ -832,3 +832,88 @@ def create_mesh_from_tetgen(meshfile, region):
     e.type = TET4
     mesh.elements.append(e) 
   return mesh
+
+def create_mesh_from_optistruct(meshfile):
+  # create element and nodes files by hand from optistruct
+  
+  # load files
+  hexa_elements = numpy.loadtxt(meshfile + '.hexa.elements', dtype='int', skiprows=1)
+  wedge_elements = numpy.loadtxt(meshfile + '.wedge.elements', dtype='int', skiprows=1)
+  all_nodes = numpy.loadtxt(meshfile + '.nodes', skiprows=1)
+  
+  # Create mesh  
+  # add nodes    
+  mesh = Mesh()  
+  for i in range(len(all_nodes)):
+    mesh.nodes.append(all_nodes[i, 1:])
+    
+  # hexaeder     
+  for i in range(len(hexa_elements[:, 0])):
+    e = Element()
+    e.nodes = (hexa_elements[i, 1:] - 1)
+    e.density = 1.
+    shell = 0
+    for j in range(8):
+      coord = mesh.nodes[e.nodes[j]]
+      if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
+        shell += 1
+    if shell > 3:
+      e.region = 'non-design'
+    else:
+      e.region = 'design'
+    e.type = HEXA8
+    mesh.elements.append(e)
+    
+  # wedge elements  
+  for i in range(len(wedge_elements[:, 0])):
+    e = Element()
+    e.nodes = (wedge_elements[i, 1:] - 1)
+    e.density = 1.
+    shell = 0
+    for j in range(6):
+      coord = mesh.nodes[e.nodes[j]]
+      if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
+        shell += 1
+    if shell > 2:
+      e.region = 'non-design'
+    else:
+      e.region = 'design'
+    e.type = WEDGE6
+    mesh.elements.append(e)
+  
+  # include boundary conditions for 442.mesh manually
+  m1 = [33052., -353., -2474.]
+  m2 = [33046., -353., -2518.]
+  m3 = [33131., -353., -2449.]
+  m4 = [33124., -353., -2498.]
+  m5 = [32978., -353., -2436.]
+  m6 = [32971., -353., -2485.]
+  m7 = [33023., -353., -2559.]
+  r1 = 19.5
+  r2 = 16.5
+  r3 = 5.8
+  force1 = []
+  force2 = []
+  support = []
+  for i in range(len(all_nodes)):
+    coord = all_nodes[i, 1:]
+    if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
+      force1.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
+      force2.append(i)
+    elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
+      support.append(i)
+    elif (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < r3 ** 2:
+      support.append(i)
+    elif (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < r3 ** 2:
+      support.append(i)
+    elif (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < r3 ** 2:
+      support.append(i)
+    elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
+      support.append(i)
+  
+  mesh.bc.append(('force1', force1))
+  mesh.bc.append(('force2', force2))
+  mesh.bc.append(('support', support))    
+  return mesh
+  
