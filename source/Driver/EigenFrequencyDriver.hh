@@ -53,6 +53,11 @@ class SingleVector;
     /** @see current_wave_vector_ */
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
+    /** We need to set it for optimization to get the proper stiffness matrices during function gradient evaluation.
+     * Note that this is done after all systems are solved ans stored. */
+    void SetCurrentWaveVector(unsigned int index) { current_wave_vector_ = wave_vectors[index]; }
+
+
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() { return numFreq_; }

@@ -174,9 +174,12 @@ void Condition::AddCondition(PtrParamNode pn, StdVector<Condition*>& list)
   if(g->type_ == ISOTROPY || g->type_ == ISO_ORTHOTROPY || g->type_ == ORTHOTROPY)
     AddXtropyConstraints(pn, list, g);
 
+
   //if(g->type_ == FMO_POS_DEF_MINOR_1 || FMO_POS_DEF_MINOR_2 || POS_DEF_DET_MINOR_3)
   //  AddFMOPosDefConstraints(pn, list, g);
 }
+
+
 
 
 void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g)
@@ -443,6 +446,37 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
     list.Insert(blow_up + e, tmp);
   }
 }
+
+
+void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
+{
+  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency());
+
+  // we need to find all eigenvalue constraints. Then extend each by excitation
+
+  StdVector<Condition> ev; // instances as list will be enlarged which involves copying
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+    if(list[i]->GetType() == EIGENFREQUENCY)  {
+      // reset excitation to the first wave vector
+      list[i]->SetExcitation(me, 0);
+      ev.Push_back(*(list[i]));
+    }
+
+  for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
+  {
+    for(unsigned int g = 0; g < ev.GetSize(); g++)
+    {
+      assert(ev[g].IsExcitationSensitive());
+
+      Condition* tmp = new Condition(ev[g]);
+      tmp->SetExcitation(me, me->excitations[e].index);
+
+      list.Push_back(tmp);
+    }
+  }
+
+}
+
 
 
 Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, bool biisotropy, bool imag)
@@ -1057,6 +1091,11 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   // the specific excitations. This cannot be done in all.
   Condition::AddExcitationStressConstraints(active, me);
   Condition::AddExcitationStressConstraints(observe, me);
+
+
+  // in the bloch mode optimization case we need to multiply the eigenvalue constraints by excitations which are the wave_vectors
+  Condition::AddBlochEigenConstraints(active, me);
+  Condition::AddBlochEigenConstraints(observe, me);
 
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }

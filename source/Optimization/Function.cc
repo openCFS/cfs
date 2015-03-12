@@ -406,7 +406,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case CONJUGATE_COMPLIANCE:
   case GLOBAL_DYNAMIC_COMPLIANCE:
   case ELEC_ENERGY:
-  case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
   case TEMPERATURE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
@@ -418,6 +417,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   case STRESS:
   case STRESS_DENSITY:
+  case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
     // there might be the optional excitation index set
     if (pn->Get("excitation")->As<string>() == "all") {
       excite_ = excite_index == -2 ? -1 : excite_index;
