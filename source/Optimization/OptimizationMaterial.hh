@@ -132,7 +132,7 @@ public:
    * @param multimaterial index or negative
    * @param direction if given, calculate derivative of Stiffness Matrix instead
    * @return a pointer to the Element Stiffness Matrix*/
-  const DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const DenseMatrix& MechStiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool enforce_unstructured = false);
 
   /** overwrites OptimizationMaterial::Stiffness */
   const DenseMatrix& Stiffness(const Elem* elem, bool bimaterial = false, int multimaterial = -1 ) {
@@ -143,7 +143,7 @@ public:
    * @param elem the Element for which the Matrix should be returned
    * @param direction if given, calculate derivative of mass Matrix instead
    * @return a pointer to the Element Mass Matrix*/
-  const DenseMatrix& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+  const DenseMatrix& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool enforce_unstructured = false);
 
   /** overwrites OptimizationMaterial::Mass */
   const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
@@ -174,6 +174,11 @@ protected:
   Vector<double> mechStrainRHS;
 
   MechPDE* mech;
+
+  /** for Bloch mode optimization only the imaginary part of the stiffness matrices depends on the current wave_vector
+   * in the EigenFrequencyDriver (to be set in ErsatzMaterial::CalcEigenfrequencies) as it determines the complex B-operators.
+   * This variable stores the norm of EigenFrequencyDriver::current_wave_wector. */
+  double current_wave_vector_;
 
 private:
 

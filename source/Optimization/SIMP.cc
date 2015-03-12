@@ -224,6 +224,8 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
   // change name only
   Matrix<complex<double> >& S = K_in_S_out;
 
+  LOG_DBG3(simp) << "AMTS: 1. e=" << de->elem->elemNum << " ev=" << ev << " m_factor=" << m_factor << " K_in_S_out=" << S.ToString();
+
   // find alpha, beta and omega. We have no omega for the eigenvalue case and 1.0 eliminates it
   double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
   double alpha_k = 0.0;
@@ -258,32 +260,42 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
 
 	const unsigned int srows(S.GetNumRows());
 	const unsigned int scols(S.GetNumCols());
-  // we first add the K part of C (= pure imaginary)
+  // we first add the K part of C (= pure imaginary). E.G. in the bloch case S=K might already have an imaginary part
   for(unsigned int r = 0; r < srows; r++)
     for(unsigned int c = 0; c < scols; c++)
-      S[r][c] = complex<double>(S[r][c].real(), omega * alpha_k * S[r][c].real());
+      S[r][c] = complex<double>(S[r][c].real(), S[r][c].imag() + omega * alpha_k * S[r][c].real());
+
+  LOG_DBG3(simp) << "AMTS: 2. e=" << de->elem->elemNum << " add K o=" << omega << " a_K=" << alpha_k << " S=" << S.ToString();
 
   // we the add the M part of C and the real mass part
   complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
   // multimaterial stuff
   int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
+  LOG_DBG3(simp) << "AMTS: e=" << de->elem->elemNum << " S=" << S.ToString();
+
   if(material->ComplexElementMatrix(de->elem->regionId))
   {
     const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(material->Mass(de->elem, bimaterial, index));
     assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
     Add<Complex, Complex>(S, damp_mass, M);
+
+    LOG_DBG3(simp) << "AMTS: 3. complex e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
   }
   else
   {
     const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(material->Mass(de->elem, bimaterial, index));
     assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
     Add<Complex, double>(S, damp_mass, M);
+
+    LOG_DBG3(simp) << "AMTS: 3. real e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
   }
 
   LOG_DBG2(simp) << "AddMassToStiffness: d=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial << " mode="  << mode << " ev=" << ev
                  << " m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m << " pamping_m:" << pamping_m
                  << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
+
+  LOG_DBG3(simp) << "AMTS: 4. e=" << de->elem->elemNum << " S -> " << S.ToString();
 }
 
 

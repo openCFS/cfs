@@ -1888,6 +1888,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       LOG_DBG2(em) << "CE idx=" << idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
 
+      // we need to set the current wave_vector such that SetElementK determines the right stiffness matrices!
+      if(bloch_)
+        dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->SetCurrentWaveVector(excite.index); // no need to reset!
+
       CalcU1KU2(tf, sol->elem[MECH], MECH, sol->elem[MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }
     return freq;
@@ -2586,7 +2590,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // in the eigenvalue case we store the modes separately, similar to timesteps
         unsigned int nm = eigenvalue_ ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->eigenFreqs->GetSize() : 1;
         for(unsigned int m = 0; m < nm ; m++)
-          StorePDESolution(forward, excite, NULL, m, true, true, eigenvalue_ ? true : false, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the the solution
+          StorePDESolution(forward, excite, NULL, m, true, true, (eigenvalue_ ? true : false), NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
       }
 
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)

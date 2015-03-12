@@ -211,6 +211,7 @@ namespace CoupledField
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
+
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
@@ -218,7 +219,9 @@ namespace CoupledField
        * to an own excitation */
       static void AddExcitationStressConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
 
-      /** this encodes the special slack bound value */
+      /** for bloch mode each constraint is multiplied by wave vector which corresponds to excitation */
+      static void AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
+
       static double SLACK_VALUE_;
    };
 
