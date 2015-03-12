@@ -246,9 +246,13 @@ namespace CoupledField
     //! \name Named Arithmetic Operations
     //@{
 
-    /** Add the multiple of another matrix this = fac * mat.
+    /** Add the multiple of another matrix this = this + fac * mat.
      * If you have mixed types use the tools version of Add */
     void Add(const TYPE fac, const Matrix<TYPE> & mat);
+
+    /** Add the multiple of the transpose of another matrix this = this + fac * transpose(mat).
+     * If you have mixed types use the tools version of Add */
+    void AddT(const TYPE fac, const Matrix<TYPE> & mat);
     
     /** Set this matrix with a multiple of another matrix.
      * This and a mixed variant is also a stand alone method in tools.
@@ -268,7 +272,7 @@ namespace CoupledField
     /** Perform a matrix-vector multiplication rvec = this*mvec via the Inner product.
      * Hence in the complex case this is the conjugate complex rvec = this*conj(mvec) */
     void MultInner( const SingleVector & mvec, SingleVector & rvec ) const;
-    
+
     /** This implements the Frobenius inner product of two matrices. This is NOT the Frobenius norm!
      * @return the sum of the element wise product: sum this_ij * other_ij */
     TYPE FrobeniusProduct(const Matrix<TYPE>& other_mat) const;

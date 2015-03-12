@@ -89,46 +89,6 @@ namespace CoupledField
             return dir1;
           }
 
-          // first direction must be: S, N, T or B
-          // second direction can only be: E, W, N, S
-          inline int GetIndexDir(Direction dir1, Direction dir2)
-          {
-            assert(directions.IsValid(dir1));
-            assert(dir2 != 0);
-            assert(directions.IsValid(dir2));
-            assert(dir1 != dir2);
-            assert((dir1 == Q_S) || (dir1 == Q_N) || (dir1 == Q_T) || (dir1 == Q_B));
-            assert((dir2 == Q_E) || (dir2 == Q_W) || (dir2 == Q_N) || (dir2 == Q_S));
-            // this formula is dependent on indexing of directions
-            if (dir1 == Q_N && dir2 == Q_E)
-              return Q_NE;
-            if (dir1 ==  Q_N && dir2 ==  Q_W)
-              return  Q_NW;
-            if (dir1 == Q_S  && dir2 == Q_W)
-              return  Q_SW;
-            if (dir1 ==  Q_S && dir2 == Q_E)
-              return Q_SE ;
-            if (dir1 == Q_T  && dir2 == Q_N)
-              return  Q_TN;
-            if (dir1 == Q_B  && dir2 ==  Q_S)
-              return  Q_BS;
-            if (dir1 == Q_T  && dir2 == Q_S)
-              return Q_TS ;
-            if (dir1 == Q_B  && dir2 ==  Q_N)
-              return  Q_BN;
-            if (dir1 ==  Q_T && dir2 == Q_E)
-              return  Q_TE;
-            if (dir1 == Q_B  && dir2 == Q_W)
-              return  Q_BW;
-            if (dir1 == Q_T  && dir2 ==  Q_W)
-              return  Q_TW;
-            if (dir1 == Q_B  && dir2 ==  Q_E)
-              return  Q_BE;
-
-            WARN("I should not be here!");
-            return -1;
-          }
-
           // make sure that no-slip b.c. is imposed on the boundaries (bounce-back nodes)
           void CheckBoundaryVelocities(int cur, StdVector<StdVector<int> >& bb);
 
@@ -224,33 +184,6 @@ namespace CoupledField
           {
             return m_pdfs[cur][direction + n_q_ * elem];
           }
-
-          //---------------------------------------------------------------------
-
-          //--------------- structure of arrays----------------------------------
-          //    inline const double pdf(int cur, int x, int y, int z, int direction) const
-          //    {
-          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index(x, y, z)];
-          //    }
-
-          //    inline double& pdf(int cur, int x, int y, int z, int direction)
-          //    {
-          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index(x,y,z)];
-          //    }
-          //
-          //    inline double& pdf(int cur, int index, int direction)
-          //    {
-          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index];
-          //    }
-
-          //    inline const double pdf(int cur, int index, int direction) const
-          //    {
-          //      return m_pdfs[cur][m_sizeX * m_sizeY * m_sizeZ * direction + index];
-          //    }
-          //---------------------------------------------------------------------
-
-
-
 
           void create_output(const char * file, int cur);
 

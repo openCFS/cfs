@@ -126,11 +126,17 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
+  case DesignElement::ROTANGLE2:
+  case DesignElement::SCALING1:
+  case DesignElement::SCALING2:
+  case DesignElement::G_MAP_X:
+  case DesignElement::G_MAP_Y:
   case DesignElement::TENSOR11:
   case DesignElement::TENSOR12:
   case DesignElement::TENSOR22:
   case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
+  case DesignElement::INTERPOLATION:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;

@@ -654,6 +654,14 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
   pdfs.Resize(n_q_);
   int tmp_x,tmp_y;
 
+#pragma omp parallel default(none)\
+ private(index), \
+ private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), \
+ shared(next, cur, scales, omega, z)
+{
+  StdVector<double> pdfs;
+  pdfs.Resize(n_q_);
+  #pragma omp for collapse(2)
   for (y = 0; y < m_sizeY ; ++y) {
     for (x = 0; x < m_sizeX ; ++x) {
 
@@ -705,6 +713,7 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
       }
     }
   }
+}
   return;
 }
 
@@ -821,8 +830,8 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
 #pragma omp parallel default(none)\
     private(index), \
-    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y,z), \
-    shared(next, cur, map_interior, scales, omega)
+    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y,z, tmp_x, tmp_y, tmp_z), \
+    shared(next, cur, scales, omega)
 {
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);

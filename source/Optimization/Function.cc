@@ -170,6 +170,16 @@ Function::Function(PtrParamNode pn) {
 
     break;
 
+  case DETERMINANT_MATRIX:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::G_ALL && design_ != DesignElement::ALL_DESIGNS)
+          throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
+        break;
+    break;
+
   default:
     break;
   }
@@ -188,6 +198,13 @@ Function::Function(PtrParamNode pn) {
   case GLOBAL_TENSOR_TRACE:
     if (design_ != DesignElement::ALL_DESIGNS)
       linear_ = false;
+    else
+      linear_ = true;
+    break;
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    if(design_ == DesignElement::G_ALL)
+      linear_ = true;
     else
       linear_ = false;
     break;
@@ -446,95 +463,99 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
 
   switch(type_)
   {
-  case VOLUME:
-  case PENALIZED_VOLUME:
-  case GAP:
-  case REALVOLUME:
-  case TYCHONOFF:
-  case GREYNESS:
-  case HOM_TENSOR:
-  case MAXWELL_HOM_TENSOR:
-  case HOM_TRACKING:
-  case MAXWELL_HOM_TRACKING:
-  case HOM_FROBENIUS_PRODUCT:
-  case BITENSOR:
-  case POISSONS_RATIO:
-  case YOUNGS_MODULUS:
-  case YOUNGS_MODULUS_E1:
-  case YOUNGS_MODULUS_E2:
-  case SLOPE:
-  case GLOBAL_SLOPE:
-  case ISOTROPY:
-  case ISO_ORTHOTROPY:
-  case ORTHOTROPY:
-  case MOLE:
-  case GLOBAL_MOLE:
-  case OSCILLATION:
-  case GLOBAL_OSCILLATION:
-  case JUMP:
-  case GLOBAL_JUMP:
-  case MAXWELL_ISOTROPY:
-  case BIISOTROPY:
-  case BUMP:
-  case DESIGN_TRACKING:
-  case PROJECTION:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
-  case PARAM_PS_POS_DEF:
-  case POS_DEF_DET_MINOR_1:
-  case POS_DEF_DET_MINOR_2:
-  case POS_DEF_DET_MINOR_3:
-  case BENSON_VANDERBEI_1:
-  case BENSON_VANDERBEI_2:
-  case BENSON_VANDERBEI_3:
-  case ORTHOTROPIC_TENSOR_TRACE:
-  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-  case TENSOR_TRACE:
-  case TENSOR_NORM:
-  case GLOBAL_TENSOR_TRACE:
-  case SHAPE_INF:
-  case PRESSURE_DROP:
-  case DESIGN_BOUND:
-  case MULTIMATERIAL_SUM:
-  case SLACK:
-    assert(excite_index < 0);
-    excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
-    break;
-  case COMPLIANCE:
-  case OUTPUT:
-  case DYNAMIC_OUTPUT:
-  case ENERGY_FLUX:
-  case TRACKING:
-  case ABS_OUTPUT:
-  case CONJUGATE_COMPLIANCE:
-  case GLOBAL_DYNAMIC_COMPLIANCE:
-  case ELEC_ENERGY:
-  case TEMPERATURE:
-    assert(excite_index < 0);
-    if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations
-    else {
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+    case VOLUME:
+    case PENALIZED_VOLUME:
+    case GAP:
+    case REALVOLUME:
+    case TYCHONOFF:
+    case GREYNESS:
+    case HOM_TENSOR:
+    case MAXWELL_HOM_TENSOR:
+    case HOM_TRACKING:
+    case MAXWELL_HOM_TRACKING:
+    case HOM_FROBENIUS_PRODUCT:
+    case BITENSOR:
+    case POISSONS_RATIO:
+    case YOUNGS_MODULUS:
+    case YOUNGS_MODULUS_E1:
+    case YOUNGS_MODULUS_E2:
+    case SLOPE:
+    case GLOBAL_SLOPE:
+    case ISOTROPY:
+    case ISO_ORTHOTROPY:
+    case ORTHOTROPY:
+    case MOLE:
+    case GLOBAL_MOLE:
+    case OSCILLATION:
+    case GLOBAL_OSCILLATION:
+    case JUMP:
+    case GLOBAL_JUMP:
+    case MAXWELL_ISOTROPY:
+    case BIISOTROPY:
+    case BUMP:
+    case DESIGN_TRACKING:
+    case PROJECTION:
+    case SUM_MODULI:
+    case GLOBAL_SUM_MODULI:
+    case LAMINATES_VOL:
+    case GLOBAL_LAMINATES_VOL:
+    case PARAM_PS_POS_DEF:
+    case POS_DEF_DET_MINOR_1:
+    case POS_DEF_DET_MINOR_2:
+    case POS_DEF_DET_MINOR_3:
+    case DETERMINANT_MATRIX:
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
+    case DETERMINANT_MAPPING:
+    case TRACE_MAPPING:
+    case BENSON_VANDERBEI_1:
+    case BENSON_VANDERBEI_2:
+    case BENSON_VANDERBEI_3:
+    case ORTHOTROPIC_TENSOR_TRACE:
+    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+    case TENSOR_TRACE:
+    case TENSOR_NORM:
+    case GLOBAL_TENSOR_TRACE:
+    case SHAPE_INF:
+    case PRESSURE_DROP:
+    case DESIGN_BOUND:
+    case MULTIMATERIAL_SUM:
+    case SLACK:
+      assert(excite_index < 0);
+      excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
+      break;
+    case COMPLIANCE:
+    case OUTPUT:
+    case DYNAMIC_OUTPUT:
+    case ENERGY_FLUX:
+    case TRACKING:
+    case ABS_OUTPUT:
+    case CONJUGATE_COMPLIANCE:
+    case GLOBAL_DYNAMIC_COMPLIANCE:
+    case ELEC_ENERGY:
+    case TEMPERATURE:
+      assert(excite_index < 0);
+      if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
+        excite_ = -1; // all excitations
+      else {
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+        excite_sensitive_ = true;
+      }
+      break;
+    case STRESS:
+    case STRESS_DENSITY:
+      // there might be the optional excitation index set
+      if (pn->Get("excitation")->As<string>() == "all") {
+        excite_ = excite_index == -2 ? -1 : excite_index;
+      } else {
+        assert(excite_index == -2); // assert there is no conflict
+        excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
+      }
       excite_sensitive_ = true;
-    }
-    break;
+      break;
 
-  case STRESS:
-  case STRESS_DENSITY:
-    // there might be the optional excitation index set
-    if (pn->Get("excitation")->As<string>() == "all") {
-      excite_ = excite_index == -2 ? -1 : excite_index;
-    } else {
-      assert(excite_index == -2); // assert there is no conflict
-      excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
-    }
-    excite_sensitive_ = true;
-    break;
-
-  case MULTI_OBJECTIVE: // only to make the switch complete
-    break;
+    case MULTI_OBJECTIVE: // only to make the switch complete
+      break;
 
   }
 }
@@ -579,7 +600,7 @@ bool Function::IsAdjointBased() const {
 bool Function::NeedsSelectionVector() const {
   switch (type_) {
   case OUTPUT:
-//    case CONJUGATE_COMPLIANCE: ??
+  case CONJUGATE_COMPLIANCE:
   case ABS_OUTPUT:
   case DYNAMIC_OUTPUT:
   case ENERGY_FLUX:
@@ -628,6 +649,11 @@ bool Function::IsLocal(Type t) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
@@ -738,6 +764,11 @@ bool Function::ForSensitivityFiltering() const {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -778,7 +809,6 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
 
     // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
     // set in the objective
-
     // if ALL_REGIONS for condition use what we define as design space which
     // this is still not good enough
     int nd = 1;
@@ -794,6 +824,8 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       nd = 2;
     if(design_ == DesignElement::PIEZO_ALL)
       nd = 6;
+    if(design_ == DesignElement::G_ALL)
+      nd = 4; // TODO why no 3?
     //assert((int) space->design.GetSize() >= nd);
 
     elements.Reserve(nd * (region == ALL_REGIONS ? space->GetNumberOfElements() : grid->GetNumElems(region)));
@@ -889,6 +921,11 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
   case GLOBAL_TENSOR_TRACE:
   case GLOBAL_SUM_MODULI:
   case PARAM_PS_POS_DEF:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MATRIX:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case STRESS:
@@ -1063,6 +1100,14 @@ Function::Local::Local(Function* func, DesignSpace* space) {
       == "snopt";
 
   switch (ftype) {
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+        locality_ = MULT_DESIGNS_NEXT_AND_REVERSE;
+        if(locality_ != MULT_DESIGNS_NEXT_AND_REVERSE)
+          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+        break;
+
+
   case SLOPE:
     if (user == DEFAULT && snopt)
       locality_ = NEXT;
@@ -1142,6 +1187,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
   case MULTIMATERIAL_SUM:
     if (locality_ != MULT_DESIGNS_ELEMENT && locality_ != DEFAULT)
       throw Exception(
@@ -1149,6 +1195,13 @@ Function::Local::Local(Function* func, DesignSpace* space) {
               + fname + "'");
     locality_ = MULT_DESIGNS_ELEMENT;
     break;
+
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
+    if(locality_ != NEXT_DIAG && locality_ != DEFAULT)
+          throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+        locality_ = NEXT_DIAG;
+        break;
 
   case BUMP:
     if (locality_ != PREV_NEXT && locality_ != DEFAULT)
@@ -1195,6 +1248,21 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     SetupShapeElementMap(func, dynamic_cast<ShapeDesign*>(space));
     break;
 
+  case MULT_DESIGNS_NEXT:
+  case MULT_DESIGNS_PREV_NEXT:
+  case MULT_DESIGNS_NEXT_AND_REVERSE:
+  case MULT_DESIGNS_PREV_NEXT_AND_REVERSE:
+    SetupMultDesignsVirtualElementMap(func);
+    break;
+
+  case NEXT_DIAG:
+   // if(!pn)
+   // throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
+   //    structure_ = new NeighborhoodStructure(this, pn);
+       SetupVirtualStarLocalElementMap(func);
+       break;
+
+
   default:
     SetupVirtualElementMap(phase_);
     break;
@@ -1224,7 +1292,8 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
   bool next = true; // always
   bool two_signs = locality_ == NEXT_AND_REVERSE
       || locality_ == PREV_NEXT_AND_REVERSE;
-  // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+
+   //assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
   int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
   int sign_2 = ph != BOTH ? (int) ph : -1;
@@ -1249,7 +1318,6 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
           if(ve->design[2*a + 1] == NULL) full = false; // X_N=1, Y_N=3, Z_N=5
         if(next)
           if(ve->design[2*a] == NULL) full = false; // X_P=0, Y_P=2, Z_P=4
-
         LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
 
         if(full)
@@ -1261,10 +1329,92 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
           if (two_signs)
             virtual_elem_map.Push_back(
                 Identifier(de, prev_de, next_de, sign_2));
+
         }
+
       }
     }
   }
+}
+
+void Function::Local::SetupVirtualStarLocalElementMap(const Function* f)
+{
+  // we construct locality_ into reverse, prev and next
+  // reverse means we have a REVERSE option which makes two constraints with different signs
+  assert(locality_==NEXT_DIAG); // It is not clean, but I do it by hand to be sure of what I am doing
+
+//  int  dim  = domain->GetGrid()->GetDim();
+
+  //So far works only for d=2
+
+ // assert (dim == 2);
+
+  // only this element!
+  element_dimension_ = 1; // two boundary "stones" per dimension
+
+  UInt elems = space->GetNumberOfElements();
+  virtual_elem_map.Reserve(element_dimension_ * elems);
+
+  assert(space->design.GetSize()== 2);
+  if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+    throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if( (space->design[0].design != DesignElement::G_MAP_X))
+         throw Exception("'Expect first design to be 'G_MAP_X");
+
+  for(unsigned int e = 0; e < elems; e++)
+   {
+     DesignElement* de = func_->elements[e]; // -> GX_0
+     assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+
+       VicinityElement* ve = de->vicinity;
+
+      // do we have a full neighborhood? All or none as in the original slope paper
+      bool full = true;
+        if(ve->design[VicinityElement::X_P] == NULL) full = false;
+        if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+        if (full)
+        {
+        VicinityElement* ve_px = ve->design[VicinityElement::X_P]->vicinity;
+          if(ve_px->design[VicinityElement::Y_P] == NULL) full = false;
+        }
+
+
+      LOG_DBG2(func) << "Local::Local e_num=" << de->elem->elemNum << " vicinity=" << ve->ToString() << " full=" << full;
+
+      if(full)
+      {
+
+          DesignElement* de_px = ve->GetNeighbour(VicinityElement::X_P); //-GX_PX
+          DesignElement* de_py = ve->GetNeighbour(VicinityElement::Y_P); //GX_PY
+          VicinityElement* ve_px = ve->design[VicinityElement::X_P]->vicinity;
+          DesignElement* de_pxy = ve_px->GetNeighbour(VicinityElement::Y_P); //GX_PXY
+
+          DesignElement* other = &(space->data[elems * 1 + e]); //GY_0
+
+          VicinityElement* vother = other->vicinity;
+
+          DesignElement* other_px = vother->GetNeighbour(VicinityElement::X_P); //-GY_PX
+          DesignElement* other_py = vother->GetNeighbour(VicinityElement::Y_P); //GY_PY
+          VicinityElement* vother_px = vother->design[VicinityElement::X_P]->vicinity;
+          DesignElement* other_pxy = vother_px->GetNeighbour(VicinityElement::Y_P); //GY_PXY
+          //Add other
+
+          StdVector<BaseDesignElement*> buddies;
+          buddies.Push_back(de_px);
+          buddies.Push_back(de_py);
+          buddies.Push_back(de_pxy);
+
+          buddies.Push_back(other);
+          buddies.Push_back(other_px);
+          buddies.Push_back(other_py);
+          buddies.Push_back(other_pxy);
+          // Identifier(BaseDesignElement* elem, StdVector<BaseDesignElement*> buddies, int si = NO_SIGN);
+          virtual_elem_map.Push_back(Identifier(de, buddies, 1));
+
+          // So in the order, we have:
+          //GX_0(-1)  GX_PX(0)  GX_PY(1) GX_PXY(2) GY_0(3) GY_PX(4) GY_PY(5) GY_PXY(6)
+      }
+    }
 }
 
 void Function::Local::SetupStarLocalityElementMap(Phase ph) {
@@ -1530,6 +1680,32 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
     des_idx.Push_back(space->FindDesign(DesignElement::PIEZO_23));
     break;
 
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MATRIX:
+    assert(space->design.GetSize() >= 4);
+    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if( (space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE) )
+         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE' or 'G_MAP_X");
+    //assert(space->design.GetSize() >= 4);
+    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
+       if (space->design[0].design == DesignElement::G11)
+       {
+           des_idx.Push_back(space->FindDesign(DesignElement::G12));
+           des_idx.Push_back(space->FindDesign(DesignElement::G21));
+           des_idx.Push_back(space->FindDesign(DesignElement::G22));
+
+       }
+       else if (space->design[0].design == DesignElement::ROTANGLE)
+       {
+             des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
+             des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
+             des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
+
+       }
+  break;
+
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
     assert(space->design.GetSize() >= 6);
@@ -1594,6 +1770,150 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
   }
 }
 
+void Function::Local::SetupMultDesignsVirtualElementMap(const Function* f)//, const Phase ph)
+{
+  // only this element!
+  //element_dimension_ = 1; // two boundary "stones" per dimension
+  int  dim     = domain->GetGrid()->GetDim();
+  bool prev    = locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT;
+  bool next    = true; // always
+  bool two_signs = locality_ == MULT_DESIGNS_NEXT_AND_REVERSE || locality_ == MULT_DESIGNS_PREV_NEXT_AND_REVERSE;
+  assert(two_signs);
+ // assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
+     // assume ph is set correctly and Phase is in sync with the signs
+  //int sign_1 = ph != BOTH ? (int) ph : two_signs ? 1 : Identifier::NO_SIGN;
+  //int sign_2 = ph != BOTH ? (int) ph : -1;
+
+    int sign_1 =  two_signs ? 1 : Identifier::NO_SIGN;
+    int sign_2 =  -1;
+
+  element_dimension_ = 1.0* (two_signs ? 2 : 1);
+
+  UInt elems = space->GetNumberOfElements();
+
+  virtual_elem_map.Reserve(element_dimension_ * elems);
+
+
+
+  // the neighbors are the design elements for the same FE-element but with other designs
+  // one is not a neighbor of oneself
+  StdVector<BaseDesignElement*> neighbours;
+
+  StdVector<unsigned int> des_idx; // the design indices we consider here
+  switch(f->GetType())
+  {
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    assert(space->design.GetSize() >= 4);
+    if((f->GetDesignType() != DesignElement::G_ALL) & (f->GetDesignType() != DesignElement::ALL_DESIGNS))
+          throw Exception("'tensor_norm' only defined for 'G_ALL' or 'ALL_DESIGNS' design");
+       if((space->design[0].design != DesignElement::G11) & (space->design[0].design != DesignElement::ROTANGLE))
+         throw Exception("'Expect first design to be 'G11' or 'ROTANGLE'");
+    //assert(space->design.GetSize() >= 4);
+    //des_idx.Push_back(space->FindDesign(DesignElement::G11));
+       if (space->design[0].design == DesignElement::G11)
+       {
+           des_idx.Push_back(space->FindDesign(DesignElement::G12));
+           des_idx.Push_back(space->FindDesign(DesignElement::G21));
+           des_idx.Push_back(space->FindDesign(DesignElement::G22));
+       }
+       else if (space->design[0].design == DesignElement::ROTANGLE)
+       {
+                   des_idx.Push_back(space->FindDesign(DesignElement::ROTANGLE2));
+                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING1));
+                   des_idx.Push_back(space->FindDesign(DesignElement::SCALING2));
+       }
+  break;
+
+  default:
+    // all designs but the first one
+    des_idx.Reserve(space->design.GetSize()-1);
+    for(unsigned int i = 1; i < space->design.GetSize(); i++) des_idx.Push_back(i);
+    break;
+  }
+
+  LOG_DBG(func) << "F:L:SMDEM des_idx=" << des_idx.ToString() << " total=" << space->design.ToString();
+
+  for(unsigned int e = 0; e < elems; e++)
+  {
+    DesignElement* de = func_->elements[e];
+    assert((int) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+
+    //Check that the elements has full neighbours
+    //if(de->GetType() == ( (func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_)){
+            VicinityElement* ve = de->vicinity;
+
+            // do we have a full neighborhood? All or none as in the original slope paper
+            bool full = true;
+            if(prev)
+            {
+              if(ve->design[VicinityElement::X_N] == NULL) full = false;
+              if(ve->design[VicinityElement::Y_N] == NULL) full = false;
+              if(dim == 3 && ve->design[VicinityElement::Z_N] == NULL) full = false;
+            }
+            if(next)
+            {
+              if(ve->design[VicinityElement::X_P] == NULL) full = false;
+              if(ve->design[VicinityElement::Y_P] == NULL) full = false;
+              if(dim == 3 && ve->design[VicinityElement::Z_P] == NULL) full = false;
+            }
+
+    //if this is the case, we can add the identifiers
+
+    if (full)
+    {
+      neighbours.Resize(0);
+
+      //We begin by adding the derivatives of the first design: same order as vicinity X_N =0, X_P =1; Y_N = 2; etc...
+      //for the first design
+      //assert((space->FindDesign(DesignElement::G11) == 0));
+
+      for(int a = 0; a < dim; a++)
+      {
+        DesignElement* prev_de = prev ? ve->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+        DesignElement* next_de = ve->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+        if (prev)
+        {
+          neighbours.Push_back(prev_de);
+        }
+        neighbours.Push_back(next_de);
+      }
+
+      //We then add the values of the other designs
+      for(unsigned int d = 0; d < des_idx.GetSize(); d++)
+      {
+        // the first design = 0 is no neighbor!
+        unsigned des = des_idx[d];
+        DesignElement* other = &(space->data[elems * des + e]);
+        neighbours.Push_back(other);
+
+        VicinityElement* veother = other->vicinity;
+
+        for(int a = 0; a < dim; a++)
+             {
+               DesignElement* prev_other = prev ? veother->GetNeighbour(VicinityElement::ToNeighbour(a, -1)) : NULL;
+               DesignElement* next_other = veother->GetNeighbour(VicinityElement::ToNeighbour(a, 1));
+
+               if (prev)
+               {
+                 neighbours.Push_back(prev_other);
+               }
+               neighbours.Push_back(next_other);
+             }
+
+
+        LOG_DBG3(func) << "F:L:SMDEM e=" << e << " el=" << de->elem->elemNum << " d = " << d << " des=" << des << " design="
+                     << DesignElement::type.ToString(space->design[des].design) << " idx=" << other->GetIndex() << " ed=" << de->GetType();
+      }
+
+      virtual_elem_map.Push_back(Identifier(de, neighbours, sign_1));
+      if(two_signs)
+         virtual_elem_map.Push_back(Identifier(de, neighbours, sign_2));
+
+    }
+  }
+}
 
 void Function::Local::SetupShapeElementMap(const Function* func, ShapeDesign* design) {
   element_dimension_ = 0;
@@ -1742,16 +2062,26 @@ Function::Local::Identifier::Identifier(BaseDesignElement* elem, StdVector<BaseD
   this->sign = si;
 }
 
-BaseDesignElement* Function::Local::Identifier::GetElement(BaseDesignElement::Type type)
+const BaseDesignElement* Function::Local::Identifier::GetElementByType(DesignElement::Type type) const
 {
   for(int i = -1 ; i < (int) neighbor.GetSize(); i++)
   {
-    BaseDesignElement* de = GetElement(i);
+    const BaseDesignElement* de = GetElement(i);
     if (de->GetType() == type)
       return de; // do not check for non-uniqueness
   }
-  assert(false);
+//  assert(false); (design of Type type may be param in ParamMat -> see GetDesign)
   return NULL;
+}
+
+double Function::Local::Identifier::GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access, const bool getParameter) const
+{
+  const BaseDesignElement* de = GetElementByType(type);
+  if (de != NULL)
+    return de->GetDesign(access);
+  if (getParameter)
+    return local->space->designMaterial->GetParameter(type);
+  throw Exception("Designtype not found! If it is a ParamMat parameter make sure to query for parameters.");
 }
 
 double Function::Local::Identifier::EvalFunction(const Local* local,
@@ -1800,7 +2130,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-    fv = CalcSumModuli(DesignElement::PLAIN);
+    fv = CalcSumModuli(local, DesignElement::PLAIN);
     break;
 
   case LAMINATES_VOL:
@@ -1811,7 +2141,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     break;
 
   case PARAM_PS_POS_DEF:
-    fv = CalcParamPSPosDef(-1, false);
+    fv = CalcParamPSPosDef(local, DesignElement::SMART, -1, false);
     break;
 
   case POS_DEF_DET_MINOR_1:
@@ -1825,6 +2155,24 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case BENSON_VANDERBEI_3:
     fv = CalcBensonVanderbei(-1, local, false, f->type_);
     break;
+  case DETERMINANT_MATRIX:
+    fv = CalcDetGTensor(-1, local, false);
+  break;
+
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+    fv = CalcRotGTensor(-1, local, false, f->type_);
+  break;
+
+  //We need to add the constraints on all the detrminants of the neighbouring elements of the node
+  //So there is ne, nw, sw, amd se
+  case DETERMINANT_MAPPING:
+    fv = CalcDetGMappingTensor(-1, local, false);
+  break;
+
+  case TRACE_MAPPING:
+    fv = CalcTraceGMappingTensor(-1, local, false);
+  break;
 
   case ORTHOTROPIC_TENSOR_TRACE:
     fv = CalcOrthotropicTensorTrace(local, DesignElement::SMART);
@@ -1966,7 +2314,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
-      gv = CalcSumModuli(DesignElement::PLAIN, n, true);
+      gv = CalcSumModuli(local, DesignElement::PLAIN, n, true);
       break;
 
     case LAMINATES_VOL:
@@ -1977,7 +2325,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case PARAM_PS_POS_DEF:
-      gv = CalcParamPSPosDef(n, true);
+      gv = CalcParamPSPosDef(local, DesignElement::SMART, n, true);
       break;
 
     case POS_DEF_DET_MINOR_1:
@@ -1990,6 +2338,22 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
       gv = CalcBensonVanderbei(n, local, true, ft);
+      break;
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
+      gv = CalcRotGTensor(n, local, true, ft);
+      break;
+
+    case DETERMINANT_MATRIX:
+      gv = CalcDetGTensor(n, local, true);
+    break;
+
+    case DETERMINANT_MAPPING:
+      gv = CalcDetGMappingTensor(n, local, true);
+      break;
+
+    case TRACE_MAPPING:
+      gv = CalcTraceGMappingTensor(n, local, true);
       break;
 
     case ORTHOTROPIC_TENSOR_TRACE:
@@ -2378,91 +2742,82 @@ double Function::Local::Identifier::CalcBumpGradient(int neigh_idx) const {
 }
 
 
-double Function::Local::Identifier::CalcSumModuli(DesignElement::Access access, int neigh_idx, bool derivative) const
+double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  double E1(0.0), E3(0.0), G(0.0), theta(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::GMODUL:
-      G = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::POISSON:
-      theta = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::POISSONISO:
-    case DesignElement::DENSITY:
-    case DesignElement::ROTANGLE:
-      break;
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double G = GetDesign(DesignElement::GMODUL, local, access, true);
+  double theta = GetDesign(DesignElement::POISSON, local, access, true);
 
-    default:
-      assert(false);
-      break;
-    }
-  }
-
-  if(derivative)
-  {
-    switch(GetElement(neigh_idx)->GetType())
+  int dim = domain->GetGrid()->GetDim();
+  if(dim ==2){ //case PLANE_STRESS, reformulated theta version
+    if(derivative)
     {
-    case DesignElement::EMODULISO:
-    case DesignElement::EMODUL:
-      return 1.0/(1.0-theta);
-    case DesignElement::GMODUL:
-      return 2.0;
-    case DesignElement::POISSON:
-    {
-      double nninvtmp = 1/((1.0-theta)*(1.0-theta));
-      return E1*nninvtmp+E3*nninvtmp;
+      switch(GetElement(neigh_idx)->GetType())
+      {
+      case DesignElement::EMODULISO:
+      case DesignElement::EMODUL:
+        return 1.0/(1.0-theta);
+      case DesignElement::GMODUL:
+        return 2.0;
+      case DesignElement::POISSON:
+      {
+        double nninvtmp = 1/((1.0-theta)*(1.0-theta));
+        return E1*nninvtmp+E3*nninvtmp;
+      }
+      default:
+        return 0.0;
+      }
     }
-    default:
-      return 0.0;
-    }
+    return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
   }
+  else { // 3D case original version without theta, theta = nu_{oi}
+    double nuiso = GetDesign(DesignElement::POISSONISO, local, access, true);
+    double nuoisqrd = theta*theta;
+    if(derivative)
+    {
+      switch(GetElement(neigh_idx)->GetType())
+      {
+      case DesignElement::EMODULISO:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return (8*nuoisqrd*nuoisqrd)/(4*nuoisqrd*nuoisqrd*(1+nuiso)) - (E3*E3*(2*nuoisqrd + 1)*(nuiso - 1))/(n*n);
+      }
+      case DesignElement::EMODUL:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return 1 - (2*E1*E1*nuoisqrd*(2*nuoisqrd + 1))/(n*n);
+      }
+      case DesignElement::GMODUL:
+        return 4.0;
+      case DesignElement::POISSON:
+      {
+        double n = (2*E1*nuoisqrd - E3 + E3*nuiso);
+        return (4*E3*E1*theta*(E3 + E1 - E3*nuiso))/(n*n);
+      }
+      case DesignElement::POISSONISO:
+      {
+        double n = (nuiso + (2*E1*nuoisqrd)/E3 - 1);
+        return (E1*(2*nuoisqrd + 1))/(n*n) - (2*E1)/((nuiso + 1)*(nuiso + 1));
+      }
 
-  return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
+      default:
+        return 0.0;
+      }
+    }
+    return E3 + 4*G - (2*E1*nuoisqrd + E1)/(nuiso + (2*E1*nuoisqrd)/E3 - 1) + (2*E1)/(nuiso + 1);
+  }
 }
 
 
 double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
-  double e11(0.0), e22(0.0), e33(0.0), e12(0.0), lowerEigBound(-123.45);
-  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
-  {
-    switch(GetElement(i)->GetType())
-    {
-    case DesignElement::TENSOR11:
-      e11 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR22:
-      e22 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR33:
-      e33 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::TENSOR12:
-      e12 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::LOWER_EIG_BOUND:
-      lowerEigBound = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::DENSITY:
-    case DesignElement::ROTANGLE:
-      break;
-    default:
-      assert(false);
-      break;
-    }
-  }
-  if (lowerEigBound == -123.45)
-  {
-    lowerEigBound = local->space->designMaterial->GetParameter(DesignElement::LOWER_EIG_BOUND);
-  }
+  double e11 = GetDesign(DesignElement::TENSOR11, local, access, true);
+  double e22 = GetDesign(DesignElement::TENSOR22, local, access, true);
+  double e33 = GetDesign(DesignElement::TENSOR33, local, access, true);
+  double e12 = GetDesign(DesignElement::TENSOR12, local, access, true);
+  double lowerEigBound = GetDesign(DesignElement::LOWER_EIG_BOUND, local, access, true);
+
   if(derivative)
   {
     DesignElement::Type type = GetElement(neigh_idx)->GetType();
@@ -2725,27 +3080,11 @@ double Function::Local::Identifier::EvaluateC1Interpolation_Deriv_3D(
 
 
 double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-  double stiff1(0.0), stiff2(0.0), stiff3(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF3:
-      stiff3 = GetElement(i)->GetDesign(access);
-      break;
-    default:
-      break;
-    }
-  }
   // temporary data structure
   Vector<double> p(3);
-  p[0] = stiff1;
-  p[1] = stiff2;
-  p[2] = stiff3;
+  p[0] = GetDesign(DesignElement::STIFF1, local, access, true);;
+  p[1] = GetDesign(DesignElement::STIFF2, local, access, true);;
+  p[2] = GetDesign(DesignElement::STIFF3, local, access, true);;
   double direction;
   if (!derivative) {
     direction = 0.;
@@ -2771,124 +3110,63 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
   return -1.0;
 }
 
-double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
-{
-  double stiff1(0.0), stiff2(0.0);
-  for(int i=-1; i < (int) neighbor.GetSize(); ++i)
-  {
-    switch(GetElement(i)->GetType())
-    {
-    case DesignElement::STIFF1:
-      stiff1 = GetElement(i)->GetDesign(access);
-      break;
-    case DesignElement::STIFF2:
-      stiff2 = GetElement(i)->GetDesign(access);
-      break;
-    default:
-      break;
-    }
+double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
+  DesignElement* de = dynamic_cast<DesignElement*>(element);
+  double stiff1 = GetDesign(DesignElement::STIFF1, local, access, true);
+  double stiff2 = GetDesign(DesignElement::STIFF2, local, access, true);
+  double vol;
+  int dim = domain->GetGrid()->GetDim();
+  bool regular = local->space->IsRegular();
+  /** if grid is nonregular, the volume has to be scaled by element size */
+  if (!regular) {
+    assert(local->total_vol_ != 0);
   }
-  if(!derivative)
-    return stiff1+stiff2-stiff1*stiff2;
-  else
-  {
-    switch(GetElement(neigh_idx)->GetType())
-    {
+  /**svol is a scaling factor for unstructured, nonregular grids. */
+  double svol = regular ? 1.0 : de->CalcVolume();
+  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+  if (!derivative) {
+    if (dim == 2) {
+      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
+    } else {
+      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+    }
+  } else {
+    switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:
-      return 1.0-stiff2;
+      if (dim == 2) {
+        return svol*(1.0 - stiff2);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
     case DesignElement::STIFF2:
-      return 1.0-stiff1;
+      if (dim == 2) {
+        return svol*(1.0 - stiff1);
+      } else {
+        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+        assert(vol!= -1);
+        return vol;
+      }
+    case DesignElement::STIFF3:
+      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
+      assert(vol!= -1);
+      return vol;
+
     default:
       return 0.0;
     }
   }
+  //should never be reached
+  return -1.0;
 }
 
-//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-//  DesignElement* de = dynamic_cast<DesignElement*>(element);
-//  double stiff1(0.0), stiff2(0.0), vol;
-//  int dim = domain->GetGrid()->GetDim();
-//  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-//    switch (GetElement(i)->GetType()) {
-//    case DesignElement::STIFF1:
-//      stiff1 = GetElement(i)->GetDesign(access);
-//      break;
-//    case DesignElement::STIFF2:
-//      stiff2 = GetElement(i)->GetDesign(access);
-//      break;
-//    default:
-//      break;
-//    }
-//  }
-//  bool regular = local->space->IsRegular();
-//  /** if grid is nonregular, the volume has to be scaled by element size */
-//  if (!regular) {
-//    assert(local->total_vol_ != 0);
-//  }
-//  /**svol is a scaling factor for unstructured, nonregular grids. */
-//  double svol = regular ? 1.0 : de->CalcVolume();
-//  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
-//  if (!derivative) {
-//    if (dim == 2) {
-//      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
-//    } else {
-//      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//    }
-//  } else {
-//    switch (GetElement(neigh_idx)->GetType()) {
-//    case DesignElement::STIFF1:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff2);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF2:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff1);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF3:
-//      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//      assert(vol!= -1);
-//      return vol;
-//
-//    default:
-//      return 0.0;
-//    }
-//  }
-//  //should never be reached
-//  return -1.0;
-//}
-
-double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
+double Function::Local::Identifier::CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx,
     bool derivative) const {
-  double E1(0.0), E3(0.0), nu31(0.0);
-  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-    switch (GetElement(i)->GetType()) {
-    case DesignElement::EMODULISO:
-      E1 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::EMODUL:
-      E3 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::POISSON:
-      nu31 = GetElement(i)->GetDesign(DesignElement::SMART);
-      break;
-    case DesignElement::GMODUL:
-    case DesignElement::POISSONISO:
-    case DesignElement::DENSITY:
-      break;
+  double E1 = GetDesign(DesignElement::EMODULISO, local, access, true);
+  double E3 = GetDesign(DesignElement::EMODUL, local, access, true);
+  double nu31 = GetDesign(DesignElement::POISSON, local, access, true);
 
-    default:
-      assert(false);
-      break;
-    }
-  }
   if (derivative)
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::EMODULISO:
@@ -2907,15 +3185,695 @@ double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
   }
 }
 
-double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
-    const Local* local, bool derivative, Type type) const {
+
+/* Condition: det(G-vId) >= eps*/
+double Function::Local::Identifier::CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const
+{
+  const Condition* g = dynamic_cast<const Condition*>(local->func_);
+
+  double v = g->GetParameter();
+  double eps = 1.0 * g->GetBoundValue();
+
+  Matrix<double> G(2,2);
+
+  bool ok = local->space->GetModRedGTensor(G, dynamic_cast<DesignElement*>(element)->elem);
+  assert(ok);
+
+  double ret = -12345678.0 * (ok ? 1.0 : 1.0);
+
+  //element->GetDesignSpace()->designMaterial->GetModRedGTensor(G, DesignElement::NO_DERIVATIVE);
+
+  ret = 0;
+
+  if (!derivative)
+  {
+    ret =(G(0,0)-v)*(G(1,1)-v) - G(0,1)*G(1,0) -eps;
+  }
+  else
+  {
+    switch(GetElement(neigh_idx)->GetType())
+       {
+
+       case DesignElement::G11:
+         ret = G(1,1)-v;
+         break;
+       case DesignElement::G12:
+         ret = -G(1,0);
+         break;
+       case DesignElement::G21:
+         ret = -G(0,1);
+         break;
+       case DesignElement::G22:
+         ret = G(0,0)-v;
+         break;
+       default: assert(false); return 0.0;
+       break;
+       }
+     }
+     assert(ret != 12345678.0);
+     LOG_DBG3(func) << "Local::Local e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << ", det=" << ret;
+     return ret;
+
+}
+
+
+double Function::Local::Identifier::CalcRotGTensor(int neigh_idx,  const Local* local, bool derivative, Type type) const
+{
+  assert((local->locality_ == MULT_DESIGNS_NEXT_AND_REVERSE));
+  //This means that in neighbor, we have
+  //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+  //So, normally (2d case), neighbor has size 11.
+  //int  dim     = domain->GetGrid()->GetDim();
+  //assert(dim==2);
+  assert(this->neighbor.GetSize() == 11);
+
+  Function* f = local->func_;
+
+  double s = this->sign == -1 ? -1.0 : 1.0;
+
+ double ret=0.0;
+
+ double g110 =element->GetDesign(DesignElement::SMART);
+ double g11y =neighbor[1]->GetDesign(DesignElement::SMART);
+ double g120 =neighbor[2]->GetDesign(DesignElement::SMART);
+ double g12x = neighbor[3]->GetDesign(DesignElement::SMART);
+
+ double g210 =neighbor[5]->GetDesign(DesignElement::SMART);
+ double g21y =neighbor[7]->GetDesign(DesignElement::SMART);
+ double g220 =neighbor[8]->GetDesign(DesignElement::SMART);
+ double g22x =neighbor[9]->GetDesign(DesignElement::SMART);
+
+
+ double theta0  = element->GetDesign(DesignElement::SMART);
+  double thetax = neighbor[0]->GetDesign(DesignElement::SMART);
+  double thetay = neighbor[1]->GetDesign(DesignElement::SMART);
+
+double phi0 = neighbor[2]->GetDesign(DesignElement::SMART);
+double phix = neighbor[3]->GetDesign(DesignElement::SMART);
+double phiy = neighbor[4]->GetDesign(DesignElement::SMART);
+
+ double l10 = neighbor[5]->GetDesign(DesignElement::SMART);
+ double l1x = neighbor[6]->GetDesign(DesignElement::SMART);
+ double l1y = neighbor[7]->GetDesign(DesignElement::SMART);
+ double l20 = neighbor[8]->GetDesign(DesignElement::SMART);
+ double l2x = neighbor[9]->GetDesign(DesignElement::SMART);
+ double l2y = neighbor[10]->GetDesign(DesignElement::SMART);
+
+          if (!derivative)
+          {
+            switch(type)
+            {
+                    case ROTATIONAL_MATRIX_1:
+                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
+                       {
+                        g110 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
+                        g11y = l1y*cos(thetay)*cos(phiy) -l2y*sin(thetay)*sin(phiy);
+                        g120 = l10*cos(theta0)*sin(phi0) +l20*sin(theta0)*cos(phi0);
+                         g12x = l1x*cos(thetax)*sin(phix) +l2x*sin(thetax)*cos(phix);
+                       }
+                    ret = g110 - g11y - (g120-g12x);
+                    return s*ret;
+                    break;
+
+                    case ROTATIONAL_MATRIX_2:
+                      if (f->GetDesignType() == DesignElement::ALL_DESIGNS)
+                       {
+                        g220 = -l10*sin(theta0)*sin(phi0) + l20*cos(theta0)*cos(phi0);
+                        g22x = -l1x*sin(thetax)*sin(phix) + l2x*cos(thetax)*cos(phix);
+                        g210 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
+                        g21y = -l1y*sin(thetay)*cos(phiy) -l2y*cos(thetay)*sin(phiy);
+                       }
+                    ret = g210 - g21y -(g220 -g22x);
+                    return s*ret;
+                    break;
+                    default: assert(false); return 0.0;
+                    break;
+            }
+          }
+
+          else
+          {
+            switch(GetElement(neigh_idx)->GetType())
+                  {
+
+                  case DesignElement::G11:
+                    switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                                return sign == -1 ? -1.0 : 1.0;
+                                break;
+
+                                case ROTATIONAL_MATRIX_2:
+                                return 0.0;
+                                break;
+                                default:
+                                  assert(false);return 0.0;
+                                break;
+                        }
+                  break;
+                  case DesignElement::G12:
+                    switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                                return sign == -1 ? 1.0 : -1.0;
+                                break;
+
+                                case ROTATIONAL_MATRIX_2:
+                                return 0.0;
+                                break;
+                                default:
+                                  assert(false);return 0.0;
+                                break;
+                        }
+                  break;
+                  case DesignElement::G21:
+                    switch(type)
+                      {
+                        case ROTATIONAL_MATRIX_1:
+                        return 0.0;
+                        break;
+
+                        case ROTATIONAL_MATRIX_2:
+                          return sign == -1 ? -1.0 : 1.0;
+                        break;
+                        default:
+                          assert(false);return 0.0;
+                        break;
+                     }
+                    break;
+                  case DesignElement::G22:
+                    switch(type)
+                                {
+                                  case ROTATIONAL_MATRIX_1:
+                                  return 0.0;
+                                  break;
+
+                                  case ROTATIONAL_MATRIX_2:
+                                    return sign == -1 ? 1.0 : -1.0;
+                                  break;
+                                  default:
+                                    assert(false); return 0.0;
+                                  break;
+                               }
+                  break;
+
+                    case DesignElement::ROTANGLE:
+                      switch(type)
+                       {
+                           case ROTATIONAL_MATRIX_1:
+                             g110 = -l10*sin(theta0)*cos(phi0) -l20*cos(theta0)*sin(phi0);
+                             g11y = 0.0;
+                             g120 = -l10*sin(theta0)*sin(phi0) +l20*cos(theta0)*cos(phi0);
+                             g12x = 0.0;
+                             ret = g110 - g11y - (g120-g12x);
+                             return s*ret;
+                             break;
+
+                             case ROTATIONAL_MATRIX_2:
+                             g220 = -l10*cos(theta0)*sin(phi0) - l20*sin(theta0)*cos(phi0);
+                             g22x = 0.0;
+                             g210 = -l10*cos(theta0)*cos(phi0) +l20*sin(theta0)*sin(phi0);
+                             g21y = 0.0;
+                             ret = g210 - g21y -(g220 -g22x);
+                             return s*ret;
+                             break;
+                            default:
+                             assert(false);return 0.0;
+                            break;
+                      }
+                  break;
+
+                      case DesignElement::ROTANGLE2:
+                        switch(type)
+                        {
+                            case ROTATIONAL_MATRIX_1:
+                             g110 = -l10*cos(theta0)*sin(phi0) -l20*sin(theta0)*cos(phi0);
+                             g11y = 0.0;
+                             g120 = l10*cos(theta0)*cos(phi0) -l20*sin(theta0)*sin(phi0);
+                             g12x = 0.0;
+                             ret = g110 - g11y - (g120-g12x);
+                            return s*ret;
+                           break;
+
+                            case ROTATIONAL_MATRIX_2:
+                               g220 = -l10*sin(theta0)*cos(phi0) - l20*cos(theta0)*sin(phi0);
+                               g22x = 0.0;
+                               g210 = l10*sin(theta0)*sin(phi0) -l20*cos(theta0)*cos(phi0);
+                               g21y = 0.0;
+                               ret = g210 - g21y -(g220 -g22x);
+                             return s*ret;
+                             break;
+                             default:
+                             assert(false);return 0.0;
+                             break;
+                         }
+                     break;
+
+                        case DesignElement::SCALING1:
+                         switch(type)
+                          {
+                            case ROTATIONAL_MATRIX_1:
+                               g110 = cos(theta0)*cos(phi0);
+                               g11y = 0.0;
+                               g120 = cos(theta0)*sin(phi0);
+                               g12x =0.0;
+                               ret = g110 - g11y - (g120-g12x);
+                               return s*ret;
+                             break;
+
+                           case ROTATIONAL_MATRIX_2:
+                              g220 = -sin(theta0)*sin(phi0);
+                              g22x = 0.0;
+                              g210 = -sin(theta0)*cos(phi0);
+                              g21y = 0.0;
+                              ret = g210 - g21y -(g220 -g22x);
+                              return s*ret;
+                            break;
+                          default:
+                             assert(false);return 0.0;
+                             break;
+                         }
+                         break;
+
+                         case DesignElement::SCALING2:
+                           switch(type)
+                           {
+                               case ROTATIONAL_MATRIX_1:
+                                g110 = -sin(theta0)*sin(phi0);
+                                g11y = 0.0;
+                                g120 = sin(theta0)*cos(phi0);
+                                g12x = 0.0;
+                                ret = g110 - g11y - (g120-g12x);
+                                return s*ret;
+                                break;
+
+                              case ROTATIONAL_MATRIX_2:
+                              g220 = cos(theta0)*cos(phi0);
+                              g22x = 0.0;
+                              g210 = -cos(theta0)*sin(phi0);
+                              g21y = 0.0;
+                              ret = g210 - g21y -(g220 -g22x);
+                              return s*ret;
+                              break;
+                              default:
+                              assert(false); return 0.0;
+                              break;
+
+                          }
+                         break;
+
+                  default:
+                      assert(false);return 0.0;
+                  break;
+                  }
+          }
+
+
+ }
+
+double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+{
+  assert((local->locality_ == NEXT_DIAG));
+    //This means that in neighbor, we have
+    //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+    //So, normally (2d case), neighbor has size 11.
+    //int  dim     = domain->GetGrid()->GetDim();
+    //assert(dim==2);
+
+    assert(this->neighbor.GetSize() == 7);
+
+    assert(this->sign==1);
+
+
+    //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+    //    4____________3
+    //    |            |
+    //    |            |
+    //    |            |
+    //    |            |
+    //    |____________|
+    //    1            2
+    //
+    //
+    //An element contains the value of the mappings gx and gy on its south_west node
+
+
+    Matrix<double> G(2,2);
+    G.Init();
+
+    int south_west = 0;
+    int south_east = 1;
+    int north_east = 2;
+    int north_west = 3;
+
+   double ret=0.0;
+
+   double gx_0 =element->GetDesign(DesignElement::SMART);
+   double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+   double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+   double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+
+   double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+   double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+   double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+   double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+
+    //I need to know the coordinates of the nodes of the cells I am working with
+    Matrix<double>  coords; // we ignore the n times constructs
+
+    StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
+    // do not use updated coordinates up to now!!
+    domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+    double x_0 = coords(0,south_west);
+    double y_0 = coords(1,south_west);
+
+    double x_px = coords(0,south_east);
+    double y_px = coords(1,south_east);
+
+    double x_pxy = coords(0,north_east);
+    double y_pxy = coords(1,north_east);
+
+    double x_py = coords(0,north_west);
+    double y_py = coords(1,north_west);
+
+    G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+    G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+    G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+    G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+
+
+   if (!derivative)
+     {
+           ret = G(0,0)*G(1,1) - G(0,1)*G(1,0);
+           return ret;
+     }
+   else
+   {
+     Matrix<double> Gd(2,2);
+     Gd.Init();
+
+     switch(neigh_idx)
+     {
+
+           case (-1): //Derivative with respect to GX_0
+
+                   Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+             break;
+
+           case (0): //Derivative with respect to GX_PX
+
+
+
+                   Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (1): //Derivative with respect to GX_PY
+
+                   Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+            break;
+
+           case (2): //Derivative with respect to GX_PXY
+
+                   Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   Gd(1,0) = 0;
+                   Gd(1,1) = 0;
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+              break;
+
+           case (3): //Derivative with respect to GY_0
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+             break;
+
+           case (4): //Derivative with respect to GY_PX
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (5): //Derivative with respect to GY_PY
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+
+              break;
+
+           case (6): //Derivative with respect to GY_PXY
+
+
+                   Gd(0,0) = 0;
+                   Gd(0,1) = 0;
+                   Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                   Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                   ret = Gd(0,0)*G(1,1) + G(0,0)*Gd(1,1) - Gd(0,1)*G(1,0) - G(0,1)*Gd(1,0);
+                   return ret;
+              break;
+
+           default:
+             return 5;
+             break;
+       }
+   }
+
+   return 5;
+}
+
+
+double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
+{
+
+  assert((local->locality_ == NEXT_DIAG));
+   //This means that in neighbor, we have
+   //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
+   //So, normally (2d case), neighbor has size 11.
+   //int  dim     = domain->GetGrid()->GetDim();
+   //assert(dim==2);
+   assert(this->neighbor.GetSize() == 7);
+
+   assert(this->sign==1);
+
+
+   //Here, we assume that the additional layer is on the north-east part of the domain and we assume that the ordering of the nodes for each element is as follows:
+
+   //    4____________3
+   //    |            |
+   //    |            |
+   //    |            |
+   //    |            |
+   //    |____________|
+   //    1            2
+   //
+   //
+   //An element contains the value of the mappings gx and gy on its south_west node
+
+
+   Matrix<double> G(2,2);
+   G.Init();
+
+   int south_west = 0;
+   int south_east = 1;
+   int north_east = 2;
+   int north_west = 3;
+
+  double ret=0.0;
+
+  double gx_0 =element->GetDesign(DesignElement::SMART);
+  double gx_px =neighbor[0]->GetDesign(DesignElement::SMART);
+  double gx_py =neighbor[1]->GetDesign(DesignElement::SMART);
+  double gx_pxy= neighbor[2]->GetDesign(DesignElement::SMART);
+
+  double gy_0   =neighbor[3]->GetDesign(DesignElement::SMART);
+  double gy_px  =neighbor[4]->GetDesign(DesignElement::SMART);
+  double gy_py  =neighbor[5]->GetDesign(DesignElement::SMART);
+  double gy_pxy =neighbor[6]->GetDesign(DesignElement::SMART);
+
+   //I need to know the coordinates of the nodes of the cells I am working with
+   Matrix<double>  coords; // we ignore the n times constructs
+
+   StdVector<unsigned int> connect = dynamic_cast<DesignElement*>(element)->elem->connect;
+   // do not use updated coordinates up to now!!
+   domain->GetGrid()->GetElemNodesCoord(coords, connect, false);
+
+   double x_0 = coords(0,south_west);
+   double y_0 = coords(1,south_west);
+
+   double x_px = coords(0,south_east);
+   double y_px = coords(1,south_east);
+
+   double x_pxy = coords(0,north_east);
+   double y_pxy = coords(1,north_east);
+
+   double x_py = coords(0,north_west);
+   double y_py = coords(1,north_west);
+
+   G(0,0) = ( (gx_px - gx_0)*(x_px -x_0) + (gx_pxy - gx_px)*(x_pxy - x_px) + (gx_pxy - gx_py)*(x_pxy - x_py) + (gx_py - gx_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+   G(0,1) = ( (gx_px - gx_0)*(y_px -y_0) + (gx_pxy - gx_px)*(y_pxy - y_px) + (gx_pxy - gx_py)*(y_pxy - y_py) + (gx_py - gx_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+   G(1,0) = ( (gy_px - gy_0)*(x_px -x_0) + (gy_pxy - gy_px)*(x_pxy - x_px) + (gy_pxy - gy_py)*(x_pxy - x_py) + (gy_py - gy_0)*(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+   G(1,1) = ( (gy_px - gy_0)*(y_px -y_0) + (gy_pxy - gy_px)*(y_pxy - y_px) + (gy_pxy - gy_py)*(y_pxy - y_py) + (gy_py - gy_0)*(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+
+
+
+  if (!derivative)
+    {
+          ret = G(0,0) + G(1,1);
+          return ret;
+    }
+  else
+  {
+    Matrix<double> Gd(2,2);
+    Gd.Init();
+
+    switch(neigh_idx)
+    {
+
+          case (-1): //Derivative with respect to GX_0
+
+                  Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+            break;
+
+          case (0): //Derivative with respect to GX_PX
+
+
+
+                  Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (1): //Derivative with respect to GX_PY
+
+                  Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+           break;
+
+          case (2): //Derivative with respect to GX_PXY
+
+                  Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  Gd(1,0) = 0;
+                  Gd(1,1) = 0;
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+             break;
+
+          case (3): //Derivative with respect to GY_0
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( -(y_px -y_0) + 0 + 0 + -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+            break;
+
+          case (4): //Derivative with respect to GY_PX
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (5): //Derivative with respect to GY_PY
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( 0 + 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+
+             break;
+
+          case (6): //Derivative with respect to GY_PXY
+
+
+                  Gd(0,0) = 0;
+                  Gd(0,1) = 0;
+                  Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
+                  Gd(1,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
+                  ret = Gd(0,0) + Gd(1,1);
+                  return ret;
+             break;
+
+          default:
+            return 0;
+            break;
+      }
+  }
+
+  return 5;
+}
+
+
+
+
+
+
+double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const {
   const Condition* g = dynamic_cast<const Condition*>(local->func_);
 
   double v = g->GetParameter();
   double eps = 1.0 * g->GetBoundValue();
 
   Matrix<double> E;
-
   bool ok = local->space->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
@@ -3237,7 +4195,6 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
   LOG_DBG3(func) << "L::I::CTT e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
-
   assert(
       !(derivative
           && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE
@@ -3325,4 +4282,5 @@ double Function::Local::Identifier::CalcDesignBound(bool derivative) const {
     ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
     return(neigh_idx == -1 ? c.factor[0] : -c.factor[1]); // if no neighbor given c.factor[0][1] is 0.0
   }
+
 

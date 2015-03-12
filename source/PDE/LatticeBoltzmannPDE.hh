@@ -144,16 +144,24 @@ private:
     return pdfs.GetPointer()[idx * n_q_ + dir];
   };
 
-  inline unsigned int GetIndex(unsigned int x, unsigned int y) const {
-    return y * n_x_ + x;
-  }
+//  inline unsigned int GetIndex(unsigned int x, unsigned int y) const {
+//    return y * n_x_ + x;
+//  }
 
   inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
   }
 
-  inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int dir) const {
-    return GetIndex(x,y) * n_q_ + dir;
+//  inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int dir) const {
+//    return GetIndex(x,y) * n_q_ + dir;
+//  }
+
+  inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int z, unsigned int dir) const {
+    return GetIndex(x,y,z) * n_q_ + dir;
+  }
+
+  inline unsigned int GetPdfIndex(unsigned int index, unsigned int dir) const {
+    return index * n_q_ + dir;
   }
 
   // returns if element with given index is of type bounce back
@@ -161,12 +169,13 @@ private:
     return elements[index] == LBM_NODE_TYPE_BB;
   }
 
-  inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int dir)
+  inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
   {
     LatticeBoltzmann::MicroVelocity tmp = (*microDirections)[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
-    return (tmp_x < 0 || tmp_x >= (int)n_x_ || tmp_y < 0 || tmp_y >= (int)n_y_ ) ;
+    int tmp_z = z + tmp.off_z;
+    return (tmp_x < 0 || tmp_x >= (int)n_x_ || tmp_y < 0 || tmp_y >= (int)n_y_ || tmp_z < 0 || tmp_z >= (int)n_z_) ;
   }
 
   // testing OusideDomain()
@@ -205,20 +214,20 @@ private:
   void DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output);
 
   /** Sets up local data for SensitivityAnalysis() */
-  void SetupSensitivityAnalysis(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dcol, StdVector<double>& weights);
+  void SetupSensitivityAnalysis(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dcol, StdVector<double>& weights);
 
-  void d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& dcol, const StdVector<double>& weight);
+  void d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, StdVector<double>& dfeqduz, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& uz, const StdVector<double>& dcol, const StdVector<double>& weight);
 
   void d_bounceback_d_f(Matrix<double>& block);
   void d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight);
-  void d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& dloc, StdVector<double>& weight);
+  void d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight);
 
   // void d_propagate_d_rho(compressed_matrix<double>& Jprop, const compressed_matrix<double> & J);
   void d_propagate_d_f(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J);
 
 //  void d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J,int dir);
 
-  Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy);
+  Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
   void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
