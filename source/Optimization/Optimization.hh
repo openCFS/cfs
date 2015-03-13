@@ -67,6 +67,9 @@ namespace CoupledField
           * @return either the described optimization problem or null if nothing in the xml file */
          static Optimization* CreateInstance();
 
+         /** just queries optimization/ersatzMaterial/material */
+         static OptimizationMaterial::System ParseSystem();
+
          /** PostInit is to be called after the constructor. */
          virtual void PostInit();
 
@@ -252,6 +255,10 @@ namespace CoupledField
          * @see ToApp()*/
         SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
 
+        /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
+         * PiezoSIMP does it simply in the constructor */
+        virtual void SetPDEs(OptimizationMaterial::System sys);
+
         /** Get the standard integrators */
         BiLinFormContext* GetBiLinForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
 
@@ -340,9 +347,6 @@ namespace CoupledField
          * @param iteration a duplicate of the log file output to the info xml file */
         virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
-        /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
-         * PiezoSIMP does it simply in the constructor */
-        virtual void SetPDEs(OptimizationMaterial::System sys);
 
         /** Gives back the current frequency for printing. This is not the current frequency
          * in multifrequency case. Not a fast method!

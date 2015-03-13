@@ -73,6 +73,8 @@ public:
    * Call only once if regular as it is not performance tunes! */
   static double FindFilterRadius(FilterSpace filter, DesignElement* de, double value);
 
+  static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
+
 private:
 
   /** The common Constructor, does much less than Initialize() */

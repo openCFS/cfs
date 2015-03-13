@@ -206,6 +206,9 @@ namespace CoupledField
     /** e.g. coordinate systems */
     void ToInfo(PtrParamNode info);
 
+    /** has any of the single pdes perdiodic boundary conditions set? */
+    bool HasPerdiodicBC() const;
+
 
   protected:
 

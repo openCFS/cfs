@@ -316,7 +316,7 @@ const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int
     direction = DesignElement::NO_MULTIMATERIAL;
 
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
-  bool new_wave_vector = true; //domain->GetDriver()->DoBlochModeEigenfrequency() && dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2() != current_wave_vector_;
+  bool new_wave_vector = domain->GetDriver()->DoBlochModeEigenfrequency() && dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2() != current_wave_vector_;
 
   LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index << " es=" << enforce_unstructured << " s=" << structured_ << " nwv=" << new_wave_vector;
 

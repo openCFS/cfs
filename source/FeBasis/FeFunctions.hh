@@ -72,6 +72,9 @@ public:
   //! Query for complex-valued results
   virtual bool IsComplex() const = 0;
   
+  /** query the constraints if there are periodic boundary conditions */
+  bool HasPeriodicBC() const;
+
   // ========================================================================
   //  Function Meta Information
   // ========================================================================
