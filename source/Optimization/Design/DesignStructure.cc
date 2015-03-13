@@ -62,12 +62,8 @@ void DesignStructure::Constructor()
 
   this->dim  = grid->GetDim();
 
-  periodic = false;
-  /* FIXME
-  if(em != NULL)
-    for(map<Optimization::Application, SinglePDE*>::iterator it = em->pdes.begin(); it != em->pdes.end(); ++it)
-      if(it->second->HasPeriodicBC()) periodic = true;
-*/
+  periodic = domain->HasPerdiodicBC();
+
   filter_space_ = NO_FILTER;
   filter_ = Filter(); // defaults
 
@@ -96,9 +92,12 @@ void DesignStructure::Initialize()
   {
     SetPeriodicConstraintMapping();
     SetNodeElemMapping();
-    assert(false);
-    // FIXME grid->CalcVolumeSpannedByNamedNodes(&dimension);
+    Matrix<double>& bb = grid->CalcGridBoundingBox();
+    for(unsigned int r = 0; r < bb.GetNumRows(); r++)
+      dimension[r] = bb[r][1] - bb[r][0];
   }
+
+  LOG_DBG2(ds) << "I: regular=" << regular << " periodic=" << periodic << " dimension=" << dimension.ToString();
 
   initialized_ = true;
 }
@@ -177,7 +176,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     }
   }
 
-  in->Get("periodicBCs")->SetValue(periodic);
+  in->Get("periodic")->SetValue(periodic);
 
   // print about the function filtering
   for(unsigned int i = 0; em != NULL && i < em->objectives.data.GetSize(); i++)
@@ -364,7 +363,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << initial.ToString() << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
+  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -520,6 +519,9 @@ void DesignStructure::SetPeriodicConstraintMapping()
   assert(em != NULL); // is not called otherwise!
    constraintMapping.Resize(grid->GetNumNodes() + 1); // 1-based
 
+   if(em->pde == NULL)
+     em->SetPDEs(em->ParseSystem());
+
    ConstraintList glist = em->pde->GetFeFunctions().begin()->second->GetConstraints();
 
    assert(em->pdes.size() == 1);
@@ -619,6 +621,7 @@ void DesignStructure::SetNodeElemMapping()
   }
 }
 
+
 bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVector<std::pair<Elem*, int> >& neighbors)
 {
   if(!initialized_)
@@ -653,7 +656,7 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
   if(neighbors.GetSize() > 0)
     AppendNeighbors(*elem->neighborhood, neighbors);
 
-  // LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << neighbors.ToString();
+  LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << ToString(neighbors);
 
   return neighbors.GetSize() > 0;
 }
@@ -720,3 +723,11 @@ string DesignStructure::ToString(StdVector<SIMPElement::NeighbourElement>& data)
   return out.str();
 }
 
+std::string DesignStructure::ToString(const StdVector<std::pair<Elem*, int> >& data)
+{
+  std::stringstream ss;
+  ss << "(";
+  for(unsigned int i = 0; i < data.GetSize(); i++)
+    ss << i << ": " << data[i].first->elemNum << "," << data[i].second << (i < data.GetSize()-1 ? "; " :  ")");
+  return ss.str();
+}

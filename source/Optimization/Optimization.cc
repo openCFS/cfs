@@ -196,7 +196,7 @@ Optimization::~Optimization()
 
 void Optimization::PostInit()
 {
-  SetPDEs(OptimizationMaterial::system.Parse(optParamNode->Get("ersatzMaterial/material")->As<string>()));
+  SetPDEs(ParseSystem());
   this->assemble_ = pde->GetAssemble();
 
 }
@@ -522,6 +522,11 @@ bool Optimization::DoStopOptimization()
 }
 
 
+OptimizationMaterial::System Optimization::ParseSystem()
+{
+  return OptimizationMaterial::system.Parse(domain->GetParamRoot()->Get("optimization/ersatzMaterial/material")->As<string>());
+}
+
 /** read only the very basic stuff */
 Optimization* Optimization::CreateInstance()
 {
@@ -539,7 +544,7 @@ Optimization* Optimization::CreateInstance()
   PtrParamNode em = param->Get("optimization/ersatzMaterial");
 
   ErsatzMaterial::Method method = ErsatzMaterial::method.Parse(em->Get("method")->As<string>());
-  OptimizationMaterial::System material = OptimizationMaterial::system.Parse(em->Get("material")->As<string>());
+  OptimizationMaterial::System material = ParseSystem();
   
   Optimization* opt = NULL;
   

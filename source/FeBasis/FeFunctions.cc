@@ -196,6 +196,13 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->slaveEntities);
   }
   
+  bool BaseFeFunction::HasPeriodicBC() const  {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++)
+      if(constraints_[i]->periodic)
+        return true;
+    return false;
+  }
+
   UInt BaseFeFunction::GetVecSize() const {
     assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );
     return result_->dofNames.GetSize();
