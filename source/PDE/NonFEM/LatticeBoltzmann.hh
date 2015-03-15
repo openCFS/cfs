@@ -242,6 +242,9 @@ namespace CoupledField
           double m_maxTol;
           /** plot the residuum over lbm iterations */
           bool m_plot;
+          // indicates whether LBM simulation results should be written to hdf5 file every m_writeFrequency'th step or not
+          // set to true, if no optimization is done (e.g. design is prescribed by density file)
+          bool writeIntermediateResults;
           int m_writeFrequency;
           // counts how many intermediate steps we have already written to hdf5 file
           int m_numWriteResults;

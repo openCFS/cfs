@@ -16,6 +16,7 @@
 #include "Driver/assemble.hh"
 #include "Driver/baseSolveStep.hh"
 #include "Driver/formsContext.hh"
+#include "Optimization/Optimization.hh"
 #include "PDE/NonFEM/LatticeBoltzmann.hh"
 #include "Utils/Timer.hh"
 #include "PDE/basePDE.hh"
@@ -132,10 +133,18 @@ void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux,
 
 StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
+  // this flag cannot be set in constructor, since information about optimization is not available when this constructor is called
+  if (domain->GetOptimization() == NULL || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN ) {
+    writeIntermediateResults = true;
+    std::cout << "Domain has no optimization!" << std::endl;
+  }
+  else
+    writeIntermediateResults = false;
+
   int it = 0;
 
-  // counts number of written steps
-  int count = 0;
+  // counts number of written steps when not in optimization
+  int count = 1;
 
   double res = -1.;
   double R = 1.0;
@@ -180,12 +189,12 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       R = 0.;
 
       for (int elem = 0; elem < m_nNodes; elem++) {
-            //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
-            for(int dir = 0; dir < n_q_; dir++)
-            {
-              res = pdf(m_next, elem, dir) - pdf(m_cur, elem, dir);
-              R += res * res;
-            }
+        //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
+        for(int dir = 0; dir < n_q_; dir++)
+        {
+          res = pdf(m_next, elem, dir) - pdf(m_cur, elem, dir);
+          R += res * res;
+        }
       }
 
       R = sqrt(R);
@@ -208,10 +217,17 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     it++;
 
-    // check if intermediate results should the written to hdf5 file
-    if (it % m_writeFrequency == 0) {
-      count++;
-      domain->GetDriver()->StoreResults(count,(double)count);
+    if (writeIntermediateResults) {
+//      std::cout << "writing intermediate LBM results..." << std::endl;
+      // check if intermediate results should write to hdf5 file
+      if (it % m_writeFrequency == 0) {
+        // in case of optimization we need to use StoreResults() from optimization to avoid conflicts with ...
+  //      if(domain->GetOptimization() != NULL)
+  //        domain->GetOptimization()->DirectStoreResults(domain->GetOptimization()->GetCurrentIteration() + 1/100000.0 * count); // <iter>.00001, ... <iter>.000301, ....
+  //      else
+        domain->GetDriver()->StoreResults(count,(double) count);
+        count++;
+      }
     }
   }
 

@@ -415,6 +415,9 @@ namespace CoupledField {
       uz[i] = CalcVelocityZ(i, density);
       dloc[i] = density;
 
+      if (dim_ == 2)
+        assert(uz[i] == 0);
+
       // sets quadrature weights
       weights.Resize(n_q_);
       if (dim_ == 3) {
@@ -470,9 +473,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   StdVector<double> dloc(n_elems);
   StdVector<double> weights(n_q_);
 
-  if (dim_ == 2)
-    uz.Init(0.0);
-
+  // setting values in data structures
   SetupSensitivityAnalysis(ux, uy, uz, dloc, weights);
 
   // derivative of the residual with respect to design variables
@@ -485,9 +486,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   StdVector<double> dfeqdux(n_q_);
   StdVector<double> dfeqduy(n_q_);
   StdVector<double> dfeqduz(n_q_);
-
-  if (dim_ == 2)
-    dfeqduz.Init(0.0);
 
   Matrix<double> block(n_q_,n_q_);
 
@@ -506,14 +504,14 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       for (unsigned int k = 0; k < n_q_; k++)
         dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
     }
-    else if(IsBounceBack(index)) {
+    else if(elements[index] == LBM_NODE_TYPE_BB) {
       d_bounceback_d_f(block); // bounce-back sensitivities
     }
     else if(elements[index] == LBM_NODE_TYPE_INLET) {
-      d_inflow_d_f(index,block, weights); // inlet derivative with respect to f
+      d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
     }
     else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
-      d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // outlet derivative with respect to f
+      d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
     }
     else {
       assert(false);
@@ -525,33 +523,33 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       }
   }
 
-  std::ofstream output("drds.txt");
-  for (unsigned int i = 0; i < dRds.size(); i++) {
-    output << dRds[i] << "\n";
-  }
-  output.close();
-
-  output.open("dfeqdux.txt");
-  for (unsigned int i = 0; i < n_q_; i++) {
-    output << dfeqdux[i] << "\n";
-  }
-  output.close();
-
-  output.open("dfeqduy.txt");
-  for (unsigned int i = 0; i < n_q_; i++) {
-    output << dfeqduy[i] << "\n";
-  }
-  output.close();
-
-  output.open("ux.txt");
-  for (unsigned int i = 0; i < n_elems; i++)
-    output << ux[i] << "\n";
-  output.close();
-
-  output.open("uy.txt");
-  for (unsigned int i = 0; i < n_elems; i++)
-    output << uy[i] << "\n";
-  output.close();
+//  std::ofstream output("drds.txt");
+//  for (unsigned int i = 0; i < dRds.size(); i++) {
+//    output << dRds[i] << "\n";
+//  }
+//  output.close();
+//
+//  output.open("dfeqdux.txt");
+//  for (unsigned int i = 0; i < n_q_; i++) {
+//    output << dfeqdux[i] << "\n";
+//  }
+//  output.close();
+//
+//  output.open("dfeqduy.txt");
+//  for (unsigned int i = 0; i < n_q_; i++) {
+//    output << dfeqduy[i] << "\n";
+//  }
+//  output.close();
+//
+//  output.open("ux.txt");
+//  for (unsigned int i = 0; i < n_elems; i++)
+//    output << ux[i] << "\n";
+//  output.close();
+//
+//  output.open("uy.txt");
+//  for (unsigned int i = 0; i < n_elems; i++)
+//    output << uy[i] << "\n";
+//  output.close();
 
   double d_collision_setup = timer.GetCPUTime();
 
@@ -571,9 +569,9 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
-  WriteMatrix("Jacobian_col.txt",col_jacobi);
-  WriteMatrix("Jacobian_old.txt",Jacobi);
-  WriteMatrix("Jacobian_new.txt",Jacobi_new);
+//  WriteMatrix("Jacobian_col.txt",col_jacobi);
+//  WriteMatrix("Jacobian_old.txt",Jacobi);
+//  WriteMatrix("Jacobian_new.txt",Jacobi_new);
 
   double delete_sing_setup = timer.GetCPUTime();
 
@@ -683,7 +681,6 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
 
   // delete singular rows of the Jacobian in the sensitivity analysis for the optimization
   double val;
-  std::set<unsigned int>::iterator nss_it1, nss_it2;
 
   for(mapped_matrix<double>::const_iterator1 it = M.begin1(); it != M.end1(); ++it) { // iterate over all rows of matrix M
 
@@ -702,24 +699,23 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
         }
       }
     }
-  }
-}
 
+  }
+
+}
 
 
 void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, StdVector<double>& dfeqduz, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& uz, const StdVector<double>& dloc, const StdVector<double>& weight)
 {
   // gradient of the collision step with respect to the design variables
-  // partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
+  // partial derivative of f^eq with respect to rho, ux, uy and uz: CORRECT (FDM)
   StdVector<double> dfeqdrho(n_q_);
   double scale = 1. - elements[index]; // 1.-pow(por[0][index],penal);
   assert(scale >= 0);
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " scale=" << scale;
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
-  //partial derivative of f^eq with respect to rho, ux and uy: CORRECT (FDM)
+  //partial derivative of f^eq with respect to rho, ux, uy and uz: CORRECT (FDM)
   double us1, us2, us3, dot, norm;
-  double const1 = 9. / 2.;
-  double const2 = 3. / 2.;
   LatticeBoltzmann::MicroVelocity* transform;
 
   //gradient of u_x with respect to f
@@ -728,9 +724,6 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   StdVector<double> duydf(n_q_);
   //gradient of u_z with respect to f
   StdVector<double> duzdf(n_q_);
-
-  if(dim_ == 2)
-    duzdf.Init(0.0);
 
   double invdloc = 1.0 / dloc[index];
 
@@ -744,7 +737,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     dot = transform->off_x * us1 + transform->off_y * us2 + transform->off_z * us3;
     norm = us1 * us1 + us2 * us2 + us3 * us3;
 
-    dfeqdrho[i] = weight[i] * (1. + 3.*dot + const1*dot*dot - const2* norm);
+    dfeqdrho[i] = weight[i] * (1. + 3.*dot + 4.5*dot*dot - 1.5* norm);
     dfeqdux[i] = weight[i] * dloc[index]*(3. * transform->off_x + 9. * transform->off_x * dot - 3. * us1);
     dfeqduy[i] = weight[i] * dloc[index]*(3. * transform->off_y + 9. * transform->off_y * dot - 3. * us2);
     dfeqduz[i] = weight[i] * dloc[index]*(3. * transform->off_z + 9. * transform->off_z * dot - 3. * us3);
@@ -755,6 +748,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     duydf[i] = scale * invdloc * (-uy[index] + transform->off_y);
     duzdf[i] = scale * invdloc * (-uz[index] + transform->off_z);
 
+    // automatic testing
     if (dim_ == 2) {
       assert(us3 == 0);
       assert(dot == transform->off_x * us1 + transform->off_y * us2);
@@ -947,34 +941,29 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double dUX, dUY, dUZ;
 
   mapped_matrix<double> dPD(n_elems * n_q_, 1, n_elems * n_q_);
-  int index;
   double inletSize_inv = 1.0 / (double) inlet.GetSize();
   double outletSize_inv = 1.0 / (double) outlet.GetSize();
   double one_third = 1.0 / 3.0;
 
-  for(unsigned int z = 0; z < n_z_; z++) {
-    for(unsigned int y = 0; y < n_y_; y++) {
-      for(unsigned int x = 0; x < n_x_; x++) {
-        index = GetIndex(x,y,z);
-        if(elements[index] == LBM_NODE_TYPE_INLET) // -2
-        {
-          for (unsigned int i = 0; i < n_q_; i++) {
-            dUX = (*microDirections)[i].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
-            dUY = (*microDirections)[i].off_y - uy[index];
-            dUZ = (*microDirections)[i].off_z - uz[index];
-            dPD(GetPdfIndex(x,y,z,i),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
-          }
-        }
-        if(elements[index] == LBM_NODE_TYPE_OUTLET) // -3
-        {
-          for (unsigned int i = 0; i < n_q_; i++) {
-            dUX = (*microDirections)[i].off_x - ux[index];
-            dUY = (*microDirections)[i].off_y - uy[index];
-            dUZ = (*microDirections)[i].off_z - uz[index];
-            dPD(GetPdfIndex(x,y,z,i),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
-          }
-        }
-      }
+  int index;
+
+  for (unsigned int i = 0; i < inlet.GetSize(); i++) {
+    index = inlet[i];
+    for (unsigned int dir = 0; dir < n_q_; dir++) {
+      dUX = (*microDirections)[dir].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
+      dUY = (*microDirections)[dir].off_y - uy[index];
+      dUZ = (*microDirections)[dir].off_z - uz[index];
+      dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
+    }
+  }
+
+  for (unsigned int i = 0; i < outlet.GetSize(); i++) {
+    index = outlet[i];
+    for (unsigned int dir = 0; dir < n_q_; dir++) {
+      dUX = (*microDirections)[dir].off_x - ux[index];
+      dUY = (*microDirections)[dir].off_y - uy[index];
+      dUZ = (*microDirections)[dir].off_z - uz[index];
+      dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
     }
   }
 
@@ -1178,6 +1167,9 @@ double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
   double ux     = CalcVelocityX(idx, density);
   double uy     = CalcVelocityY(idx, density);
   double uz     = CalcVelocityZ(idx, density);
+
+  if (dim_ == 2)
+    assert(uz == 0);
 
   return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
 }
