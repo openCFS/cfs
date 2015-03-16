@@ -133,18 +133,16 @@ void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux,
 
 StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
+  int it = 0;
+  // counts number of written steps when not in optimization
+  int count = 0;
+
   // this flag cannot be set in constructor, since information about optimization is not available when this constructor is called
-  if (domain->GetOptimization() == NULL || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN ) {
-    writeIntermediateResults = true;
-    std::cout << "Domain has no optimization!" << std::endl;
+  if (domain->GetOptimization() != NULL && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN) {
+    writeIntermediateResults = false;
   }
   else
-    writeIntermediateResults = false;
-
-  int it = 0;
-
-  // counts number of written steps when not in optimization
-  int count = 1;
+    writeIntermediateResults = true;
 
   double res = -1.;
   double R = 1.0;
@@ -209,7 +207,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       in->Get("residuum")->SetValue(R);
       info->ToFile(); // is not written when called too often
 
-//      std::cout << "residual: " << R << std::endl;
     }
 
     m_cur  = (m_cur  + 1) % 2;
@@ -218,13 +215,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     it++;
 
     if (writeIntermediateResults) {
-//      std::cout << "writing intermediate LBM results..." << std::endl;
-      // check if intermediate results should write to hdf5 file
       if (it % m_writeFrequency == 0) {
-        // in case of optimization we need to use StoreResults() from optimization to avoid conflicts with ...
-  //      if(domain->GetOptimization() != NULL)
-  //        domain->GetOptimization()->DirectStoreResults(domain->GetOptimization()->GetCurrentIteration() + 1/100000.0 * count); // <iter>.00001, ... <iter>.000301, ....
-  //      else
         domain->GetDriver()->StoreResults(count,(double) count);
         count++;
       }
@@ -284,54 +275,28 @@ void LatticeBoltzmann::InitializePdfs()
   }
 }
 
-//
-// Checks if velocities on the boundary are really zero (no-slip b.c.)
-//
-
-void LatticeBoltzmann::CheckBoundaryVelocities(int cur, StdVector<StdVector<int> >& bb)
-{
-  int x, y, z;
-  double ux, uy, uz;
-  double eps = 1e-10;
-  for(unsigned int i = 0; i < bb.GetSize(); i++) {
-    x = bb[i][0];
-    y = bb[i][1];
-    z = bb[i][2];
-    CalcVelocitites(cur,x, y, z, ux, uy, uz);
-    if (ux > eps)
-      std::cout << "ux > eps. ux: " << ux << std::endl;
-    if (uy > eps)
-      std::cout << "uy > eps. ux: " << uy << std::endl;
-    if (uz > eps)
-      std::cout << "uz > eps. ux: " << uz << std::endl;
-    assert(ux < eps);
-    assert(uy < eps);
-    assert(uz < eps);
-  }
-}
-
 void LatticeBoltzmann::SetMicroVelocities()
 {
-  microDirections[Q_0] = MicroVelocity(0,0,0);
-  microDirections[Q_E] = MicroVelocity(1,0,0);
-  microDirections[Q_W] = MicroVelocity(-1,0,0);
-  microDirections[Q_N] = MicroVelocity(0,1,0);
-  microDirections[Q_S] = MicroVelocity(0,-1,0);
-  microDirections[Q_NE] = MicroVelocity(1,1,0);
-  microDirections[Q_NW] = MicroVelocity(-1,1,0);
-  microDirections[Q_SE] = MicroVelocity(1,-1,0);
-  microDirections[Q_SW] = MicroVelocity(-1,-1,0);
+  microDirections[Q_0] = LatticeVector(0,0,0);
+  microDirections[Q_E] = LatticeVector(1,0,0);
+  microDirections[Q_W] = LatticeVector(-1,0,0);
+  microDirections[Q_N] = LatticeVector(0,1,0);
+  microDirections[Q_S] = LatticeVector(0,-1,0);
+  microDirections[Q_NE] = LatticeVector(1,1,0);
+  microDirections[Q_NW] = LatticeVector(-1,1,0);
+  microDirections[Q_SE] = LatticeVector(1,-1,0);
+  microDirections[Q_SW] = LatticeVector(-1,-1,0);
   if (m_dim == 3) {
-    microDirections[Q_T] = MicroVelocity(0,0,1);
-    microDirections[Q_B] = MicroVelocity(0,0,-1);
-    microDirections[Q_TN] = MicroVelocity(0,1,1);
-    microDirections[Q_TS] = MicroVelocity(0,-1,1);
-    microDirections[Q_TE] = MicroVelocity(1,0,1);
-    microDirections[Q_TW] = MicroVelocity(-1,0,1);
-    microDirections[Q_BN] = MicroVelocity(0,1,-1);
-    microDirections[Q_BS] = MicroVelocity(0,-1,-1);
-    microDirections[Q_BE] = MicroVelocity(1,0,-1);
-    microDirections[Q_BW] = MicroVelocity(-1,0,-1);
+    microDirections[Q_T] = LatticeVector(0,0,1);
+    microDirections[Q_B] = LatticeVector(0,0,-1);
+    microDirections[Q_TN] = LatticeVector(0,1,1);
+    microDirections[Q_TS] = LatticeVector(0,-1,1);
+    microDirections[Q_TE] = LatticeVector(1,0,1);
+    microDirections[Q_TW] = LatticeVector(-1,0,1);
+    microDirections[Q_BN] = LatticeVector(0,1,-1);
+    microDirections[Q_BS] = LatticeVector(0,-1,-1);
+    microDirections[Q_BE] = LatticeVector(1,0,-1);
+    microDirections[Q_BW] = LatticeVector(-1,0,-1);
   }
 }
 
@@ -580,6 +545,7 @@ void LatticeBoltzmann::prop_step()
         pdf(m_cur, x, y, z, Q_S)  = pdf(m_cur, x      , y + 1 , z     , Q_S);
       }
     }
+
   }
 
   if (m_dim == 2) return;
@@ -690,19 +656,19 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
       tmp_us = 0;
 
       for (int dir = 0; dir < n_q_; dir++) {
-
-        if (OutsideDomain(x,y,inverseDirections[dir])) {
-          tmp_x = x;
+        int invDir = GetInvDirection((Direction)dir);
+        if (OutsideDomain(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
+          tmp_x = x; // here we only set the coordinates
           tmp_y = y;
         }
-        // else: standard propagation
+        // else: standard propagation (get value from neighbor pdf)
         else {
-          tmp_x = microDirections[inverseDirections[dir]].off_x + x;
-          tmp_y = microDirections[inverseDirections[dir]].off_y + y;
+          tmp_x = microDirections[invDir].off_x + x;
+          tmp_y = microDirections[invDir].off_y + y;
         }
 
         //store current pdf values in array for better accessing
-        pdfs[dir] = pdf(cur, tmp_x, tmp_y,  z, dir);
+        pdfs[dir] = pdf(cur, tmp_x, tmp_y,  z, dir); // accessed pdf value can be the old one or the neighbor's value
         sum += pdfs[dir];
         tmp_ux += microDirections[dir].off_x*pdfs[dir];
         tmp_uy += microDirections[dir].off_y*pdfs[dir];
@@ -753,7 +719,7 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     sum = CalcDensity(cur, x, y, z);
 
-    tmp_ux = UX;
+    tmp_ux = UX; // velocity at inlet is prescribed
     tmp_uy = UY;
 
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
@@ -865,16 +831,16 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
         tmp_us = 0;
 
         for (int dir = 0; dir < n_q_; dir++) {
-
-          if (OutsideDomain(x,y,z,inverseDirections[dir])) { // boundary case
+          int invDir = GetInvDirection((Direction)dir);
+          if (OutsideDomain(x,y,z,invDir)) { // boundary case
             tmp_x = x;
             tmp_y = y;
             tmp_z = z;
           }
           else { // standard propagation rule
-            tmp_x = microDirections[inverseDirections[dir]].off_x + x;
-            tmp_y = microDirections[inverseDirections[dir]].off_y + y;
-            tmp_z = microDirections[inverseDirections[dir]].off_z + z;
+            tmp_x = microDirections[invDir].off_x + x;
+            tmp_y = microDirections[invDir].off_y + y;
+            tmp_z = microDirections[invDir].off_z + z;
           }
 
           //store current pdf values in array for better accessing

@@ -499,7 +499,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
       // simple choice of the mapping between p and s
       DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
-      // scale = -penal * pow(por[0][index],(penal-1.));
       double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
       for (unsigned int k = 0; k < n_q_; k++)
         dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
@@ -522,34 +521,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
       }
   }
-
-//  std::ofstream output("drds.txt");
-//  for (unsigned int i = 0; i < dRds.size(); i++) {
-//    output << dRds[i] << "\n";
-//  }
-//  output.close();
-//
-//  output.open("dfeqdux.txt");
-//  for (unsigned int i = 0; i < n_q_; i++) {
-//    output << dfeqdux[i] << "\n";
-//  }
-//  output.close();
-//
-//  output.open("dfeqduy.txt");
-//  for (unsigned int i = 0; i < n_q_; i++) {
-//    output << dfeqduy[i] << "\n";
-//  }
-//  output.close();
-//
-//  output.open("ux.txt");
-//  for (unsigned int i = 0; i < n_elems; i++)
-//    output << ux[i] << "\n";
-//  output.close();
-//
-//  output.open("uy.txt");
-//  for (unsigned int i = 0; i < n_elems; i++)
-//    output << uy[i] << "\n";
-//  output.close();
 
   double d_collision_setup = timer.GetCPUTime();
 
@@ -699,9 +670,7 @@ void LatticeBoltzmannPDE::DeleteSingularities(const mapped_matrix<double> & M, c
         }
       }
     }
-
   }
-
 }
 
 
@@ -716,7 +685,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
   //partial derivative of f^eq with respect to rho, ux, uy and uz: CORRECT (FDM)
   double us1, us2, us3, dot, norm;
-  LatticeBoltzmann::MicroVelocity* transform;
+  LatticeBoltzmann::LatticeVector* transform;
 
   //gradient of u_x with respect to f
   StdVector<double> duxdf(n_q_);
@@ -771,7 +740,6 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
-  //std::cout << "dcollision_step index=" << index << " block i=" << i << ": ";
   for (unsigned int i=0;i<n_q_;i++)
   {
     for (unsigned int j= 0;j<n_q_;j++)
@@ -797,7 +765,7 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
 
   if (dim_ == 2) assert(u_z_ == 0);
 
-  LatticeBoltzmann::MicroVelocity* transform;
+  LatticeBoltzmann::LatticeVector* transform;
   for (unsigned int i = 0; i < n_q_; i++)
   {
     transform = &(*microDirections)[i];
@@ -818,7 +786,7 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
 {
   // gradient of the density outlet boundary condition with respect to the design variables
   StdVector<double> dfeqdux(n_q_), dfeqduy(n_q_), dfeqduz(n_q_);
-  LatticeBoltzmann::MicroVelocity* transform;
+  LatticeBoltzmann::LatticeVector* transform;
   double scale = 1.; // no design
   double density = 1.0;  // we have no other case
   double us1, us2, us3, dot;
@@ -855,33 +823,6 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
 
 }
 
-//void LatticeBoltzmannPDE::d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double>& J, int dir) {
-//  int rows1, rows2;
-//  mapped_matrix<double>::const_iterator1 iter1, iter2;
-//  switch (dir)
-//  {
-//    case 0:
-//      rows1 = (y-1)*n_x_*9+(x-1)*9;
-//      rows2 = 0;
-//      iter1 = J.find1(0, rows1, 0);
-//      iter2 = iter1.end();
-//      break;
-//    case 1:
-//      rows1=((y-1)*(n_x_)*9+1);
-//      rows2=((y-1)*(n_x_)*9+9+1);
-//      iter1 = J.find1(0, rows1, 0);
-//      iter2 = J.find1(0, rows2, 0);
-//      break;
-//  }
-//  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-//    Jprop(rows1,it.index2())=J(rows1,it.index2());
-//  }
-//  for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
-//    Jprop(rows1,it.index2())=J(rows1,it.index2());
-//  }
-//}
-
-
 /*
  * 3 case have to be considered for each distribution function f_*:
  * 1. f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
@@ -896,7 +837,7 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   unsigned int x, y, z;
   int rows1,rows2;
   mapped_matrix<double>::const_iterator1 iter;
-  LatticeBoltzmann::MicroVelocity* transform;
+  LatticeBoltzmann::LatticeVector* transform;
 
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
@@ -1087,12 +1028,12 @@ void LatticeBoltzmannPDE::CalcOutputCoupling() {
   }
 }
 
-bool LatticeBoltzmannPDE::HasOutput(SolutionType output) {
-
-  if (output == LBM_VELOCITY || output == LBM_DENSITY)
-    return true;
-  return false;
-}
+//bool LatticeBoltzmannPDE::HasOutput(SolutionType output) {
+//
+//  if (output == LBM_VELOCITY || output == LBM_DENSITY)
+//    return true;
+//  return false;
+//}
 
 void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
 {
@@ -1602,9 +1543,9 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
           // distributions which point towards a bounce-back boundary point
 
           for (unsigned int dir = 0; dir < n_q_; dir++) {
-            LatticeBoltzmann::MicroVelocity f = (*microDirections)[dir];
+            LatticeBoltzmann::LatticeVector f = (*microDirections)[dir];
             // test, if the node in direction f is not bounce back
-            if (!OutsideDomain(x,y,z,dir) && !IsBounceBack(GetIndex(x+f.off_x, y+f.off_y, z+f.off_z)))
+            if (!OutsideDomain(x,y,z,dir) && elements[GetIndex(x+f.off_x, y+f.off_y, z+f.off_z)] != LBM_NODE_TYPE_BB)
               non_sing.Push_back(base + dir);
           }
         }

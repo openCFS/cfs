@@ -90,7 +90,7 @@ public:
   double CalcPressureDrop();
 
   //! returns if PDE can compute the quantity
-  virtual bool HasOutput(SolutionType output);
+//  virtual bool HasOutput(SolutionType output);
 
   // returns how often CalcResults() was called. We need this to write out the last simulation step
   int GetNumWriteResults();
@@ -144,17 +144,9 @@ private:
     return pdfs.GetPointer()[idx * n_q_ + dir];
   };
 
-//  inline unsigned int GetIndex(unsigned int x, unsigned int y) const {
-//    return y * n_x_ + x;
-//  }
-
   inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
   }
-
-//  inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int dir) const {
-//    return GetIndex(x,y) * n_q_ + dir;
-//  }
 
   inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int z, unsigned int dir) const {
     return GetIndex(x,y,z) * n_q_ + dir;
@@ -164,14 +156,9 @@ private:
     return index * n_q_ + dir;
   }
 
-  // returns if element with given index is of type bounce back
-  inline bool IsBounceBack(unsigned int index) {
-    return elements[index] == LBM_NODE_TYPE_BB;
-  }
-
   inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
   {
-    LatticeBoltzmann::MicroVelocity tmp = (*microDirections)[dir];
+    LatticeBoltzmann::LatticeVector tmp = (*microDirections)[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
     int tmp_z = z + tmp.off_z;
@@ -296,7 +283,7 @@ private:
   double u_y_;
   double u_z_;
 
-  StdVector<LatticeBoltzmann::MicroVelocity>* microDirections;
+  StdVector<LatticeBoltzmann::LatticeVector>* microDirections;
   StdVector<LatticeBoltzmannBase::Direction>* inverseDirections;
 
   /** external lbm */

@@ -14,7 +14,6 @@ This version makes it simpler and extends to 3D (Fabian Wein) */
 
 namespace CoupledField
 {
-  // Fluid nodes have values in the range of [0.0; 1.0].
 #define LBM_NODE_TYPE_BB      (-1.0)
 #define LBM_NODE_TYPE_INLET   (-2.0)
 #define LBM_NODE_TYPE_OUTLET  (-3.0)
@@ -26,20 +25,20 @@ namespace CoupledField
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
-          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,  // 3D
-          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;              // 3D
+          Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
+          Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
   };
 
   class LatticeBoltzmann: LatticeBoltzmannBase
   {
     public:
-      struct MicroVelocity{
+      struct LatticeVector{
         int off_x;
         int off_y;
         int off_z;
-        MicroVelocity(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
-        MicroVelocity(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
-        MicroVelocity(): off_x(1),off_y(0), off_z(0){}
+        LatticeVector(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        LatticeVector(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
+        LatticeVector(): off_x(1),off_y(0), off_z(0){}
       };
 
       LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
@@ -57,7 +56,6 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @retun copy of pdfs
        */
-//      inline StdVector<double> GetPdfs() {return m_pdfs[m_next];}
       inline StdVector<double> GetPdfs() {return m_pdfs[m_cur];}
 
       /**
@@ -65,7 +63,7 @@ namespace CoupledField
        */
       inline int GetNumWriteResults() { return m_numWriteResults; }
 
-      inline StdVector<MicroVelocity>* GetVelocityDirections() { return &microDirections; }
+      inline StdVector<LatticeVector>* GetVelocityDirections() { return &microDirections; }
       inline StdVector<Direction>* GetInverseDirections() { return &inverseDirections; }
 
     private:
@@ -78,19 +76,6 @@ namespace CoupledField
            * Sets distribution functions to initial value, independently from dimension of problem (no if-statement necessary)
            */
           void InitializePdfs();
-
-          /**
-           * returns associated integer value of velocity direction two given principal directions
-           * e.g. getIndexDir(S,E) returns Q_SE
-           */
-          inline int GetIndexDir(Direction dir1)
-          {
-            assert(directions.IsValid(dir1));
-            return dir1;
-          }
-
-          // make sure that no-slip b.c. is imposed on the boundaries (bounce-back nodes)
-          void CheckBoundaryVelocities(int cur, StdVector<StdVector<int> >& bb);
 
           /**
            * Calculates x, y and z velocity for element with coordinate (i,j,k)
@@ -154,16 +139,6 @@ namespace CoupledField
             return z * m_sizeX * m_sizeY + y * m_sizeX + x;
           }
 
-          // calculates array index for given grid coordinate in 2D
-          inline int GetIndex(int x, int y) const
-          {
-            return y * m_sizeX + x;
-          }
-
-          // calculates index of neighbor element we are propagating to (depends on the propagation direction)
-          // @index: index of the current element
-          //    int CalcPropIndex(int index, int dir);
-
           //--------------- array of structures----------------------------------
           inline double& pdf(int cur, int x, int y, int z, int direction)
           {
@@ -187,18 +162,9 @@ namespace CoupledField
 
           void create_output(const char * file, int cur);
 
-
-          inline bool OutsideDomain(int x, int y, int dir)
-          {
-            MicroVelocity tmp = microDirections[dir];
-            int tmp_x = x + tmp.off_x;
-            int tmp_y = y + tmp.off_y;
-            return (tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY ) ;
-          }
-
           inline bool OutsideDomain(int x, int y, int z, int dir)
           {
-            MicroVelocity tmp = microDirections[dir];
+            LatticeVector tmp = microDirections[dir];
             int tmp_x = x + tmp.off_x;
             int tmp_y = y + tmp.off_y;
             int tmp_z = z + tmp.off_z;
@@ -259,10 +225,9 @@ namespace CoupledField
           StdVector< StdVector<double> > m_pdfs;
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
-          StdVector<MicroVelocity> microDirections;
+          StdVector<LatticeVector> microDirections;
           // lookup table to get inverse directions
           StdVector<Direction> inverseDirections;
-          //double * m_pdfs[2];
           int m_cur;
           int m_next;
 
@@ -281,7 +246,6 @@ namespace CoupledField
           void (LatticeBoltzmann::*prop_coll_densoutlet)(int, StdVector<StdVector<int> >&);
 
   }; // end LatticeBoltzmann
-
 
 
 } // namespace
