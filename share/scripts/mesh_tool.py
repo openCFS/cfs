@@ -840,12 +840,22 @@ def create_mesh_from_optistruct(meshfile):
   hexa_elements = numpy.loadtxt(meshfile + '.hexa.elements', dtype='int', skiprows=1)
   wedge_elements = numpy.loadtxt(meshfile + '.wedge.elements', dtype='int', skiprows=1)
   all_nodes = numpy.loadtxt(meshfile + '.nodes', skiprows=1)
-  
+  # ax = 0.0849
+  ay = -0.084636333418591
+  # az = 0.1358
+  # Rx = numpy.matrix(((1., 0., 0.), (0., math.cos(ax), -math.sin(ax)), (0., math.sin(ax), math.cos(ax))))
+  Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
+  # Rz = numpy.matrix(((math.cos(az), -math.sin(az), 0.), (math.sin(az), math.cos(az), 0.), (0., 0., 1.)))
   # Create mesh  
   # add nodes    
   mesh = Mesh()  
   for i in range(len(all_nodes)):
-    mesh.nodes.append(all_nodes[i, 1:])
+    coord = numpy.matrix(((all_nodes[i, 1]), (all_nodes[i, 2]), all_nodes[i, 3])).T
+    # print Rx
+    # print coord  
+    new_coord = Ry * coord
+    # new_coord = Rz * new_coord
+    mesh.nodes.append([new_coord[0, 0], new_coord[1, 0], new_coord[2, 0]])
     
   # hexaeder     
   for i in range(len(hexa_elements[:, 0])):

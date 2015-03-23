@@ -146,7 +146,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
   
       s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
       v = calc_volume(s1, s2)
-      print "volume for regular grid: " + str(calc_volume(s1, s2))
+      print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi / 180
@@ -190,7 +190,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
           else:
-            viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale)
+            viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)

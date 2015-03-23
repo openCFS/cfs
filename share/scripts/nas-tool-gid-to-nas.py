@@ -5,11 +5,12 @@ import sys
 # define a mapping from name in gid file to type of condition (boundary, force) in nastran file
 # FORCE: needs an index and four double values: index is for multiload! Format is ['FORCE', load case #, ?, x, y, z]
 # SPC:   needs two values: a string defining type of bc (1: x, 2: y, 12: xy, 123: xyz, ...) and a value
-table = {'load1':  ['FORCE', 1, 1.0, 0.0, -1.0, 0.0],\
-         'load2':  ['FORCE', 1, 1.0, 0.0,  1.0, 0.0],\
+table = {'force1':  ['FORCE', 1, 1.0, 0.0, 1./60., 0.0],\
+         'force2':  ['FORCE', 2, 1.0, 0.0, 1./52., 0.0],\
          'support': ['SPC', '  123', 0.0]}
 
 quads = False
+region = ['design','non-design']
 
 
 
@@ -83,6 +84,10 @@ names = {}
 
 
 out = open(outfile, 'w')
+out2 = open(outfile+'.design', 'w')
+out3 = open(outfile+'.non-design', 'w')
+count = 0
+count2 = 0
 sectinfo    = False
 sectnodes   = False
 sectelems   = False
@@ -183,13 +188,13 @@ for line in open(infile, 'r'):
     if not len(ls) == 4:
       print "error parsing nodes! offending line: " + line
 
-    outstring = 'GRID'.ljust(8) + str(ls[0]).rjust(8) + '0'.rjust(8)
+    outstring = 'GRID'.ljust(8)[:8] +str(ls[0]).rjust(8)[:8]+'0'.rjust(8)[:8]
     for i in [1, 2, 3]:
       # convert to float
       d = float(ls[i])
       # format correctly
-      o = '%3.4f' % d
-      outstring += o.rjust(8)
+      o = '%4.3f' % d
+      outstring += o.rjust(8)[:8]
 
     out.write(outstring + '\n')
     nodectr += 1
@@ -216,20 +221,38 @@ for line in open(infile, 'r'):
     # this check is mainly redundant because it should be correctly done by gid!
     if not (len(ls) == int(tls[2]) and len(tls) == 4):
       print "error parsing nodes! offending lines: " + elemstmpline + ' ' + line
-
-
+    reg = -1
+    for i in range(len(region)):
+      if tls[3] == region[i]:
+        reg = i+1
+    if reg == -1:
+      raise 'Region not specified'
+    elif reg == 1:
+      count +=1
+      if count < 5:
+        out2.write(tls[0].rjust(7)+',')
+      else:
+        count = 0
+        out2.write(tls[0].rjust(7)+',\n')    
+    elif reg == 2:
+      count2 +=1
+      if count2 < 5:
+        out3.write(tls[0].rjust(7)+',')
+      else:
+        count2 = 0
+        out3.write(tls[0].rjust(7)+',\n')   
     #############
     # 2D elements
     if griddimension == 2:
        # can only handle quad and triangle elements at the moment!
       if tls[1] == '6':
-        outstring = 'CQUAD4'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
+        outstring = 'CQUAD4'.ljust(8) + tls[0].rjust(8) + str(reg).rjust(8)
         for i in range(4):
           outstring += str(ls[i]).rjust(8)
         out.write(outstring + '\n')
       else:
         if tls[1] == '4':
-          outstring = 'CTRIA3'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
+          outstring = 'CTRIA3'.ljust(8) + tls[0].rjust(8) + str(reg).rjust(8)
           for i in range(3):
             outstring += str(ls[i]).rjust(8)
           out.write(outstring + '\n')
@@ -239,17 +262,21 @@ for line in open(infile, 'r'):
     #############
     # 3D elements
     if griddimension == 3:
-      outstring = 'CHEXA'.ljust(8) + tls[0].rjust(8) + '1'.rjust(8)
-      for i in range(6):
-        outstring += str(ls[i]).rjust(8)
+      if tls[1] == '10':
+        outstring = 'CHEXA'.ljust(8) + tls[0].rjust(8) + str(reg).rjust(8)
+        for i in range(6):
+          outstring += str(ls[i]).rjust(8)
+        out.write(outstring + '+\n')
 
-      outstring += '+'.ljust(8)
-      out.write(outstring + '\n')
-
-      outstring  = '+'.ljust(8)
-      outstring += str(ls[6]).rjust(8)
-      outstring += str(ls[7]).rjust(8)
-      out.write(outstring + '\n')
+        outstring  = '+'.ljust(8)
+        outstring += str(ls[6]).rjust(8)
+        outstring += str(ls[7]).rjust(8)
+        out.write(outstring + '\n')
+      elif tls[1] == '14':
+        outstring = 'CPENTA'.ljust(8) + tls[0].rjust(8) + str(reg).rjust(8)
+        for i in range(6):
+          outstring += str(ls[i]).rjust(8)
+        out.write(outstring + '\n')
 
     # make sure to delete contents of elemstmpline for next parse
     elemstmpline = ''
@@ -272,11 +299,11 @@ for line in open(infile, 'r'):
     # check if named entity in the grid-file has been assigned
     if not name in table.keys():
       continue
-
+# ['FORCE', 1, 1.0, 0.0, 1./60., 0.0]
     if table[name][0] == 'FORCE':
-      out.write('%8s%8s%8s%40s\n' % ('FORCE'.ljust(8), str(table[name][1]).rjust(8), str(num).rjust(8), table[name][2]))
+      out.write('%8s%8s%8s%40s\n' % ('FORCE'.ljust(8)[:8], str(table[name][1]).rjust(8)[:8], str(num).rjust(8)[:8],table[name][2]))
     if table[name][0] == 'SPC':
-      out.write('%8s%8s%8s%16s\n' % ('SPC'.ljust(8), '1'.rjust(8), str(num).rjust(8), table[name][1]))
+      out.write('%8s%8s%8s%16s\n' % ('SPC'.ljust(8)[:8], '1'.rjust(8)[:8], str(num).rjust(8)[:8], table[name][1]))
 
 # here end the for loop over the lines of the input file
 
@@ -293,7 +320,9 @@ if griddimension == 2:
 if griddimension == 3:
   out.write('PSOLID         1       1          \n')
   out.write('PSOLID         2       1          \n')
-out.write('MAT1    1       1.00E0  0.3     0.0     0.785E-5  12.E-6                +M1     \n')
+out.write('MAT1    1       1.00E0  0.34     0.0     0.785E-5  12.E-6                +M1     \n')
+out.write('+M1     100.    -100.   100.    \n')
+out.write('MAT1    2       0.5862  0.36     0.0     0.785E-5  12.E-6                +M1     \n')
 out.write('+M1     100.    -100.   100.    \n')
 out.write('ENDDATA\n')
 
