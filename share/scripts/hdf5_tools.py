@@ -89,7 +89,14 @@ def last_h5_step(hdf5_file):
   last = None
   for name in ms:
     if name.startswith('Step_'):
-      last = name
+      if last != None:
+        thisInt = int(name.split('_')[-1])
+        if thisInt > lastInt:
+          last = name
+          lastInt = thisInt
+      else:
+        last = name
+        lastInt = int(name.split('_')[-1])                
       
   if last == None:
     raise Exception('no steps found in /Results/Mesh/MultiStep_1')     
