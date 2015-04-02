@@ -76,6 +76,9 @@ class SingleVector;
      * @return 0.0 if not quadratic */
     double GetDamping(unsigned int idx) const;
 
+    /** create header for .bloch.dat file. For cfs -d the iteration is added to the filename */
+    void SetupBlochPlot();
+
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs;
 

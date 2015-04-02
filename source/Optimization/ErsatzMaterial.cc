@@ -443,7 +443,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
 
   if(densityFile != NULL)
-    densityFile->SetCurrent(currentIteration - 1);
+    densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()
 
     return iter;
   }
@@ -643,7 +643,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
     LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
-                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1));
+                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
     assert(u1.GetSize() != 0);
     assert(u1.GetSize() == u2.GetSize());

@@ -258,7 +258,7 @@ bool IPOPT::eval_g(Index n, const Number* x, bool new_x, Index m, Number* g)
 {
   LOG_TRACE2(ipopt) << "eval_g: n = " << n << "; new_x = " << new_x << "; m = " << m;
 
-  // we overwrite the design space, but we do this all the time - especially befor eval_f
+  // we overwrite the design space, but we do this all the time - especially before eval_f
   optimization_->GetDesign()->ReadDesignFromExtern(x);
   
   base_->EvalConstraints(n, x, m, false, g, false);

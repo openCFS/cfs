@@ -39,9 +39,9 @@ public:
    * @return the parameter if given or a new one where one needs remove it! */
   static DesignSpace* ReadErsatzMaterial(DesignSpace* ersatzMaterial = NULL);
   
-  /** set the current iteration and eventually write it
+  /** set the current iteration and eventually write it. Save to call multiple times with the same parameter
    * @param current_iteration this info is used as set id */
-  void SetCurrent(int current_iteration);
+  void SetAndWriteCurrent(int current_iteration);
 
   /** this actually stores the data which is exported as pseudo density file */
   PtrParamNode data;
@@ -63,6 +63,9 @@ public:
 
   /** our filename */
   std::string name_;
+
+  /** the last set iteration */
+  int last_set_iter;
 };
 
 }

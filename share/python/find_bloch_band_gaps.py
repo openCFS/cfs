@@ -75,6 +75,7 @@ parser.add_argument('--maxmode', help="maximal mode number to be considered (def
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info to a xml file')
 parser.add_argument('--gnuplot', action='store_true', help='create gnuplot output')
+parser.add_argument('--eps', action='store_true', help='gnuplot: use eps terminal output')
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
@@ -133,9 +134,10 @@ if args.xml:
     mode.attrib["rel_size"] = str((ma - mi)/((ma+mi)/2.0))
 
 if args.gnuplot:
-  print 'set size ratio 2.0'
-  print 'set terminal postscript eps enhanced "Helvetica, 20" monochrome'
-  print 'set output "tmp.eps"'
+  if args.eps:
+    print 'set size ratio 1.0'
+    print 'set terminal postscript eps enhanced "Helvetica, 20" monochrome'
+    # print 'set output "tmp.eps"'
   if args.commonsymbol:
     print 'set yrange [0:*]'
   else:
@@ -167,6 +169,7 @@ if args.gnuplot:
     print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
   print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
   print 'replot' # necessary to show the boxes   
+  print 'replot' # necessary to show the boxes
   
 gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
   

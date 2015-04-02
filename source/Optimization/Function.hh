@@ -45,7 +45,7 @@ class Function
     public:
 
     /** Dummy constructor for StdVector */
-    Function() {};
+    Function();
     
     /** A Function is too stupid to do any useful - it is just a common base to avoid code dupliciy
      * @param pn our own element */

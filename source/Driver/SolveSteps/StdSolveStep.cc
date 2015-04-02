@@ -1355,7 +1355,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     algsys_->SetupEigenSolver( numFreq, shift, false, false);
 
     // Calculate eigenfrequencies
-    algsys_->CalcEigenFrequencies( frequencies, errBounds);
+    algsys_->CalcEigenFrequencies(frequencies, errBounds);
 
     return frequencies.GetSize();
   }

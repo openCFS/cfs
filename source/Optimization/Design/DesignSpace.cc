@@ -21,6 +21,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/ShapeDesign.hh"
+#include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -981,7 +982,19 @@ int DesignSpace::ReadDesignFromExtern(const double* space)
     } // for r
   } // for des
   assert(s == DesignSpace::GetNumberOfVariables());
-  if(new_design) design_id++;
+
+  if(new_design)
+    design_id++;
+
+  // for cases where computation of an iteration fails (e.g. Bloch) we have the design which causes the error.
+  // the desig will again be written in Optimization::CommitIteration()
+  if(new_design && domain->GetOptimization())
+  {
+    DensityFile* df = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization())->GetDensityFile();
+    if(df)
+      df->SetAndWriteCurrent(domain->GetOptimization()->GetCurrentIteration());
+  }
+
   return design_id;
 }
 int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)

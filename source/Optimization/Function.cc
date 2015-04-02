@@ -58,11 +58,15 @@ const int Function::Local::Identifier::MATERIAL_SIGN = 1;
 using boost::lexical_cast;
 using std::string;
 
+Function::Function()
+{
+  Init();
+}
+
 Function::Function(PtrParamNode pn) {
   Init();
 
-  this->preInfo_ = PtrParamNode(
-      new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
+  this->preInfo_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT));
   this->pn = pn;
 
   this->type_ = type.Parse(pn->Get("type")->As<string>());
