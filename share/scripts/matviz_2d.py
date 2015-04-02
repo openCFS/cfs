@@ -443,7 +443,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
 
   fig, sub = create_figure(min, max, nx, do_save)
 
-  delta_angle = numpy.max(angle) - numpy.max(angle) 
+  delta_angle = numpy.max(angle) - numpy.min(angle) 
 
   if scale == -1.0:
     scale = 1.02 if delta_angle == 0.0 else 0.8 
