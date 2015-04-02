@@ -256,7 +256,7 @@ void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Ma
       pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
   }
 
-  assert(mode != EIGENFREQ || (omega == 1.0 && m_factor > 0 && alpha_m == 0.0 && pamping_m == 0.0));
+  assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0 && alpha_m == 0.0 && pamping_m == 0.0)); // note that we might have very_small negative eigenvalues!
 
 	const unsigned int srows(S.GetNumRows());
 	const unsigned int scols(S.GetNumCols());

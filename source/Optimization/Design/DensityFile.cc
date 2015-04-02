@@ -40,6 +40,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
                             PtrParamNode regulize_pn)
 {
   this->ersatzMaterial_ = designSpace;
+  this->last_set_iter = -2;
 
   name_ = export_pn->Get("file")->As<string>();
   if(name_ == "[problem]") name_ = progOpts->GetSimName() + ".density.xml";
@@ -254,8 +255,11 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
 }
 
 
-void DensityFile::SetCurrent(int current_iteration)
+void DensityFile::SetAndWriteCurrent(int current_iteration)
 {
+  if(current_iteration == last_set_iter)
+    return;
+
   PtrParamNode in = data->Get("set", all_iterations_ ? ParamNode::APPEND : ParamNode::INSERT);
   // add the entry, note that the iteration counter was incremented in base implementation
   in->Get("id")->SetValue(current_iteration);
@@ -284,4 +288,6 @@ void DensityFile::SetCurrent(int current_iteration)
   // do we need to write?
   if(!finally_only_) // here or on destructor
     data->ToFile(name_);
+
+  last_set_iter = current_iteration;
 }

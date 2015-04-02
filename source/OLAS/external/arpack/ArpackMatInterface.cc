@@ -24,6 +24,9 @@ namespace CoupledField {
     size_ = matA->GetNumRows();
     isGeneralized_ = false;
     shiftAndInvert_ = shiftMode;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
@@ -40,6 +43,9 @@ namespace CoupledField {
     size_ = matA->GetNumRows();
     isGeneralized_ = true;
     shiftAndInvert_ = shiftMode;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, 
@@ -58,6 +64,9 @@ namespace CoupledField {
     // useStiffInNMat_ = true;
     useStiffInNMat_ = false;
     isGeneralized_ = true;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::~ArpackMatInterface() {

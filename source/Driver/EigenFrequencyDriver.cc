@@ -5,8 +5,8 @@
 #include <math.h>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
-
 #include "Domain/Domain.hh"
+#include "Optimization/Optimization.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/SimState.hh"
@@ -81,12 +81,7 @@ namespace CoupledField {
     if(isBloch_)
     {
       FillWaveVectors(param_->Get("bloch"));
-      string file = progOpts->GetSimName() + ".bloch.dat";
-      bloch_plot_.open(file.c_str(), std::ios::out);
-      bloch_plot_ << "#step\tk_x\tk_y";
-      if(domain->GetGrid()->GetDim() == 3)
-        bloch_plot_ << "\tk_z";
-      bloch_plot_ << "\t1.mode\t2.mode\t..." << std::endl;
+      SetupBlochPlot();
     }
 
     if(isQuadratic_ && isBloch_)
@@ -99,8 +94,20 @@ namespace CoupledField {
     InitializePDEs();
   }
 
+  void EigenFrequencyDriver::SetupBlochPlot()
+  {
+    string file = progOpts->GetSimName();
+    if(progOpts->DoDetailedInfo() && domain->GetOptimization())
+      file += "_iter_" + boost::lexical_cast<string>(domain->GetOptimization()->GetCurrentIteration());
+    file += ".bloch.dat";
 
-
+    bloch_plot_.close();
+    bloch_plot_.open(file.c_str(), std::ios::out);
+    bloch_plot_ << "#step\tk_x\tk_y";
+    if(domain->GetGrid()->GetDim() == 3)
+      bloch_plot_ << "\tk_z";
+    bloch_plot_ << "\t1.mode\t2.mode\t..." << std::endl;
+  }
 
   void EigenFrequencyDriver::FillWaveVectors(PtrParamNode bloch_pn)
   {
@@ -399,15 +406,6 @@ namespace CoupledField {
       {
         // single line printing
         cout << std::endl << " step=" << wave_vector_step << " wave vector=" << current_wave_vector_.ToString() << " frequencies: ";
-        // also plot
-        std::stringstream ss;
-        ss << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
-        if(dim == 3)
-          ss << current_wave_vector_[2] << "\t";
-
-        bloch_plot_ << ss.str();
-        if(wave_vector_step == 0)
-          first_plot_line_ = ss.str();
       }
       else
       {
@@ -424,8 +422,17 @@ namespace CoupledField {
 
     // also log via info node.
     // new result only on detailed output and for bloch case only for step=0
+    PtrParamNode res;
     bool append = progOpts->DoDetailedInfo() && (!isBloch_ || wave_vector_step == 0);
-    PtrParamNode res = info_->Get("result", append ? ParamNode::APPEND : ParamNode::DEFAULT);
+    if(append)
+      res = info_->Get("result", ParamNode::APPEND);
+    else  {
+      // create or take the last
+      ParamNodeList l = info_->GetList("result");
+      res = l.IsEmpty() ? info_->Get("result") : l.Last();
+    }
+    if(domain->GetOptimization())
+      res->Get("iteration")->SetValue(domain->GetOptimization()->GetCurrentIteration());
 
     // the problem might be that we have no detailed output, hence the res might already exist.
     // then, numConverged might be smaller than an older optimization iteration and the old stuff > numConverged remains
@@ -439,6 +446,15 @@ namespace CoupledField {
       res->Get("k_y")->SetValue(current_wave_vector_[1]);
       if(dim == 3)
         res->Get("k_z")->SetValue(current_wave_vector_[2]);
+
+      std::stringstream ss;
+      ss << wave_vector_step << "\t" << current_wave_vector_[0] << "\t" << current_wave_vector_[1] << "\t";
+      if(dim == 3)
+        ss << current_wave_vector_[2] << "\t";
+
+      bloch_plot_ << ss.str();
+      if(wave_vector_step == 0)
+        first_plot_line_ = ss.str();
     }
 
     // is not set for pure simulation
@@ -450,17 +466,22 @@ namespace CoupledField {
       double freq = GetFrequency(i);
       double damp = GetDamping(i);
 
+      if(isBloch_)
+      {
+        std::stringstream ss;
+        ss << freq << (i < numConverged-1 ? "\t" : "\n");
+        bloch_plot_ << ss.str();
+        bloch_plot_.flush();
+        if(wave_vector_step == 0) // to be repeated as first line!
+          first_plot_line_ += ss.str();
+      }
+
       // command line output only when not optimizing
       if(!domain->GetOptimization())
       {
         if(isBloch_)
         {
           cout << freq << (i < numConverged-1 ? ", " : "");
-          std::stringstream ss;
-          ss << freq << (i < numConverged-1 ? "\t" : "\n");
-          bloch_plot_ << ss.str();
-          if(wave_vector_step == 0) // to be repeated as first line!
-            first_plot_line_ += ss.str();
         }
         else
         {
@@ -484,9 +505,10 @@ namespace CoupledField {
     if(isBloch_ && this->ibz_)
     {
       // repeat the first step at the and of bloch.plot for a full ibz for plotting, not when explicit wave vectors are given
-      if(wave_vector_step == (int) wave_vectors.GetSize() - 1)
+      if(wave_vector_step == (int) wave_vectors.GetSize() - 1) {
         bloch_plot_ << first_plot_line_;
-      bloch_plot_.flush();
+        bloch_plot_.close();
+      }
     }
   }
 

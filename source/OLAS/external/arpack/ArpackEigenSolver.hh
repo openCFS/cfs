@@ -104,14 +104,19 @@ namespace CoupledField {
     //! Method for generation of complex matrices from real ones
     void SetupComplexMatrices();
 
-    //! Pointer to matrix interface
-    ArpackSolver * arpackSolver_;
+    /** print setup information */
+    void ToInfo();
 
     //! Pointer to matrix interface
-    ArpackMatInterface * interface_;
+    ArpackSolver* arpackSolver_;
+
+    //! Pointer to matrix interface
+    ArpackMatInterface* interface_;
     
     //! Pointer to matrices
-    const StdMatrix * matrixA_, * matrixB_, *matrixD_;
+    const StdMatrix* matrixA_;
+    const StdMatrix* matrixB_;
+    const StdMatrix* matrixD_;
 
     //! Pointer to complex matrices
     const StdMatrix *complexStiff_, *complexMass_, *complexDamp_;
@@ -119,10 +124,10 @@ namespace CoupledField {
     StdMatrix *zStiff_, *zMass_, *zDamp_;
 
     //! Pointer to solver ovbject
-    BaseSolver * solver_;
+    BaseSolver* solver_;
 
     //! Pointer to precond object
-    BasePrecond * precond_;
+    BasePrecond* precond_;
 
     /** Attribute for xml paramnode of <solver> section */
     PtrParamNode xml_;

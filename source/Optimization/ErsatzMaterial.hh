@@ -131,6 +131,8 @@ public:
 
   OptimizationMaterial* GetMaterial() { return material; }
 
+  DensityFile* GetDensityFile() { return densityFile; }
+
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */

@@ -4,6 +4,8 @@
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/generatematvec.hh"
 
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -76,8 +78,8 @@ namespace CoupledField {
     zMass_  = NULL;
     zDamp_  = NULL;
   }
-  void ArpackEigenSolver::Setup(const  BaseMatrix & mat,
-                                UInt numFreq, Double freqShift ) {
+  void ArpackEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift)
+  {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;
@@ -97,8 +99,6 @@ namespace CoupledField {
     // Save frequency parameters
     numFreq_ = numFreq;
     freqShift_ = freqShift;
-
-   
 
     // Create matrix interface for arpack
     interface_ = new ArpackMatInterface( matrixA_, shiftAndInvert_, freqShift_ );
@@ -151,13 +151,12 @@ namespace CoupledField {
     // Setup matrixinterface
     interface_->Setup( solver_, precond_ );
 
+    ToInfo();
   }
   
   
-  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
-                                const  BaseMatrix & massMat,
-                                UInt numFreq, Double freqShift, bool bloch) {
-
+  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat, UInt numFreq, Double freqShift, bool bloch)
+  {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = true;
@@ -250,7 +249,27 @@ namespace CoupledField {
     // Setup matrixinterface
     interface_->Setup( solver_, precond_ );
 
+    ToInfo();
+
   }
+
+  void ArpackEigenSolver::ToInfo()
+  {
+    PtrParamNode setup = eigenInfo_->Get(ParamNode::HEADER);
+
+    setup->Get("frequencies")->SetValue(arpackSolver_->GetNev());
+    setup->Get("type")->SetValue(arpackSolver_->GetWhich());
+    setup->Get("shift")->SetValue(arpackSolver_->GetShift());
+    setup->Get("shiftAndInvert")->SetValue(shiftAndInvert_);
+    setup->Get("tol")->SetValue(arpackSolver_->GetTol());
+    setup->Get("maxIter")->SetValue(arpackSolver_->GetMaxit());
+    setup->Get("arnoldiVectors")->SetValue(arpackSolver_->GetNcv());
+    setup->Get("scaling")->SetValue(interface_->GetDiagScaling());
+    setup->Get("generalized")->SetValue(isGeneralized_);
+    setup->Get("quadratic")->SetValue(isQuadratic_);
+    setup->Get("bloch")->SetValue(isBloch_);
+  }
+
 
   void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
                                 const  BaseMatrix & massMat,
@@ -359,15 +378,6 @@ namespace CoupledField {
     if (scaleFac > 0.0)
       interface_->SetDiagScaling(scaleFac);
 
-    // also report to terminal
-    std::cout << "++ Running quadratic eigenvalue problem with the following settings\n" 
-	      << "       number of frequencies       :  " << arpackSolver_->GetNev() << "\n"
-	      << "       type of eigenvalues (which) :  " << arpackSolver_->GetWhich() << "\n"
-	      << "       applied shift               :  " << arpackSolver_->GetShift() << "\n"
-	      << "       convergence tolerance       :  " << arpackSolver_->GetTol() << "\n"
-	      << "       maximum number of iterations:  " << arpackSolver_->GetMaxit() << "\n"
-	      << "       number of Arnoldi vectors   :  " << arpackSolver_->GetNcv() << "\n";
-
     if (scaleFac != 1.0)
       std::cout << "       applied scaling factor      :  " << interface_->GetDiagScaling() << "\n";
 
@@ -390,9 +400,12 @@ namespace CoupledField {
 
     // Setup matrixinterface
     interface_->QuadSetup( solver_, precond_ );
+
+    ToInfo();
+
   }
 
-  void ArpackEigenSolver::CalcEigenFrequencies( BaseVector &sol, BaseVector &err)
+  void ArpackEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
     assert(!(isBloch_ && isQuadratic_));
 
@@ -432,6 +445,13 @@ namespace CoupledField {
       }
     }
 
+    PtrParamNode in = this->eigenInfo_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
+    in->Get("calls/total")->SetValue(arpackSolver_->counter_calll_aupd);
+    in->Get("calls/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
+    in->Get("calls/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
+    in->Get("calls/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
+
     // Save error norms
     Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
     errVec.Resize( numEVs );
@@ -440,10 +460,8 @@ namespace CoupledField {
     }
   }
 
-  void ArpackEigenSolver::
-  CalcConditionNumber( const BaseMatrix& mat, 
-                       Double& condNumber, Vector<Double>& evs,
-                       Vector<Double>& err ) {
+  void ArpackEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
+  {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;

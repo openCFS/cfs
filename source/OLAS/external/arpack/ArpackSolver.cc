@@ -18,18 +18,22 @@ namespace CoupledField {
     eigenVectors_(NULL)
   {
 
-      shiftAndInvert_ = true;
-      freqShift_ = 0.0;
-      tolerance_ = 1.e-8;
-      maxIterations_ = 5000;
-      numArnoldiVec_ = 0;
-      interface_ = NULL;
-			// cast to char* or receive compiler warning
-      which_ = (char*) "LM";
-      type_ = (char*) "G";
-      size_ = 0;
-      numFreq_ = 0;
+    shiftAndInvert_ = true;
+    freqShift_ = 0.0;
+    tolerance_ = 1.e-8;
+    maxIterations_ = 5000;
+    numArnoldiVec_ = 0;
+    interface_ = NULL;
+    // cast to char* or receive compiler warning
+    which_ = (char*) "LM";
+    type_ = (char*) "G";
+    size_ = 0;
+    numFreq_ = 0;
 
+    counter_calll_aupd = 0;
+    counter_solve_OP_x = 0;
+    counter_solve_OP_B_x = 0;
+    counter_B_x = 0;
   }
   
   ArpackSolver::~ArpackSolver() {
@@ -58,15 +62,16 @@ namespace CoupledField {
 
       // set default value for Arnoldi vectors
       numArnoldiVec_ = numFreq_*2;
+      //numArnoldiVec_ = numFreq_*10;
       
       // check, if number of arnoldi vectors is larger than
       // size of system
-      if( numArnoldiVec_ > size_ ) {
+      if( numArnoldiVec_ > size_/2 ) {
         UInt newNumFreq = static_cast<UInt>( size / 2.0 );
         numFreq_ = newNumFreq;
         numArnoldiVec_ = numFreq_*2;
         std::stringstream out;
-        WARN( "Number of eigenfrequencies will be re-set to "
+        WARN( "Number of Arnoldi vectors will be re-set to "
               << newNumFreq << " as the number of eigenfrequencies may only be"
               << " 1/2 the number of unknowns of the system");
       }
@@ -185,7 +190,8 @@ namespace CoupledField {
     bool bloch = boost::is_complex<TYPE>::value;
 
     bool converged = false;
-    Integer  ido = 0, info = 0;
+    int  ido = 0;
+    int info = 0;
 
     // temp vector to store B*x
     StdVector<TYPE> tempV(size_); // TYPE* tempV = new Double[size_];
@@ -195,20 +201,30 @@ namespace CoupledField {
     // temp working space required in *aupd
     StdVector<TYPE> workD(3*size_);
     StdVector<TYPE> residual(size_);
-    int lenWorkL = (bloch ? numArnoldiVec_ * (3 * numArnoldiVec_ + 5): numArnoldiVec_ * (numArnoldiVec_ + 8));
+    // int lenWorkL = (bloch ? numArnoldiVec_ * (3 * numArnoldiVec_ + 5): numArnoldiVec_ * (numArnoldiVec_ + 8));
+    int lenWorkL = (bloch ? numArnoldiVec_ * (10 * numArnoldiVec_ + 20): numArnoldiVec_ * (numArnoldiVec_ + 8));
     StdVector<TYPE> workL(lenWorkL);
-    StdVector<TYPE> matrixV(size_*numArnoldiVec_); // TYPE* matrixV = new Double[size_*numArnoldiVec_];
+    StdVector<TYPE> matrixV(size_*numArnoldiVec_);
 
     // this double array is only for the complex part
     StdVector<double> rwork(size_);
 
 
-    StdVector<int> iparams(21); // int iparams[21], ipntr[21];
+    StdVector<int> iparams(21); // initialized with 0's
     StdVector<int> ipntr(21);
 
-    iparams[0] = 1;
-    iparams[2] = maxIterations_;
-    iparams[6] = 3;
+    iparams[0] = 1; // ISHIFT = 1:
+    iparams[2] = maxIterations_; // NXITER
+    iparams[3] = 1; // NB blocksize to be used in the recurrence
+    iparams[6] = 3; // MODE
+
+    // http://www.caam.rice.edu/software/ARPACK/UG/node136.html
+
+    counter_calll_aupd = 0;
+    counter_solve_OP_x = 0;
+    counter_solve_OP_B_x = 0;
+    counter_B_x = 0;
+
 
     UInt itNum;
     for (itNum=0; itNum<maxIterations_; itNum++)
@@ -217,6 +233,8 @@ namespace CoupledField {
       CallAUPD(&ido, type_, &size_, which_, &numFreq_, &tolerance_, residual.GetPointer(),
             &numArnoldiVec_, matrixV.GetPointer(), &size_, iparams.GetPointer(), ipntr.GetPointer(),
             workD.GetPointer(), workL.GetPointer(), &lenWorkL, rwork.GetPointer(), &info);
+
+      counter_calll_aupd++;
 
       switch (ido)
       {
@@ -231,6 +249,7 @@ namespace CoupledField {
 
         interface_->MultBV(vecX, tempV.GetPointer());
         interface_->MultShiftOpV(tempV.GetPointer(), vecY);
+        counter_solve_OP_x++;
         break;
 
       case 1:
@@ -240,6 +259,7 @@ namespace CoupledField {
         vecX = workD.GetPointer() + (ipntr[2]-1);
         vecY = workD.GetPointer() + (ipntr[1]-1);
         interface_->MultShiftOpV(vecX,vecY);
+        counter_solve_OP_B_x++;
         break;
 
       case 2:
@@ -249,6 +269,7 @@ namespace CoupledField {
         vecX = workD.GetPointer() + (ipntr[0]-1);
         vecY = workD.GetPointer() + (ipntr[1]-1);
         interface_->MultBV(vecX,vecY);
+        counter_B_x++;
         break;
 
       case 3:
@@ -278,7 +299,7 @@ namespace CoupledField {
 
     // check whether everything went well
     if (info<0)
-      EXCEPTION("Error reported in Ritz value calculation:\n" << ArpackError(info) );
+      EXCEPTION("Error reported in Ritz value calculation: info=" << info << " iparm=" << iparams.ToString() << "\n"  << ArpackError(info) );
 
 
     if ( itNum>maxIterations_ && info != 99 ) {
