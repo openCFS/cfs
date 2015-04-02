@@ -88,14 +88,15 @@ def toGnuPlot(complex_string):
   ret = string.rstrip(ret, ")")
   return string.replace(ret, ",", "\t")
 
-# execute cmd and rais error when not 0
-def execute(cmd, output = False):
+# execute cmd and rais error when not 0 and not silen
+# return error code, 0 for no problem
+def execute(cmd, output = False, silent = False):
  if output:
    print cmd
- ret = os.system(cmd) <> 0
- if(ret <> 0):
+ ret = os.system(cmd)
+ if ret <> 0 and not silent:
    raise RuntimeError("execution of '" + cmd + "' -> " + str(ret))
- return     
+ return ret    
 
 # return the first line of a file
 def first_line(file_name, append = ""):
