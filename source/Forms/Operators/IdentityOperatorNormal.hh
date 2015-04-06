@@ -13,8 +13,8 @@ namespace CoupledField{
   //! b = | N_1*n_y  N_2*n_y  ..  | = \vec{n} * N
   //!     \ N_1*n_z  N_2*n_z  .. /
   //!
-  //! and is of size (DIM_SPACE x Number of functions).
-  template<class FE, UInt D , class TYPE = Double>
+  //! and is of size (DIM_SPACE x Number of functions*D_DOF).
+  template<class FE, UInt D , UInt D_DOF = 1, class TYPE = Double>
   class IdentityOperatorNormal : public BaseBOperator{
 
   public:
@@ -29,7 +29,7 @@ namespace CoupledField{
     static const UInt ORDER_DIFF = 0;
 
     //! Number of components of the problem (scalar, vector)
-    static const UInt DIM_DOF = 1;
+    static const UInt DIM_DOF = D_DOF;
 
     //! Dimension of the underlying domain / space
     static const UInt DIM_SPACE = D;
@@ -96,8 +96,8 @@ namespace CoupledField{
 
 };
   
-  template<class FE, UInt D, class TYPE>
-  void IdentityOperatorNormal<FE,D,TYPE>::
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void IdentityOperatorNormal<FE,D,D_DOF,TYPE>::
   CalcOpMat(Matrix<Double> & bMat,
             const LocPointMapped& lp, BaseFE* ptFe){
 
@@ -108,21 +108,21 @@ namespace CoupledField{
     const UInt numFncs = ptFe->GetNumFncs();
 
     // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_SPACE, numFncs);
+    bMat.Resize( DIM_SPACE, numFncs*DIM_DOF);
 
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE; d++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
-        bMat[d][sh] = s[sh] * lp.normal[d];
+    	  for (UInt idof=0; idof< DIM_DOF; idof++)
+    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * lp.normal[d];
       }
     }
-
   }
 
-  template<class FE, UInt D, class TYPE>
-  void IdentityOperatorNormal<FE,D,TYPE>::
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void IdentityOperatorNormal<FE,D,D_DOF,TYPE>::
   CalcOpMatTransposed(Matrix<Double> & bMat,
                       const LocPointMapped& lp, BaseFE* ptFe){
     // ensure, that the surface information (i.e. normal direction)
@@ -131,7 +131,7 @@ namespace CoupledField{
     
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( numFncs , DIM_SPACE );
+    bMat.Resize( numFncs*DIM_DOF, DIM_SPACE );
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
@@ -140,14 +140,14 @@ namespace CoupledField{
     for(UInt d = 0; d < DIM_SPACE ; d ++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh++){
-        bMat[sh][d] = s[sh] * lp.normal[d];
+    	  for (UInt idof=0; idof< DIM_DOF; idof++)
+    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * lp.normal[d];
       }
     }
-
   }
 
   template<class FE, UInt D ,  UInt DIM_D,  class TYPE = Double>
-  class IdentityOperatorPiolaNormal : public IdentityOperatorNormal<FE,D,TYPE>{
+  class IdentityOperatorPiolaNormal : public IdentityOperatorNormal<FE,D,DIM_D,TYPE>{
 
   public:
 
@@ -190,9 +190,9 @@ namespace CoupledField{
 
     //avoid reimplementation of complex operator by making the bas class function
     //available
-    using IdentityOperatorNormal<FE,D,TYPE>::CalcOpMat;
+    using IdentityOperatorNormal<FE,D,DIM_D,TYPE>::CalcOpMat;
 
-    using IdentityOperatorNormal<FE,D,TYPE>::CalcOpMatTransposed;
+    using IdentityOperatorNormal<FE,D,DIM_D,TYPE>::CalcOpMatTransposed;
 
   protected:
 
@@ -404,10 +404,10 @@ namespace CoupledField{
     for(UInt d = 0; d < DIM_SPACE; d++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
-        bMat[d][sh*DIM_DOF] = s[sh] * gravity_[d];
+    	  for (UInt idof=0; idof< DIM_DOF; idof++)
+    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * gravity_[d];
       }
     }
-
   }
 
   template<class FE, UInt D, UInt D_DOF, class TYPE>
@@ -417,19 +417,19 @@ namespace CoupledField{
 
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( numFncs*DIM_DOF , DIM_SPACE );
+    bMat.Resize( numFncs*DIM_DOF, DIM_SPACE );
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
-    for(UInt d = 0; d < DIM_SPACE ; d ++){
+    for(UInt d = 0; d < DIM_SPACE; d ++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh++){
-        bMat[sh*DIM_DOF][d] = s[sh] * gravity_[d];
+    	  for (UInt idof=0; idof< DIM_DOF; idof++)
+    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * gravity_[d];
       }
     }
-
   }
 
 

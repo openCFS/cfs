@@ -120,13 +120,13 @@ namespace CoupledField {
       if ( dim_ == 2 ) {
     	  gravity[1] = 9.81;
     	  cplInt = new SurfaceABInt<>(new IdentityOperatorGravity<FeH1,2,2>(gravity),
-    	                              new IdentityOperatorNormal<FeH1,2>(),
+    	                              new IdentityOperatorNormal<FeH1,2,2>(),
     	                              coefFuncs, 1.0, waterRegions);
       }
       else {
     	  gravity[2] = 9.81;
     	  cplInt = new SurfaceABInt<>(new IdentityOperatorGravity<FeH1,3,3>(gravity),
-    	                              new IdentityOperatorNormal<FeH1,3>(),
+    	                              new IdentityOperatorNormal<FeH1,3,3>(),
     	                              coefFuncs, 1.0, waterRegions);
       }
       cplInt->SetName("WaterWaveMechGravityInt");
@@ -134,7 +134,7 @@ namespace CoupledField {
     		  new BiLinFormContext(cplInt, STIFFNESS );
 
       context->SetEntities( actSDList, actSDList );
-      context->SetFeFunctions( dispFct, waterFct );
+      context->SetFeFunctions( dispFct, dispFct );
       assemble_->AddBiLinearForm( context );
     }
   }
