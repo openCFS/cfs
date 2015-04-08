@@ -22,6 +22,7 @@
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/IdentityOperatorInVector.hh"
 
 
 namespace CoupledField {
@@ -113,21 +114,24 @@ namespace CoupledField {
       DefCouplInt( "WaterWaveMechPresMassCouplingInt", false, -1.0, MASS, waterFct,
           dispFct, actSDList, coefFuncs, waterRegions );
 
-      //add gravity term
-      Vector<Double> gravity(3);
-      gravity.Init();
+      //add gravity term;
+      Vector<Double> gravity(dim_);
+      gravity.Init(); 
       BiLinearForm * cplInt = NULL;
       if ( dim_ == 2 ) {
-    	  gravity[1] = 9.81;
-    	  cplInt = new SurfaceABInt<>(new IdentityOperatorGravity<FeH1,2,2>(gravity),
-    	                              new IdentityOperatorNormal<FeH1,2,2>(),
+    	  gravity[1] = -9.81;
+    	  cplInt = new SurfaceABInt<>(new IdentityOperatorInVector<FeH1,2>(gravity),
+    	                              new IdentityOperatorInNormal<FeH1,2>(),
     	                              coefFuncs, 1.0, waterRegions);
       }
+      else if (dim_ == 3) {
+        gravity[2] = -9.81;
+    	  cplInt = new SurfaceABInt<>(new IdentityOperatorInVector<FeH1,3>(gravity),
+    	                              new IdentityOperatorInNormal<FeH1,3>(),
+    	                              coefFuncs, 1.0, waterRegions);    
+      }
       else {
-    	  gravity[2] = 9.81;
-    	  cplInt = new SurfaceABInt<>(new IdentityOperatorGravity<FeH1,3,3>(gravity),
-    	                              new IdentityOperatorNormal<FeH1,3,3>(),
-    	                              coefFuncs, 1.0, waterRegions);
+        EXCEPTION( "Coupling only for two and three dimensions defined" );
       }
       cplInt->SetName("WaterWaveMechGravityInt");
       BiLinFormContext * context =
