@@ -112,7 +112,6 @@ namespace CoupledField{
         bMat[0][sh*DIM_DOF+idof] = s[sh] * vector_[idof];
       }
     }
-    std::cout<<bMat.ToString();
   }
 
   template<class FE, UInt D, class TYPE>
@@ -237,7 +236,6 @@ namespace CoupledField{
         bMat[0][sh*DIM_DOF+idof] = s[sh] * lp.normal[idof];
       }
     }
-    std::cout<<bMat.ToString();
   }
 
   template<class FE, UInt D, class TYPE>
