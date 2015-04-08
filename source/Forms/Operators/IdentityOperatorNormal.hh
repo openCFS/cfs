@@ -116,7 +116,7 @@ namespace CoupledField{
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
     	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * lp.normal[d];
+    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * lp.normal[idof];
       }
     }
   }
@@ -141,7 +141,7 @@ namespace CoupledField{
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh++){
     	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * lp.normal[d];
+    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * lp.normal[idof];
       }
     }
   }
@@ -398,14 +398,13 @@ namespace CoupledField{
 
     // Set correct size of matrix B and initialize with zeros
     bMat.Resize( DIM_SPACE, numFncs*DIM_DOF);
-
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE; d++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
     	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * gravity_[d];
+    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * gravity_[idof];
       }
     }
   }
@@ -427,7 +426,7 @@ namespace CoupledField{
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh++){
     	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * gravity_[d];
+    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * gravity_[idof];
       }
     }
   }
