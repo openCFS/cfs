@@ -187,7 +187,7 @@ namespace CoupledField{
     MapNodalEqns(2);
 
     // TEMPORARY: print information
-    //PrintEqnMap();
+    PrintEqnMap();
     CheckConsistency();
     isFinalized_ = true;
   }
