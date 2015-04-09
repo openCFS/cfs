@@ -97,7 +97,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     DesignElement::Type dt = DesignElement::type.Parse(pn_design[d]->Get("name")->As<std::string>());
     // actually we want the designs unique, but we make an exception for MULTIMATERIAL_DENSITY
     // don't add slack, it is not really a design but triggers AuxDesign
-    if(dt == DesignElement::SLACK)
+    if(dt == DesignElement::SLACK || dt == DesignElement::ALPHA)
       continue;
 
     if(dt == DesignElement::MULTIMATERIAL)
@@ -359,7 +359,7 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   default:
     if(pn->HasByVal("design", "name", "slack"))
-      return new AuxDesign(reg_data, pn, method, 1); // slack variable
+      return new AuxDesign(reg_data, pn, method, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
     else
       return new DesignSpace(reg_data, pn, method);
   }

@@ -690,6 +690,7 @@ void DesignElement::SetEnums()
   type.Add(STIFF2, "stiff2");
   type.Add(STIFF3, "stiff3");
   type.Add(SLACK, "slack");
+  type.Add(ALPHA, "alpha");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(ALL_DESIGNS, "allDesigns");

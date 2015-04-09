@@ -87,7 +87,7 @@ void EvaluateOnly::SolveProblem()
     for(int c = 0; c < optimization->constraints.view->GetNumberOfTotalConstraints(); c++)
     {
       Condition* g = optimization->constraints.view->Get(c);
-      v = optimization->CalcConstraint(g);
+      v = EvalConstraint(g, false, false);
       LOG_DBG(eval) << "SP: g[" << c << " (" << (c+2) << ")]=" << g->ToString() << " -> " << v; // snopt index in brackets
       if(!g->IsObservation()) // not for observation stuff
       {

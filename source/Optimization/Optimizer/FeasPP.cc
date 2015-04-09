@@ -233,7 +233,7 @@ void FeasPP::PostInit()
     upper_bound[dt] = g != NULL ? g->GetBoundValue() : de.GetUpperBound();
     LOG_DBG3(feasPP) << "FP:PI dt=" << dt << "=" << DesignElement::type.ToString(dt) << " lb=" << lower_bound[dt] << " ub=" << upper_bound[dt];
   }
-  // handle slack as special case :( FIXMI -> extend DesignSpace::design
+  // handle slack as special case :( FIXME -> extend DesignSpace::design
   if(optimization->GetDesign()->HasSlackVariable())
   {
     BaseDesignElement* de = optimization->GetDesign()->full_data.Last();

@@ -136,6 +136,8 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       // rho^3 * E1 + (1-rho)^3 * E2, in the derivative case 3*rho^2 * E1 - 3*(1-rho)^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
+      LOG_DBG3(simp) << "SetElementK: bimat k_factor " << k_factor << " bimat=" << bimat.ToString() << " -> " << out.ToString();
+
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 

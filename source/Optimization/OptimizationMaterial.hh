@@ -177,8 +177,9 @@ protected:
 
   /** for Bloch mode optimization only the imaginary part of the stiffness matrices depends on the current wave_vector
    * in the EigenFrequencyDriver (to be set in ErsatzMaterial::CalcEigenfrequencies) as it determines the complex B-operators.
-   * This variable stores the norm of EigenFrequencyDriver::current_wave_wector. */
-  double current_wave_vector_;
+   * This variable stores the norm of EigenFrequencyDriver::current_wave_wector.
+   * We need to handle the regiond and index, so bimat is also calculated new, not only the primary stiffness */
+  std::map<RegionIdType, StdVector<double> > current_wave_vector_;
 
 private:
 

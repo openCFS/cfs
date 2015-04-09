@@ -63,16 +63,16 @@ namespace CoupledField
        Bound GetBound() const { return bound_; }
 
        /** The bound value for inhomogeneous constraints.
-        * @param design optionl if given the slack design value (not constant!) can be returned in case
         * In slack bound case it returns 0 as the constraints g <= slack is transformed to g - slack <= 0
-        * @see GetSlackBoundValue() */
-       double GetBoundValue() const;
+        * @see IsSlackBound() */
+       double GetBoundValue() const { return HasSlackBound() ? 0.0 : boundValue_; } // all slack constraints g <= slack need to be g - slack <= 0
 
-       /** This is the real slack bound, not transformed as in GetBoundValue() */
-       double GetSlackBoundValue(const DesignSpace* space) const;
+       /** allows to compare with a special bound value as GetBoundValue() woul return 0
+        * @param compare SLACK_VALUE, ALPHA_PLUS_SLACK, ALPHA_MINUS_SLACK */
+       double IsSlackBound(double compare) const { return boundValue_ == compare; }
 
-       /** is the bound value the special slack case */
-       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE_; }
+       /** is the bound value one of the three special slack cases? */
+       bool HasSlackBound() const { return boundValue_ == SLACK_VALUE || boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE; }
 
        /** Little helper to check if the bounds are violated (up to an eps) */
        bool IsFeasible() const;
@@ -149,6 +149,10 @@ namespace CoupledField
         * The vector is empty when we do not do design tracking */
        StdVector<double> pattern;
 
+       static double SLACK_VALUE;
+       static double ALPHA_MINUS_SLACK_VALUE;
+       static double ALPHA_PLUS_SLACK_VALUE;
+
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -222,7 +226,6 @@ namespace CoupledField
       /** for bloch mode each constraint is multiplied by wave vector which corresponds to excitation */
       static void AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
 
-      static double SLACK_VALUE_;
    };
 
    /** This handles local constraints which exist only virtually - hence the optimizer sees them but

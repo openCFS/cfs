@@ -37,7 +37,9 @@ DECLARE_LOG(conditions)
 
 // instantiation of the static elements
 Enum<Condition::Bound> Condition::bound;
-double Condition::SLACK_VALUE_ = -45217861;
+double Condition::SLACK_VALUE = -45217861;
+double Condition::ALPHA_MINUS_SLACK_VALUE = -45217860;
+double Condition::ALPHA_PLUS_SLACK_VALUE = -45217859;
 
 Condition::Condition(PtrParamNode pn) : Function(pn)
 {
@@ -58,8 +60,18 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   // there must not  be a value when a homogenization tensor is given
   this->boundValue_ = -1.0;
   if(pn->Has("value"))
-    this->boundValue_ = pn->Get("value")->As<string>() == "slack" ? SLACK_VALUE_ : pn->Get("value")->As<double>();
+  {
+    string v = pn->Get("value")->As<string>();
+    if(v == "slack")
+      this->boundValue_ = SLACK_VALUE;
+    else if (v == "alpha+slack")
+      this->boundValue_ = ALPHA_PLUS_SLACK_VALUE;
+    else if (v == "alpha-slack")
+      this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
+    else
+      this->boundValue_ = pn->Get("value")->As<double>();
 
+  }
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
@@ -565,18 +577,6 @@ void Condition::ReadDesignTrackingPattern(DesignSpace* space, DesignStructure* s
     pattern[i] = tmp[elements[i]->elem->elemNum];
 }
 
-double Condition::GetBoundValue() const
-{
-  // see GetSlackBoundValue()
-  return HasSlackBound() ? 0.0 : boundValue_; // all slack constraints g <= slack need to be g - slack <= 0
-}
-
-
-double Condition::GetSlackBoundValue(const DesignSpace* space) const
-{
-  assert(HasSlackBound());
-  return space->GetSlackVariable();
-}
 
 bool Condition::IsFeasible() const
 {

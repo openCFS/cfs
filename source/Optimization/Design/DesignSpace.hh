@@ -102,9 +102,11 @@ namespace CoupledField
 
      /** do we have a slack variable and such an AuxDesign? */
      virtual bool HasSlackVariable() const { return false; }
+     virtual bool HasAlphaVariable() const { return false; }
 
      /** returns the slack variable if present or throws an exception */
      virtual double GetSlackVariable() const { assert(false); return -1; }
+     virtual double GetAlphaVariable() const { assert(false); return -1; }
 
      /** Returns true if optimization does provide a complete tensor, not just a density */
      bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
