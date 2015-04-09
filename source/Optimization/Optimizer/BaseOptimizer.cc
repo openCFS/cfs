@@ -459,7 +459,17 @@ double BaseOptimizer::EvalConstraint(Condition* g, bool cfs_scale, bool normaliz
       manual_scaling = g->manual_scaling_value;
   }
   double org = optimization->CalcConstraint(g);
-  double base = org - (g->HasSlackBound() ? optimization->GetDesign()->GetSlackVariable() : 0.0);
+  double base = org;
+  if(g->HasSlackBound())
+  {
+    if(g->IsSlackBound(Condition::SLACK_VALUE))
+      base -= optimization->GetDesign()->GetSlackVariable();
+    else if(g->IsSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
+      base -= optimization->GetDesign()->GetAlphaVariable() + optimization->GetDesign()->GetSlackVariable();
+    else if(g->IsSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
+      base -= optimization->GetDesign()->GetAlphaVariable() - optimization->GetDesign()->GetSlackVariable();
+  }
+
   double scaled = base * manual_scaling * objective_scaling;
   double val = normalize ? (g->GetBound() == Condition::LOWER_BOUND ? -1.0 : 1.0) * (scaled - g->GetBoundValue()) : scaled;
 

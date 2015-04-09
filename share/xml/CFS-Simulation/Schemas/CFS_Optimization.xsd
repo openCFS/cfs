@@ -345,7 +345,7 @@
           <xsd:attribute name="value" use="optional" >
             <xsd:simpleType>
               <!-- either 'slack' or a float -->
-              <xsd:union memberTypes="slack_token xsd:float"></xsd:union>
+              <xsd:union memberTypes="slack_bounds xsd:float"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
           
@@ -1517,10 +1517,21 @@
       <xsd:enumeration value="66"/>
     </xsd:restriction>
   </xsd:simpleType>
+
+  <xsd:simpleType name="slack_bounds">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="slack"/>
+      <xsd:enumeration value="alpha"/>
+      <xsd:enumeration value="alpha-slack"/>
+      <xsd:enumeration value="alpha+slack"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   
   <xsd:simpleType name="slack_token">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="slack"/>
+      <xsd:enumeration value="alpha"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -21,11 +21,11 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
   alsomatopt_ = true; // can be different in ShapeDesign
   scaling_ = 1.0;
 
-  assert(naux == 0 || naux == 1);
-  if(naux == 1)
+  assert(naux == 0 || naux == 1 || naux == 2);
+  if(naux == 1 || naux == 2)
   {
     slack_  = pn->GetByVal("design", "name", "slack");
-    aux_design_.Reserve(1);
+    aux_design_.Reserve(naux);
     BaseDesignElement de(BaseDesignElement::SLACK);
     de.SetLowerBound(slack_->Get("lower")->As<double>());
     de.SetUpperBound(slack_->Get("upper")->As<double>());
@@ -33,21 +33,34 @@ AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzM
     // we need to PostInit!
     aux_design_.Push_back(de);
   }
+
+  if(naux == 2)
+  {
+    alpha_  = pn->GetByVal("design", "name", "alpha");
+    BaseDesignElement de(BaseDesignElement::ALPHA);
+    de.SetLowerBound(alpha_->Get("lower")->As<double>());
+    de.SetUpperBound(alpha_->Get("upper")->As<double>());
+    de.SetDesign(alpha_->Get("initial")->As<double>());
+    aux_design_.Push_back(de);
+  }
+
 }
 
 void AuxDesign::PostInit(int objectives, int constraints)
 {
   DesignSpace::PostInit(objectives, constraints);
 
-  assert((slack_ != NULL && aux_design_.GetSize() == 1) || slack_ == NULL);
+  assert((slack_ != NULL && (aux_design_.GetSize() == 1 || aux_design_.GetSize() == 2)) || slack_ == NULL);
+  assert((alpha_ != NULL && aux_design_.GetSize() == 2 && slack_ != NULL) || alpha_ == NULL);
 
   if(slack_ != NULL)
   {
     LOG_DBG(aux_des) << "PI: #objectives = " << objectives << ", #constraints = " << constraints;
     DesignElement::SetDesignSpace(this);
-    assert(aux_design_.GetSize() == 1);
     assert(objectives == 1);
     aux_design_[0].PostInit(objectives, constraints);
+    if(alpha_ != NULL)
+      aux_design_[1].PostInit(objectives, constraints);
   }
 
   // extend full_data
@@ -68,6 +81,15 @@ void AuxDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
     in_->Get("upperBound")->SetValue(aux_design_[0].GetUpperBound());
     in_->Get("lowerBound")->SetValue(aux_design_[0].GetLowerBound());
   }
+
+  if(alpha_ != NULL)
+  {
+    PtrParamNode in_ = in->Get("designVariables")->Get("design", ParamNode::APPEND);
+    in_->Get("type")->SetValue("alpha");
+    in_->Get("upperBound")->SetValue(aux_design_[1].GetUpperBound());
+    in_->Get("lowerBound")->SetValue(aux_design_[1].GetLowerBound());
+  }
+
 }
 
 int AuxDesign::ReadDesignFromExtern(const double* space_in)
@@ -190,7 +212,31 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Condition* g, b
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
     if(HasSlackVariable() && g != NULL && g->HasSlackBound())
-      out[base + i] = -1.0;
+    {
+      assert(i == 0 || alpha_ != NULL);
+      assert(aux_design_.GetSize() <= 2);
+      // g = slack         -> g - slack = 0
+      // g = alpha + slack -> g - alpha - slack = 0
+      // g = alpha - slack -> g - alpha + slack = 0
+      if(g->IsSlackBound(Condition::SLACK_VALUE))
+      {
+        if(i == 0)
+          out[base + i] = -1.0;             // derivative w.r.t. slack
+        if(i == 1)
+          out[base + i] = 0.0;              // derivative w.r.t. alpha
+      }
+      else if(g->IsSlackBound(Condition::ALPHA_PLUS_SLACK_VALUE))
+      {
+        out[base + i] = -1.0;               // derivative w.r.t. slack and alpha is the same
+      }
+      else if(g->IsSlackBound(Condition::ALPHA_MINUS_SLACK_VALUE))
+      {
+        if(i == 0)
+          out[base + i] = +1.0;             // derivative w.r.t. slack
+        if(i == 1)
+          out[base + i] = -1.0;             // derivative w.r.t. alpha
+      }
+    }
     else
       out[base + i] = aux_design_[i].GetPlainGradient(NULL, g) * s;
     LOG_DBG3(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " out[" << base+i << "]=" << out[base+i]

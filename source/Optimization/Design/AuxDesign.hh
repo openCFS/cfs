@@ -15,7 +15,8 @@ namespace CoupledField{
   /** This is an extension to the standard DesignSpace. It adds variables which exceed the
    *  design*elements schema of DesignSpace.
    *  It is required for a slack-variable min alpha for min max problems and is also the
-   *  base class for ShapeDesign */
+   *  base class for ShapeDesign.
+   *  The class handles the case with slack and slack and alpha. The latter is for the bounds 'alpha+slack' and 'alpha-slack' for ban gap maximization */
 class Condition;
 class Objective;
 
@@ -45,7 +46,6 @@ class AuxDesign : public DesignSpace
     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
                                DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
 
-
     /** write the aux gradient part */
     void WriteAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
     
@@ -68,8 +68,13 @@ class AuxDesign : public DesignSpace
     /** @see DesignSpace::HasSlackVariable() */
     bool HasSlackVariable() const { return slack_ != NULL; }
 
+    bool HasAlphaVariable() const { return alpha_ != NULL; }
+
     /** @see DesignSpace::GetSlackVariable() */
     double GetSlackVariable() const { assert(slack_ != NULL); return aux_design_[0].GetDesign(); }
+
+    double GetAlphaVariable() const { assert(alpha_ != NULL); return aux_design_[1].GetDesign(); }
+
 
     /** see DesignSpace::ToInfo() */
     void ToInfo(PtrParamNode in, ErsatzMaterial* em);
@@ -91,6 +96,10 @@ class AuxDesign : public DesignSpace
 
     /** contains the slack design if slack design */
     PtrParamNode slack_;
+
+    /** contains the alpha design which is only allowed in combination with slack!. */
+    PtrParamNode alpha_;
+
   };
 
 }
