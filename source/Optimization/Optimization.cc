@@ -632,7 +632,8 @@ void Optimization::SolveProblem()
     rh->FinishMultiSequenceStep();
     rh->Finalize();
   }
-  if(e != NULL) throw *e;
+  if(e != NULL)
+    throw *e;
   delete e;
 }
 
@@ -985,9 +986,6 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   {
     currentIteration++;
     problemWithinIteration = 0;
-
-    if(bloch_)
-      dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->SetupBlochPlot();
   }
 
   // write the current info file, if the writing frequency is not too high.

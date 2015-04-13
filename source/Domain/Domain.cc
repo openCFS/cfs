@@ -1174,7 +1174,7 @@ bool Domain::HasPerdiodicBC() const
 {
   for(unsigned int i = 0; i < ptSinglePde_.GetSize(); i++)
   {
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > fes = ptSinglePde_[i]->GetFeFunctions(); // a reference would make more sense!
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > fes = ptSinglePde_[i]->GetFeFunctions();
     for(std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it = fes.begin(); it != fes.end(); it++)
       if(it->second->HasPeriodicBC())
         return true;
