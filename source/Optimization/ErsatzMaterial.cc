@@ -2570,6 +2570,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
   {
+    if(bloch_)
+      dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->SetupBlochPlot();
+
     // if ev_only_exite is set we use the given excitation
     // -> it shall not coincide
     assert(!(ev_only_exite != NULL && me->IsEnabled()));
