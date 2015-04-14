@@ -13,7 +13,7 @@ namespace CoupledField{
   //! b = | N_1*n_y  N_2*n_y  ..  | = \vec{n} * N
   //!     \ N_1*n_z  N_2*n_z  .. /
   //!
-  //! and is of size (DIM_SPACE x Number of functions*D_DOF).
+  //! and is of size (DIM_SPACE x Number of functions).
   template<class FE, UInt D , UInt D_DOF = 1, class TYPE = Double>
   class IdentityOperatorNormal : public BaseBOperator{
 
@@ -108,15 +108,14 @@ namespace CoupledField{
     const UInt numFncs = ptFe->GetNumFncs();
 
     // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( DIM_SPACE, numFncs*DIM_DOF);
+    bMat.Resize( DIM_SPACE, numFncs);
 
     Vector<Double> s;
     FE *fe = (static_cast<FE*>(ptFe));
     for(UInt d = 0; d < DIM_SPACE; d++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh ++){
-    	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[d][sh*DIM_DOF+idof] = s[sh] * lp.normal[idof];
+    	  bMat[d][sh] = s[sh] * lp.normal[d];
       }
     }
   }
@@ -131,7 +130,7 @@ namespace CoupledField{
     
     const UInt numFncs = ptFe->GetNumFncs();
     // Set correct size of matrix B and initialize with zeros
-    bMat.Resize( numFncs*DIM_DOF, DIM_SPACE );
+    bMat.Resize( numFncs, DIM_SPACE );
 
     // Get derivatives of local shape functions with respect to global
     // coords (format: nrNodes x spaceDim)
@@ -140,8 +139,7 @@ namespace CoupledField{
     for(UInt d = 0; d < DIM_SPACE ; d ++){
       fe->GetShFnc( s, lp.lp, lp.shapeMap->GetElem() , d );
       for(UInt sh = 0; sh < numFncs; sh++){
-    	  for (UInt idof=0; idof< DIM_DOF; idof++)
-    		  bMat[sh*DIM_DOF+idof][d] = s[sh] * lp.normal[idof];
+    	  bMat[sh][d] = s[sh] * lp.normal[d];
       }
     }
   }
