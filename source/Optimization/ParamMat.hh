@@ -39,6 +39,8 @@ class TransferFunction;
       else SetElementK<double,double>(de, tf, app, out, calcMode, derivative);
     }
     
+    virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
+
     /** this is a shortcut to the material class */
     MechMat* mech_mat_;
 

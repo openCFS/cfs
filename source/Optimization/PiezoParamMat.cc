@@ -72,5 +72,40 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   LOG_DBG2(ppm) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " d=" << derivative << " dt=" << dt;
 }
 
+void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+{
+  // we assume to have no interpolation
+  assert(tf->GetType() == TransferFunction::IDENTITY);
+  assert(calcMode == STANDARD);
 
+  Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
 
+  DesignElement::Type dt = derivative ? type : DesignElement::NO_DERIVATIVE;
+
+  switch(app)
+  {
+  case MECH:
+    out = dynamic_cast<Matrix<double> &>(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+    break;
+
+  case ELEC:
+    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
+    break;
+
+  case PIEZO_COUPLING:
+    // out needs to be defined
+    assert(out.GetNumCols() != out.GetNumRows());
+
+    if(out.GetNumCols() > out.GetNumRows())
+      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
+    else
+      out = piezo_mat_->CoupledStiffness(de, dt);
+    break;
+
+  default:
+    assert(false);
+    break;
+  }
+
+  LOG_DBG2(ppm) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " d=" << derivative << " dt=" << dt;
+}

@@ -14,6 +14,7 @@
 #include "DataInOut/DefineFiles/definefiles.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/SkeletonConf.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/WriteInfo.hh"
@@ -71,6 +72,7 @@ int main(int argc, const char **argv)
   return ret;
 }
 
+
 void PrintWarning(CoupledField::Exception& ex ) {
   
   // Print warning on command line
@@ -115,7 +117,7 @@ CFS::CFS(int argc, const char **argv) :
   // Create object for logging information
   Info = new WriteInfo();
 
-  // =========================================================================
+  // =========================================================================mk
   // HANDLE COMMAND LINE PARAMETERS
   // =========================================================================
   progOpts = new ProgramOptions(argc, argv);
@@ -282,7 +284,6 @@ int CFS::Run()
       cout << endl;
     }
 
-
     ReadXMLFile();
     SetupIO();
 
@@ -439,6 +440,7 @@ void CFS::ReadXMLFile()
 
   // set the global ParamNode tree pointer
   param = xerces->CreateParamNodeInstance();
+
   // save us in the info stuff, with defaults but no comments
   // release the xerces ressources, param is not affected
   delete xerces;
