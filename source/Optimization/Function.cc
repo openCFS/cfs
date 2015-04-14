@@ -184,13 +184,13 @@ Function::Function(PtrParamNode pn) {
   case SHAPE_INF:
     linear_ = true;
     break;
-  case TENSOR_TRACE:
-  case GLOBAL_TENSOR_TRACE:
-    if (design_ != DesignElement::ALL_DESIGNS)
-      linear_ = false;
-    else
-      linear_ = true;
-    break;
+//  case TENSOR_TRACE:
+//  case GLOBAL_TENSOR_TRACE:
+//    if (design_ != DesignElement::ALL_DESIGNS) // This actually depends on the material parametrization, not design_ !
+//      linear_ = false;
+//    else
+//      linear_ = true; // rarely true, has to be set in xml now
+//    break;
   default:
     linear_ = false;
     break;
@@ -659,17 +659,16 @@ bool Function::ForDensityFiltering() const {
   case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
   case MULTIMATERIAL_SUM:
   case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:                 // TODO Be careful! Right now this is hardcoded in
-  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:   // Function::Local::Identifier::EvalFunction
-  case ORTHOTROPIC_TENSOR_TRACE:          // and ::EvalGradient !!
-//  case GLOBAL_LAMINATES_VOL:
-//  case LAMINATES_VOL:
+  case GLOBAL_SUM_MODULI:
+  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+  case ORTHOTROPIC_TENSOR_TRACE:
+  case GLOBAL_LAMINATES_VOL:
+  case LAMINATES_VOL:
     return false;
 
   case MULTI_OBJECTIVE:
-    EXCEPTION("Invalid query: " << type.ToString(type_))
-    ;
-    break;
+    EXCEPTION("Invalid query: " << type.ToString(type_));
+    return false;
 
   default:
     return true; // actually true for almost all!
@@ -750,12 +749,12 @@ bool Function::ForSensitivityFiltering() const {
   case MULTI_OBJECTIVE:
   case MAXWELL_ISOTROPY:
   case BIISOTROPY:
-    EXCEPTION("Invalid query: " << type.ToString(type_))
-    ;
+    EXCEPTION("Invalid query: " << type.ToString(type_));
     break;
   }
 
   EXCEPTION("can never reach! Stupid C++");
+  return false;
 }
 
 StdVector<DesignElement>& Function::GetProjectionDesignClone() {
@@ -1769,6 +1768,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   // function value
   double fv = 0.0;
   Function* f = local->func_;
+  DesignElement::Access access = f->ForDensityFiltering() ? DesignElement::SMART : DesignElement::PLAIN;
 
   // short cut for the gradient in the 1-norm
   if (grad_glob && local->power_ == 1.0) {
@@ -1810,18 +1810,18 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
 
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-    fv = CalcSumModuli(local, DesignElement::PLAIN);
+    fv = CalcSumModuli(local, access);
     break;
 
   case LAMINATES_VOL:
-    fv = CalcLaminatesVolume(local, DesignElement::SMART);
+    fv = CalcLaminatesVolume(local, access);
         break;
   case GLOBAL_LAMINATES_VOL:
-    fv = CalcLaminatesVolume(local, DesignElement::SMART);
+    fv = CalcLaminatesVolume(local, access);
     break;
 
   case PARAM_PS_POS_DEF:
-    fv = CalcParamPSPosDef(local, DesignElement::SMART, -1, false);
+    fv = CalcParamPSPosDef(local, access, -1, false);
     break;
 
   case POS_DEF_DET_MINOR_1:
@@ -1837,10 +1837,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     break;
 
   case ORTHOTROPIC_TENSOR_TRACE:
-    fv = CalcOrthotropicTensorTrace(local, DesignElement::SMART);
+    fv = CalcOrthotropicTensorTrace(local, access);
     break;
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-    fv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN);
+    fv = CalcOrthotropicTensorTrace(local, access);
     break;
 
   case TENSOR_TRACE:
@@ -1923,6 +1923,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   Function::Type ft = funct->type_;
   Condition* g = dynamic_cast<Condition*>(funct);
   Objective* f = dynamic_cast<Objective*>(funct);
+  DesignElement::Access access = funct->ForDensityFiltering() ? DesignElement::SMART : DesignElement::PLAIN;
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
@@ -1976,18 +1977,18 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
-      gv = CalcSumModuli(local, DesignElement::PLAIN, n, true);
+      gv = CalcSumModuli(local, access, n, true);
       break;
 
     case LAMINATES_VOL:
-      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
+      gv = CalcLaminatesVolume(local, access, n, true);
       break;
     case GLOBAL_LAMINATES_VOL:
-      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
+      gv = CalcLaminatesVolume(local, access, n, true);
       break;
 
     case PARAM_PS_POS_DEF:
-      gv = CalcParamPSPosDef(local, DesignElement::SMART, n, true);
+      gv = CalcParamPSPosDef(local, access, n, true);
       break;
 
     case POS_DEF_DET_MINOR_1:
@@ -2003,10 +2004,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       break;
 
     case ORTHOTROPIC_TENSOR_TRACE:
-      gv = CalcOrthotropicTensorTrace(local, DesignElement::SMART, n, true);
+      gv = CalcOrthotropicTensorTrace(local, access, n, true);
       break;
     case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-      gv = CalcOrthotropicTensorTrace(local, DesignElement::PLAIN, n, true);
+      gv = CalcOrthotropicTensorTrace(local, access, n, true);
       break;
 
     case TENSOR_TRACE:
@@ -2070,7 +2071,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
           DesignElement* de2 =  dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour;
           de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
           for(int k = 0; k < (int) de2->simp->neighborhood.GetSize(); k++)
-            de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+           // de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g); // Slow (in some cases extreme number of evaluations)
+            de2->simp->neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster
         }
       }
     }
@@ -2408,14 +2410,13 @@ double Function::Local::Identifier::CalcSumModuli(const Local* local, DesignElem
         return 2.0;
       case DesignElement::POISSON:
       {
-        double nninvtmp = 1/((1.0-theta)*(1.0-theta));
-        return E1*nninvtmp+E3*nninvtmp;
+        return (E1+E3)/((1.0-theta)*(1.0-theta));
       }
       default:
         return 0.0;
       }
     }
-    return E1/(1.0-theta)+E3/(1.0-theta)+2*G;
+    return (E1+E3)/(1.0-theta)+2*G;
   }
   else { // 3D case original version without theta, theta = nu_{oi}
     double nuiso = GetDesign(DesignElement::POISSONISO, local, access, true);
@@ -2804,6 +2805,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
     }
   }
   //should never be reached
+  assert(false);
   return -1.0;
 }
 
