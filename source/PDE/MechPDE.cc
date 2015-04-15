@@ -1373,15 +1373,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       power->definedOn = ResultInfo::SURF_REGION;
       availResults_.insert( power );
       // then, integrate values
-      if( isComplex_ ) {
-        powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, 
-                                                            feFct, power ) );
-      } else {
-        powerFunc.reset(new ResultFunctorIntegrate<Double>(sNormStructIntens, 
-                                                           feFct, power ) );
-      }
+      if(isComplex_)
+        powerFunc.reset(new ResultFunctorIntegrate<Complex>(sNormStructIntens, feFct, power));
+      else
+        powerFunc.reset(new ResultFunctorIntegrate<Double>(sNormStructIntens, feFct, power));
+
       resultFunctors_[MECH_POWER] = powerFunc;
     }
+
+    // === MECHANIC DEFORMATION ENERGY DENSITY ===
+    shared_ptr<ResultInfo> dyadicStrain(new ResultInfo);
+    dyadicStrain->resultType = MECH_DYADIC_STRAIN;
+    dyadicStrain->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33" ;
+    dyadicStrain->unit = "";
+    dyadicStrain->entryType = ResultInfo::TENSOR;
+    dyadicStrain->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> dyadic;
+    if(isComplex_)
+      dyadic.reset(new CoefFunctionDyadicStrain<Complex>(feFct));
+    else
+      dyadic.reset(new CoefFunctionDyadicStrain<double>(feFct));
+    DefineFieldResult(dyadic, dyadicStrain);
+    stiffFormCoefs_.insert(dyadic);
+
 
 
     // === MECHANIC DEFORMATION ENERGY DENSITY ===
@@ -1409,11 +1423,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     defEnergy->definedOn = ResultInfo::REGION;
     availResults_.insert( defEnergy );
     shared_ptr<ResultFunctor> deFunc;
-    if( isComplex_ ) {
+    if(isComplex_)
       deFunc.reset(new EnergyResultFunctor<Complex>(feFct, defEnergy, 0.5));
-    } else {
+    else
       deFunc.reset(new EnergyResultFunctor<Double>(feFct, defEnergy, 0.5));
-    }
+
     resultFunctors_[MECH_DEFORM_ENERGY] = deFunc;
     stiffFormFunctors_.insert(deFunc);
 
@@ -1475,16 +1489,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     dispVol->definedOn = ResultInfo::SURF_REGION;
     // Integrate normal displacement
     shared_ptr<ResultFunctor> dispVolFct;
-    if( isComplex_ ) {
-      dispVolFct.reset(new ResultFunctorIntegrate<Complex>(dispFctNormal,
-                                                          feFct, dispVol ) );
-    } else {
-      dispVolFct.reset(new ResultFunctorIntegrate<Double>(dispFctNormal,
-                                                         feFct, dispVol) );
-    }
+    if(isComplex_)
+      dispVolFct.reset(new ResultFunctorIntegrate<Complex>(dispFctNormal, feFct, dispVol));
+    else
+      dispVolFct.reset(new ResultFunctorIntegrate<Double>(dispFctNormal, feFct, dispVol));
     resultFunctors_[MECH_DEF_SURF_VOLUME] = dispVolFct;
     availResults_.insert(dispVol);
-
 
     // === MECHANIC_NORMAL_STRESS ===
     shared_ptr<ResultInfo> normalStressInfo;
@@ -1499,6 +1509,16 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     normalStressFct.reset(new CoefFunctionSurf(true, 1.0, normalStressInfo));
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
+
+    // === MECH_TENSOR for free and parameterized material optimization but generally it simply returns the tensor
+    shared_ptr<ResultInfo> mt(new ResultInfo);
+    mt->resultType = MECH_TENSOR;
+    mt->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    mt->unit = "Pa";
+    mt->entryType = ResultInfo::TENSOR;
+    mt->definedOn = ResultInfo::ELEMENT;
+    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
+
 
     // optimization results are provided in DesignSpace::ExtractResults()
 
@@ -1521,7 +1541,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
 
     // === MECH_TENSOR for free and parameterized material optimization
-    shared_ptr<ResultInfo> mt(new ResultInfo);
+  /*  shared_ptr<ResultInfo> mt(new ResultInfo);
     mt->resultType = MECH_TENSOR;
     mt->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
     mt->unit = "Pa";
@@ -1529,7 +1549,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     mt->definedOn = ResultInfo::ELEMENT;
     mt->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
-
+*/
     // === MECH_TENSOR_TRACE for free and parameterized material optimization
     shared_ptr<ResultInfo> mtt(new ResultInfo);
     mtt->resultType = MECH_TENSOR_TRACE;

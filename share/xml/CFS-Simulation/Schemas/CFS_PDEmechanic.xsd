@@ -427,6 +427,7 @@
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
       <xsd:enumeration value="mechNormalStructIntensity"/>
+      <xsd:enumeration value="mechDyadicStrain"/>
       
       <!-- non-physical design variable for simp topology optimization --> 
       <xsd:enumeration value="mechPseudoDensity"/>

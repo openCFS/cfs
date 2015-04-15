@@ -3,6 +3,7 @@
 
 #include "Vector.hh"
 #include "opdefs.hh"
+#include <boost/type_traits/is_complex.hpp>
 
 using namespace std;
 
@@ -567,20 +568,40 @@ namespace CoupledField {
   template<typename T>
   std::string Vector<T>::ToString(const int level, const char separator) const
   {
-    assert(level == 0 || level == 1);
     std::ostringstream os;
-    int nnz = 0;
-    for(unsigned int i = 0; i < size_; ++i)
-    {
-      if(level == 1 && Abs(data_[i]) == 0) continue;
-      if(level == 1) os << " " << i << ":";
-      os << data_[i];
-      if(i < size_-1) os << separator;
-      nnz++;
-    }
 
-    if(level > 0)
-      os << " size=" << size_ << " nnz=" << nnz;
+    if(level == 0 || level == 1)
+    {
+      int nnz = 0;
+      for(unsigned int i = 0; i < size_; ++i)
+      {
+        if(level == 1 && Abs(data_[i]) == 0) continue;
+        if(level == 1) os << " " << i << ":";
+        os << data_[i];
+        if(i < size_-1) os << separator;
+        nnz++;
+      }
+
+      if(level == 1)
+        os << " size=" << size_ << " nnz=" << nnz;
+    }
+    if(level == 2)
+    {
+      os << std::scientific << std::setprecision(7);
+      os << "[";
+      for(unsigned int i = 0; i < size_; ++i)
+      {
+        if(boost::is_complex<T>::value)
+        {
+          Complex cval = (Complex) data_[i];
+          os << cval.real() << "+" << cval.imag() << "i";
+        }
+        else
+          os << data_[i];
+        os << (i < size_-1 ? "; " : "");
+      }
+      os << "]";
+    }
 
     return os.str();
   }

@@ -61,18 +61,17 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
   case EntityList::ELEM_LIST:
   case EntityList::SURF_ELEM_LIST:
     // loop over elements
-    for ( it.Begin(); !it.IsEnd(); it++ ) {
+    for(it.Begin(); !it.IsEnd(); it++)
+    {
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = 
-        it.GetGrid()->GetElemShapeMap( el, true );
-      lpm.Set( lp, esm, 0.0 );
+      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, true );
+      lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
-      for(UInt iDim = 0; iDim < dim_; iDim++ ) {
+      for(UInt iDim = 0; iDim < dim_; iDim++ )
         vec[it.GetPos()*dim_ + iDim] = tempField[iDim];
-      }
     }
     break;
 
@@ -143,8 +142,12 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
       coef_->GetScalar( vec[0], lpm );
       break;
     case CoefFunction::TENSOR:
-      EXCEPTION("Not implemented");
-      break;
+      {
+        Matrix<TYPE> tmp;
+        coef_->GetTensor(tmp, lpm);
+        tmp.ConvertToVec_AppendRows(vec);
+        break;
+      }
     default:
       EXCEPTION("Missing case statement");
       break;
