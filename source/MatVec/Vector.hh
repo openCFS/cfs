@@ -433,7 +433,7 @@ template<typename T> class ElemStoreSol;
 
     //@{
     /** Prints the content for Logging
-     * @param level 0 is all content, 1 is only non zero
+     * @param level 0 is all content, 1 is only non zero, 2 is all content in MATLAB format
      * @param separator character  */
     std::string ToString(const int level = 0, const char separator = ' ') const;
 

@@ -1,8 +1,17 @@
 #include "CoefFunctionFormBased.hh"
 
+
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "PDE/StdPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 
-namespace CoupledField  {
+
+
+namespace CoupledField
+{
+
+DECLARE_LOG(cff)
+DEFINE_LOG(cff, "coefFunctionForm")
 
 // ==========================================================================
 //  FORM BASED COEFFICIENT FUNCTION
@@ -335,19 +344,82 @@ template<class TYPE> void CoefFunctionBdBKernel<TYPE>::GetScalar( TYPE& coefScal
     temp = kernel_ * elemSol_;
   }
   coefScal = temp.Inner(elemSol_) * factor_;
-  
+
 }
 template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 {
   std::stringstream out;
   out << "CoefFunctionBdBKernel\n";
-  out << "Result: " << 
-      SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
 
-template class CoefFunctionBdBKernel<Double>;
+// ---------------------
+
+// ==========================================================================
+//  COEFFICIENT FUNCTION BASED ON KERNEL OF BDB-INTEGRATOR
+// ==========================================================================
+template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+{
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::TENSOR;
+}
+
+template<class TYPE> CoefFunctionDyadicStrain<TYPE>::~CoefFunctionDyadicStrain() { }
+
+template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
+{
+  numRows = domain->GetGrid()->GetDim() == 2 ? 3 : 6;
+  numCols = numRows;
+}
+
+template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
+{
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  // LOG_DBG2(cff) << "CFDS:GT lpm=" << lpm.ptEl->elemNum << " form=" << form->GetName() << " B=" << form->GetBOp()->GetName();
+
+  // Matrix<TYPE> B;
+  // shared_ptr<FeSpace> mySpace = domain->GetStdPDE("mechanic")->GetFeFunction(MECH_DISPLACEMENT)->GetFeSpace();
+  // BaseFE* ptFe = mySpace->GetFe( lpm.ptEl->elemNum);
+  // form->GetBOp()->CalcOpMat(B, lpm, ptFe);
+  // LOG_DBG2(cff) << "CFDS:GT B=" << B.ToString(2);
+
+
+  // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
+  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
+  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol_.ToString(2);
+
+  Vector<TYPE> tmp;
+  form->ApplyBMat(tmp, elemSol_, lpm);
+  // LOG_DBG2(cff) << "CFDS:GT B*u=" << tmp.ToString(2);
+
+  // Vector<TYPE> manual;
+  // manual = B * elemSol_;
+  // LOG_DBG2(cff) << "CFDS:GT manual=" << manual.ToString(2);
+
+  tensor.DyadicMult(tmp, tmp.Conj());
+  LOG_DBG2(cff) << "CFDS:GT -> " << tensor.ToString(2);
+}
+
+template<class TYPE> std::string CoefFunctionDyadicStrain<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionDyadicStrain\n";
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
+
+template class CoefFunctionDyadicStrain<double>;
+template class CoefFunctionDyadicStrain<Complex>;
+
 
 
    

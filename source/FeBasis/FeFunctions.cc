@@ -736,8 +736,7 @@ DECLARE_LOG(fefunc)
 
   //! Get solution as matrix for specific entity
    template<typename T>
-   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                   const EntityIterator& it ){
+   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol, const EntityIterator& it ){
      //for now we put the unkowns in the columns
      //and the dof entrys in rows
      Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);
