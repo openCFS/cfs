@@ -1381,11 +1381,41 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       resultFunctors_[MECH_POWER] = powerFunc;
     }
 
-    // === MECHANIC DEFORMATION ENERGY DENSITY ===
+    // === scalar product of displacement or quadratic displacement norm. For topology gradient for Bloch mode analysis (Nazarov) ===
+    shared_ptr<ResultInfo> quadDisp(new ResultInfo);
+    quadDisp->resultType = MECH_QUAD_DISP;
+    quadDisp->dofNames = "";
+    quadDisp->unit = "m^2";
+    quadDisp->entryType = ResultInfo::SCALAR;
+    quadDisp->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> quad;
+    if(isComplex_)
+      quad.reset(new CoefFunctionQuadSol<Complex>(feFct));
+    else
+      quad.reset(new CoefFunctionQuadSol<double>(feFct));
+    DefineFieldResult(quad, quadDisp);
+    stiffFormCoefs_.insert(quad);
+
+    // === integrated quadratic displacement ===
+    shared_ptr<ResultInfo> quadDispSum(new ResultInfo);
+    quadDispSum->resultType = MECH_QUAD_DISP_SUM;
+    quadDispSum->dofNames = "";
+    quadDispSum->unit = "m^2";
+    quadDispSum->entryType = ResultInfo::SCALAR;
+    quadDispSum->definedOn = ResultInfo::REGION;
+    availResults_.insert( quadDispSum );
+    shared_ptr<ResultFunctor> qdsFunc;
+    if(isComplex_)
+      qdsFunc.reset(new ResultFunctorIntegrate<Complex>(quad, feFct, quadDispSum));
+    else
+      qdsFunc.reset(new ResultFunctorIntegrate<Double>(quad, feFct, quadDispSum));
+    resultFunctors_[MECH_QUAD_DISP_SUM] = qdsFunc;
+
+    // === Hermitian dyadic strain prodcut for topology gradient for bloch mode analysis (Nazarov) ===
     shared_ptr<ResultInfo> dyadicStrain(new ResultInfo);
     dyadicStrain->resultType = MECH_DYADIC_STRAIN;
-    dyadicStrain->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33" ;
-    dyadicStrain->unit = "";
+    dyadicStrain->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33";
+    dyadicStrain->unit = "m/m";
     dyadicStrain->entryType = ResultInfo::TENSOR;
     dyadicStrain->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> dyadic;
@@ -1395,6 +1425,22 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       dyadic.reset(new CoefFunctionDyadicStrain<double>(feFct));
     DefineFieldResult(dyadic, dyadicStrain);
     stiffFormCoefs_.insert(dyadic);
+
+    // === integrated MECH_DYADIC_STRAIN ===
+    shared_ptr<ResultInfo> dyadicStrainSum(new ResultInfo);
+    dyadicStrainSum->resultType = MECH_DYADIC_STRAIN_SUM;
+    dyadicStrainSum->dofNames = "e11", "e12", "e13", "e21", "e22", "e23", "e31", "e32", "e33";
+    dyadicStrainSum->unit = "m/m";
+    dyadicStrainSum->entryType = ResultInfo::TENSOR;
+    dyadicStrainSum->definedOn = ResultInfo::REGION;
+    availResults_.insert( dyadicStrainSum );
+    shared_ptr<ResultFunctor> dssFunc;
+    if(isComplex_)
+      dssFunc.reset(new ResultFunctorIntegrate<Complex>(dyadic, feFct, dyadicStrainSum));
+    else
+      dssFunc.reset(new ResultFunctorIntegrate<Double>(dyadic, feFct, dyadicStrainSum));
+    resultFunctors_[MECH_DYADIC_STRAIN_SUM] = dssFunc;
+
 
 
 

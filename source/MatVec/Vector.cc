@@ -205,6 +205,18 @@ namespace CoupledField {
 
     return sum;
   }
+
+  template <typename T>
+  T Vector<T>::Inner() const
+  {
+    T sum(0);
+
+    for(unsigned int i = 0; i < size_; i++)
+      sum += OpType<T>::dotProduct(data_[i], data_[i]);
+
+    return sum;
+  }
+
   
   template<typename T>
   Vector<T> Vector<T>::Conj() const {

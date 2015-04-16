@@ -1163,6 +1163,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN, "mechDyadicStrain");
+    SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
+    SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
+    SolutionTypeEnum.Add(MECH_QUAD_DISP_SUM, "mechQuadDisplacementSum");
+
 
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
     SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");

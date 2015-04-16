@@ -107,7 +107,7 @@ namespace CoupledField
     void Resize(const UInt size);
 
     /** Resize if necessary to the other matrix */
-    inline void Resize(const Matrix<TYPE>& other);
+    void Resize(const Matrix<TYPE>& other);
     
     //@}
     
@@ -640,6 +640,11 @@ namespace CoupledField
     //! Converts a matrix into a vector, by appending successively all cols
     void ConvertToVec_AppendCols( SingleVector& vec ) const;
  
+    /** Converts the upper triangular of a quadratic matrix into a vector the way the stress and strain is defined for Voigt-Notation
+     * 2*2 -> 11 22 12
+     * 3*3 -> 11 22 33 23 13 12 */
+    void ConvertToVec_UpperTriangular( SingleVector& vec ) const;
+
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
