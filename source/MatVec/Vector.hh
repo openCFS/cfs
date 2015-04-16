@@ -144,6 +144,8 @@ template<typename T> class ElemStoreSol;
     //! Resize the vector to new size and initialize entries with val
     void Resize(const unsigned int newSize, const T val);
 
+    unsigned int GetSize() const { return size_; }
+
     //! Add functionality of vector class to a data array
 
     //! This method allows to add the functionality of the Vector class,
@@ -256,6 +258,8 @@ template<typename T> class ElemStoreSol;
     void Inner(const SingleVector& vec, T& sum) const;
     
     T Inner(const SingleVector& vec) const;
+
+    T Inner() const;
 
     Vector<T> Conj() const;
 

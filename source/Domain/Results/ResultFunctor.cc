@@ -133,7 +133,10 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
 
 template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
 {
-  switch( coef_->GetDimType()) {
+  LOG_DBG(resfunc) << "FCF::GV "<< coef_->ToString() << " dim=" << coef_->GetDimType();
+
+  switch( coef_->GetDimType())
+  {
     case CoefFunction::VECTOR:
       coef_->GetVector( vec, lpm );
       break;
@@ -369,119 +372,120 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
   // if this is a coil list in order to get the elements
   bool isCoil = nameIt.GetType() == EntityList::COIL_LIST;
 
-  // switch depending on type of coefficient function:
-  
-  if( coef_->GetDimType() == CoefFunction::SCALAR ) {
+  // hande the different cases commonly instead of copy & paste hell!
+  TYPE tempValScal = 0.0;
+  TYPE elemValScal = 0.0;
+  Vector<TYPE> tempValVec;
+  Vector<TYPE> elemValVec(numDofs);
+  Matrix<TYPE> tempValMat;
+  Matrix<TYPE> elemValMat;
 
+  // Loop over names (= regions / surface regions / named elements)
+  UInt pos = 0;
+  for(nameIt.Begin(); !nameIt.IsEnd(); nameIt++)
+  {
+    shared_ptr<EntityList> actSDList = isCoil ? nameIt.GetCoil()->GetElems()
+                                              : nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName());
 
-    // ---------------
-    //  SCALAR RESULT
-    // ---------------
-    // Loop over names (= regions / surface regions / named elements)
-    for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
-      shared_ptr<EntityList> actSDList;
-      if( !isCoil ){
-        actSDList =
-          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
-      } else {
-        actSDList = nameIt.GetCoil()->GetElems();
+    EntityIterator elemIt = actSDList->GetIterator();
+
+    // loop over elements
+    for (elemIt.Begin(); !elemIt.IsEnd(); elemIt++)
+    {
+      switch(coef_->GetDimType())
+      {
+      case CoefFunction::SCALAR:
+        tempValScal = 0.0;
+        elemValScal = 0.0;
+        break;
+      case CoefFunction::VECTOR:
+        tempValVec.Init();
+        elemValVec.Init();
+        break;
+      case CoefFunction::TENSOR:
+        tempValMat.Init();
+        elemValMat.Init();
+        break;
+      default:
+        assert(false);
       }
-      EntityIterator elemIt = actSDList->GetIterator();
 
-      TYPE tempVal = 0.0;
-      // loop over elements
-      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-        const Elem * el = elemIt.GetElem();
+      const Elem* el = elemIt.GetElem();
 
+      // Obtain FE element from feSpace and integration scheme
+      IntegOrder order;
+      IntScheme::IntegMethod method;
 
-        // Obtain FE element from feSpace and integration scheme
-        IntegOrder order;
-        IntScheme::IntegMethod method;
+      feSpace->GetFe(elemIt, method, order);
+      // Get shape map from grid
+      shared_ptr<ElemShapeMap> esm =  elemIt.GetGrid()->GetElemShapeMap( el, true );
 
-        feSpace->GetFe( elemIt, method, order );
-        // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
-            elemIt.GetGrid()->GetElemShapeMap( el, true );
+      // Get integration points
+      StdVector<LocPoint> intPoints;
+      StdVector<Double> weights;
+      intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, intPoints, weights );
 
-        // Get integration points
-        StdVector<LocPoint> intPoints;
-        StdVector<Double> weights;
-        intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
-                                 intPoints, weights );
-        // Loop over all integration points
-        tempVal = 0.0;
-        LocPointMapped lpm;
-        TYPE elemVal = 0.0;
-        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
+      // Loop over all integration points
+      LocPointMapped lpm;
+      for(UInt i = 0; i < intPoints.GetSize(); i++)
+      {
+        // Calculate for each integration point the LocPointMapped
+        lpm.Set(intPoints[i], esm, weights[i]);
 
-          // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm, weights[i] );
-          coef_->GetScalar(tempVal, lpm );
-          elemVal += tempVal * lpm.jacDet * weights[i];
-        } // loop integration points
-        vec[nameIt.GetPos()] += elemVal;
-      } // loop elements
-    } // loop regions
-    
-  } else if( coef_->GetDimType() == CoefFunction::VECTOR ) {
-    // ---------------
-    //  VECTOR RESULT
-    // ---------------
-    // Loop over regions
-    UInt pos = 0;
-    for( nameIt.Begin(); !nameIt.IsEnd(); nameIt++ ) {
-      shared_ptr<EntityList> actSDList;
-      if( !isCoil ){
-        actSDList =
-          nameIt.GetGrid()->GetEntityList( EntityList::ELEM_LIST, nameIt.GetName() );
-      } else {
-        actSDList = nameIt.GetCoil()->GetElems();
-      }
-      EntityIterator elemIt = actSDList->GetIterator();
-
-      Vector<TYPE> tempVal;
-      // loop over elements
-      for ( elemIt.Begin(); !elemIt.IsEnd(); elemIt++ ) {
-        const Elem * el = elemIt.GetElem();
-
-
-        // Obtain FE element from feSpace and integration scheme
-        IntegOrder order;
-        IntScheme::IntegMethod method;
-
-        feSpace->GetFe( elemIt, method, order );
-        // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
-            elemIt.GetGrid()->GetElemShapeMap( el, true );
-
-        // Get integration points
-        StdVector<LocPoint> intPoints;
-        StdVector<Double> weights;
-        intScheme->GetIntPoints( Elem::GetShapeType(el->type), method, order, 
-                                 intPoints, weights );
-
-        // Loop over all integration points
-        LocPointMapped lpm;
-        Vector<TYPE> elemVal(numDofs);
-        elemVal.Init();
-        for( UInt i = 0; i < intPoints.GetSize(); i++  ) {
-
-          // Calculate for each integration point the LocPointMapped
-          lpm.Set( intPoints[i], esm, weights[i] );
-          coef_->GetVector(tempVal, lpm );
-          elemVal += tempVal * (lpm.jacDet * weights[i]);
-        } // loop integration points
-        for( UInt jDof = 0; jDof < numDofs; ++jDof ) {
-          vec[pos+jDof] += elemVal[jDof];
+        switch(coef_->GetDimType())
+        {
+        case CoefFunction::SCALAR:
+          coef_->GetScalar(tempValScal, lpm );
+          elemValScal += tempValScal * lpm.jacDet * weights[i];
+          break;
+        case CoefFunction::VECTOR:
+          coef_->GetVector(tempValVec, lpm );
+          elemValVec += tempValVec * (lpm.jacDet * weights[i]);
+          break;
+        case CoefFunction::TENSOR:
+          coef_->GetTensor(tempValMat, lpm);
+          if(i == 0)
+            elemValMat.Resize(tempValMat); //
+          elemValMat += tempValMat * (lpm.jacDet * weights[i]);
+          break;
+        default:
+          assert(false);
         }
-      } // loop elements
-      pos+= numDofs;
-    } // loop regions
-  } else {
-    EXCEPTION("Can only integrate scalar or vector results");
-  }
+      } // loop integration points
 
-    
+      switch(coef_->GetDimType())
+      {
+      case CoefFunction::SCALAR:
+        vec[nameIt.GetPos()] += elemValScal;
+        break;
+      case CoefFunction::VECTOR:
+        for(unsigned jDof = 0; jDof < numDofs; ++jDof )
+          vec[pos+jDof] += elemValVec[jDof];
+        break;
+      case CoefFunction::TENSOR:
+      {
+        unsigned int rows = tempValMat.GetNumRows();
+        unsigned int cols = tempValMat.GetNumCols();
+
+        if(numDofs == rows * cols)
+          elemValMat.ConvertToVec_AppendRows(tempValVec);
+        else
+          elemValMat.ConvertToVec_UpperTriangular(tempValVec);
+
+        assert(tempValVec.GetSize() == numDofs);
+
+        for(unsigned jDof = 0; jDof < numDofs; ++jDof)
+          vec[pos+jDof] += tempValVec[jDof];
+
+        break;
+      }
+
+      default:
+        assert(false);
+      }
+    } // loop elements
+    pos+= numDofs;
+  } // loop regions
 }
 
 template class ResultFunctorIntegrate<Complex>;

@@ -40,7 +40,8 @@ void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,
   
   forms_[region] = form;
 }    
-  
+
+
 // ==========================================================================
 //  COEFFICIENT FUNCTION BASED ON DIFFERENTIAL OPERATOR
 // ==========================================================================
@@ -356,9 +357,6 @@ template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 
 // ---------------------
 
-// ==========================================================================
-//  COEFFICIENT FUNCTION BASED ON KERNEL OF BDB-INTEGRATOR
-// ==========================================================================
 template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
 {
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
@@ -414,12 +412,47 @@ template<class TYPE> std::string CoefFunctionDyadicStrain<TYPE>::ToString() cons
   return out.str();
 }
 
+// --------------------------- ddd
+template<class TYPE> CoefFunctionQuadSol<TYPE>::CoefFunctionQuadSol(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+{
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::SCALAR;
+}
+
+template<class TYPE> CoefFunctionQuadSol<TYPE>::~CoefFunctionQuadSol() { }
+
+
+template<class TYPE> void CoefFunctionQuadSol<TYPE>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
+{
+  // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
+  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
+  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol_.ToString(2);
+
+  coefScal = elemSol_.Inner();
+  LOG_DBG2(cff) << "CFSQ:GS -> " << coefScal;
+}
+
+template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionQuadSol\n";
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+
 template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
 
 template class CoefFunctionDyadicStrain<double>;
 template class CoefFunctionDyadicStrain<Complex>;
 
+template class CoefFunctionQuadSol<double>;
+template class CoefFunctionQuadSol<Complex>;
 
 
    

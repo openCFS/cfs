@@ -42,13 +42,10 @@ public:
   virtual ~CoefFunctionFormBased();
   
   //! Set integrator for specific region
-  virtual void AddIntegrator( BaseBDBInt* form,  
-                              RegionIdType region );
+  virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
   
   //! Return type of entry (scalar, vector, tensor)
-  virtual CoefDimType GetDimType() const{
-	  return dimType_;
-  }
+  virtual CoefDimType GetDimType() const { return dimType_;  }
 
 protected:
   
@@ -124,7 +121,7 @@ protected:
  
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
-  
+
   //! Result info object of result to be calculated
   shared_ptr<ResultInfo> res_;
   
@@ -303,6 +300,33 @@ protected:
   //! Solution of element
   Vector<TYPE> elemSol_;
 };
+
+
+/** Calculates the dyadic product of strain vs. strain
+ * This is required for external topology gradient evaluation for Bloch mode analysis (Nazarov).
+ * The class is a modification of CoefFunctionBdBKernel */
+template<class TYPE>
+class CoefFunctionQuadSol : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionQuadSol(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionQuadSol();
+
+  virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  Vector<TYPE> elemSol_;
+};
+
 
 
 

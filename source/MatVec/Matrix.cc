@@ -1668,16 +1668,37 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendCols(SingleVector &v) const
   {
-
     Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
 
     vec.Resize(size_row_ * size_col_);
   
     for( UInt actCol=0; actCol < size_col_; actCol++)
       for( UInt actRow=0; actRow < size_row_; actRow++)
-        {
           vec[actCol*size_row_ + actRow] = data_[actRow][actCol];
-        }
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::ConvertToVec_UpperTriangular(SingleVector & v) const
+  {
+    Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
+
+    assert(size_row_ == size_col_);
+    unsigned int size = size_row_;
+
+    vec.Resize((size * size - size)/ 2);
+
+    // 2*2 -> 11 22 12           = 00 11 01
+    // 3*3 -> 11 22 33 23 13 12  = 00 11 22 12 02 01
+
+    // diagonal first
+    unsigned int pos = 0;
+    for(unsigned int i = 0; i < size; i++)
+      vec[pos++] = data_[i][i];
+
+    // starting to write the upper triangular from behind upwards
+    for(unsigned int c = size-1; c > 0; c--)
+      for(unsigned int r = c-1; r >= 0; r--)
+        vec[pos++] = data_[r][c];
   }
 
 

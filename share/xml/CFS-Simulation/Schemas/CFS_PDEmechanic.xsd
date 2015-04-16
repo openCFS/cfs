@@ -427,7 +427,12 @@
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
       <xsd:enumeration value="mechNormalStructIntensity"/>
+      
+      <!-- dyadic hermitian product of the strain vectors -->
       <xsd:enumeration value="mechDyadicStrain"/>
+      
+      <!-- scalar product of the displacement vectors. Or the squared displacement norm -->
+      <xsd:enumeration value="mechQuadDisplacement"/>
       
       <!-- non-physical design variable for simp topology optimization --> 
       <xsd:enumeration value="mechPseudoDensity"/>
@@ -472,7 +477,9 @@
       <xsd:enumeration value="mechKinEnergy"/>
       <xsd:enumeration value="mechDeformEnergy"/>
       <xsd:enumeration value="mechTotalEnergy"/>
-      <xsd:enumeration value="homogenizedTensor"/>
+      <xsd:enumeration value="mechDyadicStrainSum"/>
+      <xsd:enumeration value="mechQuadDisplacementSum"/>
+      <xsd:enumeration value="homogenizedTensor"/>      
     </xsd:restriction>
   </xsd:simpleType>
   
