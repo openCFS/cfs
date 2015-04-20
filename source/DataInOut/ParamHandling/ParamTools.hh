@@ -57,6 +57,7 @@ namespace CoupledField
       StdVector<std::string> strVec;
       // do not use cfs-implemented SplitStringList() as it cannot handle newline separated SAX parsed data
       SplitStringListWhitespace(node->As<std::string>(), strVec);
+
       ret.Resize( dim1, dim2 );
       ret.Init();
       

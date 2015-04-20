@@ -71,7 +71,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None)
   return ret
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, matrix=False, attribute="design"):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
@@ -96,6 +96,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 4
   if design5:
     designs = 5
+  if design6:
+    designs = 6
     
   length = len(sett) / designs
   
@@ -114,8 +116,14 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 3
     if design5 and type == design5:
       idx = 4
+    if design6 and type == design6:
+      idx = 5
     if idx <> -1:
-      des = float(element.get(attribute))
+      tmp = element.get(attribute)
+      if tmp is None:
+        print "Could not read '" + attribute + "' for design " + type + "! Fallback to 'design'."
+        tmp = element.get("design")
+      des = float(tmp)
       out[nr - 1, idx] = des
   if matrix:
     output = numpy.zeros((x, y, z, designs))
@@ -532,9 +540,10 @@ def refine_density(infile, outfile, design1=None, design2=None, design3=None, de
   else:
     org = read_multi_design(infile, design1, design2, design3, design4, design5, True)
     x, y, z, ndes = getDim(org, True)
-    if ndes is None:
-      ndes = z
-    dim = org.ndim - 1
+    dim = 3
+    if z == 1:
+      dim = 2
+    
   # we cannot handle 3D density files with z is one layer as these are identified as 2D :(
   
   out = numpy.zeros((x * 2, y * 2))

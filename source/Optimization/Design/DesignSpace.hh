@@ -70,6 +70,12 @@ namespace CoupledField
       * @param em only to be stored and used for pure ROTATION */
      void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em);
 
+     /** returns the type of the DesignMaterial of the Ersatzmaterial **/
+     DesignMaterial::Type getDesignMaterialType()
+     {
+       return designMaterial->GetType();
+     }
+
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
      void SetOptimizer(BaseOptimizer* bo) { optimizer_ = bo; }
@@ -119,6 +125,9 @@ namespace CoupledField
       * @param type TENSOR_TRACE, ELAST_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL. Allways the complete tensor!
       * @see GetErsatzMaterialTensor() */
      bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
+
+     /** small helper to return the G-Matrix from model reduction to output as special result */
+     bool GetModRedGTensor(Matrix<double>& T, const Elem* elem);
 
      /** Calculates the corresponding ErsatzMaterialTensor for the given element
       * @param t holds the resulting MaterialTensor
@@ -313,6 +322,12 @@ namespace CoupledField
 
      /** Here we store result descriptions as defined in DesignElement.hh */
      StdVector<ResultDescription> resultDescriptions;
+
+
+     /**Here we store the value of the mechanical tensor of the material and its derivative with respect to the design variables**/
+     //StdVector<TensorElement> tensor_data;
+
+
 
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const

@@ -229,14 +229,22 @@ void MechMat::Init()
 {
   system_ = MECH;
   mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->ToPDE(Optimization::MECH) : domain->GetSinglePDE("mechanic"));
+  //mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
+
   assert(mech != NULL);
   StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
+    std::cout << " r = " << r << std::endl;
     RegionIdType reg_id = regionIds[r];
     StdVector<Matrix<double> >& K = mechStiffness_map[reg_id];
     StdVector<Matrix<Complex> >& KC = mechStiffness_mapC[reg_id];
+
+    // this check is for Virginie's mapping with a ghost region not being part of the simulation
+    // can be removed if we use nodal design elements
+    if(this->opt->GetAssemble()->UseRegion(reg_id))
+    {
 
     // three cases: multimaterial, (legacy) bimagterial, normal. Run once for the last tow
     for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++)
@@ -299,11 +307,9 @@ void MechMat::Init()
         }
       }
     }
+    }
   }
 }
-
-
-
 
 DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
@@ -348,7 +354,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
         tmp_mat2.SetPart(Global::IMAG, tmp_mat);
         mechStiffness_mapC[elem->regionId][index] = tmp_mat2;
       }
-      else mechStiffness_map[elem->regionId][1] = tmp_mat;
+      else mechStiffness_map[elem->regionId][index] = tmp_mat;
     }
   }
 

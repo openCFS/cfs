@@ -102,7 +102,12 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case BENSON_VANDERBEI_1:
     case BENSON_VANDERBEI_2:
     case BENSON_VANDERBEI_3:
-      if(!pn->Has("parameter"))
+    case DETERMINANT_MATRIX:
+    case ROTATIONAL_MATRIX_1:
+    case ROTATIONAL_MATRIX_2:
+    case DETERMINANT_MAPPING:
+    case TRACE_MAPPING:
+    if(!pn->Has("parameter"))
         throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
     case ISOTROPY:
@@ -704,6 +709,11 @@ bool Condition::IsFeasibilityConstraint() const
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
+  case DETERMINANT_MATRIX:
+  case ROTATIONAL_MATRIX_1:
+  case ROTATIONAL_MATRIX_2:
+  case DETERMINANT_MAPPING:
+  case TRACE_MAPPING:
   case DESIGN_BOUND:
     return true;
   default:
@@ -896,11 +906,11 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
 
     hess_sparsity_.Resize(2, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(t11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(t22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(t11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(t22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(t12)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(t12)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(t12)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(t12)->GetIndex();
 
     break;
   }
@@ -908,41 +918,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(2, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElementByType(DesignElement::TENSOR11)->GetIndex();
+    hess_sparsity_(2, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(3, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 1) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
 
-    hess_sparsity_(4, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(4, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(5, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(5, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(6, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElementByType(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(6, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(7, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(7, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(8, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElementByType(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(8, 1) = id.GetElementByType(DesignElement::TENSOR33)->GetIndex();
 
-    hess_sparsity_(9, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 1) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
 
-    hess_sparsity_(10, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElementByType(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(10, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
-    hess_sparsity_(11, 0) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 1) = id.GetElementByType(DesignElement::TENSOR23)->GetIndex();
 
     break;
   default:

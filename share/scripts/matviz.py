@@ -39,12 +39,13 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     t33 = get_element(f, "design_tensor33_" + args.hom_access, args.h5_region, args.h5_step)
     s1 = t11*t11+t12*t12
     s2 = t12*t12+t22*t22
-    m = 2*numpy.max([numpy.max(s1), numpy.max(s2)])
+    m = 2.0*numpy.max([numpy.max(s1), numpy.max(s2)])
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
+    print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
     s1 *= rho
@@ -76,7 +77,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
 # @save filename for output
 # @return the volume fraction if determined or None
 def show_or_write(viz, args):
-  assert(viz <> None)
+  assert(viz is not None)
   volume = None
   
   global info
@@ -112,6 +113,8 @@ def show_or_write(viz, args):
           vol.set("imageMaterial", str(volume))  
     else:
       matplotlib.pyplot.show()
+      ax = fig.add_axes([0, 0, 1, 1])
+      fig.show()  # Jannis: this is a temporary workaround as matplotlib.pyplot.show() does nothing for me
 
     matplotlib.pyplot.close(fig)
 
@@ -137,6 +140,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
   
   scale = force_scale if force_scale else args.scale
   
+  coords = (centers, min, max, elem_dim)  
   
   #perform 2D and 3D from file
   if h5_read or dim_2D:
@@ -150,14 +154,14 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi/180
-      # scale angle, e.g  by -1 to correct jannis 
+      # scale angle, e.g  by -1 to correct for current standard 2D rotation direction (this is not the mathematical direction! FIXME if needed)
+      angle *= -1.0
       if args.angle_factor <> 1.0:
         print 'scale angle by ' + str(args.angle_factor)
         angle *= args.angle_factor  
       
       print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
   
-      coords = (centers, min, max, elem_dim)
   
       # viz is either Image or polydata
       if dim_2D:
@@ -199,8 +203,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
     # no hom_rect stuff but orientational stiffness
     else:
       if args.tensor == 'mechTensor':
-        print "Input data is read as as " + args.notation
-      #tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
+        print "Input data is read as " + args.notation
+      tensor = get_element(f, args.tensor, args.h5_region, args.h5_step)
       angle, data = perform_rotations(tensor, args.notation, int(args.sampling), args.tensor, args.show)
       
       if args.plot <> None:
@@ -210,7 +214,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
       else:
         viz = orientational_stiffness(coords, angle, data, args.res, scale)
   
-    if viz == None:
+    if viz is None:
       print 'Error: no visualization calculated!'
     else:
       volume = show_or_write(viz, args)
@@ -287,14 +291,14 @@ parser.add_argument("--parametrization", help="parametrization of the stiffness 
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
-parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
+parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap from http://matplotlib.org/examples/color/colormaps_reference.html, default='gray'", default="grayscale")
 parser.add_argument("--info", help="creates a xml file of given name with additional information")
 args = parser.parse_args()
 
 # check ans postproc arguments
 if not args.symmetries == "default" and not args.show == "default" and not args.symmetries == args.show:
   print "'show' and 'symmetries' do not match"
-  sys.exit()
+  sys.exit(1)
 aux_code = args.show if not args.show == "default" else args.symmetries # might still be default
 
 # in this global variable we can store meta-information to be exported as xml file 
@@ -318,7 +322,7 @@ if args.input.startswith('['):
   input = eval(args.input)
   if len(input) <> 21 and len(input) <> 6:
     print "the input has " + str(len(input)) + " coefficients but requires 6 (2D) or 21 (3D)"
-    sys.exit()
+    sys.exit(1)
 
   dim_2D = len(input) <> 21
   
@@ -349,7 +353,7 @@ else:
   h5_read = True
   if not os.path.exists(args.input):
     print 'Error: file does not exist: ' + args.input
-    sys.exit()
+    sys.exit(1)
   f = h5py.File(args.input, 'r')
   
   if args.h5_info:
@@ -367,7 +371,7 @@ if not args.target_volume:
 else:
   if args.scale > 0:
     print "Error: don't give --scale and --target_volume concurrently!"
-    sys.exit() 
+    sys.exit(1) 
 
   # unfortunately we are not necessary convex! therefore we may not do bisection
   lower = 1e-4
@@ -383,7 +387,7 @@ else:
       err = abs(vol - args.target_volume)
       if vol == None:
         print "Error: --target_volume no possible as no volume is calculated. Try --save <file>.png"
-        sys.exit()
+        sys.exit(1)
   
       tv = xml.etree.ElementTree.SubElement(info, "target_volume")
       tv.set("target", str(args.target_volume))
