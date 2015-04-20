@@ -143,7 +143,8 @@ args = parser.parse_args()
 
 divider = args.res
   
-filename = "cirular_" + str(args.dim) + "d-v_" + str(args.vol) + "-o_" + str(args.order) + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
+ord = ("-o_" + str(args.order)) if args.order <> 6 else ""   
+filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
 if args.save:
   filename = args.save
   

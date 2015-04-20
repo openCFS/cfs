@@ -22,12 +22,12 @@ def refine(vals, size):
 
 
 #@ return image, density_array
-def density_to_image(filename, set):
+def density_to_image(filename, set, design):
   if not is_valid_density_file(filename):
     print "not a valid density file given!"
     sys.exit(1)
 
-  dens = read_density(filename, set=set)
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set)
   
   x, y, z = getDim(dens)
   
@@ -68,6 +68,7 @@ def print_grid_on_image(I, dens):
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="the density.xml file to visualize")
 parser.add_argument('--save', help="optional filename to write image")
+parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
@@ -84,7 +85,7 @@ if args.info:
     
   os.sys.exit()  
 
-img,dens = density_to_image(args.input, args.set)
+img,dens = density_to_image(args.input, args.set, args.design)
 img.convert('L')
 
 if args.grid:
