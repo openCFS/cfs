@@ -123,12 +123,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
 
     // thermal stress coefFunction
-    thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,
-                         stressDim_, 1, isComplex_, true));
+    thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
 
     // thermal strain coefFunction
-    thermalStrain_.reset(new CoefFunctionMulti(CoefFunction::VECTOR,
-                         stressDim_, 1, isComplex_, true));
+    thermalStrain_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
+
 }
 
 
@@ -317,6 +316,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // determine if we do bloch eigenfrequency analysis
     bool do_bloch = domain->GetDriver()->DoBlochModeEigenfrequency();
 
+    unsigned int rows = 0;
+    unsigned int cols = 0;
+    materials_.begin()->second->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL)->GetTensorSize(rows, cols);
+    assert(rows > 0 && cols > 0);
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
@@ -442,7 +446,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
       if(domain->GetErsatzMaterial(false) != NULL)
       {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), densCoeff);
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), densCoeff, this);
         densCoeff.reset(tmpFnc);
       }
 
@@ -951,10 +955,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
   }
 
-  BaseBDBInt*
-  MechPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
-                               RegionIdType regionId,
-                               bool isComplex )
+  BaseBDBInt* MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex)
   {
 
     // Get region name
@@ -972,14 +973,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
     if(domain->GetErsatzMaterial(false) != NULL)
     {
-      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef); // takes double and complex
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef, this); // takes double and complex
       curCoef.reset(tmpFnc);
     }
 
 
     // store coefficient function for later use (e.g. in boundary integrators)
     regionStiffness_[regionId] = curCoef;
-    
+
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
@@ -1394,7 +1395,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     else
       quad.reset(new CoefFunctionQuadSol<double>(feFct));
     DefineFieldResult(quad, quadDisp);
-    stiffFormCoefs_.insert(quad);
 
     // === integrated quadratic displacement ===
     shared_ptr<ResultInfo> quadDispSum(new ResultInfo);
@@ -1441,9 +1441,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       dssFunc.reset(new ResultFunctorIntegrate<Double>(dyadic, feFct, dyadicStrainSum));
     resultFunctors_[MECH_DYADIC_STRAIN_SUM] = dssFunc;
 
-
-
-
     // === MECHANIC DEFORMATION ENERGY DENSITY ===
     shared_ptr<ResultInfo> defEnergyDens(new ResultInfo);
     defEnergyDens->resultType = MECH_DEFORM_ENERGY_DENS;
@@ -1486,13 +1483,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     totEnergyDens->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunction> tedFunc;
     // in static analysis, the total energy density equals the deformation one
-    if (analysistype_ == STATIC ) {
+    if (analysistype_ == STATIC )
       tedFunc = dedFunc;
-    } else {
-      tedFunc = CoefFunction::Generate(mp_, part, 
-                                       CoefXprBinOp( mp_, dedFunc, kedFunc, CoefXpr::OP_ADD) );
-    }
-    DefineFieldResult(tedFunc, totEnergyDens ); 
+    else
+      tedFunc = CoefFunction::Generate(mp_, part, CoefXprBinOp( mp_, dedFunc, kedFunc, CoefXpr::OP_ADD) );
+    DefineFieldResult(tedFunc, totEnergyDens);
 
     // === MECHANIC TOTALENERGY ===
     shared_ptr<ResultInfo> tEnergy(new ResultInfo);
@@ -1557,14 +1552,19 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     surfCoefFcts_[normalStressFct] = sigmaFunc;
 
     // === MECH_TENSOR for free and parameterized material optimization but generally it simply returns the tensor
-    shared_ptr<ResultInfo> mt(new ResultInfo);
-    mt->resultType = MECH_TENSOR;
-    mt->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
-    mt->unit = "Pa";
-    mt->entryType = ResultInfo::TENSOR;
-    mt->definedOn = ResultInfo::ELEMENT;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
-
+    shared_ptr<ResultInfo> mech_tensor(new ResultInfo);
+    mech_tensor->resultType = MECH_TENSOR;
+    mech_tensor->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    mech_tensor->unit = "Pa";
+    mech_tensor->entryType = ResultInfo::TENSOR;
+    mech_tensor->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> stiff_coef;
+    if(isComplex_) // does not really handle the case where only some regions have complex material
+      stiff_coef.reset(new CoefFunctionStiffness<Complex>(feFct));
+    else
+      stiff_coef.reset(new CoefFunctionStiffness<double>(feFct));
+    DefineFieldResult(stiff_coef, mech_tensor);
+    stiffFormCoefs_.insert(stiff_coef); // will define the forms
 
     // optimization results are provided in DesignSpace::ExtractResults()
 
@@ -1586,17 +1586,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     ppd->fromOptimization = true;
     DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
 
-    // === MECH_TENSOR for free and parameterized material optimization
-  /*  shared_ptr<ResultInfo> mt(new ResultInfo);
-    mt->resultType = MECH_TENSOR;
-    mt->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
-    mt->unit = "Pa";
-    mt->entryType = ResultInfo::TENSOR;
-    mt->definedOn = ResultInfo::ELEMENT;
-    mt->fromOptimization = true;
-    DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mt);
-*/
-    // === MECH_TENSOR_TRACE for free and parameterized material optimization
+      // === MECH_TENSOR_TRACE for free and parameterized material optimization
     shared_ptr<ResultInfo> mtt(new ResultInfo);
     mtt->resultType = MECH_TENSOR_TRACE;
     mtt->dofNames = "Tr(E)";

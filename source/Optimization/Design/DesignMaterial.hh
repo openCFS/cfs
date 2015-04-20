@@ -54,7 +54,8 @@ class ErsatzMaterial;
     bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
 
     /** Calculate the derivative tensor from the given material parameters */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+    void GetMaterialTensor(Matrix<Complex>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
 
     void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
 
@@ -154,7 +155,7 @@ class ErsatzMaterial;
     void ApplyHomRectC1Tensor(Matrix<double>& E,  Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
+    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const LocPointMapped* lpm,  DesignElement::Type direction, Notation notation);
 
     /** does only perform orientational optimization
      * @param mc MECHANIC, PIEZO, ELECTROSTATIC */

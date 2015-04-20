@@ -5,7 +5,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"
-
+#include "Optimization/Design/DesignElement.hh"
 
 namespace CoupledField {
 
@@ -24,11 +24,12 @@ public:
   /** One of the three states for the object:
    * OPT -> optimization and we ask DesignSpace::ApplyPhysicalDesign()
    * ORG -> the original material CoefFunction is used as if this would be a standard CoefFunction
-   * SHADOW -> the temporary material CoefFunction is used similar to the org material */
-  typedef enum { OPT = 0, ORG = 1, SHADOW = 2 } State;
+   * SHADOW -> the temporary material CoefFunction is used similar to the org material
+   * DIRECTION -> gradient of ParamMat to be set in DesignMaterial */
+  typedef enum { OPT = 0, ORG = 1, SHADOW = 2, DIRECTION = 3 } State;
 
   /** @param orgMat the CoefFunctionConst that would be originally used to provide the material data. */
-  CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat);
+  CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde);
 
   virtual ~CoefFunctionOpt() { }
 
@@ -84,13 +85,21 @@ public:
   /** only the original material CoefFunction does the job. state -> ORG */
   void SetToOrgMaterial();
 
-  /** No optimization but use the shado material as long as the state is switched. state -> SHADOW.
+  /** No optimization but use the shadow material as long as the state is switched. state -> SHADOW.
   /** Necessary for OptimizationMaterial to find basic local element matrices. */
   void SetToShadow(PtrCoefFct shadow);
+
+  /** the direction (silly name :( ) is gradient of a tensor parameterization with respect to a design type.
+   * Evaluated by DesignMaterial */
+  void SetToTensorDerivative(DesignElement::Type direction);
+
+  /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION */
+  DesignElement::Type GetTensorDerivative() const { return direction; }
 
   /** the original material. Required if no optimization available or for SIMP and bi-material optimization */
   PtrCoefFct orgMat;
 
+  SubTensorType subTensor;
 protected:
 
   template <class T>
@@ -110,6 +119,9 @@ protected:
 
   /** see DisableOpt() */
   PtrCoefFct shadowMat;
+
+  /** the current tensor derivative, only for state == DIRECTION */
+  DesignElement::Type direction;
 };
 
 }

@@ -214,12 +214,13 @@ namespace CoupledField {
     // iterate over all results, which are needed
     for(std::set<shared_ptr<BaseResult> >::iterator it = isNeeded_.begin(); it != isNeeded_.end(); it++)
     {
-      ResultContext & actContext = *(resultContexts_[*it]);
+      ResultContext& actContext = *(resultContexts_[*it]);
 
       if( actContext.functor ) {
         LOG_DBG(resHandler) << "Evaluating result '" << SolutionTypeEnum.ToString(actContext.result->GetResultInfo()->resultType )
                             << "' on '" << actContext.result->GetEntityList()->GetName() << "'";
-        actContext.functor->EvalResult( actContext.result);
+
+        actContext.functor->EvalResult(actContext.result);
         UpdateResult(actContext.result);
       }
     }

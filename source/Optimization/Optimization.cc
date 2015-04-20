@@ -339,8 +339,8 @@ void Optimization::SetEnums()
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
-  Function::type.Add(Function::LAMINATES_VOL, "laminatesVolume");
-  Function::type.Add(Function::GLOBAL_LAMINATES_VOL, "globalLaminatesVolume");
+  Function::type.Add(Function::TWO_SCALE_VOL, "twoScaleVolume");
+  Function::type.Add(Function::GLOBAL_TWO_SCALE_VOL, "globalTwoScaleVolume");
   Function::type.Add(Function::ORTHOTROPIC_TENSOR_TRACE, "orthotropicTensorTrace");
   Function::type.Add(Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE, "globalOrthotropicTensorTrace");
   Function::type.Add(Function::TENSOR_TRACE, "tensorTrace");

@@ -314,8 +314,8 @@
                 <!--  requires parametrized material tensor (PLANE_STRESS, TRANSVERSAL_ORTHOTROPIC or similar), > 0 ensures positivity of the material tensor -->
                 <xsd:enumeration value="parametrized-plane-stress-pos-def"/>
                 <!--  For laminates only -->
-                <xsd:enumeration value="laminatesVolume"/>
-                <xsd:enumeration value="globalLaminatesVolume"/>
+                <xsd:enumeration value="twoScaleVolume"/>
+                <xsd:enumeration value="globalTwoScaleVolume"/>
                 <!-- for FMO and laminates only -->
                 <xsd:enumeration value="tensorTrace"/>
                 <!-- for piezo FMO to have a local squared L2 norm for the coupling tensor (sum of squared coefficients) -->
@@ -1423,7 +1423,6 @@
       <xsd:enumeration value="youngsModulusE1"/>
       <xsd:enumeration value="youngsModulusE2"/>
       <xsd:enumeration value="volume"/>
-      <xsd:enumeration value="globalLaminatesVolume"/>
       <xsd:enumeration value="penalizedVolume"/>
       <xsd:enumeration value="gap"/>
       <xsd:enumeration value="tychonoff"/>
@@ -1435,7 +1434,7 @@
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="globalTensorTrace"/>
       <xsd:enumeration value="globalOrthotropicTensorTrace"/>
-      <xsd:enumeration value="globalLaminatesVolume"/>
+      <xsd:enumeration value="globalTwoScaleVolume"/>
       <xsd:enumeration value="stress"/>
       <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
       <xsd:enumeration value="stressDensity"/>

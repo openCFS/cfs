@@ -9,7 +9,7 @@ namespace CoupledField
 DECLARE_LOG(coef)
 DEFINE_LOG(coef, "coef")
 
-CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat) : CoefFunction()
+CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SinglePDE* pde) : CoefFunction()
 {
   // this type of coefficient is always constant
   dependType_ = GENERAL;
@@ -22,25 +22,38 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat) : CoefF
   this->orgMat  = orgMat;
   this->form    = NULL; // can only be set later
   this->state = OPT;
+  this-> subTensor = pde->GetSubTensorType();
 }
 
 void CoefFunctionOpt::SetToOptimization()
 {
   state = OPT;
   shadowMat.reset(); // equivalent to = nullptr (C++11)
+  direction = DesignElement::NO_DERIVATIVE;
 }
 
 void CoefFunctionOpt::SetToOrgMaterial()
 {
   state = ORG;
   shadowMat.reset(); // equivalent to = nullptr (C++11)
+  direction = DesignElement::NO_DERIVATIVE;
 }
 
 void CoefFunctionOpt::SetToShadow(PtrCoefFct shadow)
 {
   state = SHADOW;
   shadowMat = shadow;
+  direction = DesignElement::NO_DERIVATIVE;
 }
+
+void CoefFunctionOpt::SetToTensorDerivative(DesignElement::Type dir)
+{
+  state = DIRECTION;
+  direction = dir;
+  assert(dir != DesignElement::NO_DERIVATIVE && dir != DesignElement::NO_MULTIMATERIAL && dir != DesignElement::NO_TYPE);
+}
+
+
 
 template <class T>
 void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
@@ -53,6 +66,7 @@ void CoefFunctionOpt::GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm)
 
  switch(state)
  {
+ case DIRECTION:
  case OPT:
    // the element does not necessarily lay in the design space!
    // if ApplyPhysicalDesign() returns true, coefMat is already set
@@ -92,6 +106,9 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
     break;
   case SHADOW:
     shadowMat->GetScalar(scal, lpm);
+    break;
+  case DIRECTION:
+    assert(false); // direction makes only sense for rtensors
     break;
   }
 
