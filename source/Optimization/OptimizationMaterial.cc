@@ -113,7 +113,6 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
 {
   LOG_DBG3(om) << "GEM int=" << integrator << " elem=" << (elem != NULL ? elem->elemNum : 4711) << " lb=" << lower_bimat << " d=" << direction << " et=" << entryType;
 
-  assert(direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::NO_MULTIMATERIAL);
   assert(entryType != Global::IMAG);
   assert(elem != NULL);
 
@@ -125,6 +124,9 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   EntityIterator it = elemList.GetIterator();
 
   shared_ptr<CoefFunctionOpt> coef = GetMatCoef(integrator, c, elem->regionId);
+
+  // we temporarily switch the coef to one of three states and after evaluating the element matrix switch it back to optimization
+  assert(!(lower_bimat && direction != DesignElement::NO_DERIVATIVE));
 
   if(lower_bimat)
   {
@@ -159,12 +161,14 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
 
     coef->SetToShadow(bimat);
   }
-  else
+  if(!lower_bimat)
     coef->SetToOrgMaterial();
+  if(direction != DesignElement::NO_DERIVATIVE)
+    coef->SetToTensorDerivative(direction);
 
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
 
-  coef->SetToOptimization(); // removes the shadow material
+  coef->SetToOptimization(); // removes the shadow material and direction
 }
 
 
@@ -320,10 +324,8 @@ const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int
 
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
   bool new_wave_vector = domain->GetDriver()->DoBlochModeEigenfrequency() && dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
-  //new_wave_vector = true;
 
   LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index << " es=" << enforce_unstructured << " s=" << structured_ << " nwv=" << new_wave_vector;
-  LOG_DBG3(om) << "MS: wv=" << dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().ToString() << " norm=" << dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2() << " cwv=" << current_wave_vector_[reg_id][index] << " nwv=" << new_wave_vector;
 
   StdVector<Matrix<double> >&  K =  mechStiffness_map[reg_id];
   StdVector<Matrix<Complex> >& KC = mechStiffness_mapC[reg_id];
@@ -332,9 +334,9 @@ const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int
   if(new_wave_vector || enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
    if(ComplexElementMatrix(reg_id))
-      GetElementMatrix<complex<double> >(KC[index], "LinElastInt", elem, bimaterial, DesignElement::NO_MULTIMATERIAL); // in the bimaterial case the standard (upper) material
+      GetElementMatrix<complex<double> >(KC[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
     else
-      GetElementMatrix<double>(K[index], "LinElastInt", elem, bimaterial, DesignElement::NO_MULTIMATERIAL); // in the bimaterial case the standard (upper) material
+      GetElementMatrix<double>(K[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
 
    if(domain->GetDriver()->DoBlochModeEigenfrequency())
      current_wave_vector_[reg_id][index] = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2();

@@ -82,7 +82,7 @@ namespace CoupledField
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T>& retMat, const LocPointMapped* lpm);
 
-     /** Performs the optimization for the matrix case. This
+     /** Performs the optimization for the scalar case. This
       * @return true if design and retScal is set */
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
@@ -135,7 +135,7 @@ namespace CoupledField
       * @param design_index index of designElement
       * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
-     bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
+     //bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
      bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 

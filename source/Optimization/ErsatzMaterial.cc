@@ -903,7 +903,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::GLOBAL_OSCILLATION:
       case Function::GLOBAL_JUMP:
       case Function::GLOBAL_SUM_MODULI:
-      case Function::GLOBAL_LAMINATES_VOL:
+      case Function::GLOBAL_TWO_SCALE_VOL:
       case Function::GLOBAL_TENSOR_TRACE:
       case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
       result = CalcGlobalFunction(f, derivative);
@@ -915,7 +915,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::JUMP:
       case Function::BUMP:
       case Function::SUM_MODULI:
-      case Function::LAMINATES_VOL:
+      case Function::TWO_SCALE_VOL:
       case Function::ORTHOTROPIC_TENSOR_TRACE:
       case Function::TENSOR_TRACE:
       case Function::TENSOR_NORM:

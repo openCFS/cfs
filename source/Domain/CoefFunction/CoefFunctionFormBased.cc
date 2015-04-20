@@ -355,10 +355,11 @@ template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
   return out.str();
 }
 
-// ---------------------
 
 template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
 {
+  LOG_DBG2(cff) << "CFDS:CFDS #forms=" << this->forms_.size();
+
   feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
@@ -371,12 +372,14 @@ template<class TYPE> CoefFunctionDyadicStrain<TYPE>::~CoefFunctionDyadicStrain()
 
 template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
 {
+  LOG_DBG2(cff) << "CFDS:GTS #forms=" << this->forms_.size();
   numRows = domain->GetGrid()->GetDim() == 2 ? 3 : 6;
   numCols = numRows;
 }
 
 template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
 {
+  LOG_DBG2(cff) << "CFDS:GT #forms=" << this->forms_.size();
   BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
 
   // LOG_DBG2(cff) << "CFDS:GT lpm=" << lpm.ptEl->elemNum << " form=" << form->GetName() << " B=" << form->GetBOp()->GetName();
@@ -444,6 +447,52 @@ template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
   return out.str();
 }
 
+// -----------------------
+
+template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+{
+  LOG_DBG2(cff) << "CFS:CFS #forms=" << this->forms_.size();
+
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::TENSOR;
+}
+
+template<class TYPE> CoefFunctionStiffness<TYPE>::~CoefFunctionStiffness() { }
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
+{
+  LOG_DBG2(cff) << "CFS:GTS #forms=" << this->forms_.size();
+
+  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+
+  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numCols == numRows);
+}
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
+{
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  LOG_DBG(cff) << "CFS:GT #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic(); // << " coef=" << form->GetCoef()->ToString();
+
+
+  form->GetCoef()->GetTensor(tensor, lpm);
+  LOG_DBG2(cff) << "CFS:GT -> " << tensor.ToString(2);
+}
+
+template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionDyadicStrain\n";
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+
 
 template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
@@ -454,6 +503,8 @@ template class CoefFunctionDyadicStrain<Complex>;
 template class CoefFunctionQuadSol<double>;
 template class CoefFunctionQuadSol<Complex>;
 
+template class CoefFunctionStiffness<double>;
+template class CoefFunctionStiffness<Complex>;
 
    
 } // end of namespace

@@ -629,6 +629,15 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   if(idx == -1)
     return false;
 
+  // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
+  if(designMaterial != NULL)
+  {
+    CollectMaterialParametersForElement(lpm->ptEl);
+
+    designMaterial->GetMaterialTensor(retMat, coef->subTensor, lpm, coef->GetTensorDerivative(), DesignMaterial::VOIGT);
+    return true;
+  }
+
   double bimat_factor = -1.0;
 
   Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
@@ -647,14 +656,13 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     retMat.Add(bimat_factor,tmp); // rho^p * E_l + (1-rho)^p * E_u
   }
 
-
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
   LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString();
   return true;
 }
 
 
-/** Performs the optimization.
+/** Performs the optimization for scalar material as for the mass
  * @return true if it is a design  variable and retScal is set */
 template <class T>
 bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm)
@@ -756,8 +764,9 @@ bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
     DesignElement* de = &data[index];
     designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
   }
-  return(true);
+  return true;
 }
+
 
 bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
 {
@@ -766,7 +775,8 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
   case DesignElement::TENSOR_TRACE:
   case DesignElement::ELAST_ALL:
   case DesignElement::ALL_DESIGNS:
-    return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
+    assert(false);
+    // return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
   case DesignElement::DIELEC_TRACE:
   case DesignElement::DIELEC_ALL:
     return GetDielecTensor(t, elem, direction);
@@ -777,8 +787,10 @@ bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTens
     break;
   }
   return false;
+
 }
 
+/*
 bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
@@ -786,7 +798,7 @@ bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTe
     return(true);
   }
   return(false);
-}
+}*/
 
 bool DesignSpace::GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
 {

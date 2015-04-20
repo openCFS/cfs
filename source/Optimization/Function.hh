@@ -119,8 +119,8 @@ class Function
       GLOBAL_ORTHOTROPIC_TENSOR_TRACE, /*!< global constraint on the tensor trace in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
       TENSOR_TRACE,              /*!< local constraint on the tensor trace for FMO, laminates, hom_rect. Elasticity or dielec */
       TENSOR_NORM,               /*!< local squared L2 norm of the tensor coefficients (sum of the squared coefficients). For piezo-coupling in piezo FMP */
-      LAMINATES_VOL,             /*!< Volume constraint / cost function for laminates parametrization */
-      GLOBAL_LAMINATES_VOL,      /*!< global volume constraint / cost function for laminates parametrization */
+      TWO_SCALE_VOL,             /*!< Volume constraint / cost function for laminates and hom_rect parametrization */
+      GLOBAL_TWO_SCALE_VOL,      /*!< global volume constraint / cost function for laminates and hom_rect parametrization */
       GLOBAL_TENSOR_TRACE,       /*!< global constraint on the tensor trace for fmo or laminates */
       PARAM_PS_POS_DEF,          /*!< constraint to ensure positive definiteness in parametrized elasticity tensor formulation (plane stress). Choose > 0*/
       POS_DEF_DET_MINOR_1,       /*!< 1st minor constraint for FMO positive definiteness by positive determinants */
@@ -439,12 +439,11 @@ class Function
             double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
             double direction) const;
 
-        /** volume of material (strong phase for plane strain) in laminate homogenization formulas */
-        double CalcLaminatesVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        /** volume of material (strong phase for plane strain) in laminate homogenization and two_scale formulas */
+        double CalcTwoScaleVolume(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** volume of material from homogenized lattice structure in 3D */
         double CalcLatticeVolume3D(const Local* local, DesignElement::Access access, int neigh_idx=-1, bool derivative = false) const;
-
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
         double CalcParamPSPosDef(int neigh_idx, bool derivative) const;

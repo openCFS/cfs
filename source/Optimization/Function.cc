@@ -378,8 +378,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case PROJECTION:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
+  case TWO_SCALE_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -516,7 +516,7 @@ bool Function::IsLocal(Type t) {
   case JUMP:
   case BUMP:
   case SUM_MODULI:
-  case LAMINATES_VOL:
+  case TWO_SCALE_VOL:
   case ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
   case TENSOR_NORM:
@@ -547,8 +547,8 @@ bool Function::ForDensityFiltering() const {
   case GLOBAL_SUM_MODULI:                 // TODO Be careful! Right now this is hardcoded in
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:   // Function::Local::Identifier::EvalFunction
   case ORTHOTROPIC_TENSOR_TRACE:          // and ::EvalGradient !!
-//  case GLOBAL_LAMINATES_VOL:
-//  case LAMINATES_VOL:
+//  case GLOBAL_TWO_SCALE_VOL:
+//  case TWO_SCALE_VOL:
     return false;
 
   case MULTI_OBJECTIVE:
@@ -612,8 +612,8 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
+  case TWO_SCALE_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -761,8 +761,8 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
     InitLocal(space);
     break;
 
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
+  case TWO_SCALE_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
@@ -885,7 +885,7 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     break;
 
   case GLOBAL_SUM_MODULI:
-  case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if (power_ != 1.0)
@@ -980,8 +980,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
-  case LAMINATES_VOL:
-  case GLOBAL_LAMINATES_VOL:
+  case TWO_SCALE_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case PARAM_PS_POS_DEF:
   case POS_DEF_DET_MINOR_1:
   case POS_DEF_DET_MINOR_2:
@@ -1613,11 +1613,11 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     fv = CalcSumModuli(DesignElement::PLAIN);
     break;
 
-  case LAMINATES_VOL:
-    fv = CalcLaminatesVolume(local, DesignElement::SMART);
+  case TWO_SCALE_VOL:
+    fv = CalcTwoScaleVolume(local, DesignElement::SMART);
         break;
-  case GLOBAL_LAMINATES_VOL:
-    fv = CalcLaminatesVolume(local, DesignElement::SMART);
+  case GLOBAL_TWO_SCALE_VOL:
+    fv = CalcTwoScaleVolume(local, DesignElement::SMART);
     break;
 
   case PARAM_PS_POS_DEF:
@@ -1681,7 +1681,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
   case STRESS:
   case STRESS_DENSITY:
   case GLOBAL_SUM_MODULI:
-  case GLOBAL_LAMINATES_VOL:
+  case GLOBAL_TWO_SCALE_VOL:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
   {
@@ -1689,7 +1689,7 @@ double Function::Local::Identifier::EvalFunction(const Local* local,
     // sufficient for the function value, the gradient is then also right
     double factor;
     if (local->DoNormalizeGlobal()) {
-      if (f->type_ == GLOBAL_LAMINATES_VOL) {
+      if (f->type_ == GLOBAL_TWO_SCALE_VOL) {
         factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : (1./local->total_vol_) ;
       } else {
         factor = 1.0 / local->virtual_elem_map.GetSize();
@@ -1779,11 +1779,11 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       gv = CalcSumModuli(DesignElement::PLAIN, n, true);
       break;
 
-    case LAMINATES_VOL:
-      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
+    case TWO_SCALE_VOL:
+      gv = CalcTwoScaleVolume(local, DesignElement::SMART, n, true);
       break;
-    case GLOBAL_LAMINATES_VOL:
-      gv = CalcLaminatesVolume(local, DesignElement::SMART, n, true);
+    case GLOBAL_TWO_SCALE_VOL:
+      gv = CalcTwoScaleVolume(local, DesignElement::SMART, n, true);
       break;
 
     case PARAM_PS_POS_DEF:
@@ -1844,7 +1844,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
       double factor = 1.0;
       if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
-        if (ft == GLOBAL_LAMINATES_VOL) {
+        if (ft == GLOBAL_TWO_SCALE_VOL) {
           factor = local->space->IsRegular() ? (1.0 / local->virtual_elem_map.GetSize()) : 1. / local->total_vol_ ;
         } else {
           factor = 1.0 / local->virtual_elem_map.GetSize();
@@ -2581,7 +2581,7 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
   return -1.0;
 }
 
-double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
+double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const
 {
   double stiff1(0.0), stiff2(0.0);
   for(int i=-1; i < (int) neighbor.GetSize(); ++i)
@@ -2614,66 +2614,6 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
   }
 }
 
-//double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const {
-//  DesignElement* de = dynamic_cast<DesignElement*>(element);
-//  double stiff1(0.0), stiff2(0.0), vol;
-//  int dim = domain->GetGrid()->GetDim();
-//  for (int i = -1; i < (int) neighbor.GetSize(); ++i) {
-//    switch (GetElement(i)->GetType()) {
-//    case DesignElement::STIFF1:
-//      stiff1 = GetElement(i)->GetDesign(access);
-//      break;
-//    case DesignElement::STIFF2:
-//      stiff2 = GetElement(i)->GetDesign(access);
-//      break;
-//    default:
-//      break;
-//    }
-//  }
-//  bool regular = local->space->IsRegular();
-//  /** if grid is nonregular, the volume has to be scaled by element size */
-//  if (!regular) {
-//    assert(local->total_vol_ != 0);
-//  }
-//  /**svol is a scaling factor for unstructured, nonregular grids. */
-//  double svol = regular ? 1.0 : de->CalcVolume();
-//  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
-//  if (!derivative) {
-//    if (dim == 2) {
-//      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
-//    } else {
-//      return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//    }
-//  } else {
-//    switch (GetElement(neigh_idx)->GetType()) {
-//    case DesignElement::STIFF1:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff2);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF2:
-//      if (dim == 2) {
-//        return svol*(1.0 - stiff1);
-//      } else {
-//        vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//        assert(vol!= -1);
-//        return vol;
-//      }
-//    case DesignElement::STIFF3:
-//      vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
-//      assert(vol!= -1);
-//      return vol;
-//
-//    default:
-//      return 0.0;
-//    }
-//  }
-//  //should never be reached
-//  return -1.0;
-//}
 
 double Function::Local::Identifier::CalcParamPSPosDef(int neigh_idx,
     bool derivative) const {
@@ -2873,7 +2813,8 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
 
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation
-  local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  assert(false);
+  // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
 
   LOG_DBG3(func) << "L::I::CBV e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " v=" << v << " E=" << E.ToString(0, false);
 

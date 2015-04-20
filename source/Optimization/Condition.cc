@@ -882,8 +882,9 @@ void LocalCondition::CalcHessian(StdVector<double>& out, double factor)
     double v = GetParameter();
     double eps = 1.0 * GetBoundValue();
 
-    Function::Local::Identifier& id = GetCurrentVirtualContext();
-    local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
+    //Function::Local::Identifier& id = GetCurrentVirtualContext();
+    assert(false);
+    // local->space->GetErsatzMaterialTensor(E, PLANE_STRAIN, dynamic_cast<DesignElement*>(id.element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL); // the sub-tensor-type does'nt matter
     double e11 = E[0][0]; // 1
     double e12 = E[0][1]; // 2
     double e22 = E[1][1]; // 3

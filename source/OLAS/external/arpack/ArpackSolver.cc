@@ -61,19 +61,14 @@ namespace CoupledField {
       type_ = type;
 
       // set default value for Arnoldi vectors
-      numArnoldiVec_ = numFreq_*2;
-      //numArnoldiVec_ = numFreq_*10;
+      numArnoldiVec_ = numFreq_ * 2;
       
-      // check, if number of arnoldi vectors is larger than
+      // check, if number of Arnoldi vectors is larger than
       // size of system
-      if( numArnoldiVec_ > size_/2 ) {
-        UInt newNumFreq = static_cast<UInt>( size / 2.0 );
-        numFreq_ = newNumFreq;
+      if( numArnoldiVec_ > size_) {
+        numFreq_ = size / 2;
         numArnoldiVec_ = numFreq_*2;
-        std::stringstream out;
-        WARN( "Number of Arnoldi vectors will be re-set to "
-              << newNumFreq << " as the number of eigenfrequencies may only be"
-              << " 1/2 the number of unknowns of the system");
+        WARN( "Number of Arnoldi vectors will be re-set to " << numFreq_ << " as the number of eigenfrequencies may only be 1/2 the number of unknowns of the system");
       }
       
       // Setup() is called for each wave_vector

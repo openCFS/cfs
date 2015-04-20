@@ -328,6 +328,28 @@ protected:
 };
 
 
+/** Simply returns the stiffness tensor. Does not work by using the existining CoefFunction :( */
+template<class TYPE>
+class CoefFunctionStiffness : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionStiffness();
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  virtual void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+};
 
 
 } // end of namespace

@@ -20,6 +20,9 @@
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "MatVec/Matrix.hh"
+#include "FeBasis/H1/H1Elems.hh"
+#include "FeBasis/H1/H1ElemsLagExpl.hh"
+
 
 DECLARE_LOG(dm)
 DEFINE_LOG(dm, "designMaterial")
@@ -989,10 +992,11 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
 {
   // only relevant for hom_rect
-  // FIXME commented due to fe-space Quad9FE fe;
+  FeH1LagrangeQuad9 fe;
+
   double a = params_[DesignElement::STIFF1];
   double b = params_[DesignElement::STIFF2];
   double c = subTensor == FULL ? params_[DesignElement::STIFF3] : 0.0;
@@ -1000,27 +1004,28 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   if (subTensor != FULL) {
     rotAngle = params_[DesignElement::ROTANGLE];
   }
-  Vector<double> p(subTensor == FULL ? 3 : 2);
+  LocPoint p;
+  p.coord.Resize(subTensor == FULL ? 3 : 2);
   if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
-    p[0] = -1.0 + 4 * a; // assume max 0.5
-    p[1] = -1.0 + 4 * b; // assume max 0.5
+    p.coord[0] = -1.0 + 4 * a; // assume max 0.5
+    p.coord[1] = -1.0 + 4 * b; // assume max 0.5
   }
   if (type_ == HOM_RECT_C1) {
-    p[0] = a;
-    p[1] = b;
-    if (subTensor == FULL) {
-      p[2] = c;
-    }
+    p.coord[0] = a;
+    p.coord[1] = b;
+    if(subTensor == FULL)
+      p.coord[2] = c;
   }
-#ifndef NDEBUG
-  Vector<double> peps(p);
+/* #ifndef NDEBUG
+  Vector<double> peps(p.coord);
   double eps = 1e-8;
   Matrix<double> Eeps(E);
   Matrix<double> Etmp(E);
   Vector<double> Diff(subTensor == FULL ? 3 : 2);
-#endif
-  LOG_DBG2(dm)<< "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
-  << " not=" << notation << " rotAngle=" << rotAngle << " a=" << a << " b=" << b <<" c="<<(subTensor == FULL ? c : 0.0)<< " -> " << p.ToString();
+ #endif
+ */
+  LOG_DBG2(dm) << "GHRT: dir=" << (direction == DesignElement::NO_DERIVATIVE ? "no_derivative" : DesignElement::type.ToString(direction))
+               << " not=" << notation << " rotAngle=" << rotAngle << " a=" << a << " b=" << b <<" c="<<(subTensor == FULL ? c : 0.0)<< " -> " << p.coord.ToString();
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::ROTANGLE:
@@ -1030,12 +1035,14 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   {
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
-      // FIXME commented due to fe-space  fe.GetShFnc(shape, p, NULL);
+
+      fe.GetShFnc(shape, p, lpm->shapeMap->GetElem());
+
       ApplyHomRectTensor(E, shape);
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
     }
     if(type_ == HOM_RECT_C1) {
-      ApplyHomRectC1Tensor(E,p,direction, subTensor);
+      ApplyHomRectC1Tensor(E,p.coord,direction, subTensor);
     }
     break;
   }
@@ -1044,10 +1051,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::STIFF3:
   {
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      /* FIXME fespace
       Matrix<double> jac;
       Matrix<double> dummy; // not used -> strange function ?! :(
-      // FIXME commented due to fe-space  fe.GetLocDerivShFnc(jac, p, dummy, NULL);
+      fe.GetLocDerivShFnc(jac, p, lpm->shapeMap->GetElem());
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
       jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by
@@ -1055,12 +1061,12 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       // correct scaling to local FE coordinates
       E *= 4;
       LOG_DBG2(dm) << "GHRT: d_shape=" << d_shape.ToString();
-      */
+
     }
     else if(type_ == HOM_RECT_C1) {
-      ApplyHomRectC1Tensor(E, p,direction,subTensor);
+      ApplyHomRectC1Tensor(E, p.coord,direction,subTensor);
       if (subTensor == FULL) {
-#ifndef NDEBUG
+/*#ifndef NDEBUG
         if (direction == DesignElement::STIFF1) {
           peps[0] += eps;
         } else if (direction == DesignElement::STIFF2) {
@@ -1086,7 +1092,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         LOG_DBG(dm)<<"deriv p= "<<p[0]<<", "<<p[1]<<", "<<p[2];
         LOG_DBG(dm)<<"FD Derivative - Derivative: "<<((direction == DesignElement::STIFF1)?"1":((direction == DesignElement::STIFF2) ? "2":"3"))<<" diff E11= "<<E[0][0]-e11<<" diff E12= "<<E[0][1]-e12<<" diff E22= "<< E[1][1]-e22<<
         " diff E33= "<<E[2][2]-e33<<" diff E23= "<<E[1][2]-e23<<" diff E13= "<<E[0][2]-e13<<" diff E44= "<<E[3][3]-e44<<" diff E55= "<<E[4][4]-e55<<" diff E66= "<<E[5][5]-e66;
-#endif
+#endif */
       }
     }
     break;
@@ -2078,8 +2084,17 @@ double DesignMaterial::GetIsoMass(double D, double G) {
   return (GetTransIsoMass(D, G, D, G));
 }
 
-void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
-    SubTensorType subTensor, DesignElement::Type direction, Notation notation) {
+void DesignMaterial::GetMaterialTensor(Matrix<Complex>& ct, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
+{
+  // we assume we have no complex material (special form of damping)
+  Matrix<double> dt;
+  GetMaterialTensor(dt, subTensor, lpm, direction, notation);
+  ct.SetPart(Global::REAL, dt, true); // zero other part
+}
+
+
+void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
+{
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT
         && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC
         && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
@@ -2118,7 +2133,7 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t,
   case HOM_RECT:
   case D_HOM_RECT:
   case HOM_RECT_C1:
-    GetHomRectTensor(t, subTensor, direction, notation);
+    GetHomRectTensor(t, subTensor, lpm, direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
