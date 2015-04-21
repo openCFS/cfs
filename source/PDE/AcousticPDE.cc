@@ -908,7 +908,7 @@ namespace CoupledField{
     
            
     // In the case of acou-mech coupling we have to multiply the
-    // integrators by -densiy
+    // integrators by -density
     Double scalFactor = 1.0;
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
 
@@ -920,6 +920,7 @@ namespace CoupledField{
     
     ReadRhsExcitation( "normalVelocity", empty, ResultInfo::SCALAR, isComplex_,
                           ent, coef, coefUpdateGeo );
+
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       
       // ensure that list contains only surface elements
@@ -1072,6 +1073,66 @@ namespace CoupledField{
       myFct->AddEntityList(ent[i]);
     }
     
+
+    // ===========================
+    //  NORMAL ACCELERATION (surface)
+    // ===========================
+    LOG_DBG(acousticpde) << "Reading normal acceleration";
+
+    ReadRhsExcitation( "normalAcceleration", empty, ResultInfo::SCALAR, isComplex_,
+                          ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+
+      // ensure that list contains only surface elements
+      EntityIterator it = ent[i]->GetIterator();
+      UInt elemDim = Elem::shapes[it.GetElem()->type].dim;
+      if( elemDim != (dim_-1) ) {
+        EXCEPTION("Normal acceleration can only be defined on surface elements");
+      }
+      scalFactor = 1.0;
+      PtrCoefFct exValue;
+      if ( isMechCoupled_ == true && formulation_ !=  ACOU_PRESSURE ) {
+    	  EXCEPTION( "Normal acceleration can only be prescribed for pressure"
+    	              << "formulation" );
+      } else {
+        exValue = coef[i];
+      }
+
+      if( formulation_ == ACOU_PRESSURE ) {
+    	  exValue =
+    			  CoefFunction::Generate( mp_, part,
+    					  CoefXprBinOp(mp_, coef[i],surfDens, CoefXpr::OP_MULT) );
+
+        if( dim_ == 2) {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,2,1>(),
+            		scalFactor, exValue, volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,2,1>(),
+            		scalFactor, exValue, volRegions, coefUpdateGeo);
+          }
+        } else  {
+          if(isComplex_) {
+            lin = new BUIntegrator<Complex,true>( new IdentityOperator<FeH1,3,1>(),
+            			scalFactor, exValue, volRegions, coefUpdateGeo);
+          } else {
+            lin = new BUIntegrator<Double,true>( new IdentityOperator<FeH1,3,1>(),
+            		scalFactor, exValue , volRegions, coefUpdateGeo);
+          }
+        }
+      } else if( formulation_ == ACOU_POTENTIAL) {
+        EXCEPTION( "Normal acceleration can only be prescribed for pressure "
+            << "formulation" )
+      }
+      lin->SetName("NormalAccelerationIntegrator");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+      myFct->AddEntityList(ent[i]);
+    }
+
+
     // ===========================
     //  PRESSURE (surface) 
     // ===========================
