@@ -126,7 +126,7 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   shared_ptr<CoefFunctionOpt> coef = GetMatCoef(integrator, c, elem->regionId);
 
   // we temporarily switch the coef to one of three states and after evaluating the element matrix switch it back to optimization
-  assert(!(lower_bimat && direction != DesignElement::NO_DERIVATIVE));
+  assert(!(lower_bimat && (direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)));
 
   if(lower_bimat)
   {
@@ -163,7 +163,7 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   }
   if(!lower_bimat)
     coef->SetToOrgMaterial();
-  if(direction != DesignElement::NO_DERIVATIVE)
+  if(direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)
     coef->SetToTensorDerivative(direction);
 
   c->GetIntegrator()->CalcElementMatrix(out, it, it);

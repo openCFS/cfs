@@ -210,7 +210,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.elements = n;
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
-              dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant densign-value on that region
+              dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
             if(curr_design_pn->Get("fixed")->As<bool>()) 
               dr.constant = FIXED; // fixed overwrites all other settings
 
@@ -607,7 +607,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
     return 0;
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
-  if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor())
+  if(dt == DesignElement::MECH_TRACE && designMaterial != NULL)
     return 0;
   // search where in data we are
   int base = -1;
@@ -630,13 +630,8 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
     return false;
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL)
-  {
-    CollectMaterialParametersForElement(lpm->ptEl);
-
-    designMaterial->GetMaterialTensor(retMat, coef->subTensor, lpm, coef->GetTensorDerivative(), DesignMaterial::VOIGT);
-    return true;
-  }
+  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+    return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetTensorDerivative(), DesignMaterial::VOIGT);
 
   double bimat_factor = -1.0;
 
@@ -752,80 +747,8 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   return true;
 }
 
-bool DesignSpace::CollectMaterialParametersForElement(const Elem* elem){
-  int base = Find(elem, false);
-  if(base < 0){
-    return(false);
-  }
-
-  // we must not clear the parameters here as only designs are rewritten but not fixed parameters
-
-  for(unsigned int index = base; index < data.GetSize(); index += elements){
-    DesignElement* de = &data[index];
-    designMaterial->SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
-  }
-  return true;
-}
-
-
-bool DesignSpace::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
-{
-  switch(type)
-  {
-  case DesignElement::TENSOR_TRACE:
-  case DesignElement::ELAST_ALL:
-  case DesignElement::ALL_DESIGNS:
-    assert(false);
-    // return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
-  case DesignElement::DIELEC_TRACE:
-  case DesignElement::DIELEC_ALL:
-    return GetDielecTensor(t, elem, direction);
-  case DesignElement::PIEZO_ALL:
-    return GetPiezoCouplingTensor(t, elem, direction);
-  default:
-    return false;
-    break;
-  }
-  return false;
-
-}
 
 /*
-bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation){
-  // collect all parameters
-  if(CollectMaterialParametersForElement(elem)){
-    designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
-    return(true);
-  }
-  return(false);
-}*/
-
-bool DesignSpace::GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
-{
-  // believe if there is one then there are all :)
-  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::DIELEC_11))
-    return false;
-  if(CollectMaterialParametersForElement(elem)) {
-    designMaterial->GetElecTensor(t, direction);
-    return true;
-  }
-  else
-    return false;
-}
-
-bool DesignSpace::GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction)
-{
-  if(direction == DesignElement::NO_DERIVATIVE && !designMaterial->HasParameter(DesignElement::PIEZO_11))
-    return false;
-  if(CollectMaterialParametersForElement(elem)) {
-    designMaterial->GetPiezoCouplingTensor(t, direction);
-    return true;
-  }
-  else
-    return false;
-}
-
-
 double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
   // collect all parameters
   if(CollectMaterialParametersForElement(elem)){
@@ -841,10 +764,14 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
   return(false);
 }
 
-bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
-{
-  assert(false);
-  return false;
+*/
+
+
+//bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
+//{
+//  assert(false);
+//  return false;
+
   /* FIXME
   if(CollectMaterialParametersForElement(elem)){
     double dummy = 0.0;
@@ -853,7 +780,7 @@ bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* ele
   }
   return(false);
   */
-}
+//}
 
 bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, TransferFunction* tf, SubTensorType stt, MaterialClass mc, const DesignElement* derivative)
 {
@@ -934,7 +861,7 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor())
+  if(designMaterial != NULL)
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
 
   if(use_single && transfer.GetSize() == 1)
@@ -1193,8 +1120,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
 }
 void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  unsigned int start = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? 0 : FindDesign(design) * elements;
-  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::TENSOR_TRACE ? data.GetSize() : start + elements;
+  unsigned int start = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? 0 : FindDesign(design) * elements;
+  unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
   for(unsigned int i = start; i < end; i++)

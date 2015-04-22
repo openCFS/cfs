@@ -35,26 +35,15 @@ ParamMat::ParamMat() : ErsatzMaterial()
 
 void ParamMat::PostInit()
 {
-  PtrParamNode simp_pn = pn->Get("SIMP", ParamNode::PASS);
-
-  // There might be a filter regularization based on the design element.
-  if(simp_pn)
+  if(pn->Has("filters"))
   {
-    if(simp_pn->HasByVal("regularization", "type", "filter"))
+    ParamNodeList list = pn->Get("filters")->GetList("filter");
+    // this is save for design=polarization
+    for(unsigned int i = 0; i < list.GetSize(); i++)
     {
-      ParamNodeList list = simp_pn->Get("regularization")->GetList("filter");
-      // this is save for design=polarization
-      for(unsigned int i = 0; i < list.GetSize(); i++)
-      {
-        if(structure_ == NULL)
-          structure_ = new DesignStructure(this);
-        structure_->SetFilters(list[i], this->optInfoNode);
-      }
-    }
-    else
-    {
-      if(simp_pn->Has("regularization"))
-        throw Exception("regularization not implemented");
+      if(structure_ == NULL)
+        structure_ = new DesignStructure(this);
+      structure_->SetFilters(list[i], this->optInfoNode);
     }
   }
 

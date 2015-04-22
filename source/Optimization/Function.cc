@@ -128,7 +128,7 @@ Function::Function(PtrParamNode pn) {
 
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
-    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::TENSOR_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
+    if(design_ != DesignElement::DEFAULT && design_ != DesignElement::MECH_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
       throw Exception("function '" + type.ToString(type_) + "' has invalid design type " + DesignElement::type.ToString(design_));
     break;
 
@@ -138,7 +138,7 @@ Function::Function(PtrParamNode pn) {
   case BENSON_VANDERBEI_1:
   case BENSON_VANDERBEI_2:
   case BENSON_VANDERBEI_3:
-    if (design_ != DesignElement::ELAST_ALL && design_ != DesignElement::DIELEC_ALL)
+    if (design_ != DesignElement::MECH_ALL && design_ != DesignElement::DIELEC_ALL)
       throw Exception("mandatory 'design' for '" + type.ToString(type_) + "' is 'elast_all' and 'dielec_all'");
 
     break;
@@ -665,9 +665,9 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
     int nd = 1;
     if(design_ == DesignElement::DEFAULT || design_ == DesignElement::ALL_DESIGNS)
       nd = space->design.GetSize();
-    if(design_ == DesignElement::TENSOR_TRACE)
+    if(design_ == DesignElement::MECH_TRACE)
       nd = 6; // TODO why no 3?
-    if(design_ == DesignElement::ELAST_ALL)
+    if(design_ == DesignElement::MECH_ALL)
       nd = 6;
     if(design_ == DesignElement::DIELEC_TRACE)
       nd = 2;
@@ -1351,7 +1351,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
   case POS_DEF_DET_MINOR_1:
   case BENSON_VANDERBEI_1:
     assert(space->design.GetSize() >= 6);
-    if (space->design[0].design != DesignElement::TENSOR11
+    if (space->design[0].design != DesignElement::MECH_11
         || space->design[0].design != DesignElement::DIELEC_11)
       throw Exception("'Expect first design to be 'tensor11' or 'dielec_11'");
     // only design TENSOR11 is not neighbor
@@ -1363,19 +1363,19 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
       des_idx.Push_back(space->FindDesign(DesignElement::DIELEC_22));
       des_idx.Push_back(space->FindDesign(DesignElement::DIELEC_12));
     } else {
-      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
-      des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+      des_idx.Push_back(space->FindDesign(DesignElement::MECH_22));
+      des_idx.Push_back(space->FindDesign(DesignElement::MECH_12));
     }
     break;
   case POS_DEF_DET_MINOR_3:
   case BENSON_VANDERBEI_3:
     assert(space->design.GetSize() >= 6);
     // note, that the indices are sorted in sparse pattern
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR22));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR33));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR23));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR13));
-    des_idx.Push_back(space->FindDesign(DesignElement::TENSOR12));
+    des_idx.Push_back(space->FindDesign(DesignElement::MECH_22));
+    des_idx.Push_back(space->FindDesign(DesignElement::MECH_33));
+    des_idx.Push_back(space->FindDesign(DesignElement::MECH_23));
+    des_idx.Push_back(space->FindDesign(DesignElement::MECH_13));
+    des_idx.Push_back(space->FindDesign(DesignElement::MECH_12));
     break;
   default:
     // all designs but the first one
@@ -2245,16 +2245,16 @@ double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
   {
     switch(GetElement(i)->GetType())
     {
-    case DesignElement::TENSOR11:
+    case DesignElement::MECH_11:
       e11 = GetElement(i)->GetDesign(access);
       break;
-    case DesignElement::TENSOR22:
+    case DesignElement::MECH_22:
       e22 = GetElement(i)->GetDesign(access);
       break;
-    case DesignElement::TENSOR33:
+    case DesignElement::MECH_33:
       e33 = GetElement(i)->GetDesign(access);
       break;
-    case DesignElement::TENSOR12:
+    case DesignElement::MECH_12:
       e12 = GetElement(i)->GetDesign(access);
       break;
     case DesignElement::LOWER_EIG_BOUND:
@@ -2275,13 +2275,13 @@ double Function::Local::Identifier::CalcOrthotropicTensorTrace(const Local* loca
   if(derivative)
   {
     DesignElement::Type type = GetElement(neigh_idx)->GetType();
-    if (type == DesignElement::TENSOR11)
+    if (type == DesignElement::MECH_11)
       return 2.0*e11;
-    else if(type == DesignElement::TENSOR22)
+    else if(type == DesignElement::MECH_22)
       return 2.0*e22;
-    else if(type == DesignElement::TENSOR33)
+    else if(type == DesignElement::MECH_33)
       return 1.0;
-    else if(type == DesignElement::TENSOR12)
+    else if(type == DesignElement::MECH_12)
       return 4.0*e12;
     else if(type == DesignElement::LOWER_EIG_BOUND)
     {
@@ -2666,7 +2666,7 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
 
   Matrix<double> E;
 
-  bool ok = local->space->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
+  bool ok = local->space->designMaterial->GetTensor(E, g->GetDesignType(), PLANE_STRAIN, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE, DesignMaterial::HILL_MANDEL);
   // the sub-tensor-type does'nt matter
   // we need the HILL_MANDEL representation which is the plain design while it is transformed to Voigt for simulation (elasticity only)
   assert(ok);
@@ -2710,20 +2710,20 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
       ret = (e11 - v - eps) * (e22 - v) - (e12 * e12) - eps;
     else {
       switch (GetElement(neigh_idx)->GetType()) {
-      case DesignElement::TENSOR11:
+      case DesignElement::MECH_11:
         ret = e22 - v;
         break;
       case DesignElement::DIELEC_11:
         ret = -1.0 * (e22 - v);
         break;
         // case DesignElement::TENSOR22: ret = e11-v-eps; break;
-      case DesignElement::TENSOR12:
+      case DesignElement::MECH_12:
         ret = -2.0 * e12;
         break;
       case DesignElement::DIELEC_12:
         ret = 2.0 * e12;
         break;
-      case DesignElement::TENSOR22:
+      case DesignElement::MECH_22:
         ret = e11 - v - eps;
         break;
       case DesignElement::DIELEC_22:
@@ -2761,26 +2761,26 @@ double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx,
        case DesignElement::TENSOR13: ret = 2.0*e12*e23     - 2.0*e13*(e22-v); break;
        case DesignElement::TENSOR12: ret = 2.0*e23*e13     - 2.0*e12*(e33-v); break;
        */
-      case DesignElement::TENSOR11:
+      case DesignElement::MECH_11:
         ret = (e22 - v) * (e33 - v) - e23 * e23;
         break;
-      case DesignElement::TENSOR12:
+      case DesignElement::MECH_12:
         ret = 2.0 * e23 * e13 - 2.0 * e12 * (e33 - v);
         break;
-      case DesignElement::TENSOR22:
+      case DesignElement::MECH_22:
         // Sarrus: ret = (e11-v)*(e33-v) - e13*e13;
         ret = (e33 - v) * (e11 - v - eps) - e13 * e13;
         // ret = (e11-v)*(e33-v) - e13*e13;
         break;
-      case DesignElement::TENSOR23:
+      case DesignElement::MECH_23:
         // Sarrus: ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
         ret = 2.0 * e12 * e13 - 2.0 * e23 * (-v - eps + e11);
         // ret = 2.0*e12*e13     - 2.0*e23*(e11-v);
         break;
-      case DesignElement::TENSOR13:
+      case DesignElement::MECH_13:
         ret = 2.0 * e12 * e23 - 2.0 * e13 * (e22 - v);
         break;
-      case DesignElement::TENSOR33:
+      case DesignElement::MECH_33:
         // Sarrus: ret = (e11-v)*(e22-v) - e12*e12;
         ret = (e22 - v) * (-v - eps + e11) - eps - e12 * e12;
         // ret = (e11-v)*(e22-v) - e12*e12;
@@ -2843,14 +2843,14 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
       ret = (e22 - v) - (e12 * e12) / (e11 - v - eps);
     else {
       switch (GetElement(neigh_idx)->GetType()) {
-      case DesignElement::TENSOR11:
+      case DesignElement::MECH_11:
         // ret = (e12*e12)/((e11-v)*(e11-v));
         ret = (e12 * e12) / ((e11 - v - eps) * (e11 - v - eps));
         break;
-      case DesignElement::TENSOR12:
+      case DesignElement::MECH_12:
         ret = -2.0 * e12 / (e11 - v - eps);
         break;
-      case DesignElement::TENSOR22:
+      case DesignElement::MECH_22:
         ret = 1.0;
         break;
       default:
@@ -2882,7 +2882,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
       //                                    / pow((e11-v)*(e22-v)-e12*e12, 2)
       //                                  - (e23*e23)
       //                                    / ((e11-v)*(e22-v)-e12*e12);
-      case DesignElement::TENSOR11:
+      case DesignElement::MECH_11:
         ret = ((e22 - v) * (e33 - v) - e23 * e23)
             / ((e22 - v) * (-v - eps + e11) - eps - e12 * e12)
             - ((-e23 * e23 * (-v - eps + e11)
@@ -2896,7 +2896,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
         //                                    / ((e11-v)*(e22-v)-e12*e12)
         //                                  + (2.0*e12*(-e13*e13*(e22-v)-e23*e23*(e11-v)+2.0*e12*e13*e23))
         //                                     / pow((e11-v)*(e22-v)-e12*e12, 2);
-      case DesignElement::TENSOR12:
+      case DesignElement::MECH_12:
         ret = (2.0 * e13 * e23 - 2.0 * e12 * (e33 - v))
             / ((e22 - v) * (-v - eps + e11) - eps - e12 * e12)
             + (2.0 * e12
@@ -2911,7 +2911,7 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
         //                                    / pow((e11-v)*(e22-v)-e12*e12,2)
         //                                  - (e13*e13)
         //                                    / ((e11-v)*(e22-v)-e12*e12);
-      case DesignElement::TENSOR22:
+      case DesignElement::MECH_22:
         ret = ((e33 - v) * (-v - eps + e11) - e13 * e13)
             / ((e22 - v) * (-v - eps + e11) - eps - e12 * e12)
             - ((-e23 * e23 * (-v - eps + e11)
@@ -2923,17 +2923,17 @@ double Function::Local::Identifier::CalcBensonVanderbei(int neigh_idx,
         break;
         // case DesignElement::TENSOR13: ret = (2.0*e12*e23-2.0*e13*(e22-v))
         //                                    / ((e11-v)*(e22-v)-e12*e12);
-      case DesignElement::TENSOR13:
+      case DesignElement::MECH_13:
         ret = (2.0 * e12 * e23 - 2.0 * e13 * (e22 - v))
             / ((e22 - v) * (-v - eps + e11) - eps - e12 * e12);
         break;
         // case DesignElement::TENSOR23: ret = (2.0*e12*e13-2.0*e23*(e11-v))
         //                                      / ((e11-v)*(e22-v)-e12*e12);
-      case DesignElement::TENSOR23:
+      case DesignElement::MECH_23:
         ret = (2.0 * e12 * e13 - 2.0 * e23 * (-v - eps + e11))
             / ((e22 - v) * (-v - eps + e11) - eps - e12 * e12);
         break;
-      case DesignElement::TENSOR33:
+      case DesignElement::MECH_33:
         ret = 1.0;
         break;
       default:
@@ -2981,7 +2981,7 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
   DesignMaterial::Notation notation = local->func_->notation_;
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
 
-  bool ok = local->space->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
+  bool ok = local->space->designMaterial->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
       dynamic_cast<DesignElement*>(element)->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
   assert(ok);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
@@ -2989,16 +2989,9 @@ double Function::Local::Identifier::CalcTensorTrace(int neigh_idx,
 
   double ret = E.Trace() * (ok ? 1.0 : 1.0); // to use ok in assert
 
-  assert(
-      !(derivative
-          && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE
-          && ret != -1.0));
-  assert(
-      !(derivative && notation == DesignMaterial::HILL_MANDEL
-          && de->GetType() == DesignElement::TENSOR33 && ret != 1.0));
-  assert(
-      !(derivative && notation == DesignMaterial::VOIGT
-          && de->GetType() == DesignElement::TENSOR33 && ret != 0.5));
+  assert(!(derivative && local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && ret != -1.0));
+  assert(!(derivative && notation == DesignMaterial::HILL_MANDEL && de->GetType() == DesignElement::MECH_33 && ret != 1.0));
+  assert(!(derivative && notation == DesignMaterial::VOIGT && de->GetType() == DesignElement::MECH_33 && ret != 0.5));
 
   LOG_DBG3(func)<< "L::I::CTT e_num=" << de->elem->elemNum << " ni=" << neigh_idx << " nt=" << de->type.ToString(de->GetType()) << " d=" << derivative << " -> " << ret;
   return ret;
@@ -3009,7 +3002,7 @@ double Function::Local::Identifier::CalcTensorNorm(int neigh_idx, const Local* l
   const BaseDesignElement* de = GetElement(neigh_idx);
   assert(local->func_->GetDesignType() == DesignElement::PIEZO_ALL);
   // as we square we do not need the linear derivative
-  local->space->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
+  local->space->designMaterial->GetPiezoCouplingTensor(E, dynamic_cast<DesignElement*>(element)->elem, DesignElement::NO_DERIVATIVE);
 
   LOG_DBG3(func) << "L::I::CTN e_num=" << dynamic_cast<DesignElement*>(element)->elem->elemNum << " E=" << E.ToString(0, false);
 

@@ -720,7 +720,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == VOLUME && physical_ && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 
-  if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::TENSOR_TRACE)
+  if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
     info_->Get("notation")->SetValue(DesignMaterial::notation.ToString(notation_));
 
 }
@@ -797,9 +797,9 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
   {
   case POS_DEF_DET_MINOR_2:
   {
-    DesignElement::Type t11 = elec ? DesignElement::DIELEC_11 : DesignElement::TENSOR11;
-    DesignElement::Type t12 = elec ? DesignElement::DIELEC_12 : DesignElement::TENSOR12;
-    DesignElement::Type t22 = elec ? DesignElement::DIELEC_22 : DesignElement::TENSOR22;
+    DesignElement::Type t11 = elec ? DesignElement::DIELEC_11 : DesignElement::MECH_11;
+    DesignElement::Type t12 = elec ? DesignElement::DIELEC_12 : DesignElement::MECH_12;
+    DesignElement::Type t22 = elec ? DesignElement::DIELEC_22 : DesignElement::MECH_22;
 
     hess_sparsity_.Resize(2, 2);
 
@@ -815,41 +815,41 @@ Matrix<unsigned int>& LocalCondition::GetHessianSparsityPattern()
     assert(!elec);
     hess_sparsity_.Resize(12, 2);
 
-    hess_sparsity_(0, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(0, 1) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
+    hess_sparsity_(0, 0) = id.GetElement(DesignElement::MECH_11)->GetIndex();
+    hess_sparsity_(0, 1) = id.GetElement(DesignElement::MECH_22)->GetIndex();
 
-    hess_sparsity_(1, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(1, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(1, 0) = id.GetElement(DesignElement::MECH_11)->GetIndex();
+    hess_sparsity_(1, 1) = id.GetElement(DesignElement::MECH_23)->GetIndex();
 
-    hess_sparsity_(2, 0) = id.GetElement(DesignElement::TENSOR11)->GetIndex();
-    hess_sparsity_(2, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(2, 0) = id.GetElement(DesignElement::MECH_11)->GetIndex();
+    hess_sparsity_(2, 1) = id.GetElement(DesignElement::MECH_33)->GetIndex();
 
-    hess_sparsity_(3, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(3, 1) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
+    hess_sparsity_(3, 0) = id.GetElement(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(3, 1) = id.GetElement(DesignElement::MECH_12)->GetIndex();
 
-    hess_sparsity_(4, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(4, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(4, 0) = id.GetElement(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(4, 1) = id.GetElement(DesignElement::MECH_13)->GetIndex();
 
-    hess_sparsity_(5, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(5, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(5, 0) = id.GetElement(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(5, 1) = id.GetElement(DesignElement::MECH_23)->GetIndex();
 
-    hess_sparsity_(6, 0) = id.GetElement(DesignElement::TENSOR12)->GetIndex();
-    hess_sparsity_(6, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(6, 0) = id.GetElement(DesignElement::MECH_12)->GetIndex();
+    hess_sparsity_(6, 1) = id.GetElement(DesignElement::MECH_33)->GetIndex();
 
-    hess_sparsity_(7, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(7, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(7, 0) = id.GetElement(DesignElement::MECH_22)->GetIndex();
+    hess_sparsity_(7, 1) = id.GetElement(DesignElement::MECH_13)->GetIndex();
 
-    hess_sparsity_(8, 0) = id.GetElement(DesignElement::TENSOR22)->GetIndex();
-    hess_sparsity_(8, 1) = id.GetElement(DesignElement::TENSOR33)->GetIndex();
+    hess_sparsity_(8, 0) = id.GetElement(DesignElement::MECH_22)->GetIndex();
+    hess_sparsity_(8, 1) = id.GetElement(DesignElement::MECH_33)->GetIndex();
 
-    hess_sparsity_(9, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(9, 1) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
+    hess_sparsity_(9, 0) = id.GetElement(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(9, 1) = id.GetElement(DesignElement::MECH_13)->GetIndex();
 
-    hess_sparsity_(10, 0) = id.GetElement(DesignElement::TENSOR13)->GetIndex();
-    hess_sparsity_(10, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(10, 0) = id.GetElement(DesignElement::MECH_13)->GetIndex();
+    hess_sparsity_(10, 1) = id.GetElement(DesignElement::MECH_23)->GetIndex();
 
-    hess_sparsity_(11, 0) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
-    hess_sparsity_(11, 1) = id.GetElement(DesignElement::TENSOR23)->GetIndex();
+    hess_sparsity_(11, 0) = id.GetElement(DesignElement::MECH_23)->GetIndex();
+    hess_sparsity_(11, 1) = id.GetElement(DesignElement::MECH_23)->GetIndex();
 
     break;
   default:

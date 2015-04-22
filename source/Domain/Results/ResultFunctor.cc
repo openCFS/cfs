@@ -1,6 +1,7 @@
 #include "ResultFunctor.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
+#include "Domain/Results/ResultInfo.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 
 namespace CoupledField {
@@ -148,7 +149,10 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::GetVector(Vector<TYPE>& vec, c
       {
         Matrix<TYPE> tmp;
         coef_->GetTensor(tmp, lpm);
-        tmp.ConvertToVec_AppendRows(vec);
+        if(resultInfo_->dofNames.GetSize() == tmp.GetNumRows() * tmp.GetNumCols())
+          tmp.ConvertToVec_AppendRows(vec);
+        else
+          tmp.ConvertToVec_UpperTriangular(vec);
         break;
       }
     default:
@@ -466,6 +470,8 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
       {
         unsigned int rows = tempValMat.GetNumRows();
         unsigned int cols = tempValMat.GetNumCols();
+
+        LOG_DBG(resfunc) << "RFI::ER TENSOR res=" << res->ToString() << " nD=" << numDofs << " r=" << rows << " c=" << cols;
 
         if(numDofs == rows * cols)
           elemValMat.ConvertToVec_AppendRows(tempValVec);

@@ -6,7 +6,8 @@
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
-#include "DesignMaterial.hh"
+#include "Optimization/Design/DesignMaterial.hh"
+#include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "General/defs.hh"
@@ -103,20 +104,13 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
       int dim3 = root->Get("a/matrix/dim1")->As<int>();
       int dim4 = root->Get("b/matrix/dim1")->As<int>();
-      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2,
-          hom_rect_coeff11_);
-      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2,
-          hom_rect_coeff12_);
-      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2,
-          hom_rect_coeff22_);
-      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2,
-          hom_rect_coeff33_);
-      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1,
-          hom_rect_a_);
-      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1,
-          hom_rect_b_);
-      Notation notation =
-          root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+      ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+      ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+      Notation notation =root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
     } else if (dim == 3) {
       PtrParamNode hr = pn->Get("homRectC1");
@@ -128,24 +122,15 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       int dim3 = root->Get("a/matrix/dim1")->As<int>();
       int dim4 = root->Get("b/matrix/dim1")->As<int>();
       int dim5 = root->Get("c/matrix/dim1")->As<int>();
-      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2,
-          hom_rect_coeff11_);
-      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2,
-          hom_rect_coeff12_);
-      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2,
-          hom_rect_coeff22_);
-      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2,
-          hom_rect_coeff33_);
-      ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2,
-          hom_rect_coeff13_);
-      ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2,
-          hom_rect_coeff23_);
-      ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), dim1, dim2,
-          hom_rect_coeff44_);
-      ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), dim1, dim2,
-          hom_rect_coeff55_);
-      ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2,
-          hom_rect_coeff66_);
+      ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+      ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+      ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+      ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+      ParamTools::AsTensor<double>(root->Get("coeff13/matrix/real"), dim1, dim2, hom_rect_coeff13_);
+      ParamTools::AsTensor<double>(root->Get("coeff23/matrix/real"), dim1, dim2, hom_rect_coeff23_);
+      ParamTools::AsTensor<double>(root->Get("coeff44/matrix/real"), dim1, dim2, hom_rect_coeff44_);
+      ParamTools::AsTensor<double>(root->Get("coeff55/matrix/real"), dim1, dim2, hom_rect_coeff55_);
+      ParamTools::AsTensor<double>(root->Get("coeff66/matrix/real"), dim1, dim2, hom_rect_coeff66_);
 
       ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
       ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
@@ -166,13 +151,30 @@ void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, 
   Notation notation =  homRect->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
 
   PtrParamNode data = homRect->GetByVal("data", "a", a, "b", b);
-  hom_rect_samples_[idx][DesignElement::TENSOR11 - DesignElement::TENSOR11] = data->Get("e11")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR12 - DesignElement::TENSOR11] = data->Get("e12")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR22 - DesignElement::TENSOR11] = data->Get("e22")->As<double>();
-  hom_rect_samples_[idx][DesignElement::TENSOR33 - DesignElement::TENSOR11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
-  hom_rect_samples_[idx][DesignElement::TENSOR13 - DesignElement::TENSOR11] = 0.0;
-  hom_rect_samples_[idx][DesignElement::TENSOR23 - DesignElement::TENSOR11] = 0.0;
+  hom_rect_samples_[idx][DesignElement::MECH_11 - DesignElement::MECH_11] = data->Get("e11")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_12 - DesignElement::MECH_11] = data->Get("e12")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_22 - DesignElement::MECH_11] = data->Get("e22")->As<double>();
+  hom_rect_samples_[idx][DesignElement::MECH_33 - DesignElement::MECH_11] = data->Get("e33")->As<double>() * (notation == VOIGT ? 2.0 : 1.0);
+  hom_rect_samples_[idx][DesignElement::MECH_13 - DesignElement::MECH_11] = 0.0;
+  hom_rect_samples_[idx][DesignElement::MECH_23 - DesignElement::MECH_11] = 0.0;
 }
+
+bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem)
+{
+  int base = space->Find(elem, false);
+  if(base < 0)
+    return false;
+
+  // we must not clear the parameters here as only designs are rewritten but not fixed parameters
+  for(unsigned int index = base; index < space->data.GetSize(); index += space->elements)
+  {
+    DesignElement* de = &space->data[index];
+    SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
+  }
+  return true;
+}
+
+
 
 unsigned int DesignMaterial::RequiredParameters(
     OptimizationMaterial::System material) {
@@ -237,12 +239,12 @@ bool DesignMaterial::CheckRequiredDesigns(
   }
   switch (type_) {
   case FMO:
-    return (design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR22) >= 0
-        && design.Find(DesignElement::TENSOR33) >= 0
-        && design.Find(DesignElement::TENSOR23) >= 0
-        && design.Find(DesignElement::TENSOR13) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0);
+    return (design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_22) >= 0
+        && design.Find(DesignElement::MECH_33) >= 0
+        && design.Find(DesignElement::MECH_23) >= 0
+        && design.Find(DesignElement::MECH_13) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0);
   case ISOTROPIC:
     return (design.Find(DesignElement::EMODUL) >= 0
         && design.Find(DesignElement::POISSON) >= 0);
@@ -276,42 +278,42 @@ bool DesignMaterial::CheckRequiredDesigns(
         && (dim != 2 || design.Find(DesignElement::ROTANGLE))
         && (dim != 3 || (design.Find(DesignElement::ROTANGLEX) && design.Find(DesignElement::ROTANGLEY) ) ) );
   case ORTHOTROPIC:
-    return(design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR22) >= 0
-        && design.Find(DesignElement::TENSOR33) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0
+    return(design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_22) >= 0
+        && design.Find(DesignElement::MECH_33) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0
         && design.Find(DesignElement::LOWER_EIG_BOUND) >= 0);
   case DENSITY_TIMES_ORTHOTROPIC:
     return(design.Find(DesignElement::DENSITY) >= 0
-        && design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR22) >= 0
-        && design.Find(DesignElement::TENSOR33) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0
+        && design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_22) >= 0
+        && design.Find(DesignElement::MECH_33) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0
         && design.Find(DesignElement::LOWER_EIG_BOUND) >= 0);
   case DENSITY_TIMES_2D_TENSOR:
     return (design.Find(DesignElement::DENSITY) >= 0
-        && design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR22) >= 0
-        && design.Find(DesignElement::TENSOR33) >= 0
-        && design.Find(DesignElement::TENSOR23) >= 0
-        && design.Find(DesignElement::TENSOR13) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0);
+        && design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_22) >= 0
+        && design.Find(DesignElement::MECH_33) >= 0
+        && design.Find(DesignElement::MECH_23) >= 0
+        && design.Find(DesignElement::MECH_13) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0);
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
     return (design.Find(DesignElement::DENSITY) >= 0
-        && design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR22) >= 0
-        && design.Find(DesignElement::TENSOR23) >= 0
-        && design.Find(DesignElement::TENSOR13) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0);
+        && design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_22) >= 0
+        && design.Find(DesignElement::MECH_23) >= 0
+        && design.Find(DesignElement::MECH_13) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0);
   case DENSITY_TIMES_ROTATED_2D_TENSOR:
     return (design.Find(DesignElement::DENSITY) >= 0
-        && design.Find(DesignElement::TENSOR11) >= 0
-        && design.Find(DesignElement::TENSOR33) >= 0
-        && design.Find(DesignElement::TENSOR23) >= 0
-        && design.Find(DesignElement::TENSOR13) >= 0
-        && design.Find(DesignElement::TENSOR12) >= 0
+        && design.Find(DesignElement::MECH_11) >= 0
+        && design.Find(DesignElement::MECH_33) >= 0
+        && design.Find(DesignElement::MECH_23) >= 0
+        && design.Find(DesignElement::MECH_13) >= 0
+        && design.Find(DesignElement::MECH_12) >= 0
         && design.Find(DesignElement::ROTANGLE) >= 0);
   case LAMINATES:
     return (design.Find(DesignElement::STIFF1) >= 0
@@ -783,10 +785,10 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
 }
 
 void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorType subTensor, DesignElement::Type direction, Notation notation){
-  double e11 = params_[DesignElement::TENSOR11];
-  double e22 = params_[DesignElement::TENSOR22];
-  double e33 = params_[DesignElement::TENSOR33]; //This is already Hill-Mandel notation -> no scaling
-  double e12 = params_[DesignElement::TENSOR12];
+  double e11 = params_[DesignElement::MECH_11];
+  double e22 = params_[DesignElement::MECH_22];
+  double e33 = params_[DesignElement::MECH_33]; //This is already Hill-Mandel notation -> no scaling
+  double e12 = params_[DesignElement::MECH_12];
   double rotAngle = params_[DesignElement::ROTANGLE];
   double lowerEigBound = params_[DesignElement::LOWER_EIG_BOUND];
   double dens(1.0);
@@ -817,22 +819,22 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
       SetTransIsoTensor(t, subTensor, dens*(e11*e11+e12*e12), 0, 0, dens*(e12*e12+e22*e22), dens*(e11*e12+e12*e22), dens*e33);
       break;
     }
-    case DesignElement::TENSOR11:
+    case DesignElement::MECH_11:
     {
       SetTransIsoTensor(t, subTensor, 2.0*dens*e11, 0, 0, 0, dens*e12, 0);
       break;
     }
-    case DesignElement::TENSOR22:
+    case DesignElement::MECH_22:
     {
       SetTransIsoTensor(t, subTensor, 0, 0, 0, 2.0*dens*e22, dens*e12, 0);
       break;
     }
-    case DesignElement::TENSOR12:
+    case DesignElement::MECH_12:
     {
       SetTransIsoTensor(t, subTensor, 2.0*dens*e12, 0, 0, 2.0*dens*e12, dens*(e11+e22), 0);
       break;
     }
-    case DesignElement::TENSOR33:
+    case DesignElement::MECH_33:
     {
       SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, dens);
       break;
@@ -866,21 +868,21 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
   if (direction == DesignElement::NO_DERIVATIVE
       || direction == DesignElement::DENSITY
       || direction == DesignElement::ROTANGLE) {
-    e11 = params_[DesignElement::TENSOR11];
+    e11 = params_[DesignElement::MECH_11];
     if (type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE) {
-      e22 = params_[DesignElement::TENSOR22];
+      e22 = params_[DesignElement::MECH_22];
       e33 = 0.5 * (trace_ - e11 - e22);
     } else if (type_ == DENSITY_TIMES_ROTATED_2D_TENSOR) {
       e22 = 15 - e11;
       e11 += 1.0;
-      e33 = params_[DesignElement::TENSOR33];
+      e33 = params_[DesignElement::MECH_33];
     } else {
-      e22 = params_[DesignElement::TENSOR22];
-      e33 = params_[DesignElement::TENSOR33];
+      e22 = params_[DesignElement::MECH_22];
+      e33 = params_[DesignElement::MECH_33];
     }
-    e23 = params_[DesignElement::TENSOR23];
-    e13 = params_[DesignElement::TENSOR13];
-    e12 = params_[DesignElement::TENSOR12];
+    e23 = params_[DesignElement::MECH_23];
+    e13 = params_[DesignElement::MECH_13];
+    e12 = params_[DesignElement::MECH_12];
   }
   double d = params_[DesignElement::DENSITY];
   switch (direction) {
@@ -897,31 +899,31 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     }
     Set2dVoigtTensor(t, d * e11, d * e22, d * e33, d * e23, d * e13, d * e12);
     break;
-  case DesignElement::TENSOR11:
+  case DesignElement::MECH_11:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, d, type_ == DENSITY_TIMES_ROTATED_2D_TENSOR ? -d : 0.0,
         type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 * d : 0.0, 0.0,
         0.0, 0.0);
     break;
-  case DesignElement::TENSOR22:
+  case DesignElement::MECH_22:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, 0.0, d,
         type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 * d : 0.0, 0.0,
         0.0, 0.0);
     break;
-  case DesignElement::TENSOR33:
+  case DesignElement::MECH_33:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, 0.0, 0.0, d, 0.0, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR23:
+  case DesignElement::MECH_23:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, d, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR13:
+  case DesignElement::MECH_13:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, d, 0.0);
     break;
-  case DesignElement::TENSOR12:
+  case DesignElement::MECH_12:
     d = pow(d, penalty_);
     Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, d);
     break;
@@ -950,12 +952,12 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
 
-  double e11 = set ? params_[DesignElement::TENSOR11] : 0;
-  double e22 = set ? params_[DesignElement::TENSOR22] : 0;
-  double e33 = set ? params_[DesignElement::TENSOR33] : 0;
-  double e23 = set ? params_[DesignElement::TENSOR23] : 0;
-  double e13 = set ? params_[DesignElement::TENSOR13] : 0;
-  double e12 = set ? params_[DesignElement::TENSOR12] : 0;
+  double e11 = set ? params_[DesignElement::MECH_11] : 0;
+  double e22 = set ? params_[DesignElement::MECH_22] : 0;
+  double e33 = set ? params_[DesignElement::MECH_33] : 0;
+  double e23 = set ? params_[DesignElement::MECH_23] : 0;
+  double e13 = set ? params_[DesignElement::MECH_13] : 0;
+  double e12 = set ? params_[DesignElement::MECH_12] : 0;
   double rotAngle = set ? params_[DesignElement::ROTANGLE] : 0;
 
   switch (direction) {
@@ -963,22 +965,22 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
   case DesignElement::ROTANGLE:
     Set2dVoigtTensor(E, e11, e22, e33, e23, e13, e12);
     break;
-  case DesignElement::TENSOR11:
+  case DesignElement::MECH_11:
     Set2dVoigtTensor(E, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR22:
+  case DesignElement::MECH_22:
     Set2dVoigtTensor(E, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR33:
+  case DesignElement::MECH_33:
     Set2dVoigtTensor(E, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR23:
+  case DesignElement::MECH_23:
     Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     break;
-  case DesignElement::TENSOR13:
+  case DesignElement::MECH_13:
     Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     break;
-  case DesignElement::TENSOR12:
+  case DesignElement::MECH_12:
     Set2dVoigtTensor(E, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     break;
   default:
@@ -992,7 +994,7 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
 }
 
-void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
+void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // only relevant for hom_rect
   FeH1LagrangeQuad9 fe;
@@ -1036,7 +1038,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
 
-      fe.GetShFnc(shape, p, lpm->shapeMap->GetElem());
+      fe.GetShFnc(shape, p, elem);
 
       ApplyHomRectTensor(E, shape);
       LOG_DBG2(dm)<< "GHRT: shape=" << shape.ToString();
@@ -1053,7 +1055,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Matrix<double> jac;
       Matrix<double> dummy; // not used -> strange function ?! :(
-      fe.GetLocDerivShFnc(jac, p, lpm->shapeMap->GetElem());
+      fe.GetLocDerivShFnc(jac, p, elem);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
       jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by
@@ -1144,17 +1146,17 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
   E.Resize(3, 3);
   E.Init(); // for off-diagonal
   Vector<double> data;
-  hom_rect_samples_.GetCol(data, DesignElement::TENSOR11 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::MECH_11 - DesignElement::MECH_11);
   E[1 - 1][1 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::TENSOR12 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::MECH_12 - DesignElement::MECH_11);
   E[1 - 1][2 - 1] = shape * data;
   E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
   LOG_DBG(dm)<< "AHRT 12=" << E[1-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::TENSOR22 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::MECH_22 - DesignElement::MECH_11);
   E[2 - 1][2 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 22=" << E[2-1][2-1] << " data=" << data.ToString();
-  hom_rect_samples_.GetCol(data, DesignElement::TENSOR33 - DesignElement::TENSOR11);
+  hom_rect_samples_.GetCol(data, DesignElement::MECH_33 - DesignElement::MECH_11);
   E[3 - 1][3 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 33=" << E[3-1][3-1] << " data=" << data.ToString();
 }
@@ -2084,20 +2086,51 @@ double DesignMaterial::GetIsoMass(double D, double G) {
   return (GetTransIsoMass(D, G, D, G));
 }
 
-void DesignMaterial::GetMaterialTensor(Matrix<Complex>& ct, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
+
+bool DesignMaterial::GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation)
+{
+  switch(type)
+  {
+  case DesignElement::MECH_TRACE:
+  case DesignElement::MECH_ALL:
+  case DesignElement::ALL_DESIGNS:
+    return GetMechTensor(t, subTensor, elem, direction, notation);
+    // return GetErsatzMaterialTensor(t, subTensor, elem, direction, notation);
+  case DesignElement::DIELEC_TRACE:
+  case DesignElement::DIELEC_ALL:
+    if(direction == DesignElement::NO_DERIVATIVE && !HasParameter(DesignElement::DIELEC_11))
+      return false;
+    return GetElecTensor(t, elem, direction);
+  case DesignElement::PIEZO_ALL:
+    if(direction == DesignElement::NO_DERIVATIVE && !HasParameter(DesignElement::PIEZO_11))
+        return false;
+    return GetPiezoCouplingTensor(t, elem, direction);
+  default:
+    return false;
+    break;
+  }
+  return false;
+}
+
+bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   // we assume we have no complex material (special form of damping)
   Matrix<double> dt;
-  GetMaterialTensor(dt, subTensor, lpm, direction, notation);
+  if(!GetMechTensor(dt, subTensor, elem, direction, notation))
+    return false;
+
   ct.SetPart(Global::REAL, dt, true); // zero other part
+  return true;
 }
 
-
-void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction, Notation notation)
+bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
   assert(!(notation == HILL_MANDEL && type_ != FMO && type_ != LAMINATES && type_ != D_LAMINATES && type_ != HOM_RECT
         && type_ != D_HOM_RECT && type_ != HOM_RECT_C1 && type_ !=  DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC
         && type_ != DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED && type_ != ORTHOTROPIC));
+
+  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    return false;
 
   switch (type_) {
   case FMO:
@@ -2133,16 +2166,20 @@ void DesignMaterial::GetMaterialTensor(Matrix<double>& t, SubTensorType subTenso
   case HOM_RECT:
   case D_HOM_RECT:
   case HOM_RECT_C1:
-    GetHomRectTensor(t, subTensor, lpm, direction, notation);
+    GetHomRectTensor(t, subTensor, elem, direction, notation);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }
+
+  return true;
 }
 
 
-void DesignMaterial::GetElecTensor(Matrix<double>& E, DesignElement::Type direction)
+bool DesignMaterial::GetElecTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
+  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    return false;
 
   // only 2D!
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
@@ -2180,11 +2217,16 @@ void DesignMaterial::GetElecTensor(Matrix<double>& E, DesignElement::Type direct
   LOG_DBG2(dm) << "GET: E before rotation = " << E.ToString(2);
   RotateElecTensor(E, rotAngle, direction);
   LOG_DBG2(dm) << "GET: E after rotation =  " << E.ToString(2);
+
+  return true;
 }
 
 
-void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, DesignElement::Type direction)
+bool DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, const Elem* elem, DesignElement::Type direction)
 {
+  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    return false;
+
   // only 2D!
   bool set = direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE;
   double e11 = set ? params_[DesignElement::PIEZO_11] : 0;
@@ -2232,6 +2274,7 @@ void DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, DesignElement::Ty
   RotatePiezoCouplingTensor(E, rotAngle, direction);
   LOG_DBG2(dm) << "GPCT: E after rotation =  " << E.ToString(2);
 
+  return true;
 }
 
 double DesignMaterial::GetMaterialMass(DesignElement::Type direction) {

@@ -440,8 +440,10 @@
       <xsd:enumeration value="physicalPseudoDensity"/>
       <!-- For parametrized or free material optimization the local tensor trace -->
       <xsd:enumeration value="mechTensorTrace"/>
-      <!-- For parametrized or free material optimization the complete local tensor-->
+      <!-- For parametrized or free material optimization the complete local tensor in Voigt notation -->
       <xsd:enumeration value="mechTensor"/>
+      <!-- the local tensor in Hill Mandel notation -->
+      <xsd:enumeration value="mechTensorHillMandel"/>
       <xsd:enumeration value="optResult_1"/>      
       <xsd:enumeration value="optResult_2"/>      
       <xsd:enumeration value="optResult_3"/>                  

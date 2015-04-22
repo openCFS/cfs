@@ -1173,6 +1173,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
     SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
     SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
+    SolutionTypeEnum.Add(MECH_TENSOR_HILL_MANDEL, "mechTensorHillMandel");
 
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");

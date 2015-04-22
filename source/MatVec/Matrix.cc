@@ -140,6 +140,39 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  void Matrix<TYPE>::VoigtToHillMandel()
+  {
+    // based on mativ_rot.py
+    assert(IsQuadratic());
+    assert(size_row_ == 3 || size_row_ == 6);
+
+    for(unsigned int i = 0; i < size_row_-1; i++)
+    {
+      data_[i][size_row_-1] *= sqrt(2);
+      data_[size_row_-1][i] *= sqrt(2);
+    }
+
+    data_[size_row_-1][ size_row_-1] *= 2.0;
+  }
+
+    /** Convert from Hill-Mandel to Voigt Notation */
+  template<class TYPE>
+  void Matrix<TYPE>::HillMandelToVoigt()
+  {
+    // based on mativ_rot.py
+    assert(IsQuadratic());
+    assert(size_row_ == 3 || size_row_ == 6);
+
+    for(unsigned int i = 0; i < size_row_-1; i++)
+    {
+      data_[i][size_row_-1] *= 1/sqrt(2);
+      data_[size_row_-1][i] *= 1/sqrt(2);
+    }
+
+    data_[size_row_-1][size_row_-1] *= 0.5;
+  }
+
+  template<class TYPE>
   std::string Matrix<TYPE>::ToString(const int level, const bool newline) const
   {
     std::ostringstream os;
@@ -1685,7 +1718,7 @@ namespace CoupledField
     assert(size_row_ == size_col_);
     unsigned int size = size_row_;
 
-    vec.Resize((size * size - size)/ 2);
+    vec.Resize(((size * size - size)/2) + size);
 
     // 2*2 -> 11 22 12           = 00 11 01
     // 3*3 -> 11 22 33 23 13 12  = 00 11 22 12 02 01
@@ -1696,8 +1729,8 @@ namespace CoupledField
       vec[pos++] = data_[i][i];
 
     // starting to write the upper triangular from behind upwards
-    for(unsigned int c = size-1; c > 0; c--)
-      for(unsigned int r = c-1; r >= 0; r--)
+    for(int c = size-1; c > 0; c--)
+      for(int r = c-1; r >= 0; r--)
         vec[pos++] = data_[r][c];
   }
 
@@ -1806,6 +1839,9 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric() const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(data_[i][j] != data_[j][i]) return false;
@@ -1816,6 +1852,9 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric(double eps) const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(std::abs(data_[i][j] != data_[j][i]) > eps) return false;
@@ -1826,6 +1865,9 @@ namespace CoupledField
   template<>
   bool Matrix<Complex>::IsSymmetric(double eps) const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(!close(data_[i][j], data_[j][i], eps)) return false;

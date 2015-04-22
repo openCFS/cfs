@@ -125,6 +125,9 @@ namespace CoupledField
       return  EntryType<TYPE>::M_EntryType;
     }
 
+    /** Is the Matrix quadratic */
+    bool IsQuadratic() const { return GetNumRows() == GetNumCols(); }
+
     //! Check if the matrix is symmetric
 
     /** return true, if the matrix is symmetric.
@@ -645,6 +648,12 @@ namespace CoupledField
      * 3*3 -> 11 22 33 23 13 12 */
     void ConvertToVec_UpperTriangular( SingleVector& vec ) const;
 
+    /** Convert from Voigt to Hill Mandel */
+    void VoigtToHillMandel();
+
+    /** Convert from Hill-Mandel to Voigt Notation */
+    void HillMandelToVoigt();
+
     /** Dumps for developers or internal use
      * @param level -1=list of all, 0=all data with structure, 1=summary info, 2=full data in matlab form */
     virtual std::string ToString(const int level = -1, const bool newline = true) const;
@@ -854,7 +863,7 @@ namespace CoupledField
 
   template<class TYPE>
   inline TYPE Matrix<TYPE>::Trace() const {
-    assert(size_row_ == 0|| size_col_ == 0);
+    assert(!(size_row_ == 0|| size_col_ == 0));
     UInt smallersize = size_row_ < size_col_ ? size_row_ : size_col_;
     TYPE ret = data_[0][0];
     for(UInt i = 1; i < smallersize; i++)
@@ -864,10 +873,8 @@ namespace CoupledField
 
   // Perform a matrix-matrix multiplication rMat = this*mMat
   template<class TYPE>
-  inline void Matrix<TYPE>::Mult(const DenseMatrix & mMat, 
-                                 DenseMatrix & rMat) const {
-
-
+  inline void Matrix<TYPE>::Mult(const DenseMatrix & mMat, DenseMatrix & rMat) const
+  {
     Matrix<TYPE> const & mMat1 = dynamic_cast<const Matrix<TYPE>& >(mMat);
     Matrix<TYPE> & rMat1 = dynamic_cast<Matrix<TYPE>& >(rMat);
   

@@ -106,8 +106,19 @@ ErsatzMaterial::ErsatzMaterial() :
   homogenizedTensor.Init();
 
 
-  // region stuff
-  ParamNodeList region_list = pn->GetList("region");
+  // region stuff - we might have the attribute region or a list in region but not both or none
+  if(!pn->Has("region") && !pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
+    throw Exception("give a region as 'ersatzMaterial' attribute or as 'regions' list");
+
+  if(pn->Has("region") && pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
+    throw Exception("you may not give regions via 'ersatzMaterial' attribute or as 'regions' list concurrently");
+
+  ParamNodeList region_list;
+  if(pn->Has("regions"))
+    region_list = pn->Get("regions")->GetList("region");
+  else
+    region_list = pn->GetList("region");
+
   if(region_list.IsEmpty() && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
     EXCEPTION("no region given!");
 
@@ -139,8 +150,7 @@ ErsatzMaterial::ErsatzMaterial() :
   {
     ParamNodeList design_list = pn->GetList("design");
     ParamNodeList transfer_list = pn->GetList("transferFunction");
-
-    densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("SIMP/regularization", ParamNode::PASS));
+    densityFile = new DensityFile(design, pn->Get("export"), design_list, transfer_list, pn->Get("filters", ParamNode::PASS));
   }
 
   // check our constraints, the shall have only valid designs
@@ -151,7 +161,7 @@ ErsatzMaterial::ErsatzMaterial() :
     if(dt == DesignElement::UNITY && (method_ == SHAPE_OPT || method_ == SHAPE_PARAM_MAT))
       continue;
 
-    if((   dt == DesignElement::TENSOR_TRACE || dt == DesignElement::ELAST_ALL
+    if((   dt == DesignElement::MECH_TRACE || dt == DesignElement::MECH_ALL
         || dt == DesignElement::DIELEC_TRACE || dt == DesignElement::DIELEC_ALL
         || dt == DesignElement::PIEZO_ALL || dt == DesignElement::ALL_DESIGNS)
        && (method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT))
@@ -573,7 +583,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // if we get Damping Information from the DesignSpace, we use that, else we use the "traditional" one
         double dampingAlpha = 0.0;
         double dampingBeta = 0.0;
-        if (!design->GetErsatzMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType()))
+        //if(!design->designMaterial->GetMaterialDamping(dampingAlpha, dampingBeta, de->elem, notDampingElement ? DesignElement::NO_DERIVATIVE : de->GetType()))
+        assert(false); // FIXME
+        if(false) // FIMXE
         {
           RegionIdType regionId = de->elem->regionId;
           BiLinFormContext* linElastIntCtxt = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde, false);
@@ -658,7 +670,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     int elements = design->GetNumberOfElements();
     int base_lower = 0;
     int base_upper = design->data.GetSize(); // ErsatzMatzerialTensor and MultiMaterial
-    if(!design->HasErsatzMaterialTensor() && !design->HasMultiMaterial())
+    if(design->designMaterial == NULL && !design->HasMultiMaterial())
     {
       base_lower = design->FindDesign(tf->GetDesign()) * elements;
       base_upper = base_lower + elements;
@@ -1036,10 +1048,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     TransferFunction* tf = Function::GetFunction(c, g)->IsPhysical() ? design->GetTransferFunction(dtype, MECH) : NULL;
 
     double fraction = c != NULL ? volume_fraction_ : g->volume_fraction;
-    bool allDesignsRelevant = dtype == DesignElement::TENSOR_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
+    bool allDesignsRelevant = dtype == DesignElement::MECH_TRACE  || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT || dtype == DesignElement::NO_TYPE;
     // tensor trace is calculated if dtype == DEFAULT or TENSOR_TRACE and a tensor available
-    assert(false);
-    bool calculateTensorTrace = false; // FIMXE = domain->HasErsatzMaterialTensor() && (dtype == DesignElement::TENSOR_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
+    bool calculateTensorTrace = design->designMaterial != NULL && (dtype == DesignElement::MECH_TRACE || dtype == DesignElement::DIELEC_TRACE || dtype == DesignElement::DEFAULT);
     if (calculateTensorTrace && scale)
     {
       throw Exception("Cannot calculate Tensor Trace Volume on scaled design variables!");
@@ -1134,12 +1145,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 if(calculateTensorTrace)
                 {
                   Matrix<double> material;
-                  design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, de->GetType(), f->GetNotation());
+                  design->designMaterial->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, de->GetType(), f->GetNotation());
                   val = material.Trace();
                   if(exponent != 1.0)
                   {
                     // chain rule, original, non derived tensor
-                    design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                    design->designMaterial->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                     double des = material.Trace();
                     val *= exponent * std::pow(des, exponent - 1.0);
                   }
@@ -1171,7 +1182,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 if(calculateTensorTrace)
                 { // use the trace of the stiffness Tensor as "volume"
                   Matrix<double> material;
-                  design->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
+                  design->designMaterial->GetTensor(material, dtype, pde->GetSubTensorType(), de->elem, DesignElement::NO_DERIVATIVE, f->GetNotation());
                   des = material.Trace();
                 }
                 else
