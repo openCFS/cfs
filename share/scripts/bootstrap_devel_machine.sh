@@ -228,6 +228,8 @@ SetupRHEL() {
     cd /opt && \
     rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
+    unzip org.tmatesoft.svn_1.3.5.standalone.zip || \
+    wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
     if [ "$DIST" = "CENTOS" ]; then
