@@ -107,45 +107,15 @@ namespace CoupledField
      /** returns the slack variable if present or throws an exception */
      virtual double GetSlackVariable() const { assert(false); return -1; }
      virtual double GetAlphaVariable() const { assert(false); return -1; }
-
-     /** Returns true if optimization does provide a complete tensor, not just a density */
-     bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
-     
-     /** Returns true if optimization does provide a mass, currently density is not handled by this */
-     bool HasErsatzMaterialMass() const { return designMaterial != NULL; }
-     
+/*
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
-     bool HasErsatzMaterialDamping() {
-       return(designMaterial != NULL && designMaterial->DampingIsDesign());
-     }
-
-     bool HasPiezoCouplingTensor() const { return designMaterial != NULL; }
-
-     bool HasDielecTensor() const { return designMaterial != NULL; }
-
-     /** gives either elasticity tensor, dielec tensor or piezo coupling tensor
-      * @param type TENSOR_TRACE, ELAST_ALL, DIELEC_TRACE, DIELEC_ALL, PIEZO_ALL. Allways the complete tensor!
-      * @see GetErsatzMaterialTensor() */
-     bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
-
-     /** Calculates the corresponding ErsatzMaterialTensor for the given element
-      * @param t holds the resulting MaterialTensor
-      * @param subTensor classifies the kind of Tensor needed
-      * @param elem Element
-      * @param design_index index of designElement
-      * @param direction if !=DEFAULT calculate derivative of Tensor instead of Tensor 
-      * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
-     //bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
-     
-     bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
-
-     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+     bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
 
      /** Calculates the corresponding Mass for the given element, this is usually tensor trace
       * @param elem Element
       * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
       */
-     double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
+     //double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
      
      /** Get the ErsatzMaterialDampingParameters
       * @param alpha Damping Parameter alpha
@@ -153,11 +123,10 @@ namespace CoupledField
       * @param elem the Element for which the parameters should be returned
       * @param direction if given return derivative in that direction
       * @return whether DampingParameters are optimized at all  */
-     bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem,
-         DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
+     //bool GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
      
      /** Get the correct Damping parameter, alpha for Mass, beta for Stiffness */
-     bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */double& param);
+     //bool GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* integrator, */double& param);
 
      bool HasMultiMaterial() const { return !multimaterial.IsEmpty();}
 
@@ -452,12 +421,7 @@ namespace CoupledField
       * a different design */
      int design_id;
 
-     /** Sets all Material Parameters in designMaterial for given element
-      * @param elem the element to be considered
-      */
-     bool CollectMaterialParametersForElement(const Elem* elem);
-     
-   private:
+  private:
 
      /** Helper for the constructor.
       * @param tf for tanh and heaviside and in the physcical case!! scaling and offset in tf is set!!

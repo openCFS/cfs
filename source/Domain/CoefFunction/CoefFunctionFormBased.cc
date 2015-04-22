@@ -449,7 +449,7 @@ template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
 
 // -----------------------
 
-template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
 {
   LOG_DBG2(cff) << "CFS:CFS #forms=" << this->forms_.size();
 
@@ -457,11 +457,56 @@ template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_p
 
   isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
 
+  notation_ = notation;
+
   // set inherited attributes
   this->dimType_ = CoefFunction::TENSOR;
 }
 
 template<class TYPE> CoefFunctionStiffness<TYPE>::~CoefFunctionStiffness() { }
+
+template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() const
+{
+  LOG_DBG2(cff) << "CFS:GVS #forms=" << this->forms_.size();
+
+  unsigned int numRows = 0;
+  unsigned int numCols = 0;
+
+  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+
+  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numCols == numRows);
+
+  if(numRows == 3)
+    return 6;
+  else
+    return 21;
+}
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
+{
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  LOG_DBG(cff) << "CFS:GTV #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+
+  // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
+  Matrix<TYPE> tensor;
+  form->GetCoef()->GetTensor(tensor, lpm);
+  if(notation_ == DesignMaterial::HILL_MANDEL)
+    tensor.VoigtToHillMandel();
+
+  tensor.ConvertToVec_UpperTriangular(vec);
+  LOG_DBG3(cff) << "CFS:GV tensor=" << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFS:GV -> " << vec.ToString(2);
+
+}
+
+template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionStiffness res " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
 
 template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
 {
@@ -477,19 +522,13 @@ template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& t
 {
   BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
 
-  LOG_DBG(cff) << "CFS:GT #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic(); // << " coef=" << form->GetCoef()->ToString();
+  LOG_DBG(cff) << "CFS:GT #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
 
-
+  // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
   form->GetCoef()->GetTensor(tensor, lpm);
+  if(notation_ == DesignMaterial::HILL_MANDEL)
+    tensor.VoigtToHillMandel();
   LOG_DBG2(cff) << "CFS:GT -> " << tensor.ToString(2);
-}
-
-template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
-{
-  std::stringstream out;
-  out << "CoefFunctionDyadicStrain\n";
-  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
-  return out.str();
 }
 
 

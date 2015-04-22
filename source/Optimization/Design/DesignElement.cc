@@ -59,13 +59,13 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
 {
   switch(super)
   {
-  case TENSOR_TRACE:
+  case MECH_TRACE:
   {
     switch(test)
     {
-    case TENSOR11:
-    case TENSOR22:
-    case TENSOR33:
+    case MECH_11:
+    case MECH_22:
+    case MECH_33:
     // Tensor trace for param mat
     case STIFF1:
     case STIFF2:
@@ -83,16 +83,16 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     break;
   }
 
-  case ELAST_ALL:
+  case MECH_ALL:
   {
     switch(test)
     {
-    case TENSOR11:
-    case TENSOR12:
-    case TENSOR13:
-    case TENSOR22:
-    case TENSOR23:
-    case TENSOR33:
+    case MECH_11:
+    case MECH_12:
+    case MECH_13:
+    case MECH_22:
+    case MECH_23:
+    case MECH_33:
       return true;
     default:
       return false;
@@ -647,8 +647,8 @@ void DesignElement::SetEnums()
   type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
   type.Add(NO_DERIVATIVE, "no_derivative");
-  type.Add(TENSOR_TRACE, "tensor_trace");
-  type.Add(ELAST_ALL, "elast_all");
+  type.Add(MECH_TRACE, "mech_trace");
+  type.Add(MECH_ALL, "mech_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");
   type.Add(PIEZO_ALL, "piezo_all");
@@ -667,12 +667,12 @@ void DesignElement::SetEnums()
   type.Add(DAMPINGALPHA, "damping-alpha");
   type.Add(DAMPINGBETA, "damping-beta");
   type.Add(UNITY, "unity");
-  type.Add(TENSOR11, "tensor11");
-  type.Add(TENSOR22, "tensor22");
-  type.Add(TENSOR33, "tensor33");
-  type.Add(TENSOR23, "tensor23");
-  type.Add(TENSOR13, "tensor13");
-  type.Add(TENSOR12, "tensor12");
+  type.Add(MECH_11, "mech_11");
+  type.Add(MECH_22, "mech_22");
+  type.Add(MECH_33, "mech_33");
+  type.Add(MECH_23, "mech_23");
+  type.Add(MECH_13, "mech_13");
+  type.Add(MECH_12, "mech_12");
   type.Add(DIELEC_11, "dielec_11");
   type.Add(DIELEC_12, "dielec_12");
   type.Add(DIELEC_22, "dielec_22");

@@ -13,7 +13,7 @@
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "Forms/Operators/BaseBOperator.hh"
-
+#include "Optimization/Design/DesignMaterial.hh"
 
 namespace CoupledField  {
 
@@ -333,22 +333,29 @@ template<class TYPE>
 class CoefFunctionStiffness : public CoefFunctionFormBased
 {
 public:
-  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct);
+  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation);
 
   virtual ~CoefFunctionStiffness();
 
   //! \copydoc CoefFunction::GetTensorSize
-  virtual void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+  unsigned int GetVecSize() const;
 
-  virtual void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+  void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm);
+
+  void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::ToString
   virtual std::string ToString() const;
 
-protected:
+private:
 
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
+
+  DesignMaterial::Notation notation_;
+
 };
 
 

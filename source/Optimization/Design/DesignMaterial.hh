@@ -53,14 +53,17 @@ class ErsatzMaterial;
     /** checks for a parameter */
     bool HasParameter(const DesignElement::Type p) const { return params_.find(p) != params_.end(); }
 
-    /** Calculate the derivative tensor from the given material parameters */
-    void GetMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
-    void GetMaterialTensor(Matrix<Complex>& t, SubTensorType subTensor, const LocPointMapped* lpm, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+    /** the general material tensor function */
+    bool GetTensor(Matrix<double>& t, DesignElement::Type type, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation);
 
-    void GetPiezoCouplingTensor(Matrix<double>& t, DesignElement::Type direction);
+    /** Calculate the derivative tensor from the given material parameters */
+    bool GetMechTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+    bool GetMechTensor(Matrix<Complex>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
+
+    bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
-    void GetElecTensor(Matrix<double>& t, DesignElement::Type direction);
+    bool GetElecTensor(Matrix<double>& t,  const Elem* elem, DesignElement::Type direction);
 
     /** retrieve rel. mass of element (tensor trace) or derivative thereof */
     double GetMaterialMass(DesignElement::Type direction);
@@ -91,6 +94,17 @@ class ErsatzMaterial;
     /** for debugging */
     void DumpParams();
 
+    /** Sets all Material Parameters in designMaterial for given element in the current context */
+    bool CollectMaterialParametersForElement(DesignSpace* space, const Elem* elem);
+
+    /** returns the numbers of parameters required for this material */
+    unsigned int RequiredParameters(OptimizationMaterial::System material);
+
+    /** Check whether all required designs are available */
+    bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
+
+
+
     std::map<DesignElement::Type, double> params_;
 
     /** mass is considered an independent design */
@@ -115,12 +129,6 @@ class ErsatzMaterial;
     TransIsoType transIsoType_;
 
     unsigned int dim;
-
-    /** returns the numbers of parameters required for this material */
-    unsigned int RequiredParameters(OptimizationMaterial::System material);
-
-    /** Check whether all required designs are available */
-    bool CheckRequiredDesigns(StdVector<DesignElement::Type>& design);
 
   private:
     /* note that most of these functions are called really often, so inlining is used */
@@ -155,7 +163,7 @@ class ErsatzMaterial;
     void ApplyHomRectC1Tensor(Matrix<double>& E,  Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
-    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const LocPointMapped* lpm,  DesignElement::Type direction, Notation notation);
+    inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  const Elem* elem,  DesignElement::Type direction, Notation notation);
 
     /** does only perform orientational optimization
      * @param mc MECHANIC, PIEZO, ELECTROSTATIC */

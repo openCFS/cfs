@@ -1551,6 +1551,21 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     DefineFieldResult(normalStressFct, normalStressInfo);
     surfCoefFcts_[normalStressFct] = sigmaFunc;
 
+    // === MECH_TENOSR_HILL_MANDEL converts to HillMandel notation
+    shared_ptr<ResultInfo> mech_tensor_hm(new ResultInfo);
+    mech_tensor_hm->resultType = MECH_TENSOR_HILL_MANDEL;
+    mech_tensor_hm->dofNames = "e11", "e22", "e33", "e23", "e13", "e12";
+    mech_tensor_hm->unit = "Pa";
+    mech_tensor_hm->entryType = ResultInfo::TENSOR;
+    mech_tensor_hm->definedOn = ResultInfo::ELEMENT;
+    shared_ptr<CoefFunctionFormBased> stiff_coef_hm;
+    if(isComplex_) // does not really handle the case where only some regions have complex material
+      stiff_coef_hm.reset(new CoefFunctionStiffness<Complex>(feFct, DesignMaterial::HILL_MANDEL));
+    else
+      stiff_coef_hm.reset(new CoefFunctionStiffness<double>(feFct, DesignMaterial::HILL_MANDEL));
+    DefineFieldResult(stiff_coef_hm, mech_tensor_hm);
+    stiffFormCoefs_.insert(stiff_coef_hm); // will define the forms
+
     // === MECH_TENSOR for free and parameterized material optimization but generally it simply returns the tensor
     shared_ptr<ResultInfo> mech_tensor(new ResultInfo);
     mech_tensor->resultType = MECH_TENSOR;
@@ -1560,9 +1575,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     mech_tensor->definedOn = ResultInfo::ELEMENT;
     shared_ptr<CoefFunctionFormBased> stiff_coef;
     if(isComplex_) // does not really handle the case where only some regions have complex material
-      stiff_coef.reset(new CoefFunctionStiffness<Complex>(feFct));
+      stiff_coef.reset(new CoefFunctionStiffness<Complex>(feFct, DesignMaterial::VOIGT));
     else
-      stiff_coef.reset(new CoefFunctionStiffness<double>(feFct));
+      stiff_coef.reset(new CoefFunctionStiffness<double>(feFct, DesignMaterial::VOIGT));
     DefineFieldResult(stiff_coef, mech_tensor);
     stiffFormCoefs_.insert(stiff_coef); // will define the forms
 
