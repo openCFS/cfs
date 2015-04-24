@@ -176,7 +176,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     {
       Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(material)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-      k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, -13.456, true);
+      k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
       if (harmonic)
         Add(out, k_factor, dynamic_cast<Matrix<T1>& >(bimat));
       else

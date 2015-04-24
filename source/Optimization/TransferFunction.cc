@@ -222,15 +222,10 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value, bool forBimaterial) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool forBimaterial) const
 {
-  assert(!(external_value != -13.456 && access == DesignElement::SMART));
-  if (type_ == FULL){
-    assert(de != NULL);
-    return de->GetUpperBound();
-  }
-  double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
-  return this->Transform(value, forBimaterial);
+  double value = de->GetValue(DesignElement::DESIGN, access);
+  return this->Transform(value, forBimaterial, de);
 }
 
 double TransferFunction::Transform(double value, bool forBimaterial, const DesignElement* de) const
@@ -268,10 +263,10 @@ double TransferFunction::Transform(double value, bool forBimaterial, const Desig
     result = param_;
     break;
 
-//  case FULL:
-//    assert(de != NULL);
-//    result = de->GetUpperBound();
-//    break;
+  case FULL:
+    assert(de != NULL);
+    result = de->GetUpperBound();
+    break;
 
   case HEAVISIDE:
     // some options and the derivatives

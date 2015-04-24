@@ -346,8 +346,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     // lower is set to physical!
     // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
     // therefore we have to set scaling and lower=physical
-    double lv = tf->Transform(NULL, DesignElement::PLAIN, physical);
-    double uv = tf->Transform(NULL, DesignElement::PLAIN, 1.0); // we hope this is always true!!!
+    double lv = tf->Transform(physical);
+    double uv = tf->Transform(1.0); // we hope this is always true!!!
     tf->SetScaling((1.0 - (physical - lv/uv)/(1-lv/uv))/uv);
     tf->SetOffset((physical - lv/uv) / (1 - lv/uv));
     return physical;
@@ -623,7 +623,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de, DesignElement::SMART, -13.456, forBimaterial); // handles design filtering
+      double transformed = tf->Transform(de, DesignElement::SMART, forBimaterial); // handles design filtering
       LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
                        << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "

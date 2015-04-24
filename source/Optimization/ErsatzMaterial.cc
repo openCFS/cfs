@@ -3121,8 +3121,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         if(g->IsPhysical())
         {
-          lb = tf->Transform(de, DesignElement::PLAIN, de->GetLowerBound());
-          ub = tf->Transform(de, DesignElement::PLAIN, de->GetUpperBound());
+          lb = tf->Transform(de->GetLowerBound());
+          ub = tf->Transform(de->GetUpperBound());
           org_value = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
         }
         else
