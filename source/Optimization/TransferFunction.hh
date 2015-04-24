@@ -39,13 +39,21 @@ namespace CoupledField
       TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
     
       /** applies the transformation
-       * @param de containts the design value. Might be NULL if external_value is set and type is NOT full!
+       * @param de contains the design value.
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
       double Transform(const DesignElement* de, DesignElement::Access access, double external_value = -13.456, bool forBimaterial = false) const;
+
+      /** applies the transformation
+       * @param value is the design value. de may be NULL. It is only used in logging and if type is FULL! */
+      double Transform(double value, bool forBimaterial = false, const DesignElement* de = NULL) const;
 
       /** applies the first derivative of the transformation
        * @see Transform() */
       double Derivative(const DesignElement* de, DesignElement::Access access, bool forBimaterial = false) const;
+
+      /** applies the first derivative of the transformation
+       * @see Transform() */
+      double Derivative(double value, bool forBimaterial = false) const;
 
       /** Gives the standard, non-mass Application to find the transfer-function. Note that the application for transfer functions
        * does not coincide with pde application due to the laplace stuff */

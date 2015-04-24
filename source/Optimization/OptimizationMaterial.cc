@@ -113,14 +113,18 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   ElemList elemList(domain->GetGrid());
 
   // when there is no element given, we use the first from our design element.
-  // For this process we disable all transfer functions. - they shoul be enabled!
-  // This works only for isotropic material.
+  // If we don't use ParamMat, we disable all transfer functions in order to precalculate the ElementMatrix
+  // The physical ElementMatrix is set in SIMP::SetElementK
 
-  // temporarily disables the transfer functions
-  space->DisableTransferFunctions();
+  if(this->opt->GetMethod() != ErsatzMaterial::PARAM_MAT)
+  {
+    // temporarily disables the transfer functions
+    space->DisableTransferFunctions();
+    // We have to do this because CalcElementMatrix asks the density via domain and
+    // multiplies it with it's matrix, which is done again in SIMP::SetElementK!
+  }
 
-  // We have to do this because CalcElementMatrix asks the density via domain and
-  // multiplies it with it's matrix!
+
 
   if(elem == NULL) elemList.SetElement(space->data[0].elem);
               else elemList.SetElement(elem);
@@ -155,8 +159,12 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
     }
   }
 
-  // enable again our transfer functions
-  space->EnableTransferFunctions();
+  if(this->opt->GetMethod() != ErsatzMaterial::PARAM_MAT)
+  {
+    // enable again our transfer functions
+    space->EnableTransferFunctions();
+  }
+
 
   if(bimaterial != NULL)
     form->SetMaterial(org_mat);

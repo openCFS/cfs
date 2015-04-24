@@ -118,6 +118,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     transfer.Reserve(trans_in.GetSize());
     if(trans_in.GetSize() < design.GetSize() && ! HasMultiMaterial())
       throw Exception("less transferFunctions than design variable types is infeasible");
+  } else {
+    transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
+    transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
+  }
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density
@@ -129,12 +133,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
         in->SetValue("no transfer function 'mass' given for harmonic model");
       }
     }
-  }
-  else
-  {
-    if(!trans_in.IsEmpty())
-      throw Exception("transfer functions may not be given for parametric material optimization");
-  }
 
 
   if(elements == 0 || design.IsEmpty())
@@ -459,9 +457,6 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
 }
 void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
 {
-  if(transfer.GetSize() > 0)
-    throw Exception("designmaterial can not be given when using transferFunctions");
-  transfer.Push_back(TransferFunction()); // create an identity transfer function
   designMaterial = new DesignMaterial(dm, material, design, em);
 }
 void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
@@ -847,9 +842,6 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(HasErsatzMaterialTensor())
-    return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
-
   if(use_single && transfer.GetSize() == 1)
     return &transfer[0];
 
@@ -863,6 +855,9 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
     if(this->design.GetSize() == 1 && design == DesignElement::DEFAULT)
       return tf;
   }
+  if(HasErsatzMaterialTensor())
+    return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization with no / not all TransferFunctions given
+
   if(!throw_exception) return NULL;
   else throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
                         + "' in application '" + Optimization::application.ToString(application)

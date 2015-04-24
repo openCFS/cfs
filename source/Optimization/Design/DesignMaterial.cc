@@ -14,6 +14,7 @@
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "Elements/2D/quad9fe.hh"
@@ -1010,8 +1011,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     E3 = params_[DesignElement::EMODUL];
   else
   {
-    E3 = 137.4e+7 + 2.4e+7*E;
-    E = 145.0e+7 - 5.8e+7*E;
+    E3 = 137.4 + 2.4*E;
+    E = 145.0 - 5.8*E;
   }
   double G3 = params_[DesignElement::GMODUL];
   double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
@@ -1153,8 +1154,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double dens = 1.0, factor = 1.0;
   if((type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == DENSITY_TIMES_ROT_PA12) && notation != HILL_MANDEL_NO_DENSITY){
     dens = params_[DesignElement::DENSITY];
-    factor = std::pow(dens, penalty_); // SIMP
-    //factor = dens/(1.0 + penalty_*(1.0-dens)); // RAMP
+    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+    factor = (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
+  } else {
+    if(direction == DesignElement::DENSITY)
+      factor = 0.0;
   }
   if(type_ == TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC){
     nu3 = nu13 * E3/E;
@@ -1175,18 +1179,8 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   
   bool tensorset = false;
   switch(direction){
-  case DesignElement::DENSITY: // almost the same as no derivative, we only change the factor a little
-    if(penalty_ != 1.0){
-      factor = penalty_ * std::pow(dens, penalty_ - 1.0); // SIMP
-//      double p2 = penalty_ * penalty_;                      // R
-//      double p = penalty_;                                  // A
-//      double x = dens;                                      // M
-//      factor = (1.0 + p) / (x*x*p2 - 2*x*(p2+p)+p2+2*p+1);  // P
-    }
-    if(notation == HILL_MANDEL_NO_DENSITY)
-      factor = 0.0;
-    // no break
   case DesignElement::NO_DERIVATIVE:
+  case DesignElement::DENSITY: // almost the same as no derivative, we only changed the factor above
   case DesignElement::ROTANGLE:
   case DesignElement::ROTANGLEX:
   case DesignElement::ROTANGLEY:
@@ -1211,7 +1205,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       double D =  -(29*((nu - 1)*nu13*nu13 + 2))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
       double D3 = -12/(5*(nu13*nu13 - 1));
       double nD =  (29*(nu*(nu13*nu13 - 2) - nu13*nu13))/(10*(nu*nu - 1)*(nu13*nu13 - 1));
-      double nD3 = -(3*nu13*(8*E + 133))/(20*(nu13*nu13 - 1)*(E - 25)*sqrt((((12*E)/5 + 699/5)*(nu/2 - 1/2))/((29*E)/5 - 145)));
+      double nD3 = -(0.3*nu13*(4*E - 954.1))/(E*(nu13*nu13 - 1)*sqrt(E3*.5*(1-nu)/E));
       double G = -29/(10*(nu + 1));
       SetTransIsoTensor(t, subTensor, factor * D, factor * nD, factor * G, factor * D3, factor * nD3, 0.0);
       tensorset = true;
