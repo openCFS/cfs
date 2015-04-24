@@ -70,7 +70,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None):
   return ret
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, matrix=False, attribute="design"):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
@@ -103,6 +103,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 4
   if design5:
     designs = 5
+  if design6:
+    designs = 6
     
   length = len(sett) / designs
   
@@ -121,6 +123,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 3
     if design5 and type == design5:
       idx = 4
+    if design6 and type == design6:
+      idx = 5
     if idx <> -1:
       tmp = element.get(attribute)
       if tmp is None:
