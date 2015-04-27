@@ -65,8 +65,8 @@ class ErsatzMaterial;
     /** returns the tensor with negative design variables such the design vector is still pos. definite */
     bool GetElecTensor(Matrix<double>& t,  const Elem* elem, DesignElement::Type direction);
 
-    /** retrieve rel. mass of element (tensor trace) or derivative thereof */
-    double GetMaterialMass(DesignElement::Type direction);
+    /** retrieve rel. mass of element (tensor trace) or direct design variable */
+    double GetMechMass(const Elem* elem, DesignElement::Type direction);
 
     /** return whether mass is also a design (else it is calculated from tensor) */
     bool MassIsDesign(){

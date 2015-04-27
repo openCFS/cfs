@@ -169,7 +169,9 @@ bool DesignMaterial::CollectMaterialParametersForElement(DesignSpace* space, con
   for(unsigned int index = base; index < space->data.GetSize(); index += space->elements)
   {
     DesignElement* de = &space->data[index];
-    SetParameter(de->GetType(), de->GetDesign(DesignElement::SMART));
+    double val = de->GetDesign(DesignElement::SMART);
+    LOG_DBG2(dm) << "CMPFE e=" << elem->elemNum << " de=" << de->ToString() << " v=" << val;
+    SetParameter(de->GetType(), val);
   }
   return true;
 }
@@ -2119,6 +2121,8 @@ bool DesignMaterial::GetMechTensor(Matrix<Complex>& ct, SubTensorType subTensor,
   if(!GetMechTensor(dt, subTensor, elem, direction, notation))
     return false;
 
+  ct.Resize(dt.GetNumRows(), dt.GetNumCols());
+
   ct.SetPart(Global::REAL, dt, true); // zero other part
   return true;
 }
@@ -2171,6 +2175,8 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }
+
+  assert(t.GetNumRows() >= 3 && t.GetNumCols() >= 3);
 
   return true;
 }
@@ -2277,33 +2283,42 @@ bool DesignMaterial::GetPiezoCouplingTensor(Matrix<double>& E, const Elem* elem,
   return true;
 }
 
-double DesignMaterial::GetMaterialMass(DesignElement::Type direction) {
-  if (massIsDesign_) {
-    switch (direction) {
+double DesignMaterial::GetMechMass(const Elem* elem, DesignElement::Type direction)
+{
+  if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+    throw Exception("no mass data found");
+
+  if(massIsDesign_)
+  {
+    switch(direction)
+    {
     case DesignElement::MASS:
-      return (massFactor_);
+      return massFactor_;
     case DesignElement::NO_DERIVATIVE:
-      return (params_[DesignElement::MASS] * massFactor_);
+      return params_[DesignElement::MASS] * massFactor_;
     default:
-      return (0.0);
+      return 0.0;
     }
-  } else {
-    switch (type_) {
+  }
+  else
+  {
+    switch (type_)
+    {
     case ISOTROPIC:
-      return (GetIsoMaterialMass(direction) * massFactor_);
+      return GetIsoMaterialMass(direction) * massFactor_;
     case LAME_ISOTROPIC: // LAME_ISOTROPIC
-      return (GetLameMaterialMass(direction) * massFactor_);
+      return GetLameMaterialMass(direction) * massFactor_;
     case TRANSVERSAL_ISOTROPIC:
     case TRANSVERSAL_ISOTROPIC_BOXED:
-      return (GetTransIsoMaterialMass(direction) * massFactor_);
+      return GetTransIsoMaterialMass(direction) * massFactor_;
     default: // case default
       throw Exception("DesignMaterial Type not implemented yet");
     }
   }
 }
 
-bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta,
-    DesignElement::Type direction) {
+bool DesignMaterial::GetMaterialDamping(double& alpha, double& beta, DesignElement::Type direction)
+{
   if (DampingIsDesign()) {
     switch (direction) {
     case DesignElement::DAMPINGALPHA:
