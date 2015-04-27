@@ -23,6 +23,7 @@
       <xsd:element name="hystModel" type="DT_MagHystModel" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
+  
 
   <!-- ******************************************************************* -->
   <!--   Definition of magnetic permeability-->
@@ -150,5 +151,5 @@
       </xsd:element> 
     </xsd:sequence>
   </xsd:complexType>
-
+ 
 </xsd:schema>

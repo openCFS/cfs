@@ -121,7 +121,13 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     shared_ptr<BaseFeFunction> myFct = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
     
-    
+    double factor = 1.0;
+    if ( isMagnetoStrictCoupled_ == true ){
+	    // similar to the piezoelectric case we have to multiply the magnetic pde in the magnetostrictive case with -1 to 
+	    // get a symmetric equation system (in mechanics we have -div(sigma) in magnetics +rot(H) -> multiply magnetics with -1)
+      factor = -1.0;  
+    }
+
     //  Loop over all regions
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
@@ -164,14 +170,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           if( dim_ == 2) {
             if( isaxi_ ) {
               // axisymmetric case
-              stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl, 1.0, updatedGeo_);
+              stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl,factor, updatedGeo_);
             } else {
               // plane 2D case
-              stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, 1.0, updatedGeo_);
+              stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, factor, updatedGeo_);
             }
           } else {
             // 3D case
-            stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, 1.0, updatedGeo_);
+            stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, factor, updatedGeo_);
 
           }
           stiffInt->SetName("CurlCurlIntegrator-NL");
@@ -201,14 +207,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             if( dim_ == 2) {
               if( isaxi_ ) {
                 // axisymmetric case
-                stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, 1.0, updatedGeo_);
+                stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, factor, updatedGeo_);
               } else {
                 // plane 2D case
-                stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, 1.0, updatedGeo_);
+                stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, factor, updatedGeo_);
               }
             } else {
               // 3D case
-              stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, 1.0, updatedGeo_);
+              stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, factor, updatedGeo_);
 
             }
 
@@ -235,14 +241,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           if( dim_ == 2) {
             if( isaxi_ ) {
               // axisymmetric case
-              stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, 1.0, updatedGeo_);
+              stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
             } else {
               // plane 2D case
-              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef, 1.0, updatedGeo_);
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
             }
           } else {
             // 3D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
+            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
           }
           stiffInt->SetName("CurlCurlIntegrator");
           stiffInt->SetFeSpace( mySpace);
@@ -265,7 +271,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // ====================================================================
           if( dim_ == 3 ) {
             BaseBDBInt * divInt =
-                new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, 1.0, updatedGeo_);
+                new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
             divInt->SetFeSpace( mySpace );
             divInt->SetName("DivDivIntegrator");
             BiLinFormContext * divIntDescr =
@@ -292,9 +298,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         {
           BaseBDBInt *massInt = NULL;
           if( dim_ == 2 ) {
-            massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,1.0, updatedGeo_);
+            massInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), conducCoef,factor, updatedGeo_);
           } else {
-            massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef,1.0, updatedGeo_ );
+            massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), conducCoef,factor, updatedGeo_ );
           }
           massInt->SetName("MassIntegrator");
           BiLinFormContext * massContext = new BiLinFormContext(massInt, DAMPING );
@@ -324,7 +330,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           // ------------------------------
           {
             BiLinearForm * phiDivInt = 
-                new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_);
+                new BBInt<>(new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
             phiDivInt->SetName("MassIntegrator_PhiPhi");
             BiLinFormContext * massContext = 
                 new BiLinFormContext(phiDivInt, DAMPING);
@@ -339,7 +345,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           {
             BiLinearForm * cplInt = 
                 new ABInt<>(new IdentityOperator<FeH1,3,3,Double>() ,
-                            new GradientOperator<FeH1,3,1,Double>(), conducCoef, 1.0, updatedGeo_);
+                            new GradientOperator<FeH1,3,1,Double>(), conducCoef, factor, updatedGeo_);
             cplInt->SetName("MassIntegrator_Coupling_Phi_A");
             BiLinFormContext * cplContext = 
                 new BiLinFormContext(cplInt, DAMPING );
@@ -397,11 +403,11 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             // ===========
             if( isComplex_ ) {
               curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                                                  1.0, jFct, updatedGeo_);
+                                                  factor, jFct, updatedGeo_);
             }
             else {
               curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                                                 1.0, jFct, updatedGeo_);
+                                                 factor, jFct, updatedGeo_);
             }
             
             coilCurrentDens_[actRegion] = jFct;
@@ -413,10 +419,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             coilCurrentDens_[actRegion] = jFct;
             if( isComplex_ ) {
               curInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1>(),
-                                                  1.0, jFct, updatedGeo_);
+                                                  factor, jFct, updatedGeo_);
             } else {
               curInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1>(),
-                                                 1.0, jFct, updatedGeo_);
+                                                 factor, jFct, updatedGeo_);
             }
           }
 
@@ -480,18 +486,18 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           if( dim_ == 3 ) {
             if( isComplex_ ) {
               psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                  -1.0, eJscaled, updatedGeo_);
+                  -1.0*factor, eJscaled, updatedGeo_);
             } else {
               psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                  -1.0, eJscaled, updatedGeo_);
+                  -1.0*factor, eJscaled, updatedGeo_);
             }
           } else {
             if( isComplex_ ) {
               psiDotInt = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                  -1.0, eJscaled, updatedGeo_);
+                  -1.0*factor, eJscaled, updatedGeo_);
             } else {
               psiDotInt = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                  -1.0, eJscaled, updatedGeo_);
+                  -1.0*factor, eJscaled, updatedGeo_);
             }
           }
           psiDotInt->SetName("CoilVoltCouplInt");
@@ -510,18 +516,18 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
             if( dim_ == 3 ) {
               if( isComplex_ ) {
                 psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,3,3,Complex>(),
-                    1.0, eJscaled, updatedGeo_);
+                    1.0*factor, eJscaled, updatedGeo_);
               } else {
                 psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,3,3,Double>(),
-                    1.0, eJscaled, updatedGeo_);
+                    1.0*factor, eJscaled, updatedGeo_);
               }
             } else {
               if( isComplex_ ) {
                 psiDotIntT = new BUIntegrator<Complex>( new IdentityOperator<FeH1,2,1,Complex>(),
-                    1.0, eJscaled, updatedGeo_);
+                    1.0*factor, eJscaled, updatedGeo_);
               } else {
                 psiDotIntT = new BUIntegrator<Double>( new IdentityOperator<FeH1,2,1,Double>(),
-                    1.0, eJscaled, updatedGeo_);
+                    1.0*factor, eJscaled, updatedGeo_);
               }
             }
             psiDotIntT->SetName("CoilVoltCouplIntTransposed");
@@ -592,6 +598,12 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
  
   void MagneticPDE::DefineRhsLoadIntegrators() {
+    
+     
+     double factor = 1.0;
+    if ( isMagnetoStrictCoupled_ == true ){
+      factor = -1.0;  
+    }
     
     shared_ptr<BaseFeFunction> feFct = feFunctions_[MAG_POTENTIAL];
     shared_ptr<FeSpace> mySpace = feFct->GetFeSpace();    
@@ -706,28 +718,28 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case
-            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Complex>(Complex(1.0), 
+            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Complex>(Complex(factor), 
                                                                      coef[i], reluc_, coefUpdateGeo);
           } else {
-            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Complex>(Complex(1.0), 
+            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Complex>(Complex(factor), 
                                                                         coef[i], reluc_,coefUpdateGeo);
           }
         } else {
           // 3D case
-          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Complex>(Complex(1.0), 
+          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Complex>(Complex(factor), 
                                                                       coef[i], reluc_,coefUpdateGeo);
         }
       } else {
         if( dim_ == 2) {
           if( isaxi_ ) {
             // axisymmetric case
-            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Double>(1.0,  coef[i], reluc_,coefUpdateGeo);
+            lin = new BDUIntegrator<CurlOperatorAxi<Double>, Double>(factor,  coef[i], reluc_,coefUpdateGeo);
           } else {
-            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Double>(1.0, coef[i], reluc_,coefUpdateGeo);
+            lin = new BDUIntegrator<CurlOperator<FeH1,2,Double>,Double>(factor, coef[i], reluc_,coefUpdateGeo);
           }
         } else {
           // 3D case
-          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Double>(1.0, coef[i], reluc_,coefUpdateGeo);
+          lin = new BDUIntegrator<CurlOperator<FeH1,3,Double>,Double>(factor, coef[i], reluc_,coefUpdateGeo);
         }  
       }
       
@@ -822,7 +834,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       }
 
       // Adjust printing of coil information to info node
-      WARN("Adapt printing of coils to InfoNode");
+      // WARN("Adapt printing of coils to InfoNode");
     }
   }
 
