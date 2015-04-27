@@ -10,6 +10,7 @@ parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
 parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm'], required = True)
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend'])
+parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for buld2d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="mandatory size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
@@ -20,21 +21,25 @@ mesh_name = args.type
 
 # sanity checks
 if args.lbm and args.type <> "lbm":
-  print("error: --lbm only for --type lbm")
+  print "error: --lbm only for --type lbm"
   sys.exit()
 
 if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d"):
-  print("inclusions currently only for --type buld2d")
+  print "inclusions currently only for --type buld2d"
   sys.exit()  
   
 if (args.inclusion and not args.inclusion_size) or (args.inclusion_size and not args.inclusion):
-  print("inclusions require both --inclusion and --inclusion_size")
+  print "inclusions require both --inclusion and --inclusion_size"
   sys.exit()  
 
+if args.inclusion and args.patch:
+  print "--inclusion and --patch don't go concurrently"
+  sys.exit() 
+  
 if args.type == 'bulk3d':
   mesh = create_3d_mesh(args.res, args.y_res, args.z_res)
 elif args.type == 'bulk2d' or args.type.startswith('cantilever2d'):
-  mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size)
+  mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
 elif args.type == 'lbm':
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')
@@ -54,7 +59,9 @@ if args.width <> 1.0:
 if args.height is not None:
   res_name += '-h_' + str(args.height).replace('.', '_')
 if args.inclusion:
-  res_name += '_' + args.inclusion # + '_' + str(args.inclusion_size).replace('.', '_') 
+  res_name += '_' + args.inclusion # + '_' + str(args.inclusion_size).replace('.', '_')
+if args.patch:
+  res_name += '_' + args.patch   
 
 file = mesh_name + res_name + '.mesh' if args.file == None else args.file 
 
