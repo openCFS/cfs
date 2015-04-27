@@ -95,6 +95,7 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
 
   switch(state)
   {
+  case DIRECTION:
   case OPT:
     // the element does not necessarily lay in the design space!
     // if ApplyPhysicalDesign() returns true, coefMat is already set
@@ -106,9 +107,6 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
     break;
   case SHADOW:
     shadowMat->GetScalar(scal, lpm);
-    break;
-  case DIRECTION:
-    assert(false); // direction makes only sense for rtensors
     break;
   }
 

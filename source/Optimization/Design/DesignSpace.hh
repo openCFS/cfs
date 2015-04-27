@@ -109,14 +109,8 @@ namespace CoupledField
      virtual double GetAlphaVariable() const { assert(false); return -1; }
 /*
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
-     bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
+     //bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
 
-     /** Calculates the corresponding Mass for the given element, this is usually tensor trace
-      * @param elem Element
-      * @param direction if !=NO_DERIVATIVE calculate the derivative instead of value
-      */
-     //double GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction);
-     
      /** Get the ErsatzMaterialDampingParameters
       * @param alpha Damping Parameter alpha
       * @param beta Damping Parameter beta

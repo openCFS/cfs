@@ -366,9 +366,9 @@ const DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int mult
   if(enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
   {
     if(complexMaterial)
-      GetElementMatrix<complex<double> >(MC[index], "MassInt", elem, bimaterial, DesignElement::NO_MULTIMATERIAL); // in the bimaterial case the standard (upper) material
+      GetElementMatrix<complex<double> >(MC[index], "MassInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
     else
-      GetElementMatrix<double>(M[index], "MassInt", elem, bimaterial, DesignElement::NO_MULTIMATERIAL);
+      GetElementMatrix<double>(M[index], "MassInt", elem, bimaterial, direction);
   }
 
   if(complexMaterial) {

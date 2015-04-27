@@ -259,9 +259,6 @@ namespace CoupledField
          * PiezoSIMP does it simply in the constructor */
         virtual void SetPDEs(OptimizationMaterial::System sys);
 
-        /** Get the standard integrators */
-        BiLinFormContext* GetBiLinForm(const RegionIdType reg, Application app1, Application app2 = NO_APP, bool throw_exception = true);
-
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
 

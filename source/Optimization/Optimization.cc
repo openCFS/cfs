@@ -1104,51 +1104,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out) out->flush();
 }
 
-BiLinFormContext* Optimization::GetBiLinForm(const RegionIdType reg, Application app1, Application app2, bool throw_exception)
-{
-  Application a1, a2;
-  string integrator = "";
-
-  if(app1 == MECH && (app2 == MECH || app2 == NO_APP))
-  {
-    a1 = a2 = MECH;
-    integrator = "LinElastInt";
-  }
-  if(app1 == ELEC && (app2 == ELEC || app2 == NO_APP))
-  {
-    a1 = a2 = ELEC;
-    integrator = "linGradBDBInt";
-  }
-  if((app1 == MECH && app2 == ELEC) || (app1 == ELEC && app2 == MECH) || (app1 == PIEZO_COUPLING && app2 == NO_APP))
-  {
-    a1 = MECH;
-    a2 = ELEC;
-    integrator = "linPiezoCoupling";
-  }
-  if(app1 == MASS && (app2 == MASS || app2 == NO_APP))
-  {
-    a1 = a2 = MASS;
-    integrator = "MassInt";
-  }
-
-  assert(integrator != "");
-
-  assert(false);
-  SinglePDE* pde1 = NULL; // FIXME ToPDE(a1, throw_exception);
-  SinglePDE* pde2 = NULL; // FIXME ToPDE(a2, throw_exception);
-
-  if(pde1 == NULL || pde2 == NULL)
-  {
-    if(!throw_exception)
-      return NULL;
-    else
-      EXCEPTION("No PDE for application " << a1 << " resp. " << a2);
-  }
-
-  return assemble_->GetBiLinForm(integrator, reg, pde1, pde2, !throw_exception);
-}
-
-
 void Optimization::SetPDEs(OptimizationMaterial::System sys)
 {
   switch(sys)

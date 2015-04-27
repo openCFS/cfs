@@ -631,7 +631,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
   if(designMaterial != NULL) // easy to extend to piezo and other stuff!
-    return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetTensorDerivative(), DesignMaterial::VOIGT);
+    return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
 
   double bimat_factor = -1.0;
 
@@ -668,6 +668,14 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   if(idx == -1)
     return false;
 
+  // check for param mat -> e.g. scalar mass
+  if(designMaterial != NULL)
+  {
+    retScal = designMaterial->GetMechMass(lpm->ptEl, coef->GetMaterialDerivative());
+    LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " d=" << DesignElement::type.ToString(coef->GetMaterialDerivative()) << " -> " << retScal;
+    return true; // note that we have no plausibility check in GetMechMass()
+  }
+
   double bimat_factor = -1.0;
 
   Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
@@ -686,7 +694,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
     retScal += bimat_factor * bimat; // rho^p * E_l + (1-rho)^p * E_u
   }
 
-  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor;
+  LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " f=" << factor;
 
   return true;
 }
@@ -749,14 +757,6 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
 
 
 /*
-double DesignSpace::GetErsatzMaterialMass(const Elem* elem, DesignElement::Type direction){
-  // collect all parameters
-  if(CollectMaterialParametersForElement(elem)){
-    return(designMaterial->GetMaterialMass(direction));
-  }
-  return(1.0);
-}
-
 bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction){
   if(CollectMaterialParametersForElement(elem)){
     return(designMaterial->GetMaterialDamping(alpha, beta, direction));

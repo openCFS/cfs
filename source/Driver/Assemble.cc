@@ -1041,9 +1041,6 @@ namespace CoupledField
 
           BiLinearForm * form = actContext.GetIntegrator();
 
-         
-    
-
           // make only output if desired
           if( printProgressBar_) {
             ++progress;
@@ -1061,12 +1058,10 @@ namespace CoupledField
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
               }
-              if(iForm == 0) {
-                 rElemMat = elemMatrix;
-              } else {
-            
-              rElemMat += elemMatrix;
-              }
+              if(iForm == 0)
+                rElemMat = elemMatrix;
+              else
+                rElemMat += elemMatrix;
             }
 
 //            // info.xml logging in detailed logging case for the first element only

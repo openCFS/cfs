@@ -93,8 +93,8 @@ public:
    * Evaluated by DesignMaterial */
   void SetToTensorDerivative(DesignElement::Type direction);
 
-  /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION */
-  DesignElement::Type GetTensorDerivative() const { return direction; }
+  /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION. For tensors and mass */
+  DesignElement::Type GetMaterialDerivative() const { return direction; }
 
   /** the original material. Required if no optimization available or for SIMP and bi-material optimization */
   PtrCoefFct orgMat;
