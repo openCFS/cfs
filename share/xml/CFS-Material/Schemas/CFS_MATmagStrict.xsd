@@ -25,7 +25,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of piezo coupling tensor                               -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MagStrictTensor">
+ <xsd:complexType name="DT_MagStrictTensor">
     <xsd:sequence>
       <xsd:element name="real">
         <xsd:simpleType>
