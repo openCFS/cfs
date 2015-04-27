@@ -19,6 +19,7 @@ namespace CoupledField {
 template <class TYPE> class StdVector;
 
 class ErsatzMaterial;
+class TransferFunction;
 
   class DesignMaterial
   {

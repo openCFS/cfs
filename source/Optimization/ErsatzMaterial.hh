@@ -113,6 +113,8 @@ public:
 
   OptimizationMaterial* GetMaterial() { return material; }
 
+  Method GetMethod() { return method_; }
+
   /** This class holds the solution of the PDE. It is in a class such that it
    * helps to encapsulate real and complex solutions. Note that the Piezo
    * has other solutions! */
