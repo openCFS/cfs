@@ -1235,7 +1235,7 @@ Condition* ConditionContainer::Get(Condition::Type type, DesignElement::Type des
   }
 
   if(list.GetSize() > 1 && throw_exception)
-    throw Exception("constraint " + Condition::type.ToString(type) + "is not unique");
+    throw Exception("constraint " + Condition::type.ToString(type) + " is not unique");
 
   return list[0];
 }

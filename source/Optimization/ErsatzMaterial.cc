@@ -1480,7 +1480,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::GLOBAL_LAMINATES_VOL:
       case Function::GLOBAL_TENSOR_TRACE:
       case Function::GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-      result = CalcGlobalFunction(f, derivative);
+      case Function::PERIMETER:
+        result = CalcGlobalFunction(f, derivative);
       break;
 
       case Function::SLOPE:
@@ -3223,7 +3224,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         res += fv;
         if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-        << ( typeid(id.element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+                     << ( typeid(id.element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }
 
       return res;

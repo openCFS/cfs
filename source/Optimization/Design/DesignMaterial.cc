@@ -2902,6 +2902,7 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E,
   Vector<double> data;
   hom_rect_samples_.GetCol(data,
       DesignElement::TENSOR11 - DesignElement::TENSOR11);
+  
   E[1 - 1][1 - 1] = shape * data;
   LOG_DBG(dm)<< "AHRT 11=" << E[1-1][1-1] << " data=" << data.ToString();
   hom_rect_samples_.GetCol(data,

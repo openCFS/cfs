@@ -274,13 +274,11 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   centers, min, max, elem = coords
 
   im, draw, dim, dx, dy = create_image(min, max, nx,"white")
-
   height = elem[1] * dy 
   length = elem[0] * dx
  
   # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s1, s2)
-  
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s2, s1) # for some strange reason we need to switch?!
 
   for y in range(ny+1):
     for x in range(nx+1):
@@ -342,8 +340,6 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
           
           draw.polygon(tupels, fill="black")
   
-  
-
   return im
 
 ## visualize the orientational stiffness
