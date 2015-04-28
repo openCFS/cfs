@@ -656,7 +656,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsNaN() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(isnan(data_[k])) return true;
+      if(std::isnan(data_[k])) return true;
 
     return false;
   }
@@ -666,8 +666,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(isnan(data_[k].real())) return true;
-      if(isnan(data_[k].imag())) return true;
+      if(std::isnan(data_[k].real())) return true;
+      if(std::isnan(data_[k].imag())) return true;
     }
     return false;
   }
@@ -677,7 +677,7 @@ namespace CoupledField {
   bool Vector<TYPE>::ContainsInf() const
   {
     for(UInt k = 0, s = size_; k < s; ++k)
-      if(isinf(data_[k])) return true;
+      if(std::isinf(data_[k])) return true;
 
     return false;
   }
@@ -687,8 +687,8 @@ namespace CoupledField {
   {
     for(UInt k = 0, s = size_; k < s; ++k)
     {
-      if(isinf(data_[k].real())) return true;
-      if(isinf(data_[k].imag())) return true;
+      if(std::isinf(data_[k].real())) return true;
+      if(std::isinf(data_[k].imag())) return true;
     }
     return false;
   }
@@ -868,8 +868,14 @@ namespace CoupledField {
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class Vector<Double>;
   template class Vector<Complex>;
+  template class Vector<Integer>;
+  template class Vector<UInt>;
+
   template std::ostream & operator<<<Double> (std::ostream & , const Vector<Double> &);
   template std::ostream & operator<<<Complex> (std::ostream & , const Vector<Complex> & );
+  template std::ostream & operator<<<Integer> (std::ostream & , const Vector<Integer> & );
+  template std::ostream & operator<<<UInt> (std::ostream & , const Vector<UInt> & );
+
 #endif
 
 

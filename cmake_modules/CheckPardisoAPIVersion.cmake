@@ -353,10 +353,10 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
   #---------------------------------------------------------------------------
   # Only set last CFS++ PARDISO variable if test was successful
   #---------------------------------------------------------------------------
-  IF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
+  IF(PARDISO_API_VER_3_EXITCODE EQUAL 0 OR CFS_DISTRO STREQUAL "MACOSX")
     SET(PARDISO_API_VER_3_LAST_CFS_PARDISO ${CFS_PARDISO}
         CACHE INTERNAL "${CFS_PARDISO}" FORCE)
-  ELSE(PARDISO_API_VER_3_EXITCODE EQUAL 0)
+  ELSE(PARDISO_API_VER_3_EXITCODE EQUAL 0 OR CFS_DISTRO STREQUAL "MACOSX")
     IF(CFS_BLAS_LAPACK STREQUAL "MKL" AND
        CFS_CXX_COMPILER_NAME STREQUAL "ICC")
        MESSAGE("Please try using the library MKL provided by the Intel compiler!")
@@ -364,7 +364,7 @@ IF(NOT PARDISO_API_VER_3_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
        MESSAGE("compiler may cause problems.")
     ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" AND
           CFS_CXX_COMPILER_NAME STREQUAL "ICC")
-  ENDIF(PARDISO_API_VER_3_EXITCODE EQUAL 0)
+  ENDIF(PARDISO_API_VER_3_EXITCODE EQUAL 0 OR CFS_DISTRO STREQUAL "MACOSX")
 
   #---------------------------------------------------------------------------
   # Warn user about missing or corrupt license files.
@@ -438,7 +438,7 @@ ENDIF(NOT PARDISO_API_VER_4_LAST_CFS_PARDISO STREQUAL CFS_PARDISO)
 # If both checks failed issue an error
 #-----------------------------------------------------------------------------
 IF(NOT PARDISO_API_VER_3 AND
-   NOT PARDISO_API_VER_4)
+		NOT PARDISO_API_VER_4 AND NOT CFS_DISTRO STREQUAL "MACOSX")
    
   SET(PARDISO_API_VER_3_LAST_CFS_PARDISO "" CACHE INTERNAL "PARDISO_API_VER_3_LAST_CFS_PARDISO" FORCE)
   SET(PARDISO_API_VER_4_LAST_CFS_PARDISO "" CACHE INTERNAL "PARDISO_API_VER_4_LAST_CFS_PARDISO" FORCE)
@@ -452,7 +452,7 @@ IF(NOT PARDISO_API_VER_3 AND
                       "set it by hand in CMakeCache.txt(e.g. PARDISO_API_VER_3:INTERNAL=1)")
 
 ELSE(NOT PARDISO_API_VER_3 AND
-     NOT PARDISO_API_VER_4)
+		NOT PARDISO_API_VER_4 AND NOT CFS_DISTRO STREQUAL "MACOSX")
 
   #---------------------------------------------------------------------------
   # If both checks succeded also issue an error
@@ -471,7 +471,7 @@ ELSE(NOT PARDISO_API_VER_3 AND
                         "There is no function to determine the version, and the number and ordering\n"
                         "of parameters changed from version 3 to 4. THANK YOU VERY MUCH PARDISO DEVELOPERS!\n\n"
                         "If you know the PARDISO API version you may also\n"
-                        "set it by hand in CMakeCache.txt(e.g. PARDISO_API_VER_3:INTERNAL=1)")
+			"set it by hand in CMakeCache.txt(e.g. PARDISO_API_VER_3:INTERNAL=1)")
   ELSE(PARDISO_API_VER_3 AND
        PARDISO_API_VER_4)
        
@@ -479,10 +479,10 @@ ELSE(NOT PARDISO_API_VER_3 AND
     # Otherwise set the corresponding API version. And make sure that the
     # the other API version does not get rechecked in every CMake run.
     #-------------------------------------------------------------------------
-    IF(PARDISO_API_VER_3)
+    IF(PARDISO_API_VER_3 OR CFS_DISTRO STREQUAL "MACOSX")
       SET(PARDISO_API_VER 3)
       SET(PARDISO_API_VER_4_LAST_CFS_PARDISO "${CFS_PARDISO}" CACHE INTERNAL "PARDISO_API_VER_4_LAST_CFS_PARDISO" FORCE)      
-    ENDIF(PARDISO_API_VER_3)
+    ENDIF(PARDISO_API_VER_3 OR CFS_DISTRO STREQUAL "MACOSX")
 
     IF(PARDISO_API_VER_4)
       SET(PARDISO_API_VER 4)
@@ -493,4 +493,4 @@ ELSE(NOT PARDISO_API_VER_3 AND
        PARDISO_API_VER_4)
        
 ENDIF(NOT PARDISO_API_VER_3 AND
-      NOT PARDISO_API_VER_4)
+	NOT PARDISO_API_VER_4 AND NOT CFS_DISTRO STREQUAL "MACOSX")

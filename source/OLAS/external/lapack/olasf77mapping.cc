@@ -1,12 +1,9 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #include "General/exception.hh"
 #include "OLAS/external/lapack/olasf77mapping.hh"
-
 namespace CoupledField {
-
   // ***********************************************************
   //   Conversion of C++ to F77 data type ( entryC -> entryF )
   // ***********************************************************
@@ -23,8 +20,6 @@ namespace CoupledField {
     val.real = (F77real8)v.real();
     val.imag = (F77real8)v.imag();
   }
-
-
   // ***********************************************************
   //   Conversion of F77 to C++ data type ( entryF -> entryC )
   // ***********************************************************
@@ -41,5 +36,4 @@ namespace CoupledField {
     std::complex<double> aux(v.real,v.imag);
     val = aux;
   }
-
 }

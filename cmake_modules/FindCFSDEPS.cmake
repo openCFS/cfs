@@ -165,7 +165,7 @@ IF(USE_BLAS OR USE_LAPACK)
   # PARDISO_API_VER_3 and PARDISO_API_VER_4 from the CMake cache.
   #-----------------------------------------------------------------------------
   IF(USE_PARDISO)
-    INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")
+       INCLUDE("cmake_modules/CheckPardisoAPIVersion.cmake")		       
   ENDIF(USE_PARDISO)
   
   #-----------------------------------------------------------------------------
