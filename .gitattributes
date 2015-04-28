@@ -177,6 +177,7 @@ cfsdeps/ilupack/ilupack2.2.1_src.tgz.md5 -text
 cfsdeps/ilupack/ilupack_config.h.in -text
 cfsdeps/ipopt/External_IPOPT.cmake -text
 cfsdeps/ipopt/ipopt-patch.cmake.in -text
+cfsdeps/ipopt/ipopt-post_install.cmake.in -text
 cfsdeps/ipopt/ipopt_hsl.zip -text svneol=unset#application/zip
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
