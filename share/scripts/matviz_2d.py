@@ -28,16 +28,16 @@ def create_figure(min, max, res, for_save):
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
   ax = fig.add_subplot(111)
 
-  if for_save:
-    # we need to correct the ratio
-    wrong = ax.get_window_extent().size
-    ratio = dpi_x / dpi_y 
-    dpi_x *= res / wrong[0]  
-    dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
-    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
-    matplotlib.pyplot.axis('off')
-    ax = fig.add_subplot(111)
-    # the second figure would make problems with matplotlib.pyplot.show()
+#   if for_save:
+#     # we need to correct the ratio
+#     wrong = ax.get_window_extent().size
+#     ratio = dpi_x / dpi_y 
+#     dpi_x *= res / wrong[0]  
+#     dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
+#     fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+#     matplotlib.pyplot.axis('off')
+#     ax = fig.add_subplot(111)
+#     # the second figure would make problems with matplotlib.pyplot.show()
   
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])
@@ -518,8 +518,8 @@ def show_sheared_cross(coords, s1, s2, sh1, direction, nx, scale, color, do_save
     v[1] = s2[i,0] / numpy.max((scale, 1.))
     theta = sh1[i] - .5
     c = [0,0]
-    c[0] = color_code(sm,v[0]) if color == "grayscale" else color_code(sm, max_val)
-    c[1] = color_code(sm,v[1]) if color == "grayscale" else color_code(sm, max_val)
+    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
     
     #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
     
@@ -537,10 +537,10 @@ def show_sheared_cross(coords, s1, s2, sh1, direction, nx, scale, color, do_save
       vmin = (vmax + 1) % 2
       shearingangle = [0,0]
       shearingangle[vmax] = theta 
-      pol = to_rectangle_center(length * v[vmin], length, shearingangle[0] + vmin*numpy.pi/2, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmin], length, -(shearingangle[0] + vmin*numpy.pi/2), x_off, y_off)
       #draw_verts(pol, sub, str(1.0 - c[vmin]))
       draw_verts(pol, sub, c[vmin])
-      pol = to_rectangle_center(length * v1[vmax], length, shearingangle[1] + vmax*numpy.pi/2, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length, -(shearingangle[1] + vmax*numpy.pi/2), x_off, y_off)
       draw_verts(pol, sub, c[vmax])
  
   return (fig, sub)
