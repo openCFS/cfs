@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-
-import Image, sys, os, copy, numpy, math
+from PIL import Image
+import sys, os, copy, numpy, math
 from hdf5_tools import *
 
 

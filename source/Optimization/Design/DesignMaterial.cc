@@ -1467,8 +1467,8 @@ double DesignMaterial::EvaluateC1Interpolation_3D(Vector<double>& p, const Matri
 double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double> & coeff, double & da, double & db,
     double & dc, int & j, int & k, int & l, int & m, int & n, int & o,
     DesignElement::Type direction) const {
-  double u = (p[0] - hom_rect_a_[j][0]) / (da);
-  double t = (p[1] - hom_rect_b_[k][0]) / (db);
+  double t = (p[0] - hom_rect_a_[j][0]) / (da);
+  double u = (p[1] - hom_rect_b_[k][0]) / (db);
   double v = (p[2] - hom_rect_c_[l][0]) / (dc);
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
   LOG_DBG(dm)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
@@ -1543,14 +1543,13 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p, const Matrix<d
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<"]";
   double u,t;
   if (type_ == MSFEM_C1) {
-    u =(p[1]-msfem_b_[k][0])/(db);
     t=(p[0]-msfem_a_[j][0])/(da);
+    u =(p[1]-msfem_b_[k][0])/(db);
   } else {
-    u =(p[1]-hom_rect_b_[k][0])/(db);
     t=(p[0]-hom_rect_a_[j][0])/(da);
+    u =(p[1]-hom_rect_b_[k][0])/(db);
   }
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
-  LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
   LOG_DBG(dm)<<"j = "<<j<<" k= "<<k;
   double res = 0;
   for (int i = 0;i<4;i++) {
@@ -1566,11 +1565,11 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p, const Ma
     int & j, int & k, int & m, int & n, DesignElement::Type direction) const {
   double u,t;
     if (type_ == MSFEM_C1) {
-      u = (p[1] - msfem_b_[k][0]) / (db);
       t = (p[0] - msfem_a_[j][0]) / (da);
+      u = (p[1] - msfem_b_[k][0]) / (db);
     } else {
-      u = (p[1] - hom_rect_b_[k][0]) / (db);
       t = (p[0] - hom_rect_a_[j][0]) / (da);
+      u = (p[1] - hom_rect_b_[k][0]) / (db);
     }
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
 
