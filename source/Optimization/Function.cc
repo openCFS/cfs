@@ -73,6 +73,11 @@ Function::Function(PtrParamNode pn) {
 
   this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
 
+  if(pn->Has("filtered"))
+    this->filtered_ = pn->Get("filtered")->As<bool>() ? 1 : 0;
+  else
+    this->filtered_ = -1;
+
   if (pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
     this->design_ = BaseDesignElement::type.Parse(
         pn->Get("design")->As<string>());
@@ -562,26 +567,33 @@ bool Function::IsLocal(Type t) {
 }
 
 bool Function::ForDensityFiltering() const {
-  switch (type_) {
-  case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
-  case SLACK:
-  case SHAPE_INF:
-  case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
-  case MULTIMATERIAL_SUM:
-  case SUM_MODULI:
-  case GLOBAL_SUM_MODULI:
-  case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
-  case ORTHOTROPIC_TENSOR_TRACE:
-  case GLOBAL_TWO_SCALE_VOL:
-  case TWO_SCALE_VOL:
+  if(filtered_ == 0) // filtering false
     return false;
+  else if(filtered_ == 1) // filtering true
+    return true;
+  else // no "filtered=" entry in constraint given. Use default values:
+  {
+    switch (type_) {
+    case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
+    case SLACK:
+    case SHAPE_INF:
+    case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
+    case MULTIMATERIAL_SUM:
+    case SUM_MODULI:
+    case GLOBAL_SUM_MODULI:
+    case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
+    case ORTHOTROPIC_TENSOR_TRACE:
+    case GLOBAL_TWO_SCALE_VOL:
+    case TWO_SCALE_VOL:
+      return false;
 
-  case MULTI_OBJECTIVE:
-    EXCEPTION("Invalid query: " << type.ToString(type_));
-    return false;
+    case MULTI_OBJECTIVE:
+      EXCEPTION("Invalid query: " << type.ToString(type_));
+      return false;
 
-  default:
-    return true; // actually true for almost all!
+    default:
+      return true; // actually true for almost all!
+    }
   }
 }
 
