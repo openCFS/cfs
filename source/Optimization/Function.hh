@@ -686,6 +686,10 @@ class Function
     /** @see IsPhysical() */
     bool physical_;
 
+    /** manual switch whether density filtering is applied in local constraints or not
+     * 0: no filtering, 1: filtering, else: @see ForDensityFiltering() for defaults */
+    int filtered_;
+
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
