@@ -329,6 +329,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
+  Function::type.Add(Function::PERIMETER, "perimeter");
   Function::type.Add(Function::MOLE, "mole");
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");
@@ -353,6 +354,11 @@ void Optimization::SetEnums()
   Function::type.Add(Function::BENSON_VANDERBEI_1, "bensonVanderbeiMinor1");
   Function::type.Add(Function::BENSON_VANDERBEI_2, "bensonVanderbeiMinor2");
   Function::type.Add(Function::BENSON_VANDERBEI_3, "bensonVanderbeiMinor3");
+  Function::type.Add(Function::DETERMINANT_MATRIX, "determinantMatrix");
+  Function::type.Add(Function::ROTATIONAL_MATRIX_1, "rotationalMatrix1");
+  Function::type.Add(Function::ROTATIONAL_MATRIX_2, "rotationalMatrix2");
+  Function::type.Add(Function::DETERMINANT_MAPPING, "determinantMapping");
+  Function::type.Add(Function::TRACE_MAPPING, "traceMapping");
   Function::type.Add(Function::DESIGN_BOUND, "designBound");
   Function::type.Add(Function::EIGENFREQUENCY, "eigenfrequency");
   Function::type.Add(Function::MULTIMATERIAL_SUM, "multimaterial_sum");
@@ -363,6 +369,7 @@ void Optimization::SetEnums()
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
   Function::Local::locality.Add(Function::Local::NEXT, "next");
+  Function::Local::locality.Add(Function::Local::NEXT_DIAG, "next_diag");
   Function::Local::locality.Add(Function::Local::NEXT_AND_REVERSE, "next_and_reverse");
   Function::Local::locality.Add(Function::Local::PREV_NEXT, "prev_next");
   Function::Local::locality.Add(Function::Local::PREV_NEXT_AND_REVERSE, "prev_next_and_reverse");
@@ -371,6 +378,10 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT, "multiple_designs_next");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT_AND_REVERSE, "multiple_designs_next_and_reverse");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT, "multiple_designs_prev_next");
+  Function::Local::locality.Add(Function::Local::MULT_DESIGNS_PREV_NEXT_AND_REVERSE, "multiple_designs_prev_next_and_reverse");
   Function::Local::locality.Add(Function::Local::SHAPE, "shape");
 
   Function::Local::phase.SetName("Function::Local::Phase");

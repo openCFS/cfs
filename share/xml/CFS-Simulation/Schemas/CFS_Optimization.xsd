@@ -11,9 +11,32 @@
     </xsd:documentation>
   </xsd:annotation>
   
+  <!-- ******************************************************************* -->
+  <!--   Definition of a reduced basis matrix                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_RBMatrix">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="1000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_DoubleList">
+            <xsd:maxLength value="1000"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
   
-  <!-- works with eclips but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
-  
+    <!-- works with eclips but not with xerces :( xsd:include schemaLocation="CFS_PDEbasic.xsd" -->
+    
   <!-- ******************************************************************** -->
   <!--   Definition of an optimization problem at all                       -->
   <!-- ******************************************************************** -->
@@ -294,6 +317,8 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <!--  the global perimeter constraint  -->
+                <xsd:enumeration value="perimeter"/>
                 <xsd:enumeration value="jump"/>
                 <xsd:enumeration value="globalJump"/>
                 <!-- local constraint (rho_i-1 - rho_i)(rho_i - rho_i+1) >= 0, 'hobbala' -->
@@ -329,6 +354,14 @@
                 <xsd:enumeration value="bensonVanderbeiMinor1"/>
                 <xsd:enumeration value="bensonVanderbeiMinor2"/>
                 <xsd:enumeration value="bensonVanderbeiMinor3"/>
+                <!--  In case of model reduction, ensures that the determinant of the matrix is positive -->
+                <xsd:enumeration value="determinantMatrix"/>
+               <!--  In case of model reduction, ensures that the rotational of the matrix is small enough -->
+                <xsd:enumeration value="rotationalMatrix1"/>
+                <xsd:enumeration value="rotationalMatrix2"/>
+                <!--  For the mapping case of model reduction techniques -->
+                <xsd:enumeration value="determinantMapping"/>
+                <xsd:enumeration value="traceMapping"/>
                 <!-- this allows to formulate design bounds as functions. Set box constraints then to +- inf -->
                 <xsd:enumeration value="designBound"/>
                 <!-- local sum of all multimaterial designs -->
@@ -912,6 +945,14 @@
                             </xsd:attribute>
                           </xsd:complexType>
                         </xsd:element>
+												<!-- End of data for HomRect -->
+												<!-- Data for modRed -->
+												<xsd:element name="modRed" minOccurs="0" maxOccurs="1">
+													<xsd:complexType>
+														<!-- filename with external modRed structrue -->
+														<xsd:attribute name="file" type="xsd:token" use="required" />
+													</xsd:complexType>
+												</xsd:element>  
                         <xsd:element name="homRectC1" minOccurs="0" maxOccurs="1">
                           <xsd:complexType>
                             <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
@@ -936,13 +977,23 @@
                             <xsd:enumeration value="density-times-transversal-isotropic-boxed"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic"/>
                             <xsd:enumeration value="density-times-rotated-transversal-isotropic-boxed"/>
+                            <xsd:enumeration value="density-times-rotated-pa12"/> 
+                            <xsd:enumeration value="density-times-interpolated-tensor"/> 
+                            <xsd:enumeration value="density-times-rotated-interpolated-tensor"/> 
                             <xsd:enumeration value="laminates"/>
                             <xsd:enumeration value="density-times-laminates"/>
-                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requies homRect element -->
+                            <!-- samples for homogenizes a-b rectangulars for interpolation. Requires homRect element -->
                             <xsd:enumeration value="hom-rect"/>
                             <xsd:enumeration value="density-times-hom-rect"/>
                             <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
                             <xsd:enumeration value="hom-rect-C1"/>
+                            <!--  model reduction  --> 
+                            <xsd:enumeration value="reducedBasis-param"/> 
+                            <xsd:enumeration value="reducedBasis-free"/> 
+                            <xsd:enumeration value="reducedBasis-mapping"/> 
+                            <xsd:enumeration value="greedy-param"/> 
+                            <xsd:enumeration value="greedy-free"/> 
+                            <xsd:enumeration value="greedy-mapping"/> 
                           </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
@@ -1093,6 +1144,8 @@
                       <xsd:enumeration value="penalizedStress"/>
                       <!-- This is (rho - rho^*)^2 (rho is physical) withount the 1/N -->
                       <xsd:enumeration value="designTracking"/>
+                     <!-- This is the gradient matrix -->
+                      <xsd:enumeration value="transfoMatrix"/>
                       <!-- the local value of the projection function -->
                       <xsd:enumeration value="projection"/>
                       <!-- has details! -->
@@ -1343,6 +1396,7 @@
       <xsd:enumeration value="dielec_all"/>
       <!-- all piezoc coupling tensor coefficients for piezo FMO -->
       <xsd:enumeration value="piezo_all"/>
+      <xsd:enumeration value="G_all"/>
       <!-- Constraint is defined per element and uses all designs on that element -->
       <xsd:enumeration value="allDesigns"/> 
       <xsd:enumeration value="emodul"/>
@@ -1372,11 +1426,26 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
-      <xsd:enumeration value="rotAngleX"/>
-      <xsd:enumeration value="rotAngleY"/>
-      <xsd:enumeration value="rotAngleZ"/>
+      <!-- Model reduction design variables -->
+      <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="scaling1"/>
+      <xsd:enumeration value="scaling2"/>
+      <xsd:enumeration value="G11"/>
+      <xsd:enumeration value="G12"/>
+      <xsd:enumeration value="G21"/>
+      <xsd:enumeration value="G22"/>
+      <xsd:enumeration value="G_MAP_X"/>
+      <xsd:enumeration value="G_MAP_Y"/>
+      <xsd:enumeration value="GX_0"/>
+      <xsd:enumeration value="GY_0"/>
+      <xsd:enumeration value="GX_PX"/>
+      <xsd:enumeration value="GY_PX"/>
+      <xsd:enumeration value="GX_PY"/>
+      <xsd:enumeration value="GY_PY"/>
+      <xsd:enumeration value="GX_PXY"/>
+      <xsd:enumeration value="GY_PXY"/>
       <xsd:enumeration value="stiff3"/>
       <xsd:enumeration value="rotAngleX"/>
       <xsd:enumeration value="rotAngleY"/>
@@ -1384,6 +1453,7 @@
       <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
+      <xsd:enumeration value="interpolation"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1412,6 +1482,7 @@
       <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="energyFlux"/>
       <xsd:enumeration value="globalSlope"/>
+      <xsd:enumeration value="perimeter"/>
       <xsd:enumeration value="globalOscillation"/>
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
@@ -1426,6 +1497,7 @@
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
+
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1629,6 +1701,12 @@
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="stress"/>
+      
+            <!-- Value of the G matrix -->
+      <xsd:enumeration value="transfoMatrix11"/>
+      <xsd:enumeration value="transfoMatrix12"/>
+      <xsd:enumeration value="transfoMatrix21"/>
+      <xsd:enumeration value="transfoMatrix22"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -1641,13 +1719,19 @@
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="default"/>
           <xsd:enumeration value="next"/>
+          <xsd:enumeration value="next_diag"/>
           <xsd:enumeration value="next_and_reverse"/>
           <xsd:enumeration value="prev_next"/>
           <xsd:enumeration value="prev_next_and_reverse"/>
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
           <xsd:enumeration value="element"/>
-        </xsd:restriction>
+          <xsd:enumeration value="multiple_designs_element"/>
+          <xsd:enumeration value="multiple_designs_next"/>
+          <xsd:enumeration value="multiple_designs_next_and_reverse"/>
+          <xsd:enumeration value="multiple_designs_prev_next"/>
+          <xsd:enumeration value="multiple_designs_prev_next_and_reverse"/>
+     </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
     

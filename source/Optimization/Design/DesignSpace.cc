@@ -123,15 +123,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     transfer.Reserve(trans_in.GetSize());
     if(trans_in.GetSize() < design.GetSize() && ! HasMultiMaterial())
       throw Exception("less transferFunctions than design variable types is infeasible");
+  } else {
+    transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
+    transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
+  }
     for(unsigned int i = 0; i < trans_in.GetSize(); i++)
       transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density in PostInit() before the pde's are not ready
-  }
-  else
-  {
-    if(!trans_in.IsEmpty())
-      throw Exception("transfer functions may not be given for parametric material optimization");
-  }
 
 
   if(elements == 0 || design.IsEmpty())
@@ -340,8 +338,8 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
     // lower is set to physical!
     // example. For beta=5 and eta=0.5 tanh(>= 0) >= 0.0066. A negative design is not feasible!
     // therefore we have to set scaling and lower=physical
-    double lv = tf->Transform(NULL, DesignElement::PLAIN, false, physical); // no bimat
-    double uv = tf->Transform(NULL, DesignElement::PLAIN, false, 1.0); // we hope this is always true!!!
+    double lv = tf->Transform(physical);
+    double uv = tf->Transform(1.0); // we hope this is always true!!!
     tf->SetScaling((1.0 - (physical - lv/uv)/(1-lv/uv))/uv);
     tf->SetOffset((physical - lv/uv) / (1 - lv/uv));
     return physical;
@@ -465,9 +463,6 @@ unsigned int DesignSpace::CalcPseudoDesignElements() const
 
 void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em)
 {
-  if(transfer.GetSize() > 0)
-    throw Exception("designmaterial can not be given when using transferFunctions");
-  transfer.Push_back(TransferFunction()); // create an identity transfer function
   designMaterial = new DesignMaterial(dm, material, design, em);
 }
 
@@ -590,6 +585,14 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
       case OPT_RESULT_10: return 9;
       case OPT_RESULT_11: return 10;
       case OPT_RESULT_12: return 11;
+      case OPT_RESULT_13: return 12;
+      case OPT_RESULT_14: return 13;
+      case OPT_RESULT_15: return 14;
+      case OPT_RESULT_16: return 15;
+      case OPT_RESULT_17: return 16;
+      case OPT_RESULT_18: return 17;
+      case OPT_RESULT_19: return 18;
+      case OPT_RESULT_20: return 19;
       default: throw Exception("invalid solution type");
     }
   }
@@ -734,7 +737,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
 }
 bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& elemMat)
 {
-  // see also implementation SIMP::AddMassToStiffness() for match!!!
+  // see also implementation ErsatzMaterial::AddMassToStiffness() for match!!!
   static MechMat mm = MechMat(this); // Assumes irregular mesh :(
   // pamping at all -> see Sigmund; Morphology; 2007
   assert(GetPampingValue() >= 0);
@@ -744,7 +747,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
     return false;
   // we use the physical design variable to match better
   TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
-  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with SIMP::AddMassToStiffness()
+  double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
   // now the original mass matrix
   const Matrix<double>& mass = dynamic_cast<const Matrix<double>&>(mm.Mass(de->elem)); // FIXME might be complex!
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " mass=" << mass.ToString();
@@ -754,7 +757,6 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   LOG_DBG3(designSpace) << "GEMP e=" << elem->elemNum << " ->" << elemMat.ToString();
   return true;
 }
-
 
 /*
 bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const Elem* elem, DesignElement::Type direction){
@@ -861,9 +863,6 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
-  if(designMaterial != NULL)
-    return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
-
   if(use_single && transfer.GetSize() == 1)
     return &transfer[0];
 
@@ -877,6 +876,9 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
     if(this->design.GetSize() == 1 && design == DesignElement::DEFAULT)
       return tf;
   }
+  if(designMaterial != NULL)
+    return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization with no / not all TransferFunctions given
+
   if(!throw_exception) return NULL;
   else throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
                         + "' in application '" + Optimization::application.ToString(application)

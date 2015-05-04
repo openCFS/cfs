@@ -133,6 +133,8 @@ public:
 
   DensityFile* GetDensityFile() { return densityFile; }
 
+  Method GetMethod() { return method_; }
+
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */
@@ -174,6 +176,17 @@ protected:
       Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
 
+
+
+  double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+
+  double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
+      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      double factor, CalcMode calcMode, Function* f, int res_idx = -1);
+
+
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
@@ -185,6 +198,26 @@ protected:
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
+  {
+    throw Exception("not implemented");
+  }
+
+
+  /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
+   * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
+   * Also bi-material is nicely considered.
+   * The template stuff is private, as C++ does not allow virtual templates. */
+  virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf,
+      Application app, DenseMatrix* out, CalcMode calcMode, bool derivative =
+          true)
+  {
+    throw Exception("not implemented");
+  }
+
+
+  virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
+      Application app, SingleVector* out, CalcMode calcMode, bool derivative =
+          true)
   {
     throw Exception("not implemented");
   }
@@ -248,7 +281,7 @@ protected:
   virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* g,
       bool derivative);
   /** Calculates the objective only, no derivative */
-  double CalcGlobalDynamicCompliance(Excitation& excite, Objective* f);
+  double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 
@@ -379,6 +412,9 @@ protected:
   /** This contains our concrete material class */
   OptimizationMaterial* material;
 
+  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
+   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
+  void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -394,6 +430,9 @@ protected:
   bool bitensor_;
 
 private:
+
+  /** Checks if the G-Matrix from model reduction shall be written as special result - and does it in case */
+  void OutputModRedGTensor();
 
   /** This is a helper for the calculation of the homogenized tensor or the derivative of it.
    * This is the inner of the sum for the homogenized tensor or the derivative formulation

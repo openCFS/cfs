@@ -502,6 +502,12 @@ IF(BUILD_TESTING)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
+# Enables visualization tests for matviz.py
+#-----------------------------------------------------------------------------
+OPTION(MATVIZ_TESTS
+  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.
 #-----------------------------------------------------------------------------
 CONFIGURE_FILE(

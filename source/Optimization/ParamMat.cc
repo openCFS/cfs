@@ -14,6 +14,7 @@
 #include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "Utils/tools.hh"
 
 namespace CoupledField {
 class TransferFunction;
@@ -54,21 +55,9 @@ void ParamMat::PostInit()
   assert(mech_mat_ != NULL);
 }
 
-void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
-{
-  if(complex_)
-  {
-    if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
-      SetElementK<Complex, Complex >(de, tf, app, out, derivative, calcMode, ev);
-    else
-      SetElementK<Complex, double >(de, tf, app, out, derivative, calcMode, ev);
-  }
-  else
-    SetElementK<double,double>(de, tf, app, out, derivative, calcMode, ev);
-}
 
 template <class T1, class T2>
-void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
+void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
@@ -79,56 +68,53 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   switch(app)
   {
   case MECH:
-  {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
-    Assign(out, tmp, 1.0);
-
+    Assign(out, dynamic_cast<Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE)), 1.0);
     if(complex_)
     {
-      // in SIMP we would call AddMassToStiffness(). As we assume to have no damping here and no bimaterial it is simpleer here!
-      assert(mode != EIGENFREQ || (derivative == true && ev > 0)); // EIGENVALUE only for derivative
-      assert(derivative == true);
-      assert(pde->GetDamping(de->elem->regionId) == NONE);
-      assert(de->multimaterial == NULL);
-
-      double m_factor = mode == EIGENFREQ ? ev : 1.0;
-
-      double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
-
-      assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0)); // note that we might have very_small negative eigenvalues!
-
-      T1 damp_mass = -1.0 *omega*omega*m_factor;
-
-      Matrix<double> M;
-
-      if(material->ComplexElementMatrix(de->elem->regionId)) // true for bloch
-      {
-        const Matrix<Complex>& T = dynamic_cast<const Matrix<Complex>&>(mech_mat_->MechMass(de->elem, false, -1, de->GetType())); // no bimat, multimatindx -1
-                assert(IsNoise(T.GetPart(Global::IMAG).NormL2())); // up to now we have nothing interesting in the imaginary part of a mass matrix
-        M = T.GetPart(Global::REAL);
-      }
-      else
-        M = dynamic_cast<const Matrix<double>& >(mech_mat_->MechMass(de->elem, false, -1, de->GetType()));
-
-      Add<T1, double>(out, damp_mass, M);
-
-      LOG_DBG(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " m_factor=" << m_factor << " omega=" << omega << " -> " << damp_mass << " K=" << tmp.NormL2() << " M=" << M.NormL2();
-      LOG_DBG3(em) << "PM:SEK M=" << M.ToString();
-
+      tf = design->GetTransferFunction(de->GetType(), MASS);
+      AddMassToStiffness(tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false);
     }
-
     break;
-  }
   case MASS:
-  {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
-    Assign(out, tmp, 1.0);
+    Assign(out, dynamic_cast<Matrix<T2>& >(mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE)), 1.0);
     break;
-  }
   default:
     Exception("Only mech and mass matrix are available for paramMat");
     break;
   }
-
-  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " out=" << mat_out->ToString(0, false);
+  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
 }
+
+
+void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+{
+  // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
+  // therefore we always return a derivative, de indicating which
+  // for transient problems, this does also need to return the derivative of the mass matrix
+  Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
+  int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+
+  DesignElement::Type t = derivative ? type : DesignElement::NO_DERIVATIVE;
+
+  switch(app)
+  {
+  case MECH:
+    out = dynamic_cast<Matrix<double> &>(mech_mat_->MechStiffness(de->elem, false, mm, t));
+    break;
+  case MASS:
+    out = dynamic_cast<Matrix<double> &>(mech_mat_->MechMass(de->elem, false, mm, t));
+    break;
+  default:
+    Exception("Only mech and mass matrix are available for paramMat");
+    break;
+  }
+  LOG_DBG3(em) << "PM:SEK de=" << de->ToString() << " d=" << derivative << " out=" << mat_out->ToString(0, false);
+}
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+template void ParamMat::SetElementK<double, double>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, Complex>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, double>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+#endif
+
