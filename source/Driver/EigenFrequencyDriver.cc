@@ -290,7 +290,7 @@ namespace CoupledField {
 
       mode->Get("nr")->SetValue(i+1); // not the mode but frequency in list
 
-      mode->Get("frequency")->SetValue(freq);
+      mode->Get("frequency")->SetValue(freq,15);
       if(isQuadratic_)
         mode->Get("damping")->SetValue(damp);
       mode->Get("errorbound")->SetValue(errBounds[i]);
