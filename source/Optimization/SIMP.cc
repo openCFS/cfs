@@ -13,7 +13,6 @@
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/ElemMapping/SurfElem.hh"
 #include "Driver/Assemble.hh"
-#include "Driver/SolveSteps/BaseSolveStep.hh"
 #include "Driver/FormsContexts.hh"
 #include "Forms/LinForms/LinearForm.hh"
 #include "General/Enum.hh"
@@ -181,112 +180,6 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   default:
     assert(false); // other cases should be handled in PiezoSIMP
   } // end switch
-}
-
-
-void SIMP::AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode, double ev)
-{
-  // The result matrix is
-  // S = K + i*omega*C - omega^2*M
-  // with purely imaginary C = alpha_k*K+alpha_m*M
-  // S = K + i*omega*alpha_k*K + i*omega*alpha_m*M - omega^2*M
-  // with m_factor which is the transfer function. The K transfer function is already in S
-  // S = K + i*omega*alpha_k*K + i*omega*alpha_m*m_factor*M - omega^2*m_factor*M
-  // With S = k_factor K in the beginning this is: (k_factor is transfer function or its derivative)
-  // S += i*alpha_k*S + (i*alpha_m*m_factor-omega^2*m_factor)*M
-
-  //
-  // in case we have pamping (e.g. Sigmund; Morhology; 2007) there is to add
-  // j*omega*pamping*rho*(1-rho)*M and for the derivative case
-  // j*omega*pamping*rho'*M - j*2*omega*pamping*rho*rho'*M = j*omega*pamping*rho'(1-2*rho)
-  //
-  // the eigenvalue derivative is u^T (K' - ev M') u
-
-  double mtv =  mtf->Transform(de, DesignElement::SMART, bimaterial);
-  double mdv =  mtf->Derivative(de, DesignElement::SMART, bimaterial);
-
-  assert(mode != EIGENFREQ || (derivative == true && ev > 0)); // EIGENVALUE only for derivative
-
-  double m_factor = derivative ? mdv : mtv;
-
-  if(mode == EIGENFREQ)
-    m_factor *= ev;
-
-  // change name only
-  Matrix<complex<double> >& S = K_in_S_out;
-
-  LOG_DBG3(simp) << "AMTS: 1. e=" << de->elem->elemNum << " ev=" << ev << " m_factor=" << m_factor << " K_in_S_out=" << S.ToString();
-
-  // find alpha, beta and omega. We have no omega for the eigenvalue case and 1.0 eliminates it
-  double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
-  double alpha_k = 0.0;
-  double alpha_m  = 0.0;
-  double pamping_m = 0.0; // add on without omega
-
-  // do we have damping (C = alpha*M+beta*K) -> this is pure imaginary!
-  RegionIdType regionId = de->elem->regionId;
-
-  if(pde->GetDamping(regionId) == RAYLEIGH)
-  {
-    assert(mode != EIGENFREQ);
-
-    // the alpha and beta might be calculated and adjusted, get them
-    // from the integrators in the form as they are used for the state problem!
-    alpha_k = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
-
-    // now alpha_m
-    alpha_m = assemble_->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
-
-    assert(omega > 0);
-
-    // pamping stuff without omega
-    double pamping = design->GetPampingValue(); // 0 if not applicable
-    if(!derivative)
-      pamping_m = pamping * mtv * (1.0 - mtv);
-    else // pamping*rho'(1-2*rho)
-      pamping_m = pamping * mdv * (1.0 - 2.0 * mtv);
-  }
-
-  assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0 && alpha_m == 0.0 && pamping_m == 0.0)); // note that we might have very_small negative eigenvalues!
-
-	const unsigned int srows(S.GetNumRows());
-	const unsigned int scols(S.GetNumCols());
-  // we first add the K part of C (= pure imaginary). E.G. in the bloch case S=K might already have an imaginary part
-  for(unsigned int r = 0; r < srows; r++)
-    for(unsigned int c = 0; c < scols; c++)
-      S[r][c] = complex<double>(S[r][c].real(), S[r][c].imag() + omega * alpha_k * S[r][c].real());
-
-  LOG_DBG3(simp) << "AMTS: 2. e=" << de->elem->elemNum << " add K o=" << omega << " a_K=" << alpha_k << " S=" << S.ToString();
-
-  // we the add the M part of C and the real mass part
-  complex<double> damp_mass = complex<double>(-1.0 *omega*omega*m_factor, omega*(alpha_m*m_factor  + pamping_m));
-  // multimaterial stuff
-  int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
-
-  LOG_DBG3(simp) << "AMTS: e=" << de->elem->elemNum << " S=" << S.ToString();
-
-  if(material->ComplexElementMatrix(de->elem->regionId))
-  {
-    const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(material->Mass(de->elem, bimaterial, index));
-    assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
-    Add<Complex, Complex>(S, damp_mass, M);
-
-    LOG_DBG3(simp) << "AMTS: 3. complex e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
-  }
-  else
-  {
-    const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(material->Mass(de->elem, bimaterial, index));
-    assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
-    Add<Complex, double>(S, damp_mass, M);
-
-    LOG_DBG3(simp) << "AMTS: 3. real e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
-  }
-
-  LOG_DBG2(simp) << "AddMassToStiffness: d=" << de->elem->elemNum << " der=" << derivative << " bm=" << bimaterial << " mode="  << mode << " ev=" << ev
-                 << " m_factor:" << m_factor << " alpha_k: " << alpha_k << " alpha_m: " << alpha_m << " pamping_m:" << pamping_m
-                 << " omega: " << omega << " K_img: " << (omega * alpha_k) << " damp_mass: " << damp_mass;
-
-  LOG_DBG3(simp) << "AMTS: 4. e=" << de->elem->elemNum << " S -> " << S.ToString();
 }
 
 

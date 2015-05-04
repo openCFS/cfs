@@ -130,11 +130,6 @@ private:
   template <class T1, class T2>
   void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
-  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
-   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already!
-   * @param mode if EIGENVALUE then not the harmonic case the eigenvalue for eigenvalue optimization */
-  void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
-
 };
 
 

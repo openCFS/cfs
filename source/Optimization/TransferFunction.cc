@@ -130,7 +130,13 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::MECH_12:
   case DesignElement::MECH_22:
   case DesignElement::MECH_33:
+  case DesignElement::ROTANGLE2:
+  case DesignElement::SCALING1:
+  case DesignElement::SCALING2:
+  case DesignElement::G_MAP_X:
+  case DesignElement::G_MAP_Y:
   case DesignElement::MULTIMATERIAL:
+  case DesignElement::INTERPOLATION:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
@@ -215,10 +221,14 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat, double external_value) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
-  assert(!(external_value != -13.456 && access == DesignElement::SMART));
-  double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
+  double value = de->GetValue(DesignElement::DESIGN, access);
+  return this->Transform(value, lower_bimat, de);
+}
+
+double TransferFunction::Transform(double value, bool lower_bimat, const DesignElement* de) const
+{
   if(lower_bimat)
     value = 1.0 - value;
 
@@ -246,12 +256,12 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   case FIXED:
     result = param_;
     break;
-    
+
   case FULL:
     assert(de != NULL);
     result = de->GetUpperBound();
     break;
-    
+
   case HEAVISIDE:
     assert(!lower_bimat); // first check what we do!
     // some options and the derivatives
@@ -273,18 +283,22 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   default: throw Exception("type not implemented");
   }          
   
-  LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
+  //LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
   return result;
 }     
 
 double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
   double value = de->GetValue(DesignElement::DESIGN, access);
+#ifdef CHECK_INDEX
+  if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+    throw Exception("type mismatch for the transfer function");
+#endif
+  return this->Derivative(value, lower_bimat);
+}
 
-  #ifdef CHECK_INDEX
-    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
-      throw Exception("type mismatch for the transfer function");
-  #endif
+double TransferFunction::Derivative(double value, bool lower_bimat) const
+{
     switch(type_)
     {
     case NO_TYPE:

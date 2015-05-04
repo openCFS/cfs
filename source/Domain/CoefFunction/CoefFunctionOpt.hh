@@ -91,7 +91,7 @@ public:
 
   /** the direction (silly name :( ) is gradient of a tensor parameterization with respect to a design type.
    * Evaluated by DesignMaterial */
-  void SetToTensorDerivative(DesignElement::Type direction);
+  void SetToMaterialDerivative(DesignElement::Type direction);
 
   /** Is DesignElement::NO_DERIVATIVE is state is not DIRECTION. For tensors and mass */
   DesignElement::Type GetMaterialDerivative() const { return direction; }
