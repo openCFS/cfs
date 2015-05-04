@@ -16,6 +16,7 @@
 #include "Driver/TransientDriver.hh"
 #include "Driver/TimeSchemes/BaseTimeScheme.hh"
 
+#include <boost/filesystem.hpp>
 namespace CoupledField {
 
 
@@ -49,7 +50,7 @@ namespace CoupledField {
     isComplex_ = false;
     
     
-    infoNode_ = infoNode->Get(couplingName_, ParamNode::APPEND);
+    infoNode_ = infoNode;
   }
 
 
@@ -76,7 +77,7 @@ namespace CoupledField {
   // ********
   void BasePairCoupling::Init( UInt sequenceStep ) {
     
-    
+    infoNode_ = infoNode_->Get(couplingName_, ParamNode::APPEND);
     
     results1_ = pde1_->GetResultInfos();
     results2_ = pde2_->GetResultInfos();
@@ -286,6 +287,258 @@ namespace CoupledField {
     // define which solution types have to be saved
     ReadStoreResults();
     ReadSpecialResults();
+    ReadSensorArrayResults();
+  }
+  void BasePairCoupling::ReadSensorArrayResults() {
+    // check, if calculation of field variables is requested at all
+
+    ParamNodeList sensorNodes;
+    if( !myParam_->Has("storeResults")) 
+      return;
+    sensorNodes = myParam_->Get("storeResults")->GetList("sensorArray");
+    std::string solTypeString;
+    static std::map< SolutionType, bool> warningPrinted;
+
+    sensors_.Resize(sensorNodes.GetSize());
+    // loop over all parts
+    for( UInt iPart = 0; iPart <sensorNodes.GetSize(); ++iPart ) {
+      PtrParamNode  actNode = sensorNodes[iPart];
+      
+      FieldAtPoints & actField = sensors_[iPart];
+      actField.fileName = actNode->Get("fileName")->As<std::string>();
+      actField.csv = actNode->Get("csv")->As<bool>();
+      std::string coordSysId = actNode->Get("coordSysId")->As<std::string>();
+      actField.coordSys = domain_->GetCoordSystem(coordSysId);
+      
+      std::string delim = actNode->Get("delimiter")->As<std::string>();
+      if(actField.csv && delim.length() == 0) 
+      {
+        actField.delim = ',';
+      }
+      else 
+      {        
+        actField.delim = delim[0];
+      }
+      
+      // check for solution type
+      solTypeString = actNode->Get("type")->As<std::string>();
+      
+      SolutionType solType = SolutionTypeEnum.Parse(solTypeString);
+
+      // find related result resultinfo
+      ResultSet::const_iterator it = availResults_.begin();
+      for( ; it != availResults_.end(); ++it ) {
+        if( (*it)->resultType == solType ) {
+          actField.resultInfo = *it;
+          break;
+        }
+      }
+      
+      //array of global sensor coordinates
+      StdVector< Vector<Double> > globPoints;
+
+      //get entity list of current pde
+      StdVector<shared_ptr<EntityList> > lists;
+      std::map<RegionIdType, BaseMaterial*> ::iterator regIt = materials_.begin();
+      for(; regIt != materials_.end(); regIt++ ) {
+        shared_ptr<ElemList> newList(new ElemList(ptGrid_));
+        newList->SetRegion(regIt->first);
+        lists.Push_back(newList);
+      }
+
+      // create list
+      // generate new vector
+      if(isComplex_) {
+        actField.field = new Vector<Complex>();
+      } else {
+        actField.field = new Vector<Double>();
+      }
+
+      if(actNode->Has("parametric")){
+        // define sensors according to parametric line definitions
+        ParamNodeList listNodes = actNode->Get("parametric")->GetList("list");
+        // loop over all components
+        StdVector<Double> start(3), stop(3), inc(3);
+        StdVector<UInt> numSamples(3);
+        start.Init(0);
+        stop.Init(0);
+        inc.Init(1);
+        numSamples.Init(1);
+        UInt totalPoints = 1;
+        std::string comp;
+        UInt compIndex;
+        for( UInt iComp = 0; iComp < listNodes.GetSize(); iComp++ ) {
+          PtrParamNode actCompNode = listNodes[iComp];
+          actCompNode->GetValue("comp", comp);
+          compIndex = actField.coordSys->GetVecComponent(comp)-1;
+          start[compIndex]=  actCompNode->Get("start")->MathParse<Double>();
+          stop[compIndex]=  actCompNode->Get("stop")->MathParse<Double>();
+          inc[compIndex] = actCompNode->Get("inc")->MathParse<Double>();
+          numSamples[compIndex]  =
+              UInt(floor( (stop[compIndex]-start[compIndex]) / inc[compIndex] ) )+1;
+          totalPoints *= numSamples[compIndex];
+        }
+
+        globPoints.Resize( numSamples[0] *
+                           numSamples[1] *
+                           numSamples[2] );
+        UInt pIdx = 0;
+
+        for( UInt xSample = 0; xSample < numSamples[0]; xSample++ ) {
+          Double actX = start[0] + xSample * inc[0];
+          for( UInt ySample = 0; ySample < numSamples[1]; ySample++ ) {
+            Double actY = start[1] + ySample * inc[1];
+            for( UInt zSample = 0; zSample < numSamples[2]; zSample++ ) {
+              Double actZ = start[2] + zSample * inc[2];
+
+              // transform global point w.r.t. to coordinate system
+              // to global point w.r.t. to global cartesian system
+              Vector<Double> globPointcSys;
+              globPointcSys.Resize(dim_);
+
+              globPointcSys[0] = actX;
+              globPointcSys[1] = actY;
+              if( dim_ > 2) {
+                globPointcSys[2] = actZ;
+              }
+              actField.coordSys->Local2GlobalCoord(globPoints[pIdx++],
+                                                   globPointcSys);
+            } // z
+          } // y
+        } // x
+      }else if(actNode->Has("coordinateFile")){
+        globPoints.Reserve(200);
+
+        PtrParamNode coordFileNode = actNode->Get("coordinateFile");
+        std::string inFileName = coordFileNode->Get("fileName")->As<std::string>();
+        std::string delim = coordFileNode->Get("delimiter")->As<std::string>();
+        std::string comment = coordFileNode->Get("commentCharacter")->As<std::string>();
+        UInt xCol = coordFileNode->Get("xCoordColumn",ParamNode::PASS)->As<UInt>();
+        UInt yCol = coordFileNode->Get("yCoordColumn",ParamNode::PASS)->As<UInt>();
+        UInt zCol = coordFileNode->Get("zCoordColumn",ParamNode::PASS)->As<UInt>();
+
+        if(xCol == 0 || yCol ==0 || zCol == 0){
+          EXCEPTION("Read coordinate file for sensor array: column indices need to be one based.");
+        }
+
+        if(comment.size()>1 || delim.size() > 1){
+          WARN("Read coordinate file for sensor array: Comment and delimiter strings need to be single characters!");
+        }
+
+
+        if(!boost::filesystem::exists(inFileName)){
+          EXCEPTION("Read coordinate file for sensor array: Could not find coordinate file \"" + inFileName + "\" to read sensor positions!");
+          continue;
+        }
+
+        std::fstream coordFile(inFileName.c_str(),std::ios::in);
+
+        std::string curLine;
+        coordFile >> std::ws;
+        UInt lineCounter = 0;
+        while(std::getline (coordFile,curLine)){
+          lineCounter++;
+          //ignore leading whitespace
+          std::string::size_type pos = 0;
+          while (pos < curLine.size() && std::isspace(curLine[pos], std::locale()))
+            pos++;
+
+          curLine.erase(0, pos);
+
+          //check for comment character
+          if(curLine.at(0) == comment.at(0)){
+            continue;
+          }
+
+          //tokenize line with tokenizer
+          typedef boost::tokenizer<boost::char_separator<char> > tokenizer;
+          boost::char_separator<char> sep(delim.c_str());
+          tokenizer tokens(curLine, sep);
+
+          UInt numNumbers = std::distance(tokens.begin(),tokens.end());
+
+          //ignore empty lines
+          if(numNumbers==0){
+            continue;
+          }
+
+          //ignore invalid lines and print a warning
+          //here we check for dimension
+          if( (dim_ == 2 && numNumbers < 2) ||
+              (numNumbers < xCol) ||
+              (numNumbers < yCol) ||
+              (numNumbers < zCol) ){
+            WARN("Read coordinate file for sensor array: Invalid coordinate definition at line: " << lineCounter << " in file : " << inFileName );
+          }
+
+          //finally read in the tokens
+          Vector<Double> curCoord(dim_);
+          tokenizer::iterator tokIter=tokens.begin();
+          for(UInt i=0;i<dim_ && tokIter!=tokens.end();i++,tokIter++){
+            try{
+              curCoord[i] = boost::lexical_cast<Double>(*tokIter);
+            }catch(const boost::bad_lexical_cast &e){
+              EXCEPTION("Read coordinate file for sensor array: Error reading coordinates in line: " << lineCounter << ". " << *tokIter << " The line was:\n" << curLine << e.what());
+            }
+          }
+          Vector<Double> globPointcSys;
+          actField.coordSys->Local2GlobalCoord(globPointcSys,
+                                               curCoord);
+          globPoints.Push_back(globPointcSys);
+        }
+        globPoints.Trim();
+      }else{
+        EXCEPTION("Could not find valid sensor coordinate definition in xml file although tag was given.");
+      }
+      StdVector< LocPoint > locPoints;
+      StdVector< const Elem* > elems;
+
+      // now, map global points to local points restricted to regions of this PDE.
+      ptGrid_->GetElemsAtGlobalCoords( globPoints,
+                                       locPoints,
+                                       elems,
+                                       lists,
+                                       0.0, 1.0e-2,
+                                       false );
+
+      for(UInt i=0, n=globPoints.GetSize(); i<n; i++) {
+        const Elem* ptElem = elems[i];
+        
+        if( !ptElem ) {
+          bool wP = !warningPrinted[actField.resultInfo->resultType];
+          if( wP ) {
+            std::stringstream sstr;
+            sstr << "Could not find element at position " 
+                 << globPoints[i].ToString()
+                 << " for evaluation of field values for "
+                 << solTypeString << ".";
+            WARN( sstr.str() );
+            warningPrinted[actField.resultInfo->resultType] = true;
+          }
+        } else {
+          //               std::cerr << "locPoint for globPoint " << globPoint.ToString() 
+          //                                    << " is " << locPoint.ToString() 
+          //                                    << " in Elem " << ptElem->elemNum << std::endl;
+               
+               // check again mapping by performing loc->glob mapping
+          shared_ptr<ElemShapeMap> esm = ptGrid_->GetElemShapeMap(ptElem);
+          //esm->Local2Global(globPoint, locPoint);
+          //               std::cerr << "\tAdditional check loc->glob delivers global point " 
+          //                   << globPoint.ToString() << std::endl << std::endl;
+          
+          actField.elems.Push_back(ptElem);
+          actField.locPoints.Push_back(locPoints[i]);
+        }
+      }
+
+      if(warningPrinted[actField.resultInfo->resultType]) {
+        std::stringstream sstr;
+        sstr << "Could not find " << (globPoints.GetSize()-actField.locPoints.GetSize())
+             << " locations for evaluation of field values for "
+             << solTypeString << ".";
+        WARN( sstr.str() );
+      }
+    } // loop over <field> entries
   }
 
   void BasePairCoupling::DefineFeFunctions(){
@@ -849,6 +1102,184 @@ namespace CoupledField {
                                              const Double asteptime ) {
 
       // Add calculation of fields, e.g. for the piezo stress
+    // ===================================================
+       //  Trigger calculation of interpolated field results 
+       // ===================================================
+       
+       // Check for additional field variable
+       UInt numFields = sensors_.GetSize();
+       
+       // loop over all fields variables
+       for( UInt i = 0; i < numFields; ++i ) {
+       
+         // call specialized calculation method in sub-class
+         FieldAtPoints& fap = sensors_[i];
+         
+         
+         // Obtain field resultFunctor object
+         SolutionType solType = fap.resultInfo->resultType;
+         StdVector<std::string> dofNames = fap.resultInfo->dofNames;
+         UInt numDofs = dofNames.GetSize();
+         std::string solTypeString;
+         solTypeString = SolutionTypeEnum.ToString(solType);
+         std::map<SolutionType, PtrCoefFct >::iterator fctIt;
+         fctIt = fieldCoefs_.find(solType);
+         if( fctIt == fieldCoefs_.end() )  {
+           EXCEPTION( "Could not find field functor for result '" 
+               << SolutionTypeEnum.ToString(solType) << "'");
+         }
+         PtrCoefFct fct =  fctIt->second;
+         
+         // calculate vector entries
+         if( isComplex_) {
+           Vector<Complex> temp;
+           Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*fap.field);
+           vec.Resize(fap.elems.GetSize() * numDofs);
+           UInt pos = 0;
+           LocPointMapped lpm;
+           for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
+             shared_ptr<ElemShapeMap> esm =
+                 ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+             lpm.Set(fap.locPoints[iElem], esm, 0.0);
+             fct->GetVector(temp, lpm );
+             
+             for( UInt i = 0; i < numDofs; ++i ) {
+               vec[pos++] = temp[i];
+             }
+           }
+         } else {
+           Vector<Double> temp;
+           Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*fap.field);
+           vec.Resize(fap.elems.GetSize() * numDofs);
+           UInt pos = 0;
+           LocPointMapped lpm;
+           for ( UInt iElem = 0; iElem < fap.elems.GetSize(); ++iElem ) {
+             shared_ptr<ElemShapeMap> esm =
+                 ptGrid_->GetElemShapeMap( fap.elems[iElem], true );
+             lpm.Set(fap.locPoints[iElem], esm, 0.0);
+             fct->GetVector(temp, lpm );
+
+             for( UInt i = 0; i < numDofs; ++i ) {
+               vec[pos++] = temp[i];
+             }
+           }
+         }
+
+
+         std::ofstream  out((fap.fileName+"-"+lexical_cast<std::string>(kstep)).c_str(),
+                             std::ios::out );
+         // Ensure that no precision is lost
+         out.precision(15);
+               
+         Vector<Double> globPoint, globPointcSys;
+         
+         StdVector<std::string> globCoordNames;
+         StdVector<std::string> locCoordNames;
+         for(UInt i = 0; i < dim_; ++i ) {
+           globCoordNames.Push_back(fap.coordSys->GetDofName(i+1));
+         }
+         locCoordNames.Push_back("xi");
+         locCoordNames.Push_back("eta");
+         locCoordNames.Push_back("zeta");      
+         char delim = '\t';
+         if(fap.csv) 
+         {
+           delim = fap.delim;
+         }
+         
+         
+         // print out information
+         if( isComplex_ ){
+           // cast solution vector
+           Vector<Complex>& vec = dynamic_cast<Vector<Complex> &>(*(fap.field));
+
+           // Write header line with descriptions of columns
+           if(fap.csv) 
+           {
+             out << "origElemNum" << delim;        
+             for(UInt j = 0; j < dim_; ++j ) {
+               out << "globCoord-" << globCoordNames[j] << delim;
+             }
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << solTypeString << "-real" << "-" << dofNames[j] << delim;
+             }
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << solTypeString << "-imag" << "-" << dofNames[j] << delim;
+             }
+             for(UInt j = 0; j < dim_-1; ++j ) {
+               out << "locCoord-" << locCoordNames[j] << delim;
+             }
+             out << "locCoord-" << locCoordNames[dim_-1] << std::endl;
+           }
+         
+           // Loop over all points
+           for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
+             
+             shared_ptr<ElemShapeMap> esm =
+                 ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+             esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+             
+             fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
+             
+             // write to file
+             out << fap.elems[iPoint]->elemNum << delim;
+             out << globPointcSys.ToString(0, delim) << delim;
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << vec[iPoint*numDofs + j].real() << delim;
+             }
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << vec[iPoint*numDofs + j].imag() << delim;
+             }
+             for(UInt j = 0; j < dim_-1; ++j ) {
+               out << fap.locPoints[iPoint][j] << delim;
+             }
+             out << fap.locPoints[iPoint][dim_-1] << std::endl;
+           }
+
+         } else {
+           // cast solution vector
+           Vector<Double>& vec = dynamic_cast<Vector<Double> &>(*(fap.field));
+
+           // Write header line with descriptions of columns
+           if(fap.csv) 
+           {
+             out << "origElemNum" << delim;        
+             for(UInt j = 0; j < dim_; ++j ) {
+               out << "globCoord-" << globCoordNames[j] << delim;
+             }
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << solTypeString << "-" << dofNames[j] << delim;
+             }
+             for(UInt j = 0; j < dim_-1; ++j ) {
+               out << "locCoord-" << locCoordNames[j] << delim;
+             }
+             out << "locCoord-" << locCoordNames[dim_-1] << std::endl;
+           }
+           
+           // Loop over all points
+           for( UInt iPoint = 0; iPoint < fap.locPoints.GetSize(); iPoint++) { 
+             
+             shared_ptr<ElemShapeMap> esm =
+                 ptGrid_->GetElemShapeMap(fap.elems[iPoint], true);
+             esm->Local2Global(globPoint, fap.locPoints[iPoint]);
+             
+             fap.coordSys->Global2LocalCoord(globPointcSys, globPoint);
+             // write to file
+             out << fap.elems[iPoint]->elemNum << delim;
+             out << globPointcSys.ToString(0, delim) << delim;
+             for(UInt j = 0; j < numDofs; ++j ) {
+               out << vec[iPoint*numDofs + j] << delim;
+             }
+             for(UInt j = 0; j < dim_-1; ++j ) {
+               out << fap.locPoints[iPoint][j] << delim;
+             }
+             out << fap.locPoints[iPoint][dim_-1] << std::endl;
+           }
+         }
+
+         out.close();
+         
+       }
   }
 
 } // end of namespace

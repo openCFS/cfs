@@ -1268,6 +1268,9 @@ namespace CoupledField {
       std::ofstream  out((fap.fileName+"-"+lexical_cast<std::string>(kstep)).c_str(),
                           std::ios::out );
 
+      // Ensure that no precision is lost
+      out.precision(15);
+
       Vector<Double> globPoint, globPointcSys;
       
       StdVector<std::string> globCoordNames;
