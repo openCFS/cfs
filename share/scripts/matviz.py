@@ -60,11 +60,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
   if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
     try:
       if dim_2D:
-	try:
-	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
-	except:
-	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
-	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
+      	try:
+      	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+      	except:
+      	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
+      	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
       else:
         angle[:,0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
