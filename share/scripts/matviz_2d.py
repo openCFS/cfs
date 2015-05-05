@@ -274,13 +274,11 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   centers, min, max, elem = coords
 
   im, draw, dim, dx, dy = create_image(min, max, nx,"white")
-
   height = elem[1] * dy 
   length = elem[0] * dx
  
   # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s1, s2)
-  
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s2, s1) # for some strange reason we need to switch?!
 
   for y in range(ny+1):
     for x in range(nx+1):
@@ -342,8 +340,6 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
           
           draw.polygon(tupels, fill="black")
   
-  
-
   return im
 
 ## visualize the orientational stiffness
@@ -443,15 +439,16 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
 
   fig, sub = create_figure(min, max, nx, do_save)
 
-  delta_angle = numpy.max(angle) - numpy.max(angle) 
+  delta_angle = numpy.max(angle) - numpy.min(angle) 
 
   if scale == -1.0:
-    scale = 1.02 if delta_angle == 0.0 else 0.8 
+    scale = -1.02 if delta_angle == 0.0 else -0.8
 
   length =  scale * (elem[0])
   
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
+  sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val), cmap=plt.get_cmap('gray' if color == 'grayscale' else color)) 
 
   for i in range(len(s1)):
   
@@ -464,13 +461,16 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
     v = [0,0]
     v[0] = s1[i,0] / numpy.max((scale, 1.))
     v[1] = s2[i,0] / numpy.max((scale, 1.))
-    theta = angle[i]
     c = [0,0]
-    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
-    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
+    c[0] = sm.to_rgba(max_val-v[0]) if not color == 'black' else 'black'
+    c[1] = sm.to_rgba(max_val-v[1]) if not color == 'black' else 'black'
+    
+    
+  # c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+   # c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
 
     #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
-
+    theta = angle[i]
     # a
     if direction == 'horizontal': 
       pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)

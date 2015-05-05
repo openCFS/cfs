@@ -329,6 +329,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::ORTHOTROPY, "orthotropy");
   Function::type.Add(Function::SLOPE, "slope");
   Function::type.Add(Function::GLOBAL_SLOPE, "globalSlope");
+  Function::type.Add(Function::PERIMETER, "perimeter");
   Function::type.Add(Function::MOLE, "mole");
   Function::type.Add(Function::GLOBAL_MOLE, "globalMole");
   Function::type.Add(Function::OSCILLATION, "oscillation");

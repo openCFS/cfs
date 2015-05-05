@@ -646,6 +646,7 @@ share/scripts/cfs_grid.py -text
 share/scripts/cfs_utils.py -text
 share/scripts/cfstool -text
 share/scripts/checkbashisms -text
+share/scripts/colormaps.py -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/continuation.py -text
@@ -655,7 +656,6 @@ share/scripts/create-sparse-gid-mesh-2d-quadratic.py -text
 share/scripts/create_density.py -text
 share/scripts/create_mesh.py -text
 share/scripts/cubemesh.pl -text
-share/scripts/density-to-png.py -text
 share/scripts/distro.sh svneol=native#text/plain
 share/scripts/extract_info_xml_results.py -text
 share/scripts/extract_kkt.py -text
@@ -738,6 +738,7 @@ share/scripts/process_image.py -text
 share/scripts/readme_show_fmo_tensor.txt -text
 share/scripts/readme_show_fmo_tensor_windows.txt -text
 share/scripts/rstinfo -text
+share/scripts/show_density.py -text
 share/scripts/show_fmo_tensor.py -text
 share/scripts/show_fmo_tensor_examples.txt -text
 share/scripts/voidmesh.pl -text

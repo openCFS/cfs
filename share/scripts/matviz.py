@@ -48,6 +48,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
+    print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
     s1 *= rho
@@ -295,7 +296,7 @@ parser.add_argument("--parametrization", help="parametrization of the stiffness 
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
-parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
+parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap from http://matplotlib.org/examples/color/colormaps_reference.html, default='gray'", default="grayscale")
 parser.add_argument("--info", help="creates a xml file of given name with additional information")
 args = parser.parse_args()
 

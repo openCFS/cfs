@@ -225,6 +225,12 @@ public:
 
   static Enum<Type> type;
 
+  /** <p>The gradient of the constraint function w.r.t. this element of the design space.
+   * Every constraint contains an unique index attribute (which is the order in the xml file)
+   * only for the purpose to index this vector.</p>
+   * <p>Therefore this vector has to be initialized on runtime</p> */
+  StdVector<double> constraintGradient;
+
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
@@ -232,12 +238,6 @@ protected:
 
   /** Sums up the costGradient values (they include penalty) */
   double SumObjectiveGradient() const;
-
-  /** <p>The gradient of the constraint function w.r.t. this element of the design space.
-   * Every constraint contains an unique index attribute (which is the order in the xml file)
-   * only for the purpose to index this vector.</p>
-   * <p>Therefore this vector has to be initialized on runtime</p> */
-  StdVector<double> constraintGradient;
 
   /** For multiple objective functions. It already includes penalty!
    * @see constraintGradient */
@@ -468,6 +468,9 @@ public:
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const;
+
+  /** pre-calculated weight sum */
+  double weight_sum;
 
   /** Neighborhood is element and pre-calculated distance */
   struct NeighbourElement

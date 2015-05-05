@@ -26,6 +26,7 @@ namespace CoupledField {
 template <class TYPE> class StdVector;
 
 class ErsatzMaterial;
+class TransferFunction;
 
   class DesignMaterial
   {
@@ -260,6 +261,10 @@ class ErsatzMaterial;
     
     /** Calculate the mass trans-iso case */
     inline double GetTransIsoMaterialMass(DesignElement::Type direction);
+
+    /** Calculate the mass density-times-tensor case
+     * This returns the scaling factor (pseudo-density) for the normal mass matrix based on the materials actual density */
+    inline double GetDensityTimesTensorMass(DesignElement::Type direction);
 
     /** Get the trans-iso mass (tensor trace) out of the corresponding tensor entries */
     inline double GetTransIsoMass(double iD, double iG, double oD, double oG);
