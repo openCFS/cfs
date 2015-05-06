@@ -483,7 +483,7 @@ INCLUDE("cmake_modules/ConfigureChecks.cmake")
 # CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
 # cache. Cf. ctest_scripts/*.cmake
 #-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." OFF)
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME

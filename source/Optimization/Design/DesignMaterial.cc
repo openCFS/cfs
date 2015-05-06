@@ -682,7 +682,11 @@ unsigned int DesignMaterial::RequiredParameters(
     return r + 2;
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
-    return domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? r + 4 : r + 5;
+  { //FIXME: not initialized anywhere yet, but this is ugly as hell..
+    std::string subType;
+    domain->GetParamRoot()->GetValue("sequenceStep/pdeList/mechanic/subType", subType);
+    return (subType == "planeStress") ? r + 4 : r + 5;
+  }
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
   case LAMINATES:
@@ -754,12 +758,16 @@ bool DesignMaterial::CheckRequiredDesigns(
         && design.Find(DesignElement::LAMEMU) >= 0);
   case TRANSVERSAL_ISOTROPIC:
   case TRANSVERSAL_ISOTROPIC_BOXED:
+  { //FIXME: not initialized anywhere yet, but this is ugly as hell..
+    std::string subType;
+    domain->GetParamRoot()->GetValue("sequenceStep/pdeList/mechanic/subType", subType);
     return (
         design.Find(DesignElement::EMODULISO) >= 0
             && design.Find(DesignElement::EMODUL) >= 0
             && design.Find(DesignElement::POISSON) >= 0
             && design.Find(DesignElement::GMODUL) >= 0
-            && domain->GetSinglePDE("mechanic")->GetSubTensorType() == PLANE_STRESS ? true : design.Find(DesignElement::POISSONISO) >= 0);
+            && (subType == "planeStress") ? true : design.Find(DesignElement::POISSONISO) >= 0);
+  }
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC:
   case DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED:
     return (design.Find(DesignElement::DENSITY) >= 0
