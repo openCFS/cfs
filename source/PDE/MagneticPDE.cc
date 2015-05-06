@@ -993,6 +993,14 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     DefineFieldResult( magIntensFunc, magIntens );
     stiffFormCoefs_.insert(magIntensFunc);
       
+      
+    // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
+    // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
+    Double factor = 1.0;
+    if ( isMagnetoStrictCoupled_ ){
+      factor = -1.0;
+    }
+     
       if( analysistype_ != STATIC ) {
         // === EDDY CURRENT DENSITY ===
         shared_ptr<BaseFeFunction> aDotFct = 
@@ -1026,9 +1034,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
         if( isMixed_) 
           WARN("Adjust eddy power density for mixed case");
         if( isComplex_ ) { 
-          epdFunctor.reset( new CoefFunctionBdBKernel<Complex>(aDotFct, 1.0));
+          epdFunctor.reset( new CoefFunctionBdBKernel<Complex>(aDotFct, factor));
         } else {
-          epdFunctor.reset( new CoefFunctionBdBKernel<Double>(aDotFct, 1.0));
+          epdFunctor.reset( new CoefFunctionBdBKernel<Double>(aDotFct, factor));
         }
         DefineFieldResult( epdFunctor, epd );
         massFormCoefs_.insert(epdFunctor);
@@ -1045,9 +1053,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           WARN("Adjust eddy power for mixed case");
         shared_ptr<ResultFunctor> epFunctor;
         if( isComplex_ ) {
-          epFunctor.reset(new EnergyResultFunctor<Complex>(aDotFct, ep, 1.0));
+          epFunctor.reset(new EnergyResultFunctor<Complex>(aDotFct, ep, factor));
         } else {
-          epFunctor.reset(new EnergyResultFunctor<Double>(aDotFct, ep, 1.0));
+          epFunctor.reset(new EnergyResultFunctor<Double>(aDotFct, ep, factor));
         }
         resultFunctors_[MAG_EDDY_POWER] = epFunctor;
         massFormFunctors_.insert(epFunctor);
@@ -1150,9 +1158,9 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       availResults_.insert( energy );
       shared_ptr<ResultFunctor> energyFunc;
       if( isComplex_ ) {
-        energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy, 0.5));
+        energyFunc.reset(new EnergyResultFunctor<Complex>(feFct, energy, 0.5*factor));
       } else {
-        energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 0.5));
+        energyFunc.reset(new EnergyResultFunctor<Double>(feFct, energy, 0.5*factor));
       }
       resultFunctors_[MAG_ENERGY] = energyFunc;
       stiffFormFunctors_.insert(energyFunc);
