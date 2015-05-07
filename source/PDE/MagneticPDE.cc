@@ -31,6 +31,7 @@
 #include "Domain/CoefFunction/CoefFunctionExpression.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
+#include "Domain/CoefFunction/CoefFunctionSurf.hh"
 
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
@@ -961,46 +962,75 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       DefineFieldResult( rhsFeFunctions_[MAG_POTENTIAL], rhs );
 
       // === MAGNETIC FLUX DENSITY ===
-      shared_ptr<ResultInfo> flux(new ResultInfo);
-      flux->resultType = MAG_FLUX_DENSITY;
-      flux->dofNames = vecComponents;
-      flux->unit = "Vs/m^2";
-      flux->definedOn = ResultInfo::ELEMENT;
-      flux->entryType = ResultInfo::VECTOR;
-      availResults_.insert( flux );
+      shared_ptr<ResultInfo> fluxDens(new ResultInfo);
+      fluxDens->resultType = MAG_FLUX_DENSITY;
+      fluxDens->dofNames = vecComponents;
+      fluxDens->unit = "Vs/m^2";
+      fluxDens->definedOn = ResultInfo::ELEMENT;
+      fluxDens->entryType = ResultInfo::VECTOR;
+      availResults_.insert( fluxDens );
       shared_ptr<CoefFunctionFormBased> bFunc;
       if( isComplex_ ) {
-        bFunc.reset(new CoefFunctionBOp<Complex>(feFct, flux));
+        bFunc.reset(new CoefFunctionBOp<Complex>(feFct, fluxDens));
       } else {
-        bFunc.reset(new CoefFunctionBOp<Double>(feFct, flux));
+        bFunc.reset(new CoefFunctionBOp<Double>(feFct, fluxDens));
       }
-      DefineFieldResult( bFunc, flux );
+      DefineFieldResult( bFunc, fluxDens );
       stiffFormCoefs_.insert(bFunc);
 
-     // === MAGNETIC FIELD INTENSITY ===
+      // === MAGNETIC NORMAL FLUX DENSITY ===
+      shared_ptr<ResultInfo> normFlux(new ResultInfo);
+      normFlux->resultType = MAG_NORMAL_FLUX_DENSITY;
+      normFlux->dofNames = "";
+      normFlux->unit = "Vs/m^2";
+      normFlux->entryType = ResultInfo::SCALAR;
+      normFlux->definedOn = ResultInfo::ELEMENT;
+      shared_ptr<CoefFunctionSurf> sNormFDens;
+      sNormFDens.reset(new CoefFunctionSurf(true, 1.0, normFlux));
+      DefineFieldResult( sNormFDens, normFlux );
+      surfCoefFcts_[sNormFDens] = bFunc;
+
+      // === MAGNETIC_FLUX ===
+      shared_ptr<ResultInfo> flux(new ResultInfo);
+      flux->resultType = MAG_FLUX;
+      flux->dofNames = "";
+      flux->unit = "Vs";
+      flux->entryType = ResultInfo::SCALAR;
+      flux->definedOn = ResultInfo::SURF_REGION;
+      shared_ptr<ResultFunctor> fluxFct;
+      if( isComplex_ ) {
+        fluxFct.reset(new ResultFunctorIntegrate<Complex>(sNormFDens,
+                                                            feFct, flux ) );
+      } else {
+        fluxFct.reset(new ResultFunctorIntegrate<Double>(sNormFDens,
+                                                           feFct, flux ) );
+      }
+      resultFunctors_[MAG_FLUX] = fluxFct;
+      availResults_.insert(flux);
+
+      // === MAGNETIC FIELD INTENSITY ===
       shared_ptr<ResultInfo> magIntens ( new ResultInfo );
-    magIntens->resultType = MAG_FIELD_INTENSITY;
-    magIntens->SetVectorDOFs(dim_, isaxi_);
-    magIntens->unit = "A/m";
-    magIntens->definedOn = ResultInfo::ELEMENT;
-    magIntens->entryType = ResultInfo::VECTOR;
-    shared_ptr<CoefFunctionFormBased> magIntensFunc;
-    if( isComplex_ ) {
-      magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
-    } else {
-      magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
-    }
-    DefineFieldResult( magIntensFunc, magIntens );
-    stiffFormCoefs_.insert(magIntensFunc);
-      
-      
-    // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
-    // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
-    Double factor = 1.0;
-    if ( isMagnetoStrictCoupled_ ){
-      factor = -1.0;
-    }
-     
+      magIntens->resultType = MAG_FIELD_INTENSITY;
+      magIntens->SetVectorDOFs(dim_, isaxi_);
+      magIntens->unit = "A/m";
+      magIntens->definedOn = ResultInfo::ELEMENT;
+      magIntens->entryType = ResultInfo::VECTOR;
+      shared_ptr<CoefFunctionFormBased> magIntensFunc;
+      if( isComplex_ ) {
+        magIntensFunc.reset(new CoefFunctionFlux<Complex>(feFct, magIntens));
+      } else {
+        magIntensFunc.reset(new CoefFunctionFlux<Double>(feFct, magIntens));
+      }
+      DefineFieldResult( magIntensFunc, magIntens );
+      stiffFormCoefs_.insert(magIntensFunc);
+
+      // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
+      // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)
+      Double factor = 1.0;
+      if ( isMagnetoStrictCoupled_ ){
+        factor = -1.0;
+      }
+
       if( analysistype_ != STATIC ) {
         // === EDDY CURRENT DENSITY ===
         shared_ptr<BaseFeFunction> aDotFct = 
