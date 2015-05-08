@@ -1216,6 +1216,31 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       // it is an integrated result but we need to save the coef function
       // somewhere for the finalization
       fieldCoefs_[COIL_LINKED_FLUX] = psiDens;
+      
+      
+	 // === COIL INDUCTANCE  ===
+	 // more or less the same as COIL LINKED FLUX with the only difference
+	 // that during the integration the factor 1/coil_current is applied
+	 shared_ptr<ResultInfo> indRes(new ResultInfo());
+	 indRes->resultType = COIL_INDUCTANCE;
+	 indRes->dofNames = "";
+	 indRes->unit = "Vs/A";
+	 indRes->definedOn = ResultInfo::COIL;
+	 indRes->entryType = ResultInfo::SCALAR;
+
+	 availResults_.insert( indRes );
+	 shared_ptr<ResultFunctor> indFunc;
+	 shared_ptr<CoefFunctionMulti> indDens(new CoefFunctionMulti(CoefFunction::SCALAR,1,1,
+																	 isComplex_));
+	 if( isComplex_ ){
+	   indFunc.reset( new ResultFunctorIntegrate<Complex>(indDens, feFct, indRes) );
+	 } else {
+	   indFunc.reset( new ResultFunctorIntegrate<Double>(indDens, feFct, indRes) );
+	 }
+	 resultFunctors_[COIL_INDUCTANCE] = indFunc;
+	 // it is an integrated result but we need to save the coef function
+	 // somewhere for the finalization
+	 fieldCoefs_[COIL_INDUCTANCE] = indDens;
 
   }
   
@@ -1283,23 +1308,62 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       }
     }
 
+
     // === COIL LINKED FLUX ===
     // same as for induced voltage, but with the vector potential instead
     // of the first time derivative of the vector potential
+    //
+    // The coil inductance is COIL_LINKED_FLUX / COIL_CURRENT
+    // integrate this at the same time
     PtrCoefFct temp = GetCoefFct(COIL_LINKED_FLUX);
+    PtrCoefFct temp_ind = GetCoefFct(COIL_INDUCTANCE);
+
     shared_ptr<CoefFunctionMulti> psiDotDens =
         dynamic_pointer_cast<CoefFunctionMulti>(temp);
+
+    shared_ptr<CoefFunctionMulti> indDens =
+        dynamic_pointer_cast<CoefFunctionMulti>(temp_ind);
+
     CoilRegionMap::iterator coilRegsIt = coilRegions_.begin();
+
     for( ; coilRegsIt != coilRegions_.end(); ++coilRegsIt ){
+
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt =
           coilRegsIt->second->parts_.find( coilRegsIt->first );
+
       CoefXprVecScalOp eJscaledOp = CoefXprVecScalOp( mp_, partIt->second->jUnitVec,
           boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_DIV );
+
       PtrCoefFct eJscaled = CoefFunction::Generate( mp_, part, eJscaledOp );
+
       CoefXprBinOp integrandOp = CoefXprBinOp( mp_, eJscaled,
           GetCoefFct( MAG_POTENTIAL ), CoefXpr::OP_MULT );
+
       PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
+
       psiDotDens->AddRegion( coilRegsIt->first, integrand );
+      
+      // once again with 1/COIL_CURRENT
+      shared_ptr<Coil> actCoil = coilRegsIt->second;
+      PtrCoefFct coilCurrentDensity;
+      PtrCoefFct coilCurrent;
+
+      // this gives us just the current density! we have to multiply with the winding cross section!
+	  CoefXprUnaryOp coilCurrentDensityOp = CoefXprUnaryOp(mp_, coilCurrentDens_[coilRegsIt->first],CoefXpr::OP_NORM);
+	  coilCurrentDensity = CoefFunction::Generate( mp_, part, coilCurrentDensityOp );
+
+	CoefXprBinOp coilCurrentOp = CoefXprBinOp(mp_, coilCurrentDensity, 
+			boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_MULT);
+			
+	coilCurrent = CoefFunction::Generate( mp_, part, coilCurrentOp );
+
+      CoefXprBinOp indIntegrandOp = CoefXprBinOp( mp_, integrand,
+          coilCurrent, CoefXpr::OP_DIV );
+          
+      PtrCoefFct indIntegrand = CoefFunction::Generate( mp_, part, indIntegrandOp );
+      
+      indDens->AddRegion( coilRegsIt->first, indIntegrand );
+
     }
 
   }
