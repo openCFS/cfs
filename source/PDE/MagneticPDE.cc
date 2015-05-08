@@ -475,11 +475,18 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
 
-          // dummy current density for later implementation (difficult because of FeSpaceConst)
-          coilCurrentDens_[actRegion] = actPart.jUnitVec;
+          // implementation of coil current density is difficult because of FeSpaceConst
+          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
+          // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
+          //    for elements in order to evaluate its expression (FeFunction::GetScalar)
+          // 2) the automatic calculation of the cross section of the coil
+          //    must be implemented because we need the number of turns or the coil cross
+          //    section (only the winding cross section is not enough!)
+          // with these 2 points resolved, the code could look like:
           /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
               GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
           PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+          // now the division by the cross section would be necessary
           coilCurrentDens_[actRegion] = test;*/
 
           // === -f_A ===
@@ -1342,28 +1349,30 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
 
       psiDotDens->AddRegion( coilRegsIt->first, integrand );
-      
+
       // once again with 1/COIL_CURRENT
-      shared_ptr<Coil> actCoil = coilRegsIt->second;
-      PtrCoefFct coilCurrentDensity;
-      PtrCoefFct coilCurrent;
+      if( coilRegsIt->second->sourceType_ == Coil::CURRENT ){
+        // it won't work for voltage coils until the coilCurrentDens_ is fixed (see DefineIntegrators)
 
-      // this gives us just the current density! we have to multiply with the winding cross section!
-	  CoefXprUnaryOp coilCurrentDensityOp = CoefXprUnaryOp(mp_, coilCurrentDens_[coilRegsIt->first],CoefXpr::OP_NORM);
-	  coilCurrentDensity = CoefFunction::Generate( mp_, part, coilCurrentDensityOp );
+        PtrCoefFct coilCurrentDensity;
+        PtrCoefFct coilCurrent;
 
-	CoefXprBinOp coilCurrentOp = CoefXprBinOp(mp_, coilCurrentDensity, 
-			boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_MULT);
-			
-	coilCurrent = CoefFunction::Generate( mp_, part, coilCurrentOp );
+        // this gives us just the current density! we have to multiply with the winding cross section!
+	      CoefXprUnaryOp coilCurrentDensityOp = CoefXprUnaryOp(mp_, coilCurrentDens_[coilRegsIt->first],CoefXpr::OP_NORM);
+	      coilCurrentDensity = CoefFunction::Generate( mp_, part, coilCurrentDensityOp );
 
-      CoefXprBinOp indIntegrandOp = CoefXprBinOp( mp_, integrand,
+	      CoefXprBinOp coilCurrentOp = CoefXprBinOp(mp_, coilCurrentDensity,
+		    	boost::lexical_cast<std::string>(partIt->second->wireCrossSect), CoefXpr::OP_MULT);
+
+      	coilCurrent = CoefFunction::Generate( mp_, part, coilCurrentOp );
+
+        CoefXprBinOp indIntegrandOp = CoefXprBinOp( mp_, integrand,
           coilCurrent, CoefXpr::OP_DIV );
-          
-      PtrCoefFct indIntegrand = CoefFunction::Generate( mp_, part, indIntegrandOp );
-      
-      indDens->AddRegion( coilRegsIt->first, indIntegrand );
 
+        PtrCoefFct indIntegrand = CoefFunction::Generate( mp_, part, indIntegrandOp );
+
+        indDens->AddRegion( coilRegsIt->first, indIntegrand );
+      }
     }
 
   }

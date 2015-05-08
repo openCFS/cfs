@@ -438,8 +438,19 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
 
-          // dummy current density for later implementation (difficult because of FeSpaceConst)
-          coilCurrentDens_[actRegion] = actPart.jUnitVec;
+          // implementation of coil current density is difficult because of FeSpaceConst
+          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
+          // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
+          //    for elements in order to evaluate its expression (FeFunction::GetScalar)
+          // 2) the automatic calculation of the cross section of the coil
+          //    must be implemented because we need the number of turns or the coil cross
+          //    section (only the winding cross section is not enough!)
+          // with these 2 points resolved, the code could look like:
+          /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
+          GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
+          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+          // now the division by the cross section would be necessary
+          coilCurrentDens_[actRegion] = test;*/
 
           // === -f_A ===
           LinearForm* psiDotInt;
