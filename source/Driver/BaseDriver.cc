@@ -133,7 +133,12 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
         break;
 
       case BasePDE::HARMONIC:
-        ptdriver = new HarmonicDriver( seqStep, false, state, myDom, 
+        ptdriver = new HarmonicDriver( seqStep, false, state, myDom,
+                                       seqNode, info  );
+        break;
+
+      case BasePDE::INVERSESOURCE:
+        ptdriver = new InverseSourceDriver( seqStep, false, state, myDom,
                                        seqNode, info  );
         break;
 

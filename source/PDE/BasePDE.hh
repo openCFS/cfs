@@ -50,6 +50,12 @@ namespace CoupledField
       return domain_;
     }
 
+    //! Return all Rhs FeFunctions
+    virtual
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetRhsFeFunctions() {
+    	EXCEPTION("GetRhsFeFunctions not implemented in Base PDE");
+    }
+
     //! Update PDE due to updated step in multistep solution strategy
     virtual void UpdateToSolStrategy() = 0;
 
@@ -80,7 +86,7 @@ namespace CoupledField
 
     /** do string/enum conversion via BasePDE::analysisType */
     typedef enum {NO_ANALYSIS, STATIC, TRANSIENT, HARMONIC, EIGENFREQUENCY, 
-                  MULTI_SEQUENCE } AnalysisType;
+                  INVERSESOURCE, MULTI_SEQUENCE } AnalysisType;
     
     /** Helper method which determines if an AnalyisType is complex. */
     bool IsComplex();

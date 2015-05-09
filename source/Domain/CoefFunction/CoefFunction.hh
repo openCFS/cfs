@@ -24,6 +24,7 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+
 namespace CoupledField{
 
 
@@ -32,6 +33,7 @@ class CoordSystem;
 class CoefXpr;
 class CoefFunction;
 class FeSpace;
+class BaseFeFunction;
 
 //! This is the base class for describing coefficients
 
@@ -91,6 +93,13 @@ public:
   } CoefDependType;
   static Enum<CoefDependType> CoefDependType_;
   
+  //! Dependency of coefficient function
+  typedef enum{
+    INVSOURCE,         /*!< Invserse scheme: source data */
+    INVMEASURE         /*!< Inverse scheme: measured data */
+  } CoefInverseType;
+  static Enum<CoefInverseType> CoefInverseType_;
+
   //! Modifications of coefficient function
   typedef enum{
     NONE,              /*!< Default interpolation of data*/
@@ -314,6 +323,11 @@ public:
     coordSys_ = cSys;
   }
   
+  //!
+  virtual void SetFeFunction( shared_ptr<BaseFeFunction> fct1, SolutionType solType) {
+	  feFunctions_[solType] = fct1;
+  }
+
   //! Get associated coordinate system
   CoordSystem* GetCoordinateSystem(){
     return coordSys_;
@@ -322,6 +336,11 @@ public:
   //! Return dependency of CoefFunction
   CoefDependType GetDependency() {
     return dependType_;
+  }
+
+  //! Return dependency of CoefFunction
+  CoefInverseType GetInverseType() {
+    return inverseType_;
   }
 
   //! Return type of entry (scalar, vector, tensor)
@@ -348,6 +367,11 @@ public:
   //! Return if coeffunction is complex
   virtual bool IsComplex() const {
     return isComplex_;
+  }
+
+  //! stes the coefFnc as active (just used for inverse source identififcation)
+  virtual void SetActive() {
+    isActive_ = true;
   }
 
   //! Dump coefficient function to string 
@@ -525,6 +549,9 @@ protected:
   //! storing the derivative type of the CoefFunction
   CoefDerivativeType derivType_;
 
+  //! storing the type for inverse scheme
+   CoefInverseType inverseType_;
+
   //! Flag, if coefficient function is analytic (= can be represented as string)
   bool isAnalytic_;
   
@@ -534,6 +561,11 @@ protected:
   //! Flag indicating if the CoefFunction supports derivatives
   bool supportDerivative_;
 
+  //! Map Storing FeSpaces for each unknown of PDE
+  std::map<SolutionType, shared_ptr<BaseFeFunction> > feFunctions_;
+
+  //! sets the rhsFnc active
+  bool isActive_;
 };
 
 

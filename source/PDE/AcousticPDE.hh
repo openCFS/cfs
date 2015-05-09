@@ -76,6 +76,9 @@ namespace CoupledField{
     template<UInt DIM>
     void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
 
+//    //! Set special RHS values
+//    virtual void SetRhsValues();
+
   private:
 
     //! stores if the Acoustic PDE is in potential or pressure form

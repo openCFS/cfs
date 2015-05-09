@@ -1157,7 +1157,7 @@ namespace CoupledField {
         derivFeFct->Finalize();
         derivFeFct->SetPDE(this);
         UInt timeDerivOrder = timeDerivOrder_[it->first];
-        if( analysistype_ == HARMONIC ||  analysistype_ == EIGENFREQUENCY) {
+        if( analysistype_ == HARMONIC ||  analysistype_ == INVERSESOURCE || analysistype_ == EIGENFREQUENCY) {
           FeFunction<Complex> & cDerivFct = dynamic_cast<FeFunction<Complex>& >(*derivFeFct);
           shared_ptr<FeFunction<Complex> > cPrimFct = dynamic_pointer_cast<FeFunction<Complex> >(primFeFct);
           cDerivFct.SetTimeDerivOrder( timeDerivOrder, cPrimFct );
@@ -2202,6 +2202,7 @@ namespace CoupledField {
 
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
+      std::cout << "Name: " << entName << std::endl;
       try {
         // determine list type: In case we have have surface elements, generate explicitly
         // a surface element list
@@ -2318,6 +2319,7 @@ namespace CoupledField {
         boost::shared_ptr<SimState> inState(new SimState(true, domain_));
         shared_ptr<SimInput> reader;
         shared_ptr<SimInputHDF5> in;
+        std::cout << "Do Read" << std::endl;
 
         if( valueNode->Has("externalSimulation") ) {
           sequenceStep = esNode->Get("sequenceStep")->As<UInt>();

@@ -87,6 +87,7 @@
 //include headers of subclasses for factory method
 #include "CoefFunctionGridNodalInterp.hh"
 #include "CoefFunctionGridNodalDefault.hh"
+#include "CoefFunctionGridNodalSource.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
 
@@ -100,18 +101,33 @@ PtrCoefFct CoefFunctionGrid::Generate( Domain* ptDomain,
                                        PtrParamNode configNode,
                                        shared_ptr<EntityList> list){
 
-
   shared_ptr<CoefFunctionGrid> ret;
   PtrParamNode tmpNode  =  infoNode->Get("externalData");
-  if(configNode->Has("defaultGrid")){
-    if(format == Global::COMPLEX){
-      ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
-    }else{
-      ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
-          configNode->Get("defaultGrid"), tmpNode));
-    }
-  }else if(configNode->Has("externalGrid")){
+  if(configNode->Has("defaultGrid")) {
+	  std::string dependString;
+	  PtrParamNode tmpNodeType  =  configNode->Get("defaultGrid");
+	  tmpNodeType->GetValue("dependtype",dependString);
+	  if ( dependString == "INVSOURCE" || dependString == "INVMEASURE") {
+		  if(format == Global::COMPLEX){
+			  ret.reset(new CoefFunctionGridNodalSource<Complex>(ptDomain,
+					  configNode->Get("defaultGrid"), tmpNode));
+		    }
+		  else{
+			  EXCEPTION("CoefFunctionGridNodalSource can just be complex");
+		  }
+	  }
+	  else {
+		  if(format == Global::COMPLEX){
+			  ret.reset(new CoefFunctionGridNodalDefault<Complex>(ptDomain,
+					  configNode->Get("defaultGrid"), tmpNode));
+		  }
+		  else {
+			  ret.reset(new CoefFunctionGridNodalDefault<Double>(ptDomain,
+					  configNode->Get("defaultGrid"), tmpNode));
+		  }
+	  }
+  }
+  else if(configNode->Has("externalGrid")){
     if(format == Global::COMPLEX){
       ret.reset(new CoefFunctionGridNodalInterp<Complex>(ptDomain,
           configNode->Get("externalGrid", ParamNode::INSERT), tmpNode));

@@ -1341,6 +1341,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionGridNodalSource.cc -text
+source/Domain/CoefFunction/CoefFunctionGridNodalSource.hh -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
@@ -1410,6 +1412,8 @@ source/Driver/FormsContexts.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/FormsContexts.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/HarmonicDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/HarmonicDriver.hh svneol=native#text/x-c%2B%2Bhdr
+source/Driver/InverseSourceDriver.cc -text
+source/Driver/InverseSourceDriver.hh -text
 source/Driver/MultiSequenceDriver.cc svneol=native#text/x-c%2B%2Bsrc
 source/Driver/MultiSequenceDriver.hh svneol=native#text/x-c%2B%2Bhdr
 source/Driver/SingleDriver.cc svneol=native#text/x-c%2B%2Bsrc

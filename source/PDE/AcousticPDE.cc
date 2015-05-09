@@ -305,7 +305,7 @@ namespace CoupledField{
       if( dampingList_[actRegion] == PML ) {
         std::string dampId;
         curRegNode->GetValue("dampingId",dampId);
-        if(analysistype_ == HARMONIC){
+        if(analysistype_ == HARMONIC || analysistype_ == BasePDE::INVERSESOURCE){
           PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml","id",dampId.c_str());
           coeffPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,true));
           coeffPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode,c0,actSDList,regions_,false));
@@ -1094,10 +1094,50 @@ namespace CoupledField{
                           ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
+      std::cout << "ADD" << std::endl;
+      coef[i]->SetFeFunction( feFunctions_[formulation_], formulation_);
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
     }
 
   }
+
+  // **********
+  // SetRhsLoads
+  // **********
+//  void  AcousticPDE::SetRhsValues() {
+//
+//	std::cout << "DO AcousticPDE::SetRhsValues() " << std::endl;
+//    //do the same for RHS
+//	//PtrCoefFct& sol = fieldCoefs_[ACOU_PRESSURE];
+//
+//    std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator rFncIt= this->rhsFeFunctions_.begin();
+//    while ( rFncIt != this->rhsFeFunctions_.end() ) {
+////    	LoadCoefList loadCoefs = rFncIt->second->GetLoadCoefFunctions();
+////    	LoadCoefList::iterator it = loadCoefs.begin();
+////    	for ( ; it != loadCoefs.end(); ++it  ) {
+////    		PtrCoefFct ptCoef = it->first;
+////    		StdVector<shared_ptr<EntityList> > & lists = it->second;
+////    		if ( lists[0]->GetName() == "inner" ) {
+////    			std::cout << "Size: " << lists[0]->GetSize() << std::endl;
+////    			std::cout << "Type: " << lists[0]->GetType() << std::endl;
+////    		}
+////    		shared_ptr<EntityList>& singleList = lists[0];
+////    		EntityIterator entIt = singleList->GetIterator();
+////    		if ( singleList->GetType() == EntityList::ELEM_LIST ) {
+////    			for ( entIt.Begin(); !entIt.IsEnd(); entIt++) {
+////    				std::cout << "Node: " << entIt.GetNode() << std::endl;
+////    			}
+////    		}
+////    	}
+////    	std::cout << "END \n " << std::endl;
+//
+//
+//
+//    	rFncIt->second->ApplyLoads();
+//    	rFncIt++;
+//    }
+//  }
+
 
   void AcousticPDE::DefineSolveStep(){
     solveStep_ = new StdSolveStep(*this);

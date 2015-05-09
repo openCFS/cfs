@@ -17,6 +17,7 @@ CoefFunction::Generate( MathParser * mp,
 
   MathParser::HandleType handle = mp->GetNewHandle(true);
 
+
   PtrCoefFct ret;
 
   bool depTime = ExprDependsOnTimeFreq(mp, realVal);

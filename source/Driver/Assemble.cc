@@ -187,7 +187,7 @@ namespace CoupledField
     // Otherwise we issue an error
     if( (biLinContext->GetEntryType() == Global::IMAG ||
          biLinContext->GetEntryType() == Global::COMPLEX )
-        && analysisType_ != BasePDE::HARMONIC ) {
+        && analysisType_ != BasePDE::HARMONIC && analysisType_ != BasePDE::INVERSESOURCE) {
       EXCEPTION( "Can not add integrator '"
                  << biLinContext->GetIntegrator()->GetName()
                  << "' with complex/imaginary entries for a "
@@ -1196,7 +1196,7 @@ namespace CoupledField
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
         
-        if ( analysisType_ == BasePDE::HARMONIC ) {
+        if ( analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE ) {
 
           Vector<Complex> elemVec;
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
@@ -1419,7 +1419,9 @@ namespace CoupledField
       BiLinFormContext & actContext = **it;
 
       // we set multiple times in eigenfrequency for bloch and there we need to reassemble
-      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
+      if(actContext.IsNonLin() || analysisType_ == BasePDE::HARMONIC
+    		  || analysisType_ ==BasePDE::INVERSESOURCE
+			  || analysisType_ == BasePDE::EIGENFREQUENCY || setall)
       {
         
         matReassemble_[actContext.GetDestMat()] = true;
@@ -1578,6 +1580,14 @@ namespace CoupledField
       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
       break;
 
+    case BasePDE::INVERSESOURCE:
+       matrixMap_[SYSTEM]    = SYSTEM;
+       matrixMap_[STIFFNESS] = SYSTEM;
+       matrixMap_[DAMPING]   = SYSTEM;
+       matrixMap_[MASS]      = SYSTEM;
+       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+       break;
+
     case BasePDE::EIGENFREQUENCY:
       matrixMap_[SYSTEM]    = NOTYPE;
       matrixMap_[STIFFNESS] = STIFFNESS;
@@ -1654,7 +1664,7 @@ namespace CoupledField
     
     bool isComplex = false;
     if (actCt->GetIntegrator()->IsComplex() || 
-        analysisType_ == BasePDE::HARMONIC ) { 
+        analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE) {
       isComplex = true;
     }
     return isComplex;
@@ -1688,7 +1698,7 @@ namespace CoupledField
                                  preventStaticCond );
 
     } else {
-      assert(analysisType_ == BasePDE::HARMONIC);
+      assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE);
 
       Double omega = mp_->Eval( mHandle_ );
 
@@ -1715,14 +1725,16 @@ namespace CoupledField
 
     assert(mappedDest != NOTYPE);
     // bloch mode analysis is complex
-    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::EIGENFREQUENCY);
+    assert(analysisType_ == BasePDE::HARMONIC || analysisType_ == BasePDE::INVERSESOURCE
+    		|| analysisType_ == BasePDE::EIGENFREQUENCY);
 
     assert(!elemMat.ContainsNaN() && !elemMat.ContainsInf());
     Double omega = mp_->Eval( mHandle_ );
 
     // for bloch mode we need special handling. The mass matrix needs to be complex but
     // Matrix2Harmonic wourl use omega=0 as we have no actFreq.
-    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || omega == 0.0);
+    assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || BasePDE::INVERSESOURCE
+    		|| omega == 0.0);
 
     if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
