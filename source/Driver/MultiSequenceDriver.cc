@@ -7,6 +7,7 @@
 #include "TransientDriver.hh"
 #include "HarmonicDriver.hh"
 #include "EigenFrequencyDriver.hh"
+#include "InverseSourceDriver.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "PDE/SinglePDE.hh"
@@ -235,7 +236,11 @@ DEFINE_LOG(msDriver, "msDriver")
       actDriver_ = tD;
     }
     else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
-      actDriver_ = new HarmonicDriver( sequenceStep, true, 
+      actDriver_ = new HarmonicDriver( sequenceStep, true,
+                                       simState_, domain_, seqNode, info  );
+    }
+    else if (analysisPerStep_[sequenceStep] == BasePDE::INVERSESOURCE) {
+      actDriver_ = new InverseSourceDriver( sequenceStep, true,
                                        simState_, domain_, seqNode, info  );
     }
     else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {

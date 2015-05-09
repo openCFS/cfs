@@ -232,6 +232,9 @@ public:
    //! added, not set as in ApplyBCs
    virtual void ApplyLoads() = 0;
    
+   //! incorporate loads defined in values
+   virtual void ApplyLoads(PtrCoefFct& values) = 0;
+
    //! Set the feFunction to values obtained by external data sources
    virtual void ApplyExternalData() = 0;
   //@}
@@ -379,6 +382,9 @@ public:
   //! Incorporate load conditions, the characteristic here is that the values will be
   //! added, not set as in ApplyBCs
   virtual void ApplyLoads();
+
+  //! incorporate loads defined in values
+  virtual void ApplyLoads(PtrCoefFct& values);
 
   //! Set the feFunction to values obtained by external data sources
   virtual void ApplyExternalData();

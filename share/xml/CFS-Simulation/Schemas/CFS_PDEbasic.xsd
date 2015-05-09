@@ -59,8 +59,11 @@
       <xsd:enumeration value="GENERAL"/>
       <xsd:enumeration value="TIMEFREQ"/>
       <xsd:enumeration value="CONST"/>
+      <xsd:enumeration value="INVSOURCE"/>
+      <xsd:enumeration value="INVMEASURE"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
 
   <!-- Mode of interpolation -->
   <xsd:simpleType name="DT_CoefGridInterpolMode">
@@ -81,6 +84,7 @@
                </xsd:sequence>
                <xsd:attribute name="quantity" use="required"/>
                <xsd:attribute name="dependtype" type="DT_CoefGridDependType" use="required" />
+               <xsd:attribute name="measureNodes" type="xsd:string" />
                <xsd:attribute name="sequenceStep" type="xsd:integer" use="optional" default="1" />
                <xsd:attribute name="snapToCFSTimeStep" type="xsd:boolean" use="optional" default="false" />
              </xsd:complexType>
