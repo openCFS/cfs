@@ -132,9 +132,6 @@ class TransferFunction;
     /** multiply mass with this, can be used to scale tensor trace */
     double massFactor_;
 
-    /** for density times 2d tensor, this is the penalization for density*/
-    double penalty_;
-
     /** for density times 2d tensor with constant trace */
     double trace_;
 
