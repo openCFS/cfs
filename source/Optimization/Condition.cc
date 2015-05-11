@@ -727,7 +727,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   //  in->Get(ParamNode::WARNING)->SetValue("Doing homogenization without 'objective' scaling constraint '" + type.ToString(type_) + "'");
 
 
-  if(type_ == VOLUME && physical_ && !observation_)
+  if(type_ == VOLUME && IsPhysical() && !observation_)
     info_->Get(ParamNode::WARNING)->SetValue("a physical volume constraint should make no sense");
 
   if((type_ == VOLUME || type_ == TENSOR_TRACE) && design_ == DesignElement::MECH_TRACE)
