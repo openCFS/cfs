@@ -86,9 +86,13 @@ public:
                                     Vector<DATA_TYPE>& feFncVec);
 
   //! Determine if coefFunction has conservative mapping
-    virtual bool IsConservative(){
-      return (this->curInterpType_==CoefFunctionGrid::CONSERVATIVE);
-    }
+  virtual bool IsConservative(){
+	  return (this->curInterpType_==CoefFunctionGrid::CONSERVATIVE);
+  }
+
+  //! computes the optimality condition
+  virtual void ComputeOptCondition(Double& optAmp, Double& optPhase);
+
 protected:
 
 private:
@@ -99,7 +103,7 @@ private:
   void BuildNodeIdxAssoc(shared_ptr<FeSpace> targetSpace);
 
   //! computes the source values
-  void ComputeSourceData(Vector<DATA_TYPE> actPDEsol);
+  void ComputeSourceData(Vector<DATA_TYPE>& actPDEsol);
 
   //! for conservative mapping, we store just the pair of own
   //! solution vector to coeffunction vector

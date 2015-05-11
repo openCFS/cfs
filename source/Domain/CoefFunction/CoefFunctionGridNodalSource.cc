@@ -30,7 +30,6 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
   // Determine information about source grid and result
   //====================================================
 
-  std::cout << "Generate SOURCE " << std::endl;
   this->inputId_ = "default";
   this->gridId_ = "default";
   this->curInterpType_ = CoefFunctionGrid::NO_INTERPOLATION;
@@ -47,8 +46,6 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   //lets determine the destination region and set it to our source regions
   std::string destreg = configNode->GetParent()->GetParent()->Get("name")->As<std::string>();
-  std::cout << "Dest: " << destreg << std::endl;
-
 
   //define regularization parameter
   alpha_ = 2.0;
@@ -61,7 +58,9 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
   //resize the source vectors
   UInt numNodes = nodeListSource_->GetSize();
   sourceAmp_.Resize( numNodes );
+  sourceAmp_.Init();
   sourcePhi_.Resize( numNodes );
+  sourcePhi_.Init();
 
 
   this->DetermineResult(this->inputId_,this->aSeqStep_);
@@ -78,11 +77,12 @@ CoefFunctionGridNodalSource<DATA_TYPE>::CoefFunctionGridNodalSource(Domain* ptDo
 
   if ( inverseString == "INVSOURCE") {
 	  this->inverseType_ = CoefFunction::INVSOURCE;
-	  std::cout << "Do Source" << std::endl;
+	  std::cout << "Generate SOURCE " << std::endl;
+	  std::cout << "Do Source" << "  numNodes: " << numNodes << std::endl;
   }
   else {
+	  std::cout << "Generate MEASURE " << std::endl;
 	  this->inverseType_ = CoefFunction::INVMEASURE;
-	  std::cout << "Do Measure" << std::endl;
 	  configNode->GetValue("measureNodes",inverseString);
 
 	  this->srcGrid_->GetNodesByName( measNodes_, inverseString );
@@ -298,44 +298,76 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
     }
   }
 
+  if ( this->isActive_ ) {
+	  if (  this->inverseType_ == CoefFunction::INVMEASURE ) {
+		  std::cout << "DO INVERSE_MEASURE" << std::endl;
+		  //First, update the solution vector
+		  this->UpdateSolution();
 
-  if (  this->inverseType_ == CoefFunction::INVMEASURE ) {
-	  std::cout << "DO INVERSE_MEASURE" << std::endl;
-	  //First, update the solution vector
-	  this->UpdateSolution();
+		  NodeList* nodeList = new NodeList(this->srcGrid_);
+		  nodeList->SetNodes(measNodes_);
 
-	  NodeList* nodeList = new NodeList(this->srcGrid_);
-	  nodeList->SetNodes(measNodes_);
+		  StdVector<Integer> measEqs;
+		  EntityIterator entIt = nodeList->GetIterator();
+		  targetSpace->GetEqns(measEqs, entIt);
 
-	  StdVector<Integer> measEqs;
-	  EntityIterator entIt = nodeList->GetIterator();
-	  targetSpace->GetEqns(measEqs, entIt);
+		  Vector<DATA_TYPE> actPDEsol(measEqs.GetSize());
+		  UInt k=0;
+		  while( !entIt.IsEnd() ) {
+			  Vector<DATA_TYPE> result;
+			  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
+			  actPDEsol[k] = result[0];
+			  entIt++;
+			  k++;
+		  }
 
-	  Vector<DATA_TYPE> actPDEsol;
-	  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( actPDEsol, entIt );
+		  Vector<DATA_TYPE> RHS(measEqs.GetSize());
+		  for ( UInt i=0; i<measEqs.GetSize(); i++ ) {
+			  Complex val = actPDEsol[i] - this->solVec_[measEqs[i]];
+			  RHS[i] = std::conj( val );
+		  }
 
-	  Vector<DATA_TYPE> RHS(measEqs.GetSize());
-	  for ( UInt i=0; i<measEqs.GetSize(); i++ ) {
-		  Complex val = actPDEsol[i] - this->solVec_[measEqs[i]];
-		  RHS[i] = std::conj( val );
+		  //set RHS nodal sources to zero
+		  this->solVec_.Init();
+		  for ( UInt i=0; i<measEqs.GetSize(); i++ ) {
+			  this->solVec_[measEqs[i]] = RHS[i];
+			  std::cout << "InvMeas: Eq:" << measEqs[i] << "  Val = " << RHS[i] << std::endl;
+		  }
+		  std::cout << "RHS_VEC INVERSE_MEASURE: \n " << this->solVec_ << std::endl;
 	  }
+	  else if (this->inverseType_ == CoefFunction::INVSOURCE ) {
+		  std::cout << "DO INVERS_SOURCE" << std::endl;
+		  //reset RHS
+		  this->solVec_.Init();
 
-	  this->solVec_.Init();
-	  for ( UInt i=0; i<measEqs.GetSize(); i++ ) {
-		  this->solVec_[measEqs[i]] = RHS[i];
+		  //get actual solution of PDE at the nodes of source region
+		  Vector<DATA_TYPE> actPDEsol(nodeListSource_->GetSize());
+		  EntityIterator entIt = nodeListSource_->GetIterator();
+		  std::cout << "Size nodeList: " << nodeListSource_->GetSize() << std::endl;
+		  UInt k=0;
+		  while( !entIt.IsEnd() ) {
+			  Vector<DATA_TYPE> result;
+			  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
+			  actPDEsol[k] = result[0];
+			  std::cout << "INVERSE_SOURCE sol: " << actPDEsol[k] << std::endl;
+			  entIt++;
+			  k++;
+		  }
+		  ComputeSourceData(actPDEsol);
+		  for ( UInt i=0; i<actPDEsol.GetSize(); i++ ) {
+			  Complex val( sourceAmp_[i]*cos(sourcePhi_[i]), sourceAmp_[i]*sin(sourcePhi_[i]) );
+			  const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
+			  this->solVec_[curP.second] = val;
+		  }
 	  }
-	  //std::cout << "RHS_VEC: \n " << this->solVec_ << std::endl;
   }
-  else if (this->inverseType_ == CoefFunction::INVSOURCE ) {
-	  std::cout << "DO INVERS_SOURCE" << std::endl;
-	  //reset RHS
+  else {
+	  //set RHS nodal source to zero
 	  this->solVec_.Init();
-
-	  //get actual solution of PDE at the nodes of source region
-	  Vector<DATA_TYPE> actPDEsol;
-	  EntityIterator entIt = nodeListSource_->GetIterator();
-	  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( actPDEsol, entIt );
-      ComputeSourceData(actPDEsol);
+	  if ( this->inverseType_ == CoefFunction::INVSOURCE  )
+		  std::cout << "INVERSESOURCE:  set zero" << std::endl;
+	  else
+		  std::cout << "INVERSEMEASURE:  set zero" << std::endl;
   }
 
   //IDEA> create vector of pairs and associate each eqnNumber of feFncVec a index of own solvec
@@ -412,44 +444,88 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::GetElemsForPoints(const StdVector<V
 }
 
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData(Vector<DATA_TYPE> actPDEsol) {
+void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeSourceData(Vector<DATA_TYPE>& actPDEsol) {
 
-	Vector<Double> amp(actPDEsol.GetSize());
+	//Vector<Double> amp(actPDEsol.GetSize());
 	for (UInt i=0; i<actPDEsol.GetSize(); i++ ) {
 		//amplitude
 		Double val;
-		Complex phi(0,sourcePhi_[i]);
-		Complex valC = actPDEsol[i] * std::exp(phi);
+		Complex jphi(0,sourcePhi_[i]); //j*phi
+		Complex valC = actPDEsol[i] * std::exp(jphi);
 		val  = std::pow( (std::abs ( valC.real() ) / (alpha_ * qExp_)), 1/(qExp_-1) );
-		val *= (Double) std::signbit( valC.real() );
+		if ( valC.real() < 0 )
+			val *= -1.0;
+		//val *= (Double) std::signbit( valC.real() );
+		//std::cout << "val: " << val  << std::endl;
 		sourceAmp_[i] = val;
 
 		//phase
 		Double error = 1e3;
+		Double fnc, fncDeriv;
 		Double psi = sourcePhi_[i];
+		Complex sol = actPDEsol[i];
+		Double psiPrev = psi;
 		UInt iter = 1;
-		while ( error > 1e-3 || iter < 100) {
-			Double fnc, fncDeriv;
-			Double psiPrev = psi;
-			Complex sol = actPDEsol[i];
-			sol = actPDEsol[i];
-			fnc = 2.0*beta_*psi + sourceAmp_[i] * ( sol.real()*std::sin(psi) + sol.imag()*cos(psi) );
-			fncDeriv = 2.0*beta_ + sourceAmp_[i] * ( -sol.real()*std::cos(psi) + sol.imag()*sin(psi) );
-			phi -= 0.5*fnc/fncDeriv;
+		while ( error > 1e-3 && iter < 100) {
+			fnc = 2.0*beta_*psiPrev + sourceAmp_[i] * ( sol.real()*std::sin(psiPrev) + sol.imag()*cos(psiPrev) );
+			fncDeriv = 2.0*beta_ + sourceAmp_[i] * ( -sol.real()*std::cos(psiPrev) + sol.imag()*sin(psiPrev) );
+			psi -= 0.5*fnc/fncDeriv;
 			if ( psi < -PI/2.0)
 				psi = -PI/2.0;
 			else if (psi > PI/2.0 )
 				psi = PI/2.0;
 
 			error = std::abs(psi - psiPrev);
-			//std::cout << "ErrorPhi: " << error << std::endl;
+			psiPrev = psi;
+//			std::cout << "ErrorPhi: " << error << std::endl;
 			iter++;
 		}
 		if ( iter > 100 )
 			EXCEPTION("ComputeSourceData: No convergence for computation of phase!");
 
 		sourcePhi_[i] = psi;
+		std::cout << "Idx: " << i << "  Amp: " << sourceAmp_[i] << "  Phi: " << sourcePhi_[i] << std::endl;
 	}
+}
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& optAmp, Double& optPhase) {
+
+	Vector<DATA_TYPE> actPDEsol(nodeListSource_->GetSize());
+	EntityIterator entIt = nodeListSource_->GetIterator();
+
+	UInt k=0;
+	while( !entIt.IsEnd() ) {
+		Vector<DATA_TYPE> result;
+		this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
+		actPDEsol[k] = result[0];
+		std::cout << "INVERSE_SOURCE sol: " << actPDEsol[k] << std::endl;
+		entIt++;
+		k++;
+	}
+
+	//compute optCondition
+	Double valAmp = 0.0;
+	Double valPhi = 0.0;
+	for (UInt i=0; i<actPDEsol.GetSize(); i++ ) {
+		//amplitide
+		Double val;
+		val = alpha_* qExp_* std::pow( std::abs( sourceAmp_[i]), qExp_-1.0 );
+		if ( sourceAmp_[i] < 0.0 )
+			val *= -1.0;
+		Complex jphi(0,sourcePhi_[i]); //j*phi
+		Complex valC = actPDEsol[i] * std::exp(jphi);
+		val -= valC.real();
+		valAmp += val*val;
+
+		//phase
+		Double psi = sourcePhi_[i];
+		Complex sol = actPDEsol[i];
+		val = 2*beta_*psi - sourceAmp_[i]*( -sol.real()*sin(psi) - sol.imag()*cos(psi) );
+		valPhi += val*val;
+	}
+	optAmp = std::sqrt(valAmp);
+	optPhase = std::sqrt(valPhi);
 }
 
 }

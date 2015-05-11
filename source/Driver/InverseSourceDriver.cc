@@ -246,21 +246,32 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
 
-    Double error = 1e5;
+    Double optAmp, optPhase;
     UInt iter = 0;
-    while ( error > 1.0e-2 && iter < 1 ) {
+    bool notConverged = true;
+
+    while ( notConverged && iter < 5 ) {
     	//compute with RHS being the conjugate difference of computed acoustic pressure
     	//and measured pressure in the microphone points
-    	rhsMeas_->SetActive();
+    	rhsSource_->SetActive(false);
+    	rhsMeas_->SetActive(true);
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
+    	rhsSource_->ComputeOptCondition(optAmp, optPhase);
+
+    	if ( optAmp < 0.1 && optPhase < 0.1 )
+    		notConverged = false;
+
+    	std::cout << "\n OptCond, Amp: " << optAmp << "   Phase: " << optPhase << std::endl;
 
     	//compute with RHS as the current identified sources
-      	rhsSource_->SetActive();
+    	rhsMeas_->SetActive(false);
+      	rhsSource_->SetActive(true);
       	ptPDE_->GetSolveStep()->PreStepHarmonic();
       	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
       	ptPDE_->GetSolveStep()->PostStepHarmonic();
+      	rhsSource_->SetActive(false);
 
     	iter++;
     }

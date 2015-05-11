@@ -667,14 +667,12 @@ DECLARE_LOG(fefunc)
   template<typename T>
   void FeFunction<T>::GetEntitySolution( SingleVector& elemSol, 
                                          const EntityIterator& it ){
-	  std::cout << "In GetEntitySolution" << std::endl;
-    LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
+	LOG_DBG(fefunc) << PREFIX << "GetEntitySolution()";
     Vector<T> & temp = dynamic_cast<Vector<T>&>(elemSol);
-    std::cout << "Dynamic cast ok	" << std::endl;
+
     StdVector<Integer> eqns;
     Vector<T> & vals = *coeffs_;
     feSpace_->GetEqns(eqns, it);
-    std::cout << "Compute Size" << std::endl;
 
     temp.Resize(eqns.GetSize());
     // In case no equation was found, this indicates that the nodes, for which

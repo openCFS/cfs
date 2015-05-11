@@ -370,8 +370,8 @@ public:
   }
 
   //! stes the coefFnc as active (just used for inverse source identififcation)
-  virtual void SetActive() {
-    isActive_ = true;
+  virtual void SetActive(bool val) {
+    isActive_ = val;
   }
 
   //! Dump coefficient function to string 
@@ -385,6 +385,11 @@ public:
     EXCEPTION("CoefFunction: This CoefFunction does not support derivatives");
     return;
   }
+
+  //! computes the optimality condition
+  virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
+	  EXCEPTION("CoefFuncion: CommputeOptCondition not implemented");
+   }
 
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function
