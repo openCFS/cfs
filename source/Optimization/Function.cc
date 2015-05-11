@@ -42,6 +42,7 @@ DEFINE_LOG(func, "opt_func")
 
 // instantiation of the static elements is in Optimization::SetEnums()
 Enum<Function::Type> Function::type;
+Enum<Function::Access> Function::access;
 Enum<Function::StressType> Function::stressType;
 Enum<Function::Local::Locality> Function::Local::locality;
 Enum<Function::Local::Phase> Function::Local::phase;
@@ -71,12 +72,7 @@ Function::Function(PtrParamNode pn) {
 
   this->type_ = type.Parse(pn->Get("type")->As<string>());
 
-  this->physical_ = pn->Has("physical") ? pn->Get("physical")->As<bool>() : false;
-
-  if(pn->Has("filtered"))
-    this->filtered_ = pn->Get("filtered")->As<bool>() ? 1 : 0;
-  else
-    this->filtered_ = -1;
+  this->access_ = pn->Has("access") ? access.Parse(pn->Get("access")->As<string>()) : Function::DEFAULT;
 
   if (pn->Has("design")) // will sometime be in Function, now the default is set to DEFAULT
     this->design_ = BaseDesignElement::type.Parse(
@@ -195,7 +191,7 @@ Function::Function(PtrParamNode pn) {
   if (pn->Has("linear"))
     linear_ = pn->Get("linear")->As<bool>();
 
-  if (physical_ && !(type_ == VOLUME || type_ == GREYNESS))
+  if (IsPhysical() && !(type_ == VOLUME || type_ == GREYNESS))
     throw Exception("'physical' is no option for '" + type.ToString(type_) + "'");
 
 }
@@ -346,8 +342,8 @@ string Function::ToString(MultipleExcitation* me) const {
   if (local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
 
-  if (physical_)
-    return "physical_" + type.ToString(type_);
+  if (IsPhysical())
+    return "access_ " + type.ToString(type_);
 
   return type.ToString(type_);
 }
@@ -567,17 +563,18 @@ bool Function::IsLocal(Type t) {
 }
 
 bool Function::ForDensityFiltering() const {
-  if(filtered_ == 0) // filtering false
+  switch(access_){
+  case PLAIN:// no filtering
     return false;
-  else if(filtered_ == 1) // filtering true
+  case FILTERED: // filtering true
+  case PHYSICAL:
     return true;
-  else // no "filtered=" entry in constraint given. Use default values:
-  {
+  case DEFAULT: // no "filtered=" entry in constraint given. Use default values:
     switch (type_) {
     case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
     case SLACK:
     case SHAPE_INF:
-    case DESIGN_BOUND: // TODO check if this is realy true as pyhsical material might harm the bound ?!
+    case DESIGN_BOUND: // TODO check if this is really true as pyhsical material might harm the bound ?!
     case MULTIMATERIAL_SUM:
     case SUM_MODULI:
     case GLOBAL_SUM_MODULI:
@@ -594,7 +591,11 @@ bool Function::ForDensityFiltering() const {
     default:
       return true; // actually true for almost all!
     }
+    break;
+  default:
+    EXCEPTION("Invalid query: " << access.ToString(access_));
   }
+
 }
 
 bool Function::ForSensitivityFiltering() const {
