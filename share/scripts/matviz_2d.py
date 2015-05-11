@@ -28,16 +28,16 @@ def create_figure(min, max, res, for_save):
   fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
   ax = fig.add_subplot(111)
 
-#   if for_save:
-#     # we need to correct the ratio
-#     wrong = ax.get_window_extent().size
-#     ratio = dpi_x / dpi_y 
-#     dpi_x *= res / wrong[0]  
-#     dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
-#     fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
-#     matplotlib.pyplot.axis('off')
-#     ax = fig.add_subplot(111)
-#     # the second figure would make problems with matplotlib.pyplot.show()
+  if for_save:
+    # we need to correct the ratio
+    wrong = ax.get_window_extent().size
+    ratio = dpi_x / dpi_y 
+    dpi_x *= res / wrong[0]  
+    dpi_y *= (dpi_y * 100 / ratio) / wrong[1]
+    fig = matplotlib.pyplot.figure(dpi=100, figsize=(dpi_x,dpi_y))
+    matplotlib.pyplot.axis('off')
+    ax = fig.add_subplot(111)
+    # the second figure would make problems with matplotlib.pyplot.show()
   
   ax.set_xlim(min[0],max[0])
   ax.set_ylim(min[1],max[1])

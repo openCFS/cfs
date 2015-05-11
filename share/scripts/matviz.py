@@ -16,11 +16,12 @@ import xml.dom.minidom
 # @return s1, s2, s3, angle, sh1 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
+  sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
   if args.parametrization == 'hom_rect':
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
     s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
-    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if args.show == "hom_sheared_cross" else numpy.ones((len(centers),1)) * .5
+    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if args.show == "hom_sheared_cross" else sh1
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -33,7 +34,6 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= 1/(m*(1-theta))
     s2 *= 1/(m*(1-theta))
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
-    sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
   elif args.parametrization == 'ortho':
     t11 = get_element(f, "design_tensor11_" + args.hom_access, args.h5_region, args.h5_step)
     t12 = get_element(f, "design_tensor12_" + args.hom_access, args.h5_region, args.h5_step)
@@ -45,7 +45,6 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
-    sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print "args.h5_step:" + str(args.h5_step)
