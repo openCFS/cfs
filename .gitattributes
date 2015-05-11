@@ -34,6 +34,7 @@ cmake_modules/FindPardiso.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindPythonForCFS.cmake -text
 cmake_modules/FindSCPIP.cmake -text
+cmake_modules/FindSGPP.cmake -text
 cmake_modules/FindSnOpt.cmake -text
 cmake_modules/FindSuiteSparse.cmake -text
 cmake_modules/FindTCLForCFS.cmake -text

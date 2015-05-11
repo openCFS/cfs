@@ -805,7 +805,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
     elements.Reserve(n);
     for(int i = 0; i < n; i++){
       elements.Push_back(static_cast<DesignElement*>(aspace->GetAuxDesignElement(i)));
-    }    
+    }
   }else{
 
     // Bastian's multiple design test cases have situations where design is DEFAULT as it is not
@@ -841,7 +841,7 @@ void Function::SetElements(DesignSpace* space, RegionIdType region) {
       } else {
         for (unsigned int i = 0; i < space->data.GetSize(); i++) {
           DesignElement* de = &(space->data[i]);
-          if(DesignElement::IsCompatible(design_, de->GetType()) 
+          if(DesignElement::IsCompatible(design_, de->GetType())
              && (region == ALL_REGIONS || de->elem->regionId == region))
             elements.Push_back(de);
         }
@@ -2846,93 +2846,9 @@ double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
   double da = vol_a[1][0] - vol_a[0][0];
   double db = vol_b[1][0] - vol_b[0][0];
   double dc = vol_c[1][0] - vol_c[0][0];
-  int j = -1;
-  for (int i = 0; i < m - 1; i++) {
-    if (vol_a[i][0] <= p[0] && p[0] < vol_a[i + 1][0]) {
-      j = i;
-      break;
-    } else if (p[0] == vol_a[m - 1][0]) {
-      j = m - 2;
-      break;
-    } else if (p[0] > vol_a[m - 1][0]) {
-      j = m - 2;
-      p[0] = 1.;
-      if (p[0] > 1.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[0]"
-                + lexical_cast<string>(p[0]) + " out of bounds ");
-      }
-      break;
-    } else if (p[0] < 0.) {
-      j = 0;
-      p[0] = 0.;
-      if (p[0] < -0.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]"
-                + lexical_cast<string>(p[0]) + " out of bounds ");
-      }
-      break;
-    }
-  }
-  assert(j != -1);
-  int k = -1;
-  for (int i = 0; i < n - 1; i++) {
-    if (vol_b[i][0] <= p[1] && p[1] < vol_b[i + 1][0]) {
-      k = i;
-      break;
-    } else if (p[1] == vol_b[n - 1][0]) {
-      k = n - 2;
-      break;
-    } else if (p[1] > vol_b[n - 1][0]) {
-      k = n - 2;
-      p[1] = 1.;
-      if (p[1] > 1.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]"
-                + lexical_cast<string>(p[1]) + " out of bounds ");
-      }
-      break;
-    } else if (p[1] < 0.) {
-      k = 0;
-      p[1] = 0.;
-      if (p[1] < -0.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[1]"
-                + lexical_cast<string>(p[1]) + " out of bounds ");
-      }
-      break;
-    }
-  }
-  assert(k != -1);
-  int l = -1;
-  for (int i = 0; i < o - 1; i++) {
-    if (vol_c[i][0] <= p[2] && p[2] < vol_c[i + 1][0]) {
-      l = i;
-      break;
-    } else if (p[2] == vol_c[o - 1][0]) {
-      l = o - 2;
-      break;
-    } else if (p[2] > vol_c[o - 1][0]) {
-      l = o - 2;
-      p[2] = 1.;
-      if (p[2] > 1.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[2]"
-                + lexical_cast<string>(p[2]) + " out of bounds ");
-      }
-      break;
-    } else if (p[2] < 0.) {
-      l = 0;
-      p[2] = 0.;
-      if (p[2] < -0.01) {
-        inf_warn->Get(ParamNode::WARNING)->SetValue(
-            "Interpolation of Hom_RectC1 tensor failed. Design Variable p[2]"
-                + lexical_cast<string>(p[2]) + " out of bounds ");
-      }
-      break;
-    }
-  }
-  assert(l != -1);
+  int j = GetInterpolationIndex(vol_a,p[0]);
+  int k = GetInterpolationIndex(vol_b,p[1]);
+  int l = GetInterpolationIndex(vol_c,p[2]);
   if (direction == 0) {
     vol = EvaluateC1Interpolation_3D(p, vol_a, vol_b, vol_c, vol_coeff, da, db,
         dc, j, k, l, m, n, o);
@@ -2942,6 +2858,37 @@ double Function::Local::Identifier::Interpolate_Volume3D(Vector<double>& p,
     LOG_DBG(func)<<"Derivative "<<((direction == 1)?"1":((direction == 2) ? "2":"3"))<<" vol= "<<vol;
   }
   return vol;
+}
+
+int Function::Local::Identifier::GetInterpolationIndex(Matrix<double> interval, double& val) const {
+  PtrParamNode inf_warn = info->Get("optimization/header/designSpace");
+  int sz = interval.GetNumRows();
+  double h = interval[1][0] - interval[0][0];
+
+  int idx = -1;
+  if (interval[0][0] <= val && val < interval[sz - 1][0]) {
+    idx = (int) ( (val - interval[0][0]) / h);
+  } else if (val == interval[sz - 1][0]) {
+    idx = sz - 2;
+  } else if (val > interval[sz - 1][0]) {
+    idx = sz - 2;
+    val = 1.;
+    if (val > 1.01) {
+      inf_warn->Get(ParamNode::WARNING)->SetValue(
+          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
+              + lexical_cast<string>(val) + " out of bounds ");
+    }
+  } else if (val < 0.) {
+    idx = 0;
+    val = 0.;
+    if (val < -0.01) {
+      inf_warn->Get(ParamNode::WARNING)->SetValue(
+          "Interpolation of Hom_RectC1 tensor failed. Design Variable "
+              + lexical_cast<string>(val) + " out of bounds ");
+    }
+  }
+  assert(idx != -1);
+  return idx;
 }
 
 
@@ -3121,7 +3068,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
   LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
   if (!derivative) {
     if (dim == 2) {
-      return svol*(stiff1 + stiff2 - stiff1 * stiff2);
+      return svol * (stiff1 + stiff2 - stiff1 * stiff2);
     } else {
       return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
     }
@@ -3129,7 +3076,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:
       if (dim == 2) {
-        return svol*(1.0 - stiff2);
+        return svol * (1.0 - stiff2);
       } else {
         vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
         assert(vol!= -1);
@@ -3137,17 +3084,18 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
       }
     case DesignElement::STIFF2:
       if (dim == 2) {
-        return svol*(1.0 - stiff1);
+        return svol * (1.0 - stiff1);
       } else {
         vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
         assert(vol!= -1);
         return vol;
       }
+    case DesignElement::SHEAR1:
+      return 0.0;
     case DesignElement::STIFF3:
       vol = svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
       assert(vol!= -1);
       return vol;
-
     default:
       return 0.0;
     }
@@ -3675,7 +3623,6 @@ double Function::Local::Identifier::CalcDetGMappingTensor(int neigh_idx,  const 
 
 double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  const Local* local, bool derivative) const
 {
-
   assert((local->locality_ == NEXT_DIAG));
    //This means that in neighbor, we have
    //[G11[X_P], G11[Y_P], G12[0], G12[X_P], G12[Y_P], G21[0], G21[X_P], G21[Y_P], G22[0], G22[X_P], G22[Y_P]]
@@ -3759,9 +3706,7 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
 
     switch(neigh_idx)
     {
-
           case (-1): //Derivative with respect to GX_0
-
                   Gd(0,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
                   Gd(0,1) = ( -(y_px -y_0) + 0 + 0 -(y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
                   Gd(1,0) = 0;
@@ -3772,9 +3717,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
             break;
 
           case (0): //Derivative with respect to GX_PX
-
-
-
                   Gd(0,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
                   Gd(0,1) = ( (y_px -y_0) -(y_pxy - y_px) + 0 + 0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
                   Gd(1,0) = 0;
@@ -3785,7 +3727,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
              break;
 
           case (1): //Derivative with respect to GX_PY
-
                   Gd(0,0) = ( 0+ 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
                   Gd(0,1) = ( 0+ 0 -(y_pxy - y_py) + (y_py - y_0))/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
                   Gd(1,0) = 0;
@@ -3795,7 +3736,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
            break;
 
           case (2): //Derivative with respect to GX_PXY
-
                   Gd(0,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
                   Gd(0,1) = ( 0 + (y_pxy - y_px) + (y_pxy - y_py) +0)/((y_px -y_0)*(y_px -y_0) + (y_pxy - y_px)*(y_pxy - y_px) + (y_pxy - y_py)*(y_pxy - y_py) + (y_py - y_0)*(y_py - y_0) );
                   Gd(1,0) = 0;
@@ -3805,7 +3745,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
              break;
 
           case (3): //Derivative with respect to GY_0
-
                   Gd(0,0) = 0;
                   Gd(0,1) = 0;
                   Gd(1,0) = ( -(x_px -x_0) + 0 + 0 -(x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
@@ -3815,8 +3754,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
             break;
 
           case (4): //Derivative with respect to GY_PX
-
-
                   Gd(0,0) = 0;
                   Gd(0,1) = 0;
                   Gd(1,0) = ( (x_px -x_0) -(x_pxy - x_px) + 0 + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
@@ -3827,8 +3764,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
              break;
 
           case (5): //Derivative with respect to GY_PY
-
-
                   Gd(0,0) = 0;
                   Gd(0,1) = 0;
                   Gd(1,0) = ( 0 + 0 -(x_pxy - x_py) + (x_py - x_0))/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
@@ -3839,8 +3774,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
              break;
 
           case (6): //Derivative with respect to GY_PXY
-
-
                   Gd(0,0) = 0;
                   Gd(0,1) = 0;
                   Gd(1,0) = ( 0 + (x_pxy - x_px) + (x_pxy - x_py) + 0)/((x_px -x_0)*(x_px -x_0) + (x_pxy - x_px)*(x_pxy - x_px) + (x_pxy - x_py)*(x_pxy - x_py) + (x_py - x_0)*(x_py - x_0) );
@@ -3857,10 +3790,6 @@ double Function::Local::Identifier::CalcTraceGMappingTensor(int neigh_idx,  cons
 
   return 5;
 }
-
-
-
-
 
 
 double Function::Local::Identifier::CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const {
@@ -4265,12 +4194,10 @@ double Function::Local::Identifier::CalcDesignBound(bool derivative) const {
     double ret = this->element->GetDesign() * c.factor[0] - this->neighbor[0]->GetDesign() * c.factor[1];
     return(ret);
   }
-  
+
   double Function::Local::Identifier::CalcShapeGradient(Function* f, const Local* l, int neigh_idx) const {
     assert(f->type_ == SHAPE_INF);
     int idx = dynamic_cast<LocalCondition*>(f)->GetCurrentRelativePosition();
     ShapeDesign::ShapeConstraint& c = dynamic_cast<ShapeDesign*>(l->space)->GetShapeConstraints()[idx];
     return(neigh_idx == -1 ? c.factor[0] : -c.factor[1]); // if no neighbor given c.factor[0][1] is 0.0
   }
-
-

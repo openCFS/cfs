@@ -1154,6 +1154,31 @@
                           <xsd:complexType>
                             <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
                             <xsd:attribute name="file" default="coeff.xml" type="xsd:token" use="optional"/>
+                            <!-- sparse grid interpolation method -->
+                            <xsd:attribute name="interpolation" use="optional" default="c1">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="c1"/>
+                                  <xsd:enumeration value="c1_text_2d"/>
+                                  <xsd:enumeration value="c1_text_3d"/>
+                                  <xsd:enumeration value="sgpp"/>
+                                  <xsd:enumeration value="full_bspline"/>
+                                  <xsd:enumeration value="full_bspline_text_2d"/>
+                                  <xsd:enumeration value="full_bspline_text_3d"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <xsd:attribute name="sgppBasis" use="optional" default="modbspline">
+                              <xsd:simpleType>
+                                <xsd:restriction base="xsd:token">
+                                  <xsd:enumeration value="bspline"/>
+                                  <xsd:enumeration value="modbspline"/>
+                                  <xsd:enumeration value="modlinear"/>
+                                  <xsd:enumeration value="linear"/>
+                                </xsd:restriction>
+                              </xsd:simpleType>
+                            </xsd:attribute>
+                            <xsd:attribute name="bsplineDegree" type="xsd:token" default="3" use="optional" />
                           </xsd:complexType>
                         </xsd:element>
                       </xsd:sequence>                
@@ -1446,6 +1471,7 @@
       <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
       <xsd:enumeration value="stiff2"/>
+      <xsd:enumeration value="shear1"/>
       <xsd:enumeration value="scaling1"/>
       <xsd:enumeration value="scaling2"/>
       <xsd:enumeration value="G11"/>

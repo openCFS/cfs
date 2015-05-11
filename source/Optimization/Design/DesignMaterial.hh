@@ -12,6 +12,13 @@
 #include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/matrix.hh"
 
+#ifdef USE_SGPP
+#include "base/grid/Grid.hpp"
+#include "base/operation/OperationEval.hpp"
+#include "base/operation/OperationNaiveEvalPartialDerivative.hpp"
+#include "base/datatypes/DataVector.hpp"
+#endif
+
 namespace CoupledField {
 
   /** This implements a function from $R^n$ to $R^{d \times d}$ for transforming a vector of Parameters
@@ -28,13 +35,13 @@ class TransferFunction;
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
       DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
-    
+
     /* possibilities for the isotropic plane in transversal isotropy
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_2D_TENSOR,
       DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR, LAMINATES, HOM_RECT,
       REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING } Type; */
-    
+
     /* posibilities for the isotropic plane in transversal isotropy
      * note that parameters EMODULISO, POISSONISO are used for that plane
      * EMODUL is in the orthogonal direction, POSSION is nu_io where i is in the isotropic plane, o not
@@ -111,6 +118,12 @@ class TransferFunction;
     /** damping is also optimized */
     bool dampingIsDesign_;
 
+    /** shearing is optimized */
+    bool shearIsDesign_;
+
+    /** dimension of material catalogue */
+    StdVector<double> catalogueSize_;
+
     /** multiply mass with this, can be used to scale tensor trace */
     double massFactor_;
 
@@ -127,6 +140,11 @@ class TransferFunction;
     TransIsoType transIsoType_;
 
     unsigned int dim;
+
+#ifdef USE_SGPP
+    /** Grid for SGPP interpolation */
+    sg::base::Grid* grid_;
+#endif
 
     /** returns the numbers of parameters required for this material */
     unsigned int RequiredParameters(OptimizationMaterial::System material);
@@ -164,7 +182,7 @@ class TransferFunction;
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
-    void ApplyHomRectC1Tensor(Matrix<double>& E,  Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Approximates the homogenized tensor of an a-b rectangle as used by Bendsoe and Kikuchi 1988 */
     inline void GetHomRectTensor(Matrix<double>& t, SubTensorType subTensor,  DesignElement::Type direction, Notation notation);
@@ -216,7 +234,7 @@ class TransferFunction;
      * @param direction if one of ROTANGLEX, ROTANGLEY, ROTANGLEZ, ROTANGLE calculate the derivative of the rotation w.r.t. this parameter
      */
     void RotateVoigtTensor(Matrix<double>& t, DesignElement::Type direction);
-    
+
     /** helper function to set a rotation matrix of size 3x3
      * the matrix (when calculating R*x) would rotate the vector x by thetaz around the z-axis by thetay around the y-axis and by thetax around the x-axis in this given order
      * @param R the place to set the rotation matrix
@@ -293,14 +311,43 @@ class TransferFunction;
     void FillHomRectCoeff(Matrix<double> & coeff_,const char * filename);
 
     /** evaluates the C1 interpolation polynomial at point p[0],p[1] and returns function value as double */
-    double EvaluateC1Interpolation(Matrix<double>&,  Vector<double>&, const Matrix<double>&, double &, double &, int &, int &, int &, int &) const;
-    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
-    double EvaluateC1Interpolation_Deriv(Matrix<double>&,  Vector<double>& p, const Matrix<double>&, double &, double &, int &, int &, int &, int &, DesignElement::Type direction) const;
+    double EvaluateC1Interpolation(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n) const;
 
-    double EvaluateC1Interpolation_3D(Matrix<double>&,  Vector<double>&, const Matrix<double>&, double &, double &,double &, int &, int &,int &, int &, int &, int &) const;
-        /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
-        double EvaluateC1Interpolation_Deriv_3D(Matrix<double>&,  Vector<double>& p, const Matrix<double>&, double &, double &,double &, int &, int &, int &, int &, int &, int &, DesignElement::Type direction) const;
+    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1] in direction 0 or 1 and returns function value as double */
+    double EvaluateC1Interpolation_Deriv(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, int& j, int& k, int& m, int& n, DesignElement::Type direction) const;
+
+    double EvaluateC1Interpolation_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db, double& dc, int& j, int& k,int& l, int& m, int& n, int& o) const;
+
+    /** evaluates the derivative of the C1 interpolation polynomial at point p[0],p[1],p[2] in direction 0 or 1 and returns function value as double */
+    double EvaluateC1Interpolation_Deriv_3D(Vector<double>& p, const Matrix<double>& coeff, double& da, double& db,double& dc, int& j, int& k, int& l, int& m, int& n, int& o, DesignElement::Type direction) const;
     //double EvaluateC1Interpolation(Matrix<double>& E,  Vector<double>& p, const Matrix<double> & coeff, int au,int al,int bu,int bl,int j, int k,int m,int n);
+
+    /** Get the index of the local interpolation interval*/
+    int GetInterpolationIndex(Matrix<double> interval, double& point) const;
+
+    /** Read detailed stats from file*/
+    bool ReadDetailedStats(const char * filename, Matrix<double>& ret);
+
+#ifdef USE_SGPP
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
+       * @param vector p has the values of the design variable */
+    void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    /** Fill sparse grid with data values*/
+    void FillSparseGridWithUnhierarchisedData(Matrix<double>& data);
+    void FillSparseGridWithHierarchisedData(Matrix<double>& data);
+
+    /** Initialize sparse grid for interpolation*/
+    void InitializeSparseGrid(const char * filename);
+
+    /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
+    double EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval, sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv_Exact(sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, sg::base::DataVector& alpha, sg::base::DataVector& point, DesignElement::Type direction) const;
+#endif
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -346,6 +393,27 @@ class TransferFunction;
 
     /** only for ROTATION to get OptimizationMaterial */
     ErsatzMaterial* em_;
+
+    enum Interpolation { C1, SGPP, FULL_BSPLINE } interpolation_;
+    unsigned int level_;
+
+#if USE_SGPP
+    /** members for SGPP interpolation */
+    enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
+    unsigned int bspline_degree_;
+    boost::shared_ptr<sg::base::DataVector> alpha1_;
+    boost::shared_ptr<sg::base::DataVector> alpha2_;
+    boost::shared_ptr<sg::base::DataVector> alpha3_;
+    boost::shared_ptr<sg::base::DataVector> alpha4_;
+    boost::shared_ptr<sg::base::DataVector> alpha5_;
+    boost::shared_ptr<sg::base::DataVector> alpha6_;
+    Matrix<double> full_bspline_coeff11_;
+    Matrix<double> full_bspline_coeff12_;
+    Matrix<double> full_bspline_coeff13_;
+    Matrix<double> full_bspline_coeff22_;
+    Matrix<double> full_bspline_coeff23_;
+    Matrix<double> full_bspline_coeff33_;
+#endif //USE_SGPP
   };
 
 } // namespace
