@@ -1189,9 +1189,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   // ======================================================
   // TIME STEPPING SECTION
   // ======================================================
-  void MechPDE::InitTimeStepping()
-  {
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(GLMScheme::NEWMARK, 0) );
+  void MechPDE::InitTimeStepping()  {
+	Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+	GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
+
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0) );
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
