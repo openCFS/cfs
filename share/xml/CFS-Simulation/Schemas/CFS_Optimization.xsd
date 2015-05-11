@@ -407,10 +407,20 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
-          <!-- some constraints (volume/ greyness) can be based on their physical values (penalized density) -->
-          <xsd:attribute name="physical" use="optional" default="false" type="xsd:boolean"/>
-          <!-- do local constraints use the filtered design variables? default values in Function::ForDensityFiltering -->
-          <xsd:attribute name="filtered" use="optional" type="xsd:boolean"/>
+          <!-- Access of the design variable in local constraints:
+          * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
+          * DEFAULT: as given in usual implementation 
+          * WARNING: This is not consistently used yet -->
+          <xsd:attribute name="access" use="optional" default="default">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="plain"/>
+                <xsd:enumeration value="filtered"/>
+                <xsd:enumeration value="physical"/>
+                <xsd:enumeration value="default"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
           <!-- constraints are integrated via penalty/lagrange multipliers in the level set method. 
             Note the difference to penalizedVolume which has a parameter! -->
           <xsd:attribute name="penalty" use="optional" default="0.0" type="xsd:float"/>

@@ -366,6 +366,12 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
 
+  Function::access.SetName("Function::Access");
+  Function::access.Add(Function::PLAIN, "plain");
+  Function::access.Add(Function::FILTERED, "filtered");
+  Function::access.Add(Function::PHYSICAL, "physical");
+  Function::access.Add(Function::DEFAULT, "default");
+
   Function::Local::locality.SetName("Function::Local::Locality");
   Function::Local::locality.Add(Function::Local::DEFAULT, "default");
   Function::Local::locality.Add(Function::Local::NEXT, "next");

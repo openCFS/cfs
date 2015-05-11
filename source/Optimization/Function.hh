@@ -148,7 +148,7 @@ class Function
     Type GetType() const { return type_; }
 
 
-    /** The real label might be an extended type string. E.g. by "physical_".
+    /** The real label might be an extended type string. E.g. by "access_".
      * Check if better use this than type.ToString(GetType()).
      * Is overloaded in Condition
      * @param me is for Condition */
@@ -170,11 +170,20 @@ class Function
     /** overloaded in SlopeCondition */
     virtual void SetValue(double val) { value_ = val; }
 
+    /** Access of the design variable in local constraints:
+     * PLAIN: design variable, FILTERED: filtered design variable, PHYSICAL: filtered and penalized design variable
+     * DEFAULT: as given in usual implementation
+     * FIXME: This is not used consistently. Current state: local constraints in Function use PLAIN, FILTERED/PHYSICAL is the same and DEFAULT is set in ForDensityFiltering(), ErsatzMaterial::CalcVolume uses PHYSICAL or FILTERED  */
+    typedef enum { PLAIN, FILTERED, PHYSICAL, DEFAULT } Access;
+
+    /** to convert string/enum for this type */
+    static Enum<Access> access;
+
     /** Some functions can have a physical counterpart. Which means e.g. for volume or greyness
      * the design variable with applied transfer function - hence as the FEM/physics sees the design.
      * One could call this penalized but physical is more exact and includes also density filtering.
      * The label becomes the appendix physical and the calculations are by interpolated values. */
-    bool IsPhysical() const { return physical_; }
+    bool IsPhysical() const { return (access_ == PHYSICAL); }
 
     /** Shall harmonic optimization multiply with omega^2.
     * This makes "u L conj(u)" to actually calc "v L conj(v)" with v = du/dt. -> approximatates sound intensity */
@@ -683,12 +692,8 @@ class Function
     /** Some special functions use a parameter: slope constraint and penalized volume */
     double parameter_;
 
-    /** @see IsPhysical() */
-    bool physical_;
-
-    /** manual switch whether density filtering is applied in local constraints or not
-     * 0: no filtering, 1: filtering, else: @see ForDensityFiltering() for defaults */
-    int filtered_;
+    /** manual switch for local constraints whether the plain value of the design variable, the filtered or the physical value is used */
+    Access access_;
 
     /** this index is the position in the Optimization list and is used to
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
