@@ -493,7 +493,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         assert(false);
         // FIXME bm = GetForm(design->GetRegionId(), pde, pde, "LinElastInt")->GetMaterial();
       }
-      Objective vf(Function::VOLUME, 0.0, true); // physical!
+      Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
       assert(design->GetRegionIds().GetSize() ==1);
       vf.SetElements(design, design->GetRegionId());
       double vol = CalcVolume(&vf, NULL, false, true);

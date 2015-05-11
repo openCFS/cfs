@@ -35,7 +35,7 @@ class Objective : public Function
     Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int index);
     
     /** Construct dummy function such that we can calculate the volume */
-    Objective(Type type, double parameter = 0.0, bool physical = false);
+    Objective(Type type, double parameter = 0.0, Function::Access acc = FILTERED);
 
     virtual ~Objective() {};
 
