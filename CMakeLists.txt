@@ -84,7 +84,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "02")
+SET(CFS_VERSION_MONTH "04")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -196,7 +196,7 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
 
 SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   CACHE STRING
-  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Or disable USE_PARDISO")
+  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 
 OPTION(USE_PARDISO "Use Pardiso"
   ${USE_PARDISO_DEFAULT})

@@ -33,7 +33,6 @@ SET(TARGET_LL ${TARGET_LL}
   mesh 
   pde
   domain
-#  optimization
   materials
   mathparser
   coupledpde

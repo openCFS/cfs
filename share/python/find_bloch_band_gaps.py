@@ -167,7 +167,9 @@ if args.gnuplot:
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol else ' t "' + str(i-offset+1) + '. mode" ' 
     print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
-  print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
+
+  if args.eps:
+    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
   print 'replot' # necessary to show the boxes   
   print 'replot' # necessary to show the boxes
   
