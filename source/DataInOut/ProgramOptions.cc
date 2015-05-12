@@ -376,7 +376,7 @@ namespace CoupledField {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
       fs::path paramPath( varMap_["paramFile"].as<string>());
-      return fs::system_complete( paramPath );
+      return fs::complete( paramPath ); //
     }
   }
 

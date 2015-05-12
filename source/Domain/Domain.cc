@@ -103,7 +103,7 @@ Domain::Domain(
   ptMatHandler_->SetDomain( this );
   
   optimization_ = NULL;
-  ersatzMaterial_ = NULL;
+  designSpace_ = NULL;
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -314,7 +314,7 @@ void Domain::PostInit(UInt sequenceStep)
     // if used with optimization loadErsatzMaterial specifies the starting point for optimization
     // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
     if(DensityFile::NeedLoadErsatzMaterial())
-      ersatzMaterial_ = DensityFile::ReadErsatzMaterial();
+      designSpace_ = DensityFile::ReadErsatzMaterial();
   }
 
   // initialize the driver
@@ -404,9 +404,9 @@ Domain::~Domain()
   }
 
   // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
-  if(ersatzMaterial_ != NULL) {
-    delete ersatzMaterial_;
-    ersatzMaterial_ = NULL;
+  if(designSpace_ != NULL) {
+    delete designSpace_;
+    designSpace_ = NULL;
   }
 
 }
@@ -520,10 +520,10 @@ BasePDE* Domain::GetBasePDE()
 
 }
 
-DesignSpace* Domain::GetErsatzMaterial(bool throw_exception)
+DesignSpace* Domain::GetDesign(bool throw_exception)
 {
-  if(ersatzMaterial_ != NULL)
-    return ersatzMaterial_;
+  if(designSpace_ != NULL)
+    return designSpace_;
 
   if(throw_exception)
     EXCEPTION("no ersatzMaterial set in domain");
