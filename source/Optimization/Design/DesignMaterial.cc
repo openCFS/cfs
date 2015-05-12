@@ -1325,15 +1325,16 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
 }
 
 double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
+  double dens = params_[DesignElement::DENSITY];
+  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
   switch (direction){
   case DesignElement::NO_DERIVATIVE:
   {
-// for mass identity transfer function (which should normally be used) is assumed. This is messy because of lack of TransferFunctions!
-    return params_[DesignElement::DENSITY];
+    return tf->Transform(dens);
   }
   case DesignElement::DENSITY:
   {
-    return 1.0;
+    return tf->Derivative(dens);
   }
   default:
     return 0.0;
