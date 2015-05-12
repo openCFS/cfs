@@ -129,6 +129,9 @@ namespace CoupledField {
       return linForms_;
     }
 
+    /** Do we use the region? */
+    bool UseRegion(RegionIdType reg);
+
   protected:
 
     //! Assemble matrices without static condensation

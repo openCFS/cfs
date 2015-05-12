@@ -46,7 +46,7 @@ void CoefFunctionOpt::SetToShadow(PtrCoefFct shadow)
   direction = DesignElement::NO_DERIVATIVE;
 }
 
-void CoefFunctionOpt::SetToTensorDerivative(DesignElement::Type dir)
+void CoefFunctionOpt::SetToMaterialDerivative(DesignElement::Type dir)
 {
   state = DIRECTION;
   direction = dir;

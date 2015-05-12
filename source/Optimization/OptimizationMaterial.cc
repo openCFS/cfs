@@ -164,7 +164,7 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   if(!lower_bimat)
     coef->SetToOrgMaterial();
   if(direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)
-    coef->SetToTensorDerivative(direction);
+    coef->SetToMaterialDerivative(direction);
 
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
 
@@ -293,6 +293,11 @@ void MechMat::Init()
         mechMass_map[reg_id].Resize(max);
     }
 
+    // this check is for Virginie's mapping with a ghost region not being part of the simulation
+    // can be removed if we use nodal design elements
+    if(this->opt->GetAssemble()->UseRegion(reg_id))
+    {
+
     // the normal and multimaterial case, not the bimaterial case
     for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++) {
       MechStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
@@ -307,10 +312,11 @@ void MechMat::Init()
         MechMass(elem, true, -1, DesignElement::NO_DERIVATIVE, true);
     }
   }
+  }
 }
 
 
-const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
 {
   RegionIdType reg_id = elem->regionId;
 
@@ -354,7 +360,7 @@ const DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int
   }
 }
 
-const DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+DenseMatrix& MechMat::MechMass(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
 {
   // see MechStiffness, almost copy & paste :(
   unsigned int index = multimaterial < 0 ? (bimaterial ? 1 : 0) : (unsigned int) multimaterial;

@@ -703,7 +703,7 @@ namespace CoupledField {
 //        // the names are repeated for the different dofs
 //        std::string dof = actBc.result->GetDofName(actBc.masterDof);
 //        if(!in->HasByVal("dof", dof))
-//          in->Get("dof", ParamNode::APPEND)->SetValue(dof);
+//          in->Get("dof_second")->SetValue(dof); // dof="y" dof="x" is not allowed as an attribute needs to be unique
 //
 //        in->Get("periodic")->SetValue(actBc.periodic);
 //      }

@@ -40,13 +40,13 @@ Objective::Objective(PtrParamNode pn, PtrParamNode pn_type, unsigned int idx)
   this->pn = pn;
 }
 
-Objective::Objective(Type type, double parameter, bool physical)
+Objective::Objective(Type type, double parameter, Access acc)
 {
   Init();
   this->type_ = type;
   this->parameter_ = parameter;
   this->excite_ = -2;
-  this->physical_ = physical;
+  this->access_ = acc;
   this->penalty_ = 1.0;
 }
 
