@@ -177,6 +177,7 @@ cfsdeps/ilupack/ilupack2.2.1_src.tgz.md5 -text
 cfsdeps/ilupack/ilupack_config.h.in -text
 cfsdeps/ipopt/External_IPOPT.cmake -text
 cfsdeps/ipopt/ipopt-patch.cmake.in -text
+cfsdeps/ipopt/ipopt-post_install.cmake.in -text
 cfsdeps/ipopt/ipopt_hsl.zip -text svneol=unset#application/zip
 cfsdeps/lapack/CMakeLists.txt -text
 cfsdeps/lapack/External_LAPACK.cmake -text
@@ -1041,6 +1042,7 @@ share/python/continuation.py -text
 share/python/create_density.py -text
 share/python/density-to-png.py -text
 share/python/eigenfrequenzy_plot.py -text
+share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
 share/python/find_bloch_band_gaps.py -text
 share/python/gid_screenshots.py -text

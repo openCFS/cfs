@@ -37,13 +37,16 @@ namespace CoupledField
     /** @param see SinglePDE::GetSubTensorType() */
     SubTensorType GetSubTensorType() const { return tensorType_; }
 
-    /** small helper which translates the test strain code on a vector of size 3/6 with one entry 1.0, the other zero
-     * @param reduced in 2d case the result size is 3 otherwise 6 as it is always in 6 */
-    Vector<Double> CalcTestStrainVector(TestStrain ts, bool reduced = false);
 
     /** return the von Mises matrix (stress^T * M * stress = von Mises Stress)
      * @param dim desired dimension. axis is ignored currently :( */
     const Matrix<double>& GetVonMisesMatrix(int dim);
+
+    /** Add the integrators for the test strains for homogenization to the linear forms, similar as in multiple load case;
+     * called from Excitation::ReadLoads or Excitation::SetHomogenizationTestStrains() (optimization)
+     * @param test is an enum
+     * @param linForms set to append linear Forms to, if NULL use assemble_ */
+    void DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms = NULL);
 
     static Enum<TestStrain> testStrain;
 

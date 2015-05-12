@@ -132,9 +132,8 @@
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"    />
                 <xsd:element name="preStress"     type="DT_MechPreStress"/>
                 
-            <!--<xsd:element name="spring"        type="DT_MechSpring"    />
-                
-                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
+                <!-- the test strain is for mathematical homogenization. -->
+                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>
                 <xsd:element name="periodic"      type="DT_BcPeriodic"    />
               </xsd:choice>
 

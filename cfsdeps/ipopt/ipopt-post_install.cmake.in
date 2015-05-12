@@ -1,0 +1,16 @@
+# ipopt generates a pkgconfig which we don't need
+FILE(REMOVE_RECURSE "@IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/pkgconfig")
+
+# we don't need the .la files
+FILE(GLOB LA_FILES  @IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/*.la)
+IF(LA_FILES)
+  FILE(REMOVE ${LA_FILES})
+ENDIF(LA_FILES)
+
+# we don't need libcoinblas and libcoinlapack but use the cfs stuff.
+FILE(REMOVE @IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libcoinblas.a)
+FILE(REMOVE @IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libcoinlapack.a)
+
+# copy data from install dir to the targer.
+# this is the point where the cfsdeps_precompiled stuff will come in
+FILE(COPY "@IPOPT_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

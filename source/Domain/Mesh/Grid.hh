@@ -467,6 +467,10 @@ namespace CoupledField
     //! \param volRegIds (out) list
     virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds ) = 0;
 
+
+    /** total volume of all volume regions by using CalcVolumeOfRegion() */
+    double CalcGridVolume(bool updated = false);
+
     //! Returns the volume of a given region
 
     //! This method returns the volume of a given region by iterating over

@@ -312,6 +312,16 @@ namespace CoupledField {
   }
 
 
+  unsigned int EigenFrequencyDriver::GetCurrentWaveVectorIndex() const
+  {
+    for(unsigned int i = 0; i < wave_vectors.GetSize(); i++)
+      if(wave_vectors[i] == current_wave_vector_)
+        return i;
+
+    assert(false);
+    return 0;
+  }
+
   void EigenFrequencyDriver::ComputeBlochWaveVector(int wave_vector_step)
   {
     eigenFreqs->Init();
@@ -327,9 +337,63 @@ namespace CoupledField {
     ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, isBloch_);
 
     PrintResult(wave_vector_step);
+    // we need to calculate and output results before the displacements are overwritten.
+    // only if not optimization or if optimization when it is evaluatate_initial_design
+    // not for the last step as we have a separate store result!
+    if((domain->GetOptimization() == NULL || domain->GetOptimization()->GetOptimizerType() == Optimization::EVALUATE_INITIAL_DESIGN) && (wave_vector_step <  (int) wave_vectors.GetSize() - 1))
+      StoreResults(wave_vector_step, -1.0);
   }
 
+
   void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
+  {
+    // stepNum and step_val are ignored
+    LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
+
+    unsigned int wvs = isBloch_ ? wave_vectors.GetSize() : 1; // save wave vector size
+    unsigned int w = isBloch_ ? GetCurrentWaveVectorIndex() : 0;
+
+    for(unsigned int fi=0; fi < eigenFreqs->GetSize(); fi++)
+    {
+      // Phase 2: calculate eigenmodes
+      if(writeModes_)
+      {
+        ptPDE_->GetSolveStep()->SetActStep(fi);
+        ptPDE_->GetSolveStep()->SetActFreq(std::abs(GetFrequency(fi)));
+        ptPDE_->GetSolveStep()->GetEigenMode(fi);
+
+        // stupid paraview needs an increasing series of save_value :(
+
+        double save_value = -1.0;
+
+        if(domain->GetOptimization() && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN)
+        {
+          // time is step.nr
+          int total = eigenFreqs->GetSize() * wvs;
+          int digs =  boost::lexical_cast<string>(total).size();
+          double sig = std::pow(10, -digs); // 1e-2 -> 10 ^ -2
+          save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
+
+          LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
+        }
+        else // for bloch case we label <step>.<nr> from the info.xml
+          save_value = isBloch_ ? w + (fi+1.0) / (eigenFreqs->GetSize() < 9 ? 10.0 : 100.0) : std::abs(GetFrequency(fi));
+
+        LOG_DBG(efd) << "SR w=" << w << " fi=" << fi << " save_step_=" << save_step_ << " save_value=" << save_value;
+
+        handler_->BeginStep(save_step_, save_value);
+        ptPDE_->WriteResultsInFile(save_step_, save_value);
+        handler_->FinishStep();
+
+        if(writeAllSteps_ || isPartOfSequence_)
+          simState_->WriteStep(save_step_, save_value);
+
+        save_step_++;
+      }
+    }
+  }
+
+ /* void EigenFrequencyDriver::StoreResults(unsigned int stepNum, double step_val)
   {
     // stepNum and step_val are ignored
     LOG_DBG(efd) << "SR step=" << stepNum << " val=" << step_val;
@@ -377,7 +441,7 @@ namespace CoupledField {
         }
       }
     }
-  }
+  }*/
 
   void EigenFrequencyDriver::PrintResult(int wave_vector_step)
   {
@@ -500,6 +564,7 @@ namespace CoupledField {
       if(isQuadratic_)
         mode->Get("damping")->SetValue(damp);
       mode->Get("errorbound")->SetValue(errBounds_[i]);
+
     }
 
     if(isBloch_ && this->ibz_)
