@@ -26,6 +26,7 @@
 #include "Forms/BiLinForms/ICModesInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
+#include "Forms/LinForms/BDUInt.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormalTrans.hh"
 #include "Forms/Operators/StrainOperator.hh"
@@ -444,9 +445,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrCoefFct densCoeff = actSDMat->GetScalCoefFnc( DENSITY,Global::REAL );
 
       // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-      if(domain->GetErsatzMaterial(false) != NULL)
+      if(domain->GetDesign(false) != NULL)
       {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), densCoeff, this);
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), densCoeff, this);
         densCoeff.reset(tmpFnc);
       }
 
@@ -467,7 +468,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       massInt->SetFeSpace( mySpace );
 
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-      if(domain->GetErsatzMaterial(false) != NULL)
+      if(domain->GetDesign(false) != NULL)
         dynamic_pointer_cast<CoefFunctionOpt>(densCoeff)->SetForm(massInt);
 
       BiLinFormContext *massContext =  new BiLinFormContext( massInt, MASS );
@@ -509,8 +510,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         break;
       case NC_NITSCHE:
       {
-        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_
-                                    ->GetNcInterface(ncIt->interfaceId).get());
+        MortarInterface * ncIf = dynamic_cast<MortarInterface*>(ptGrid_->GetNcInterface(ncIt->interfaceId).get());
         assert(ncIf);
         
         //check for softening
@@ -662,7 +662,8 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     }
   
-  void MechPDE::DefineRhsLoadIntegrators(PtrParamNode input) {
+  void MechPDE::DefineRhsLoadIntegrators(PtrParamNode input)
+  {
     LOG_TRACE(mechpde) << "Defining rhs load integrators for mechanic PDE";
     
     // Get FESpace and FeFunction of mechanical displacement
@@ -953,6 +954,57 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         coef[i]->SetConservative(true);
         this->rhsFeFunctions_[MECH_DISPLACEMENT]->AddLoadCoefFunction(coef[i], ent[i]);
       }
+
+      // =============
+      //  TEST STRAIN
+      // =============
+      // the test strains are for homogenization, they make only sense combined with optimization but they can
+      // also be set for simulation such that the impact can be studied
+      if(myParam_->Has("bcsAndLoads/testStrain"))
+      {
+        ParamNodeList tsl = myParam_->Get("bcsAndLoads")->GetList("testStrain");
+        for(unsigned int i = 0; i < tsl.GetSize(); i++)
+          DefineTestStrainIntegrator(testStrain.Parse(tsl[i]->Get("strain")->As<std::string>()));
+      }
+  }
+
+  void MechPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms)
+  {
+    LOG_DBG(mechpde) << "DTSI: test=" << test << " lf=" << (linForms ? linForms->ToString() : "null");
+
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[MECH_DISPLACEMENT];
+
+    // to generate the vector values coef function for the test strain we need scalar const coef functions for zero and one
+    PtrCoefFct one  = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+    PtrCoefFct zero = CoefFunction::Generate(mp_, Global::REAL, "0.0");
+
+    StdVector<PtrCoefFct> strain(dim_ == 2 ? 3 : 6);
+    strain.Init(zero);
+    strain[dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test] = one; // xy goes to the third element (z) for 2D
+
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+    for(it = materials_.begin(); it != materials_.end(); it++)
+    {
+      // Set current region and material
+      RegionIdType actRegion = it->first;
+
+      shared_ptr<ElemList> actSDList(new ElemList(domain->GetGrid()));
+      actSDList->SetRegion( actRegion );
+
+      PtrCoefFct ts = CoefFunction::Generate(mp_, Global::REAL, strain);
+      assert(regionStiffness_[actRegion]->GetDimType() == CoefFunction::TENSOR);
+      assert(ts->GetDimType() == CoefFunction::VECTOR);
+      LinearForm* lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+
+      LinearFormContext* ctx = new LinearFormContext(lin);
+      ctx->SetEntities(actSDList);
+      ctx->SetFeFunction(myFct);
+
+      if(linForms != NULL)
+        linForms->Push_back(ctx);
+      else
+        assemble_->AddLinearForm(ctx);
+    }
   }
 
   BaseBDBInt* MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex)
@@ -971,9 +1023,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
     
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
-    if(domain->GetErsatzMaterial(false) != NULL)
+    if(domain->GetDesign(false) != NULL)
     {
-      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetErsatzMaterial(), curCoef, this); // takes double and complex
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
       curCoef.reset(tmpFnc);
     }
 
@@ -1009,7 +1061,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     }
 
     // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-    if(domain->GetErsatzMaterial(false) != NULL)
+    if(domain->GetDesign(false) != NULL)
       dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(integ);
 
     return integ;

@@ -184,13 +184,13 @@ namespace CoupledField
 
     /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities.
      * @return  NULL but an exception if not set and not silent*/
-    DesignSpace* GetErsatzMaterial(bool throw_exception = true);
+    DesignSpace* GetDesign(bool throw_exception = true);
 
     /** This is set by optimization which holds the data (in a derved form) or when we do loadErsatzMaterial or -x
      * Is is also reset here by the optimization destructor.
      * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
      * @param regionId the region for the ersatz material */
-     void SetErsatzMaterial(DesignSpace* data) { this->ersatzMaterial_ = data; }
+     void SetDesign(DesignSpace* data) { this->designSpace_ = data; }
 
     /** The post init does more advancec stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
@@ -331,7 +331,7 @@ namespace CoupledField
 
     /** The ersatz material pointer is set be the domain or it points
      * to optimization data */
-    DesignSpace* ersatzMaterial_;
+    DesignSpace* designSpace_;
 
 
     //! Mathematic parser object

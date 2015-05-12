@@ -311,13 +311,6 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
 
 int MultipleExcitation::SetHomogenizationTestStrains()
 {
-  // excitations.Resize(1);
-  // Excitation& ex = excitations[0];
-  // vec.Fill(ts[0], 6);
-  // ex.ReadTestStrain(vec);
-  // ex.weight = 1.0;
-  // if(true) return 1;
-
   unsigned int dim = domain->GetGrid()->GetDim();
 
   int cases = dim == 2 ? 3 : 6;
@@ -422,15 +415,13 @@ void Excitation::Apply()
 
   if(forms.GetSize() > 0)
   {
-    assemble->GetLinForms() = forms; // let the copy constructor doe the stuff
+    assemble->GetLinForms() = forms; // let the copy constructor do the stuff
 
     assert(assemble->GetLinForms().GetSize() == forms.GetSize());
   }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
   // the same holds for the bloch mode analysis
-
-
 }
 
 double Excitation::GetOmega() const
@@ -506,15 +497,16 @@ void Excitation::ReadLoads(PtrParamNode ls)
 
 void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 {
-  assert(false);
-  /* FIXME
+  // the original loads need to be cleared before
+  forms = assemble->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
+  assert(assemble->GetLinForms().GetSize() == 0);
+
   MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
 
-  loads.Clear();
+  mech->DefineTestStrainIntegrator(ts, &forms);
 
-  this->test_strain = mech->CalcTestStrainVector(ts);
-  mech->DefineTestStrainIntegrator(ts, linForms);
-  */
+  test_strain.Resize(6); // always full dimensions
+  test_strain[ts] = 1.0;
 }
 
 

@@ -698,12 +698,19 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   {
     in->Get("bound")->SetValue(bound.ToString(bound_));
     if(type_ != HOM_TRACKING)
-      HasSlackBound() ? in->Get("bound_value")->SetValue("slack") : in->Get("bound_value")->SetValue(boundValue_);
+    {
+      if(boundValue_ == SLACK_VALUE)
+        in->Get("bound_value")->SetValue("slack");
+      else if(boundValue_ == ALPHA_MINUS_SLACK_VALUE)
+        in->Get("bound_value")->SetValue("alpha-slack");
+      else if(boundValue_ == ALPHA_PLUS_SLACK_VALUE)
+        in->Get("bound_value")->SetValue("alpha+slack");
+      else
+        in->Get("bound_value")->SetValue(boundValue_);
+    }
   }
   if(type_ == HOM_TENSOR)
-  {
     in->Get("tensor_entry")->SetValue(ToString(coords));
-  }
 
   if(delta_logging_ignored_)
     in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");

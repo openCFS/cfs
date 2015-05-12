@@ -94,7 +94,10 @@ class SingleVector;
     /** Prints info.xml, console and bloch.dat output. Handles if we are in the optimization case.
      * Does NOT write stuff to output files, This is done via StoreResults() */
     void PrintResult(int wave_vector_step = -1);
-    
+
+    /** we need to store current_wave_vector, find the index :( */
+    unsigned int GetCurrentWaveVectorIndex() const;
+
     /** corresponds with eigenFreqs */
     Vector<Double> errBounds_;
 
@@ -117,7 +120,8 @@ class SingleVector;
     //! Flag for writing the eigenmods into the file
     bool writeModes_;
 
-    /** This is the current wave vector, a copy form the an wave_vectors_ entry */
+    /** This is the current wave vector index, a copy form the an wave_vectors_ entry.
+     * We may not store only the index as StrainOperatorBloch2D stores the pointer. */
     Vector<double> current_wave_vector_;
 
     /** here we output the bloch mode data for direct plotting */

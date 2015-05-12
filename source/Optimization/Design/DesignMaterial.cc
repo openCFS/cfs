@@ -2370,7 +2370,7 @@ void DesignMaterial::GetMappingGradient(Matrix<double>& G)
 
   assert((type_== GREEDY_MAPPING) || (type_ == REDBAS_MAPPING));
 
-  DesignSpace* space = domain->GetErsatzMaterial();
+  DesignSpace* space = domain->GetDesign();
 
   DesignElement* de0_x = space->Find(current_elem->elemNum, DesignElement::G_MAP_X);
   DesignElement* de0_y = space->Find(current_elem->elemNum, DesignElement::G_MAP_Y);
@@ -2490,7 +2490,7 @@ void DesignMaterial::GetMappingGradient(Matrix<double>& G, DesignElement::Type d
 
   assert((type_== GREEDY_MAPPING) || (type_ == REDBAS_MAPPING));
 
-  DesignSpace* space = domain->GetErsatzMaterial();
+  DesignSpace* space = domain->GetDesign();
 
   DesignElement* de0_x = space->Find(current_elem->elemNum, DesignElement::G_MAP_X);
   DesignElement* de0_y = space->Find(current_elem->elemNum, DesignElement::G_MAP_Y);

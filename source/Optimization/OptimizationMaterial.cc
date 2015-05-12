@@ -280,7 +280,7 @@ void MechMat::Init()
 
     // first the bloch case
     if(domain->GetDriver()->DoBlochModeEigenfrequency())
-      current_wave_vector_[r].Resize(max, -1.0);
+      current_wave_vector_[reg_id].Resize(max, -1.0);
 
     if(ComplexElementMatrix(reg_id)) {
       mechStiffness_mapC[reg_id].Resize(max);
