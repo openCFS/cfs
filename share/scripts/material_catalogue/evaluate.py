@@ -226,7 +226,7 @@ parser.add_argument("stp", help="number of grid points in one direction", type=i
 parser.add_argument("dimension", help="Dimension of the problem", type=int, default=2)
 parser.add_argument("res", help="resolution of the cell problem in x-direction", type=int)
 parser.add_argument("folder",help="specify the folder of the h5 files")
-parser.add_argument("--mesh", help="mesh file from ~/meshes/ folder")
+parser.add_argument("--mesh", help="mesh file")
 parser.add_argument("--msfem", help="msfem basis functions are evaluated, insert E-modulus and Poisson ratio", default="")
 parser.add_argument("--triangle", help="triangle msfem elements on/off", default="")
 parser.add_argument("--force_msfem",help="option calculates the force catalogue for MSFEM")
@@ -293,12 +293,15 @@ if dim == 2:
           print os.path.dirname(os.path.abspath(__file__))
           for i in range(dof):
             if i % 2 == 0:
-              joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split(), )
+              joblist += (('cfs.rel -m ' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split(), )
             else:
-              joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y').split(), )
+              joblist += (('cfs.rel -m ' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_y').split(), )
               index += 1
-          joblist += (('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem').split(), )
-          print ('cfs.rel -m /home/snthgues/meshes/' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split()
+          if args.oversampling:
+            joblist += (('cfs.rel -m ' + str(args.oversampling) + ' -x ' + str(x) + "-" + str(y) + "_msfem_oversample.dens.xml "+ str(x) + "-" + str(y) + '_msfem').split(), )
+          else:
+            joblist += (('cfs.rel -m ' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem').split(), )
+          print ('cfs.rel -m ' + str(args.mesh) + ' -x ' + str(x) + "-" + str(y) + "_msfem.dens.xml "+ str(x) + "-" + str(y) + '_msfem' + str(index) + '_x').split()
           #joblist = ("sleep 5".split(),)
           #joblist = (['cfs.rel', '-m', '/home/snthgues/meshes/10_ref.mesh', '-x', '0-0_msfem.dens.xml', '0-0_msfem3_y'],)
           submit_job_max_len(joblist, max_processes=int(args.big))
