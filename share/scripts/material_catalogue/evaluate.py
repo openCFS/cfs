@@ -3,7 +3,7 @@
 import sys, os, string
 import numpy as np
 import scipy.io
-from numpy import dot
+from numpy import dot, empty, size
 from numpy import sin
 from numpy import cos
 from numpy import sqrt
@@ -148,14 +148,28 @@ def Kglob(E, nu, dx, dy, dim, dof, mesh):
   # scipy.io.savemat('KE.mat', mdict={'KE': KE})
   return K
 
-def CalcElementMat(R,Kmat):
+def CalcElementMat(R,Kmat,dof,dim,l=None,rep=None):
   dx = 1.
   dy = 1.
   #K = Kglob(E, nu, dx, dy, dim, dof, mesh)
   K = scipy.io.mmread(Kmat)
   # scipy.io.savemat('K.mat', mdict={'K': K})
   #scipy.io.savemat('tmp.mat', mdict={'K': tmp})
-  elemMat = R * K * R.T
+  if rep == None:
+    elemMat = R * K * R.T    
+  else:
+    overR = np.matrix(np.zeros((dof, dim * (int(l/rep + 0.5 + 1e-6)+1)**2)))
+    # extract deformations from one base cell from oversampled results
+    for i in range(dof):
+      count = int(l/rep *(l+1) + l/rep + 0.5 + 1e-6)
+      count2 = 0
+      for j in range(int(l/rep + 0.5 + 1e-6)+1):
+        overR[i,dim*count2:dim*(count2 + int(l/rep + 0.5 + 1e-6)+1)] = R[i,dim*count:dim*(count+int(l/rep + 0.5 + 1e-6)+1)]
+        count += (l + 1)
+        count2 += int(l/rep + 0.5 + 1e-6)+1
+    elemMat = overR * K * overR.T
+    #print "R = "+str(R)
+    #print "overR = "+str(overR)
   return elemMat
 
 # # This rotates a 3*3 2D tensor via the third direction. As in Richter and CFS
@@ -182,6 +196,31 @@ def get_rot_3x3(angle):
   Q[2][2] = R[0][0] * R[1][1] + R[0][1] * R[1][0];
   
   return Q
+def get_R(h5file,i,index,R,dof,dim,l,over = False,rep=None,C=None):
+  f = h5py.File(h5file, 'r')
+  #print h5file + "  " + str(i)
+  #tmp = read_displacement(f,1 if args.big else 0)
+  tmp = read_displacement(f,1)
+  count = 0
+  for j in range((l+1)**2):
+    R[i, count] = tmp[j][0]
+    R[i, count + 1] = tmp[j][1]
+    count += 2
+  f.close()
+  if over:
+    if l % rep  != 0:
+      print "Warning: Res divided by eps should be an integer. Otherwise rounding errors could occur."
+    if not args.triangle:
+      #0-based node numbers of the corners of the center element
+      coord = [int((l) / rep * (l+1.) + l/rep + 0.5 + 1e-6),int((l) / rep * (l+1.) + l/rep + 0.5 + 1e-6) + int(l/rep + 0.5 + 1e-6),int(2.*l/rep *(l+1) + 2.*l/rep + 0.5 + 1e-6),int(2.*l/rep *(l+1) + 1.*l/rep + 0.5 + 1e-6)]
+      count = 0
+      for j in range(int(dof/dim)):
+        C[i,count] = tmp[coord[j]][0]
+        C[i,count+1] = tmp[coord[j]][1]
+        count += 2
+    else:
+      print "Warning: Oversampling is not implemented for triangles, yet."     
+  return R
 parser = argparse.ArgumentParser()
 parser.add_argument("stp", help="number of grid points in one direction", type=int)
 parser.add_argument("dimension", help="Dimension of the problem", type=int, default=2)
@@ -194,6 +233,8 @@ parser.add_argument("--force_msfem",help="option calculates the force catalogue 
 parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations")
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
 parser.add_argument("--big", help="specify number of cfs.rel runs in parallel, if turned on mtx files and vec files are not saved")
+parser.add_argument("--oversampling", help="specify if oversampling is turned on or off, default: off")
+
 
 
 args = parser.parse_args()
@@ -202,6 +243,7 @@ getcontext().prec = 16
 steps = args.stp
 folder = args.folder
 dim = args.dimension
+rep = 3
 if dim == 2:
   if args.msfem:
     n = args.msfem.split(',')
@@ -267,6 +309,8 @@ if dim == 2:
         if args.force_msfem:
           mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'])
         R = np.matrix(np.zeros((dof, dim * (args.res+1)**2)))
+        if args.oversampling:
+          C = np.matrix(np.zeros((dof,dof)))
         f.close()
         for i in range(dof):
           if i % 2 == 0:
@@ -275,17 +319,10 @@ if dim == 2:
             h5file = str(folder) + "/" + str(x) + "-" + str(y) + "_msfem" + str(index) + "_y.h5"
           if args.sparse and x == 0 and y == 0:
             continue
-          f = h5py.File(h5file, 'r')
-          tmp = read_displacement(f,1 if args.big else 0)
-          count = 0
-          for j in range((args.res+1)**2):
-            R[i, count] = tmp[j][0]
-            R[i, count + 1] = tmp[j][1]
-            count += 2
+          print h5file
+          R = get_R(h5file,i,index,R,dof,dim,args.res,True if args.oversampling else False, rep if args.oversampling else None, C if args.oversampling else None)
           if i % 2 != 0:
-            index += 1
-          f.close()
-          
+            index += 1       
         if args.force_msfem:
           print 'WARNING: force has to be set manually in the code'
           f = force(dim,mesh,R,'bottom')
@@ -296,7 +333,18 @@ if dim == 2:
           #scipy.io.savemat('R.mat', mdict={'R': R})
           print 'Calculation of force for st1,st2 = ' + str(x) + '\t' + str(y) + ' done \n'          
         else:
-          A = CalcElementMat(R,folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx' if args.big else '_msfem_iter_0_excite_0.mtx')
+          if args.oversampling:
+            print "matrix "
+            for i in range(dof):
+              for j in range(dof):
+                print str(C[i, j]) + ' '
+              print "\n"
+            
+            Cinv = np.linalg.inv(C)
+            R = np.dot(Cinv,R)
+            A = CalcElementMat(R,folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx',dof,dim,args.res,rep) #if args.big else '_msfem_iter_0_excite_0.mtx',overR)
+          else:
+            A = CalcElementMat(R,folder+'/'+str(x)+'-'+str(y)+'_msfem_0.mtx',dof,dim) #if args.big else '_msfem_iter_0_excite_0.mtx')
           out.write(str(x) + ' ' + str(y) + ' ')
           for i in range(dof):
             for j in range(i, dof):

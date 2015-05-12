@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-from PIL import Image
+import platform
+if platform.system() == 'Darwin':
+  from PIL import Image
+else:
+  import Image
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 

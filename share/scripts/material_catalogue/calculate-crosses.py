@@ -1,11 +1,15 @@
 #!/usr/bin/python
-
-import Image, ImageDraw, sys, bz2, os
+import platform
+if platform.system() == 'Darwin':
+  from PIL import Image, ImageDraw
+else:
+  import Image, ImageDraw
+import libxml2
+import sys, bz2, os
 from scipy import ndimage
 import numpy as np
 import math
 from optimization_tools import *
-import libxml2
 from cfs_utils import *
 import os.path
 import matplotlib.pyplot as plt
@@ -228,6 +232,8 @@ parser.add_argument("--filter", help="filtered densities on or off")
 parser.add_argument("--void_material", help="set value for void material", type=float, default=1e-9)
 parser.add_argument("--epsilon", help="number of frames/crosses in the cell problem", type=int, default=1)
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
+parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
+
 
 
 
@@ -294,8 +300,30 @@ if dim == 2:
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, False, True)
         else:
           print 'Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]'
-
+        
         densfilename = str(x) + "-" + str(y) + "_msfem.dens.xml"
+        
+        if args.oversampling:
+          overarray = void * np.ones((int(minres/args.epsilon+0.5+1e-6), int(minres/args.epsilon+0.5+1e-6)))
+          if args.shape == 'frame':
+            overarray = insert_modified_frame(overarray, int(minres/args.epsilon+0.5+1e-6), y, x, steps, void, 1,False)
+          else:
+            print 'Warning: other shapes not implemented yet for oversampling.'
+          overdensfilename = str(x) + "-" + str(y) + "_msfem_oversample.dens.xml"
+          if args.filter == 'on':
+            #filtering of the data
+            overarray_filter = ndimage.uniform_filter(overarray, size=6)
+            plt.gray()
+            plt.imshow(overarray_filter)
+            plt.show()
+          else:
+            overarray_filter = overarray
+          if not args.sparse_msfem:
+            write_density_file(str(folder) + "/" + overdensfilename, overarray_filter, "set")
+          else:
+            print 'Warning: Sparse meshes not implemented for oversampling yet.'
+          overarray = void * np.ones((int(minres/args.epsilon+0.5+1e-6), int(minres/args.epsilon+0.5+1e-6)))   
+          
         if args.filter == 'on':
           # filtering of the data
           array_filter = ndimage.uniform_filter(array, size=6)
@@ -360,11 +388,11 @@ if dim == 2:
 	      doc.saveFile(str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
             if i % 2 == 0:
               # add new job to jobfile
-              jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
+              jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
               os.system('cp triangle_msfem.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x.xml')
             else:
               # add new job to jobfile
-              jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
+              jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y \n')
               os.system('cp triangle_msfem.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
           print str(x) + ' ' + str(y) + ' is done'
@@ -428,7 +456,7 @@ if dim == 2:
             if args.sparse_msfem:
               mesh = str(x) + "-" + str(y) + '.mesh'
             else:
-              mesh = '~/meshes/' + args.msfem
+              mesh = args.msfem
             if i % 2 == 0:
               # add new job to jobfile
               jobfile.write('cfs.rel -m ' + mesh + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_x \n')
@@ -439,7 +467,10 @@ if dim == 2:
               #os.system('cp compliance_plain.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem' + str(index) + '_y.xml')
               index += 1
           os.system('cp cellproblem_fine.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '_msfem.xml')
-          jobfile.write('cfs.rel -m ~/meshes/' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
+          if args.oversampling:
+            jobfile.write('cfs.rel -m ' + str(args.oversampling) + ' -x ' + overdensfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
+          else:
+            jobfile.write('cfs.rel -m ' + str(args.msfem) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + '_msfem \n')
           print str(x) + ' ' + str(y) + ' is done'
         if args.design:
             # stop calculations if only one point is needed (debug)
@@ -473,7 +504,7 @@ if dim == 2:
         write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
         array = np.ones((minres, minres))
         # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
+        jobfile.write('cfs.rel -m ' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
         # create xml file for cfs
         os.system('cp inv_tensor.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '.xml')  
         print str(x) + ' ' + str(y) + ' is done'
@@ -513,7 +544,7 @@ if dim == 2:
         write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
         array = void * np.ones((minres, minres))
         # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
+        jobfile.write('cfs.rel -m ' + str(args.hom) + ' -x ' + densfilename + ' ' + str(x) + "-" + str(y) + ' \n')
         # create xml file for cfs
         os.system('cp inv_tensor.xml ' + str(folder) + '/' + str(x) + "-" + str(y) + '.xml')
         print str(x) + ' ' + str(y) + ' is done'
@@ -565,7 +596,7 @@ elif dim == 3:
         write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
         array = np.ones((minres, minres, minres))
         # add new job to jobfile
-        jobfile.write('cfs.rel -m ~/meshes/' + str(args.hom) + ' ' + str(x) + '-' + str(y) + '-' + str(z) + ' \n')
+        jobfile.write('cfs.rel -m ' + str(args.hom) + ' ' + str(x) + '-' + str(y) + '-' + str(z) + ' \n')
         # create xml file for cfs
         os.system('cp inv_tensor_3D.xml ' + str(folder) + '/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml')
         file = str(folder) + '/' + str(x) + '-' + str(y) + '-' + str(z) + '.xml'
