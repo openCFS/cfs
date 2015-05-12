@@ -65,6 +65,15 @@ namespace CoupledField
     barycenters = false;
   }
 
+  double Grid::CalcGridVolume(bool updated)
+  {
+    double s = 0.0;
+    for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
+      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+
+    return s;
+  }
+
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     Matrix<double>& box = grid_bounding_box_;

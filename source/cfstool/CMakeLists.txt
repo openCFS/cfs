@@ -25,7 +25,7 @@ SET(CFSTOOL_SRCS
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
-#  optimization
+  optimization
   driver
   mesh 
   pde
@@ -33,7 +33,6 @@ SET(TARGET_LL ${TARGET_LL}
   mesh 
   pde
   domain
-#  optimization
   materials
   mathparser
   coupledpde

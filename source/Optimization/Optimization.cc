@@ -145,7 +145,11 @@ Optimization::Optimization()
   // actually part of costFunction - but we store in Optimization itself!
   bool dme = optParamNode->Get("costFunction/multiple_excitation")->As<bool>();
   this->me = new MultipleExcitation(dme, dme ? optParamNode->Get("costFunction/multipleExcitation", ParamNode::PASS) : PtrParamNode());
-  if(dme) this->me->ToInfo(header->Get("multipleExcitations"));
+  if(dme)
+    me->ToInfo(header->Get("multipleExcitations"));
+
+  if(domain->GetDriver()->DoBlochModeEigenfrequency() && !dme)
+    header->Get(ParamNode::WARNING)->SetValue("Bloch mode analysis but not multiple excitation activated");
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
   ParamNodeList list = optParamNode->GetList("constraint");
@@ -999,7 +1003,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out)
   {
     *out << currentIteration;
-    if(harmonic_) *out << " \t" << GetIterationFrequency();
+    if(harmonic_)
+      *out << " \t" << GetIterationFrequency();
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
       *out << " \t" << objectives.data[i]->GetValue();
@@ -1008,7 +1013,12 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   }
 
   iteration->Get("number")->SetValue(currentIteration);
-  if(harmonic_) iteration->Get("frequency")->SetValue(GetIterationFrequency());
+
+  if(harmonic_)
+    iteration->Get("frequency")->SetValue(GetIterationFrequency());
+
+  if(design->HasAlphaVariable()) // needs to be written to the plot.dat file in ErsatzMaterial as Optimization::Optimization() knows no design yet
+    iteration->Get("alpha")->SetValue(design->GetAlphaVariable());
 
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
   {
