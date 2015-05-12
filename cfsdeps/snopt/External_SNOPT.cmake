@@ -66,8 +66,3 @@ SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a" CACHE FILEPATH "SNOPT li
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)
 
-if(IS_DIRECTORY /home/fwein/code/cfs/test_build/cfsdeps/snopt/src/snopt-stamp)
-  MESSAGE("/home/fwein/code/cfs/test_build/cfsdeps/snopt/src/snopt-stamp exists")
-else()
-  MESSAGE("/home/fwein/code/cfs/test_build/cfsdeps/snopt/src/snopt-stamp does not exists")
-endif()  

@@ -70,6 +70,12 @@ namespace CoupledField
       * @param em only to be stored and used for pure ROTATION */
      void SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::System material, ErsatzMaterial* em);
 
+     /** returns the type of the DesignMaterial of the Ersatzmaterial **/
+     DesignMaterial::Type getDesignMaterialType()
+     {
+       return designMaterial->GetType();
+     }
+
      /** Set the optimizer, required for level set give the level set values as nodal values.
       * Otherwise not required to be called */
      void SetOptimizer(BaseOptimizer* bo) { optimizer_ = bo; }
@@ -111,6 +117,7 @@ namespace CoupledField
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
      //bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
 
+     
      /** Get the ErsatzMaterialDampingParameters
       * @param alpha Damping Parameter alpha
       * @param beta Damping Parameter beta
@@ -282,6 +289,12 @@ namespace CoupledField
 
      /** Here we store result descriptions as defined in DesignElement.hh */
      StdVector<ResultDescription> resultDescriptions;
+
+
+     /**Here we store the value of the mechanical tensor of the material and its derivative with respect to the design variables**/
+     //StdVector<TensorElement> tensor_data;
+
+
 
      /** Might be nonsense if our constructor is no simp or ersatz material one! */
      int GetRegionId() const

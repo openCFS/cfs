@@ -483,7 +483,7 @@ INCLUDE("cmake_modules/ConfigureChecks.cmake")
 # CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
 # cache. Cf. ctest_scripts/*.cmake
 #-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." OFF)
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
@@ -500,6 +500,12 @@ IF(BUILD_TESTING)
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
+
+#-----------------------------------------------------------------------------
+# Enables visualization tests for matviz.py
+#-----------------------------------------------------------------------------
+OPTION(MATVIZ_TESTS
+  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.

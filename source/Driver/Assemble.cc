@@ -161,6 +161,16 @@ namespace CoupledField
      return result;
   }
 
+  bool Assemble::UseRegion(RegionIdType reg)
+  {
+    for (BiLinContextListType::iterator listIt = biLinForms_.begin(); listIt != biLinForms_.end(); ++listIt) {
+      if(listIt->first.first->GetRegion() == reg)
+        return true;
+    }
+
+     return false;
+  }
+
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
 
     LOG_DBG(assemble) << "Adding BiLinearForm '"

@@ -1328,6 +1328,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_10, "optResult_10");
     SolutionTypeEnum.Add(OPT_RESULT_11, "optResult_11");
     SolutionTypeEnum.Add(OPT_RESULT_12, "optResult_12");
+    SolutionTypeEnum.Add(OPT_RESULT_13, "optResult_13");
+    SolutionTypeEnum.Add(OPT_RESULT_14, "optResult_14");
+    SolutionTypeEnum.Add(OPT_RESULT_15, "optResult_15");
+    SolutionTypeEnum.Add(OPT_RESULT_16, "optResult_16");
+    SolutionTypeEnum.Add(OPT_RESULT_17, "optResult_17");
+    SolutionTypeEnum.Add(OPT_RESULT_18, "optResult_18");
+    SolutionTypeEnum.Add(OPT_RESULT_19, "optResult_19");
+    SolutionTypeEnum.Add(OPT_RESULT_20, "optResult_20");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");

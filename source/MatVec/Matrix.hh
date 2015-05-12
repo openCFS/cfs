@@ -271,10 +271,14 @@ namespace CoupledField
     //! \name Named Arithmetic Operations
     //@{
 
-    /** Add the multiple of another matrix this = fac * mat.
+    /** Add the multiple of another matrix this = this + fac * mat.
      * If you have mixed types use the tools version of Add */
     void Add(const TYPE fac, const Matrix<TYPE> & mat);
     
+    /** Add the multiple of the transpose of another matrix this = this + fac * transpose(mat).
+     * If you have mixed types use the tools version of Add */
+    void AddT(const TYPE fac, const Matrix<TYPE> & mat);
+
     /** Set this matrix with a multiple of another matrix.
      * This and a mixed variant is also a stand alone method in tools.
      * Anybody knows how to do the mixed form (complex <- double * complex) here? 
