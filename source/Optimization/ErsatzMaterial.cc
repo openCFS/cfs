@@ -174,7 +174,7 @@ ErsatzMaterial::ErsatzMaterial() :
   }
 
   // give the domain this data, s.th. the ersatz material approach is applied
-  domain->SetErsatzMaterial(design);
+  domain->SetDesign(design);
 
   // postpone to PostInit
   // add optimization results to the pde
@@ -197,7 +197,7 @@ ErsatzMaterial::~ErsatzMaterial()
   delete structure_;
 
   // "remove" the ersatzMaterial (=data) from the domain
-  domain->SetErsatzMaterial(NULL);
+  domain->SetDesign(NULL);
 }
 
 void ErsatzMaterial::PostInit()
@@ -339,6 +339,9 @@ void ErsatzMaterial::PostInit()
   if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
     throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
 
+  if(design->HasAlphaVariable())
+    log.AddToHeader("alpha");
+
   if(eigenvalue_ && optParamNode->Has("eigenvalue/sort"))
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
@@ -464,6 +467,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
   Optimization::LogFileLine(out, iteration);
+
+  if(out && design->HasAlphaVariable())
+    *out << " \t" << design->GetAlphaVariable();
 
   if(out && eigenvalue_ && ev_.DoSorting())
   {
@@ -1200,9 +1206,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   bool ErsatzMaterial::IsStrainExcitedSystem() const
   {
-// this shall not be called to often, hence we don't cache
+    // this shall not be called to often, hence we don't cache
     if (homogenization_)
-    return true;
+      return true;
 
     StdVector<LinearFormContext*>& lf = assemble_->GetLinForms();
 // ignore the regions!!
@@ -2689,8 +2695,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
   {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
+    const double cube_vol = grid->CalcGridVolume();
     unsigned int ex_size = me->excitations.GetSize();
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2726,7 +2731,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     } // end of ij loop
 
-// save e.g. for CommitIteration()
+    // save e.g. for CommitIteration()
     homogenizedTensor.Assign(result, 1.0);
     return result;
   }
