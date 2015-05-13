@@ -1251,7 +1251,7 @@ namespace CoupledField {
                                                       
         break;
       default:
-        EXCEPTION("Grid can only have dimension up to 33!");
+        EXCEPTION("Grid can only have dimension up to 3!");
         break;
     }
     return numElems;
@@ -1448,39 +1448,146 @@ namespace CoupledField {
 
   Double GridCFS::CalcVolumeSpannedByNamedNodes(Point* dim_out) const
   {
+    // We first check if for an element the volume of its bounding box
+    // equals its actual volume. If so, we assume this holds for the
+    // entire mesh.
+    Matrix<double> coords;
+    const Elem* el = domain->GetGrid()->GetElem(1);
+    domain->GetGrid()->GetElemNodesCoord(coords, el->connect, false);
+
     Double maximal = std::numeric_limits<Double>::max();
     Double minimal = std::numeric_limits<Double>::min();
 
     double mins[3] = { maximal, maximal, maximal};
     double maxs[3] = { minimal, minimal, minimal};
-    Point p;
-    // namedNodes_ is indexed by names. We ignore it
-    for(unsigned int o = 0; o < namedNodes_.GetSize(); o++)
-    {
-      const StdVector<UInt>& nodes = namedNodes_[o];
 
-      for(unsigned int n = 0, nn = nodes.GetSize(); n < nn; n++)
+    // Get bounding box of element
+    for(unsigned int i = 0; i < coords.GetNumCols(); i++)
+    {
+      Vector<double> v;
+      coords.GetCol(v,i);
+
+      for(unsigned int d = 0; d < dim_; ++d)
       {
-        GetNodeCoordinate(p , nodes[n], false);
-        for(unsigned int d = 0; d < 3; ++d)
-        {
-          if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
-          if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
-        }
+        if(mins[d] >  v[d]) mins[d] =  v[d];
+        if(maxs[d] <  v[d]) maxs[d] =  v[d];
       }
     }
 
-    double cube_vol = 1.0; // will be multiplied
-    if(dim_out) dim_out->SetZero();
-
+    // Get volume of bounding box of element
+    double el_cube_vol = 1.0;
     for(unsigned int d = 0; d < dim_; d++)
     {
-      cube_vol *= maxs[d] - mins[d];
-      if(dim_out)
-        (*dim_out)[d] = maxs[d] - mins[d];
+      el_cube_vol *= maxs[d] - mins[d];
     }
 
-    return cube_vol;
+    // Get actual volume of element
+    double el_act_vol = el->ptElem->CalcVolume(coords, false);
+
+    if (el_cube_vol == el_act_vol)
+    {
+      double mins[3] = { maximal, maximal, maximal};
+      double maxs[3] = { minimal, minimal, minimal};
+      Point p;
+
+      // Get bounding box of named nodes
+      // namedNodes_ is indexed by names. We ignore it
+      for(unsigned int o = 0; o < namedNodes_.GetSize(); o++)
+      {
+        const StdVector<UInt>& nodes = namedNodes_[o];
+
+        for(unsigned int n = 0, nn = nodes.GetSize(); n < nn; n++)
+        {
+          GetNodeCoordinate(p , nodes[n], false);
+          for(unsigned int d = 0; d < 3; ++d)
+          {
+            if(mins[d] >  p.data[d]) mins[d] =  p.data[d];
+            if(maxs[d] <  p.data[d]) maxs[d] =  p.data[d];
+          }
+        }
+      }
+
+      double cube_vol = 1.0;
+      if(dim_out) dim_out->SetZero();
+
+      for(unsigned int d = 0; d < dim_; d++)
+      {
+        cube_vol *= maxs[d] - mins[d];
+        if(dim_out)
+          (*dim_out)[d] = maxs[d] - mins[d];
+      }
+
+      return cube_vol;
+    } else {
+      // In this case we calculate the volume of the mesh using its
+      // vertices. Those are calculated as intersections of the lines
+      // defined by the first and the last node in a group of named
+      // nodes with the same name.
+      Point p, q, r;
+      StdVector<Point> points, verts;
+      for(unsigned int i=0; i < namedNodeNames_.GetSize(); i++)
+      {
+        if(namedNodeNames_[i] == "center") continue;
+
+        const StdVector<UInt>& nodes = namedNodes_[i];
+
+        GetNodeCoordinate(p, nodes[0], false);
+        points.Push_back(p);
+        GetNodeCoordinate(p, nodes[nodes.GetSize()-1], false);
+        points.Push_back(p);
+      }
+
+      // Calculate vertices
+      Matrix<Double> A;
+      A.Resize(dim_,dim_);
+      double det;
+      Vector<double> x(dim_), rhs(dim_);
+      if(dim_ == 2) {
+        for(unsigned int i=0; i < points.GetSize()/2; i++)
+        {
+          p = points[2*i+1] - points[2*i];
+          for(unsigned int j=i+1; j < points.GetSize()/2; j++)
+          {
+            q = points[2*j+1] - points[2*j];
+
+            A[0][0] = p.data[0];
+            A[1][0] = p.data[1];
+            A[0][1] = q.data[0];
+            A[1][1] = q.data[1];
+            A.Determinant(det);
+            if(det != 0)
+            {
+              rhs = points[2*j] - points[2*i];
+              A.DirectSolve(x,rhs);
+              r = p * x[0] + points[2*i];
+              verts.Push_back(r);
+            }
+          }
+        }
+
+        // Finally calculate the volume as absolute value of the
+        // determinant of the matrix defined by two vectors connecting
+        // vertices and thus spanning a parallelogram.
+        // Note: Due to Cavalieri's principle it does not matter if on of
+        // this vectors is a diagonal of our original parallelogram
+        p = verts[0] - verts[1];
+        q = verts[0] - verts[2];
+        A[0][0] = p.data[0];
+        A[1][0] = p.data[1];
+        A[0][1] = q.data[0];
+        A[1][1] = q.data[1];
+        A.Determinant(det);
+
+        // Dimensional length makes no sense for sheared meshes
+        if (dim_out) *dim_out = -1.0;
+
+        return std::abs(det);
+      } else {
+        EXCEPTION("Not yet implemented.");
+      }
+
+      return -1; // should never be reached
+    }
   }
 
 
