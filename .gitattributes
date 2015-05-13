@@ -683,9 +683,12 @@ share/scripts/material_catalogue/interpolation2D/bicubic_offline.m -text
 share/scripts/material_catalogue/interpolation2D/bicubic_partialderiv.m -text
 share/scripts/material_catalogue/interpolation2D/detailed_stats_10 -text
 share/scripts/material_catalogue/interpolation2D/main.m -text
+share/scripts/material_catalogue/interpolation2D/main_msfem.m -text
+share/scripts/material_catalogue/interpolation2D/msfem_stats_to_mat.m -text
 share/scripts/material_catalogue/interpolation2D/plot_interp.m -text
 share/scripts/material_catalogue/interpolation2D/test.m -text
 share/scripts/material_catalogue/interpolation2D/write_to_xml.m -text
+share/scripts/material_catalogue/interpolation2D/write_to_xml_msfem.m -text
 share/scripts/material_catalogue/interpolation3D/Makefile -text
 share/scripts/material_catalogue/interpolation3D/calc3Dvol.m -text
 share/scripts/material_catalogue/interpolation3D/coeff.h -text
