@@ -1035,7 +1035,6 @@ share/python/calcCond.py -text
 share/python/calcCondSBM.py -text
 share/python/cfs-testsuite-extractor.py -text
 share/python/cfs_grid.py -text
-share/python/cfs_utils.py -text
 share/python/change-svn-wc-format.py -text
 share/python/common.py -text
 share/python/continuation.py -text
@@ -1049,7 +1048,6 @@ share/python/gid_screenshots.py -text
 share/python/nas-tool-gid-to-nas.py -text
 share/python/nas-tool-nas2msh.py -text
 share/python/nas-tool-voidmesh.py -text
-share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
 share/python/probe_ilupack_parameters.py -text
