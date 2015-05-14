@@ -95,6 +95,7 @@ public:
 
 protected:
 
+
 private:
   ///method searching for elements for given global points
   void GetElemsForPoints(const StdVector<Vector<Double> >  & points, StdVector< const Elem* > & elements, StdVector<LocPoint> & locals);
@@ -135,6 +136,13 @@ private:
 
   //! regularization parameter 3
   Double qExp_;
+
+  //! defines, if measured data is read at micro-positions!
+  bool isDataReadFromFile_;
+
+  //! stores the measured data
+  Vector<DATA_TYPE> measVec_;
+
 };
    
 
