@@ -250,17 +250,19 @@ namespace CoupledField
     UInt iter = 0;
     bool notConverged = true;
 
-    while ( notConverged && iter < 5 ) {
+    while ( notConverged && iter < 20 ) {
     	//compute with RHS being the conjugate difference of computed acoustic pressure
     	//and measured pressure in the microphone points
     	rhsSource_->SetActive(false);
     	rhsMeas_->SetActive(true);
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	std::cout << "\n INV_MEASURE solved \n" << std::endl;
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
+
     	rhsSource_->ComputeOptCondition(optAmp, optPhase);
 
-    	if ( optAmp < 0.1 && optPhase < 0.1 )
+    	if ( optAmp < 1e-10 && optPhase < 1e-10 )
     		notConverged = false;
 
     	std::cout << "\n OptCond, Amp: " << optAmp << "   Phase: " << optPhase << std::endl;
@@ -271,6 +273,7 @@ namespace CoupledField
       	ptPDE_->GetSolveStep()->PreStepHarmonic();
       	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
       	ptPDE_->GetSolveStep()->PostStepHarmonic();
+      	std::cout << "\n INV_SOURCE solved \n" << std::endl;
       	rhsSource_->SetActive(false);
 
     	iter++;
