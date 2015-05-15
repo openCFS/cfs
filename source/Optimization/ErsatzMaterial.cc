@@ -2612,14 +2612,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   Matrix<double> ErsatzMaterial::CalcHomogenizedTensor()
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
     unsigned int ex_size = me->excitations.GetSize();
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2649,7 +2642,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
           double p = CalcHomogenizedElementProduct(this, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
-          result[ij][kl] += p / cube_vol;// normalize for volume
+          result[ij][kl] += p / mesh_vol;// normalize for volume
         }
       } // end of kl loop
 
@@ -2663,14 +2656,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   Matrix<Complex> ErsatzMaterial::CalcMaxwellHomogenizedTensor(Solutions sol)
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
     unsigned int ex_size = me->excitations.GetSize();
     assert((dim == 2 && ex_size == 2) || (dim == 3 && ex_size == 3));
     Matrix<Complex> result(ex_size, ex_size);
@@ -2700,7 +2686,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           Vector<T>& u2_vec = dynamic_cast<Vector<T>&>(*u2[e]);
           // prepare for calculation
           Complex p = CalcMaxwellHomogenizedElementProduct(this, de, false, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-          result[k][l] += p / cube_vol;// normalize for volume
+          result[k][l] += p / mesh_vol;// normalize for volume
         }
       } // end of l loop
 
@@ -2713,14 +2699,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
 // TODO Would be E^* - E^H if expression templates would work
     Matrix<double> diff_tensor;
     diff_tensor = target - hom;
@@ -2754,7 +2733,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
           double p = CalcHomogenizedElementProduct(this, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
-          hom_tensor_deriv[ij][kl] = p / cube_vol;// normalize for volume
+          hom_tensor_deriv[ij][kl] = p / mesh_vol;// normalize for volume
         } // end of kl loop
 
       } // end of ij loop
@@ -2795,14 +2774,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   void ErsatzMaterial::CalcMaxwellHomogenizedTrackingGradient(const Matrix<Complex>& target, const Matrix<Complex>& hom, Function* f)
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
 //  std::cout << "sol length: " << forward.Get(1)->GetComplexVector(Solution::RAW_VECTOR).GetSize() << std::endl;
 // TODO Would be E^* - E^H if expression templates would work
     Matrix<Complex> diff_tensor;
@@ -2833,7 +2805,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           Vector<T>& u2_vec = dynamic_cast<Vector<T>&>(*u2[e]);
           // prepare for calculation
           Complex p = CalcMaxwellHomogenizedElementProduct(this, de, true, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-          hom_tensor_deriv[k][l] = p / cube_vol;// normalize for volume
+          hom_tensor_deriv[k][l] = p / mesh_vol;// normalize for volume
         } // end of l loop
 
       } // end of k loop
@@ -2881,14 +2853,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out)
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
@@ -2910,7 +2875,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
       // prepare for calculation
       double p = CalcHomogenizedElementProduct(this, de, derivative, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
-      result += p / cube_vol;// normalize for volume
+      result += p / mesh_vol;// normalize for volume
       if (derivative)
       {
         grad_out[e] = result;
@@ -2967,14 +2932,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
   Complex ErsatzMaterial::CalcMaxwellHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<Complex>& grad_out, Solutions sol)
   {
-    StdVector<RegionIdType> regs;
-    grid->GetVolRegionIds(regs);
-    double s = 0.0;
-    for(unsigned int i = 0; i < regs.GetSize(); i++){
-      int rid = regs[i];
-      s += grid->CalcVolumeOfRegion(rid, false, true);
-    }
-    const double cube_vol(s);
+    const double mesh_vol(grid->CalcVolumeSpannedByNamedNodes());
     assert((dim == 2 && me->excitations.GetSize() == 2) || (dim == 3 && me->excitations.GetSize() == 3));
     const unsigned int k = boost::get<0>(entry) - 1;
     const unsigned int l = boost::get<1>(entry) - 1;
@@ -2992,7 +2950,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       Vector<Complex>& u2_vec = dynamic_cast<Vector<Complex>&>(*u2[e]);
       // prepare for calculation
       Complex p = CalcMaxwellHomogenizedElementProduct(this, de, derivative, u1_vec, u2_vec, me->excitations[k].test_charge, me->excitations[l].test_charge);
-      result += p / cube_vol;// normalize for volume
+      result += p / mesh_vol;// normalize for volume
       if (derivative)
       {
         grad_out[e] = result;
