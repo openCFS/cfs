@@ -175,7 +175,7 @@ namespace CoupledField
     }
     nonlinAnisoParams_[matType] = data;
   }
-  
+
   void BaseMaterial::SetCoefFct( MaterialType matType, PtrCoefFct coef ) {
     
     // check, if material type is allowed

@@ -161,7 +161,7 @@ namespace CoupledField {
     virtual PtrCoefFct GetScalCoefFncNonLin(MaterialType matType,
                                             Global::ComplexPart matDataType,
                                             PtrCoefFct dependency );
-					    
+
     //! Return scalar-valued coefficient function for nonlinear function
     //! where the value is calculated depending on the value of \param temperatureCoef and \param elecPotCoef on \param regs. 
     virtual PtrCoefFct GetScalCoefFncMultivariateNonLin(MaterialType matType,
@@ -270,10 +270,9 @@ namespace CoupledField {
     
     //! Set a nonlinear anisotropic approximation
     virtual void SetNonLinMatAniso( MaterialType matType, StdVector<MatDescriptorNl>& data );
-    
+
     //! Set a coefficient function
     virtual void SetCoefFct( MaterialType matType, PtrCoefFct coef );
-
 
     //! get a string material parameter
     virtual void GetScalar( std::string& param, MaterialType matType) const;
@@ -538,7 +537,7 @@ namespace CoupledField {
     
     //! map storing the anisotropic nonlinear material parameters
     nonLinAnisoMap nonlinAnisoParams_;
-    
+
     // ========================================================
     //  New coefficient based material representation
     // ========================================================
@@ -553,7 +552,6 @@ namespace CoupledField {
     
     //! Scalar coefficients
     CoefMap scalarCoef_;
-    
     
     //! Pointer to math parser instance
     MathParser *  mp_;

@@ -42,12 +42,13 @@ void CoefFunctionApprox::Init( Double coefScalar, ApproxData * nLinFnc,
 void CoefFunctionApprox::GetScalar(Double& coefScalar, 
                                    const LocPointMapped& lpm ) {
 
-  
   // evaluate vector of dependency
   Vector<Double> elemSol;
   dependCoef_->GetVector( elemSol, lpm);
   
   if ( nLinFnc_->GetMatType() == MAG_PERMEABILITY ) {
+    // in case of permeability (reluctivity) the function depends on the norm of the field
+    // it is specialized in terms of evaluation
     Double fieldAbs = elemSol.NormL2();
 
     if( fieldAbs == 0 ) { 
@@ -56,7 +57,18 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
       coefScalar = nLinFnc_->EvaluateFuncNu(fieldAbs);
     }
   }
+  else if( nLinFnc_->GetMatType() == CORE_LOSS ){
+    // this is the case for general functions depending on the norm of a field
+    Double fieldAbs = elemSol.NormL2();
+
+    if( fieldAbs == 0 ) {
+      coefScalar = coefScalar_;
+    } else {
+      coefScalar = nLinFnc_->EvaluateFunc(fieldAbs);
+    }
+  }
   else {
+    // case for functions depending on the vector, specialize as needed
     coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
   }
   LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;

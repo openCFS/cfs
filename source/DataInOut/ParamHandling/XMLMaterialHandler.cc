@@ -68,8 +68,7 @@ namespace CoupledField {
     delete xerces; 
   }
   
-  BaseMaterial * XMLMaterialHandler::
-  LoadMaterial( const std::string matName, 
+  BaseMaterial * XMLMaterialHandler::LoadMaterial( const std::string matName,
                const MaterialClass matClass ) {
 
     BaseMaterial * material = NULL;
@@ -844,8 +843,7 @@ namespace CoupledField {
     bool isIsotropic = false;
     bool isOrthotropic = false;
     bool isTensor = false;
-    
-    
+
     // read electric conductivity
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
@@ -1090,6 +1088,42 @@ namespace CoupledField {
         }
       }
     }
+
+    // read core loss
+    if(mag->Has("coreLoss")){
+      PtrParamNode clParam = mag->Get("coreLoss");
+      BaseMaterial::MatDescriptorNl info;
+      info.approxType = LIN_INTERPOLATE;
+      info.fileName = "";
+
+      if(clParam->Has("approxType")) {
+        std::string type =  clParam->Get("approxType")->As<std::string>();
+        info.approxType = ApproxCurveTypeEnum.Parse( type );
+      }
+
+      if(clParam->Has("measAccuracy"))
+        info.measAccuracy = clParam->Get("measAccuracy")->As<Double>();
+
+      if(clParam->Has("maxApproxVal"))
+        info.maxVal = clParam->Get("maxApproxVal")->As<Double>();
+
+      if(clParam->Has("dataName"))
+        info.fileName = clParam->Get("dataName")->As<std::string>();
+
+      material->SetNonLinMatIso( CORE_LOSS, info );
+    }
+
+    // read density needed for core loss
+    PtrCoefFct densFct;
+    if(mag->Has("density")){
+      densFct = CoefFunction::Generate( mp_, Global::REAL,
+          mag->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    } else {
+      densFct = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+      material->SetCoefFct( DENSITY, densFct );
+    }
+
   }
 
 //**********************************************************************
