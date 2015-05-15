@@ -353,7 +353,12 @@ namespace CoupledField {
         return "Vs/Am";
 
       case MAG_EDDY_POWER:
+      case MAG_CORE_LOSS:
         return "W";
+        break;
+
+      case MAG_CORE_LOSS_DENSITY:
+        return "W/kg";
         break;
 
       case MAG_ENERGY:
@@ -1236,6 +1241,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
+    SolutionTypeEnum.Add(MAG_CORE_LOSS_DENSITY, "magCoreLossDensity");
+    SolutionTypeEnum.Add(MAG_CORE_LOSS, "magCoreLoss");
     
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
@@ -1421,6 +1428,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
     MaterialTypeEnum.Add( TEST_ALPHA, "Test_Alpha" );
     MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
+    MaterialTypeEnum.Add( CORE_LOSS, "coreLossPerMass" );
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );

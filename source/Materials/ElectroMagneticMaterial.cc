@@ -15,7 +15,7 @@
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
-
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 
 namespace CoupledField
 {
@@ -48,6 +48,8 @@ namespace CoupledField
     isAllowed_.insert( HYST_MODEL );
     isAllowed_.insert( DATA_ACCURACY );
     isAllowed_.insert( MAX_APPROX_VAL );
+    isAllowed_.insert( DENSITY );
+    isAllowed_.insert( CORE_LOSS );
   }
 
   ElectroMagneticMaterial::~ElectroMagneticMaterial() {
@@ -823,202 +825,249 @@ namespace CoupledField
   PtrCoefFct ElectroMagneticMaterial::GetScalCoefFncNonLin(MaterialType matType,
                                                            Global::ComplexPart matDataType,
                                                            PtrCoefFct fluxCoef ) {
-     //This method allocates the objects handling the nonlinear BH curve; thereby, we allow
-     //approximation with smooth splines and analytically defined functions
-     //
-     //Please note: in the nonlinear bilinear form, we need the reluctivity (=1/permeability)
-     //             therefore, we switch between permability and reluctivity quite often
-     //             The analytic defined functions in the material file are
-     //             reluctivity(magFluxDensity) = nu(B)
-     //
+    //This method allocates the objects handling the nonlinear BH curve; thereby, we allow
+    //approximation with smooth splines and analytically defined functions
+    //
+    //Please note: in the nonlinear bilinear form, we need the reluctivity (=1/permeability)
+    //             therefore, we switch between permability and reluctivity quite often
+    //             The analytic defined functions in the material file are
+    //             reluctivity(magFluxDensity) = nu(B)
+    //
+    //The core loss factor is also handled here because it needs to be approximated.
 
-     // Ensure that only MAG_RELUCTIVITY or MAG_RELUCTIVITY_DERIV are queried
-     if( matType != MAG_RELUCTIVITY  ) {
-       EXCEPTION("Scalar Nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY!");
-     }
-     
-     // Ensure that only real-valued parameters are used
-     if( matDataType != Global::REAL ) {
-       EXCEPTION( "Only real-valued nonlinear parameters are supported");
-     }
-     PtrCoefFct ret;
-     
-     // check if material is isotropic or anisotropic
-     if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
-       
-       // ---------------------------
-       // ISOTROPIC VERSION
-       // ---------------------------
-       // check, if nonlinear curve was already calculated
-       MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
+    // Ensure that only MAG_RELUCTIVITY or CORE_LOSS are queried
+    if( matType != MAG_RELUCTIVITY && matType != CORE_LOSS ) {
+      EXCEPTION("Scalar nonlinearity for magnetic materials only allowed for MAG_RELUCTIVITY and CORE_LOSS!"
+          << "MAG_RELUCTIVITY_DERIV must be queried using GetTensorCoefFncNonLin.");
+    }
 
-       //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
-       if( matNl.approxType == SMOOTH_SPLINES ) {
-         // Check, if smooth spline approximation was already created
-         // and initialized
-         if( !matNl.approxData ) {
-           SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY );
-           sp->SetAccuracy( matNl.measAccuracy );
-           sp->SetMaxY( matNl.maxVal );
-           sp->CalcBestParameter();
-           sp->CalcApproximation();
-           sp->Print();
-           matNl.approxData = sp;
-         }
+    // Ensure that only real-valued parameters are used
+    if( matDataType != Global::REAL ) {
+      EXCEPTION( "Only real-valued nonlinear parameters are supported");
+    }
 
-         ApproxData * sp = matNl.approxData;
-         // get linear starting value
-         Double startVal = 0.0;
-         this->GetScalar( startVal, matType, Global::REAL );
-         shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
-         coef->Init( startVal, sp, fluxCoef);
-         ret = coef;
+    PtrCoefFct ret;
 
-       }
-       else if( matNl.approxType == ANALYTIC ) {
-         // this is for describing the reluctivity directly in the xml as analytic formula
-         // idea: the string from the xml describes a function with the same notation as
-         // described in CoefFunctionCompound.hh
-         // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
-         // note: a good starting value for B->0 works miracles!
+    if( matType == MAG_RELUCTIVITY ){
+      // -----------
+      // RELUCTIVITY
+      // -----------
+      // check if material is isotropic or anisotropic
+      if( nonlinIsoParams_.find(MAG_PERMEABILITY) != nonlinIsoParams_.end() ) {
+        // ---------------------------
+        // ISOTROPIC VERSION
+        // ---------------------------
+        // check, if nonlinear curve was already calculated
+        MatDescriptorNl & matNl = nonlinIsoParams_[MAG_PERMEABILITY];
 
-         // get Euclidean norm of B
-         CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
-         PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+        //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
+        if( matNl.approxType == SMOOTH_SPLINES ) {
+          // Check, if smooth spline approximation was already created
+          // and initialized
+          if( !matNl.approxData ) {
+            SmoothSpline * sp = new SmoothSpline( matNl.fileName, MAG_PERMEABILITY );
+            sp->SetAccuracy( matNl.measAccuracy );
+            sp->SetMaxY( matNl.maxVal );
+            sp->CalcBestParameter();
+            sp->CalcApproximation();
+            sp->Print();
+            matNl.approxData = sp;
+          }
 
-         // get function of B
-         std::string nuStr = matNl.analyticExpr;
-         shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
-         std::map<std::string,PtrCoefFct> symbolsNu;
-         symbolsNu["B"] = fluxDensAbs;
+          ApproxData * sp = matNl.approxData;
+          // get linear starting value
+          Double startVal = 0.0;
+          this->GetScalar( startVal, matType, Global::REAL );
+          shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+          coef->Init( startVal, sp, fluxCoef);
+          ret = coef;
 
-         nuStr.insert(0,"( ");
-         nuStr.append(" )");
-         nuFnc->SetScalar(nuStr,symbolsNu);
-         return(nuFnc);
-       }
+        }
+        else if( matNl.approxType == ANALYTIC ) {
+          // this is for describing the reluctivity directly in the xml as analytic formula
+          // idea: the string from the xml describes a function with the same notation as
+          // described in CoefFunctionCompound.hh
+          // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+          // note: a good starting value for B->0 works miracles!
 
-     } else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
-       
-       // ---------------------------
-       // ANISOTROPIC VERSION: here we allow for different BH-curves as a function of the angle!
-       // ---------------------------
-       StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
-       UInt numCurves = matNl.GetSize();
-       StdVector<Double> angles(numCurves);
-       StdVector<Double> zScalings(numCurves);
-       StdVector<shared_ptr<CoefFunction> > approx(numCurves);
-       Double startValAveraged = 0.0;
+          // get Euclidean norm of B
+          CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+          PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
-       // Loop over all entries
-       for( UInt i = 0; i < matNl.GetSize(); ++i ) {
-         MatDescriptorNl & actNl = matNl[i];
-         angles[i] = actNl.angle;
-         zScalings[i] = actNl.zScaling;
+          // get function of B
+          std::string nuStr = matNl.analyticExpr;
+          shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
+          std::map<std::string,PtrCoefFct> symbolsNu;
+          symbolsNu["B"] = fluxDensAbs;
 
-         //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
-         if( actNl.approxType == SMOOTH_SPLINES ) {
-           // Check, if smooth spline approximation was already created
-           // and initialized
-           if( !actNl.approxData ) {
-             SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
-             sp->SetAccuracy( actNl.measAccuracy );
-             sp->SetMaxY( actNl.maxVal );
-             sp->CalcBestParameter();
-             sp->CalcApproximation();
-             sp->Print();
-             actNl.approxData = sp;
-           }
+          nuStr.insert(0,"( ");
+          nuStr.append(" )");
+          nuFnc->SetScalar(nuStr,symbolsNu);
+          ret = nuFnc;
+        }
+      }
+      else if( nonlinAnisoParams_.find(MAG_PERMEABILITY) != nonlinAnisoParams_.end() ) {
+        // ---------------------------
+        // ANISOTROPIC VERSION: here we allow for different BH-curves as a function of the angle!
+        // ---------------------------
+        StdVector<MatDescriptorNl> & matNl = nonlinAnisoParams_[MAG_PERMEABILITY];
+        UInt numCurves = matNl.GetSize();
+        StdVector<Double> angles(numCurves);
+        StdVector<Double> zScalings(numCurves);
+        StdVector<shared_ptr<CoefFunction> > approx(numCurves);
+        Double startValAveraged = 0.0;
 
-           ApproxData * sp = actNl.approxData;
-           // get linear starting value
+        // Loop over all entries
+        for( UInt i = 0; i < matNl.GetSize(); ++i ) {
+          MatDescriptorNl & actNl = matNl[i];
+          angles[i] = actNl.angle;
+          zScalings[i] = actNl.zScaling;
 
-           Double startVal;
-           this->GetScalar( startVal, matType, Global::REAL );
-           shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
-           coef->Init( startVal, sp, fluxCoef);
+          //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
+          if( actNl.approxType == SMOOTH_SPLINES ) {
+            // Check, if smooth spline approximation was already created
+            // and initialized
+            if( !actNl.approxData ) {
+              SmoothSpline * sp = new SmoothSpline( actNl.fileName, MAG_PERMEABILITY );
+              sp->SetAccuracy( actNl.measAccuracy );
+              sp->SetMaxY( actNl.maxVal );
+              sp->CalcBestParameter();
+              sp->CalcApproximation();
+              sp->Print();
+              actNl.approxData = sp;
+            }
 
-           //compute an averaged starting value
-           startValAveraged += startVal / (Double)numCurves;
+            ApproxData * sp = actNl.approxData;
+            // get linear starting value
 
-           //store in array
-           approx[i] = coef;
-         }
-         else if( actNl.approxType == ANALYTIC ) {
-           // this is for describing the reluctivity directly in the xml as analytic formula
-           // idea: the string from the xml describes a function with the same notation as
-           // described in CoefFunctionCompound.hh
-           // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
-           // note: a good starting value for B->0 works miracles!
+            Double startVal;
+            this->GetScalar( startVal, matType, Global::REAL );
+            shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox());
+            coef->Init( startVal, sp, fluxCoef);
 
-           // get Euclidean norm of B
-           CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
-           PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
+            //compute an averaged starting value
+            startValAveraged += startVal / (Double)numCurves;
 
-           // get function of B
-           std::string nuStr = actNl.analyticExpr;
-           shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
-           std::map<std::string,PtrCoefFct> symbolsNu;
-           symbolsNu["B"] = fluxDensAbs;
+            //store in array
+            approx[i] = coef;
+          }
+          else if( actNl.approxType == ANALYTIC ) {
+            // this is for describing the reluctivity directly in the xml as analytic formula
+            // idea: the string from the xml describes a function with the same notation as
+            // described in CoefFunctionCompound.hh
+            // basically, all occurences of B_R are replaced with the CoefFunction fluxDensAbs
+            // note: a good starting value for B->0 works miracles!
 
-           nuStr.insert(0,"( ");
-           nuStr.append(" )");
-           nuFnc->SetScalar(nuStr,symbolsNu);
+            // get Euclidean norm of B
+            CoefXprUnaryOp fluxDensAbsOp = CoefXprUnaryOp( mp_, fluxCoef, CoefXpr::OP_NORM );
+            PtrCoefFct fluxDensAbs = CoefFunction::Generate( mp_, Global::REAL, fluxDensAbsOp );
 
-           //compute an averaged starting value directly from the string
-           Double B_init = 0.0;
-           MathParser::HandleType handle = mp_->GetNewHandle();
-           mp_->RegisterExternalVar(handle,"B_R",&B_init);
-           mp_->SetExpr(handle,nuStr);
-           Double nuInit = mp_->Eval(handle);
-           startValAveraged += nuInit / (Double)numCurves;
+            // get function of B
+            std::string nuStr = actNl.analyticExpr;
+            shared_ptr<CoefFunctionCompound<Double> > nuFnc(new CoefFunctionCompound<Double>(mp_));
+            std::map<std::string,PtrCoefFct> symbolsNu;
+            symbolsNu["B"] = fluxDensAbs;
 
-           //store in array
-           approx[i] = nuFnc;
-         }
-       }
-       
-       // -------------------------
-       // Insertion sort algorithm: we sort the BH-curves starting at smallest
-       //                           specified angle
-       // ------------------------
-       Double compAngle;
-       Double compZScaling;
-       shared_ptr<CoefFunction> compApprox;
-       UInt j;
-       for( UInt i = 1; i < numCurves; i++ ) {
-         compAngle = angles[i];
-         compZScaling = zScalings[i];
-         compApprox = approx[i];
-         j = i;
-         while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
-           angles[j] = angles[j - 1];
-           zScalings[j] = zScalings[j - 1];
-           approx[j] = approx[j - 1];
-           j = j - 1;
-         }
-         angles[j] = compAngle;
-         zScalings[j] = compZScaling;
-         approx[j] = compApprox;
-       }
+            nuStr.insert(0,"( ");
+            nuStr.append(" )");
+            nuFnc->SetScalar(nuStr,symbolsNu);
 
-       // allocate the coef-Function for handling the ansiotropy
-       shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
-       coef->Init( startValAveraged, approx, angles, zScalings, fluxCoef );
-       baseCoefAniso_ = coef;
-       ret = coef;
-     }
+            //compute an averaged starting value directly from the string
+            Double B_init = 0.0;
+            MathParser::HandleType handle = mp_->GetNewHandle();
+            mp_->RegisterExternalVar(handle,"B_R",&B_init);
+            mp_->SetExpr(handle,nuStr);
+            Double nuInit = mp_->Eval(handle);
+            startValAveraged += nuInit / (Double)numCurves;
 
-     else {
-       EXCEPTION( "No nonlinear definition found for material type '"
+            //store in array
+            approx[i] = nuFnc;
+          }
+        }
+        // -------------------------
+        // Insertion sort algorithm: we sort the BH-curves starting at smallest
+        //                           specified angle
+        // ------------------------
+        Double compAngle;
+        Double compZScaling;
+        shared_ptr<CoefFunction> compApprox;
+        UInt j;
+        for( UInt i = 1; i < numCurves; i++ ) {
+          compAngle = angles[i];
+          compZScaling = zScalings[i];
+          compApprox = approx[i];
+          j = i;
+          while( ( j > 0 ) && ( angles[j - 1] > compAngle ) ) {
+            angles[j] = angles[j - 1];
+            zScalings[j] = zScalings[j - 1];
+            approx[j] = approx[j - 1];
+            j = j - 1;
+          }
+          angles[j] = compAngle;
+          zScalings[j] = compZScaling;
+          approx[j] = compApprox;
+        }
+
+        // allocate the coef-Function for handling the ansiotropy
+        shared_ptr<CoefFunctionApproxAniso> coef( new CoefFunctionApproxAniso());
+        coef->Init( startValAveraged, approx, angles, zScalings, fluxCoef );
+        baseCoefAniso_ = coef;
+        ret = coef;
+      }
+
+      else {
+        EXCEPTION( "No nonlinear definition found for material type '"
            << MaterialTypeEnum.ToString(matType) << "'");
-     }
+      }
 
-     
-     return ret;
-   }
-  
-  
+    } else if( matType == CORE_LOSS ){
+      //-----------
+      // CORE_LOSS
+      //-----------
+      MatDescriptorNl & matNl = nonlinIsoParams_[CORE_LOSS];
+      if( matNl.approxType == SMOOTH_SPLINES ) {
+        // Check, if smooth spline approximation was already created
+        // and initialized
+        if( !matNl.approxData ) {
+          SmoothSpline * sp = new SmoothSpline( matNl.fileName, CORE_LOSS );
+          sp->SetAccuracy( matNl.measAccuracy );
+          sp->SetMaxY( matNl.maxVal );
+          sp->CalcBestParameter();
+          sp->CalcApproximation();
+          sp->Print();
+          matNl.approxData = sp;
+        }
+        ApproxData * sp = matNl.approxData;
+        // get linear starting value
+        Double startVal = 0.0;
+        this->GetScalar( startVal, matType, Global::REAL );
+        shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
+        coef->Init( startVal, sp, fluxCoef);
+        ret = coef;
+      }
+      else if( matNl.approxType == LIN_INTERPOLATE ){
+        if( !matNl.approxData ){
+          LinInterpolate * li = new LinInterpolate( matNl.fileName, CORE_LOSS );
+          matNl.approxData = li;
+        }
+        ApproxData * li = matNl.approxData;
+        shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
+        coef->Init( 0.0, li, fluxCoef );
+        ret = coef;
+      }
+      else {
+        // since the core loss is an optional parameter (as well as density)
+        // we have to guarantee here to return something, otherwise
+        // the ResultFunctorIntegrate throws
+        // checking for isSet_ in the PDE is not enough, which seems odd
+        ret = CoefFunction::Generate( mp_, Global::REAL, "0.0" );
+      }
+    }
+
+    return ret;
+  }
+
+
   PtrCoefFct ElectroMagneticMaterial::GetTensorCoefFncNonLin( MaterialType matType,
                                                               SubTensorType type,
                                                               Global::ComplexPart matDataType,
