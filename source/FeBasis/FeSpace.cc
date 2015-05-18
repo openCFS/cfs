@@ -309,12 +309,12 @@ ApproxOrder::ApproxOrder(UInt dim ) {
         break;
       case HCURL:
         LOG_DBG(feSpace) << "Creating HCurl space";
-        if( polyType == LAGRANGE )  {
-          // create explicit lower order HCurl space
-          EXCEPTION("Explicit lower order space H-Curl not defined yet");
-        } else {
-          ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
-        }
+        //if( polyType == LAGRANGE )  {
+        //  // create explicit lower order HCurl space
+        //  EXCEPTION("Explicit lower order space H-Curl not defined yet");
+        //} else {
+        ret.reset(new FeSpaceHCurlHi(aNode, infoNode, ptGrid));
+        //}
         break;
       case CONSTANT:
         LOG_DBG(feSpace) << "Creating CONST space";
