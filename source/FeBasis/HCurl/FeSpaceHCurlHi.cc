@@ -220,22 +220,30 @@ namespace CoupledField{
     refElems_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
     refElems_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
     
     refElems_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
     refElems_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
     refElems_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+    refElems_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();
     refElems_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+    refElems_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
     refElems1St_[region][Elem::ET_TRIA3]  = new FeHCurlHiTria();
     refElems1St_[region][Elem::ET_QUAD4]  = new FeHCurlHiQuad();
     refElems1St_[region][Elem::ET_TET4]  = new FeHCurlHiTet();
+    refElems1St_[region][Elem::ET_WEDGE6]  = new FeHCurlHiWedge();
     refElems1St_[region][Elem::ET_HEXA8]  = new FeHCurlHiHex();
+    refElems1St_[region][Elem::ET_PYRA5]  = new FeHCurlHiPyra();
 
     refElems1St_[region][Elem::ET_TRIA6]  = new FeHCurlHiTria();
-    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
     refElems1St_[region][Elem::ET_QUAD8]  = new FeHCurlHiQuad();
+    refElems1St_[region][Elem::ET_TET10]  = new FeHCurlHiTet();
+    refElems1St_[region][Elem::ET_WEDGE15]  = new FeHCurlHiWedge();;
     refElems1St_[region][Elem::ET_HEXA20]  = new FeHCurlHiHex();
+    refElems1St_[region][Elem::ET_PYRA13]  = new FeHCurlHiPyra();
 
 
     

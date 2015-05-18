@@ -22,7 +22,7 @@ DEFINE_LOG(feHCurlHi, "feHCurlHi")
 //!
 //!     curl(b*F) = b x curl(F) + grad(b) x F
 //!
-//! If we further assume, that F = grad(b), we arrive at
+//! If we further assume, that F = grad(a), we arrive at
 //!
 //!     curl(b*grad(a)) = b x curl(grad(a)) + grad(b) x grad(a)
 //!
@@ -192,6 +192,49 @@ class Xpr_Diff_SVGradU<D, FeHCurlHi::CURL> {
   private:
     Double curl[D];
 };
+
+
+// -------------------------------------
+//  Expr = U*grad(V) - W*grad(X)
+// -------------------------------------
+
+template<int D, FeHCurlHi::DiffType DIFF>
+class Xpr_Diff_UGradV_min_WGradX {
+};
+
+template<int D>
+class Xpr_Diff_UGradV_min_WGradX<D, FeHCurlHi::ID> {
+  public:
+  Xpr_Diff_UGradV_min_WGradX(const AutoDiff<Double,D>& u, 
+                             const AutoDiff<Double,D>& v,
+                             const AutoDiff<Double,D>& w,
+                             const AutoDiff<Double,D>& x) {
+    for( UInt i = 0; i < D; ++i ) {
+        val[i] = u.Val() * v.DVal(i) - w.Val() * x.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return val[i];}
+  private:
+    Double val[D];
+};
+
+template<int D>
+class Xpr_Diff_UGradV_min_WGradX<D, FeHCurlHi::CURL> {
+  public:
+  Xpr_Diff_UGradV_min_WGradX(const AutoDiff<Double,D>& u, 
+                             const AutoDiff<Double,D>& v,
+                             const AutoDiff<Double,D>& x,
+                             const AutoDiff<Double,D>& w) {
+    AutoDiff<Double,D> c = Cross(u,v) - Cross(x,w);
+      for( UInt i = 0; i < D; ++i ) {
+        curl[i] = c.DVal(i);
+      }
+    }
+    Double operator[] (UInt i ) {return curl[i];}
+  private:
+    Double curl[D];
+};
+
 
 // ===============================================================
 // ELEMENTS SECTION
@@ -473,15 +516,83 @@ void FeHCurlHiQuad::CalcNumUnknowns() {
 
 }
   
-void FeHCurlHiQuad::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp,
-                              const Elem* elem, UInt comp  ) {
-  EXCEPTION("Implement me");
+void FeHCurlHiQuad::GetShFnc( Matrix<Double>& shape, 
+                             const LocPointMapped& lpm,
+                             const Elem* elem, UInt comp ) {
   
+  Matrix<Double> locShape;
+  CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
+
+  // Perform local->global gradient transformation
+  //  if (lpm.isSurface) {
+  //    // result taking from PhD of S. Zaglmayr, p.44, based on (4.20)
+  //    shape = locShape *(1.0/ lpm.lpmVol->jacDet); 
+  //  } else {
+  shape =  Transpose(lpm.jacInv) * locShape;
+  //  }
 }
 
-void FeHCurlHiQuad::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lp,
-                                     const Elem* elem, UInt comp ) {
-  EXCEPTION("Implement me");
+void FeHCurlHiQuad::GetCurlShFnc( Matrix<Double>& curl, 
+                                 const LocPointMapped& lpm,
+                                 const Elem* elem, UInt comp ) {
+
+  Matrix<Double> locCurl;    
+  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
+  
+  // Perform local->global curl transformation
+  curl = lpm.jac * locCurl;
+  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+}
+
+template<FeHCurlHi::DiffType DIFF_TYPE>
+void FeHCurlHiQuad::CalcLocShFnc2( Matrix<Double>& shape, 
+                                  const LocPointMapped& lpm,
+                                  const Elem* elem, UInt comp ) {
+  if (updateUnknowns_) CalcNumUnknowns();
+
+  AutoDiff<Double, 2> x (lpm.lp.coord[0],0);
+  AutoDiff<Double, 2> y (lpm.lp.coord[1],1);
+
+  AutoDiff<Double, 2> lambda[4] = {0.25*(1.0-x)*(1.0-y),
+                                   0.25*(1.0+x)*(1.0-y),
+                                   0.25*(1.0+x)*(1.0+y),
+                                   0.25*(1.0-x)*(1.0+y)};
+
+  AutoDiff<Double, 2> sigma[4]  = {0.5*((1.0-x)+(1.0-y)),
+                                   0.5*((1.0+x)+(1.0-y)),
+                                   0.5*((1.0+x)+(1.0+y)),
+                                   0.5*((1.0-x)+(1.0+y))};
+  shape.Resize(2,actNumFncs_);
+  shape.Init();
+
+  StdVector<AutoDiff<Double, 2> > xiVals, etaVals, zetaVals;
+
+  // ------------------------
+  // 1) Edge shape functions
+  // ------------------------
+  for( UInt i = 0; i < 4; ++i ) {
+
+    Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    fac *= 0.5;
+    UInt index1 = shape_.edgeVertices[i][0]-1;
+    UInt index2 = shape_.edgeVertices[i][1]-1;
+
+    // xi: parameterization of edge [-1;+1]
+    // eta: parameterization of extension into element [-1;+1]
+    AutoDiff<Double, 2> xi  =  sigma[index2] -  sigma[index1]; 
+    AutoDiff<Double, 2> eta = lambda[index1] + lambda[index2];
+
+    // a) standard Nedelec shape functions
+    for( UInt k = 0; k < 2; ++k ) {
+      shape[k][i] = xi.DVal(k)*eta.Val()*fac;
+    }
+    // b) gradient functions
+    if( useEdgeGrad_[i] ) {
+      EXCEPTION("NOt implemented");
+    }
+  }
+  return;
+
 }
 
 
@@ -603,7 +714,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
 
     UInt order = orderEdge_[i];
     Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
-    //fac *= 0.5;
+    fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
 
@@ -851,9 +962,11 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
     for( UInt i = 0; i < 12; ++i ) {
 
       UInt order = orderEdge_[i];
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
       UInt index1 = shape_.edgeVertices[i][0]-1;
       UInt index2 = shape_.edgeVertices[i][1]-1;
+      if ( elem->edges[i] < 0 ) {
+        std::swap(index1, index2);  // fmax > f1 > f2
+      }
 
       // xi: parameterization of edge [-1;+1]
       // eta: parameterization of extension into element [-1;+1]
@@ -861,7 +974,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
       AutoDiff<Double, 3> eta = lambda[index1] + lambda[index2];
 
       // === a) standard Nedelec shape functions ===
-      Xpr_SGradU<3,DIFF_TYPE> xpr(eta,xi*fac);
+      Xpr_SGradU<3,DIFF_TYPE> xpr(eta*0.5,xi);
       COPYSHFNC
       
       // ===  b) gradient functions ===
@@ -871,7 +984,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
             pos++;
           }
         } else {
-          IntLegendreP2(xiVals, order+1, fac*xi );
+          IntLegendreP2(xiVals, order+1, xi );
 
           for( UInt j = 0; j < order; ++j ) {
             Xpr_GradU<3,DIFF_TYPE> xpr(xiVals[j]*eta);
@@ -1346,8 +1459,170 @@ void FeHCurlHiHex::GetCurlShFnc( Matrix<Double>& curl, const LocPointMapped& lpm
   CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
   curl = lpm.jac * locCurl;
   curl *= ( 1.0 / std::abs(lpm.jacDet) );
-  
+
 }
+
+
+// ===========================
+//  Wedge / Prismatic element
+// ===========================
+
+FeHCurlHiWedge::FeHCurlHiWedge() : FeHCurlHi( Elem::ET_WEDGE6) {
+
+}
+
+FeHCurlHiWedge::~FeHCurlHiWedge() {
+
+}
+
+void FeHCurlHiWedge::GetShFnc( Matrix<Double>& shape, 
+                             const LocPointMapped& lpm,
+                             const Elem* elem, UInt comp ) {
+  
+  Matrix<Double> locShape;
+  CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
+
+  // Perform local->global gradient transformation
+  shape =  Transpose(lpm.jacInv) * locShape;
+}
+
+void FeHCurlHiWedge::GetCurlShFnc( Matrix<Double>& curl, 
+                                 const LocPointMapped& lpm,
+                                 const Elem* elem, UInt comp ) {
+
+  Matrix<Double> locCurl;    
+  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
+  
+  // Perform local->global curl transformation
+  curl = lpm.jac * locCurl;
+  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+}
+
+template<FeHCurlHi::DiffType DIFF_TYPE>
+void FeHCurlHiWedge::CalcLocShFnc2( Matrix<Double>& shape, 
+                                  const LocPointMapped& lpm,
+                                  const Elem* elem, UInt comp ) {
+  if (updateUnknowns_) CalcNumUnknowns();
+
+  AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
+  AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
+  AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
+
+  AutoDiff<Double, 3> lambda[6] = { 1.0 - x - y, x,  y, 
+                                    1.0 - x - y, x,  y };
+  AutoDiff<Double, 3> mu[6]     = { 0.5 * (1.0-z), 0.5 * (1.0-z), 0.5 * (1.0-z),
+                                    0.5 * (1.0+z), 0.5 * (1.0+z), 0.5 * (1.0+z) };  
+  UInt pos = 0;
+  shape.Resize(3, actNumFncs_);
+  shape.Init();
+  
+  // ------------------------
+  // 1) Edge shape functions
+  // ------------------------
+  
+  // a) horizontal edges (= triangular)
+  for( UInt i = 0; i < 6; ++i ) {
+
+    //UInt order = orderEdge_[i];
+    UInt index1 = shape_.edgeVertices[i][0]-1;
+    UInt index2 = shape_.edgeVertices[i][1]-1;
+    if ( elem->edges[i] < 0 ) {
+      std::swap(index1, index2);  // fmax > f1 > f2
+    }
+    
+    // === a) standard Nedelec shape functions ===
+    Xpr_Diff_SVGradU<3,DIFF_TYPE> xpr( lambda[index1], lambda[index2], mu[index1] );
+    COPYSHFNC
+    
+  } //loop: edges
+     
+  // b) vertical edges (= quad)
+  for( UInt i = 6; i < 9; ++i ) {
+
+    //UInt order = orderEdge_[i];
+    UInt index1 = shape_.edgeVertices[i][0]-1;
+    UInt index2 = shape_.edgeVertices[i][1]-1;
+    if ( elem->edges[i] < 0 ) {
+      std::swap(index1, index2);  // fmax > f1 > f2
+    }
+
+    // === a) standard Nedelec shape functions ===
+    Xpr_SGradU<3,DIFF_TYPE> xpr(  lambda[index1], mu[index2]  );
+    COPYSHFNC
+  } //loop: edges
+  return;
+
+}
+
+void FeHCurlHiWedge::CalcNumUnknowns() {
+  actNumFncs_ = 0;
+
+  // Vertices 
+  StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+  vertFncs.Resize(shape_.numVertices);
+  vertFncs.Init(0); // -> no unknowns on vertices
+
+  // Edges
+  StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+  edgeFncs.Resize(shape_.numEdges);
+  UInt unknowns = 0;
+  for( UInt i = 0; i < shape_.numEdges; ++i ) {
+    unknowns = 1; // Lowest order Nedelc functions
+    edgeFncs[i] = unknowns;
+    LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
+    actNumFncs_ += unknowns;
+  }
+
+  // Faces
+  StdVector<UInt>& faceFncs = entityFncs_[FACE];
+  faceFncs.Resize(shape_.numFaces);
+  faceFncs.Init(0);
+  // #ifdef USE_FACES
+  //   for( UInt i = 0; i < shape_.numFaces; ++i ) {
+  //     if( orderFace_[i][0] > 0 &&
+  //         orderFace_[i][1] > 0 ) {
+  //       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
+  //                 + orderFace_[i][0] + orderFace_[i][1];
+  //       if( useFaceGrad_[i])
+  //         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
+  //       faceFncs[i] = unknowns;
+  //       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
+  //       actNumFncs_ += unknowns;
+  //     }
+  //   }
+  // #endif
+
+  // Interior
+  StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+  innerFncs.Resize(1);
+  innerFncs.Init(0);
+
+  //   #ifdef USE_INNER
+  //   if( orderInner_[0] > 0 && 
+  //       orderInner_[1] > 0 && 
+  //       orderInner_[2] > 0 ) {
+  //
+  //     unknowns = 2 * (orderInner_[0] * orderInner_[1] * orderInner_[2]) 
+  //                    + orderInner_[1] * orderInner_[2] 
+  //                    + orderInner_[0] * (orderInner_[2] + orderInner_[1]);
+  //     if( useInteriorGrad_ ) { 
+  //       unknowns += orderInner_[0] * orderInner_[1] * orderInner_[2];
+  //     }
+  //     actNumFncs_ += unknowns;
+  //     innerFncs[0] = unknowns;
+  //     LOG_DBG(feHCurlHi) << "interior has " << unknowns << "unknowns";
+  //   }
+  // #endif
+
+  LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+}
+
+
+
+
+
+
+
 // =======================
 //  Tetrahedral element
 // =======================
@@ -1409,7 +1684,7 @@ void FeHCurlHiTet::CalcLocShFnc2( Matrix<Double>& shape,
     //UInt order = orderEdge_[i];
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
-   if ( elem->edges[i] < 0 ) {
+    if ( elem->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
     }
     
@@ -1424,6 +1699,172 @@ void FeHCurlHiTet::CalcLocShFnc2( Matrix<Double>& shape,
 }
 
 void FeHCurlHiTet::CalcNumUnknowns() {
+  actNumFncs_ = 0;
+
+   // Vertices 
+   StdVector<UInt>& vertFncs = entityFncs_[VERTEX];
+   vertFncs.Resize(shape_.numVertices);
+   vertFncs.Init(0); // -> no unknowns on vertices
+
+   // Edges
+   StdVector<UInt>& edgeFncs = entityFncs_[EDGE];
+   edgeFncs.Resize(shape_.numEdges);
+   UInt unknowns = 0;
+   for( UInt i = 0; i < shape_.numEdges; ++i ) {
+     unknowns = 1; // Lowest order Nedelc functions
+     edgeFncs[i] = unknowns;
+     LOG_DBG(feHCurlHi) <<   "edge " << i+1 << " has " << unknowns << "unknowns";
+     actNumFncs_ += unknowns;
+   }
+
+   // Faces
+   StdVector<UInt>& faceFncs = entityFncs_[FACE];
+   faceFncs.Resize(shape_.numFaces);
+   faceFncs.Init(0);
+// #ifdef USE_FACES
+//   for( UInt i = 0; i < shape_.numFaces; ++i ) {
+//     if( orderFace_[i][0] > 0 &&
+//         orderFace_[i][1] > 0 ) {
+//       unknowns = orderFace_[i][0] * orderFace_[i][1] // face functions of 1st kind
+//                 + orderFace_[i][0] + orderFace_[i][1];
+//       if( useFaceGrad_[i])
+//         unknowns +=  orderFace_[i][0] * orderFace_[i][1];
+//       faceFncs[i] = unknowns;
+//       LOG_DBG(feHCurlHi) << "face " << i+1 << " has " << unknowns << "unknowns";
+//       actNumFncs_ += unknowns;
+//     }
+//   }
+// #endif
+
+   // Interior
+   StdVector<UInt>& innerFncs = entityFncs_[INTERIOR];
+   innerFncs.Resize(1);
+   innerFncs.Init(0);
+
+//   #ifdef USE_INNER
+//   if( orderInner_[0] > 0 && 
+//       orderInner_[1] > 0 && 
+//       orderInner_[2] > 0 ) {
+//
+//     unknowns = 2 * (orderInner_[0] * orderInner_[1] * orderInner_[2]) 
+//                    + orderInner_[1] * orderInner_[2] 
+//                    + orderInner_[0] * (orderInner_[2] + orderInner_[1]);
+//     if( useInteriorGrad_ ) { 
+//       unknowns += orderInner_[0] * orderInner_[1] * orderInner_[2];
+//     }
+//     actNumFncs_ += unknowns;
+//     innerFncs[0] = unknowns;
+//     LOG_DBG(feHCurlHi) << "interior has " << unknowns << "unknowns";
+//   }
+// #endif
+
+   LOG_DBG(feHCurlHi) <<  "totalUnknowns: " << actNumFncs_  << std::endl;
+}
+
+
+// =======================
+//  Pyramidal element
+// =======================
+
+FeHCurlHiPyra::FeHCurlHiPyra() : FeHCurlHi( Elem::ET_PYRA5) {
+
+}
+
+FeHCurlHiPyra::~FeHCurlHiPyra() {
+
+}
+
+void FeHCurlHiPyra::GetShFnc( Matrix<Double>& shape, 
+                             const LocPointMapped& lpm,
+                             const Elem* elem, UInt comp ) {
+  
+  Matrix<Double> locShape;
+  CalcLocShFnc2<ID>(locShape, lpm, elem, comp);
+
+  // Perform local->global gradient transformation
+  shape =  Transpose(lpm.jacInv) * locShape;
+}
+
+void FeHCurlHiPyra::GetCurlShFnc( Matrix<Double>& curl, 
+                                 const LocPointMapped& lpm,
+                                 const Elem* elem, UInt comp ) {
+
+  Matrix<Double> locCurl;    
+  CalcLocShFnc2<CURL>( locCurl, lpm, elem, comp );
+  
+  // Perform local->global curl transformation
+  curl = lpm.jac * locCurl;
+  curl *= ( 1.0 / std::abs(lpm.jacDet) );
+}
+
+template<FeHCurlHi::DiffType DIFF_TYPE>
+void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape, 
+                                  const LocPointMapped& lpm,
+                                  const Elem* elem, UInt comp ) {
+  if (updateUnknowns_) CalcNumUnknowns();
+
+  AutoDiff<Double, 3> x (lpm.lp.coord[0],0);
+  AutoDiff<Double, 3> y (lpm.lp.coord[1],1);
+  
+  // trick: subtract a "tiny" part of z to ensure
+  // that the z-coordinate is well-defined
+  AutoDiff<Double, 3> z (lpm.lp.coord[2],2);
+  
+  AutoDiff<Double, 3> lambda[5] = { 0.25*((1.0 + x) * (1.0 + y) - z + (x*y*z)/(1.0-z)),
+                                    0.25*((1.0 - x) * (1.0 + y) - z - (x*y*z)/(1.0-z)),
+                                    0.25*((1.0 - x) * (1.0 - y) - z + (x*y*z)/(1.0-z)),
+                                    0.25*((1.0 + x) * (1.0 - y) - z - (x*y*z)/(1.0-z)),
+                                    z} ;
+  
+  UInt pos = 0;
+  shape.Resize(3,actNumFncs_);
+  shape.Init();
+  for( UInt i = 0; i < 4; ++i ) {
+
+    UInt index1 = shape_.edgeVertices[i][0]-1; // i
+    UInt index2 = shape_.edgeVertices[i][1]-1; // j
+    UInt index3 = (index2+1)%4;                // k  
+    UInt index4 = (index1+3)%4;                // l
+    if ( elem->edges[i] < 0 ) {
+      std::swap(index1, index2);  // fmax > f1 > f2
+      std::swap(index3, index4);
+    }
+    //    std::cerr << "edge #" << i+1 << ", " << index1+1 << " -> " << index2+1 << std::endl;
+    //    std::cerr << "edge j-k, " << index2+1 << ", " << index3+1 << std::endl;
+    //    std::cerr << "edge i-l, " << index1+1 << ", " << index4+1 << std::endl << std::endl;
+    //    std::cerr << "\n\n";
+
+
+
+    AutoDiff<Double, 3>  arg1 = lambda[index2] + lambda[index3];
+    AutoDiff<Double, 3>  arg2 = lambda[index1] + lambda[index4];
+    // ===  standard Nedelec shape functions ===
+    Xpr_Diff_UGradV_min_WGradX<3,DIFF_TYPE> xpr(lambda[index1], arg1,
+                                                lambda[index2], arg2);
+
+    COPYSHFNC
+  } //loop: edges
+  
+  
+  // b) vertical edges (5-8)
+  for( UInt i = 4; i < 8; ++i ) {
+
+    UInt index1 = shape_.edgeVertices[i][0]-1;
+    UInt index2 = shape_.edgeVertices[i][1]-1;
+    if ( elem->edges[i] < 0 ) {
+      std::swap(index1, index2);  // fmax > f1 > f2
+    }
+
+    // ===  standard Nedelec shape functions ===
+    Xpr_Diff_VGradU<3,DIFF_TYPE> xpr(lambda[index1], lambda[index2] );
+    COPYSHFNC
+  } //loop: edges
+     
+  return;
+  
+}
+
+void FeHCurlHiPyra::CalcNumUnknowns() {
   actNumFncs_ = 0;
 
    // Vertices 
