@@ -59,7 +59,7 @@ if args.width <> 1.0:
 if args.height is not None:
   res_name += '-h_' + str(args.height).replace('.', '_')
 if args.inclusion:
-  res_name += '_' + args.inclusion # + '_' + str(args.inclusion_size).replace('.', '_')
+  res_name += '_' + args.inclusion + '_' + str(args.inclusion_size).replace('.', '_')
 if args.patch:
   res_name += '_' + args.patch   
 
