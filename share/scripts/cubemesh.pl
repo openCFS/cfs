@@ -156,7 +156,7 @@ if($dim == 3){
  for($z = 0; $z < $nz; ++$z){
   for($y = 0; $y < $ny; ++$y){
    for($x = 0; $x < $nx; ++$x){
-    printf("%d %d %d %s\n", ++$c, 10, 8, "cube");
+    printf("%d %d %d %s\n", ++$c, 10, 8, "mech");
 #   printf("%d %d %d %d %d %d %d %d\n", nodenr($x,$y,$z+1), nodenr($x,$y+1,$z+1), nodenr($x+1,$y+1,$z+1), nodenr($x+1,$y,$z+1), nodenr($x,$y,$z), nodenr($x,$y+1,$z), nodenr($x+1,$y+1,$z), nodenr($x+1,$y,$z));
     printf("%d %d %d %d %d %d %d %d\n", (($z+1)*$nny+$y)*$nnx+$x+1, (($z+1)*$nny+$y+1)*$nnx+$x+1, (($z+1)*$nny+$y+1)*$nnx+$x+2, (($z+1)*$nny+$y)*$nnx+$x+2, ($z*$nny+$y)*$nnx+$x+1, ($z*$nny+$y+1)*$nnx+$x+1, ($z*$nny+$y+1)*$nnx+$x+2, ($z*$nny+$y)*$nnx+$x+2);
    }
@@ -205,7 +205,7 @@ for($z = 0; $z < $nz; ++$z){
 if($dim == 3){
  $region = "backsurface";
 }else{
- $region = "cube";
+ $region = "mech";
 }
 for($y = 0; $y < $ny; ++$y){
  for($x = 0; $x < $nx; ++$x){

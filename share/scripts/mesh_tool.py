@@ -668,15 +668,32 @@ def create_lbm3d(x_res, y_res, z_res, case):
   mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
   
   if case == 'pipe_bend':
-    for i in range(0,int(0.2*nz)):
-      mesh.ne.append(('inlet', range(int(0.4*nx*ny*nz + 0.1*nx*ny + i*nx*ny), int(0.4*nx*ny*nz + 0.3*nx*ny + i*nx*ny), nx)))
-      mesh.ne.append(('outlet', range(int(0.4*nx*ny*nz - 0.3*nx + i*nx*ny),int(0.4*nx*ny*nz - 0.1*nx + i*nx*ny),1)))
+    for i in range(int(0.8*nz-eps),nz-1):
+      mesh.ne.append(('inlet',range(int(nx*ny*i+nx),int(nx*ny*i+0.2*(nx+1)*ny),nx)))
+    for i in range(0,int(0.2*nx*ny*nz),nx*ny):
+      mesh.ne.append(('outlet',range(int(2*nx*ny-0.2*nz-eps+i),int(2*nx*ny-1+i),1)))
+#     for i in range(0,int(0.2*nz)):
+#        mesh.ne.append(('outlet', range(int(0.4*nx*ny*nz - 0.3*nx + i*nx*ny),int(0.4*nx*ny*nz - 0.1*nx + i*nx*ny),1)))
   elif case == 'extend_inlet':
     for i in range (0,nz):
-        mesh.ne.append(('inlet',range(int(0.1*nx*ny + i*nx*ny), int(0.4*nx*ny + i*nx*ny),nx)))
-        mesh.ne.append(('outlet', range(int(nx*ny-0.4*nx+ i*nx*ny), int(nx*ny-0.1*nx+ i*nx*ny), 1)))
+      mesh.ne.append(('inlet',range(int(0.1*nx*ny + i*nx*ny), int(0.4*nx*ny + i*nx*ny),nx)))
+      mesh.ne.append(('outlet', range(int(nx*ny-0.4*nx+ i*nx*ny), int(nx*ny-0.1*nx+ i*nx*ny), 1)))
+  elif case == 'pipe':
+    for i in range (1,nz-1):
+      mesh.ne.append(('inlet', range(int(i*nx*ny+ny),int(i*nx*ny+(nx-1)*ny),nx)))
+      mesh.ne.append(('outlet', range(int(i*nx*ny + 2*nx-1),int(i*nx*ny + 2*nx-1+nx*(ny-2)),nx)))
+#     mesh.ne.append(('outlet', [nx*ny + 2*nx-1+nx*(ny-3)]))
   elif case == 'two_inlet_one_outlet':
     print "Not implemented yet!"
+  elif case == 'distributor':
+    for i in range(int(round(0.4*nz)),int(round(0.6*nz))):
+      mesh.ne.append(('inlet',range(int(round(i*nx*ny-0.6*nx)),int(round(i*nx*ny-0.4*nx)),1)))
+    for i in range(int(round(0.5*nz)),int(round(0.6*nz))):
+      mesh.ne.append(('outlet',range(int(round(i*nx*ny+0.5*ny*nx)),int(round(i*nx*ny+0.6*ny*nx)),nx))) #left face
+      mesh.ne.append(('outlet',range(int(round(i*nx*ny+0.5*ny*nx+nx-1)),int(round(i*nx*ny+0.6*ny*nx+nx-1)),nx))) #right face
+    for i in range(int(round(0.5*ny)),int(round(0.6*ny))):
+      mesh.ne.append(('outlet',range(int(round(i*nx+0.5*nx)),int(round(i*ny+0.6*nx)),1))) #back face
+      mesh.ne.append(('outlet',range(int(round(i*nx+0.5*nx+nx*ny*(nz-1))),int(round(i*ny+0.6*nx+nx*ny*(nz-1))),1))) #front face
 #     mesh.ne.append(('inlet', range(int((0.25 - 1./16) *nx*ny + eps), int((0.25 + 1./16) *nx*ny + nx + eps), nx) ))
 #     mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))
 #     mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))

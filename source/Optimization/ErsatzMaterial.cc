@@ -1767,6 +1767,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
     // only for physical
     // TODO: assumes a single transfer function for all regions!
+    // TODO: MECH ist stupid when we do LBM
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
     unsigned int numEls = f->elements.GetSize();

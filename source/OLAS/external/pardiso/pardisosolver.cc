@@ -261,6 +261,7 @@ extern "C" {
     // factorisation
     bool facSymbolic = false;
     bool facNumeric = true;
+//    bool facNumeric = false;
 
     // No factorisation available, so perform both steps
     if ( firstCall_ == true ) {
@@ -597,7 +598,7 @@ extern "C" {
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
-
+      tSymfact_.Start();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
@@ -628,20 +629,29 @@ extern "C" {
       else {
         LOG_TRACE(pardisoSolver) << "done";
       }
-    }
 
+      tSymfact_.Stop();
+      solverInfo_->Get("symbfact/timer/cpu")->SetValue(tSymfact_.GetCPUTime());
+      solverInfo_->Get("symbfact/timer/wall")->SetValue(tSymfact_.GetWallTime());
+      solverInfo_->Get("symbfact/timer/calls")->SetValue(tSymfact_.GetCalls());
+    }
 
     // =========================
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
-
+      tNumfact_.Start();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
 
       // only factorise (numerical)
       int phase = 22;
+
+//      std::cout << "pardiso(" << "x," << maxfct_ << "," << mnum_ << "," << mType_ << "," <<
+//                phase << "," << probDim_ << "," << theMatrix_ << "," << rowPtr_ << "," <<  colPtr_ << "," <<
+//                                         idPerm_ << "," << nrhs_ << "," <<  iparm_[0] << "," <<  msgLvl_ << "," <<  zeroDBL_ << "," <<
+//                                         zeroDBL_ << "," << errorFlag << "," <<  dparm_[0] << ")" << "\n";
 
       // let pardiso go for it
 #if PARDISO_API_VER == 4
@@ -665,8 +675,18 @@ extern "C" {
       }
       else {
         LOG_TRACE(pardisoSolver) << "done";
+        LOG_TRACE(pardisoSolver) << "Memory consumption during numerical factorization and solution: " << iparm_[16] << "kBytes";
       }
+
+      tNumfact_.Stop();
+      solverInfo_->Get("numfact/timer/cpu")->SetValue(tNumfact_.GetCPUTime());
+      solverInfo_->Get("numfact/timer/wall")->SetValue(tNumfact_.GetWallTime());
+      solverInfo_->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
+
+    solverInfo_->Get("symbfact/memory/peak")->SetValue(iparm_[14]);
+    solverInfo_->Get("symbfact/memory/permanent")->SetValue(iparm_[15]);
+    solverInfo_->Get("numfact/memory/peak")->SetValue(iparm_[16]);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
@@ -680,7 +700,6 @@ extern "C" {
       colPtr_[i] -= 1;
 
   }
-
 
 
   // *************************

@@ -252,6 +252,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   in->Get("MFLUP_s")->SetValue(performance);
   in->Get("walltime")->SetValue(wt);
+  in->Get("memory")->SetValue(sizeof(double) * m_nNodes * n_q_ * 2.0 / 1024.0 / 1024.0);
 
   if(R >= 1000)
     EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");

@@ -856,7 +856,8 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
-    if(tf->GetApplication() != application)
+    // it would be better to call CalcTrivialVolume() not unconditionally with app = MECH (fails for LBM)
+    if(transfer.GetSize() > 1 && tf->GetApplication() != application) // be only that sensitive when we have more than one transfer function
       continue;
     if(tf->GetDesign() == design)
       return tf;

@@ -7,7 +7,7 @@ parser.add_argument("--res", help="x-discretization of length 1m", type=int, req
 parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d'], required = True)
-parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend', 'extend_inlet'])
+parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend', 'extend_inlet','pipe','distributor'])
 parser.add_argument('--file', help="optional give output file name. ")
 
 args = parser.parse_args()

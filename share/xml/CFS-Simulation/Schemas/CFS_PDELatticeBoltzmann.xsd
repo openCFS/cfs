@@ -92,7 +92,7 @@
                 </xsd:annotation>              
              </xsd:attribute>
              
-             <xsd:attribute name="writeFrequency" type="xsd:positiveInteger" use="optional" default="1000000">
+             <xsd:attribute name="writeFrequency" type="xsd:positiveInteger" use="optional" default="999999">
                <xsd:annotation>
                   <xsd:documentation>frequency for writing out simulation results, e.g. for 10: every 10th iteration results are written out</xsd:documentation>
                </xsd:annotation>              

@@ -570,7 +570,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
   PtrParamNode analysis_id = domain->GetDriver()->CreateAnalysisId("lbm_adjoint", 0);
   algsys_->SetupSolver(analysis_id);
-  // !!!!! The problem needs to be solved transposed!!! For pardiso this is <Transposed>transposed</Transposed>!!!
   algsys_->Solve(analysis_id);
   Vector<double> sol;
   algsys_->GetSolutionVal(sol);
