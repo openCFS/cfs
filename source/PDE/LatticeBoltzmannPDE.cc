@@ -48,6 +48,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Objective.hh"
 #include "Utils/result.hh"
 #include "MatVec/vector.hh"
 #include "MatVec/stdmatrix.hh"
@@ -319,6 +320,12 @@ namespace CoupledField {
     in->Get("convergence")->SetValue(convergence_);
     in->Get("iface")->SetValue(iface.ToString(iface_));
 
+    //calculate Reynolds number of fluid flow
+    // re = inletSize * |u| / dyn. viscosity
+    double Re = inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / (1/3.0 * (1/omega_ - 0.5));
+
+    in->Get("Re")->SetValue(Re);
+
     // in the constructor we don't have the densities yet
     SetupElements();
 
@@ -373,13 +380,28 @@ namespace CoupledField {
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
         pdfs = *tmp;
-        in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
+        switch (domain->GetOptimization()->objectives.data[0]->GetType()) {
+          case Function::PRESSURE_DROP:
+            in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
-        pdfs = *tmp;
-        lbm->prop_step();
+            pdfs = *tmp;
+            lbm->prop_step();
 
-        pdfs = *tmp;
-        in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
+            pdfs = *tmp;
+            in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
+            break;
+          case Function::FLOW_RATE:
+            in->Get("original_flow_rate")->SetValue(CalcFlowRate());
+
+            pdfs = *tmp;
+            lbm->prop_step();
+
+            pdfs = *tmp;
+            in->Get("prop_step_flow_rate")->SetValue(CalcFlowRate());
+            break;
+          default:
+            break;
+        }
 
         numWriteResults_ = lbm->GetNumWriteResults();
 
@@ -1182,6 +1204,21 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
     out += CalcPressure(outlet[i]);
 
   return in / inlet.GetSize() - out / outlet.GetSize();
+}
+
+double LatticeBoltzmannPDE::CalcFlowRate()
+{
+  double flowRate = 0.0;
+  // flow rate at outlet
+  for(unsigned int i = 0; i < outlet.GetSize(); i++) {
+    double rho = CalcLBMDensity(outlet[i]);
+    double u_x = CalcVelocityX(outlet[i], rho);
+    double u_y = CalcVelocityY(outlet[i], rho);
+    double u_z = CalcVelocityZ(outlet[i], rho);
+    // area of each element is 1
+    flowRate += CalcLBMDensity(outlet[i]) * sqrt(u_x * u_x + u_y * u_y + u_z * u_z);
+  }
+  return flowRate;
 }
 
 void LatticeBoltzmannPDE::ExtractDistribution( shared_ptr<BaseResult> base_result ){

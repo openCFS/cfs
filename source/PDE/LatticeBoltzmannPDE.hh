@@ -83,11 +83,14 @@ public:
   /** For the olt multi-file interface, reads the files x_pardiso2.dat and dRdp.mtx and computes the gradient */
   void SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f);
 
-  /** Üerform postprocessing on data. */
+  /** Perform postprocessing on data. */
   void CalcResults( shared_ptr<BaseResult> result );
 
   /** implementation of objective function */
   double CalcPressureDrop();
+
+  /** Another objective function: Flow rate at outlet*/
+  double CalcFlowRate();
 
   //! returns if PDE can compute the quantity
 //  virtual bool HasOutput(SolutionType output);

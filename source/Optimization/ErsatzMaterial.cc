@@ -1514,6 +1514,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
+      case Function::FLOW_RATE:
       assert(false);// shall be handled before
       break;
 

@@ -103,6 +103,7 @@ class Function
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
+      FLOW_RATE,                 /*!< LBM flow rate at outlet */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */
