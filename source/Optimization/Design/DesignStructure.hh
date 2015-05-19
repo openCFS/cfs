@@ -23,7 +23,7 @@ namespace CoupledField
 {
 class ErsatzMaterial;
 
-/** This class has two purposes: it sets the the filter for DesignElement (sensitivity filter)
+/** This class has two purposes: it sets the filter for DesignElement (density and sensitivity filter)
  * and it provides the periodic b.c. for VinicityElement (slopes).
  * It has expensive arrays. You might delete them !*/
  class DesignStructure
