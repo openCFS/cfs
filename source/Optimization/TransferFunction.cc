@@ -126,6 +126,7 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
+  case DesignElement::SHEAR1:
   case DesignElement::ROTANGLE2:
   case DesignElement::SCALING1:
   case DesignElement::SCALING2:
