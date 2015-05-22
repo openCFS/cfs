@@ -148,7 +148,6 @@ namespace CoupledField {
     //  test_matrix();
 
     // LBM parametes
-    omega_       = myParam_->Get("LBM/omega")->As<double>();
     maxWallTime_ = myParam_->Get("LBM/maxWallTime")->As<double>();
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
@@ -194,6 +193,22 @@ namespace CoupledField {
     outlet.Resize(tmp.GetSize());
     for(unsigned int i = 0; i < outlet.GetSize(); ++i)
       outlet[i] = elem_to_idx[tmp[i]->elemNum];
+
+
+    if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re"))
+      EXCEPTION("Either omega or Re can be prescribed in XML file!");
+    if (myParam_->Has("LBM/omega")) {
+      omega_       = myParam_->Get("LBM/omega")->As<double>();
+      //calculate Reynolds number of fluid flow
+      // re = inletSize * |u| / dyn. viscosity
+      Re_ = inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / (1/3.0 * (1/omega_ - 0.5));
+    }
+    else if (myParam_->Has("LBM/Re")) {
+      Re_       = myParam_->Get("LBM/Re")->As<double>();
+      omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / Re_ + 0.5);
+      if (omega_ >= 2)
+        EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!")
+    }
 
     //Initializing storage for PDFs
     pdfs.Resize(n_elems * n_q_);
@@ -319,12 +334,7 @@ namespace CoupledField {
     in->Get("maxWallTime")->SetValue(maxWallTime_);
     in->Get("convergence")->SetValue(convergence_);
     in->Get("iface")->SetValue(iface.ToString(iface_));
-
-    //calculate Reynolds number of fluid flow
-    // re = inletSize * |u| / dyn. viscosity
-    double Re = inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / (1/3.0 * (1/omega_ - 0.5));
-
-    in->Get("Re")->SetValue(Re);
+    in->Get("Re")->SetValue(Re_);
 
     // in the constructor we don't have the densities yet
     SetupElements();

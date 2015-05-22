@@ -275,10 +275,11 @@ private:
   /** this are the indices of the outlet elements */
   StdVector<unsigned int> outlet;
 
-  double omega_;
+  double omega_; /** molecular collision frequency */
+  double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;
   unsigned int maxIter_;
-  double convergence_;
+  double convergence_; /** value for convergence criterion */
   unsigned int writeFrequency_;
 
   // inlet velocities
