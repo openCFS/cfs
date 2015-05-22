@@ -89,7 +89,7 @@ public:
   /** implementation of objective function */
   double CalcPressureDrop();
 
-  /** Another objective function: Flow rate at outlet*/
+  /** Another objective function: Mass flow rate*/
   double CalcFlowRate();
 
   //! returns if PDE can compute the quantity
@@ -139,6 +139,9 @@ private:
 
   inline double CalcPressure(unsigned int idx) const;
 
+  /** Calculate volumetric flow rate (u*A) through surface of element with index idx. pdfDir is the pdf direction in which the outflow surface lies*/
+  inline double CalcVolFlowRate(unsigned int idx, unsigned int pdfDir) const;
+
   inline double GetPdf(unsigned int idx, int dir) const  {
     return pdfs[idx * n_q_ + dir];
   };
@@ -159,17 +162,24 @@ private:
     return index * n_q_ + dir;
   }
 
-  inline bool OutsideDomain(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
+  inline bool PointsToBoundary(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
   {
-    LatticeBoltzmann::LatticeVector tmp = (*microDirections)[dir];
+    LatticeBoltzmann::PDFDirectionVector tmp = (*microVelDirections_)[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
     int tmp_z = z + tmp.off_z;
     return (tmp_x < 0 || tmp_x >= (int)n_x_ || tmp_y < 0 || tmp_y >= (int)n_y_ || tmp_z < 0 || tmp_z >= (int)n_z_) ;
   }
 
-  // testing OusideDomain()
-  void TestOutsideDomain();
+  // testing PointsToBoundary()
+  void TestPointsToBoundary();
+
+  /** Calculate if given pdf direction points to  an element's surface */
+  inline bool PointsToSurface(unsigned int pdfDir)
+  {
+    // A pdf points to a surface if its direction vector is 1 --> unit vector
+    return fabs((*microVelDirections_)[pdfDir].off_x + (*microVelDirections_)[pdfDir].off_y + (*microVelDirections_)[pdfDir].off_z) == 1;
+  }
 
   //! Calculate macroscopic velocities
   void CalcVelocities(shared_ptr<BaseResult> res);
@@ -200,6 +210,9 @@ private:
   /**  This method computes the indices of the adjoint system which avoid a singular Jacobian. Based on Georg Pingen and Thomas Guess, see non_singularities_new.m */
   void SetNonSingualrityIndices();
 
+  /** Compute and store PDF direction of an outlet element pointing to a outlet surface. We need this information to calculate the flow rate. */
+  void SetOutlfowPDFs();
+
   // void DeleteSingularities(const compressed_matrix<double> & M,compressed_matrix<double> & output);
   void DeleteSingularities(const mapped_matrix<double> & M, compressed_matrix<double> & output);
 
@@ -218,6 +231,9 @@ private:
 //  void d_propagate_d_f_inDir(mapped_matrix<double>& Jprop, const mapped_matrix<double> & J,int dir);
 
   Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz);
+
+  //! derivative of flow rate objective function
+  Vector<double> d_flowrate_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
   void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
@@ -287,8 +303,10 @@ private:
   double u_y_;
   double u_z_;
 
-  StdVector<LatticeBoltzmann::LatticeVector>* microDirections;
-  StdVector<LatticeBoltzmannBase::Direction>* inverseDirections;
+  StdVector<LatticeBoltzmann::PDFDirectionVector>* microVelDirections_;
+  StdVector<LatticeBoltzmannBase::Direction>* invPDFDirections_;
+  /** Storage for PDF directions of outlet elements pointing to a boundary surface. We need this information to calculate the flow rate. */
+  StdVector<LatticeBoltzmannBase::Direction>* PDFToBoundarySurfaces;
 
   /** external lbm */
   std::string executable;

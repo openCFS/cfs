@@ -32,13 +32,13 @@ namespace CoupledField
   class LatticeBoltzmann: LatticeBoltzmannBase
   {
     public:
-      struct LatticeVector{
+      struct PDFDirectionVector{
         int off_x;
         int off_y;
         int off_z;
-        LatticeVector(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
-        LatticeVector(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
-        LatticeVector(): off_x(1),off_y(0), off_z(0){}
+        PDFDirectionVector(int offx, int offy, int offz): off_x(offx), off_y(offy), off_z(offz){}
+        PDFDirectionVector(int offx, int offy): off_x(offx), off_y(offy), off_z(0){}
+        PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
       LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
@@ -63,8 +63,8 @@ namespace CoupledField
        */
       inline int GetNumWriteResults() { return m_numWriteResults; }
 
-      inline StdVector<LatticeVector>* GetVelocityDirections() { return &microDirections; }
-      inline StdVector<Direction>* GetInverseDirections() { return &inverseDirections; }
+      inline StdVector<PDFDirectionVector>* GetPDFDirectionVectors() { return &microVelDirections; }
+      inline StdVector<Direction>* GetinvPDFDirections() { return &invPDFDirections; }
 
     private:
 
@@ -104,7 +104,7 @@ namespace CoupledField
           inline int GetInvDirection(Direction dir)
           {
             assert(directions.IsValid(dir));
-            return inverseDirections[dir];
+            return invPDFDirections[dir];
           }
 
           void TestInvDirections();
@@ -162,9 +162,9 @@ namespace CoupledField
 
           void create_output(const char * file, int cur);
 
-          inline bool OutsideDomain(int x, int y, int z, int dir)
+          inline bool PointsToBoundary(int x, int y, int z, int dir)
           {
-            LatticeVector tmp = microDirections[dir];
+            PDFDirectionVector tmp = microVelDirections[dir];
             int tmp_x = x + tmp.off_x;
             int tmp_y = y + tmp.off_y;
             int tmp_z = z + tmp.off_z;
@@ -225,9 +225,9 @@ namespace CoupledField
           StdVector< StdVector<double> > m_pdfs;
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
-          StdVector<LatticeVector> microDirections;
-          // lookup table to get inverse directions
-          StdVector<Direction> inverseDirections;
+          StdVector<PDFDirectionVector> microVelDirections;
+          // lookup table to get inverse directions of the pdfs
+          StdVector<Direction> invPDFDirections;
           int m_cur;
           int m_next;
 
