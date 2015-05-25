@@ -355,7 +355,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with itself
     //!\param vec1 (input) Vector which gets multiplied with itself
-    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //!  m_{21} & m_{22} & \cdots \\
     //!  \cdots & \cdots & \cdots 
     //!  \end{array} \right) 
@@ -374,7 +374,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with a vector vec2
     //! \param vec1 (input) Vector which gets multiplied with itself
-    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //! m_{21} & m_{22} & \cdots \\
     //! \cdots & \cdots & \cdots 
     //! \end{array} \right) 

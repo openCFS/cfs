@@ -1511,14 +1511,12 @@ namespace CoupledField
       {
         case Global::REAL:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = partMatrix.data_[0][k];
-            data_[0][k].imag() = 0.0;
+            data_[0][k] = Complex(partMatrix.data_[0][k], 0.0);
           }
           break;
         case Global::IMAG:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = 0.0;
-            data_[0][k].imag() = partMatrix.data_[0][k];
+            data_[0][k] = Complex(0.0, partMatrix.data_[0][k]);
           }
           break;
         default:
@@ -1534,12 +1532,12 @@ namespace CoupledField
       {
         case Global::REAL:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = partMatrix.data_[0][k];
+            data_[0][k] = Complex(partMatrix.data_[0][k], 0.0);
           }
           break;
         case Global::IMAG:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].imag() = partMatrix.data_[0][k];
+            data_[0][k] = Complex(0.0, partMatrix.data_[0][k]);
           }
           break;
         default:
@@ -1579,14 +1577,12 @@ namespace CoupledField
       {
         case Global::REAL:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = partMatrix.data_[0][k] * factor;
-            data_[0][k].imag() = 0.0;
+            data_[0][k] = Complex(partMatrix.data_[0][k] * factor, 0.0);
           }
           break;
         case Global::IMAG:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = 0.0;
-            data_[0][k].imag() = partMatrix.data_[0][k] * factor;
+            data_[0][k] = Complex(0.0, partMatrix.data_[0][k] * factor);
           }
           break;
         default:
@@ -1601,12 +1597,12 @@ namespace CoupledField
       {
         case Global::REAL:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].real() = partMatrix.data_[0][k] * factor;
+            data_[0][k] = Complex(partMatrix.data_[0][k] * factor, 0.0);
           }
           break;
         case Global::IMAG:
           for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k) {
-            data_[0][k].imag() = partMatrix.data_[0][k] * factor;
+            data_[0][k] = Complex(0.0, partMatrix.data_[0][k] * factor);
           }
           break;
         default:

@@ -796,7 +796,7 @@ namespace CoupledField {
     // the surface element. Then calculate the product of all four
     // and compare them
     //      + 6    
-    //     /|\   
+    //     /|\
     //    / |  \           zeta
     // 4 +----- + 5         ^  eta
     //   |  + 3 |           |/ 
