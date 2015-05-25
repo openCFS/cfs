@@ -2,6 +2,8 @@ SET(IDCOMP_TEMPL "${CFS_SOURCE_DIR}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
 SET(IDENTIFY_COMPILER_SRC "IdentifyCXXCompiler.cpp")
 
+include(CheckCXXSourceCompiles)
+
 #-------------------------------------------------------------------------------
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
@@ -176,13 +178,15 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
   IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR
      CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
+    IF(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
+    ENDIF()
   ENDIF()
 
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
 
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-c++11-extensions")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
@@ -197,6 +201,18 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
       #-------------------------------------------------------------------------
     SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
     ENDIF()
+
+    # Check wether the compiler has the -sysroot= flag.
+    SET(CXX_HAS_SYSROOT_FLAG_SOURCE "
+int
+main ()
+{
+  return 0;
+}
+")
+    SET(CMAKE_REQUIRED_FLAGS "-sysroot=${CMAKE_OSX_SYSROOT}")
+    CHECK_CXX_SOURCE_COMPILES("${CXX_HAS_SYSROOT_FLAG_SOURCE}" CXX_HAS_SYSROOT_FLAG)
+    UNSET(CMAKE_REQUIRED_FLAGS)
   ENDIF()
 
 
