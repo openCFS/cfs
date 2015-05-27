@@ -194,7 +194,6 @@ namespace CoupledField {
     for(unsigned int i = 0; i < outlet.GetSize(); ++i)
       outlet[i] = elem_to_idx[tmp[i]->elemNum];
 
-
     if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re"))
       EXCEPTION("Either omega or Re can be prescribed in XML file!");
     if (myParam_->Has("LBM/omega")) {
@@ -240,7 +239,6 @@ namespace CoupledField {
     for(unsigned int i = 0; i < regions.GetSize(); i++)
     {
       RegionIdType reg = grid->GetRegion().Parse(regions[i]->Get("name")->As<std::string>());
-
       if(regions[i]->Get("boundary")->As<bool>())
       {
         if(boundary_reg_ != -1)
@@ -489,7 +487,6 @@ namespace CoupledField {
       }
     }
   }
-
 }
 
 
@@ -1555,6 +1552,7 @@ void LatticeBoltzmannPDE::SetupElements()
   // find out which elements are inlet, outlet, boundary and inner ones
   StdVector<Elem*> elems;
   StdVector<Elem*> boundaries;
+  StdVector<Elem*> obstacles;
   // auxiliary vector
   // vector initialized with porosity value of inner cells
   elements.Resize(n_elems, 0.0);
@@ -1584,10 +1582,13 @@ void LatticeBoltzmannPDE::SetupElements()
   //specify regionId for boundary and inner region
   int boundId = -1;
   int innerId = -1;
+  int inclusionId = -1;
 
   for (UInt i = 0; i<regionNames.GetSize(); ++i) {
     if (regionNames[i] == "boundary")
       boundId = i;
+    else if (regionNames[i] == "inner")
+      inclusionId = i;
     else
       innerId = i;
   }
@@ -1596,9 +1597,15 @@ void LatticeBoltzmannPDE::SetupElements()
 
   grd->GetElems(boundaries,boundId);
   grd->GetElems(elems,innerId);
+
   for (unsigned int i = 0; i < boundaries.GetSize(); ++i)
     elements[boundaries[i]->elemNum - 1] = -1.0;
-
+  // if there are obstacles in the domain
+  if (inclusionId != -1) {
+    grd->GetElems(obstacles,inclusionId);
+    for (unsigned int i = 0; i < obstacles.GetSize(); ++i)
+      elements[obstacles[i]->elemNum - 1] = 1.0;
+  }
   for(unsigned int i = 0; i < inlet.GetSize(); ++i)
     elements[inlet[i]] = -2.0;
   for(unsigned int i = 0; i < outlet.GetSize(); ++i)

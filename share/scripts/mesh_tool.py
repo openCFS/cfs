@@ -415,28 +415,42 @@ def create_2d_mesh(type, x_res, y_res):
   return mesh
 
 ## creates a mesh of predefined geometry
-def create_3d_mesh(x_res, y_res, z_res):
+## creates a mesh of predefined geometry
+def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
+  assert(type == "bulk3d" or type == "cantilever3d")
   mesh = Mesh()
 
-  nx = x_res
-  ny = y_res if y_res <> None else x_res
-  nz = z_res if z_res <> None else x_res
+  if (type == "bulk3d"):
+    nx = x_res
+    ny = y_res if y_res <> None else x_res
+    nz = z_res if z_res <> None else x_res
+    
+    width = 1.0
+    dx = width / nx
+    
+    height = float(ny)/nx
+    dy = height / ny
+    
+    depth = float(nz)/nx
+    dz = depth / nz
+  elif (type == "cantilever3d"):
+    nx = x_res
+    ny = int(nx * (2./3.))
+    nz = int(nx * (2./3.))
+    
+    width = 3.0
+    height = 2.0
+    depth = 2.0
+    
+    dx = width / nx
+    dy = height / ny
+    dz = depth / nz
+    
 
   nnx = nx+1
   nny = ny+1
   nnz = nz+1
-  
-  width = 1.0
-  dx = width / nx
-  
-  height = float(ny)/nx
-  dy = height / ny
-  
-  depth = float(nz)/nx
-  dz = depth / nz
-  
-  eps = 1e-4
-
+    
   print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
   
   
@@ -466,26 +480,38 @@ def create_3d_mesh(x_res, y_res, z_res):
       for x in range(nnx): # fastest variable
         mesh.nodes.append((x * dx, y * dy, z * dz))
  
+  # count second region
+  second = 0 
+  
   for z in range(nz):
     for y in range(ny):
       for x in range(nx):
         e = Element()
         e.density = 1.0
         e.type = HEXA8
-        e.region = 'mech'
-
-        # assign nodes
-        # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
-        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
-        # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane
-        # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))  
-        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        if inclusion == 'rect' and x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
+                   and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size) \
+                   and z >= nnz/2 * (1 - inclusion_size) and z < nnz/2 * (1 + inclusion_size) :
+                        e.region = 'inner'
+                        second += 1  
+        elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size:
+            e.region = 'inner'
+            second += 1    
+        else:
+            e.region = 'mech'
+  
+            # assign nodes
+            # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront
+            ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+            # start with upper-front-left counterclockwise in the x-z plane. Repeat in then lower plane
+            # e.nodes = ((ll+(nx+1), ll+1+(nx+1), ll+1+(nx+1)+((nx+1)*(ny+1)),ll+(nx+1)+((nx+1)*(ny+1)),ll, ll+1, ll+1+((nx+1)*(ny+1)),ll+((nx+1)*(ny+1))))  
+            e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
         
         mesh.elements.append(e)
 
   mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
-  
+
   side = (("bottom", []))
   mesh.bc.append(side)
   for z in range(0, nnz):
@@ -513,6 +539,10 @@ def create_3d_mesh(x_res, y_res, z_res):
   mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
   mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
   
+  
+  if second > 0:
+    print str(second) + ' elements of secondary region (' + str(100.0 * second / (nnx * nny * nnz)) + '%)'
+    
   return mesh
 
 ## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
@@ -527,6 +557,9 @@ def create_lbm2d(resolution, case):
   
   dx = size / nx
   
+  nnx = nx+1
+  nny = ny+1
+  
   eps = 1e-4
 
 
@@ -534,23 +567,46 @@ def create_lbm2d(resolution, case):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dx))
  
+  # count second region
+  second = 0 
+  inclusion_size = 0.2
+  #store coordinates of the adjacent corners of the inclusion
+  tmp_x = 0
+  lu_y = 0
+  rl_x = 0
+  rl_y = 0
+#   bounceb = list()
   # print mesh.nodes 
   for y in range(ny):
     for x in range(nx):
       e = Element()
       e.type = QUAD4
       e.density = 1.0
-      if x > 0 and y > 0 and x < nx-1 and y < nx -1: 
+      if x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
+                   and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size):
+                        e.region = 'inner'
+#                         mesh.elements[y * nx + x - ny].region = 'boundary'
+                        second += 1
+#       elif x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) and \
+#          (y == nny/2 * (1 - inclusion_size) -1 or y == nny/2 * (1 + inclusion_size)):
+#             bounceb.append(y * nx + x)
+#             e.region = 'design'
+#       elif y >= nny/2 * (1 - inclusion_size) -1 and y <= nny/2 * (1 + inclusion_size) and \
+#           (x == nnx/2 * (1 - inclusion_size) - 1 or x == nnx/2 * (1 + inclusion_size)):
+#             bounceb.append(y * nx + x)
+#             e.region = 'design'
+      elif x > 0 and y > 0 and x < nx-1 and y < nx -1: 
         e.region = 'design'
+        
       else:
         e.region = 'boundary'
-
+        
       # assign nodes
       ll = (nx+1) * y + x  # lowerleft
       e.nodes = ((ll, ll+1, ll+1+nx+1, ll+nx+1))
             
       mesh.elements.append(e)
- 
+      
   mesh.bc.append(("left_lower", [0]))
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
@@ -559,6 +615,7 @@ def create_lbm2d(resolution, case):
   if case == 'pipe_bend': 
     mesh.ne.append(('inlet', range(int(0.1*nx*ny + eps), int(0.3*nx*ny + nx + eps), nx) ))
     mesh.ne.append(('outlet', range(int((ny-1)*nx + 0.7*nx - eps), int((ny-1)*nx + 0.9*nx + eps)) ))
+#     mesh.ne.append(('bb',bounceb))
   elif case == 'two_inlet_one_outlet':
     mesh.ne.append(('inlet', range(int((0.25 - 1./16) *nx*ny + eps), int((0.25 + 1./16) *nx*ny + nx + eps), nx) ))
     mesh.ne.append(('inlet', range(int((0.75 - 1./16) *nx*ny + eps), int((0.75 + 1./16) *nx*ny + nx + eps), nx) ))

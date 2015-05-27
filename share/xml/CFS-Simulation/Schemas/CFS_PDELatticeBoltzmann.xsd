@@ -73,9 +73,14 @@
 					<xsd:element name="LBM" minOccurs="1" maxOccurs="1">
 						<xsd:complexType>
               
-							<xsd:attribute name="omega" type="xsd:double" use="required">
+							<xsd:attribute name="omega" type="xsd:double" use="optional">
                 <xsd:annotation>
-                  <xsd:documentation>tuning parameter for LBM. small is more robust, large faster</xsd:documentation>
+                  <xsd:documentation>tuning parameter for LBM. small is more robust, large faster; either omega or Reynolds number Re must be specified</xsd:documentation>
+                </xsd:annotation>
+              </xsd:attribute>
+              <xsd:attribute name="Re" type="xsd:double" use="optional">
+                <xsd:annotation>
+                  <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; either omega or Re must be specified</xsd:documentation>
                 </xsd:annotation>
               </xsd:attribute>
 							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />

@@ -17,6 +17,7 @@ namespace CoupledField
 #define LBM_NODE_TYPE_BB      (-1.0)
 #define LBM_NODE_TYPE_INLET   (-2.0)
 #define LBM_NODE_TYPE_OUTLET  (-3.0)
+#define LBM_NODE_TYPE_OBSTACLE  (1.0)
 
   class LatticeBoltzmannBase
   {
@@ -133,6 +134,11 @@ namespace CoupledField
             return (value > (LBM_NODE_TYPE_OUTLET - 0.5) && value < (LBM_NODE_TYPE_OUTLET + 0.5));
           }
 
+          inline bool LbmNodeIsObstacle(double value)
+          {
+            return value == LBM_NODE_TYPE_OBSTACLE;
+          }
+
           // calculates array index for given grid coordinate in 3D
           inline int GetIndex(int x, int y, int z) const
           {
@@ -164,11 +170,16 @@ namespace CoupledField
 
           inline bool PointsToBoundary(int x, int y, int z, int dir)
           {
-            PDFDirectionVector tmp = microVelDirections[dir];
-            int tmp_x = x + tmp.off_x;
-            int tmp_y = y + tmp.off_y;
-            int tmp_z = z + tmp.off_z;
-            return (tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY || tmp_z < 0 || tmp_z >= m_sizeZ) ;
+            PDFDirectionVector tmpDir = microVelDirections[dir];
+            StdVector<int> tmp(3);
+            tmp[0] = x + tmpDir.off_x;
+            tmp[1] = y + tmpDir.off_y;
+            tmp[2] = z + tmpDir.off_z;
+
+//            std::cout << tmp[0] << " " << tmp[1] << " " << tmp[2] << " Boundary? " <<  bb.Contains(tmp) << std::endl;
+
+            return (tmp[0] < 0 || tmp[0] >= m_sizeX || tmp[1] < 0 || tmp[1] >= m_sizeY || tmp[2] < 0 || tmp[2] >= m_sizeZ);
+//            return (tmp[0] < 0 || tmp[0] >= m_sizeX || tmp[1] < 0 || tmp[1] >= m_sizeY || tmp[2] < 0 || tmp[2] >= m_sizeZ) || obst.Contains(tmp);
           }
 
           /**
@@ -236,6 +247,7 @@ namespace CoupledField
           StdVector<StdVector<int> > outlet;
           StdVector<StdVector<int> > bb;
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
+          StdVector<StdVector<int> > obst; // indices of obstacle nodes
 
           ResultHandler* rh = NULL;
 

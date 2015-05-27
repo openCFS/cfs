@@ -160,6 +160,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     Scales[i] = 1.0 - elements[i];
   }
 
+
   Timer timer;
   timer.Start();
 
@@ -457,6 +458,11 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
           tmp[1] = j;
           tmp[2] = k;
           outlet.Push_back(tmp);
+        } else if (LbmNodeIsObstacle(porosity)) {
+          tmp[0] = i;
+          tmp[1] = j;
+          tmp[2] = k;
+          obst.Push_back(tmp);
         }
         ++n;
       }
@@ -505,99 +511,33 @@ void LatticeBoltzmann::create_output(const char * file, int cur)
 
 void LatticeBoltzmann::prop_step()
 {
-
+  int tmp_x, tmp_y, tmp_z;
   // perform a propagation step
-  int x, y, z;
+  for (int z = 0; z < m_sizeZ; ++z) {
+    for (int y = 0; y < m_sizeY ; ++y) {
+      for (int x = 0; x < m_sizeX ; ++x) {
 
-  int lx = m_sizeX;
-  int ly = m_sizeY;
-  int lz = m_sizeZ;
+        for (int dir = 0; dir < n_q_; dir++) {
+          int invDir = GetInvDirection((Direction)dir);
+          if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
+            tmp_x = x; // here we only set the coordinates
+            tmp_y = y;
+            tmp_z = z;
+          }
+          // else: standard propagation (get value from neighbor pdf)
+          else {
+            tmp_x = microVelDirections[invDir].off_x + x;
+            tmp_y = microVelDirections[invDir].off_y + y;
+            tmp_z = microVelDirections[invDir].off_z + z;
+          }
 
-  for(z = lz - 1; z >= 0; z--) {
-    for(y = ly - 1; y >= 0; y--) {
-      for(x = lx - 1; x > 0; x--) {
-        pdf(m_cur, x, y, z, Q_E)  = pdf(m_cur, x - 1  , y     , z     , Q_E);
-      }
-      for(x = 0; x < lx - 1; x++) {
-        pdf(m_cur, x, y, z, Q_W)  = pdf(m_cur, x + 1  , y     , z     , Q_W);
-      }
-    }
-    for(y = ly - 1; y > 0; y--) {
-      for(x = lx - 1; x > 0; x--) {
-        pdf(m_cur, x, y, z, Q_NE) = pdf(m_cur, x - 1  , y - 1 , z     , Q_NE);
-      }
-      for(x = 0; x < lx - 1; x++) {
-        pdf(m_cur, x, y, z, Q_NW) = pdf(m_cur, x + 1  , y - 1 , z     , Q_NW);
-      }
-    }
-    for(y = 0; y < ly - 1; y++) {
-      for(x = lx - 1; x > 0; x--) {
-        pdf(m_cur, x, y, z, Q_SE) = pdf(m_cur, x -  1 , y + 1 , z     , Q_SE);
-      }
-      for(x = 0; x < lx - 1; x++) {
-        pdf(m_cur, x, y, z, Q_SW) = pdf(m_cur, x + 1  , y + 1 , z     , Q_SW);
-      }
-    }
-    for(x = 0; x < lx; x++) {
-      for(y = ly - 1; y > 0; y--) {
-        pdf(m_cur, x, y, z, Q_N)  = pdf(m_cur, x      , y - 1 , z     , Q_N);
-      }
-      for(y = 0; y < ly - 1; y++) {
-        pdf(m_cur, x, y, z, Q_S)  = pdf(m_cur, x      , y + 1 , z     , Q_S);
-      }
-    }
-
-  }
-
-  if (m_dim == 2) return;
-
-  for(z = lz - 1; z > 0; z--) {
-    for(y = ly - 1; y >= 0; y--) {
-      for(x = lx - 1; x >= 0; x--) {
-        pdf(m_cur, x, y, z, Q_T)  = pdf(m_cur, x      , y     , z - 1 , Q_T);
-      }
-    }
-    for(x = lx - 1; x >= 0; x--) {
-      for(y = ly - 1; y > 0; y--) {
-        pdf(m_cur, x, y, z, Q_TN) = pdf(m_cur, x      , y - 1 , z - 1 , Q_TN);
-      }
-      for(y = 0; y < ly - 1; y++) {
-        pdf(m_cur, x, y, z, Q_TS) = pdf(m_cur, x      , y + 1 , z - 1 , Q_TS);
-      }
-    }
-    for(y = ly - 1; y >= 0; y--) {
-      for(x = lx - 1; x > 0; x--) {
-        pdf(m_cur, x, y, z, Q_TE) = pdf(m_cur, x - 1  , y     , z - 1 , Q_TE);
-      }
-      for(x = 0; x < lx - 1; x++) {
-        pdf(m_cur, x, y, z, Q_TW) = pdf(m_cur, x + 1  , y     , z - 1 , Q_TW);
+          pdf(m_next,x,y,z,dir) = pdf(m_cur, tmp_x, tmp_y,  tmp_z, dir);
+        }
       }
     }
   }
 
-  for(z = 0; z < lz - 1; z++) {
-    for(y = ly - 1; y >= 0; y--) {
-      for(x = lx - 1; x >= 0; x--) {
-        pdf(m_cur, x, y, z, Q_B)  = pdf(m_cur, x      , y     , z + 1 , Q_B);
-      }
-    }
-    for(x = lx - 1; x >= 0; x--) {
-      for(y = 0; y < ly - 1; y++) {
-        pdf(m_cur, x, y, z, Q_BS) = pdf(m_cur, x      , y + 1 , z + 1 , Q_BS);
-      }
-      for(y = ly - 1; y > 0; y--) {
-        pdf(m_cur, x, y, z, Q_BN) = pdf(m_cur, x      , y - 1 , z + 1 , Q_BN);
-      }
-    }
-    for(y = ly - 1; y >= 0; y--) {
-      for(x = lx - 1; x > 0; x--) {
-        pdf(m_cur, x, y, z, Q_BE) = pdf(m_cur, x - 1  , y     , z + 1 , Q_BE);
-      }
-      for(x = 0; x < lx - 1; x++) {
-        pdf(m_cur, x, y, z, Q_BW) = pdf(m_cur, x + 1  , y     , z + 1 , Q_BW);
-      }
-    }
-  }
+  m_pdfs[m_cur] = m_pdfs[m_next];
   return;
 }
 
@@ -739,7 +679,6 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
   return;
 }
 
-
 //
 // Performs a bounce back step.
 //
@@ -761,6 +700,7 @@ void LatticeBoltzmann::prop_coll_bounce_back2D(int cur, StdVector<StdVector<int>
       pdf(cur, x, y, z, GetInvDirection((Direction)dir)) = pdfs[dir];
     }
   }
+
   return;
 }
 

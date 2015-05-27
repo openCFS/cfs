@@ -255,7 +255,7 @@ private:
 
   /** LBM requires the data do be ordered in a defined way (lexicographic). The LBM data covers all regions (design and boundary).
    * To allow access by region (CalcResults()) this does the mapping from CFS elemNum to lbm idx and lbm idx to elemNum. lbm idx is 0-based
-   * elem_to_idx has the size of the larges elem_num and contains the idx or -1 where there is no mapping.
+   * elem_to_idx has the size of the largest elem_num and contains the idx or -1 where there is no mapping.
    * @see SetupElemMapping() */
   StdVector<int> elem_to_idx;
 
@@ -285,11 +285,14 @@ private:
   /** storage for for particle distribution. This is the simulation result for the function evaluation. */
   StdVector<double> pdfs;
 
-  /** this are the indices of the inlet elements */
+  /** these are the indices of the inlet elements */
   StdVector<unsigned int> inlet;
 
-  /** this are the indices of the outlet elements */
+  /** these are the indices of the outlet elements */
   StdVector<unsigned int> outlet;
+
+//  /** these are the indices of the elements og the region 'inclusion'*/
+//  StdVector<unsigned int> obstacle;
 
   double omega_; /** molecular collision frequency */
   double Re_; /** Reynold's number of flow problem */
