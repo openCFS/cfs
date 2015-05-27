@@ -251,7 +251,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       break;
     case EX:
       throw Exception("None of the " + lexical_cast<string>(children_.GetSize()) + " childs of element '"
-                      + this->name_ + "' has a child '" + myName + "'");
+                      + this->name_ + "' has a child '" + myName + "' ");
       ;
       break;
     case PASS:

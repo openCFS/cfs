@@ -584,7 +584,7 @@ def create_lbm2d(resolution, case):
       e.density = 1.0
       if x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
                    and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size):
-                        e.region = 'inner'
+                        e.region = 'obstacle'
 #                         mesh.elements[y * nx + x - ny].region = 'boundary'
                         second += 1
 #       elif x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) and \

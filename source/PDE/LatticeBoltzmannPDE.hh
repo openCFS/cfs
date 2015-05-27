@@ -249,6 +249,8 @@ private:
 
   /** this stores the boundary region id */
   RegionIdType boundary_reg_;
+  /** this stores the obstacle region id */
+  RegionIdType obstacle_reg_;
 
   /** this stores the design region */
   StdVector<RegionIdType> design_reg_;
@@ -290,6 +292,8 @@ private:
 
   /** these are the indices of the outlet elements */
   StdVector<unsigned int> outlet;
+
+  StdVector<unsigned int> obstacles;
 
 //  /** these are the indices of the elements og the region 'inclusion'*/
 //  StdVector<unsigned int> obstacle;

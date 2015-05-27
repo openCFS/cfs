@@ -234,7 +234,8 @@ namespace CoupledField {
       throw Exception("LatticeBoltzmann requires at least two regions where one has the boundary attribute set");
 
     boundary_reg_ = -1;
-    design_reg_.Reserve(regions.GetSize() - 1); // ommit boundary region
+    obstacle_reg_ = -1;
+    design_reg_.Reserve(regions.GetSize() - 2); // ommit boundary region and inclusion region
 
     for(unsigned int i = 0; i < regions.GetSize(); i++)
     {
@@ -242,9 +243,13 @@ namespace CoupledField {
       if(regions[i]->Get("boundary")->As<bool>())
       {
         if(boundary_reg_ != -1)
-          throw Exception("only a single region my have the boundary attribute set");
+          throw Exception("only a single region might have the boundary attribute set");
         else
           boundary_reg_ = reg;
+      }
+      else if(regions[i]->Get("name")->As<std::string>() == "inner")
+      {
+        obstacle_reg_ = reg;
       }
       else
         design_reg_.Push_back(reg);
@@ -525,7 +530,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   {
     block.InitValue(0.0);
     // interior
-    if(elements[index] >= 0)  {
+    if(elements[index] >= 0 && !obstacles.Contains(index))  {
       // Jacobi matrix of the collision operator with respect to the design variables
       d_collision_step_d_f(index, block, dfeqdux, dfeqduy, dfeqduz, ux, uy, uz, dloc, weights);
 
@@ -544,7 +549,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
       d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
     }
-    else {
+    else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
       assert(false);
     }
     // fill transpose of block in col_jacobi
@@ -1549,10 +1554,10 @@ void LatticeBoltzmannPDE::SetupElements()
 {
   Grid* grd = domain->GetGrid();
 
-  // find out which elements are inlet, outlet, boundary and inner ones
+  // find out which elements are inlet, outlet, boundary and obstacle ones
   StdVector<Elem*> elems;
   StdVector<Elem*> boundaries;
-  StdVector<Elem*> obstacles;
+  StdVector<Elem*> obst;
   // auxiliary vector
   // vector initialized with porosity value of inner cells
   elements.Resize(n_elems, 0.0);
@@ -1587,7 +1592,7 @@ void LatticeBoltzmannPDE::SetupElements()
   for (UInt i = 0; i<regionNames.GetSize(); ++i) {
     if (regionNames[i] == "boundary")
       boundId = i;
-    else if (regionNames[i] == "inner")
+    else if (regionNames[i] == "obstacle")
       inclusionId = i;
     else
       innerId = i;
@@ -1602,9 +1607,11 @@ void LatticeBoltzmannPDE::SetupElements()
     elements[boundaries[i]->elemNum - 1] = -1.0;
   // if there are obstacles in the domain
   if (inclusionId != -1) {
-    grd->GetElems(obstacles,inclusionId);
-    for (unsigned int i = 0; i < obstacles.GetSize(); ++i)
-      elements[obstacles[i]->elemNum - 1] = 1.0;
+    grd->GetElems(obst,inclusionId);
+    for (unsigned int i = 0; i < obst.GetSize(); ++i) {
+      elements[obst[i]->elemNum - 1] = 1.0;
+      obstacles.Push_back(obst[i]->elemNum - 1);
+    }
   }
   for(unsigned int i = 0; i < inlet.GetSize(); ++i)
     elements[inlet[i]] = -2.0;
