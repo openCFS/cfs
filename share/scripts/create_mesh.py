@@ -7,7 +7,7 @@ parser.add_argument("--res", help="x-discretization of length 1m", type=int, req
 parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d'], required = True)
-parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend', 'extend_inlet','pipe','distributor'])
+parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend', 'extend_inlet','pipe','distributor','backstep'])
 parser.add_argument('--file', help="optional give output file name. ")
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="mandatory size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
@@ -16,9 +16,13 @@ args = parser.parse_args()
 
 mesh_name = args.type
 
-if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d"):
-  print("inclusions currently only for --type buld2d")
+if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d" or "lbm3d"):
+  print("inclusions currently only for --type {bulk2d,cantilever2d,lbm3d,lbm2d}")
   sys.exit()  
+  
+if (args.inclusion == 'ball' and (args.type == "lbm3d" or "lbm2d")):
+  print("inclusion ball not implemented yet for lbm meshes")
+  sys.exit()
   
 if (args.inclusion and not args.inclusion_size) or (args.inclusion_size and not args.inclusion):
   print("inclusions require both --inclusion and --inclusion_size")
@@ -33,9 +37,11 @@ elif args.type.startswith('lbm'):
     print('error: --lbm subtype mandatory for --type lbm')
     sys.exit()
   if args.type == 'lbm2d':
-     mesh = create_lbm2d(args.res, args.lbm)
+     mesh = create_lbm2d(args.res, args.lbm,args.inclusion,args.inclusion_size)
+  elif args.type == 'lbm3d' and args.lbm == 'backstep':
+    mesh = create_backstep(args.res, args.y_res, args.z_res)
   elif args.type == 'lbm3d':
-     mesh = create_lbm3d(args.res, args.y_res, args.z_res, args.lbm)
+     mesh = create_lbm3d(args.res, args.y_res, args.z_res, args.lbm,args.inclusion,args.inclusion_size)
   else:
      mesh = create_3d_mesh(args.res, args.y_res, args.z_res)
   mesh_name = args.type +"_" + args.lbm

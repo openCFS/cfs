@@ -588,8 +588,6 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
 
       index= GetIndex(x,y,z);
 
-      // we do not iterate over obstacles!
-      if (obst.Contains(index)) continue;
       // sum: macroscopic density is sum over all discrete distributions of an element
       sum = 0;
       tmp_ux = 0;

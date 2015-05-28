@@ -247,7 +247,7 @@ namespace CoupledField {
         else
           boundary_reg_ = reg;
       }
-      else if(regions[i]->Get("name")->As<std::string>() == "inner")
+      else if(regions[i]->Get("name")->As<std::string>() == "bstacle")
       {
         obstacle_reg_ = reg;
       }

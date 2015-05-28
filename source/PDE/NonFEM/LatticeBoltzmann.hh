@@ -175,8 +175,7 @@ namespace CoupledField
             int tmp_y = y + tmpDir.off_y;
             int tmp_z = z + tmpDir.off_z;
 
-//            return (tmp[0] < 0 || tmp[0] >= m_sizeX || tmp[1] < 0 || tmp[1] >= m_sizeY || tmp[2] < 0 || tmp[2] >= m_sizeZ);
-            return (tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY || tmp_z < 0 || tmp_z >= m_sizeZ) || obst.Contains(GetIndex(tmp_x,tmp_y,tmp_z));
+            return tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY || tmp_z < 0 || tmp_z >= m_sizeZ;
           }
 
           /**

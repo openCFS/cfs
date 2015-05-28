@@ -547,7 +547,7 @@ def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
 
 ## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
 # @param case pipe_bend or two_inlet_one_outlet 
-def create_lbm2d(resolution, case):
+def create_lbm2d(resolution, case, inclusion, inclusion_size):
   mesh = Mesh()
  
   size = 1.0 
@@ -568,36 +568,20 @@ def create_lbm2d(resolution, case):
       mesh.nodes.append((x * dx, y * dx))
  
   # count second region
-  second = 0 
-  inclusion_size = 0.2
-  #store coordinates of the adjacent corners of the inclusion
-  tmp_x = 0
-  lu_y = 0
-  rl_x = 0
-  rl_y = 0
-#   bounceb = list()
+#   second = 0
+ 
   # print mesh.nodes 
   for y in range(ny):
     for x in range(nx):
       e = Element()
       e.type = QUAD4
       e.density = 1.0
-      if x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
+      if inclusion == 'rect' and x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
                    and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size):
                         e.region = 'obstacle'
-#                         mesh.elements[y * nx + x - ny].region = 'boundary'
-                        second += 1
-#       elif x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) and \
-#          (y == nny/2 * (1 - inclusion_size) -1 or y == nny/2 * (1 + inclusion_size)):
-#             bounceb.append(y * nx + x)
-#             e.region = 'design'
-#       elif y >= nny/2 * (1 - inclusion_size) -1 and y <= nny/2 * (1 + inclusion_size) and \
-#           (x == nnx/2 * (1 - inclusion_size) - 1 or x == nnx/2 * (1 + inclusion_size)):
-#             bounceb.append(y * nx + x)
-#             e.region = 'design'
+#                         second += 1
       elif x > 0 and y > 0 and x < nx-1 and y < nx -1: 
         e.region = 'design'
-        
       else:
         e.region = 'boundary'
         
@@ -622,8 +606,8 @@ def create_lbm2d(resolution, case):
     mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
       
   return mesh
-  
-def create_lbm3d(x_res, y_res, z_res, case):
+
+def create_backstep(x_res, y_res, z_res):
   mesh = Mesh()
 
   nx = x_res
@@ -674,13 +658,136 @@ def create_lbm3d(x_res, y_res, z_res, case):
       for x in range(nnx): # fastest variable
         mesh.nodes.append((x * dx, y * dy, z * dz))
  
+  second = 0
+  
+  # store ymax and of zmax obstacle
+  # need this information to set inlet and outlet elements
+  ymax = 0
+
   for z in range(nz):
     for y in range(ny):
       for x in range(nx):
         e = Element()
         e.density = 1.0
         e.type = HEXA8
-        if x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
+        if z > 0 and z < nz - 1 and x > 0 and y > 0 and x < int(0.3*nx) and y < int(0.35*ny):  
+          e.region = 'obstacle'
+          second += 1
+          ymax = max(ymax,y)
+        elif x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
+          e.region = 'design'
+        else:
+          e.region = 'boundary'
+    
+        # assign nodes
+        ll = nnx*nny*z + nnx*y + x  # lower-left-front of current element
+        e.nodes = ((ll+nnx, ll+1+nnx, ll+1+nnx+(nnx*nny),ll+nnx+(nnx*nny),ll, ll+1, ll+1+(nnx*nny),ll+(nnx*nny)))
+        
+        mesh.elements.append(e)
+
+  print "Created " + str(second) + " obstacle elements"
+          
+  mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
+  mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
+  
+  side = (("bottom", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny)*nnx+x)
+
+  side = (("top", []))
+  mesh.bc.append(side)
+  for z in range(0, nnz):
+    for x in range(0, nnx):
+      side[1].append((z*nny+ny)*nnx+x)
+
+  
+  # back and front as it appears with paraview
+  mesh.bc.append(("back", range(0, (nx+1)*(ny+1))))
+  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))
+
+
+  mesh.bc.append(("left_bottom_back",   [0]))
+  mesh.bc.append(("right_bottom_back",  [nx]))
+  mesh.bc.append(("left_top_back",      [nnx*ny]))
+  mesh.bc.append(("right_top_back",     [nnx*nny-1]))
+  mesh.bc.append(("left_bottom_front",  [nnx*nny*nz]))
+  mesh.bc.append(("right_bottom_front", [nnx*nny*nz+nx]))
+  mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
+  mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
+  
+  for i in range(nz):
+    mesh.ne.append(('inlet',range(ymax*nx+nx+i*nx*ny,nx*ny*(i+1),nx)))
+    mesh.ne.append(('outlet',range(ymax*nx+nx+i*nx*ny-1,nx*ny*(i+1),nx)))
+
+  return mesh
+
+  
+def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
+  mesh = Mesh()
+
+  nx = x_res
+  ny = y_res if y_res <> None else x_res
+  nz = z_res if z_res <> None else x_res
+
+  nnx = nx+1
+  nny = ny+1
+  nnz = nz+1
+  
+  width = 1.0
+  dx = width / nx
+  
+  height = float(ny)/nx
+  dy = height / ny
+  
+  depth = float(nz)/nx
+  dz = depth / nz
+  
+  eps = 1e-4
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz)
+  
+  
+  # the coordinate system in Paraview is a right-hand sided coodrdinate system with z pointing to the viewer 
+  #
+  #  y ^ 
+  #    |
+  # z (.)--> x
+  # 
+  # This are the node numbers if we have only one element. The .mesh file will be transformed to 1-based              
+  # x is the fastet variable, z is the slowest variable
+  #
+  #       2 --------- 3         
+  #      /|          /|
+  #     / |         / |
+  #    6 --------- 7  |
+  #    |  |        |  |
+  #    |  |        |  |
+  #    |  0 -------|- 1
+  #    | /         | /
+  #    |/          |/
+  #    4 --------- 5
+  
+
+  for z in range(nnz): # slowest variable
+    for y in range(nny):
+      for x in range(nnx): # fastest variable
+        mesh.nodes.append((x * dx, y * dy, z * dz))
+ 
+  second = 0
+  for z in range(nz):
+    for y in range(ny):
+      for x in range(nx):
+        e = Element()
+        e.density = 1.0
+        e.type = HEXA8
+        if inclusion == 'rect' and x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
+                   and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size)\
+                   and z >= nnz/2 * (1 - inclusion_size) and z < nnz/2 * (1 + inclusion_size):
+                        e.region = 'obstacle'
+                        second += 1
+        elif x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
           e.region = 'design'
         else:
           e.region = 'boundary'
@@ -694,6 +801,8 @@ def create_lbm3d(x_res, y_res, z_res, case):
         
         mesh.elements.append(e)
 
+  print "Created " + str(second) + " obstacle elements"
+          
   mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
   
@@ -756,3 +865,5 @@ def create_lbm3d(x_res, y_res, z_res, case):
 #     mesh.ne.append(('outlet', range(int(0.375*nx*ny - 1 + eps), int(0.625*nx*ny - 1 + eps), nx) ))
   
   return mesh
+
+
