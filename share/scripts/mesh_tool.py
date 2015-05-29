@@ -580,7 +580,7 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
                    and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size):
                         e.region = 'obstacle'
 #                         second += 1
-      elif x > 0 and y > 0 and x < nx-1 and y < nx -1: 
+      elif x > 0 and y > 0 and x < nx-1 and y < ny -1: 
         e.region = 'design'
       else:
         e.region = 'boundary'
@@ -674,7 +674,7 @@ def create_backstep(x_res, y_res, z_res):
           e.region = 'obstacle'
           second += 1
           ymax = max(ymax,y)
-        elif x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
+        elif x > 0 and y > 0  and z > 0 and x < nx-1 and y < ny -1 and z < nz - 1: 
           e.region = 'design'
         else:
           e.region = 'boundary'
@@ -717,9 +717,9 @@ def create_backstep(x_res, y_res, z_res):
   mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
   mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
   
-  for i in range(nz):
-    mesh.ne.append(('inlet',range(ymax*nx+nx+i*nx*ny,nx*ny*(i+1),nx)))
-    mesh.ne.append(('outlet',range(ymax*nx+nx+i*nx*ny-1,nx*ny*(i+1),nx)))
+  for i in range(1,nz-1):
+    mesh.ne.append(('inlet',range(ymax*nx+nx+i*nx*ny,nx*ny*(i+1)-nx,nx)))
+    mesh.ne.append(('outlet',range(2*nx+i*nx*ny-1,nx*ny*(i+1)-nx,nx)))
 
   return mesh
 
@@ -782,12 +782,12 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
         e = Element()
         e.density = 1.0
         e.type = HEXA8
-        if inclusion == 'rect' and x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size) \
+        if inclusion == 'rect' and x >= nnx/4 * (1 - inclusion_size) and x < nnx/4 * (1 + inclusion_size) \
                    and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size)\
                    and z >= nnz/2 * (1 - inclusion_size) and z < nnz/2 * (1 + inclusion_size):
                         e.region = 'obstacle'
                         second += 1
-        elif x > 0 and y > 0  and z > 0 and x < nx-1 and y < nx -1 and z < nz - 1: 
+        elif x > 0 and y > 0  and z > 0 and x < nx - 1 and y < ny -1 and z < nz - 1: 
           e.region = 'design'
         else:
           e.region = 'boundary'
@@ -846,7 +846,7 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
       mesh.ne.append(('outlet', range(int(nx*ny-0.4*nx+ i*nx*ny), int(nx*ny-0.1*nx+ i*nx*ny), 1)))
   elif case == 'pipe':
     for i in range (1,nz-1):
-      mesh.ne.append(('inlet', range(int(i*nx*ny+ny),int(i*nx*ny+(nx-1)*ny),nx)))
+      mesh.ne.append(('inlet', range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx)))
       mesh.ne.append(('outlet', range(int(i*nx*ny + 2*nx-1),int(i*nx*ny + 2*nx-1+nx*(ny-2)),nx)))
 #     mesh.ne.append(('outlet', [nx*ny + 2*nx-1+nx*(ny-3)]))
   elif case == 'two_inlet_one_outlet':

@@ -751,7 +751,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 
 #pragma omp parallel default(none)\
     private(index), \
-    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y,z, tmp_x, tmp_y, tmp_z), \
+    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z), \
     shared(next, cur, scales, omega)
 {
   StdVector<double> pdfs;
