@@ -361,9 +361,9 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::GetElemsForPoints(const StdVector<
 
 }
 
-}
-
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridNodalDefault<Double>;
   template class CoefFunctionGridNodalDefault<Complex>;
 #endif
+
+} // namespace CoupledField

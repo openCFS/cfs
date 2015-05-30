@@ -1091,7 +1091,7 @@ namespace CoupledField {
     //    --> loop over row / column indices to be set
     if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
       std::set<UInt>::const_iterator rowIt, colIt;
-      register UInt k, rs;
+      UInt k, rs;
       UInt j;
       rowIt = rowIndices.begin();
 
@@ -1120,7 +1120,7 @@ namespace CoupledField {
         //    -> either loop over selected rows and take into account
         //       all columns
         std::set<UInt>::const_iterator rowIt;
-        register UInt k, rs;
+        UInt k, rs;
         UInt j;
         rowIt = rowIndices.begin();
 

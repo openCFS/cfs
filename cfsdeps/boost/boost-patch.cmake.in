@@ -10,6 +10,7 @@
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 SET(MINGW "@MINGW@")
+SET(APPLE "@APPLE@")
 SET(boost_source "@boost_source@")
 
 #=============================================================================
@@ -62,5 +63,12 @@ LIST(APPEND patches
   # Fix Boost thread lib dependency on system lib.
   boost-shared-libs-build.patch
   )
+
+IF(APPLE)
+  LIST(APPEND patches
+    # The BOOST_HAS_NANOSLEEP flag needs to be defined for GCC 4,5 and 6.
+    boost-has-nanosleep-mac.patch
+    )
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")
