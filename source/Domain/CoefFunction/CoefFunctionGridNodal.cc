@@ -365,9 +365,10 @@ namespace CoupledField{
     }
     return step;
   }
-}
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridNodal<Double>;
   template class CoefFunctionGridNodal<Complex>;
 #endif
+
+} // namespace CoupledField

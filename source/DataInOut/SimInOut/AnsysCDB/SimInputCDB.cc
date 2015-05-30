@@ -1530,7 +1530,7 @@ namespace CoupledField {
         errMsg << "NBLOCK " << ib << " expected to start at line no. "
                << linePtsNBlocks_[ib] << " not found!\nLine read was "
                << line;
-        EXCEPTION(errMsg);
+        EXCEPTION(errMsg.str());
       }
       std::cout << "Processing node block " << ib+1 << std::endl;
 
@@ -1751,7 +1751,7 @@ namespace CoupledField {
       if (!GetLine(line,linePtsEBlocks_[ib])) {
         errMsg << "EBLOCK " << ib << " expected to start at line no. "
                << linePtsEBlocks_[ib] << " not found!\nLine read was " << line;
-        EXCEPTION(errMsg);
+        EXCEPTION(errMsg.str());
       }
 
       // do we have a solid eblock ?
@@ -2236,7 +2236,7 @@ namespace CoupledField {
       if (!GetLine(line,linePtsCMBlocks_[ib])) {
         errMsg << "CMBLOCK " << ib << " expected to start at line no. " << linePtsCMBlocks_[ib]
                << " not found!\nLine read was " << line;
-        EXCEPTION(errMsg);
+        EXCEPTION(errMsg.str());
       }
 
       // read region name, component type number of elems from CMBLOCK line
@@ -2300,7 +2300,7 @@ namespace CoupledField {
       if (!GetLine(line,linePtsCMCmnds_[ib])) {
         errMsg << "CM command " << ib << " expected at line no. " << linePtsCMCmnds_[ib]
                << " not found!\nLine read was " << line;
-        EXCEPTION(errMsg);
+        EXCEPTION(errMsg.str());
       }
 
       // possible region/group name
@@ -2347,7 +2347,7 @@ namespace CoupledField {
         errMsg << "Pressure comment line" << ips << " expected at line no. "
                << linePtsCMCmnds_[ips] << " not found!\nLine read was "
                << line;
-        EXCEPTION(errMsg);
+        EXCEPTION(errMsg.str());
       }
 
       // find related eblock command
@@ -2360,7 +2360,7 @@ namespace CoupledField {
             errMsg << "eblock line" << ib << " expected at line no. "
                    << linePtsEBlocks_[ib] << " not found!\nLine read was "
                    << line;
-            EXCEPTION(errMsg);
+            EXCEPTION(errMsg.str());
           }
 
           // Don't skip format specs

@@ -780,8 +780,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdV
   }
 }
 
-}
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridNodalInterp<Double>;
   template class CoefFunctionGridNodalInterp<Complex>;
 #endif
+
+} // namespace CoupledField

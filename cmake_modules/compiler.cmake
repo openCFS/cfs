@@ -114,17 +114,31 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
-  IF(USE_LIBFBI)
-    SET(CFS_CXX_FLAGS "-std=c++0x")
+  STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
+  LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
+
+  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5)
+    IF(USE_LIBFBI)
+      SET(CFS_CXX_FLAGS "-std=c++0x")
+    ELSE()
+      SET(CFS_CXX_FLAGS "-std=c++98")
+    ENDIF()
+    SET(CFS_C_FLAGS "-std=gnu99")
   ELSE()
-    SET(CFS_CXX_FLAGS "-std=c++98")
+    SET(CFS_CXX_FLAGS "-std=c++11 -Wno-error=unused-variable")
+    SET(CFS_C_FLAGS "-std=c11")
+
+    IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+      # Fix a problem in Boost 1.5.2 bimap.
+      SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-redeclared-class-member")
+    ENDIF()
   ENDIF()
 
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
@@ -141,7 +155,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   ELSE(DEBUG)
 
-    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     IF(CFS_ARCH STREQUAL "I386")
