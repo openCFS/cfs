@@ -333,13 +333,15 @@ ELSEIF(MINGW)
           DIST STREQUAL "SCIENTIFIC" AND
           REV MATCHES "6\\.")
      SET(MINGW_DIST_WRONG FALSE)
+   ELSEIF(DIST STREQUAL "FEDORA" AND
+          REV MATCHES "22")
+     SET(MINGW_DIST_WRONG FALSE)
    ENDIF()
-
    IF(MINGW_DIST_WRONG)
        MESSAGE(FATAL_ERROR
 "
 Cross compiling for Windows 64-bit has been only tested on
-CentOS/Oracle 6 and Ubuntu 12.04 LTS (cf. Developer's Manual).
+CentOS/Oracle 6, Fedora 22 and Ubuntu 12.04 LTS (cf. Developer's Manual).
 If you know what you are doing, disable this error and fix
 the build for your platform. But don't say, I did not warn you!
 "
