@@ -89,15 +89,6 @@ FILE(TO_CMAKE_PATH
   CFS_DEPS_CACHE_DIR)
 
 #-------------------------------------------------------------------------------
-# Build MuParser library
-#-------------------------------------------------------------------------------
-SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
-SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
-SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
-
-INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
-
-#-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------
 SET(ZLIB_URL "${CFS_DS_SOURCES_DIR}/zlib")
@@ -309,9 +300,18 @@ ENDIF(USE_SUPERLU)
 # Find Boost
 #-------------------------------------------------------------------------------
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
-SET(BOOST_GZ "boost_1_52_0.tar.bz2")
-SET(BOOST_MD5 "3a855e0f919107e0ca4de4d84ad3f750")
+SET(BOOST_GZ "boost_1_58_0.tar.bz2")
+SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546")
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
+
+#-------------------------------------------------------------------------------
+# Build MuParser library
+#-------------------------------------------------------------------------------
+SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
+SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
+SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
+
+INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # If USE_XERCES option is defined find Xerces library

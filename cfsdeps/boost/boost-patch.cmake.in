@@ -32,7 +32,16 @@ EXECUTE_PROCESS(
 #=============================================================================
 SET(patches
   "boost-multi_array.patch"
-  "boost-newline.patch"
+  # "boost-newline.patch" # Not working for Boost 1.58
+  
+  # Remove shared_ptr_helper.cpp from list of files to compile for Boost 1.58
+  boost-shared-ptr-helper-1.58.patch
+
+  # Suround get_pointer(auto_ptr<T>) function with #ifdef BOOST_NO_AUTO_PTR.
+  boost-get-ptr-no-auto-ptr.patch
+
+  # Fix warning about uninitialized variable result.
+  boost-lexical-cast-uninitialized-var.patch
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")

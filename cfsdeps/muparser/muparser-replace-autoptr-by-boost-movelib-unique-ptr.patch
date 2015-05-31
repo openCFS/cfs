@@ -1,0 +1,60 @@
+
+--- include/muParserBase.h	2015-05-31 17:25:26.000000000 +0200
++++ include/muParserBase.h	2015-05-31 16:30:25.000000000 +0200
+@@ -33,6 +33,8 @@
+ #include <memory>
+ #include <locale>
+ 
++#include <boost/move/unique_ptr.hpp>
++
+ //--- Parser includes --------------------------------------------------------------------------
+ #include "muParserDef.h"
+ #include "muParserStack.h"
+@@ -282,7 +284,7 @@
+     mutable stringbuf_type  m_vStringBuf; ///< String buffer, used for storing string function arguments
+     stringbuf_type  m_vStringVarBuf;
+ 
+-    std::auto_ptr<token_reader_type> m_pTokenReader; ///< Managed pointer to the token reader object.
++    boost::movelib::unique_ptr<token_reader_type> m_pTokenReader; ///< Managed pointer to the token reader object.
+ 
+     funmap_type  m_FunDef;         ///< Map of function names and pointers.
+     funmap_type  m_PostOprtDef;    ///< Postfix operator callbacks
+--- include/muParserToken.h	2012-01-16 18:34:14.000000000 +0100
++++ include/muParserToken.h	2015-05-31 16:30:32.000000000 +0200
+@@ -32,6 +32,8 @@
+ #include <vector>
+ #include <memory>
+ 
++#include <boost/move/unique_ptr.hpp>
++
+ #include "muParserError.h"
+ #include "muParserCallback.h"
+ 
+@@ -69,7 +71,7 @@
+       TString m_strTok;   ///< Token string
+       TString m_strVal;   ///< Value for string variables
+       value_type m_fVal;  ///< the value 
+-      std::auto_ptr<ParserCallback> m_pCallback;
++      boost::movelib::unique_ptr<ParserCallback> m_pCallback;
+ 
+   public:
+ 
+--- CMakeLists.txt	2015-05-31 17:25:26.000000000 +0200
++++ CMakeLists.txt	2015-05-31 16:33:24.000000000 +0200
+@@ -20,6 +20,9 @@
+   SET(CMAKE_CXX_FLAGS "-fno-common")
+ ENDIF()
+ 
++# Include CFS_BUILD_DIR/include
++INCLUDE_DIRECTORIES("../../../../include")
++
+ INCLUDE_DIRECTORIES("./include")
+ 
+ ADD_LIBRARY(muparser STATIC ${SRCS})
+@@ -43,4 +46,4 @@
+   include/muParserToken.h
+   include/muParserTokenReader.h
+   DESTINATION include
+-)
+\ No newline at end of file
++)
