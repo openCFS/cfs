@@ -132,9 +132,9 @@ namespace CoupledField
         return;
 
 #if defined(WIN32) || defined(__MINGW32__)
-      if(os == std::cout)
+      if(&os == &std::cout)
         hCon = GetStdHandle( STD_OUTPUT_HANDLE );
-      else if(os == std::cerr)
+      else if(&os == &std::cerr)
         hCon = GetStdHandle( STD_ERROR_HANDLE );
       else
         return;
