@@ -56,6 +56,12 @@ IF(MINGW)
     # Threading is disabled for gcc 4.7 by default. This patch reenables it.
     # https://svn.boost.org/trac/boost/ticket/6165
 #    "boost-1.48.0-gcc47-winthreads.patch"
+
+    # Fix problems due to undefined references to Interlocked* functions
+    # from the Windows headers. Applies to Boost 1.5.2.
+    # https://svn.boost.org/trac/boost/ticket/4849
+    # https://svn.boost.org/trac/boost/changeset/85865?format=diff&new=85865
+    boost-interlocked-mingw64.patch
     )
 ENDIF(MINGW)
 
