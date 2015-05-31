@@ -548,7 +548,7 @@ bool ParamNode::Has(const string& name) const
   // check in a fast way if we have tokens for trivial xpath
   if (ContainsTokens(name))
   {
-    return TokenizedHasAndGet(name, string(""), false);
+    return TokenizedHasAndGet(name, string(""), false) == NULL ? false : true ;
   }
   else
   {
@@ -600,7 +600,7 @@ bool ParamNode::HasByVal(const string& name, const TYPE& value) const
 {
   if (ContainsTokens(name))
   {
-    return TokenizedHasAndGet(name, value, true);
+    return TokenizedHasAndGet(name, value, true) == NULL ? false : true ;
   }
   else
   {

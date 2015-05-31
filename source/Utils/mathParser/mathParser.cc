@@ -574,7 +574,7 @@ namespace CoupledField {
   
 
   //! Register callback function for change of value of expression
-  boost::signals::connection MathParser::
+  boost::signals2::connection MathParser::
   AddExpChangeCallBack( const MathParserSignal::slot_function_type
                         &subscriber,
                         HandleType handle ) {

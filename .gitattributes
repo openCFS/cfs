@@ -55,13 +55,16 @@ cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
 cfsdeps/boost/boost-cmake.tar.bz2 -text svneol=unset#unset
+cfsdeps/boost/boost-get-ptr-no-auto-ptr.patch -text
 cfsdeps/boost/boost-has-nanosleep-mac.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-interlocked-mingw64.patch -text
+cfsdeps/boost/boost-lexical-cast-uninitialized-var.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-newline.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/boost/boost-shared-libs-build.patch -text
+cfsdeps/boost/boost-shared-ptr-helper-1.58.patch -text
 cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-mingw.patch -text
@@ -210,6 +213,7 @@ cfsdeps/muparser/muparser-dummy-math.patch -text
 cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
 cfsdeps/muparser/muparser-pow-intel.patch -text
+cfsdeps/muparser/muparser-replace-autoptr-by-boost-movelib-unique-ptr.patch -text
 cfsdeps/muparser/muparser-strfun45.patch -text
 cfsdeps/openblas/External_OpenBLAS.cmake -text
 cfsdeps/openblas/openblas_install_cfs.patch -text

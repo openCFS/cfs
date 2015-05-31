@@ -27,9 +27,25 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
   # the Repo_VERSION_SVN accordingly in order to compare it to the version
   # of the SVN executable. If the WC version is higher than the version
   # supported by the Subversion exe, we download SVNKit instead.
+  # http://stackoverflow.com/questions/19265363/find-out-svn-working-copy-version-1-7-or-1-8
+  # http://svn.apache.org/repos/asf/subversion/trunk/subversion/libsvn_wc/wc.h
   #---------------------------------------------------------------------------
-  FILE(STRINGS "${CFS_SOURCE_DIR}/.svn/entries" SVNREPOVERSION LIMIT_COUNT 1)
-  # MESSAGE("SVNREPOVERSION ${SVNREPOVERSION}")
+  IF(EXISTS "${CFS_SOURCE_DIR}/.svn/entries")
+    FILE(STRINGS "${CFS_SOURCE_DIR}/.svn/entries" SVNREPOVERSION LIMIT_COUNT 1)
+    # MESSAGE("SVNREPOVERSION ${SVNREPOVERSION}")
+  ELSE()
+    EXECUTE_PROCESS(
+      COMMAND od -An -j63 -N1 -t dC "${CFS_SOURCE_DIR}/.svn/wc.db"
+      OUTPUT_VARIABLE SVNREPOVERSION
+      RESULT_VARIABLE RETVAL
+    )
+    IF(RETVAL)
+      MESSAGE(FATAL_ERROR "Could not read SVN working copy version from ${CFS_SOURCE_DIR}/.svn/wc.db!")
+    ENDIF()
+    STRING(STRIP ${SVNREPOVERSION} SVNREPOVERSION)
+  ENDIF()
+
+  # MESSAGE("SVNREPOVERSION #${SVNREPOVERSION}#")
 
   SET(Repo_VERSION_SVN "1.4")
   IF(SVNREPOVERSION EQUAL 9)
@@ -38,30 +54,33 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
   IF(SVNREPOVERSION EQUAL 10)
     SET(Repo_VERSION_SVN "1.6")
   ENDIF(SVNREPOVERSION EQUAL 10)
-  IF(SVNREPOVERSION EQUAL 11)
+  IF(SVNREPOVERSION EQUAL 11 OR SVNREPOVERSION GREATER 11)
     SET(Repo_VERSION_SVN "1.7")
-  ENDIF(SVNREPOVERSION EQUAL 11)
+  ENDIF()
+  IF(SVNREPOVERSION EQUAL 31 OR SVNREPOVERSION GREATER 31)
+    SET(Repo_VERSION_SVN "1.8")
+  ENDIF()
 
   # MESSAGE("Repo_VERSION_SVN ${Repo_VERSION_SVN}")
 
-  #---------------------------------------------------------------------------
+  #--------------------------------------------------------------------------ROR
   # Check if Subversion has been found and if it has a high enough version,
   # otherwise download and configure SVNKit.
   #---------------------------------------------------------------------------
   IF(NOT Subversion_FOUND OR
      Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN)
 
-   IF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.7.4")
+   IF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")
      FILE(DOWNLOAD
-       "http://www.svnkit.com/org.tmatesoft.svn_1.7.4.standalone.zip"
-       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip")
+       "http://www.svnkit.com/org.tmatesoft.svn_1.8.10.standalone.zip"
+       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip")
      
      execute_process(COMMAND unzip
-       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.7.4.standalone.zip"
+       "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip"
        WORKING_DIRECTORY "${CFS_BINARY_DIR}")
-   ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.7.4")
+   ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")
 
-   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.7.4/bin/jsvn"
+   SET(Subversion_SVN_EXECUTABLE "${CFS_BINARY_DIR}/svnkit-1.8.10/bin/jsvn"
      CACHE FILEPATH
      "subversion command line client" FORCE)
 

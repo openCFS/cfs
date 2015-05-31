@@ -1,0 +1,15 @@
+--- boost/get_pointer.hpp.orig	2014-03-10 23:28:20.000000000 +0100
++++ boost/get_pointer.hpp	2015-05-31 14:32:44.000000000 +0200
+@@ -24,10 +24,12 @@
+ 
+ // get_pointer(shared_ptr<T> const & p) has been moved to shared_ptr.hpp
+ 
++#ifndef BOOST_NO_AUTO_PTR
+ template<class T> T * get_pointer(std::auto_ptr<T> const& p)
+ {
+     return p.get();
+ }
++#endif
+ 
+ #if !defined( BOOST_NO_CXX11_SMART_PTR )
+ 

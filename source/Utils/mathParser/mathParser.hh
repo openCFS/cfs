@@ -5,7 +5,7 @@
 #include <list>
 #include <set>
 #include <string>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
@@ -220,10 +220,10 @@ namespace CoupledField {
         //! \name Callback functionality of mathParser
         
     //! Define signal type of MathParser
-    typedef boost::signal<void()> MathParserSignal;
+    typedef boost::signals2::signal<void()> MathParserSignal;
     
     //! Register callback function for change of value of expression
-    boost::signals::connection 
+    boost::signals2::connection 
     AddExpChangeCallBack( const MathParserSignal::slot_function_type
                           &subscriber,
                           HandleType handle );

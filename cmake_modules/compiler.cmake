@@ -114,18 +114,23 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
+  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1")
+
+  # Obtain major version number of GCC or Clang
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
 
+  # The C and C++ standards are set to 1998 for compiler versions less than 5
+  # and to 2011 for newer compilers.
   IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5)
     IF(USE_LIBFBI)
-      SET(CFS_CXX_FLAGS "-std=c++0x")
+      SET(CFS_CXX_FLAGS "-std=c++0x ${CFS_CXX_FLAGS}")
     ELSE()
-      SET(CFS_CXX_FLAGS "-std=c++98")
+      SET(CFS_CXX_FLAGS "-std=c++98 ${CFS_CXX_FLAGS}")
     ENDIF()
     SET(CFS_C_FLAGS "-std=gnu99")
   ELSE()
-    SET(CFS_CXX_FLAGS "-std=c++11 -Wno-error=unused-variable")
+    SET(CFS_CXX_FLAGS "-std=c++11 -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
     SET(CFS_C_FLAGS "-std=c11")
 
     IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
