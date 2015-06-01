@@ -299,8 +299,10 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
+SET(BOOST_MAJOR_VER 1)
+SET(BOOST_MINOR_VER 58)
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
-SET(BOOST_GZ "boost_1_58_0.tar.bz2")
+SET(BOOST_GZ "boost_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
 SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546")
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
