@@ -151,7 +151,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://freefr.dl.sourceforge.net/project/boost/boost/1.58.0/boost_1_58_0.tar.bz2"
+  "http://freefr.dl.sourceforge.net/project/boost/boost/${BOOST_MAJOR_VER}.${BOOST_MINOR_VER}.0/boost_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2"
   "${BOOST_URL}/${BOOST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/boost/${BOOST_GZ}")
@@ -218,8 +218,8 @@ IF(MINGW)
   LIST(GET COMPVER 0 COMPVER_MAJOR)
   LIST(GET COMPVER 1 COMPVER_MINOR)
 
-  SET(BOOST_LIB_SUFFIX_DEBUG "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-d-1_52${CMAKE_STATIC_LIBRARY_SUFFIX}")
-  SET(BOOST_LIB_SUFFIX_RELEASE "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-1_52${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  SET(BOOST_LIB_SUFFIX_DEBUG "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-d-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+  SET(BOOST_LIB_SUFFIX_RELEASE "-gcc${COMPVER_MAJOR}${COMPVER_MINOR}-mt-${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}${CMAKE_STATIC_LIBRARY_SUFFIX}")
 ENDIF(MINGW)
 
 #-----------------------------------------------------------------------------
