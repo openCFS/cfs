@@ -441,7 +441,11 @@ def create_2d_mesh(type, x_res, y_res):
     offx = -1.
     offy = -1.
     width = 2. 
-    height = 2. 
+    height = 2.
+  if type == 'msfem_two_load':
+    width= 2.
+    height = 1.
+    
      
   dx = width / nx
   dy = height / ny
@@ -496,14 +500,14 @@ def create_2d_mesh(type, x_res, y_res):
   #    b.nodes = ((ll + 1, ll + 1 + nx + 1)) 
   #    b.region = 'pressure'
   #   mesh.elements.append(b)
-  if type == 'msfem_test2':
-    for x in range(int(0.8 * nx), nx):
-      b = Element()
-      b.type = LINE
-      ll = x
-      b.nodes = ((ll, ll + 1)) 
-      b.region = 'pressure2'
-      mesh.elements.append(b)
+  #if type == 'msfem_test2':
+  #  for x in range(int(0.8 * nx), nx):
+  #    b = Element()
+  #    b.type = LINE
+  #    ll = x
+  #    b.nodes = ((ll, ll + 1)) 
+  #    b.region = 'pressure2'
+  #    mesh.elements.append(b)
       
   if type == 'ghost':
     mesh.bc.append(("south", range(0, nx)))
@@ -559,6 +563,43 @@ def create_2d_mesh(type, x_res, y_res):
     mesh.bc.append(("left_upper", [(nx + 1) * ny]))
     mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
     return mesh
+  elif type == 'msfem_two_load':
+    # lower/upper loads
+    mid = int((nx+1.)/2.)
+    off_x = int(0.05 * nx)
+    off_y = int(0.1 * ny)
+    if (nx+1)/2. % 2 == 0:
+      mesh.bc.append(("load1", range(mid-off_x,mid + off_x)))
+      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x)))
+    else:
+      mesh.bc.append(("load1", range(mid-off_x,mid + 1 + off_x)))
+      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1)))
+    # support lower left
+    mesh.bc.append(("support", range(0,off_x+1)))
+    mesh.bc.append(("support", range(0,(nx+1)*off_y+1,nx+1)))
+    # support lower right
+    mesh.bc.append(("support", range(nx - off_x,nx+1)))
+    mesh.bc.append(("support", range(nx,(nx+1)*(off_y+1),nx+1)))
+    # support upper left
+    mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
+    mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
+
+    # support upper right
+    mesh.bc.append(("support", range((nx+1)*(ny+1) -1 - off_x,(nx+1)*(ny+1))))
+    mesh.bc.append(("support", range((nx+1)*(ny+1)-(nx+1)*off_y-1,(nx+1)*(ny+1),nx+1)))
+    
+    #mesh.bc.append(("south", range(0, nx + 1)))
+    #mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
+    #mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
+    #mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
+  
+    mesh.bc.append(("left_lower", [0]))
+    mesh.bc.append(("right_lower", [nx]))
+    mesh.bc.append(("left_upper", [(nx + 1) * ny]))
+    mesh.bc.append(("right_upper", [(nx + 1) * (ny + 1) - 1]))
+    return mesh
+
+  
   else:
     mesh.bc.append(("south", range(0, nx + 1)))
     mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
