@@ -130,7 +130,7 @@ namespace CoupledField {
       //ReadPyroelectric( material,pn );
     }
     else if ( matClass == THERMOELASTIC ) {
-      REFACTOR;
+      REFACTOR;//
       //material = new ThermoelasticMaterial();
       //ReadThermoelastic( material, pn );
     }
@@ -668,7 +668,6 @@ namespace CoupledField {
                                        acou->Get("compressionModulus")->As<std::string>() );
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
-
     //read kinematic viscosity
     if(acou->Has("kinematicViscosity")) {
       PtrCoefFct kinVisc =
@@ -677,7 +676,6 @@ namespace CoupledField {
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
       //material->SetScalar(acou->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY);
     }
-
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
     {
@@ -707,7 +705,6 @@ namespace CoupledField {
         if(ad->Get("thermoViscous")->Has("alpha0"))
           material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
       }
-
       // read fractional damping
       if(ad->Has("fractional"))
       {
@@ -725,21 +722,20 @@ namespace CoupledField {
     if(acou->Has("acousticImpedance"))
     {
       PtrParamNode ai = acou->Get("acousticImpedance");
-      if (ai->Has("zyl_mpp"))
-      {
+      if (ai->Has("zyl_mpp")) {
         PtrParamNode zyl = ai->Get("zyl_mpp");
-        if (zyl->Has("slitWidth")) {
-          PtrCoefFct slitWidth =
+        if (zyl->Has("holeDiam")) {
+          PtrCoefFct holeDiam =
                     CoefFunction::Generate(mp_, Global::REAL,
-                                           zyl->Get("slitWidth")->As<std::string>() );
-          material->SetCoefFct( SLITWIDTH, slitWidth );
+                                           zyl->Get("holeDiam")->As<std::string>() );
+          material->SetCoefFct( IMP_HOLE_DIAM, holeDiam );
         }
 
         if (zyl->Has("mppThickness")) {
           PtrCoefFct mppThickness =
                     CoefFunction::Generate(mp_, Global::REAL,
                                            zyl->Get("mppThickness")->As<std::string>() );
-          material->SetCoefFct( MPP_THICKNESS, mppThickness );
+          material->SetCoefFct( IMP_PLATE_THICKNESS, mppThickness );
         }
 
         if (zyl->Has("flowMachNumber")) {
@@ -748,7 +744,6 @@ namespace CoupledField {
                                            zyl->Get("flowMachNumber")->As<std::string>() );
           material->SetCoefFct( FLOW_MACH_NUMBER, flowMachNumber );
         }
-
         if (zyl->Has("porosity")) {
           PtrCoefFct porosity =
                     CoefFunction::Generate(mp_, Global::REAL,
@@ -763,8 +758,64 @@ namespace CoupledField {
           material->SetCoefFct( BETA, beta );
         }
       }
-    }
+      if (ai->Has("muffler")) {
+        PtrParamNode muff = ai->Get("muffler");
+        if (muff->Has("holeDiam")) {
+          PtrCoefFct holeDiam =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           muff->Get("holeDiam")->As<std::string>() );
+          material->SetCoefFct( IMP_HOLE_DIAM, holeDiam );
+        }
 
+        if (muff->Has("plateThickness")) {
+          PtrCoefFct plateThickness =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           muff->Get("plateThickness")->As<std::string>() );
+          material->SetCoefFct( IMP_PLATE_THICKNESS, plateThickness );
+        }
+        if (muff->Has("porosity")) {
+          PtrCoefFct porosity =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           muff->Get("porosity")->As<std::string>() );
+          material->SetCoefFct( POROSITY, porosity );
+        }
+        if (muff->Has("endCorrection")) {
+          PtrCoefFct endCorrect =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           muff->Get("endCorrection")->As<std::string>() );
+          material->SetCoefFct( IMP_END_CORRECTION, endCorrect );
+        }
+      }
+      try {
+        if (ai->Has("interpolImpedance")) {
+          PtrParamNode interpolImp = ai->Get("interpolImpedance");
+          BaseMaterial::MatDescriptorNl info;
+          info.approxType = LIN_INTERPOLATE;
+          info.fileName = "";
+          // read name of file with impedance data
+          if(interpolImp->Has("dataName_real")) {
+            info.fileName = interpolImp->Get("dataName_real")->As<std::string>().c_str();
+            material->SetScalar(interpolImp->Get("dataName_real")->As<std::string>().c_str(), ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
+            material->SetScalar(1.0, ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
+            material->SetNonLinMatIso( ACOU_IMPEDANCE_REAL_VAL, info);
+          } else {
+            EXCEPTION("No file name give for interpolation of impedance");
+          }
+          // read name of file with impedance data
+          if(interpolImp->Has("dataName_imag")) {
+            info.fileName = interpolImp->Get("dataName_imag")->As<std::string>().c_str();
+            material->SetScalar(interpolImp->Get("dataName_imag")->As<std::string>().c_str(), ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
+            material->SetScalar(1.0, ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
+            material->SetNonLinMatIso( ACOU_IMPEDANCE_IMAG_VAL, info);
+          } else {
+            EXCEPTION("No file name give for interpolation of impedance");
+          }
+        }
+      } catch (Exception& ex ) {
+        RETHROW_EXCEPTION(ex, "Could not create interpolated impedance'");
+      }
+
+    }
     //read acoustic non linearity
     if(acou->Has("acousticNonlinear"))
     {

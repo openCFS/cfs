@@ -1382,11 +1382,14 @@ namespace CoupledField {
     MaterialTypeEnum.Add( DENSITY, "Density" );
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" ); 
     MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" );
-    MaterialTypeEnum.Add( SLITWIDTH, "slitWidth");
-    MaterialTypeEnum.Add( MPP_THICKNESS, "mppThick");
+    MaterialTypeEnum.Add( IMP_HOLE_DIAM, "holeDiam");
+    MaterialTypeEnum.Add( IMP_PLATE_THICKNESS, "plateThick");
+    MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");
     MaterialTypeEnum.Add( POROSITY, "sigma");
     MaterialTypeEnum.Add( BETA, "beta");
     MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
+    MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");
+    MaterialTypeEnum.Add( ACOU_IMPEDANCE_IMAG_VAL, "acouImpedanceImagValue");
     MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
     MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
     MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 

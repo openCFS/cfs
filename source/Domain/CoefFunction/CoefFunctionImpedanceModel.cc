@@ -21,6 +21,8 @@ namespace CoupledField{
     dimType_ = SCALAR;
     currFrequ_ = 0;
     c0_ = 0;
+
+    impedanceType_ = IMP_NONE;
   }
 
   CoefFunctionImpedanceModel<Complex>::~CoefFunctionImpedanceModel() {
@@ -28,6 +30,7 @@ namespace CoupledField{
   }
   void CoefFunctionImpedanceModel<Complex>::GenerateZylindricMpp(BaseMaterial* const material,
                                                                  Double innerR, Double outerR) {
+    impedanceType_ = IMP_ZYL_MPP;
     LocPointMapped lp_dummy;
     Double tmpBlkMod;
     // density_, DENSITY
@@ -36,12 +39,12 @@ namespace CoupledField{
     // nu_, KINEMATIC_VISCOSITY
     tmpPtFc = material->GetScalCoefFnc( KINEMATIC_VISCOSITY, Global::REAL );
     tmpPtFc->GetScalar(nu_, lp_dummy);
-    // slitWidth_, SLITWIDTH
-    tmpPtFc = material->GetScalCoefFnc( SLITWIDTH, Global::REAL );
-    tmpPtFc->GetScalar(slitWidth_, lp_dummy);
-    // mppThick_, MPP_THICKNESS
-    tmpPtFc = material->GetScalCoefFnc( MPP_THICKNESS, Global::REAL );
-    tmpPtFc->GetScalar(mppThick_, lp_dummy);
+    // holeDiam_, HOLEDIAM
+    tmpPtFc = material->GetScalCoefFnc( IMP_HOLE_DIAM, Global::REAL );
+    tmpPtFc->GetScalar(holeDiam_, lp_dummy);
+    // plateThick_, IMP_PLATE_THICKNESS
+    tmpPtFc = material->GetScalCoefFnc( IMP_PLATE_THICKNESS, Global::REAL );
+    tmpPtFc->GetScalar(plateThick_, lp_dummy);
     // sigma_, POROSITY
     tmpPtFc = material->GetScalCoefFnc( POROSITY, Global::REAL );
     tmpPtFc->GetScalar(sigma_, lp_dummy);
@@ -60,17 +63,17 @@ namespace CoupledField{
     outerR_ = outerR;
   }
 
-  void CoefFunctionImpedanceModel<Complex>::Recalculate() {
+  void CoefFunctionImpedanceModel<Complex>::Recalculate_zylMpp() {
     Complex Z_mpp, Z_cav, Z_wall;
     Complex tmp1, tmp2, tmp3;
     Double waveNum, shearWaveNum;
     const Complex i(0,1);
-    const Double mu = nu_*density_;
+    const Double mu = nu_ * density_;
     Double R_s; // surface resistance
     Double maxSchnelle; // maximal particle velocity
 
     if (c0_ == 0) {
-      EXCEPTION("GenerateZylindricMpp(...) has to be called for");
+      EXCEPTION("GenerateZylindricMpp(...) has to be called first");
     }
 
     if (dimType_ == SCALAR) {
@@ -78,7 +81,7 @@ namespace CoupledField{
       //    i*2*pi*f*1/(1-tanh(2*pi*f/c*sqrt(i))/(2*pi*f/c*sqrt(i)))
       MathParser::HandleType h = mp_->GetNewHandle();
       const Double pi = mp_->GetExprVars(h, "_pi");
-      Double f = mp_->GetExprVars(h, "f");
+      const Double f = mp_->GetExprVars(h, "f");
       mp_->ReleaseHandle(h);
 
       if (f == 0)
@@ -93,13 +96,13 @@ namespace CoupledField{
         currFrequ_ = f;
       }
       waveNum = 2*pi*f/c0_;
-      shearWaveNum = slitWidth_*sqrt(2*pi*f/(4.0*nu_));
+      shearWaveNum = holeDiam_*sqrt(2*pi*f/(4.0*nu_));
       R_s = 0.5*sqrt(2*density_*2*pi*f*mu);
       maxSchnelle = 1.0 / ( c0_ * density_ ); // p / Z = p / (c * \rho)  // p = 1 <= Dirichlet BC
 
       tmp1 = i;
       tmp1 *= waveNum;
-      tmp1 *= mppThick_/sigma_;
+      tmp1 *= plateThick_/sigma_;
       tmp2 = shearWaveNum*sqrt(i);
       tmp3 = -tanh(tmp2);
       tmp3 /= tmp2;
@@ -127,14 +130,119 @@ namespace CoupledField{
 
       Z_wall = Z_mpp;
       Z_wall += Z_cav;
-      constCoefScalar_ = 1;
-      constCoefScalar_ *= -i;
+      constCoefScalar_ = -1.0;
+//      constCoefScalar_ *= i;
       constCoefScalar_ /= (Z_wall*density_*c0_);
     } else {
       EXCEPTION("CoefFunctionImpedanceMode only implemented for scalar")
     }
 
   }
+
+
+  void CoefFunctionImpedanceModel<Complex>::GenerateInterpolImpedance(BaseMaterial* const material) {
+    impedanceType_ = IMP_INTERPOL;
+    PtrCoefFct frequCoef = CoefFunction::Generate( mp_, Global::REAL, "f");
+    impedanceCoef_real_ =
+        material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_REAL_VAL, Global::REAL, frequCoef);
+    impedanceCoef_imag_ =
+        material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL, frequCoef);
+  }
+
+  void CoefFunctionImpedanceModel<Complex>::Recalculate_interpol() {
+    MathParser::HandleType h = mp_->GetNewHandle();
+    const Double f = mp_->GetExprVars(h, "f");
+    mp_->ReleaseHandle(h);
+    if (f == currFrequ_) // Already calculated value for this frequency
+    {
+      return;
+    } else {
+      currFrequ_ = f;
+    }
+
+    Double Z_real, Z_imag;
+    LocPointMapped lp_dummy;
+    impedanceCoef_real_->GetScalar(Z_real, lp_dummy);
+    impedanceCoef_real_->GetScalar(Z_imag, lp_dummy);
+    const Complex Z(Z_real, Z_imag);
+    constCoefScalar_ = -1.0;
+    constCoefScalar_ /= Z;
+  }
+
+  void CoefFunctionImpedanceModel<Complex>::GenerateMuffler(BaseMaterial* const material) {
+    impedanceType_ = IMP_MUFFLER;
+    LocPointMapped lp_dummy;
+    Double tmpBlkMod;
+    // density_, DENSITY
+    PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
+    tmpPtFc->GetScalar(density_, lp_dummy);
+    // nu_, KINEMATIC_VISCOSITY
+    tmpPtFc = material->GetScalCoefFnc( KINEMATIC_VISCOSITY, Global::REAL );
+    tmpPtFc->GetScalar(nu_, lp_dummy);
+    // holeDiam_, HOLEDIAM
+    tmpPtFc = material->GetScalCoefFnc( IMP_HOLE_DIAM, Global::REAL );
+    tmpPtFc->GetScalar(holeDiam_, lp_dummy);
+    // plateThick_, IMP_PLATE_THICKNESS
+    tmpPtFc = material->GetScalCoefFnc( IMP_PLATE_THICKNESS, Global::REAL );
+    tmpPtFc->GetScalar(plateThick_, lp_dummy);
+    // sigma_, POROSITY
+    tmpPtFc = material->GetScalCoefFnc( POROSITY, Global::REAL );
+    tmpPtFc->GetScalar(sigma_, lp_dummy);
+    // endCorrection_, IMP_END_CORRECTION
+    tmpPtFc = material->GetScalCoefFnc( IMP_END_CORRECTION, Global::REAL );
+    tmpPtFc->GetScalar(endCorrection_, lp_dummy);
+    // tmpBlkMod, ACOU_BULK_MODULUS
+    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
+    // calc speed of sound
+    c0_ = sqrt(tmpBlkMod/density_);
+  }
+  void CoefFunctionImpedanceModel<Complex>::Recalculate_muffler() {
+    Complex Z;
+    Double waveNum, theta, xi;
+    const Complex i(0,1);
+    const Double mu = nu_ * density_;
+
+    if (c0_ == 0) {
+      EXCEPTION("GenerateMuffler(...) has to be called first");
+    }
+
+    if (dimType_ == SCALAR) {
+      MathParser::HandleType h = mp_->GetNewHandle();
+      const Double pi = mp_->GetExprVars(h, "_pi");
+      const Double f = mp_->GetExprVars(h, "f");
+      mp_->ReleaseHandle(h);
+
+      if (f == 0)
+      {
+        std::cerr << "frequency zero!!!!!!!!!" << std::endl;
+        return;
+      }
+      if (f == currFrequ_) // Already calculated value for this frequency
+      {
+        return;
+      } else {
+        currFrequ_ = f;
+      }
+      waveNum = 2*pi*f/c0_;
+
+      theta = 8.0*mu*waveNum/ (density_*c0_);
+      theta *= (1 + plateThick_/holeDiam_);
+      theta /= sigma_;
+
+      xi = waveNum * (plateThick_+endCorrection_*holeDiam_);
+      xi /= sigma_;
+
+      Z = theta + i*xi;
+//      Z /= (density_ * c0_)[
+
+      constCoefScalar_ = -1.0;
+      constCoefScalar_ /= Z;
+    } else {
+      EXCEPTION("CoefFunctionImpedanceMode only implemented for scalar")
+    }
+  }
+
 
   void CoefFunctionImpedanceModel<Complex>::
   GetStrScalar( std::string& real, std::string& imag ) {

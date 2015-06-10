@@ -903,24 +903,25 @@ namespace CoupledField{
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
         std::string impType = impedNodes[i]->Get("type")->As<std::string>();
+        shared_ptr<CoefFunctionImpedanceModel<Complex> >
+                   Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
         if (impType == "zyl_mpp") {
           Double innerR, outerR;
           innerR = impedNodes[i]->Get("innerR")->As<Double>();
           outerR = impedNodes[i]->Get("outerR")->As<Double>();
-
-          shared_ptr<CoefFunctionImpedanceModel<Complex> >
-          Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
           Z_impMod->GenerateZylindricMpp(materials_[aRegion], innerR, outerR);
-
-          if( dim_ == 2 ) {
-            impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
-          } else {
-            impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
-          }
-        } else if (impType == "interpolImpedanz"){
-          EXCEPTION("Not implemented yet: " << impType);
+        } else if (impType == "interpolImpedance"){
+          Z_impMod->GenerateInterpolImpedance(materials_[aRegion]);
+        } else if (impType == "muffler") {
+          Z_impMod->GenerateMuffler(materials_[aRegion]);
         } else {
           EXCEPTION("No such impedance type: " << impType);
+        }
+
+        if( dim_ == 2 ) {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+        } else {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
         }
 
         impedInt->SetName("impedIntegrator");
