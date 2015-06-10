@@ -3,6 +3,7 @@
 
 #include "CoefFunctionTimeFreq.hh"
 
+typedef enum {IMP_NONE, IMP_ZYL_MPP, IMP_INTERPOL, IMP_MUFFLER} IMPEDANCE_TYPE;
 
 namespace CoupledField{
 
@@ -22,7 +23,25 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     //! Destructor
     virtual ~CoefFunctionImpedanceModel();
 
+    /**
+     *  Generates necessary data for MPP impedance model (c_0, density etc.)
+     *  @material The material data concerning the acoustic properties and MPP properties
+     *  @innerR Inner radius of pipe
+     *  @outerR Outer radius of pipe = innerR + volume behind MPP
+     */
     void GenerateZylindricMpp(BaseMaterial* const material, Double innerR, Double outerR);
+    /**
+     * Generates necessary data for impedance model with interpolated data of Z, the impedance
+     *  @material The material data concerning the acoustic properties and MPP properties
+     */
+    void GenerateInterpolImpedance(BaseMaterial* const material);
+
+    /**
+     *  Generates necessary data for muffler impedance model (c_0, density etc.)
+     *  @material The material data concerning the acoustic properties and muffler properties
+     */
+    void GenerateMuffler(BaseMaterial* const material);
+
 
     //! Return real-valued scalar at integration point
     virtual void GetScalar(Double& scal,
@@ -34,7 +53,13 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     //! \copydoc CoefFunction::GetScalar
     void GetScalar(Complex& coefScalar, const LocPointMapped& lpm ) {
       assert(dimType_ == SCALAR);
-      this->Recalculate();
+      if (impedanceType_ == IMP_ZYL_MPP) {
+        this->Recalculate_zylMpp();
+      } else if (impedanceType_ == IMP_MUFFLER) {
+        this->Recalculate_muffler();
+      } else if (impedanceType_ == IMP_INTERPOL) {
+        this->Recalculate_interpol();
+      }
       coefScalar =  constCoefScalar_;
     }
 
@@ -46,21 +71,29 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
   protected:
 
     //! Recalculate impedance
-    void Recalculate();
+    void Recalculate_zylMpp();
+    void Recalculate_interpol();
+    void Recalculate_muffler();
 
   private:
+
+    IMPEDANCE_TYPE impedanceType_; // type of impedance
 
     Double c0_; // speed of sound
     Double density_; // density of medium
     Double nu_; // kinematic viscosity
-    Double slitWidth_; // slitwidth of MPP
-    Double mppThick_; // MPP thickness
-    Double sigma_; // MPP porosity
+    Double holeDiam_; // hole diameter or slit width of MPP
+    Double plateThick_; // plate thickness
+    Double sigma_; // plate porosity
     Double flowMachNr_; // flow mach number
+    Double endCorrection_; // end correction term (additional mass around hole)
     Double beta_; // parameter for the non-linear flow term
     Double innerR_; // inner radius of duct
     Double outerR_; // outer radius, duct and expansion chamber
     Double currFrequ_; // current, already calculated frequency
+
+    PtrCoefFct impedanceCoef_real_; // Impedance CoefFunction
+    PtrCoefFct impedanceCoef_imag_; // Impedance CoefFunction
 };
 
 

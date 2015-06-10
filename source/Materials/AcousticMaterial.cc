@@ -13,8 +13,6 @@
 #include "math.h"
 #include "stdlib.h"
 
-
-
 namespace CoupledField
 {
 
@@ -39,9 +37,12 @@ namespace CoupledField
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( BOVERA );
-    isAllowed_.insert( SLITWIDTH );
-    isAllowed_.insert( MPP_THICKNESS );
+    isAllowed_.insert( IMP_HOLE_DIAM );
+    isAllowed_.insert( IMP_PLATE_THICKNESS );
+    isAllowed_.insert( IMP_END_CORRECTION );
     isAllowed_.insert( FLOW_MACH_NUMBER );
+    isAllowed_.insert( ACOU_IMPEDANCE_REAL_VAL );
+    isAllowed_.insert( ACOU_IMPEDANCE_IMAG_VAL );
     isAllowed_.insert( POROSITY );
     isAllowed_.insert( BETA );
   }
@@ -82,6 +83,16 @@ namespace CoupledField
     }
   }
 
+  void AcousticMaterial::SetScalar( const std::string& param, MaterialType matType,
+      Global::ComplexPart dataType ) {
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "string";
+      matTypeNotAllowed( matType, dim );
+    } else {
+      stringParams_[matType] = param;
+    }
+  }
+
 
 
   void AcousticMaterial::GetScalar( Double& param, MaterialType matType, 
@@ -98,15 +109,31 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	param = val.real();
+        param = val.real();
       }
       else if ( dataType == Global::IMAG ) {
-	param = val.imag();
+        param = val.imag();
       }
       else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
+  void AcousticMaterial::GetScalar( std::string& param, MaterialType matType,
+              Global::ComplexPart dataType ) const {
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+    std::string value;
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }
+
 }
