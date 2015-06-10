@@ -129,7 +129,11 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_InterpolImpedance">
     <xsd:sequence>
-      <xsd:element name="dataName" type="xsd:string"/>
+      <xsd:element name="dataName" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>Filename of interpolated Data for frequency dependant impedance.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
 
