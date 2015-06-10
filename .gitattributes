@@ -1359,6 +1359,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionImpedanceModel.cc -text
+source/Domain/CoefFunction/CoefFunctionImpedanceModel.hh -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
