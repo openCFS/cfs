@@ -906,10 +906,7 @@ namespace CoupledField{
         shared_ptr<CoefFunctionImpedanceModel<Complex> >
                    Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
         if (impType == "slit_mpp") {
-          Double innerR, outerR;
-          innerR = impedNodes[i]->Get("innerR")->As<Double>();
-          outerR = impedNodes[i]->Get("outerR")->As<Double>();
-          Z_impMod->GenerateSlitMpp(materials_[aRegion], innerR, outerR);
+          Z_impMod->GenerateSlitMpp(materials_[aRegion]);
         } else if (impType == "circ_mpp"){
           Z_impMod->GenerateCircMpp(materials_[aRegion]);
         } else if (impType == "interpolImpedance"){

@@ -1,8 +1,5 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -15,8 +12,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for acoustics PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="acoustic" type="DT_PDEAcoustic"
-    substitutionGroup="PDEBasic">
+  <xsd:element name="acoustic" type="DT_PDEAcoustic" substitutionGroup="PDEBasic">
     <xsd:unique name="CS_AcousticRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
@@ -40,11 +36,13 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
+                      > </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""></xsd:attribute>
+                    <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
+                    />
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -52,8 +50,7 @@
           </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1"/>
 
           <!-- List defining nonlinear types -->
           <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
@@ -96,33 +93,34 @@
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-              <!-- Initial state of previous sequence step / external file -->
-              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
-              <!-- Initial state given by used -->
-              <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
- 		      </xsd:choice>
- 		    </xsd:complexType>
-		  </xsd:element>
-		  
+                <!-- Initial state of previous sequence step / external file -->
+                <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+                <!-- Initial state given by used -->
+                <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"
+                />
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="soundSoft"  type="DT_BcHomScalar"    />
-                <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
-                <xsd:element name="potential"  type="DT_BcInhomScalar"  />
-                
+                <xsd:element name="soundSoft" type="DT_BcHomScalar"/>
+                <xsd:element name="pressure" type="DT_BcInhomScalar"/>
+                <xsd:element name="potential" type="DT_BcInhomScalar"/>
+
                 <!-- RHS Load Values-->
-                <xsd:element name="velocity"       type="DT_BcInhomVector"/>
+                <xsd:element name="velocity" type="DT_BcInhomVector"/>
                 <xsd:element name="normalVelocity" type="DT_BcInhomScalar"/>
                 <xsd:element name="normalAcceleration" type="DT_BcInhomScalar"/>
 
                 <!-- Special Boundary Conditions -->
-                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
-                <xsd:element name="rhsValues"      type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="impedance"      type="DT_AcouImpedance"/>
-                <xsd:element name="periodic"       type="DT_BcPeriodic"   />
+                <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
+                <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="impedance" type="DT_AcouImpedance"/>
+                <xsd:element name="periodic" type="DT_BcPeriodic"/>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -131,8 +129,8 @@
           <!-- Currently this is not supported, since it is difficult
           to define in the acoustics case since it depends on the
           boundary conditions -->
-          <xsd:element name="storeResults" type="DT_AcousticStoreResults"
-            minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="storeResults" type="DT_AcousticStoreResults" minOccurs="0"
+            maxOccurs="1"/>
 
         </xsd:sequence>
 
@@ -159,8 +157,7 @@
         </xsd:attribute>
 
         <!-- Type of acoustic pde -->
-        <xsd:attribute name="subType" use="optional"
-          default="standard">
+        <xsd:attribute name="subType" use="optional" default="standard">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="standard"/>
@@ -170,8 +167,7 @@
         </xsd:attribute>
 
         <!-- Type of acoustic flow formulation -->
-        <xsd:attribute name="flowFormulation" use="optional"
-          default="standard">
+        <xsd:attribute name="flowFormulation" use="optional" default="standard">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="standard"/>
@@ -191,8 +187,7 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        <xsd:attribute name="order" use="optional"
-        type="xsd:positiveInteger" default="1"/>
+        <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
 
       </xsd:extension>
     </xsd:complexContent>
@@ -212,10 +207,10 @@
           <xsd:element name="type" minOccurs="0" maxOccurs="1">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
-                <xsd:enumeration value="linear"   />
-                <xsd:enumeration value="quadDist"     />
-                <xsd:enumeration value="inverseDist"     />
-                <xsd:enumeration value="exponential"     />
+                <xsd:enumeration value="linear"/>
+                <xsd:enumeration value="quadDist"/>
+                <xsd:enumeration value="inverseDist"/>
+                <xsd:enumeration value="exponential"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
@@ -225,10 +220,8 @@
           <xsd:element name="zM" type="xsd:double" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="radiusStart" type="xsd:double" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="radiusEnd" type="xsd:double" minOccurs="1" maxOccurs="1"/>
-          <xsd:element name="dampFactor" type="xsd:double"
-          minOccurs="0" maxOccurs="1"/>
-          <xsd:element name="dampFactorMax" type="xsd:double"
-          minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="dampFactor" type="xsd:double" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="dampFactorMax" type="xsd:double" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>
@@ -256,9 +249,8 @@
           </xsd:element>
 
           <!-- Number of past time-steps for fractional damping -->
-          <xsd:element name="fracMemory" type="xsd:positiveInteger" 
-            minOccurs="0" maxOccurs="1"/>
-          
+          <xsd:element name="fracMemory" type="xsd:positiveInteger" minOccurs="0" maxOccurs="1"/>
+
           <!-- Type of interpolation -->
           <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
             <xsd:simpleType>
@@ -302,8 +294,7 @@
   <!-- Definition of thermoviscous damping type -->
   <xsd:complexType name="DT_AcousticDampingThermo">
     <xsd:complexContent>
-      <xsd:extension base="DT_DampingBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_DampingBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -314,8 +305,7 @@
   <!-- Definition of westervelt nonlinearity type -->
   <xsd:complexType name="DT_AcousticNonLinWestervelt">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -326,8 +316,7 @@
   <!-- Definition of kunetsov nonlinearity type -->
   <xsd:complexType name="DT_AcousticNonLinKuznetsov">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -339,8 +328,7 @@
   <!-- Definition of variable SOS CN1 nonlinearity type -->
   <xsd:complexType name="DT_AcousticNonVariableSOS_CN1">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -350,8 +338,7 @@
   <!-- Definition of variable SOS CN2 nonlinearity type -->
   <xsd:complexType name="DT_AcousticNonVariableSOS_CN2">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
   <!-- ******************************************************************* -->
@@ -360,8 +347,7 @@
   <!-- Definition of variable SOS CN2 nonlinearity type -->
   <xsd:complexType name="DT_AcousticNonVariableSOS_CN2Mean">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -387,8 +373,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="acouPressure"
-          type="DT_AcousticUnknownType"/>
+        <xsd:attribute name="quantity" default="acouPressure" type="DT_AcousticUnknownType"/>
         <xsd:attribute name="dof">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
@@ -410,14 +395,10 @@
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
-	<xsd:attribute name="fileName" type="xsd:token" use="optional"
-          default="none"/>
-	<xsd:attribute name="interpolType" type="xsd:token" use="optional"
-          default="NNB"/>
-	<xsd:attribute name="noNodes" type="xsd:token" use="optional"
-          default="-1"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="fileName" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="interpolType" type="xsd:token" use="optional" default="NNB"/>
+        <xsd:attribute name="noNodes" type="xsd:token" use="optional" default="-1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -427,9 +408,8 @@
   <xsd:complexType name="DT_AcousticIN">
     <xsd:complexContent>
       <xsd:restriction base="DT_AcousticID">
-        <xsd:attribute name="quantity" type="DT_AcousticUnknownType"
-                       default="acouPotential"/>
-        </xsd:restriction>
+        <xsd:attribute name="quantity" type="DT_AcousticUnknownType" default="acouPotential"/>
+      </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -457,8 +437,6 @@
     <xsd:attribute name="value" type="xsd:token" use="optional"/>
     <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
     <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
-    <xsd:attribute name="innerR" type="xsd:double" use="required"/>
-    <xsd:attribute name="outerR" type="xsd:double" use="required"/>
     <xsd:attribute default="circ_mpp" name="type" type="DT_AcouImpedanceType" use="optional">
       <xsd:annotation>
         <xsd:documentation>Type of impedance model to use. Following exist untill now: circ_mpp, interpolImpedance</xsd:documentation>
@@ -476,8 +454,7 @@
         <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:all>
-              <xsd:element name="factor" type="xsd:token" minOccurs="0" maxOccurs="1"
-                default="1"/>
+              <xsd:element name="factor" type="xsd:token" minOccurs="0" maxOccurs="1" default="1"/>
               <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
                 <xsd:complexType>
                   <xsd:all>
@@ -485,15 +462,15 @@
                       <xsd:complexType>
                         <xsd:attribute name="names" type="xsd:token" use="required"/>
                         <xsd:attribute name="inputId" type="xsd:token" use="required"/>
-                        <xsd:attribute name="coordSysId" type="xsd:token"
-                          use="optional" default="default"/>
+                        <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+                          default="default"/>
                       </xsd:complexType>
                     </xsd:element>
                     <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
                       <xsd:complexType>
                         <xsd:attribute name="z" type="xsd:double" use="required"/>
-                        <xsd:attribute name="tol" type="DT_NonNegFloat"
-                          use="optional" default="1.0e-10"/>
+                        <xsd:attribute name="tol" type="DT_NonNegFloat" use="optional"
+                          default="1.0e-10"/>
                       </xsd:complexType>
                     </xsd:element>
                     <xsd:element name="tolerances" minOccurs="0" maxOccurs="1">
@@ -501,29 +478,22 @@
                         <xsd:all>
                           <xsd:element name="global" minOccurs="0" maxOccurs="1">
                             <xsd:complexType>
-                              <xsd:attribute name="start" type="DT_NonNegFloat"
-                                use="required"/>
-                              <xsd:attribute name="end" type="DT_NonNegFloat"
-                                use="optional"/>
-                              <xsd:attribute name="inc" type="DT_PosFloat"
-                                use="optional"/>
+                              <xsd:attribute name="start" type="DT_NonNegFloat" use="required"/>
+                              <xsd:attribute name="end" type="DT_NonNegFloat" use="optional"/>
+                              <xsd:attribute name="inc" type="DT_PosFloat" use="optional"/>
                             </xsd:complexType>
                           </xsd:element>
                           <xsd:element name="local" minOccurs="0" maxOccurs="1">
                             <xsd:complexType>
-                              <xsd:attribute name="start" type="DT_NonNegFloat"
-                                use="required"/>
-                              <xsd:attribute name="end" type="DT_NonNegFloat"
-                                use="optional"/>
-                              <xsd:attribute name="inc" type="DT_PosFloat"
-                                use="optional"/>
+                              <xsd:attribute name="start" type="DT_NonNegFloat" use="required"/>
+                              <xsd:attribute name="end" type="DT_NonNegFloat" use="optional"/>
+                              <xsd:attribute name="inc" type="DT_PosFloat" use="optional"/>
                             </xsd:complexType>
                           </xsd:element>
                         </xsd:all>
                       </xsd:complexType>
                     </xsd:element>
-                    <xsd:element name="restartFileMode" minOccurs="0" maxOccurs="1"
-                      default="rw">
+                    <xsd:element name="restartFileMode" minOccurs="0" maxOccurs="1" default="rw">
                       <xsd:simpleType>
                         <xsd:restriction base="xsd:string">
                           <xsd:enumeration value="r"/>
@@ -543,19 +513,18 @@
                             </xsd:restriction>
                           </xsd:simpleType>
                         </xsd:attribute>
-                        <xsd:attribute name="writeNodes" type="DT_CFSBool"
-                          use="optional" default="no"/>
+                        <xsd:attribute name="writeNodes" type="DT_CFSBool" use="optional"
+                          default="no"/>
                       </xsd:complexType>
                     </xsd:element>
                   </xsd:all>
-                  <xsd:attribute name="justInterpolate" type="DT_CFSBool"
-                    use="optional" default="no"/>
-                  <xsd:attribute name="overwriteOldSrcs" type="DT_CFSBool"
-                    use="optional" default="yes"/>
+                  <xsd:attribute name="justInterpolate" type="DT_CFSBool" use="optional"
+                    default="no"/>
+                  <xsd:attribute name="overwriteOldSrcs" type="DT_CFSBool" use="optional"
+                    default="yes"/>
                 </xsd:complexType>
               </xsd:element>
-              <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1"
-                default="no">
+              <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1" default="no">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:string">
                     <xsd:enumeration value="no"/>
@@ -566,8 +535,7 @@
               </xsd:element>
             </xsd:all>
             <xsd:attribute name="name" type="xsd:token" use="required"/>
-            <xsd:attribute name="inputId" type="xsd:token"
-              use="optional" default="default"/>
+            <xsd:attribute name="inputId" type="xsd:token" use="optional" default="default"/>
           </xsd:complexType>
         </xsd:element>
       </xsd:choice>
@@ -584,9 +552,9 @@
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="no"/>
-          <xsd:enumeration value="fractional"   />
-          <xsd:enumeration value="rayleigh"     />
-          <xsd:enumeration value="absorbingBC"  />
+          <xsd:enumeration value="fractional"/>
+          <xsd:enumeration value="rayleigh"/>
+          <xsd:enumeration value="absorbingBC"/>
           <xsd:enumeration value="thermoViscous"/>
         </xsd:restriction>
       </xsd:simpleType>
@@ -603,8 +571,7 @@
     </xsd:attribute>
 
     <!-- Number of past time-steps for fractional damping -->
-    <xsd:attribute name="fracMemory" type="xsd:positiveInteger" use="optional"
-      default="1"/>
+    <xsd:attribute name="fracMemory" type="xsd:positiveInteger" use="optional" default="1"/>
 
     <!-- Type of interpolation -->
     <xsd:attribute name="interpolation" use="optional" default="no">
@@ -656,7 +623,7 @@
     </xsd:restriction>
   </xsd:simpleType>
 
- <!-- Definition of surface region result types of acoustic PDE -->
+  <!-- Definition of surface region result types of acoustic PDE -->
   <xsd:simpleType name="DT_AcousticSurfRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouPower"/>
@@ -683,34 +650,29 @@
       <xsd:choice maxOccurs="unbounded">
 
         <!-- Nodal result definition -->
-        <xsd:element name="nodeResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_AcousticNodeResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_AcousticNodeResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
 
         <!-- Element result definition -->
-        <xsd:element name="elemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_AcousticElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_AcousticElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
 
         <!-- Region result definition -->
-        <xsd:element name="regionResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_RegionResult">
@@ -721,26 +683,22 @@
         </xsd:element>
 
         <!-- Surface result definition -->
-        <xsd:element name="surfElemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="surfElemResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfElemResult">
-                <xsd:attribute name="type" type="DT_AcousticSurfElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_AcousticSurfElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
 
         <!-- Surface region result definition -->
-        <xsd:element name="surfRegionResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="surfRegionResult" minOccurs="0" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_SurfRegionResult">
-                <xsd:attribute name="type" type="DT_AcousticSurfRegionResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_AcousticSurfRegionResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
