@@ -64,7 +64,7 @@
                 <xsd:element name="variableSOS_CN1" type="DT_AcousticNonVariableSOS_CN1"/>
                 <xsd:element name="variableSOS_CN2" type="DT_AcousticNonVariableSOS_CN2"/>
                 <xsd:element name="variableSOS_CN2Mean" type="DT_AcousticNonVariableSOS_CN2Mean"/>
-                </xsd:choice>
+              </xsd:choice>
             </xsd:complexType>
           </xsd:element>
 
@@ -168,7 +168,7 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        
+
         <!-- Type of acoustic flow formulation -->
         <xsd:attribute name="flowFormulation" use="optional"
           default="standard">
@@ -219,7 +219,7 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          
+
           <xsd:element name="xM" type="xsd:double" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="yM" type="xsd:double" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="zM" type="xsd:double" minOccurs="1" maxOccurs="1"/>
@@ -234,7 +234,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
- 
+
   <!-- ******************************************************************* -->
   <!--   Definition of fractional damping -->
   <!-- ******************************************************************* -->
@@ -254,7 +254,7 @@
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:element>
-          
+
           <!-- Number of past time-steps for fractional damping -->
           <xsd:element name="fracMemory" type="xsd:positiveInteger" 
             minOccurs="0" maxOccurs="1"/>
@@ -273,8 +273,8 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-          
- 
+
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of rayleigh damping -->
@@ -306,7 +306,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of westervelt nonlienarity -->
   <!-- ******************************************************************* -->
@@ -331,7 +331,7 @@
     </xsd:complexContent>
   </xsd:complexType>
 
- 
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of variableSOS_CN1 nonlienarity -->
@@ -354,7 +354,7 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
- <!-- ******************************************************************* -->
+  <!-- ******************************************************************* -->
   <!--   Definition of variableSOS_CN2Mean nonlienarity -->
   <!-- ******************************************************************* -->
   <!-- Definition of variable SOS CN2 nonlinearity type -->
@@ -694,7 +694,7 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Element result definition -->
         <xsd:element name="elemResult" minOccurs="0"
           maxOccurs="unbounded">
@@ -732,7 +732,7 @@
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Surface region result definition -->
         <xsd:element name="surfRegionResult" minOccurs="0"
           maxOccurs="unbounded">
@@ -753,7 +753,7 @@
               <xsd:extension base="DT_SensorArrayResult">
                 <xsd:attribute name="type" type="DT_AcousticSensorArrayResult"/>
               </xsd:extension>
-            </xsd:complexContent>           
+            </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
 
@@ -776,6 +776,7 @@ interpolImpedance</xsd:documentation>
       <xsd:enumeration value="zyl_mpp"/>
       <xsd:enumeration value="interpolImpedance"/>
       <xsd:enumeration value="muffler"/>
+      <xsd:enumeration value="fctImpedance"/>
     </xsd:restriction>
   </xsd:simpleType>
 </xsd:schema>
