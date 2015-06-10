@@ -31,6 +31,7 @@ namespace CoupledField
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( ACOU_BULK_MODULUS );
     isAllowed_.insert( ACOU_SOUND_SPEED );
+    isAllowed_.insert( KINEMATIC_VISCOSITY );
     isAllowed_.insert( ACOU_ALPHA );
     isAllowed_.insert( FRACTIONAL_EXPONENT );
     isAllowed_.insert( RAYLEIGH_ALPHA );
@@ -38,6 +39,11 @@ namespace CoupledField
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( BOVERA );
+    isAllowed_.insert( SLITWIDTH );
+    isAllowed_.insert( MPP_THICKNESS );
+    isAllowed_.insert( FLOW_MACH_NUMBER );
+    isAllowed_.insert( POROSITY );
+    isAllowed_.insert( BETA );
   }
 
   AcousticMaterial::~AcousticMaterial() {

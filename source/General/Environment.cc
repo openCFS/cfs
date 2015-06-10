@@ -1381,7 +1381,12 @@ namespace CoupledField {
     MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
     MaterialTypeEnum.Add( DENSITY, "Density" );
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" ); 
-    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" ); 
+    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" );
+    MaterialTypeEnum.Add( SLITWIDTH, "slitWidth");
+    MaterialTypeEnum.Add( MPP_THICKNESS, "mppThick");
+    MaterialTypeEnum.Add( POROSITY, "sigma");
+    MaterialTypeEnum.Add( BETA, "beta");
+    MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
     MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
     MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
     MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 

@@ -17,10 +17,12 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
                            public boost::enable_shared_from_this<CoefFunctionImpedanceModel<Complex> > {
   public:
     //! Constructor with given field
-    CoefFunctionImpedanceModel(MathParser* mp, Double c0, Double density, Double innerR, Double outerR);
+    CoefFunctionImpedanceModel(MathParser* mp);
 
     //! Destructor
     virtual ~CoefFunctionImpedanceModel();
+
+    void GenerateZylindricMpp(BaseMaterial* const material, Double innerR, Double outerR);
 
     //! Return real-valued scalar at integration point
     virtual void GetScalar(Double& scal,
@@ -50,10 +52,15 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     Double c0_; // speed of sound
     Double density_; // density of medium
+    Double nu_; // kinematic viscosity
+    Double slitWidth_; // slitwidth of MPP
+    Double mppThick_; // MPP thickness
+    Double sigma_; // MPP porosity
+    Double flowMachNr_; // flow mach number
+    Double beta_; // parameter for the non-linear flow term
     Double innerR_; // inner radius of duct
     Double outerR_; // outer radius, duct and expansion chamber
-
-  
+    Double currFrequ_; // current, already calculated frequency
 };
 
 

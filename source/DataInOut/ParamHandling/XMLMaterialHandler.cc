@@ -669,6 +669,15 @@ namespace CoupledField {
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
     }
 
+    //read kinematic viscosity
+    if(acou->Has("kinematicViscosity")) {
+      PtrCoefFct kinVisc =
+                CoefFunction::Generate(mp_, Global::REAL,
+                                       acou->Get("kinematicViscosity")->As<std::string>() );
+      material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
+      //material->SetScalar(acou->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY);
+    }
+
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
     {
@@ -712,6 +721,49 @@ namespace CoupledField {
           material->SetScalar(f->Get("y")->As<Double>(), FRACTIONAL_EXPONENT, Global::REAL );
       }
     } // end of acousticDamping
+    // check for acoustic impedance
+    if(acou->Has("acousticImpedance"))
+    {
+      PtrParamNode ai = acou->Get("acousticImpedance");
+      if (ai->Has("zyl_mpp"))
+      {
+        PtrParamNode zyl = ai->Get("zyl_mpp");
+        if (zyl->Has("slitWidth")) {
+          PtrCoefFct slitWidth =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           zyl->Get("slitWidth")->As<std::string>() );
+          material->SetCoefFct( SLITWIDTH, slitWidth );
+        }
+
+        if (zyl->Has("mppThickness")) {
+          PtrCoefFct mppThickness =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           zyl->Get("mppThickness")->As<std::string>() );
+          material->SetCoefFct( MPP_THICKNESS, mppThickness );
+        }
+
+        if (zyl->Has("flowMachNumber")) {
+          PtrCoefFct flowMachNumber =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           zyl->Get("flowMachNumber")->As<std::string>() );
+          material->SetCoefFct( FLOW_MACH_NUMBER, flowMachNumber );
+        }
+
+        if (zyl->Has("porosity")) {
+          PtrCoefFct porosity =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           zyl->Get("porosity")->As<std::string>() );
+          material->SetCoefFct( POROSITY, porosity );
+        }
+
+        if (zyl->Has("beta")) {
+          PtrCoefFct beta =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           zyl->Get("beta")->As<std::string>() );
+          material->SetCoefFct( BETA, beta );
+        }
+      }
+    }
 
     //read acoustic non linearity
     if(acou->Has("acousticNonlinear"))
