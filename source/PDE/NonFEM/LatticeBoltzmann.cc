@@ -33,7 +33,7 @@ DEFINE_LOG(lattice, "lattice")
 // instantiation of the static elements
 Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 
-LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
+LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > u_in, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
@@ -58,6 +58,9 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   m_numWriteResults = 0;
 
   m_nNodes = m_sizeX * m_sizeY * m_sizeZ;
+
+  u_in_.Resize(m_nNodes);
+  u_in_ = u_in;
 
   m_plot = plot;
 
@@ -84,7 +87,6 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 
   m_cur  = 0;
   m_next = 1;
-
 
   SetMicroVelocities();
 
@@ -547,16 +549,15 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   }
 
   // debugging
-  if (sum > 1.5 || sum < 1e-8) {
+//  if (sum > 1.5 || sum < 1e-8) {
 //    std::cout << "i: " << i << " j: " << j << " k: " << j << " sum: " << sum << std::endl;
 //    for (int dir = 0; dir < n_q_; dir++) {
 //      std::cout << "dir " << dir << " pdf " <<  pdf(cur, i, j, k, dir) << std::endl;
 //    }
-    EXCEPTION("LBM simulation has problems, macroscopic densities are too big!");
-  }
-
-  assert(sum < 1.5);
-  assert(sum > 1e-8);
+//    EXCEPTION("LBM simulation has problems, macroscopic densities are too big!");
+//  }
+//  assert(sum < 1.5);
+//  assert(sum > 1e-8);
   return sum;
 }
 
@@ -660,6 +661,10 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     tmp_ux = UX; // velocity at inlet is prescribed
     tmp_uy = UY;
+    if (u_in_.GetSize() != 0) {
+      tmp_ux = u_in_[i][0];
+      tmp_uy = u_in_[i][1];
+    }
 
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
@@ -836,6 +841,12 @@ void LatticeBoltzmann::prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
     tmp_ux = UX;
     tmp_uy = UY;
     tmp_uz = UZ;
+
+    if (!u_in_.IsEmpty()) { //use parabolic profile
+      tmp_ux = u_in_[i][0];
+      tmp_uy = u_in_[i][1];
+      tmp_uz = u_in_[i][2];
+    }
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;

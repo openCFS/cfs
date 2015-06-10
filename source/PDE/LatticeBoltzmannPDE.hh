@@ -154,6 +154,15 @@ private:
     return z * n_x_ * n_y_ + y * n_x_ + x;
   }
 
+  inline void GetCoordinates(unsigned int index, unsigned int& x, unsigned int& y, unsigned int&z) const{
+    x =  index % n_x_;
+    index /= n_x_;
+    y = index % n_y_;
+    index /= n_y_;
+    if (dim_ == 3)
+      z = index;
+  }
+
   inline unsigned int GetPdfIndex(unsigned int x, unsigned int y, unsigned int z, unsigned int dir) const {
     return GetIndex(x,y,z) * n_q_ + dir;
   }
@@ -197,6 +206,8 @@ private:
 
   /** Setup structure for calling solver */
   void SetupElements();
+
+  void SetupParabolicInflow();
 
   /** write the single CFS2LBM.dat dat (new interface) */
   void ExportCFS2LBM(const StdVector<double>& elements);
@@ -305,10 +316,17 @@ private:
   double convergence_; /** value for convergence criterion */
   unsigned int writeFrequency_;
 
-  // inlet velocities
-  double u_x_;
-  double u_y_;
-  double u_z_;
+  // inlet velocities for constant inflow at all inlet nodes
+  double u_max_x_;
+  double u_max_y_;
+  double u_max_z_;
+
+  unsigned int dim_; // number of spatial dimensions of domain
+
+  bool parabolicInflow; // indicates if inflow velocity profile is parabolic
+
+  // inlet velocities for parabolic inflow profile
+  StdVector< StdVector<double> > u_in_;
 
   StdVector<LatticeBoltzmann::PDFDirectionVector>* microVelDirections_;
   StdVector<LatticeBoltzmannBase::Direction>* invPDFDirections_;

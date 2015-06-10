@@ -42,7 +42,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > u_in, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
       ~LatticeBoltzmann();
 
@@ -228,6 +228,8 @@ namespace CoupledField
           StdVector<double> Scales;
 
           StdVector<double> weights;
+
+          StdVector< StdVector<double> > u_in_; // inflow x-velocities in case of parabolic profile
 
           StdVector< StdVector<double> > m_pdfs;
 

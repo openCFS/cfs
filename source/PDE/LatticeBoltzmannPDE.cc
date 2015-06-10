@@ -156,9 +156,9 @@ namespace CoupledField {
 
     PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
     // only one inlet region
-    u_x_ = bcsl->HasByVal("inlet", "dof", "x") ? bcsl->GetByVal("inlet", "dof", "x")->Get("value")->As<double>() : 0.0;
-    u_y_ = bcsl->HasByVal("inlet", "dof", "y") ? bcsl->GetByVal("inlet", "dof", "y")->Get("value")->As<double>() : 0.0;
-    u_z_ = bcsl->HasByVal("inlet", "dof", "z") ? bcsl->GetByVal("inlet", "dof", "z")->Get("value")->As<double>() : 0.0;
+    u_max_x_ = bcsl->HasByVal("inlet", "dof", "x") ? bcsl->GetByVal("inlet", "dof", "x")->Get("value")->As<double>() : 0.0;
+    u_max_y_ = bcsl->HasByVal("inlet", "dof", "y") ? bcsl->GetByVal("inlet", "dof", "y")->Get("value")->As<double>() : 0.0;
+    u_max_z_ = bcsl->HasByVal("inlet", "dof", "z") ? bcsl->GetByVal("inlet", "dof", "z")->Get("value")->As<double>() : 0.0;
 
     iface.SetName("LatticeBoltzmannPDE::Iface");
     iface.Add(INTERNAL, "internal");
@@ -176,10 +176,14 @@ namespace CoupledField {
     n_elems = n_x_ * n_y_ * n_z_;
 
     // n_q gives number of discrete velocities of LBM model
-    if (domain->GetGrid()->GetDim() == 2)
+    if (domain->GetGrid()->GetDim() == 2) {
       n_q_ = 9;
-    else if (domain->GetGrid()->GetDim() == 3)
+      dim_ = 2;
+    }
+    else if (domain->GetGrid()->GetDim() == 3) {
       n_q_ = 19;
+      dim_ = 3;
+    }
 
     SetupElementMapping(grid);
 
@@ -194,17 +198,26 @@ namespace CoupledField {
     for(unsigned int i = 0; i < outlet.GetSize(); ++i)
       outlet[i] = elem_to_idx[tmp[i]->elemNum];
 
+    // if parabolic inflow profile required
+    if (myParam_->Get("LBM/inflowProfile")->As<std::string>() == "parabolic") {
+      parabolicInflow = true;
+
+      SetupParabolicInflow();
+    }
+    else
+      parabolicInflow = false;
+
     if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re"))
       EXCEPTION("Either omega or Re can be prescribed in XML file!");
     if (myParam_->Has("LBM/omega")) {
       omega_       = myParam_->Get("LBM/omega")->As<double>();
       //calculate Reynolds number of fluid flow
-      // re = inletSize * |u| / dyn. viscosity
-      Re_ = inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / (1/3.0 * (1/omega_ - 0.5));
+      // re = inletSize * |u| / kin. viscosity
+      Re_ = inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / (1/3.0 * (1/omega_ - 0.5));
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
-      omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_x_ * u_x_ + u_y_ * u_y_+ u_z_ * u_z_) / Re_ + 0.5);
+      omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
       if (omega_ >= 2)
         EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!")
     }
@@ -213,7 +226,7 @@ namespace CoupledField {
     pdfs.Resize(n_elems * n_q_);
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_x_, u_y_, u_z_, omega_, maxIter_, convergence_, plot, writeFrequency_);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -799,14 +812,22 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
   StdVector<double> dfeqdrho(n_q_);
   double dot, norm;
 
-  if (dim_ == 2) assert(u_z_ == 0);
+  if (dim_ == 2) assert(u_max_z_ == 0);
 
   LatticeBoltzmann::PDFDirectionVector* transform;
   for (unsigned int i = 0; i < n_q_; i++)
   {
     transform = &(*microVelDirections_)[i];
-    dot = transform->off_x * u_x_ + transform->off_y * u_y_ + transform->off_z * u_z_;
-    norm = u_x_ * u_x_ + u_y_ * u_y_ + u_z_ * u_z_;
+    if (!parabolicInflow) {
+      dot = transform->off_x * u_max_x_ + transform->off_y * u_max_y_ + transform->off_z * u_max_z_;
+      norm = u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_ + u_max_z_ * u_max_z_;
+    }
+    else {
+      // find index of vector u_in_ for this element
+      int id = inlet.Find(index);
+      dot = transform->off_x * u_in_[id][0] + transform->off_y * u_in_[id][1] + transform->off_z * u_in_[id][2];
+      norm = u_in_[id][0] * u_in_[id][0] + u_in_[id][1] * u_in_[id][1] + u_in_[id][2] * u_in_[id][2]; // only one component is not zero
+    }
     dfeqdrho[i] = weight[i] * (1. + 3 * dot + 4.5 * dot * dot - 1.5 * norm);
     // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << us1 << " us2=" << us2 << " dot=" << dot << " norm=" << norm;
   }
@@ -1457,7 +1478,7 @@ void LatticeBoltzmannPDE::ExportCFS2LBM(const StdVector<double>& elements)
   file << "# only for the inlet cells the space separated vectors  \n";
 
   for (UInt i = 0; i < inlet.GetSize(); ++i)
-    file <<  u_x_ << " " << u_y_ << " " << u_z_ << std::endl;
+    file <<  u_max_x_ << " " << u_max_y_ << " " << u_max_z_ << std::endl;
 
   file.close();
 
@@ -1503,8 +1524,8 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   data << n_x_ << std::endl;
   data << n_y_ << std::endl;
   data << 1.0 << std::endl; // penalty parameter
-  data << u_x_ << std::endl;
-  data << u_y_ << std::endl;
+  data << u_max_x_ << std::endl;
+  data << u_max_y_ << std::endl;
   data << 1.0 << std::endl;  // density at the outlet
   data << omega_ << std::endl; // relaxation parameter for collision step
   data << maxIter_ << std::endl;
@@ -1619,7 +1640,81 @@ void LatticeBoltzmannPDE::SetupElements()
     elements[outlet[i]] = -3.0;
 }
 
+void LatticeBoltzmannPDE::SetupParabolicInflow()
+{
+  // for a parabolic profile only one prescribed velocity component is allowed to be inequal 0
+  if (((u_max_x_ == 0.0) + (u_max_y_ == 0.0) + (u_max_z_ == 0.0)) != 2)
+    EXCEPTION("For a parabolic flow profile only one inflow velocity component is allowed to be not 0!")
+    u_in_.Resize(inlet.GetSize());
 
+  int flow_index;
+  double u_vertex;
+
+  if (u_max_x_ != 0.0) {
+    flow_index = 0;
+    u_vertex = u_max_x_;
+  }
+  else if (u_max_y_ != 0.0) {
+    flow_index = 1;
+    u_vertex = u_max_y_;
+  }
+  else {
+    flow_index = 2;
+    u_vertex = u_max_z_;
+  }
+  // assume indices in inlet vector are ordered!
+  int n_inlet = inlet.GetSize();
+
+  //      std::cout << inlet.ToString() << std::endl;
+
+  unsigned int y_max = 0;
+  unsigned int y_min = 9999;
+  unsigned int z_max = 0;
+  unsigned int z_min = 9999;
+
+  StdVector< StdVector<unsigned int> > coordsInlet; // store coordinates of all inlet elements
+  coordsInlet.Resize(n_inlet);
+  for (int i = 0; i < n_inlet; ++i) {
+    StdVector<unsigned int> tmp;
+    tmp.Resize(3);
+    tmp.Init(0);
+    GetCoordinates(inlet[i],tmp[0],tmp[1],tmp[2]);
+    if (tmp[1] > y_max) // find biggest inlet coordinate in y and z direction
+      y_max = tmp[1];
+    if (tmp[2] > z_max)
+      z_max = tmp[2];
+    if (tmp[1] < y_min) // find smallest inlet coordinate in y and z direction
+      y_min = tmp[1];
+    if (tmp[2] < z_min)
+      z_min = tmp[2];
+    coordsInlet[i] = tmp;
+  }
+
+  double vertex_y = y_min + (y_max - y_min) / 2.0;
+  double vertex_z = 0;
+  if (dim_ == 3)
+    vertex_z = z_min + (z_max - z_min) / 2.0;
+  double r_y = y_max - vertex_y + 1;
+  double r_z = z_max - vertex_z + 1;
+  //      std::cout << "ymax: " << y_max  << " ymin: " << y_min << " zmax: " << z_max << " zmin: " << z_min << std::endl;
+  //      std::cout << "vertex: " << vertex_y << "," << vertex_z << std::endl;
+
+  for (int i = 0; i < n_inlet; ++i) {
+
+    double disty = (double)coordsInlet[i][1] - vertex_y;
+    //        std::cout << coordsInlet[i][1] << " - " << vertex_y << " = " << disty << std::endl;
+
+    double distz = (double)coordsInlet[i][2] - vertex_z;
+    StdVector<double> tmp_u;
+    tmp_u.Resize(3);
+    tmp_u.Init(0.0);
+    tmp_u[flow_index] = u_vertex * (1 - disty * disty / (r_y*r_y)) * (1 - distz * distz / (r_z*r_z));
+    u_in_[i] = tmp_u;
+    //        std::cout << std::endl;
+    //        std::cout << "distance from " << inlet[i] << " to " << vertex_y << "," << vertex_z << ": " << disty << "," << distz << std::endl;
+            std::cout << "element " << inlet[i] << " has coords " <<  coordsInlet[i][0] << "," << coordsInlet[i][1] << "," << coordsInlet[i][2] << "   and vel " << tmp_u[0] << "," << tmp_u[1] << "," << tmp_u[2] << std::endl;
+  }
+}
 
 void LatticeBoltzmannPDE::SetNonSingualrityIndices()
 {
@@ -1652,7 +1747,9 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
             LatticeBoltzmann::PDFDirectionVector f = (*microVelDirections_)[dir];
             // test, if the node in direction f is not bounce back
             if (!PointsToBoundary(x,y,z,dir) && elements[GetIndex(x+f.off_x, y+f.off_y, z+f.off_z)] != LBM_NODE_TYPE_BB)
+            {
               non_sing.Push_back(base + dir);
+            }
           }
         }
       }
