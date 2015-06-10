@@ -71,7 +71,8 @@ void CoefFunctionApprox::GetScalar(Double& coefScalar,
     // case for functions depending on the vector, specialize as needed
     coefScalar = nLinFnc_->EvaluateFunc(elemSol[0]);
   }
-  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+  // LOG does not check if lpm is a dummy
+  // LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal = '" << elemSol[0] << ". IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 }
 
 bool IsComplex(){
@@ -297,7 +298,8 @@ void CoefFunctionHeatTripole::GetScalar(Double& coefScalar,
 
   MultiplyByElemArea(coefScalar, lpm);
 
-  LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
+  // LOG does not check if lpm is a dummy
+  //LOG_DBG(coeffctapprox) << "Returning approximated scalar '" << coefScalar << "' for dependVal vgs = '" << Vgs << " and vds = '" << Vds <<"' and temperature = '" << elemSol[0] <<"'. IP '" << lpm.lp.number << "', '" << lpm.lp.coord.ToString() << "' in element :" << lpm.ptEl->elemNum;
 
 }
 
