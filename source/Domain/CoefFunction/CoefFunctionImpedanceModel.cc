@@ -28,18 +28,15 @@ namespace CoupledField{
   CoefFunctionImpedanceModel<Complex>::~CoefFunctionImpedanceModel() {
 
   }
-  void CoefFunctionImpedanceModel<Complex>::GenerateSlitMpp(BaseMaterial* const material,
-                                                                 Double innerR, Double outerR) {
+  void CoefFunctionImpedanceModel<Complex>::GenerateSlitMpp(BaseMaterial* const material) {
     impedanceType_ = IMP_SLIT_MPP;
-    innerR_ = innerR;
-    outerR_ = outerR;
     Init(material);
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_slitMpp() {
-    Complex Z_mpp, Z_cav, Z_all;
+    Complex Z_mpp, Z_all;
     Complex tmp1, tmp2, tmp3;
-    Double waveNum, xi, omega;
+    Double xi, omega;
     const Complex one_i(0,1);
     const Double eta = nu_ * density_;
     Double R_s; // surface resistance
@@ -69,7 +66,6 @@ namespace CoupledField{
         currFrequ_ = f;
       }
       omega = 2 * pi * f;
-      waveNum = omega/c0_;
       xi = holeDiam_*sqrt(omega / (4.0*nu_));
       R_s = 0.5*sqrt(2*density_*2*pi*f*eta);
       //maxSchnelle = 1.0 / ( c0_ * density_ ); // p / Z = p / (c * \rho)  // p = 1 <= Dirichlet BC
@@ -86,6 +82,7 @@ namespace CoupledField{
       //Z_mpp += maxSchnelle/(sigma_ * c0_);
       //Z_mpp += beta_*flowMachNr_/sigma_;
 
+#if 0
       // calc Z_cav
       tmp1 = boost::math::cyl_hankel_1(1,waveNum*outerR_);
       tmp1 /= boost::math::cyl_hankel_2(1,waveNum*outerR_);
@@ -100,8 +97,9 @@ namespace CoupledField{
       Z_cav *= one_i;
       Z_cav /= tmp3;
       Z_cav *= density_ * c0_;
+#endif
 
-      Z_all = Z_mpp + Z_cav;
+      Z_all = Z_mpp;
       //constCoefScalar_ = - 1.0;
       //constCoefScalar_ *= one_i *  waveNum;
       constCoefScalar_ = density_ / Z_all;

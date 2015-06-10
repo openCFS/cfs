@@ -29,7 +29,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
      *  @innerR Inner radius of pipe
      *  @outerR Outer radius of pipe = innerR + volume behind MPP
      */
-    void GenerateSlitMpp(BaseMaterial* const material, Double innerR, Double outerR);
+    void GenerateSlitMpp(BaseMaterial* const material);
     /**
      *  Generates necessary data for MPP impedance model with circular holes (c_0, density etc.)
      *  @material The material data concerning the acoustic properties and MPP properties
@@ -107,8 +107,6 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     Double flowMachNr_; // flow mach number
     Double endCorrection_; // end correction term (additional mass around hole)
     Double beta_; // parameter for the non-linear flow term
-    Double innerR_; // inner radius of duct
-    Double outerR_; // outer radius, duct and expansion chamber
     Double currFrequ_; // current, already calculated frequency
 
     PtrCoefFct impedanceCoef_real_; // Impedance CoefFunction
