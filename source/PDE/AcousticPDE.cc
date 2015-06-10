@@ -901,27 +901,7 @@ namespace CoupledField{
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
         // c0 = sqrt(bulk_modulus / density)
-        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
-        PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-        PtrCoefFct c0 = 
-            CoefFunction::Generate( mp_,  Global::REAL,
-                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, 
-                                                                 CoefXpr::OP_DIV),
-                                                    CoefXpr::OP_SQRT) );
 
-        // factor Z_mpp
-       /*
-        // TODO: const Double thickCons  = scalarParams[THICK_DAMP_PLATE];
-        // TODO: const Double sigmaCons  = scalarParams[POROSITY_DAMP_PLATE];
-
-        Double densCons; materials_[aRegion]->GetScalar(densCons, DENSITY, Global::REAL);
-        Double blkCons; materials_[aRegion]->GetScalar(blkCons, ACOU_BULK_MODULUS, Global::REAL);
-        const Double c0Cons   = densCons/blkCons;
-        */
-//        Double c0_double, dens_double, innerR, outerR;
-//        LocPointMapped lp_dummy;
-//        c0->GetScalar(c0_double, lp_dummy);
-//        dens->GetScalar(dens_double, lp_dummy);
         Double innerR, outerR;
         innerR = impedNodes[i]->Get("innerR")->As<Double>();
         outerR = impedNodes[i]->Get("outerR")->As<Double>();
@@ -929,9 +909,6 @@ namespace CoupledField{
         shared_ptr<CoefFunctionImpedanceModel<Complex> >
                     Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
         Z_impMod->GenerateZylindricMpp(materials_[aRegion], innerR, outerR);
-        /*PtrCoefFct Z_mpp =
-        CoefFunction::Generate( mp_, Global::IMAG, "i*2*pi*f*1/(1-tanh(2*pi*f/c*sqrt(i))/(2*pi*f/c*sqrt(i)))");
-        */
 
         BiLinearForm * impedInt = NULL;
         if( dim_ == 2 ) {
