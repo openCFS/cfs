@@ -895,26 +895,32 @@ namespace CoupledField{
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
       for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
+        BiLinearForm * impedInt = NULL;
         std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
         std::string volRegName = impedNodes[i]->Get("volumeRegion")->As<std::string>();
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
-        // c0 = sqrt(bulk_modulus / density)
 
-        Double innerR, outerR;
-        innerR = impedNodes[i]->Get("innerR")->As<Double>();
-        outerR = impedNodes[i]->Get("outerR")->As<Double>();
+        std::string impType = impedNodes[i]->Get("type")->As<std::string>();
+        if (impType == "zyl_mpp") {
+          Double innerR, outerR;
+          innerR = impedNodes[i]->Get("innerR")->As<Double>();
+          outerR = impedNodes[i]->Get("outerR")->As<Double>();
 
-        shared_ptr<CoefFunctionImpedanceModel<Complex> >
-                    Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
-        Z_impMod->GenerateZylindricMpp(materials_[aRegion], innerR, outerR);
+          shared_ptr<CoefFunctionImpedanceModel<Complex> >
+          Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
+          Z_impMod->GenerateZylindricMpp(materials_[aRegion], innerR, outerR);
 
-        BiLinearForm * impedInt = NULL;
-        if( dim_ == 2 ) {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          if( dim_ == 2 ) {
+            impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          } else {
+            impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          }
+        } else if (impType == "interpolImpedanz"){
+          EXCEPTION("Not implemented yet: " << impType);
         } else {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          EXCEPTION("No such impedance type: " << impType);
         }
 
         impedInt->SetName("impedIntegrator");

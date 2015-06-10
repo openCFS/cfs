@@ -455,10 +455,13 @@
   <xsd:complexType name="DT_AcouImpedance">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
     <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
-    <xsd:attribute name="value" type="xsd:token" use="required"/>
     <xsd:attribute name="innerR" type="xsd:double" use="required"/>
     <xsd:attribute name="outerR" type="xsd:double" use="required"/>
-    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+    <xsd:attribute default="zyl_mpp" name="type" type="DT_AcouImpedanceType" use="optional">
+      <xsd:annotation>
+        <xsd:documentation>Type of impedance model to use. Following exist untill now: zyl_mpp, interpolImpedance</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
 
@@ -761,5 +764,15 @@
     <xsd:attribute name="dimY" type="DT_PosFloat"/>
     <xsd:attribute name="dimZ" type="DT_PosFloat"/>
   </xsd:complexType>
-  
+  <xsd:simpleType final="" name="DT_AcouImpedanceType">
+    <xsd:annotation>
+      <xsd:documentation>The existing type of impedance models:
+zyl_mpp
+interpolImpedance</xsd:documentation>
+    </xsd:annotation>
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="zyl_mpp"/>
+      <xsd:enumeration value="interpolImpedance"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 </xsd:schema>
