@@ -32,7 +32,7 @@ template<>
 class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
                                      public boost::enable_shared_from_this<CoefFunctionTimeFreq<Double> > {
   public:
-  
+
   //! Constructor
   CoefFunctionTimeFreq(MathParser * mp);
 

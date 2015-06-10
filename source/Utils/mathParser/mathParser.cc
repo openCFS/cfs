@@ -635,6 +635,33 @@ namespace CoupledField {
       varNames.Push_back( item->first );
     }
   }
+
+  Double MathParser::GetExprVars( HandleType handle, 
+                                std::string varName ) {
+
+    // Get the map with the variables
+    mu::Parser& actParser = GetParser( handle );
+    actParser.InitConst();
+
+    // Get the constant variables
+    mu::valmap_type valMap = actParser.GetConst();
+    for (mu::valmap_type::iterator item = valMap.begin(); item!=valMap.end(); ++item)
+    {
+      if (item->first.compare(varName) == 0)
+      {
+        return item->second;
+      }
+    }
+    mu::varmap_type varMap = actParser.GetVar();
+    for (mu::varmap_type::iterator item = varMap.begin(); item!=varMap.end(); ++item)
+    {
+      if (item->first.compare(varName) == 0)
+      {
+        return *(item->second);
+      }
+    }
+    EXCEPTION("Variable " << varName << " is not registered in mathparser");
+  }
   
   
   UInt MathParser::GetNumExprs( HandleType handle ) {

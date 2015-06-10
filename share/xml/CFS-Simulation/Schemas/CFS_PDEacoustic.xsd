@@ -454,7 +454,10 @@
   <!-- Element type for specifying an acoustic impedance -->
   <xsd:complexType name="DT_AcouImpedance">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
     <xsd:attribute name="value" type="xsd:token" use="required"/>
+    <xsd:attribute name="innerR" type="xsd:double" use="required"/>
+    <xsd:attribute name="outerR" type="xsd:double" use="required"/>
     <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
   </xsd:complexType>
 

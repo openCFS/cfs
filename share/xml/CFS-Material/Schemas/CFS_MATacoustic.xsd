@@ -24,6 +24,13 @@
         minOccurs="0"/>
       <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear"
         minOccurs="0"/>
+      <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Kinematic viscosity of the fluid in Pas.
+          </xsd:documentation>
+        </xsd:annotation>        
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
 

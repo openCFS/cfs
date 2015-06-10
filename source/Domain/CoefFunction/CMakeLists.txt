@@ -11,6 +11,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionGridNodal.cc
   CoefFunctionGridNodalDefault.cc
   CoefFunctionGridNodalInterp.cc
+  CoefFunctionImpedanceModel.cc
   CoefFunctionMulti.cc
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
@@ -32,6 +33,7 @@ ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})
 
 SET(TARGET_LL
   scattereddatainout
+  ${MUPARSER_LIBRARY}
   )
 
 TARGET_LINK_LIBRARIES(coeffunction

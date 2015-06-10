@@ -60,7 +60,7 @@ namespace CoupledField{
 
       tmp1 = i;
       tmp1 *= waveNum;
-      tmp1 *= thick/sigma; // TODO: sigma is missing, the porosity of the perforated surface. And thickness t is missing
+      tmp1 *= thick/sigma; // TODO: sigma is missing, the porosity of the perforated surface. And thickness is missing
       tmp2 = shearWaveNum*sqrt(i);
       tmp3 = -tanh(tmp2);
       tmp3 /= tmp2;
