@@ -34,6 +34,7 @@
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionImpedanceModel.hh"
 #include "Domain/Mesh/NcInterfaces/BaseNcInterface.hh"
 
 #include <boost/lexical_cast.hpp>
@@ -885,6 +886,65 @@ namespace CoupledField{
         abcContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
         feFunctions_[formulation_]->AddEntityList( actSDList );
         assemble_->AddBiLinearForm( abcContext );
+      }
+
+      //========================================================================================
+      // Impedance boundaries
+      // TODO: implement impedance BC
+      //========================================================================================
+      ParamNodeList impedNodes = bcNode->GetList( "impedance" );
+
+      for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
+        std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
+        shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
+        std::string volRegName = impedNodes[i]->Get("volumeRegion")->As<std::string>();
+
+        RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        // c0 = sqrt(bulk_modulus / density)
+        PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+        PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+        PtrCoefFct c0 = 
+            CoefFunction::Generate( mp_,  Global::REAL,
+                                    CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens, 
+                                                                 CoefXpr::OP_DIV),
+                                                    CoefXpr::OP_SQRT) );
+
+        // factor Z_mpp
+       /*
+        // TODO: const Double thickCons  = scalarParams[THICK_DAMP_PLATE];
+        // TODO: const Double sigmaCons  = scalarParams[POROSITY_DAMP_PLATE];
+
+        Double densCons; materials_[aRegion]->GetScalar(densCons, DENSITY, Global::REAL);
+        Double blkCons; materials_[aRegion]->GetScalar(blkCons, ACOU_BULK_MODULUS, Global::REAL);
+        const Double c0Cons   = densCons/blkCons;
+        */
+        Double c0_double, dens_double, innerR, outerR;
+        LocPointMapped lp_dummy;
+        c0->GetScalar(c0_double, lp_dummy);
+        dens->GetScalar(dens_double, lp_dummy);
+        innerR = impedNodes[i]->Get("innerR")->As<Double>();
+        outerR = impedNodes[i]->Get("outerR")->As<Double>();
+
+        shared_ptr<CoefFunctionImpedanceModel<Complex> >
+                    Z_mpp(new CoefFunctionImpedanceModel<Complex>(mp_, c0_double, dens_double, innerR, outerR));
+        /*PtrCoefFct Z_mpp =
+        CoefFunction::Generate( mp_, Global::IMAG, "i*2*pi*f*1/(1-tanh(2*pi*f/c*sqrt(i))/(2*pi*f/c*sqrt(i)))");
+        */
+
+        BiLinearForm * impedInt = NULL;
+        if( dim_ == 2 ) {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_mpp, 1.0, updatedGeo_ );
+        } else {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_mpp, 1.0, updatedGeo_ );
+        }
+
+        impedInt->SetName("impedIntegrator");
+        BiLinFormContext *impedContext = new BiLinFormContext(impedInt, DAMPING );
+
+        impedContext->SetEntities( actSDList, actSDList );
+        impedContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
+        feFunctions_[formulation_]->AddEntityList( actSDList );
+        assemble_->AddBiLinearForm( impedContext );
       }
     }
   }
