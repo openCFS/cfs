@@ -905,15 +905,15 @@ namespace CoupledField{
         std::string impType = impedNodes[i]->Get("type")->As<std::string>();
         shared_ptr<CoefFunctionImpedanceModel<Complex> >
                    Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_));
-        if (impType == "zyl_mpp") {
+        if (impType == "slit_mpp") {
           Double innerR, outerR;
           innerR = impedNodes[i]->Get("innerR")->As<Double>();
           outerR = impedNodes[i]->Get("outerR")->As<Double>();
-          Z_impMod->GenerateZylindricMpp(materials_[aRegion], innerR, outerR);
+          Z_impMod->GenerateSlitMpp(materials_[aRegion], innerR, outerR);
+        } else if (impType == "circ_mpp"){
+          Z_impMod->GenerateCircMpp(materials_[aRegion]);
         } else if (impType == "interpolImpedance"){
           Z_impMod->GenerateInterpolImpedance(materials_[aRegion]);
-        } else if (impType == "muffler") {
-          Z_impMod->GenerateMuffler(materials_[aRegion]);
         } else if (impType == "fctImpedance") {
           Z_impMod->GenerateImpedanceFct(materials_[aRegion]);
         } else {

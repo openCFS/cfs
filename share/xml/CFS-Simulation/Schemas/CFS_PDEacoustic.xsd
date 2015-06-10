@@ -446,7 +446,7 @@
   <xsd:complexType name="DT_AbsorbingBC">
     <xsd:complexContent>
       <xsd:extension base="DT_AcousticHD">
-       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -459,9 +459,9 @@
     <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
     <xsd:attribute name="innerR" type="xsd:double" use="required"/>
     <xsd:attribute name="outerR" type="xsd:double" use="required"/>
-    <xsd:attribute default="zyl_mpp" name="type" type="DT_AcouImpedanceType" use="optional">
+    <xsd:attribute default="circ_mpp" name="type" type="DT_AcouImpedanceType" use="optional">
       <xsd:annotation>
-        <xsd:documentation>Type of impedance model to use. Following exist untill now: zyl_mpp, interpolImpedance</xsd:documentation>
+        <xsd:documentation>Type of impedance model to use. Following exist untill now: circ_mpp, interpolImpedance</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
   </xsd:complexType>
@@ -667,8 +667,8 @@
   <xsd:simpleType name="DT_AcousticRegionResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="acouEnergy"/>
-      <xsd:enumeration value="acouPotEnergy"/>      
-     <xsd:enumeration value="acouKinEnergy"/>
+      <xsd:enumeration value="acouPotEnergy"/>
+      <xsd:enumeration value="acouKinEnergy"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -769,13 +769,13 @@
   <xsd:simpleType final="" name="DT_AcouImpedanceType">
     <xsd:annotation>
       <xsd:documentation>The existing type of impedance models:
-zyl_mpp
+slit_mpp
 interpolImpedance</xsd:documentation>
     </xsd:annotation>
     <xsd:restriction base="xsd:string">
-      <xsd:enumeration value="zyl_mpp"/>
+      <xsd:enumeration value="slit_mpp"/>
+      <xsd:enumeration value="circ_mpp"/>
       <xsd:enumeration value="interpolImpedance"/>
-      <xsd:enumeration value="muffler"/>
       <xsd:enumeration value="fctImpedance"/>
     </xsd:restriction>
   </xsd:simpleType>

@@ -3,7 +3,7 @@
 
 #include "CoefFunctionTimeFreq.hh"
 
-typedef enum {IMP_NONE, IMP_ZYL_MPP, IMP_INTERPOL, IMP_MUFFLER, IMP_FCT} IMPEDANCE_TYPE;
+typedef enum {IMP_NONE, IMP_SLIT_MPP, IMP_CIRC_MPP, IMP_INTERPOL, IMP_FCT} IMPEDANCE_TYPE;
 
 namespace CoupledField{
 
@@ -29,18 +29,17 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
      *  @innerR Inner radius of pipe
      *  @outerR Outer radius of pipe = innerR + volume behind MPP
      */
-    void GenerateZylindricMpp(BaseMaterial* const material, Double innerR, Double outerR);
+    void GenerateSlitMpp(BaseMaterial* const material, Double innerR, Double outerR);
+    /**
+     *  Generates necessary data for MPP impedance model with circular holes (c_0, density etc.)
+     *  @material The material data concerning the acoustic properties and MPP properties
+     */
+    void GenerateCircMpp(BaseMaterial* const material);
     /**
      * Generates necessary data for impedance model with interpolated data of Z, the impedance
      *  @material The material data concerning the acoustic properties and MPP properties
      */
     void GenerateInterpolImpedance(BaseMaterial* const material);
-
-    /**
-     *  Generates necessary data for muffler impedance model (c_0, density etc.)
-     *  @material The material data concerning the acoustic properties and muffler properties
-     */
-    void GenerateMuffler(BaseMaterial* const material);
 
     /**
      *  Generates necessary data for function impedance model (c_0, density etc.)
@@ -60,14 +59,21 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     //! \copydoc CoefFunction::GetScalar
     void GetScalar(Complex& coefScalar, const LocPointMapped& lpm ) {
       assert(dimType_ == SCALAR);
-      if (impedanceType_ == IMP_ZYL_MPP) {
-        this->Recalculate_zylMpp();
-      } else if (impedanceType_ == IMP_MUFFLER) {
-        this->Recalculate_muffler();
-      } else if (impedanceType_ == IMP_INTERPOL) {
+      switch (impedanceType_) {
+      case IMP_SLIT_MPP:
+        this->Recalculate_slitMpp();
+        break;
+      case IMP_CIRC_MPP:
+        this->Recalculate_circMpp();
+        break;
+      case IMP_INTERPOL:
         this->Recalculate_interpol();
-      } else if (impedanceType_ == IMP_FCT) {
+        break;
+      case IMP_FCT:
         this->Recalculate_impFct();
+        break;
+      default:
+        EXCEPTION("Impedance type not implemented");
       }
       coefScalar =  constCoefScalar_;
     }
@@ -83,9 +89,9 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     void Init(BaseMaterial* const material);
 
     //! Recalculate impedance
-    void Recalculate_zylMpp();
+    void Recalculate_slitMpp();
+    void Recalculate_circMpp();
     void Recalculate_interpol();
-    void Recalculate_muffler();
     void Recalculate_impFct();
 
   private:
