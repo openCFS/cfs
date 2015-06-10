@@ -1,8 +1,5 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -20,17 +17,16 @@
     <xsd:sequence>
       <xsd:element name="density" type="xsd:token"/>
       <xsd:element name="compressionModulus" type="xsd:token"/>
-      <xsd:element name="acousticDamping" type="DT_AcousticDamping"
-        minOccurs="0"/>
-      <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear"
-        minOccurs="0"/>
+      <xsd:element name="acousticDamping" type="DT_AcousticDamping" minOccurs="0"/>
+      <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear" minOccurs="0"/>
       <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             Kinematic viscosity of the fluid in Pas.
           </xsd:documentation>
-        </xsd:annotation>        
+        </xsd:annotation>
       </xsd:element>
+      <xsd:element name="acousticImpedance" type="DT_AcousticImpedance" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -41,13 +37,11 @@
   <xsd:complexType name="DT_AcousticDamping">
     <xsd:sequence>
       <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
-      <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping"
-        minOccurs="0"/>
-      <xsd:element name="fractional" type="DT_AcouFractionalDamping"
-        minOccurs="0"/>
+      <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping" minOccurs="0"/>
+      <xsd:element name="fractional" type="DT_AcouFractionalDamping" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic nonlinearities                             -->
   <!-- ******************************************************************* -->
@@ -56,7 +50,7 @@
       <xsd:element name="bOverA" type="xsd:double" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic thermo viscous damping model               -->
@@ -66,7 +60,7 @@
       <xsd:element name="alpha0" type="xsd:double"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic fractional damping model                   -->
   <!-- ******************************************************************* -->
@@ -76,5 +70,67 @@
       <xsd:element name="y" type="xsd:double"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic impedance model                            -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_AcousticImpedance">
+    <xsd:sequence>
+      <xsd:element name="zyl_mpp" type="DT_ZylindricMpp" minOccurs="0"/>
+      <xsd:element name="interpolImpedance" type="DT_InterpolImpedance" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic impedance model for zylindric MPP          -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ZylindricMpp">
+    <xsd:sequence>
+      <xsd:element name="slitWidth" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Slit width of MPP holes.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="mppThickness" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Thickniss of MPP.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="flowMachNumber" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Mach number of flow.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="porosity" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Porosity of the perforated surface.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="beta" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            A factor for grazing flow effects.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of acoustic impedance model for measuered data         -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_InterpolImpedance">
+    <xsd:sequence>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
 </xsd:schema>
