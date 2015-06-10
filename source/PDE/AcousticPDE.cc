@@ -914,6 +914,8 @@ namespace CoupledField{
           Z_impMod->GenerateInterpolImpedance(materials_[aRegion]);
         } else if (impType == "muffler") {
           Z_impMod->GenerateMuffler(materials_[aRegion]);
+        } else if (impType == "fctImpedance") {
+          Z_impMod->GenerateImpedanceFct(materials_[aRegion]);
         } else {
           EXCEPTION("No such impedance type: " << impType);
         }

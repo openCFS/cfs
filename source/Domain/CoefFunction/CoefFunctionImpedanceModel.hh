@@ -3,7 +3,7 @@
 
 #include "CoefFunctionTimeFreq.hh"
 
-typedef enum {IMP_NONE, IMP_ZYL_MPP, IMP_INTERPOL, IMP_MUFFLER} IMPEDANCE_TYPE;
+typedef enum {IMP_NONE, IMP_ZYL_MPP, IMP_INTERPOL, IMP_MUFFLER, IMP_FCT} IMPEDANCE_TYPE;
 
 namespace CoupledField{
 
@@ -42,6 +42,13 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
      */
     void GenerateMuffler(BaseMaterial* const material);
 
+    /**
+     *  Generates necessary data for function impedance model (c_0, density etc.)
+     *  @material The material data concerning the acoustic properties and impedance properties
+     */
+    void GenerateImpedanceFct(BaseMaterial* const material);
+
+
 
     //! Return real-valued scalar at integration point
     virtual void GetScalar(Double& scal,
@@ -59,6 +66,8 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
         this->Recalculate_muffler();
       } else if (impedanceType_ == IMP_INTERPOL) {
         this->Recalculate_interpol();
+      } else if (impedanceType_ == IMP_FCT) {
+        this->Recalculate_impFct();
       }
       coefScalar =  constCoefScalar_;
     }
@@ -70,10 +79,14 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     virtual void GetStrScalar(std::string& real, std::string& imag);
   protected:
 
+    // Read and initiate necessary values
+    void Init(BaseMaterial* const material);
+
     //! Recalculate impedance
     void Recalculate_zylMpp();
     void Recalculate_interpol();
     void Recalculate_muffler();
+    void Recalculate_impFct();
 
   private:
 

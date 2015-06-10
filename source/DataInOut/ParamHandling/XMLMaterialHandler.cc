@@ -653,12 +653,16 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
+    Double density(0), blkMod(0), nu(0);
+    LocPointMapped lp_dummy;
+
     //read density
     if(acou->Has("density")) {
       PtrCoefFct densFct =
           CoefFunction::Generate(mp_, Global::REAL, 
                                  acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
+      densFct->GetScalar( density, lp_dummy );
     }
       
     //read compression modulus
@@ -667,6 +671,7 @@ namespace CoupledField {
                 CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+      blkFct->GetScalar( blkMod, lp_dummy );
     }
     //read kinematic viscosity
     if(acou->Has("kinematicViscosity")) {
@@ -675,6 +680,7 @@ namespace CoupledField {
                                        acou->Get("kinematicViscosity")->As<std::string>() );
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
       //material->SetScalar(acou->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY);
+      kinVisc->GetScalar( nu, lp_dummy );
     }
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
@@ -722,33 +728,39 @@ namespace CoupledField {
     if(acou->Has("acousticImpedance"))
     {
       PtrParamNode ai = acou->Get("acousticImpedance");
+      double c0(0),holeDiam(0),plateThick(0),flowMachNr(0),porosity(0);
+
       if (ai->Has("zyl_mpp")) {
         PtrParamNode zyl = ai->Get("zyl_mpp");
         if (zyl->Has("holeDiam")) {
-          PtrCoefFct holeDiam =
+          PtrCoefFct holeDiamFct =
                     CoefFunction::Generate(mp_, Global::REAL,
                                            zyl->Get("holeDiam")->As<std::string>() );
-          material->SetCoefFct( IMP_HOLE_DIAM, holeDiam );
+          material->SetCoefFct( IMP_HOLE_DIAM, holeDiamFct );
+          holeDiamFct->GetScalar( holeDiam, lp_dummy );
         }
 
-        if (zyl->Has("mppThickness")) {
-          PtrCoefFct mppThickness =
+        if (zyl->Has("plateThick")) {
+          PtrCoefFct plateThickFct =
                     CoefFunction::Generate(mp_, Global::REAL,
-                                           zyl->Get("mppThickness")->As<std::string>() );
-          material->SetCoefFct( IMP_PLATE_THICKNESS, mppThickness );
+                                           zyl->Get("plateThick")->As<std::string>() );
+          material->SetCoefFct( IMP_PLATE_THICKNESS, plateThickFct );
+          plateThickFct->GetScalar( plateThick, lp_dummy );
         }
 
         if (zyl->Has("flowMachNumber")) {
-          PtrCoefFct flowMachNumber =
+          PtrCoefFct flowMachNumberFct =
                     CoefFunction::Generate(mp_, Global::REAL,
                                            zyl->Get("flowMachNumber")->As<std::string>() );
-          material->SetCoefFct( FLOW_MACH_NUMBER, flowMachNumber );
+          material->SetCoefFct( FLOW_MACH_NUMBER, flowMachNumberFct );
+          flowMachNumberFct->GetScalar( flowMachNr, lp_dummy );
         }
         if (zyl->Has("porosity")) {
-          PtrCoefFct porosity =
+          PtrCoefFct porosityFct =
                     CoefFunction::Generate(mp_, Global::REAL,
                                            zyl->Get("porosity")->As<std::string>() );
-          material->SetCoefFct( POROSITY, porosity );
+          material->SetCoefFct( POROSITY, porosityFct );
+          porosityFct->GetScalar( porosity, lp_dummy );
         }
 
         if (zyl->Has("beta")) {
@@ -757,6 +769,16 @@ namespace CoupledField {
                                            zyl->Get("beta")->As<std::string>() );
           material->SetCoefFct( BETA, beta );
         }
+        // calc speed of sound
+        c0 = sqrt(blkMod/density);
+
+        mp_->SetValue( MathParser::GLOB_HANDLER, "holeDiam", holeDiam );
+        mp_->SetValue( MathParser::GLOB_HANDLER, "plateThick", plateThick);
+        mp_->SetValue( MathParser::GLOB_HANDLER, "flowMachNr", flowMachNr );
+        mp_->SetValue( MathParser::GLOB_HANDLER, "porosity", porosity );
+        mp_->SetValue( MathParser::GLOB_HANDLER, "eta", nu * density);
+        mp_->SetValue( MathParser::GLOB_HANDLER, "density", density);
+        mp_->SetValue( MathParser::GLOB_HANDLER, "c0", c0 );
       }
       if (ai->Has("muffler")) {
         PtrParamNode muff = ai->Get("muffler");
@@ -814,7 +836,22 @@ namespace CoupledField {
       } catch (Exception& ex ) {
         RETHROW_EXCEPTION(ex, "Could not create interpolated impedance'");
       }
+      if (ai->Has("FctImpedance")) {
+        PtrParamNode fctImp = ai->Get("FctImpedance");
+        if(fctImp->Has("fctReal")) {
+          PtrCoefFct fctReal =
+                     CoefFunction::Generate(mp_, Global::REAL,
+                                            fctImp->Get("fctReal")->As<std::string>() );
+           material->SetCoefFct( ACOU_IMPEDANCE_REAL_VAL, fctReal );
+        }
 
+        if(fctImp->Has("fctImag")) {
+          PtrCoefFct fctImag =
+                     CoefFunction::Generate(mp_, Global::REAL,
+                                            fctImp->Get("fctImag")->As<std::string>() );
+           material->SetCoefFct( ACOU_IMPEDANCE_IMAG_VAL, fctImag );
+        }
+      }
     }
     //read acoustic non linearity
     if(acou->Has("acousticNonlinear"))
