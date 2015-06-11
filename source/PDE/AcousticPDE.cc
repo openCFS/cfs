@@ -896,9 +896,11 @@ namespace CoupledField{
 
       for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
         BiLinearForm * impedInt = NULL;
+        PtrCoefFct factor;
         std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
         std::string volRegName = impedNodes[i]->Get("volumeRegion")->As<std::string>();
+        bool isNormalised = impedNodes[i]->Get("isNormalised")->As<bool>();
 
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
 
@@ -917,10 +919,25 @@ namespace CoupledField{
           EXCEPTION("No such impedance type: " << impType);
         }
 
-        if( dim_ == 2 ) {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+        if (isNormalised) {
+          // c0 = sqrt(bulk_modulus / density)
+          PtrCoefFct dens = materials_[aRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
+          PtrCoefFct blk = materials_[aRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+          PtrCoefFct c0 = CoefFunction::Generate( mp_,  Global::REAL,
+                                      CoefXprUnaryOp(mp_, CoefXprBinOp(mp_, blk, dens,
+                                      CoefXpr::OP_DIV), CoefXpr::OP_SQRT) );
+          factor = CoefFunction::Generate( mp_,  Global::REAL,
+              CoefXprBinOp(mp_, "1.0", CoefXprBinOp(mp_, c0, dens, CoefXpr::OP_MULT), CoefXpr::OP_DIV));
         } else {
-          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
+          factor = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+        }
+        PtrCoefFct coeffDamp = CoefFunction::Generate( mp_, Global::I
+                                 CoefXprBinOp(mp_, factor, Z_impMod, CoefXpr::OP_MULT ));
+
+        if( dim_ == 2 ) {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,2,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
+        } else {
+          impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), coeffDamp, 1.0, updatedGeo_ );
         }
 
         impedInt->SetName("impedIntegrator");

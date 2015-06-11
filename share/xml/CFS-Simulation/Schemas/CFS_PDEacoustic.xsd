@@ -442,6 +442,11 @@
         <xsd:documentation>Type of impedance model to use. Following exist untill now: circ_mpp, interpolImpedance</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute default="0" name="isNormalised" type="xsd:boolean">
+      <xsd:annotation>
+        <xsd:documentation>Tells CFS if the impedance was normalised, so it knows it has to multiply density and speed of sound to it.</xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
 
