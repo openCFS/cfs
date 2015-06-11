@@ -1712,7 +1712,7 @@ void LatticeBoltzmannPDE::SetupParabolicInflow()
     u_in_[i] = tmp_u;
     //        std::cout << std::endl;
     //        std::cout << "distance from " << inlet[i] << " to " << vertex_y << "," << vertex_z << ": " << disty << "," << distz << std::endl;
-            std::cout << "element " << inlet[i] << " has coords " <<  coordsInlet[i][0] << "," << coordsInlet[i][1] << "," << coordsInlet[i][2] << "   and vel " << tmp_u[0] << "," << tmp_u[1] << "," << tmp_u[2] << std::endl;
+//            std::cout << "element " << inlet[i] << " has coords " <<  coordsInlet[i][0] << "," << coordsInlet[i][1] << "," << coordsInlet[i][2] << "   and vel " << tmp_u[0] << "," << tmp_u[1] << "," << tmp_u[2] << std::endl;
   }
 }
 

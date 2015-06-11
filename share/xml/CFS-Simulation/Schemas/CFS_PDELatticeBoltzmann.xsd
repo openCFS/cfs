@@ -83,6 +83,12 @@
                   <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; either omega or Re must be specified</xsd:documentation>
                 </xsd:annotation>
               </xsd:attribute>
+              
+              <xsd:attribute name="inflowProfile" type="DT_ExternLBMInflow" use="optional" default="block">
+                <xsd:annotation>
+                  <xsd:documentation>Specify inflow velocity profile. For parabolic profile, velocity specified in "bcAndLoads" is assumed as maximum velocity</xsd:documentation>
+                </xsd:annotation>
+              </xsd:attribute>
 							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />
               
 							<xsd:attribute name="maxIter" type="xsd:positiveInteger" use="optional" default="100000" >
@@ -185,5 +191,14 @@
       <xsd:enumeration value="LBMPhysicalPseudoDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
-
+  
+  <!-- ******************************************************************* -->
+  <!-- Definition of inflow profiles -->
+  <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_ExternLBMInflow">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="block" />
+      <xsd:enumeration value="parabolic" />
+    </xsd:restriction>
+  </xsd:simpleType>
 </xsd:schema>
