@@ -1024,36 +1024,37 @@ namespace CoupledField
       //-----------
       // CORE_LOSS
       //-----------
-      MatDescriptorNl & matNl = nonlinIsoParams_[CORE_LOSS];
-      if( matNl.approxType == SMOOTH_SPLINES ) {
-        // Check, if smooth spline approximation was already created
-        // and initialized
-        if( !matNl.approxData ) {
-          SmoothSpline * sp = new SmoothSpline( matNl.fileName, CORE_LOSS );
-          sp->SetAccuracy( matNl.measAccuracy );
-          sp->SetMaxY( matNl.maxVal );
-          sp->CalcBestParameter();
-          sp->CalcApproximation();
-          sp->Print();
-          matNl.approxData = sp;
+      if ( nonlinIsoParams_.find(CORE_LOSS) != nonlinIsoParams_.end() ) {
+        MatDescriptorNl & matNl = nonlinIsoParams_[CORE_LOSS];
+        if( matNl.approxType == SMOOTH_SPLINES ) {
+          // Check, if smooth spline approximation was already created
+          // and initialized
+          if( !matNl.approxData ) {
+            SmoothSpline * sp = new SmoothSpline( matNl.fileName, CORE_LOSS );
+            sp->SetAccuracy( matNl.measAccuracy );
+            sp->SetMaxY( matNl.maxVal );
+            sp->CalcBestParameter();
+            sp->CalcApproximation();
+            sp->Print();
+            matNl.approxData = sp;
+          }
+          ApproxData * sp = matNl.approxData;
+          // get linear starting value
+          Double startVal = 0.0;
+          this->GetScalar( startVal, matType, Global::REAL );
+          shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
+          coef->Init( startVal, sp, fluxCoef);
+          ret = coef;
+        } else if( matNl.approxType == LIN_INTERPOLATE ) {
+          if ( !matNl.approxData ) {
+            LinInterpolate * li = new LinInterpolate( matNl.fileName, CORE_LOSS );
+            matNl.approxData = li;
+          }
+          ApproxData * li = matNl.approxData;
+          shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
+          coef->Init( 0.0, li, fluxCoef );
+          ret = coef;
         }
-        ApproxData * sp = matNl.approxData;
-        // get linear starting value
-        Double startVal = 0.0;
-        this->GetScalar( startVal, matType, Global::REAL );
-        shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
-        coef->Init( startVal, sp, fluxCoef);
-        ret = coef;
-      }
-      else if( matNl.approxType == LIN_INTERPOLATE ){
-        if( !matNl.approxData ){
-          LinInterpolate * li = new LinInterpolate( matNl.fileName, CORE_LOSS );
-          matNl.approxData = li;
-        }
-        ApproxData * li = matNl.approxData;
-        shared_ptr<CoefFunctionApprox> coef( new CoefFunctionApprox() );
-        coef->Init( 0.0, li, fluxCoef );
-        ret = coef;
       }
       else {
         // since the core loss is an optional parameter (as well as density)
