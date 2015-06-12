@@ -801,7 +801,7 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
         
         mesh.elements.append(e)
 
-  print "Created " + str(second) + " obstacle elements"
+  #print "Created " + str(second) + " obstacle elements"
           
   mesh.bc.append(("left", range(0, (nnx*nny*z)+(nnx*ny)+1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx*nny*nnz)+1, nnx)))
@@ -819,27 +819,16 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
       side[1].append((z*nny+ny)*nnx+x)
 
   
-  # back and front as it appears with paraview
-  mesh.bc.append(("back", range(0, (nx+1)*(ny+1))))
-  mesh.bc.append(("front", range(nz*(nx+1)*(ny+1), (nz+1)*(nx+1)*(ny+1))))
-
-
-  mesh.bc.append(("left_bottom_back",   [0]))
-  mesh.bc.append(("right_bottom_back",  [nx]))
-  mesh.bc.append(("left_top_back",      [nnx*ny]))
-  mesh.bc.append(("right_top_back",     [nnx*nny-1]))
-  mesh.bc.append(("left_bottom_front",  [nnx*nny*nz]))
-  mesh.bc.append(("right_bottom_front", [nnx*nny*nz+nx]))
-  mesh.bc.append(("left_top_front",     [nnx*nny*nz+nnx*ny]))
-  mesh.bc.append(("right_top_front",    [nnx*nny*nnz-1]))
   
   if case == 'pipe_bend':
-    for i in range(int(0.8*nz-eps),nz-1):
-      mesh.ne.append(('inlet',range(int(nx*ny*i+nx),int(nx*ny*i+0.2*(nx+1)*ny),nx)))
-    for i in range(0,int(0.2*nx*ny*nz),nx*ny):
-      mesh.ne.append(('outlet',range(int(2*nx*ny-0.2*nz-eps+i),int(2*nx*ny-1+i),1)))
-#     for i in range(0,int(0.2*nz)):
-#        mesh.ne.append(('outlet', range(int(0.4*nx*ny*nz - 0.3*nx + i*nx*ny),int(0.4*nx*ny*nz - 0.1*nx + i*nx*ny),1)))
+    area = 0.04
+    in_x = int(math.sqrt(area / (dx * dx))+eps) ## find out how many elements in one direction
+    dist_wall = 0.04
+    x_wall = int(math.sqrt(dist_wall / (dx * dx))+eps) #find out distance from wall
+    for i in range(nx*ny*nz-(x_wall+in_x)*nx*ny,nx*ny*nz-x_wall*nx*ny,nx*ny):
+      mesh.ne.append(('inlet',range(i+x_wall*nx,i+(x_wall+in_x)*nx,nx)))
+    for i in range(0,in_x*nx*ny,nx*ny):
+      mesh.ne.append(('outlet', range((x_wall+1)*nx*ny-in_x-x_wall+i,(x_wall+1)*nx*ny-x_wall+i,1)))
   elif case == 'extend_inlet':
     for i in range (0,nz):
       mesh.ne.append(('inlet',range(int(0.1*nx*ny + i*nx*ny), int(0.4*nx*ny + i*nx*ny),nx)))
