@@ -18,7 +18,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
                            public boost::enable_shared_from_this<CoefFunctionImpedanceModel<Complex> > {
   public:
     //! Constructor with given field
-    CoefFunctionImpedanceModel(MathParser* mp);
+    CoefFunctionImpedanceModel(MathParser* mp, bool isNormalised=false);
 
     //! Destructor
     virtual ~CoefFunctionImpedanceModel();
@@ -98,6 +98,8 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     IMPEDANCE_TYPE impedanceType_; // type of impedance
 
+    bool isNormalised_; // is impedance normalised or not
+    Double normalisedFactor_;
     Double c0_; // speed of sound
     Double density_; // density of medium
     Double nu_; // kinematic viscosity

@@ -12,8 +12,12 @@ namespace CoupledField{
   // CoefFunctionBCross
   // =========================================================================
 
-  CoefFunctionImpedanceModel<Complex>::CoefFunctionImpedanceModel(MathParser* mp)
-  : CoefFunctionTimeFreq<Complex>(mp) {
+  CoefFunctionImpedanceModel<Complex>::CoefFunctionImpedanceModel(MathParser* mp, \
+      bool isNormalised)
+  : CoefFunctionTimeFreq<Complex>(mp),
+    isNormalised_(isNormalised),
+    normalisedFactor_(1.0)
+  {
     // this type of coefficient is always constant
     dependType_ = GENERAL;
     isAnalytic_ = false;
@@ -102,7 +106,7 @@ namespace CoupledField{
       Z_all = Z_mpp;
       //constCoefScalar_ = - 1.0;
       //constCoefScalar_ *= one_i *  waveNum;
-      constCoefScalar_ = density_ / Z_all;
+      constCoefScalar_ = normalisedFactor_ * density_ / Z_all;
     } else {
       EXCEPTION("CoefFunctionImpedanceMode only implemented for scalar")
     }
@@ -176,17 +180,25 @@ namespace CoupledField{
 
   void CoefFunctionImpedanceModel<Complex>::GenerateInterpolImpedance(BaseMaterial* const material) {
     impedanceType_ = IMP_INTERPOL;
+    Double tmpBlkMod;
 
     LocPointMapped lp_dummy;
     // density_, DENSITY
     PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
+    // tmpBlkMod, ACOU_BULK_MODULUS
+    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
 
     PtrCoefFct frequCoef = CoefFunction::Generate( mp_, Global::REAL, "f");
     impedanceCoef_real_ =
         material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_REAL_VAL, Global::REAL, frequCoef);
     impedanceCoef_imag_ =
         material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL, frequCoef);
+
+    // calc speed of sound
+    c0_ = sqrt(tmpBlkMod/density_);
+    normalisedFactor_ = 1.0 / (density_ * c0_);
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_interpol() {
@@ -205,13 +217,14 @@ namespace CoupledField{
     impedanceCoef_real_->GetScalar(Z_real, lp_dummy);
     impedanceCoef_imag_->GetScalar(Z_imag, lp_dummy);
     const Complex Z(Z_real, Z_imag);
-    constCoefScalar_ = density_ / Z;
+    constCoefScalar_ = normalisedFactor_ * density_ / Z;
   }
 
   void CoefFunctionImpedanceModel<Complex>::GenerateImpedanceFct(BaseMaterial* const material) {
-    LocPointMapped lp_dummy;
-
     impedanceType_ = IMP_FCT;
+    LocPointMapped lp_dummy;
+    Double tmpBlkMod;
+
     //Impedance function for real and imag part
     impedanceCoef_real_ = material->GetScalCoefFnc( ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
     impedanceCoef_imag_ = material->GetScalCoefFnc( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
@@ -219,6 +232,13 @@ namespace CoupledField{
     // density_, DENSITY
     PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
+    // tmpBlkMod, ACOU_BULK_MODULUS
+    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
+
+    // calc speed of sound
+    c0_ = sqrt(tmpBlkMod/density_);
+    normalisedFactor_ = 1.0 / (density_ * c0_);
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_impFct() {
@@ -238,7 +258,7 @@ namespace CoupledField{
     impedanceCoef_imag_->GetScalar(Z_imag, lp_dummy);
 
     const Complex Z(Z_real, Z_imag);
-    constCoefScalar_ = density_ / Z;
+    constCoefScalar_ = normalisedFactor_ * density_ / Z;
   }
 
   void CoefFunctionImpedanceModel<Complex>::Init(BaseMaterial* const material)
@@ -271,6 +291,7 @@ namespace CoupledField{
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
+    normalisedFactor_ = 1.0 / (density_ * c0_);
   }
 
 
