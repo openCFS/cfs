@@ -316,6 +316,8 @@ private:
   double convergence_; /** value for convergence criterion */
   unsigned int writeFrequency_;
 
+  int lbmCalls_; // counts how often LBM solver was called
+
   // inlet velocities for constant inflow at all inlet nodes
   double u_max_x_;
   double u_max_y_;

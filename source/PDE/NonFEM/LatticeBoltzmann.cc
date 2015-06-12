@@ -133,7 +133,7 @@ void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux,
   uz = tmp_uz / density;
 }
 
-StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
+StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in, int& niter)
 {
   int it = 0;
   // counts number of written steps when not in optimization
@@ -209,8 +209,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       in->Get("iterations")->SetValue(it);
       in->Get("residuum")->SetValue(R);
       info->ToFile(); // is not written when called too often
-
     }
+
+    niter = it;
 
     m_cur  = (m_cur  + 1) % 2;
     m_next = (m_next + 1) % 2;

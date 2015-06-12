@@ -48,8 +48,9 @@ namespace CoupledField
 
       /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
        * @param info stores current and final info there. Saves under way
+       * @param niter stores how many iterations til convergence for one simulation call is needed
        * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
-      StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
+      StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info, int& niter);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void prop_step();

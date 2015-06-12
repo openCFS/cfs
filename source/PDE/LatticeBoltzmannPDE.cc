@@ -147,6 +147,8 @@ namespace CoupledField {
 
     //  test_matrix();
 
+    lbmCalls_ = 0;
+
     // LBM parametes
     maxWallTime_ = myParam_->Get("LBM/maxWallTime")->As<double>();
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
@@ -403,9 +405,15 @@ namespace CoupledField {
 
         // this data is the final simulation but it lacks an additional propagation step for the adjoint calculation
         // We need to perform an additional propagation step as base for the adjoint system setup
-        StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
+        int niter;
+
+        StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"),niter);
 
         pdfs = *tmp;
+        PtrParamNode node1 = in->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write out how many lbm iterations until convergence
+        node1->Get("number")->SetValue(lbmCalls_);
+        node1->Get("lbmIterations")->SetValue(niter);
+        lbmCalls_++;
         if (domain->GetOptimization() != NULL) {
           switch (domain->GetOptimization()->objectives.data[0]->GetType()) {
             case Function::PRESSURE_DROP:
