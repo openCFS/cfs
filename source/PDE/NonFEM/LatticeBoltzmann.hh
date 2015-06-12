@@ -50,7 +50,7 @@ namespace CoupledField
        * @param info stores current and final info there. Saves under way
        * @param niter stores how many iterations til convergence for one simulation call is needed
        * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
-      StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info, int& niter);
+      StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void prop_step();
@@ -225,6 +225,8 @@ namespace CoupledField
 
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
+
+	  int lbmCalls_; //counts how often solver was called
 
           StdVector<double> Scales;
 

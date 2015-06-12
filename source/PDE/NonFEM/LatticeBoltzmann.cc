@@ -88,6 +88,8 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   m_cur  = 0;
   m_next = 1;
 
+  lbmCalls_ = 0;
+
   SetMicroVelocities();
 
   //initlialize function pointers in dependence on problem's dimension
@@ -133,7 +135,7 @@ void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux,
   uz = tmp_uz / density;
 }
 
-StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in, int& niter)
+StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
 {
   int it = 0;
   // counts number of written steps when not in optimization
@@ -211,8 +213,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       info->ToFile(); // is not written when called too often
     }
 
-    niter = it;
-
     m_cur  = (m_cur  + 1) % 2;
     m_next = (m_next + 1) % 2;
 
@@ -238,9 +238,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   timer.Stop();
 
-  in->Get("iterations")->SetValue(it);
-  in->Get("residuum")->SetValue(R);
-  in->Get("converged")->SetValue(steady_state);
+  PtrParamNode node = in->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write out how many lbm iterations until convergence
+  node->Get("number")->SetValue(lbmCalls_);
+  node->Get("iterations")->SetValue(it);
+  node->Get("residuum")->SetValue(R);
+  node->Get("converged")->SetValue(steady_state);
 
   if(m_plot) {
     plot << it << "\t" << R << "\n";
@@ -254,8 +256,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   else
     performance = (m_sizeX - 1) * (m_sizeY - 1) * it / wt / 1e6;
 
-  in->Get("MFLUP_s")->SetValue(performance);
-  in->Get("walltime")->SetValue(wt);
+  node->Get("wall")->SetValue(wt);
+  node->Get("cpu")->SetValue(timer.GetCPUTime());
+  node->Get("MFLUP_s")->SetValue(performance);
   in->Get("memory")->SetValue(sizeof(double) * m_nNodes * n_q_ * 2.0 / 1024.0 / 1024.0);
 
   if(R >= 1000)
@@ -265,6 +268,8 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
   m_numWriteResults = count;
+
+  lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)
 
   return &(m_pdfs[m_cur]);
 }
