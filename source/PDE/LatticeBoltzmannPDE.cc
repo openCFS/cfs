@@ -200,12 +200,12 @@ namespace CoupledField {
 
     // if parabolic inflow profile required
     if (myParam_->Get("LBM/inflowProfile")->As<std::string>() == "parabolic") {
-      parabolicInflow = true;
+      parabolicInflow_ = true;
 
       SetupParabolicInflow();
     }
     else
-      parabolicInflow = false;
+      parabolicInflow_ = false;
 
     if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re"))
       EXCEPTION("Either omega or Re can be prescribed in XML file!");
@@ -213,11 +213,22 @@ namespace CoupledField {
       omega_       = myParam_->Get("LBM/omega")->As<double>();
       //calculate Reynolds number of fluid flow
       // re = inletSize * |u| / kin. viscosity
-      Re_ = inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / (1/3.0 * (1/omega_ - 0.5));
+      double u_mean_x = u_max_x_;
+      double u_mean_y = u_max_y_;
+      double u_mean_z = u_max_z_;
+      if (parabolicInflow_)
+        u_mean_x = 2.0/3.0 * u_max_x_;
+        u_mean_y = 2.0/3.0 * u_max_y_;
+        u_mean_z = 2.0/3.0 * u_max_z_;
+        
+      Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
-      omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
+      if (parabolicInflow_)
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5); 
+      else
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
       if (omega_ >= 2)
         EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!")
     }
@@ -816,7 +827,7 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
   for (unsigned int i = 0; i < n_q_; i++)
   {
     transform = &(*microVelDirections_)[i];
-    if (!parabolicInflow) {
+    if (!parabolicInflow_) {
       dot = transform->off_x * u_max_x_ + transform->off_y * u_max_y_ + transform->off_z * u_max_z_;
       norm = u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_ + u_max_z_ * u_max_z_;
     }

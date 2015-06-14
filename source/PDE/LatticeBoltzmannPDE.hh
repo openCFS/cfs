@@ -323,7 +323,7 @@ private:
 
   unsigned int dim_; // number of spatial dimensions of domain
 
-  bool parabolicInflow; // indicates if inflow velocity profile is parabolic
+  bool parabolicInflow_; // indicates if inflow velocity profile is parabolic
 
   // inlet velocities for parabolic inflow profile
   StdVector< StdVector<double> > u_in_;
