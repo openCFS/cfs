@@ -47,6 +47,14 @@ namespace CoupledField {
     
     // Initialize nonlinearities
     InitNonLin();
+
+    //check consistency in time stepping
+    MechPDE* mechPDE = dynamic_cast<MechPDE*>(pde1_);
+    AcousticPDE* acouPDE = dynamic_cast<AcousticPDE*>(pde2_);
+    PtrParamNode mechParam = mechPDE->GetMyParam();
+    PtrParamNode acouParam = acouPDE->GetMyParam();
+    if ( mechParam->Get("timeStepAlpha")->As<Double>() != acouParam->Get("timeStepAlpha")->As<Double>() )
+    	EXCEPTION("Alpha value of time stepping algorithm has to be the same in acousticPDE and mechPDE");
   }
 
 
