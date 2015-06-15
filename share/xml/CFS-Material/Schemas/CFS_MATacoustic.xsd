@@ -45,7 +45,7 @@
         minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic nonlinearities                             -->
   <!-- ******************************************************************* -->
@@ -54,7 +54,7 @@
       <xsd:element name="bOverA" type="xsd:double" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic thermo viscous damping model               -->
@@ -64,7 +64,7 @@
       <xsd:element name="alpha0" type="xsd:double"/>
     </xsd:sequence>
   </xsd:complexType>
-  
+
   <!-- ******************************************************************* -->
   <!--   Definition of acoustic fractional damping model                   -->
   <!-- ******************************************************************* -->
@@ -80,8 +80,7 @@
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_AcousticImpedance">
     <xsd:sequence>
-      <xsd:element name="slit_mpp" type="DT_Mpp" minOccurs="0"/>
-      <xsd:element name="circ_mpp" type="DT_Mpp" minOccurs="0"/>
+      <xsd:element name="mpp" type="DT_Mpp" minOccurs="0"/>
       <xsd:element name="interpolImpedance" type="DT_InterpolImpedance" minOccurs="0"/>
       <xsd:element name="FctImpedance" type="DT_FctImpedance" minOccurs="0"/>
     </xsd:sequence>
@@ -106,10 +105,9 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="flowMachNumber" type="xsd:double">
+      <xsd:element name="mppVolDepth" type="xsd:double">
         <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Mach number of flow.
+          <xsd:documentation xml:lang="en">The volume depth behind the mpp
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
@@ -120,7 +118,14 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="beta" type="xsd:double">
+      <xsd:element name="flowMachNumber" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Mach number of flow.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="beta" type="xsd:double" minOccurs="1">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
             A factor for grazing flow effects.

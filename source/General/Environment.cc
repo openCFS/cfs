@@ -1387,6 +1387,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");
     MaterialTypeEnum.Add( POROSITY, "sigma");
     MaterialTypeEnum.Add( BETA, "beta");
+    MaterialTypeEnum.Add( MPP_VOLUME_DEPTH, "mppVolDepth");
     MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");
     MaterialTypeEnum.Add( ACOU_IMPEDANCE_IMAG_VAL, "acouImpedanceImagValue");

@@ -44,6 +44,7 @@ namespace CoupledField
     isAllowed_.insert( ACOU_IMPEDANCE_REAL_VAL );
     isAllowed_.insert( ACOU_IMPEDANCE_IMAG_VAL );
     isAllowed_.insert( POROSITY );
+    isAllowed_.insert( MPP_VOLUME_DEPTH );
     isAllowed_.insert( BETA );
   }
 

@@ -94,6 +94,9 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     void Recalculate_interpol();
     void Recalculate_impFct();
 
+    //! Calculate cavity impedance
+    inline void Calculate_cavityImpedance(Complex& Z_cav, const Double omega);
+
   private:
 
     IMPEDANCE_TYPE impedanceType_; // type of impedance
@@ -106,6 +109,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     Double holeDiam_; // hole diameter or slit width of MPP
     Double plateThick_; // plate thickness
     Double sigma_; // plate porosity
+    Double mppVolDepth_; // volume depth behind mpp
     Double flowMachNr_; // flow mach number
     Double endCorrection_; // end correction term (additional mass around hole)
     Double beta_; // parameter for the non-linear flow term

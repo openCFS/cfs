@@ -728,15 +728,13 @@ namespace CoupledField {
     if(acou->Has("acousticImpedance"))
     {
       PtrParamNode ai = acou->Get("acousticImpedance");
-      double c0(0),holeDiam(0),plateThick(0),flowMachNr(0),porosity(0);
+      double c0(0), holeDiam(0), plateThick(0);
+      double mppVolDepth(0), flowMachNr(0), porosity(0);
 
-      if (ai->Has("slit_mpp") || ai->Has("slit_mpp")) {
+      if (ai->Has("mpp")) {
         PtrParamNode mpp;
-        if (ai->Has("slit_mpp")) {
-          mpp = ai->Get("slit_mpp");
-        } else {
-          mpp = ai->Get("circ_mpp");
-        }
+        mpp = ai->Get("mpp");
+
         if (mpp->Has("holeDiam")) {
           PtrCoefFct holeDiamFct =
                     CoefFunction::Generate(mp_, Global::REAL,
@@ -767,12 +765,18 @@ namespace CoupledField {
           material->SetCoefFct( POROSITY, porosityFct );
           porosityFct->GetScalar( porosity, lp_dummy );
         }
-
         if (mpp->Has("beta")) {
           PtrCoefFct beta =
                     CoefFunction::Generate(mp_, Global::REAL,
                                            mpp->Get("beta")->As<std::string>() );
           material->SetCoefFct( BETA, beta );
+        }
+        if (mpp->Has("mppVolDepth")) {
+          PtrCoefFct mppVolDepth_fct =
+                    CoefFunction::Generate(mp_, Global::REAL,
+                                           mpp->Get("mppVolDepth")->As<std::string>() );
+          material->SetCoefFct( MPP_VOLUME_DEPTH, mppVolDepth_fct );
+          mppVolDepth_fct->GetScalar( mppVolDepth, lp_dummy );
         }
         // calc speed of sound
         c0 = sqrt(blkMod/density);
@@ -781,6 +785,7 @@ namespace CoupledField {
         mp_->SetValue( MathParser::GLOB_HANDLER, "plateThick", plateThick);
         mp_->SetValue( MathParser::GLOB_HANDLER, "flowMachNr", flowMachNr );
         mp_->SetValue( MathParser::GLOB_HANDLER, "porosity", porosity );
+        mp_->SetValue( MathParser::GLOB_HANDLER, "mppVolDepth", mppVolDepth );
         mp_->SetValue( MathParser::GLOB_HANDLER, "eta", nu * density);
         mp_->SetValue( MathParser::GLOB_HANDLER, "density", density);
         mp_->SetValue( MathParser::GLOB_HANDLER, "c0", c0 );
