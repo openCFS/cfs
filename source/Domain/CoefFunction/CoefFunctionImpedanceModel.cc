@@ -38,7 +38,7 @@ namespace CoupledField{
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_slitMpp() {
-    Complex Z_mpp, Z_all;
+    Complex Z_mpp, Z_cav, Z_all;
     Complex tmp1, tmp2, tmp3;
     Double xi, omega;
     const Complex one_i(0,1);
@@ -71,7 +71,7 @@ namespace CoupledField{
       }
       omega = 2 * pi * f;
       xi = holeDiam_*sqrt(omega / (4.0*nu_));
-      R_s = 0.5*sqrt(2*density_*2*pi*f*eta);
+      R_s = 0.5*sqrt(2*density_*omega*eta);
       //maxSchnelle = 1.0 / ( c0_ * density_ ); // p / Z = p / (c * \rho)  // p = 1 <= Dirichlet BC
 
       tmp1 = one_i * omega * density_;
@@ -83,8 +83,8 @@ namespace CoupledField{
       Z_mpp = tmp1/tmp3;
 
       Z_mpp += 4*R_s/sigma_;
-      //Z_mpp += maxSchnelle/(sigma_ * c0_);
-      //Z_mpp += beta_*flowMachNr_/sigma_;
+      //Z_mpp += maxSchnelle * density_;
+      //Z_mpp += beta_*flowMachNr_ * density_ * c0_;
 
 #if 0
       // calc Z_cav
@@ -102,8 +102,8 @@ namespace CoupledField{
       Z_cav /= tmp3;
       Z_cav *= density_ * c0_;
 #endif
-
-      Z_all = Z_mpp;
+      Calculate_cavityImpedance(Z_cav, omega);
+      Z_all = Z_mpp + Z_cav;
       //constCoefScalar_ = - 1.0;
       //constCoefScalar_ *= one_i *  waveNum;
       constCoefScalar_ = normalisedFactor_ * density_ / Z_all;
@@ -198,7 +198,9 @@ namespace CoupledField{
 
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
-    normalisedFactor_ = 1.0 / (density_ * c0_);
+    if (isNormalised_) {
+      normalisedFactor_ = 1.0 / (density_ * c0_);
+    }
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_interpol() {
@@ -238,7 +240,9 @@ namespace CoupledField{
 
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
-    normalisedFactor_ = 1.0 / (density_ * c0_);
+    if (isNormalised_) {
+      normalisedFactor_ = 1.0 / (density_ * c0_);
+    }
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_impFct() {
@@ -280,6 +284,9 @@ namespace CoupledField{
     // sigma_, POROSITY
     tmpPtFc = material->GetScalCoefFnc( POROSITY, Global::REAL );
     tmpPtFc->GetScalar(sigma_, lp_dummy);
+    // mppVolDepth_, MPP_VOL_DEPTH
+    tmpPtFc = material->GetScalCoefFnc( MPP_VOLUME_DEPTH, Global::REAL );
+    tmpPtFc->GetScalar(mppVolDepth_, lp_dummy);
     // flowMachNr_, FLOW_MACH_NUMBER
     tmpPtFc = material->GetScalCoefFnc( FLOW_MACH_NUMBER, Global::REAL );
     tmpPtFc->GetScalar(flowMachNr_, lp_dummy);
@@ -291,9 +298,15 @@ namespace CoupledField{
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
-    normalisedFactor_ = 1.0 / (density_ * c0_);
+    if (isNormalised_) {
+      normalisedFactor_ = 1.0 / (density_ * c0_);
+    }
   }
 
+  inline void CoefFunctionImpedanceModel<Complex>::Calculate_cavityImpedance(Complex& Z_cav, const Double omega) {
+    const Complex one_i(0,1);
+    Z_cav = -one_i/tan(omega*mppVolDepth_/c0_);
+  }
 
   void CoefFunctionImpedanceModel<Complex>::
   GetStrScalar( std::string& real, std::string& imag ) {
