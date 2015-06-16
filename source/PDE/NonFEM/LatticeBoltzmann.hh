@@ -183,7 +183,7 @@ namespace CoupledField
            * LBM operators in 2D
            */
 
-          void prop_coll_step2D(int cur, int next, double omega);
+          void prop_coll_step2D(int cur, int next);
 
           void prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
@@ -195,7 +195,7 @@ namespace CoupledField
           /**
            * LBM operators in 3D
            */
-          void prop_coll_step3D(int cur, int next, double omega);
+          void prop_coll_step3D(int cur, int next);
 
           void prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
@@ -226,7 +226,7 @@ namespace CoupledField
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
 
-	  int lbmCalls_; //counts how often solver was called
+          int lbmCalls_; //counts how often solver was called
 
           StdVector<double> Scales;
 
@@ -253,7 +253,7 @@ namespace CoupledField
           ResultHandler* rh = NULL;
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
-          void (LatticeBoltzmann::*prop_coll_step)(int, int, double);
+          void (LatticeBoltzmann::*prop_coll_step)(int, int);
           void (LatticeBoltzmann::*prop_coll_velinlet)(int, StdVector<StdVector<int> >&, double, double, double);
           void (LatticeBoltzmann::*prop_coll_bounce_back)(int, StdVector<StdVector<int> >&);
           void (LatticeBoltzmann::*prop_coll_densoutlet)(int, StdVector<StdVector<int> >&);

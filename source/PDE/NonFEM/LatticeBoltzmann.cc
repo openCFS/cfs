@@ -178,7 +178,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   while(it < m_maxIter && !steady_state && R <= 1000)
   {
     // -- Combined propagation and collision step -------------------------
-    (this->*prop_coll_step)(m_cur, m_next, m_omega);
+    (this->*prop_coll_step)(m_cur, m_next);
 
     // -- Bounce back step ------------------------------------------------
     (this->*prop_coll_bounce_back)(m_next, bb);
@@ -227,7 +227,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   }
 
   // -- Combined propagation and collision step -------------------------
-  (this->*prop_coll_step)(m_cur, m_next, m_omega);
+  (this->*prop_coll_step)(m_cur, m_next);
 
   // -- Bounce back step ------------------------------------------------
   (this->*prop_coll_bounce_back)(m_next, bb);
@@ -569,7 +569,7 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
 
 /************************************************** 2D operators *****************************************************/
 
-void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
+void LatticeBoltzmann::prop_coll_step2D(int cur, int next)
 {
   int x, y, z = 0;
 
@@ -585,7 +585,7 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
 #pragma omp parallel default(none)\
  private(index), \
  private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), \
- shared(next, cur, scales, omega, z)
+ shared(next, cur, scales, z)
 {
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
@@ -637,7 +637,7 @@ void LatticeBoltzmann::prop_coll_step2D(int cur, int next, double omega)
         if (x == 0 || y == 0 || x == m_sizeX - 1 || y == m_sizeY - 1)
           pdf(next, x, y, z, dir) = pdfs[dir];
         else
-          pdf(next, x, y, z, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+          pdf(next, x, y, z, dir) = pdfs[dir] + m_omega * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
       }
     }
   }
@@ -740,7 +740,9 @@ void LatticeBoltzmann::prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
 
     for (int dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-      pdf(cur, x, y, z, dir) = sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+//      pdf(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+      pdf(cur, x, y, z, dir) =  pdf(cur, x, y, z, dir) + m_omega *(sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)-pdf(cur, x, y, z, dir));
+//      pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
     }
   }
 
@@ -749,7 +751,7 @@ void LatticeBoltzmann::prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
 
 
 /************************************************** 3D operators *****************************************************/
-void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
+void LatticeBoltzmann::prop_coll_step3D(int cur, int next)
 {
 
   int x, y, z;
@@ -763,7 +765,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
 #pragma omp parallel default(none)\
     private(index), \
     private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z), \
-    shared(next, cur, scales, omega)
+    shared(next, cur, scales)
 {
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
@@ -818,7 +820,7 @@ void LatticeBoltzmann::prop_coll_step3D(int cur, int next, double omega)
           if (x == 0 || y == 0 || x == m_sizeX - 1 || y == m_sizeY - 1 || z == 0 || z == m_sizeZ - 1)
             pdf(next, x, y, z, dir) = pdfs[dir];
           else
-            pdf(next, x, y, z, dir) = pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+            pdf(next, x, y, z, dir) = pdfs[dir] + m_omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
 
       }

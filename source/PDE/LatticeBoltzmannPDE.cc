@@ -451,8 +451,9 @@ namespace CoupledField {
 
     timer.Stop();
     state_.Stop();
-  
     in = infoNode_->Get(ParamNode::SUMMARY)->Get("stateProblem");
+    in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
+    in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
     in->Get("totalTimer/cpu")->SetValue(state_.GetCPUTime());
     in->Get("totalTimer/wall")->SetValue(state_.GetWallTime());
     in->Get("totalTimer/calls")->SetValue(state_.GetCalls());
@@ -774,7 +775,6 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     duxdf[i] = scale * invdloc * (-ux[index] + transform->off_x);
     duydf[i] = scale * invdloc * (-uy[index] + transform->off_y);
     duzdf[i] = scale * invdloc * (-uz[index] + transform->off_z);
-
     // automatic testing
     if (dim_ == 2) {
       assert(us3 == 0);
@@ -869,7 +869,6 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
     dfeqduy[i] = weight[i] * density * (3 * transform->off_y + 9. * transform->off_y * dot - 3 * us2);
     dfeqduz[i] = weight[i] * density * (3 * transform->off_z + 9. * transform->off_z * dot - 3 * us3);
   }
-
   //gradient of u_x/u_y with respect to f
   StdVector<double> duxdf(n_q_), duydf(n_q_), duzdf(n_q_);
 
@@ -881,11 +880,11 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
     duydf[i] = invdloc * (-uy[index] + transform->off_y);
     duzdf[i] = invdloc * (-uz[index] + transform->off_z);
   }
-
   //gradient of u_x with respect to f
   for (unsigned int i = 0; i < n_q_; i++)
     for (unsigned int j = 0;j < n_q_; j++)
-      block[i][j] = dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j];
+      block[i][j] = (i == j) * (1 - omega_) + omega_ *(dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j]);
+//      block[i][j] = dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j];
 
 }
 
@@ -1272,13 +1271,19 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
 {
   // Calculation of the pressure drop by Pingen
   double in = 0.0;
-  for(unsigned int i = 0; i < inlet.GetSize(); i++)
+  for(unsigned int i = 0; i < inlet.GetSize(); i++) {
     in += CalcPressure(inlet[i]);
-
+//    double rho = CalcLBMDensity(inlet[i]);
+//    std::cout << "in: rho=" << rho << " u=[" << CalcVelocityX(inlet[i],rho) << "," << CalcVelocityY(inlet[i],rho) << "," << CalcVelocityZ(inlet[i],rho) << "]" << std::endl;
+  }
   double out = 0.0;
-  for(unsigned int i = 0; i < outlet.GetSize(); i++)
+  for(unsigned int i = 0; i < outlet.GetSize(); i++) {
     out += CalcPressure(outlet[i]);
-
+//    double rho = CalcLBMDensity(outlet[i]);
+//    std::cout << "out: rho=" << rho << " u=[" << CalcVelocityX(outlet[i],rho) << "," << CalcVelocityY(outlet[i],rho) << "," << CalcVelocityZ(outlet[i],rho) << std::endl;
+  }
+//  std::cout << "dp = " << in / inlet.GetSize() - out / outlet.GetSize() << std::endl;
+//  std::cout << in << "/" << inlet.GetSize() << "-" << out << "/" << outlet.GetSize() << "=" << in / inlet.GetSize() - out / outlet.GetSize() << std::endl;
   return in / inlet.GetSize() - out / outlet.GetSize();
 }
 
