@@ -53,6 +53,8 @@ IF(MINGW)
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
+    -lboost_system
+    -lboost_filesystem
     )
 ENDIF()
 
