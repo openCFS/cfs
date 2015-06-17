@@ -147,7 +147,7 @@ namespace CoupledField {
 
     //  test_matrix();
 
-    // LBM parametes
+    // LBM parameters
     maxWallTime_ = myParam_->Get("LBM/maxWallTime")->As<double>();
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
@@ -225,10 +225,19 @@ namespace CoupledField {
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
-      if (parabolicInflow_)
-        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5); 
-      else
-        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
+      omega_ = 1.9;
+      double tmp_u_x = Re_*(1/omega_ - 0.5) / (3.0 * inlet.GetSize());
+//      if (tmp_u_x / sqrt(3.0) > 0.2) {
+//	EXCEPTION("Mach number is greater than 0.2!");
+//      }
+      if (tmp_u_x / sqrt(3.0) > 0.2) {
+        if (parabolicInflow_)
+          omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5); 
+        else
+          omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
+      }
+      else 
+        u_max_x_ = tmp_u_x;
       if (omega_ >= 2)
         EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!")
     }
@@ -362,7 +371,9 @@ namespace CoupledField {
     in->Get("convergence")->SetValue(convergence_);
     in->Get("iface")->SetValue(iface.ToString(iface_));
     in->Get("Re")->SetValue(Re_);
-
+    in->Get("u_max_x")->SetValue(u_max_x_);
+    in->Get("u_max_y")->SetValue(u_max_y_);
+    in->Get("u_max_z")->SetValue(u_max_z_);
     // in the constructor we don't have the densities yet
     SetupElements();
 

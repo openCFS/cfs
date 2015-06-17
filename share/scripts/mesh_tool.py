@@ -840,6 +840,11 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
 #     mesh.ne.append(('outlet', [nx*ny + 2*nx-1+nx*(ny-3)]))
   elif case == 'two_inlet_one_outlet':
     print "Not implemented yet!"
+  elif case == 'diffuser':
+    for i in range (1,nz-1):
+      mesh.ne.append(('inlet', range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx)))
+    for i in range (int(0.3*nz),int(0.7*nz)):
+      mesh.ne.append(('outlet', range(int(i*nx*ny + 0.3*nx*ny + nx-1),int(i*nx*ny + 0.7*nx*ny+ nx-1),nx)))
   elif case == 'distributor':
     center_x = nx / 2.0
     center_y = ny / 2.0
@@ -848,10 +853,10 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
     width_y = 0.1 * ny 
     width_z = 0.1 * nz 
     for i in range(int(center_z-int(width_z/2.0)),int(center_z+width_z/2.0)):
-      mesh.ne.append(('outlet',range(int(i*nx*nz-center_z-int(width_x/2.0)),int(i*nx*nz-center_z+width_x/2.0),1))) # top fache
-      mesh.ne.append(('outlet',range(int((i-1)*nx*nz+center_z-int(width_x/2.0)),int((i-1)*nx*nz+center_z+width_x/2.0),1))) # bottom fache
+      mesh.ne.append(('outlet',range(int(i*nx*nz-center_x-int(width_x/2.0)),int(i*nx*nz-center_x+width_x/2.0),1))) # top fache
+      mesh.ne.append(('outlet',range(int((i-1)*nx*nz+center_x-int(width_x/2.0)),int((i-1)*nx*nz+center_x+width_x/2.0),1))) # bottom fache
     for i in range(int(center_z-int(width_z)),int(center_z+int(width_z))):
-      mesh.ne.append(('inlet',range(int(i*nx*ny+nx*int(center_x-width_x)),int(i*nx*ny+nx*int(center_x+width_x)),nx))) #left face
+      mesh.ne.append(('inlet',range(int(i*nx*ny+nx*int(center_y-width_y)),int(i*nx*ny+nx*int(center_y+width_y)),nx))) #left face
     #for i in range(int(round(0.5*nz)),int(round(0.6*nz))):
     #  mesh.ne.append(('outlet',range(int(round(i*nx*ny+0.5*ny*nx+nx-1)),int(round(i*nx*ny+0.6*ny*nx+nx-1)),nx))) #right face
     for i in range(int(round(center_y-width_y/2.0)),int(center_y+width_y/2.0),1):
