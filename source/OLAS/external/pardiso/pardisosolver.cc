@@ -600,7 +600,7 @@ extern "C" {
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
-      tSymfact_.Start();
+      tSymfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
@@ -644,7 +644,7 @@ extern "C" {
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
-      tNumfact_.Start();
+      tNumfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";

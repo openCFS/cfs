@@ -740,9 +740,7 @@ void LatticeBoltzmann::prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
 
     for (int dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-//      pdf(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
-      pdf(cur, x, y, z, dir) =  pdf(cur, x, y, z, dir) + m_omega *(sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)-pdf(cur, x, y, z, dir));
-//      pdfs[dir] + omega * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+      pdf(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
 

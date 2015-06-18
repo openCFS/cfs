@@ -894,8 +894,7 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
   //gradient of u_x with respect to f
   for (unsigned int i = 0; i < n_q_; i++)
     for (unsigned int j = 0;j < n_q_; j++)
-      block[i][j] = (i == j) * (1 - omega_) + omega_ *(dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j]);
-//      block[i][j] = dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j];
+      block[i][j] = dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j];
 
 }
 
