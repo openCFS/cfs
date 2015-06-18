@@ -594,6 +594,8 @@ extern "C" {
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
 
+    PtrParamNode node = solverInfo_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    node->Get("number")->SetValue(tNumfact_.GetCalls());
     // ========================
     //  Symbolic Factorisation
     // ========================
@@ -631,9 +633,11 @@ extern "C" {
       }
 
       tSymfact_.Stop();
-      solverInfo_->Get("symbfact/timer/cpu")->SetValue(tSymfact_.GetCPUTime());
-      solverInfo_->Get("symbfact/timer/wall")->SetValue(tSymfact_.GetWallTime());
-      solverInfo_->Get("symbfact/timer/calls")->SetValue(tSymfact_.GetCalls());
+      
+//      solverInfo_->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+//      solverInfo_->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
+      node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+      node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
     }
 
     // =========================
@@ -679,14 +683,14 @@ extern "C" {
       }
 
       tNumfact_.Stop();
-      solverInfo_->Get("numfact/timer/cpu")->SetValue(tNumfact_.GetCPUTime());
-      solverInfo_->Get("numfact/timer/wall")->SetValue(tNumfact_.GetWallTime());
-      solverInfo_->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
+      node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
+      node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
 
-    solverInfo_->Get("symbfact/memory/peak")->SetValue(iparm_[14]);
-    solverInfo_->Get("symbfact/memory/permanent")->SetValue(iparm_[15]);
-    solverInfo_->Get("numfact/memory/peak")->SetValue(iparm_[16]);
+    node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
+    node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
+    node->Get("numfact/peakMem")->SetValue(iparm_[16]);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
