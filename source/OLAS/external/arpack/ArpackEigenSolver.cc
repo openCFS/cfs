@@ -209,7 +209,8 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G", shiftAndInvert_, isBloch_);
+    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G",
+    		              shiftAndInvert_, isBloch_);
 
     // Set additional parameters for tolerance, number of Arnoldi vectors and
     // number of iterations
@@ -326,7 +327,7 @@ namespace CoupledField {
     arpackSolver_ = new ArpackSolver();
     
     // Check 'which'-settings regarding the type of eigenvalues searched for
-    std::string whichString = "LM";
+    std::string whichString = "SI";
     xml_->GetValue("which", whichString, ParamNode::INSERT );
     which_ = new char[whichString.size()+1];
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
