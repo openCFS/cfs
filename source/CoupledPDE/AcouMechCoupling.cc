@@ -142,10 +142,10 @@ namespace CoupledField {
             // factor for the lower diagonal coupling integrator C_Phi_U 
             // has a switched sign.
           
-          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct, 
+          DefCouplInt( "AcouMechPotCouplingInt", false, -1.0, DAMPING, dispFct,
                        acouFct, actSDList, coefFuncs, acouRegions );
-          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0, 
-                       DAMPING, acouFct, dispFct,  
+          DefCouplInt( "AcouMechPotCouplingInt_Transposed", false, 1.0,
+                       DAMPING, acouFct, dispFct,
                        actSDList, coefFuncs, acouRegions );
           }
         }
