@@ -939,13 +939,34 @@ namespace CoupledField {
   // *********
   //   Scale
   // *********
-  template<typename T>
-  void SCRS_Matrix<T>::Scale( Double factor ) {
+  template<>
+  void SCRS_Matrix<Double>::Scale( Double factor ) {
     for ( UInt i = 0; i < numEntries_; i++ ) {
       data_[i] *= factor;
     }
   }
   
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Double factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+  template<>
+  void SCRS_Matrix<Double>::Scale( Complex factor ) {
+	  EXCEPTION("CRS: Matrix is Double; you can't multiply be a complex value");
+  }
+
+
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Complex factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+
   // ************************
   //   Scale on index subset
   // ************************

@@ -466,6 +466,7 @@ namespace CoupledField {
 
     //! Method to scale all matrix entries by a fixed factor
     void Scale( Double factor );
+    void Scale( Complex factor );
     
     //! \copydoc StdMatrix::Scale(Double, std::set<UInt>, std::set<UInt>)
     void Scale( Double factor, 

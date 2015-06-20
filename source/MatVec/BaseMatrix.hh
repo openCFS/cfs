@@ -162,6 +162,11 @@ namespace CoupledField {
                 "class, but is not!");
     };
 
+    virtual void Scale( Complex factor ) {
+      EXCEPTION("BaseMatrix::Scale: Method must be implemented by derived " \
+                "class, but is not!");
+    };
+
     //! Compute the residual for a linear system with this matrix
 
     //! The method computes the residual \f$r=b-Ax\f$ where \f$A\f$ is the

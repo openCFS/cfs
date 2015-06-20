@@ -545,6 +545,9 @@ namespace CoupledField {
     //! Method to scale all matrix entries by a fixed factor
     void Scale( Double factor );
 
+    //! Method to scale all matrix entries by a fixed factor
+    void Scale( Complex factor );
+
     //! Add the multiple of a matrix to this matrix.
 
     //! The method adds the multiple of a matrix to this matrix,
