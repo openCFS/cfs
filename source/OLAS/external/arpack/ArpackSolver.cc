@@ -211,8 +211,7 @@ namespace CoupledField {
     iparams[6] = 3;
 
     UInt itNum;
-    for (itNum=0; itNum<maxIterations_; itNum++)
-    {
+    for (itNum=0; itNum<maxIterations_; itNum++) {
       // additionally rwork is ignored for the real case
       CallAUPD(&ido, type_, &size_, which_, &numFreq_, &tolerance_, residual.GetPointer(),
             &numArnoldiVec_, matrixV.GetPointer(), &size_, iparams.GetPointer(), ipntr.GetPointer(),
