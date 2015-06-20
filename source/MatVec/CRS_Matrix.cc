@@ -20,7 +20,6 @@ namespace CoupledField {
   CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat, bool sort )
     : diagPtr_( NULL ) {
 
-
     // Test, if the matrix is stored in symmetric format.
     // If yes, issue a warning, since we due not expand
     // it to a full matrix currently.
@@ -100,6 +99,7 @@ namespace CoupledField {
   // ********************
   template<typename T>
   CRS_Matrix<T>::CRS_Matrix( const CRS_Matrix<T> &origMat ) {
+
     colInd_           = NULL;
     rowPtr_           = NULL;
     diagPtr_          = NULL;
@@ -388,6 +388,15 @@ namespace CoupledField {
       const UInt* srcRowPtr = mat.GetRowPointer();
       const UInt* srcDiagPtr = mat.GetDiagPointer();
       
+      if ( colInd_ == NULL )
+    	  NEWARRAY( colInd_ , UInt, this->nnz_        );
+      if ( rowPtr_ == NULL )
+            NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
+      if ( diagPtr_ == NULL )
+            NEWARRAY( diagPtr_, UInt, this->nrows_      );
+      if ( data_ == NULL)
+            NEWARRAY( data_   , T      , this->nnz_        );
+
       // Copy information
       for (UInt i = 0; i < this->nnz_; i++ ) {
         colInd_[i] = srcColInd[i];
@@ -978,13 +987,36 @@ namespace CoupledField {
   // *********
   //   Scale
   // *********
-  template<typename T>
-  void CRS_Matrix<T>::Scale( Double factor ) {
+  template<>
+  void CRS_Matrix<Double>::Scale( Double factor ) {
     for ( UInt i = 0; i < this->nnz_; i++ ) {
       data_[i] *= factor;
     }
   }
   
+  template<>
+  void CRS_Matrix<Complex>::Scale( Double factor ) {
+    for ( UInt i = 0; i < this->nnz_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+  template<>
+  void CRS_Matrix<Double>::Scale( Complex factor ) {
+	  EXCEPTION("CRS: Matrix is Double; you can't multiply be a complex value");
+  }
+
+
+  // *********
+  //   Scale
+  // *********
+  template<>
+  void CRS_Matrix<Complex>::Scale( Complex factor ) {
+    for ( UInt i = 0; i < this->nnz_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
   // ************************
   //   Scale on index subset
   // ************************

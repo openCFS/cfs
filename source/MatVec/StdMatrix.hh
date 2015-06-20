@@ -341,6 +341,12 @@ namespace CoupledField {
                 "class, but is not!");
     };
     
+    //! \copydoc BaseMatrix::Scale(Double)
+    virtual void Scale( Complex factor ) {
+      EXCEPTION("BaseMatrix::Scale: Method must be implemented by derived " \
+                "class, but is not!");
+    };
+
     //! Scale matrix entries - given by an index set - by a constant factor
 
     //! This method allows to scale all non-zero matrix entries, which are

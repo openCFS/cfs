@@ -413,6 +413,7 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::GetEntry( const unsigned int i, T &val ) const
   {
+    //assert(i<size_);
     val = data_[i];
   }
   
