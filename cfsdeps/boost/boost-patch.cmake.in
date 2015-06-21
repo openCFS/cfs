@@ -42,6 +42,9 @@ SET(patches
 
   # Fix warning about uninitialized variable result.
   boost-lexical-cast-uninitialized-var.patch
+
+  # Fix uninitialized variable problem
+  boost-math-policies-error-handling.patch
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
