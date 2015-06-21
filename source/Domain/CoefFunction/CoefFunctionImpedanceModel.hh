@@ -111,7 +111,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     Double sigma_; // plate porosity
     Double mppVolDepth_; // volume depth behind mpp
     Double flowMachNr_; // flow mach number
-    Double endCorrection_; // end correction term (additional mass around hole)
+    // Double endCorrection_; // end correction term (additional mass around hole)
     Double beta_; // parameter for the non-linear flow term
     Double currFrequ_; // current, already calculated frequency
 
