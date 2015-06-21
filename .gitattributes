@@ -60,6 +60,7 @@ cfsdeps/boost/boost-has-nanosleep-mac.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
 cfsdeps/boost/boost-interlocked-mingw64.patch -text
 cfsdeps/boost/boost-lexical-cast-uninitialized-var.patch -text
+cfsdeps/boost/boost-mingw-critical-section.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-newline.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text

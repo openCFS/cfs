@@ -71,6 +71,11 @@ IF(MINGW)
     # https://svn.boost.org/trac/boost/ticket/4849
     # https://svn.boost.org/trac/boost/changeset/85865?format=diff&new=85865
     boost-interlocked-mingw64.patch
+
+    # /home/oracle/Documents/dev/mingw/include/boost/smart_ptr/detail/lwm_win32_cs.hpp:52:93: warning: declaration of 'void boost::detail::InitializeCriticalSection(boost::detail::critical_section*)' with C language linkage
+    # /home/oracle/Documents/dev/mingw/include/boost/signals2/detail/lwm_win32_cs.hpp:55:49: warning: conflicts with previous declaration 'void boost::signals2::InitializeCriticalSection(boost::signals2::critical_section*)'
+    # http://www.developpez.net/forums/d1046060/c-cpp/cpp/bibliotheques/boost/conflits-void-signals2-detail-initializecriticalsection-signals2-detail-critical_section/
+    boost-mingw-critical-section.patch
     )
 ENDIF(MINGW)
 
