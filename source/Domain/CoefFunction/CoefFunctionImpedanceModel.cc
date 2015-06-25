@@ -13,8 +13,9 @@ namespace CoupledField{
   // =========================================================================
 
   CoefFunctionImpedanceModel<Complex>::CoefFunctionImpedanceModel(MathParser* mp, \
-      bool isNormalised)
+      BaseMaterial* const material, bool isNormalised)
   : CoefFunctionTimeFreq<Complex>(mp),
+    material_(material),
     isNormalised_(isNormalised),
     normalisedFactor_(1.0)
   {
@@ -32,9 +33,9 @@ namespace CoupledField{
   CoefFunctionImpedanceModel<Complex>::~CoefFunctionImpedanceModel() {
 
   }
-  void CoefFunctionImpedanceModel<Complex>::GenerateSlitMpp(BaseMaterial* const material) {
+  void CoefFunctionImpedanceModel<Complex>::GenerateSlitMpp(const PtrParamNode impNode) {
     impedanceType_ = IMP_SLIT_MPP;
-    Init(material);
+    Init(impNode);
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_slitMpp() {
@@ -113,9 +114,9 @@ namespace CoupledField{
 
   }
 
-  void CoefFunctionImpedanceModel<Complex>::GenerateCircMpp(BaseMaterial* const material) {
+  void CoefFunctionImpedanceModel<Complex>::GenerateCircMpp(const PtrParamNode impNode) {
     impedanceType_ = IMP_CIRC_MPP;
-    Init(material);
+    Init(impNode);
   }
 
   void CoefFunctionImpedanceModel<Complex>::Recalculate_circMpp() {
@@ -178,23 +179,45 @@ namespace CoupledField{
   }
 
 
-  void CoefFunctionImpedanceModel<Complex>::GenerateInterpolImpedance(BaseMaterial* const material) {
+  void CoefFunctionImpedanceModel<Complex>::GenerateInterpolImpedance(const PtrParamNode impNode) {
     impedanceType_ = IMP_INTERPOL;
     Double tmpBlkMod;
 
+    BaseMaterial::MatDescriptorNl info;
+    info.approxType = LIN_INTERPOLATE;
+    info.fileName = "";
+    // read name of file with impedance data
+    if(impNode->Has("dataName_real")) {
+      info.fileName = impNode->Get("dataName_real")->As<std::string>().c_str();
+      material_->SetScalar(impNode->Get("dataName_real")->As<std::string>().c_str(), ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
+      material_->SetScalar(1.0, ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
+      material_->SetNonLinMatIso( ACOU_IMPEDANCE_REAL_VAL, info);
+    } else {
+      EXCEPTION("No file name give for interpolation of impedance");
+    }
+    // read name of file with impedance data
+    if(impNode->Has("dataName_imag")) {
+      info.fileName = impNode->Get("dataName_imag")->As<std::string>().c_str();
+      material_->SetScalar(impNode->Get("dataName_imag")->As<std::string>().c_str(), ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
+      material_->SetScalar(1.0, ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
+      material_->SetNonLinMatIso( ACOU_IMPEDANCE_IMAG_VAL, info);
+    } else {
+      EXCEPTION("No file name give for interpolation of impedance");
+    }
+
     LocPointMapped lp_dummy;
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
 
     PtrCoefFct frequCoef = CoefFunction::Generate( mp_, Global::REAL, "f");
     impedanceCoef_real_ =
-        material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_REAL_VAL, Global::REAL, frequCoef);
+        material_->GetScalCoefFncNonLin( ACOU_IMPEDANCE_REAL_VAL, Global::REAL, frequCoef);
     impedanceCoef_imag_ =
-        material->GetScalCoefFncNonLin( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL, frequCoef);
+        material_->GetScalCoefFncNonLin( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL, frequCoef);
 
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
@@ -222,20 +245,34 @@ namespace CoupledField{
     constCoefScalar_ = normalisedFactor_ * density_ / Z;
   }
 
-  void CoefFunctionImpedanceModel<Complex>::GenerateImpedanceFct(BaseMaterial* const material) {
+  void CoefFunctionImpedanceModel<Complex>::GenerateImpedanceFct(const PtrParamNode impNode) {
     impedanceType_ = IMP_FCT;
     LocPointMapped lp_dummy;
     Double tmpBlkMod;
 
+    if(impNode->Has("fctReal")) {
+      PtrCoefFct fctReal =
+                 CoefFunction::Generate(mp_, Global::REAL,
+                                        impNode->Get("fctReal")->As<std::string>() );
+       material_->SetCoefFct( ACOU_IMPEDANCE_REAL_VAL, fctReal );
+    }
+
+    if(impNode->Has("fctImag")) {
+      PtrCoefFct fctImag =
+                 CoefFunction::Generate(mp_, Global::REAL,
+                     impNode->Get("fctImag")->As<std::string>() );
+       material_->SetCoefFct( ACOU_IMPEDANCE_IMAG_VAL, fctImag );
+    }
+
     //Impedance function for real and imag part
-    impedanceCoef_real_ = material->GetScalCoefFnc( ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
-    impedanceCoef_imag_ = material->GetScalCoefFnc( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
+    impedanceCoef_real_ = material_->GetScalCoefFnc( ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
+    impedanceCoef_imag_ = material_->GetScalCoefFnc( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
 
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
 
     // calc speed of sound
@@ -265,42 +302,37 @@ namespace CoupledField{
     constCoefScalar_ = normalisedFactor_ * density_ / Z;
   }
 
-  void CoefFunctionImpedanceModel<Complex>::Init(BaseMaterial* const material)
+  void CoefFunctionImpedanceModel<Complex>::Init(const PtrParamNode impNode)
   {
     LocPointMapped lp_dummy;
     Double tmpBlkMod;
     // density_, DENSITY
-    PtrCoefFct tmpPtFc = material->GetScalCoefFnc( DENSITY, Global::REAL );
+    PtrCoefFct tmpPtFc = material_->GetScalCoefFnc( DENSITY, Global::REAL );
     tmpPtFc->GetScalar(density_, lp_dummy);
     // nu_, KINEMATIC_VISCOSITY
-    tmpPtFc = material->GetScalCoefFnc( KINEMATIC_VISCOSITY, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( KINEMATIC_VISCOSITY, Global::REAL );
     tmpPtFc->GetScalar(nu_, lp_dummy);
-    // holeDiam_, HOLEDIAM
-    tmpPtFc = material->GetScalCoefFnc( IMP_HOLE_DIAM, Global::REAL );
-    tmpPtFc->GetScalar(holeDiam_, lp_dummy);
-    // plateThick_, IMP_PLATE_THICKNESS
-    tmpPtFc = material->GetScalCoefFnc( IMP_PLATE_THICKNESS, Global::REAL );
-    tmpPtFc->GetScalar(plateThick_, lp_dummy);
-    // sigma_, POROSITY
-    tmpPtFc = material->GetScalCoefFnc( POROSITY, Global::REAL );
-    tmpPtFc->GetScalar(sigma_, lp_dummy);
-    // mppVolDepth_, MPP_VOL_DEPTH
-    tmpPtFc = material->GetScalCoefFnc( MPP_VOLUME_DEPTH, Global::REAL );
-    tmpPtFc->GetScalar(mppVolDepth_, lp_dummy);
-    // flowMachNr_, FLOW_MACH_NUMBER
-    tmpPtFc = material->GetScalCoefFnc( FLOW_MACH_NUMBER, Global::REAL );
-    tmpPtFc->GetScalar(flowMachNr_, lp_dummy);
-    // beta_, BETA
-    tmpPtFc = material->GetScalCoefFnc( BETA, Global::REAL );
-    tmpPtFc->GetScalar(beta_, lp_dummy);
     // tmpBlkMod, ACOU_BULK_MODULUS
-    tmpPtFc = material->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
+    tmpPtFc = material_->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
     tmpPtFc->GetScalar(tmpBlkMod, lp_dummy);
     // calc speed of sound
     c0_ = sqrt(tmpBlkMod/density_);
     if (isNormalised_) {
       normalisedFactor_ = 1.0 / (density_ * c0_);
     }
+
+    // holeDiam_, HOLEDIAM
+    holeDiam_ = impNode->Get("holeDiam")->As<Double>();
+    // plateThick_, IMP_PLATE_THICKNESS
+    plateThick_ = impNode->Get("plateThick")->As<Double>();
+    // sigma_, POROSITY
+    sigma_ = impNode->Get("porosity")->As<Double>();
+    // mppVolDepth_, MPP_VOL_DEPTH
+    mppVolDepth_ = impNode->Get("mppVolDepth")->As<Double>();
+    // flowMachNr_, FLOW_MACH_NUMBER
+    flowMachNr_ = impNode->Get("flowMachNumber")->As<Double>();
+    // beta_, BETA
+    beta_ = impNode->Get("beta")->As<Double>();
   }
 
   inline void CoefFunctionImpedanceModel<Complex>::Calculate_cavityImpedance(Complex& Z_cav, const Double omega) {

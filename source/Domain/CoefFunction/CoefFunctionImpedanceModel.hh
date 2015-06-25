@@ -18,34 +18,33 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
                            public boost::enable_shared_from_this<CoefFunctionImpedanceModel<Complex> > {
   public:
     //! Constructor with given field
-    CoefFunctionImpedanceModel(MathParser* mp, bool isNormalised=false);
+    CoefFunctionImpedanceModel(MathParser* mp, \
+        BaseMaterial* const material, bool isNormalised=false);
 
     //! Destructor
     virtual ~CoefFunctionImpedanceModel();
 
     /**
      *  Generates necessary data for MPP impedance model (c_0, density etc.)
-     *  @material The material data concerning the acoustic properties and MPP properties
-     *  @innerR Inner radius of pipe
-     *  @outerR Outer radius of pipe = innerR + volume behind MPP
+     *  @impNode Impedance node with all the necessary information
      */
-    void GenerateSlitMpp(BaseMaterial* const material);
+    void GenerateSlitMpp(const PtrParamNode impNode);
     /**
      *  Generates necessary data for MPP impedance model with circular holes (c_0, density etc.)
-     *  @material The material data concerning the acoustic properties and MPP properties
+     *  @impNode Impedance node with all the necessary information
      */
-    void GenerateCircMpp(BaseMaterial* const material);
+    void GenerateCircMpp(const PtrParamNode impNode);
     /**
      * Generates necessary data for impedance model with interpolated data of Z, the impedance
-     *  @material The material data concerning the acoustic properties and MPP properties
+     *  @impNode Impedance node with all the necessary information
      */
-    void GenerateInterpolImpedance(BaseMaterial* const material);
+    void GenerateInterpolImpedance(const PtrParamNode  impNode);
 
     /**
      *  Generates necessary data for function impedance model (c_0, density etc.)
-     *  @material The material data concerning the acoustic properties and impedance properties
+     *  @impNode Impedance node with all the necessary information
      */
-    void GenerateImpedanceFct(BaseMaterial* const material);
+    void GenerateImpedanceFct(const PtrParamNode impNode);
 
 
 
@@ -86,7 +85,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
   protected:
 
     // Read and initiate necessary values
-    void Init(BaseMaterial* const material);
+    void Init(const PtrParamNode impNode);
 
     //! Recalculate impedance
     void Recalculate_slitMpp();
@@ -101,6 +100,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     IMPEDANCE_TYPE impedanceType_; // type of impedance
 
+    BaseMaterial* const material_; // material data
     bool isNormalised_; // is impedance normalised or not
     Double normalisedFactor_;
     Double c0_; // speed of sound

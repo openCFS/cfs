@@ -135,6 +135,17 @@
           <!-- Currently this is not supported, since it is difficult
           to define in the acoustics case since it depends on the
           boundary conditions -->
+          <xsd:element minOccurs="0" name="impedanceList">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element maxOccurs="1" minOccurs="0" name="mpp" type="DT_Mpp"/>
+                <xsd:element maxOccurs="1" minOccurs="0" name="interpolImpedance"
+                  type="DT_InterpolImpedance"/>
+                <xsd:element maxOccurs="1" minOccurs="0" name="fctImpedance" type="DT_FctImpedance"
+                />
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
           <xsd:element name="storeResults" type="DT_AcousticStoreResults" minOccurs="0"
             maxOccurs="1"/>
 
@@ -440,12 +451,9 @@
   <!-- Element type for specifying an acoustic impedance -->
   <xsd:complexType name="DT_AcouImpedance">
     <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="value" type="xsd:token" use="optional"/>
-    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-    <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
-    <xsd:attribute default="circ_mpp" name="type" type="DT_AcouImpedanceType" use="optional">
+    <xsd:attribute name="volumeRegion" type="xsd:token" use="required">
       <xsd:annotation>
-        <xsd:documentation>Type of impedance model to use. Following exist untill now: circ_mpp, interpolImpedance</xsd:documentation>
+        <xsd:documentation>The volume next to the impedance surface. Needed to read the correct environment values from the material file which are needed for calculating the impedance.</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
     <xsd:attribute default="0" name="isNormalised" type="xsd:boolean">
@@ -453,6 +461,7 @@
         <xsd:documentation>Tells CFS if the impedance was normalised, so it knows it has to multiply density and speed of sound to it.</xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="impedanceId" type="xsd:token" use="optional" default="id"/>
   </xsd:complexType>
 
 
@@ -748,4 +757,80 @@ interpolImpedance</xsd:documentation>
       <xsd:enumeration value="fctImpedance"/>
     </xsd:restriction>
   </xsd:simpleType>
+  <xsd:complexType name="DT_Mpp">
+    <xsd:sequence>
+      <xsd:element name="holeDiam" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Hole Diameter or Slit width of MPP holes.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="plateThick" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Thickniss of MPP.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="mppVolDepth" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">The volume depth behind the mpp
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="porosity" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Porosity of the perforated surface.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="flowMachNumber" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            Mach number of flow.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element minOccurs="1" name="beta" type="xsd:double">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            A factor for grazing flow effects.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="id" type="xsd:token" use="required"/>
+    <xsd:attribute default="slit" form="unqualified" name="subtype" use="optional">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="slit"/>
+          <xsd:enumeration value="circ"/>
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+  </xsd:complexType>
+  <xsd:complexType name="DT_InterpolImpedance">
+    <xsd:sequence>
+      <xsd:element name="dataName_real" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>Filename of interpolated Data for frequency dependant impedance -- real part.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="dataName_imag" type="xsd:string">
+        <xsd:annotation>
+          <xsd:documentation>Filename of interpolated Data for frequency dependant impedance -- imaginary part.</xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="id" type="xsd:token" use="required"/>
+  </xsd:complexType>
+  <xsd:complexType name="DT_FctImpedance">
+    <xsd:sequence>
+      <xsd:element name="fctReal" type="xsd:string"/>
+      <xsd:element name="fctImag" type="xsd:string"/>
+    </xsd:sequence>
+    <xsd:attribute name="id" type="xsd:token" use="required"/>
+  </xsd:complexType>
 </xsd:schema>
