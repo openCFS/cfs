@@ -17,10 +17,8 @@
     <xsd:sequence>
       <xsd:element name="density" type="xsd:token"/>
       <xsd:element name="compressionModulus" type="xsd:token"/>
-      <xsd:element name="acousticDamping" type="DT_AcousticDamping"
-        minOccurs="0"/>
-      <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear"
-        minOccurs="0"/>
+      <xsd:element name="acousticDamping" type="DT_AcousticDamping" minOccurs="0"/>
+      <xsd:element name="acousticNonlinear" type="DT_AcousticNonlinear" minOccurs="0"/>
       <xsd:element name="kinematicViscosity" minOccurs="0" type="xsd:token">
         <xsd:annotation>
           <xsd:documentation xml:lang="en">
@@ -28,7 +26,6 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:element>
-      <xsd:element name="acousticImpedance" type="DT_AcousticImpedance" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -39,10 +36,8 @@
   <xsd:complexType name="DT_AcousticDamping">
     <xsd:sequence>
       <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
-      <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping"
-        minOccurs="0"/>
-      <xsd:element name="fractional" type="DT_AcouFractionalDamping"
-        minOccurs="0"/>
+      <xsd:element name="thermoViscous" type="DT_AcouThermoViscousDamping" minOccurs="0"/>
+      <xsd:element name="fractional" type="DT_AcouFractionalDamping" minOccurs="0"/>
     </xsd:sequence>
   </xsd:complexType>
 
@@ -75,87 +70,4 @@
     </xsd:sequence>
   </xsd:complexType>
 
-  <!-- ******************************************************************* -->
-  <!--   Definition of acoustic impedance model                            -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_AcousticImpedance">
-    <xsd:sequence>
-      <xsd:element name="mpp" type="DT_Mpp" minOccurs="0"/>
-      <xsd:element name="interpolImpedance" type="DT_InterpolImpedance" minOccurs="0"/>
-      <xsd:element name="FctImpedance" type="DT_FctImpedance" minOccurs="0"/>
-    </xsd:sequence>
-  </xsd:complexType>
-
-  <!-- ********************************************************************  -->
-  <!-- Definition of acoustic impedance model for MPP or general imedacence -->
-  <!-- ********************************************************************  -->
-  <xsd:complexType name="DT_Mpp">
-    <xsd:sequence>
-      <xsd:element name="holeDiam" type="xsd:double">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Hole Diameter or Slit width of MPP holes.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="plateThick" type="xsd:double">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Thickniss of MPP.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="mppVolDepth" type="xsd:double">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">The volume depth behind the mpp
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="porosity" type="xsd:double">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Porosity of the perforated surface.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="flowMachNumber" type="xsd:double">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            Mach number of flow.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="beta" type="xsd:double" minOccurs="1">
-        <xsd:annotation>
-          <xsd:documentation xml:lang="en">
-            A factor for grazing flow effects.
-          </xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-    </xsd:sequence>
-  </xsd:complexType>
-
-  <!-- ******************************************************************* -->
-  <!--   Definition of acoustic impedance model for measuered data         -->
-  <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_InterpolImpedance">
-    <xsd:sequence>
-      <xsd:element name="dataName_real" type="xsd:string">
-        <xsd:annotation>
-          <xsd:documentation>Filename of interpolated Data for frequency dependant impedance -- real part.</xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-      <xsd:element name="dataName_imag" type="xsd:string">
-        <xsd:annotation>
-          <xsd:documentation>Filename of interpolated Data for frequency dependant impedance -- imaginary part.</xsd:documentation>
-        </xsd:annotation>
-      </xsd:element>
-    </xsd:sequence>
-  </xsd:complexType>
-  <xsd:complexType name="DT_FctImpedance">
-    <xsd:sequence>
-      <xsd:element name="fctReal" type="xsd:string"/>
-      <xsd:element name="fctImag" type="xsd:string"/>
-    </xsd:sequence>
-  </xsd:complexType>
 </xsd:schema>

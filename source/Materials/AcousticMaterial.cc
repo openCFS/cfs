@@ -37,15 +37,8 @@ namespace CoupledField
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( BOVERA );
-    isAllowed_.insert( IMP_HOLE_DIAM );
-    isAllowed_.insert( IMP_PLATE_THICKNESS );
-    isAllowed_.insert( IMP_END_CORRECTION );
-    isAllowed_.insert( FLOW_MACH_NUMBER );
     isAllowed_.insert( ACOU_IMPEDANCE_REAL_VAL );
     isAllowed_.insert( ACOU_IMPEDANCE_IMAG_VAL );
-    isAllowed_.insert( POROSITY );
-    isAllowed_.insert( MPP_VOLUME_DEPTH );
-    isAllowed_.insert( BETA );
   }
 
   AcousticMaterial::~AcousticMaterial() {

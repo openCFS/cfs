@@ -894,28 +894,52 @@ namespace CoupledField{
       //========================================================================================
       ParamNodeList impedNodes = bcNode->GetList( "impedance" );
 
-      for( UInt i = 0; i < impedNodes.GetSize(); i++ ) {
+      for( UInt i = 0; i < impedNodes.GetSize(); ++i ) {
         BiLinearForm * impedInt = NULL;
         std::string regionName = impedNodes[i]->Get("name")->As<std::string>();
         shared_ptr<EntityList> actSDList =  ptGrid_->GetEntityList( EntityList::SURF_ELEM_LIST, regionName );
         std::string volRegName = impedNodes[i]->Get("volumeRegion")->As<std::string>();
-        bool isNormalised = impedNodes[i]->Get("isNormalised")->As<bool>();
-
         RegionIdType aRegion = ptGrid_->GetRegion().Parse(volRegName);
+        bool isNormalised = impedNodes[i]->Get("isNormalised")->As<bool>();
+        std::string impId = impedNodes[i]->Get("impedanceId")->As<std::string>();
 
-        std::string impType = impedNodes[i]->Get("type")->As<std::string>();
         shared_ptr<CoefFunctionImpedanceModel<Complex> >
-                   Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_, isNormalised));
-        if (impType == "slit_mpp") {
-          Z_impMod->GenerateSlitMpp(materials_[aRegion]);
-        } else if (impType == "circ_mpp"){
-          Z_impMod->GenerateCircMpp(materials_[aRegion]);
-        } else if (impType == "interpolImpedance"){
-          Z_impMod->GenerateInterpolImpedance(materials_[aRegion]);
-        } else if (impType == "fctImpedance") {
-          Z_impMod->GenerateImpedanceFct(materials_[aRegion]);
-        } else {
-          EXCEPTION("No such impedance type: " << impType);
+                   Z_impMod(new CoefFunctionImpedanceModel<Complex>(mp_, materials_[aRegion], isNormalised));
+
+        PtrParamNode impListNodes = myParam_->Get( "impedanceList", ParamNode::PASS );
+        if ( !impListNodes ) {
+          EXCEPTION("No impedance list in *.xml");
+        }
+        ParamNodeList impChildren = impListNodes->GetChildren();
+        UInt i_imp = 0;
+        for ( ; i_imp < impChildren.GetSize(); ++i_imp) {
+          std::string impType = impChildren[i_imp]->GetName();
+          std::string actId = impChildren[i_imp]->Get("id")->As<std::string>();
+
+          if (actId != impId) {
+            continue;
+          }
+          if (impType == "mpp") {
+            std::string impSubType = impChildren[i_imp]->Get("subtype")->As<std::string>();
+            if (impSubType == "slit") {
+              Z_impMod->GenerateSlitMpp(impChildren[i_imp]);
+            } else if (impSubType == "circ") {
+              Z_impMod->GenerateCircMpp(impChildren[i_imp]);
+            } else {
+              EXCEPTION("No such impedance type: " << impType << " with subtype: " << impSubType);
+            }
+          } else if (impType == "interpolImpedance"){
+            Z_impMod->GenerateInterpolImpedance(impChildren[i_imp]);
+          } else if (impType == "fctImpedance") {
+            Z_impMod->GenerateImpedanceFct(impChildren[i_imp]);
+          } else {
+            EXCEPTION("No such impedance type: " << impType);
+          }
+          break;
+
+        }
+        if (i_imp == impChildren.GetSize()) {
+          EXCEPTION("No such impedance id found: " << impId);
         }
 
         if( dim_ == 2 ) {
