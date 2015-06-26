@@ -229,22 +229,14 @@ namespace CoupledField{
     Double tmpBlkMod;
 
     if(impNode->Has("fctReal")) {
-      PtrCoefFct fctReal =
-                 CoefFunction::Generate(mp_, Global::REAL,
+      impedanceCoef_real_ = CoefFunction::Generate(mp_, Global::REAL,
                                         impNode->Get("fctReal")->As<std::string>() );
-       material_.SetCoefFct( ACOU_IMPEDANCE_REAL_VAL, fctReal );
     }
 
     if(impNode->Has("fctImag")) {
-      PtrCoefFct fctImag =
-                 CoefFunction::Generate(mp_, Global::REAL,
+      impedanceCoef_imag_ = CoefFunction::Generate(mp_, Global::REAL,
                      impNode->Get("fctImag")->As<std::string>() );
-       material_.SetCoefFct( ACOU_IMPEDANCE_IMAG_VAL, fctImag );
     }
-
-    //Impedance function for real and imag part
-    impedanceCoef_real_ = material_.GetScalCoefFnc( ACOU_IMPEDANCE_REAL_VAL, Global::REAL );
-    impedanceCoef_imag_ = material_.GetScalCoefFnc( ACOU_IMPEDANCE_IMAG_VAL, Global::REAL );
 
     // density_, DENSITY
     PtrCoefFct tmpPtFc = material_.GetScalCoefFnc( DENSITY, Global::REAL );
