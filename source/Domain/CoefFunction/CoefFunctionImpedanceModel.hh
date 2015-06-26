@@ -2,6 +2,7 @@
 #define COEF_FUNCTION_IMPEDANCEMODEL_HH
 
 #include "CoefFunctionTimeFreq.hh"
+#include "Materials/BaseMaterial.hh"
 
 typedef enum {IMP_NONE, IMP_SLIT_MPP, IMP_CIRC_MPP, IMP_INTERPOL, IMP_FCT} IMPEDANCE_TYPE;
 
@@ -66,7 +67,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
         this->Recalculate_circMpp();
         break;
       case IMP_INTERPOL:
-        this->Recalculate_interpol();
+        this->Recalculate_impFct();
         break;
       case IMP_FCT:
         this->Recalculate_impFct();
@@ -90,7 +91,6 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
     //! Recalculate impedance
     void Recalculate_slitMpp();
     void Recalculate_circMpp();
-    void Recalculate_interpol();
     void Recalculate_impFct();
 
     //! Calculate cavity impedance
@@ -100,7 +100,7 @@ class CoefFunctionImpedanceModel<Complex> : public CoefFunctionTimeFreq<Complex>
 
     IMPEDANCE_TYPE impedanceType_; // type of impedance
 
-    BaseMaterial* const material_; // material data
+    BaseMaterial material_; // material data
     bool isNormalised_; // is impedance normalised or not
     Double normalisedFactor_;
     Double c0_; // speed of sound

@@ -37,8 +37,6 @@ namespace CoupledField
     isAllowed_.insert( RAYLEIGH_FREQUENCY);
     isAllowed_.insert( LOSS_TANGENS_DELTA);
     isAllowed_.insert( BOVERA );
-    isAllowed_.insert( ACOU_IMPEDANCE_REAL_VAL );
-    isAllowed_.insert( ACOU_IMPEDANCE_IMAG_VAL );
   }
 
   AcousticMaterial::~AcousticMaterial() {
