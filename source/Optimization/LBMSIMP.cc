@@ -38,13 +38,9 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   switch(f->GetType())
   {
   case Function::PRESSURE_DROP:
-  case Function::FLOW_RATE:
   {
     if(!derivative) {
-      if (f->GetType() == Function::PRESSURE_DROP)
-        return lbm->CalcPressureDrop();
-      else
-        return lbm->CalcFlowRate();
+      return lbm->CalcPressureDrop();
     }
     else
     {

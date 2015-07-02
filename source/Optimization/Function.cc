@@ -518,7 +518,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index) {
     case GLOBAL_TENSOR_TRACE:
     case SHAPE_INF:
     case PRESSURE_DROP:
-    case FLOW_RATE:
     case DESIGN_BOUND:
     case MULTIMATERIAL_SUM:
     case SLACK:
@@ -730,7 +729,6 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
-  case FLOW_RATE:
     return true;
 
   case VOLUME:

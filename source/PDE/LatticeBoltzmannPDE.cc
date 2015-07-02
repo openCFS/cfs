@@ -207,8 +207,36 @@ namespace CoupledField {
     else
       parabolicInflow_ = false;
 
-    if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re"))
-      EXCEPTION("Either omega or Re can be prescribed in XML file!");
+    if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re")) { // if Re and omega are given, adjust u_max_x
+      omega_       = myParam_->Get("LBM/omega")->As<double>();
+      Re_       = myParam_->Get("LBM/Re")->As<double>();
+
+      u_max_x_ = Re_*(1/omega_ - 0.5) / (3.0 * inlet.GetSize());
+      if (u_max_x_ / sqrt(3.0) > 0.2) {
+        EXCEPTION("Mach number >= 0.2! Choose different Re or omega.");
+      }
+    }
+    else if (myParam_->Has("LBM/omega")) { // if only omega given, use given inlet vel. and omega to calculate Re
+      omega_       = myParam_->Get("LBM/omega")->As<double>();
+      //calculate Reynolds number of fluid flow
+      // re = inletSize * |u| / kin. viscosity
+      double u_mean_x = u_max_x_;
+      double u_mean_y = u_max_y_;
+      double u_mean_z = u_max_z_;
+      if (parabolicInflow_)
+        u_mean_x = 2.0/3.0 * u_max_x_;
+        u_mean_y = 2.0/3.0 * u_max_y_;
+        u_mean_z = 2.0/3.0 * u_max_z_;
+
+      Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
+    }
+    else if (myParam_->Has("LBM/Re")) { // if only Re given, calc omega
+      if (parabolicInflow_)
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5);
+      else
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
+    }
+
     if (myParam_->Has("LBM/omega")) {
       omega_       = myParam_->Get("LBM/omega")->As<double>();
       //calculate Reynolds number of fluid flow
@@ -220,26 +248,18 @@ namespace CoupledField {
         u_mean_x = 2.0/3.0 * u_max_x_;
         u_mean_y = 2.0/3.0 * u_max_y_;
         u_mean_z = 2.0/3.0 * u_max_z_;
-        
+
       Re_ = inlet.GetSize() * sqrt(u_mean_x * u_mean_x + u_mean_y * u_mean_y+ u_mean_z * u_mean_z) / (1/3.0 * (1/omega_ - 0.5));
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
       omega_ = 1.9;
-      double tmp_u_x = Re_*(1/omega_ - 0.5) / (3.0 * inlet.GetSize());
-//      if (tmp_u_x / sqrt(3.0) > 0.2) {
-//	EXCEPTION("Mach number is greater than 0.2!");
-//      }
-      if (tmp_u_x / sqrt(3.0) > 0.2) {
-        if (parabolicInflow_)
-          omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5); 
-        else
-          omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
-      }
-      else 
-        u_max_x_ = tmp_u_x;
+      if (parabolicInflow_)
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5);
+      else
+        omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_) / Re_ + 0.5);
       if (omega_ >= 2)
-        EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!")
+        EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!");
     }
 
     //Initializing storage for PDFs
@@ -428,31 +448,13 @@ namespace CoupledField {
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
         pdfs = *tmp;
-        if (domain->GetOptimization() != NULL) {
-          switch (domain->GetOptimization()->objectives.data[0]->GetType()) {
-            case Function::PRESSURE_DROP:
-              in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
+        in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
-              pdfs = *tmp;
-              lbm->prop_step();
+        pdfs = *tmp;
+        lbm->prop_step();
 
-              pdfs = *tmp;
-              in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
-              break;
-            case Function::FLOW_RATE:
-              in->Get("original_flow_rate")->SetValue(CalcFlowRate());
-
-              pdfs = *tmp;
-              lbm->prop_step();
-
-              pdfs = *tmp;
-              in->Get("prop_step_flow_rate")->SetValue(CalcFlowRate());
-              break;
-            default:
-              break;
-          }
-        } else
-          lbm->prop_step();
+        pdfs = *tmp;
+        in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
 
         numWriteResults_ = lbm->GetNumWriteResults();
 
@@ -994,37 +996,6 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   return rhs; // no copy constructor
 }
 
-Vector<double> LatticeBoltzmannPDE::d_flowrate_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz)
-{
-  // Calculation of gradient of flow rate with respect to design variable; By Georg Pingen, University of Colorado (CU), Boulder, Colorado
-  double dUX, dUY, dUZ;
-
-  mapped_matrix<double> dQ(n_elems * n_q_, 1, n_elems * n_q_);
-
-  for (unsigned int i = 0; i < outlet.GetSize(); i++) {
-    int index = outlet[i];
-    // this is the direction in which the boundary surface lies
-    unsigned int dir = (*PDFToBoundarySurfaces)[i];
-    int offx = (*microVelDirections_)[dir].off_x;
-    int offy = (*microVelDirections_)[dir].off_y;
-    int offz = (*microVelDirections_)[dir].off_z;
-    dUX = offx - ux[index];
-    dUY = offy - uy[index];
-    dUZ = offz - uz[index];
-    dQ(GetPdfIndex(index,dir),0) = CalcVolFlowRate(index,dir) + offx * dUX + offy * dUY + offz * dUZ;
-    }
-
-  mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
-
-  d_propagate_d_f(dFdf,dQ);
-
-  Vector<double> rhs(n_elems * n_q_);
-  for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
-    rhs[i] = dFdf(i,0);
-
-  return rhs; // no copy constructor
-}
-
 void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f)
 {
   // the gradient over all lbm elements (including boundary) are computed as element wise scalar product of
@@ -1283,45 +1254,12 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   double in = 0.0;
   for(unsigned int i = 0; i < inlet.GetSize(); i++) {
     in += CalcPressure(inlet[i]);
-//    double rho = CalcLBMDensity(inlet[i]);
-//    std::cout << "in: rho=" << rho << " u=[" << CalcVelocityX(inlet[i],rho) << "," << CalcVelocityY(inlet[i],rho) << "," << CalcVelocityZ(inlet[i],rho) << "]" << std::endl;
   }
   double out = 0.0;
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
     out += CalcPressure(outlet[i]);
-//    double rho = CalcLBMDensity(outlet[i]);
-//    std::cout << "out: rho=" << rho << " u=[" << CalcVelocityX(outlet[i],rho) << "," << CalcVelocityY(outlet[i],rho) << "," << CalcVelocityZ(outlet[i],rho) << std::endl;
   }
-//  std::cout << "dp = " << in / inlet.GetSize() - out / outlet.GetSize() << std::endl;
-//  std::cout << in << "/" << inlet.GetSize() << "-" << out << "/" << outlet.GetSize() << "=" << in / inlet.GetSize() - out / outlet.GetSize() << std::endl;
   return in / inlet.GetSize() - out / outlet.GetSize();
-}
-
-double LatticeBoltzmannPDE::CalcFlowRate()
-{
-  double flowRate = 0.0;
-  // flow rate at outlet
-  for(unsigned int i = 0; i < outlet.GetSize(); i++) {
-    unsigned int pdfDir = (*PDFToBoundarySurfaces)[i];
-    int index = outlet[i];
-
-    // area of each element is 1
-    // this is the mass flow rate
-    flowRate += CalcLBMDensity(index) * CalcVolFlowRate(index,pdfDir);
-  }
-  return flowRate;
-}
-
-double LatticeBoltzmannPDE::CalcVolFlowRate(unsigned int idx, unsigned int pdfDir) const
-{
-  LatticeBoltzmann::PDFDirectionVector pdfVec = (*microVelDirections_)[pdfDir];
-  double rho = CalcLBMDensity(idx);
-  double ux = CalcVelocityX(idx, rho);
-  double uy = CalcVelocityY(idx, rho);
-  double uz = CalcVelocityZ(idx, rho);
-
-  // Q = rho * u * A; area of each element is 1
-  return ux*pdfVec.off_x + uy*pdfVec.off_y + uz*pdfVec.off_z;
 }
 
 void LatticeBoltzmannPDE::ExtractDistribution( shared_ptr<BaseResult> base_result ){
@@ -1471,7 +1409,6 @@ void LatticeBoltzmannPDE::ReadProbabilityDistribution(const std::string& filenam
 
   file.close();
 
-  // LOG_DBG3(lbm_pde) << "RD(" << filename << ") -> " << StdVector<double>::ToString(n_elems * 9, pdfs, 0);
 }
 
 
@@ -1689,8 +1626,6 @@ void LatticeBoltzmannPDE::SetupParabolicInflow()
   // assume indices in inlet vector are ordered!
   int n_inlet = inlet.GetSize();
 
-  //      std::cout << inlet.ToString() << std::endl;
-
   unsigned int y_max = 0;
   unsigned int y_min = 9999;
   unsigned int z_max = 0;
@@ -1720,13 +1655,10 @@ void LatticeBoltzmannPDE::SetupParabolicInflow()
     vertex_z = z_min + (z_max - z_min) / 2.0;
   double r_y = y_max - vertex_y + 1;
   double r_z = z_max - vertex_z + 1;
-  //      std::cout << "ymax: " << y_max  << " ymin: " << y_min << " zmax: " << z_max << " zmin: " << z_min << std::endl;
-  //      std::cout << "vertex: " << vertex_y << "," << vertex_z << std::endl;
 
   for (int i = 0; i < n_inlet; ++i) {
 
     double disty = (double)coordsInlet[i][1] - vertex_y;
-    //        std::cout << coordsInlet[i][1] << " - " << vertex_y << " = " << disty << std::endl;
 
     double distz = (double)coordsInlet[i][2] - vertex_z;
     StdVector<double> tmp_u;
@@ -1734,9 +1666,6 @@ void LatticeBoltzmannPDE::SetupParabolicInflow()
     tmp_u.Init(0.0);
     tmp_u[flow_index] = u_vertex * (1 - disty * disty / (r_y*r_y)) * (1 - distz * distz / (r_z*r_z));
     u_in_[i] = tmp_u;
-    //        std::cout << std::endl;
-    //        std::cout << "distance from " << inlet[i] << " to " << vertex_y << "," << vertex_z << ": " << disty << "," << distz << std::endl;
-//            std::cout << "element " << inlet[i] << " has coords " <<  coordsInlet[i][0] << "," << coordsInlet[i][1] << "," << coordsInlet[i][2] << "   and vel " << tmp_u[0] << "," << tmp_u[1] << "," << tmp_u[2] << std::endl;
   }
 }
 
@@ -1777,17 +1706,6 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
           }
         }
       }
-    }
-  }
-}
-
-void LatticeBoltzmannPDE::SetOutlfowPDFs()
-{
-  // a pdf of an element points to a boundary surface if the element is an outlet element and if the pdf direction vector is a normal vector
-  for (unsigned int i = 0; i < outlet.GetSize(); i++) {
-    for (unsigned int dir = 0; dir < n_q_; dir++) {
-      if (PointsToSurface(dir))
-        (*PDFToBoundarySurfaces)[i]  = (LatticeBoltzmannBase::Direction) dir;
     }
   }
 }
