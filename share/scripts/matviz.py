@@ -10,16 +10,18 @@ import StringIO
 import xml.etree.ElementTree
 import xml.dom.minidom
 
-## reads design_stiff* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults
+## reads design_stiff*, design_shear* and design_rotAngle* for 2D and 3D. Fills other stuff by defaults
 # considers density read
 # @param angle array of anglex, angley, anglez
-# @return s1, s2, s3, angle 
+# @return s1, s2, s3, angle, sh1 
 def read_stiff_angle(hdf_file, dim_2D, args):
   # rot means, that we only show rotation according to rotAngle, e.g. for piezoelectric polarization
+  sh1 = numpy.ones((len(centers),1)) * .5 # fix for no shearing
   if args.parametrization == 'hom_rect':
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
     s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
+    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if args.show == "hom_sheared_cross" else sh1
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -45,6 +47,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
     
   if has_element(hdf_file, "design_density_" + args.hom_access):
+    print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
     rho = pow(rho, float(args.penalty))
     s1 *= rho
@@ -57,11 +60,11 @@ def read_stiff_angle(hdf_file, dim_2D, args):
   if args.show == "hom_rot_cross" or args.show == "rot" or args.show == "stream":
     try:
       if dim_2D:
-	try:
-	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
-	except:
-	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
-	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
+      	try:
+      	  angle[:,0] = get_element(f, "design_rotAngle_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
+      	except:
+      	  print 'could not read design_rotAngle_' + args.hom_access + ', trying design_rotAngle_plain'
+      	  angle[:,0] = get_element(f, "design_rotAngle_plain", args.h5_region, args.h5_step)[:,0]
       else:
         angle[:,0] = get_element(f, "design_rotAngleX_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
         angle[:,1] = get_element(f, "design_rotAngleY_" + args.hom_access, args.h5_region, args.h5_step)[:,0]
@@ -69,7 +72,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     except Exception, e:
       print 'could not read angle, ignore it: ', e
       
-  return s1, s2, s3, angle
+  return s1, s2, s3, angle, sh1
 
 ## show or write either Image or polydata
 # @param viz eithe Image or polydata
@@ -145,9 +148,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "rot" or args.show == 'stream':
+    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "rot" or args.show == 'stream':
   
-      s1, s2, s3, angle = read_stiff_angle(f, dim_2D, args)
+      s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
       v = calc_volume(s1, s2)
       print "volume for regular grid: " + str(calc_volume(s1, s2))
       
@@ -176,6 +179,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale = None
             viz = show_rot_cross(coords, s1, s2, angle[:,0], args.hom_dir, args.res, scale, args.color, args.save)
           else:
             viz = show_rot_cross_grad(coords, s1, s2, angle[:,0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
+        elif args.show == "hom_sheared_cross":
+          viz = show_sheared_cross(coords, s2, s1, sh1, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "stream":
             viz = show_streamline(coords, s1, s2, angle[:,0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
         else:
@@ -266,7 +271,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'rot', 'stream'])
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'rot', 'stream'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -290,7 +295,7 @@ parser.add_argument("--parametrization", help="parametrization of the stiffness 
 parser.add_argument("--save", help="save 'image.png' (pixel), 'image.pdf' (vector) or VTK Poly Data file 'file.vtp'")
 parser.add_argument("--plot", help="for single tensors: creates gnuplot file instead of image")
 parser.add_argument("--penalty", help="penalty parameter for SIMP (default 5)", default=5.0)
-parser.add_argument("--color", help="only for hom_rot_cross: black or grayscale", default="grayscale")
+parser.add_argument("--color", help="only for hom_rot_cross: 'black' or colormap from http://matplotlib.org/examples/color/colormaps_reference.html, default='gray'", default="grayscale")
 parser.add_argument("--info", help="creates a xml file of given name with additional information")
 args = parser.parse_args()
 

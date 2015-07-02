@@ -97,6 +97,7 @@ class Function
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
+      PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
@@ -429,6 +430,10 @@ class Function
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
         double CalcSlopeGradient(int neigh_idx) const;
 
+        /** the perimeter is similar to the slope constraint but always globalized (sum) */
+        double CalcPerimeter(double eps, double l_k) const;
+        double CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const;
+
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
         double CalcCheckerboard(double beta) const;
@@ -462,6 +467,9 @@ class Function
         /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
         double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
             double direction) const;
+
+        /** Get the index of the local interpolation interval*/
+        int GetInterpolationIndex(Matrix<double>, double&) const;
 
         /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
         double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,

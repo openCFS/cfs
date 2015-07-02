@@ -350,27 +350,24 @@ def write_gid_mesh(mesh, filename):
   out.close()
   
 ## creates a 2D mesh of predefined geometry
-def create_2d_mesh(type, x_res, y_res):
+def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   mesh = Mesh()
   
-  # mbb reinforced does not work!!! check and fix the mbb stuff!
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
+  assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
+  assert(inclusion_size == None or inclusion_size <= 1.0)
+  
   
   nx = x_res
+  ny = x_res if y_res is None else y_res
   
-  # buld2d case
-  ny = y_res if y_res <> None else x_res
-  width = 1.0
-  height = float(ny)/nx 
+  height = float(ny)/nx if opt_height is None else opt_height  
   #height = 0.5
 
   if type.startswith('cantilever2d'):
     width = 3.0
     height = 2.0
     ny = int(nx * (2./3.))
-  if type.startswith('mbb'):
-    width = 2.0
-    height = 1.0
-    ny = int(nx * 0.5)
     
   dx = width / nx
   dy = height / ny
@@ -381,6 +378,10 @@ def create_2d_mesh(type, x_res, y_res):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dy))
  
+ 
+  # count second region
+  second = 0 
+ 
   # print mesh.nodes 
   for y in range(ny):
     for x in range(nx):
@@ -389,10 +390,17 @@ def create_2d_mesh(type, x_res, y_res):
       e.type = QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28./30. * nx):
         e.region = 'reinforce'
-      # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
-      elif type == 'mbb_reinforced' and (x+1 <= .015 * nx + 1e-5 or x >= 0.985 * nx - 1e-5 or y+1 <= 0.03 * ny + 1e-5 or y >= 0.97 * ny - 1e-5):
-        e.region = 'reinforce'
-        
+        second += 1
+      elif inclusion == 'rect' and x >= nx/2 * (1 - inclusion_size) and x < nx/2 * (1 + inclusion_size) \
+                               and y >= ny/2 * (1 - inclusion_size) and y < ny/2 * (1 + inclusion_size):
+        e.region = 'inner'
+        second += 1        
+      elif inclusion == 'ball' and numpy.sqrt((x-nx/2)**2 + (y-ny/2)**2) <= nx*0.5*inclusion_size:
+        e.region = 'inner'
+        second += 1
+      elif patch:
+        assert(patch == "3x3")
+        e.region = 'reg_' + str((y % ny/3)+1) + '_' + str((x % nx/3)+1)                 
       else:
         e.region = 'mech'
 
@@ -411,6 +419,9 @@ def create_2d_mesh(type, x_res, y_res):
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+  
+  if second > 0:
+    print str(second) + ' elements of secondary region (' + str(100.0 * second / (nx * ny)) + '%)'
   
   return mesh
 
@@ -834,10 +845,6 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
       mesh.ne.append(('inlet',range(i+x_wall*nx,i+(x_wall+in_x)*nx,nx)))
     for i in range(0,in_x*nx*ny,nx*ny):
       mesh.ne.append(('outlet', range((x_wall+1)*nx*ny-in_x-x_wall+i,(x_wall+1)*nx*ny-x_wall+i,1)))
-  elif case == 'extend_inlet':
-    for i in range (0,nz):
-      mesh.ne.append(('inlet',range(int(0.1*nx*ny + i*nx*ny), int(0.4*nx*ny + i*nx*ny),nx)))
-      mesh.ne.append(('outlet', range(int(nx*ny-0.4*nx+ i*nx*ny), int(nx*ny-0.1*nx+ i*nx*ny), 1)))
   elif case == 'pipe':
     for i in range (1,nz-1):
       mesh.ne.append(('inlet', range(i*nx*ny+nx,(i+1)*nx*ny-nx,nx)))

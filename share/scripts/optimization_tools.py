@@ -16,17 +16,18 @@ from distutils.command.build_scripts import first_line_re
 # if not the whole domain is design domain, the data is read as 1D array
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
-def read_density(filename, attribute="design", x=None, y=None, z=None):
-  vals = read_density_as_vector(filename, attribute)
-  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
-  root = tree.getroot()
-  if x == None and len(root.xpath("//mesh/@x")) > 0:
-    x = int(root.xpath("//mesh/@x")[0])
-  if y == None and len(root.xpath("//mesh/@y")) > 0:  
-    y = int(root.xpath("//mesh/@y")[0])
-  if z == None and len(root.xpath("//mesh/@z")) > 0:
-    z = int(root.xpath("//mesh/@z")[0])
+# @param set optional name of set, if not given use default
+def read_density(filename, attribute="design", x=None, y=None, z=None, set=None):
+  vals = read_density_as_vector(filename, attribute, set)
+  mx, my, mz = read_mesh_info(filename, silent=True)
 
+  if x == None:
+    x = mx
+  if y == None:  
+    y = my
+  if z == None:
+    z = mz
+  
   if x == None and y == None and z == None:
     x = len(vals)
     y = 1
@@ -70,21 +71,13 @@ def read_density(filename, attribute="design", x=None, y=None, z=None):
   return ret
 
 # # read arbitrary multi-design density file as numpy array
-def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, matrix=False, attribute="design"):
+def read_multi_design(filename, design1, design2=None, design3=None, design4=None, design5 = None, design6 = None, matrix=False, attribute="design"):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   root = tree.getroot()
   if matrix:
-    x = None
-    y = None
-    z = None
-    if x == None and len(root.xpath("//mesh/@x")) > 0:
-      x = int(root.xpath("//mesh/@x")[0])
-    if y == None and len(root.xpath("//mesh/@y")) > 0:  
-      y = int(root.xpath("//mesh/@y")[0])
-    if z == None and len(root.xpath("//mesh/@z")) > 0:
-      z = int(root.xpath("//mesh/@z")[0])
+    x, y, z = read_mesh_info(filename, silent=True)
   
     if x == None and y == None and z == None:
       x = 1
@@ -103,6 +96,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     designs = 4
   if design5:
     designs = 5
+  if design6:
+    designs = 6
     
   length = len(sett) / designs
   
@@ -121,6 +116,8 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
       idx = 3
     if design5 and type == design5:
       idx = 4
+    if design6 and type == design6:
+      idx = 5
     if idx <> -1:
       tmp = element.get(attribute)
       if tmp is None:
@@ -140,24 +137,48 @@ def read_multi_design(filename, design1, design2=None, design3=None, design4=Non
     out = output
   return out
   
+## returns all set ids from a density xml
+# return a list of string like stuff
+def read_set_ids(filename):
+  tree = etree.parse(filename)
+  root = tree.getroot()
+  sett = root.xpath("//set/@id")
+  return sett
+  
+## parse the 'mesh' information of the header of a density.xml file
+# @param silent if True and no mesh info is found return None, None, None otherwise raise exception
+# return x, y, z as ints
+def read_mesh_info(filename, silent):
+  tree = etree.parse(filename)
+  root = tree.getroot()
+  mesh = root.xpath('//cfsErsatzMaterial/header/mesh')
+  
+  if len(mesh) == 0:
+    if not silent:
+      raise RuntimeError("file '" + filename + "' has no mesh information")
+    return None, None, None
+  
+  else:
+    assert(len(mesh) == 1)
+    return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+  
 # # Reads a density.xml file as vector
 # @param filename from which the last 'set' is used
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
-def read_density_as_vector(filename, attribute="design"):
+# @param set optionally give a set name (string) when not given the last is used 
+def read_density_as_vector(filename, attribute="design", set=None):
   if not os.path.exists(filename):
     raise RuntimeError("file '" + filename + "' doesn't exist")
   
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   
   root = tree.getroot()
-  sett = root.xpath("//set[last()]")[0]
-  # print "reading set with id = " + sett.get("id")
+  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
+  sett = root.xpath(query)[0]
   
-  length = len(sett)
-
   # print "check for attribute " + attribute
   counter = 0
-  vals = [0] * length
+  vals = [0] * len(sett)
   for element in sett:
     # traverse the elements and get the design
     vals[counter] = float(element.get(attribute))

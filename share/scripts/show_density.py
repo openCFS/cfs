@@ -3,23 +3,11 @@
 from optimization_tools import *
 from PIL import Image, ImageDraw, ImageColor
 import sys
-
+import argparse
 
 # you can approximate the stuff iteratively in python by
 # Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
 # with data being an array
-
-
-################################################
-# config:
-do_resize=True
-# print a grid over the picture?
-print_grid=False
-
-
-
-################################################
-
 
 def refine(vals, size):
   new = numpy.zeros((2*size, 2*size), dtype="uint8")
@@ -34,12 +22,12 @@ def refine(vals, size):
 
 
 #@ return image, density_array
-def density_to_png(filename):
+def density_to_image(filename, set, design):
   if not is_valid_density_file(filename):
     print "not a valid density file given!"
     sys.exit(1)
 
-  dens = read_density(filename)
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set)
   
   x, y, z = getDim(dens)
   
@@ -77,34 +65,42 @@ def print_grid_on_image(I, dens):
     draw.line((iii, 0, iii, ysize), fill="Black")
 
 
-###############
-## main
-###############
+parser = argparse.ArgumentParser()
+parser.add_argument("input", help="the density.xml file to visualize")
+parser.add_argument('--save', help="optional filename to write image")
+parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
+parser.add_argument('--grid', help="draw mesh lines", action='store_true')
+parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
+parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
+parser.add_argument('--set', help="optional label of set, default is the last one")
+args = parser.parse_args()
 
-if len(sys.argv) < 2:
-  print "usage: " + sys.argv[0] + " <density-file> <optional: outfile-for-saving>"
-  sys.exit(1)
+if args.info:
+  ids = read_set_ids(args.input)
+  print 'number of sets in ' + args.input + ': ' + str(len(ids)) 
+  if len(ids) > 0:
+    print "first set: '" + ids[0] + "'"
+  if len(ids) > 1:
+    print "last set: '" + ids[-1] + "'"
+    
+  os.sys.exit()  
 
-filename = sys.argv[1]
-
-img,dens = density_to_png(filename)
+img,dens = density_to_image(args.input, args.set, args.design)
 img.convert('L')
-print img.mode
 
-if(print_grid):
+if args.grid:
   print_grid_on_image(img,dens)
 
-if do_resize:
+if not args.orgsize:
   ix, iy = dens.shape
   f = 800 / max(ix, iy)
   img = img.resize((f * ix, f * iy))
 #I = I.rotate(90)
 #I = I.transpose(0)
 
-if(len(sys.argv) == 3):
-  outfile = sys.argv[2]
-  print "saving image to file " + outfile
-  img.save(outfile)
+if args.save:
+  print "saving image to file " + args.save
+  img.save(args.save)
 else:
   img.show()
 
