@@ -53,6 +53,7 @@ IF(MINGW)
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
+    -lgfortran
     )
 ENDIF()
 
