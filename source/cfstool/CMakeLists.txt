@@ -95,6 +95,7 @@ LIST(APPEND TARGET_LL
 IF(NOT MINGW)
   LIST(APPEND TARGET_LL
     -lpthread
+    -lgfortran
     )
 ENDIF()
   
