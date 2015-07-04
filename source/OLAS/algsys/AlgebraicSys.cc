@@ -2913,16 +2913,9 @@ namespace CoupledField {
         // -------------------------------------
         //  no solver set -> use default direct 
         // -------------------------------------
-
-        if( isDiagBlockSymm_[0] && sbmSymm_ ) {
-          st = BaseSolver::LDL_SOLVER;
-          solverList->Get("directLDL",ParamNode::INSERT)->
-              Get("id",ParamNode::INSERT)->SetValue(solverId);
-        } else {
-          st = BaseSolver::LU_SOLVER;
-          solverList->Get("directLU",ParamNode::INSERT)->
-              Get("id",ParamNode::INSERT)->SetValue(solverId);
-        }
+        st = BaseSolver::PARDISO_SOLVER;
+        solverList->Get("pardiso",ParamNode::INSERT)->
+          Get("id",ParamNode::INSERT)->SetValue(solverId);
       } else {
         // ---------------------------------------------------
         //  solver set -> check for compatibility with matrix
