@@ -13,8 +13,6 @@
 #include "math.h"
 #include "stdlib.h"
 
-
-
 namespace CoupledField
 {
 
@@ -31,6 +29,7 @@ namespace CoupledField
     isAllowed_.insert( DENSITY );
     isAllowed_.insert( ACOU_BULK_MODULUS );
     isAllowed_.insert( ACOU_SOUND_SPEED );
+    isAllowed_.insert( KINEMATIC_VISCOSITY );
     isAllowed_.insert( ACOU_ALPHA );
     isAllowed_.insert( FRACTIONAL_EXPONENT );
     isAllowed_.insert( RAYLEIGH_ALPHA );
@@ -76,6 +75,16 @@ namespace CoupledField
     }
   }
 
+  void AcousticMaterial::SetScalar( const std::string& param, MaterialType matType,
+      Global::ComplexPart dataType ) {
+    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+      std::string dim = "string";
+      matTypeNotAllowed( matType, dim );
+    } else {
+      stringParams_[matType] = param;
+    }
+  }
+
 
 
   void AcousticMaterial::GetScalar( Double& param, MaterialType matType, 
@@ -92,15 +101,31 @@ namespace CoupledField
     else {
       Complex val = pos->second;
       if ( dataType == Global::REAL ) {
-	param = val.real();
+        param = val.real();
       }
       else if ( dataType == Global::IMAG ) {
-	param = val.imag();
+        param = val.imag();
       }
       else {
-	std::string msg = "GetScalar-Double";
-	dataTypeNotAllowed4SetGet( dataType, msg );
+        std::string msg = "GetScalar-Double";
+        dataTypeNotAllowed4SetGet( dataType, msg );
       }
     }
   }
+  void AcousticMaterial::GetScalar( std::string& param, MaterialType matType,
+              Global::ComplexPart dataType ) const {
+
+    stringMap::const_iterator pos;
+    pos = stringParams_.find( matType );
+    std::string value;
+
+    if ( pos == stringParams_.end() ) {
+      std::string dim = "scalar";
+      matTypeNotInDataBase( matType, dim );
+    }
+    else {
+      param=pos->second;
+    }
+  }
+
 }

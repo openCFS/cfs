@@ -20,7 +20,7 @@
 #include "Materials/ElectricConductionMaterial.hh"
 //#include "Materials/thermoelasticMaterial.hh"
 //#include "Materials/pyroelectricMaterial.hh"
-//#include "Materials/magStrictMaterial.hh"
+#include "Materials/magStrictMaterial.hh"
 
 // Note, that the methods ComputeIso/OrthoMechStiffnesTensor were commented out
 // in revision 7562 and are not in the code -> check the repository!
@@ -68,8 +68,7 @@ namespace CoupledField {
     delete xerces; 
   }
   
-  BaseMaterial * XMLMaterialHandler::
-  LoadMaterial( const std::string matName, 
+  BaseMaterial * XMLMaterialHandler::LoadMaterial( const std::string matName,
                const MaterialClass matClass ) {
 
     BaseMaterial * material = NULL;
@@ -131,14 +130,14 @@ namespace CoupledField {
       //ReadPyroelectric( material,pn );
     }
     else if ( matClass == THERMOELASTIC ) {
-      REFACTOR;
+      REFACTOR;//
       //material = new ThermoelasticMaterial();
       //ReadThermoelastic( material, pn );
     }
     else if ( matClass == MAGNETOSTRICTIVE ) {
-      REFACTOR;
-      //material = new MagStrictMaterial();
-      //ReadMagStrict( material, pn );
+      //REFACTOR;
+      material = new MagStrictMaterial(mp,cs);
+      ReadMagStrict( material, pn );
     }
     else if ( matClass == ELECTRICCONDUCTION ) {
       material = new ElectricConductionMaterial(mp, cs);
@@ -486,6 +485,37 @@ namespace CoupledField {
       EXCEPTION( "mechanical stiffness tensor can not be computed." );
     }
 
+    //read viscoelastic parameters
+    if(mech->Has("viscoelasticity")) {
+    	PtrParamNode visco = mech->Get("viscoelasticity");
+    	if(visco->Has("isotropic")) {
+    		PtrParamNode tens = visco->Get("isotropic");
+    		UInt dim2;
+    		if ( tens->Has("dim2") )
+    			dim2 = tens->Get("dim2")->As<Integer>();
+    		else
+    			EXCEPTION("Viscoelasticity parameters: dim2 has to be specified");
+
+    		Matrix<Double> realMat(3,dim2);
+    	    realMat.Init();
+    	    PtrCoefFct viscoelastCoef;
+    	    //read real viscoelastic coefficients
+    	    if ( tens->Has("real") ) {
+    	    	ParamTools::AsTensor( tens->Get("real"), 3, dim2, realMat );
+    	    }
+    	    Vector<Double> dummy(dim2);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[0][i];
+    	    material->SetVector( dummy, MECH_VISCOALPHA_VECTOR, Global::REAL);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[1][i];
+    	    material->SetVector( dummy, MECH_VISCOK_VECTOR, Global::REAL);
+    	    for (UInt i=0; i<dim2; i++)
+    	    	dummy[i] = realMat[2][i];
+    	    material->SetVector( dummy, MECH_VISCOG_VECTOR, Global::REAL);
+    	}
+    }
+
     // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
     if(mech->HasByVal("elasticityCoefficient", "nonlinear", "function"))
     {
@@ -623,12 +653,16 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
+    Double density(0), blkMod(0), nu(0);
+    LocPointMapped lp_dummy;
+
     //read density
     if(acou->Has("density")) {
       PtrCoefFct densFct =
           CoefFunction::Generate(mp_, Global::REAL, 
                                  acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
+      densFct->GetScalar( density, lp_dummy );
     }
       
     //read compression modulus
@@ -637,8 +671,17 @@ namespace CoupledField {
                 CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
+      blkFct->GetScalar( blkMod, lp_dummy );
     }
-
+    //read kinematic viscosity
+    if(acou->Has("kinematicViscosity")) {
+      PtrCoefFct kinVisc =
+                CoefFunction::Generate(mp_, Global::REAL,
+                                       acou->Get("kinematicViscosity")->As<std::string>() );
+      material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
+      //material->SetScalar(acou->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY);
+      kinVisc->GetScalar( nu, lp_dummy );
+    }
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
     {
@@ -668,7 +711,6 @@ namespace CoupledField {
         if(ad->Get("thermoViscous")->Has("alpha0"))
           material->SetScalar(ad->Get("thermoViscous")->Get("alpha0")->As<Double>(), ACOU_ALPHA, Global::REAL );
       }
-
       // read fractional damping
       if(ad->Has("fractional"))
       {
@@ -813,8 +855,7 @@ namespace CoupledField {
     bool isIsotropic = false;
     bool isOrthotropic = false;
     bool isTensor = false;
-    
-    
+
     // read electric conductivity
     if(mag->Has("electricConductivity"))
       material->SetScalar(mag->Get("electricConductivity")->As<Double>(), MAG_CONDUCTIVITY, Global::REAL);
@@ -941,11 +982,11 @@ namespace CoupledField {
 
           // read analytic function of material parameter
           if(iso->Has("nuExpr"))
-            material->SetScalar(iso->Get("nuExpr")->As<std::string>(),MAG_RELUCTIVITY);
+            info.analyticExpr = iso->Get("nuExpr")->As<std::string>();
 
           // read analytic derivative of material parameter
           if(iso->Has("nuDerivExpr"))
-            material->SetScalar(iso->Get("nuDerivExpr")->As<std::string>(),MAG_RELUCTIVITY_DERIV);
+            info.analyticExprDeriv = iso->Get("nuDerivExpr")->As<std::string>();
 
           // pass info to material class
           material->SetNonLinMatIso( MAG_PERMEABILITY, info);
@@ -1059,6 +1100,42 @@ namespace CoupledField {
         }
       }
     }
+
+    // read core loss
+    if(mag->Has("coreLoss")){
+      PtrParamNode clParam = mag->Get("coreLoss");
+      BaseMaterial::MatDescriptorNl info;
+      info.approxType = LIN_INTERPOLATE;
+      info.fileName = "";
+
+      if(clParam->Has("approxType")) {
+        std::string type =  clParam->Get("approxType")->As<std::string>();
+        info.approxType = ApproxCurveTypeEnum.Parse( type );
+      }
+
+      if(clParam->Has("measAccuracy"))
+        info.measAccuracy = clParam->Get("measAccuracy")->As<Double>();
+
+      if(clParam->Has("maxApproxVal"))
+        info.maxVal = clParam->Get("maxApproxVal")->As<Double>();
+
+      if(clParam->Has("dataName"))
+        info.fileName = clParam->Get("dataName")->As<std::string>();
+
+      material->SetNonLinMatIso( CORE_LOSS, info );
+    }
+
+    // read density needed for core loss
+    PtrCoefFct densFct;
+    if(mag->Has("density")){
+      densFct = CoefFunction::Generate( mp_, Global::REAL,
+          mag->Get("density")->As<std::string>() );
+      material->SetCoefFct( DENSITY, densFct );
+    } else {
+      densFct = CoefFunction::Generate( mp_, Global::REAL, "0.0");
+      material->SetCoefFct( DENSITY, densFct );
+    }
+
   }
 
 //**********************************************************************
@@ -1288,17 +1365,17 @@ namespace CoupledField {
   void XMLMaterialHandler::ReadMagStrict(BaseMaterial *material,
                                          PtrParamNode pn) {
     //read real magmech coupling tensor
-    if(pn->Has("magnetoStrictionTensor")) {
+    if(pn->Has("magnetoStrictionTensor_h")) {
       Matrix<Double> couplingTensor(3,6);
 
-      PtrParamNode mst = pn->Get("magnetoStrictionTensor");
+      PtrParamNode mst = pn->Get("magnetoStrictionTensor_h");
       if(mst->Has("real")) {
         ParamTools::AsTensor<double>(mst->Get("real"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::REAL );
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::REAL );
       }
       if(mst->Has("imag")) {
         ParamTools::AsTensor<double>(mst->Get("imag"), 3, 6, couplingTensor);
-        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR, Global::IMAG );
+        material->SetTensor( couplingTensor, MAGNETOSTRICTION_TENSOR_h, Global::IMAG );
       }
     }
   }

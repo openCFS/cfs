@@ -511,7 +511,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
 
     //now we create a CRS_Matrix from it
-    this->consInterpMat_.reset(new CRS_Matrix<DATA_TYPE>(*myContainer));
+    this->consInterpMat_.reset(new CRS_Matrix<DATA_TYPE>(*myContainer,false));
 
     //delete coordinate matrix
     delete myContainer;
@@ -780,8 +780,9 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetScalarValuesAtCoords( const StdV
   }
 }
 
-}
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridNodalInterp<Double>;
   template class CoefFunctionGridNodalInterp<Complex>;
 #endif
+
+} // namespace CoupledField

@@ -253,20 +253,24 @@ elif [ ${OS} = "Darwin" ]; then
         DIST="MACOSX"
         DIST_FAMILY="MACOSX"
         FULL_REV=$(echo $MACOSVER | sed -e 's/^[ \t]*//')
-        MAJOR_REV=`echo $FULL_REV | sed -e 's/\(\.[0-9]\)\(\.[0-9]\)$/\1/' -e 's/Server //'`
+        MAJOR_REV2=`echo $FULL_REV | sed -e 's/\(\.[0-9]\)\(\.[0-9]\)$/\1/' -e 's/Server //'`
+        MAJOR_REV="$(echo $MAJOR_REV2 | cut -d. -f1).$(echo $MAJOR_REV2 | cut -d. -f2)"
         REV=`echo $FULL_REV | sed -e 's/Server //' -e 's/ //g'`
 
+        # http://www.imore.com/os-x-version-code-names
         case "$MAJOR_REV" in
             "10.0") PSEUDONAME="Cheetah";;
             "10.1") PSEUDONAME="Puma";;
             "10.2") PSEUDONAME="Jaguar";;
-            "10.3") PSEUDONAME="Panther";;
-            "10.4") PSEUDONAME="Tiger";;
-            "10.5") PSEUDONAME="Leopard";;
+            "10.3") PSEUDONAME="Panther (Pinot)";;
+            "10.4") PSEUDONAME="Tiger (Merlot, Intel: Chardonay)";;
+            "10.5") PSEUDONAME="Leopard (Chablis)";;
             "10.6") PSEUDONAME="Snow Leopard"; ARCH="X86_64";;
-            "10.7") PSEUDONAME="Lion"; ARCH="X86_64";;
-            "10.8") PSEUDONAME="Mountain Lion"; ARCH="X86_64";;
-            "10.9") PSEUDONAME="Mavericks"; ARCH="X86_64";;
+            "10.7") PSEUDONAME="Lion (Barolo)"; ARCH="X86_64";;
+            "10.8") PSEUDONAME="Mountain Lion (Zinfandel)"; ARCH="X86_64";;
+            "10.9") PSEUDONAME="Mavericks (Cabernet)"; ARCH="X86_64";;
+            "10.10") PSEUDONAME="Yosemite (Sirah)"; ARCH="X86_64";;
+            "10.11") PSEUDONAME="(Gala)"; ARCH="X86_64";;
         esac
 
         OSSTR="$OS $DIST $MAJOR_REV ($FULL_REV $PSEUDONAME ${MACH})"

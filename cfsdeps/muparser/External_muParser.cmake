@@ -63,6 +63,7 @@ CONFIGURE_FILE(
 # The muparser external project
 #-------------------------------------------------------------------------------
 ExternalProject_Add(muparser
+  DEPENDS boost
   PREFIX "${muparser_prefix}"
   URL ${LOCAL_FILE}
   URL_MD5 ${MUPARSER_MD5}

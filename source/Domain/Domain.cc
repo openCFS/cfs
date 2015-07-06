@@ -55,6 +55,7 @@
 #include "CoupledPDE/DirectCoupledPDE.hh"
 #include "CoupledPDE/IterCoupledPDE.hh"
 #include "CoupledPDE/PiezoCoupling.hh"
+#include "CoupledPDE/MagnetoStrictCoupling.hh"
 #include "CoupledPDE/AcouMechCoupling.hh"
 #include "CoupledPDE/FluidMechCoupling.hh"
 #include "CoupledPDE/WaterWaveAcousticsCoupling.hh"
@@ -304,6 +305,7 @@ void Domain::PostInit(UInt sequenceStep)
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
+
   SetDriver(driver); // see above!
 
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
@@ -321,7 +323,7 @@ void Domain::PostInit(UInt sequenceStep)
   // Note: In case this is not the parent / main domain, we do not read a 
   // restart file.
   driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
-  
+
   // we need driver->Init() first
   if(optimization_ != NULL)
   {
@@ -613,8 +615,9 @@ void Domain::InitPDEs(UInt sequenceStep)
   // those single PDEs which are directly coupled
   for (UInt i = 0; i < numDirectCoupledPde_; i++)
   {
-    if( isParentDomain_) 
-      std::cout << "++ Initializing direct coupling" << std::endl;
+    if( isParentDomain_) {
+	std::cout << "++ Initializing direct coupling" << std::endl;
+	}
     ptDirectCoupledPde_[i]->Init(sequenceStep);
     ptDirectCoupledPde_[i]->DefineAlgSys();
   }
@@ -638,7 +641,6 @@ void Domain::InitPDEs(UInt sequenceStep)
 // **************************
 void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
-
   // default grid
   Grid * defaultGrid = gridMap_["default"];
 
@@ -865,6 +867,21 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new AcouMechCoupling(pde1, pde2, pairNodes[i], info_,
                                       simState_, this );
     }
+    
+    else if (couplingName == "magnetoStrictDirect")
+    {
+
+      pde1 = GetSinglePDE("mechanic");
+      pde2 = GetSinglePDE("magnetic");
+
+      // in the case of acou-Mech coupling, the acoustic
+      // entries have to be multiplied by -1
+      dynamic_cast<MagneticPDE*> (pde2)->SetMagnetoStrictCoupling();
+
+      coupling = new MagnetoStrictCoupling(pde1, pde2, pairNodes[i], info_,
+                                      simState_, this );
+    }
+    
     // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
     {

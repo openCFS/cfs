@@ -187,7 +187,7 @@ namespace CoupledField {
     // get coordinates
     LOG_TRACE(simInputUNV) << "reading vertex coordinates";
 
-    Vector<Double>  p, pTemp;
+    Vector<Double>  p(3), pTemp(3);
     unsigned long   node;
 
     mi_->AddNodes(numNodes_);
@@ -221,14 +221,16 @@ namespace CoupledField {
     
 
     // get elements
-    int regionId;
+    RegionIdType regionId;
     long elemColor, unvElemType, numElemNodes, elemNodes[32], dummy;
     UInt elemNodesUInt[32];
     //std::vector< Elem::FEType >  element_types(nelems);
     //std::vector< UInt > num_vertices_of_elements(nelems);
     //std::vector< UInt > element_partition(nelems);
-    StdVector< long > colors;
+    std::map<long, RegionIdType> color2Region;
+    std::map<long, RegionIdType>::iterator findIt;
     Elem::FEType eType;
+    std::stringstream strBuffer;
 
     mi_->AddElems(numElems_);
 
@@ -275,31 +277,22 @@ namespace CoupledField {
       }
       
       // make sure that regionIds are used in consecutive order
-      regionId = colors.Find(elemColor);
-      if (regionId == -1) {
-        regionId = colors.GetSize();
-        colors.Push_back(elemColor);
+      findIt = color2Region.find(elemColor);
+      if (findIt == color2Region.end()) {
+        strBuffer.str("");
+        strBuffer.clear();
+        strBuffer << "Region" << (elemColor+1);
+        regionNames_.Push_back(strBuffer.str());
+        regionId = mi_->AddRegion(strBuffer.str(), false);
+        color2Region[elemColor] = regionId;
+      }
+      else {
+        regionId = findIt->second;
       }
 
       mi_->SetElemData(n+1, eType, regionId, elemNodesUInt);
 
     }
-
-    UInt numColors = colors.GetSize();
-    StdVector<RegionIdType> regionIds;
-    std::stringstream strBuffer;
-
-    regionNames_.Clear();
-    
-    for(UInt i=0; i<numColors ; ++i)
-    {
-      strBuffer.str("");
-      strBuffer.clear();
-      strBuffer << "Region" << (i+1);
-      regionNames_.Push_back(strBuffer.str());
-      regionIds.Push_back(i);
-    }
-    mi_->AddRegions(regionNames_, regionIds);
 
   }
 

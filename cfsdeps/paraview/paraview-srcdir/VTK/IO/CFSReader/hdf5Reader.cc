@@ -457,6 +457,8 @@ namespace H5CFS {
         actAnalysis = HARMONIC;
       } else if( actAnalysisString == "eigenFrequency" ) {
         actAnalysis = EIGENFREQUENCY;
+      } else if( actAnalysisString == "inverseSource" ) {
+        actAnalysis = HARMONIC;
       } else {
         H5CFS_EXCEPTION( "Unknown analysistype found in hdf file");
       }

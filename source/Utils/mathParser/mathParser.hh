@@ -5,7 +5,7 @@
 #include <list>
 #include <set>
 #include <string>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include "muParser.h"
 #include "Utils/StdVector.hh"
 #include "MatVec/Vector.hh"
@@ -76,7 +76,7 @@ namespace CoupledField {
     //! This methods returns the parser expression of the related parser
     //! instance.
     //! \param handle MathParser handle for identifying specific parser
-    //! \return Expression of the parsewr
+    //! \return Expression of the parser
     std::string GetExpr( HandleType handle );
 
     //! Query if current expression is constant
@@ -103,6 +103,13 @@ namespace CoupledField {
     //! \param handle MathParser handle for identifying specific parser
     //! \param varNames List of variables the expression depends on
     void GetExprVars( HandleType handle, StdVector<std::string>& varNames );
+
+    //! Get variable of expression of the parser instance depends on
+    
+    //! This method returns value of a certain varible.
+    //! \param handle MathParser handle for identifying specific parser
+    //! \param varName variable to het value of
+    Double GetExprVars( HandleType handle, std::string varName );
     
     
     //! Return number of expressions set
@@ -220,10 +227,10 @@ namespace CoupledField {
         //! \name Callback functionality of mathParser
         
     //! Define signal type of MathParser
-    typedef boost::signal<void()> MathParserSignal;
+    typedef boost::signals2::signal<void()> MathParserSignal;
     
     //! Register callback function for change of value of expression
-    boost::signals::connection 
+    boost::signals2::connection 
     AddExpChangeCallBack( const MathParserSignal::slot_function_type
                           &subscriber,
                           HandleType handle );

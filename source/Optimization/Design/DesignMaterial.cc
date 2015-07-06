@@ -1636,9 +1636,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::STIFF3:
   {
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
-      Matrix<double> jac;
       Matrix<double> dummy; // not used -> strange function ?! :(
-      fe.GetLocDerivShFnc(jac, p, elem);
+      Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
       LOG_DBG3(dm) << "GHRT: jac=" << jac.ToString(2);
       Vector<double> d_shape;
       jac.GetCol(d_shape, direction == DesignElement::STIFF1 ? 0 : 1);// a or by

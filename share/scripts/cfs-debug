@@ -6,6 +6,7 @@
 #  - valgrind-memcheck (memory leak detection)
 #  - valgrind-callgrind (generation of call graph)
 #  - valgrind-massif (detailed heap-profiling)
+#  - valgrind-drd (thread error detector)
 #  - gperftools-cpu (generation of call graph, FAST)
 
 
@@ -38,19 +39,26 @@ PrintUsage() {
     echo -e "4) Valgrind-massif run"
     echo -e "-------------------------"
     echo -e "Create dynamic memory profile of a CFS run."
-    echo -e "Results can be investigeated using 'ms_print'.\n"
+    echo -e "Results can be investigated using 'ms_print'.\n"
     echo -e "Usage:"
     echo -e "\t cfs-debug massif [cfs-arguments]\n"
     echo -e "NOTE: Valgrind slows down the execution up to 10-20 times!\n\n"
 
-    echo -e "5) GPerftools-CPU profiler run"
+    echo -e "5) Valgrind-DRD run"
+    echo -e "-------------------------"
+    echo -e "Detect errors with multithreading of a CFS run."
+    echo -e "Usage:"
+    echo -e "\t cfs-debug drd [cfs-arguments]\n"
+    echo -e "NOTE: Valgrind slows down the execution up to 10-20 times!\n\n"
+
+    echo -e "6) GPerftools-CPU profiler run"
     echo -e "------------------------------"
     echo -e "Create dynamic callgraph with profiling information."
     echo -e "Results can be investigeated using using 'kcachegrind' (if format=callgrind)"
     echo -e "Usage:"
     echo -e "\t cfs-debug gperf-cpu <outfile> <format> [cfs-arguments]\n\n"
 
-    echo -e "6) GPerftools-Heap profiler run"
+    echo -e "7) GPerftools-Heap profiler run"
     echo -e "-------------------------------"
     echo -e "Create dynamic memory profile of a CFS run."
     echo -e "Usage:"
@@ -128,6 +136,24 @@ RunMassif()
         echo -e "Executing: valgrind --tool=massif $CFS_EXE $@ \n\n";
         
         valgrind --tool=massif $CFS_EXE "$@";
+        PostCfsRun  
+    else
+        echo -e "The valgrind executable is not in the path"
+    fi
+}
+
+# run valgrind-DRD thread error detector on the executable
+RunDrd()
+{
+    # check if valgrind is in the path
+    if CommandExists valgrind ; then
+        CMD="valgrind --tool=drd --check-stack-var=yes --read-var-info=yes $CFS_EXE"
+        echo -e "---------------------------------"
+        echo -e " CFS - VALGRIND - DRD RUN "
+        echo -e "---------------------------------"
+        echo -e "Executing: $CMD $@ \n\n";
+        
+        $CMD "$@";
         PostCfsRun  
     else
         echo -e "The valgrind executable is not in the path"
@@ -259,16 +285,16 @@ PostCfsRun() {
     fi
 
     # Create OS-specific hardware info files
+    STATCMD="stat"
     if [ "$OS" = "Mac" ]; then
 	/usr/sbin/system_profiler SPHardwareDataType SPSoftwareDataType > macosx_info.txt
 	OSFILELIST="macosx_info.txt";
-	STATCMD="stat -x"
+	STATCMD="$STATCMD -x"
     fi
     if [ "$OS" = "Linux" ]; then
 	cat /proc/cpuinfo > linux_cpuinfo.txt
 	cat /proc/meminfo > linux_meminfo.txt
 	OSFILELIST="linux_cpuinfo.txt linux_meminfo.txt";
-	STATCMD="stat"
     fi
 
     # Create dump of environment (OMP_NUM_THREADS, etc.)
@@ -688,6 +714,9 @@ if [ $# != 0 ]; then
             ;;
          "massif")
             RunMassif $REST_ARGS
+            ;;
+         "drd")
+            RunDrd $REST_ARGS
             ;;
          "gperf-cpu")
             RunGperfCpu $REST_ARGS

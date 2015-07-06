@@ -55,11 +55,18 @@ cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
 cfsdeps/boost/boost-1.48.0-gcc47-winthreads.patch -text
 cfsdeps/boost/boost-cmake.tar.bz2 -text svneol=unset#unset
+cfsdeps/boost/boost-get-ptr-no-auto-ptr.patch -text
+cfsdeps/boost/boost-has-nanosleep-mac.patch -text
 cfsdeps/boost/boost-intel-signbit-intrinsic.patch -text
+cfsdeps/boost/boost-interlocked-mingw64.patch -text
+cfsdeps/boost/boost-lexical-cast-uninitialized-var.patch -text
+cfsdeps/boost/boost-math-policies-error-handling.patch -text
+cfsdeps/boost/boost-mingw-critical-section.patch -text
 cfsdeps/boost/boost-multi_array.patch -text
 cfsdeps/boost/boost-newline.patch -text
 cfsdeps/boost/boost-patch.cmake.in -text
 cfsdeps/boost/boost-shared-libs-build.patch -text
+cfsdeps/boost/boost-shared-ptr-helper-1.58.patch -text
 cfsdeps/bzip2/CMakeLists.txt -text
 cfsdeps/bzip2/External_bzip2.cmake -text
 cfsdeps/bzip2/bzip2-mingw.patch -text
@@ -128,6 +135,10 @@ cfsdeps/cgns/cgnsview-ccmio.patch -text
 cfsdeps/cmake/External_CMake.cmake -text
 cfsdeps/cmake/cmake-configure.cmake.in -text
 cfsdeps/cmake/cmake-install.cmake.in -text
+cfsdeps/fftw/External_FFTW.cmake -text
+cfsdeps/fftw/fftw-configure.cmake.in -text
+cfsdeps/fftw/lis-configure.cmake.in -text
+cfsdeps/fftw/lis-patch.cmake.in -text
 cfsdeps/flann/External_FLANN.cmake -text
 cfsdeps/flann/flann-any.patch -text
 cfsdeps/flann/flann-basic-type-serializer-for-64bit-ints.patch -text
@@ -208,6 +219,7 @@ cfsdeps/muparser/muparser-dummy-math.patch -text
 cfsdeps/muparser/muparser-intel-atomic.patch -text
 cfsdeps/muparser/muparser-patch.cmake.in -text
 cfsdeps/muparser/muparser-pow-intel.patch -text
+cfsdeps/muparser/muparser-replace-autoptr-by-boost-movelib-unique-ptr.patch -text
 cfsdeps/muparser/muparser-strfun45.patch -text
 cfsdeps/openblas/External_OpenBLAS.cmake -text
 cfsdeps/openblas/openblas-patch.cmake.in -text
@@ -423,6 +435,8 @@ ctest_scripts/sites/sles11/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/sles11/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/sles11/site_specific_vars.cmake -text
 ctest_scripts/sites/trusty/Vagrantfile -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_debug.ctest -text
+ctest_scripts/sites/trusty/linux64_fespace_gcc_release.ctest -text
 ctest_scripts/sites/trusty/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/trusty/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/trusty/site_specific_init.cmake -text
@@ -466,6 +480,7 @@ include/def_use_cfxio.hh.in -text
 include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
 include/def_use_comsol.hh.in -text
+include/def_use_fftw.hh.in -text
 include/def_use_flann.hh.in -text
 include/def_use_gidpost.hh.in -text
 include/def_use_gmsh.hh.in -text
@@ -1183,6 +1198,8 @@ source/CoupledPDE/FluidMechCoupling.cc -text
 source/CoupledPDE/FluidMechCoupling.hh -text
 source/CoupledPDE/IterCoupledPDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/CoupledPDE/IterCoupledPDE.hh svneol=native#text/x-c%2B%2Bhdr
+source/CoupledPDE/MagnetoStrictCoupling.cc -text
+source/CoupledPDE/MagnetoStrictCoupling.hh -text
 source/CoupledPDE/PiezoCoupling.cc -text
 source/CoupledPDE/PiezoCoupling.hh -text
 source/CoupledPDE/WaterWaveAcousticsCoupling.cc -text
@@ -1337,6 +1354,9 @@ source/DataInOut/SimInOut/hdf5/hdf5io.hh svneol=native#text/plain
 source/DataInOut/SimInOut/internalMesh/CMakeLists.txt -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.cc -text
 source/DataInOut/SimInOut/internalMesh/InternalMesh.hh -text
+source/DataInOut/SimInOut/xdmf/CMakeLists.txt -text
+source/DataInOut/SimInOut/xdmf/SimOutputXDMF.cc -text
+source/DataInOut/SimInOut/xdmf/SimOutputXDMF.hh -text
 source/DataInOut/SimInput.cc -text
 source/DataInOut/SimInput.hh svneol=native#text/x-c%2B%2Bhdr
 source/DataInOut/SimOutput.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1369,6 +1389,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionImpedanceModel.cc -text
+source/Domain/CoefFunction/CoefFunctionImpedanceModel.hh -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
@@ -1544,6 +1566,7 @@ source/Forms/Operators/DivOperator.hh -text
 source/Forms/Operators/GradientOperator.hh -text
 source/Forms/Operators/IdOpNormalStrain.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/IdentityOperator.hh -text
+source/Forms/Operators/IdentityOperatorInVector.hh -text
 source/Forms/Operators/IdentityOperatorNormal.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/IdentityOperatorNormalTrans.hh svneol=native#text/x-c%2B%2Bhdr
 source/Forms/Operators/IdentityOperatorProjected.hh -text
@@ -1637,6 +1660,8 @@ source/Materials/PiezoMaterial.cc -text
 source/Materials/PiezoMaterial.hh -text
 source/Materials/TestMaterial.cc -text
 source/Materials/TestMaterial.hh -text
+source/Materials/magStrictMaterial.cc -text
+source/Materials/magStrictMaterial.hh -text
 source/ODESolve/BaseODEProblem.hh svneol=native#text/plain
 source/ODESolve/BaseODESolver.hh svneol=native#text/plain
 source/ODESolve/CMakeLists.txt svneol=native#text/plain

@@ -3,6 +3,7 @@ SET(COUPLED_PDE_SRCS
   DirectCoupledPDE.cc
   IterCoupledPDE.cc
   PiezoCoupling.cc
+  MagnetoStrictCoupling.cc
   AcouMechCoupling.cc
   AcouMechCoupling.cc
   FluidMechCoupling.cc
