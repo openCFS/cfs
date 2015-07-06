@@ -271,9 +271,10 @@ namespace CoupledField {
     //#pragma omp parallel for reduction(+:sum)
     for(unsigned int i = 0; i < size_; ++i)
       sum += OpType<T>::zConjz(data_[i]);
-    
+
     return sqrt(sum);
   }
+
 
   template <typename T>
   double Vector<T>::NormL2(const Vector<T>& other) const
@@ -288,6 +289,7 @@ namespace CoupledField {
 
     return sqrt(sum);
   }
+
 
   template<class TYPE> 
   Double Vector<TYPE>::NormMax() const 
@@ -441,6 +443,7 @@ namespace CoupledField {
   template<typename T>
   void Vector<T>::GetEntry( const unsigned int i, T &val ) const
   {
+    //assert(i<size_);
     val = data_[i];
   }
   

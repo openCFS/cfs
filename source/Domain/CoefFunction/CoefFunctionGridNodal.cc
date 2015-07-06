@@ -68,6 +68,12 @@ namespace CoupledField{
         factorFnc_ = CoefFunction::Generate(mp_,Global::REAL,"1.0");
     }
 
+    //if(this->srcGrid_->GetDim() == 3 && this->domain_->GetGrid()->GetDim()==2){
+      //TODO: Set 3D coodinate system to global factor
+   //   WARN("3D->2D not supported.");
+      //factorFnc_->SetCoordinateSystem();
+   // }
+
 
   }
 
@@ -185,8 +191,8 @@ namespace CoupledField{
     for( UInt i = 0; regIter != srcRegions_.end(); ++i,++regIter) {
       shared_ptr<BaseResult> Bres = domain_->GetResultHandler()->GetResult( this->inputId_, this->aSeqStep_ , step , this->solType_, *regIter );
       shared_ptr<EntityList> regionList = Bres->GetEntityList();
-      shared_ptr<EntityList> nodeList = srcGrid_->GetEntityList(EntityList::NODE_LIST, regionList->GetName());
-      EntityIterator it= nodeList->GetIterator();
+      StdVector<UInt> nodeNums;
+      srcGrid_->GetNodesByRegion(nodeNums, srcGrid_->GetRegion().Parse(regionList->GetName()));
       Vector<DATA_TYPE> resVec;
       try{
         Result<DATA_TYPE>* myResult = dynamic_cast<Result<DATA_TYPE>* >(Bres.get());
@@ -209,36 +215,31 @@ namespace CoupledField{
         LocPointMapped lpm;
         factorFnc_->GetScalar(factor,lpm);
         //std::cout << "Computed Factor for timestep: " << factor << std::endl;
-        for( it.Begin(); !it.IsEnd(); it++ ) {
-          UInt idx = nodeIdxMap_[it.GetNode()];
+
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d){
             sol[eqns[d]] = resVec[locPos++] * factor;
-            //curVec->GetEntry(locPos++,sol[eqns[d]]);
           }
         }
       }else{
-        StdVector<Vector<Double> > CoordVec(nodeList->GetSize());
-        StdVector< DATA_TYPE > values(nodeList->GetSize());
-        UInt node=0;
-        for( it.Begin() ; !it.IsEnd() ; it++ , node++ ) {
-          UInt curNodeNum = it.GetNode();
-          srcGrid_->GetNodeCoordinate(CoordVec[node],curNodeNum,true);
+        StdVector<Vector<Double> > CoordVec(nodeNums.GetSize());
+        StdVector< DATA_TYPE > values(nodeNums.GetSize());
+#pragma omp parallel for
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
         }
-
 
         // CURRENTLY NOT WORKING!
         //factorFnc_->GetScalarValuesAtCoords(CoordVec,values);
         factorFnc_->GetScalarValuesAtCoords(CoordVec,values,this->domain_->GetGrid());
         //values.Init(1.0);
-        node = 0;
-        for( it.Begin(); !it.IsEnd(); it++,node++ ) {
-          UInt idx = nodeIdxMap_[it.GetNode()];
+        for( UInt aN=0;aN<nodeNums.GetSize();aN++){
+          UInt idx = nodeIdxMap_[nodeNums[aN]];
           eqns = eqnNumbers_[idx];
           for(UInt d = 0; d<eqns.GetSize();++d,++locPos){
-            sol[eqns[d]] = resVec[locPos] * values[locPos];
-
-            //curVec->GetEntry(locPos++,sol[eqns[d]]);
+            sol[eqns[d]] = resVec[locPos] * values[aN];
           }
         }
       }
@@ -279,6 +280,8 @@ namespace CoupledField{
             this->solVecOld_.Resize(this->solVecFuture_.GetSize());
             this->solVecOld_.Init();
           }
+
+#pragma omp parallel for
           for(UInt i=0;i<this->solVecOld_.GetSize();i++){
             this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
           }
@@ -362,9 +365,10 @@ namespace CoupledField{
     }
     return step;
   }
-}
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionGridNodal<Double>;
   template class CoefFunctionGridNodal<Complex>;
 #endif
+
+} // namespace CoupledField

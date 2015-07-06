@@ -10,7 +10,7 @@ SET(CFS_DS_HOSTNAME "cfs.mdmt.tuwien.ac.at")
 #-----------------------------------------------------------------------------
 # Base directory for public FTP server.
 #-----------------------------------------------------------------------------
-SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}:40065")
+SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}")
 
 #-----------------------------------------------------------------------------
 # Base directory for restricted HTTPS server.
@@ -30,7 +30,7 @@ SET(CFS_DS_SVN "${CFS_DS_HTTPS}/svn")
 #-----------------------------------------------------------------------------
 # Base directory CFS_DEPS_CACHE_DIR mirror.
 #-----------------------------------------------------------------------------
-SET(CFS_DS_CFSDEPS "${CFS_DS_FTP}/cfsdeps")
+SET(CFS_DS_CFSDEPS "${CFS_DS_FTP}")
 
 #-----------------------------------------------------------------------------
 # Drop site for nightly build/test results.

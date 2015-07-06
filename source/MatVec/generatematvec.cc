@@ -35,7 +35,6 @@ DEFINE_LOG(genMatVec, "genMatVec")
   // *******************************************************
 BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType entrytype ) {
 
-
     BaseVector *retVector = NULL;
     BaseMatrix::StructureType m_structuretype;
     Integer m_Ncols;
@@ -49,7 +48,6 @@ BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType ent
     switch (m_structuretype) {
 
     case BaseMatrix::SBM_MATRIX:
-
       // Downcast matrix to SBM_Matrix
       sbmmat = dynamic_cast<const SBM_Matrix*>(&m);
 
@@ -74,7 +72,6 @@ BaseVector* GenerateVectorObject( const BaseMatrix &m, BaseMatrix::EntryType ent
       break;
 
     case BaseMatrix::SPARSE_MATRIX:
-
       m_StdMatrix = dynamic_cast<const StdMatrix*>(&m);
       if(entrytype == BaseMatrix::NOENTRYTYPE) 
       {

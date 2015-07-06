@@ -121,7 +121,7 @@ namespace CoupledField {
     //! Return list with material definition for each region
     std::map<RegionIdType, BaseMaterial*>  GetMaterialData() { return materials_; }
     
-    //! Return assemble class, which olds all integrators
+    //! Return assemble class, which holds all integrators
     Assemble * GetAssemble() { return assemble_; }
 
     //! Return all regions of the PDE

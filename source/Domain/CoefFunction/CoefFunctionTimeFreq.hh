@@ -1,7 +1,7 @@
 #ifndef COEFFUNCTIONTIMEFREQ_HH
 #define COEFFUNCTIONTIMEFREQ_HH
 
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 #include <boost/shared_ptr.hpp>
 
 #include "CoefFunction.hh"
@@ -32,7 +32,7 @@ template<>
 class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
                                      public boost::enable_shared_from_this<CoefFunctionTimeFreq<Double> > {
   public:
-  
+
   //! Constructor
   CoefFunctionTimeFreq(MathParser * mp);
 
@@ -160,7 +160,7 @@ class CoefFunctionTimeFreq<Double> : public CoefFunctionAnalytic,
     void Recalculate();
 
     //! Connection to math parser instance 
-    boost::signals::connection conn_;
+    boost::signals2::connection conn_;
     
     // =====================================
     //  STRING PARAMETER REPRESENTATION
@@ -349,10 +349,10 @@ protected:
   void Recalculate();
   
   //! Connection to math parser instance (real) 
-  boost::signals::connection connReal_;
+  boost::signals2::connection connReal_;
 
   //! Connection to math parser instance (imag) 
-  boost::signals::connection connImag_;
+  boost::signals2::connection connImag_;
 
   // =====================================
   //  STRING PARAMETER REPRESENTATION

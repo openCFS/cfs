@@ -2,6 +2,8 @@ SET(IDCOMP_TEMPL "${CFS_SOURCE_DIR}/share/scripts/identify_compiler.cmake.in")
 SET(COMPILER_ID_FILE "${CFS_BINARY_DIR}/CMakeFiles/out.cmake")
 SET(IDENTIFY_COMPILER_SRC "IdentifyCXXCompiler.cpp")
 
+include(CheckCXXSourceCompiles)
+
 #-------------------------------------------------------------------------------
 # Determine what equivalent GNU version the compiler has, to check if it is
 # compatible with the GNU C++ compiler on the system PATH.
@@ -112,17 +114,36 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
-  IF(USE_LIBFBI)
-    SET(CFS_CXX_FLAGS "-std=c++0x")
+  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1")
+
+  # Obtain major version number of GCC or Clang
+  STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
+  LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
+
+  # The C and C++ standards are set to 1998 for compiler versions less than 5
+  # and to 2011 for newer compilers.
+  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5)
+    IF(USE_LIBFBI)
+      SET(CFS_CXX_FLAGS "-std=c++0x ${CFS_CXX_FLAGS}")
+    ELSE()
+      SET(CFS_CXX_FLAGS "-std=c++98 ${CFS_CXX_FLAGS}")
+    ENDIF()
+    SET(CFS_C_FLAGS "-std=gnu99")
   ELSE()
-    SET(CFS_CXX_FLAGS "-std=c++98")
+    SET(CFS_CXX_FLAGS "-std=c++11 -Wno-error=unused-variable -DBOOST_NO_AUTO_PTR ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS "-std=c11")
+
+    IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
+      # Fix a problem in Boost 1.5.2 bimap.
+      SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-redeclared-class-member")
+    ENDIF()
   ENDIF()
 
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
   IF(DEBUG)
-    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     # -Wold-style-cast Warnings about old C style casts. Since external libraries
     # make extensive use of it, we switch it off. To filter out the warnings in our own
     # code a command line like the following might be used
@@ -139,7 +160,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   ELSE(DEBUG)
 
-    SET(CFS_C_FLAGS "-std=gnu99 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
+    SET(CFS_C_FLAGS "-Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wall -ftemplate-depth-100")
 
     IF(CFS_ARCH STREQUAL "I386")
@@ -176,13 +197,15 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
   IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR
      CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
+    IF(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
+    ENDIF()
   ENDIF()
 
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
 
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual")
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-c++11-extensions")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})
@@ -197,6 +220,18 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
       #-------------------------------------------------------------------------
     SET(CFS_LINKER_FLAGS "-Wl,-no_compact_unwind")
     ENDIF()
+
+    # Check wether the compiler has the -sysroot= flag.
+    SET(CXX_HAS_SYSROOT_FLAG_SOURCE "
+int
+main ()
+{
+  return 0;
+}
+")
+    SET(CMAKE_REQUIRED_FLAGS "-sysroot=${CMAKE_OSX_SYSROOT}")
+    CHECK_CXX_SOURCE_COMPILES("${CXX_HAS_SYSROOT_FLAG_SOURCE}" CXX_HAS_SYSROOT_FLAG)
+    UNSET(CMAKE_REQUIRED_FLAGS)
   ENDIF()
 
 
@@ -294,8 +329,8 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
-    SET(CFS_C_FLAGS "-O3 -ansi -w0 -Werror ${CFS_C_FLAGS}")
-    SET(CFS_CXX_FLAGS "-O3 -ansi -w0 -Werror ${CFS_CXX_FLAGS}")
+    SET(CFS_C_FLAGS "-ansi -w0 -Werror ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-ansi -w0 -Werror ${CFS_CXX_FLAGS}")
     SET(CFS_SUPPRESSIONS "-wd1125,654,980 -Wno-unknown-pragmas -Wno-comment")
 
     IF(CFS_CXX_COMPILER_VER MATCHES "10\\.")

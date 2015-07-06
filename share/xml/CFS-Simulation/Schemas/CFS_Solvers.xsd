@@ -907,6 +907,7 @@
           <xsd:element name="maxIter" type="xsd:int" default="1000" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="tolerance" type="xsd:double" default="1e-10" maxOccurs="1" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" default="false" minOccurs="0"/>
+          <xsd:element name="zeroInitialValue" type="xsd:boolean" default="false" minOccurs="0"/>
         </xsd:sequence>
       </xsd:extension>
     </xsd:complexContent>

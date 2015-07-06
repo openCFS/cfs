@@ -483,8 +483,8 @@ namespace CoupledField {
     assert(mvec.GetSize() == rvec.GetSize());
     assert(this->ncols_ == mvec.GetSize());
 
-    register UInt k, rs;
-    register UInt c;
+    UInt k, rs;
+    UInt c;
     UInt i, j;
 
     rvec.Init();
@@ -511,8 +511,8 @@ namespace CoupledField {
   inline void SCRS_Matrix<T>::MultAdd( const Vector<T> & mvec,
                                        Vector<T> & rvec ) const {
 
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -538,8 +538,8 @@ namespace CoupledField {
                                        Vector<T> &rvec ) const {
 
 
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -625,8 +625,8 @@ namespace CoupledField {
 
 
     std::stringstream os;
-    register UInt k,rs;
-    register UInt c;
+    UInt k,rs;
+    UInt c;
     UInt i, j;
 
     for ( i = 0; i < this->nrows_; i++ ) {
@@ -939,13 +939,34 @@ namespace CoupledField {
   // *********
   //   Scale
   // *********
-  template<typename T>
-  void SCRS_Matrix<T>::Scale( Double factor ) {
+  template<>
+  void SCRS_Matrix<Double>::Scale( Double factor ) {
     for ( UInt i = 0; i < numEntries_; i++ ) {
       data_[i] *= factor;
     }
   }
   
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Double factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+  template<>
+  void SCRS_Matrix<Double>::Scale( Complex factor ) {
+	  EXCEPTION("CRS: Matrix is Double; you can't multiply be a complex value");
+  }
+
+
+  template<>
+  void SCRS_Matrix<Complex>::Scale( Complex factor ) {
+    for ( UInt i = 0; i < numEntries_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+
   // ************************
   //   Scale on index subset
   // ************************
@@ -1068,7 +1089,7 @@ namespace CoupledField {
     //    --> loop over row / column indices to be set
     std::set<UInt>::const_iterator rowIt, colIt;
     if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
-      register UInt k, rs;
+      UInt k, rs;
       UInt j;
       rowIt = rowIndices.begin();
 
@@ -1099,7 +1120,7 @@ namespace CoupledField {
         //    -> either loop over selected rows and take into account
         //       all columns
         std::set<UInt>::const_iterator rowIt;
-        register UInt k, rs;
+        UInt k, rs;
         UInt j;
         rowIt = rowIndices.begin();
 

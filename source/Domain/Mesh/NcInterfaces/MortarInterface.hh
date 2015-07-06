@@ -127,7 +127,7 @@ class MortarInterface : public BaseNcInterface {
     //! \param r (out) resulting polygon
     bool CutPolys(StdVector< Vector<Double> > &p1,
       StdVector< Vector<Double> > &p2, const bool coPlanarIface,
-      StdVector< Vector<Double> > &r) const;
+      StdVector< Vector<Double> > &r);
 
     //! Returns if a point lies inside a convex polygon. Optionally the
     //! centroid of the polygon may be given in order to save computational
@@ -137,14 +137,19 @@ class MortarInterface : public BaseNcInterface {
     //! \param c (in) pointer to the centroid of the polygon (may be NULL)
     bool PointInsidePoly(const Vector<Double> &p,
       const StdVector< Vector<Double> > &poly,
-      const Vector<Double> *const c) const;
+      const Vector<Double> *const c);
 
-    //! Computes the centroid of a polygon and returns the radius of the
-    //! surrounding circle.
+    //! Computes the centroid of a polygon.
     //! \param p (in) polygon for which the centroid is to be computed.
     //! \param c (out) coordinates of the centroid
-    Double PolyCentroid(const StdVector< Vector<Double> > &p,
-      Vector<Double> &c) const;
+    void PolyCentroid(const StdVector< Vector<Double> > &p,
+                        Vector<Double> &c);
+
+    //! Returns the radius of the surrounding circle.
+    //! \param p (in) polygon for which the centroid is to be computed.
+    //! \param c (in) coordinates of the centroid
+    Double PolyCircumcircle(const StdVector< Vector<Double> > &p,
+                            const Vector<Double> &c);
 
     //! Computes a triangulation for a polygon.
     //! \param p (in) polygon to be triangulized
@@ -178,8 +183,39 @@ class MortarInterface : public BaseNcInterface {
     Double tolRel_;
     RegionIdType region_;
 
+    //caching for Line intersection
+    Vector<Double> c0_Line_, c1_Line_, d0_Line_, d1_Line_, tmp_Line_;
+    Vector<Double> diff0_Line_, diff1_Line_;
+    Vector<Double> s_Line_, t_Line_;
+    Vector<Double> normal_Line_;
+
+    //chache for temporary points in intersect poly
+    //this will prevent functioning in case of OMP!!!!!!
+    //make threadlocal storage for this to work
+    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_;
+    UInt oldPoly1_;
+    UInt oldPoly2_;
+
+    //caching for cutPolys
+    Vector<Double> c1_, c2_, e_;
+    Vector<Double> temp1_, temp2_;
+
     bool isReset_;
 
+    bool precomputeIntersectionCandiates_;
+
+    std::vector<Grid::ElemElemMatch> intersectionCandiatesIdx_;
+
+#ifdef USE_CGAL
+
+    void PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,const StdVector<SurfElem*>& slaveElems);
+
+    //! Map for each dimension (key) a list containing the "boxes" of elements (value)
+    StdVector<UInt> uniqueIdxMaster_;
+    StdVector<UInt> uniqueIdxSlave_;
+    std::vector<Grid::HandleBox> slaveBoxes_;
+    std::vector<Grid::HandleBox> masterBoxes_;
+#endif
 };
 
 } /* namespace CoupledField */

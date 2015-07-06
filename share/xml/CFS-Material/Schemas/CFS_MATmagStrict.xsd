@@ -18,14 +18,14 @@
 
   <xsd:complexType name="DT_MatMagStrict">
     <xsd:sequence>
-	    <xsd:element name="magnetoStrictionTensor" type="DT_MagStrictTensor"/>
+	    <xsd:element name="magnetoStrictionTensor_h" type="DT_MagStrictTensor"/>
     </xsd:sequence>
   </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of piezo coupling tensor                               -->
   <!-- ******************************************************************* -->
-  <xsd:complexType name="DT_MagStrictTensor">
+ <xsd:complexType name="DT_MagStrictTensor">
     <xsd:sequence>
       <xsd:element name="real">
         <xsd:simpleType>

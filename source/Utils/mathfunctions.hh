@@ -59,6 +59,12 @@ namespace CoupledField {
   //! Calculate spherical bessel function of second kind
   Double BesselSphY( Double x, Double v );
 
+  //! Calculate cylindric Hankel function of first kind
+  Complex HankelCyl1( Double x, Double v );
+
+  //! Calculate cylindric Hankel function of second kind
+  Complex HankelCyl2( Double x, Double v );
+
   //! Returns the value ln[gamma(xx)] for xx > 0
   /*!
     \param real value greater zero

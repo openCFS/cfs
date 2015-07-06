@@ -134,7 +134,7 @@ CoefFunction::Generate( MathParser * mp,
       depSpace |= ExprDependsOnSpace(mp, imagVal[i]);
     }
     if( depSpace ) {
-      // --- a) general case: expression
+      // --- a) general case: expression Matrix<MAT_DATA_TYPE> dMat_;
       shared_ptr<CoefFunctionExpression<Complex> > c 
       (new CoefFunctionExpression<Complex>(mp));
       c->SetVector(realVal,imagVal);
