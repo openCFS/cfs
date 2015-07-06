@@ -530,6 +530,9 @@ namespace CoupledField {
     //! \param noStaticCond If set to false, no static condensation will be
     //!                     applied to this element matrix. This is needed e.g.
     //!                     for matrices not being assembled to the system matrix.
+    //! \param isDiagonal if this flag is true, then fctId1 == fctId2
+    //!                   and eqnNrs1 == eqnNrs2. In this case the
+    //!                   assembly get speed up.
     template<typename T>
     void SetElementMatrix( FEMatrixType matrixType, 
                            Matrix<T>& elemmat,
@@ -538,7 +541,8 @@ namespace CoupledField {
                            FeFctIdType fctId2,
                            const StdVector<Integer>& eqnNrs2,
                            bool setCounterPart, 
-                           bool noStaticCond );
+                           bool noStaticCond,
+                           bool isDiagonal );
 
     //! Assemble the local rhs vector to the global one
 
@@ -1116,6 +1120,24 @@ namespace CoupledField {
 
   //! Flag if we have distinct matrix graphs for different matric types
   bool distinctMatGraphs_;
+  //@}
+  // =======================================================================
+  // CACHE SECTION
+  // =======================================================================
+
+  //@{ \name Cached vectors / matrices for fast access
+  //! Index vectors for element matrix assembly
+  StdVector<UInt>* rowIndList1_;
+  StdVector<UInt>* rowList1_;
+  StdVector<UInt>* rowIndList2_;
+  StdVector<UInt>* rowList2_;
+  StdVector<UInt>* colIndList1_;
+  StdVector<UInt>* colList1_;
+  StdVector<UInt>* colIndList2_;
+  StdVector<UInt>* colList2_;
+
+  //! Index vector for element position
+  StdVector<UInt> rowBlocks_, colBlocks_, rowNums_, colNums_;
   //@}
   
   };

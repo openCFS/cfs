@@ -1,0 +1,267 @@
+--- /dev/null	2015-06-21 08:37:37.004671367 -0400
++++ boost/criticalsection.hpp	2015-06-21 13:02:00.497645980 -0400
+@@ -0,0 +1,37 @@
++#ifndef BOOST_WIN32_CRITICAL_SECTION
++#define BOOST_WIN32_CRITICAL_SECTION
++namespace boost
++{
++
++namespace criticalsec
++{
++#ifndef BOOST_USE_WINDOWS_H
++
++struct critical_section
++{
++    struct critical_section_debug * DebugInfo;
++    long LockCount;
++    long RecursionCount;
++    void * OwningThread;
++    void * LockSemaphore;
++#if defined(_WIN64)
++    unsigned __int64 SpinCount;
++#else
++    unsigned long SpinCount;
++#endif
++};
++
++#if BOOST_PLAT_WINDOWS_RUNTIME
++extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSectionEx(critical_section *, unsigned long, unsigned long);
++#else
++extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSection(critical_section *);
++#endif
++extern "C" __declspec(dllimport) void __stdcall EnterCriticalSection(critical_section *);
++extern "C" __declspec(dllimport) bool __stdcall TryEnterCriticalSection(critical_section *);
++extern "C" __declspec(dllimport) void __stdcall LeaveCriticalSection(critical_section *);
++extern "C" __declspec(dllimport) void __stdcall DeleteCriticalSection(critical_section *);
++
++#endif
++}
++}
++#endif
+--- boost/signals2/detail/lwm_win32_cs.hpp	2015-03-25 15:05:25.000000000 -0400
++++ boost/signals2/detail/lwm_win32_cs.hpp	2015-06-21 13:15:06.716631197 -0400
+@@ -27,49 +27,23 @@
+ 
+ #include <boost/predef/platform.h>
+ 
++#include <boost/criticalsection.hpp>
++
+ namespace boost
+ {
+ 
+ namespace signals2
+ {
+ 
+-#ifndef BOOST_USE_WINDOWS_H
+-
+-struct critical_section
+-{
+-    struct critical_section_debug * DebugInfo;
+-    long LockCount;
+-    long RecursionCount;
+-    void * OwningThread;
+-    void * LockSemaphore;
+-#if defined(_WIN64)
+-    unsigned __int64 SpinCount;
+-#else
+-    unsigned long SpinCount;
+-#endif
+-};
+-
+-#if BOOST_PLAT_WINDOWS_RUNTIME
+-extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSectionEx(critical_section *, unsigned long, unsigned long);
+-#else
+-extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSection(critical_section *);
+-#endif
+-extern "C" __declspec(dllimport) void __stdcall EnterCriticalSection(critical_section *);
+-extern "C" __declspec(dllimport) bool __stdcall TryEnterCriticalSection(critical_section *);
+-extern "C" __declspec(dllimport) void __stdcall LeaveCriticalSection(critical_section *);
+-extern "C" __declspec(dllimport) void __stdcall DeleteCriticalSection(critical_section *);
+-
+-#else
+-
+-typedef ::CRITICAL_SECTION critical_section;
+-
+-#endif // #ifndef BOOST_USE_WINDOWS_H
+-
+ class mutex
+ {
+ private:
+ 
+-    critical_section cs_;
++#ifndef BOOST_USE_WINDOWS_H
++    boost::criticalsec::critical_section cs_;
++#else
++    ::CRITICAL_SECTION cs_;
++#endif
+ 
+     mutex(mutex const &);
+     mutex & operator=(mutex const &);
+@@ -78,27 +52,47 @@
+ 
+     mutex()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++#if BOOST_PLAT_WINDOWS_RUNTIME
++        boost::criticalsec::InitializeCriticalSectionEx(&cs_, 4000, 0);
++#else
++        boost::criticalsec::InitializeCriticalSection(&cs_);
++#endif
++#else
+ #if BOOST_PLAT_WINDOWS_RUNTIME
+         InitializeCriticalSectionEx(&cs_, 4000, 0);
+ #else
+         InitializeCriticalSection(&cs_);
+ #endif
++#endif
+     }
+ 
+     ~mutex()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++        boost::criticalsec::DeleteCriticalSection(&cs_);
++#else
+         DeleteCriticalSection(&cs_);
++#endif
+     }
+ 
+     void lock()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++        boost::criticalsec::EnterCriticalSection(&cs_);
++#else
+         EnterCriticalSection(&cs_);
++#endif
+     }
+ // TryEnterCriticalSection only exists on Windows NT 4.0 and later
+ #if (defined(_WIN32_WINNT) && (_WIN32_WINNT >= 0x0400))
+     bool try_lock()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++        return boost::criticalsec::TryEnterCriticalSection(&cs_) != 0;
++#else
+         return TryEnterCriticalSection(&cs_) != 0;
++#endif
+     }
+ #else
+     bool try_lock()
+@@ -109,7 +103,11 @@
+ #endif
+     void unlock()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++        boost::criticalsec::LeaveCriticalSection(&cs_);
++#else
+         LeaveCriticalSection(&cs_);
++#endif
+     }
+ };
+ 
+--- boost/smart_ptr/detail/lwm_win32_cs.hpp	2015-03-20 09:04:59.000000000 -0400
++++ boost/smart_ptr/detail/lwm_win32_cs.hpp	2015-06-21 13:11:33.081636529 -0400
+@@ -24,48 +24,24 @@
+ #  include <windows.h>
+ #endif
+ 
++#include <boost/criticalsection.hpp>
++
+ namespace boost
+ {
+ 
+ namespace detail
+ {
+ 
+-#ifndef BOOST_USE_WINDOWS_H
+-
+-struct critical_section
+-{
+-    struct critical_section_debug * DebugInfo;
+-    long LockCount;
+-    long RecursionCount;
+-    void * OwningThread;
+-    void * LockSemaphore;
+-#if defined(_WIN64)
+-    unsigned __int64 SpinCount;
+-#else
+-    unsigned long SpinCount;
+-#endif
+-};
+-
+-#if BOOST_PLAT_WINDOWS_RUNTIME
+-extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSectionEx(critical_section *, unsigned long, unsigned long);
+-#else
+-extern "C" __declspec(dllimport) void __stdcall InitializeCriticalSection(critical_section *);
+-#endif
+-extern "C" __declspec(dllimport) void __stdcall EnterCriticalSection(critical_section *);
+-extern "C" __declspec(dllimport) void __stdcall LeaveCriticalSection(critical_section *);
+-extern "C" __declspec(dllimport) void __stdcall DeleteCriticalSection(critical_section *);
+-
+-#else
+-
+-typedef ::CRITICAL_SECTION critical_section;
+-
+-#endif // #ifndef BOOST_USE_WINDOWS_H
+ 
+ class lightweight_mutex
+ {
+ private:
+ 
+-    critical_section cs_;
++#ifndef BOOST_USE_WINDOWS_H
++    boost::criticalsec::critical_section cs_;
++#else
++    ::CRITICAL_SECTION cs_;
++#endif
+ 
+     lightweight_mutex(lightweight_mutex const &);
+     lightweight_mutex & operator=(lightweight_mutex const &);
+@@ -74,16 +50,28 @@
+ 
+     lightweight_mutex()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++#if BOOST_PLAT_WINDOWS_RUNTIME
++        boost::criticalsec::InitializeCriticalSectionEx(&cs_, 4000, 0);
++#else
++        boost::criticalsec::InitializeCriticalSection(&cs_);
++#endif
++#else
+ #if BOOST_PLAT_WINDOWS_RUNTIME
+         InitializeCriticalSectionEx(&cs_, 4000, 0);
+ #else
+         InitializeCriticalSection(&cs_);
+ #endif
++#endif
+     }
+ 
+     ~lightweight_mutex()
+     {
++#ifndef BOOST_USE_WINDOWS_H
++        boost::criticalsec::DeleteCriticalSection(&cs_);
++#else
+         DeleteCriticalSection(&cs_);
++#endif
+     }
+ 
+     class scoped_lock;
+@@ -102,12 +90,20 @@
+ 
+         explicit scoped_lock(lightweight_mutex & m): m_(m)
+         {
++#ifndef BOOST_USE_WINDOWS_H
++            boost::criticalsec::EnterCriticalSection(&m_.cs_);
++#else
+             EnterCriticalSection(&m_.cs_);
++#endif
+         }
+ 
+         ~scoped_lock()
+         {
++#ifndef BOOST_USE_WINDOWS_H
++            boost::criticalsec::LeaveCriticalSection(&m_.cs_);
++#else
+             LeaveCriticalSection(&m_.cs_);
++#endif
+         }
+     };
+ };

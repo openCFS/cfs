@@ -51,12 +51,15 @@ ENDIF()
 #-----------------------------------------------------------------------------
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
   SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
 
   SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -arch ${CMAKE_OSX_ARCHITECTURES}")
-  SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
   SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -isysroot ${CMAKE_OSX_SYSROOT}")
+
+  IF(CXX_HAS_SYSROOT_FLAG)
+    SET(CFSDEPS_C_FLAGS "${CFSDEPS_C_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+    SET(CFSDEPS_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -sysroot=${CMAKE_OSX_SYSROOT}")
+  ENDIF()
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 #-----------------------------------------------------------------------------
@@ -84,15 +87,6 @@ ENDIF(NOT CFS_DEPS_CACHE_DIR)
 FILE(TO_CMAKE_PATH
   "${CFS_DEPS_CACHE_DIR}"
   CFS_DEPS_CACHE_DIR)
-
-#-------------------------------------------------------------------------------
-# Build MuParser library
-#-------------------------------------------------------------------------------
-SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
-SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
-SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
-
-INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
 # Build zlib library
@@ -281,6 +275,17 @@ IF(USE_LIS)
 ENDIF(USE_LIS)
 
 #-------------------------------------------------------------------------------
+# Find Library for FFT and IFFT 
+#-------------------------------------------------------------------------------
+IF(USE_FFTW)
+  SET(FFTW_URL "${CFS_DS_SOURCES_DIR}/fftw")
+  SET(FFTW_GZ "fftw-3.3.4.tar.gz")
+  SET(FFTW_MD5 "2edab8c06b24feeb3b82bbb3ebf3e7b3")
+  
+  INCLUDE("${CFSDEPS_DIR}/fftw/External_FFTW.cmake")
+ENDIF(USE_FFTW)
+
+#-------------------------------------------------------------------------------
 # Find SuperLU
 #-------------------------------------------------------------------------------
 IF(USE_SUPERLU)
@@ -294,11 +299,25 @@ ENDIF(USE_SUPERLU)
 #-------------------------------------------------------------------------------
 # Find Boost
 #-------------------------------------------------------------------------------
+SET(BOOST_MAJOR_VER 1)
+SET(BOOST_MINOR_VER 58)
 SET(BOOST_URL "${CFS_DS_SOURCES_DIR}/boost")
-SET(BOOST_GZ "boost_1_52_0.tar.bz2")
-SET(BOOST_MD5 "3a855e0f919107e0ca4de4d84ad3f750")
+SET(BOOST_GZ "boost_${BOOST_MAJOR_VER}_${BOOST_MINOR_VER}_0.tar.bz2")
+SET(BOOST_MD5 "b8839650e61e9c1c0a89f371dd475546")
 INCLUDE("${CFSDEPS_DIR}/boost/External_Boost.cmake")
 
+#-------------------------------------------------------------------------------
+# Build MuParser library
+#-------------------------------------------------------------------------------
+SET(MUPARSER_URL "${CFS_DS_SOURCES_DIR}/muparser")
+SET(MUPARSER_ZIP "muparser_v2_2_2.zip")
+SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
+
+INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
+
+#-------------------------------------------------------------------------------
+# Xerces library is mandatory
+#-------------------------------------------------------------------------------
 SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
 SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
 SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")

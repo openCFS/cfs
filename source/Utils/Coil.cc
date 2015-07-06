@@ -124,11 +124,16 @@ namespace CoupledField {
 
         PtrParamNode alNode = dirNode->Get("analytic");
 
-        // Note: in case of a 2D coil, we only have direction in
+        // Note: in case of a 2D coil, we only have direction in phi (axi) or z (plane)
         if( ptGrid_->GetDim() == 2 ) {
           StdVector<std::string> dirReal(1), dirImag(1);
+          // it is a vector so that the code for generation is the same in the PDE for 2D and 3D
+          // but it has only one component
           dirReal[0] = "1";
           dirImag[0] = "0";
+          if ( actPart.orientFlag < 0 ) {
+            dirReal[0] = "-1";
+          }
           actPart.jUnitVec = CoefFunction::Generate(mParser_, type, dirReal, dirImag );
           
         } else {

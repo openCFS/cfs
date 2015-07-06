@@ -251,9 +251,40 @@ inline AutoDiff<T,DIM> operator*( const T a,
   return ret;
 }
 
-//! AutoDiff / AutoDiff -> not implemented
-//! AutoDiff / Scalar -> not implemented
-//! Scalar / AutoDiff -> not implemented
+//! AutoDiff / AutoDiff 
+template<typename T, UInt DIM>
+inline AutoDiff<T,DIM> operator/( const AutoDiff<T,DIM>& a,
+                                  const AutoDiff<T,DIM>& b ) {
+  AutoDiff<T,DIM> ret;
+  const T av = a.Val();
+  const T bv = b.Val();
+  ret.Val() = av / bv;
+  AD_LOOP( ret.DVal(i) = (a.DVal(i) *  bv - b.DVal(i) * av ) / (bv * bv) ); 
+  return ret;
+}
+
+//! AutoDiff / Scalar 
+template<typename T, UInt DIM>
+inline AutoDiff<T,DIM> operator/( const AutoDiff<T,DIM>& a,
+                                  const T b ) {
+  AutoDiff<T,DIM> ret;
+  const T av = a.Val();
+  ret.Val() = av / b;
+  AD_LOOP( ret.DVal(i) = a.DVal(i) / b ); 
+  return ret;
+}
+
+//! Scalar / AutoDiff 
+template<typename T, UInt DIM>
+inline AutoDiff<T,DIM> operator/( const T a,
+                                  const AutoDiff<T,DIM>& b ) {
+  AutoDiff<T,DIM> ret;
+  const T bv = b.Val();
+  ret.Val() = a / bv;
+  AD_LOOP( ret.DVal(i) = -( b.DVal(i) * a ) / (bv*bv) ); 
+  return ret;
+}
+
 
 //! Inverse
 //! sqr
@@ -278,7 +309,7 @@ inline std::ostream& operator<<( std::ostream& out,
 
 
 
-} // namespace CoupledField
+} // namespace NACS
 
 #undef AD_LOOP
 #endif

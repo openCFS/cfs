@@ -12,6 +12,12 @@ namespace CoupledField {
   FeH1::FeH1() {
     hasICModes_ = false;
     completeType_ = SERENDIPITY_TYPE;
+    UInt numOMPThreads = 1;
+
+  #ifdef _OPENMP
+    numOMPThreads = omp_get_max_threads();
+  #endif
+    locDeriv_.Resize(numOMPThreads);
   }
   
   FeH1::~FeH1() {
@@ -41,34 +47,51 @@ namespace CoupledField {
   
   void FeH1::GetGlobDerivShFnc( Matrix<Double>& deriv, const LocPointMapped& lpm,
                                 const Elem* elem, UInt comp ){
-    // Get local derivative
-    Matrix<Double> locDeriv;
-    
+    UInt aThread = 0;
+  #ifdef OPENMP
+    int at = omp_get_thread_num();
+    if(at<0){
+      EXCEPTION("Current thread number is negative, this may not happen!")
+    }
+    //do we need to check anything?
+    aThread = (UInt)at;
+  #endif
     //check if the shfunction is already computed
     if(shapeFncDerivsAtIp_.find(lpm.lp.number) == 
         shapeFncDerivsAtIp_.end() || comp !=1 ){
-      CalcLocDerivShFnc( locDeriv, lpm.lp.coord, elem, comp);
+      CalcLocDerivShFnc( locDeriv_[aThread], lpm.lp.coord, elem, comp);
       
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lpm.lp.number != LocPoint::NOT_SET ) {
-        shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv;
+        shapeFncDerivsAtIp_[lpm.lp.number] = locDeriv_[aThread];
       }
     }else{
-      locDeriv = shapeFncDerivsAtIp_[lpm.lp.number];
+      locDeriv_[aThread] = shapeFncDerivsAtIp_[lpm.lp.number];
     }
-    deriv = locDeriv * lpm.jacInv;
+    deriv = locDeriv_[aThread] * lpm.jacInv;
   }
   
-  void FeH1::GetLocDerivShFnc( Matrix<Double>& deriv, const LocPoint& lp,
-                               const Elem* elem, UInt comp  ) {
+  Matrix<Double>& FeH1::GetLocDerivShFnc( const LocPoint& lp,
+                                          const Elem* elem, UInt comp  ) {
+    UInt aThread = 0;
+  #ifdef OPENMP
+    int at = omp_get_thread_num();
+    if(at<0){
+      EXCEPTION("Current thread number is negative, this may not happen!")
+    }
+    //do we need to check anything?
+    aThread = (UInt)at;
+  #endif
+
     if(shapeFncDerivsAtIp_.find(lp.number) == shapeFncDerivsAtIp_.end()){
-      CalcLocDerivShFnc( deriv, lp.coord, elem, comp);
+      CalcLocDerivShFnc( locDeriv_[aThread], lp.coord, elem, comp);
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lp.number != LocPoint::NOT_SET) {
-        shapeFncDerivsAtIp_[lp.number] = deriv;
+        shapeFncDerivsAtIp_[lp.number] = locDeriv_[aThread];
       }
+      return locDeriv_[aThread];
     }else{
-      deriv = shapeFncDerivsAtIp_[lp.number];
+      return  shapeFncDerivsAtIp_[lp.number];
     }
   }
   
@@ -94,22 +117,29 @@ namespace CoupledField {
 
   void FeH1::GetGlobDerivShFncICModes( Matrix<Double>& deriv, const LocPointMapped& lpm,
                                        const Elem* elem, UInt comp ){
-    // Get local derivative
-    Matrix<Double> locDeriv;
+    UInt aThread = 0;
+  #ifdef OPENMP
+    int at = omp_get_thread_num();
+    if(at<0){
+      EXCEPTION("Current thread number is negative, this may not happen!")
+    }
+    //do we need to check anything?
+    aThread = (UInt)at;
+  #endif
 
     //check if the shfunction is already computed
     if(icModesDerivsAtIp_.find(lpm.lp.number) == 
         icModesDerivsAtIp_.end() || comp !=1 ){
-      CalcLocDerivShFncICModes( locDeriv, lpm.lp.coord, elem, comp);
+      CalcLocDerivShFncICModes( locDeriv_[aThread], lpm.lp.coord, elem, comp);
 
       //add them to the map only, if we are allowed to!
       if( preComputShFnc_ && lpm.lp.number != LocPoint::NOT_SET ) {
-        icModesDerivsAtIp_[lpm.lp.number] = locDeriv;
+        icModesDerivsAtIp_[lpm.lp.number] = locDeriv_[aThread];
       }
+      deriv = locDeriv_[aThread] * lpm.jacInv;
     }else{
-      locDeriv = icModesDerivsAtIp_[lpm.lp.number];
+      deriv = icModesDerivsAtIp_[lpm.lp.number] * lpm.jacInv;
     }
-    deriv = locDeriv * lpm.jacInv;
   }
 
   void FeH1::GetLocDerivShFncICModes( Matrix<Double>& deriv, const LocPoint& lp,

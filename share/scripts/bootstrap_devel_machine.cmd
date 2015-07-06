@@ -4,7 +4,7 @@
 :: Set URL on CFS++ development server for bootstrap CMake script and 
 :: the mirror directory for the packages.
 ::============================================================================
-set CFS_DEVEL_FTP_SERVER=ftp://lse17.e-technik.uni-erlangen.de:40065
+set CFS_DEVEL_FTP_SERVER=ftp://cfs.mdmt.tuwien.ac.at
 set BOOTSTRAP_CMAKE_SCRIPT=bootstrap_devel_machine_win.cmake
 set BOOTSTRAP_FTP_DIR=%CFS_DEVEL_FTP_SERVER%/scripts
 set BOOTSTRAP_DOWNLOAD_URL=%BOOTSTRAP_FTP_DIR%/%BOOTSTRAP_CMAKE_SCRIPT%

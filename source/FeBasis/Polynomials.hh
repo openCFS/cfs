@@ -251,11 +251,11 @@ inline void TriaInnerLegendre2( T_VEC& values, UInt order,
   //  | y-oringal
   //  +
   //  |\
-  //  |  \            
+  //  |  \
   //  |    \      ... y' direction
   //  |     .\    \\\ x' direction (get scaled with increasing y')
-  //  |  .     \         
-  //  |.         \    
+  //  |  .     \
+  //  |.         \
   //  +-----------+---> x-original
   //
   // The bubble function evaluates to 4*x*y*(1 - x - y), i.e. it

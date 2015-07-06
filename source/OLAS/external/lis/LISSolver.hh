@@ -123,6 +123,14 @@ namespace CoupledField
 
    ///pointer to xml node
    PtrParamNode xml_;
+
+   ///internal status flag for updated matrix computations
+   bool firstSetup_;
+
+   ///reset solution vector to zero if Setup is called
+   bool resetXZero_;
+
+   bool ownMatrixA_;
   };
 }
 #endif

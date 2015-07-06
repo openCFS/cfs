@@ -3149,10 +3149,16 @@ namespace CoupledField {
       // Loop over all nodes an check, if they are already contained in
       // the list of nodes
       const StdVector<UInt> & connect = surfelems[i]->connect;
+      std::set<UInt> s;
       for( UInt iNode = 0; iNode < numNodes; ++iNode ) {
-        if( surfRegionNodes.Find(connect[iNode]) == -1 ) {
-          surfRegionNodes.Push_back(connect[iNode]);
-        }
+        s.insert(connect[iNode]);
+       // if( surfRegionNodes.Find(connect[iNode]) == -1 ) {
+        //surfRegionNodes.Push_back(connect[iNode]);
+       // }
+      }
+      std::set<UInt>::iterator iter = s.begin();
+      for(;iter!=s.end();iter++){
+        surfRegionNodes.Push_back(*iter);
       }
     }
     
@@ -3286,7 +3292,7 @@ namespace CoupledField {
         deltCoords_.Resize(numNodes_);
       } else {
         // Please implement the general case if you need it. But beware!
-        // It's compliated, because you need to renumber all nodes and
+        // It's complicated, because you need to renumber all nodes and
         // therefore change the connectivity as well!
         numNodes_ = coords_.GetSize() - sortedNodes.size();
         coords_.Resize(numNodes_);

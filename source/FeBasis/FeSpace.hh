@@ -663,6 +663,21 @@ protected:
   boost::unordered_map<BaseFE::EntityType, EntityNodesType> vNodesCont_;
   
   // ====================================================================
+  // CACHE ACCESS TO LAST USED EQUATIONS
+  // ====================================================================
+  //@{
+  //! Last accessed element number (only for element access)
+  StdVector<UInt> lastElemNum_;
+
+  //! Last accessed equations numbers
+  StdVector< StdVector<Integer> > lastEqns_;
+
+  //! Temporary vector for equation numbers
+  StdVector< StdVector<UInt> > eqnNodes_;
+
+  //@}
+
+  // ====================================================================
   // Equation Map
   // ====================================================================
   //! Map Nodal BC Equation NUmbers

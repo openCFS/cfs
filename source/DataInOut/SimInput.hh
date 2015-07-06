@@ -41,8 +41,6 @@ namespace CoupledField
     virtual void Warning( const Exception &exc ) = 0;
   };
 
-  extern std::auto_ptr<ErrorHandler> errHandler;  
-
   //! Abstract class for reading in mesh data
 
   //! This class defines an abstract interface for accessing 

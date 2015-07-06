@@ -437,7 +437,20 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           shared_ptr<ElemList> actSDList( new ElemList( ptGrid_ ) );
           RegionIdType actRegion = partIt->first;
           actSDList->SetRegion( actRegion );
-          coilCurrentDens_[actRegion] = eJscaled;
+
+          // implementation of coil current density is difficult because of FeSpaceConst
+          // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
+          // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
+          //    for elements in order to evaluate its expression (FeFunction::GetScalar)
+          // 2) the automatic calculation of the cross section of the coil
+          //    must be implemented because we need the number of turns or the coil cross
+          //    section (only the winding cross section is not enough!)
+          // with these 2 points resolved, the code could look like:
+          /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
+          GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
+          PtrCoefFct test = CoefFunction::Generate( mp_, part, testOp );
+          // now the division by the cross section would be necessary
+          coilCurrentDens_[actRegion] = test;*/
 
           // === -f_A ===
           LinearForm* psiDotInt;
@@ -1002,6 +1015,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // === MAGNETIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> magIntens(new ResultInfo);
     magIntens->resultType = MAG_FIELD_INTENSITY;
+    magIntens->SetVectorDOFs(dim_, isaxi_);
     magIntens->dofNames = vecComponents;
     magIntens->unit = "A/m";
     magIntens->definedOn = ResultInfo::ELEMENT;
@@ -1109,10 +1123,11 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       }
     }
 
+    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
+
     // === H field ===
     // assemble coefficient function field intensity = reluctivity * (flux density - remanence)
     // the remanence is the RHS load flux density
-    Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     shared_ptr<CoefFunctionMulti> hCoef =
         dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_FIELD_INTENSITY]);
     regIt = regions_.Begin();
