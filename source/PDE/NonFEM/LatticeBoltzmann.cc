@@ -3,7 +3,9 @@
 #include <cmath>
 #include <iostream>
 #include <fstream>
-#include <omp.h>
+# ifdef _OPENMP
+  #include <omp.h>
+#endif
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/programOptions.hh"

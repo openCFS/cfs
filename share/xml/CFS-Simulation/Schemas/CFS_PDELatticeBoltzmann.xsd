@@ -117,6 +117,7 @@
 	                <xsd:restriction base="xsd:token">
                     <!-- not yet implemented  --> 
                     <xsd:enumeration value="internal"/>
+                    </xsd:enumeration>
                     <!-- the old interface as in the diploma thesis of thomas guess -->
 	                  <xsd:enumeration value="external_matlab_iface"/>
                     <!-- the new interface as implemented by RRZE (not working yet=) -->
