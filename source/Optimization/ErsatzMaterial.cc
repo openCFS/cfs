@@ -484,7 +484,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
   {
-    if(design->regions.GetSize() == 0 || design->regions[0].GetSize() > 1)
+    if(design->regions.GetSize() != 1)
     {
       StdVector<std::pair<string, double> > result;
       return result; // empty result
@@ -495,10 +495,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // this happens when doing shape optimization with homTracking!
       // we then have no design region and need to skip GetForm
       if(design->GetRegionId() != -1)
-      {
-        assert(false);
-        // FIXME bm = GetForm(design->GetRegionId(), pde, pde, "LinElastInt")->GetMaterial();
-      }
+        bm = pde->GetMaterialData()[design->GetRegionId()];
       Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
       assert(design->GetRegionIds().GetSize() ==1);
       vf.SetElements(design, design->GetRegionId());
@@ -2738,8 +2735,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
+    const double cube_vol = grid->CalcGridVolume();
 // TODO Would be E^* - E^H if expression templates would work
     Matrix<double> diff_tensor;
     diff_tensor = target - hom;
@@ -2847,8 +2843,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out)
   {
-    assert(false);
-    const double cube_vol(0.0); // FIXME grid->CalcVolumeSpannedByNamedNodes());
+    const double cube_vol = grid->CalcGridVolume();
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
