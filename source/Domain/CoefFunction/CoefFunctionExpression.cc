@@ -117,7 +117,7 @@ void CoefFunctionExpression<Double>::GetVector( Vector<Double>& coefVec,
 void CoefFunctionExpression<Double>::GetScalar(Double& coefScalar, 
                                                const LocPointMapped& lpm){
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Vector<Double> pointCoord;
   lpm.shapeMap->Local2Global(pointCoord,lpm.lp);
   this->mp_->SetCoordinates(mHandle_, *(this->coordSysDefault_), pointCoord);
   if(this->derivType_ == NONE){
@@ -562,7 +562,7 @@ void CoefFunctionExpression<Complex>::GetVectorValuesAtCoords( const StdVector<V
   Double real, imag;
   assert(this->dimType_ == CoefFunction::SCALAR);
   // First, obtain global coordinates of current point and  register it at the mathParser
-  Vector<Double> pointCoord;;
+  Vector<Double> pointCoord;
   vals.Resize(points.GetSize());
   vals.Init();
   for(UInt curPoint=0;curPoint < points.GetSize();++curPoint){

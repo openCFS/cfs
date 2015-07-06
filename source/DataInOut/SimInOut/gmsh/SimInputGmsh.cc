@@ -96,7 +96,7 @@ namespace CoupledField {
     //    |                   4:       2 -> 3                
     //    |                   5:       2 -> 4                
     //    3                   6:       3 -> 4                
-    //    |\                                                 
+    //    |\
     //    | \            face 1: edges  1 -3  5  nodes 1 2 4
     //    |__\2_____u         2:       -1  2 -4        1 3 2
     //    1\ /                3:       -2  3 -6        1 4 3
@@ -137,6 +137,13 @@ namespace CoupledField {
 
         // std::cout << "Starting $MeshFormat Block" << std::endl;
         in >> versionNumber;
+        unsigned majorVer = static_cast<unsigned>(versionNumber);
+        if(majorVer > 2) 
+        {
+          EXCEPTION("Gmsh input files with version " << versionNumber
+                    << " are not supported at this time!\n" <<
+                    "The Gmsh reader currently supports up to version 2.")
+        }
         in >> fileType;
         in >> dataSize;
 

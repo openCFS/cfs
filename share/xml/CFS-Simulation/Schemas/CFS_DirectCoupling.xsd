@@ -194,7 +194,7 @@
   <!-- ======================================= -->
   <!--  Magnetostrictive (Mag-Meech) coupling  -->
   <!-- ======================================= -->
-  <xsd:element name="magnetoStrictionDirect" substitutionGroup="PDEBasicDirectCoupling">
+  <xsd:element name="magnetoStrictDirect" substitutionGroup="PDEBasicDirectCoupling">
     <xsd:complexType>
       <xsd:complexContent>
         <xsd:extension base="DT_BasicDirectCoupling">
@@ -492,8 +492,7 @@
       <xsd:enumeration value="elecCharge"/>
     </xsd:restriction>
   </xsd:simpleType>
-
-
+  
   <!-- Piezo - Case -->
   <!-- Global type for specifying the desired  output quantities -->
   <xsd:complexType name="DT_PiezoDirectStoreResults">
@@ -533,6 +532,17 @@
                 <xsd:attribute name="type" type="DT_PiezoSurfRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- SensorArrayResults -->
+        <xsd:element name="sensorArray" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_SensorArrayResult">
+                <xsd:attribute name="type" type="DT_PiezoElemResult"/>
+              </xsd:extension>
+            </xsd:complexContent>           
           </xsd:complexType>
         </xsd:element>
         
@@ -599,7 +609,7 @@
   <xsd:simpleType name="DT_MagStrictElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="mechStress"/>
-      <xsd:enumeration value="magFluxDensity"/>
+      <xsd:enumeration value="magFieldIntensity"/>
     </xsd:restriction>
   </xsd:simpleType>
   

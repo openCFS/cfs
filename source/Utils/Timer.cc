@@ -113,4 +113,40 @@ const string Timer::GetTimeString(const time_duration period)
   return time_output.substr(0, max_length) + suffix; // cut off microseconds
 }
 
+void Timer::PrintTime(std::ostream & stream){
+  if(this->running){
+    stream << "Timer is still running! ";
+    stream << ">> Current time: wall clock: '";
+  }else{
+    stream << ">> Elapsed time: wall clock: '";
+  }
+
+
+  const int walltime((int) this->GetWallTime());
+  const int cputime((int) this->GetCPUTime());
+
+  if(walltime > 120)
+  {
+    const int wallmin((int) (walltime / 60.0));
+    const int cpumin((int) (cputime / 60.0));
+    if(wallmin > 60)
+    {
+      stream << wallmin / 60 << "h " << (wallmin % 60)
+           << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
+    }
+    else
+    {
+      stream << wallmin << "m " << (walltime % 60)
+           << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'";
+    }
+  }
+  else
+  {
+    stream << walltime << "s' CPU time: '"
+         << cputime << "s'";
+  }
+
+  stream << std::endl << std::endl;
+}
+
 

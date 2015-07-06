@@ -74,10 +74,11 @@ LISSolver::LISSolver(PtrParamNode param, PtrParamNode olasInfo, BaseMatrix::Entr
   Integer err = 0;
   err = lis_initialize(&argc,&argv); CHKERR(err);
 
-
-
   infoNode_ = olasInfo;
   xml_ = param;
+  firstSetup_ = true;
+  ownMatrixA_ = false;
+  param->GetValue("zeroInitialValue",resetXZero_,ParamNode::PASS);
 
 }
 
@@ -86,7 +87,13 @@ LISSolver::~LISSolver(){
   err = lis_vector_destroy(x_); CHKERR(err);
   err = lis_vector_destroy(b_); CHKERR(err);
 
-  err = lis_matrix_destroy(A_); CHKERR(err);
+  //matrix A_ shares a pointer in case of real valued problems
+  //there would be a double free otherwise
+  if(ownMatrixA_)
+    err = lis_matrix_destroy(A_); CHKERR(err);
+
+  err = lis_precon_destroy(precond_);CHKERR(err);
+  err = lis_solver_destroy(solver_);CHKERR(err);
 
   lis_finalize();
 }
@@ -101,7 +108,9 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   Integer err=0;
 
   //we create the matrix...
-  err = lis_matrix_create(0,&A_); CHKERR(err);
+  if(firstSetup_){
+    err = lis_matrix_create(0,&A_); CHKERR(err);
+  }
 
   if(stype == BaseMatrix::SPARSE_SYM ){
     //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
@@ -127,8 +136,11 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       err = lis_matrix_set_csr(nnz,rowPtr,colPtr,dataPtr,A_); CHKERR(err);
       err = lis_matrix_assemble(A_); CHKERR(err);
 
-      // Create RHS vector;
-      err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      // Create RHS vector only the first time, assuming that dimensions will not change
+      if(firstSetup_ ){//|| b_->n != dim){
+        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      }
+      ownMatrixA_ = false;
     }
     else {
       // non-symmteric complex case
@@ -146,9 +158,6 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       Complex * dataPtr = const_cast<Complex*>(crs.GetDataPointer());
 
       err = lis_matrix_set_size(A_,dim*2,0); CHKERR(err);
-   
-      err = lis_vector_create(0,&b_); CHKERR(err);
-      err = lis_vector_set_size(b_,0,dim*2); CHKERR(err);
       
       for(UInt row=0; row<dim; row++) {
         for(Integer col=rowPtr[row]; col<rowPtr[row+1]; col++) {
@@ -168,41 +177,50 @@ void LISSolver::Setup(BaseMatrix &sysmat){
           if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,  i,  j, val.real(),A_);
           if(val.imag())
           {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j,-val.imag(),A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, val.imag(),A_);
+            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, val.imag(),A_);
+            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, -val.imag(),A_);
           }
           else
           {
-            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j,-1e0,A_);
-            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim, 1e0,A_);
+            lis_matrix_set_value(LIS_INS_VALUE,i+dim,  j, 1e0,A_);
+            lis_matrix_set_value(LIS_INS_VALUE,  i,j+dim,-1e0,A_);
           }
           if(val.real()) lis_matrix_set_value(LIS_INS_VALUE,i+dim,j+dim, val.real(),A_);
         }
       }
       err = lis_matrix_set_type(A_,LIS_MATRIX_CSR); CHKERR(err);
       err = lis_matrix_assemble(A_); CHKERR(err);
+      if(firstSetup_ ){//|| b_->n != dim){
+        err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+      }
+      ownMatrixA_ = true;
     }
   }
-  err = lis_vector_duplicate(b_,&x_); CHKERR(err);
 
-  lis_vector_set_all(1.0,x_);
+  if(firstSetup_){
+    err = lis_vector_duplicate(b_,&x_); CHKERR(err);
+  }
+  if(resetXZero_ || firstSetup_){
+    lis_vector_set_all(0.0,x_);
+  }
 
   //create the solver
 
   std::string config;
-  createConfigString(xml_,config);
-  err = lis_solver_create(&solver_); CHKERR(err);
-  err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
-
+  if(firstSetup_ || solver_->A != A_){
+    createConfigString(xml_,config);
+    err = lis_solver_create(&solver_); CHKERR(err);
+    err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
+  }
   solver_->A = A_;
+
   err = lis_precon_create(solver_, &precond_);
   CHKERR(err);
   if( err ){
     std::cerr << "There was an error creating the preconditioner. Code: " << err << " ...Going to abort" << std::endl;
     EXCEPTION("ERROR");
   }
-
-
+  firstSetup_ = false;
 }
 
 void LISSolver::Solve( const BaseMatrix &sysmat,
@@ -228,8 +246,8 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
       lis_vector_set_value(LIS_INS_VALUE,i*2,myEnt.real(),b_);
       lis_vector_set_value(LIS_INS_VALUE,i*2+1,myEnt.imag(),b_);
 #endif
-      lis_vector_set_value(LIS_INS_VALUE,i,myEnt.real(),b_);
-      lis_vector_set_value(LIS_INS_VALUE,i+n,myEnt.imag(),b_);
+      b_->value[i] = myEnt.real();
+      b_->value[i+n] = myEnt.imag();
     }
   }
   

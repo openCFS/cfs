@@ -228,6 +228,8 @@ SetupRHEL() {
     cd /opt && \
     rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
     wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
+    unzip org.tmatesoft.svn_1.3.5.standalone.zip || \
+    wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.5.standalone.zip && \
     unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
 
     if [ "$DIST" = "CENTOS" ]; then
@@ -261,10 +263,67 @@ SetupMacOS() {
     ISOK=1
 
     # Install Xcode from the MacOS X installation DVD (optional packages -> Xcode)
-    if [ ! -f /Developer/Applications/Xcode.app/Contents/MacOS/Xcode ]; then
-	echo "Xcode is  not installed. Please install it from your  MacOS X DVD or"
-	echo "download it from Apple."
-	ISOK=0
+    if [ -f /Applications/Xcode.app/Contents/MacOS/Xcode ]; then
+        # We seem to be under Maverick, Yosemite or newer
+        PORTSLIST="gcc49 gcc5"
+
+        # OSX 10.10 headers seem to be incompatible with GCC:
+        # http://stackoverflow.com/questions/27976312/how-to-cope-with-non-gcc-compatible-code-in-os-x-yosemite-core-headers
+        if [ -f /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h ]; then
+
+            # Apply patch to make Yosemite headers GCC compatible.
+            cat << EOF | patch -p0 
+--- /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h.orig	2015-05-25 17:32:41.000000000 +0200
++++ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/Availability.h	2015-05-25 17:33:15.000000000 +0200
+@@ -157,7 +157,7 @@
+     #define __OSX_AVAILABLE_BUT_DEPRECATED_MSG(_osxIntro, _osxDep, _iosIntro, _iosDep, _msg) \\
+                                                     __AVAILABILITY_INTERNAL##_iosIntro##_DEP##_iosDep##_MSG(_msg)
+ 
+-#elif defined(__MAC_OS_X_VERSION_MIN_REQUIRED)
++#elif defined(__MAC_OS_X_VERSION_MIN_REQUIRED) && defined(__clang__)
+     #define __OSX_AVAILABLE_STARTING(_osx, _ios) __AVAILABILITY_INTERNAL##_osx
+     #define __OSX_AVAILABLE_BUT_DEPRECATED(_osxIntro, _osxDep, _iosIntro, _iosDep) \\
+                                                     __AVAILABILITY_INTERNAL##_osxIntro##_DEP##_osxDep
+EOF
+        fi
+        if [ -f /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h ]; then
+
+            # Apply patch to make Yosemite headers GCC compatible.
+            cat << EOF | patch -p0 
+--- /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h.orig	2015-05-25 17:26:42.000000000 +0200
++++ /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.10.sdk/usr/include/dispatch/object.h	2015-05-25 17:27:02.000000000 +0200
+@@ -140,7 +140,11 @@
+  * Instead, the block literal must be copied to the heap with the Block_copy()
+  * function or by sending it a -[copy] message.
+  */
++#ifdef __clang__
+ typedef void (^dispatch_block_t)(void);
++#else
++typedef void* dispatch_block_t;
++#endif
+ 
+ __BEGIN_DECLS
+EOF
+        fi
+    else
+        if [ ! -f /Developer/Applications/Xcode.app/Contents/MacOS/Xcode ]; then
+            echo "Xcode is  not installed. Please install it from your  MacOS X DVD or"
+	    echo "download it from Apple."
+	    ISOK=0
+        fi
+
+        # Check for gfortran.
+        if [ ! -f /usr/bin/gfortran-4.2 ]; then
+            echo "Could not find /usr/bin/gfortran-4.2!"
+            echo "No  proper gfortran is installed.  You can download  and install "
+            echo "gfortran from http://r.research.att.com/tools/"
+            echo
+            echo "Different binaries are also available from:"
+            echo "http://www.macresearch.org/files/gfortran/gfortran-4.3-Nov.mpkg.zip"
+            echo "http://www.macresearch.org/gfortran-leopard"
+            echo "http://hpc.sourceforge.net."
+            ISOK=0
+        fi
     fi
 
     if [ ! -f /usr/bin/gcc ]; then
@@ -280,35 +339,33 @@ SetupMacOS() {
 	ISOK=0
     fi
 
-    # Check for gfortran.
-    if [ ! -f /usr/bin/gfortran-4.2 ]; then
-	echo "Could not find /usr/bin/gfortran-4.2!"
-	echo "No  proper gfortran is installed.  You can download  and install "
-	echo "gfortran from http://r.research.att.com/tools/"
-        echo
-	echo "Different binaries are also available from:"
-	echo "http://www.macresearch.org/files/gfortran/gfortran-4.3-Nov.mpkg.zip"
-	echo "http://www.macresearch.org/gfortran-leopard"
-	echo "http://hpc.sourceforge.net."
-	ISOK=0
-    fi
-
     # Find CMake
     TMPFILE=$(mktemp -t bootstrap) || exit 1
     find /Applications -name 'CMake*.app' | while read dir; do 
-	CMAKE_VERSION=$("$dir/Contents/bin/cmake" --version | cut -d' ' -f3 | sed 's/\(2.8\)\(.*\)/\1/')
+	CMAKE_VERSION=$("$dir/Contents/bin/cmake" --version | head -1 | cut -d' ' -f3)
 	CMAKE_MAJOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f1)
 	CMAKE_MINOR_VERSION=$(echo $CMAKE_VERSION | cut -d'.' -f2)
-	if [ $CMAKE_MAJOR_VERSION -ge 2 -a $CMAKE_MINOR_VERSION -ge 8 ]; then
+
+        if [ $CMAKE_MAJOR_VERSION -ge 2 ]; then
+            if [ $CMAKE_MAJOR_VERSION -eq 2 -a $CMAKE_MINOR_VERSION -lt 8 ]; then
+                ISOK=0
+            fi
+        else
+            ISOK=0
+        fi
+
+
+	if [ "$ISOK" = "1" ]; then
 	    echo "CMAKEDIR=\"$dir/Contents/bin\"" > $TMPFILE;
+            break;
 	fi
     done
 
     . $TMPFILE
     rm $TMPFILE
     if [ "$CMAKEDIR" = "" ]; then
-	echo "CMake 2.8 not found! Please  go to www.cmake.org and download the latest"
-	echo "CMake package for Mac.";
+	echo "CMake 2.8 not found! Please go to www.cmake.org and download the latest"
+	echo "CMake package for Mac and place it in the /Applications folder.";
 	ISOK=0
     fi
 
@@ -321,8 +378,12 @@ SetupMacOS() {
     /opt/local/bin/port selfupdate || ExitFail
 
     # Install required packages
-    /opt/local/bin/port install doxygen graphviz teTeX texlive_texmf-minimal wget  || ExitFail
+    /opt/local/bin/port install doxygen graphviz texlive wget  || ExitFail
     /opt/local/bin/port install git-core +svn || ExitFail
+
+    for pckg in $PORTSLIST; do
+        /opt/local/bin/port $pckg || ExitFail
+    done
 
     # Make sure CMake 2.8 is on PATH
     PATH=$CMAKEDIR:$PATH
@@ -377,7 +438,7 @@ SetupCMake() {
 
     # Define list of mirrors
     mirrors="http://www.cmake.org/files/v$CMAKE_MAJOR_VERSION.$CMAKE_MINOR_VERSION/$PCKG_BASE_NAME.tar.gz
-             ftp://lse17.e-technik.uni-erlangen.de:40065/cfsdeps/sources/cmake/$PCKG_BASE_NAME.tar.gz"
+             ftp://cfs.mdmt.tuwien.ac.at/sources/cmake/$PCKG_BASE_NAME.tar.gz"
 
     MD5SUM="17c6513483d23590cbce6957ec6d1e66"
 

@@ -41,6 +41,9 @@ SET(TARGET_LL ${TARGET_LL}
   simoutinfo
 )
 
+IF(USE_FFTW)
+  LIST(APPEND TARGET_LL ${FFTW_LIBRARY})
+ENDIF(USE_FFTW)
 
 IF(USE_GMV)
   LIST(APPEND TARGET_LL siminoutgmv)
@@ -91,6 +94,7 @@ LIST(APPEND TARGET_LL
 IF(NOT MINGW)
   LIST(APPEND TARGET_LL
     -lpthread
+    -lgfortran
     )
 ENDIF()
   

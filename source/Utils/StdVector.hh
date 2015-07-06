@@ -183,9 +183,14 @@ namespace CoupledField {
     //! Destructor
     ~StdVector();  
 
-    //! Deletes all entries in the vector
-    //! and frees its memory
-    void Clear();
+    //! Clear the vector
+
+    //! This method clears the vector, i.e. it sets its size
+    //! to zero. If keepCapacity is set to false (default),
+    //! also the memory is freed. Otherwise, the old data
+    //! pointer is kept, so successive Resize-operations are
+    //! faster.
+    void Clear(bool keepCapacity = false);
 
     //! Initalizes the vector with a given entry
     /*!
@@ -265,7 +270,13 @@ namespace CoupledField {
     void Import(const TYPE* source, unsigned int size);
     
     //! Add element of the same type at the end of the vector
-    void Push_back(const TYPE & y = TYPE() );
+    inline void Push_back(const TYPE & y = TYPE() ) {
+      if ( size_ < capacity_ ) {
+        data_[size_++] = y;
+      } else {
+        _Push_back_expand(y);
+      }
+    }
 
     //! Delete element from vector on position pos
     void Erase(const unsigned int pos);
@@ -374,6 +385,9 @@ namespace CoupledField {
      bool InWindow(unsigned int index);
 
   protected:
+
+    //! Internal push back command for resizing
+    void _Push_back_expand(const TYPE & y);
 
     //! Length of the vector
     unsigned int size_;
