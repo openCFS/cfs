@@ -39,6 +39,7 @@ class Element:
     self.rotAngle = 0
     self.type = -1
     
+    
   def dump(self):
     print self.nodes
     print self.region
@@ -47,14 +48,21 @@ class Element:
 
 # gid Mesh
 class Mesh:
-  def __init__(self):
+  def __init__(self, nx, ny, nz = -1):
    self.nodes = []    # list 2d tupels (float, float) or 3d tuples
    self.elements = [] # list of Element
    # list of boundary conditon nodes
    self.bc = []       # list of tupel (name, <list of zero based nodes>)
    # list of named nodes (save element in gd)
    self.ne = []       # list of tupel (name, <list of zero based elements>)
-
+   self.nx = nx
+   self.ny = ny
+   self.nz = nz
+  
+  def element(self, i, j):
+    assert(self.nx > 0 and self.ny > 0)
+    return self.elements[i * self.nx + j]
+  
 def show_dense_mesh_image(mesh, shape, binary, size):
   check_img = Image.new("RGB", shape, "white")
   check_pix = check_img.load()
@@ -194,7 +202,7 @@ def create_dense_mesh(input_array, nx, ny,  mesh, threshold, scale, rhomin, mult
 # @param mesh dense mesh (input)
 # @return sparse mesh
 def convert_to_sparse_mesh(dense):
-  sparse = Mesh()
+  sparse = Mesh(dense.nx, dense.ny, dense.nz)
 
   # necessary 0-based nodes as unique set
   nns = set()
@@ -349,9 +357,9 @@ def write_gid_mesh(mesh, filename):
 
   out.close()
   
+  
 ## creates a 2D mesh of predefined geometry
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
-  mesh = Mesh()
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
@@ -360,6 +368,8 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   nx = x_res
   ny = x_res if y_res is None else y_res
+
+  mesh = Mesh(nx, ny)
   
   height = float(ny)/nx if opt_height is None else opt_height  
 
@@ -409,6 +419,15 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
             
       mesh.elements.append(e)
   
+  # in case of inclusion we mark the boundary nodes. 
+  if inclusion:
+    for y in range(ny):
+      for x in range(nx):
+        if 
+        
+    
+  
+  
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))
   mesh.bc.append(("west", range(0, (nx+1)*ny+1, nx+1)))
@@ -426,11 +445,13 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
 
 ## creates a mesh of predefined geometry
 def create_3d_mesh(x_res, y_res, z_res):
-  mesh = Mesh()
 
   nx = x_res
   ny = y_res if y_res <> None else x_res
   nz = z_res if z_res <> None else x_res
+
+  mesh = Mesh(nx, ny, nz)
+
 
   nnx = nx+1
   nny = ny+1
@@ -526,12 +547,14 @@ def create_3d_mesh(x_res, y_res, z_res):
 ## LBM pipe_bend and two_inlet_one_outlet example as used by Pingen et al. 2007
 # @param case pipe_bend or two_inlet_one_outlet 
 def create_lbm(resolution, case):
-  mesh = Mesh()
  
   size = 1.0 
    
   nx = resolution
   ny = nx
+
+  mesh = Mesh(nx, ny)
+
   
   dx = size / nx
   
