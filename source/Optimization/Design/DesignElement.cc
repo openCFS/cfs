@@ -581,6 +581,8 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
     return lse_->shapeGradValue;
   default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value");
   }
+  
+  return -1.0; // cannot happen but to satisfy compiler
 }
 
 
