@@ -35,6 +35,10 @@ namespace CoupledField{
     //! Return acoustic formulation. Can either be pressure or potential.
     SolutionType GetFormulation() const { return formulation_; }
 
+    /** @see virtual SinglePDE::GetNativeSolutionType()
+      *  @return depending on the formulation: ACOU_POTENTIAL or ACOU_PRESSURE. */
+     SolutionType GetNativeSolutionType() const { return formulation_; }
+
   protected:
 
     //! \copydoc SinglePDE::CreateFeSpaces

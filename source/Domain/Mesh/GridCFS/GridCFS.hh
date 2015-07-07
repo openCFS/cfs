@@ -347,11 +347,8 @@ namespace CoupledField
     //! 'Volume' here means, that for 2D elements the third dimension is 
     //! assumed to be 1m.
     //! \param regionId (in) region identifier 
-    //! \param isaxi (in) flag indicating axial symmetry
     //! \param updated (in) flag indicating if updated geometry should be used
-    Double CalcVolumeOfRegion( const RegionIdType regionId ,
-                               bool isaxi = false,
-                               bool updated = false);
+    double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
 
 
     //! \copydoc Grid::CalcVolumeOfEntityList
@@ -433,6 +430,10 @@ namespace CoupledField
     //! new nodes of intersection elements after each time step.
     void DeleteNamedNodes( const std::string &name );
     
+    /** gives the element with the lowest elemNum for a region.
+     * Slow implementation with linear search */
+    Elem* SearchFistRegionElement(RegionIdType reg) const;
+
 
   private:
 
@@ -447,6 +448,7 @@ namespace CoupledField
      * Can be expensive!
      * @return true means that the region is regular */
     bool CheckForRegularRegion(RegionIdType reg);
+
 
     //! helper struct for passing information about nodes
     struct PointSelection{

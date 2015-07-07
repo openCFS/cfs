@@ -155,7 +155,7 @@ namespace CoupledField {
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method creates only a preconditioner
     //! to solver which solves a system Ax=b. */
-    void SetupPrecond(PtrParamNode analysis_id);
+    void SetupPrecond();
 
     //! Trigger setup of solution method.
     
@@ -163,7 +163,7 @@ namespace CoupledField {
     //! is especially important for direct solvers, where typically the
     //! factorisation of the problem matrix will be performed at this stage.
     //! The setup is performed using the system matrix of the linear system.*/
-    void SetupSolver(PtrParamNode analysis_id);
+    void SetupSolver();
 
     //! Trigger setup of eigenvalue solver
 
@@ -187,14 +187,12 @@ namespace CoupledField {
     //! For iterative solvers an initial guess is created by inserting the
     //! Dirichlet values in the correct positions of the solution vector in
     //! case of the penalty formulation.
-    //! \param analysis_id identifies the analysis step.
-    //!        When the linear system is exported via file, the comment is used. 
     //! \param setIDBC true: considers inhomog. Dirichlet b.c. (standard)
     //!                false: is needed in case of nonlinear PDE, incremental formulation!
     //! \note This method must not be called if an eigenfrequency analysis
     //! is performed, since this method is only used to solve a system of the
     //! form Ax=b.*/
-    void Solve( PtrParamNode analysis_id, bool setIDBC = true );
+    void Solve(bool setIDBC = true );
 
     //! Calculate eigenfrequencies of a generalized eigenvalue problem
 
@@ -205,13 +203,12 @@ namespace CoupledField {
     //! The resulting eigenfrequencies are stored into an array, as well as the
     //! resulting error.
     //! \param frequencies Read-only buffer which contains the eigenfrequencies
-    //!                    of the generalized eigenvalue problem
+    //!                    of the generalized eigenvalue problem. The eigenvalues are (2*pi*f)^2 !!
+    //!                    The size of the vector is the number of converged ev
     //! \param err Reached error norm for each eigenvalue
-    //! \return Number of converged eigenvalues
     //! \note This method may only be calaled if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Double>& frequencies, // TODO bloch implement export system
-                               Vector<Double>& err );
+    void CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err);
  
     //! Calculate eigenfrequencies of a quadratic eigenvalue problem
 
@@ -227,8 +224,7 @@ namespace CoupledField {
     //! \return Number of converged eigenvalues
     //! \note This method may only be called if SetupEigenfrequencySolver()
     //!       was called previously.
-    void CalcEigenFrequencies( Vector<Complex>& frequencies,
-                               Vector<Double>& err );
+    void CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err);
 
     //! Calculate eigenmodes of a generalized eigenvalue problem
 
@@ -241,7 +237,7 @@ namespace CoupledField {
     //!                eigenfrequency
     //! \note This method may only ba called if SetupEigenfrequencySolver()
     //!       and CalcEigenfrequencies was called previously.
-    void CalcEigenMode( UInt numMode );
+    void GetEigenMode(UInt numMode);
 
     //@}
 
@@ -850,6 +846,11 @@ namespace CoupledField {
     void RemoveIDBCInfoFromMatrix() const {;};
     //@}
 
+    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
+     * Shall be called for each phase, set each time exactly one parameter to true */
+    void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
+
+
   protected:
 
     //! Auxiliary method for logging information on matrix patterns
@@ -870,9 +871,6 @@ namespace CoupledField {
     //!       functionality.
     void CheckConsistency();
     
-    /** Handle export linear system at the different phases. Checks by itself what needs to be done it anything.
-     * Shall be called for each phase, set each time exactly one parameter to true */
-    void ExportLinSys(bool setup, bool pre_solve, bool post_solve);
 
     //! Generate  SBM matrix according to graph information
     

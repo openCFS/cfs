@@ -53,8 +53,8 @@ DEFINE_LOG(msDriver, "msDriver")
   }
 
 
-  void MultiSequenceDriver::SolveProblem() {
-
+  void MultiSequenceDriver::SolveProblem()
+  {
     std::cout << "++ Starting to solve problem" << std::endl;
 
     // get resultHandler
@@ -122,8 +122,7 @@ DEFINE_LOG(msDriver, "msDriver")
   // *****************
   void MultiSequenceDriver::Init(bool restart) 
   {
-    LOG_DBG(msDriver) << "Initializing MultiSequenceDriver (restart: " 
-        << (restart ? "true" : "false");
+    LOG_DBG(msDriver) << "Init: restart= " << restart;
     
     isRestarted_ = restart;
 
@@ -213,10 +212,8 @@ DEFINE_LOG(msDriver, "msDriver")
     sequenceStep_ = sequenceStep;
     
     // obtain paramNode and infoNode
-    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep)
-        ->Get("analysis");
+    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep)->Get("analysis");
     PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
-    info->SetComment("=== SEQUENCE STEP ===");
     info->Get("index")->SetValue(sequenceStep);
     
     

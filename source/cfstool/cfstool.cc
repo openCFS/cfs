@@ -1106,7 +1106,7 @@ int main(int argc, char** argv)
 
     if (info != NULL)
     {
-      info->Get(ParamNode::PN_ERROR)->SetValue(ex.what());
+      info->Get(ParamNode::ERROR)->SetValue(ex.what());
       info->ToFile(infoFileName);
     }
 

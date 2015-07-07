@@ -72,6 +72,9 @@ public:
   //! Query for complex-valued results
   virtual bool IsComplex() const = 0;
   
+  /** query the constraints if there are periodic boundary conditions */
+  bool HasPeriodicBC() const;
+
   // ========================================================================
   //  Function Meta Information
   // ========================================================================
@@ -164,15 +167,18 @@ public:
   //! Remove external data sources
   void RemoveExternalDataSource();
 
-  //! Get Homogenious Boundary Conditions
-  const HdBcList GetHomDirichletBCs(){
+  /** Get Homogenious Boundary Conditions
+  * Note that we return a reference to allow the modification of the list for optimization purpose */
+  HdBcList& GetHomDirichletBCs(){
     return hdBcs_;
   }
 
-  //! Get Inhomogenious Dirichlet Boundary Conditions
-  const IdBcList GetInHomDirichletBCs(){
+  /** Get Inhomogenious Dirichlet Boundary Conditions.
+   * Note that we return a reference to allow the modification of the list for optimization purpose */
+  IdBcList& GetInHomDirichletBCs(){
     return idBcs_;
   }
+
   
   //! Get Constraint Boundary Conditions
   const ConstraintList GetConstraints(){
@@ -214,7 +220,11 @@ public:
   //! Get solution for specific entity
   virtual void GetEntitySolution( SingleVector& elemSol, 
                         const EntityIterator& it ) = 0;
-                        
+
+  /** shortcut for GetEntitySolution() with EntityIterator */
+  void GetEntitySolution(SingleVector& elemSol, const Elem* elem);
+
+
   //! Get solution as matrix for specific entity
   virtual void GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
                                   const EntityIterator& it ) = 0;

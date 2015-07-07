@@ -11,7 +11,6 @@ namespace CoupledField
 
   //! Forward class declarations
   class BasePDE;
-  class BaseForm;
   class BaseMaterial;
   class StdPDE;
   class SinglePDE;
@@ -30,6 +29,8 @@ namespace CoupledField
   class SimState;
   class BaseDriver;
   class MathParser;
+  class Optimization;
+  class DesignSpace;
   struct Elem;
   
 
@@ -174,6 +175,23 @@ namespace CoupledField
     //! Return Math Parser object for evaluating math expressions
     MathParser * GetMathParser() { return mathParser_; }
 
+    /** Returns the optimization
+     *  @return null if there is none */
+    Optimization* GetOptimization() { return optimization_; };
+
+    /** Sets the optimization from outside, like the driver */
+    void SetOptimization(Optimization* optimization) { this->optimization_ = optimization; };
+
+    /** E.g. the MechPDE needs it in CalcResuls() to write pseudo densities.
+     * @return  NULL but an exception if not set and not silent*/
+    DesignSpace* GetDesign(bool throw_exception = true);
+
+    /** This is set by optimization which holds the data (in a derved form) or when we do loadErsatzMaterial or -x
+     * Is is also reset here by the optimization destructor.
+     * @param ersatzMaterial pointer to a data set. NULL to reset, such that ~Domain() doesn't delete it.
+     * @param regionId the region for the ersatz material */
+     void SetDesign(DesignSpace* data) { this->designSpace_ = data; }
+
     /** The post init does more advancec stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
      * @excpetion checks for error, thefore this is a void method */
@@ -187,6 +205,9 @@ namespace CoupledField
 
     /** e.g. coordinate systems */
     void ToInfo(PtrParamNode info);
+
+    /** has any of the single pdes perdiodic boundary conditions set? */
+    bool HasPerdiodicBC() const;
 
 
   protected:
@@ -304,6 +325,14 @@ namespace CoupledField
 
     //! Mapping between name and coordinate system pointer
     std::map<std::string, CoordSystem*> coordSys_;
+
+    /** an optinal optimizer */
+    Optimization* optimization_;
+
+    /** The ersatz material pointer is set be the domain or it points
+     * to optimization data */
+    DesignSpace* designSpace_;
+
 
     //! Mathematic parser object
     MathParser * mathParser_;

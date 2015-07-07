@@ -101,7 +101,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void SuperLUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void SuperLUSolver<T>::Setup( BaseMatrix &sysMat) {
 
     PtrParamNode sNode;
     sNode = xml_->Get("superlu", ParamNode::INSERT);
@@ -398,7 +398,7 @@ namespace CoupledField {
   void SuperLUSolver<T>::Solve( const BaseMatrix &sysmat,
                                 const BaseVector &rhs,
                                 BaseVector &sol,
-                                PtrParamNode analysis_id ) {
+                                 ) {
 
     LOG_TRACE(superluSolver) << " -----------------------------------------"
                              << "-------------------------------------";

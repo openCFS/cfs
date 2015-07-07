@@ -210,7 +210,7 @@ namespace CoupledField {
     ParamNodeList regionNodes = myParam_->Get("regionList")->GetList("region");
 
     // output to info-file
-    PtrParamNode list = infoNode_->Get(ParamNode::PN_HEADER);
+    PtrParamNode list = infoNode_->Get(ParamNode::HEADER);
 
     // output and set regions_
     for( UInt i = 0; i < regionNodes.GetSize(); i++ )
@@ -319,7 +319,7 @@ namespace CoupledField {
     InitMaterialDependencies();
 	 
     // Todo: Move this part to the definition of damping
-    PtrParamNode in = infoNode_->Get(ParamNode::PN_HEADER);
+    PtrParamNode in = infoNode_->Get(ParamNode::HEADER);
     for(UInt i = 0; i < regions_.GetSize(); i++ )
     {
       PtrParamNode in_ = in->GetByVal("region", "name", ptGrid_->GetRegion().ToString(regions_[i]));
@@ -370,7 +370,7 @@ namespace CoupledField {
 
     // Print information about defined integrators
     if( needsAlgsys_ == true && !isDirectCoupled_ )
-      assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
+      assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
   }
 
   void SinglePDE::Init_Stage3() {
@@ -685,12 +685,12 @@ namespace CoupledField {
      
      
 //    // loads
-//    PtrParamNode base = infoNode_->Get(ParamNode::PN_HEADER)->Get("loads");
+//    PtrParamNode base = infoNode_->Get(ParamNode::HEADER)->Get("loads");
 
 //
 //
 //    // constraints
-//    base = infoNode_->Get(ParamNode::PN_HEADER)->Get("constraints");
+//    base = infoNode_->Get(ParamNode::HEADER)->Get("constraints");
 //    // periodic boundary conditions blow this up.
 //    if(constraints_.GetSize() <= 5 )
 //    {
@@ -705,7 +705,7 @@ namespace CoupledField {
 //        // the names are repeated for the different dofs
 //        std::string dof = actBc.result->GetDofName(actBc.masterDof);
 //        if(!in->HasByVal("dof", dof))
-//          in->Get("dof", ParamNode::APPEND)->SetValue(dof);
+//          in->Get("dof_second")->SetValue(dof); // dof="y" dof="x" is not allowed as an attribute needs to be unique
 //
 //        in->Get("periodic")->SetValue(actBc.periodic);
 //      }
@@ -729,7 +729,7 @@ namespace CoupledField {
     if( !resultNode )
       return;
 
-    // Iterate over all availabe results
+    // Iterate over all available results
     for (it = availResults_.begin(); it != availResults_.end(); it++ ) {
        CheckStoreResult(*it);
     }
@@ -775,8 +775,7 @@ namespace CoupledField {
 
       // Convert enum
       quantity = SolutionTypeEnum.ToString(candidate->resultType);
-      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '"
-                   << quantity << "'";
+      LOG_DBG(singlepde) << pdename_ << ": Searching for storeResults of quantity '" << quantity << "'";
 
       // try to catch possible errors
       try {
@@ -934,11 +933,10 @@ namespace CoupledField {
             
             // try to get result functor
             shared_ptr<ResultFunctor> fnc;
-            if( resultFunctors_.find(candidate->resultType) == 
-                resultFunctors_.end() ) {
-              EXCEPTION( "No result functor defined for results of type '"
-                  << quantity << "'");
-            }
+            if(resultFunctors_.find(candidate->resultType) == resultFunctors_.end())
+              return false;
+              // no more exception EXCEPTION( "No result functor defined for results of type '" << quantity << "'");
+
             fnc = resultFunctors_[candidate->resultType];
             
             // pass result to resulthandler
@@ -1195,6 +1193,15 @@ namespace CoupledField {
     return ret;
   }
   
+  SubTensorType SinglePDE::GetSubTensorType() const
+  {
+    if(subType_ == "") return NO_TENSOR;
+
+    SubTensorType stt;
+    String2Enum(subType_, stt);
+    return stt;
+  }
+
   void SinglePDE::WriteResultsInFile( const UInt kstep,
                                       const Double actTimeFreq ) {
     LOG_DBG(singlepde) << pdename_ 
@@ -2279,13 +2286,14 @@ namespace CoupledField {
                                      bool isComplex,
                                      StdVector<shared_ptr<EntityList> >& entities, 
                                      StdVector<PtrCoefFct >& coef,
-                                     bool& updateGeo ) {
+                                     bool& updateGeo,
+                                     PtrParamNode input) {
 
     // get grip of all elements of that type
-    if( !myParam_->Has("bcsAndLoads") )
+    if(!input && !myParam_->Has("bcsAndLoads") )
       return;
 
-    ParamNodeList elems = myParam_->Get("bcsAndLoads")->GetList(elemName);
+    ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
 
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
@@ -2305,8 +2313,7 @@ namespace CoupledField {
 
         switch( ptGrid_->GetEntityType(entName) ) {
           case EntityList::NAMED_NODES:
-            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, 
-                                                  entName );
+            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
             break;
           case EntityList::REGION:
           case EntityList::NAMED_ELEMS:
@@ -2983,8 +2990,7 @@ namespace CoupledField {
   
   void SinglePDE::DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res ) {
 
-    LOG_DBG(singlepde) << pdename_ << ": Defining field result " 
-        << SolutionTypeEnum.ToString(res->resultType);
+    LOG_DBG(singlepde) << pdename_ << ": Defining field result " << SolutionTypeEnum.ToString(res->resultType);
     
     // create new result functor based on coefficient
     shared_ptr<ResultFunctor> func;

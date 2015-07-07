@@ -559,15 +559,15 @@ namespace CoupledField {
   void SBM_Vector::Export(const std::string& fname, BaseMatrix::OutputFormat format) const {
 
 
-    std::stringstream fileName;
+    std::stringstream ss;
     std::string outFile;
 
     for ( UInt j = 0; j < size_; j++ ) {
 
       // construct file name
-      fileName.str( "" );
-      fileName << fname << '_' << j;
-      outFile = fileName.str();
+      if(size_ > 1)
+        ss << '_' << j;
+      outFile = fname + ss.str();
 
       // export sub-vector
       if ( subVec_[j] != NULL ) {

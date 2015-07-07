@@ -240,8 +240,7 @@ namespace CoupledField {
 
     //! Define enumeration data type
     typedef 
-    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, 
-      ANALYTICAL } ShapeMapType;  
+    enum { NO_TYPE, LAGRANGE, LAGRANGE_BLENDED, ANALYTICAL } ShapeMapType;
 
     //! Enum for shape map type
     static Enum<ShapeMapType> shapeMapType;
@@ -382,7 +381,7 @@ namespace CoupledField {
     //! Calculates the barycenter of the element. For 3D and 2D (z=0 then)
     //! This is the average of every coordinate.
     //! \param barycenter the output. In 2D z=0. If you want 2D then overload */
-    virtual void CalcBarycenter( Vector<Double>& baryCenter )  = 0;
+    virtual void CalcBarycenter(Point& baryCenter )  = 0;
 
     //! Compute length of edge with maximal/minimal size
     virtual void GetMaxMinEdgeLength( Double& max, Double& min)  = 0;
@@ -524,7 +523,7 @@ namespace CoupledField {
     void CalcDiameter( Vector<Double>& diameter );
 
     //! @copydoc ElemShapeMap::CalcBarycenter
-    void CalcBarycenter( Vector<Double>& baryCenter );
+    void CalcBarycenter(Point& baryCenter );
 
     //! @copydoc ElemShapeMap::GetMaxMinEdgeLength
     void GetMaxMinEdgeLength( Double& max, Double& min);

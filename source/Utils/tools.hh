@@ -10,6 +10,8 @@
 
 namespace CoupledField {
 
+  class SingleVector;
+
   template<class TYPE> class Matrix;
   template<class TYPE> class Vector;
   template<class TYPE> class StdVector;
@@ -119,17 +121,11 @@ namespace CoupledField {
 
   inline bool IsNoise(UInt val) { return false; }
 
-  //! power of value
-  template<class T>
-  T pow(T x, UInt power)
-  { T p=x;
-    if (!power)
-      return 1;
-
-    for (UInt i=2; i<=power; i++)
-      p*=x;
-    return p;
+  /** http://stackoverflow.com/questions/1903954/is-there-a-standard-sign-function-signum-sgn-in-c-c */
+  template <typename T> int sgn(T val) {
+      return (T(0) < val) - (val < T(0));
   }
+
 
   //! calculate distance between two points embedded in matrix
 
@@ -189,14 +185,20 @@ namespace CoupledField {
   template<class TYPE, class TYPE2>
   void Add(Matrix<TYPE>& out, const TYPE fac, const Matrix<TYPE2>& other)
   {
-   #ifdef CHECK_INDEX
-      if(out.GetNumRows() != other.GetNumRows() || out.GetNumCols() != other.GetNumCols())
-        EXCEPTION("matrices do not match");
-   #endif
+   assert(out.GetNumRows() == other.GetNumRows() && out.GetNumCols() == other.GetNumCols());
    for(unsigned int r = 0, rn = out.GetNumRows(); r < rn; r++)
      for(unsigned int c = 0, cn = out.GetNumCols(); c < cn; c++)
        out[r][c] += fac * other[r][c];
   }
+
+  template<class TYPE, class TYPE2>
+  void Add(Vector<TYPE>& out, const TYPE2 fac, const Vector<TYPE>& other)
+  {
+   assert(out.GetSize() != other.GetSize());
+   for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
+       out[i] += fac * other[i];
+  }
+
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);
@@ -207,7 +209,11 @@ namespace CoupledField {
 
   /** Calculates the L2 norm of a array. This is for cases where we
    * don't use one of our vectors. E.g. with IPOPT */
-  Double NormL2(const Double* data, const UInt size);
+  double NormL2(const Double* data, const UInt size);
+
+  double NormL2(const Double* data, const Double* data2, const UInt size);
+
+  double NormL2(const SingleVector* data, const SingleVector* data2);
 
   /** Calculate the average of an array */
   double Average(const double* data, unsigned int size);
@@ -217,6 +223,10 @@ namespace CoupledField {
 
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line = false);
+
+  template <class TYPE>
+  std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line = false);
+
 
   /** converts data arrays to strings such that they can be copy & pasted from log to matlab.
    * Redundant to StdVector::ToString() but there the complex special implementation was not possible */

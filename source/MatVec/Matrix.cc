@@ -140,6 +140,39 @@ namespace CoupledField
   }
 
   template<class TYPE>
+  void Matrix<TYPE>::VoigtToHillMandel()
+  {
+    // based on mativ_rot.py
+    assert(IsQuadratic());
+    assert(size_row_ == 3 || size_row_ == 6);
+
+    for(unsigned int i = 0; i < size_row_-1; i++)
+    {
+      data_[i][size_row_-1] *= sqrt(2);
+      data_[size_row_-1][i] *= sqrt(2);
+    }
+
+    data_[size_row_-1][ size_row_-1] *= 2.0;
+  }
+
+    /** Convert from Hill-Mandel to Voigt Notation */
+  template<class TYPE>
+  void Matrix<TYPE>::HillMandelToVoigt()
+  {
+    // based on mativ_rot.py
+    assert(IsQuadratic());
+    assert(size_row_ == 3 || size_row_ == 6);
+
+    for(unsigned int i = 0; i < size_row_-1; i++)
+    {
+      data_[i][size_row_-1] *= 1/sqrt(2);
+      data_[size_row_-1][i] *= 1/sqrt(2);
+    }
+
+    data_[size_row_-1][size_row_-1] *= 0.5;
+  }
+
+  template<class TYPE>
   std::string Matrix<TYPE>::ToString(const int level, const bool newline) const
   {
     std::ostringstream os;
@@ -653,6 +686,25 @@ namespace CoupledField
         data_[0][k] += factor * other_mat.data_[0][k];
   }
 
+  /** Adds the multiple of the transpose of another matrix */
+  template<class TYPE>
+  void Matrix<TYPE>::AddT(const TYPE factor, const Matrix<TYPE>& mat)
+  {
+    const Matrix<TYPE>& other_mat = dynamic_cast<const Matrix<TYPE> & >(mat);
+#ifdef CHECK_INITIALIZED
+    if (size_row_ == 0 || size_col_ == 0 || other_mat.size_row_ == 0 || other_mat.size_col_ == 0)
+      EXCEPTION("undefined Matrix");
+#endif
+
+#ifdef CHECK_INDEX
+    if (size_row_ != other_mat.size_col_ || size_col_ != other_mat.size_row_)
+      EXCEPTION("matrices do not match");
+#endif
+
+    for(UInt k = 0, s = size_row_ ; k < s; ++k)
+      for (UInt kk =0, ss = size_col_; kk < ss; ++kk)
+        data_[k][kk] += factor * other_mat.data_[kk][k];
+  }
 
   /** Assigns a multiple of another matrix */
   template<class TYPE>
@@ -815,6 +867,33 @@ namespace CoupledField
 
     return result;
   }
+
+  template<class TYPE>
+  TYPE Matrix<TYPE>::FrobeniusProduct(const Matrix<TYPE>& other_mat) const
+  {
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+
+    TYPE result(0);
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      result += OpType<TYPE>::dotProduct(data_[0][k], other_mat.data_[0][k]);
+
+    return result;
+  }
+
+  template<>
+  Matrix<double> Matrix<double>::EntryMult(const Matrix<double>& other_mat) const
+  {
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != other_mat.size_row_ || size_col_ != other_mat.size_col_);
+
+    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+      data_[0][k] *= other_mat.data_[0][k];
+
+    return *this;
+  }
+
 
 
   // Perform a matrix-vector multiplication rvec = this*mvec via the inner product
@@ -1695,16 +1774,37 @@ namespace CoupledField
   template<class TYPE>
   void Matrix<TYPE>::ConvertToVec_AppendCols(SingleVector &v) const
   {
-
     Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
 
     vec.Resize(size_row_ * size_col_);
   
     for( UInt actCol=0; actCol < size_col_; actCol++)
       for( UInt actRow=0; actRow < size_row_; actRow++)
-        {
           vec[actCol*size_row_ + actRow] = data_[actRow][actCol];
-        }
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::ConvertToVec_UpperTriangular(SingleVector & v) const
+  {
+    Vector<TYPE> & vec = dynamic_cast<Vector<TYPE>&>(v);
+
+    assert(size_row_ == size_col_);
+    unsigned int size = size_row_;
+
+    vec.Resize(((size * size - size)/2) + size);
+
+    // 2*2 -> 11 22 12           = 00 11 01
+    // 3*3 -> 11 22 33 23 13 12  = 00 11 22 12 02 01
+
+    // diagonal first
+    unsigned int pos = 0;
+    for(unsigned int i = 0; i < size; i++)
+      vec[pos++] = data_[i][i];
+
+    // starting to write the upper triangular from behind upwards
+    for(int c = size-1; c > 0; c--)
+      for(int r = c-1; r >= 0; r--)
+        vec[pos++] = data_[r][c];
   }
 
 
@@ -1727,20 +1827,33 @@ namespace CoupledField
   }
 
 
+  template<class TYPE>
+  void Matrix<TYPE>::GetRow(Vector<TYPE>& vec, UInt row) const
+  {
+    assert(size_row_ > row);
+    vec.Resize(size_col_);
+
+    for(unsigned int i = 0; i < size_col_; i++)
+      vec[i] = (*this)[row][i]; // do it faster if you like
+  }
+
+  template<class TYPE>
+  void Matrix<TYPE>::GetCol(Vector<TYPE>& vec, UInt col) const
+  {
+    assert(size_col_ > col);
+    vec.Resize(size_row_);
+
+    for(unsigned int i = 0; i < size_row_; i++)
+      vec[i] = (*this)[i][col]; // do it faster if you like
+  }
+
+
   /// gets the diagonal elements of a  matrix in a one column matrix
   template<class TYPE>
   void Matrix<TYPE>::GetDiagInMatrix(Matrix<TYPE>& columnMat) const
   {
-
-#ifdef CHECK_INITIALIZED
-    if (size_row_ == 0 || size_col_ == 0) 
-      EXCEPTION("Undefined Matrix!" );
-#endif
-
-#ifdef CHECK_INDEX 
-    if (size_row_ != size_col_ ) 
-      EXCEPTION( "No square- matrix!" );
-#endif
+    assert(size_row_ == 0 || size_col_ == 0);
+    assert(size_row_ != size_col_ ); // check for square matrix
 
     columnMat.Resize(size_row_, 1);
     columnMat.Init();
@@ -1799,6 +1912,9 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric() const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(data_[i][j] != data_[j][i]) return false;
@@ -1809,6 +1925,9 @@ namespace CoupledField
   template<class TYPE>
   bool Matrix<TYPE>::IsSymmetric(double eps) const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(std::abs(data_[i][j] != data_[j][i]) > eps) return false;
@@ -1819,6 +1938,9 @@ namespace CoupledField
   template<>
   bool Matrix<Complex>::IsSymmetric(double eps) const
   {
+    if(!IsQuadratic())
+      return false;
+
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
         if(!close(data_[i][j], data_[j][i], eps)) return false;

@@ -63,6 +63,7 @@ static EnumTuple outputFormatTuples[] =
 {
  EnumTuple( BaseMatrix::MATRIX_MARKET, "matrix-market" ),
  EnumTuple( BaseMatrix::HARWELL_BOEING, "harwell-boeing" ),
+ EnumTuple( BaseMatrix::PLAIN, "plain" )
 };
 
 

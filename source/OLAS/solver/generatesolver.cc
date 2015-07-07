@@ -195,16 +195,6 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
       retSolver = new LDLSolver<Complex>( solverNode, olasInfo );
       LOG_DBG(genSolver) << " GenerateSolver: Generated LDLSolver<COMPLEX>";
     }
-
-#define SOLVER_OBJ( entryType, solverObjType ) \
-  if ( entryType == eType  ) { \
-    retSolver = new solverObjType( solverNode, olasInfo ); \
-    LOG_DBG(genSolver) << " GenerateSolver: Generated " \
-    << MACRO2STRING( solverObjType ) \
-    << " solver";\
-  }
-
-
   }
   break;
 

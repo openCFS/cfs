@@ -61,13 +61,13 @@ namespace CoupledField {
     }
   }
 
-  void  SBMDiagPrecond::Setup( SBM_Matrix &A, PtrParamNode analysis_id ) {
+  void  SBMDiagPrecond::Setup( SBM_Matrix &A ) {
     assert( A.GetNumRows() <= numBlocks_ );
     for( UInt iRow = 0; iRow < A.GetNumRows(); ++iRow ) {
       // If preconditioner for row is defined, apply it
       if( stdPreconds_[iRow] != NULL ) {
         stdPreconds_[iRow]->BasePrecond::GetSetupTimer()->Start();
-        stdPreconds_[iRow]->Setup(A(iRow,iRow),analysis_id);
+        stdPreconds_[iRow]->Setup(A(iRow,iRow));
         stdPreconds_[iRow]->BasePrecond::GetSetupTimer()->Stop();
       }
     }

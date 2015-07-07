@@ -141,7 +141,7 @@ namespace CoupledField {
     };
 
     //! Setup function inherited from class BasePrecond
-    void Setup( CRS_Matrix<T>& sysmatrix, PtrParamNode analysis_id );
+    void Setup( CRS_Matrix<T>& sysmatrix );
 
     //! Applies the preconditioner by solving \f$ LU z = r\f$ for \f$z\f$
 

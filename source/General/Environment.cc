@@ -427,6 +427,13 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case MECH_PSEUDO_DENSITY:
+      case PHYSICAL_PSEUDO_DENSITY:
+      case ELEC_PHYSICAL_PSEUDO_DENSITY:
+      case LBM_PHYSICAL_PSEUDO_DENSITY:
+        return "";
+        break;
+
       default:
         return "unknown";
         break;
@@ -1148,7 +1155,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_THERMAL_STRAIN, "mechThermalStrain");
     SolutionTypeEnum.Add(MECH_STRUCT_INTENSTIY, "mechStructIntensity");
     SolutionTypeEnum.Add(MECH_NORMAL_STRUCT_INTENSITY, "mechNormalStructIntensity");
-    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMises");
+    SolutionTypeEnum.Add(VON_MISES_STRESS, "vonMisesStress");
     SolutionTypeEnum.Add(VON_MISES_STRAIN, "vonMisesStrain");
     SolutionTypeEnum.Add(MECH_KIN_ENERGY_DENS, "mechKinEnergyDensity");
     SolutionTypeEnum.Add(MECH_DEFORM_ENERGY_DENS, "mechDeformEnergyDensity");
@@ -1160,6 +1167,18 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DEF_SURF_VOLUME, "mechDisplacedSurfVolume");
     SolutionTypeEnum.Add(MECH_FORCE, "mechForce");
     SolutionTypeEnum.Add(MECH_NORMAL_STRESS, "mechNormalStress");
+    SolutionTypeEnum.Add(MECH_DYADIC_STRAIN, "mechDyadicStrain");
+    SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
+    SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
+    SolutionTypeEnum.Add(MECH_QUAD_DISP_SUM, "mechQuadDisplacementSum");
+
+
+    SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
+    SolutionTypeEnum.Add(PHYSICAL_PSEUDO_DENSITY, "physicalPseudoDensity");
+    SolutionTypeEnum.Add(MECH_SHAPE, "mechShape");
+    SolutionTypeEnum.Add(MECH_TENSOR_TRACE, "mechTensorTrace");
+    SolutionTypeEnum.Add(MECH_TENSOR, "mechTensor");
+    SolutionTypeEnum.Add(MECH_TENSOR_HILL_MANDEL, "mechTensorHillMandel");
 
     //electrostatics / elctric current conduction
     SolutionTypeEnum.Add(ELEC_POTENTIAL, "elecPotential");
@@ -1169,8 +1188,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_CURRENT, "elecCurrent");
     SolutionTypeEnum.Add(ELEC_POWER_DENSITY, "elecPowerDensity");
     SolutionTypeEnum.Add(ELEC_POWER, "elecPower");
-    SolutionTypeEnum.Add(ELEC_POLARIZATION, "elecPolarization");
-    SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
     SolutionTypeEnum.Add(ELEC_FORCE_VWP, "elecForceVWP");
     SolutionTypeEnum.Add(ELEC_CHARGE, "elecCharge");
     SolutionTypeEnum.Add(ELEC_CHARGE_DENSITY, "elecChargeDensity");
@@ -1178,6 +1195,12 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEC_ENERGY, "elecEnergy");
     SolutionTypeEnum.Add(ELEC_ENERGY_DENSITY, "elecEnergyDensity");
     SolutionTypeEnum.Add(ELEC_RHS_LOAD, "elecRhsLoad");
+
+    SolutionTypeEnum.Add(ELEC_PSEUDO_POLARIZATION, "elecPseudoPolarization");
+    SolutionTypeEnum.Add(ELEC_PHYSICAL_PSEUDO_DENSITY, "elecPhysicalPseudoDensity");
+    SolutionTypeEnum.Add(ELEC_TENSOR, "elecTensor");
+    SolutionTypeEnum.Add(ELEC_TENSOR_TRACE, "elecTensorTrace");
+
     //smoothing PDE
     SolutionTypeEnum.Add(SMOOTH_DISPLACEMENT, "smoothDisplacement");
     SolutionTypeEnum.Add(SMOOTH_VELOCITY, "smoothVelocity");
@@ -1309,6 +1332,17 @@ namespace CoupledField {
     SolutionTypeEnum.Add(OPT_RESULT_7, "optResult_7");
     SolutionTypeEnum.Add(OPT_RESULT_8, "optResult_8");
     SolutionTypeEnum.Add(OPT_RESULT_9, "optResult_9");
+    SolutionTypeEnum.Add(OPT_RESULT_10, "optResult_10");
+    SolutionTypeEnum.Add(OPT_RESULT_11, "optResult_11");
+    SolutionTypeEnum.Add(OPT_RESULT_12, "optResult_12");
+    SolutionTypeEnum.Add(OPT_RESULT_13, "optResult_13");
+    SolutionTypeEnum.Add(OPT_RESULT_14, "optResult_14");
+    SolutionTypeEnum.Add(OPT_RESULT_15, "optResult_15");
+    SolutionTypeEnum.Add(OPT_RESULT_16, "optResult_16");
+    SolutionTypeEnum.Add(OPT_RESULT_17, "optResult_17");
+    SolutionTypeEnum.Add(OPT_RESULT_18, "optResult_18");
+    SolutionTypeEnum.Add(OPT_RESULT_19, "optResult_19");
+    SolutionTypeEnum.Add(OPT_RESULT_20, "optResult_20");
     // independent
     SolutionTypeEnum.Add(LAGRANGE_MULT, "lagrangeMultiplier");
     SolutionTypeEnum.Add(LAGRANGE_MULT_DERIV_1, "lagrangeMultiplierD1");
@@ -1316,9 +1350,6 @@ namespace CoupledField {
     // evaluates the spacial gradient of the solution at the nodes.
     // common for all PDEs, no unit
     SolutionTypeEnum.Add(GRAD_ACOU_SOLUTION, "gradAcousticSolution"); // independent on acoustic formulation
-    SolutionTypeEnum.Add(GRAD_X_DISPLACEMENT, "gradXDisplacement"); // node property!
-    SolutionTypeEnum.Add(GRAD_Y_DISPLACEMENT, "gradYDisplacement"); // node property!
-    SolutionTypeEnum.Add(GRAD_Z_DISPLACEMENT, "gradZDisplacement"); // node property!
     SolutionTypeEnum.Add(GRAD_ELEC_POTENTIAL, "gradElecPotential");
     SolutionTypeEnum.Add(ELEM_DENSITY, "density");
     SolutionTypeEnum.Add(PML_DAMP_FACTOR, "pmlDampFactor");
@@ -1327,6 +1358,14 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ELEM_LOC_DIR, "localDirection");
     SolutionTypeEnum.Add(JACOBIAN, "jacobian");
     SolutionTypeEnum.Add(ASPECT_RATIO, "aspectRatio");
+
+    //LBM velocity
+    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
+    SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
+    SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
+    SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
+    SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );
@@ -1472,3 +1511,5 @@ namespace CoupledField {
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
 }
+
+

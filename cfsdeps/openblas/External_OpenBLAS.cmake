@@ -9,25 +9,6 @@ set(openblas_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/openblas")
 set(openblas_source  "${openblas_prefix}/src/openblas")
 set(openblas_install  "${CFS_BINARY_DIR}")
 
-SET(CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=${openblas_install}
-  -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
-  -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
-  -DCMAKE_Fortran_COMPILER:FILEPATH=${CMAKE_Fortran_COMPILER}
-  -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
-  -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
-  -DCMAKE_Fortran_FLAGS:STRING=${CFSDEPS_Fortran_FLAGS}
-  -DBUILD_TESTING:BOOL=OFF
-)
-
-IF(CMAKE_TOOLCHAIN_FILE)
-  LIST(APPEND CMAKE_ARGS
-    -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-ENDIF()
-
-
 #-------------------------------------------------------------------------------
 # Set up a list of publicly available mirrors, since the non-standard port 
 # number of the FTP server on the CFS++ development server  may not be
@@ -43,11 +24,7 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
 SET(MD5_SUM ${OPENBLAS_MD5})
 
 SET(DLFN "${openblas_prefix}/openblas-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  )
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
   
 #-------------------------------------------------------------------------------
 # Set names of patch file and template file.
@@ -89,10 +66,7 @@ ExternalProject_Add_Step(openblas cfsdeps_download
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  openblas
-)
+SET(CFSDEPS ${CFSDEPS} openblas)
 
 #-------------------------------------------------------------------------------
 # Determine paths of OpenBLAS libraries.
@@ -102,17 +76,9 @@ SET(CFSDEPS
 SET(BLAS_LIB "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}/libopenblas.a;-lpthread")
 SET(LAPACK_LIB "${BLAS_LIB}")
 
-#seems not to be necessary?!
-#IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU")
-#  LIST(APPEND BLAS_LIB ${GFORTRAN_LIBRARY})
-#ENDIF()
 
-SET(OPENBLAS_LIBRARY_DEBUG
-  ${BLAS_LIB}
-  CACHE FILEPATH "OpenBLAS library.")
-SET(OPENBLAS_LIBRARY_RELEASE
-  ${BLAS_LIB}
-  CACHE FILEPATH "OpenBLAS library.")
+SET(OPENBLAS_LIBRARY_DEBUG ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
+SET(OPENBLAS_LIBRARY_RELEASE  ${BLAS_LIB} CACHE FILEPATH "OpenBLAS library.")
 
 #-------------------------------------------------------------------------------
 # Mark paths of OPENBLAS libraries as advanced.

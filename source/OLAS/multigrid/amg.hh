@@ -189,7 +189,7 @@ namespace CoupledField {
  *  </table>
  *  <br><br>
  *  For developing settings and preprocessor flags see files ppflags.hh
- *  and multigrid.hh.
+ *  and multiGrid.hh.
  */
 template <typename T>
 class AMGSolver

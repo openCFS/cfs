@@ -1,0 +1,39 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+            targetNamespace="http://www.cfs++.org"
+            xmlns="http://www.cfs++.org"
+            xmlns:cfs="http://www.cfs++.org"
+            elementFormDefault="qualified">
+  
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema description Ersatz Material
+    </xsd:documentation>
+  </xsd:annotation>
+  
+  <!-- ******************************************************************** -->
+  <!--   Definition of an optimization problem at all                       -->
+  <!-- ******************************************************************** -->
+  <xsd:complexType name="DT_ErsatzMaterial">
+    <!-- Load the ersatz material e.g. from a SIMP optimization to do a
+      normal analysis on it (static, harmonic, ... -->
+    <!-- <loadErsatzMaterial file="pizeo_density.xml" set="last">
+           <region name="mech"/>
+           <region name="piezo"/>
+         </loadErsatzMaterial> 
+    -->
+    <xsd:attribute name="file" use="required" type="xsd:token" />
+    <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in 
+         the ersatz material file -->
+    <xsd:attribute name="set" use="required" type="xsd:token" />
+    <!-- for some special cases, e.g. when we want to use a structural result in a 
+         structural-acoustic setting, we enforce the the use of the given region, and ignore
+         the element numbering. This implies that the element numbering within the region is 
+         of the same order -->
+    <xsd:attribute name="force_region" use="optional" type="xsd:string"/>
+    <!-- this is either design or physical. Physical is used to get start values for slopes
+         by applying a density filter first -->
+    <xsd:attribute name="name" use="optional" type="xsd:string" default="design"/>
+  </xsd:complexType>
+</xsd:schema>
+

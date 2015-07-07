@@ -1,5 +1,5 @@
 #include "multigrid/transfer.hh"
-#include "multigrid/prematrix.hh"
+#include "multigrid/preMatrix.hh"
     
 /**********************************************************/
 #ifdef DEBUG_TO_CERR

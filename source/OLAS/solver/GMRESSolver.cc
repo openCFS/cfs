@@ -71,7 +71,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void GMRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void GMRESSolver<T>::Setup( BaseMatrix &sysMat ) {
     PrivateSetup( sysMat );
   }
 
@@ -154,9 +154,7 @@ namespace CoupledField {
   //   Solve
   // *********
   template<typename T>
-  void GMRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                              const BaseVector &rhs, BaseVector &sol,
-                              PtrParamNode analysis_step ) {
+  void GMRESSolver<T>::Solve( const BaseMatrix &sysMat, const BaseVector &rhs, BaseVector &sol) {
 
 
     bool logging = false;
@@ -266,7 +264,7 @@ namespace CoupledField {
     // ----------------------------
 
     // Number of iterations: Depends on GMRES(m) -> Full GMRES
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     
     if ( maxIter == 1 ) {
       out->Get("numIter")->SetValue( (Integer)stepCount );
@@ -364,7 +362,7 @@ namespace CoupledField {
       for ( k = 2; k <= i; k++ ) {
         aux = hMat_[k-1][i];
         hMat_[k-1][i] =       c_[k-1]  * aux + s_[k-1] * hMat_[k][i];
-        hMat_[ k ][i] = -Conj(s_[k-1]) * aux + c_[k-1] * hMat_[k][i];
+        hMat_[ k ][i] = -conj(s_[k-1]) * aux + c_[k-1] * hMat_[k][i];
       }
 
 
@@ -379,8 +377,8 @@ namespace CoupledField {
       //   Compute the effect of the Givens rotation on the right-hand
       //   side vector in the least-squares problem
       // ---------------------------------------------------------------
-      bVec_[i+1] = -Conj(s_[i]) * bVec_[i];
-      bVec_[ i ] =     c_[i]    * bVec_[i];
+      bVec_[i+1] = -conj(s_[i]) * bVec_[i];
+      bVec_[ i ] =       c_[i]  * bVec_[i];
 
 
       // -----------------------------------------------------------------

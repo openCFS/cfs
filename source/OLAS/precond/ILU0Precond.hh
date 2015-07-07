@@ -68,7 +68,7 @@ namespace CoupledField {
     //! the factors sparse, the factorisation is only incomplete, i.e.
     //! A = LU + R with a remainder matrix R. LU preserves the sparsity pattern
     //! of A, so this is an ILU(0) factorisation.
-    void Setup( CRS_Matrix<T> & sysmat, PtrParamNode analysis_id );
+    void Setup( CRS_Matrix<T> & sysmat );
 
     //! Query type of preconditioner object
 

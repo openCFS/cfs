@@ -71,10 +71,7 @@ namespace CoupledField {
     //! Note that only after this method has been called once, the precontioner
     //! can be applied.
     //! \param sysmat problem matrix
-    //! \param analysis_id references to the info/analysis/progress/step(/substep) 
-    //!                    element with the "analysis_id" attribute 
-    virtual void Setup( BaseMatrix& sysmat,
-                        PtrParamNode analysis_id ) = 0;
+    virtual void Setup( BaseMatrix& sysmat) = 0;
 
     //! Applies the preconditioner by "solving" Az=r for z
 
@@ -84,8 +81,7 @@ namespace CoupledField {
     //! \param sysmat problem matrix
     //! \param r residual vector for current iteration step
     //! \param z output vector computed by the preconditioner
-    virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, 
-                       BaseVector& z) = 0;
+    virtual void Apply(const BaseMatrix& sysmat, const BaseVector& r, BaseVector& z) = 0;
 
     //! Export precontitioned matrix \f[C^{-1}A\f]
     
@@ -184,7 +180,7 @@ namespace CoupledField {
 
     //! This version of the Setup method has an interface fitting to
     //! SBM_Matrices and SBM_Vectors. It is purely virtual.
-    virtual void Setup( SBM_Matrix &A, PtrParamNode analysis_id ) = 0;
+    virtual void Setup( SBM_Matrix &A ) = 0;
 
     //! A call of this method triggers the construction of the preconditioner.
 
@@ -194,7 +190,7 @@ namespace CoupledField {
     //! SBM_Matrix/SBM_Vector type and calling the Setup method with the
     //! corresponding interface. Thus, using this method with SBM matrices
     //! or vectors will lead to a run-time error.
-    virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id );
+    virtual void Setup( BaseMatrix &A );
     
     //! \copydoc BasePrecond::GetPrecondType
     virtual PrecondType GetPrecondType() const {return NOPRECOND;}

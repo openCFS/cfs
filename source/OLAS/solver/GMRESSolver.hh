@@ -221,7 +221,7 @@ namespace CoupledField {
     //! structures. If this is the first call to Setup or if maxKrylovDim_
     //! has changed, it will allocate new memory, freeing previously allocated
     //! memory if necessary.
-    void Setup( BaseMatrix &sysMat, PtrParamNode analysis_step );
+    void Setup( BaseMatrix &sysMat );
     
     //! Set preconditioner object at solver
 
@@ -235,7 +235,7 @@ namespace CoupledField {
     //! \param sol     on input initial guess for the solution \f$x\f$, on
     //!                exit approximate solution
     void Solve( const BaseMatrix &sysMat, 
-		const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step );
+		const BaseVector &rhs, BaseVector &sol );
 
     //! Query type of this solver.
 

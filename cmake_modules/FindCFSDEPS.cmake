@@ -316,15 +316,13 @@ SET(MUPARSER_MD5 "6d77b5cb8096fe2c50afe36ad41bc14a")
 INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 
 #-------------------------------------------------------------------------------
-# If USE_XERCES option is defined find Xerces library
+# Xerces library is mandatory
 #-------------------------------------------------------------------------------
-IF(USE_XERCES)
-  SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
-  SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
-  SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
+SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
+SET(XERCES_GZ "xerces-c-3.1.1.tar.gz")
+SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
   
-  INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
-ENDIF(USE_XERCES)
+INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 
 #-----------------------------------------------------------------------------
 # Find CGAL
@@ -390,15 +388,41 @@ IF(USE_FLANN)
 ENDIF(USE_FLANN)
 
 #-----------------------------------------------------------------------------
-# Find SCPIP
+# Find SCPIP - A special optimizer for topology optimization 
 #-----------------------------------------------------------------------------
 IF(USE_SCPIP)
   SET(SCPIP_PATH "${CFS_BINARY_DIR}/cfsdeps/scpip")
   SET(SCPIP_BZ2 "scpip.tar.bz2")
   SET(SCPIP_MD5 "8afaf8d8d79981d68b8c726ea508471d")
-
+   
   INCLUDE("${CFSDEPS_DIR}/scpip/External_SCPIP.cmake")
 ENDIF(USE_SCPIP)
+
+
+#-----------------------------------------------------------------------------
+# Find SNOPT - A general purpose commercial optimizer 
+#-----------------------------------------------------------------------------
+IF(USE_SNOPT)
+  SET(SNOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(SNOPT_ZIP "snopt-7.2.8-cfsdeps.zip")
+  # SET(SNOPT_MD5 "9e75be8400eb878b9cb3d489084af196") we don't check
+  
+  INCLUDE("${CFSDEPS_DIR}/snopt/External_SNOPT.cmake")
+ENDIF(USE_SNOPT)
+
+#-----------------------------------------------------------------------------
+# Find IPOPT - A general purpos open source optimizer 
+#-----------------------------------------------------------------------------
+IF(USE_IPOPT)
+  SET(IPOPT_PATH "${CFS_BINARY_DIR}/cfsdeps/snopt")
+  SET(IPOPT_ID "Ipopt-3.11.9")
+  SET(IPOPT_TGZ "${IPOPT_ID}.tgz")
+  SET(IPOPT_MD5 "657fa0f2f301f0d7b2a4e5b43e2370f5") 
+  
+  INCLUDE("${CFSDEPS_DIR}/ipopt/External_IPOPT.cmake")
+ENDIF(USE_IPOPT)
+
+
 
 #-----------------------------------------------------------------------------
 # Find ANSYS Customizations

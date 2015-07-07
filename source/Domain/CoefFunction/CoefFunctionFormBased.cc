@@ -1,8 +1,17 @@
 #include "CoefFunctionFormBased.hh"
 
+
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "PDE/StdPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
 
-namespace CoupledField  {
+
+
+namespace CoupledField
+{
+
+DECLARE_LOG(cff)
+DEFINE_LOG(cff, "coefFunctionForm")
 
 // ==========================================================================
 //  FORM BASED COEFFICIENT FUNCTION
@@ -31,7 +40,8 @@ void CoefFunctionFormBased::AddIntegrator( BaseBDBInt* form,
   
   forms_[region] = form;
 }    
-  
+
+
 // ==========================================================================
 //  COEFFICIENT FUNCTION BASED ON DIFFERENTIAL OPERATOR
 // ==========================================================================
@@ -321,13 +331,11 @@ CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
 template<class TYPE> CoefFunctionBdBKernel<TYPE>::
   ~CoefFunctionBdBKernel() {
 }
-template<class TYPE> void CoefFunctionBdBKernel<TYPE>::
-GetScalar( TYPE& coefScal,
-           const LocPointMapped& lpm ) {
-  
-  
+template<class TYPE> void CoefFunctionBdBKernel<TYPE>::GetScalar( TYPE& coefScal, const LocPointMapped& lpm )
+{
   // energy density is factor * elemSol^T * kernel * elemSol
   this->feFct_->GetElemSolution( elemSol_, lpm.ptEl);
+  
   Vector<TYPE> temp;
   if( !this->forms_[lpm.ptEl->regionId]->IsComplex() ) {
     this->forms_[lpm.ptEl->regionId]->CalcKernel(kernelR_, lpm);
@@ -337,20 +345,204 @@ GetScalar( TYPE& coefScal,
     temp = kernel_ * elemSol_;
   }
   coefScal = temp.Inner(elemSol_) * factor_;
-  
 }
-template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::
-ToString() const {
+template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
+{
   std::stringstream out;
   out << "CoefFunctionBdBKernel\n";
-  out << "Result: " << 
-      SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
   return out.str();
 }
 
-template class CoefFunctionBdBKernel<Double>;
+
+template<class TYPE> CoefFunctionDyadicStrain<TYPE>::CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+{
+  LOG_DBG2(cff) << "CFDS:CFDS #forms=" << this->forms_.size();
+
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::TENSOR;
+}
+
+template<class TYPE> CoefFunctionDyadicStrain<TYPE>::~CoefFunctionDyadicStrain() { }
+
+template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
+{
+  LOG_DBG2(cff) << "CFDS:GTS #forms=" << this->forms_.size();
+  numRows = domain->GetGrid()->GetDim() == 2 ? 3 : 6;
+  numCols = numRows;
+}
+
+template<class TYPE> void CoefFunctionDyadicStrain<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
+{
+  LOG_DBG2(cff) << "CFDS:GT #forms=" << this->forms_.size();
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  // LOG_DBG2(cff) << "CFDS:GT lpm=" << lpm.ptEl->elemNum << " form=" << form->GetName() << " B=" << form->GetBOp()->GetName();
+
+  // Matrix<TYPE> B;
+  // shared_ptr<FeSpace> mySpace = domain->GetStdPDE("mechanic")->GetFeFunction(MECH_DISPLACEMENT)->GetFeSpace();
+  // BaseFE* ptFe = mySpace->GetFe( lpm.ptEl->elemNum);
+  // form->GetBOp()->CalcOpMat(B, lpm, ptFe);
+  // LOG_DBG2(cff) << "CFDS:GT B=" << B.ToString(2);
+
+
+  // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
+  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
+  LOG_DBG2(cff) << "CFDS:GT u=" << elemSol_.ToString(2);
+
+  Vector<TYPE> tmp;
+  form->ApplyBMat(tmp, elemSol_, lpm);
+  // LOG_DBG2(cff) << "CFDS:GT B*u=" << tmp.ToString(2);
+
+  // Vector<TYPE> manual;
+  // manual = B * elemSol_;
+  // LOG_DBG2(cff) << "CFDS:GT manual=" << manual.ToString(2);
+
+  tensor.DyadicMult(tmp, tmp.Conj());
+  LOG_DBG2(cff) << "CFDS:GT -> " << tensor.ToString(2);
+}
+
+template<class TYPE> std::string CoefFunctionDyadicStrain<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionDyadicStrain\n";
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+// --------------------------- ddd
+template<class TYPE> CoefFunctionQuadSol<TYPE>::CoefFunctionQuadSol(shared_ptr<BaseFeFunction> feFct) : CoefFunctionFormBased()
+{
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::SCALAR;
+}
+
+template<class TYPE> CoefFunctionQuadSol<TYPE>::~CoefFunctionQuadSol() { }
+
+
+template<class TYPE> void CoefFunctionQuadSol<TYPE>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
+{
+  // the dyadic product (B^T u) (u^T B) meant for integration, so not simply strain^2
+  this->feFct_->GetElemSolution(elemSol_, lpm.ptEl);
+  LOG_DBG2(cff) << "CFSQ:GS u=" << elemSol_.ToString(2);
+
+  coefScal = elemSol_.Inner();
+  LOG_DBG2(cff) << "CFSQ:GS -> " << coefScal;
+}
+
+template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionQuadSol\n";
+  out << "Result: " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+// -----------------------
+
+template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
+{
+  LOG_DBG2(cff) << "CFS:CFS #forms=" << this->forms_.size();
+
+  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  std::tr1::is_same<TYPE,Complex>::value;
+
+  notation_ = notation;
+
+  // set inherited attributes
+  this->dimType_ = CoefFunction::TENSOR;
+}
+
+template<class TYPE> CoefFunctionStiffness<TYPE>::~CoefFunctionStiffness() { }
+
+template<class TYPE> unsigned int CoefFunctionStiffness<TYPE>::GetVecSize() const
+{
+  LOG_DBG2(cff) << "CFS:GVS #forms=" << this->forms_.size();
+
+  unsigned int numRows = 0;
+  unsigned int numCols = 0;
+
+  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+
+  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numCols == numRows);
+
+  if(numRows == 3)
+    return 6;
+  else
+    return 21;
+}
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
+{
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  LOG_DBG(cff) << "CFS:GTV #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+
+  // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
+  Matrix<TYPE> tensor;
+  form->GetCoef()->GetTensor(tensor, lpm);
+  if(notation_ == DesignMaterial::HILL_MANDEL)
+    tensor.VoigtToHillMandel();
+
+  tensor.ConvertToVec_UpperTriangular(vec);
+  LOG_DBG3(cff) << "CFS:GV tensor=" << tensor.ToString(2);
+  LOG_DBG2(cff) << "CFS:GV -> " << vec.ToString(2);
+
+}
+
+template<class TYPE> std::string CoefFunctionStiffness<TYPE>::ToString() const
+{
+  std::stringstream out;
+  out << "CoefFunctionStiffness res " << SolutionTypeEnum.ToString(feFct_->GetResultInfo()->resultType );
+  return out.str();
+}
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const
+{
+  LOG_DBG2(cff) << "CFS:GTS #forms=" << this->forms_.size();
+
+  this->forms_.begin()->second->GetCoef()->GetTensorSize(numRows, numCols);
+
+  assert(numRows == (domain->GetGrid()->GetDim() == 2 ? 3 : 6) );
+  assert(numCols == numRows);
+}
+
+template<class TYPE> void CoefFunctionStiffness<TYPE>::GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm)
+{
+  BaseBDBInt* form = this->forms_[lpm.ptEl->regionId];
+
+  LOG_DBG(cff) << "CFS:GT #forms=" << this->forms_.size() << " form=" << form->GetName() << " analytic=" << form->GetCoef()->IsAnalytic() << " notation=" << notation_;
+
+  // the tensor here is always Voigt notation as we have Voigt on the simulation side of CFS (and Hill-Mandel on the optimization side)
+  form->GetCoef()->GetTensor(tensor, lpm);
+  if(notation_ == DesignMaterial::HILL_MANDEL)
+    tensor.VoigtToHillMandel();
+  LOG_DBG2(cff) << "CFS:GT -> " << tensor.ToString(2);
+}
+
+
+
+template class CoefFunctionBdBKernel<double>;
 template class CoefFunctionBdBKernel<Complex>;
 
+template class CoefFunctionDyadicStrain<double>;
+template class CoefFunctionDyadicStrain<Complex>;
+
+template class CoefFunctionQuadSol<double>;
+template class CoefFunctionQuadSol<Complex>;
+
+template class CoefFunctionStiffness<double>;
+template class CoefFunctionStiffness<Complex>;
 
    
 } // end of namespace

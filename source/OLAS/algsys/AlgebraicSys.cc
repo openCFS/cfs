@@ -30,7 +30,11 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
+
 #include "Utils/Timer.hh"
+#include "Domain/Domain.hh"
+#include "Driver/BaseDriver.hh"
+#include "Driver/AnalysisID.hh"
 
 DECLARE_LOG(algSys)
 DEFINE_LOG(algSys, "algSys")
@@ -479,7 +483,7 @@ namespace CoupledField {
     }
   }
 
-  void AlgebraicSys::SetupPrecond(PtrParamNode analysis_id)  {
+  void AlgebraicSys::SetupPrecond()  {
     
     LOG_TRACE(algSys) << "Setup of preconditioner";
     // check, if system was already created
@@ -494,9 +498,9 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
-      precond_->Setup( (*effMat_)(0,0), analysis_id);
+      precond_->Setup( (*effMat_)(0,0));
     } else {
-      precond_->Setup( *(effMat_), analysis_id);
+      precond_->Setup( *(effMat_));
     }
     
     // stop setup timer of preconditioner
@@ -504,7 +508,7 @@ namespace CoupledField {
 
   }
 
-  void AlgebraicSys::SetupSolver(PtrParamNode analysis_id) {
+  void AlgebraicSys::SetupSolver() {
     
     LOG_TRACE(algSys) << "Setup of solver";
     // check, if system was already created
@@ -519,9 +523,9 @@ namespace CoupledField {
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
-      solver_->Setup( (*effMat_)(0,0), analysis_id );
+      solver_->Setup( (*effMat_)(0,0));
     } else {
-      solver_->Setup( *effMat_, analysis_id);
+      solver_->Setup( *effMat_);
     }
     
    // in any case, pass preconditioner object to solver, if created
@@ -620,7 +624,7 @@ namespace CoupledField {
   }
 
 
-  void AlgebraicSys::Solve(PtrParamNode analysis_id, bool setIDBC) {
+  void AlgebraicSys::Solve(bool setIDBC) {
     
     LOG_TRACE(algSys) << "Solving problem";
 
@@ -637,13 +641,10 @@ namespace CoupledField {
       PtrParamNode sNode = myParam_->Get("solverList");
       PtrParamNode pNode = myParam_->Get("precondList");
 
-      BaseEigenSolver * evs = 
-          GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_, 
-                                     esNode, sNode, pNode,
-                                     myInfo_->Get("solve_eigen") );
-      PtrParamNode in = myInfo_->
-          Get(ParamNode::PN_PROCESS)->Get("conditionNumber", ParamNode::APPEND);
-      in->Get("analysis_id")->SetValue(analysis_id);
+      BaseEigenSolver * evs = GenerateEigenSolverObject( *(sysMat_[SYSTEM]), solStrat_,
+                                     esNode, sNode, pNode, myInfo_->Get("solve_eigen") );
+      PtrParamNode in = myInfo_->Get(ParamNode::PROCESS)->Get("conditionNumber", ParamNode::APPEND);
+
       try {
         evs->CalcConditionNumber( (*sysMat_[SYSTEM])(0,0), condNumber,
                                   ev, err );
@@ -691,7 +692,7 @@ namespace CoupledField {
     }
 
     // Assume that everything will go well
-    PtrParamNode out = myInfo_->Get(ParamNode::PN_PROCESS)->Get("solver");
+    PtrParamNode out = myInfo_->Get(ParamNode::PROCESS)->Get("solver");
     out->Get("solutionIsOkay")->SetValue(true);
 
     // Now modify the right-hand side vector.
@@ -700,75 +701,7 @@ namespace CoupledField {
     if ( setIDBC ) 
       idbcHandler_->AddIDBCToRHS( rhs_ );
 
-    /* BLOCH TODO
-    // Remove the export linear system stuff, it has changed in standardsys.cc an as below
-    // the solve part is commentet out, I see no reason to export linsys also here, it would
-    // require a generalization anyway. Fabian 16.11.07
-    // check if we do export stuff
-    PtrParamNode els = solStrat_->GetExportLinSysNode();
-    std::string file;
-    std::string base;
 
-    if(els) {
-      std::ostringstream os;
-      std::string name = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
-      os << name;
-      std::string id = analysis_id->Get("analysis_id")->As<std::string>();
-      boost::replace_all(id, ":", "_");
-      os << "_" << id;
-      base = os.str();
-    }
-
-    BaseMatrix::OutputFormat format = BaseMatrix::MATRIX_MARKET;
-    if( els->Has("format") ) {
-      std::string fmt = els->Get("format")->As<std::string>();
-      
-      format = BaseMatrix::outputFormat.Parse(fmt);
-    }
-    
-    // check if we do not only want the solution
-    if( els->Has("solution") &&  
-        els->Get("solution")->As<std::string>() != "exclusive") {
-
-      sysMat_[SYSTEM]->Export(base.c_str(), format, NULL);
-
-      switch (precond_->GetPrecondType()) {
-      case BasePrecond::NOPRECOND:
-      case BasePrecond::ID:
-        // don't export anything
-        break;
-      default:
-        // HARD-CODED: Export also preconditioner
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
-        if( onlyOneMatrixBlock_ ) {
-          precond_->GetPrecondSysMat((*copy)(0,0));
-        } else {
-          precond_->GetPrecondSysMat(*copy);
-        }
-        copy->Export((base+"_precond").c_str(), format, NULL);
-
-        delete copy;
-      }
-
-      if(els->HasByVal("mass", true) && sysMat_[MASS] != NULL)
-        sysMat_[MASS]->Export((base+"_mass").c_str(), format, NULL);
-      
-      if(els->HasByVal("damping", true) && sysMat_[DAMPING] != NULL)
-        sysMat_[DAMPING]->Export((base+"_damping").c_str(), format, NULL);
-
-      if(els->HasByVal("stiffness", true) && sysMat_[STIFFNESS] != NULL)
-        sysMat_[STIFFNESS]->Export((base+"_stiffness").c_str(), format, NULL);
-      
-      if(els->HasByVal("auxiliary", true) && sysMat_[AUXILIARY] != NULL)
-        sysMat_[AUXILIARY]->Export((base+"_aux").c_str(), format, NULL);
-
-      // rhs is only in harwell-boing included
-      rhs_->Export( (base+"_rhs").c_str(), format );
-    }
-    if(els && els->HasByVal("initialGuess", true))
-      sol_->Export((base+"_intial_guess").c_str(), format);
-
-    */
 
     // -------------------------------------------
     //  Adjust RHS for due to static condensation
@@ -799,15 +732,11 @@ namespace CoupledField {
     ExportLinSys(false, true, false); // pre_solve
 
     // Trigger solution
-    if( onlyOneMatrixBlock_ ) { 
-      solver_->Solve( (*effMat_)(0,0), 
-                      (*effRhs_)(0), (*effSol_)(0),
-                      analysis_id);
-    } else {
-      solver_->Solve( *effMat_, *effRhs_, 
-                      *effSol_, analysis_id );
-    }
-    
+    if( onlyOneMatrixBlock_ )
+      solver_->Solve( (*effMat_)(0,0), (*effRhs_)(0), (*effSol_)(0));
+    else
+      solver_->Solve( *effMat_, *effRhs_, *effSol_);
+
     // -------------------------------------------
     //  Adjust Sol for due to static condensation
     // -------------------------------------------
@@ -844,11 +773,6 @@ namespace CoupledField {
       delete tmp;
     }
 
-    // BLOCH TODO
-    // Export solution if desired
-    // if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-    //  sol_->Export((base+"_sol").c_str(), format);
-
     // Now de-modify the right-hand side vector
     if ( setIDBC ) 
       idbcHandler_->RemoveIDBCFromRHS( rhs_ );
@@ -859,6 +783,9 @@ namespace CoupledField {
           << "further diagnostics!");
     }
     
+
+    ExportLinSys(false, false, true); // post_solve
+
     // stop timer associated with solver
     solver_->GetSolveTimer()->Stop();
   }
@@ -868,78 +795,94 @@ namespace CoupledField {
   {
     assert((setup && !pre_solve && !post_solve) || (!setup && pre_solve && !post_solve) || (!setup && !pre_solve && post_solve));
 
+    AnalysisID& id = domain->GetDriver()->GetAnalysisId();
+
+    LOG_DBG(algSys) << "ELS setup=" << setup << " pre=" << pre_solve << " post=" << post_solve << " id=" << id.ToString();
+
     if(!solStrat_->GetParamNode()->Has("exportLinSys"))
       return;
 
     PtrParamNode els = solStrat_->GetParamNode()->Get("exportLinSys");
 
-    // TODO consider multiple systems here, this was done by the analysis_id
     std::string base = els->Has("baseName") ? els->Get("baseName")->As<std::string>() : progOpts->GetSimName();
+    if(id.ToString(true) != "") // filename variant
+      base += "_" + id.ToString(true);
 
-    // we export the system always but on only_check_solution and exclusive solution
-    bool exclusive = els->Has("solution") ? els->Get("solution")->As<std::string>() == "exclusive" : false;
+    BaseMatrix::OutputFormat mat_format = BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>());
+    BaseMatrix::OutputFormat vec_format = BaseMatrix::outputFormat.Parse(els->Get("vecFormat")->As<std::string>());
 
-    BaseMatrix::OutputFormat format = els->Has("format") ? BaseMatrix::outputFormat.Parse(els->Get("format")->As<std::string>())
-                                                         : BaseMatrix::MATRIX_MARKET;
+    LOG_DBG(algSys) << "ELS: stiffness=" << (sysMat_.find(STIFFNESS) != sysMat_.end()) << " system=" << (sysMat_.find(SYSTEM) != sysMat_.end());
 
-    if(setup && !exclusive)
+    if(setup)
     {
-      if(els->Get("format")->As<std::string>()  == "harwell-boeing")
-        EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
+      // if(els->Get("format")->As<std::string>()  == "harwell-boeing") ???
+      //  EXCEPTION("Harwell-Boeing Format not implemented for SBM-case");
 
-
-      // Export also preconditioner if we have one
-      if(precond_ != NULL)
+      if(els->Get("precond")->As<bool>())
       {
-        SBM_Matrix * copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
+        assert(precond_ != NULL); // seems to be Id by default !?
+        LOG_DBG(algSys) << "ELS precond: " << BasePrecond::precondType.ToString(precond_->GetPrecondType());
+
+        SBM_Matrix* copy = new SBM_Matrix(*(sysMat_[SYSTEM]));
         if(onlyOneMatrixBlock_)
           precond_->GetPrecondSysMat((*copy)(0,0));
         else
           precond_->GetPrecondSysMat(*copy);
-        copy->Export(base + "_precond", format);
+        copy->Export(base + "_precond", mat_format);
+        delete copy;
       }
 
-      // BLOCH check split_system doesn't exist any more!
-      if(els->HasByVal("split_system", true))
-      {
-        if(sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
-          sysMat_[STIFFNESS]->Export(base + "_stiffness", format);
+      if(els->Get("system")->As<bool>() && sysMat_.find(SYSTEM) != sysMat_.end() && sysMat_[SYSTEM] != NULL)
+        sysMat_[SYSTEM]->Export(base + "_sys", mat_format);
 
-        if(sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
-          sysMat_[DAMPING]->Export(base + "_damping", format);
+      if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
+        sysMat_[STIFFNESS]->Export(base + "_stiffness", mat_format);
 
-        if(sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
-          sysMat_[AUXILIARY]->Export(base + "_aux", format);
+      if(els->Get("damping")->As<bool>() && sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
+        sysMat_[DAMPING]->Export(base + "_damping", mat_format);
 
-        // check if the export _system is really ok in the else case
-        assert(sysMat_[SYSTEM]->GetMaxDiag() == 0.0);
-      }
-      else
-      {
-        sysMat_[SYSTEM]->Export(base + "_system", format);
-      }
+      if(els->Get("mass")->As<bool>() && sysMat_.find(MASS) != sysMat_.end() && sysMat_[MASS] != NULL)
+        sysMat_[MASS]->Export(base + "_mass", mat_format);
+
+      if(els->Get("auxiliary")->As<bool>() && sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
+        sysMat_[AUXILIARY]->Export(base + "_aux", mat_format);
     }
-    if(pre_solve && !exclusive)
+
+    if(pre_solve)
     {
       // rhs is only in harwell-boing included
-      rhs_->Export(base + "_rhs.vec", format);
+      if(els->Get("rhs")->As<bool>())
+        rhs_->Export(base + "_rhs", vec_format);
 
-      if(els->HasByVal("initialGuess", true))
-        sol_->Export(base + "_intial_guess.vec", format);
+      if(els->Get("initialGuess")->As<bool>())
+        sol_->Export(base + "_intial_guess", vec_format);
     }
+
     if(post_solve)
     {
-      // Export solution if desired
-      if(els->Has("solution") && els->Get("solution")->As<std::string>() != "no")
-        sol_->Export(base + "_sol.vec", format);
+      // Export solution if desired. In the eigenvalue case the solutions are the eigenvectors
+      if(els->Get("solution")->As<bool>())
+      {
+        if(!eigenSolver_)
+          sol_->Export(base + "_sol", vec_format);
+        else
+        {
+          // we have not one solution but all the eigenvectors
+          assert(eigenValues_ != NULL);
+          for(unsigned int i = 0; i < eigenValues_->GetSize(); i++)
+          {
+            GetEigenMode(i);
+            sol_->Export(base + "_mode_" + lexical_cast<std::string>(i+1), vec_format);
+          }
+        }
+      }
     }
   }
 
 
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Double>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Double>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating real-valued eigenfrequencies";
 
     // Trigger calculation of eigenvalues
@@ -951,11 +894,12 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true); // the modes are actually not the solution
   }
 
-  void AlgebraicSys::CalcEigenFrequencies( Vector<Complex>& frequencies,
-                                           Vector<Double>& err ) {
-    
+  void AlgebraicSys::CalcEigenFrequencies(Vector<Complex>& frequencies, Vector<Double>& err)
+  {
     LOG_TRACE(algSys) << "Calculating complex-valued eigenfrequencies";
 
     // Check, if eigenvalue solver is quadratic, as only in this case
@@ -975,19 +919,21 @@ namespace CoupledField {
 
     Vector<Double>& errVec = dynamic_cast<Vector<Double>&>(*eigenValError_);
     err = errVec;
+
+    ExportLinSys(false, false, true);
   }
 
-  void AlgebraicSys::CalcEigenMode( UInt numMode )  {
+  void AlgebraicSys::GetEigenMode( UInt numMode )  {
     
-    LOG_TRACE(algSys) << "Calculating eigenmode #" << numMode;
+    LOG_DBG(algSys) << "GEM #" << numMode;
     if(eigenSolver_->IsQuadratic() || eigenSolver_->IsBloch()) {
-       Vector<Complex> & solHelp = dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-       eigenSolver_->CalcComplexEigenMode( numMode, solHelp );
+       Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+       eigenSolver_->GetComplexEigenMode(numMode, solHelp);
     } else {
-      Vector<Complex> & solHelp =
-        dynamic_cast<Vector<Complex> &> ((*sol_)(0));
-      eigenSolver_->CalcEigenMode( numMode, solHelp );
+      Vector<Complex>& solHelp = dynamic_cast<Vector<Complex> &>((*sol_)(0));
+      eigenSolver_->GetEigenMode(numMode, solHelp);
     }
+    LOG_DBG2(algSys) << "GEM -> " << sol_->ToString();
   }
 
   void AlgebraicSys::GraphSetupInit( UInt numFcts, 
@@ -2615,25 +2561,31 @@ namespace CoupledField {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
       Double entry = 0.0;
 
-      for( UInt i = 0; i < size; ++i ) {
-
+      // #pragma omp parallel for private (entry)
+      for( UInt i = 0; i < size; ++i )
+      {
         // if index number is larger the lastFree dof, insert Dirichlet value
         // (just if setIDBC is true!)
-        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex ) {
+        if( indices[i] > blockInfo_[blockNums[i]]->numLastFreeIndex )
+        {
           if ( setIDBC ) 
             idbcHandler_->GetIDBC(blockNums[i],  indices[i], entry);
           else 
             entry = 0.0;
-        } else {
+        }
+        else
+        {
           sol_->GetPointer(blockNums[i])->GetEntry(indices[i]-1,entry);
         }
         retVec[i] = entry;
       }
 
-    } else {
+    }
+    else
+    {
       Vector<Complex> & retVec = dynamic_cast<Vector<Complex>&>( ptSol );
       Complex entry = 0.0;
-
+      // #pragma omp parallel for private (entry)
       for( UInt i = 0; i < size; ++i ) {
 
         // if index number is larger the lastFree dof, insert Dirichlet value

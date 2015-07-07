@@ -61,11 +61,7 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
 SET(MD5_SUM ${ARPACK_MD5})
 
 SET(DLFN "${ARPACK_prefix}/arpack-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-  ) 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY) 
 
 #-------------------------------------------------------------------------------
 # The ARPACK external project
@@ -93,18 +89,12 @@ ExternalProject_Add_Step(arpack cfsdeps_download
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  arpack
-)
+SET(CFSDEPS ${CFSDEPS} arpack)
 
 #-------------------------------------------------------------------------------
 # Determine paths of ARPACK libraries.
 #-------------------------------------------------------------------------------
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
-SET(ARPACK_LIBRARY
-  "${LD}/libarpack.a"
-  CACHE FILEPATH "ARPACK library.")
+SET(ARPACK_LIBRARY "${LD}/libarpack.a" CACHE FILEPATH "ARPACK library.")
 
-# MARK_AS_ADVANCED(ARPACK_INCLUDE_DIR)
 MARK_AS_ADVANCED(ARPACK_LIBRARY)

@@ -26,7 +26,7 @@ namespace CoupledField {
     //! Initialization method
     void Init(bool restart);
 
-    /** @see BaseDriver::SolveProblem(double) */  
+    /** @see BaseDriver::SolveProblem() */
     void SolveProblem();
         
     /** @see BaseDriver::StoreResults(double) */  

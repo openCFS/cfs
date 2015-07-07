@@ -552,7 +552,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   //  STATIC COUPLED ITERATION
   // ========================================================================
 
-  void IterSolveStep::SolveStepStatic(PtrParamNode analysis_id) {
+  void IterSolveStep::SolveStepStatic() {
     LOG_TRACE(itersolvestep) << "----------------------";
     LOG_TRACE(itersolvestep) << " Solving static step  ";
     LOG_TRACE(itersolvestep) << "----------------------\n";
@@ -601,7 +601,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic(analysis_id);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic();
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
       } // end of for-loop
 
@@ -681,7 +681,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   
   
   
-  void IterSolveStep::SolveStepTrans(PtrParamNode analysis_id) {
+  void IterSolveStep::SolveStepTrans() {
 
     LOG_TRACE(itersolvestep) << "--------------------------------------"; 
     LOG_TRACE(itersolvestep) <<" Solving transient step " << actStep_ 
@@ -736,7 +736,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
         rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
         rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
         rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
-        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans(analysis_id);
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
         rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
       } // end of for-loop
 
@@ -809,7 +809,7 @@ DEFINE_LOG(itersolvestep, "itersolvestep")
   {
   }
   
-  void IterSolveStep::SolveStepHarmonic(PtrParamNode analysis_id)
+  void IterSolveStep::SolveStepHarmonic()
   {
     EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
   }

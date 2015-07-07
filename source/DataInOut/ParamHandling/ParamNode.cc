@@ -21,18 +21,17 @@ namespace CoupledField
 {
 
 /** set the global names for fields */
-const string ParamNode::PN_HEADER = "header";
-const string ParamNode::PN_PROCESS = "process";
-const string ParamNode::PN_SUMMARY = "summary";
+const string ParamNode::HEADER = "header";
+const string ParamNode::PROCESS = "process";
+const string ParamNode::SUMMARY = "summary";
 
-const string ParamNode::PN_WARNING = "warning";
-const string ParamNode::PN_ERROR = "error";
+const string ParamNode::WARNING = "warning";
+const string ParamNode::ERROR = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
  *  Filed in cfs.cc. The corresponding
  * "extern PtrParamNode param;" is in ParamNode.hh */
-PtrParamNode param;
-PtrParamNode info;
+
 
 ParamNode::ParamNode(ActionType defaultAction, NodeType type,
                      bool allowFileOutput  ) :
@@ -64,7 +63,7 @@ void ParamNode::SetValue(const boost::any& value)
   assert(value_.type() != typeid(std::string) || (boost::any_cast<std::string&>(value_).find('>') == std::string::npos));
 
 
-  if(this->name_ == PN_WARNING)
+  if(this->name_ == WARNING)
     std::cerr  << std::endl << fg_red << "WARNING: " << boost::any_cast<std::string>(value_)<< fg_reset << std::endl;
 }
 void ParamNode::SetValue(const char* value)
@@ -84,17 +83,21 @@ void ParamNode::SetValue(PtrParamNode node, bool overwrite_name)
   if(overwrite_name)
     SetName(node->GetName());
 
+  assert(name_ != "");
+
   // set the value
   SetValue(node->value_);
 
   ParamNodeList& children = node->GetChildren();
+  // reserve own children size
+  children_.Resize(children.GetSize());
 
-  // run recusively through all children
+  // run recursively through all children
   for(UInt i = 0; i < children.GetSize(); i++)
   {
     // add new element
     PtrParamNode other = children[i];
-    PtrParamNode new_node = Get(other->GetName(), APPEND);
+    PtrParamNode new_node = SetNewChild(other->GetName(), i); // faster for large arrays
     new_node->SetValue(other, false);
   }
 }
@@ -324,6 +327,26 @@ PtrParamNode ParamNode::GetByVal(const std::string& parent,
   return this->GetByVal(parent, child, std::string(value), action);
 }
 
+
+PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,  const string& value1,
+                                                           const string& child2,  const string& value2)
+{
+  ParamNodeList l = GetListByVal(parent_raw, child1, value1);
+  if(l.IsEmpty())
+    EXCEPTION("parent " << parent_raw << " has no child " << child1 << " with value " << value1);
+
+  for(unsigned int i = 0; i < l.GetSize(); i++)
+  {
+    // assert(l[i]->HasByVal(child1, value1));
+    if(l[i]->HasByVal(child2, value2))
+      return l[i];
+  }
+
+  EXCEPTION("parent " << parent_raw << " has  child " << child1 << " with value " << value1 <<
+            " but not also child " << child2 << " with value " << value2);
+}
+
+
 ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
@@ -379,6 +402,23 @@ ParamNodeList ParamNode::GetListByVal(const string& parent,
 /************************************************************************
  * D A T A    G E T   M E T H O D S
  ************************************************************************/
+
+StdVector<std::string>& ParamNode::GetFastBulkBlock()
+{
+  if(value_.empty())
+  {
+    StdVector<std::string> tmp;
+    SetValue(tmp);
+    return boost::any_cast<StdVector<std::string>&>(value_); // As() is const!
+  }
+  else
+  {
+    if(value_.type() == typeid(StdVector<std::string>))
+      return boost::any_cast<StdVector<std::string>&>(value_);
+
+    EXCEPTION("cannot provide fast bulk block, value already set to '" << ToString(0) << "'");
+  }
+}
 
 template<typename TYPE>
 TYPE ParamNode::As() const
@@ -672,9 +712,17 @@ PtrParamNode ParamNode::TokenizedHasAndGet(const string& name,
   return ptr;
 }
 
+std::string ParamNode::ToString(int depth) const
+{
+  std::string tmp;
+  ToString(tmp, depth);
+  return tmp;
+}
+
+
 void ParamNode::ToString(std::string& ret, int depth) const
 {
-  // This method is currently very hardcoded.
+  // This method is currently very hard coded.
   // In the future we rely on a general formatter class,
   // which can convert the special types
   // default case for not value (but children)
@@ -781,6 +829,12 @@ void ParamNode::ToString(std::string& ret, int depth) const
     ret = timer->ToXMLFormat(name_);
     return;
   }
+
+  if (value_.type() == typeid(StdVector<std::string>))
+  {
+    ret = "error in fast bulk block writing"; // this should not be printed
+    return;
+  }
 }
 
 void ParamNode::ToXML(std::ostream& os, int depth)
@@ -804,7 +858,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
   //Sort(); // (HEADER before) PROCESS before SUMMARY
 
   // if we start a new element or are part of an element is same/same
-  os << std::endl << string(depth, ' ');
+  os << std::endl << string(std::max(depth, 0), ' ');
 
   if (type_ != COMMENT && type_ != SELF_XML)
   {
@@ -845,6 +899,23 @@ void ParamNode::ToXML(std::ostream& os, int depth)
     return; // done, everything is printed!
   }
 
+  // the special fast bulk block mode
+  if(type_ == BULK)
+  {
+    os << ">" << std::endl;
+    StdVector<std::string>& block = GetFastBulkBlock();
+    assert(!block.IsEmpty());
+    for(UInt i = 0, n = block.GetSize(); i < n; i++)
+    {
+      os << string(std::max(depth + 2, 0), ' ');
+      os << block[i] << std::endl;
+    }
+    os << string(std::max(depth, 0), ' ');
+    os << "</" << name_ << ">";
+    return;
+  }
+
+
 
   if (only_attributes)
   {
@@ -857,6 +928,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
       // check, if value is set
       if (!value_.empty())
       {
+        assert(true); // this should not be possible and be checked in AdjustType()
         os << "> " << strValue << "</" << name_ << ">" << std::endl;
       }
       else
@@ -895,7 +967,7 @@ void ParamNode::ToXML(std::ostream& os, int depth)
     // do we close in the same line?
     if (chsize != 0 && !endl_written)
       os << std::endl;
-    os << string(depth, ' ');
+    os << string(std::max(depth, 0), ' ');
     if (type_ != COMMENT)
     {
       os  << "</" << name_ << ">";
@@ -980,6 +1052,13 @@ void ParamNode::Dump(int level) const
   case COMMENT:
     cout << "<!-- " << strValue << " -->" << std::endl;
     break;
+  case BULK:
+  {
+    const StdVector<std::string>& block = boost::any_cast<const StdVector<std::string>&>(value_);
+    for(UInt i = 0, n = block.GetSize(); i < n; i++)
+      cout << " bulk: " << block[i] << std::endl;
+    break;
+  }
   }
   for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
     children_[i]->Dump(level + 1);
@@ -1034,13 +1113,15 @@ void ParamNode::AdjustElementType()
   }
   // Check if node is ELEMENT, has children and a value
   // -> not possible in an XML tree
-  if (type_ == ELEMENT && children_.GetSize() && !value_.empty())
+  if (type_ == ELEMENT && children_.GetSize() && !value_.empty() && value_.type() != typeid(StdVector<std::string>))
   {
     string value;
     ToString(value, 0);
-    WARN("Node '" << name_ << "' has children AND a non-empty value '"
-        << value << "'. This is not possible in an xml tree!");
-    assert(false); // find the stuff. Maybe attribute and element with the same name!
+    if(value != "")
+    {
+      WARN("Node '" << name_ << "' has children AND a non-empty value '" << value << "'. This is not possible in an xml tree!");
+      assert(false); // find the stuff. Maybe attribute and element with the same name!
+    }
   }
 
   // Check if node is ATTRIBUTE and has children
@@ -1061,6 +1142,9 @@ void ParamNode::AdjustElementType()
     type_ = SELF_XML;
   }
 
+  if(value_.type() == typeid(StdVector<std::string>))
+    type_ = BULK;
+
   // ToDO: What is currently missing is the check for valid labels etc.
   // Maybe Fabian is willing to assist here ...
 }
@@ -1075,7 +1159,7 @@ void ParamNode::AdjustElementType()
 //    return true;
 //  }
 
-std::string ParamNode::ToValidLabel(std::string out) const
+inline std::string ParamNode::ToValidLabel(std::string out) const
 {
   boost::trim(out);
 

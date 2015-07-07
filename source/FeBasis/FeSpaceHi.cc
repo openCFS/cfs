@@ -740,8 +740,8 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
       ctx->assemble->AssembleMatrices();
 
       // setup the preconditioner and solver
-      ctx->algSys->SetupPrecond(ctx->infoNode);
-      ctx->algSys->SetupSolver(ctx->infoNode);
+      ctx->algSys->SetupPrecond(); // analysis_id ctx->infoNode);
+      ctx->algSys->SetupSolver(); // analysis_id ctx->infoNode);
 
       // initialize solution SBM vector
       ctx->sol = new SBM_Vector();

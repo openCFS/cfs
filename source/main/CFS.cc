@@ -132,7 +132,7 @@ CFS::CFS(int argc, const char **argv) :
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");
   infoNode->SetName("cfsInfo");
   infoNode->Get("status")->SetValue("running"); // to be overwritten by "aborted" or "finished"
-  infoNode->Get(ParamNode::PN_SUMMARY)->Get("timer")->SetValue(timer);
+  infoNode->Get(ParamNode::SUMMARY)->Get("timer")->SetValue(timer);
   timer->Start(); // ignore that this is not the real beginning
 
   // Register callback function with exception class for warning
@@ -143,7 +143,7 @@ CFS::CFS(int argc, const char **argv) :
   using namespace boost::gregorian;
 
   // our calculation environment
-  PtrParamNode env = infoNode->Get(ParamNode::PN_HEADER)->Get("environment");
+  PtrParamNode env = infoNode->Get(ParamNode::HEADER)->Get("environment");
   start_time_ = to_simple_string( second_clock::local_time() );
   env->Get("started")->SetValue(start_time_);
   
@@ -230,36 +230,29 @@ int CFS::Run()
     
     cout << ">> Total time: wall clock: '";
     
-    const int walltime((int) timer->GetWallTime());
-    const int cputime((int) timer->GetCPUTime());
+    int walltime = (int) timer->GetWallTime();
+    double cputime = timer->GetCPUTime();
 
     if(walltime > 120) 
     {
-      const int wallmin((int) (walltime / 60.0));
-      const int cpumin((int) (cputime / 60.0));
+      int wallmin((int) (walltime / 60.0));
+      int cpumin((int) (cputime / 60.0));
       if(wallmin > 60)
-      {
-        cout << wallmin / 60 << "h " << (wallmin % 60) 
-             << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'"; 
-      }
+        cout << wallmin / 60 << "h " << (wallmin % 60) << "m' CPU time: '" << cpumin / 60 << "h " << (cpumin % 60) << "m'";
       else
-      {
-        cout << wallmin << "m " << (walltime % 60) 
-             << "s' CPU time: '" << cpumin << "m " << (cputime % 60) << "s'"; 
-      }
+        cout << wallmin << "m " << (walltime % 60) << "s' CPU time: '" << cpumin << "m " << ((int) cputime % 60) << "s'";
     }
     else
     {
-      cout << walltime << "s' CPU time: '" 
-           << cputime << "s'";
+      cout << walltime << "s' CPU time: '" << cputime << "s'";
     }
     
     cout << endl << endl;
       
     // write the info object
     infoNode->Get("status")->SetValue("finished"); // overwrite 'running'
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
-    infoNode->Get(ParamNode::PN_SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/final")->SetValue(MemoryUsage(false));
+    infoNode->Get(ParamNode::SUMMARY)->Get("memory/peak")->SetValue(MemoryUsage(true));
 
     return 0;
   }
@@ -283,7 +276,7 @@ int CFS::Run()
     // Print error cause to info file
     if(infoNode != NULL)
     {
-      PtrParamNode errorNode = infoNode->Get(ParamNode::PN_ERROR);
+      PtrParamNode errorNode = infoNode->Get(ParamNode::ERROR);
       errorNode->SetValue(ex.what());
       infoNode->Get("status")->SetValue("aborted");
       infoNode->ToFile();
@@ -317,10 +310,7 @@ void CFS::SolveProblem()
  
  using namespace boost::posix_time;
  using namespace boost::gregorian;
- cout << "\n++ Finished solving the problem at " 
-     << to_simple_string( second_clock::local_time() ) 
-     << endl;
-
+ cout << "\n++ Finished solving the problem at " << to_simple_string(second_clock::local_time()) << endl;
 }
 
 
@@ -356,23 +346,18 @@ void CFS::ReadXMLFile()
   // Write information to command line
   cout << "++ Reading parameter file '" + xmlFile + "'" << endl;
 
-#ifndef USE_XERCES
-  EXCEPTION( "I am sorry to say, but CFS only can be compiled with XERCES-support");
-#endif
-
   // this is the new param stuff which replaces the old params - delete this comment finally
   string schema = progOpts->GetSchemaPathStr();
   schema += "/CFS-Simulation/CFS.xsd";
 
   // Initialize our xerces dom parser to handle the cfs xml file
-  Xerces* xerces = new Xerces(schema);
-  xerces->SetFile(xmlFile);
+  Xerces xerces(schema);
+  xerces.SetFile(xmlFile);
 
   // set the global ParamNode tree pointer
-  paramNode_ = xerces->CreateParamNodeInstance();
+  paramNode_ = xerces.CreateParamNodeInstance();
   // save us in the info stuff, with defaults but no comments
   // release the xerces ressources, param is not affected
-  delete xerces;
 }
 
 void CFS::SetupIO(PtrParamNode rootNode )
@@ -422,14 +407,14 @@ void CFS::SetupIO(PtrParamNode rootNode )
                              materialHandler->GetFileName() );
   
   // Log command line parameters
-  progOpts->ToInfo(infoNode->Get(ParamNode::PN_HEADER)->Get("progOpts"));
+  progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
   
   // log the optinal id/name/token/label from <cfsSimulation id="..">
-  infoNode->Get(ParamNode::PN_HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
+  infoNode->Get(ParamNode::HEADER)->Get("id")->SetValue(paramNode_->Get("id"));
   
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
-    infoNode->Get(ParamNode::PN_HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
+    infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
   
   // Open file for status reports by OLAS
   fileHandler.OpenFile( DefineInOutFiles::OLAS_FILE );

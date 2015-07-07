@@ -27,7 +27,7 @@ namespace CoupledField {
   //   Setup method
   // ****************
   template<typename T>
-    void CGSolver<T>::Setup( BaseMatrix &sysmat, PtrParamNode analysis_step ) {
+    void CGSolver<T>::Setup( BaseMatrix &sysmat ) {
     
     if( r_ != NULL ) {
       delete r_;
@@ -55,7 +55,7 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void CGSolver<T>::Solve( const BaseMatrix &sysmat,
-                           const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                           const BaseVector &rhs, BaseVector &sol ) {
 
     // Tracing information
 
@@ -234,7 +234,7 @@ namespace CoupledField {
     //   Generate solution report
     // ============================
     Double reduction = resNorm / scalFac_;
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalNorm")->SetValue(resNorm);
     if ( loop == false ) {
@@ -249,7 +249,7 @@ namespace CoupledField {
     accIters_ += niter;
     accReduction_ += reduction;
     
-    PtrParamNode stat = infoNode_->Get(ParamNode::PN_SUMMARY)->Get("statistics");
+    PtrParamNode stat = infoNode_->Get(ParamNode::SUMMARY)->Get("statistics");
     stat->Get("avgIterations")->SetValue(accIters_ / numCalls_);
     stat->Get("avgResReduction")->SetValue( accReduction_ / numCalls_);
   }

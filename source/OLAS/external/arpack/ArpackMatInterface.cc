@@ -24,6 +24,9 @@ namespace CoupledField {
     size_ = matA->GetNumRows();
     isGeneralized_ = false;
     shiftAndInvert_ = shiftMode;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
@@ -40,6 +43,9 @@ namespace CoupledField {
     size_ = matA->GetNumRows();
     isGeneralized_ = true;
     shiftAndInvert_ = shiftMode;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, 
@@ -58,6 +64,9 @@ namespace CoupledField {
     // useStiffInNMat_ = true;
     useStiffInNMat_ = false;
     isGeneralized_ = true;
+    precond_ = NULL;
+    solver_ = NULL;
+    diagScale_ = 1.0;
   }
 
   ArpackMatInterface::~ArpackMatInterface() {
@@ -122,8 +131,8 @@ namespace CoupledField {
       }
     }
     // Setup solver and precond-object
-    precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
-    solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+    precond_->Setup( *matrixC_ );
+    solver_->Setup( *matrixC_ );
   }
 
   void ArpackMatInterface::QuadSetup( BaseSolver* solver, BasePrecond* precond ) {
@@ -148,8 +157,8 @@ namespace CoupledField {
     diagScale_ = 1.0;
 
     // Setup solver and precond-object
-    precond_->Setup( *matrixC_, shared_ptr<ParamNode>() );
-    solver_->Setup( *matrixC_, shared_ptr<ParamNode>() );
+    precond_->Setup( *matrixC_ );
+    solver_->Setup( *matrixC_ );
   }
 
   template <class TYPE>
@@ -258,7 +267,7 @@ namespace CoupledField {
     // solve N*nInvB2 = b2
     nInvB2.Init();
     if ( useStiffInNMat_ ) {
-      solver_->Solve( *matrixC_, vecB2, nInvB2, shared_ptr<ParamNode>());
+      solver_->Solve( *matrixC_, vecB2, nInvB2);
     } else {
       nInvB2.Add(vecB2);
     }
@@ -273,7 +282,7 @@ namespace CoupledField {
     vecB1.Add(mx);
     // full rhs
     vecB1.ScalarMult(-1.0);
-    solver_->Solve( *matrixC_, vecB1, vecA2, shared_ptr<ParamNode>() );
+    solver_->Solve( *matrixC_, vecB1, vecA2 );
 
     // solve for a1 (lower part of equation system)
     vecA1.Add(shift_, vecA2, 1., nInvB2);

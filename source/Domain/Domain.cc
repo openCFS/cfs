@@ -5,6 +5,7 @@
 #include "Domain.hh"
 
 #include <set>
+#include <map>
 #include <memory>
 #include <boost/filesystem.hpp>
 
@@ -28,6 +29,10 @@
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
+
+#include "Optimization/Design/DensityFile.hh"
+#include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Optimization.hh"
 
 
 #include "DataInOut/ResultHandler.hh"
@@ -98,7 +103,8 @@ Domain::Domain(
   ptMatHandler_ = ptMat;
   ptMatHandler_->SetDomain( this );
   
-  
+  optimization_ = NULL;
+  designSpace_ = NULL;
   
   // register variables defined in "variableList" element
   RegisterVariables();
@@ -294,22 +300,42 @@ void Domain::PostInit(UInt sequenceStep)
   
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
-  // but in the case of an MultiSequenceDriver the SingeDriver is NULL up to init.
+  // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init.
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
 
   SetDriver(driver); // see above!
-  //info_->FinishProgress();
+
+  // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
+  if (GetParamRoot()->Has("optimization"))
+    Optimization::CreateInstance(); // has an SetOptimization() included
+  else {
+    // check if we simulate with ersatz material - after driver and only if not used with optimization
+    // if used with optimization loadErsatzMaterial specifies the starting point for optimization
+    // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
+    if(DensityFile::NeedLoadErsatzMaterial())
+      designSpace_ = DensityFile::ReadErsatzMaterial();
+  }
 
   // initialize the driver
   // Note: In case this is not the parent / main domain, we do not read a 
   // restart file.
   driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
 
-  if( multiSequenceDriver_ && !isParentDomain_ )
+  // we need driver->Init() first
+  if(optimization_ != NULL)
+  {
+    // second initialization phase, constructs material
+    optimization_->PostInit();
+    // third initialization phase, constructs optimizer
+    optimization_->PostInitSecond();
+  }
+
+  if(multiSequenceDriver_ && !isParentDomain_)
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
+
 }
 
 // **************
@@ -373,22 +399,31 @@ Domain::~Domain()
     delete mathParser_;
     mathParser_ = NULL;
   }
+  // the optimization is optional. Important, before ersatzMaterial!
+  if (optimization_ != NULL) {
+    delete optimization_;
+    optimization_ = NULL;
+  }
+
+  // ersatzMaterial is either set by PostInit()->ReadErsatzMaterial or Optimization
+  if(designSpace_ != NULL) {
+    delete designSpace_;
+    designSpace_ = NULL;
+  }
 
 }
 
 void Domain::SolveProblem()
 {
   BaseDriver* driver = multiSequenceDriver_;
-  if (driver == NULL)
+  if(driver == NULL)
     driver = ptSingleDriver_;
 
   // PostInit needs to be called in advance!
-//  if (GetOptimization() != NULL) {
-//    EXCEPTION("Optiization not yet adapted to new structure");
-//    GetOptimization()->SolveProblem(); // will call multiple driver-SolveProblem
-//  } else {
+  if(optimization_ != NULL)
+    optimization_->SolveProblem(); // will call multiple driver-SolveProblem
+  else
     driver->SolveProblem();
-//  }
 }
 
   // **********************
@@ -450,8 +485,7 @@ void Domain::SolveProblem()
 
 
 
-SinglePDE * Domain::GetSinglePDE(const std::string pdeName,
-    bool throw_exception)
+SinglePDE* Domain::GetSinglePDE(const std::string pdeName,  bool throw_exception)
 {
   // check for the pede an return
   for (UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i)
@@ -488,7 +522,18 @@ BasePDE* Domain::GetBasePDE()
 
 }
 
-Grid * Domain::GetGrid(const std::string& id)
+DesignSpace* Domain::GetDesign(bool throw_exception)
+{
+  if(designSpace_ != NULL)
+    return designSpace_;
+
+  if(throw_exception)
+    EXCEPTION("no ersatzMaterial set in domain");
+
+  return NULL;
+}
+
+Grid* Domain::GetGrid(const std::string& id)
 {
   if (gridMap_.find(id) == gridMap_.end())
   {
@@ -532,9 +577,6 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::InitPDEs(UInt sequenceStep)
 {
-  
-  
-  
   // in case we have an iterative coupled PDE,
   // we take its info pointer and use it
   // as base for the coupled ones
@@ -961,7 +1003,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 
 void Domain::CreateCoordinateSystems()
 {
-  PtrParamNode in = info_->Get(ParamNode::PN_HEADER)->Get("domain");
+  PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("domain");
   in = in->Get("coordinateSystems", ParamNode::APPEND);
   
   // first create the "global" standard cartesian
@@ -1143,6 +1185,18 @@ void Domain::ToInfo(PtrParamNode in)
     s->Get("name")->SetValue(it->first);
     it->second->ToInfo(s);
   }
+}
+
+bool Domain::HasPerdiodicBC() const
+{
+  for(unsigned int i = 0; i < ptSinglePde_.GetSize(); i++)
+  {
+    std::map<SolutionType, shared_ptr<BaseFeFunction> > fes = ptSinglePde_[i]->GetFeFunctions();
+    for(std::map<SolutionType, shared_ptr<BaseFeFunction> >::const_iterator it = fes.begin(); it != fes.end(); it++)
+      if(it->second->HasPeriodicBC())
+        return true;
+  }
+  return false;
 }
 
 }

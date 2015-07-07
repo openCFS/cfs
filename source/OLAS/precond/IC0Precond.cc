@@ -34,7 +34,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat, PtrParamNode analysis_id ) {
+  void IC0Precond<T>::Setup( SCRS_Matrix<T> &sysmat ) {
 
     UInt nnzA = (size_ + sysmat.GetNnz() ) / 2;
 

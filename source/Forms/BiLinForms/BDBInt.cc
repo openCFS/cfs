@@ -16,6 +16,10 @@
 // 
 // =====================================================================================
 #include "BDBInt.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DECLARE_LOG(bdbint)
+DEFINE_LOG(bdbint, "bdbint")
 
 namespace CoupledField{
 
@@ -92,6 +96,9 @@ namespace CoupledField{
       // Call the CalcBMat()-method
       bOperator_->CalcOpMat( bMat_, lp, ptFe);
 
+      // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString();
+
+
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
       
@@ -106,9 +113,10 @@ namespace CoupledField{
       dbMat = (dMat * bMat) * fac;
       elemMat += TransposeConjugate(bMat) * dbMat * factor_;
 #endif
-      //      std::cout << "dMat: \n " << dMat << std::endl;
 
     }
+
+    // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " dbMat=" << dbMat_.ToString();
 
   }
 
@@ -318,6 +326,8 @@ namespace CoupledField{
 
     // Call the CalcBMat()-method
     bOperator_->CalcOpMat( bMat_, lpm, ptFe);
+
+    // LOG_DBG3(bdbint) << "CK e=" << lpm.ptEl->elemNum << " bMat=" << bMat_.ToString();
 
     // Calculate D-Mat
     dData_->GetTensor(dMat_,lpm);
