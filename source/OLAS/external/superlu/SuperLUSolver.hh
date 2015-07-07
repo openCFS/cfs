@@ -45,8 +45,7 @@ namespace CoupledField {
     //! by a call of Setup) is finally solved by backward-forward substitution.
     void Solve( const BaseMatrix &sysmat,
                 const BaseVector &rhs,
-                BaseVector &sol,
-                 );
+                BaseVector &sol);
 
     //! Query type of this solver.
 
