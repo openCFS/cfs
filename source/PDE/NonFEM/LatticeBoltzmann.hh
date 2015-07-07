@@ -75,6 +75,11 @@ namespace CoupledField
           void SetupDataStructures(const StdVector<double>& elements);
 
           /**
+           * set values in transformation matrix (distribution space -> moment space)
+           */
+          void SetupTransformationMatrix();
+
+          /**
            * Sets distribution functions to initial value, independently from dimension of problem (no if-statement necessary)
            */
           void InitializePdfs();
@@ -249,6 +254,7 @@ namespace CoupledField
           StdVector<StdVector<int> > bb;
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
+          StdVector<StdVector<double> > transformMatrix; // matrix for transformation between moment and distribution space
 
           ResultHandler* rh = NULL;
 

@@ -75,18 +75,22 @@
               
 							<xsd:attribute name="omega" type="xsd:double" use="optional">
                 <xsd:annotation>
-                  <xsd:documentation>tuning parameter for LBM. small is more robust, large faster; either omega or Reynolds number Re must be specified</xsd:documentation>
+                  <xsd:documentation>tuning parameter for LBM. small is more robust, large faster \n
+                    If omega and Re are set, u_x inflow is adjusted \n If Re and u_x are set, omega is adjusted \n If omega and u_x are set, Re is printed out in .info.xml file
+                  </xsd:documentation>
                 </xsd:annotation>
               </xsd:attribute>
               <xsd:attribute name="Re" type="xsd:double" use="optional">
                 <xsd:annotation>
-                  <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; either omega or Re must be specified</xsd:documentation>
+                  <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; at least omega or Re must be specified</xsd:documentation>
                 </xsd:annotation>
               </xsd:attribute>
               
               <xsd:attribute name="inflowProfile" type="DT_ExternLBMInflow" use="optional" default="block">
                 <xsd:annotation>
-                  <xsd:documentation>Specify inflow velocity profile. For parabolic profile, velocity specified in "bcAndLoads" is assumed as maximum velocity</xsd:documentation>
+                  <xsd:documentation>Specify inflow velocity profile. \n
+                    For parabolic profile, velocity specified in "bcAndLoads" is assumed as maximum velocity. So far, only a parabolic velocity profile in x-direction is possible,
+                  </xsd:documentation>
                 </xsd:annotation>
               </xsd:attribute>
 							<xsd:attribute name="maxWallTime" type="xsd:double" use="required" />
@@ -116,12 +120,22 @@
 								<xsd:simpleType>
 	                <xsd:restriction base="xsd:token">
                     <!-- not yet implemented  --> 
-                    <xsd:enumeration value="internal"/>
+                    <xsd:enumeration value="internal"> 
+                      <xsd:annotation>
+                        <xsd:documentation>
+                          Use internal solver.
+                        </xsd:documentation>
+                      </xsd:annotation>
                     </xsd:enumeration>
-                    <!-- the old interface as in the diploma thesis of thomas guess -->
-	                  <xsd:enumeration value="external_matlab_iface"/>
                     <!-- the new interface as implemented by RRZE (not working yet=) -->
-                    <xsd:enumeration value="external_single_file_iface"/>
+                    <xsd:enumeration value="external">
+                      <xsd:annotation>
+                        <xsd:documentation>
+                          Use external solver. Output is file 'CFS2LBM.dat' with information on LBM parameters; Input file is file from external solver with 
+                          information on all PDFS(D2Q9 or D3Q19 model).
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:enumeration>
 	                </xsd:restriction>
 	              </xsd:simpleType>
               </xsd:attribute>

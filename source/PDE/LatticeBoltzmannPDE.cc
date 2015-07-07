@@ -162,8 +162,7 @@ namespace CoupledField {
 
     iface.SetName("LatticeBoltzmannPDE::Iface");
     iface.Add(INTERNAL, "internal");
-    iface.Add(EXT_MATLAB, "external_matlab_iface");
-    iface.Add(EXT_CFSxLBM, "external_single_file_iface");
+    iface.Add(EXTERNAL, "external_single_file_iface");
     iface_ = iface.Parse(pn->Get("LBM/solver")->As<std::string>());
 
     InitRegions(pn, grid);
@@ -411,16 +410,12 @@ namespace CoupledField {
 
     switch(iface_)
     {
-      case EXT_MATLAB:
-      case EXT_CFSxLBM:
+      case EXTERNAL:
       {
 
         executable = myParam_->Get("LBM")->Get("lbm")->As<std::string>();
 
-        if(iface_ == EXT_CFSxLBM)
-          ExportCFS2LBM(elements);
-        else
-          ExportMultipleFiles(elements);
+        ExportCFS2LBM(elements);
 
         if(!boost::filesystem::exists(executable))
           EXCEPTION("Could not find executable '" + executable + "', might be not in path");
@@ -431,10 +426,7 @@ namespace CoupledField {
         if (err)
           EXCEPTION("LBM simulation failed, no outputs available! \n");
 
-        if(iface_ == EXT_CFSxLBM)
-          ReadProbabilityDistribution("LBM2CFS.dat");
-        else
-          ReadProbabilityDistribution("node_steady.dat");
+        ReadProbabilityDistribution("LBM2CFS.dat");
 
         break;
       }
@@ -1397,8 +1389,15 @@ void LatticeBoltzmannPDE::ReadProbabilityDistribution(const std::string& filenam
     {
       std::istringstream ss(line);
       //if(!(ss >>  PDF_IDX(i,0) >>  PDF_IDX(i,1) >>  PDF_IDX(i,2) >>  PDF_IDX(i,3) >>  PDF_IDX(i,4) >>  PDF_IDX(i,5) >>  PDF_IDX(i,6) >>  PDF_IDX(i,7) >>  PDF_IDX(i,8)))
-      if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8)))
-        EXCEPTION("error reading nine values in line " << (i+1) << " of file " << filename);
+      if (n_q_ == 9) {
+        if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8)))
+          EXCEPTION("error reading nine values in line " << (i+1) << " of file " << filename);
+      }
+      else if (n_q_ == 19){
+        if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8) >> GetPdf(i,9)
+            >> GetPdf(i,10) >> GetPdf(i,11) >> GetPdf(i,12) >> GetPdf(i,13) >> GetPdf(i,14) >> GetPdf(i,15) >> GetPdf(i,16) >> GetPdf(i,17) >> GetPdf(i,18)))
+          EXCEPTION("error reading nineteen values in line " << (i+1) << " of file " << filename);
+      }
       i++;
     }
   }
@@ -1446,6 +1445,7 @@ void LatticeBoltzmannPDE::ExportCFS2LBM(const StdVector<double>& elements)
   std::cout << "++ CFS2LBM.dat created" << std::endl;
 }
 
+//might be necessary for debugging
 void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
 {
   std::ofstream por("por.dat");
@@ -1494,8 +1494,6 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   data << non_sing.GetSize() << std::endl; // number of lines in non_sing.dat
   data << 1 << std::endl; // id of objective (1=pressure drop)
   data.close();
-
-
 }
 
 void LatticeBoltzmannPDE::WriteMatrix(const std::string& file, const compressed_matrix<double> & M)

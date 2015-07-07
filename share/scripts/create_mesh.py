@@ -6,16 +6,16 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
 parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
-parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d'], required = True)
-parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
 parser.add_argument('--width', help="width in m", type=float, default = 1.0)
 parser.add_argument('--height', help="optional height in m", type=float, required = False)
+parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'bulk3d', 'cantilever2d', 'cantilever2d_reinforced','lbm2d', 'lbm3d'], required = True)
+parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet', 'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet'])
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for buld2d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="mandatory size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
-parser.add_argument('--file', help="optional give output file name. ")
 parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choices=["rect", "ball"])
 parser.add_argument('--inclusion_size', help="mandatory size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
+parser.add_argument('--file', help="optional give output file name. ")
 
 args = parser.parse_args()
 
@@ -25,6 +25,7 @@ mesh_name = args.type
 if args.lbm and args.type <> "lbm":
   print "error: --lbm only for --type lbm"
   sys.exit()
+  
 if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d" or "lbm3d"):
   print("inclusions currently only for --type {bulk2d,cantilever2d,lbm3d,lbm2d}")
   sys.exit()  

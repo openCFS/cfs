@@ -41,7 +41,7 @@ class LatticeBoltzmannPDE: public SinglePDE , LatticeBoltzmannBase
 {
 
 public:
-  typedef enum { INTERNAL, EXT_MATLAB, EXT_CFSxLBM } Iface;
+  typedef enum { INTERNAL, EXTERNAL } Iface;
 
   //!  Constructor. here we read integration parameters
   /*!

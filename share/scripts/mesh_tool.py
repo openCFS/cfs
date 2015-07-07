@@ -362,7 +362,6 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   ny = x_res if y_res is None else y_res
   
   height = float(ny)/nx if opt_height is None else opt_height  
-  #height = 0.5
 
   if type.startswith('cantilever2d'):
     width = 3.0
@@ -425,7 +424,6 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   return mesh
 
-## creates a mesh of predefined geometry
 ## creates a mesh of predefined geometry
 def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
   assert(type == "bulk3d" or type == "cantilever3d")
@@ -577,9 +575,6 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
   for y in range(nx + 1):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dx))
- 
-  # count second region
-#   second = 0
  
   # print mesh.nodes 
   for y in range(ny):

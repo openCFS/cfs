@@ -46,11 +46,7 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     {
       switch(lbm->GetIface())
       {
-      case LatticeBoltzmannPDE::EXT_MATLAB:
-        lbm->SetPrecalculatedGradient(f->elements, f);
-        break;
-
-      case LatticeBoltzmannPDE::EXT_CFSxLBM:
+      case LatticeBoltzmannPDE::EXTERNAL:
       case LatticeBoltzmannPDE::INTERNAL:
         lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
