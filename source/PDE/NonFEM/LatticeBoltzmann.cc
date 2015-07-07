@@ -108,80 +108,10 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
     prop_coll_bounce_back = &LatticeBoltzmann::prop_coll_bounce_back3D;
     prop_coll_densoutlet = &LatticeBoltzmann::prop_coll_densoutlet3D;
   }
-
-  //set values in transformation matrix (distribution space -> moment space)
-  transformMatrix.Resize(n_q_ * n_q_);
-  SetupTransformationMatrix();
 }
 
 LatticeBoltzmann::~LatticeBoltzmann()
 {
-}
-
-LatticeBoltzmann::SetupTransformationMatrix()
-{
-  //matrix rows are normalized eigenvectors
-  for (int i = 0; i < n_q_ ; i++)
-    transformMatrix[0][i] = 1.0;
-
-  transformMatrix[1][0] = -4.0;
-  transformMatrix[1][1] = -1.0;
-  transformMatrix[1][2] = -1.0;
-  transformMatrix[1][3] = -1.0;
-  transformMatrix[1][4] = -1.0;
-  transformMatrix[1][5] = 2.0;
-  transformMatrix[1][6] = 2.0;
-  transformMatrix[1][7] = 2.0;
-  transformMatrix[1][8] = 2.0;
-
-  transformMatrix[2][0] = 4.0;
-  transformMatrix[2][1] = -2.0;
-  transformMatrix[2][2] = -2.0;
-  transformMatrix[2][3] = -2.0;
-  transformMatrix[2][4] = -2.0;
-  transformMatrix[2][5] = 1.0;
-  transformMatrix[2][6] = 1.0;
-  transformMatrix[2][7] = 1.0;
-  transformMatrix[2][8] = 1.0;
-
-  transformMatrix[3][1] = 1.0;
-  transformMatrix[3][3] = -1.0;
-  transformMatrix[3][5] = 1.0;
-  transformMatrix[3][6] = -1.0;
-  transformMatrix[3][7] = -1.0;
-  transformMatrix[3][8] = 1.0;
-
-  transformMatrix[4][1] = -2.0;
-  transformMatrix[4][3] = 2.0;
-  transformMatrix[4][5] = 1.0;
-  transformMatrix[4][6] = -1.0;
-  transformMatrix[4][7] = -1.0;
-  transformMatrix[4][8] = 1.0;
-
-  transformMatrix[5][2] = 1.0;
-  transformMatrix[5][4] = -1.0;
-  transformMatrix[5][5] = 1.0;
-  transformMatrix[5][6] = 1.0;
-  transformMatrix[5][7] = -1.0;
-  transformMatrix[5][8] = -1.0;
-
-  transformMatrix[6][2] = -2.0;
-  transformMatrix[6][4] = 2.0;
-  transformMatrix[6][5] = -1.0;
-  transformMatrix[6][6] = 1.0;
-  transformMatrix[6][7] = -1.0;
-  transformMatrix[6][8] = -1.0;
-
-  transformMatrix[7][1] = 1.0;
-  transformMatrix[7][2] = -1.0;
-  transformMatrix[7][3] = 1.0;
-  transformMatrix[7][4] = -1.0;
-
-  transformMatrix[8][5] = 1.0;
-  transformMatrix[8][6] = -1.0;
-  transformMatrix[8][7] = 1.0;
-  transformMatrix[8][8] = -1.0;
-
 }
 
 void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz)
