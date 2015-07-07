@@ -16,7 +16,6 @@ namespace CoupledField {
   // forward class declarations
   class BasePairCoupling;
   class WriteResults;
-  class BaseNodeStoreSol;
   class StdSolveStep;
   class ParamNode;
   class BiotSavart;
@@ -53,19 +52,13 @@ namespace CoupledField {
     // ======================================================
 
     //! Returns the feFunction which holds a result related to the specified solutionType
-    virtual shared_ptr<BaseFeFunction> GetFeFunction( SolutionType solType);
+    shared_ptr<BaseFeFunction> GetFeFunction(SolutionType solType);
     
     //! Return all solution FeFunctions
-    virtual  
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetFeFunctions( ) {
-      return feFunctions_;
-    }
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetFeFunctions( ) { return feFunctions_; }
     
     //! Return all Rhs FeFunctions
-    virtual 
-    std::map<SolutionType, shared_ptr<BaseFeFunction> > GetRhsFeFunctions() {
-      return rhsFeFunctions_;
-    }
+    std::map<SolutionType, shared_ptr<BaseFeFunction> >& GetRhsFeFunctions() { return rhsFeFunctions_;  }
     
     //! Return pointer to the SolveStep object
     BaseSolveStep * GetSolveStep();
@@ -83,6 +76,9 @@ namespace CoupledField {
       return analysistype_;
     }
   
+    bool HasComplexMatData(RegionIdType actRegion) {
+      return complexMatData_[actRegion]; }
+
     //! returns if PDE can compute the quantity
     virtual bool HasOutput(SolutionType output)
     {
@@ -123,21 +119,23 @@ namespace CoupledField {
     //@{
 
     //! Return list with material definition for each region
-    std::map<RegionIdType, BaseMaterial*>  GetMaterialData()
-    {return materials_;};
+    std::map<RegionIdType, BaseMaterial*>  GetMaterialData() { return materials_; }
     
     //! Return assemble class, which holds all integrators
-    Assemble * GetAssemble(){return assemble_;}
+    Assemble * GetAssemble() { return assemble_; }
 
     //! Return all regions of the PDE
-    StdVector<RegionIdType> GetRegions() {
-      return regions_;}
+    StdVector<RegionIdType> GetRegions() { return regions_; }
 
     //! Return pointer to algebraic system
-    AlgebraicSys * GetAlgSys(){return algsys_;}
+    AlgebraicSys * GetAlgSys() { return algsys_; }
     
     //! Return pointer to grid the PDE is defined on
-    Grid * GetGrid() {return ptGrid_;}
+    Grid * GetGrid() { return ptGrid_; }
+
+    /** Give the damping type by region.
+     * @return NONE if no damping in map! */
+    DampingType GetDamping(RegionIdType reg_id) const;
 
     //! Set if PDE is nonlinear
     virtual void SetNonLinearity(bool nonLin){
@@ -172,6 +170,11 @@ namespace CoupledField {
     MaterialClass GetMaterialClass() const { return pdematerialclass_; }
     //@}
       
+    /** Shortcut for the DOF names */
+    StdVector<std::string>& GetDofNames(SolutionType st) {
+      return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
   protected:
 
     //! Enum for type of nonconforming coupling (Nitsche or Mortar)

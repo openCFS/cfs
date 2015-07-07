@@ -37,9 +37,9 @@ namespace CoupledField {
 
     //! cast the matrix into its full type and perform the Setup 
     //! of the preconditioner as subclass
-    virtual void Setup( BaseMatrix &A, PtrParamNode analysis_id ) {
+    virtual void Setup( BaseMatrix &A ) {
       AssocMatrixType& idA = dynamic_cast<AssocMatrixType&>(A);
-      SubClass().Setup(idA, analysis_id);
+      SubClass().Setup(idA);
       readyToUse_ = true;
     }
 

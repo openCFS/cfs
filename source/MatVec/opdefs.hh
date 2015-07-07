@@ -84,22 +84,13 @@ namespace CoupledField {
     return (arg.real()) * (arg.real()) + (arg.imag()) * (arg.imag());
   }
 
-  //! Compute the conjugate of a real number
-  template <typename T>
-  inline T Conj( T a ) {
-    return a;
+  /** this is defined only in C++11 - how can this idiots take so long? */
+  inline static double conj(const double &a1) {
+    return a1;
   }
 
-  //! Compute the conjugate of a complex number
-  template<>
-  inline Complex Conj<Complex>( Complex a ) {
-    return std::conj(a);
-  }
-
-  //! Allo conjugate notation of a real
-  template<>
-  inline double Conj<double>( double a ) {
-    return a;
+  inline static Complex conj(const Complex &a1) {
+    return std::conj(a1);
   }
 
   template <typename T>
@@ -213,9 +204,12 @@ namespace CoupledField {
       return static_cast<T>(1.0/arg);
     }
 
-    //! Inner product for real- and complex-valued scalars
-    inline static T dotProduct( const T &a1, const T &a2 ) {
-      return a1 * Conj(a2);
+    inline static double dotProduct(const double &a1, const double &a2 ) {
+      return a1 * a2;
+    }
+
+    inline static Complex dotProduct(const Complex &a1, const Complex &a2 ) {
+      return a1 * std::conj(a2);
     }
 
     //! Computation of "Euclidean Norm" of Double or Complex scalar

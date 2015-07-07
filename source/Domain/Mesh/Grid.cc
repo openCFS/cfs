@@ -103,6 +103,15 @@ namespace CoupledField
     barycenters = false;
   }
 
+  double Grid::CalcGridVolume(bool updated)
+  {
+    double s = 0.0;
+    for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
+      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+
+    return s;
+  }
+
   Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
   {
     Matrix<double>& box = grid_bounding_box_;
@@ -458,32 +467,18 @@ namespace CoupledField
   
   UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
   {
-    WARN("Grid::SetElementBarycenters needs to be refactored")
-//    RegionData& rd = regionData[reg];
-//
-//    if(rd.barycenters) return 0;
-//
-//    // common for all elements
-//    Matrix<Double>  coords;
-//
-//    // our operation target
-//    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
-//    for(UInt i = 0;  i < elems.GetSize(); i++)
-//    {
-//      Elem* elem = elems[i];
-//
-//      StdVector<UInt>& connect = elem->connect;
-//
-//      GetElemNodesCoord(coords, connect, updated);
-//
-//      // a barycenter is simply the average of all coordinates
-//      // TODO: handle axis symmetry!!
-//      BaseFE::CalcBarycenter(coords, elem->barycenter);
-//    }
-//
-//    rd.barycenters = true; // don't do it again!
+    RegionData& rd = regionData[reg];
 
-//    return elems.GetSize();
+    if(rd.barycenters) return 0;
+
+    // our operation target
+    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+    for(UInt i = 0;  i < elems.GetSize(); i++)
+      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->barycenter);
+
+    rd.barycenters = true; // don't do it again!
+
+    return elems.GetSize();
     return 0;
   }
 

@@ -85,7 +85,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void ILDLPrecond<T>::Setup( BaseMatrix &mat, PtrParamNode analysis_id ) {
+  void ILDLPrecond<T>::Setup( BaseMatrix &mat ) {
 
 
     // Test the storage layout

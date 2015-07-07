@@ -25,15 +25,12 @@ namespace CoupledField
 
     ~CholMod();
 
-    /** Every call does the complete factorization
-     * @param analysis_id shall be the current info/analysis/progress/step entry and contain an "analysis_id" element */
-    void Setup(BaseMatrix &sysmat, PtrParamNode analysis_id);
+    /** Every call does the complete factorization */
+    void Setup(BaseMatrix &sysmat);
      
     /** solve using a pre computed factorization 
-     * @param sysmat shall be the one Setup() is called with
-     * @param analysis_id @see Setup() */
-    void Solve( const BaseMatrix &sysmat, 
-                const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_id);
+     * @param sysmat shall be the one Setup() is called with */
+    void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol);
 
     /** Return what solver is used (here CholMod) */
     SolverType GetSolverType() { return CHOLMOD; }

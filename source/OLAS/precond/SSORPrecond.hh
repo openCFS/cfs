@@ -78,7 +78,7 @@ namespace CoupledField {
 
     //! The setup phase generates a vector containing the inverses of the
     //! diagonal entries of the system matrix
-    void Setup( CRS_Matrix<T> &sysMat, PtrParamNode analysis_id );
+    void Setup( CRS_Matrix<T> &sysMat );
 
     //! Query type of preconditioner object
 

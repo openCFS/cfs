@@ -45,15 +45,15 @@ namespace CoupledField {
 
   // time is used for a series of static calculations
   // don't get confused with REAL transient simulations!
-  void SolveStepElec::SolveStepStatic(PtrParamNode analysis_id) {
+  void SolveStepElec::SolveStepStatic() {
     if ( isHyst_ ) 
-      StepStaticNonLinEpsDiff(analysis_id);
+      StepStaticNonLinEpsDiff();
     else 
-      StepStaticLin(analysis_id);
+      StepStaticLin();
   }
 
 
-  void SolveStepElec::StepStaticNonLinEpsDiff(PtrParamNode analysis_base) {
+  void SolveStepElec::StepStaticNonLinEpsDiff() {
     REFACTOR;
 //
 //    bool performOneMoreStep;
@@ -90,7 +90,7 @@ namespace CoupledField {
 //      else 
 //        std::cout << "Iter:  " << iterationCounter << std::endl;
 //
-//      PtrParamNode analysis_id = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
+//       = BaseDriver::CreateAnalysisIdChild(analysis_base, "nonLin", iterationCounter);
 //      
 //      // set solution of previous iteration
 //      if (iterationCounter == 1 ) {
@@ -121,10 +121,10 @@ namespace CoupledField {
 //      algsys_->GetRHSVal( RHS );
 //      Double residualNorm = PDE_.GetRhsL2Norm( RHS );
 //
-//      algsys_->SetupSolver(analysis_id);
+//      algsys_->SetupSolver;
 //      algsys_->SetupPrecond();
 //    
-//      algsys_->Solve(analysis_id);
+//      algsys_->Solve;
 //      algsys_->GetSolutionVal( incrSol );
 //
 //      //Double alpha = 1;

@@ -26,13 +26,13 @@ namespace CoupledField
     void PreStepStatic( );
 
     //! base method for solving one static step 
-    void SolveStepStatic(PtrParamNode analysis_id);
+    void SolveStepStatic();
 
     /** @see SolveStepStatic() */ 
-    void StepStaticLin(PtrParamNode analysis_id);
+    void StepStaticLin();
 
     //! solves for one nonlinear static step 
-    void StepStaticNonLin(PtrParamNode analysis_id);
+    void StepStaticNonLin();
     
 
   private:

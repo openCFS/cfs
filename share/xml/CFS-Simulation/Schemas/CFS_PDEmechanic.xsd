@@ -147,9 +147,9 @@
                 <xsd:element name="concentratedElem" type="DT_MechConcElem"/>
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
 
-                <!--<xsd:element name="spring"        type="DT_MechSpring"    />
-                
-                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>-->
+                <!-- the test strain is for mathematical homogenization. -->
+                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>
+
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
               </xsd:choice>
@@ -376,16 +376,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-  <!-- Element type for inhomogeneous Dirichlet from file -->
-  <!-- boundary conditions. We derive it by extending the homogeneous case -->
-  <xsd:complexType name="DT_MechIdFile">
-    <xsd:complexContent>
-      <xsd:extension base="DT_MechHD">
-        <xsd:attribute name="inputId" type="xsd:token" default="default"/>
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
-
   <!-- Element type for concentrated mechanical elements -->
   <!-- We derive it by extending the base type -->
   <xsd:complexType name="DT_MechConcElem">
@@ -437,6 +427,19 @@
       <xsd:enumeration value="mechAcceleration"/>
       <xsd:enumeration value="mechRhsLoad"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
+      <xsd:enumeration value="mechShape"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -449,12 +452,42 @@
       <xsd:enumeration value="mechThermalStress"/>
 
       <xsd:enumeration value="mechStructIntensity"/>
-      <xsd:enumeration value="vonMises"/>
+      <xsd:enumeration value="vonMisesStress"/>
       <xsd:enumeration value="vonMisesStrain"/>
       <xsd:enumeration value="mechKinEnergyDensity"/>
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
       <xsd:enumeration value="mechNormalStructIntensity"/>
+      
+      <!-- dyadic hermitian product of the strain vectors -->
+      <xsd:enumeration value="mechDyadicStrain"/>
+      
+      <!-- scalar product of the displacement vectors. Or the squared displacement norm -->
+      <xsd:enumeration value="mechQuadDisplacement"/>
+      
+      <!-- non-physical design variable for simp topology optimization --> 
+      <xsd:enumeration value="mechPseudoDensity"/>
+      <!-- physical application of design variable in the simulation -->
+      <xsd:enumeration value="physicalPseudoDensity"/>
+      <!-- For parametrized or free material optimization the local tensor trace -->
+      <xsd:enumeration value="mechTensorTrace"/>
+      <!-- For parametrized or free material optimization the complete local tensor in Voigt notation -->
+      <xsd:enumeration value="mechTensor"/>
+      <!-- the local tensor in Hill Mandel notation -->
+      <xsd:enumeration value="mechTensorHillMandel"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
+      <xsd:enumeration value="optResult_4"/>
+      <xsd:enumeration value="optResult_5"/>
+      <xsd:enumeration value="optResult_6"/>
+      <xsd:enumeration value="optResult_7"/>
+      <xsd:enumeration value="optResult_8"/>
+      <xsd:enumeration value="optResult_9"/>
+      <xsd:enumeration value="optResult_10"/>
+      <xsd:enumeration value="optResult_11"/>
+      <xsd:enumeration value="optResult_12"/>      
+      
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -477,7 +510,9 @@
       <xsd:enumeration value="mechKinEnergy"/>
       <xsd:enumeration value="mechDeformEnergy"/>
       <xsd:enumeration value="mechTotalEnergy"/>
-      <xsd:enumeration value="homogenizedTensor"/>
+      <xsd:enumeration value="mechDyadicStrainSum"/>
+      <xsd:enumeration value="mechQuadDisplacementSum"/>
+      <xsd:enumeration value="homogenizedTensor"/>      
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -14,6 +14,7 @@ namespace CoupledField {
     complexFormat = AMPLITUDE_PHASE;
     entryType = UNKNOWN;
     definedOn = FREE;
+    fromOptimization = false;
   }
 
 

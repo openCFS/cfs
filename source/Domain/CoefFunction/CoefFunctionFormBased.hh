@@ -13,7 +13,7 @@
 #include "FeBasis/BaseFE.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "Forms/Operators/BaseBOperator.hh"
-
+#include "Optimization/Design/DesignMaterial.hh"
 
 namespace CoupledField  {
 
@@ -42,13 +42,10 @@ public:
   virtual ~CoefFunctionFormBased();
   
   //! Set integrator for specific region
-  virtual void AddIntegrator( BaseBDBInt* form,  
-                              RegionIdType region );
+  virtual void AddIntegrator(BaseBDBInt* form, RegionIdType region);
   
   //! Return type of entry (scalar, vector, tensor)
-  virtual CoefDimType GetDimType() const{
-	  return dimType_;
-  }
+  virtual CoefDimType GetDimType() const { return dimType_;  }
 
 protected:
   
@@ -124,7 +121,7 @@ protected:
  
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
-  
+
   //! Result info object of result to be calculated
   shared_ptr<ResultInfo> res_;
   
@@ -220,12 +217,12 @@ protected:
 //! BdB-integrator to the element solution. This can be used e.g. to calculate
 //! the energy density.
 template<class TYPE>
-class CoefFunctionBdBKernel : public CoefFunctionFormBased {
+class CoefFunctionBdBKernel : public CoefFunctionFormBased
+{
 public:
 
   //! Constructor
-  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,
-                        TYPE factor = 1.0 );
+  CoefFunctionBdBKernel(shared_ptr<BaseFeFunction> feFct,  TYPE factor = 1.0);
   //! Destructor
   virtual ~CoefFunctionBdBKernel();
 
@@ -235,18 +232,17 @@ public:
   //@{ \name Access Methods
 
   //! \copydoc CoefFunction::GetScalar
-  virtual void GetScalar( TYPE& coefScal,
-                          const LocPointMapped& lpm );
+  virtual void GetScalar( TYPE& coefScal, const LocPointMapped& lpm);
 
   //! \copydoc CoefFunction::GetVecSize
   virtual UInt GetVecSize() const {
-    EXCEPTION("This class defines coefficients of scalar type only." );
+    EXCEPTION("This class defines coefficients of scalar type only.");
     return 0;
   }
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
-    EXCEPTION("This class defines coefficients of scalar type only." );
+    EXCEPTION("This class defines coefficients of scalar type only.");
   }
 
   //@}
@@ -275,6 +271,93 @@ protected:
   TYPE factor_;
 
 };
+
+
+/** Calculates the dyadic product of strain vs. strain
+ * This is required for external topology gradient evaluation for Bloch mode analysis (Nazarov).
+ * The class is a modification of CoefFunctionBdBKernel */
+template<class TYPE>
+class CoefFunctionDyadicStrain : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionDyadicStrain(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionDyadicStrain();
+
+  //! \copydoc CoefFunction::GetTensorSize
+  virtual void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  virtual void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  Vector<TYPE> elemSol_;
+};
+
+
+/** Calculates the dyadic product of strain vs. strain
+ * This is required for external topology gradient evaluation for Bloch mode analysis (Nazarov).
+ * The class is a modification of CoefFunctionBdBKernel */
+template<class TYPE>
+class CoefFunctionQuadSol : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionQuadSol(shared_ptr<BaseFeFunction> feFct);
+
+  virtual ~CoefFunctionQuadSol();
+
+  virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  Vector<TYPE> elemSol_;
+};
+
+
+/** Simply returns the stiffness tensor. Does not work by using the existining CoefFunction :( */
+template<class TYPE>
+class CoefFunctionStiffness : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation);
+
+  virtual ~CoefFunctionStiffness();
+
+  //! \copydoc CoefFunction::GetTensorSize
+  unsigned int GetVecSize() const;
+
+  void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm);
+
+  void GetTensorSize(unsigned int& numRows, unsigned int& numCols ) const;
+
+  void GetTensor(Matrix<TYPE>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+private:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  DesignMaterial::Notation notation_;
+
+};
+
 
 } // end of namespace
 #endif

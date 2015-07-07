@@ -96,6 +96,15 @@ DECLARE_LOG(fefunc)
     }
   }
   
+  void BaseFeFunction::GetEntitySolution(SingleVector& elemSol, const Elem* elem)
+  {
+    ElemList elemList(grid_);
+    elemList.SetElement(elem);
+    const EntityIterator& it = elemList.GetIterator();
+
+    GetEntitySolution(elemSol, it);
+  }
+
   StdVector< shared_ptr<EntityList> > BaseFeFunction::GetEntityList(){
     return entities_;
   }
@@ -187,6 +196,13 @@ DECLARE_LOG(fefunc)
     entities_.Push_back(bc->slaveEntities);
   }
   
+  bool BaseFeFunction::HasPeriodicBC() const  {
+    for(unsigned int i = 0; i < constraints_.GetSize(); i++)
+      if(constraints_[i]->periodic)
+        return true;
+    return false;
+  }
+
   UInt BaseFeFunction::GetVecSize() const {
     assert( result_ ); assert( dimType_ == CoefFunction::VECTOR );
     return result_->dofNames.GetSize();
@@ -394,12 +410,9 @@ DECLARE_LOG(fefunc)
                     << "are handled" );
          break;
      }
-     if( feSpace_ ) {
-     if( feSpace_->GetSpaceType() == FeSpace::HCURL ) {
-          dimType_ = CoefFunction::VECTOR;
-        }
-     }
-     
+     if(feSpace_ && feSpace_->GetSpaceType() == FeSpace::HCURL)
+         dimType_ = CoefFunction::VECTOR;
+
      // Create interpolation operator
      UInt dim = grid_->GetDim();
      UInt numDofs = feSpace_->GetNumDofs();
@@ -449,8 +462,7 @@ DECLARE_LOG(fefunc)
         // try to find the correct element, being one belonging to the regionlist of
         // this fefunction
         LocPoint lp;
-        const Elem* myElem = 
-            grid_->GetElemAtNode(nodeNum, lp, regions_ );
+        const Elem* myElem = grid_->GetElemAtNode(nodeNum, lp, regions_ );
         
         if( !myElem ) {
           WARN("Some elements were skipped during the interpolation");
@@ -724,8 +736,7 @@ DECLARE_LOG(fefunc)
 
   //! Get solution as matrix for specific entity
    template<typename T>
-   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol,
-                                   const EntityIterator& it ){
+   void FeFunction<T>::GetEntitySolutionAsMatrix( DenseMatrix& elemSol, const EntityIterator& it ){
      //for now we put the unkowns in the columns
      //and the dof entrys in rows
      Matrix<T> & temp = dynamic_cast<Matrix<T>&>(elemSol);

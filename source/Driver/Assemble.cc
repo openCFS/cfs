@@ -51,7 +51,7 @@ namespace CoupledField
     printProgressBar_ = false;
     info_ = infoNode;
     
-    linForms_ = new StdVector<LinearFormContext*>();
+    lin_forms_given_ = false;
 
     // Calculate matrix map from general matrix types to analysis
     // specific ones
@@ -62,7 +62,7 @@ namespace CoupledField
     mp->SetExpr(mHandle_, "2*pi*f");
 
     // the timer object is used in every AssembleMatrices() call
-    info_->Get("analysis")->Get(ParamNode::PN_SUMMARY)->Get("assemble/timer")->SetValue(timer_);
+    info_->Get("analysis")->Get(ParamNode::SUMMARY)->Get("assemble/timer")->SetValue(timer_);
   }
 
   Assemble::~Assemble() {
@@ -72,14 +72,12 @@ namespace CoupledField
     for( ; it != allBiLinForms_.end(); ++it){
       delete (*it);
     }
-    
 
-    // Delete linear contexts
-    for(unsigned int i = 0; i < linForms_->GetSize(); ++i){
-      delete (*linForms_)[i];
-    }
+    // Delete linear contexts only it this is not done by optimization excitation in the multiload case
+    if(!lin_forms_given_)
+      for(unsigned int i = 0; i < linForms_.GetSize(); ++i)
+        delete linForms_[i];
     
-    delete linForms_;
     mp_->ReleaseHandle(mHandle_);
   }
 
@@ -138,32 +136,39 @@ namespace CoupledField
     return NULL;
   }
 
-  LinearForm* Assemble::GetLinearForm(RegionIdType regionId, StdPDE* pde,  const std::string& integrator, bool silent)
+  LinearForm* Assemble::GetLinearForm(StdPDE* pde,  const std::string& integrator, bool silent)
   {
-     REFACTOR;
-     // the EntityList has the region name as name but not the id
-     std::string region = pde->GetGrid()->GetRegion().ToString(regionId);
-
      LinearForm* result = NULL;
 
-     //// iterate over all descriptors
-     //for(UInt i = 0; i < linForms_->GetSize(); i++)
-     //{
-     //  // we are wrong if the region does not match
-     //  LinearFormContext* lfc = (*linForms_)[i];
-     //  if(lfc->GetEntities()->GetName() != region) continue;
-     //  // when pde1 is given we compare it by name and continue if the names are different
-     //  if(lfc->GetPde()->GetName() != pde->GetName()) continue;
-     //  if(lfc->GetIntegrator()->GetName() != integrator) continue;
-     //
-     //  // we come here because we had no contradiction - check for uniqueness
-     //  if(result != NULL) throw Exception("parameters not unique!");
-     //  result = lfc;
-     //}
-     //
-     //if(result == NULL && !silent)
-     //  EXCEPTION("LinearFormContext '" << integrator << "' at region '" << region << "' not found");
+     // iterate over all descriptors
+     for(unsigned int i = 0; i < linForms_.GetSize(); i++)
+     {
+       // we are wrong if the region does not match
+       LinearFormContext* lfc = linForms_[i];
+
+
+       // when pde1 is given we compare it by name and continue if the names are different
+       if(lfc->GetPde()->GetName() != pde->GetName()) continue;
+       if(lfc->GetIntegrator()->GetName() != integrator) continue;
+
+       // we come here because we had no contradiction - check for uniqueness
+       if(result != NULL) throw Exception("parameters not unique!");
+       result = lfc->GetIntegrator();
+     }
+
+     if(result == NULL && !silent)
+       EXCEPTION("LinearFormContext '" << integrator << "' not found");
      return result;
+  }
+
+  bool Assemble::UseRegion(RegionIdType reg)
+  {
+    for (BiLinContextListType::iterator listIt = biLinForms_.begin(); listIt != biLinForms_.end(); ++listIt) {
+      if(listIt->first.first->GetRegion() == reg)
+        return true;
+    }
+
+     return false;
   }
 
   void Assemble::AddBiLinearForm( BiLinFormContext* biLinContext ) {
@@ -267,7 +272,7 @@ namespace CoupledField
     // assert that some entites are set
     assert( linContext->GetEntities() != NULL );
 
-    linForms_->Push_back( linContext );
+    linForms_.Push_back( linContext );
 
   }
 
@@ -590,6 +595,32 @@ namespace CoupledField
               if(actContext.IsSetNegate()){
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
+              }
+            }
+
+            // info.xml logging in detailed logging case for the first element only
+            if(i == 0 && progOpts->DoDetailedInfo())
+            {
+              PtrParamNode in = domain->GetInfoRoot()->Get("sequenceStep/PDE")->Get(actContext.GetFirstPde()->GetName())->Get("exemplaryLocalMatrix");
+              // make sure to have only one output for non-static case (e.g. optimization)
+              std::string reg_name = domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId);
+              bool found = false;
+              ParamNodeList list = in->GetListByVal("tensor", "form", form->GetName());
+              for(unsigned int li = 0; li < list.GetSize(); li++)
+                if(list[li]->HasByVal("region", reg_name) && list[li]->HasByVal("element", it1.GetElem()->elemNum))
+                  found = true;
+
+              if(!found)
+              {
+                in = in->Get("tensor", ParamNode::APPEND);
+                in->Get("form")->SetValue(form->GetName());
+                in->Get("region")->SetValue(reg_name);
+                in->Get("element")->SetValue(it1.GetElem()->elemNum);
+                // it makes sense to add the analysis id here
+                if(form->IsComplex())
+                  in->Get("matrix")->SetValue(elemMatrixC);
+                else
+                  in->Get("matrix")->SetValue(elemMatrix);
               }
             }
 
@@ -1022,9 +1053,6 @@ namespace CoupledField
 
           BiLinearForm * form = actContext.GetIntegrator();
 
-         
-    
-
           // make only output if desired
           if( printProgressBar_) {
             ++progress;
@@ -1042,18 +1070,16 @@ namespace CoupledField
                 assert(!form->IsComplex());
                 elemMatrix*= (-1.0);
               }
-              if(iForm == 0) {
-                 rElemMat = elemMatrix;
-              } else {
-            
-              rElemMat += elemMatrix;
-              }
+              if(iForm == 0)
+                rElemMat = elemMatrix;
+              else
+                rElemMat += elemMatrix;
             }
 
 //            // info.xml logging in detailed logging case for the first element only
 //            if(i == 0 && progOpts->DoDetailedInfo())
 //            {
-//              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PN_PROCESS)->Get("matrices");
+//              PtrParamNode in = info->Get("PDE")->Get(actContext.GetFirstPde()->GetName())->Get(ParamNode::PROCESS)->Get("matrices");
 //              in = in->Get("tensor", ParamNode::APPEND);
 //              in->Get("form")->SetValue(form->GetName());
 //              in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(it1.GetElem()->regionId));
@@ -1168,21 +1194,19 @@ namespace CoupledField
     StdVector<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
-    for ( formsIt = linForms_->Begin();
-          formsIt != linForms_->End();
-          formsIt++ ) {
-
+    for ( formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++ )
+    {
       // get integrator
       LinearFormContext & actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin ) {
+      if( actContext.IsNonLin() != nonLin )
         continue;
-      }
 
-      LinearForm * form = actContext.GetIntegrator();
+      LinearForm* form = actContext.GetIntegrator();
 
-      try {
+      try
+      {
 
         // get entity iterator
         
@@ -1364,29 +1388,30 @@ namespace CoupledField
 
     // iterate over all descriptors
     StdVector<LinearFormContext*>::iterator linIt;
-    for (linIt = linForms_->Begin(); linIt != linForms_->End(); linIt++)
+    for (linIt = linForms_.Begin(); linIt != linForms_.End(); linIt++)
     {
       PtrParamNode form = list->Get("linearForm", ParamNode::APPEND);
 
       // get integrator
-      LinearFormContext & context = **linIt;
+      LinearFormContext& context = **linIt;
 
       form->Get("integrator")->SetValue(context.GetIntegrator()->GetName());
+
+      shared_ptr<EntityList> el = context.GetEntities();
+      form->Get("entities/name")->SetValue(el->GetName());
+      form->Get("entities/size")->SetValue(el->GetSize());
+      form->Get("entities/region")->SetValue(el->GetRegion() != NO_REGION_ID ? domain->GetGrid()->GetRegion().ToString(el->GetRegion()) : "no_region");
 
       // region name of entity list
       std::string regionName;
       if( context.GetEntities()->GetType() == EntityList::ELEM_LIST )
       {
-        shared_ptr<ElemList> list =
-          boost::dynamic_pointer_cast<ElemList,EntityList>
-          (context.GetEntities());
+        shared_ptr<ElemList> list = boost::dynamic_pointer_cast<ElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
       else if ( context.GetEntities()->GetType() == EntityList::SURF_ELEM_LIST )
       {
-        shared_ptr<SurfElemList> list =
-          boost::dynamic_pointer_cast<SurfElemList,EntityList>
-          (context.GetEntities());
+        shared_ptr<SurfElemList> list = boost::dynamic_pointer_cast<SurfElemList,EntityList>(context.GetEntities());
         regionName = list->GetName();
       }
 

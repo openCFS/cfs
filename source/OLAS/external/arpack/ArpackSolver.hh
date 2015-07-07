@@ -110,6 +110,12 @@ namespace CoupledField {
     //! number of Arnoldi vectors
     UInt GetNcv();
 
+    /** counters for statistics */
+    int counter_calll_aupd;
+    int counter_solve_OP_x;
+    int counter_solve_OP_B_x;
+    int counter_B_x;
+
   private:
 
     /** for the template FindEigenvalues(). The implementations are concrete! */
@@ -129,6 +135,7 @@ namespace CoupledField {
 
     //! Translate error number in meaningfull text describtion
     std::string ArpackError( Integer errNo );
+
 
     //! Pointer to matrix interface
     ArpackMatInterface* interface_;

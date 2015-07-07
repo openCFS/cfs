@@ -81,9 +81,7 @@
 #include <flann/flann.hpp>
 #endif
 
-#ifdef USE_XERCES
 #include <xercesc/util/XercesVersion.hpp>
-#endif
 
 #ifdef USE_GIDPOST
 #include <gidpost.h>
@@ -378,7 +376,7 @@ namespace CoupledField {
       return GetSimPath() / fs::path(GetSimName()+".xml" );
     } else {
       fs::path paramPath( varMap_["paramFile"].as<string>());
-      return fs::system_complete( paramPath );
+      return fs::complete( paramPath ); //
     }
   }
 
@@ -905,9 +903,6 @@ namespace CoupledField {
 
     out << endl;
 
-#ifdef USE_XERCES
-    out << "USE_XERCES:            "
-        << fg_blue << "YES" << fg_reset << endl;
     out << "CFS_XERCES_VERSION:    "
         << fg_blue << XERCES_FULLVERSIONDOT << fg_reset << endl;
     out << "XMLSCHEMA:             ";
@@ -915,11 +910,7 @@ namespace CoupledField {
       out << fg_blue << progOpts->GetSchemaPath() << fg_reset << endl;
     else
       out << fg_blue << XMLSCHEMA << fg_reset << endl;
-    
-#else
-    out << "USE_XERCES:            "
-        << fg_blue << "NO" << fg_reset << endl;
-#endif
+
 
     out << endl;
 
@@ -1028,8 +1019,11 @@ namespace CoupledField {
         << endl
         << "14.08, Maximale Verwirrung" << endl
         << "  The FE-Space branch is the new trunk and the optimization group starts to add "
-        << "  its stuff." << endl;
-
+        << "  its stuff." << endl
+        << endl
+        << "15.07, Verlorene Soehne" << endl
+        << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
+        << "  not all features yet, but the the boys are back in town! :)" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

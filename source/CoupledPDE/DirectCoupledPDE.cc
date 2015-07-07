@@ -188,7 +188,7 @@ namespace CoupledField {
     }
     
     // Print list of defined integrators of assembly object
-    assemble_->ToInfo(infoNode_->Get(ParamNode::PN_HEADER)->Get("integrators"));
+    assemble_->ToInfo(infoNode_->Get(ParamNode::HEADER)->Get("integrators"));
     
     
     // Collect all feFunctions defined in BasePairCouplings

@@ -74,12 +74,12 @@
  *     Konzeptionell besser w������re von Space aber mal sehen
  *
  */
+
 #include "CoefFunctionGrid.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "FeBasis/FeSpace.hh"
 #include "DataInOut/ResultHandler.hh"
-#include "Driver/BaseDriver.hh"
 #include <boost/bind.hpp>
 #include <boost/lexical_cast.hpp>
 #include <boost/tr1/type_traits.hpp>
@@ -89,6 +89,7 @@
 #include "CoefFunctionGridNodalDefault.hh"
 //#include "CoefFunctionGridHigherDefault.hh"
 //#include "CoefFunctionGridHigherInterp.hh"
+#include "Driver/BaseDriver.hh"
 
 
 namespace CoupledField{

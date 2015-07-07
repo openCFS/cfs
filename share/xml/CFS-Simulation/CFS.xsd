@@ -28,6 +28,7 @@
   <xsd:include schemaLocation="Schemas/CFS_PDEelectricConduction.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEwaterWave.xsd"/>
   <xsd:include schemaLocation="Schemas/CFS_PDEtest.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_PDELatticeBoltzmann.xsd"/>
 
 	<!-- ******************************************************************* -->
 	<!--   Include definition of coupling types and elements -->
@@ -45,11 +46,13 @@
 	<xsd:include schemaLocation="Schemas/CFS_Preconds.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Analysis.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_Domain.xsd" />
-    <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Documentation.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_FileFormats.xsd" />
 	<xsd:include schemaLocation="Schemas/CFS_FePolynomial.xsd"/>
 	<xsd:include schemaLocation="Schemas/CFS_IntegrationScheme.xsd"/>
-
+  <xsd:include schemaLocation="Schemas/CFS_ErsatzMaterial.xsd"/>
+  <xsd:include schemaLocation="Schemas/CFS_Optimization.xsd"/>
+  
 	<!-- ******************************************************************* -->
 	<!--   Definition of enclosing main element -->
 	<!-- ******************************************************************* -->
@@ -177,6 +180,12 @@
 						</xsd:attribute>
 					</xsd:complexType>
 				</xsd:element>
+
+        <!-- Optional paramteter for ersatz Material. Can be used with or without optimization  -->
+        <xsd:element name="loadErsatzMaterial" type="DT_ErsatzMaterial" minOccurs="0"/>
+
+        <!-- Parameters for specifying an optimization (optional) -->
+        <xsd:element name="optimization" type="DT_Optimization" minOccurs="0"/>
 
 				<!-- Enforce parameter settings by disabling Expert() (optional) -->
 				<xsd:element name="expert" minOccurs="0"

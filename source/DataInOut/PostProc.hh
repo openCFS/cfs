@@ -31,7 +31,7 @@ namespace CoupledField {
     virtual ~PostProc();
 
     //! Return name of postProc
-    std::string GetName() { return name_; } 
+    const std::string& GetName() const { return name_; }
 
     //! Add new result
     virtual void SetResult( shared_ptr<BaseResult> res ) = 0;

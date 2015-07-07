@@ -38,6 +38,7 @@ SET(TARGET_LL
   coeffunction
   linforms
   bilinforms
+  design
 )
 
 IF(USE_HDF5)

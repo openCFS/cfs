@@ -203,9 +203,9 @@ namespace CoupledField {
     // not all solvers are switched to ParamNode yet
     PtrParamNode base = infoNode_;
     setupTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::PN_SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("setup/timer")->SetValue( setupTimer_ );
     solveTimer_ = boost::shared_ptr<Timer>(new Timer());
-    base->Get(ParamNode::PN_SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
+    base->Get(ParamNode::SUMMARY)->Get("solve/timer")->SetValue( solveTimer_ );
   }
   
   void BaseSolver::SetPrecond( BasePrecond* precond ) {
@@ -215,7 +215,7 @@ namespace CoupledField {
    void BaseSolver::Apply(const BaseMatrix& sysmat, const BaseVector& r, 
                           BaseVector& z) {
      
-     this->Solve(sysmat, r, z, infoNode_);
+     this->Solve(sysmat, r, z);
    }
    
 

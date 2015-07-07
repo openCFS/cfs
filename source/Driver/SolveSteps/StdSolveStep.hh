@@ -49,13 +49,13 @@ namespace CoupledField
     virtual void PreStepStatic();
  
     /** base method for solving one static step */
-    virtual void SolveStepStatic(PtrParamNode analysis_id);
+    virtual void SolveStepStatic();
 
     /** @see SolveStepStatic() */ 
-    virtual void StepStaticLin(PtrParamNode analysis_id);
+    virtual void StepStaticLin();
 
     //! solves for one nonlinear static step: incremental formulation 
-    virtual void StepStaticNonLin(PtrParamNode analysis_id);
+    virtual void StepStaticNonLin();
 
     //! routine for actions after the SolveStep-method
     virtual void PostStepStatic();
@@ -73,24 +73,24 @@ namespace CoupledField
     //virtual void PredictorStep(){;};
 
     //! base method for solving one transient step 
-    virtual void SolveStepTrans(PtrParamNode analysis_id);
+    virtual void SolveStepTrans();
 
     //! solves for one linear transient step
-    virtual void StepTransLin(PtrParamNode analysis_id);
+    virtual void StepTransLin();
 
     //! solves for one nonlinear transient step: incremental formulation 
-    virtual void StepTransNonLin(PtrParamNode analysis_id);
+    virtual void StepTransNonLin();
 
     //! solves for one nonlinear transient step: total formulation 
-    virtual void StepTransNonLinTotal(PtrParamNode analysis_id);
+    virtual void StepTransNonLinTotal();
 
     //! solves for one nonlinear transient step 
     //! consideres material nonlinearities in direct coupled PDEs
-    void StepTransNonLinMaterial(PtrParamNode analysis_id);
+    void StepTransNonLinMaterial();
 
     //! solves for one nonlinear transient step 
     //! consideres hystreresis nonlinearities in direct coupled PDEs
-    virtual void StepTransNonLinHysteresis(PtrParamNode analysis_id);
+    virtual void StepTransNonLinHysteresis();
     
     //! routine for actions after the SolveStep-method
     virtual void PostStepTrans();
@@ -100,13 +100,13 @@ namespace CoupledField
     virtual void PreStepHarmonic();
 
     //!  base method for solving one harmonic step 
-    virtual void SolveStepHarmonic(PtrParamNode analysis_id);
+    virtual void SolveStepHarmonic();
     
     //! solves for one linear frequency step 
-    virtual void StepHarmonicLin(PtrParamNode analysis_id);
+    virtual void StepHarmonicLin();
 
     //! solves for one nonlinear frequency step 
-    virtual void StepHarmonicNonLin(PtrParamNode analysis_id)
+    virtual void StepHarmonicNonLin()
     {EXCEPTION("Harmonic step not implemented!");};
     
     //!  routine for actions after the SolveStep-method
@@ -127,7 +127,7 @@ namespace CoupledField
 
     //! Calculate the numMode-th eigenmode of a generalized eigenvalue problem.
     //! Therefore, previously CalcEigenFrequencies() has to be called.
-    void CalcEigenMode( UInt numMode );
+    void GetEigenMode( UInt numMode );
     
     
     //----------------------- helpfull methods--------------------------------------

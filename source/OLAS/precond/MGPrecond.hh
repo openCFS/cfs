@@ -3,7 +3,7 @@
 
 /**********************************************************/
 
-#include "multigrid/multigrid.hh"
+#include "multigrid/multiGrid.hh"
 
 #include "BasePrecond.hh"
 #include "BNPrecond.hh"
@@ -43,7 +43,7 @@ public BNPrecond< MGPrecond<T>, StdMatrix, T >
 
         //! When called this method returns the type of the preconditioner
         //! object. In the case of an object of this class the return
-        //! value is MG (enum constant defined in utils/environment.hh)
+        //! value is MG (enum constant defined in utils/Environment.hh)
         PrecondType GetPrecondType() const {
             return MG;
         };

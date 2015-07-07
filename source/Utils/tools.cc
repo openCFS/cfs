@@ -156,6 +156,29 @@ namespace CoupledField {
     return std::sqrt(result);
   }
 
+  Double NormL2(const Double* data1, const Double* data2, const UInt size)
+  {
+    Double result = 0.0;
+    for(UInt i = 0; i < size; i++)
+      result += (data1[i] - data2[i]) * (data1[i] - data2[i]);
+
+    return std::sqrt(result);
+  }
+
+  double NormL2(const SingleVector* data, const SingleVector* data2)
+  {
+    assert(data != NULL && data2 != NULL);
+
+    if(data->GetSize() != data2->GetSize()) EXCEPTION("incompatible sizes");
+    if(data->GetEntryType() != data2->GetEntryType()) EXCEPTION("incompatible entry types");
+
+    if(data->GetEntryType() == BaseMatrix::COMPLEX)
+      return dynamic_cast<const Vector<Complex>& >(*data).NormL2(dynamic_cast<const Vector<Complex>& >(*data2));
+    else
+      return dynamic_cast<const Vector<double>& >(*data).NormL2(dynamic_cast<const Vector<double>& >(*data2));
+  }
+
+
   template <class TYPE>
   std::string ToString(const TYPE* data, unsigned int size)
   {
@@ -170,6 +193,17 @@ namespace CoupledField {
 
   template <class TYPE>
   std::string ToString(const StdVector<Vector<TYPE> >& data, bool new_line)
+  {
+    std::ostringstream os;
+
+    for(unsigned int i = 0; i < data.GetSize(); i++)
+      os << i << "=" << "[" << data[i].ToString() << "]" << (new_line ? "\n": " ");
+
+    return os.str();
+  }
+
+  template <class TYPE>
+  std::string ToString(const StdVector<StdVector<TYPE> >& data, bool new_line)
   {
     std::ostringstream os;
 
@@ -466,6 +500,7 @@ namespace CoupledField {
     return x / std::sqrt(x*x + eps*eps);
   }
 
+
   // explicit template instantiation
   template std::string ToString<double>(const double* data, unsigned int size);
   template std::string ToString<int>(const int* data, unsigned int size);
@@ -473,5 +508,6 @@ namespace CoupledField {
   template std::string ToString<std::complex<double> >(const std::complex<double>* data, unsigned int size);
 
   template std::string ToString<double>(const StdVector<Vector<double> >& data, bool new_line);
+  template std::string ToString<unsigned int>(const StdVector<StdVector<unsigned int> >& data, bool new_line);
 
 }// namespace CoupledField

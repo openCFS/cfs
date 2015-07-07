@@ -22,7 +22,7 @@ namespace CoupledField {
   // ****************
   template<typename T>
   void RichardsonSolver<T>::Solve( const BaseMatrix &sysmat,
-				   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+				   const BaseVector &rhs, BaseVector &sol ) {
 
     EXCEPTION("The Richardson solver has not been in use for a very long time."
               << "Please check if it is still working for you!");
@@ -165,7 +165,7 @@ namespace CoupledField {
     // ****************************
     //   Generate solution report
     // ****************************
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(niter);
     out->Get("finalPrecondResNorm")->SetValue(norm_new);
     

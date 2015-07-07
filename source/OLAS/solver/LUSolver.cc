@@ -42,7 +42,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LUSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LUSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -104,7 +104,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void LUSolver<T>::Solve( const BaseMatrix &sysMat,
-			   const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+			   const BaseVector &rhs, BaseVector &sol ) {
 
 
     // Test that a factorisation is available, if not issue a warning.
@@ -164,7 +164,7 @@ namespace CoupledField {
     // Now this currently is of dubious value, since the two things queried
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("numIter")->SetValue(-1);
     out->Get("finalNorm")->SetValue(-1.0);
 

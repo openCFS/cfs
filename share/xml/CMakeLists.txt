@@ -29,6 +29,9 @@ ADD_CUSTOM_TARGET(share_xml_cfssim ALL
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PostProc.xsd ${DST_DIR}/Schemas/CFS_PostProc.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Preconds.xsd ${DST_DIR}/Schemas/CFS_Preconds.xsd
   COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Solvers.xsd ${DST_DIR}/Schemas/CFS_Solvers.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_Optimization.xsd ${DST_DIR}/Schemas/CFS_Optimization.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_ErsatzMaterial.xsd ${DST_DIR}/Schemas/CFS_ErsatzMaterial.xsd
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd ${DST_DIR}/Schemas/CFS_PDELatticeBoltzmann.xsd
   COMMENT "Updating XML schemata for CFS++ simulation..."
 )
   

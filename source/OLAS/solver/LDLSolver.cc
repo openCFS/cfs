@@ -85,7 +85,7 @@ namespace CoupledField {
   //   Setup
   // *********
   template<typename T>
-  void LDLSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step ) {
+  void LDLSolver<T>::Setup( BaseMatrix &sysMat ) {
 
 
     // Check that we have a StdMatrix
@@ -249,7 +249,7 @@ namespace CoupledField {
   template<typename T>
   void LDLSolver<T>::Solve( const BaseMatrix  &sysMat,
                             const BaseVector  &rhs,
-                            BaseVector &sol, PtrParamNode analysis_step ) {
+                            BaseVector &sol ) {
 
 
     bool logging = false;
@@ -308,7 +308,7 @@ namespace CoupledField {
     // from olasReport are actually meaningless in the context of a direct
     // solver. Nevertheless we supply some values for consistency
     if( logging ) {
-      PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+      PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
       out->Get("numIter")->SetValue(-1);
       out->Get("finalNorm")->SetValue(-1.0);
     }

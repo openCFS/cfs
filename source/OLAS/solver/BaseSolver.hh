@@ -77,20 +77,16 @@ namespace CoupledField {
     }
     
     //! \see BasePrecond::Setup
-    virtual void Setup( BaseMatrix& sysmat,
-                        PtrParamNode analysis_id ) = 0;
+    virtual void Setup(BaseMatrix& sysmat) = 0;
     
   
     //! Solve the linear system sysmat*sol=rhs for sol
      //! \param analysis_id @see Setup() */
-    virtual void Solve( const BaseMatrix &sysmat,
-                        const BaseVector &rhs, BaseVector &sol, 
-                        PtrParamNode analysis_id = PtrParamNode()) = 0;
+    virtual void Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) = 0;
 
     //! Apply the solver as preconditioner
     //! \see BasePrecond::Apply
-    void Apply(const BaseMatrix& sysmat, const BaseVector& r, 
-               BaseVector& z);
+    void Apply(const BaseMatrix& sysmat, const BaseVector& r,  BaseVector& z);
     
     //! Query type of the solver
 

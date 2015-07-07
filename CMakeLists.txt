@@ -83,15 +83,15 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "14")
-SET(CFS_VERSION_MONTH "08")
+SET(CFS_VERSION_YEAR "15")
+SET(CFS_VERSION_MONTH "07")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Maximale Verwirrung")
+SET(CFS_NAME "Verlorene Soehne")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -196,7 +196,7 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
 
 SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
   CACHE STRING
-  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Or disable USE_PARDISO")
+  "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 
 OPTION(USE_PARDISO "Use Pardiso"
   ${USE_PARDISO_DEFAULT})
@@ -249,8 +249,6 @@ ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 #-----------------------------------------------------------------------------
 SET(USE_HDF5 ${USE_HDF5_DEFAULT}
   CACHE INTERNAL "Use HDF5 for simulation in/output.")
-SET(USE_XERCES ${USE_XERCES_DEFAULT}
-  CACHE INTERNAL "Use the Xerces-C XML parser library.")
 SET(USE_METIS ${USE_METIS_DEFAULT}
   CACHE INTERNAL "Use Metis Graph partitioning.")
 
@@ -298,7 +296,18 @@ ENDIF()
 #-----------------------------------------------------------------------------
 # SCPIP optimizer library.
 #-----------------------------------------------------------------------------
-OPTION(USE_SCPIP "Use the external SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+OPTION(USE_SCPIP "Use the external academic SCPIP optimizer." ${USE_SCPIP_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# commercial SNOPT optimizer library.
+#-----------------------------------------------------------------------------
+OPTION(USE_SNOPT "Use the external commercial SNOPT optimizer." ${USE_SNOPT_DEFAULT})
+
+#-----------------------------------------------------------------------------
+# open source IPOPT optimizer library.
+#-----------------------------------------------------------------------------
+OPTION(USE_IPOPT "Use the external open source IPOPT optimizer." ${USE_IPOPT_DEFAULT})
+
 
 #-----------------------------------------------------------------------------
 # Use cgal toggles the inclusion of the CGAL library.
@@ -409,7 +418,6 @@ MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
-MARK_AS_ADVANCED(USE_XERCES)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -483,7 +491,7 @@ INCLUDE("cmake_modules/ConfigureChecks.cmake")
 # CTest scripts. These scripts set BUILD_TESTING to ON in the initial CMake
 # cache. Cf. ctest_scripts/*.cmake
 #-----------------------------------------------------------------------------
-OPTION(BUILD_TESTING "Build the testing tree." OFF)
+OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
@@ -500,6 +508,12 @@ IF(BUILD_TESTING)
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
+
+#-----------------------------------------------------------------------------
+# Enables visualization tests for matviz.py
+#-----------------------------------------------------------------------------
+OPTION(MATVIZ_TESTS
+  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.
@@ -704,9 +718,9 @@ ADD_SUBDIRECTORY(source/PDE)
 ADD_SUBDIRECTORY(source/Utils)
 ADD_SUBDIRECTORY(source/Utils/mathParser)
 ADD_SUBDIRECTORY(source/Utils/EvalIntegrals)
-#ADD_SUBDIRECTORY(source/Optimization/Optimizer)
-#ADD_SUBDIRECTORY(source/Optimization/Design)
-#ADD_SUBDIRECTORY(source/Optimization)
+ADD_SUBDIRECTORY(source/Optimization)
+ADD_SUBDIRECTORY(source/Optimization/Design)
+ADD_SUBDIRECTORY(source/Optimization/Optimizer)
 ADD_SUBDIRECTORY(source/main)
 
 IF(CFSTOOL)

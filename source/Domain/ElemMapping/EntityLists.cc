@@ -7,6 +7,7 @@
 namespace CoupledField {
 
   Enum<EntityList::ListType>   EntityList::listType;
+  Enum<EntityList::DefineType> EntityList::defineType;
 
   EntityList::EntityList( Grid* grid ) {
     grid_ = grid;
@@ -31,6 +32,14 @@ namespace CoupledField {
     EntityList::listType.Add(EntityList::REGION_LIST, "region", false);
     EntityList::listType.Add(EntityList::NUMBER_LIST, "numberList");
     EntityList::listType.Add(EntityList::COIL_LIST, "coilList");
+
+    EntityList::defineType.SetName("EntityList::DefineType");
+    EntityList::defineType.Add(EntityList::NO_TYPE, "no_type");
+    EntityList::defineType.Add(EntityList::REGION, "region");
+    EntityList::defineType.Add(EntityList::NAMED_NODES, "named_nodes");
+    EntityList::defineType.Add(EntityList::NAMED_ELEMS, "named_elems");
+
+
   }
   
   void EntityList::Intersect(const StdVector<shared_ptr<EntityList> >& set1,
@@ -80,6 +89,18 @@ namespace CoupledField {
     }
     unionSet.Trim();
   }
+
+  std::string EntityList::ToString() const
+  {
+    std::stringstream ss;
+    ss << "type=" << listType.ToString(GetType());
+    ss << " dt=" << defineType.ToString(GetDefineType());
+    ss << " name=" << GetName();
+    ss << " reg=" << GetRegion();
+    ss << " size=" << GetSize();
+    return ss.str();
+  }
+
 
 
   // --- Elem List ---
@@ -191,6 +212,7 @@ namespace CoupledField {
     }
     size_ = list_.GetSize();
   }
+
 
 
   // --- SurfElem List ---

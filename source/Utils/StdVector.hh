@@ -224,10 +224,9 @@ namespace CoupledField {
 
     /** Set the length of the vector but might keep the capacity!
      * Will keep data.
-     * TODO: check if a data-loosing version is worth the "complexity"
      * @param size if smaller capacity only the internal size parameter is adjusted.
      *        If larger than the current capacity the old data is copied!
-     * @note Additional data is NOT initialized, and Resize with init parameter sets ALL data */
+     * @note Additional data is NOT initialized. only Resize with init parameter sets ALL data */
     void Resize(const unsigned int size);
 
     /** Set the length of the vector and initialize
@@ -247,18 +246,21 @@ namespace CoupledField {
     //! Build vector from std::vector
     StdVector & operator= (const std::vector<TYPE> & vec);
   
-    //! Returns las entry of vector
-    inline TYPE & Last();
-
-    //! Returns last entry of vector (read-only)
+    //! Returns the last entry of vector
+    inline TYPE& Last();
     inline TYPE Last() const;
  
 
+    //! Returns the first entry of vector
+    inline TYPE& First();
+    inline TYPE First() const;
+
+
     //! General access operator
-    inline TYPE &operator[] (const unsigned int i);
+    inline TYPE& operator[] (const unsigned int i);
 
     //! Read-Only access operator
-    inline const TYPE & operator[] (const unsigned int i) const;
+    inline const TYPE& operator[] (const unsigned int i) const;
 
     //! Return pointer p to array 
     inline TYPE*  GetPointer() const;
@@ -297,6 +299,9 @@ namespace CoupledField {
       return Find(x) != -1; 
     } 
     
+    /** Checks if there are non-unique elements */
+    bool IsUnique() const;
+
     //! Overloading of operation equal for Vector
     bool operator== (const StdVector &) const;
 
@@ -319,16 +324,16 @@ namespace CoupledField {
     std::string Serialize( char separator = ',') const;
 
    
-//    /** Default output but you can choose to select the window */
-//    std::string ToString(bool in_window) const {
-//      return ToString(0, 1, in_window);
-//    }
+    /** Default output but you can choose to select the window */
+    std::string ToString(bool in_window) const {
+      return ToString(0, 1, in_window);
+    }
 
      /** Lists the content comma seperated.
       * @param level 0=all data, 1 is summary, the higher, the less 
       * @param stride on level=0 every element(1), every second (2), ...
       * @param in_window only for window. what requres the window to be set*/
-     std::string ToString(int level=0, int stride=1) const;
+     std::string ToString(int level=0, int stride=1, bool in_window = false) const;
      
      /** List the content or summary of an external source 
       * @see ToString(int)*/
@@ -340,44 +345,44 @@ namespace CoupledField {
      /** Reas the content from a string list */
      void Parse(const StdVector<std::string>& in);
 
-//     /** This is a little helper to define a range within the data.
-//      * It is just a rucksack of information with no further implication.
-//      * One could add verification of the ranges but this is also ensured by
-//      * the vector itself. */
-//     class Window
-//     {
-//     public:
-//
-//       /** default construcor */
-//       Window();
-//
-//       /** Sets automatically acive */
-//       void Set(unsigned int start, unsigned int size);
-//
-//       /** Scale to the whole vector dimension */
-//       void Set(StdVector& vec);
-//
-//       /** has the window valid properties */
-//       bool Initialized() const { return active_; }
-//
-//       /** index of the first element */
-//       unsigned int GetStart() const;
-//
-//       /** size of the window */
-//       unsigned int GetSize() const;
-//
-//     private:
-//
-//       unsigned int start_;
-//       unsigned int size_;
-//       bool active_;
-//     };
-//
-//     /** Out rucksack data */
-//     Window window;
+     /** This is a little helper to define a range within the data.
+      * It is just a rucksack of information with no further implication.
+      * One could add verification of the ranges but this is also ensured by
+      * the vector itself. */
+     class Window
+     {
+     public:
+
+       /** default construcor */
+       Window();
+
+       /** Sets automatically acive */
+       void Set(unsigned int start, unsigned int size);
+
+       /** Scale to the whole vector dimension */
+       void Set(StdVector& vec);
+
+       /** has the window valid properties */
+      bool Initialized() const { return active_; }
+
+       /** index of the first element */
+       unsigned int GetStart() const;
+
+       /** size of the window */
+       unsigned int GetSize() const;
+
+     private:
+
+       unsigned int start_;
+       unsigned int size_;
+       bool active_;
+     };
+
+     /** Out rucksack data */
+     Window window;
      
-//     /** Verifies if we are in the window. Error also if there is no window initialized (debug mode only) */
-//     bool InWindow(unsigned int index);
+     /** Verifies if we are in the window. Error also if there is no window initialized (debug mode only) */
+     bool InWindow(unsigned int index);
 
   protected:
 
@@ -473,7 +478,7 @@ namespace CoupledField {
   }
 
   template<class TYPE>
-  TYPE &StdVector<TYPE>::Last() {
+  TYPE& StdVector<TYPE>::Last() {
 #ifdef CHECK_INITIALIZED
     if ( size_ == 0)
       EXCEPTION("undefined Vector");
@@ -489,6 +494,25 @@ namespace CoupledField {
 #endif
     return data_[size_-1] ;
   }
+
+  template<class TYPE>
+  TYPE& StdVector<TYPE>::First() {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      EXCEPTION("undefined Vector");
+#endif
+      return data_[0] ;
+  }
+
+  template<class TYPE>
+  TYPE StdVector<TYPE>::First() const {
+#ifdef CHECK_INITIALIZED
+    if ( size_ == 0)
+      EXCEPTION("Vector: undefined Vector");
+#endif
+    return data_[0] ;
+  }
+
 
   // ******************************************************
   // * Additional functions related with handling vectors *

@@ -43,6 +43,15 @@ def xpath(xml, path):
   data = res[0]
   return data.getContent()    
 
+# does at leas one element exist
+def has(xml, path):
+  res = xml.xpathEval(path)
+  if  len(res) == 0:
+   return false
+  else:
+   return true
+
+
   
 # dump a xml node
 def dump(xml, path):
@@ -79,12 +88,15 @@ def toGnuPlot(complex_string):
   ret = string.rstrip(ret, ")")
   return string.replace(ret, ",", "\t")
 
-# execute cmd and rais error when not 0
-def execute(cmd):
- ret = os.system(cmd) <> 0
- if(ret <> 0):
+# execute cmd and rais error when not 0 and not silen
+# return error code, 0 for no problem
+def execute(cmd, output = False, silent = False):
+ if output:
+   print cmd
+ ret = os.system(cmd)
+ if ret <> 0 and not silent:
    raise RuntimeError("execution of '" + cmd + "' -> " + str(ret))
- return     
+ return ret    
 
 # return the first line of a file
 def first_line(file_name, append = ""):
@@ -149,7 +161,9 @@ class Coordinate:
        
 
 # extracts an entry, if data is of lower dimension, the indices are ignored
-def getNDArrayEntry(data, i, j, k):
+def getNDArrayEntry(data, i, j, k, d = None):
+  if data.ndim == 4:
+    return data[i,j,k,d]
   if data.ndim == 3:
     return data[i,j,k]
   if data.ndim == 2:
@@ -176,7 +190,8 @@ def setNDArrayEntry(data, i, j, k, value, save_out_of_dim = False):
 
 ## returns the x, y, and z dimension of a ndarray. z=1 for 2d 
 # call x, y, z = getDim(data)
-def getDim(data):
+# call x, y, z, d = getDim(data, True)
+def getDim(data, get4dims = False):
   x = data.shape[0]
   y = 1
   if data.ndim >= 2:
@@ -184,7 +199,13 @@ def getDim(data):
   z = 1
   if data.ndim >= 3:
     z = data.shape[2]
-  return x, y, z
+  if not get4dims:
+    return x, y, z
+  else:
+    d = None
+    if data.ndim >= 4:
+      d = data.shape[3]
+    return x, y, z, d
 
 ## helps to clean an array with repeated entries as it happens hen nodes and elements are defined in cfs with a too small inc value
 # @param data array which is a history file read by numpy.loadtxt()
@@ -210,6 +231,16 @@ def cleanOversampledArray(data):
       result[i][c] = val
   
   return result    
+
+
+## convert a list to a numpy array 
+def listToNDArray(data):
+  ret = numpy.zeros((len(data)))
+  
+  for i in range(len(data)):
+    ret[i] = data[i]
+    
+  return ret  
 
 
 ## finds a value in an ndarray

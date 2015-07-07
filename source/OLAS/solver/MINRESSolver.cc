@@ -64,7 +64,7 @@ namespace CoupledField {
   //   Setup (public version)
   // **************************
   template<typename T>
-  void MINRESSolver<T>::Setup( BaseMatrix &sysMat, PtrParamNode analysis_step) {
+  void MINRESSolver<T>::Setup( BaseMatrix &sysMat) {
     PrivateSetup( sysMat );
   }
 
@@ -160,7 +160,7 @@ namespace CoupledField {
   // *********
   template<typename T>
   void MINRESSolver<T>::Solve( const BaseMatrix &sysMat,
-                               const BaseVector &rhs, BaseVector &sol, PtrParamNode analysis_step ) {
+                               const BaseVector &rhs, BaseVector &sol ) {
 
 
     // ----------------------------------------
@@ -291,7 +291,7 @@ namespace CoupledField {
       // Replay Givens rotation from step (k-1)
       // This yields the final l1 and alters l0
       l1 = cNew * beta0 +      sNew  * alpha;
-      l0 = cNew * alpha - Conj(sNew) * beta0;
+      l0 = cNew * alpha - conj(sNew) * beta0;
 
       // Shift Givens coefficients
       cOld = cNew;
@@ -305,7 +305,7 @@ namespace CoupledField {
       // right-hand side vector of the least-squares problem
       bV_->GetEntry( k, aux );
 
-      tmp = -Conj(sNew) * aux;
+      tmp = -conj(sNew) * aux;
       bV_->SetEntry( k+1, tmp );
 
       tmp =       cNew  * aux;
@@ -383,7 +383,7 @@ namespace CoupledField {
     rho = q0_->NormL2();
 
     // Compose report
-    PtrParamNode out = infoNode_->Get(ParamNode::PN_PROCESS)->Get("solver", ParamNode::APPEND);
+    PtrParamNode out = infoNode_->Get(ParamNode::PROCESS)->Get("solver", ParamNode::APPEND);
     out->Get("finalNorm")->SetValue(rho);
     out->Get("numIter")->SetValue((Integer)(k-1));
 
