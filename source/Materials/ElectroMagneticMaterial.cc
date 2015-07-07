@@ -922,6 +922,12 @@ namespace CoupledField
           MatDescriptorNl & actNl = matNl[i];
           angles[i] = actNl.angle;
           zScalings[i] = actNl.zScaling;
+          
+          // check for scaling factor == 0
+          if (zScalings[i] == 0.0) {
+            WARN("z-scaling factor of nonlinear curve for angle " << angles[i] << " is set to zero!\n"
+              << " consideration of nonlinear curves will be disabled in z-direction which leads to 2D anisotropic behavior!")
+          }              
 
           //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
           if( actNl.approxType == SMOOTH_SPLINES ) {
@@ -1191,6 +1197,12 @@ namespace CoupledField
            MatDescriptorNl & actNl = matNl[i];
            angles[i] = actNl.angle;
            zScalings[i] = actNl.zScaling;
+           
+           // check for scaling factor == 0
+           if (zScalings[i] == 0.0) {
+             WARN("z-scaling factor of nonlinear curve for angle " << angles[i] << " is set to zero!\n"
+               << " consideration of nonlinear curves will be disabled in z-direction which leads to 2D anisotropic behavior!")
+           }
 
            //Here we really approximate H(B); see book Kaltenbacher, 2nd, 125ff
            if( actNl.approxType == SMOOTH_SPLINES ) {
