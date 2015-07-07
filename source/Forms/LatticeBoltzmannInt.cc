@@ -6,6 +6,8 @@
 #include "Materials/baseMaterial.hh"
 #include "Domain/elem.hh"
 #include "Domain/entityList.hh"
+#include "Domain/domain.hh"
+#include "Domain/grid.hh"
 #include "DataInOut/Logging/cfslog.hh"
 #include "DataInOut/Logging/log.hpp"
 
@@ -29,6 +31,13 @@ void LatticeBoltzmannInt::CalcElementMatrix(Matrix<Double>& elemMat, EntityItera
    // this is dummy data, it will be set in LatticeBoltzmannPDE as the LBM problem is solved afterwards
    for(unsigned int i = 0; i < getNrDofs(); i++)
      elemMat[i][i] = 1.0;
+}
+
+unsigned int LatticeBoltzmannInt::getNrDofs()
+{
+  if (domain->GetGrid()->GetDim() == 2 )
+    return 9;
+  else return 19;
 }
 
 } // end of namespace

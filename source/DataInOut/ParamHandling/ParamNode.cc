@@ -251,7 +251,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       break;
     case EX:
       throw Exception("None of the " + lexical_cast<string>(children_.GetSize()) + " childs of element '"
-                      + this->name_ + "' has a child '" + myName + "'");
+                      + this->name_ + "' has a child '" + myName + "' ");
       ;
       break;
     case PASS:
@@ -337,7 +337,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Get()-calls will always create a child elements
   if (insertNew || action == APPEND)
   {
-
+    //changed 2nd parameter to APPEND
     PtrParamNode ret = this->Get(parent, APPEND);
     ret->Get(child, action)->SetValue(value);
     return ret;

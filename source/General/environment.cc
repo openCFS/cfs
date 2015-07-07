@@ -1428,7 +1428,6 @@ namespace CoupledField {
     //mpcci
     SolutionTypeEnum.Add(FLUID_FORCE, "fluidForce");
     //LBM velocity
-    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");

@@ -1539,7 +1539,7 @@
       <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
       <xsd:enumeration value="stressDensity"/>
       <!-- Pressure drop for the external LBM solver -->
-      <xsd:enumeration value="pressureDrop" />      
+      <xsd:enumeration value="pressureDrop" />
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>

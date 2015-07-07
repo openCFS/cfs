@@ -261,6 +261,7 @@ extern "C" {
     // factorisation
     bool facSymbolic = false;
     bool facNumeric = true;
+//    bool facNumeric = false;
 
     // No factorisation available, so perform both steps
     if ( firstCall_ == true ) {
@@ -593,11 +594,13 @@ extern "C" {
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
 
+    PtrParamNode node = solverInfo_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    node->Get("number")->SetValue(tNumfact_.GetCalls());
     // ========================
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
-
+      tSymfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
@@ -628,20 +631,31 @@ extern "C" {
       else {
         LOG_TRACE(pardisoSolver) << "done";
       }
-    }
 
+      tSymfact_.Stop();
+      
+//      solverInfo_->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+//      solverInfo_->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
+      node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+      node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
+    }
 
     // =========================
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
-
+      tNumfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
 
       // only factorise (numerical)
       int phase = 22;
+
+//      std::cout << "pardiso(" << "x," << maxfct_ << "," << mnum_ << "," << mType_ << "," <<
+//                phase << "," << probDim_ << "," << theMatrix_ << "," << rowPtr_ << "," <<  colPtr_ << "," <<
+//                                         idPerm_ << "," << nrhs_ << "," <<  iparm_[0] << "," <<  msgLvl_ << "," <<  zeroDBL_ << "," <<
+//                                         zeroDBL_ << "," << errorFlag << "," <<  dparm_[0] << ")" << "\n";
 
       // let pardiso go for it
 #if PARDISO_API_VER == 4
@@ -665,8 +679,18 @@ extern "C" {
       }
       else {
         LOG_TRACE(pardisoSolver) << "done";
+        LOG_TRACE(pardisoSolver) << "Memory consumption during numerical factorization and solution: " << iparm_[16] << "kBytes";
       }
+
+      tNumfact_.Stop();
+      node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
+      node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
+
+    node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
+    node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
+    node->Get("numfact/peakMem")->SetValue(iparm_[16]);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;
@@ -680,7 +704,6 @@ extern "C" {
       colPtr_[i] -= 1;
 
   }
-
 
 
   // *************************
