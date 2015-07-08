@@ -608,13 +608,13 @@ namespace CFSTool {
                 pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                 // correct 2*pi-offset if phase angles have different signs
-                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                  pDiff+= 2*PI;
-                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                  pDiff-= 2*PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff<0) )
+                  pDiff+= 2*M_PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff>0) )
+                  pDiff-= 2*M_PI;
 
                 // Dirty hack! Write differences in real_imag format.
-                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+                outVec[actIndex] = Complex( aDiff, pDiff*180/M_PI );
 
                 // return maximum of amplitude difference
                 if  (aDiff > maxDiff)
@@ -662,13 +662,13 @@ namespace CFSTool {
                 pDiff = RadPhase(inVec_fut[actIndex]) - RadPhase(inVec_ref[actIndex]);
 
                 // correct 2*pi-offset if phase angles have different signs
-                if ( (std::abs(pDiff)>PI) && (pDiff<0) )
-                  pDiff+= 2*PI;
-                if ( (std::abs(pDiff)>PI) && (pDiff>0) )
-                  pDiff-= 2*PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff<0) )
+                  pDiff+= 2*M_PI;
+                if ( (std::abs(pDiff)>M_PI) && (pDiff>0) )
+                  pDiff-= 2*M_PI;
 
                 // Dirty hack! Write differences in real_imag format.
-                outVec[actIndex] = Complex( aDiff, pDiff*180/PI );
+                outVec[actIndex] = Complex( aDiff, pDiff*180/M_PI );
 
                 // maximum and minimum values
                 if( pDiff > pMax )
@@ -695,8 +695,8 @@ namespace CFSTool {
                 std::cout << "\n\tMaximum + amplitude difference:  " << aMax <<  "\n"
                 << "\tMaximum - amplitude difference: " << aMin <<  "\n";
 
-              std::cout << "\tMaximum + phase difference:      " << pMax*180/PI <<  " deg\n"
-                  << "\tMaximum - phase difference:     " << pMin*180/PI <<  " deg\n";
+              std::cout << "\tMaximum + phase difference:      " << pMax*180/M_PI <<  " deg\n"
+                  << "\tMaximum - phase difference:     " << pMin*180/M_PI <<  " deg\n";
 
               // return maxDiff for differences in real and imaginary part
               if ( (rMax > iMax) && (rMax > maxDiff) )

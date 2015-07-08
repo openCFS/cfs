@@ -25,68 +25,68 @@
 #include <list>
 #include <cmath>
 
-struct Point {
-  double vec[3];
-  double vel[3];
+namespace CGAL
+{
 
-  Point() {
-    vec[0]= vec[1] = vec[2] = 0;
-    vel[0]= vel[1] = vel[2] = 0;
-  }
-  Point (double x, double y, double z,
-         double vx, double vy, double vz) {
-    vec[0]=x; vec[1]=y; vec[2]=z;
-    vel[0]=vx; vel[1]=vy; vel[2]=vz;
-  }
+  /** define this Point within the CGAL namespace as there is a Point.hh in CFS */
+  struct Point {
+    double vec[3];
+    double vel[3];
 
-  double x() const { return vec[ 0 ]; }
-  double y() const { return vec[ 1 ]; }
-  double z() const { return vec[ 2 ]; }
+    Point() {
+      vec[0]= vec[1] = vec[2] = 0;
+      vel[0]= vel[1] = vel[2] = 0;
+    }
+    Point (double x, double y, double z,
+        double vx, double vy, double vz) {
+      vec[0]=x; vec[1]=y; vec[2]=z;
+      vel[0]=vx; vel[1]=vy; vel[2]=vz;
+    }
 
-  double vx() const { return vel[ 0 ]; }
-  double vy() const { return vel[ 1 ]; }
-  double vz() const { return vel[ 2 ]; }
+    double x() const { return vec[ 0 ]; }
+    double y() const { return vec[ 1 ]; }
+    double z() const { return vec[ 2 ]; }
 
-  double& x() { return vec[ 0 ]; }
-  double& y() { return vec[ 1 ]; }
-  double& z() { return vec[ 2 ]; }
+    double vx() const { return vel[ 0 ]; }
+    double vy() const { return vel[ 1 ]; }
+    double vz() const { return vel[ 2 ]; }
 
-  bool operator==(const Point& p) const
-  {
-    return (x() == p.x()) && (y() == p.y()) && (z() == p.z())  ;
-  }
+    double& x() { return vec[ 0 ]; }
+    double& y() { return vec[ 1 ]; }
+    double& z() { return vec[ 2 ]; }
 
-  bool  operator!=(const Point& p) const { return ! (*this == p); }
-}; //end of class
+    bool operator==(const Point& p) const
+      {
+      return (x() == p.x()) && (y() == p.y()) && (z() == p.z())  ;
+      }
 
-
-
-namespace CGAL {
+    bool  operator!=(const Point& p) const { return ! (*this == p); }
+  }; //end of class
 
   template <>
-  struct Kernel_traits<Point> {
+  struct Kernel_traits<CGAL::Point> {
     struct Kernel {
       typedef double FT;
       typedef double RT;
     };
   };
-}
+} // end of namespace CGAL
 
 
 struct Construct_coord_iterator {
   typedef  const double* result_type;
-  const double* operator()(const Point& p) const
+  const double* operator()(const CGAL::Point& p) const
   { return static_cast<const double*>(p.vec); }
 
-  const double* operator()(const Point& p, int)  const
+  const double* operator()(const CGAL::Point& p, int)  const
   { return static_cast<const double*>(p.vec+3); }
 };
 
 struct Distance {
-  typedef Point Query_item;
+  typedef CGAL::Point Query_item;
   typedef double FT;
 
-  double transformed_distance(const Point& p1, const Point& p2) const {
+  double transformed_distance(const CGAL::Point& p1, const CGAL::Point& p2) const {
     double distx= p1.x()-p2.x();
     double disty= p1.y()-p2.y();
     double distz= p1.z()-p2.z();
@@ -94,7 +94,7 @@ struct Distance {
   }
 
   template <class TreeTraits>
-  double min_distance_to_rectangle(const Point& p,
+  double min_distance_to_rectangle(const CGAL::Point& p,
                                    const CGAL::Kd_tree_rectangle<TreeTraits>& b) const {
     double distance(0.0), h = p.x();
     if (h < b.min_coord(0)) distance += (b.min_coord(0)-h)*(b.min_coord(0)-h);
@@ -109,7 +109,7 @@ struct Distance {
   }
 
   template <class TreeTraits>
-  double max_distance_to_rectangle(const Point& p,
+  double max_distance_to_rectangle(const CGAL::Point& p,
                                    const CGAL::Kd_tree_rectangle<TreeTraits>& b) const {
     double h = p.x();
 
@@ -137,7 +137,7 @@ struct Distance {
 }; // end of struct Distance
 
 
-typedef CGAL::Search_traits<double, Point, const double*, Construct_coord_iterator> Traits;
+typedef CGAL::Search_traits<double, CGAL::Point, const double*, Construct_coord_iterator> Traits;
 typedef CGAL::Orthogonal_k_neighbor_search<Traits, Distance> K_neighbor_search;
 typedef K_neighbor_search::Tree Tree;
 

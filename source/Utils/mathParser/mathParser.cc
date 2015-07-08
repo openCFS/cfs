@@ -516,7 +516,7 @@ namespace CoupledField {
     parser.DefineOprt( "lt", MathParser::Op_lt, 2);
 
     // Register constant variables
-    parser.DefineConst("pi", (double) PI);
+    parser.DefineConst("pi", (double) M_PI);
 
     // Register functions from within CFS
     parser.DefineFun("sample1D", Interpolate1D::Interpolate, false );

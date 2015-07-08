@@ -53,12 +53,12 @@ namespace CoupledField {
   
    //! Convert grad => rad
    inline Double Grad2Rad( Double rad ) {
-     return rad / 180.0 * PI;
+     return rad / 180.0 * M_PI;
    }
    
   //! Convert rad => grad
   inline Double Rad2Grad( Double rad ) {
-     return rad / PI * 180.0;
+     return rad / M_PI * 180.0;
    }
   
   // =========================================================================

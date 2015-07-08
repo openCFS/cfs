@@ -640,26 +640,6 @@ void CoefFunctionApproxAniso::GetScalar(Double& coefScalar,
       coefScalar = bhi * coefScalarXY + blo * coefScalarZ;
     } // endif ( is2dAnisotropic )
 
-
-#ifndef NDEBUG
-    // some debug output... TODO-avolk: weg damit!
-    std::cerr << "GetScalar(): statistics of element " << lpm.ptEl->elemNum << ":";
-//    std::cerr << " B_x=" << elemSol[0];
-//    std::cerr << " B_y=" << elemSol[1];
-//    std::cerr << " B_z=" << elemSol[2];
-    std::cerr << " angleBPhi=" << angleBPhi;
-    std::cerr << " angleBTheta=" << angleBTheta;
-    std::cerr << " zScaling(end)=" << zScalings_[kend];
-//    std::cerr << " startAngle=" << angles_[klo]; 
-//    std::cerr << " stopAngle=" << angles_[khi];
-//    std::cerr << " ahi=" << ahi << ", alo=" << alo << ", ahi+alo=" << ahi+alo;
-    std::cerr << " coefScalarXY=" << coefScalarXY;
-    std::cerr << " coefScalarZ=" << coefScalarZ;
-    std::cerr << " coefScalar=" << coefScalar;
-//    std::cerr << std::setprecision(4); 
-    std::cerr << std::endl;
-#endif
-    
   }
 }
 

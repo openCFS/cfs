@@ -69,25 +69,25 @@ namespace CoupledField {
   //! Convert (real,imag) => phase
   Double RealImagToPhase( const Complex& in ) {
     return (std::abs(in.imag()) > 1e-16) ?                   
-        std::atan2(in.imag(),in.real() )*180/PI : 
+        std::atan2(in.imag(),in.real() )*180/M_PI : 
         ( in.real() < 0.0 ) ? 180 : 0 ; 
   }
 
 
   //! Convert (ampl,phase) => (real,imag)
   Complex AmplPhaseToComplex( Double val, Double phase ) {
-    return Complex( val * std::cos( phase / 180 * PI ),
-                    val * std::sin( phase / 180 * PI ) ); 
+    return Complex( val * std::cos( phase / 180 * M_PI ),
+                    val * std::sin( phase / 180 * M_PI ) ); 
   }
 
   //! Convert (ampl,phase) => real
   Double AmplPhaseToReal( Double val, Double phase ) {
-    return val * std::cos( phase / 180 * PI );
+    return val * std::cos( phase / 180 * M_PI );
   }
 
   //! Convert (ampl,phase) => imag
   Double AmplPhaseToImag( Double val, Double phase ) {
-    return val * std::sin( phase / 180 * PI );
+    return val * std::sin( phase / 180 * M_PI );
   }
 
 
