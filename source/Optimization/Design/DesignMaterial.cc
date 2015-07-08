@@ -4306,12 +4306,12 @@ void DesignMaterial::GetSVDGTensorParameters(const Matrix<double>& G, Vector<dou
   {
     l1 = -l1;
     l2 = -l2;
-    if (phi< 0) phi = PI +phi;
-    else phi = phi - PI;
+    if (phi< 0) phi = M_PI +phi;
+    else phi = phi - M_PI;
   }
 
-  if (phi <0) phi = phi +2*PI;
-  if (theta<0 ) theta = theta + 2*PI;
+  if (phi <0) phi = phi +2 * M_PI;
+  if (theta<0 ) theta = theta + 2 * M_PI;
 
   paramvec[0] = theta;
   paramvec[1] = phi;

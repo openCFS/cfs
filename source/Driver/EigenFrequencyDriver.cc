@@ -150,36 +150,36 @@ namespace CoupledField {
         // we don't repeat the corner points, the are calculated at the start of a line
         for(int i = 0; i < steps/edges; i++) {
           wave_vectors[i].Resize(3);
-          wave_vectors[i][0] = (i*edges*PI/steps) / d_x;
+          wave_vectors[i][0] = (i*edges*M_PI/steps) / d_x;
           wave_vectors[i][1] = 0.0;
           wave_vectors[i][2] = 0.0;
         }
         for(int i = 0; i < steps/edges; i++) {
           wave_vectors[steps/edges + i].Resize(3);
-          wave_vectors[steps/edges + i][0] = PI/d_x;
-          wave_vectors[steps/edges + i][1] = (i*edges*PI/steps) / d_y;
+          wave_vectors[steps/edges + i][0] = M_PI/d_x;
+          wave_vectors[steps/edges + i][1] = (i*edges*M_PI/steps) / d_y;
           wave_vectors[steps/edges + i][2] = 0.0;
         }
         if(dim == 2)
           for(int i = 0; i < steps/edges; i++) {
             wave_vectors[2*steps/edges + i].Resize(3);
-            wave_vectors[2*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
-            wave_vectors[2*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors[2*steps/edges + i][0] = M_PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors[2*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
             wave_vectors[2*steps/edges + i][2] = 0.0;
           }
         else
         {
           for(int i = 0; i < steps/edges; i++) {
             wave_vectors[2*steps/edges + i].Resize(3);
-            wave_vectors[2*steps/edges + i][0] = PI/d_x;
-            wave_vectors[2*steps/edges + i][1] = PI/d_y;
-            wave_vectors[2*steps/edges + i][2] = (i*edges*PI/steps) / d_z;
+            wave_vectors[2*steps/edges + i][0] = M_PI/d_x;
+            wave_vectors[2*steps/edges + i][1] = M_PI/d_y;
+            wave_vectors[2*steps/edges + i][2] = (i*edges*M_PI/steps) / d_z;
           }
           for(int i = 0; i < steps/edges; i++) {
             wave_vectors[3*steps/edges + i].Resize(3);
-            wave_vectors[3*steps/edges + i][0] = PI/d_x * (1.0-i * (double) edges/steps);
-            wave_vectors[3*steps/edges + i][1] = PI/d_y * (1.0-i * (double) edges/steps);
-            wave_vectors[3*steps/edges + i][2] = PI/d_z * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i][0] = M_PI/d_x * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i][1] = M_PI/d_y * (1.0-i * (double) edges/steps);
+            wave_vectors[3*steps/edges + i][2] = M_PI/d_z * (1.0-i * (double) edges/steps);
           }
         }
       }
@@ -190,8 +190,8 @@ namespace CoupledField {
           for(int x = 0; x < root; x++) {
             int idx = y * root + x;
             wave_vectors[idx].Resize(3);
-            wave_vectors[idx][0] = (PI/d_x) * (x/(root-1));
-            wave_vectors[idx][1] = (PI/d_y) * (y/(root-1));
+            wave_vectors[idx][0] = (M_PI/d_x) * (x/(root-1));
+            wave_vectors[idx][1] = (M_PI/d_y) * (y/(root-1));
            }
          }
       }

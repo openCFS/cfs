@@ -15,9 +15,13 @@
 #ifndef COEFFUNCTIONPML_HH_
 #define COEFFUNCTIONPML_HH_
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include "CoefFunction.hh"
 #include <boost/tr1/type_traits.hpp>
 #include "Utils/mathParser/mathParser.hh"
+
 
 namespace CoupledField{
 

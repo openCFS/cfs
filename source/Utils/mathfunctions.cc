@@ -30,15 +30,15 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( t < nPerFadeIn * T ) {
-      ret = sin( 2 * PI * freq * t) *
-            pow( sin( 2 * PI * freq * t / 4 / nPerFadeIn), 2);
+      ret = sin( 2 * M_PI * freq * t) *
+            pow( sin( 2 * M_PI * freq * t / 4 / nPerFadeIn), 2);
     }
     else if( t < (numPeriods - nPerFadeOut) * T )  {
-      ret = sin( 2 * PI * freq * t);
+      ret = sin( 2 * M_PI * freq * t);
     }
     else if( t < numPeriods * T) {
-      ret = sin( 2 * PI * freq * t) *
-            pow( sin( 2 * PI * freq *
+      ret = sin( 2 * M_PI * freq * t) *
+            pow( sin( 2 * M_PI * freq *
                 (t - numPeriods * T) / 4 / nPerFadeOut), 2);
     }
 
@@ -61,7 +61,7 @@ namespace CoupledField {
     if( mode == 1) {
       //! using sin^2
       if ( t < fadeInTime ) {
-        ret = sin(2 * PI * t / fadeInTime / 4) * sin(2 * PI * t / fadeInTime / 4);
+        ret = sin(2 * M_PI * t / fadeInTime / 4) * sin(2 * M_PI * t / fadeInTime / 4);
       }
       else {
         ret = 1.0;
@@ -108,14 +108,14 @@ namespace CoupledField {
     Double h = 1.0;
     Double g = 1.0;
     if( t < t00 ) {
-      h =  sin( 2 * PI * f00 * t / (4.*nPerFadeIn)) *
-           sin( 2 * PI * f00 * t / (4.*nPerFadeIn));
+      h =  sin( 2 * M_PI * f00 * t / (4.*nPerFadeIn)) *
+           sin( 2 * M_PI * f00 * t / (4.*nPerFadeIn));
     }
     if( t > t01 ) {
-      g = 1 - sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut)) *
-              sin(2 * PI * f00 * (t01-t) / (4.*nPerFadeOut));
+      g = 1 - sin(2 * M_PI * f00 * (t01-t) / (4.*nPerFadeOut)) *
+              sin(2 * M_PI * f00 * (t01-t) / (4.*nPerFadeOut));
     }
-    Double c = sin(2 * PI * ( b * t * t + startFreq*t));
+    Double c = sin(2 * M_PI * ( b * t * t + startFreq*t));
     return h * c * g;
 
   }
@@ -134,7 +134,7 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( (Mod(t,T) < pulseWidth/2.0) || (Mod(t,T) > T - pulseWidth/2.0)  )  {
-      ret = 1 + cos( 2 * PI * t / pulseWidth);
+      ret = 1 + cos( 2 * M_PI * t / pulseWidth);
     }
 
     return ret;
@@ -153,7 +153,7 @@ namespace CoupledField {
     Double T = 1.0 / freq;
 
     if( t > numPeriods * T )  {
-      ret = sin( 2 * PI * freq * t );
+      ret = sin( 2 * M_PI * freq * t );
     }
 
     switch ( pT ) {
@@ -217,7 +217,7 @@ namespace CoupledField {
       return exp( -0.5 * help * help );
     }
     else {
-      return 1.0 / ( sigma * sqrt( 2 * PI) ) *
+      return 1.0 / ( sigma * sqrt( 2 * M_PI) ) *
              exp( -0.5 * help * help );
     }
   }
