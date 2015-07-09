@@ -1,9 +1,11 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <string>
 #include <iostream>
-#include <cmath>
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"

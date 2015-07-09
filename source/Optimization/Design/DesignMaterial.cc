@@ -2327,7 +2327,7 @@ void DesignMaterial::GetMappingTensor(Matrix<double>& E, DesignElement::Type dir
     	 GetRedBasCorrector(corrector_, G);
      }
 
-     if ((direction == DesignElement::NO_DERIVATIVE))
+     if (direction == DesignElement::NO_DERIVATIVE)
      {
        GetModRedHomTensor(E, G,corrector_, notation);
      }

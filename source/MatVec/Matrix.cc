@@ -1503,7 +1503,8 @@ namespace CoupledField
           }
       }
 
-    TYPE adj = (TYPE) pow(-1,i+j) * 
+    // with pow(-1, i+j) a compiler complains: more than one instance of overloaded function "pow" matches the argument list  
+    TYPE adj = (TYPE) std::pow(-1.0,i+j) * 
       ( data_[iVec[0]][jVec[0]] * data_[iVec[1]][jVec[1]] - 
         data_[iVec[0]][jVec[1]] * data_[iVec[1]][jVec[0]]);
     

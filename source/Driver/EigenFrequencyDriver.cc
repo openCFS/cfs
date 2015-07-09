@@ -371,7 +371,7 @@ namespace CoupledField {
           // time is step.nr
           int total = eigenFreqs->GetSize() * wvs;
           int digs =  boost::lexical_cast<string>(total).size();
-          double sig = std::pow(10, -digs); // 1e-2 -> 10 ^ -2
+          double sig = std::pow((float) 10.0, -digs); // 1e-2 -> 10 ^ -2 -> a compiler complained with simply 10
           save_value = stepNum + (w * wvs + fi + 1) * sig; // +1 for one based
 
           LOG_DBG3(efd) << "SR total=" << total << " digs=" << digs << " sig=" << sig << " count=" << (w * wvs + fi + 1);
