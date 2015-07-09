@@ -411,7 +411,7 @@ Excitation::~Excitation()
 
 void Excitation::Apply()
 {
-  domain->GetOptimization()->applied_excitation = this;
+  domain->GetOptimization()->context.excitation = this;
 
   if(forms.GetSize() > 0)
   {

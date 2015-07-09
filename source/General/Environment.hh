@@ -50,7 +50,7 @@ namespace CoupledField {
   class Domain;
   class CFSMessenger;
   class LogConfigurator;
-  class ParamNode;
+  
   class CoefFunction;
   
   // Type definition for shared_ptr<CoefFunction>

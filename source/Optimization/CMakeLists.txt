@@ -16,6 +16,7 @@ SET(OPTIMIZATION_SRCS
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc
+  Transform.cc
   Objective.cc
   ParamMat.cc
  )

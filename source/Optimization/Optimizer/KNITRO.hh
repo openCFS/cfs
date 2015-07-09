@@ -7,7 +7,7 @@ namespace CoupledField
 {
 
 class Optimization;
-class ParamNode;
+
 
 /** Embeds the commercial KNITRO optimizer. See the original documentation. This example uses the names from reverseCommExample.c */
 class KNITRO : public BaseOptimizer

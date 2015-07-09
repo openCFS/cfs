@@ -14,7 +14,7 @@ namespace CoupledField {
   // forward class declarations
   class BaseEigenSolver;
   class BaseMatrix;
-  class ParamNode;
+  
 
   //! Generate a basic solver object
 

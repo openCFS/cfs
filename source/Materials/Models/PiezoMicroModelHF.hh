@@ -12,7 +12,7 @@
 namespace CoupledField {
 
   // forward class declarations
-  class ParamNode;
+  
 
   //! class for Huber-Fleck micro-piezoelectric model
   class PiezoMicroModelHF {

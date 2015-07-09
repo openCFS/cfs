@@ -423,7 +423,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   if inclusion:
     for y in range(ny):
       for x in range(nx):
-        if 
+        assert(False)
         
     
   

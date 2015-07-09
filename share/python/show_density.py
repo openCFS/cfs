@@ -27,8 +27,8 @@ def density_to_image(filename, set, design):
     print "not a valid density file given!"
     sys.exit(1)
 
-  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set)
-  
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=1.0)
+  print dens.shape
   x, y, z = getDim(dens)
   
   if z > 1:
@@ -41,7 +41,7 @@ def density_to_image(filename, set, design):
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-        ret[y-i-1][j] = 255 - int(255 * dens[j][i])
+      ret[y-i-1][j] = 255 - int(255 * dens[j][i])
 
   return Image.fromarray(ret), dens
 
@@ -92,7 +92,7 @@ if args.grid:
   print_grid_on_image(img,dens)
 
 if not args.orgsize:
-  ix, iy = dens.shape
+  ix, iy = dens.shape[0:2]
   f = 800 / max(ix, iy)
   img = img.resize((f * ix, f * iy))
 #I = I.rotate(90)

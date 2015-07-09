@@ -39,6 +39,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
+#include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/tools.hh"
@@ -77,8 +78,6 @@ Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
-
-
 Optimization::Optimization()
 {
   this->pde = NULL; // set in PostInit()
@@ -96,7 +95,6 @@ Optimization::Optimization()
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
-  this->applied_excitation = NULL;
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
@@ -475,6 +473,9 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
+
+  Transform::type.SetName("Transform::Type");
+  Transform::type.Add(Transform::ROTATION, "rotate");
 }
 
 bool Optimization::IsTransient() {

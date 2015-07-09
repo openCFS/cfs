@@ -325,7 +325,6 @@ public:
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
     double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
-
     
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
@@ -356,10 +355,10 @@ public:
     void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
 
     /** @see BaseDesignElement::ToString() */
-    std::string ToString() const { return ToString(this); }
+    std::string ToString(bool barycenter = false) const { return ToString(this, barycenter); }
 
     /** makes a short dump, handles NULL */
-    static std::string ToString(const DesignElement* de);
+    static std::string ToString(const DesignElement* de, bool barycenter = false);
     
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
