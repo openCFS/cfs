@@ -105,7 +105,7 @@ Optimization::Optimization()
 
 
   if(driver->GetDriverClass() != BaseDriver::SINGLE_DRIVER)
-    throw Exception("optimization not implemented for driver " + driver->GetDriverClass());
+    throw Exception("optimization not implemented for driver " + (int) driver->GetDriverClass());
 
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
   PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);

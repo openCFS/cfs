@@ -1,10 +1,12 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <typeinfo>
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 // includes for the C99 standard datatypes (e.g. uint32_t, long double)
 #include <boost/cstdint.hpp>
