@@ -16,6 +16,7 @@
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField
@@ -26,9 +27,6 @@ namespace CoupledField
   struct ResultInfo;
   class CoefFunctionOpt;
   class LocPointMapped;
-
-
-  class TransferFunction;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
@@ -147,6 +145,10 @@ namespace CoupledField
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
+
+     /** Apply the transformations if they shall be.
+      * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
+      DesignElement* ApplyTransformations(const DesignElement* de);
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
@@ -279,6 +281,9 @@ namespace CoupledField
 
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
+
+     /** Our tranformations */
+     StdVector<Transform> transform;
 
      /** Here we store the designs we have. Check with Find() for the element. 
       * Note, that multimaterial_density is not unique here! */

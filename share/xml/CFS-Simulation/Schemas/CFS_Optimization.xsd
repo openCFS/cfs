@@ -907,6 +907,25 @@
               </xsd:complexType>
            </xsd:element>                 
             
+            <xsd:element name="transform" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                <xsd:annotation>
+                  <xsd:documentation>A rotation around an named element counterclockwise in rad. The angle might be given as formula</xsd:documentation>
+                </xsd:annotation>
+                  <xsd:element name="rotate" minOccurs="1" maxOccurs="1">
+                    <xsd:complexType>
+                      <!-- named node -->
+                      <xsd:attribute name="center" type="xsd:token" use="required"/>
+                      <!-- angle counter clockwise in rad -->
+                      <xsd:attribute name="angle" type="xsd:token" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            
             <xsd:element name="shapeGrad" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>

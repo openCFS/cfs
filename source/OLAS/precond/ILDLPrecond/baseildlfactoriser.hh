@@ -7,7 +7,7 @@
 namespace CoupledField {
 
   template<typename> class SCRS_Matrix;
-  class ParamNode;
+  
 
   //! Base class for all incomplete LDL factorisation variants
 

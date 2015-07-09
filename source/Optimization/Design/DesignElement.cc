@@ -571,6 +571,7 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case PENALIZED_STRESS:
   case TRANSFO_MATRIX:
     assert(false); // should be covered before by special result index
+    break; // only for the compiler
 
   case TOPGRAD_VALUE:
     if(tge == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
@@ -599,7 +600,10 @@ double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
   assert(space_ != NULL);
   TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
 
-  return tf->Transform(this, SMART);
+  // when we have a transformation we want the physical value for the source design
+  DesignElement* trans = space_->ApplyTransformations(this);
+
+  return tf->Transform(trans != NULL ? trans : this, SMART); // if there is a transformation return the transformed stuff
 }
 
 
@@ -624,7 +628,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   }
 }
 
-std::string DesignElement::ToString(const DesignElement* de)
+std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
 {
   if(de == NULL) return "null";
 
@@ -637,7 +641,10 @@ std::string DesignElement::ToString(const DesignElement* de)
   else
   {
     ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
-    ss << " t=" << type.ToString(de->type_);
+    if(barycenter)
+      ss << " bc=" << de->elem->barycenter.ToString();
+    else
+      ss << " t=" << type.ToString(de->type_);
   }
   
   return ss.str();

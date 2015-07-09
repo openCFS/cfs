@@ -123,14 +123,24 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     transfer.Reserve(trans_in.GetSize());
     if(trans_in.GetSize() < design.GetSize() && ! HasMultiMaterial())
       throw Exception("less transferFunctions than design variable types is infeasible");
-  } else {
+  }
+  else
+  {
     transfer.Reserve(trans_in.GetSize() + 1); // We reserve space for all given TransferFunctions plus the fallback IDENTITY transfer function
     transfer.Push_back(TransferFunction()); // add fallback IDENTITY transfer function at transfer[0] for parameters with no given TransferFunction
   }
-    for(unsigned int i = 0; i < trans_in.GetSize(); i++)
-      transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
+
+  for(unsigned int i = 0; i < trans_in.GetSize(); i++)
+    transfer.Push_back(TransferFunction(trans_in[i], design.GetSize() == 1 ? design[0].design : DesignElement::NO_TYPE));
     // check for mass if we have harmonic and density in PostInit() before the pde's are not ready
 
+  // read the optional transformations
+  if(pn->Has("transform"))
+  {
+    ParamNodeList tr_in = pn->Get("transform")->GetChildren();
+    for(unsigned int i = 0; i < tr_in.GetSize(); i++)
+      transform.Push_back(Transform(tr_in[i], this));
+  }
 
   if(elements == 0 || design.IsEmpty())
   { // this may happen in shape optimization
@@ -884,6 +894,18 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' in application '" + Optimization::application.ToString(application)
                         + "' is not contained");
 }
+
+DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de)
+{
+  // TODO: check excitation, region and all this stuff.
+  if(transform.IsEmpty())
+    return NULL;
+
+  assert(transform.GetSize() == 1); // more not implemented yet
+  return transform[0].FindSource(de);
+}
+
+
 int DesignSpace::ReadDesignFromExtern(const double* space)
 {
   bool new_design = false;
@@ -1233,6 +1255,14 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
   PtrParamNode tf = in->Get("transferFunctions");
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
     transfer[i].ToInfo(tf->Get("transferFunction", ParamNode::APPEND));
+
+  if(!transform.IsEmpty())
+  {
+    PtrParamNode t = in->Get("transform");
+    for(unsigned int i = 0; i < transform.GetSize(); i++)
+      transform[i].ToInfo(t);
+  }
+
   PtrParamNode dv = in->Get("designVariables");
   dv->Get("optimizationVariables")->SetValue(GetNumberOfVariables());
   // TODO @Bastian - add you shape stuff if you like
@@ -1247,7 +1277,9 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
     }
     de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false), em); // silent!
   }
+
   in->Get("pamping")->SetValue(pamping_);
+
   if(regions.GetSize() > 0)
   {
     PtrParamNode rs = in->Get("regions");

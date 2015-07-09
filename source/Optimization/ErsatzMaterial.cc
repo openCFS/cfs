@@ -3208,13 +3208,13 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // drivers start counting steps with 1
     if(adjParams == NULL)
     {
-      StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, NO_DERIVTYPE, "forward");
-      StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, FIRST_DERIV, "forward-derivative");
-      StorePDESolution(forward, *applied_excitation, NULL, timeStep-1, true, false, false, SECOND_DERIV, "forward-second-derivative");
+      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, NO_DERIVTYPE, "forward");
+      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, FIRST_DERIV, "forward-derivative");
+      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, SECOND_DERIV, "forward-second-derivative");
     }
     else
     {
-      StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
+      StorePDESolution(adjoint, *context.excitation, adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
     }
   }
 
@@ -3224,11 +3224,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     { // only in transient case this is needed
       if(adjParams == NULL)
       {
-        StorePDESolution(forward, *applied_excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "forward");
+        StorePDESolution(forward, *context.excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "forward");
       }
       else
       {
-        StorePDESolution(adjoint, *applied_excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "adjoint");
+        StorePDESolution(adjoint, *context.excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "adjoint");
       }
     }
   }

@@ -10,6 +10,7 @@
 #include "General/defs.hh"
 #include "MatVec/Vector.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Context.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -225,8 +226,8 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
-        /** The applied excitation */
-        Excitation* applied_excitation;
+        /** The current context with our optimization */
+        Context context;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
         virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
