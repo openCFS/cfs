@@ -4,12 +4,12 @@ from numpy import *
 from matviz_rot import *
 import scipy.interpolate as ip 
 
-## creates 3D data to vtkPolyData
+# # creates 3D data to vtkPolyData
 def create_vtk_poly_data(angle, data):
   
   assert(len(angle) == len(data))
   samples = int(sqrt(len(angle)))
-  assert(samples**2 == len(angle))
+  assert(samples ** 2 == len(angle))
   
   pts = vtk.vtkPoints()
   
@@ -24,38 +24,38 @@ def create_vtk_poly_data(angle, data):
 
   pdo = vtk.vtkPolyData()
   pdo.SetPoints(pts)
-  #Allocate memory for triangles
-  pdo.Allocate((samples-1) * (samples-1) * 2)
+  # Allocate memory for triangles
+  pdo.Allocate((samples - 1) * (samples - 1) * 2)
   
-  #Generate two triangles per quad
-  for i in range(0, samples-1):
-    for j in range(0, samples-1):
+  # Generate two triangles per quad
+  for i in range(0, samples - 1):
+    for j in range(0, samples - 1):
       tri = vtk.vtkTriangle()
       tri.GetPointIds().SetNumberOfIds(3)
       tri.GetPointIds().SetId(0, i * samples + j)
-      tri.GetPointIds().SetId(1, i * samples + j+1)
-      tri.GetPointIds().SetId(2, (i+1) * samples + j)
+      tri.GetPointIds().SetId(1, i * samples + j + 1)
+      tri.GetPointIds().SetId(2, (i + 1) * samples + j)
       # print "i=" + str(i) + " j=" + str(j) + " ids=" + str(tri.GetPointIds())
       pdo.InsertNextCell(tri.GetCellType(), tri.GetPointIds())
       
       tri = vtk.vtkTriangle()
       tri.GetPointIds().SetNumberOfIds(3)
-      tri.GetPointIds().SetId(0, (i+1) * samples + j+1)
-      tri.GetPointIds().SetId(1, (i+1) * samples + j)
-      tri.GetPointIds().SetId(2, i * samples + j+1)
+      tri.GetPointIds().SetId(0, (i + 1) * samples + j + 1)
+      tri.GetPointIds().SetId(1, (i + 1) * samples + j)
+      tri.GetPointIds().SetId(2, i * samples + j + 1)
       pdo.InsertNextCell(tri.GetCellType(), tri.GetPointIds())
   
   return pdo
 
-## create a list of vtk actors displaying symmetry planesfrom vtk.util.colors import
+# # create a list of vtk actors displaying symmetry planesfrom vtk.util.colors import
 # @param minim
 def create_symmety_planes(minima, scale, add_planes):
   # code source: http://code.google.com/p/pythonxy/source/browse/src/python/vtk/DOC/Examples/Rendering/Cylinder.py
  
   minima = []
   minima.append(((0, 0), 1))
-  minima.append(((0, numpy.pi/2), 1))
-  minima.append(((numpy.pi/2, numpy.pi/2), 1))
+  minima.append(((0, numpy.pi / 2), 1))
+  minima.append(((numpy.pi / 2, numpy.pi / 2), 1))
  
   actors = [] 
    
@@ -64,7 +64,7 @@ def create_symmety_planes(minima, scale, add_planes):
     # Create cylinder
     cylinder = vtk.vtkCylinderSource()
     cylinder.SetRadius(scale / 200)
-    cylinder.SetCenter( 0, 0, 0 )
+    cylinder.SetCenter(0, 0, 0)
     cylinder.SetHeight(2 * scale)
     cylinder.SetResolution(10)
     cylinder.Update()
@@ -81,21 +81,21 @@ def create_symmety_planes(minima, scale, add_planes):
         
     actor_c.GetProperty().SetColor(black)
     angle = minima[i][0]
-    phi   = angle[0]
+    phi = angle[0]
     theta = angle[1]
 
     
     print "angle: " + str(angle) + " -> " + str(to_vector(angle)) + " = " + str(minima[i][1])
     
-    #actor_c.RotateX(90)
-    #actor_c.RotateY(angle[0] * 180/numpy.pi)
-    #actor_c.RotateZ(angle[1] * 180/numpy.pi)
+    # actor_c.RotateX(90)
+    # actor_c.RotateY(angle[0] * 180/numpy.pi)
+    # actor_c.RotateZ(angle[1] * 180/numpy.pi)
 
 
     # cylinders!!!
     actor_c.RotateZ(90)
-    actor_c.RotateY(angle[0] * 180/numpy.pi)
-    actor_c.RotateX(angle[1] * 180/numpy.pi)
+    actor_c.RotateY(angle[0] * 180 / numpy.pi)
+    actor_c.RotateX(angle[1] * 180 / numpy.pi)
 
 
     actors.append(actor_c)
@@ -117,15 +117,15 @@ def create_symmety_planes(minima, scale, add_planes):
       actor_d.GetProperty().SetColor(banana)
       actor_d.GetProperty().SetOpacity(0.5)
 
-      #actor_d.RotateX(angle[0] * 180/numpy.pi)
-      #actor_d.RotateY(angle[1] * 180/numpy.pi)
-      #actor_d.RotateZ(0)
+      # actor_d.RotateX(angle[0] * 180/numpy.pi)
+      # actor_d.RotateY(angle[1] * 180/numpy.pi)
+      # actor_d.RotateZ(0)
 
       # plane!
       actor_d.RotateY(90)
       actor_d.RotateZ(90)
-      actor_d.RotateY(angle[0] * 180/numpy.pi)
-      actor_d.RotateX(angle[1] * 180/numpy.pi)
+      actor_d.RotateY(angle[0] * 180 / numpy.pi)
+      actor_d.RotateX(angle[1] * 180 / numpy.pi)
       
 
       
@@ -136,8 +136,8 @@ def create_symmety_planes(minima, scale, add_planes):
 
 # show the data on the screen
 # @planes list of vtk actors containing symmetry planes 
-def show_vtk(polydata, res, planes = []):
-  #Create a mapper and actor
+def show_vtk(polydata, res, planes=[]):
+  # Create a mapper and actor
   mapper = vtk.vtkPolyDataMapper()
   if vtk.VTK_MAJOR_VERSION <= 5:
     mapper.SetInput(polydata)
@@ -146,31 +146,31 @@ def show_vtk(polydata, res, planes = []):
   
   actor = vtk.vtkActor()
   actor.SetMapper(mapper)
-  actor.GetProperty().SetColor(0.5,0.5,0.5) # (R,G,B)
+  actor.GetProperty().SetColor(0.5, 0.5, 0.5)  # (R,G,B)
   # Setup a renderer, render window, and interactor
   renderer = vtk.vtkRenderer()
   renderWindow = vtk.vtkRenderWindow()
-  #renderWindow.SetWindowName("Test")
+  # renderWindow.SetWindowName("Test")
    
   renderWindow.AddRenderer(renderer);
   renderWindowInteractor = vtk.vtkRenderWindowInteractor()
   renderWindowInteractor.SetRenderWindow(renderWindow)
    
-  renderWindow.SetSize(res,res)
+  renderWindow.SetSize(res, res)
    
-  #Add the actor to the scene
+  # Add the actor to the scene
   for i in range(len(planes)):
     renderer.AddActor(planes[i])
 
   renderer.AddActor(actor)
-  renderer.SetBackground(1,1,1) # Background color white
+  renderer.SetBackground(1, 1, 1)  # Background color white
    
 
-  #Render and interact
+  # Render and interact
   renderWindow.Render()
    
   #*** SetWindowName after renderWindow.Render() is called***
-  #renderWindow.SetWindowName("Test")
+  # renderWindow.SetWindowName("Test")
    
   renderWindowInteractor.Start()
 
@@ -180,9 +180,9 @@ def show_vtk(polydata, res, planes = []):
 # @param points vtk.vtkPoints() where the points are added
 # @param dim list of length, width, height
 # @param angle list of angle_x, angle_y, angle_z or None
-def create_centered_bar(cells, points, center, dim, angle = None):
+def create_centered_bar(cells, points, center, dim, angle=None):
   
-  #print "ccb: c=" + str(center) + " l=" + str(length) + " t=" + str(thick) + " dir=" + dir  
+  # print "ccb: c=" + str(center) + " l=" + str(length) + " t=" + str(thick) + " dir=" + dir  
   length, width, height = dim
   angle_x, angle_y, angle_z = (0.0, 0.0, 0.0) if angle is None else angle
   
@@ -195,31 +195,31 @@ def create_centered_bar(cells, points, center, dim, angle = None):
   sthetaz = sin(angle_z)
   
   # see DesignMaterial::SetRotationMatrix()
-  R = zeros((3,3))
-  R[0][0] =  cthetay * cthetaz
-  R[0][1] =  -cthetay * sthetaz
-  R[1][0] =  cthetax * sthetaz + sthetax * sthetay * cthetaz
-  R[1][1] =  cthetax * cthetaz - sthetax * sthetay * sthetaz
-  R[0][2] =  sthetay
+  R = zeros((3, 3))
+  R[0][0] = cthetay * cthetaz
+  R[0][1] = -cthetay * sthetaz
+  R[1][0] = cthetax * sthetaz + sthetax * sthetay * cthetaz
+  R[1][1] = cthetax * cthetaz - sthetax * sthetay * sthetaz
+  R[0][2] = sthetay
   R[1][2] = -sthetax * cthetay
-  R[2][0] =  sthetax * sthetaz - cthetax * sthetay * cthetaz
-  R[2][1] =  sthetax * cthetaz + cthetax * sthetay * sthetaz
-  R[2][2] =  cthetax * cthetay
+  R[2][0] = sthetax * sthetaz - cthetax * sthetay * cthetaz
+  R[2][1] = sthetax * cthetaz + cthetax * sthetay * sthetaz
+  R[2][2] = cthetax * cthetay
 
   cx, cy, cz = center
-  #points = vtk.vtkPoints()
+  # points = vtk.vtkPoints()
   
   base = points.GetNumberOfPoints()
   
   
-  for x in [(-1.0,-1.0,-1.0),(1.0,-1.0,-1.0),(1.0,1.0,-1.0),(-1.0,1.0,-1.0),(1.0,-1.0,1.0),(-1.0,-1.0,1.0),(1.0,1.0,1.0),(-1.0,1.0,1.0)]:
+  for x in [(-1.0, -1.0, -1.0), (1.0, -1.0, -1.0), (1.0, 1.0, -1.0), (-1.0, 1.0, -1.0), (1.0, -1.0, 1.0), (-1.0, -1.0, 1.0), (1.0, 1.0, 1.0), (-1.0, 1.0, 1.0)]:
     p = (x[0] * 0.5 * length, x[1] * 0.5 * width, x[2] * 0.5 * height)
     r = R.dot(p)
-    n = [float(cx + r[0]), float(cy + r[1]),float(cz + r[2])]
-    points.InsertNextPoint(n) # 0 ... 7
+    n = [float(cx + r[0]), float(cy + r[1]), float(cz + r[2])]
+    points.InsertNextPoint(n)  # 0 ... 7
   
   # Create a cell array to store the quad in
-  #quads = vtk.vtkCellArray()
+  # quads = vtk.vtkCellArray()
   
   # Create a quad on the four points
   # a
@@ -270,7 +270,7 @@ def create_centered_bar(cells, points, center, dim, angle = None):
   quad.GetPointIds().SetId(3, base + 5)
   cells.InsertNextCell(quad)
 
-## without rotation and shearing
+# # without rotation and shearing
 def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
 
   centers, min, max, elem_dim = coords
@@ -301,34 +301,147 @@ def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
     
   return polydata
 
+def sign(p1,p2,p3):
+  return (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
 
-## for the robot arm we have check for the two nondesign holes as they are within the
-## convex hull of the design :(
+def point_in_triangle(pt, v1,v2,v3):
+  b1 = sign(pt, v1, v2) < 0.;
+  b2 = sign(pt, v2, v3) < 0.;
+  b3 = sign(pt, v3, v1) < 0.;
+  return ((b1 == b2) and (b2 == b3));
+
+def test_point_outside_circle(midpoint,radius, point):
+  if (point[0] - midpoint[0]) ** 2 + (point[1] - midpoint[1]) ** 2 < radius ** 2:
+    return False
+  else:
+    return True    
+
+    
+
+# # for the robot arm we have check for the two nondesign holes as they are within the
+# # convex hull of the design :(
 def valid_position(pos, coords):
   mi, ma = coords[1:3]
   delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
-  if int(delta[0]) == 508 and int(delta[2]) == 126:
-    if (pos[0] + 147.0)**2 + pos[2]**2 < 40.0**2: # center -147, 0, 0
-      return False 
-    if (pos[0] - 250.0)**2 + pos[2]**2 < 37.0**2: # center 250, 0, 0
-      return False 
+ # if int(delta[0]) == 508 and int(delta[2]) == 126:
+  if (pos[0] + 147.4) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center -147, 0, 0
+    return False 
+  if (pos[0] - 250.0) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center 250, 0, 0
+    return False
   
-
-  return True   
-
-## without rotation and shearing
-def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale):
-  centers, min, max = coords[0:3] # we cannot use the first region element element dimensions 
+# # for the apod6 part we have check for the holes in nondesign region as they are within the
+# # convex hull of the design :(
+def valid_position_apod6(pos, coords):
+  # coordinates of the holes manually, returns False if point is inside a hole
+  # mesh is rotated by Ry
+  ay = -0.084636333418591
+  Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
+  tmp = Ry*numpy.matrix(((33052.), (-353.), (-2474.))).T
+  m1 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33046.), (-353.), (-2518.))).T
+  m2 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33131.), (-353.), (-2449.))).T
+  m3 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33124.), (-353.), (-2498.))).T
+  m4 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((32978.), (-353.), (-2436.))).T
+  m5 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((32971.), (-353.), (-2485.))).T
+  m6 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33023.), (-353.), (-2559.))).T
+  m7 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33004.), (-353.), (-2443.))).T
+  m8 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33096.), (-353.), (-2450.))).T
+  m9 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33004.), (-353.), (-2468.))).T
+  m10 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33066.), (-353.), (-2495.))).T
+  m11 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33096.), (-353.), (-2475.))).T
+  m12 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  tmp = Ry*numpy.matrix(((33042.), (-353.), (-2548.))).T
+  m13 = [tmp[0][0],tmp[1][0],tmp[2][0]]
+  
+  r1 = 15.8
+  r2 = 12.8
+  r3 = 5.7
+  r4 = 2.8
+  if (pos[0] - m1[0]) ** 2 + (pos[2] - m1[2]) ** 2 < r1 ** 2:
+    return False 
+  elif (pos[0] - m2[0]) ** 2 + (pos[2] - m2[2]) ** 2 < r2 ** 2:
+    return False
+  elif (pos[0] - m3[0]) ** 2 + (pos[2] - m3[2]) ** 2 < r3 ** 2:
+    return False 
+  elif (pos[0] - m4[0]) ** 2 + (pos[2] - m4[2]) ** 2 < r3 ** 2:
+    return False
+  elif (pos[0] - m5[0]) ** 2 + (pos[2] - m5[2]) ** 2 < r3 ** 2:
+    return False
+  elif (pos[0] - m6[0]) ** 2 + (pos[2] - m6[2]) ** 2 < r3 ** 2:
+    return False
+  elif (pos[0] - m7[0]) ** 2 + (pos[2] - m7[2]) ** 2 < r3 ** 2:
+    return False
+  elif (pos[0] - m8[0]) ** 2 + (pos[2] - m8[2]) ** 2 < r1 ** 2:
+    return False
+  elif (pos[0] - m9[0]) ** 2 + (pos[2] - m9[2]) ** 2 < r1 ** 2:
+    return False
+  elif (pos[0] - m10[0]) ** 2 + (pos[2] - m10[2]) ** 2 < r4 ** 2:
+    return False
+  elif (pos[0] - m11[0]) ** 2 + (pos[2] - m11[2]) ** 2 < r4 ** 2:
+    return False
+  elif (pos[0] - m12[0]) ** 2 + (pos[2] - m12[2]) ** 2 < r4 ** 2:
+    return False
+  elif (pos[0] - m13[0]) ** 2 + (pos[2] - m13[2]) ** 2 < r3 ** 2:
+    return False
+  
+  # big right triangle
+  tmp = [Ry*numpy.matrix(((33070.), (-353.), (-2563.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33127.), (-353.), (-2508.))).T]
+  corners_b = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]                         
+  # small right triangle
+  tmp = [Ry*numpy.matrix(((33077.), (-353.), (-2513.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33087.), (-353.), (-2504.))).T]
+  corners_s = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
+  #corners_s = [[33077., -2513.], [33078.,-2503.], [33087., -2504.]]
+  # small circle
+  tmp = Ry*numpy.matrix(((33087.), (-353.),(-2515.))).T
+  mid_s = [tmp[0][0],tmp[2][0]]
+  r_s = 10.
+  if point_in_triangle([pos[0],pos[2]], corners_b[0],corners_b[1],corners_b[2]):
+    if (test_point_outside_circle(mid_s,r_s, [pos[0],pos[2]])) and point_in_triangle([pos[0],pos[2]], corners_s[0],corners_s[1],corners_s[2]):
+      return True
+    else:
+      return False
+   # big left triangle
+  tmp = [Ry*numpy.matrix(((32964.),(-353.), (-2494.))).T, Ry*numpy.matrix(((33018.),(-353.),(-2500.))).T, Ry*numpy.matrix(((33010.),(-353.), (-2559.))).T]
+  corners_b = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
+  # small right triangle
+  tmp = [Ry*numpy.matrix(((33008.),(-353.), (-2498.))).T, Ry*numpy.matrix(((33018.),(-353.),(-2500.))).T, Ry*numpy.matrix(((33017.), (-353.), (-2509.))).T]
+  corners_s = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
+  # small circle
+  tmp = Ry*numpy.matrix(((33007.),(-353.),(-2508.))).T
+  mid_s = [tmp[0][0],tmp[2][0]]
+  r_s = 10.
+  if point_in_triangle([pos[0],pos[2]], corners_b[0],corners_b[1],corners_b[2]):
+    if (test_point_outside_circle(mid_s,r_s, [pos[0],pos[2]])) and point_in_triangle([pos[0],pos[2]], corners_s[0],corners_s[1],corners_s[2]):
+      return True
+    else:
+      return False
+  return True
+# # without rotation and shearing
+def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres=0.0):
+  centers, min, max = coords[0:3]  # we cannot use the first region element element dimensions 
   
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
 
   if scale <= 0:
     scale = 1.0
-
-  ip_data, ip_near, out, ndim = get_interpolation(coords, grad, s1, s2, s3, ip_nx, angles)
-
+  
   dx = (max[0] - min[0]) / ip_nx
+  dy = 0.5*dx
+  dz = dx
+  ip_data, ip_near, out, ndim = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
+
+
 
   within = 0
   invalid = 0
@@ -336,20 +449,55 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale):
     coord = out[i]
     s1, s2, s3 = ip_data[i][0:3]
     angle = None if angles is None else ip_data[i][3:6]
-    
+    # if s1 < 0 point is out of the convex hull
     if s1 > 0.0:
       within += 1
       
-      if not valid_position(coord, coords):
+      if not valid_position_apod6(coord, coords):
         invalid += 1
         continue
-      
-      if dir == 'horizontal' or dir == 'all':
-        create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
-      if dir == 'vertical' or dir == 'all':
-        create_centered_bar(cells, points, coord, (scale * s2 * dx, scale * dx, scale * s2 * dx), angle)
-      if dir == 'sagittal' or dir == 'all':
-        create_centered_bar(cells, points, coord, (scale * s3 * dx, scale * s3 * dx, scale * dx), angle)
+      if s1 >= thres or s2 >= thres or s3 >= thres:
+        if s1 >= s2 and s1 >= s3:
+          create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
+          coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (dy - dx * s1),0.]
+          dy_offset = scale * 0.5 * (dy-s1*dx)
+          create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+          
+          coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (dz - dx * s1)]
+          dz_offset = scale * 0.5 * (dz-s1*dx)
+          create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
+           
+        elif s2 >= s1 and s2 >= s3:
+          create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * dy, scale * s2 * dy), angle)
+          coord_offset = [scale* dy * s2 * 0.5 + scale * 0.25 * (dx - dy * s2),0.,0.]
+          dx_offset = scale * 0.5 * (dx-s2*dy)
+          create_centered_bar(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
+          
+          coord_offset = [0.,0.,scale * dy * s2 * 0.5 + scale * 0.25 * (dz - dy * s2)]
+          dz_offset = scale * 0.5 * (dz-s2*dy)
+          create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
+        elif s3 >= s1 and s3 >= s2:
+          create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * dz), angle)
+          coord_offset = [scale* dz * s3 * 0.5 + scale * 0.25 * (dx - dz * s3),0.,0.]
+          dx_offset = scale * 0.5 * (dx-s3*dz)
+          create_centered_bar(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
+          
+          coord_offset = [0.,0.,scale * dz * s3 * 0.5 + scale * 0.25 * (dy - dz * s3)]
+          dy_offset = scale * 0.5 * (dy-s3*dz)
+          create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+          create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+
+        #if dir == 'horizontal' or dir == 'all':
+        #  create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
+        #if dir == 'vertical' or dir == 'all':
+        #  create_centered_bar(cells, points, coord, (scale * s2 * dx, scale * dx, scale * s2 * dx), angle)
+        #if dir == 'sagittal' or dir == 'all':
+        #  create_centered_bar(cells, points, coord, (scale * s3 * dx, scale * s3 * dx, scale * dx), angle)
     
   if grad <> 'nearest':  
     print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
@@ -364,14 +512,15 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale):
 
 # this is copy & paste from matviz_2d but extendet to 3D
 # @param nx_ip number of interpolations within x
-def get_interpolation(coords, grad, s1, s2, s3, nx, angle = None):
+def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
   # we make our own elem
-  centers, mi, ma = coords[0:3] # skip elem
+  centers, mi, ma = coords[0:3]  # skip elem
  
   delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
   # where we want nodes
-  ny = int(delta[1] / (delta[0] / nx))
-  nz = int(delta[2] / (delta[0] / nx))
+  nx = int(delta[0]/ dx)
+  ny = int(delta[1] / dy)
+  nz = int(delta[2] / dz)
  
   if ny == 0 or nz == 0 or nx == 0:
     print 'chose a higher hom_samples such that also the smallest side gets discretized'
@@ -379,31 +528,31 @@ def get_interpolation(coords, grad, s1, s2, s3, nx, angle = None):
 
   out = numpy.zeros(((nx + 1) * (ny + 1) * (nz + 1), 3))
   idx = 0
-  for z in range(nz+1):
-    for y in range(ny+1):
-      for x in range(nx+1):
-        out[idx] = ((mi[0] + float(x)/nx * delta[0], mi[1] + float(y)/ny * delta[1], mi[2] + float(z)/nz * delta[2]))
+  for z in range(nz + 1):
+    for y in range(ny + 1):
+      for x in range(nx + 1):
+        out[idx] = ((mi[0] + float(x) / nx * delta[0], mi[1] + float(y) / ny * delta[1], mi[2] + float(z) / nz * delta[2]))
         idx += 1
 
-  v = numpy.zeros((len(s1),  3 if angle == None else 6))
-  v[:,0] = s1[:,0]
-  v[:,1] = s2[:,0]
-  v[:,2] = s3[:,0]
-  if angle <> None:
-    v[:,3:6] = angle[:,:]
+  v = numpy.zeros((len(s1), 3 if angle is None else 6))
+  v[:, 0] = s1[:, 0]
+  v[:, 1] = s2[:, 0]
+  v[:, 2] = s3[:, 0]
+  if angle is not None:
+	  v[:, 3:6] = angle[:, :]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
-  # any interpolation but nearest neighbor can only interpolate in the convex hull,
-  # if the value is -1 we use the nearest interpolation
+  # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
+  # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
   
   return ip_data, ip_near, out, (nx, ny, nz) 
 
 
-## litte helper
+# # litte helper
 # @param save filename or none
 # @param list which might be empty
-def show_write_vtk(poly, res, save, actors = []):
+def show_write_vtk(poly, res, save, actors=[]):
   if save:
     writer = vtk.vtkXMLPolyDataWriter()
     if vtk.VTK_MAJOR_VERSION <= 5:

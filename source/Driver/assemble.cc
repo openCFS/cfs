@@ -418,7 +418,6 @@ namespace CoupledField
             form->CalcElementMatrix( elemMatrixC, it1, it2 );
           else
             form->CalcElementMatrix( elemMatrix, it1, it2 );
-
           if(actContext.IsSetNegate()== true){
             assert(!form->IsComplex());
             elemMatrix*= (-1.0);

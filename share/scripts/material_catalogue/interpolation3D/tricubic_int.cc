@@ -249,7 +249,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff11>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[0][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[0][i][j]<<" ";
     }
     f<<endl;
   }
@@ -257,7 +257,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff12>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[1][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[1][i][j]<<" ";
     }
     f<<endl;
   }
@@ -265,7 +265,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff13>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[2][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[2][i][j]<<" ";
     }
     f<<endl;
   }
@@ -273,7 +273,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff22>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[3][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[3][i][j]<<" ";
     }
     f<<endl;
   }
@@ -281,7 +281,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff23>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[4][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[4][i][j]<<" ";
     }
     f<<endl;
   }
@@ -289,7 +289,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff33>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[5][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[5][i][j]<<" ";
     }
     f<<endl;
   }
@@ -297,7 +297,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff44>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[6][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[6][i][j]<<" ";
     }
     f<<endl;
   }
@@ -305,7 +305,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff55>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[7][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[7][i][j]<<" ";
     }
     f<<endl;
   }
@@ -313,7 +313,7 @@ void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<do
   f<<"<coeff66>\n<matrix dim1=\""<<ende<<"\" dim2=\"64\">\n <real>\n";
   for (int i=0;i<ende;i++) {
     for (int j=0;j<64;j++) {
-      f<<setprecision(16)<<Coeff[8][i][j]<<" ";
+      f<<setprecision(12)<<Coeff[8][i][j]<<" ";
     }
     f<<endl;
   }
@@ -481,7 +481,10 @@ int main(int argc, char * argv[]) {
 
     cout<<"Volume table calculated."<<endl;
     tricubic_offline(Coeff,aa, bb, cc, E,m, n, o,1,da,db,dc);
-    string file("coeff_vol3D.xml");
+    cout<<"Insert output xml file name:"<<endl;
+    string name;
+    cin>>name;
+    string file(name);
     //Write interpolation coefficients in the xml file above
     write_to_xml_vol(file,Coeff,aa,bb,cc);
 
@@ -577,7 +580,10 @@ int main(int argc, char * argv[]) {
     cout<<endl;*/
 
 
-    string file("coeff_3D.xml");
+    cout<<"Insert output xml file name:"<<endl;
+    string name;
+    cin>>name;
+    string file(name);
     //Write interpolation coefficients in the xml file above
     write_to_xml(file,Coeff,aa,bb,cc);
     /*for (int i=0;i<m-1;i++) {

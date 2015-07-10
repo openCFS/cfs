@@ -1090,7 +1090,8 @@ namespace CFSTool {
               std::back_inserter(outputFields));
 
     PtrParamNode maxMemNode = param->Get("maxMemory",ParamNode::PASS);
-    long pages = sysconf(_SC_PHYS_PAGES);
+    //long pages = sysconf(_SC_PHYS_PAGES);
+    long pages = 1;
     long page_size = sysconf(_SC_PAGE_SIZE);
     long mem = pages * page_size;
     //compute in MB

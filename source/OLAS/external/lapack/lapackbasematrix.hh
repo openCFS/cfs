@@ -1,21 +1,16 @@
 // -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
 // kate: space-indent on; indent-width 2; encoding utf-8;
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
-
 #ifndef OLAS_LAPACKBASEMATRIX_HH
 #define OLAS_LAPACKBASEMATRIX_HH
-
 #include <string>
-
 #include "General/defs.hh"
 #include "General/exception.hh"
 #include "MatVec/basematrix.hh"
 #include "MatVec/stdmatrix.hh"
-
 namespace CoupledField {
-  
+ 
   //! This is the base class for LAPACK matrices in OLAS.
-
   //! This class represents the base class for all LAPACK matrices in OLAS.
   //! This base class will perform a dummy implementation of all the pure
   //! virtual methods of the BaseMatrix and StdMatrix classes, which are not
@@ -28,28 +23,21 @@ namespace CoupledField {
   //! For further information see the
   //! <a href="http://www.netlib.org/lapack">LAPACK</a> pages at Netlib.
 class SingleVector;
-
   class LapackBaseMatrix : public StdMatrix {
-
   public:
-    
+   
     virtual ~LapackBaseMatrix() {}
-
     //! Return the block size of the matrix
-
     //! The method returns the blocksize (= degrees of freedom) of the matrix.
     //! Currently the LAPACK matrices only support scalar entries. Thus, the
     //! answer will always be one.
     Integer GetBlockSize() const {
       return 1;
     };
-
-
     // ************************************************************************
     //   Dummy interface/implementation of methods which are not useful in the
     //   context of a LAPACK Matrix.
     // ************************************************************************
-
     using BaseMatrix::Mult;
     using BaseMatrix::MultT;
     using BaseMatrix::MultAdd;
@@ -57,10 +45,8 @@ class SingleVector;
     using BaseMatrix::MultSub;
     using BaseMatrix::CompRes;
     using BaseMatrix::Add;
-
     //@{
     //! Dummy implementation
-
     //! This method is currently not implemented for any type of LAPACK Matrix.
     //! Since these types of matrices are intended to be used in conjunction
     //! with the direct methods LAPACK offers it is unclear, whether this
@@ -88,10 +74,8 @@ class SingleVector;
       return 0;
     }
     //@}
-
     //@{
     //! Not yet implemented
-
     //! This method is not yet implemented. Due to its nature is must be
     //! implemented in the corresponding derived class!
     // void Export( char *fname, char *comment = NULL ) const {
@@ -101,14 +85,10 @@ class SingleVector;
                           char rowSeparator = '\n' ) const {
       return "LapackBaseMatrix: Print not yet implemented for any LAPACK Matrix";
     }
-
     void Add( const Double a, const StdMatrix& mat ) {
       EXCEPTION( "Add not yet implemented for any LAPACK Matrix" );
     }
     //@}
-
   };
-
 }
-
 #endif

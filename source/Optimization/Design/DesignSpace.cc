@@ -212,7 +212,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant densign-value on that region
-            if(curr_design_pn->Get("fixed")->As<bool>()) 
+            //if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
+            if(curr_design_pn->Get("fixed")->As<bool>())
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
@@ -593,6 +594,7 @@ int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
   if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
     return 0;
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
+  //if(dt == DesignElement::TENSOR_TRACE && HasNonDensityDesignMaterial())
   if(dt == DesignElement::TENSOR_TRACE && HasErsatzMaterialTensor())
     return 0;
   // search where in data we are
@@ -710,6 +712,15 @@ bool DesignSpace::GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTe
 
   if(CollectMaterialParametersForElement(elem)){
     designMaterial->GetMaterialTensor(t, subTensor, direction, notation);
+    return(true);
+  }
+  return(false);
+}
+
+bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+  // collect all parameters
+  if(CollectMaterialParametersForElement(elem)){
+    designMaterial->GetErsatzElementMatrixMSFEM(t, direction);
     return(true);
   }
   return(false);
@@ -842,6 +853,9 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
+  //if(HasNonDensityDesignMaterial())
+  //  return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
+
   if(use_single && transfer.GetSize() == 1)
     return &transfer[0];
 
@@ -1514,7 +1528,6 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
       throw Exception("the 'design' attribute 'material' is only for multimaterial designs");
   }
 }
-
 
 BaseMaterial* DesignSpace::DesignRegion::GetBiMaterial(const MaterialClass mc)
 {

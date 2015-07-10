@@ -7,6 +7,8 @@
 #include <fstream>
 #include <string>
 
+#include "DataInOut/Logging/cfslog.hh"
+#include "DataInOut/Logging/log.hpp"
 #include "Domain/elem.hh"
 #include "Domain/entityList.hh"
 #include "Elements/basefe.hh"
@@ -20,6 +22,9 @@
 
 
 namespace CoupledField {
+// declare logging stream
+  DECLARE_LOG(bdbint)
+  DEFINE_LOG(bdbint, "bdbint")
 
   template<typename T>
   void BDBInt::CalcElementMatrix( Matrix<T>& elemMat,
@@ -70,6 +75,8 @@ namespace CoupledField {
     const Vector<Double> & intWeights = ptelem->GetIntWeights();
     const Vector<Double> * intPoints = ptelem->GetIntPoints();
 
+    LOG_DBG3(bdbint) << "CEM: intPoints=" << ptelem->GetIntPoints()->ToString();
+
     // **************************************************
     //  Material matrix independent of integration point
     // **************************************************
@@ -104,13 +111,17 @@ namespace CoupledField {
             calcDMat(dMat, ent1.GetElem(), direction);
           }
         }
+        LOG_DBG3(bdbint) << "CEM: globIntPoint=" << globIntPoint.ToString();
+        LOG_DBG3(bdbint) << "CEM: dMat=" << dMat.ToString();
 
 
         // Setup the B matrix for current integration point
         CalcBMat(bMat, actIntPt, ptCoord_ );
+        LOG_DBG3(bdbint) << "CEM: bMat=" << bMat.ToString();
 
         // Compute Jacobian for integration point
         jacDet = ptelem->CalcJacobianDetAtIp( actIntPt, ptCoord_, ent1.GetElem() );
+        LOG_DBG3(bdbint) << "CEM: jacDet=" << jacDet;
 
         // Perform a safety check
         if ( jacDet < 0.0 ) {
@@ -135,6 +146,7 @@ namespace CoupledField {
         // of the Jacobian and the weight of the current integration
         // point. The result is added to the element matrix.
         fac = jacDet * intWeights[actIntPt-1];
+        LOG_DBG3(bdbint) << "CEM: intWeights=" << intWeights;
         for ( UInt k = 0; k < bRows; ++k ) {
           ptr1 =  bMat[k];
           ptr2 = dbMat[k];
@@ -147,7 +159,7 @@ namespace CoupledField {
           }
         }
       } // end of loop over integration points
-
+      LOG_DBG3(bdbint) << "CEM: elemMat=" << elemMat.ToString();
     }
 
     // **********************************************

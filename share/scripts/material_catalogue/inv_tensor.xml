@@ -76,7 +76,7 @@
       </snopt>-->      
     </optimizer>
     <ersatzMaterial method="simp" material="mechanic" region="mech">
-      <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />
+      <design name="density" initial="1.0" lower="1e-9" upper="1" region="mech" />
       <transferFunction type="simp" application="mech" design="density" param="1"/>
       <!-- export/ -->
     </ersatzMaterial>

@@ -281,11 +281,11 @@ IF(USE_TCL)
   SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
 ENDIF(USE_TCL)
 
+
 # the current TCL lib requires that option
 IF(USE_TCL)
   SET(CFS_CXX_FLAGS " ${CFS_CXX_FLAGS} -DUSE_INTERP_RESULT -Wno-deprecated-declarations ")
 ENDIF(USE_TCL) 
-
 
 #-------------------------------------------------------------------------------
 # Check if we have a valid combination of C++ and Fortran compilers.

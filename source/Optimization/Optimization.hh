@@ -362,6 +362,9 @@ namespace CoupledField
         /** are we harmonic or static? */
         bool harmonic;
         
+        /** Do we use MSFEM or not? */
+        bool msfem;
+
         /** is the first step static */
         bool firstStepStatic;
         

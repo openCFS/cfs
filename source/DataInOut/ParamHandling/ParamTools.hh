@@ -134,7 +134,5 @@ namespace CoupledField
     }
 
   }; 
-
 } // end of namespace
-
 #endif /*PARAMTOOLS_HH_*/

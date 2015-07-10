@@ -111,7 +111,7 @@ namespace CoupledField
      
      /** Returns true if optimization does provide a mass, currently density is not handled by this */
      bool HasErsatzMaterialMass() const { return designMaterial != NULL; }
-     
+
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
      bool HasErsatzMaterialDamping() {
        return(designMaterial != NULL && designMaterial->DampingIsDesign());
@@ -138,6 +138,13 @@ namespace CoupledField
       * @returns whether the given element is subject to optimization and the tensor therefore could be retrieved */
      bool GetErsatzMaterialTensor(Matrix<double>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, DesignMaterial::Notation notation = DesignMaterial::VOIGT);
      
+     /** Calculates the corresponding ErsatzElementMatrix for the given element
+      * @param t holds the resulting Element Matrix
+      * @param elem Element
+      * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
+      * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
+     bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
      bool GetDielecTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
      bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);

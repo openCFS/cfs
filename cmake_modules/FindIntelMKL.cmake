@@ -41,6 +41,9 @@ SET (MKL_POSSIBLE_PATHS
   /apps/intel/Compiler/11.0/069/mkl
   /apps/intel/mkl/10.0.011
   /apps/intel/ict/3.0/cmkl/9.0
+  
+  # Paths on Thomas Macbook
+  /Users/thomas/hd/intel/composer-2011.0.085/mkl
  )
 
 #-------------------------------------------------------------------------------
@@ -144,16 +147,16 @@ ELSE(WIN32)
     ARGS
     OUTPUT_VARIABLE MKL_INFO
     RETURN_VALUE RETVAL)
-
+  #SET(RETVAL "0")
   IF(RETVAL EQUAL 0)
     #---------------------------------------------------------------------------
     # Finally just include the linker flags and version info.
     #---------------------------------------------------------------------------
-    INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
+     INCLUDE(${CFS_BINARY_DIR}/CMakeFiles/mkl.cmake)
   ELSE(RETVAL EQUAL 0)
     MESSAGE(SEND_ERROR "A problem occurred during determination of MKL linker
-                        flags. Please run ${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh
-                        by hand to investigate the problem.")
+    flags. Please run ${CFS_BINARY_DIR}/tmp/compile_mkl_test.sh
+                       by hand to investigate the problem.")
   ENDIF(RETVAL EQUAL 0)
 
 ENDIF(WIN32)
@@ -173,6 +176,27 @@ MARK_AS_ADVANCED(MKL_ROOT_DIR)
 
 # TODO: libguide und libiomp durch die von MKL ersetzen.
 # TODO: für libmkl_intel_lp64.a libmkl_gf_lp64.a für gnu einsetzen.
+IF($MACOSX)
+    # At the moment we just hard code the paths to MKL.    
+    SET(MKL_ROOT_DIR "/Users/thomas/hd/intel/composerxe-2011.0.085/mkl")
+    SET(MKL_INCLUDE_DIR "${MKL_ROOT_DIR}/include")
+    # BLAS Libs
+    SET(MKL_BLAS_LIB
+      ${MKL_ROOT_DIR}/lib/libmkl_intel_lp64.a
+      ${MKL_ROOT_DIR}/lib/libmkl_intel_thread.a
+      ${MKL_ROOT_DIR}/lib/libmkl_core.a
+      -L${MKL_ROOT_DIR}/../compiler/lib 
+      -L${MKL_ROOT_DIR}/lib -lmkl_intel_lp64 -lmkl_core -lmkl_sequential
+      ${MKL_ROOT_DIR}/../compiler/lib/libiomp5.a
+      -lpthread;-lm
+      CACHE STRING "BLAS Libs.")
+    # LAPACK Libs
+    SET(MKL_LAPACK_LIB ""
+      CACHE STRING "LAPACK Libs.")
+    # Pardiso Libs
+    SET(MKL_PARDISO_LIB ""
+      CACHE STRING "Pardiso Libs.")
+  ENDIF()
 
 #-------------------------------------------------------------------------------
 # Set BLAS, LAPACK and PARDISO libraries depending on the MKL version.

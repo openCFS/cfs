@@ -1,6 +1,5 @@
 # This collects some tool routines for optimization
 
-
 import libxml2
 import numpy
 import numpy.linalg

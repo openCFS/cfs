@@ -1720,7 +1720,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    assert((int ) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+    //assert((int ) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
 
     neighbours.Resize(0);
 
@@ -3072,6 +3072,7 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
     } else {
       return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
     }
+
   } else {
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:

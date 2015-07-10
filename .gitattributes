@@ -672,6 +672,10 @@ share/scripts/identify_compiler.pl svneol=native#text/plain
 share/scripts/log.py -text
 share/scripts/log.tcl svneol=native#text/x-tcl
 share/scripts/material_catalogue/calculate-crosses.py -text
+share/scripts/material_catalogue/cellproblem_fine.xml -text
+share/scripts/material_catalogue/compliance_plain.xml -text
+share/scripts/material_catalogue/create_hom_catalogue.py -text
+share/scripts/material_catalogue/create_msfem_catalogue.py -text
 share/scripts/material_catalogue/evaluate.py -text
 share/scripts/material_catalogue/interpolation2D/bicubic_coeff.m -text
 share/scripts/material_catalogue/interpolation2D/bicubic_deriv.m -text
@@ -679,10 +683,14 @@ share/scripts/material_catalogue/interpolation2D/bicubic_int.m -text
 share/scripts/material_catalogue/interpolation2D/bicubic_offline.m -text
 share/scripts/material_catalogue/interpolation2D/bicubic_partialderiv.m -text
 share/scripts/material_catalogue/interpolation2D/detailed_stats_10 -text
+share/scripts/material_catalogue/interpolation2D/hom_stats_to_mat.m -text
 share/scripts/material_catalogue/interpolation2D/main.m -text
+share/scripts/material_catalogue/interpolation2D/main_msfem.m -text
+share/scripts/material_catalogue/interpolation2D/msfem_stats_to_mat.m -text
 share/scripts/material_catalogue/interpolation2D/plot_interp.m -text
 share/scripts/material_catalogue/interpolation2D/test.m -text
 share/scripts/material_catalogue/interpolation2D/write_to_xml.m -text
+share/scripts/material_catalogue/interpolation2D/write_to_xml_msfem.m -text
 share/scripts/material_catalogue/interpolation3D/Makefile -text
 share/scripts/material_catalogue/interpolation3D/calc3Dvol.m -text
 share/scripts/material_catalogue/interpolation3D/coeff.h -text
@@ -715,10 +723,12 @@ share/scripts/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/scripts/material_catalogue/inv_tensor.xml -text
 share/scripts/material_catalogue/inv_tensor_3D.xml -text
 share/scripts/material_catalogue/mat.xml -text
+share/scripts/material_catalogue/process_sparse.py -text
 share/scripts/matviz.py -text
 share/scripts/matviz_2d.py -text
 share/scripts/matviz_rot.py -text
 share/scripts/matviz_streamline.py -text
+share/scripts/matviz_unstructured_mesh.py -text
 share/scripts/matviz_vtk.py -text
 share/scripts/mesh_tool.py -text
 share/scripts/monitor_memory.sh -text
@@ -1370,7 +1380,7 @@ source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr
 source/OLAS/external/ilupack/IlupackDummy.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/lapack/lapack.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/external/lapack/lapackbasematrix.cc svneol=native#text/x-c%2B%2Bsrc
+source/OLAS/external/lapack/lapackbasematrix.cc -text
 source/OLAS/external/lapack/lapackbasematrix.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapackgbmatrix.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/lapackgbmatrix.hh svneol=native#text/x-c%2B%2Bhdr
@@ -1378,8 +1388,8 @@ source/OLAS/external/lapack/lapackll.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/lapackll.hh svneol=native#text/x-c%2B%2Bhdr
 source/OLAS/external/lapack/lapacklu.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/lapack/lapacklu.hh svneol=native#text/x-c%2B%2Bhdr
-source/OLAS/external/lapack/olasf77mapping.cc svneol=native#text/x-c%2B%2Bsrc
-source/OLAS/external/lapack/olasf77mapping.hh svneol=native#text/x-c%2B%2Bhdr
+source/OLAS/external/lapack/olasf77mapping.cc -text
+source/OLAS/external/lapack/olasf77mapping.hh -text
 source/OLAS/external/pardiso/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/pardiso/PardisoDummy.cc svneol=native#text/x-c%2B%2Bsrc
 source/OLAS/external/pardiso/pardisosolver.cc svneol=native#text/x-c%2B%2Bsrc

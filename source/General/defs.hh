@@ -24,7 +24,9 @@ namespace CoupledField{
 
 //! redeclaration of types
 typedef boost::int32_t Integer;
+//typedef boost::int64_t Integer;
 typedef boost::uint32_t UInt;
+//typedef boost::uint64_t UInt;
 typedef boost::int16_t ShortInt;
 typedef float Float;
 typedef double Double;

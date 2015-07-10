@@ -3,6 +3,7 @@ from mesh_tool import *
 import argparse
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
 parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
@@ -43,8 +44,8 @@ if args.inclusion and args.patch:
   sys.exit() 
   
 if args.type == 'bulk3d':
-  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)
-elif args.type == 'bulk2d' or args.type.startswith('cantilever2d'):
+  mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)  
+elif args.type == 'bulk2d' or args.type.startswith('cantilever2d') or args.type.startswith('mbb') or args.type == 'msfem_test' or args.type == 'ghost' or args.type == 'triangle_msfem' or args.type == 'pressure2' or args.type == 'msfem_two_load':
   mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
 elif args.type.startswith('lbm'):
   if args.lbm == None:
@@ -59,14 +60,16 @@ elif args.type.startswith('lbm'):
   else:
      mesh = create_3d_mesh(args.res, args.y_res, args.z_res)
   mesh_name = args.type +"_" + args.lbm
+elif args.type == '3D':
+  mesh = create_regular3d_mesh(args.type, args.res)
 else:
   assert(False)  
   
 res_name = '_' + str(args.res)
 if (args.type == 'bulk2d' or args.type == 'bulk3d') and args.y_res <> None:
-  res_name  += '_' + str(args.y_res)
+  res_name += '_' + str(args.y_res)
 if args.type == 'bulk3d' and args.z_res:
-  res_name  += '_' + str(args.z_res)
+  res_name += '_' + str(args.z_res)
 if args.width <> 1.0:
   res_name += '-w_' + str(args.width).replace('.', '_')
 if args.height is not None:

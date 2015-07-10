@@ -2,7 +2,7 @@ function write_to_xml(file,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33)
 % Erzeugt .xml file mit namen file fuer CFS
 filename = file;
 fid = fopen(filename,'wt'); 
-fprintf(fid,'<homRectC1>\n <a>\n<matrix dim1="%d" dim2="1">\n<real>\n',m+1);
+fprintf(fid,'<homRectC1 notation="voigt">\n <a>\n<matrix dim1="%d" dim2="1">\n<real>\n',m+1);
 for i=1:m+1
 fprintf(fid,'%.16f ',a(i));
 end
