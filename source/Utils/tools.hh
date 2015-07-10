@@ -1,7 +1,6 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
-#define _USE_MATH_DEFINES
 #include <math.h>
 
 #include <string>
@@ -9,6 +8,13 @@
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+
+// C++ is so poor that there even is no really standard for pi - > why not????
+#ifndef M_PI
+  #include <boost/math/constants/constants.hpp>
+  #define M_PI boost::math::constants::pi<double>();
+#endif
+
 
 namespace CoupledField {
 

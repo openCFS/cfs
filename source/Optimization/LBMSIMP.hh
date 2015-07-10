@@ -38,7 +38,7 @@ protected:
 private:
 
   /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  LatticeBoltzmannPDE* lbm;
+  // LatticeBoltzmannPDE* lbm;
 };
 
 } // end of namespace
