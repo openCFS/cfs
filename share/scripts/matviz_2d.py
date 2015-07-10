@@ -522,6 +522,7 @@ def show_frame(coords, s1, s2, directions, nx,scale):
   #print 'height = ' +str(height)+', lenght= '+str(length)
   #print 'dim = '+str(dim)
   eps = 1e-8
+  warn = False
   for i in range(len(s1)):
     coord = centers[i]
     #print 'coord = '+str(coord)
@@ -539,10 +540,18 @@ def show_frame(coords, s1, s2, directions, nx,scale):
           pix[i,j] = (0,0,0)   
     offx = int((length / 2.) * (ver) + 0.5+eps)
     offy = int((height / 2.) * (hor) + 0.5+eps)
+    if offx == 0:
+      offx = 1
+      warn = True      
+    elif offy == 0:
+      offy = 1
+      warn = True
     #print 'offx = ' +str(offx)+', offy= '+str(offy)  
     for i in range(offx, int(length+eps) - offx):
        for j in range(offy, int(height+eps) - offy):
           pix[int(x_off+i+eps),int(y_off+j+eps)] = (255,255,255)
+  if warn:
+    print 'Warning: minimal thickness scaled to 1 Pixel.'
   return im  
 
 
