@@ -6,6 +6,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Utils/StdVector.hh"
 #include "OLAS/solver/BaseSolver.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -253,6 +254,9 @@ namespace CoupledField {
 
     //! number of non zero entries
     UInt nnz_;
+
+    //! Timer objects
+    Timer tNumfact_, tSymfact_;
 
   };
 
