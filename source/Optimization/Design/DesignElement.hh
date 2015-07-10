@@ -55,7 +55,7 @@ public:
   int GetNumberOfEntries() const;
 
   /** This are indices for the entries to design. */
-  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, NONE = -1 };
+  enum Neighbour {X_P = 0, X_N = 1, Y_P = 2, Y_N = 3, Z_P = 4, Z_N = 5, XY_P = 6, XY_N = 7, NONE = -1 };
 
   /** Helper which translates X_P and X_N to 0, Y_P and Y_N to 1, Z_P and Z_N to 2. Nothing else! */
   static int ToMainAxis(Neighbour neigh)
@@ -88,7 +88,6 @@ public:
   /** @see GetNeighbour(Neighbour idx, int n) */
   static bool HasNeighbor(DesignElement* base, Neighbour idx, int n);
 
-
   /** dump method for logging */
   std::string ToString() const;
 
@@ -120,7 +119,7 @@ class TopGradElement
 public:
   /** standard ctor */
   explicit TopGradElement(const double val = 0.0) : value(val) {}
-  
+
   /** the value of the topgrad on this element */
   double value;
 };
@@ -145,7 +144,8 @@ public:
     PENALIZED_STRESS, /* stess with own transfer function */
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
-    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN } ValueSpecifier;
+    LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
+    TRANSFO_MATRIX } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
@@ -154,7 +154,8 @@ public:
                    POLARIZATION = 1, ACOU_DENSITY = 2, EMODUL, POISSON, LAMELAMBDA, LAMEMU, EMODULISO, POISSONISO,
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, TENSOR11, TENSOR22, TENSOR33, TENSOR23, TENSOR13, TENSOR12, SLACK,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
-                   ROTANGLE, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL, ALL_DESIGNS} Type;
+                   ROTANGLE, ROTANGLE2, SCALING1, SCALING2, G11,G12,G21,G22, G_ALL,
+                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION, ALL_DESIGNS} Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -177,7 +178,7 @@ public:
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
-  
+
   virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
 
   /** The index of this element within the design space - 0 based */
@@ -198,7 +199,7 @@ public:
   void AddGradient(const Function* f, double value);
 
   /** Reset either gradients of the class
-   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
+   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT
    * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
   void Reset(ValueSpecifier vs, Function* f = NULL);
@@ -218,11 +219,17 @@ public:
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
-  
+
   /** helper for LOG output */
-  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);  
+  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);
 
   static Enum<Type> type;
+
+  /** <p>The gradient of the constraint function w.r.t. this element of the design space.
+   * Every constraint contains an unique index attribute (which is the order in the xml file)
+   * only for the purpose to index this vector.</p>
+   * <p>Therefore this vector has to be initialized on runtime</p> */
+  StdVector<double> constraintGradient;
 
 protected:
 
@@ -231,12 +238,6 @@ protected:
 
   /** Sums up the costGradient values (they include penalty) */
   double SumObjectiveGradient() const;
-
-  /** <p>The gradient of the constraint function w.r.t. this element of the design space.
-   * Every constraint contains an unique index attribute (which is the order in the xml file)
-   * only for the purpose to index this vector.</p>
-   * <p>Therefore this vector has to be initialized on runtime</p> */
-  StdVector<double> constraintGradient;
 
   /** For multiple objective functions. It already includes penalty!
    * @see constraintGradient */
@@ -249,7 +250,7 @@ protected:
 
   /** what is our design type */
   Type type_;
-  
+
 protected:
   /** @see GetIndex() */
   unsigned int index_;
@@ -264,11 +265,11 @@ public:
 };
 
 
-/** This is the base design element, storing all information related to 
+/** This is the base design element, storing all information related to
  * elements. For ersatz material this is a 1:1 relation to finite elements.
  * Method specific information (SIMP, Level-Set, FreeMat, ...) is in add-ons. */
 class DesignElement : public BaseDesignElement
-{     
+{
 public:
 
 
@@ -314,7 +315,8 @@ public:
       TYCHONOFF, GREYNESS, REALVOLUME,
       GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
       /*!< only for the projection function. This is the element wise fake filter part */
-      PROJECTION_FILTER } Detail;
+      PROJECTION_FILTER,
+      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22 } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -324,7 +326,7 @@ public:
      * Therefore there is no access as we are implicit SMART */
     double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
 
-    
+
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
 
@@ -421,8 +423,8 @@ private:
   void Init();
 
   /** returns the non-scalar values */
-  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;  
-  
+  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;
+
   /** the barycenter of this element only set on request. */
   Point* location_;
 
@@ -466,6 +468,9 @@ public:
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const;
+
+  /** pre-calculated weight sum */
+  double weight_sum;
 
   /** Neighborhood is element and pre-calculated distance */
   struct NeighbourElement
@@ -521,6 +526,21 @@ public:
    MultiMaterial*      multimaterial;
    /** relative bounds for design, negative if not applicable, size by number of design types */
    double              relative_bound;
+};
+
+/**required in Design space**/
+class TensorElement
+{
+public:
+   TensorElement(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL)
+   {
+     this->design = design;
+     this->multimaterial = mm;
+   }
+
+   DesignElement::Type design;
+   /** index. -1 for non-multimaterial */
+   MultiMaterial* multimaterial;
 };
 
 

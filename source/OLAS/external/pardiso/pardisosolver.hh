@@ -12,6 +12,7 @@
 #include "MatVec/basematrix.hh"
 #include "OLAS/solver/basesolver.hh"
 #include "Utils/StdVector.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -264,6 +265,9 @@ class BaseVector;
 
     //! number of non zero entries
     UInt nnz_;
+
+    //! Timer objects
+    Timer tNumfact_, tSymfact_;
 
   };
 

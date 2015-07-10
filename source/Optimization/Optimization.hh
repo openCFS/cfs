@@ -261,6 +261,16 @@ namespace CoupledField
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
 
+        /** This tells the driver to store the last solved problem (gid, ...). Called in
+         * CommitIteration(). For PiezoSIMP we can save more often and there this method
+         * is overwritten and might do nothing.
+         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
+        virtual void StoreResults(double step_val = -1.0);
+
+//        /** to allow a directo call without fucking virtual stuff :( */
+//        void DirectStoreResults(double step_val) { Optimization::StoreResults(step_val); }
+
+
         /** The order of the pdes is not defined, Therefore we use the map
          * @see ToApp()
          * @see ToPDE() */
@@ -284,11 +294,6 @@ namespace CoupledField
          * sets analysis_id and excite accordingly */
         PtrParamNode CreateAdjointAnalysisIdNode(std::string child_name = "adjoint", Excitation* excite = NULL);
         
-        /** This tells the driver to store the last solved problem (gid, ...). Called in
-         * CommitIteration(). For PiezoSIMP we can save more often and there this method
-         * is overwritten and might do nothing.
-         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
-        virtual void StoreResults(double step_val = -1.0);
 
         /** called by CommitIteration(), to be overwritten if additional data should be
          * written, then logFileHeader should also be set. Don't add a new-line here!!.

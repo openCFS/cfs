@@ -97,6 +97,7 @@ class Function
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
       GLOBAL_JUMP,
+      PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
       PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
@@ -136,8 +137,12 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function
-                                      but triggers AuxDesign instead of DesignSpace. */
+      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+      DETERMINANT_MATRIX,         /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
+      ROTATIONAL_MATRIX_1,        /*!< first rotational constraint */
+      ROTATIONAL_MATRIX_2,         /*!< 2nd rotational constraint */
+      DETERMINANT_MAPPING,         /*!used in greedy-mapping*/
+      TRACE_MAPPING,               /*used in greedy-mapping*/
       SHAPE_INF                  /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
@@ -304,8 +309,9 @@ class Function
        * it as user. */
       typedef enum {
         DEFAULT,                 /*!< Function::PostProc() finds proper value */
-        NEXT,                    /*!< x_i and x_i+1 */
-        NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        NEXT,                    /*!< x_i and x_i+1 */              /* x, x+, y+ and xy +*/
+        NEXT_AND_REVERSE,  /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        NEXT_DIAG,
         PREV_NEXT,
         PREV_NEXT_AND_REVERSE,   /*!< x_i-1 and x_i+1 with different sign for small oscillation */
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
@@ -313,7 +319,11 @@ class Function
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
         ELEMENT,                 /*!< For stress there is no neighborhood, only the element itself */
         MULT_DESIGNS_ELEMENT,    /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
-        SHAPE                    /*!< SHAPE, the sparsity pattern is read from file */
+        SHAPE,                    /*!< SHAPE, the sparsity pattern is read from file */
+        MULT_DESIGNS_NEXT,                    /*!< x_i and x_i+1 */
+        MULT_DESIGNS_NEXT_AND_REVERSE,        /*!< x_i and x_i+1 plus x_i+1 PLUS the x_i for classical slope */
+        MULT_DESIGNS_PREV_NEXT,
+        MULT_DESIGNS_PREV_NEXT_AND_REVERSE /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
       } Locality;
 
       static Enum<Locality> locality;
@@ -391,7 +401,11 @@ class Function
         }
 
         /** identifies the element by the design type. Works only for special neighborhoods! */
-        BaseDesignElement* GetElement(DesignElement::Type type);
+        const BaseDesignElement* GetElementByType(BaseDesignElement::Type type) const;
+
+
+        /** returns design value by the design type. getParameter == true works for ParamMat parameters. Works only for special neighborhoods! */
+        double GetDesign(BaseDesignElement::Type type, const Local* local, const DesignElement::Access access = DesignElement::SMART, bool getParameter = true) const;
 
         /** Service function. Calculates the actual objective, based on function->type.
          * Is very fast for grad_glob and power == 1
@@ -416,6 +430,10 @@ class Function
          * @param neigh_idx for -1 for the own element, otherwise the neighbor */
         double CalcSlopeGradient(int neigh_idx) const;
 
+        /** the perimeter is similar to the slope constraint but always globalized (sum) */
+        double CalcPerimeter(double eps, double l_k) const;
+        double CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const;
+
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
         double CalcCheckerboard(double beta) const;
@@ -438,7 +456,7 @@ class Function
         double CalcBumpGradient(int neigh_idx) const;
 
         /** sum of elasticity and shear moduli in parametrized elasticity tensor formulations */
-        double CalcSumModuli(DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
+        double CalcSumModuli(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
 
         /** tensor trace of the material tensor in (DENSITY_TIMES_)ORTHOTROPIC parametrizations */
         double CalcOrthotropicTensorTrace(const Local* local, DesignElement::Access access = DesignElement::PLAIN, int neigh_idx = -1, bool derivative = false) const;
@@ -449,6 +467,9 @@ class Function
         /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
         double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
             double direction) const;
+
+        /** Get the index of the local interpolation interval*/
+        int GetInterpolationIndex(Matrix<double>, double&) const;
 
         /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
         double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
@@ -467,7 +488,7 @@ class Function
 
 
         /** to ensure positive definiteness of the material tensor E3-E1*nu31^2 > 0 has to hold */
-        double CalcParamPSPosDef(int neigh_idx, bool derivative) const;
+        double CalcParamPSPosDef(const Local* local, DesignElement::Access access, int neigh_idx, bool derivative) const;
 
         /** local tensor trace for FMO */
         double CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const;
@@ -484,6 +505,21 @@ class Function
 
         /** local FMO positive definiteness of (E-val*I) >= param via Benson Vanderbei constraints */
         double CalcBensonVanderbei(int neigh_idx, const Local* local, bool derivative, Type type) const;
+
+        /** local determinant of G: det G >=param. This is very nonlinear, there might be a need for positive definiteness To Do*/
+        double CalcDetGTensor(int neigh_idx, const Local* local, bool derivative) const;
+
+        /** Calculated the rotational of the gradient matrix */
+        double CalcRotGTensor(int neigh_idx, const Local* local, bool derivative, Type type) const;
+
+        /** For mapping problems ***/
+        double CalcTraceGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
+        double CalcDetGMappingTensor(int neigh_idx, const Local* local, bool derivative) const;
+
+
+
+        /* @param type the type we want to evaluate. Might be different from local->func->type_ in Approximation::TransformMultiplyer() */
+        //double CalcPosDefDeterminant(int neigh_idx, const Local* local, bool derivative, Type type) const;
 
         /** CalcStress() and the gradient are actually done in EM/SIMP */
         
@@ -530,6 +566,8 @@ class Function
        * @param phase see SetupStarLocalityElementMap() */
       void SetupVirtualElementMap(Phase phase = BOTH);
 
+      void SetupVirtualStarLocalElementMap(const Function*); //only used in NEXT_DIAG
+
       /** Special implementation for DEG_45_STAR[_AND_REVERSE] locality.
        * @param phase for oscillation we can separate void and material which is the sign convention */
       void SetupStarLocalityElementMap(Phase phase = BOTH);
@@ -546,6 +584,9 @@ class Function
       
       /** Shape Element Maps */
       void SetupShapeElementMap(const Function* func, ShapeDesign* design);
+
+      /** Multiple designs on several elements for paramMat*/
+      void SetupMultDesignsVirtualElementMap(const Function* f = NULL);
 
       /** small helper to determine the number of neighbors in each (diagonal)
        * direction if we use a neighborhood. Parses the whole stuff */

@@ -198,7 +198,7 @@ namespace CoupledField {
 
     // consider standard FEM, SIMP and FMO
     if(elem != NULL &&
-       domain->HasNonDensityDesignMaterial() &&
+       domain->HasErsatzMaterialTensor() &&
        domain->GetErsatzMaterial()->GetPiezoCouplingTensor(matMatrix, elem, direction))
     {
       matMatrix.Transpose(dMat); // this is the FMO tensor

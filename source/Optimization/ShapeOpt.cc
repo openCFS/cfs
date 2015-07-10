@@ -139,7 +139,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
         volume = CalcVolume(c, g, false, normalized);
       }
       bool allDesignsRelevant = g == NULL || g->GetDesignType() == DesignElement::TENSOR_TRACE || g->GetDesignType() == DesignElement::DEFAULT;
-      bool ersatzMaterialTensor = domain->HasNonDensityDesignMaterial() && allDesignsRelevant;
+      bool ersatzMaterialTensor = domain->HasErsatzMaterialTensor() && allDesignsRelevant;
       unsigned int upper = ersatzMaterialTensor ? design->GetNumberOfElements() : design->data.GetSize();
       Matrix<double> material;
       for(unsigned int i = 0; i < upper; i++) {

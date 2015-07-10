@@ -35,8 +35,7 @@ public:
   unsigned int getDimD() { return 1; }
 
   //! returns nr. of degrees of freedom
-  unsigned int getNrDofs() { return 9; }
-
+  unsigned int getNrDofs();
 
   //! Query material type for \f$D\f$ tensor
   MaterialType getDMaterialType() { return LBM_MATERIAL; }

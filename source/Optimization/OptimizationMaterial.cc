@@ -113,14 +113,18 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
   ElemList elemList(domain->GetGrid());
 
   // when there is no element given, we use the first from our design element.
-  // For this process we disable all transfer functions. - they shoul be enabled!
-  // This works only for isotropic material.
+  // If we don't use ParamMat, we disable all transfer functions in order to precalculate the ElementMatrix
+  // The physical ElementMatrix is set in SIMP::SetElementK
 
-  // temporarily disables the transfer functions
-  space->DisableTransferFunctions();
+  if(this->opt->GetMethod() != ErsatzMaterial::PARAM_MAT)
+  {
+    // temporarily disables the transfer functions
+    space->DisableTransferFunctions();
+    // We have to do this because CalcElementMatrix asks the density via domain and
+    // multiplies it with it's matrix, which is done again in SIMP::SetElementK!
+  }
 
-  // We have to do this because CalcElementMatrix asks the density via domain and
-  // multiplies it with it's matrix!
+
 
   if(elem == NULL) elemList.SetElement(space->data[0].elem);
               else elemList.SetElement(elem);
@@ -155,8 +159,12 @@ void OptimizationMaterial::GetElementEntity(BaseForm* form, Matrix<double>* mat_
     }
   }
 
-  // enable again our transfer functions
-  space->EnableTransferFunctions();
+  if(this->opt->GetMethod() != ErsatzMaterial::PARAM_MAT)
+  {
+    // enable again our transfer functions
+    space->EnableTransferFunctions();
+  }
+
 
   if(bimaterial != NULL)
     form->SetMaterial(org_mat);
@@ -229,14 +237,22 @@ void MechMat::Init()
 {
   system_ = MECH;
   mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->ToPDE(Optimization::MECH) : domain->GetSinglePDE("mechanic"));
+  //mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
+
   assert(mech != NULL);
   StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
+    std::cout << " r = " << r << std::endl;
     RegionIdType reg_id = regionIds[r];
     StdVector<Matrix<double> >& K = mechStiffness_map[reg_id];
     StdVector<Matrix<Complex> >& KC = mechStiffness_mapC[reg_id];
+
+    // this check is for Virginie's mapping with a ghost region not being part of the simulation
+    // can be removed if we use nodal design elements
+    if(this->opt->GetAssemble()->UseRegion(reg_id))
+    {
 
     // three cases: multimaterial, (legacy) bimagterial, normal. Run once for the last tow
     for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++)
@@ -299,11 +315,9 @@ void MechMat::Init()
         }
       }
     }
+    }
   }
 }
-
-
-
 
 DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction)
 {
@@ -348,7 +362,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
         tmp_mat2.SetPart(Global::IMAG, tmp_mat);
         mechStiffness_mapC[elem->regionId][index] = tmp_mat2;
       }
-      else mechStiffness_map[elem->regionId][1] = tmp_mat;
+      else mechStiffness_map[elem->regionId][index] = tmp_mat;
     }
   }
 

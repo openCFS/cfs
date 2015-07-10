@@ -194,11 +194,20 @@ namespace CoupledField
      DesignSpace* GetErsatzMaterial(bool throw_exception = true); 
      
      /** Returns true, if optimization does provide a complete tensor */
-     bool HasNonDensityDesignMaterial();
+     bool HasErsatzMaterialTensor();
      
+     /** Returns true, if optimization does provide a mass value */
+     bool HasErsatzMaterialMass();
+
      /** Return true, if optimization does provide damping parameters */
      bool HasErsatzMaterialDamping();
-     
+
+     /** FMO for piezoelectric coupling */
+     bool HasErsatzMaterialPiezoCouplingTensor();
+
+     /** FMO for piezoelectric permittivity */
+     bool HasErsatzMaterialDielecTensor();
+
     /** Returns the optimization
      *  @return null if there is none */
     Optimization* GetOptimization() { return optimization_; };

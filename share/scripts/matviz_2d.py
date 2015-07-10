@@ -194,11 +194,11 @@ def convert_two_data_interpolation_input(centers, s1, s2, angle):
   c[:, 0] = [x[0] for x in centers]
   c[:, 1] = [x[1] for x in centers]
 
-  v = numpy.zeros((len(s1), 2 if angle == None else 3))
+  v = numpy.zeros((len(s1),  2 if angle is None else 3))
   for i in range(len(s1)):
     v[i][0] = s1[i][0]
     v[i][1] = s2[i][0]
-    if angle <> None:
+    if angle is not None:
       v[i][2] = angle[i]
       
   return c, v    
@@ -213,10 +213,10 @@ def convert_single_data_interpolation_input(centers, s1, angle):
   c[:, 0] = [x[0] for x in centers]
   c[:, 1] = [x[1] for x in centers]
 
-  v = numpy.zeros((len(s1), 1 if angle == None else 2))
+  v = numpy.zeros((len(s1),  1 if angle is None else 2))
   for i in range(len(s1)):
     v[i][0] = s1[i][0]
-    if angle <> None:
+    if angle is not None:
       v[i][1] = angle[i]
       
   return c, v    
@@ -279,8 +279,7 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
   length = elem[0] * dx
  
   # print "elem=" + str(elem) + " dx=" + str(dx) + " dy=" + str(dy) + " height=" + str(height) + " length=" + str(length) + " min=" + str(min) + " max=" + str(max)
-  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s1, s2)
-  
+  ip_data, ip_near, out, nx, ny = get_interpolation(coords, grad, 'elem_nodes', s2, s1) # for some strange reason we need to switch?!
 
   for y in range(ny + 1):
     for x in range(nx + 1):
@@ -342,8 +341,6 @@ def show_frame_grad(coords, s1, s2, grad, direction, nx):
           
           draw.polygon(tupels, fill="black")
   
-  
-
   return im
 
 # # visualize the orientational stiffness
@@ -554,14 +551,15 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
 
   centers, min, max, elem = coords
   fig, sub = create_figure(min, max, nx, do_save)
-  delta_angle = numpy.max(angle) - numpy.max(angle) 
+  delta_angle = numpy.max(angle) - numpy.min(angle) 
 
   if scale == -1.0:
-    scale = 1.02 if delta_angle == 0.0 else 0.8 
+    scale = -1.02 if delta_angle == 0.0 else -0.8
   length = scale * (elem[0])
   
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
+  sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val), cmap=plt.get_cmap('gray' if color == 'grayscale' else color)) 
 
   for i in range(len(s1)):
   
@@ -576,11 +574,15 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
     v[1] = s2[i, 0] / numpy.max((scale, 1.))
     theta = angle[i]
     c = [0, 0]
-    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
-    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
+    c[0] = sm.to_rgba(max_val-v[0]) if not color == 'black' else 'black'
+    c[1] = sm.to_rgba(max_val-v[1]) if not color == 'black' else 'black'
+    
+    
+  # c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+   # c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
 
     # print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
-
+    theta = angle[i]
     # a
     if direction == 'horizontal': 
       pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)
@@ -598,7 +600,61 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
       pol = to_rectangle_center(length * v[vmax], length, theta + vmax * numpy.pi / 2, x_off, y_off)
       draw_verts(pol, sub, c[vmax])
   return (fig, sub)
+  
+# @return the image
+def show_sheared_cross(coords, s1, s2, sh1, direction, nx, scale, color, do_save):
 
+  centers, min, max, elem = coords
+  
+  fig, sub = create_figure(min, max, nx, do_save)
+
+  if scale == -1.0:
+    scale = 0.8 
+
+  length =  scale * (elem[0])
+  
+  max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
+  min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
+  
+  for i in range(len(s1)):
+  
+    coord = centers[i]
+
+    x_off = (coord[0] + min[0])
+    y_off = (coord[1] + min[1])
+
+    # we need downscale the values when we overscale due to overlapping 
+    v = [0,0]
+    v[0] = s1[i,0] / numpy.max((scale, 1.))
+    v[1] = s2[i,0] / numpy.max((scale, 1.))
+    theta = sh1[i] - .5
+    c = [0,0]
+    c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
+    c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
+    
+    #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
+    
+    # a
+    if direction == 'horizontal':
+      print v1 
+      pol = to_rectangle_center(length * v[0], length, 0, x_off, dim[1] - y_off)
+      draw_verts(pol, sub, c[0])    
+    # b
+    elif direction == 'vertical':
+      pol = to_rectangle_center(length * v[1], length, theta + numpy.pi/2, x_off, y_off)
+      draw_verts(pol, sub, c[1])
+    else:
+      vmax = 0 if v[0] > v[1] else 1
+      vmin = (vmax + 1) % 2
+      shearingangle = [0,0]
+      shearingangle[vmax] = theta 
+      pol = to_rectangle_center(length * v[vmin], length, -(shearingangle[0] + vmin*numpy.pi/2), x_off, y_off)
+      #draw_verts(pol, sub, str(1.0 - c[vmin]))
+      draw_verts(pol, sub, c[vmin])
+      pol = to_rectangle_center(length * v[vmax], length, -(shearingangle[1] + vmax*numpy.pi/2), x_off, y_off)
+      draw_verts(pol, sub, c[vmax])
+ 
+  return (fig, sub)
 
 def color_code(color_map, value):
   c = color_map.to_rgba(value)

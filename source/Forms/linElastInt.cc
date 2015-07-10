@@ -79,9 +79,9 @@ void linElastInt::CalcElementMatrix( Matrix<Double>& elemMat,
     else {
       BDBInt::CalcElementMatrix( elemMat, ent1, ent2, direction);
     }
-  } else if (domain->HasNonDensityDesignMaterial() && domain->GetErsatzMaterial()->designMaterial->GetType() == domain->GetErsatzMaterial()->designMaterial->MSFEM_C1) {
+  } else if (domain->HasErsatzMaterialTensor() && domain->GetErsatzMaterial()->designMaterial->GetType() == domain->GetErsatzMaterial()->designMaterial->MSFEM_C1) {
       const Elem* elem = ent1.GetElem();
-      if (domain->HasNonDensityDesignMaterial()) {
+      if (domain->HasErsatzMaterialTensor()) {
         domain->GetErsatzMaterial()->GetErsatzElementMatrix(elemMat,elem, direction);
         if (domain->GetErsatzMaterial()->IsRegular()) {
           /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
@@ -910,7 +910,7 @@ linElastInt::~linElastInt()
 bool linElastInt::GetErsatzMaterialTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
   // it is possible that a region is not subject to optimization. such a region is only identified in GetErsatzMaterialTensor
   return (elem != NULL
-      && domain->HasNonDensityDesignMaterial()
+      && domain->HasErsatzMaterialTensor()
       && domain->GetErsatzMaterial()->GetErsatzMaterialTensor(t, subTensorType_, elem, direction));
 }
 

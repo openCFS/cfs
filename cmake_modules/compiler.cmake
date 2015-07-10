@@ -88,13 +88,16 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC")
     # fgrep 'warning: use of old-style cast' out.txt | grep CFS_SOURCE_DIR | sort -u > old-style-cast.txt
     # 
     # -frounding-math: is needed for CGAL library
+    # -Wno-deprecated: is needed for SGPP
     # -Wno-unused-local-typedefs: for boost with gcc 4.8
     SET(CFS_CXX_FLAGS "-ftemplate-depth-200 -frounding-math")
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused-local-typedefs")
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused-local-typedefs -Wno-deprecated")
     SET(CHECK_MEM_ALLOC 1)
 
   ELSE(DEBUG)
-    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-unused-local-typedefs")
+    # -Wno-strict-aliasing: is needed for SGPP
+    # -Wno-deprecated: is needed for SGPP
+    SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-unused-local-typedefs -Wno-deprecated")
     SET(CFS_C_FLAGS "-std=c++98 -Wall -fmessage-length=0 ${CFS_C_FLAGS}")
     SET(CFS_CXX_FLAGS "-ftemplate-depth-200")
 

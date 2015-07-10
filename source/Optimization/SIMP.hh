@@ -134,10 +134,6 @@ private:
   template <class T>
   void SetElementRHS(DesignElement* de, const TransferFunction* tf, Application app, SingleVector* out, CalcMode, bool derivative = true);
 
-  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
-   * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
-  void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial);
-
 };
 
 

@@ -57,13 +57,14 @@ namespace CoupledField
       StdVector<std::string> strVec;
       // do not use cfs-implemented SplitStringList() as it cannot handle newline separated SAX parsed data
       SplitStringListWhitespace(node->As<std::string>(), strVec);
+
       ret.Resize( dim1, dim2 );
       ret.Init();
       
       if (strVec.GetSize() != dim1*dim2) 
       {
         EXCEPTION("Wrong size of matrix '" << node->GetName() << "'. It contains "
-       << strVec.GetSize() << " entries and should be " << dim1  << " x " << dim2);
+        << strVec.GetSize() << " entries and should be " << dim1  << " x " << dim2);
       }
 
       for ( UInt i = 0; i < dim1; i++ ) {
@@ -72,61 +73,66 @@ namespace CoupledField
         }
       }
     }
+
     /** Interpretes the content of this ParamNode as Matrix. Example:
-        * <pre>
-         <elasticity>
-           <tensor dim1="2" dim2="6">
-             <row id="1">
-               <col id="1" data="0.099999901099"/>
-               <col id="2" data="0.012598218231"/>
-               <col id="3" data="-0.008398812154"/>
-               <col id="4" data="0.012598218231"/>
-               <col id="5" data="-0.032251267273"/>
-               <col id="6" data="0.021467102630"/>
-             </row>
-             <row id="2">
-               <col id="1" data="0.099999901099"/>
-               <col id="2" data="0.012598218231"/>
-               <col id="3" data="-0.008398812154"/>
-               <col id="4" data="0.012598218231"/>
-               <col id="5" data="-0.032251267273"/>
-               <col id="6" data="0.021467102630"/>
-             </row>
-           </tensor>
-         </elasticity></pre>
-        * Call this like the following:<pre>
-        * Xerces xerces(file);
-        * PtrParamNode root = xerces.CreateParamNodeInstance();
-        * Matrix<double> mat(2,6);
-        * ParamTools::AsMatrix<double>(root->Get("tensor"), mat);</pre> */
+     * <pre>
+      <elasticity>
+        <tensor dim1="2" dim2="6">
+          <row id="1">
+            <col id="1" data="0.099999901099"/>
+            <col id="2" data="0.012598218231"/>
+            <col id="3" data="-0.008398812154"/>
+            <col id="4" data="0.012598218231"/>
+            <col id="5" data="-0.032251267273"/>
+            <col id="6" data="0.021467102630"/>
+          </row>
+          <row id="2">
+            <col id="1" data="0.099999901099"/>
+            <col id="2" data="0.012598218231"/>
+            <col id="3" data="-0.008398812154"/>
+            <col id="4" data="0.012598218231"/>
+            <col id="5" data="-0.032251267273"/>
+            <col id="6" data="0.021467102630"/>
+          </row>
+        </tensor>
+      </elasticity></pre>
+     * Call this like the following:<pre>
+     * Xerces xerces(file);
+     * PtrParamNode root = xerces.CreateParamNodeInstance();
+     * Matrix<double> mat(2,6);
+     * ParamTools::AsMatrix<double>(root->Get("tensor"), mat);</pre> */
     template <class TYPE>
-        static void AsMatrix(PtrParamNode node, Matrix<TYPE>& ret)
-        {
-          StdVector<std::string> strVec;
-          unsigned int dim1 = node->Get("dim1")->As<unsigned int>();
-          unsigned int dim2 = node->Get("dim2")->As<unsigned int>();
+    static void AsMatrix(PtrParamNode node, Matrix<TYPE>& ret)
+    {
+      StdVector<std::string> strVec;
+      unsigned int dim1 = node->Get("dim1")->As<unsigned int>();
+      unsigned int dim2 = node->Get("dim2")->As<unsigned int>();
+
+      if ( dim1 == 1 ) {
+        ret.Resize( dim2, dim1 );
+      } else {
+        ret.Resize( dim1, dim2 );
+      }
+      ret.Init();
+
+      ParamNodeList rows, cols;
+      unsigned int row, col;
+
+      rows = node->GetList("row");
+      for ( unsigned int i=0; i<rows.GetSize(); i++ ) {
+        row = rows[i]->Get("id")->As<unsigned int>() - 1;
+        cols = rows[i]->GetList("col");
+        for ( unsigned int j=0; j<cols.GetSize(); j++ ) {
+          col = cols[j]->Get("id")->As<unsigned int>() - 1;
           if ( dim1 == 1 ) {
-            ret.Resize( dim2, dim1 );
+            ret[col][row] = cols[j]->Get("data")->As<TYPE>();
           } else {
-            ret.Resize( dim1, dim2 );
-          }
-          ret.Init();
-          ParamNodeList rows, cols;
-          unsigned int row, col;
-          rows = node->GetList("row");
-          for ( unsigned int i=0; i<rows.GetSize(); i++ ) {
-            row = rows[i]->Get("id")->As<unsigned int>() - 1;
-            cols = rows[i]->GetList("col");
-            for ( unsigned int j=0; j<cols.GetSize(); j++ ) {
-              col = cols[j]->Get("id")->As<unsigned int>() - 1;
-              if ( dim1 == 1 ) {
-                ret[col][row] = cols[j]->Get("data")->As<TYPE>();
-              } else {
-                ret[row][col] = cols[j]->Get("data")->As<TYPE>();
-              }
-            }
+            ret[row][col] = cols[j]->Get("data")->As<TYPE>();
           }
         }
-    };
+      }
+    }
+
+  }; 
 } // end of namespace
 #endif /*PARAMTOOLS_HH_*/

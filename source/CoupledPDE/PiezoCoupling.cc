@@ -377,7 +377,7 @@ namespace CoupledField {
     {
       elemIt.GetElem()->ptElem;
 
-      if(domain->HasNonDensityDesignMaterial())
+      if(domain->HasErsatzMaterialTensor())
         domain->GetErsatzMaterial()->GetPiezoCouplingTensor(E, elemIt.GetElem(), DesignElement::NO_DERIVATIVE);
       else
         E.Init();

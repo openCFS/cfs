@@ -45,6 +45,9 @@ class AdjointParameters;
     //! Number of steps before a restart file is stored
     UInt restartIncr_;
 
+    /** LBM case */
+    bool lbm_;
+
   };
 
 }

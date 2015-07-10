@@ -126,11 +126,18 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
+  case DesignElement::SHEAR1:
+  case DesignElement::ROTANGLE2:
+  case DesignElement::SCALING1:
+  case DesignElement::SCALING2:
+  case DesignElement::G_MAP_X:
+  case DesignElement::G_MAP_Y:
   case DesignElement::TENSOR11:
   case DesignElement::TENSOR12:
   case DesignElement::TENSOR22:
   case DesignElement::TENSOR33:
   case DesignElement::MULTIMATERIAL:
+  case DesignElement::INTERPOLATION:
     return Optimization::MECH;
   case DesignElement::ACOU_DENSITY:
     return Optimization::LAPLACE;
@@ -216,10 +223,14 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, double external_value, bool forBimaterial) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool forBimaterial) const
 {
-  assert(!(external_value != -13.456 && access == DesignElement::SMART));
-  double value = external_value == -13.456 ? de->GetValue(DesignElement::DESIGN, access) : external_value;
+  double value = de->GetValue(DesignElement::DESIGN, access);
+  return this->Transform(value, forBimaterial, de);
+}
+
+double TransferFunction::Transform(double value, bool forBimaterial, const DesignElement* de) const
+{
   double result;
   switch(type_)
   {
@@ -252,12 +263,12 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   case FIXED:
     result = param_;
     break;
-    
+
   case FULL:
     assert(de != NULL);
     result = de->GetUpperBound();
     break;
-    
+
   case HEAVISIDE:
     // some options and the derivatives
     // plot (1-exp(-20*x)), 20*x*exp(-20*x), 4*(1-exp(-10*x))**3 * 10*x*exp(-10*x), (1-exp(-10*x))**4, 1-exp(-20*x**6), 20*x**6*6*x**5*exp(-20*x**6)
@@ -277,18 +288,22 @@ double TransferFunction::Transform(const DesignElement* de, DesignElement::Acces
   default: throw Exception("type not implemented");
   }          
   
-  LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
+  //LOG_DBG3(trans) << "Transform de=" << (de != NULL ? (int) de->elem->elemNum : -1) << " value=" << value << " type=" << type.ToString(type_) << " param=" << param_ << " -> " << result;
   return result;
 }     
 
 double TransferFunction::Derivative(const DesignElement* de, DesignElement::Access access, bool forBimaterial) const
 {
   double value = de->GetValue(DesignElement::DESIGN, access);
+#ifdef CHECK_INDEX
+  if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
+    throw Exception("type mismatch for the transfer function");
+#endif
+  return this->Derivative(value, forBimaterial);
+}
 
-  #ifdef CHECK_INDEX
-    if(de->GetType() != design_ && (design_ == DesignElement::DEFAULT && de->GetDesignSpace() != NULL && de->GetDesignSpace()->design.GetSize() > 1))
-      throw Exception("type mismatch for the transfer function");
-  #endif
+double TransferFunction::Derivative(double value, bool forBimaterial) const
+{
     switch(type_)
     {
     case NO_TYPE:

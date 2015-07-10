@@ -1037,7 +1037,7 @@ void Domain::ResetPDEs()
 bool Domain::GetErsatzMaterial(const Elem* elem, const BaseForm* form, double& result, bool forBimaterial)
 {
   // is the stuff active at all? and don't we use ParamMat
-  if (ersatzMaterial == NULL || HasNonDensityDesignMaterial())
+  if (ersatzMaterial == NULL || HasErsatzMaterialTensor())
     return false;
 
   // we cannot check for the region here, if form is a linear form (e.g.
@@ -1061,7 +1061,7 @@ bool Domain::GetErsatzMaterialPamping(const Elem* elem, const BaseForm* form, Ma
 
   if(ersatzMaterial->GetPampingValue() == 0.0) return false;
 
-  assert(!HasNonDensityDesignMaterial()); // shall not be mixed with matrix optimization
+  assert(!HasErsatzMaterialTensor()); // shall not be mixed with matrix optimization
 
   // only for mass-damping! extend if you want to experiment
   if(form->GetName() != "MassInt")
@@ -1091,15 +1091,32 @@ DesignSpace* Domain::GetErsatzMaterial(bool throw_excpetion)
   return ersatzMaterial;
 }
 
-bool Domain::HasNonDensityDesignMaterial()
+bool Domain::HasErsatzMaterialTensor()
 {
   return ersatzMaterial == NULL ? false
-      : ersatzMaterial->HasNonDensityDesignMaterial();
+      : ersatzMaterial->HasErsatzMaterialTensor();
+}
+
+bool Domain::HasErsatzMaterialPiezoCouplingTensor()
+{
+  return ersatzMaterial == NULL ? false : ersatzMaterial->HasPiezoCouplingTensor();
+}
+
+bool Domain::HasErsatzMaterialDielecTensor()
+{
+  return ersatzMaterial == NULL ? false  : ersatzMaterial->HasDielecTensor();
+}
+
+bool Domain::HasErsatzMaterialMass()
+{
+  return ersatzMaterial == NULL ? false
+      : ersatzMaterial->HasErsatzMaterialMass();
 }
 
 bool Domain::HasErsatzMaterialDamping(){
-  return(ersatzMaterial != NULL && ersatzMaterial->HasNonDensityDesignMaterial());
+  return(ersatzMaterial != NULL && ersatzMaterial->HasErsatzMaterialDamping());
 }
+
 // *************
 //   PrintGrid
 // *************

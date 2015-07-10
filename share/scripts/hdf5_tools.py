@@ -31,6 +31,8 @@ def num_nodes_by_type(type_id):
     return 6
   if type_id == 11:
     return 8
+  if type_id == 9:
+    return 4
   assert(False)
 
 # # give back elements with barycenters
@@ -120,7 +122,14 @@ def last_h5_step(hdf5_file):
   last = None
   for name in ms:
     if name.startswith('Step_'):
-      last = name
+      if last != None:
+        thisInt = int(name.split('_')[-1])
+        if thisInt > lastInt:
+          last = name
+          lastInt = thisInt
+      else:
+        last = name
+        lastInt = int(name.split('_')[-1])                
       
   if last == None:
     raise Exception('no steps found in /Results/Mesh/MultiStep_1')     

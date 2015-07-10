@@ -70,6 +70,26 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case STIFF1:
     case STIFF2:
     case STIFF3:
+    case SHEAR1:
+    //for mod_red
+    case SCALING1:
+    case SCALING2:
+    case ROTANGLE:
+    case ROTANGLE2:
+    case G11:
+    case G12:
+    case G21:
+    case G22:
+    case G_MAP_X:
+    case G_MAP_Y:
+    case GX_0:
+    case GY_0:
+    case GX_PX:
+    case GY_PX:
+    case GX_PY:
+    case GY_PY:
+    case GX_PXY:
+    case GY_PXY:
     // Batian's stuff
     // FIXMI!!
     case POISSON:
@@ -137,6 +157,21 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case PIEZO_21:
     case PIEZO_22:
     case PIEZO_23:
+      return true;
+    default:
+      return false;
+    }
+    break;
+  }
+
+  case G_ALL:
+  {
+    switch(test)
+    {
+    case G11:
+    case G12:
+    case G21:
+    case G22:
       return true;
     default:
       return false;
@@ -409,6 +444,22 @@ int DesignElement::GetOptResultIndex(SolutionType st)
     return 10;
   case OPT_RESULT_12:
     return 11;
+  case OPT_RESULT_13:
+    return 12;
+  case OPT_RESULT_14:
+    return 13;
+  case OPT_RESULT_15:
+    return 14;
+  case OPT_RESULT_16:
+    return 15;
+  case OPT_RESULT_17:
+    return 16;
+  case OPT_RESULT_18:
+    return 17;
+  case OPT_RESULT_19:
+    return 18;
+  case OPT_RESULT_20:
+    return 19;
   default:
     return -1;
   }
@@ -426,7 +477,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == MAX_JUMP
       || rd.value == PENALIZED_STRESS
       || rd.value == DESIGN_TRACKING
-      || rd.value == PROJECTION)
+      || rd.value == PROJECTION
+      || rd.value == TRANSFO_MATRIX)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -502,7 +554,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) c
 }
 
 
-double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
+__attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
 {
   // validate first:
   switch(sp)
@@ -527,6 +579,7 @@ double DesignElement::GetPlainValue(ValueSpecifier sp, Condition* g) const
   case MAX_OSCILLATION:
   case MAX_JUMP:
   case PENALIZED_STRESS:
+  case TRANSFO_MATRIX:
     assert(false); // should be covered before by special result index
 
   case TOPGRAD_VALUE:
@@ -572,7 +625,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   in->Get("upperBound")->SetValue(upper_);
   in->Get("lowerBound")->SetValue(lower_);
   if(tf != NULL)
-    in->Get("physicalLowerBound")->SetValue(tf->Transform(this, DesignElement::PLAIN, lower_));
+    in->Get("physicalLowerBound")->SetValue(tf->Transform(lower_));
   if(multimaterial != NULL)
   {
     in->Get("material")->SetValue(multimaterial->name);
@@ -660,6 +713,7 @@ void DesignElement::SetEnums()
   type.Add(ELAST_ALL, "elast_all");
   type.Add(DIELEC_TRACE, "dielec_trace");
   type.Add(DIELEC_ALL, "dielec_all");
+  type.Add(G_ALL, "G_all");
   type.Add(PIEZO_ALL, "piezo_all");
   type.Add(DEFAULT, "default");
   type.Add(DENSITY, "density");
@@ -692,15 +746,34 @@ void DesignElement::SetEnums()
   type.Add(PIEZO_22, "piezo_22");
   type.Add(PIEZO_23, "piezo_23");
   type.Add(ROTANGLE, "rotAngle");
+  type.Add(ROTANGLE2, "rotAngle2");
+  type.Add(SCALING1, "scaling1");
+  type.Add(SCALING2, "scaling2");
+  type.Add(G11, "G11");
+  type.Add(G12, "G12");
+  type.Add(G21, "G21");
+  type.Add(G22, "G22");
+  type.Add(G_MAP_X, "G_MAP_X");
+  type.Add(G_MAP_Y, "G_MAP_Y");
+  type.Add(GX_0, "GX_0");
+  type.Add(GY_0, "GY_0");
+  type.Add(GX_PX, "GX_PX");
+  type.Add(GY_PX, "GY_PX");
+  type.Add(GX_PY, "GX_PY");
+  type.Add(GY_PY, "GY_PY");
+  type.Add(GX_PXY, "GX_PXY");
+  type.Add(GY_PXY, "GY_PXY");
   type.Add(ROTANGLEX, "rotAngleX");
   type.Add(ROTANGLEY, "rotAngleY");
   type.Add(ROTANGLEZ, "rotAngleZ");
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(STIFF3, "stiff3");
+  type.Add(SHEAR1, "shear1");
   type.Add(SLACK, "slack");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
+  type.Add(INTERPOLATION, "interpolation");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
@@ -720,6 +793,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(WEIGHT, "weight");
   valueSpecifier.Add(OBJECTIVE, "objective");
   valueSpecifier.Add(PROJECTION, "projection");
+  valueSpecifier.Add(TRANSFO_MATRIX, "transfoMatrix");
   valueSpecifier.Add(NUM_NEIGHBOURS, "neighbours");
   valueSpecifier.Add(LEVEL_SET_VALUE, "levelSetValue");
   valueSpecifier.Add(LEVEL_SET_STATE, "levelSetState");
@@ -761,6 +835,10 @@ void DesignElement::SetEnums()
   detail.Add(GLOBAL_CHECKERBOARD, "globalCheckerboard");
   detail.Add(STRESS, "stress");
   detail.Add(PROJECTION_FILTER, "projectionFilter");
+  detail.Add(TRANSFO_MATRIX11, "transfoMatrix11");
+  detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
+  detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
+  detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
 
 }
 
@@ -770,6 +848,7 @@ SIMPElement::SIMPElement(DesignElement* base)
   this->de_ = base;
   this->filter = Filter();
   this->weight  = 1.0;
+  this->weight_sum = -1.0;
 }
 
 double SIMPElement::CalcWeightSum(bool include_this) const
@@ -855,7 +934,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
 
 
-inline
+
 double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
@@ -978,19 +1057,19 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 //    assert(de_->simp != NULL);
 //  }
 
-
-  // mathematically the neighborhood includes this element, but this is not in the structure
-  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-  {
-    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-    const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
-
-    double v = de->GetPlainValue(sp, g); // d f/d P_i
-    double h = 1.0; // for not-standard filters this is the additional derivative
-    double x_n = 0.0;
-
-    if(f.density_ != Filter::STANDARD)
+  if(f.density_ != Filter::STANDARD){
+    // mathematically the neighborhood includes this element, but this is not in the structure
+    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
     {
+      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
+      double h = 1.0; // for not-standard filters this is the additional derivative
+      double x_n = 0.0;
+
+//      if(f.density_ != Filter::STANDARD)
+//      {
       double b = f.GetBeta();
 
       // we need the filtered density -> but the real filtered value!!
@@ -1024,17 +1103,40 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         double e = std::exp(2.0 * b * ( x_n - eta));
         h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
       }
-    } // end if(f.density_ != Filter::STANDARD)
+//      } // end if(f.density_ != Filter::STANDARD)
 
-    double w = i == -1 ? this->weight : ne->weight;
-    double w_sum = de->simp->CalcWeightSum(true);
+      double w = i == -1 ? this->weight : ne->weight;
 
-    double summand = v * h * w / w_sum;
-    sum += summand;
+      if (de->simp->weight_sum < 0.0)
+        de->simp->weight_sum = de->simp->CalcWeightSum(true);
 
-    // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-    //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-    //                << " summand=" << summand << " sum=" << sum;
+      double summand = v * h * w / de->simp->weight_sum;
+      sum += summand;
+
+      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+      //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+      //                << " summand=" << summand << " sum=" << sum;
+    }
+  } else { // end if(f.density_ != Filter::STANDARD). This if-else is ugly but a lot faster in some cases
+    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+        {
+          const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+          const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+          double v = de->GetPlainValue(sp, g); // d f/d P_i
+
+          double w = i == -1 ? this->weight : ne->weight;
+
+          if (de->simp->weight_sum < 0.0)
+            de->simp->weight_sum = de->simp->CalcWeightSum(true);
+
+          double summand = v * w / de->simp->weight_sum;
+          sum += summand;
+
+          // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+          //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+          //                << " summand=" << summand << " sum=" << sum;
+        }
   }
 
   return sum;
