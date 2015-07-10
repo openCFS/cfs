@@ -1936,6 +1936,11 @@ source/PDE/FlowPDE.cc -text
 source/PDE/FlowPDE.hh -text
 source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
+source/PDE/LatticeBoltzmannPDE.cc -text
+source/PDE/LatticeBoltzmannPDE.hh -text
+source/PDE/LatticeBoltzmannSolver/CMakeLists.txt -text
+source/PDE/LatticeBoltzmannSolver/LatticeBoltzmann.cc -text
+source/PDE/LatticeBoltzmannSolver/LatticeBoltzmann.hh -text
 source/PDE/MagEdgePDE.cc -text
 source/PDE/MagEdgePDE.hh -text
 source/PDE/MagneticPDE.cc -text

@@ -655,6 +655,14 @@ namespace CoupledField {
     return sum;
   }
 
+  std::string SBM_Matrix::Dump() const {
+    std::stringstream ss;
+    ss << "number of sub matrices: " << subMat_.GetSize();
+
+    return ss.str();
+  }
+
+
   // **************
   //   GetMaxDiag
   // **************

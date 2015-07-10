@@ -214,7 +214,7 @@
 		<xsd:keyref name="CS_RegionExists"
 			refer="CS_DomainNamesRegion">
 			<xsd:selector
-				xpath="cfs:pdeList/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region" />
+				xpath="cfs:pdeList/cfs:LatticeBoltzmann/cfs:acoustic/cfs:region|cfs:pdeList/cfs:electrostatic/cfs:region|cfs:pdeList/cfs:magnetic/cfs:region|cfs:pdeList/cfs:mechanic/cfs:region|cfs:pdeList/cfs:piezo/cfs:region|cfs:pdeList/cfs:smooth/cfs:region|cfs:pdeList/cfs:heatConduction/cfs:region" />
 			<!-- Simple selection of all PDEs does not work due to problems -->
 			<!--- with auxilliary MPCCI PDE. What is a region in that case? -->
 			<!--xsd:selector xpath="cfs:pdeList/*/cfs:region"/-->

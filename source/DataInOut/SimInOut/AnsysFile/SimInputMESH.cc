@@ -608,6 +608,7 @@ namespace CoupledField {
         // position are the same
         inFile_.ignore(100,'\n');
         pos = inFile_.tellg();
+
         if (pos != lineEndPos) {
           EXCEPTION("The node list for the boundary "
                     << "conditions has wrong size or format. Please correct it!");

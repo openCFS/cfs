@@ -1,7 +1,7 @@
 #include "Optimization/LBMSIMP.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Domain/Domain.hh"
-// FIXME #include "PDE/LatticeBoltzmannPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
@@ -9,12 +9,7 @@ DECLARE_LOG(simp)
 
 LBMSIMP::LBMSIMP()
 {
-  /* FIXME
   lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
-
-  for(unsigned int r = 0; r < design->GetRegionIds().GetSize(); r++)
-    GetForm(design->GetRegionIds()[r], lbm, lbm, "LatticeBoltzmannInt")->SetSolDependent(true);
-  */
 }
 
 LBMSIMP::~LBMSIMP()
@@ -25,8 +20,7 @@ LBMSIMP::~LBMSIMP()
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
   LOG_DBG(simp) << "SSP -> solve";
-  // FIXME lbm->Solve();
-
+  lbm->Solve();
 }
 
 /** overloads SIMP::CalcFunction()
@@ -41,25 +35,19 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
   case Function::PRESSURE_DROP:
   {
-    /* FIXME
     if(!derivative)
       return lbm->CalcPressureDrop();
     else
     {
       switch(lbm->GetIface())
       {
-      case LatticeBoltzmannPDE::EXT_MATLAB:
-        lbm->SetPrecalculatedGradient(f->elements, f);
-        break;
-
-      case LatticeBoltzmannPDE::EXT_CFSxLBM:
+      case LatticeBoltzmannPDE::EXTERNAL:
       case LatticeBoltzmannPDE::INTERNAL:
         lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
       }
       return 0.0;
     }
-    */
   }
   break;
 

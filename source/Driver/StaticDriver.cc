@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Domain/Domain.hh"
 #include "DataInOut/ResultHandler.hh"
 #include "DataInOut/SimState.hh"
@@ -35,6 +36,8 @@ namespace CoupledField {
     // read flag if all results should get written to database file section
     // to allow e.g. for general postprocessing or result extraction
     param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
+
+    lbm_ = false;
   }
 
   void StaticDriver::Init(bool restart)
@@ -60,12 +63,16 @@ namespace CoupledField {
 
     // Initialize first multisequence step, as the method "CheckStoreResults"
     // relies on the result handler to know already about the current
-    // sequencestep. However, in case of optimization, the sequence step
+    // sequence step. However, in case of optimization, the sequence step
     // gets initialized in Optimization::SolveProblem()
-    if(!domain_->GetOptimization())
+    if(ptPDE_->GetName() == "LatticeBoltzmann")
+      lbm_ = true;
+    if(!domain_->GetOptimization()) {
+      if (lbm_)
+        handler_->BeginMultiSequenceStep( sequenceStep_, BasePDE::TRANSIENT, 9999);
+      else
       handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
-
-
+    }
     // In case we allow general postprocessing or this analysis is part of 
     // a multisequence (in which case the subsequent run could need this
     // simulation as restart information)
@@ -84,11 +91,23 @@ namespace CoupledField {
     
     ptPDE_->GetSolveStep()->PostStepStatic();
 
+    // for LBM case we overwrite this data because we might write intermediate LBM iterations
+    int step = 0;
+    double value = 0.0; // step value
+    if(lbm_) {
+      dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->Solve(); // might call many StoreResults() for intermediate steps
+      step = dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->GetNumWriteResults();
+      value = step;
+    }
+
     // in optimization we write the results via StoreResults() because
     // we don't necessarily write every forward step.
     if(!domain->GetOptimization())
     {
-      StoreResults(1,0.0);
+      if (lbm_ && step != 0)
+        StoreResults(step+1,(double)value+1.0);
+      else
+        StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();
 
       if(!isPartOfSequence_)

@@ -723,7 +723,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
-        // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *> 
+        // u1^T(K' u2 - f') -> calc "u1^T *" or <u1, *>
         // the difference is the conjugate complex in the harmonic inner product case!
         T sp;
         if(calcMode == CONJ_QUAD || calcMode == EIGENFREQ)
@@ -752,9 +752,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
     return sum;
   }
-
-
-
 
   double ErsatzMaterial::CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
       {
@@ -831,10 +828,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         return grad;
       }
 
-
-
-
-
   double ErsatzMaterial::CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
       {
 
@@ -887,7 +880,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
             Vector<double>& u1_vec = dynamic_cast<Vector<double>& >(*u1[e]);
             Vector<double>& u2_vec = dynamic_cast<Vector<double>& >(*u2[e]);
 
-
             //We must pay attention to whether the element is in the ghost region or not
             //std::cout << (de->vicinity->HasNeighbor(VicinityElement::X_P)) << " " << (de->vicinity->HasNeighbor(VicinityElement::Y_P)) << std::endl;
 
@@ -895,8 +887,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
             if ( (de->vicinity->HasNeighbor(VicinityElement::X_P)) && (de->vicinity->HasNeighbor(VicinityElement::Y_P)))
             {
 
-            //	std::cout << "The element is not in the ghost region" << endl;
-            	//We need to check for all neighbours of e
+            //  std::cout << "The element is not in the ghost region" << endl;
+              //We need to check for all neighbours of e
                 //------------------------------------------------ First: same cell
                 if (type == DesignElement::G_MAP_X)
                 {
@@ -955,7 +947,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
                         mat_vec = mat * u2_nw;
                         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
-
 
                         if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
                         if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
@@ -1522,7 +1513,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       if(g != NULL && g->GetDesignType() == DesignElement::UNITY)
       { // this will always return 1, does only make sense for unnormalized (real) volume
         // the gradient is not set, it is really 0 on every element but should not be used
-        //TODO: Do We need a warning here? 
+        //TODO: Do We need a warning here?
         return(derivative ? 0.0 : 1.0);
       }
     }
@@ -1722,6 +1713,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // In CalcOrthotropeMaterialProperties() we construct a dummy function, this has Function::elements not set :(
     // only for physical
     // TODO: assumes a single transfer function for all regions!
+    // TODO: MECH ist stupid when we do LBM
     TransferFunction* tf = f->IsPhysical() ? design->GetTransferFunction(f->GetDesignType(), Optimization::MECH) : NULL;
     bool regular = design->IsRegular();
     unsigned int numEls = f->elements.GetSize();
@@ -1880,7 +1872,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       if(IsTransient())
       {
         // this computes the complete derivative of the Newmark scheme, up to now, all objectives/constraints can be handled like that
-        // as the derivative of all objectives/constraint is calculated p^T (dF - dA) u 
+        // as the derivative of all objectives/constraint is calculated p^T (dF - dA) u
         // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
         CalcNewmarkDerivative(excite, forward, adjoint, factor, f, g);
       }
@@ -2021,7 +2013,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
       double gamma =pde->getTimeStepping()->GetNewmarkGamma();
       double beta = pde->getTimeStepping()->GetNewmarkBeta();
-      
+
       Vector<Double>& pp = pde->getTimeStepping()->GetDeriveMap()[FIRST_DERIV];
       Vector<Double>& ppp = pde->getTimeStepping()->GetDeriveMap()[SECOND_DERIV];
 
@@ -2030,7 +2022,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       coeffMass.ScalarMult(1.0 / dt);
       coeffMass.Add(1.0 - gamma, ppp);
       assemble_->GetAlgSys()->UpdateRHS(CoupledField::MASS, coeffMass);
-      
+
       // look up, whether the damping matrix exists
       std::set<FEMatrixType> matTypes;
       assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
@@ -2044,7 +2036,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
       */
     }
-    
+
     // in case of contact, we have to inform the solver, that an adjoint system is solved
     assert(false);
     // FIXME assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
@@ -2065,6 +2057,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       result += std::real(excite.GetOmega() * complex<double>(0, 0.5) * u_glob[i] * q_u_glob[i]);
     return result;
   }
+
   void ErsatzMaterial::SetEnergyFluxVector(Function* f, const Vector<complex<double> >& u_glob, bool adjoint, Vector<complex<double> >& q_u_glob)
   {
     // determine the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case
@@ -2164,6 +2157,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if (count[i] != 0)
     q_u_glob[i] /= (double)(count[i]);
   }
+
   void ErsatzMaterial::FindCommonNodes(const SurfElem* se, const Elem* vol, StdVector<unsigned int>& common_nodes) const
   {
     const StdVector<unsigned int>& se_nodes = se->connect;
@@ -2494,6 +2488,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
     return sum;
   }
+
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
     assert(false);
@@ -2515,7 +2510,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       if(IsTransient())
       {
         // this computes the complete derivative of the Newmark scheme, up to now, all objectives/constraints can be handled like that
-        // as the derivative of all objectives/constraint is calculated p^T (dF - dA) u 
+        // as the derivative of all objectives/constraint is calculated p^T (dF - dA) u
         // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
         CalcNewmarkDerivative(excite, forward, adjoint, factor, c, g);
       }
@@ -2806,7 +2801,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
 
   }
-
 
   double ErsatzMaterial::CalcHomogenizedTensorConstraint(Condition* g, bool derivative)
   {
