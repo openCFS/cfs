@@ -86,14 +86,6 @@ private:
 
   /** The electric rhs, real or complex */
   DesignDependentRHS elecRHS;
-  
-  /** This are logging variables for LogFileLine */
-  double log_coupled_;
-  double log_coupled_simp_;
-  double log_elec_;
-  double log_elec_simp_;
-
-  
 };
 
 } // end of namespace
