@@ -770,7 +770,9 @@ void CoefFunctionApproxDerivAniso::GetTensor(Matrix<Double>& coefMat,
     // ---------------------------------------------------
     //  Angular based interpolation in the xy-plane (phi)
     // ---------------------------------------------------
-    Double nuPrime, nuPrimeXY, nuPrimeZ;
+    double nuPrime = 0.0;
+    double nuPrimeXY = 0.0;
+    double nuPrimeZ = 0.0;
     
     // if angle is out of bounds or we have just one entry,
     // return boundary value (i.e.first or last) 
