@@ -1017,8 +1017,7 @@ double SIMPElement::CalcTanh(double input_value) const
   return result;
 }
 
-// this inline could improve speed, works with gcc 4.5.1 but fails for older ones :(
-// inline
+
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
 {
   // We filter over this element and the neighbors.
@@ -1039,22 +1038,31 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
                 //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
-//
-//  if (de_->GetIndex() == 88)
-//  {
-//    std::cout << de_->GetIndex() << std::endl;
-//    std::cout << de_->GetType() << std::endl;
-//    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-//    {
-//      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-//      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
-//      std::cout << de->GetIndex() << ": " << de->GetPlainValue(sp, g) << std::endl;
-//    }
-//    std::cout << std::endl;
-//    assert(de_->simp != NULL);
-//  }
 
-  if(f.density_ != Filter::STANDARD){
+  if(f.density_ == Filter::STANDARD)
+  {
+    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+    {
+      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+
+      double v = de->GetPlainValue(sp, g); // d f/d P_i
+
+      double w = i == -1 ? this->weight : ne->weight;
+
+      if (de->simp->weight_sum < 0.0)
+        de->simp->weight_sum = de->simp->CalcWeightSum(true);
+
+      double summand = v * w / de->simp->weight_sum;
+      sum += summand;
+
+      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+      //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+      //                << " summand=" << summand << " sum=" << sum;
+    }
+  }
+  else // the non Filter::STANDARD case
+  {
     // mathematically the neighborhood includes this element, but this is not in the structure
     for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
     {
@@ -1065,8 +1073,6 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       double h = 1.0; // for not-standard filters this is the additional derivative
       double x_n = 0.0;
 
-//      if(f.density_ != Filter::STANDARD)
-//      {
       double b = f.GetBeta();
 
       // we need the filtered density -> but the real filtered value!!
@@ -1100,7 +1106,6 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         double e = std::exp(2.0 * b * ( x_n - eta));
         h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
       }
-//      } // end if(f.density_ != Filter::STANDARD)
 
       double w = i == -1 ? this->weight : ne->weight;
 
@@ -1114,26 +1119,6 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
       //                << " summand=" << summand << " sum=" << sum;
     }
-  } else { // end if(f.density_ != Filter::STANDARD). This if-else is ugly but a lot faster in some cases
-    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-        {
-          const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-          const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
-
-          double v = de->GetPlainValue(sp, g); // d f/d P_i
-
-          double w = i == -1 ? this->weight : ne->weight;
-
-          if (de->simp->weight_sum < 0.0)
-            de->simp->weight_sum = de->simp->CalcWeightSum(true);
-
-          double summand = v * w / de->simp->weight_sum;
-          sum += summand;
-
-          // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-          //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-          //                << " summand=" << summand << " sum=" << sum;
-        }
   }
 
   return sum;

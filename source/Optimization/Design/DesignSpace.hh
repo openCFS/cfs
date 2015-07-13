@@ -147,8 +147,15 @@ namespace CoupledField
      TransferFunction* GetTransferFunction(const DesignElement* de);
 
      /** Apply the transformations if they shall be.
+      * @param fallback to be returned if transformation does not apply. E.g. again the de parameter
       * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
-      DesignElement* ApplyTransformations(const DesignElement* de);
+      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, bool backwards = false) const;
+
+      /** the const version. const is sometimes just bullshit! :(*/
+      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback, bool backwards = false) const {
+        return const_cast<const DesignElement*>(ApplyTransformations(de, fallback ? const_cast<DesignElement*>(de) : NULL));
+      };
+
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
