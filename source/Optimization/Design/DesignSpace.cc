@@ -638,9 +638,23 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 {
   // we cannot check for the region here, if form is a linear form (e.g.
   // pressure) but the design variable comes from elements one dimension higher
-  int idx = Find(lpm->ptEl->elemNum, false);
+  int idx = Find(lpm->ptEl->elemNum, false); // This is very fast, just a lookup in an array
   if(idx == -1)
     return false;
+
+  /* TODO it will make sense to transform lpm itself
+   *
+   *
+  LocPointMapped lp;
+  const UInt numIntPts = intPoints.GetSize();
+  for( UInt i = 0; i < numIntPts; i++  ) {
+
+    // Calculate for each integration point the LocPointMapped
+    lp.Set( intPoints[i], esm, weights[i] );
+
+  */
+
+
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
   if(designMaterial != NULL) // easy to extend to piezo and other stuff!
@@ -733,12 +747,17 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
     LOG_DBG3(designSpace) << "GEMF: dt=" << DesignElement::type.ToString(dt) << " app=" << Optimization::application.ToString(applic) << " tf found=" << (tf != NULL);
     // multiply our transfer function
     if(tf != NULL) {
-      double transformed = tf->Transform(de, DesignElement::SMART, forBimaterial); // handles design filtering
-      LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum << "/"
-                       << Optimization::application.ToString(applic) << " for "
+      // when we have a transformation we want the physical value for the source design
+      DesignElement* trans = ApplyTransformations(de);
+      DesignElement* use = trans != NULL ? trans : de;
+
+      double transformed = tf->Transform(use, DesignElement::SMART, forBimaterial); // handles design filtering
+      LOG_DBG3(designSpace) << "GEMF: ErsatzMaterial for " << de->elem->elemNum
+                       << " trans to " << DesignElement::ToString(trans,true)
+                       << "/" << Optimization::application.ToString(applic) << " for "
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
-                       << de->GetDesign(DesignElement::PLAIN) << ") = " << transformed
+                       << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -895,14 +914,17 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
-DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de)
+DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, bool backwards) const
 {
   // TODO: check excitation, region and all this stuff.
   if(transform.IsEmpty())
-    return NULL;
+    return fallback;
 
   assert(transform.GetSize() == 1); // more not implemented yet
-  return transform[0].FindSource(de);
+
+  DesignElement* found = transform[0].FindSource(de, backwards);
+
+  return found == NULL ? fallback : found;
 }
 
 
@@ -1116,6 +1138,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
+          //const DesignElement* de = ApplyTransformations(&data[s], true);
           LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
           assert(out.InWindow(n));
           out[n++] = data[s].GetValue(vs, access, g) * scaling;

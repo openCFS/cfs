@@ -697,7 +697,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         Vector<T>& u1_vec = dynamic_cast<Vector<T>& >(*u1[e]);
         Vector<T>& u2_vec = dynamic_cast<Vector<T>& >(*u2[e]);
 
-        DesignElement* de = &design->data[e + base];
+        DesignElement* org = &design->data[e + base];
+
+        // de is the potentially transformed stuff. Note, that we also store the stuff for the transformed element!
+        DesignElement* de = design->ApplyTransformations(org, org); // fallback to design if there is no transformation
 
         LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
         LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
@@ -1904,15 +1907,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         result += sp * excite.GetFactor(func) * GetStepWeight(ts);
         LOG_DBG(em) << "CalcCompliance(): result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
 
-            if ((method_== PARAM_MAT) && ( ((design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) || ((design->getDesignMaterialType()) == DesignMaterial::REDBAS_MAPPING)) )
-            {
-                TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , MECH, true);
-                double factor = excite.GetWeightedFactor(func);
-              result =  CalcU1KU2_mapping2(tf, forward.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, func);
-            }
-
-
-
+        if ((method_== PARAM_MAT) && ( ((design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) || ((design->getDesignMaterialType()) == DesignMaterial::REDBAS_MAPPING)) )
+        {
+          TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , MECH, true);
+          double factor = excite.GetWeightedFactor(func);
+          result =  CalcU1KU2_mapping2(tf, forward.Get(excite)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], NULL, -factor, STANDARD, func);
+        }
       }
     }
     return result;
