@@ -392,19 +392,19 @@ void CFS::SetupIO(PtrParamNode rootNode )
     resultHandler->AddOutputDest( outputIt->second, 
                                   outputIt->first,
                                   outGridIds[outputIt->first] );
-    // check if writer has hdf5 format
-    if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) {
-      hdf5Writer = dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
-    }
-  }
-  for( ; inputIt != inFiles.end(); inputIt++ ) {
-    resultHandler->AddInputReader( inputIt->second, inputIt->first );
-  }
 
+    // check if writer has hdf5 format
+    // a dynamic cast leads for icc to error: cannot convert pointer to base class "CoupledField::SimOutput" to pointer to derived class "CoupledField::SimOutputHDF5" -- base class is virtual
+    // in boost/smart_ptr/shared_ptr.hpp(805) itself :(
+    if( typeid(*outputIt->second) == typeid(SimOutputHDF5) ) 
+      hdf5Writer = boost::dynamic_pointer_cast<SimOutputHDF5>(outputIt->second);
+  }
+  for(; inputIt != inFiles.end(); inputIt++) 
+    resultHandler->AddInputReader(inputIt->second, inputIt->first);
+  
   // Pass hdf5 writer to simState class
   simState->SetOutputHdf5Writer(hdf5Writer);
-  simState->SetMatParamFile( progOpts->GetParamFileStr(),
-                             materialHandler->GetFileName() );
+  simState->SetMatParamFile(progOpts->GetParamFileStr(), materialHandler->GetFileName());
   
   // Log command line parameters
   progOpts->ToInfo(infoNode->Get(ParamNode::HEADER)->Get("progOpts"));
