@@ -12,7 +12,7 @@
 // C++ is so poor that there even is no really standard for pi - > why not????
 #ifndef M_PI
   #include <boost/math/constants/constants.hpp>
-  #define M_PI boost::math::constants::pi<double>();
+  #define M_PI boost::math::constants::pi<double>()
 #endif
 
 
