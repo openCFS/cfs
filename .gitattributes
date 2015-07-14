@@ -84,7 +84,6 @@ ctest_scripts/nightly_test_eamc080.sh -text
 ctest_scripts/nightly_test_rom.sh -text
 ctest_scripts/nightly_test_sedici.sh -text
 ctest_scripts/nightly_test_ubuntu804.sh -text
-debug/CFS++DEBUG/CFS++DEBUG.xcodeproj/project.pbxproj -text
 include/def_build_type_options.hh.in -text
 include/def_cfs_stats.hh.in -text
 include/def_cplreader.hh.in -text
