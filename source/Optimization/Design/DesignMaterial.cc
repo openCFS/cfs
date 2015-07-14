@@ -3655,21 +3655,21 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Init(); // for off-diagonal
   if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
     if (!shearIsDesign_) { // no shearing
-      E[1-1][1-1] = std::max(0.0, opEval->eval(*alpha1_, point));
-      E[1-1][2-1] = std::max(0.0, opEval->eval(*alpha2_, point));
+      E[1-1][1-1] = opEval->eval(*alpha1_, point);
+      E[1-1][2-1] = opEval->eval(*alpha2_, point);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = std::max(0.0, opEval->eval(*alpha3_, point));
-      E[3-1][3-1] = std::max(0.0, opEval->eval(*alpha4_, point));
+      E[2-1][2-1] = opEval->eval(*alpha3_, point);
+      E[3-1][3-1] = opEval->eval(*alpha4_, point);
     } else { // shearing
-      E[1-1][1-1] = std::max(0.0, opEval->eval(*alpha1_, point));
-      E[1-1][2-1] = std::max(0.0, opEval->eval(*alpha2_, point));
+      E[1-1][1-1] = opEval->eval(*alpha1_, point);
+      E[1-1][2-1] = opEval->eval(*alpha2_, point);
       E[1-1][3-1] = opEval->eval(*alpha3_, point);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = std::max(0.0, opEval->eval(*alpha4_, point));
+      E[2-1][2-1] = opEval->eval(*alpha4_, point);
       E[2-1][3-1] = opEval->eval(*alpha5_, point);
       E[3-1][1-1] = E[1-1][3-1];
       E[3-1][2-1] = E[2-1][3-1];
-      E[3-1][3-1] = std::max(0.0, opEval->eval(*alpha6_, point));
+      E[3-1][3-1] = opEval->eval(*alpha6_, point);
     }
     LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
   } else {
@@ -3765,12 +3765,12 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
     // take positive part (if we're not calculating derivatives)
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
-      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
-      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
-      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
-    }
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
+//      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
+//      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
+//      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
+//    }
     // symmetric entry
     E[2-1][1-1] = E[1-1][2-1];
   } else {
@@ -3824,12 +3824,12 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
       }
     }
     // take positive part (if we're not calculating derivatives)
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
-      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
-      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
-      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
-    }
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
+//      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
+//      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
+//      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
+//    }
     // symmetric entries
     E[2-1][1-1] = E[1-1][2-1];
     E[3-1][1-1] = E[1-1][3-1];
