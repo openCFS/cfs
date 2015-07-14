@@ -396,7 +396,7 @@ void Optimization::SetEnums()
 
   Function::Local::phase.SetName("Function::Local::Phase");
   Function::Local::phase.Add(Function::Local::BOTH, "both");
-  Function::Local::phase.Add(Function::Local::VOID, "void");
+  Function::Local::phase.Add(Function::Local::VOID_MAT, "void");
   Function::Local::phase.Add(Function::Local::MATERIAL, "material");
 
   Function::stressType.SetName("Function::StressType");

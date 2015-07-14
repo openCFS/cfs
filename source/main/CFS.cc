@@ -276,7 +276,7 @@ int CFS::Run()
     // Print error cause to info file
     if(infoNode != NULL)
     {
-      PtrParamNode errorNode = infoNode->Get(ParamNode::ERROR);
+      PtrParamNode errorNode = infoNode->Get(ParamNode::FAIL);
       errorNode->SetValue(ex.what());
       infoNode->Get("status")->SetValue("aborted");
       infoNode->ToFile();
