@@ -19,6 +19,7 @@ class Function;
 class LinearFormContext;
 class ObjectiveContainer;
 class SinglePDE;
+class Transform;
 
 /** For multiple loads (compliance or multiple frequency optimization) we use
  * the summarized term multiple excitations. This object encapsulates a excitation inclusive weight. */
@@ -32,7 +33,7 @@ public:
   ~Excitation();
 
   /** This method makes the current load active.
-   * For multiple frequencies it does nothing. The actual frequency is chosen by default. */
+   * For multiple frequencies it does nothing. The actual frequency is chosen by default.  */
   void Apply();
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
@@ -79,6 +80,9 @@ public:
    * @see normalized_weight */
   double weight;
 
+  /** do we need to reassemble the system? True for frequency, robust and transformation */
+  bool reassemble;
+
   /** this is the normalized weight (sum of all weights of all excitations is 1).
    * Note that for functions with a single excitation (e.g. stress, volume) it shall be 1 */
   double normalized_weight;
@@ -96,6 +100,9 @@ public:
   /** for the calculation of a homogenized material tensor, we use the test
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
+
+  /** For transformation, this is the applied transformation. NULL means we don't do transformation*/
+  Transform* transform;
 
   Assemble* assemble;
 };
@@ -128,6 +135,9 @@ public:
 
   bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
 
+  /** apply excitation specific transformation (rotation) */
+  bool DoTransform() const { return transform_; }
+
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);
@@ -155,9 +165,22 @@ private:
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
 
+  /** Helper which sets up the transformation
+   * @return weight_sum */
+  double SetTransformations(DesignSpace* space);
+
+  /** @param weight_sum */
+  double SetLoadCases(const ParamNodeList& pn_ex, double weight_sum, int num_loads, Optimization* opt);
+    void
+    WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,
+        Optimization* opt);
+
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;
+
   Type type_;
+
+  bool transform_;
 };
 
 

@@ -133,11 +133,11 @@
                 <xsd:attribute name="omega_omega" type="xsd:boolean" default="false" use="optional"/>
               </xsd:complexType>
             </xsd:element>
-            
-            <!--   <multipleExcitation type="fixed_weights/meta_objective">
-                     <metaObjective type="best_value"/>
-                     <adjustWeights stride="1" max_gain="1e4"/>
-                   </multipleExcitation> -->        
+
+           <!-- <multipleExcitation type="fixed_weights/meta_objective"> 
+                  <metaObjective type="best_value"/> 
+                  <adjustWeights stride="1" max_gain="1e4"/> 
+               </multipleExcitation> -->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:all>
@@ -159,6 +159,8 @@
                       <xsd:attribute name="max_gain" use="optional" default="1e4" type="xsd:float"/>
                     </xsd:complexType>
                   </xsd:element>
+                  <!-- The excitions need only to be given explicitly if
+               one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
                   <xsd:element name="excitations" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
@@ -173,6 +175,11 @@
                                <xsd:element name="force"         type="DT_BcInhomVector"/>
                                <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
                                <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
+                               <xsd:element name="transform">
+                                 <xsd:complexType>
+                                  <xsd:attribute name="excitation" type="DT_Excitation" use="required"/>
+                                 </xsd:complexType>
+                               </xsd:element>
                              </xsd:choice>
                             <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>
                           </xsd:complexType>
@@ -189,7 +196,9 @@
                       <xsd:enumeration value="homogenizationTestStrains"/>
                     </xsd:restriction>
                   </xsd:simpleType>
-                </xsd:attribute>  
+                </xsd:attribute>
+                <!-- we might have excitations of excitations. transformation is a possible outer loop -->
+                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>  
               </xsd:complexType>
             </xsd:element>
             
@@ -436,22 +445,7 @@
           
           <!-- for a stress constraint we can define the excitation by its label. The enumaration
             can be easy extended here as we do a string compare with the excitation label in the code -->
-          <xsd:attribute name="excitation" use="optional" default="all">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:string">
-                <xsd:enumeration value="all"/>
-                <xsd:enumeration value="x"/>
-                <xsd:enumeration value="y"/>
-                <xsd:enumeration value="z"/>
-                <xsd:enumeration value="yz"/>
-                <xsd:enumeration value="xz"/>
-                <xsd:enumeration value="xy"/>
-                <xsd:enumeration value="0"/>
-                <xsd:enumeration value="1"/>
-                <xsd:enumeration value="2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
+          <xsd:attribute name="excitation" use="optional" default="all" type="DT_Excitation"/>
           
           <!-- mandatory for design tracking, defines a pseudo density file. If no region is given the periodic boundary elements are used -->
           <xsd:attribute name="designTarget" use="optional" type="xsd:token" />
@@ -913,12 +907,14 @@
                 <xsd:annotation>
                   <xsd:documentation>A rotation around an named element counterclockwise in rad. The angle might be given as formula</xsd:documentation>
                 </xsd:annotation>
-                  <xsd:element name="rotate" minOccurs="1" maxOccurs="1">
+                  <xsd:element name="rotate" minOccurs="1" maxOccurs="unbounded">
                     <xsd:complexType>
                       <!-- named node -->
                       <xsd:attribute name="center" type="xsd:token" use="required"/>
                       <!-- angle counter clockwise in rad -->
                       <xsd:attribute name="angle" type="xsd:token" use="required"/>
+                      <!-- transformation makes only sense for mutliple excitation. To start from 0  -->
+                      <xsd:attribute name="excitation" type="xsd:nonNegativeInteger" use="required"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -2048,6 +2044,31 @@
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required" />
   </xsd:complexType>
+
+
+  <!-- The possible excitations we have -->
+  <xsd:simpleType name="DT_Excitation">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="all" />
+      <xsd:enumeration value="x" />
+      <xsd:enumeration value="y" />
+      <xsd:enumeration value="z" />
+      <xsd:enumeration value="yz" />
+      <xsd:enumeration value="xz" />
+      <xsd:enumeration value="xy" />
+      <xsd:enumeration value="0" />
+      <xsd:enumeration value="1" />
+      <xsd:enumeration value="2" />
+      <xsd:enumeration value="3" />
+      <xsd:enumeration value="4" />
+      <xsd:enumeration value="5" />
+      <xsd:enumeration value="6" />
+      <xsd:enumeration value="7" />
+      <xsd:enumeration value="8" />      
+            
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
 </xsd:schema>
 

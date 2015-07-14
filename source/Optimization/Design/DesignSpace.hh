@@ -26,6 +26,7 @@ namespace CoupledField
   struct Elem;
   struct ResultInfo;
   class CoefFunctionOpt;
+  class Context;
   class LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
@@ -40,12 +41,12 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param pn we search for design, transferFunction, result and pamping  */
-     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
 
      virtual ~DesignSpace();
     
      /** Creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
 
      /** Create a clone for projection method
       * @return you have to take care of the pointer! */
@@ -146,13 +147,14 @@ namespace CoupledField
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
 
-     /** Apply the transformations if they shall be.
+     /** Apply the transformations if they shall be. The transformation is identified by the excitation of the context if not explicitly given.
       * @param fallback to be returned if transformation does not apply. E.g. again the de parameter
+      * @param trans optionally give the transform, such it does not come from context
       * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
-      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, bool backwards = false) const;
+      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
 
       /** the const version. const is sometimes just bullshit! :(*/
-      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback, bool backwards = false) const {
+      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
         return const_cast<const DesignElement*>(ApplyTransformations(de, fallback ? const_cast<DesignElement*>(de) : NULL));
       };
 
@@ -485,6 +487,9 @@ namespace CoupledField
 
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
+
+     /** When we do optimization we have a context */
+     Context* context_;
 
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */

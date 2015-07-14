@@ -29,6 +29,8 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/Context.hh"
+#include "Optimization/Excitation.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
@@ -44,7 +46,8 @@ DEFINE_LOG(designSpace, "designSpace")
 // declare class specific logging stream
 DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
-DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
+
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
 {
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
@@ -52,6 +55,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   method_ = method;
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
+  context_ = context;
   // for convenience
   regionIds_ = reg_data;
   design_id = 0;
@@ -358,7 +362,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
 {
   switch(method)
   {
@@ -367,9 +371,9 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   default:
     if(pn->HasByVal("design", "name", "slack"))
-      return new AuxDesign(reg_data, pn, method, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
+      return new AuxDesign(reg_data, pn, method, context, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
     else
-      return new DesignSpace(reg_data, pn, method);
+      return new DesignSpace(reg_data, pn, method, context);
   }
 }
 DesignSpace* DesignSpace::Clone()
@@ -914,15 +918,32 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
-DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, bool backwards) const
+DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
 {
-  // TODO: check excitation, region and all this stuff.
-  if(transform.IsEmpty())
+  DesignElement* found = NULL;
+
+  if(transform.IsEmpty() && trans == NULL)
     return fallback;
 
-  assert(transform.GetSize() == 1); // more not implemented yet
+  if(trans != NULL)
+  {
+    found = trans->FindSource(de);
+  }
+  else
+  {
+    assert(!(context_ != NULL && context_->excitation->transform == NULL && transform.GetSize() > 1));
 
-  DesignElement* found = transform[0].FindSource(de, backwards);
+    if(context_ != NULL && context_->excitation->transform != NULL)
+    {
+      found = context_->excitation->transform->FindSource(de);
+      LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << context_->excitation->label << " a=" << context_->excitation->transform->ToString() << " -> " << DesignElement::ToString(found);
+    }
+    else
+    {
+      assert(transform.GetSize() == 1);
+      found = transform[0].FindSource(de);
+    }
+  }
 
   return found == NULL ? fallback : found;
 }

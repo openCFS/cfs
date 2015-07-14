@@ -198,6 +198,10 @@ class Function
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
 
+    /** Get the excitation which applies to this function
+     * @return if there is only one excitation we always return that one */
+    Excitation* GetExcitation(MultipleExcitation* me);
+
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;
 

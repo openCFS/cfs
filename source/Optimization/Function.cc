@@ -459,6 +459,17 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   }
 }
 
+Excitation* Function::GetExcitation(MultipleExcitation* me)
+{
+  if(me->excitations.GetSize() == 1)
+    return &me->excitations[0];
+
+  if(excite_ >= 0)
+    return &me->excitations[excite_];
+  else
+    return NULL;
+}
+
 /** Shall/must we evaluate this objective at this excitation?
  * Stress constraints in homogenization are triggered for a single constraint only. */
 bool Function::DoEvaluate(const Excitation* excite) const {
@@ -471,6 +482,7 @@ bool Function::DoEvaluate(const Excitation* excite) const {
 bool Function::DoEvaluateAlways() const {
   return excite_ == -1;
 }
+
 
 bool Function::IsExcitationSensitive() const {
   return excite_sensitive_;
