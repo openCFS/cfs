@@ -68,7 +68,7 @@ bool DensityFile::NeedLoadErsatzMaterial()
   return domain->GetParamRoot()->Has("loadErsatzMaterial") || progOpts->GetErsatzMaterialStr() != "";
 }
 
-DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
+DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
 {
   Grid* grid = domain->GetGrid();
   PtrParamNode info = domain->GetInfoRoot();
@@ -89,7 +89,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   // to be appended by the set name
   std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
-  PtrParamNode in = ersatzMaterial ? info->Get("optimization/designSpace/header/ersatzMaterialFile")
+  PtrParamNode in = space ? info->Get("optimization/designSpace/header/ersatzMaterialFile")
                                    : info->Get("ersatzMaterialFile");
   in->Get("file")->SetValue(file);
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
@@ -123,7 +123,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
   const unsigned int elsize(elems.GetSize());
   bool force_region = pn != NULL && pn->Has("force_region");
 
-  if(!ersatzMaterial)
+  if(!space)
   {
     // only if the design space does not already exist (created by optimization)
     // the regions are normally implicitly defined by the element numbers. The exception
@@ -147,19 +147,19 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     }
 
     // create the design space -> data has initial values!
-    ersatzMaterial = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
-    ersatzMaterial->PostInit(0, 0); // no objectives, no constraints
+    space = new DesignSpace(regionIds, xml->Get("header"), ErsatzMaterial::SIMP_METHOD);
+    space->PostInit(0, 0); // no objectives, no constraints
     // is cheap - for density filtering
-    DesignStructure filter(ersatzMaterial, ersatzMaterial->GetRegionIds());
+    DesignStructure filter(space, space->GetRegionIds());
     PtrParamNode  reg = xml->Get("header/filters/filter", ParamNode::PASS);
     if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
-    ersatzMaterial->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
+    space->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
   }
 
 
   // check the the dimensions! the number of design variables comes from the regions and designs
-  if (ersatzMaterial->data.GetSize() != elsize)
+  if (space->data.GetSize() != elsize)
   {
     string msg = "the number of elements in the density file does not match the number of elements of the region!\n"\
                  "         check the results carefully!";
@@ -188,12 +188,12 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     // replace the value of the DesignElement
     // we call Find(..,..,false) for meshes with two regions (e. g. cube and void)
     // where we want to ignore the "void"-region completely
-    DesignElement* de = force_region ? &(ersatzMaterial->data[e]) : ersatzMaterial->Find(nr, dt, false, false, idx);
+    DesignElement* de = force_region ? &(space->data[e]) : space->Find(nr, dt, false, false, idx);
     assert(de == NULL || de->GetType() == dt);
 
     if(dt == DesignElement::MULTIMATERIAL)
     {
-      de->multimaterial = &(ersatzMaterial->GetMultiMaterials()[idx]);
+      de->multimaterial = &(space->GetMultiMaterials()[idx]);
       assert(de->multimaterial->index == idx);
     }
 
@@ -202,7 +202,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
     {
         de->SetDesign(val);
         // Get value of the relative bound for current design variable. If value not set, db = -1.
-        db = ersatzMaterial->design[ersatzMaterial->FindDesign(dt)].relative_bound;
+        db = space->design[space->FindDesign(dt)].relative_bound;
         if( db > 0.)
         {
           // if a relative_bound is set in the xml file, upper and lower bound are overwritten
@@ -211,7 +211,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* ersatzMaterial)
         }
     }
   }
-  return ersatzMaterial;
+  return space;
 
 }
 

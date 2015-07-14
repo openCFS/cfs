@@ -50,6 +50,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/StressConstraint.hh"
 #include "Optimization/TransferFunction.hh"
+#include "Optimization/Context.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
@@ -136,7 +137,7 @@ ErsatzMaterial::ErsatzMaterial() :
     }
   }
 
-  design = DesignSpace::CreateInstance(regions, pn, method_);
+  design = DesignSpace::CreateInstance(regions, pn, method_, &context);
 
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
   // element nodes, such that one cannot use the same element matrix, even if the grid is regular
@@ -665,7 +666,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
-    LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+    LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
                  << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
     assert(u1.GetSize() != 0);
@@ -676,6 +677,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     Matrix<T> mat(u1[0]->GetSize(), u2[0]->GetSize());//NOTE: SetElementK (In PiezoSimp) relies on the matrix already having the right size!!!
     Vector<T> mat_vec(u1[0]->GetSize());
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
+
+    // the context.excitation is now the last one as we solve and store all excitations first before calculating the gradients
+    Transform* trans = f != NULL && f->GetExcitation(me) != NULL ? f->GetExcitation(me)->transform : NULL; // even ->transform might be NULL
+
     // traverse over our elements
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
     int elements = design->GetNumberOfElements();
@@ -689,6 +694,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     LOG_DBG2(em) << "elements=" << elements << " base=" << base_lower << " base_upper=" << base_upper;
     // create an element list to gain the iterator in the loop
     ElemList elemList(grid);
+
+
     // for ParamMat we need the derivative w.r.t. every designvariable, else the base loop is only run once
     for(int base = base_lower; base < base_upper; base += elements)
     {
@@ -700,7 +707,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         DesignElement* org = &design->data[e + base];
 
         // de is the potentially transformed stuff. Note, that we also store the stuff for the transformed element!
-        DesignElement* de = design->ApplyTransformations(org, org); // fallback to design if there is no transformation
+        DesignElement* de = design->ApplyTransformations(org, org, trans); // fallback to design if there is no transformation
 
         LOG_DBG3(em) << "nodes:" << e << ": " << de->elem->connect.ToString() << " dt=" << de->type.ToString(de->GetType()) << " e=" << de->elem->elemNum;
         LOG_DBG3(em) << "u1:" << e << ": " << u1_vec.ToString();
@@ -746,7 +753,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         de->AddGradient(f, this_value);
 
-        LOG_DBG3(em) << "CU1Ku2:" << de->elem->elemNum << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
+        LOG_DBG3(em) << "CalcU1KU2:" << de->elem->elemNum << " <l,K'*u-f'>  = " << sp << " -> " << this_value << " sum = " << de->GetPlainGradient(f);
 
         sum += this_value;
 
@@ -760,7 +767,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
 
   double ErsatzMaterial::CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1, Application app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx)
-      {
+  {
 
     // std::cout << "true compliance" << std::endl;
     LOG_DBG2(em) << "CalcU1KU2(): tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"

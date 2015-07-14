@@ -668,6 +668,9 @@ void Optimization::SolveStateProblem(Excitation* excite)
   assert(excite != NULL);
   assert(!(!me->IsEnabled() && excite->label == ""));
 
+  if(excite->reassemble)
+    pde->GetAssemble()->ResetMatrixReassembly();
+
   id.excite = me->IsEnabled() ? excite->label : "";
   id.adjoint = false;
   

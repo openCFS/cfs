@@ -24,7 +24,7 @@ class AuxDesign : public DesignSpace
 {
   public:
 
-    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, unsigned int naux = 0);
+    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL, unsigned int naux = 0);
 
     virtual ~AuxDesign() { } ;
 
