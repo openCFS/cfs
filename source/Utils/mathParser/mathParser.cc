@@ -531,6 +531,7 @@ namespace CoupledField {
     //parser.DefineFun("cosPulseComb", CosPulseComb, false );
     parser.DefineFun("squareBurst", SquarePulse, false );
     parser.DefineFun("gauss", Gauss, false );
+    parser.DefineFun("triangle", Triangle, false );
     
     // Register general functions
     parser.DefineFun("mod", Mod, false );
