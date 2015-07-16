@@ -201,6 +201,22 @@ namespace CoupledField {
     return ret;
   }
 
+  Double Triangle( Double freq, Double minVal, Double maxVal, Double dutyCycle,
+                   Double phase, Double t ) {
+    /* The triangle signal will oscillate between minVal and maxVal.
+       The duty cycle must be in the interval [0,1].
+       A duty cycle of 0 or 1 results in a sawtooth.
+       The phase is specified in degrees.
+       phase = 0 means a rising signal starting from minVal at t = k*2*pi, k = 0,1,2,... */
+    Double period = 1.0/freq;
+    Double t_norm = Mod( (t + phase/360.0*period), period )/period;
+    if( (dutyCycle != 0.0) && (t_norm <= dutyCycle) )
+    {
+      return (maxVal - minVal)/dutyCycle*t_norm + minVal;
+    }
+    return (minVal - maxVal)/(1.0 - dutyCycle)*(t_norm - dutyCycle) + maxVal;
+  }
+
   //! Modulo function
   Double Mod( Double x, Double m ) {
 
