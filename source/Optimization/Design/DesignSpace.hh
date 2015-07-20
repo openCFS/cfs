@@ -154,10 +154,10 @@ namespace CoupledField
       DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
 
       /** the const version. const is sometimes just bullshit! :(*/
-      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
+/*      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
         return const_cast<const DesignElement*>(ApplyTransformations(de, fallback ? const_cast<DesignElement*>(de) : NULL));
       };
-
+*/
 
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>

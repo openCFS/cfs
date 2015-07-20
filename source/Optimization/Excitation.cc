@@ -50,15 +50,13 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->max_gain = 1e4;
   this->multiple_excitation_ = multiple;
   this->type_ = NO_TYPE; // to be possibly overwritten soon
-  this->transform_ = false; // to be possibly overwritten soon
+  this->num_trans_ = -1; // to be set later
   // if disabled, we don't read anything
   if(!multiple || pn == NULL) return;
 
   this->type_ = type.Parse(pn->Get("type")->As<std::string>());
 
-  this->transform_ = pn->Get("do_transform")->As<bool>();
-
-  // adjust defaults
+    // adjust defaults
   if(pn->Has("adjustWeights")) {
     this->stride   = pn->Get("adjustWeights")->Get("stride")->As<Integer>();
     this->max_gain = pn->Get("adjustWeights")->Get("max_gain")->As<Double>();
@@ -93,6 +91,44 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
     throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
 }
 
+Excitation* MultipleExcitation::GetExcitation(unsigned int base, Transform* trans)
+{
+  if(trans == NULL)
+    return &excitations[base];
+  else
+    return &excitations[total_base_ * trans->index + base]; // TODO handle robust!
+}
+
+Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int meta)
+{
+  assert(base <= total_base_);
+
+  return &excitations[total_base_ * meta + base];
+}
+
+unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function* f)
+{
+  if(!DoTransform())
+    return base;
+  else
+    return total_base_ * f->GetExcitation(this)->transform->index + base;
+}
+
+unsigned int MultipleExcitation::GetMetaExcitationIndex(Excitation* ex) const
+{
+  assert(ex != NULL);
+
+  if(!DoTransform())
+    return 0;
+  else
+    return ex->transform->index;
+}
+
+unsigned int MultipleExcitation::GetMetaExcitationIndex(Function* f)
+{
+  return GetMetaExcitationIndex(f->GetExcitation(this));
+}
+
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
 {
   PtrParamNode in = opt->optInfoNode->Get(ParamNode::HEADER)->Get( "excitations");
@@ -113,6 +149,8 @@ void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  dou
     PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
     exin->Get("index")->SetValue(ex.index);
     exin->Get("label")->SetValue(ex.label);
+    if(ex.GetMetaLabel() != "")
+      exin->Get("meta")->SetValue(ex.GetMetaLabel());
     exin->Get("weight")->SetValue(ex.weight);
     exin->Get("normalized_weight")->SetValue(ex.normalized_weight);
     if(ex.forms.GetSize() == 1)
@@ -130,12 +168,45 @@ void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  dou
     }
     if(ex.frequency >= 0.0)
       exin->Get("frequency")->SetValue(ex.frequency);
-
-    if(ex.test_strain.GetSize() > 0)
-      exin->Get("testStrain")->SetValue(ex.test_strain.ToString());
   }
 
   domain->GetInfoRoot()->ToFile();
+}
+
+void MultipleExcitation::SetHarmonic(int num_freq)
+{
+  // this sets the first and only excitation even when we have multiple harmonic forward case
+  // but not multiple excitations. Then only the first frequency is called.
+  // Fills the excitations list with the data provided in the xml file as problem description
+
+  HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
+
+  excitations.Resize(num_freq);
+
+  for (unsigned int i = 0; i < excitations.GetSize(); i++)
+  {
+    Excitation& ex = excitations[i];
+    ex.frequency = hd->freqs[i].freq;
+    ex.label = lexical_cast<string>(ex.frequency);
+    ex.weight = hd->freqs[i].weight;
+    ex.f_link = &hd->freqs[i];
+    ex.reassemble = true;
+  }
+}
+
+void MultipleExcitation::SetBlochWaves(int num_wave)
+{
+  const StdVector<Vector<double> >& wv =  dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->wave_vectors;
+
+  excitations.Resize(num_wave);
+
+  for (unsigned int i = 0; i < excitations.GetSize(); i++)
+  {
+    Excitation& ex = excitations[i];
+    ex.weight = i < excitations.GetSize() - 1 ? 0 : 1; // we assume the slack variable as objective!
+    ex.wave_vector = wv[i];
+    ex.label = "(" + ex.wave_vector.ToString(0, ',') + ")";
+  }
 }
 
 void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval_inital_design)
@@ -146,8 +217,6 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   // This does not necessarily need to be a load (but might be voltage, pressure, ...)
   excitations.Resize(1);
   excitations[0].index = 0;
-
-  assert(opt != NULL);
 
   PtrParamNode pn = opt->optParamNode->Get("costFunction");
 
@@ -161,23 +230,13 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
 
   int num_loads = ass->GetLinForms().GetSize();  // to be faked later for homogenization test strains
 
-  // the number of defined transformations, but we need do_transform, already kept in transform_, too.
-  int def_trans = opt->GetDesign()->transform.GetSize();
+  // we have no "do_transform" either there is transformation or not
+  num_trans_ = opt->GetDesign()->transform.GetSize();
 
-  if(!transform_ && def_trans > 1)
-    opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(boost::lexical_cast<std::string>(def_trans)
-        + " transformations defined in ersatzMaterial/transform but costFunction/multiple_excitation and/or multipleExcitation/do_transform is not enabled");
-  if(transform_ && def_trans ==0)
-    throw Exception("multipleExcitation/do_transform enabled but no transformations defined in ersatzMaterial.");
-
-  int num_trans = transform_ ? def_trans : 0;
-
-  LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads << " trans: " << num_trans;
+  LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads << " trans: " << num_trans_;
 
   // this might become explicitly given excite in the optimization xml description
   ParamNodeList pn_ex;
-
-  double weight_sum = 0.0;
 
   // initialize data and do simple plausibility check. Note that also 1 is "multiple"
   if(IsEnabled())
@@ -195,21 +254,11 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     if(num_freq > 1 && num_loads > 1)
       throw Exception("Cannot to concurrent multiple excitations for multiple loads and multiple frequencies");
 
-    assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans > 0)));
+    assert(!(num_wave > 0 && (num_freq > 0 || num_loads > 0  || num_trans_ > 0)));
 
     // sets and resizes excitations with strain loads
     if(DoHomogenization())
-    {
       num_loads = SetHomogenizationTestStrains();
-      weight_sum = 1; // all 0 but the first 1
-    }
-
-    // the following is validated by above and 1 frequency and 0 loads is harmless
-    if(num_freq > 1)  excitations.Resize(num_freq);
-    if(num_loads > 1) excitations.Resize(num_loads); // redundant for homogenization
-    if(num_wave > 1)  excitations.Resize(num_wave);
-    assert(!(num_trans > 1 && excitations.GetSize() > 1)); // not yet implemented
-    if(num_trans > 1) excitations.Resize(num_trans);
 
     // we average the solutions(s) only for output.
     // In the calculations we average the individual calculations
@@ -220,59 +269,31 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     excitations[0].ReadTrackings(pn->Get("trackings"));
 
   if(num_wave > 0)
-  {
-    const StdVector<Vector<double> >& wv = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->wave_vectors;
+    SetBlochWaves(num_wave);
 
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
-    {
-      Excitation& ex = excitations[i];
-      ex.index = i;
-      ex.weight = i < excitations.GetSize() - 1 ? 0 : 1; // we assume the slack variable as objective!
-      ex.wave_vector = wv[i];
-      ex.label = "(" + ex.wave_vector.ToString(0, ',') + ")";
-      weight_sum += ex.weight;
-    }
-  }
-
-  // this sets the first and only excitation even when we have multiple harmonic forward case
-  // but not multiple excitations. Then only the first frequency is called.
-  // Fills the excitations list with the data provided in the xml file as problem description
   if(opt->IsHarmonic())
-  {
-    HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
-
-
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
-    {
-      Excitation& ex = excitations[i];
-      ex.index = i;
-      ex.frequency = hd->freqs[i].freq;
-      ex.label = lexical_cast<string>(ex.frequency);
-      ex.weight    = hd->freqs[i].weight;
-      ex.f_link    = &hd->freqs[i];
-      ex.reassemble = true;
-
-      weight_sum += ex.weight;
-    }
-  }
+    SetHarmonic(num_freq);
 
   if(!opt->IsHarmonic() && IsEnabled() && !DoBloch() && !DoTransform()) // multiple loads case
-  {
-    // when the loads are given in the optimization section of the xml file
-    weight_sum = SetLoadCases(pn_ex, weight_sum, num_loads, opt);
-  } // end load cases
+    SetLoadCases(pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
+
+  // ------------------------------
+  // The basic excitations are set. Now we multiply it by transformation and rotation
+  total_base_ = excitations.GetSize();
 
   if(DoTransform())
-    weight_sum += SetTransformations(opt->GetDesign());
+    ApplyTransformations(opt->GetDesign()); // multiply the existing transformation
 
   // output summary
   // -------------------
 
   // finally verify that the labels are set
-  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+  double weight_sum = 0.0;
+  for(unsigned int i = 0; i < excitations.GetSize(); i++) {
+    weight_sum += excitations[i].weight;
     if(excitations[i].label == "")
       excitations[i].label = lexical_cast<string>(i);
-
+  }
   // calculate the initial normalized_weight and print info.
   if(IsEnabled() || opt->IsHarmonic())
   {
@@ -281,6 +302,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       Excitation& ex = excitations[i];
       ex.index = i;
       ex.normalized_weight = ex.weight / weight_sum;
+      LOG_DBG3(exlog) << "PME: i=" << i << " l=" << excitations[i].label << " w=" << excitations[i].weight << " nw=" << ex.normalized_weight << " ws=" << weight_sum;
     }
 
     WriteInInfo(num_freq, eval_inital_design, weight_sum, opt);
@@ -319,36 +341,52 @@ int MultipleExcitation::SetHomogenizationTestStrains()
   return excitations.GetSize();
 }
 
-double MultipleExcitation::SetTransformations(DesignSpace* space)
+void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 {
   StdVector<Transform>& trans = space->transform;
-  assert(trans.GetSize() > 1);
-  assert(excitations.GetSize() == trans.GetSize()); // implement later
+  num_trans_ = trans.GetSize(); // now we have the proper value
 
-  // validate the transformations
+  assert(excitations.GetSize() == total_base_);
+  assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
 
-  for(unsigned int i = 0; i < trans.GetSize(); i++)
+  // multiply excitations
+  excitations.Resize(total_base_ * num_trans_);
+
+  for(unsigned int t = 0; t < trans.GetSize(); t++)
   {
-    Excitation& ex = excitations[i];
-    Transform&  tr = trans[i];
+    Transform* tr = &trans[t];
 
-    // enforce the excitations properly set
-    if(lexical_cast<unsigned int>(tr.excitation_str) != i) // xsd:type is xsd:nonNegativeInteger
-      EXCEPTION("the" << (i+1) << ". transformation has 'excitation='" << tr.excitation_str << "' instead of '" << i << "'");
+    for(unsigned int b = 0; b < total_base_; b++)
+    {
+      Excitation& base = excitations[b];
+      Excitation& ex   = excitations[total_base_ * t + b]; // ex == base for the first transform
 
-    ex.index = i;
-    ex.label = boost::lexical_cast<std::string>(i);
-    ex.transform = &tr;
-    ex.weight = 1;
-    ex.reassemble = true;
+      if(t > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
+        ex = base; // default copy constructors are cool
+
+      if(b == 0) // the original test strains and loads did not need to reassemble. We need it for a new type of transform only
+        ex.reassemble = true;
+
+      ex.transform = tr; // the transformations are block wise 0,0,0,0,1,1,1,1,2,2,2,2,....
+
+      // only set a label if it was not set already
+      assert(!(ex.label == "" && total_base_ > 1));
+      if(ex.label == "" || total_base_ == 1)
+        ex.label = boost::lexical_cast<std::string>(t);
+
+      // TODO up to now we do not handle weights for the transformations!
+      // If we total_base_ > 1 we assume the weights were properly set and are copied
+      if(total_base_ == 1)
+        ex.weight = 1.0;
+    }
   }
-
-  return trans.GetSize();
 }
 
-double MultipleExcitation::SetLoadCases(const ParamNodeList& pn_ex, double weight_sum, int num_loads, Optimization* opt)
+void MultipleExcitation::SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt)
 {
   Assemble* ass = domain->GetBasePDE()->GetAssemble();
+
+  excitations.Resize(num_loads);
 
   // when the loads are given in the optimization section of the xml file
   if(pn_ex.GetSize() > 0)
@@ -373,7 +411,6 @@ double MultipleExcitation::SetLoadCases(const ParamNodeList& pn_ex, double weigh
       parser->SetExpr(handle, pn_ex[i]->Get("weight")->As<std::string>());
       const double weight = parser->Eval(handle);
       excitations[i].weight = weight;
-      weight_sum += weight;
 
       if (pn_ex[i]->Has("trackings"))
         excitations[i].ReadTrackings(pn_ex[i]->Get("trackings"));
@@ -401,15 +438,12 @@ double MultipleExcitation::SetLoadCases(const ParamNodeList& pn_ex, double weigh
 
         // we do not support to give a weight in the force section of the simulation
         excitations[i].weight = 1.0;
-        weight_sum += excitations[i].weight;
       }
     }
 
     // "remove" the loads from the simulation. From now on we Apply() ist
     forms.Resize(0); // won't delete content but set the internal size_ counter
   }
-
-  return weight_sum;
 }
 
 
@@ -580,6 +614,22 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 
   test_strain.Resize(6); // always full dimensions
   test_strain[ts] = 1.0;
+}
+
+std::string Excitation::GetMetaLabel() const
+{
+  if(transform == NULL) // TODO add robust
+    return "";
+  else
+    return transform->ToString(0);
+}
+
+std::string Excitation::GetFullLabel() const
+{
+  if(transform == NULL) // TODO add robust
+    return label;
+  else
+    return GetMetaLabel() + "_" + label;
 }
 
 
