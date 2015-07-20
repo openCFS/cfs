@@ -142,8 +142,12 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   if(pn->Has("transform"))
   {
     ParamNodeList tr_in = pn->Get("transform")->GetChildren();
-    for(unsigned int i = 0; i < tr_in.GetSize(); i++)
+    for(unsigned int i = 0; i < tr_in.GetSize(); i++) {
       transform.Push_back(Transform(tr_in[i], this));
+      transform.Last().index = i;
+      if(boost::lexical_cast<std::string>(i) != transform.Last().excitation_str)
+        EXCEPTION("The " << (i+1) << ".transformation has excitation '" << transform.Last().excitation_str << "' but should have '" << i << "'");
+    }
   }
 
   if(elements == 0 || design.IsEmpty())

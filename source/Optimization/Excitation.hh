@@ -55,7 +55,14 @@ public:
 
   void ReadTestCharges(const Vector<double>& vec);
 
-  /** the index of this excitation in the excitations array. If -1 something went wront */
+  /** does not label the frequency, load or test strain but the rotation or robust case if present
+   * @return "" if not present */
+  std::string GetMetaLabel() const;
+
+  /** the full label is meta label plus base label or it is simply label */
+  std::string GetFullLabel() const;
+
+  /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
   /** For several loads, we need to store the form context with the entities but also the dof and the value!
@@ -133,14 +140,44 @@ public:
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
+  /** The number of homogenization test strains. Important when we do also transform */
+  unsigned int GetNumberHomogenization() const { return DoHomogenization() ? total_base_ : 0; }
+
   bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
 
   /** apply excitation specific transformation (rotation) */
-  bool DoTransform() const { return transform_; }
+  bool DoTransform() const { return num_trans_ > 0; }
+
+  /** handles transform and robust */
+  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one); }
+
+  /** The number of transformations. Important when we do homogenization */
+  unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);
+
+  /** Gets the excitation and handles transform
+   * @param base e.g. for homogenization the number of the teststrain*/
+  Excitation* GetExcitation(unsigned int base, Transform* trans);
+
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta e.g. the number of the */
+  Excitation* GetExcitation(unsigned int base, unsigned int meta);
+
+  /** The excitation index is not that easy if we have loads/homogenization/frequencies and concurrently robustness and transformations.
+   * The functions have excitations for the later but not necessarily for the first
+   * @param base the "normal" index of test strains, ...
+   * @param f checks for transformation and robustness in the excitation of the function.
+   * @see GetExcitation(unsigned int, Transform*) */
+  unsigned int GetExcitationIndex(unsigned int base, Function* f);
+
+  /** The meta excitation index considers only the meta level (transformation, robustness) not the base level (frequency, wave, test strain)
+   * @return 0 if we have no meta stuff */
+  unsigned int GetMetaExcitationIndex(Excitation* e) const;
+  unsigned int GetMetaExcitationIndex(Function* f);
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.
@@ -165,22 +202,29 @@ private:
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
 
-  /** Helper which sets up the transformation
-   * @return weight_sum */
-  double SetTransformations(DesignSpace* space);
+  /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
+  void ApplyTransformations(DesignSpace* space);
 
-  /** @param weight_sum */
-  double SetLoadCases(const ParamNodeList& pn_ex, double weight_sum, int num_loads, Optimization* opt);
-    void
-    WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,
-        Optimization* opt);
+  void SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
+
+  void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
+
+  void SetHarmonic(int num_freq);
+
+  void SetBlochWaves(int num_wave);
+
+  int ValidateTransformation(Optimization* opt);
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;
 
   Type type_;
 
-  bool transform_;
+  /** the base number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
+  unsigned int total_base_;
+
+  /** number of transformations in DesignSpace::transform. This is a meta level*/
+  int num_trans_;
 };
 
 

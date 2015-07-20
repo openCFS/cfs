@@ -48,7 +48,7 @@ class Element:
 
 # gid Mesh
 class Mesh:
-  def __init__(self, nx, ny, nz = -1):
+  def __init__(self, nx = -1, ny = -1, nz = -1):
    self.nodes = []    # list 2d tupels (float, float) or 3d tuples
    self.elements = [] # list of Element
    # list of boundary conditon nodes

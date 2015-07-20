@@ -727,7 +727,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(me->IsEnabled())
-    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].label);
+    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].GetFullLabel());
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
