@@ -146,14 +146,8 @@ def cross(dim, vol, res):
   start = int(res/2. - s/2. + 0.5)
   end   = int(res/2. + s/2. + 0.5)
   
-  print start
-  print end
-
-  
   data[:,start : end   ] = 1
   data[  start : end, :] = 1
-  
-  
   
   return data
 
@@ -189,11 +183,11 @@ data = None
 filename = None
 
 if args.cross:
-  data = cross(args.dim, args.vol, args.res)
-  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + "_" + str(divider) + ".density.xml"
+  data = cross(args.dim, vol, args.res)
+  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(divider) + ".density.xml"
 else:
   data = find_radius(args.dim, vol, args.order, args.invert)
-  filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
+  filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
 
 if args.save:
   filename = args.save
