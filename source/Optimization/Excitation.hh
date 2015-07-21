@@ -65,6 +65,9 @@ public:
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
+  /** the meta index */
+  int meta_index;
+
   /** For several loads, we need to store the form context with the entities but also the dof and the value!
    * When no excitations are given in the optimization part the bcsAndLoads are used.
    * For the bcsAndLoads case there is one form per excitation and the ownership (destruction) is taken
@@ -167,17 +170,22 @@ public:
    * @param meta e.g. the number of the */
   Excitation* GetExcitation(unsigned int base, unsigned int meta);
 
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta needs to be a number */
+  Excitation* GetExcitation(unsigned int base, const std::string& meta);
+
   /** The excitation index is not that easy if we have loads/homogenization/frequencies and concurrently robustness and transformations.
    * The functions have excitations for the later but not necessarily for the first
    * @param base the "normal" index of test strains, ...
    * @param f checks for transformation and robustness in the excitation of the function.
    * @see GetExcitation(unsigned int, Transform*) */
-  unsigned int GetExcitationIndex(unsigned int base, Function* f);
+   unsigned int GetExcitationIndex(unsigned int base, Function* f);
 
   /** The meta excitation index considers only the meta level (transformation, robustness) not the base level (frequency, wave, test strain)
-   * @return 0 if we have no meta stuff */
-  unsigned int GetMetaExcitationIndex(Excitation* e) const;
-  unsigned int GetMetaExcitationIndex(Function* f);
+   * @return 0 if we have no meta stuff
+   * You may also aks Excitation::meta_index*/
+  // unsigned int GetMetaExcitationIndex(Function* f);
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.

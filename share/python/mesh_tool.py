@@ -419,14 +419,6 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
             
       mesh.elements.append(e)
   
-  # in case of inclusion we mark the boundary nodes. 
-  if inclusion:
-    for y in range(ny):
-      for x in range(nx):
-        assert(False)
-        
-    
-  
   
   mesh.bc.append(("south", range(0, nx+1)))
   mesh.bc.append(("north", range((nx+1)*ny, (nx+1)*(ny+1))))

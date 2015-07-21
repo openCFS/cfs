@@ -641,15 +641,19 @@ string Condition::ToString(MultipleExcitation* me) const
     os << "_(" << DesignElement::type.ToString(design_) << ")";
 
   if(type_ == HOM_TENSOR)
-    os << ToString(coords);
+    os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
   if(type_ == OUTPUT && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
-    os << "_" << me->excitations[excite_].label; // change to excite label
+  if(me != NULL && me->IsEnabled())  {
+    if(type_ == STRESS || type_ == STRESS_DENSITY)
+      os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
+    else if(me->GetNumberMeta() > 0)
+      os << "_" << me->excitations[excite_].GetMetaLabel();
+  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;

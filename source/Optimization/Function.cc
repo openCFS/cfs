@@ -358,6 +358,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   assert(me != NULL && me->excitations.GetSize() > 0);
 
   // some functions need to be evaluated only once (first) for multiple excitations
+  // however for meta excitations (rotations) whey need to be be evaluates at the last base
+  //
   // multiple excitations are:
   // * static load cases
   // * different frequencies
@@ -367,25 +369,16 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   switch(type_)
   {
+  // this stuff is really to be avaluated only once, even for meta excitations
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
   case REALVOLUME:
   case TYCHONOFF:
   case GREYNESS:
-  case HOM_TENSOR:
-  case HOM_TRACKING:
-  case HOM_FROBENIUS_PRODUCT:
-  case POISSONS_RATIO:
-  case YOUNGS_MODULUS:
-  case YOUNGS_MODULUS_E1:
-  case YOUNGS_MODULUS_E2:
   case SLOPE:
   case GLOBAL_SLOPE:
   case PERIMETER:
-  case ISOTROPY:
-  case ISO_ORTHOTROPY:
-  case ORTHOTROPY:
   case MOLE:
   case GLOBAL_MOLE:
   case OSCILLATION:
@@ -424,6 +417,31 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
+
+  // this stuff is to be evaluated at the last base for meta excitations
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
+  case ISOTROPY:
+  case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
+    assert(excite_index < 0);
+    if(me->GetNumberMeta() == 0)
+      excite_ = me->excitations.GetSize() - 1; // standard
+    else
+    {
+      if(!pn->Has("excitation"))
+        throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
+
+      excite_ = me->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
+    }
+    break;
+
+  // this stuff is to be avaluated always
   case COMPLIANCE:
   case OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -442,6 +460,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_sensitive_ = true;
     }
     break;
+
   case STRESS:
   case STRESS_DENSITY:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev

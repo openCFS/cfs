@@ -205,6 +205,7 @@ void ErsatzMaterial::PostInit()
 
   // check for multiple loadcases (might be frequencies)
   me->PrepareMultipleExcitations(this, optimizer_ == EVALUATE_INITIAL_DESIGN);
+  me->excitations.First().Apply();
 
   // for transformations we might have more than only one tensor
   homogenizedTensor.Resize(me->GetNumberTransform(true));
@@ -1287,7 +1288,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       // if there s no "coord" set it is only meant for evaluate for forward homogenization
       StdVector<double> tmp;
-      CalcHomogenizedTensorEntry(c->coord, true, tmp, me->GetMetaExcitationIndex(f));
+      CalcHomogenizedTensorEntry(c->coord, true, tmp, f->GetExcitation(me)->meta_index);
       for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
       design->data[e].AddGradient(c, NULL, tmp[e]);
       return 0.0;
@@ -2628,11 +2629,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // PLANE_STRESS: E = E11 * (1-v^2)
 
       StdVector<double> dE11;
-      CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11, me->GetMetaExcitationIndex(f));
+      CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11, f->GetExcitation(me)->meta_index);
       StdVector<double> dE12;
-      CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12, me->GetMetaExcitationIndex(f));
+      CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12, f->GetExcitation(me)->meta_index);
       StdVector<double> dE22;
-      CalcHomogenizedTensorEntry(make_tuple(2,2,1.0), true, dE22, me->GetMetaExcitationIndex(f));
+      CalcHomogenizedTensorEntry(make_tuple(2,2,1.0), true, dE22, f->GetExcitation(me)->meta_index);
 
       double grad(0.0);
 
@@ -2786,7 +2787,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     LOG_DBG(em) << "CHT f=" << f->ToString(me) << " -> " << result.ToString();
     // save e.g. for CommitIteration()
-    homogenizedTensor[me->GetMetaExcitationIndex(f)].Assign(result, 1.0);
+    homogenizedTensor[f->GetExcitation(me)->meta_index].Assign(result, 1.0);
     return result;
   }
 
@@ -2852,7 +2853,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // dJ = sum_ij dE_ij*D_ij
     // CalcHomogenizedTensorEntry((i, j), derivative = true, tmp_grad_out) sets the dE_ij in tmp_grad_out
     StdVector<double> tmp_grad_out;
-    unsigned int meta = me->GetMetaExcitationIndex(f);
+    unsigned int meta = f->GetExcitation(me)->meta_index;
     for (unsigned int y = 0;y < par.GetNumRows();y++)
     {
       for (unsigned int x = 0;x < par.GetNumCols();x++)
@@ -2880,7 +2881,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     double result = 0.0;
 
     Transform* trans = g->GetExcitation(me)->transform;
-    unsigned int meta = me->GetMetaExcitationIndex(g);
+    unsigned int meta = g->GetExcitation(me)->meta_index;
 
     // we have a list of int,int,double tuples which are added with the double factor.
     // E11 = <0,0,x>
@@ -2904,7 +2905,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       {
         result += factor * t;
 
-        Matrix<double>& ht = homogenizedTensor[me->GetMetaExcitationIndex(dynamic_cast<Function*>(g))];
+        Matrix<double>& ht = homogenizedTensor[g->GetExcitation(me)->meta_index];
 
         ht[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
         // all tensors are symmetric. Makes reading easier!
@@ -2920,7 +2921,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta)
   {
     const double cube_vol = grid->CalcGridVolume();
-    assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
+    assert((dim == 2 && me->excitations.GetSize() >= 3) || (dim == 3 && me->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
     const unsigned int ij = boost::get<0>(entry) - 1;

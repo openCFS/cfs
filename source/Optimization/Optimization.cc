@@ -154,23 +154,6 @@ Optimization::Optimization()
   constraints.Read(list);
   PtrParamNode in = header->Get("constraints");
 
-  // constraints.ToInfo() is called in PostInitSecond()
-
-  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
-  {
-    Condition* g = constraints.all[i];
-    if(!g->IsLocalCondition())
-      log.AddToHeader(g->ToString());
-    else {
-      if(log.localDetail) {
-        log.AddToHeader("max_" + g->ToString());
-        log.AddToHeader("mean_" + g->ToString());
-      }
-    }
-  }
-
-  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
-
   // the commit stuff
   string cm = optParamNode->Has("commit") ? optParamNode->Get("commit/mode")->As<string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
@@ -205,6 +188,24 @@ void Optimization::PostInit()
 
 void Optimization::PostInitSecond()
 {
+  // constraints.ToInfo() is called in PostInitSecond()
+  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+  {
+    Condition* g = constraints.all[i];
+    if(!g->IsLocalCondition())
+      log.AddToHeader(g->ToString(me));
+    else {
+      if(log.localDetail) {
+        log.AddToHeader("max_" + g->ToString());
+        log.AddToHeader("mean_" + g->ToString());
+      }
+    }
+    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString(me) << " e=" << g->GetExcitation(me)->GetFullLabel() << " ei=" << g->GetExcitation(me)->index;
+  }
+
+  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
+
+
   PtrParamNode opt = optParamNode->Get("optimizer");
 
   switch(optimizer_)
@@ -671,7 +672,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(excite->reassemble)
     pde->GetAssemble()->ResetMatrixReassembly();
 
-  id.excite = me->IsEnabled() ? excite->label : "";
+  id.excite = me->IsEnabled() ? excite->GetFullLabel() : "";
   id.adjoint = false;
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
@@ -1064,7 +1065,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
-    if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
+    if(g->GetType() == Function::SHAPE_INF)
+      continue; //TODO: MaxValue does not correctly set indexes in view
 
     if(g->IsLocalCondition())
     {
@@ -1079,8 +1081,10 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     else
     {
       double value = g->GetValue();
-      if(g->delta_logging) value = value - g->GetBoundValue();
-      if(out) *out << " \t" << value;
+      if(g->delta_logging)
+        value = value - g->GetBoundValue();
+      if(out)
+        *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one
       if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
       {
