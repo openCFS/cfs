@@ -106,6 +106,14 @@ Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int me
   return &excitations[total_base_ * meta + base];
 }
 
+Excitation* MultipleExcitation::GetExcitation(unsigned int base, const std::string& meta)
+{
+  if(meta.empty() || !isdigit(meta[0]))
+    throw Exception("excitation parameter '" + meta + "' is not a number");
+
+  return GetExcitation(base, boost::lexical_cast<unsigned int>(meta));
+}
+
 unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function* f)
 {
   if(!DoTransform())
@@ -114,6 +122,7 @@ unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function*
     return total_base_ * f->GetExcitation(this)->transform->index + base;
 }
 
+/*
 unsigned int MultipleExcitation::GetMetaExcitationIndex(Excitation* ex) const
 {
   assert(ex != NULL);
@@ -127,7 +136,7 @@ unsigned int MultipleExcitation::GetMetaExcitationIndex(Excitation* ex) const
 unsigned int MultipleExcitation::GetMetaExcitationIndex(Function* f)
 {
   return GetMetaExcitationIndex(f->GetExcitation(this));
-}
+}*/
 
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
 {
@@ -317,6 +326,7 @@ int MultipleExcitation::SetHomogenizationTestStrains()
 
   int cases = dim == 2 ? 3 : 6;
   assert(excitations.GetSize() == 1);
+  excitations.Reserve(cases * GetNumberMeta(true)); // so we need no copy constructor in ApplyTransformation()
   excitations.Resize(cases);
 
   assert((int) MechPDE::X == 0);
@@ -336,6 +346,8 @@ int MultipleExcitation::SetHomogenizationTestStrains()
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
     ++cnt;
+
+    LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
   }
 
   return excitations.GetSize();
@@ -344,12 +356,13 @@ int MultipleExcitation::SetHomogenizationTestStrains()
 void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 {
   StdVector<Transform>& trans = space->transform;
-  num_trans_ = trans.GetSize(); // now we have the proper value
 
+  assert(num_trans_ == (int) trans.GetSize());
   assert(excitations.GetSize() == total_base_);
   assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
 
   // multiply excitations
+  assert(excitations.Capacity() >= total_base_ * num_trans_);
   excitations.Resize(total_base_ * num_trans_);
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
@@ -368,6 +381,7 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
         ex.reassemble = true;
 
       ex.transform = tr; // the transformations are block wise 0,0,0,0,1,1,1,1,2,2,2,2,....
+      ex.meta_index = t;
 
       // only set a label if it was not set already
       assert(!(ex.label == "" && total_base_ > 1));
@@ -378,6 +392,10 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
       // If we total_base_ > 1 we assume the weights were properly set and are copied
       if(total_base_ == 1)
         ex.weight = 1.0;
+
+      LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+                      << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
+
     }
   }
 }
@@ -386,6 +404,7 @@ void MultipleExcitation::SetLoadCases(const ParamNodeList& pn_ex, int num_loads,
 {
   Assemble* ass = domain->GetBasePDE()->GetAssemble();
 
+  excitations.Reserve(num_loads * GetNumberMeta(true));
   excitations.Resize(num_loads);
 
   // when the loads are given in the optimization section of the xml file
@@ -499,6 +518,7 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
 Excitation::Excitation()
 {
   this->index = -1; // must be updated
+  this->meta_index = 0;
   this->frequency = -1.0;
   this->f_link = NULL;
   this->cost = -1.0;
@@ -513,7 +533,8 @@ Excitation::~Excitation()
 {
   // we have the ownerhip of the loads (form) with multiple excitation. We took if from Assemble::linForms_
   for(unsigned int i = 0; i < forms.GetSize(); i++)
-    delete forms[i];
+    if(meta_index == 0)
+      delete forms[i];
 }
 
 void Excitation::Apply()
