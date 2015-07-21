@@ -194,7 +194,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   #-----------------------------------------------------------------------------
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
-  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment")
+  SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated")
   IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR
      CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
     IF(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
