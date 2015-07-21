@@ -72,10 +72,24 @@ DesignElement* Transform::FindSource(const DesignElement* de) const
 
   LOG_DBG2(transform) << "FS de=" << de->ToString(true) << " -> (" << x2 << ", " << y2 << ")";
 
-  // find the element behind x2, y2 by assuming a regular grid and traversing the coordinate
+  // relay make it faster by mapping the design to a defined oriented regular grid!
+
+  // find the element behind x2, y2 by assuming a regular grid and traversing the coordinate.
+  // in case we have a circular design region the order (first x, then y) or vice versa is important
+
+  // first try x then y
+  DesignElement* end = NULL;
   DesignElement* tmp = SearchDesignSpace(de, x2 > x ? VicinityElement::X_P : VicinityElement::X_N, x2);
   // go only in second direction if the first search was good
-  DesignElement* end = tmp != NULL ? SearchDesignSpace(tmp, y2 > y ? VicinityElement::Y_P : VicinityElement::Y_N, y2) : NULL;
+  if(tmp != NULL)
+    end = SearchDesignSpace(tmp, y2 > y ? VicinityElement::Y_P : VicinityElement::Y_N, y2);
+  else {
+    // search the other way
+    tmp= SearchDesignSpace(de, y2 > y ? VicinityElement::Y_P : VicinityElement::Y_N, y2);
+    if(tmp != NULL)
+      end = SearchDesignSpace(tmp, x2 > x ? VicinityElement::X_P : VicinityElement::X_N, x2);
+  }
+
 
   LOG_DBG2(transform) << "FS org=" << de->ToString(true) << " tmp=" << DesignElement::ToString(tmp,true) << " end=" << DesignElement::ToString(end,true);
 
