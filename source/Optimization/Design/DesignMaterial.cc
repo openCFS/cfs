@@ -1867,7 +1867,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
     rotAngle = params_[DesignElement::ROTANGLE];
   }
   LocPoint p;
-  p.coord.Resize(subTensor == FULL ? 3 : 2);
+  p.coord.Resize(3);
   if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
     p.coord[0] = -1.0 + 4 * a; // assume max 0.5
     p.coord[1] = -1.0 + 4 * b; // assume max 0.5
@@ -1875,7 +1875,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   if (type_ == HOM_RECT_C1) {
     p.coord[0] = a;
     p.coord[1] = b;
-    if(subTensor == FULL)
+//    if(subTensor == FULL)
       p.coord[2] = c;
   }
 /* #ifndef NDEBUG
@@ -1909,9 +1909,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       }
 #ifdef USE_SGPP
       else if (interpolation_ == SGPP) {
-        ApplyHomRectSGPPTensor(E,p,direction,subTensor);
+        ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
-        ApplyHomRectFullBsplineTensor(E,p,direction,subTensor);
+        ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
       }
 #endif //USE_SGPP
     }
@@ -1938,9 +1938,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       }
 #ifdef USE_SGPP
       else if (interpolation_ == SGPP) {
-        ApplyHomRectSGPPTensor(E,p,direction,subTensor);
+        ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
-        ApplyHomRectFullBsplineTensor(E,p,direction,subTensor);
+        ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
       }
 #endif //USE_SGPP
 
@@ -3425,6 +3425,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j];
       } else {
         file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j];
+        LOG_DBG(dm) << (*alpha1_)[j] << (*alpha2_)[j] << (*alpha3_)[j] << (*alpha4_)[j];
       }
       if (notation == VOIGT) {
         (*alpha4_)[j] *= 2.0;
@@ -3640,21 +3641,21 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Init(); // for off-diagonal
   if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
     if (!shearIsDesign_) { // no shearing
-      E[1-1][1-1] = std::max(0.0, opEval->eval(*alpha1_, point));
-      E[1-1][2-1] = std::max(0.0, opEval->eval(*alpha2_, point));
+      E[1-1][1-1] = opEval->eval(*alpha1_, point);
+      E[1-1][2-1] = opEval->eval(*alpha2_, point);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = std::max(0.0, opEval->eval(*alpha3_, point));
-      E[3-1][3-1] = std::max(0.0, opEval->eval(*alpha4_, point));
+      E[2-1][2-1] = opEval->eval(*alpha3_, point);
+      E[3-1][3-1] = opEval->eval(*alpha4_, point);
     } else { // shearing
-      E[1-1][1-1] = std::max(0.0, opEval->eval(*alpha1_, point));
-      E[1-1][2-1] = std::max(0.0, opEval->eval(*alpha2_, point));
+      E[1-1][1-1] = opEval->eval(*alpha1_, point);
+      E[1-1][2-1] = opEval->eval(*alpha2_, point);
       E[1-1][3-1] = opEval->eval(*alpha3_, point);
       E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = std::max(0.0, opEval->eval(*alpha4_, point));
+      E[2-1][2-1] = opEval->eval(*alpha4_, point);
       E[2-1][3-1] = opEval->eval(*alpha5_, point);
       E[3-1][1-1] = E[1-1][3-1];
       E[3-1][2-1] = E[2-1][3-1];
-      E[3-1][3-1] = std::max(0.0, opEval->eval(*alpha6_, point));
+      E[3-1][3-1] = opEval->eval(*alpha6_, point);
     }
     LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
   } else {
@@ -3749,13 +3750,13 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
         E[3-1][3-1] += full_bspline_coeff33_(i, 0) * bspl_val;
       }
     }
-    // take positive part (if we're not calculating derivatives)
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
-      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
-      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
-      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
-    }
+//    // take positive part (if we're not calculating derivatives)
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
+//      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
+//      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
+//      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
+//    }
     // symmetric entry
     E[2-1][1-1] = E[1-1][2-1];
   } else {
@@ -3808,13 +3809,13 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
         }
       }
     }
-    // take positive part (if we're not calculating derivatives)
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
-      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
-      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
-      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
-    }
+//    // take positive part (if we're not calculating derivatives)
+//    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+//      E[1-1][1-1] = std::max(0.0, E[1-1][1-1]);
+//      E[1-1][2-1] = std::max(0.0, E[1-1][2-1]);
+//      E[2-1][2-1] = std::max(0.0, E[2-1][2-1]);
+//      E[3-1][3-1] = std::max(0.0, E[3-1][3-1]);
+//    }
     // symmetric entries
     E[2-1][1-1] = E[1-1][2-1];
     E[3-1][1-1] = E[1-1][3-1];
