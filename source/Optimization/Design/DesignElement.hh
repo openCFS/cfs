@@ -32,7 +32,7 @@ class SIMPElement;
 class SinglePDE;
 class TransferFunction;
 class DesignSpace;
-class MultiMaterial;
+struct MultiMaterial;
 class ErsatzMaterial;
 struct Elem;
 

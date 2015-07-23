@@ -2596,11 +2596,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // PLANE_STRESS: E = E11 * (1-v^2)
 
       StdVector<double> dE11;
-      CalcHomogenizedTensorEntry(make_tuple(1,1,1.0), true, dE11);
+      CalcHomogenizedTensorEntry(boost::make_tuple(1,1,1.0), true, dE11);
       StdVector<double> dE12;
-      CalcHomogenizedTensorEntry(make_tuple(1,2,1.0), true, dE12);
+      CalcHomogenizedTensorEntry(boost::make_tuple(1,2,1.0), true, dE12);
       StdVector<double> dE22;
-      CalcHomogenizedTensorEntry(make_tuple(2,2,1.0), true, dE22);
+      CalcHomogenizedTensorEntry(boost::make_tuple(2,2,1.0), true, dE22);
 
       double grad(0.0);
 
@@ -2787,7 +2787,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       for (unsigned int x = 0;x < par.GetNumCols();x++)
       {
-        tuple<int,int,double> entry = make_tuple(x + 1, y + 1, 0.0);
+        boost::tuple<int,int,double> entry = boost::make_tuple(x + 1, y + 1, 0.0);
         tmp_grad_out.Init(0.0);
         CalcHomogenizedTensorEntry(entry, true, tmp_grad_out);
         double d_ij = par[y][x];
@@ -2811,7 +2811,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 // E11 = <0,0,x>
     for(unsigned int i = 0; i < g->coords.GetSize(); i++)
     {
-      tuple<int, int, double>& entry = g->coords[i];
+      boost::tuple<int, int, double>& entry = g->coords[i];
       double t = CalcHomogenizedTensorEntry(entry, derivative, grad);
       double factor = boost::get<2>(entry);
 
@@ -2835,7 +2835,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     return result;
   }
 
-  double ErsatzMaterial::CalcHomogenizedTensorEntry(const tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out)
+  double ErsatzMaterial::CalcHomogenizedTensorEntry(const boost::tuple<int,int,double> entry, bool derivative, StdVector<double>& grad_out)
   {
     const double cube_vol = grid->CalcGridVolume();
     assert((dim == 2 && me->excitations.GetSize() == 3) || (dim == 3 && me->excitations.GetSize() == 6));
