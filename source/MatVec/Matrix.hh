@@ -35,6 +35,9 @@ namespace CoupledField
   {
   public:
 
+    friend class Matrix<Double>;
+    friend class Matrix<Complex>;
+
     // =======================================================================
     // CONSTRUCTION, DESTRUCTION, INITIALIZATION, RESIZING
     // =======================================================================
@@ -373,7 +376,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with itself
     //!\param vec1 (input) Vector which gets multiplied with itself
-    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //!  \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //!  m_{21} & m_{22} & \cdots \\
     //!  \cdots & \cdots & \cdots 
     //!  \end{array} \right) 
@@ -392,7 +395,7 @@ namespace CoupledField
     //! Assigns the matrix itself the dyadic product of a vector vec1 
     //! with a vector vec2
     //! \param vec1 (input) Vector which gets multiplied with itself
-    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\ 
+    //! \f[ \left( \begin{array}{ccc} m_{11} & m_{12} & \cdots \\
     //! m_{21} & m_{22} & \cdots \\
     //! \cdots & \cdots & \cdots 
     //! \end{array} \right) 
@@ -624,6 +627,15 @@ namespace CoupledField
     //! By default, the other part is left unchanged. If zeroOtherPart 
     //! is set to yes, the other part gets initialized to zero.
     void SetPart(Global::ComplexPart part, const Matrix<Double> & partMatrix, bool zeroOtherPart = false);
+
+    //! S explicitly set the real/imaginary part of a matrix times a factor.
+
+    //! By default, the other part is left unchanged. If zeroOtherPart
+    //! is set to yes, the other part gets initialized to zero.
+    void SetPartMult( Global::ComplexPart part,
+                      const Matrix<Double> & partMatrix,
+                      Double factor,
+                      bool zeroOtherPart = false );
 
     //! Return a sub-part of the own matrix
     

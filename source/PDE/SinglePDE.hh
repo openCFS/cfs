@@ -263,7 +263,7 @@ namespace CoupledField
                             bool& updateGeo );
 
     //! Read results information for interpolation of continuous fields
-    virtual void ReadFieldResults();
+    virtual void ReadSensorArrayResults();
     
     // =======================================================================
     //   INTERPOLATION OF FIELD VARIABLES
@@ -298,7 +298,7 @@ namespace CoupledField
     };
     
     //! List of fields to be interpolated
-    StdVector<FieldAtPoints> fields_;
+    StdVector<FieldAtPoints> sensors_;
     
     //! read damping information
     virtual void ReadDampingInformation( ){

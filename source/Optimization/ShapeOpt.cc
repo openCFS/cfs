@@ -645,7 +645,7 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
   result.Init();
 
   assert(false);
-  /* FIXME
+/*
   double rcubevol(1.0 / grid->CalcVolumeSpannedByNamedNodes());
 
   Matrix<double> elemMat;

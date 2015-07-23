@@ -28,6 +28,7 @@ SET(files
   "include/muParserCallback.h"
   "include/muParserTemplateMagic.h"
   "include/muParserBytecode.h"
+  "include/muParserToken.h"
   "src/muParser.cpp"
   "src/muParser.cpp"
   "src/muParserBase.cpp"
@@ -63,5 +64,10 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "CLANG")
     )
 ENDIF()
 
+LIST(APPEND patches
+  # The auto_ptr template will become deprecated in the C++11 standard.
+  # Therefore replace it alltogether by boost::movelib::unique_ptr.
+  "muparser-replace-autoptr-by-boost-movelib-unique-ptr.patch"
+)
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/muparser")

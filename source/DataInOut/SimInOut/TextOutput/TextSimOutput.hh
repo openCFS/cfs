@@ -130,6 +130,10 @@ namespace CoupledField {
     
     //! Type of analysis in current multisequence step
     BasePDE::AnalysisType actAnalysis_;
+
+    // from revision 12363
+    // Offset for step number in case of multisequence analysis
+    Integer stepNumOffset_;
     
     //! Flag, if node / element numbers in file names should be numbered
     //! based on global node / element number or consecutively

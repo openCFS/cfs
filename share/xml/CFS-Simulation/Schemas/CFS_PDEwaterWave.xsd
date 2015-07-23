@@ -1,8 +1,5 @@
-<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-  targetNamespace="http://www.cfs++.org"
-  xmlns="http://www.cfs++.org"
-  xmlns:cfs="http://www.cfs++.org"
-  elementFormDefault="qualified">
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
   <xsd:annotation>
     <xsd:documentation xml:lang="en">
@@ -15,8 +12,7 @@
   <!-- ******************************************************************* -->
   <!--   Definition of element for acoustics PDEs -->
   <!-- ******************************************************************* -->
-  <xsd:element name="waterWave" type="DT_PDEWaterWave"
-    substitutionGroup="PDEBasic">
+  <xsd:element name="waterWave" type="DT_PDEWaterWave" substitutionGroup="PDEBasic">
     <xsd:unique name="CS_WaterWaveRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
@@ -28,6 +24,9 @@
   <!--   Definition of data type for acoustics PDEs -->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_PDEWaterWave">
+    <xsd:annotation>
+      <xsd:documentation>PDE models linear water waves</xsd:documentation>
+    </xsd:annotation>
     <xsd:complexContent>
       <xsd:extension base="DT_PDEBasic">
         <xsd:sequence>
@@ -40,10 +39,12 @@
                   <xsd:complexType>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
-                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"> </xsd:attribute>
+                    <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
+                      > </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
+                    />
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -51,23 +52,23 @@
           </xsd:element>
 
           <!-- Non-conforming interfaces of the PDE -->
-          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList"
-                       minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="ncInterfaceList" type="DT_NcInterfaceList" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>Define, which interfaces are non-conforming</xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
 
           <!-- List defining nonlinear types -->
-          <xsd:element name="nonLinList" minOccurs="0" maxOccurs="1">
-            <xsd:complexType>
-              <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="variableSOS_CN1" type="DT_WaterWaveNonVariableSOS_CN1"/>
-                </xsd:choice>
-            </xsd:complexType>
-          </xsd:element>
 
           <!-- List defining damping types -->
           <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-                <xsd:element name="pml" type="DT_DampingPML"/>
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Allows region to be a Perfectly Matched Layer</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -77,31 +78,57 @@
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
-              <!-- Initial state of previous sequence step / external file -->
-              <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
-              <!-- Initial state given by used -->
-              <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"/>
- 		      </xsd:choice>
- 		    </xsd:complexType>
-		  </xsd:element>
-		  
+                <!-- Initial state of previous sequence step / external file -->
+                <xsd:element name="initialState" type="DT_InitialState" minOccurs="0" maxOccurs="1"/>
+                <!-- Initial state given by used -->
+                <xsd:element name="initialField" type="DT_InitialField" minOccurs="0" maxOccurs="1"
+                />
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation> Here you can define boundary conditions and loads  </xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
-                <xsd:element name="soundSoft"  type="DT_BcHomScalar"    />
-                <xsd:element name="pressure"   type="DT_BcInhomScalar"  />
-                
+                <xsd:element name="soundSoft" type="DT_BcHomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Normal velocity is set zero</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="pressure" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>pressure is set to zero</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- RHS Load Values-->
-                <xsd:element name="surfaceLoad"    type="DT_BcInhomScalar"/>
+                <xsd:element name="surfaceLoad" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Specifies the surface load (mathematically it is an inh. Neumann boundary condition)
+</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- Special Boundary Conditions -->
-                <xsd:element name="absorbingBCs"   type="DT_AbsorbingBC"  />
-                <xsd:element name="freeSurfaceCondition" type="DT_AbsorbingBC"  />
-                <xsd:element name="pml4FreeSurfaceCondition"   type="DT_WWPMLsurface"  />
-                <xsd:element name="rhsValues"      type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
-                <xsd:element name="impedance"      type="DT_WaterWaveImpedance"/>
-                <xsd:element name="periodic"       type="DT_BcPeriodic"   />
+                <xsd:element name="freeSurfaceCondition" type="DT_AbsorbingBC">
+                  <xsd:annotation>
+                    <xsd:documentation>Substitutes dp/dn by -(1/g)d²p/dt²</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="pml4FreeSurfaceCondition" type="DT_WWPMLsurface">
+                  <xsd:annotation>
+                    <xsd:documentation>Perfectly Matched Layer along free surface</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1">
+                  <xsd:annotation>
+                    <xsd:documentation>Specifies nodal loads</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -110,8 +137,8 @@
           <!-- Currently this is not supported, since it is difficult
           to define in the acoustics case since it depends on the
           boundary conditions -->
-          <xsd:element name="storeResults" type="DT_WaterWaveStoreResults"
-            minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="storeResults" type="DT_WaterWaveStoreResults" minOccurs="0"
+            maxOccurs="1"/>
 
         </xsd:sequence>
 
@@ -128,8 +155,7 @@
         </xsd:attribute>
 
         <!-- Type of acoustic pde -->
-        <xsd:attribute name="subType" use="optional"
-          default="standard">
+        <xsd:attribute name="subType" use="optional" default="standard">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="standard"/>
@@ -137,7 +163,7 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        
+
         <!-- Type of function space (Lagrange / Legendre) with
         optional order -->
         <xsd:attribute name="type" use="optional" default="lagrange">
@@ -149,8 +175,7 @@
             </xsd:restriction>
           </xsd:simpleType>
         </xsd:attribute>
-        <xsd:attribute name="order" use="optional"
-        type="xsd:positiveInteger" default="1"/>
+        <xsd:attribute name="order" use="optional" type="xsd:positiveInteger" default="1"/>
 
       </xsd:extension>
     </xsd:complexContent>
@@ -161,12 +186,6 @@
   <!--   Definition of variableSOS_CN1 nonlienarity -->
   <!-- ******************************************************************* -->
   <!-- Definition of variable SOS CN1 nonlinearity type -->
-  <xsd:complexType name="DT_WaterWaveNonVariableSOS_CN1">
-    <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic">
-      </xsd:extension>
-    </xsd:complexContent>
-  </xsd:complexType>
 
   <!-- ******************************************************************* -->
   <!--   Definition of the acoustic unknown types -->
@@ -189,8 +208,7 @@
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:attribute name="name" type="xsd:token" use="required"/>
-        <xsd:attribute name="quantity" default="waterPressure"
-          type="DT_WaterWaveUnknownType"/>
+        <xsd:attribute name="quantity" default="waterPressure" type="DT_WaterWaveUnknownType"/>
         <xsd:attribute name="dof">
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
@@ -212,14 +230,10 @@
     <xsd:complexContent>
       <xsd:extension base="DT_WaterWaveHD">
         <xsd:attribute name="value" type="xsd:token" use="required"/>
-        <xsd:attribute name="phase" type="xsd:token" use="optional"
-          default="0.0"/>
-	<xsd:attribute name="fileName" type="xsd:token" use="optional"
-          default="none"/>
-	<xsd:attribute name="interpolType" type="xsd:token" use="optional"
-          default="NNB"/>
-	<xsd:attribute name="noNodes" type="xsd:token" use="optional"
-          default="-1"/>
+        <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
+        <xsd:attribute name="fileName" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="interpolType" type="xsd:token" use="optional" default="NNB"/>
+        <xsd:attribute name="noNodes" type="xsd:token" use="optional" default="-1"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -229,9 +243,8 @@
   <xsd:complexType name="DT_WaterWaveIN">
     <xsd:complexContent>
       <xsd:restriction base="DT_WaterWaveID">
-        <xsd:attribute name="quantity" type="DT_WaterWaveUnknownType"
-                       default="waterPressure"/>
-        </xsd:restriction>
+        <xsd:attribute name="quantity" type="DT_WaterWaveUnknownType" default="waterPressure"/>
+      </xsd:restriction>
     </xsd:complexContent>
   </xsd:complexType>
 
@@ -248,7 +261,7 @@
   <xsd:complexType name="DT_WaterWaveBC">
     <xsd:complexContent>
       <xsd:extension base="DT_WaterWaveHD">
-       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
@@ -258,19 +271,14 @@
   <xsd:complexType name="DT_WWPMLsurface">
     <xsd:complexContent>
       <xsd:extension base="DT_WaterWaveHD">
-       <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>     
-       <xsd:attribute name="dampingId" type="xsd:token" use="required"/>     
+        <xsd:attribute name="volumeRegion" type="xsd:token" use="required"/>
+        <xsd:attribute name="dampingId" type="xsd:token" use="required"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
 
 
   <!-- Element type for specifying an acoustic impedance -->
-  <xsd:complexType name="DT_WaterWaveImpedance">
-    <xsd:attribute name="name" type="xsd:token" use="required"/>
-    <xsd:attribute name="value" type="xsd:token" use="required"/>
-    <xsd:attribute name="phase" type="xsd:token" use="optional" default="0.0"/>
-  </xsd:complexType>
 
 
   <!-- RHS values, sources for the acoustic inside the domain -->
@@ -282,8 +290,7 @@
         <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
           <xsd:complexType>
             <xsd:all>
-              <xsd:element name="factor" type="xsd:token" minOccurs="0" maxOccurs="1"
-                default="1"/>
+              <xsd:element name="factor" type="xsd:token" minOccurs="0" maxOccurs="1" default="1"/>
               <xsd:element name="interpolation" minOccurs="0" maxOccurs="1">
                 <xsd:complexType>
                   <xsd:all>
@@ -291,15 +298,15 @@
                       <xsd:complexType>
                         <xsd:attribute name="names" type="xsd:token" use="required"/>
                         <xsd:attribute name="inputId" type="xsd:token" use="required"/>
-                        <xsd:attribute name="coordSysId" type="xsd:token"
-                          use="optional" default="default"/>
+                        <xsd:attribute name="coordSysId" type="xsd:token" use="optional"
+                          default="default"/>
                       </xsd:complexType>
                     </xsd:element>
                     <xsd:element name="xyPlane" minOccurs="0" maxOccurs="1">
                       <xsd:complexType>
                         <xsd:attribute name="z" type="xsd:double" use="required"/>
-                        <xsd:attribute name="tol" type="DT_NonNegFloat"
-                          use="optional" default="1.0e-10"/>
+                        <xsd:attribute name="tol" type="DT_NonNegFloat" use="optional"
+                          default="1.0e-10"/>
                       </xsd:complexType>
                     </xsd:element>
                     <xsd:element name="tolerances" minOccurs="0" maxOccurs="1">
@@ -307,29 +314,22 @@
                         <xsd:all>
                           <xsd:element name="global" minOccurs="0" maxOccurs="1">
                             <xsd:complexType>
-                              <xsd:attribute name="start" type="DT_NonNegFloat"
-                                use="required"/>
-                              <xsd:attribute name="end" type="DT_NonNegFloat"
-                                use="optional"/>
-                              <xsd:attribute name="inc" type="DT_PosFloat"
-                                use="optional"/>
+                              <xsd:attribute name="start" type="DT_NonNegFloat" use="required"/>
+                              <xsd:attribute name="end" type="DT_NonNegFloat" use="optional"/>
+                              <xsd:attribute name="inc" type="DT_PosFloat" use="optional"/>
                             </xsd:complexType>
                           </xsd:element>
                           <xsd:element name="local" minOccurs="0" maxOccurs="1">
                             <xsd:complexType>
-                              <xsd:attribute name="start" type="DT_NonNegFloat"
-                                use="required"/>
-                              <xsd:attribute name="end" type="DT_NonNegFloat"
-                                use="optional"/>
-                              <xsd:attribute name="inc" type="DT_PosFloat"
-                                use="optional"/>
+                              <xsd:attribute name="start" type="DT_NonNegFloat" use="required"/>
+                              <xsd:attribute name="end" type="DT_NonNegFloat" use="optional"/>
+                              <xsd:attribute name="inc" type="DT_PosFloat" use="optional"/>
                             </xsd:complexType>
                           </xsd:element>
                         </xsd:all>
                       </xsd:complexType>
                     </xsd:element>
-                    <xsd:element name="restartFileMode" minOccurs="0" maxOccurs="1"
-                      default="rw">
+                    <xsd:element name="restartFileMode" minOccurs="0" maxOccurs="1" default="rw">
                       <xsd:simpleType>
                         <xsd:restriction base="xsd:string">
                           <xsd:enumeration value="r"/>
@@ -349,19 +349,18 @@
                             </xsd:restriction>
                           </xsd:simpleType>
                         </xsd:attribute>
-                        <xsd:attribute name="writeNodes" type="DT_CFSBool"
-                          use="optional" default="no"/>
+                        <xsd:attribute name="writeNodes" type="DT_CFSBool" use="optional"
+                          default="no"/>
                       </xsd:complexType>
                     </xsd:element>
                   </xsd:all>
-                  <xsd:attribute name="justInterpolate" type="DT_CFSBool"
-                    use="optional" default="no"/>
-                  <xsd:attribute name="overwriteOldSrcs" type="DT_CFSBool"
-                    use="optional" default="yes"/>
+                  <xsd:attribute name="justInterpolate" type="DT_CFSBool" use="optional"
+                    default="no"/>
+                  <xsd:attribute name="overwriteOldSrcs" type="DT_CFSBool" use="optional"
+                    default="yes"/>
                 </xsd:complexType>
               </xsd:element>
-              <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1"
-                default="no">
+              <xsd:element name="asyncSteps" minOccurs="0" maxOccurs="1" default="no">
                 <xsd:simpleType>
                   <xsd:restriction base="xsd:string">
                     <xsd:enumeration value="no"/>
@@ -372,8 +371,7 @@
               </xsd:element>
             </xsd:all>
             <xsd:attribute name="name" type="xsd:token" use="required"/>
-            <xsd:attribute name="inputId" type="xsd:token"
-              use="optional" default="default"/>
+            <xsd:attribute name="inputId" type="xsd:token" use="optional" default="default"/>
           </xsd:complexType>
         </xsd:element>
       </xsd:choice>
@@ -390,7 +388,7 @@
       <xsd:simpleType>
         <xsd:restriction base="xsd:token">
           <xsd:enumeration value="no"/>
-          <xsd:enumeration value="absorbingBC"  />
+          <xsd:enumeration value="absorbingBC"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -422,30 +420,35 @@
 
   <!-- Global type for specifying desired electrostatic output quantities -->
   <xsd:complexType name="DT_WaterWaveStoreResults">
+    <xsd:annotation>
+      <xsd:documentation/>
+    </xsd:annotation>
     <xsd:sequence>
       <xsd:choice maxOccurs="unbounded">
 
         <!-- Nodal result definition -->
-        <xsd:element name="nodeResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="nodeResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:annotation>
+            <xsd:documentation>water pressure; Lagrange multiplier (dynamic position of the interface); RHS loads</xsd:documentation>
+          </xsd:annotation>
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
-                <xsd:attribute name="type" type="DT_WaterWaveNodeResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_WaterWaveNodeResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>
         </xsd:element>
-        
+
         <!-- Element result definition -->
-        <xsd:element name="elemResult" minOccurs="0"
-          maxOccurs="unbounded">
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:annotation>
+            <xsd:documentation>Nothing defined</xsd:documentation>
+          </xsd:annotation>
           <xsd:complexType>
             <xsd:complexContent>
               <xsd:extension base="DT_ElemResult">
-                <xsd:attribute name="type" type="DT_WaterWaveElemResult"
-                  use="required"/>
+                <xsd:attribute name="type" type="DT_WaterWaveElemResult" use="required"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

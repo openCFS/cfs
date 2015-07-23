@@ -332,9 +332,11 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, int i_st
 {
   DesignElement* other = NULL;
   other = GetNeighborElement(base, abs(i_steps), i_steps < 0 ? VicinityElement::X_N : VicinityElement::X_P);
-  if(other == NULL) return NULL;
+  if(other == NULL)
+    return NULL;
   other = GetNeighborElement(other, abs(j_steps), j_steps < 0 ? VicinityElement::Y_N : VicinityElement::Y_P);
-  if(other == NULL) return NULL;
+  if(other == NULL)
+    return NULL;
   other = GetNeighborElement(other, abs(k_steps), k_steps < 0 ? VicinityElement::Z_N : VicinityElement::Z_P);
   return other;
 }
@@ -350,7 +352,8 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
       other = other->vicinity->GetNeighbour(dir);
     }
     else {
-      assert(!periodic);
+      // with periodic b.c. we shall always have a neighbor! - but only if the full domain is design domain
+      assert(!periodic || domain->GetGrid()->GetNumRegions() > space->design.GetSize());
       return NULL;
     }
   }

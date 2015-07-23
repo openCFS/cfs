@@ -1,0 +1,10 @@
+--- libs/serialization/src/CMakeLists.txt.orig	2015-05-31 14:17:40.000000000 +0200
++++ libs/serialization/src/CMakeLists.txt	2015-05-31 14:18:40.000000000 +0200
+@@ -34,7 +34,6 @@
+   xml_iarchive.cpp
+   xml_oarchive.cpp
+   xml_archive_exception.cpp
+-  shared_ptr_helper.cpp
+
+   SHARED_COMPILE_FLAGS -DBOOST_SERIALIZATION_DYN_LINK=1
+   )

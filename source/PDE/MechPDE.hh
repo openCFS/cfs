@@ -60,12 +60,12 @@ namespace CoupledField
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
-
+    
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
 
-    //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( ){};
+    //! define surface integrators needed for this pde (currently only ABC)
+    void DefineSurfaceIntegrators( );
 
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators(PtrParamNode input = PtrParamNode());

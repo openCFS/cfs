@@ -8,6 +8,7 @@
 #include "MatVec/Matrix.hh"
 
 #include <boost/math/special_functions/bessel.hpp>
+#include <boost/math/special_functions/hankel.hpp>
 
 
 namespace CoupledField {
@@ -239,6 +240,16 @@ namespace CoupledField {
   //! Calculate spherical bessel function of second kind
   Double BesselSphY( Double x, Double v ) {
     return boost::math::sph_neumann( (UInt) v, x );
+  }
+
+  //! Calculate cylindric Hankel function of first kind
+  Complex HankelCyl1( Double x, Double v ) {
+    return boost::math::cyl_hankel_1(v, x);
+  }
+
+  //! Calculate cylindric Hankel function of second kind
+  Complex HankelCyl2( Double x, Double v ) {
+    return boost::math::cyl_hankel_2(v, x);
   }
 
   Double gammaln(Double xx)

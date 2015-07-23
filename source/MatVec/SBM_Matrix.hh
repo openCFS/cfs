@@ -69,7 +69,7 @@ namespace CoupledField {
   //! \displaystyle  C  & \displaystyle D
   //! \end{array}\right]
   //! \f$
-  //! The arithmetic operations treat non-existant sub-matrices as zero
+  //! The arithmetic operations treat non-existent sub-matrices as zero
   //! automatically.
   //!
   //! - It is safe to add %SBM_Matrices with different block-sparsity
@@ -268,6 +268,9 @@ namespace CoupledField {
       return "SBM_Matrix";
     }
 
+    /** stupid debug info for developers to understand the stuff better */
+    std::string Dump() const;
+
     //! Export the matrix to a file in MatrixMarket format
 
     //! The method will export the matrix to an ascii file according to the
@@ -438,7 +441,10 @@ namespace CoupledField {
               std::map<UInt, std::set<UInt> >& colIndPerBlock );
     //@}
 
-
+    //! This array contains pointers to the entries, i.e. the standard
+    //! matrices, of the dense super-block-matrix. The storage follows the
+    //! standard C layout, but the submat_ vector is 1-based.
+    StdVector<StdMatrix *> subMat_;
   private:
 
     //! Default constructor
@@ -455,10 +461,7 @@ namespace CoupledField {
 
     //! This array contains pointers to the sub-matrices
 
-    //! This array contains pointers to the entries, i.e. the standard
-    //! matrices, of the dense super-block-matrix. The storage follows the
-    //! standard C layout, but the submat_ vector is 1-based.
-    StdVector<StdMatrix *> subMat_;
+
 
     //! Computes the index of sub-matrix in 1D array submat_
 

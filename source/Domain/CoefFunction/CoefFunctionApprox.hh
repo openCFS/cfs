@@ -321,6 +321,7 @@ protected:
 //! In addition it maps the 
 //! \note This class only works for real-valued scalar data.
 class CoefFunctionApproxAniso : public CoefFunction{
+  friend class CoefFunctionApproxDerivAniso;
 public:
 
   //! Constructor
@@ -344,12 +345,12 @@ public:
   std::string ToString() const;
 
 protected:
+
+  //! Vector containing the approximations of the curves
+  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Constant initial value of the curve
   Double coefScalar_;
-  
-  //! Vector containing the approximations of the curves
-  StdVector<shared_ptr<CoefFunction> > nLinFnc_;
   
   //! Vector containing the approximations of the curve
   StdVector<Double> angles_;
@@ -360,7 +361,7 @@ protected:
   //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
   StdVector<Double> zScalings_;
   
-  //! Coefficient function which this one depends one
+  //! Coefficient function which this one depends on
   PtrCoefFct dependCoef_;
 };
 
@@ -384,7 +385,8 @@ public:
              StdVector<Double> angles,
              StdVector<Double> zScalings,
              UInt dimDMat,
-             PtrCoefFct dependCoef );
+             PtrCoefFct dependCoef,
+             shared_ptr<CoefFunctionApproxAniso> baseCoef);
 
   //! \see CoefFunction::GetTensor
   void GetTensor(Matrix<Double>& coefMat, 
@@ -409,9 +411,12 @@ protected:
   //! curves as given for the xy-plane but scale it with an appropriate factor.
   //! Scaling is meant to be applied to mu (provided via BH-curve) -> nu is scaled by 1/zScaling_
   StdVector<Double> zScalings_;
-  
-  //! Coefficient function which this one depends one
+
+  //! Coefficient function which this one depends on
   PtrCoefFct dependCoef_;
+
+  //! Coefficient function whose derivative is this one
+  shared_ptr<CoefFunctionApproxAniso> baseCoef_;
 };
 
 }

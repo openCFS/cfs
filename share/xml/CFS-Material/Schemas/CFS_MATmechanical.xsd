@@ -20,6 +20,8 @@
     <xsd:sequence>
       <xsd:element name="density" type="xsd:token"/>
       <xsd:element name="elasticity" type="DT_MechElasticity"/>
+      <xsd:element name="viscoelasticity"
+      type="DT_MechViscoElasticity" minOccurs="0"/>
       <xsd:element name="elasticityCoefficient"
         type="DT_NonLinMechElastCoeff" minOccurs="0"/>
       <xsd:element name="irreversibleStrainCoefficient"
@@ -66,6 +68,16 @@
       <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
     </xsd:choice>
   </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical elasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechViscoElasticity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_MechViscoElastIsotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
 
   <!-- ******************************************************************* -->
   <!--   Definition of isotropic mechanical elasticity                     -->
@@ -261,6 +273,24 @@
        </xsd:element> 
      </xsd:sequence>
     <xsd:attribute name="dim" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of piezo coupling tensor                               -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechViscoElastIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="30"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
   </xsd:complexType>
 
 </xsd:schema>

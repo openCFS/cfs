@@ -17,9 +17,8 @@ namespace CoupledField {
   //   Constructor using CoordFormat
   // *********************************
   template<typename T>
-  CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat )
+  CRS_Matrix<T>::CRS_Matrix( CoordFormat<T> &sparseMat, bool sort )
     : diagPtr_( NULL ) {
-
 
     // Test, if the matrix is stored in symmetric format.
     // If yes, issue a warning, since we due not expand
@@ -84,8 +83,9 @@ namespace CoupledField {
     // By default we generate a matrix in LEX sub-format
     // Note: This will also setup the diagPtr_ array
     NEWARRAY( diagPtr_, UInt, this->nrows_ );
-    ChangeLayout( CRS_Matrix<T>::LEX );
-
+    if(sort){
+      ChangeLayout( CRS_Matrix<T>::LEX );
+    }
     
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves
@@ -99,6 +99,7 @@ namespace CoupledField {
   // ********************
   template<typename T>
   CRS_Matrix<T>::CRS_Matrix( const CRS_Matrix<T> &origMat ) {
+
     colInd_           = NULL;
     rowPtr_           = NULL;
     diagPtr_          = NULL;
@@ -387,6 +388,15 @@ namespace CoupledField {
       const UInt* srcRowPtr = mat.GetRowPointer();
       const UInt* srcDiagPtr = mat.GetDiagPointer();
       
+      if ( colInd_ == NULL )
+    	  NEWARRAY( colInd_ , UInt, this->nnz_        );
+      if ( rowPtr_ == NULL )
+            NEWARRAY( rowPtr_ , UInt, this->nrows_ + 1  );
+      if ( diagPtr_ == NULL )
+            NEWARRAY( diagPtr_, UInt, this->nrows_      );
+      if ( data_ == NULL)
+            NEWARRAY( data_   , T      , this->nnz_        );
+
       // Copy information
       for (UInt i = 0; i < this->nnz_; i++ ) {
         colInd_[i] = srcColInd[i];
@@ -977,13 +987,36 @@ namespace CoupledField {
   // *********
   //   Scale
   // *********
-  template<typename T>
-  void CRS_Matrix<T>::Scale( Double factor ) {
+  template<>
+  void CRS_Matrix<Double>::Scale( Double factor ) {
     for ( UInt i = 0; i < this->nnz_; i++ ) {
       data_[i] *= factor;
     }
   }
   
+  template<>
+  void CRS_Matrix<Complex>::Scale( Double factor ) {
+    for ( UInt i = 0; i < this->nnz_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
+  template<>
+  void CRS_Matrix<Double>::Scale( Complex factor ) {
+	  EXCEPTION("CRS: Matrix is Double; you can't multiply be a complex value");
+  }
+
+
+  // *********
+  //   Scale
+  // *********
+  template<>
+  void CRS_Matrix<Complex>::Scale( Complex factor ) {
+    for ( UInt i = 0; i < this->nnz_; i++ ) {
+      data_[i] *= factor;
+    }
+  }
+
   // ************************
   //   Scale on index subset
   // ************************
@@ -1090,7 +1123,7 @@ namespace CoupledField {
     //    --> loop over row / column indices to be set
     if( rowIndices.size() > 0 && colIndices.size() > 0 ) {
       std::set<UInt>::const_iterator rowIt, colIt;
-      register UInt k, rs;
+      UInt k, rs;
       UInt j;
       rowIt = rowIndices.begin();
 
@@ -1119,7 +1152,7 @@ namespace CoupledField {
         //    -> either loop over selected rows and take into account
         //       all columns
         std::set<UInt>::const_iterator rowIt;
-        register UInt k, rs;
+        UInt k, rs;
         UInt j;
         rowIt = rowIndices.begin();
 

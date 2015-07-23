@@ -40,7 +40,6 @@ namespace CoupledField{
 
       domain_->InitPDEs( 1 );
 
-      std::cout << "++ Starting to solve problem" << std::endl;
     }
   }
 

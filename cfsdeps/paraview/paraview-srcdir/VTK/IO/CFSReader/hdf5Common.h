@@ -100,7 +100,8 @@ namespace H5CFS {
     STATIC = 1,
     TRANSIENT = 2,
     HARMONIC = 3,
-    EIGENFREQUENCY = 4
+    EIGENFREQUENCY = 4,
+    INVERSESOURCE = 5
   } AnalysisType;
 
   // =======================================================================
