@@ -2523,7 +2523,7 @@ double Function::Local::Identifier::CalcJump() const {
   double prev = neighbor[0]->GetDesign(DesignElement::SMART);
   double next = neighbor[1]->GetDesign(DesignElement::SMART);
 
-  double sin = std::sin(PI * (prev - next));
+  double sin = std::sin(M_PI * (prev - next));
 
   // LOG_DBG3(func) << "L:I:CJ de=" << element->ToString() << " prev=" << neighbor[0]->ToString() << "/" << prev
   //               << " next=" << neighbor[1]->ToString() << "/" << next << " slope=" << (prev-next) << " -> sin*sin";
@@ -2547,7 +2547,7 @@ double Function::Local::Identifier::CalcJumpGradient(int neigh_idx) const {
   assert(neigh_idx == 0 || neigh_idx == 1);
   double factor = neigh_idx == 0 ? 1.0 : -1.0;
 
-  return 2.0 * std::sin(PI * slope) * std::cos(PI * slope) * PI * factor;
+  return 2.0 * std::sin(M_PI * slope) * std::cos(M_PI * slope) * M_PI * factor;
 }
 
 double Function::Local::Identifier::CalcBump() const {

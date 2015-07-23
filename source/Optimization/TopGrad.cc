@@ -83,8 +83,8 @@ TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   
   // get Lame material parameters
   optimization->GetMaterialParameters(lambda_, mu_);
-  c2 = PI * (lambda_ + 2.0 * mu_) / (2.0 * (lambda_ + mu_) * mu_);
-  c3 = PI * (lambda_ + 2.0 * mu_) / ((9.0 * lambda_ + 14.0 * mu_) * mu_);
+  c2 = M_PI * (lambda_ + 2.0 * mu_) / (2.0 * (lambda_ + mu_) * mu_);
+  c3 = M_PI * (lambda_ + 2.0 * mu_) / ((9.0 * lambda_ + 14.0 * mu_) * mu_);
 
   // transform the subType of the pde (FULL, PLANE_STRAIN etc. -> defined in General/Environment.hh)
   subtype_ = optimization->pde->GetSubTensorType();

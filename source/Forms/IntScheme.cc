@@ -2924,7 +2924,7 @@ void gauss_legendre_tbl(int n, double* x, double* w, double eps)
     /* Find i-th root of Legendre polynomial */
 
     /* Initial guess */
-    x0 = cos(PI*(double)((i<<2)-1)*t1)*t0;
+    x0 = cos(M_PI*(double)((i<<2)-1)*t1)*t0;
 
     /* Newton iterations, at least one */
     j = 0;
