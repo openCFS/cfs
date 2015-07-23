@@ -201,8 +201,25 @@ namespace CoupledField
     //+++++++++++++++++++++++++++ ELEM INFORMATION +++++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
+    //! Return the shape representation for a given element
+
+    //! This method returns the element shape map for a given geometrical
+    //! element. In the case of Lagrangian-mapped elements, we keep internally
+    //! fixed-instances of element shape maps and just updated their state.
+    //!
+    //! \param ptElem Pointer to the geometrical element
+    //! \param updated Flag for updated Lagrangian geometry
+    //! \param secondary Flag, if secondary-cached instance should be used
+    //!                  (Currently only needed for surface-mapped elements)
+    //!
+    //! \note Currently we assume that only one instance of the ElemShapeMap is
+    //! used in the program, as only one instance is generated. However, in
+    //! the case of surface-mapped elements, we need a "secondary" instance
+    //! for the neighboring volume element, in which case two instances
+    //! are used.
     virtual shared_ptr<ElemShapeMap> GetElemShapeMap( const Elem* ptElem,
-                                                      bool updated = false );
+                                                      bool updated = false,
+                                                      bool secondary = false);
     
     virtual void AddElems(UInt nElems) = 0;
 
@@ -690,6 +707,10 @@ namespace CoupledField
         const std::string& region);
     //@}
 
+    /** Computes for regular grid number of elements in each direction for specified region
+        by using maximal and minimal values of barycenters
+        @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
+    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
 
     // =======================================================================
     // NONCONFORMING INTERFACES SECTION
@@ -854,6 +875,39 @@ namespace CoupledField
     //! Node groups have dimension 0 by definition.
     std::map<std::string, UInt> entityDim_;
 
+   // =======================================================================
+   // Cached Data for element shape mapping (THREAD VERSION)
+   // =======================================================================
+   //@{
+
+   //! Cached values in OMP environment requires number of threads
+   UInt numOMPThreads_;
+
+   //! Pointer to element shape map (original grid)
+   StdVector< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
+
+   //! Pointer to element shape map (updated grid)
+   StdVector<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
+
+   //! Last accessed elements for updated grid
+   StdVector< StdVector<UInt> > lastShapeElemNumUpdated_;
+
+   //! Last accessed secondary element map for original grid
+   StdVector< StdVector<UInt> > lastShapeElemNumOrig_;
+
+   ////! Pointer to seoncary element shape map (original grid)
+   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;
+   //
+   ////! Last accessed secondary element map for original grid
+   //StdVector< UInt > lastShapeElemNumOrig2nd_;
+   //
+   ////! Pointer to secondary element shape map (updated grid)
+   //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapUpdated2nd_;
+   //
+   ////! Last accessed secondary element map for updated grid
+   //StdVector< UInt > lastShapeElemNumUpdated2nd_;
+   //@}
+
     // =======================================================================
     // Interation Scheme
     // =======================================================================
@@ -905,6 +959,9 @@ namespace CoupledField
 
     };
 
+    //! Simple typedef for element element intersection bounding box searches
+    typedef std::pair<UInt,UInt>  ElemElemMatch;
+
     //! Map a list of global points to element local points
     
     //! This method maps each global coordinate (contained in the PointElemMatch
@@ -921,12 +978,14 @@ namespace CoupledField
     //! Create a bounding box from a given element. Mapping LIBFBI 
     void CreateBBoxFromElement(const Elem* elem,
                                Double globToler,
-                               Double* bbox);
+                               Double* bbox,
+                               double updated=false);
 
   protected:
 
 #ifdef USE_CGAL
 
+  public:
     //! Define 3-dimensional bounding box
     typedef CGAL::Bbox_3 BBox3D;
 
@@ -934,6 +993,11 @@ namespace CoupledField
     typedef CGAL::Box_intersection_d
         ::Box_with_handle_d<double,3,const UInt*> HandleBox;
 
+    //! Define box handler just with an ID
+    typedef CGAL::Box_intersection_d
+        ::Box_d<double,3> IdBox;
+
+  protected:
     //! Return list of potential elements containing global points
 
     //! This method returns for every global coordinate a list

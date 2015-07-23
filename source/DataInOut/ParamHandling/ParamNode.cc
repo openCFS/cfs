@@ -237,7 +237,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       break;
     case EX:
       EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "'")
+          << this->name_ << "'" << " has a child '" << myName << "' ")
       ;
       break;
     case PASS:
@@ -313,7 +313,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Get()-calls will always create a child elements
   if (insertNew || action == APPEND)
   {
-
+    //changed 2nd parameter to APPEND
     PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
     ret->Get(child, ParamNode::APPEND)->SetValue(value);
     return ret;
@@ -588,7 +588,7 @@ bool ParamNode::Has(const string& name) const
   // check in a fast way if we have tokens for trivial xpath
   if (ContainsTokens(name))
   {
-    return TokenizedHasAndGet(name, string(""), false);
+    return TokenizedHasAndGet(name, string(""), false) == NULL ? false : true ;
   }
   else
   {
@@ -640,7 +640,7 @@ bool ParamNode::HasByVal(const string& name, const TYPE& value) const
 {
   if (ContainsTokens(name))
   {
-    return TokenizedHasAndGet(name, value, true);
+    return TokenizedHasAndGet(name, value, true) == NULL ? false : true ;
   }
   else
   {

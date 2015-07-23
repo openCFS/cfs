@@ -31,6 +31,8 @@ namespace CoupledField
 
     //!  Destructor
     virtual ~MagneticPDE();
+    
+    void SetMagnetoStrictCoupling();
 
     //! Get mehtod for specific coils. Needed e.g. by the SinglePDE for
     //! specifying coil results.
@@ -113,6 +115,9 @@ namespace CoupledField
     
     //! \copydoc SinglePDE::FinalizePostProcResults
     void FinalizePostProcResults();
+
+    //! flag for magn_strict coupling
+    bool isMagnetoStrictCoupled_;
 
   };
 

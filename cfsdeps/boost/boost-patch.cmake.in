@@ -10,6 +10,7 @@
 SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
 SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
 SET(MINGW "@MINGW@")
+SET(APPLE "@APPLE@")
 SET(boost_source "@boost_source@")
 
 #=============================================================================
@@ -31,7 +32,19 @@ EXECUTE_PROCESS(
 #=============================================================================
 SET(patches
   "boost-multi_array.patch"
-  "boost-newline.patch"
+  # "boost-newline.patch" # Not working for Boost 1.58
+  
+  # Remove shared_ptr_helper.cpp from list of files to compile for Boost 1.58
+  boost-shared-ptr-helper-1.58.patch
+
+  # Suround get_pointer(auto_ptr<T>) function with #ifdef BOOST_NO_AUTO_PTR.
+  boost-get-ptr-no-auto-ptr.patch
+
+  # Fix warning about uninitialized variable result.
+  boost-lexical-cast-uninitialized-var.patch
+
+  # Fix uninitialized variable problem
+  boost-math-policies-error-handling.patch
 )
 
 IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
@@ -55,6 +68,17 @@ IF(MINGW)
     # Threading is disabled for gcc 4.7 by default. This patch reenables it.
     # https://svn.boost.org/trac/boost/ticket/6165
 #    "boost-1.48.0-gcc47-winthreads.patch"
+
+    # Fix problems due to undefined references to Interlocked* functions
+    # from the Windows headers. Applies to Boost 1.5.2.
+    # https://svn.boost.org/trac/boost/ticket/4849
+    # https://svn.boost.org/trac/boost/changeset/85865?format=diff&new=85865
+    boost-interlocked-mingw64.patch
+
+    # /home/oracle/Documents/dev/mingw/include/boost/smart_ptr/detail/lwm_win32_cs.hpp:52:93: warning: declaration of 'void boost::detail::InitializeCriticalSection(boost::detail::critical_section*)' with C language linkage
+    # /home/oracle/Documents/dev/mingw/include/boost/signals2/detail/lwm_win32_cs.hpp:55:49: warning: conflicts with previous declaration 'void boost::signals2::InitializeCriticalSection(boost::signals2::critical_section*)'
+    # http://www.developpez.net/forums/d1046060/c-cpp/cpp/bibliotheques/boost/conflits-void-signals2-detail-initializecriticalsection-signals2-detail-critical_section/
+    boost-mingw-critical-section.patch
     )
 ENDIF(MINGW)
 
@@ -62,5 +86,12 @@ LIST(APPEND patches
   # Fix Boost thread lib dependency on system lib.
   boost-shared-libs-build.patch
   )
+
+IF(APPLE)
+  LIST(APPEND patches
+    # The BOOST_HAS_NANOSLEEP flag needs to be defined for GCC 4,5 and 6.
+    boost-has-nanosleep-mac.patch
+    )
+ENDIF()
 
 APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")

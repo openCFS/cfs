@@ -299,6 +299,9 @@ namespace CoupledField {
     // ----------------------------------------
     //  Determine correct stiffness integrator 
     // ----------------------------------------
+
+    // NOTE: here we have to couple +Bu with +GradV as in the constitutive equations Bu and -E are coupled!
+    // -> no factor -1 here
     BaseBDBInt * integ = NULL;
     if ( isComplex ) {
       if( subType_ == "axi" ) {

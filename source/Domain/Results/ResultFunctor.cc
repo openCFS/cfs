@@ -67,7 +67,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
       const Elem * el = it.GetElem();
       LocPoint lp = Elem::shapes[el->type].midPointCoord;
       LocPointMapped lpm;
-      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap( el, true );
+      shared_ptr<ElemShapeMap> esm = it.GetGrid()->GetElemShapeMap(el, true);
       lpm.Set(lp, esm, 0.0);
       this->GetVector(tempField, lpm );
       // loop over dofs
@@ -110,7 +110,7 @@ template<class TYPE> void FieldCoefFunctor<TYPE>::EvalResult( shared_ptr<BaseRes
         const Elem * el = elems[i];
         LocPoint& lp = localCoords[i];
         LocPointMapped lpm;
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
           it.GetGrid()->GetElemShapeMap( el, true );
         lpm.Set( lp, esm, 0.0 );
         this->GetVector(tempField, lpm );
@@ -229,7 +229,7 @@ template<> void EnergyResultFunctor<Double>::EvalResult(shared_ptr<BaseResult> r
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
@@ -309,7 +309,7 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
         shared_ptr<FeSpace> feSpace = feFct_->GetFeSpace();
         shared_ptr<IntScheme> intScheme = feSpace->GetIntScheme();
         // Get shape map from grid
-        shared_ptr<ElemShapeMap> esm = 
+        shared_ptr<ElemShapeMap> esm =
             elemIt.GetGrid()->GetElemShapeMap( el, true );
 
         // Get integration points
@@ -330,7 +330,7 @@ template<> void EnergyResultFunctor<Complex>::EvalResult(shared_ptr<BaseResult> 
             forms_[el->regionId]->CalcKernel(elemMatR, lpm );
             temp = elemMatR * elemSol;
           }
-          tempEnergy += temp.Inner(elemSol) * factor_ * lpm.jacDet * weights[i];
+         tempEnergy += temp.Inner(elemSol) * factor_ * lpm.jacDet * weights[i];
         } // loop integration points
       } else {
         EXCEPTION("No valid integration method defined");
@@ -479,6 +479,10 @@ template<class TYPE> void ResultFunctorIntegrate<TYPE>::EvalResult(shared_ptr<Ba
           elemValMat.ConvertToVec_UpperTriangular(tempValVec);
 
         assert(tempValVec.GetSize() == numDofs);
+
+        // feSpace->GetFe(elemIt, method, order);
+        // Get shape map from grid
+        // shared_ptr<ElemShapeMap> esm = elemIt.GetGrid()->GetElemShapeMap(el, true);
 
         for(unsigned jDof = 0; jDof < numDofs; ++jDof)
           vec[pos+jDof] += tempValVec[jDof];

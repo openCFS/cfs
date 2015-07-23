@@ -345,7 +345,6 @@ template<class TYPE> void CoefFunctionBdBKernel<TYPE>::GetScalar( TYPE& coefScal
     temp = kernel_ * elemSol_;
   }
   coefScal = temp.Inner(elemSol_) * factor_;
-
 }
 template<class TYPE> std::string CoefFunctionBdBKernel<TYPE>::ToString() const
 {

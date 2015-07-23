@@ -353,7 +353,12 @@ namespace CoupledField {
         return "Vs/Am";
 
       case MAG_EDDY_POWER:
+      case MAG_CORE_LOSS:
         return "W";
+        break;
+
+      case MAG_CORE_LOSS_DENSITY:
+        return "W/kg";
         break;
 
       case MAG_ENERGY:
@@ -1259,6 +1264,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ_DENSITY, "magForceLorentzDensity");
     SolutionTypeEnum.Add(MAG_EDDY_POWER_DENSITY, "magEddyPowerDensity");
     SolutionTypeEnum.Add(MAG_ENERGY_DENSITY, "magEnergyDensity");
+    SolutionTypeEnum.Add(MAG_CORE_LOSS_DENSITY, "magCoreLossDensity");
+    SolutionTypeEnum.Add(MAG_CORE_LOSS, "magCoreLoss");
     
     SolutionTypeEnum.Add(MAG_FORCE_VWP, "magForceVWP");
     SolutionTypeEnum.Add(MAG_FORCE_LORENTZ, "magForceLorentz");
@@ -1353,7 +1360,6 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ASPECT_RATIO, "aspectRatio");
 
     //LBM velocity
-    SolutionTypeEnum.Add(LBM_NODAL_PROBABILITY_DISTRIBUTION, "LBMNodalProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION, "LBMProbabilityDistribution");
     SolutionTypeEnum.Add(LBM_VELOCITY, "LBMVelocity");
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
@@ -1397,6 +1403,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
+    MaterialTypeEnum.Add( MECH_VISCOALPHA_VECTOR, "Mechanic_ViscoAlpha_Vec" );
+    MaterialTypeEnum.Add( MECH_VISCOG_VECTOR, "Mechanic_ViscoG_Vec" );
+    MaterialTypeEnum.Add( MECH_VISCOK_VECTOR, "Mechanic_ViscoK_Vec" );
+
 
     MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
     MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTORPLANE, "Mechanic_StiffTEC_VectorPlane" );
@@ -1409,7 +1419,16 @@ namespace CoupledField {
     MaterialTypeEnum.Add( LOSS_TANGENS_DELTA, "Loss_TangensDelta" ); 
     MaterialTypeEnum.Add( DENSITY, "Density" );
     MaterialTypeEnum.Add( ACOU_BULK_MODULUS, "AcousticBulkModulus" ); 
-    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" ); 
+    MaterialTypeEnum.Add( ACOU_SOUND_SPEED, "Acoustic_SoundSpeed" );
+    MaterialTypeEnum.Add( IMP_HOLE_DIAM, "holeDiam");
+    MaterialTypeEnum.Add( IMP_PLATE_THICKNESS, "plateThick");
+    MaterialTypeEnum.Add( IMP_END_CORRECTION, "impEndCorrection");
+    MaterialTypeEnum.Add( POROSITY, "sigma");
+    MaterialTypeEnum.Add( BETA, "beta");
+    MaterialTypeEnum.Add( MPP_VOLUME_DEPTH, "mppVolDepth");
+    MaterialTypeEnum.Add( FLOW_MACH_NUMBER, "flowMachNr");
+    MaterialTypeEnum.Add( ACOU_IMPEDANCE_REAL_VAL, "acouImpedanceRealValue");
+    MaterialTypeEnum.Add( ACOU_IMPEDANCE_IMAG_VAL, "acouImpedanceImagValue");
     MaterialTypeEnum.Add( BOVERA, "BoverA" ); 
     MaterialTypeEnum.Add( ACOU_ALPHA, "AcousticAlpha" ); 
     MaterialTypeEnum.Add( FRACTIONAL_ALG, "FractionalAlg" ); 
@@ -1418,7 +1437,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( FRACTIONAL_EXPONENT, "FractionalExponent" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY, "HeatConductivity" ); 
     MaterialTypeEnum.Add( HEAT_CONDUCTIVITY_TENSOR, "HeatConductivity_Tensor" );
-    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR, "Magnetostriction_Tensor" ); 
+    MaterialTypeEnum.Add( MAGNETOSTRICTION_TENSOR_h, "Magnetostriction_Tensor_h" ); 
     MaterialTypeEnum.Add( HEAT_CAPACITY, "HeatCapacity" ); 
     MaterialTypeEnum.Add( THERMAL_EXPANSION_TENSOR, "thermalExpansion" ); 
     MaterialTypeEnum.Add( DYNAMIC_VISCOSITY, "dynamicViscosity" ); 
@@ -1456,6 +1475,7 @@ namespace CoupledField {
     MaterialTypeEnum.Add( PYROCOEFFICIENT_TENSOR, "Pyrocoefficient_Tensor" ); 
     MaterialTypeEnum.Add( TEST_ALPHA, "Test_Alpha" );
     MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
+    MaterialTypeEnum.Add( CORE_LOSS, "coreLossPerMass" );
 
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );

@@ -280,7 +280,14 @@ namespace CoupledField {
 
     // Get component names and register them within the specified parser
     std::string tempName;
-    for ( UInt i = 1; i <= locCoord.GetSize(); i++ ) {
+
+    UInt maxDim = locCoord.GetSize();
+    if(maxDim==3 && coosy.GetDim()==2){
+      //WARN("Dimension of coordinate vector is 3 but 2D setup ignoring third component");
+      maxDim =2;
+    }
+
+    for ( UInt i = 1; i <= maxDim; i++ ) {
       tempName = coosy.GetDofName(i);
       SetValue( handler, tempName, locCoord[i-1] );
     }
@@ -567,7 +574,7 @@ namespace CoupledField {
   
 
   //! Register callback function for change of value of expression
-  boost::signals::connection MathParser::
+  boost::signals2::connection MathParser::
   AddExpChangeCallBack( const MathParserSignal::slot_function_type
                         &subscriber,
                         HandleType handle ) {
@@ -627,6 +634,33 @@ namespace CoupledField {
     for (; item!=variables.end(); ++item) {
       varNames.Push_back( item->first );
     }
+  }
+
+  Double MathParser::GetExprVars( HandleType handle, 
+                                std::string varName ) {
+
+    // Get the map with the variables
+    mu::Parser& actParser = GetParser( handle );
+    actParser.InitConst();
+
+    // Get the constant variables
+    mu::valmap_type valMap = actParser.GetConst();
+    for (mu::valmap_type::iterator item = valMap.begin(); item!=valMap.end(); ++item)
+    {
+      if (item->first.compare(varName) == 0)
+      {
+        return item->second;
+      }
+    }
+    mu::varmap_type varMap = actParser.GetVar();
+    for (mu::varmap_type::iterator item = varMap.begin(); item!=varMap.end(); ++item)
+    {
+      if (item->first.compare(varName) == 0)
+      {
+        return *(item->second);
+      }
+    }
+    EXCEPTION("Variable " << varName << " is not registered in mathparser");
   }
   
   

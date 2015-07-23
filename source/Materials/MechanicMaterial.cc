@@ -38,6 +38,7 @@ namespace CoupledField
     isAllowed_.insert( MECH_STIFFNESS_TENSOR );
     isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
     isAllowed_.insert( MECH_EMODULUS );
+    isAllowed_.insert( MECH_KMODULUS );
     isAllowed_.insert( MECH_EMODULUS_X );
     isAllowed_.insert( MECH_EMODULUS_Y );
     isAllowed_.insert( MECH_EMODULUS_Z );
@@ -50,6 +51,9 @@ namespace CoupledField
     isAllowed_.insert( MECH_GMODULUS_XY );
     isAllowed_.insert( MECH_LAME_LAMBDA );
     isAllowed_.insert( MECH_LAME_MU );
+    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
+    isAllowed_.insert( MECH_VISCOK_VECTOR );
+    isAllowed_.insert( MECH_VISCOG_VECTOR );
     isAllowed_.insert( MECH_TEC );
     isAllowed_.insert( MECH_TEC1 );
     isAllowed_.insert( MECH_TEC2 );
@@ -681,11 +685,23 @@ namespace CoupledField
           ((Complex(1.0,0) + poisson)*
               (Complex(1.0,0)  - Complex(2.0,0)*poisson));
       Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+      Complex KModul = EModul/
+              ( Complex(3.0,0) * ( Complex(1.0,0) - Complex(2.0,0)*poisson));
 
       CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
+      SetScalar(KModul, MECH_KMODULUS, Global::COMPLEX);
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
+
+//      Vector<Double> viscoCoeffs;
+//      GetVector(viscoCoeffs, MECH_VISCOALPHA_VECTOR, Global::REAL );
+//      std::cout << "ViscoAlpha: \n " << viscoCoeffs << std::endl;
+//      GetVector(viscoCoeffs, MECH_VISCOK_VECTOR, Global::REAL );
+//      std::cout << "ViscoK: \n " << viscoCoeffs << std::endl;
+//      GetVector(viscoCoeffs, MECH_VISCOG_VECTOR, Global::REAL );
+//      std::cout << "ViscoG: \n " << viscoCoeffs << std::endl;
+
       break;
     }
     case ORTHOTROPIC:

@@ -6,6 +6,10 @@
 #include "Domain/Mesh/Grid.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
+#ifdef OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField {
 
 // ===========================================================================
@@ -142,8 +146,9 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   }
 
   lpmVol.reset(new LocPointMapped());
-  esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
-      shapeMap->IsUpdated());
+  esmVol =  shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
+      shapeMap->IsUpdated(),true);
+
   LocPoint lpVol;
   Vector<Double> locNormal;
   //in this special case, we need to transform local2Global wrt mortarelem
@@ -204,7 +209,7 @@ void LocPointMapped::SetSurfInfo(const std::set<RegionIdType>& myRegions) {
     // create new local point for volume element
     lpmVol.reset(new LocPointMapped());
     esmVol = shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
-        shapeMap->IsUpdated());
+        shapeMap->IsUpdated(),true);
   } else {
     esmVol = lpmVol->shapeMap;
   } // elemIsSame
@@ -323,11 +328,10 @@ void LagrangeElemShapeMap::Local2Global(Vector<Double>& globPoint,
     const LocPoint& lp) {
 
   //step 1: evaluate shape fncs. at local coordinate
-  Vector<Double> shFnc;
-  ptFe_->GetShFnc(shFnc, lp, NULL, 0);
+  ptFe_->GetShFnc(shFnc_, lp, NULL, 0);
 
   // step2: multiply shape fncs for each dimension with according matrix entries
-  globPoint = coords_ * shFnc;
+  globPoint = coords_ * shFnc_;
 }
 
 void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
@@ -881,7 +885,7 @@ void LagrangeElemShapeMap::Global2LocalDuester(Vector<Double>& locPoint,
     l = 0;
     //perform damping
     while (l < 40 && f_test >= f_old) {
-      Double dampFac = 1.0 / std::pow(2.0, l - 1.0);
+      Double dampFac = 1.0 / std::pow(2.0, (Double) l);
       xi_start = xi_k + (delta_xi * dampFac);
       Local2Global(f, xi_start);
       f = f - globalPoint;
@@ -1479,7 +1483,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     UInt numFaces = shape.numFaces;
     UInt locFaceNum = 0;
     //determine on which face the local point is located and the compute the normal for this face
-    for(UInt locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
+    for(locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
       if(abs(edgeFaceElem->faces[0]) == abs(volElem->faces[locFaceNum])){
         edgeFaceFound = true;
         break;
@@ -1800,17 +1804,14 @@ void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {
 }
 
 void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
-Matrix<Double> deriv;
-ptFe_->GetLocDerivShFnc(deriv, lp, ptElem_);
-jac = coords_ * deriv;
+jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
 jac *= depth_; // explicitly include depth_ of setup
 }
 
 Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {
-Matrix<Double> deriv;
 
-ptFe_->GetLocDerivShFnc(deriv, lp, ptElem_);
-jac = coords_ * deriv;
+deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
+jac = coords_ * deriv_;
 jac *= depth_; // explicitly include depth_ of setup
 
 Double jacDet = 0.0;

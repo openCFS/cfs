@@ -8,7 +8,7 @@
 #include <map>
 #include <boost/filesystem/path.hpp>
 #include <boost/enable_shared_from_this.hpp>
-#include <boost/signals.hpp>
+#include <boost/signals2.hpp>
 
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
@@ -187,7 +187,7 @@ namespace CoupledField {
     //  Interpolation Related Data
     // ===========================================
     //! Connection to math parser instance 
-    boost::signals::connection conn_;
+    boost::signals2::connection conn_;
     
     //! Math parser for parent domain
     

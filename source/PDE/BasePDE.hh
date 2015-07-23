@@ -103,6 +103,9 @@ namespace CoupledField
      */
     virtual std::map<FEMatrixType,Integer> GetMatrixDerivativeMap();
 
+    virtual PtrParamNode GetMyParam() {
+    		return myParam_;
+    }
 
   protected:
     
