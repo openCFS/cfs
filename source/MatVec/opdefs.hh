@@ -84,13 +84,10 @@ namespace CoupledField {
     return (arg.real()) * (arg.real()) + (arg.imag()) * (arg.imag());
   }
 
-  /** this is defined only in C++11 - how can this idiots take so long? */
+  /** this is defined only in C++11 - how can this idiots take so long?
+   * defining the same for complex leads to overloading problems with std::conj with icc 15 even w/o using std::conj */
   inline static double conj(const double &a1) {
     return a1;
-  }
-
-  inline static Complex conj(const Complex &a1) {
-    return std::conj(a1);
   }
 
   template <typename T>
