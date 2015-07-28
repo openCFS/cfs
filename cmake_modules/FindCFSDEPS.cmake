@@ -88,6 +88,18 @@ FILE(TO_CMAKE_PATH
   "${CFS_DEPS_CACHE_DIR}"
   CFS_DEPS_CACHE_DIR)
 
+#-----------------------------------------------------------------------------
+# Find SGPP - A toolbox for sparse grid interpolation 
+#-----------------------------------------------------------------------------
+IF(USE_SGPP)
+  SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
+  SET(SGPP_ID "SGpp_0.9.3")
+  #SET(SGPP_ID "sgopt")
+  SET(SGPP_ZIP "${SGPP_ID}.zip")
+  
+  INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")
+ENDIF(USE_SGPP)
+
 #-------------------------------------------------------------------------------
 # Build zlib library
 #-------------------------------------------------------------------------------

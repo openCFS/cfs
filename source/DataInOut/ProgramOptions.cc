@@ -1019,8 +1019,11 @@ namespace CoupledField {
         << endl
         << "14.08, Maximale Verwirrung" << endl
         << "  The FE-Space branch is the new trunk and the optimization group starts to add "
-        << "  its stuff." << endl;
-
+        << "  its stuff." << endl
+        << endl
+        << "15.07, Verlorene Soehne" << endl
+        << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
+        << "  not all features yet, but the the boys are back in town! :)" << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

@@ -1,10 +1,12 @@
 #ifndef FILE_SCFE_MYDEFS_2001
 #define FILE_SCFE_MYDEFS_2001
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <typeinfo>
 #include <iostream>
 #include <vector>
-#include <cmath>
 
 // includes for the C99 standard datatypes (e.g. uint32_t, long double)
 #include <boost/cstdint.hpp>
@@ -62,7 +64,6 @@ namespace CoupledField {
   static const RegionIdType NO_REGION_ID = -1;
   static const RegionIdType ALL_REGIONS = -2;
 
-  static const Double PI = std::acos(-1.0L);
   static const Double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   static const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
 
@@ -233,7 +234,7 @@ namespace CoupledField {
       ELEM_LOC_DIR, JACOBIAN, ASPECT_RATIO, VOLUME,
 
       // === NonFEM LBM results ===
-      LBM_NODAL_PROBABILITY_DISTRIBUTION, LBM_PROBABILITY_DISTRIBUTION, LBM_VELOCITY, LBM_DENSITY,
+      LBM_PROBABILITY_DISTRIBUTION, LBM_VELOCITY, LBM_DENSITY,
       LBM_PRESSURE, LBM_PHYSICAL_PSEUDO_DENSITY
 
     } SolutionType;

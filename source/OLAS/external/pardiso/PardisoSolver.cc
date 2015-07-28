@@ -595,11 +595,18 @@ extern "C" {
     for (UInt i=0; i< nnz_; i++ )
        colPtr_[i] += 1;
 
+
+    // write out additional information in info xml file
+    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    node->Get("number")->SetValue(tNumfact_.GetCalls());
+
+
     // ========================
     //  Symbolic Factorisation
     // ========================
     if ( facSymbolic == true ) {
 
+      tSymfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
                                << " ... ";
@@ -630,14 +637,17 @@ extern "C" {
       else {
         LOG_TRACE(pardisoSolver) << "done";
       }
+
+      tSymfact_.Stop();
+      node->Get("symbfact/cpu")->SetValue(tSymfact_.GetCPUTime());
+      node->Get("symbfact/wall")->SetValue(tSymfact_.GetWallTime());
     }
-
-
     // =========================
     //  Numerical Factorisation
     // =========================
     if ( facNumeric == true ) {
 
+      tNumfact_.ResetStart();
       // log report
       LOG_TRACE(pardisoSolver) << " Performing factorise phase (numerical "
                                << "factorisation) ... ";
@@ -667,8 +677,18 @@ extern "C" {
       }
       else {
         LOG_TRACE(pardisoSolver) << "done";
+        LOG_TRACE(pardisoSolver) << "Memory consumption during numerical factorization and solution: " << iparm_[16] << "kBytes";
       }
+
+      tNumfact_.Stop();
+      node->Get("numfact/cpu")->SetValue(tNumfact_.GetCPUTime());
+      node->Get("numfact/wall")->SetValue(tNumfact_.GetWallTime());
+      //node->Get("numfact/timer/calls")->SetValue(tNumfact_.GetCalls());
     }
+
+    node->Get("symbfact/peakMem")->SetValue(iparm_[14]);
+    node->Get("symbfact/permanentMem")->SetValue(iparm_[15]);
+    node->Get("numfact/peakMem")->SetValue(iparm_[16]);
 
     // Now we were called once, and a factorisation is available
     firstCall_ = false;

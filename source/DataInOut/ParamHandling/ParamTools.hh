@@ -70,6 +70,37 @@ namespace CoupledField
       }
     }
     
+    template <class TYPE>
+    static void AsMatrix(PtrParamNode node, Matrix<TYPE>& ret)
+    {
+      StdVector<std::string> strVec;
+      unsigned int dim1 = node->Get("dim1")->As<unsigned int>();
+      unsigned int dim2 = node->Get("dim2")->As<unsigned int>();
+
+      if ( dim1 == 1 ) {
+        ret.Resize( dim2, dim1 );
+      } else {
+        ret.Resize( dim1, dim2 );
+      }
+      ret.Init();
+
+      ParamNodeList rows, cols;
+      unsigned int row, col;
+
+      rows = node->GetList("row");
+      for ( unsigned int i=0; i<rows.GetSize(); i++ ) {
+        row = rows[i]->Get("id")->As<unsigned int>() - 1;
+        cols = rows[i]->GetList("col");
+        for ( unsigned int j=0; j<cols.GetSize(); j++ ) {
+          col = cols[j]->Get("id")->As<unsigned int>() - 1;
+          if ( dim1 == 1 ) {
+            ret[col][row] = cols[j]->Get("data")->As<TYPE>();
+          } else {
+            ret[row][col] = cols[j]->Get("data")->As<TYPE>();
+          }
+        }
+      }
+    }
     
     //! Read the immediate child of a node and return it as a string vector with given dimension
     static void AsStringTensor(PtrParamNode node, UInt dim, StdVector<std::string>& ret )

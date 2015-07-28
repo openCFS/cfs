@@ -293,6 +293,8 @@ cfsdeps/scpip/scpip-dum2.patch -text
 cfsdeps/scpip/scpip-gfortran.patch -text
 cfsdeps/scpip/scpip-patch.cmake.in -text
 cfsdeps/scpip/scpip.tar.bz2.md5 -text
+cfsdeps/sgpp/External_SGPP.cmake -text
+cfsdeps/sgpp/sgpp-post_install.cmake.in -text
 cfsdeps/snopt/External_SNOPT.cmake -text
 cfsdeps/snopt/snopt-post_install.cmake.in -text
 cfsdeps/spacepart/External_spacepart.cmake -text
@@ -1939,6 +1941,11 @@ source/PDE/FlowPDE.cc -text
 source/PDE/FlowPDE.hh -text
 source/PDE/HeatPDE.cc -text
 source/PDE/HeatPDE.hh -text
+source/PDE/LatticeBoltzmannPDE.cc -text
+source/PDE/LatticeBoltzmannPDE.hh -text
+source/PDE/LatticeBoltzmannSolver/CMakeLists.txt -text
+source/PDE/LatticeBoltzmannSolver/LatticeBoltzmann.cc -text
+source/PDE/LatticeBoltzmannSolver/LatticeBoltzmann.hh -text
 source/PDE/MagEdgePDE.cc -text
 source/PDE/MagEdgePDE.hh -text
 source/PDE/MagneticPDE.cc -text

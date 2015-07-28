@@ -32,7 +32,7 @@ namespace CoupledField
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
-  class MultiMaterial;
+  struct MultiMaterial;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */

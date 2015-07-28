@@ -311,6 +311,12 @@ namespace CoupledField
         /** Keeps all logging relevant stuff */
         Log log;
 
+        /** This tells the driver to store the last solved problem (gid, ...). Called in
+         * CommitIteration(). For PiezoSIMP we can save more often and there this method
+         * is overwritten and might do nothing.
+         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
+        virtual void StoreResults(double step_val = -1.0);
+
         /** The order of the pdes is not defined, Therefore we use the map
          * @see ToApp()
          * @see ToPDE() */
@@ -334,11 +340,6 @@ namespace CoupledField
          * @return zero for derivative */
         virtual double CalcFunction(Excitation& excite, Function* f, bool derivative) = 0;
 
-        /** This tells the driver to store the last solved problem (gid, ...). Called in
-         * CommitIteration(). For PiezoSIMP we can save more often and there this method
-         * is overwritten and might do nothing.
-         * @param step_val the "label" of the "transient" step. -1 is the integer counter */
-        virtual void StoreResults(double step_val = -1.0);
 
         /** called by CommitIteration(), to be overwritten if additional data should be
          * written, then logFileHeader should also be set. Don't add a new-line here!!.

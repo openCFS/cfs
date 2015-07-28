@@ -717,6 +717,10 @@ namespace CoupledField
         const std::string& region);
     //@}
 
+    /** Computes for regular grid number of elements in each direction for specified region
+        by using maximal and minimal values of barycenters
+        @return result vector: [nx ny nz] returns 0 vector, if mesh is not regular */
+    virtual StdVector<UInt> GetBoundaries(RegionIdType region);
 
     // =======================================================================
     // NONCONFORMING INTERFACES SECTION

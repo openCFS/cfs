@@ -363,9 +363,9 @@ namespace CoupledField
     // Kapitel 2 "Grundlagen der Kinematik", S. 12, Univ. Rostock
     // http://iamserver.fms.uni-rostock.de/studium/mehrkoerpersysteme/unterlagen.htm
 
-    Double alpha = rotAngle[0] * PI / 180.0;
-    Double beta  = rotAngle[1] * PI / 180.0;;
-    Double gamma = rotAngle[2] * PI / 180.0;;
+    Double alpha = rotAngle[0] * M_PI / 180.0;
+    Double beta  = rotAngle[1] * M_PI / 180.0;;
+    Double gamma = rotAngle[2] * M_PI / 180.0;;
     Matrix<Double> R(3,3);
     R.Resize(3,3);
 

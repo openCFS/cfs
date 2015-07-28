@@ -73,7 +73,7 @@ namespace CoupledField
     /** this string constants shall mark summary information, e.g. total number of iterations */
     const static std::string SUMMARY;
     const static std::string WARNING;
-    const static std::string ERROR;
+    const static std::string FAIL;
     
     /** Define behavior for get() methods in case the element does not exist:
     * DEFAULT: Apply default action of current node (gets inherited)
