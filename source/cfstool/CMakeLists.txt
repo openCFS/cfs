@@ -25,7 +25,6 @@ SET(CFSTOOL_SRCS
 ADD_EXECUTABLE(cfstoolbin ${CFSTOOL_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
-  optimization
   driver
   mesh 
   pde
@@ -94,7 +93,7 @@ LIST(APPEND TARGET_LL
 IF(NOT MINGW)
   LIST(APPEND TARGET_LL
     -lpthread
-    -lgfortran
+    ${CFS_FORTRAN_DYNRT_LIBS}
     )
 ENDIF()
   
