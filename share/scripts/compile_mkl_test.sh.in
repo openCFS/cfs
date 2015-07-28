@@ -106,21 +106,27 @@ for MKLROOT in $MKL_ROOT_DIRS; do
 
     # Search for the proper $MKLROOT/examples/solver[c]/makefile.
     if [ -f $MKLROOT/examples/solver/makefile ]; then
-	SOLVERMAKEFILE=$MKLROOT/examples/solver/makefile
+      SOLVERMAKEFILE=$MKLROOT/examples/solver/makefile
     else
-	if [ -f $MKLROOT/examples/solverc/makefile ]; then
-	    SOLVERMAKEFILE=$MKLROOT/examples/solverc/makefile
-	    echo "SOLVER = dss_sym_c" > solverc.lst
+      if [ -f $MKLROOT/examples/solverc/makefile ]; then
+        SOLVERMAKEFILE=$MKLROOT/examples/solverc/makefile
+        echo "SOLVER = dss_sym_c" > solverc.lst
+      else
+        if [ -f $MKLROOT/examples/examples_core.tgz  ]; then
+          tar xzf $MKLROOT/examples/examples_core.tgz
+          SOLVERMAKEFILE=$PWD/solverc/makefile
+          echo "SOLVER = dss_sym_c" > solverc.lst
         else
-            if [ -f $MKLROOT/examples/examples_core.tgz  ]; then
-                tar xzf $MKLROOT/examples/examples_core.tgz
-                SOLVERMAKEFILE=$PWD/solverc/makefile
-                echo "SOLVER = dss_sym_c" > solverc.lst
-            else
-                echo "Could not find examples solver make file in $MKLROOT."
-                ExitFail
-            fi
+          if [ -f $MKLROOT/examples/examples_core_c.tgz  ]; then
+            tar xzf $MKLROOT/examples/examples_core_c.tgz
+            SOLVERMAKEFILE=$PWD/solverc/makefile
+            echo "SOLVER = dss_sym_c" > solverc.lst
+          else
+            echo "Could not find examples solver make file in $MKLROOT."
+            ExitFail
+          fi  
         fi
+      fi
     fi
 
     # Cat  the makefile and  replace some  strings, so  that it  will properly

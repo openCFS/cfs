@@ -32,7 +32,7 @@ class SIMPElement;
 class SinglePDE;
 class TransferFunction;
 class DesignSpace;
-class MultiMaterial;
+struct MultiMaterial;
 class ErsatzMaterial;
 struct Elem;
 
@@ -119,7 +119,7 @@ class TopGradElement
 public:
   /** standard ctor */
   explicit TopGradElement(const double val = 0.0) : value(val) {}
-  
+
   /** the value of the topgrad on this element */
   double value;
 };
@@ -155,7 +155,7 @@ public:
                    GMODUL, MASS, DAMPINGALPHA, DAMPINGBETA, MECH_11, MECH_22, MECH_33, MECH_23, MECH_13, MECH_12, SLACK, ALPHA,
                    DIELEC_11, DIELEC_12, DIELEC_22, PIEZO_11, PIEZO_12, PIEZO_13, PIEZO_21, PIEZO_22, PIEZO_23,
                    ROTANGLE, ROTANGLE2, SCALING1, SCALING2, G11,G12,G21,G22, G_ALL,
-                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION, ALL_DESIGNS} Type;
+                   G_MAP_X, G_MAP_Y, GX_0, GX_PX, GX_PY, GX_PXY, GY_0, GY_PX, GY_PY, GY_PXY, SHEAR1, STIFF1, STIFF2, STIFF3, LOWER_EIG_BOUND, ROTANGLEX, ROTANGLEY, ROTANGLEZ, MULTIMATERIAL,INTERPOLATION, ALL_DESIGNS} Type;
 
     /** This defines how to access variables (design, objective_gradient, ...),
      *  PLAIN is the value and SMART does a filtering if enabled otherwise also as PLAIN */
@@ -178,7 +178,7 @@ public:
   /** Return the design value.
    * In the derived DesignElement() the instance is overloaded and invalidated! */
   virtual double GetDesign() const { return(this->design); }
-  
+
   virtual double GetDesign(BaseDesignElement::Access access) const { EXCEPTION("Not implemented"); return(0.0); };
 
   /** The index of this element within the design space - 0 based */
@@ -199,7 +199,7 @@ public:
   void AddGradient(const Function* f, double value);
 
   /** Reset either gradients of the class
-   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT 
+   * @param vs either COST_GRADIENT or CONSTRAINT_GRADIENT
    * @param g this should preferably be a Function*, but it didn't work and
    *  it is currently only needed for Condition anyways */
   void Reset(ValueSpecifier vs, Function* f = NULL);
@@ -219,9 +219,9 @@ public:
 
   /** adjusts length of the gradient vectors possibly not known during creation */
   void PostInit(int objectives, int constraints);
-  
+
   /** helper for LOG output */
-  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);  
+  static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);
 
   static Enum<Type> type;
 
@@ -250,7 +250,7 @@ protected:
 
   /** what is our design type */
   Type type_;
-  
+
 protected:
   /** @see GetIndex() */
   unsigned int index_;
@@ -265,11 +265,11 @@ public:
 };
 
 
-/** This is the base design element, storing all information related to 
+/** This is the base design element, storing all information related to
  * elements. For ersatz material this is a 1:1 relation to finite elements.
  * Method specific information (SIMP, Level-Set, FreeMat, ...) is in add-ons. */
 class DesignElement : public BaseDesignElement
-{     
+{
 public:
 
 
@@ -325,7 +325,7 @@ public:
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
     double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
-    
+
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
 
@@ -422,8 +422,8 @@ private:
   void Init();
 
   /** returns the non-scalar values */
-  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;  
-  
+  void GetValue(ValueSpecifier sp, StdVector<double>& out) const;
+
   /** the barycenter of this element only set on request. */
   Point* location_;
 

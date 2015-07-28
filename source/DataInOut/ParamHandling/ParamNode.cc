@@ -26,7 +26,7 @@ const string ParamNode::PROCESS = "process";
 const string ParamNode::SUMMARY = "summary";
 
 const string ParamNode::WARNING = "warning";
-const string ParamNode::ERROR = "error";
+const string ParamNode::FAIL = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
  *  Filed in cfs.cc. The corresponding
@@ -237,7 +237,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
       break;
     case EX:
       EXCEPTION("None of the " << children_.GetSize() << " childs of element '"
-          << this->name_ << "'" << " has a child '" << myName << "'")
+          << this->name_ << "'" << " has a child '" << myName << "' ")
       ;
       break;
     case PASS:
@@ -313,7 +313,7 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child_r
   // Get()-calls will always create a child elements
   if (insertNew || action == APPEND)
   {
-
+    //changed 2nd parameter to APPEND
     PtrParamNode ret = this->Get(parent, ParamNode::APPEND);
     ret->Get(child, ParamNode::APPEND)->SetValue(value);
     return ret;

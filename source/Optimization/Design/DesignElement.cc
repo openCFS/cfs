@@ -70,6 +70,7 @@ bool BaseDesignElement::IsCompatible(Type super, Type test)
     case STIFF1:
     case STIFF2:
     case STIFF3:
+    case SHEAR1:
     //for mod_red
     case SCALING1:
     case SCALING2:
@@ -767,6 +768,7 @@ void DesignElement::SetEnums()
   type.Add(STIFF1, "stiff1");
   type.Add(STIFF2, "stiff2");
   type.Add(STIFF3, "stiff3");
+  type.Add(SHEAR1, "shear1");
   type.Add(SLACK, "slack");
   type.Add(ALPHA, "alpha");
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");

@@ -1,12 +1,20 @@
 #ifndef TOOLS_2001
 #define TOOLS_2001
 
+#include <math.h>
+
 #include <string>
 #include <iostream>
-#include <cmath>
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+
+// C++ is so poor that there even is no really standard for pi - > why not????
+#ifndef M_PI
+  #include <boost/math/constants/constants.hpp>
+  #define M_PI boost::math::constants::pi<double>()
+#endif
+
 
 namespace CoupledField {
 
@@ -41,6 +49,9 @@ namespace CoupledField {
                         const char delimiter = ',' );
 
   
+  /** boost based SplitStringList() which consideres almost all whitespaces */
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
+
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
     return "("+xpr+")";
@@ -53,12 +64,12 @@ namespace CoupledField {
   
    //! Convert grad => rad
    inline Double Grad2Rad( Double rad ) {
-     return rad / 180.0 * PI;
+     return rad / 180.0 * M_PI;
    }
    
   //! Convert rad => grad
   inline Double Rad2Grad( Double rad ) {
-     return rad / PI * 180.0;
+     return rad / M_PI * 180.0;
    }
   
   // =========================================================================

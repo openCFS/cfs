@@ -323,11 +323,11 @@ class Function
 
       Locality GetLocality() const { return locality_; }
 
-      /** The pase for oscillation constraint only to define two constraints with different
+      /** The phase for oscillation constraint only to define two constraints with different
        * feature sizes for material and void */
       typedef enum {
-        BOTH = -1000, // syn the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
-        VOID = -1,
+        BOTH = -1000,   // syn the values with the NO_SIGN, VOID_SIGN and VOID_MATERIAL constants
+        VOID_MAT = -1,  // with VOID MINGW I386 GCC 4.7.1 DEBUG complains about "error: expected identifier before 'void'"
         MATERIAL = 1
       } Phase;
 
@@ -460,6 +460,9 @@ class Function
         /** Function returns/interpolates the volume in 3D for cross shaped base cell*/
         double Interpolate_Volume3D(Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c, const Matrix<double>& vol_coeff,
             double direction) const;
+
+        /** Get the index of the local interpolation interval*/
+        int GetInterpolationIndex(Matrix<double>, double&) const;
 
         /** Function evaluates the interpolation polynomial used for volume calculation in 3D for cross shaped base cell*/
         double EvaluateC1Interpolation_3D( Vector<double>& p, const Matrix<double>& vol_a, const Matrix<double>& vol_b, const Matrix<double>& vol_c,const Matrix<double> & vol_coeff, double & da, double & db,
