@@ -71,6 +71,7 @@ IF(USE_ANSYSRST)
 ENDIF(USE_ANSYSRST)
 
 # Target link libraries for cfstool target.
+# add optimization to avoid a strange linke problem introduced in @13977 
 LIST(APPEND TARGET_LL
   domain
   mesh
@@ -82,7 +83,7 @@ LIST(APPEND TARGET_LL
   utils
   matvec
   cfsgeneral
-#  paramident
+  optimization
   logging
   simouttext
   ${BOOST_SERIALIZATION_LIB}
