@@ -700,8 +700,8 @@ void DesignElement::SetEnums()
 
   Filter::density.SetName("Filter::Density");
   Filter::density.Add(Filter::STANDARD, "standard");
-  Filter::density.Add(Filter::HEAVISIDE, "heaviside");
-  Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
+  Filter::density.Add(Filter::SOLID_HEAVISIDE, "solid_heaviside");
+  Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("BaseDesignElement::Type");
@@ -973,12 +973,12 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
-  assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
+  assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
   // do we need to post proc?
   if(fd != Filter::STANDARD)
   {
-    assert(fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE  || fd == Filter::TANH);
+    assert(fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE  || fd == Filter::TANH);
 
     if(fd == Filter::TANH)
       p_filt = CalcTanh(p_filt);
@@ -994,32 +994,6 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 
   return p_filt;
 }
-
-
-inline
-double SIMPElement::CalcTanh(double input_value) const
-{
-  Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::DENSITY);
-  assert(f->density_ == Filter::TANH);
-
-  double b = f->GetBeta();
-  double e = f->eta;
-  // make sure we are within the bounds
-  double ub = this->de_->GetUpperBound();
-  double lb = f->GetLowerBound(this->de_);
-
-  assert(b >= 0.0 && b < 2000);
-  assert(e >= lb && e <= ub);
-
-  // 1 - 1/(exp(2*beta*(x-param)) + 1)
-  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
-  double result = (ub-lb) * (func) + lb;
-
-  LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
-  return result;
-}
-
 
 double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
 {
@@ -1073,7 +1047,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
       double v = de->GetPlainValue(sp, g); // d f/d P_i
-      double h = 1.0; // for not-standard filters this is the additional derivative
+      double h = de->simp->filter.non_lin_scale; // for not-standard filters this is the additional derivative
       double x_n = 0.0;
 
       double b = f.GetBeta();
@@ -1081,33 +1055,25 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       // we need the filtered density -> but the real filtered value!!
       x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
 
-      if(f.density_ == Filter::HEAVISIDE)
+      if(f.density_ == Filter::SOLID_HEAVISIDE)
       {
-        // corr = (1 - (1 - x) * hc) * x;
-        //      = x^2 - hc*x  + x
-        // H = 1 - exp(-b * corr) + corr * exp(-b)
-
-        // let the compiler optimize!
-        double corr  = f.heaviside_corr * x_n * f.heaviside_corr * x_n  -  f.heaviside_corr * x_n + x_n;
-        double dcorr = 2.0 * f.heaviside_corr * x_n - f.heaviside_corr + 1;
-
-        h *= b * dcorr * exp(-b * corr) + dcorr * exp(-1.0*b);
+       // F = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b)
+       // H = scale * F + offset
+        h *= (b * exp(-b * x_n) + exp(-b));
       }
-      if(f.density_ == Filter::MOD_HEAVISIDE)
+      if(f.density_ == Filter::VOID_HEAVISIDE)
       {
         // general scaling
-        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
-        h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
+        h *= (b * exp(b*(x_n-1.0)) + exp(-1.0*b));
       }
       if(f.density_ == Filter::TANH)
       {
         // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
         // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
         double eta = f.eta;
-        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
-
         double e = std::exp(2.0 * b * ( x_n - eta));
-        h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
+
+        h *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
       }
 
       double w = i == -1 ? this->weight : ne->weight;

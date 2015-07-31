@@ -34,7 +34,7 @@ public:
    * Standard: the plain filter
    * modified heaviside, Sigmund (29), postproc stanard to 1 or max
    * tanh: Variant of the Xu-Filter as in Wang,Lazarow,Sigmund; On projection methods, ...;2010 but simpler implementation!*/
-  typedef enum { STANDARD, HEAVISIDE, MOD_HEAVISIDE, TANH } Density;
+  typedef enum { STANDARD, SOLID_HEAVISIDE, VOID_HEAVISIDE, TANH } Density;
 
   /** Handled in DesignElement.cc */
   static Enum<Type>        type;
@@ -49,26 +49,32 @@ public:
 
   double GetBeta() const { return beta_; }
 
-  /** Setting beta triggers the calculation of heaviside_corr.
-   * The other settings need to be set! */
-  void SetBeta(double beta, const DesignSpace* space);
+  void SetBeta(double v) { beta_ = v; }
 
   /** Set an explicit lower bound to overwrite the design's lower bound */
   void SetLowerBound(double value) { explicit_lower_bound_ = value; }
+
+  /** Set non_lin_scale and non_lin_offset. considers explicit_lower_bound_
+   * @peram de reference design element for bounds */
+  void SetNonLinCorrection(const DesignElement* de);
 
   Type        type_;
   Sensitivity sensitivity_;
   Density     density_;
 
-  /** this is the correction parameter for the (not modified) heaviside filter,
-   * such that H(rho_min) = rho_min -> otherwise H(0.001) -> 1 for beta -> inf
-   * the correction value found by bisection on any new beta value */
-  double    heaviside_corr;
+  /** to have F(rho_max) = rho_max and F(rho_min) = rho_min we need a scaling and a offset.
+   * This applies for Heaviside and tanh.
+   * With solid_heaviside for a large beta F(x > 0) -> 1
+   * With tanh for a small beta F(0) >> 0 and F(1) << 1. With eta != 0.5 this is unsymmetric */
+  double non_lin_scale;
+  double non_lin_offset;
 
   /** switching parameter for tanh */
   double eta;
 
 private:
+
+
   /** this is the beta parameter for the (modified) heaviside or tanh design filter.
    * Private such that we force setting heaviside_corr on setting beta */
    double     beta_;

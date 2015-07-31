@@ -131,7 +131,7 @@ def find_radius(dim, vol, order, invert):
   print "dim=" + str(dim) + " order=" + str(order) + " target_vol=" + str(vol) + " result_vol=" + str(data.sum() / float(data.size)) + ' min=' + str(numpy.amin(data)) + ' max=' + str(numpy.amax(data)) 
   return data
 
-def cross(dim, vol, res):
+def cross(dim, vol, res, lower):
   assert(dim == 2)
   
   # v = 2*h - h^2 
@@ -141,7 +141,7 @@ def cross(dim, vol, res):
 
   print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
 
-  data = numpy.ones((res, res)) * 1e-3 # violate exact volume
+  data = numpy.ones((res, res)) * lower # violate exact volume
   
   start = int(res/2. - s/2. + 0.5)
   end   = int(res/2. + s/2. + 0.5)
@@ -158,6 +158,7 @@ parser.add_argument('--dim', help="square (2) or cube (3)", type=int, default=2)
 parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother", type=int, default=6)
 parser.add_argument('--invert', help="invert to solid inside", action='store_true')
 parser.add_argument('--cross', help="make a simple cross", action='store_true')
+parser.add_argument('--lower', help="value for void material. Default 1e-3", type=float, default=1e-3)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
 
 # parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
@@ -183,7 +184,7 @@ data = None
 filename = None
 
 if args.cross:
-  data = cross(args.dim, vol, args.res)
+  data = cross(args.dim, vol, args.res, args.lower)
   filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(divider) + ".density.xml"
 else:
   data = find_radius(args.dim, vol, args.order, args.invert)
