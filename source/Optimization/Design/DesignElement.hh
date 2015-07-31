@@ -585,42 +585,57 @@ double SIMPElement::CalcHeaviside(double input_value) const
 {
   const Filter* f = &de_->simp->filter;
   assert(f->type_ == Filter::DENSITY);
-  assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+  assert(f->density_ == Filter::SOLID_HEAVISIDE || f->density_ == Filter::VOID_HEAVISIDE);
 
   double result;
 
   double b = f->GetBeta();
   assert(b >= 0.0 && b < 2000);
 
-  if(f->density_ == Filter::HEAVISIDE)
+  if(f->density_ == Filter::SOLID_HEAVISIDE)
   {
-    // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
-    double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
-    result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+    double tmp = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b);
+    result = f->non_lin_scale * tmp + f->non_lin_offset;
 
     // no LOG_DBG possible due to inline
-    // std::cout << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-    ///          << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result << std::endl;
   }
   else // if(f->density_ == Filter::MOD_HEAVISIDE)
   {
-    // make sure we are within the bounds
-    double ub = this->de_->GetUpperBound();
-    double lb = f->GetLowerBound(this->de_); // might be force_lower_bound from the filter setting
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
-    assert((ub-lb) > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
+    assert(f->non_lin_scale > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
 
-    result = (ub-lb) * (first + second) + lb;
-
+    result = f->non_lin_scale * (first + second) + f->non_lin_offset;
     // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
     //           << " +1st=" << first << " +2nd=" << second << " -> " << result << std::endl;
   }
 
   return result;
 }
+
+inline
+double SIMPElement::CalcTanh(double input_value) const
+{
+  Filter* f = &de_->simp->filter;
+
+  assert(f->type_ == Filter::DENSITY);
+  assert(f->density_ == Filter::TANH);
+
+  double b = f->GetBeta();
+  double e = f->eta;
+
+  assert(b >= 0.0 && b < 2000);
+
+  // 1 - 1/(exp(2*beta*(x-param)) + 1)
+  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
+  double result = f->non_lin_scale * (func) + f->non_lin_offset;
+
+  // LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
+  return result;
+}
+
 
 } // end of namespace
 

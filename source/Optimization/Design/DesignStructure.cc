@@ -128,15 +128,6 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
   if(filter_.type_ == Filter::DENSITY && pn->Has("density"))
     filter_.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
 
-  if(filter_.density_ != Filter::STANDARD)
-  {
-    if(!pn->Has("density/beta"))
-      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
-    filter_.SetBeta(pn->Get("density/beta")->As<double>(), space); // all relevant parameters set!
-
-    if(pn->Has("density/force_lower_bound"))
-      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
-  }
 
   if(filter_.density_ == Filter::TANH)
   {
@@ -144,6 +135,20 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
       throw Exception("Attribute 'eta' required for 'tanh' density filtering");
     filter_.eta = pn->Get("density/eta")->As<double>();
   }
+
+  if(filter_.density_ != Filter::STANDARD)
+  {
+    if(!pn->Has("density/beta"))
+      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
+    filter_.SetBeta(pn->Get("density/beta")->As<double>());
+
+    if(pn->Has("density/force_lower_bound"))
+      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
+
+    assert(data_ptr == NULL || space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
+    filter_.SetNonLinCorrection(&data[0]);
+  }
+
 
   PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters/filter", ParamNode::APPEND);
 
@@ -169,10 +174,12 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
       in->Get("beta")->SetValue(filter_.GetBeta());
       if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
         in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
-      if(filter_.density_ == Filter::HEAVISIDE)
-        in->Get("heaviside_correction")->SetValue(filter_.heaviside_corr);
+
       if(pn->Has("density/force_lower_bound"))
         in->Get("force_lower_bound")->SetValue(filter_.GetLowerBound(NULL));
+
+      in->Get("scaling")->SetValue(filter_.non_lin_scale);
+      in->Get("offset")->SetValue(filter_.non_lin_offset);
     }
   }
 
