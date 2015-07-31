@@ -26,7 +26,7 @@ const string ParamNode::PROCESS = "process";
 const string ParamNode::SUMMARY = "summary";
 
 const string ParamNode::WARNING = "warning";
-const string ParamNode::ERROR = "error";
+const string ParamNode::FAIL = "error";
 
 /** This is our global pointer of the root ParamNode holding the XML file.
  *  Filed in cfs.cc. The corresponding
