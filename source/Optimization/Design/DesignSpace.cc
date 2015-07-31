@@ -380,10 +380,6 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
       return new DesignSpace(reg_data, pn, method, context);
   }
 }
-DesignSpace* DesignSpace::Clone()
-{
-  return new DesignSpace(regionIds_, pn_, ErsatzMaterial::SIMP_METHOD);
-}
 
 void DesignSpace::PostInit(int objectives, int constraints)
 {
@@ -1012,6 +1008,7 @@ int DesignSpace::ReadDesignFromExtern(const StdVector<double>& space)
 {
   return ReadDesignFromExtern(space.GetPointer());
 }
+
 bool DesignSpace::CompareDesign(const double* space)
 {
   const unsigned int nd = design.GetSize();
@@ -1052,6 +1049,7 @@ bool DesignSpace::CompareDesign(const double* space)
   assert(s == DesignSpace::GetNumberOfVariables());
   return(true);
 }
+
 int DesignSpace::WriteDesignToExtern(double* space, bool scaling) const
 {
   const unsigned int nd = design.GetSize();
@@ -1539,7 +1537,7 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
   for(unsigned int d = 0, dn = regions.GetSize(); d < dn; d++)
   {
     StdVector<DesignRegion>& regs = regions[d];
-    if(dt != DesignElement::NO_TYPE && regs[0].design != dt)
+    if((dt != DesignElement::NO_TYPE && dt != DesignElement::ALL_DESIGNS) && regs[0].design != dt)
       continue;
     if((dt == DesignElement::MULTIMATERIAL) && regs[0].design == dt && regs[0].multimaterial->index != multimaterial_index)
       continue;
@@ -1581,6 +1579,7 @@ DesignSpace::DesignRegion::DesignRegion()
 {
   regionId = -1;
   multimaterial = NULL;
+  filter_.Reserve(3); // handles the robust case and we can do save resize
 }
 std::string DesignSpace::DesignRegion::ToString() const
 {
@@ -1630,6 +1629,20 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
   }
 }
 
+
+Filter& DesignSpace::DesignRegion::GetFilter(bool create)
+{
+  if(filter_.GetSize() > 1)
+    return filter_[0];
+
+  if(!create)
+    throw Exception("no filter for design region set");
+
+  assert(filter_.Capacity() == 3);
+
+  filter_.Resize(1); // save as we reserved enough
+  return filter_[0];
+}
 
 PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialType mt)
 {

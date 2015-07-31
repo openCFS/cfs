@@ -14,7 +14,7 @@
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignMaterial.hh"
-//#include "Optimization/Design/Filter.hh"
+#include "Optimization/Design/Filter.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
@@ -48,10 +48,6 @@ namespace CoupledField
     
      /** Creates the corresponding DesignSpace object depending on the method */
      static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
-
-     /** Create a clone for projection method
-      * @return you have to take care of the pointer! */
-     DesignSpace* Clone();
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -369,6 +365,10 @@ namespace CoupledField
 
        bool HasBiMaterial() const;
 
+       /** return the filter
+        * @param create if the specified filter is not set, create it. Otherwise error */
+       Filter& GetFilter(bool create = false);
+
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material */
        PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
@@ -377,9 +377,6 @@ namespace CoupledField
 
        void ToInfo(PtrParamNode node) const;
 
-       /** this are the Filters for the design and the region. A vector for the robust case, otherwise the first element or none
-        * if we have not Filtering */
-       // StdVector<Filter> filter;
 
      private:
 
@@ -388,6 +385,10 @@ namespace CoupledField
 
        /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials_;
+
+       /** this are the Filters for the design and the region. A vector for the robust case, otherwise the first element or none
+        * if we have not Filtering */
+       StdVector<Filter> filter_;
      };
      
      /** Get DesignRegion.  */

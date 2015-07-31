@@ -25,6 +25,7 @@ Filter::Filter()
   non_lin_scale  = -1.0;
   non_lin_offset = -1.0;
   explicit_lower_bound_ = std::numeric_limits<double>::min();
+  region         = NO_REGION_ID;
 }
 
 double Filter::GetLowerBound(const DesignElement* de) const
@@ -48,15 +49,15 @@ void Filter::SetNonLinCorrection(const DesignElement* ref)
 
   DesignElement de = DesignElement();
   de.simp = new SIMPElement(&de);
-  de.simp->filter = *this; // this is the important point!. Note that we copy the Filter, not the pointer. Any change on this will NOT be reflected in de.simp->filter!
+  de.simp->filter = this;
   de.elem = ref->elem; // otherwise the logings segfault
 
   double ub = ref->GetUpperBound();
   double lb = ref->GetLowerBound();
 
   // calc the pure values
-  de.simp->filter.non_lin_scale = 1.0;
-  de.simp->filter.non_lin_offset = 0;
+  this->non_lin_scale = 1.0;
+  this->non_lin_offset = 0;
 
   double org_u = density_ == TANH ? de.simp->CalcTanh(ub) : de.simp->CalcHeaviside(ub);
   double org_l = density_ == TANH ? de.simp->CalcTanh(lb) : de.simp->CalcHeaviside(lb);
@@ -69,12 +70,11 @@ void Filter::SetNonLinCorrection(const DesignElement* ref)
 
   // F ist the filter. We scale with scale*F + offset
   // scale such that F(u)-F(l) == ub-lb
-  non_lin_scale  = (ub-lb) / (org_u - org_l);
-  non_lin_offset = lb - non_lin_scale * org_l;
+  this->non_lin_scale  = (ub-lb) / (org_u - org_l);
+  this->non_lin_offset = lb - non_lin_scale * org_l;
 
   LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " f=" << density.ToString(density_) << " d==" << (ub-lb) << " od=" << (org_u-org_l) << " -> s=" << non_lin_scale << " o=" << non_lin_offset;
 
-  de.simp->filter = *this; // this is only for the asserts
   assert(close(density_ == TANH ? de.simp->CalcTanh(lb) : de.simp->CalcHeaviside(lb), lb));
   assert(close(density_ == TANH ? de.simp->CalcTanh(ub) : de.simp->CalcHeaviside(ub), ub));
 }
