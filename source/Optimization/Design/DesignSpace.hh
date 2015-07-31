@@ -14,6 +14,7 @@
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignMaterial.hh"
+//#include "Optimization/Design/Filter.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
@@ -375,6 +376,10 @@ namespace CoupledField
        std::string ToString() const;
 
        void ToInfo(PtrParamNode node) const;
+
+       /** this are the Filters for the design and the region. A vector for the robust case, otherwise the first element or none
+        * if we have not Filtering */
+       // StdVector<Filter> filter;
 
      private:
 

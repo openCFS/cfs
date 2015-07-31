@@ -42,7 +42,7 @@ public:
    * @param pn our parameter section of the filer, includes design name
    * @param info where to write (in HEADER) the information
    * @param To be usable for the projection function which has own design elements. NULL takes the standard design space!*/
-  void SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data = NULL);
+  void SetFilters(PtrParamNode pn, PtrParamNode info);
 
   /** Do we have periodic BC. */
   bool IsPeriodic() const { return periodic; }

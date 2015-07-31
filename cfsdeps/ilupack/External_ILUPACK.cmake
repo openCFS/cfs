@@ -1,6 +1,6 @@
-#-------------------------------------------------------------------------------
-# Set paths to ilupack sources according to ExternalProject.cmake 
-#-------------------------------------------------------------------------------
+# Ilupack is a closed source academic iterative solve by M. Bollhoefer, TU-Braunschweig
+# by special agreement we have the source available which must not be redistributed
+
 set(ilupack_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/ilupack")
 set(ilupack_source  "${ilupack_prefix}/src/ilupack")
 set(ilupack_install  "${CMAKE_CURRENT_BINARY_DIR}")

@@ -152,7 +152,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // is cheap - for density filtering
     DesignStructure filter(space, space->GetRegionIds());
     PtrParamNode  reg = xml->Get("header/filters/filter", ParamNode::PASS);
-    if(reg) filter.SetFilters(reg, info->Get("ersatzMaterial"));
+    if(reg)
+      filter.SetFilters(reg, info->Get("ersatzMaterial"));
 
     space->ToInfo(info->Get("ersatzMaterial")->Get(ParamNode::HEADER), NULL);
   }

@@ -1486,10 +1486,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::TEMPERATURE:
       break;// FIXMEHEAT
 
-      case Function::PROJECTION:
-      result = CalcProjection(f, derivative);
-      break;
-
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
       assert(false);// shall be handled before
@@ -2433,88 +2429,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     return freq;
   }
 
-  double ErsatzMaterial::CalcProjection(Function* f, bool derivative)
-  {
-    LOG_DBG(em) << "CP: g=" << !(f->IsObjective()) << " d=" << derivative;
-    assert(f->GetProjectionDesignClone().GetSize() == design->data.GetSize());
-    assert(design->design.GetSize() == 1);
-    // result for the element wise function value
-    int proj_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PROJECTION);
-    // result for the element wise filter part of the projection
-    int filt_idx = design->GetSpecialResultIndex(DesignElement::DEFAULT, DesignElement::PROJECTION, DesignElement::PROJECTION_FILTER);
-    StdVector<DesignElement>& fake_data = f->GetProjectionDesignClone();
-    // copy original design variable
-    for (unsigned int i = 0, n = fake_data.GetSize();i < n;i++)
-      fake_data[i].SetDesign(design->data[i].GetPlainDesignValue());
-    // evaluate   sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2
-    double sum = 0.0;
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::DENSITY, MECH);// only on the original value
-    // g = sum_i  ( nu(rho_i) - H_i(rho) )^2
-    // let us assume H = standard density filter
-    // d g/d rho_e = sum_i 2  (nu(rho_i) - H_i(rho)) * ( d nu/d rho _e - d H_i(rho)/ d rho_e)
-    //             = d nu/d rho _e * 2 * (nu(rho_i) - H_i(rho)) - sum_i(N_e) (w_e(x_i) * 2 * (nu(rho_i) - H_i(rho))) / (sum_j(N_i) w_i(x_j))
-    // Important!!!!
-    // The implementation of  GetDensityFilteredGradient() contains the sum. We have to set 2 * (nu(rho_i) - H_i(rho)) as temporary gradient value.
-    // because of the complicated gradient first calculate all nu(rho_i) - H_i(rho)
-    StdVector<std::pair<double,double> > values(fake_data.GetSize());
-    for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
-    {
-      DesignElement* org = &(design->data[i]);
-      DesignElement* fil = &fake_data[i];
-
-      double state = tf->Transform(org, DesignElement::SMART); // the physical value
-      double fake = fil->GetDesign(DesignElement::SMART);
-
-      values[i] = std::make_pair(state, fake);
-
-      if(derivative)
-      {
-        fil->Reset(f->IsObjective() ? DesignElement::COST_GRADIENT : DesignElement::CONSTRAINT_GRADIENT, f);
-        fil->AddGradient(f, 2.0 * (state - fake)); // see comment above!
-        LOG_DBG2(em) << "CP: e=" << org->ToString() << " prepare s=" << state << " f=" << fake << " 2(s-f)=" << (2.0 * (state - fake));
-      }
-    }
-    for(unsigned int i = 0, n = fake_data.GetSize(); i < n; i++)
-    {
-      DesignElement* org = &(design->data[i]);
-
-      double state = values[i].first;
-      double fake = values[i].second;
-
-      if(derivative)
-      {
-        DesignElement* fil = &fake_data[i];
-
-        double state_grad = tf->Derivative(org, DesignElement::SMART);
-        double fake_grad = 0.0; // use the 'plain gradients' 2.0 * (state - fake)
-        if(f->IsObjective())
-        fake_grad = fil->simp->GetDensityFilteredGradient(DesignElement::COST_GRADIENT, NULL);
-        else
-        fake_grad = fil->simp->GetDensityFilteredGradient(DesignElement::CONSTRAINT_GRADIENT, (Condition*) f);
-
-        double grad = 2.0 * (state - fake) * state_grad - fake_grad;
-
-        org->AddGradient(f, grad);
-
-        LOG_DBG2(em) << "CP: e=" << org->ToString() << " s=" << state << " f=" << fake << " ds=" << state_grad << " df= " << fake_grad << " -> " << grad;
-
-      }
-
-      if(!derivative) // the non-derivative case is easier
-      {
-        double val = (state - fake) * (state - fake);
-        sum += val;
-
-        if(proj_idx != -1)
-        org->specialResult[proj_idx] = val;
-        if(filt_idx != -1)
-        org->specialResult[filt_idx] = fake;
-
-        LOG_DBG2(em) << "CP: e=" << org->ToString() << " state=" << state << " fake=" << fake << " -> " << sum;
-      }
-    }
-    return sum;
-  }
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
