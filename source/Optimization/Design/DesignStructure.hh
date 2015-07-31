@@ -157,9 +157,6 @@ private:
   /** is the grid regular? */
   bool regular;
 
-  /** The reference filter setting */
-  Filter filter_;
-
   /** The filtered design (for multiple designs only) */
   DesignElement::Type design;
 

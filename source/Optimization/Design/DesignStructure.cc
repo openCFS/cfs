@@ -65,7 +65,6 @@ void DesignStructure::Constructor()
   periodic = domain->HasPerdiodicBC();
 
   filter_space_ = NO_FILTER;
-  filter_ = Filter(); // defaults
 
   value  = -1.0;
 
@@ -117,45 +116,53 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   else
     design = DesignElement::ALL_DESIGNS;
 
-  filter_.type_ = Filter::type.Parse(pn->Get("type")->As<std::string>());
+  // create the corresponding filter in DesignStructure::regions.
+  // As we have no region specific filter settings yet but have to consider it for the different upper and lower bounds,
+  // use here for the first region and distribute it at the end of the method to the other regions
+  DesignSpace::DesignRegion* dr = space->GetRegion(space->GetRegionIds()[0],  design);
+  Filter& ref = dr->GetFilter(true); // create if necessary
+  assert(ref.GetType() == Filter::NO_FILTERING); // shall be a freshly created one
+
+  ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
+  ref.region = space->GetRegionIds()[0];
 
   if(value <= 0.0)
-    filter_.type_ = Filter::NO_FILTERING;
+    ref.SetType(Filter::NO_FILTERING);
 
-  if(filter_.type_ == Filter::SENSITIVITY && pn->Has("sensitivity"))
-    filter_.sensitivity_ = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
+  if(ref.GetType() == Filter::SENSITIVITY && pn->Has("sensitivity"))
+    ref.sensitivity_ = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
 
-  if(filter_.type_ == Filter::DENSITY && pn->Has("density"))
-    filter_.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
+  if(ref.GetType() == Filter::DENSITY && pn->Has("density"))
+    ref.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
 
 
-  if(filter_.density_ == Filter::TANH)
+  if(ref.density_ == Filter::TANH)
   {
     if(!pn->Has("density/eta"))
       throw Exception("Attribute 'eta' required for 'tanh' density filtering");
-    filter_.eta = pn->Get("density/eta")->As<double>();
+    ref.eta = pn->Get("density/eta")->As<double>();
   }
 
-  if(filter_.density_ != Filter::STANDARD)
+  if(ref.density_ != Filter::STANDARD)
   {
     if(!pn->Has("density/beta"))
-      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
-    filter_.SetBeta(pn->Get("density/beta")->As<double>());
+      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(ref.density_) + "' density filtering");
+    ref.SetBeta(pn->Get("density/beta")->As<double>());
 
     if(pn->Has("density/force_lower_bound"))
-      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
+      ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
 
     assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
-    filter_.SetNonLinCorrection(&data[0]);
+    ref.SetNonLinCorrection(&data[0]);
   }
 
 
   PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters/filter", ParamNode::APPEND);
 
-  in->Get("target")->SetValue(Filter::type.ToString(filter_.type_));
+  in->Get("target")->SetValue(Filter::type.ToString(ref.GetType()));
 
   // do we have to do something?
-  if(filter_.type_ == Filter::NO_FILTERING)
+  if(ref.GetType() == Filter::NO_FILTERING)
     return;
 
   in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
@@ -163,23 +170,23 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   in->Get("value")->SetValue(value);
   in->Get("contribution")->SetValue(contribution_ == LINEAR ? "linear" : "constant");
 
-  if(filter_.type_ == Filter::SENSITIVITY)
-    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(filter_.sensitivity_));
+  if(ref.GetType() == Filter::SENSITIVITY)
+    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(ref.sensitivity_));
 
-  if(filter_.type_ == Filter::DENSITY)
+  if(ref.GetType() == Filter::DENSITY)
   {
-    in->Get("density")->SetValue(Filter::density.ToString(filter_.density_));
-    if(filter_.density_ != Filter::STANDARD)
+    in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
+    if(ref.density_ != Filter::STANDARD)
     {
-      in->Get("beta")->SetValue(filter_.GetBeta());
+      in->Get("beta")->SetValue(ref.GetBeta());
       if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
         in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
 
       if(pn->Has("density/force_lower_bound"))
-        in->Get("force_lower_bound")->SetValue(filter_.GetLowerBound(NULL));
+        in->Get("force_lower_bound")->SetValue(ref.GetLowerBound(NULL));
 
-      in->Get("scaling")->SetValue(filter_.non_lin_scale);
-      in->Get("offset")->SetValue(filter_.non_lin_offset);
+      in->Get("scaling")->SetValue(ref.non_lin_scale);
+      in->Get("offset")->SetValue(ref.non_lin_offset);
     }
   }
 
@@ -191,14 +198,14 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     PtrParamNode in_ = in->Get("functions")->Get("objective", ParamNode::APPEND);
     Objective* f = em->objectives.data[i];
     in_->Get("name")->SetValue(f->GetName());
-    in_->Get("filtered")->SetValue(filter_.type_ == Filter::DENSITY ? f->ForDensityFiltering() : f->ForSensitivityFiltering());
+    in_->Get("filtered")->SetValue(ref.GetType() == Filter::DENSITY ? f->ForDensityFiltering() : f->ForSensitivityFiltering());
   }
   for(unsigned int i = 0; em != NULL && i < em->constraints.active.GetSize(); i++)
   {
     PtrParamNode in_ = in->Get("functions")->Get("constraint", ParamNode::APPEND);
     Condition* g = em->constraints.active[i];
     in_->Get("name")->SetValue(g->ToString());
-    in_->Get("filtered")->SetValue(filter_.type_ == Filter::DENSITY ? g->ForDensityFiltering() : g->ForSensitivityFiltering());
+    in_->Get("filtered")->SetValue(ref.GetType() == Filter::DENSITY ? g->ForDensityFiltering() : g->ForSensitivityFiltering());
   }
 
   // the initialization was separated!
@@ -231,7 +238,15 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   {
     DesignElement* de = &data[e];
 
-    de->simp->filter = filter_;
+    // handle the implicit check if we came to a new design region
+    DesignSpace::DesignRegion* dr = space->GetRegion(de->elem->regionId, de->GetType());
+    Filter& drf = dr->GetFilter(true); // create if necessary
+    if(drf.GetType() == Filter::NO_FILTERING) {
+      drf = ref; // copy the content of the current filter to the reference.
+      drf.region = de->elem->regionId; //
+    }
+
+    de->simp->filter = &drf;
 
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
@@ -256,7 +271,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     de->simp->weight = (contribution_ == CONSTANT ? 1.0 : radius);
 
     // this is actually the re-implementation of a bug as it appeared to be not bad :)
-    if(de->simp->filter.sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.sensitivity_ == Filter::SHARP_PLAIN)
+    if(de->simp->filter->sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter->sensitivity_ == Filter::SHARP_PLAIN)
     {
       // normalize with a 'bug'
       double weight_sum = de->simp->CalcWeightSum(false) + 1.0;
@@ -297,7 +312,9 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   // radius - distance but value - distance. To keep the legacy results we reproduce
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
-  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+
+  Filter* filter = base->simp->filter;
+  double val_rad = filter->sensitivity_ == Filter::SHARP_PLAIN || filter->sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   int x = static_cast<int>(ceil(radius / edges[0]));
   int y = static_cast<int>(ceil(radius / edges[1]));
@@ -382,7 +399,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   // radius - distance but value - distance. To keep the legacy results we reproduce
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
-  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  Filter* filter = base->simp->filter;
+  double val_rad = filter->sensitivity_ == Filter::SHARP_PLAIN || filter->sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   assert(!periodic); // only regular may be periodic!!
 

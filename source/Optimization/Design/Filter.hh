@@ -58,7 +58,10 @@ public:
    * @peram de reference design element for bounds */
   void SetNonLinCorrection(const DesignElement* de);
 
-  Type        type_;
+  void SetType(Type t) { type_ = t; }
+
+  Type GetType() const { return type_; }
+
   Sensitivity sensitivity_;
   Density     density_;
 
@@ -72,7 +75,12 @@ public:
   /** switching parameter for tanh */
   double eta;
 
+  /** to check where we belong to */
+  RegionIdType region;
+
 private:
+
+  Type type_;
 
 
   /** this is the beta parameter for the (modified) heaviside or tanh design filter.

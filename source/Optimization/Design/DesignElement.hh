@@ -500,8 +500,8 @@ public:
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
 
-  /** The complete filter settings */
-  Filter filter;
+  /** The complete filter settings. The instance is stored in DesignSpace::regions */
+  Filter* filter;
 
 private:
 
@@ -583,8 +583,8 @@ public:
 inline
 double SIMPElement::CalcHeaviside(double input_value) const
 {
-  const Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::DENSITY);
+  const Filter* f = de_->simp->filter;
+  assert(f->GetType() == Filter::DENSITY);
   assert(f->density_ == Filter::SOLID_HEAVISIDE || f->density_ == Filter::VOID_HEAVISIDE);
 
   double result;
@@ -618,9 +618,9 @@ double SIMPElement::CalcHeaviside(double input_value) const
 inline
 double SIMPElement::CalcTanh(double input_value) const
 {
-  Filter* f = &de_->simp->filter;
+  Filter* f = de_->simp->filter;
 
-  assert(f->type_ == Filter::DENSITY);
+  assert(f->GetType() == Filter::DENSITY);
   assert(f->density_ == Filter::TANH);
 
   double b = f->GetBeta();
