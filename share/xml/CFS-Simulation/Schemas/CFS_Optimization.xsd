@@ -302,8 +302,6 @@
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
-            <!-- only for the projection constraint -->
-            <xsd:element name="filter" type="DT_Filter" minOccurs="0" maxOccurs="1"/>
             <!-- only for the output constroaint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
@@ -348,8 +346,6 @@
                 <xsd:enumeration value="stressDensity"/>
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
                 <xsd:enumeration value="designTracking"/>
-                <!-- requires the sub-element filter -->
-		            <xsd:enumeration value="projection"/>
 		            <!-- for (DENSITY_TIMES_)ORTHOTROPIC only -->
 		            <xsd:enumeration value="orthotropicTensorTrace"/>
 		            <xsd:enumeration value="globalOrthotropicTensorTrace"/>
@@ -1209,8 +1205,6 @@
                       <xsd:enumeration value="designTracking"/>
                      <!-- This is the gradient matrix -->
                       <xsd:enumeration value="transfoMatrix"/>
-                      <!-- the local value of the projection function -->
-                      <xsd:enumeration value="projection"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1745,8 +1739,6 @@
       <xsd:enumeration value="elec_elec_quad"/>
       <xsd:enumeration value="mech_elec"/>
       <xsd:enumeration value="elec_mech"/>
-      <!-- detail for projection function. The Filter part -->
-      <xsd:enumeration value="projectionFilter"/>
       <!-- detail for constraintGradient in SIMP -->
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>

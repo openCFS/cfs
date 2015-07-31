@@ -323,7 +323,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::YOUNGS_MODULUS_E2, "youngsModulusE2");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
-  Function::type.Add(Function::PROJECTION, "projection");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");

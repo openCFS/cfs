@@ -299,9 +299,6 @@ protected:
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
 
-  /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
-  double CalcProjection(Function* f, bool derivative);
-
   /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 

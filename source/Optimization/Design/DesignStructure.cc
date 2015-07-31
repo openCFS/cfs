@@ -102,12 +102,12 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data_ptr)
+void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 {
   if(!initialized_)
     Initialize();
 
-  StdVector<DesignElement>& data = data_ptr != NULL ? *data_ptr : space->data;
+  StdVector<DesignElement>& data = space->data;
 
   filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
   contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
@@ -145,7 +145,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     if(pn->Has("density/force_lower_bound"))
       filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
 
-    assert(data_ptr == NULL || space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
+    assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
     filter_.SetNonLinCorrection(&data[0]);
   }
 
@@ -250,6 +250,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
       FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
     // save neighborhood by copy constructor
     de->simp->neighborhood = neighbors;
+
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
     de->simp->weight = (contribution_ == CONSTANT ? 1.0 : radius);
@@ -269,17 +270,19 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     avg_neighbours += de->simp->neighborhood.GetSize();
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
+
   double normalized_avg_radius = avg_radius / (data.GetSize()/space->design.GetSize());
   double normalized_avg_neighbours = avg_neighbours / (data.GetSize()/space->design.GetSize());
+
   in->Get("avg_radius")->SetValue(normalized_avg_radius);
   in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
-//  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
-//  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
+  //  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
+  //  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
 
   timer->Stop();
   
-//  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
-//            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
+  //  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
+  //            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
 
   std::cout << "Filter: " << "avg radius: " << normalized_avg_radius
             << " avg neighbourhood: " << normalized_avg_neighbours << std::endl;

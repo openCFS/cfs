@@ -121,13 +121,6 @@ Function::Function(PtrParamNode pn) {
       throw Exception("function '" + type.ToString(type_) + "' requires the 'ev' with value >= 1");
     break;
 
-  case PROJECTION:
-    if (!pn->Has("filter"))
-      throw Exception("function '" + type.ToString(type_) + "' requires the 'filter' element");
-    if (region != ALL_REGIONS)
-      throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
-    break;
-
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if(design_ != DesignElement::DEFAULT && design_ != DesignElement::MECH_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
@@ -203,11 +196,6 @@ Function::~Function()
     local = NULL;
   }
 
-  if (projectionDesign_ != NULL) {
-    delete projectionDesign_;
-    projectionDesign_ = NULL;
-  }
-
   // this might lead to problems when they are active in Assemble and ~Assemble deletes them
   output_forms.Clear();
 }
@@ -218,7 +206,6 @@ void Function::Init() {
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
   this->local = NULL;
-  this->projectionDesign_ = NULL;
 
   // function value to be evaluated
   this->value_ = -1.0;
@@ -387,7 +374,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_JUMP:
   case BUMP:
   case DESIGN_TRACKING:
-  case PROJECTION:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case TWO_SCALE_VOL:
@@ -602,7 +588,6 @@ bool Function::ForDensityFiltering() const {
     return true;
   case DEFAULT: // no "filtered=" entry in constraint given. Use default values:
     switch (type_) {
-    case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
     case SLACK:
     case SHAPE_INF:
     case DESIGN_BOUND: // TODO check if this is really true as pyhsical material might harm the bound ?!
@@ -673,7 +658,6 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_JUMP:
   case BUMP:
   case DESIGN_TRACKING:
-  case PROJECTION:
   case ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
@@ -711,11 +695,6 @@ bool Function::ForSensitivityFiltering() const {
 
   EXCEPTION("can never reach! Stupid C++");
   return false;
-}
-
-StdVector<DesignElement>& Function::GetProjectionDesignClone() {
-  assert(type_ == PROJECTION);
-  return projectionDesign_->data;
 }
 
 void Function::SetElements(DesignSpace* space, RegionIdType region) {
@@ -867,30 +846,6 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
       if (space->transfer[i].IsPenalized())
         preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
-
-  case PROJECTION: {
-    // We have to create a deep copy of the original design space. Also the neighborhood must not point to the original design.
-    projectionDesign_ = space->Clone(); // the original regions if all
-
-    DesignStructure ds(projectionDesign_, projectionDesign_->GetRegionIds());
-    VicinityElement::Init(projectionDesign_, &ds);
-
-    StdVector<DesignElement>& fake_data = GetProjectionDesignClone();
-
-    PtrParamNode reg = pn->Get("filter");
-    ds.SetFilters(reg, preInfo_, &fake_data);
-
-    assert(space->data.GetSize() == space->GetTotalElements().GetSize());
-    assert(space->data.GetSize() == fake_data.GetSize());
-
-    for (unsigned int i = 0, n = fake_data.GetSize(); i < n; i++) {
-      // projectionDesign_[i].simp = new SIMPElement(&projectionDesign_[i]);
-      // we need the gradient size for temporary storage in the gradient calculation
-      fake_data[i].PostInit(em->objectives.data.GetSize(),
-          em->constraints.active.GetSize());
-    }
-    break;
-  }
 
   case SLACK:
     if (!space->HasSlackVariable())
