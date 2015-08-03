@@ -20,8 +20,9 @@ Filter::Filter()
   type_          = NO_FILTERING;
   sensitivity_   = SIGMUND;
   density_       = STANDARD;
-  beta_          = -1.0;
+  beta           = -1.0;
   eta            = -1.0;
+  robust         = -1;
   non_lin_scale  = -1.0;
   non_lin_offset = -1.0;
   explicit_lower_bound_ = std::numeric_limits<double>::min();
@@ -42,7 +43,7 @@ void Filter::SetNonLinCorrection(const DesignElement* ref)
   if(type_ != DENSITY || !(density_ == SOLID_HEAVISIDE || density_ == VOID_HEAVISIDE || density_ == TANH))
     return;
 
-  assert(beta_ >= 0);
+  assert(beta >= 0);
   assert(density_ != TANH || eta >= 0);
 
   // we ignore the bimat case - the we still have the tahn problem for small beta

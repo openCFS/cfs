@@ -506,7 +506,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) c
   bool design_filter = false;
   bool design_filter_grad = false;
 
-  if(access == SMART && simp != NULL && simp->filter->GetType() != Filter::NO_FILTERING)
+  if(access == SMART && simp != NULL && simp->filter != NULL && simp->filter->GetType() != Filter::NO_FILTERING)
   {
     Filter* f = simp->filter;
     if(f->GetType() == Filter::DENSITY)
@@ -611,7 +611,7 @@ double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || simp->filter->GetType() == Filter::DENSITY);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (simp->filter != NULL && simp->filter->GetType() == Filter::DENSITY));
 }
 
 
@@ -1050,7 +1050,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       double h = de->simp->filter->non_lin_scale; // for not-standard filters this is the additional derivative
       double x_n = 0.0;
 
-      double b = f->GetBeta();
+      double b = f->beta;
 
       // we need the filtered density -> but the real filtered value!!
       x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);

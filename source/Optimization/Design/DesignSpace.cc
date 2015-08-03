@@ -621,7 +621,7 @@ void DesignSpace::AssertOneDesignOnly()
 int DesignSpace::FindDesign(DesignElement::Type dt, bool throw_exception) const
 {
   // do a fallback for NO_TYPE and DEFAULT
-  if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT))
+  if(design.GetSize() == 1 && (dt == DesignElement::NO_TYPE || dt == DesignElement::DEFAULT || dt == DesignElement::ALL_DESIGNS))
     return 0;
   // this is not a real type of design, but volume constraint can operate on it, if optimization returns a complete tensor
   if(dt == DesignElement::MECH_TRACE && designMaterial != NULL)
@@ -1630,18 +1630,19 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
 }
 
 
-Filter& DesignSpace::DesignRegion::GetFilter(bool create)
+Filter& DesignSpace::DesignRegion::GetFilter(bool create, unsigned int meta)
 {
-  if(filter_.GetSize() > 1)
-    return filter_[0];
+  if(meta < filter_.GetSize())
+    return filter_[meta];
 
   if(!create)
-    throw Exception("no filter for design region set");
+    EXCEPTION("no filter for design region set with meta index " << meta);
 
   assert(filter_.Capacity() == 3);
+  assert(meta < 3);
 
-  filter_.Resize(1); // save as we reserved enough
-  return filter_[0];
+  filter_.Resize(meta + 1); // save as we reserved enough - no copying
+  return filter_[meta];
 }
 
 PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialType mt)

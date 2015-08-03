@@ -366,8 +366,9 @@ namespace CoupledField
        bool HasBiMaterial() const;
 
        /** return the filter
-        * @param create if the specified filter is not set, create it. Otherwise error */
-       Filter& GetFilter(bool create = false);
+        * @param create if the specified filter is not set, create it. Otherwise error
+        * @param meta the robust excitation index. 0 for the first and also good when we do not robust */
+       Filter& GetFilter(bool create = false, unsigned int meta = 0);
 
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material */
