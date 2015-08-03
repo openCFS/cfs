@@ -589,7 +589,7 @@ double SIMPElement::CalcHeaviside(double input_value) const
 
   double result;
 
-  double b = f->GetBeta();
+  double b = f->beta;
   assert(b >= 0.0 && b < 2000);
 
   if(f->density_ == Filter::SOLID_HEAVISIDE)
@@ -623,7 +623,7 @@ double SIMPElement::CalcTanh(double input_value) const
   assert(f->GetType() == Filter::DENSITY);
   assert(f->density_ == Filter::TANH);
 
-  double b = f->GetBeta();
+  double b = f->beta;
   double e = f->eta;
 
   assert(b >= 0.0 && b < 2000);

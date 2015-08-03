@@ -59,6 +59,7 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
 void DesignStructure::Constructor()
 {
   initialized_ = false;
+  num_robust_  = 0;
 
   this->dim  = grid->GetDim();
 
@@ -123,6 +124,10 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   Filter& ref = dr->GetFilter(true); // create if necessary
   assert(ref.GetType() == Filter::NO_FILTERING); // shall be a freshly created one
 
+  // this is for InfoPrintProjectionFilter and overwritten in the robust case
+  StdVector<Filter*> filter;
+  filter.Push_back(&ref);
+
   ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
   ref.region = space->GetRegionIds()[0];
 
@@ -135,27 +140,31 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   if(ref.GetType() == Filter::DENSITY && pn->Has("density"))
     ref.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
 
-
-  if(ref.density_ == Filter::TANH)
-  {
-    if(!pn->Has("density/eta"))
-      throw Exception("Attribute 'eta' required for 'tanh' density filtering");
-    ref.eta = pn->Get("density/eta")->As<double>();
-  }
-
   if(ref.density_ != Filter::STANDARD)
   {
     if(!pn->Has("density/beta"))
       throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(ref.density_) + "' density filtering");
-    ref.SetBeta(pn->Get("density/beta")->As<double>());
+    ref.beta = pn->Get("density/beta")->As<double>();
 
     if(pn->Has("density/force_lower_bound"))
       ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
 
     assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
-    ref.SetNonLinCorrection(&data[0]);
-  }
 
+    if(ref.density_ == Filter::TANH)
+    {
+      // check for robust
+      if(pn->Has("robust"))
+        filter = SetFurtherRobustFilters(pn, ref, design);
+      else {
+        if(!pn->Has("density/eta"))
+          throw Exception("Attribute 'eta' required for 'tanh' density filtering");
+        ref.eta = pn->Get("density/eta")->As<double>();
+      }
+    }
+
+    ref.SetNonLinCorrection(&data[space->FindDesign(design) * space->GetNumberOfElements()]); // further robust filter might already be set
+  }
 
   PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters/filter", ParamNode::APPEND);
 
@@ -173,21 +182,10 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
   if(ref.GetType() == Filter::SENSITIVITY)
     in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(ref.sensitivity_));
 
-  if(ref.GetType() == Filter::DENSITY)
-  {
+  if(ref.GetType() == Filter::DENSITY)  {
     in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
-    if(ref.density_ != Filter::STANDARD)
-    {
-      in->Get("beta")->SetValue(ref.GetBeta());
-      if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
-        in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
-
-      if(pn->Has("density/force_lower_bound"))
-        in->Get("force_lower_bound")->SetValue(ref.GetLowerBound(NULL));
-
-      in->Get("scaling")->SetValue(ref.non_lin_scale);
-      in->Get("offset")->SetValue(ref.non_lin_offset);
-    }
+    if(ref.density_ != Filter::STANDARD && em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
+      in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
   }
 
   in->Get("periodic")->SetValue(periodic);
@@ -207,6 +205,9 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     in_->Get("name")->SetValue(g->ToString());
     in_->Get("filtered")->SetValue(ref.GetType() == Filter::DENSITY ? g->ForDensityFiltering() : g->ForSensitivityFiltering());
   }
+
+  if(ref.GetType() == Filter::DENSITY && ref.density_ != Filter::STANDARD)
+    InfoPrintProjectionFilter(pn, in, filter);
 
   // the initialization was separated!
   boost::shared_ptr<Timer> timer(new Timer()); 
@@ -231,9 +232,13 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     // also initialize the vicinity elements!
     VicinityElement::Init(space, this);
   }
+  assert(!(design == DesignElement::DEFAULT && space->design.GetSize() > 1));
 
-  unsigned int start = design == DesignElement::ALL_DESIGNS ? 0 : space->FindDesign(design)*space->GetNumberOfElements();
+  unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
   unsigned int end = design == DesignElement::ALL_DESIGNS ? data.GetSize() : start + space->GetNumberOfElements();
+
+  LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements();
+
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
@@ -243,7 +248,9 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
     Filter& drf = dr->GetFilter(true); // create if necessary
     if(drf.GetType() == Filter::NO_FILTERING) {
       drf = ref; // copy the content of the current filter to the reference.
-      drf.region = de->elem->regionId; //
+      drf.region = de->elem->regionId;
+      drf.SetNonLinCorrection(de); // the nonlinear filers need upper and lower bounds from the design in that region
+      assert(num_robust_ <= 1); // the copy and setting stuff required for multiple designs/ regions is to be implemented!
     }
 
     de->simp->filter = &drf;
@@ -291,16 +298,72 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info)
 
   in->Get("avg_radius")->SetValue(normalized_avg_radius);
   in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
-  //  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
-  //  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
 
   timer->Stop();
-  
-  //  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
-  //            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
 
-  std::cout << "Filter: " << "avg radius: " << normalized_avg_radius
-            << " avg neighbourhood: " << normalized_avg_neighbours << std::endl;
+  std::cout << "Filter " << DesignElement::type.ToString(design) << ": avg radius=" << normalized_avg_radius
+            << " avg neighbourhood=" << normalized_avg_neighbours << std::endl;
+}
+
+void DesignStructure::InfoPrintProjectionFilter(PtrParamNode pn, PtrParamNode info, const StdVector<Filter*>& filter)
+{
+  assert(!filter.IsEmpty());
+  
+  for(unsigned int i = 0; i < filter.GetSize(); i++)
+  {
+    Filter* f = filter[i];
+    assert(f->density_ != Filter::STANDARD);
+
+    PtrParamNode in = info->Get(f->density.ToString(f->density_));
+
+    in->Get("beta")->SetValue(f->beta);
+
+    if(f->density_ == Filter::TANH)
+      in->Get("eta")->SetValue(f->eta);
+
+    if(f->robust >= 0)
+      in->Get("robust_excitation")->SetValue(f->robust);
+
+    in->Get("scaling")->SetValue(f->non_lin_scale);
+    in->Get("offset")->SetValue(f->non_lin_offset);
+
+    if(pn->Has("density/force_lower_bound"))
+      in->Get("force_lower_bound")->SetValue(f->GetLowerBound(NULL));
+  }
+
+}
+
+StdVector<Filter*> DesignStructure::SetFurtherRobustFilters(PtrParamNode pn, Filter& ref, DesignElement::Type design)
+{
+  assert(pn->Has("design/robust"));
+
+  StdVector<Filter*> result; // This is for InfoPrintProjectionFilter() only
+
+  ParamNodeList list = pn->Get("design")->GetList("robust");
+  num_robust_ = list.GetSize();
+  assert(num_robust_ >= 1);
+
+  DesignSpace::DesignRegion* dr = space->GetRegion(space->GetRegionIds()[0],  design);
+
+  if(num_robust_ > 0 && pn->Has("design/eta"))
+    throw Exception("when have robust filters 'eta' must only be given in the 'robust' childs");
+
+  for(unsigned int i = 0; i < list.GetSize(); i++)
+  {
+    unsigned int ev = list[i]->Get("excitation")->As<int>();
+    if(ev != i)
+      throw Exception("for robust filters the excitation needs to be given continuos starting from 0");
+
+    Filter& f = i == 0 ? ref : dr->GetFilter(true, i); // create
+    if(i > 0)
+      f = ref; // copy all other stuff
+    f.eta = list[i]->Get("eta")->As<double>();
+    f.SetNonLinCorrection(&space->data[space->FindDesign(design) * space->GetNumberOfElements()]);
+    f.robust = i;
+    result.Push_back(&f);
+  }
+
+  return result;
 }
 
 void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)

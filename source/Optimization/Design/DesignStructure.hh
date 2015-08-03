@@ -135,6 +135,15 @@ private:
                        int min_common,
                        StdVector<std::pair<Elem*, int> >& out);
 
+
+  /** helper for SetFilter(). Updates the first filter (ref) and adds the additional filters
+   * @return the input for InfoPrintProjectionFilter */
+  StdVector<Filter*> SetFurtherRobustFilters(PtrParamNode pn, Filter& ref, DesignElement::Type design);
+
+  /** Handle the info stuff for projection filters (heaviside and tanh). For the later also robust is handled.
+   * @para filter normaly one entry, only for robust more */
+  void InfoPrintProjectionFilter(PtrParamNode pn, PtrParamNode in, const StdVector<Filter*>& filter);
+
   /** Helper for LOG_DBG() */
   std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);
 
@@ -186,6 +195,8 @@ private:
 
   /** is Initialize() called yet? */
   bool initialized_;
+
+  unsigned int num_robust_;
 
   DesignSpace* space;
   StdVector<RegionIdType> regions;

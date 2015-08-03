@@ -47,10 +47,6 @@ public:
    * from the design element */
   double GetLowerBound(const DesignElement* de) const;
 
-  double GetBeta() const { return beta_; }
-
-  void SetBeta(double v) { beta_ = v; }
-
   /** Set an explicit lower bound to overwrite the design's lower bound */
   void SetLowerBound(double value) { explicit_lower_bound_ = value; }
 
@@ -62,6 +58,11 @@ public:
 
   Type GetType() const { return type_; }
 
+  /** do we really do robust? Which means whe have more than one filter. If this is the case,
+   * we need to the the current filter via the current excitation!
+   * The value is the robust index. -1 for no robust, 0 for the first robust excitation = meta excitation */
+  int robust;
+
   Sensitivity sensitivity_;
   Density     density_;
 
@@ -71,6 +72,9 @@ public:
    * With tanh for a small beta F(0) >> 0 and F(1) << 1. With eta != 0.5 this is unsymmetric */
   double non_lin_scale;
   double non_lin_offset;
+
+  /** this is the beta parameter for the heaviside filters or tanh design filter. */
+  double     beta;
 
   /** switching parameter for tanh */
   double eta;
@@ -83,9 +87,6 @@ private:
   Type type_;
 
 
-  /** this is the beta parameter for the (modified) heaviside or tanh design filter.
-   * Private such that we force setting heaviside_corr on setting beta */
-   double     beta_;
 
   /** Holds the optional "force_lower_bound" attribute to overwrite the design lower bound
    * for Heaviside and tanh type filters. Necessary for mixed design scenarios where one has
