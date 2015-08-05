@@ -18,11 +18,14 @@ SET(PDE_SRCS
   WaterWavePDE.cc
   FlowPDE.cc
   TestPDE.cc
-  )
+  LatticeBoltzmannPDE.cc
+)
 
 ADD_LIBRARY(pde STATIC ${PDE_SRCS})
+INCLUDE_DIRECTORIES(${LBMSOLVER_DIR})
 
 SET(TARGET_LL
+  lbm_solver
   datainout
   domain
   algsys-olas

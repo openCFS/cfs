@@ -49,6 +49,9 @@ namespace CoupledField {
                         const char delimiter = ',' );
 
   
+  /** boost based SplitStringList() which consideres almost all whitespaces */
+  void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
+
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
     return "("+xpr+")";

@@ -61,6 +61,17 @@ CMAKE_MINIMUM_REQUIRED(
 )
 
 #-----------------------------------------------------------------------------
+# Set CMake policies for newer versions of CMake.
+# Enter 'cmake --help-policy CMP000X' to get information about the meaning
+# of a certain policy.
+#-----------------------------------------------------------------------------
+IF(COMMAND CMAKE_POLICY)
+  IF(POLICY CMP0038)
+    CMAKE_POLICY(SET CMP0038 OLD)
+  ENDIF(POLICY CMP0038)
+ENDIF(COMMAND CMAKE_POLICY)
+
+#-----------------------------------------------------------------------------
 # The name of our project is "CFS".  CMakeLists files in this
 # project can refer to the root source directory of the project as
 # ${CFS_SOURCE_DIR} and to the root binary directory of the project
@@ -171,6 +182,9 @@ OPTION(USE_GMV
 OPTION(USE_UNV
   "Use Universal File for simulation output."
   ${USE_UNV_DEFAULT})
+OPTION(USE_SGPP
+  "Enable support for sparse grid interpolation."
+  ${USE_SGPP_DEFAULT})
 
 IF(NOT CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   OPTION(USE_ANSYSRST
@@ -715,6 +729,7 @@ ADD_SUBDIRECTORY(source/Materials)
 ADD_SUBDIRECTORY(source/MatVec)
 ADD_SUBDIRECTORY(source/ODESolve)
 ADD_SUBDIRECTORY(source/PDE)
+ADD_SUBDIRECTORY(source/PDE/LatticeBoltzmannSolver)
 ADD_SUBDIRECTORY(source/Utils)
 ADD_SUBDIRECTORY(source/Utils/mathParser)
 ADD_SUBDIRECTORY(source/Utils/EvalIntegrals)

@@ -25,7 +25,7 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/snopt/${SNOPT_ZIP}")
 # we don't check the md5 here
 
 if(NOT EXISTS "${LOCAL_FILE}")
-  message(FATAL_ERROR "Please privide the encypted snopt source in ${LOCAL_FILE}") 
+  message(FATAL_ERROR "Please provide the encypted snopt source in ${LOCAL_FILE}") 
 endif()
 
 if(NOT CFS_KEY_SNOPT)
@@ -43,7 +43,7 @@ ExternalProject_Add(snopt
   # don't dowload but simply copy w/o md5 check
   DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SNOPT_SOURCE}
   # the zip file is encrypted!
-  PATCH_COMMAND unzip -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
+  PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
   # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
   # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
   CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c
