@@ -50,6 +50,7 @@
 #include "PDE/TestPDE.hh"
 #include "PDE/ElecCurrentPDE.hh"
 #include "PDE/WaterWavePDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 // Coupling of Single PDEs
 #include "CoupledPDE/DirectCoupledPDE.hh"
@@ -720,6 +721,11 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     else if (actPdeName == "waterWave") {
         ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode,
                                               simState_, this );
+    }
+    else if (actPdeName == "LatticeBoltzmann") {
+            ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode,
+                                                  simState_, this );
+//      ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode);
     }
     else
     {

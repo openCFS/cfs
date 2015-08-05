@@ -130,6 +130,7 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::MECH_12:
   case DesignElement::MECH_22:
   case DesignElement::MECH_33:
+  case DesignElement::SHEAR1:
   case DesignElement::ROTANGLE2:
   case DesignElement::SCALING1:
   case DesignElement::SCALING2:

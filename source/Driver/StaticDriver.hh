@@ -39,6 +39,9 @@ namespace CoupledField {
 
     //! \copydoc SingleDriver::SetToStepValue
     virtual void SetToStepValue(UInt stepNum, Double stepVal );
+
+    /** LBM case */
+    bool lbm_;
   };
 
 }
