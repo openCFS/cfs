@@ -37,7 +37,6 @@ fi
 
 # Set default sub-architecture
 SUBARCH="SUBARCHUNKNOWN"
-
 if [ "${OS}" = "SunOS" ] ; then
     ARCH=`uname -p`
     DIST=`uname -n`
@@ -65,7 +64,6 @@ elif [ "${OS}" = "Linux" ] ; then
     fi
 
     KERNEL=`uname -r`
-    
     # Now let's determine the sub-architecture. This can be EM64T or
     # OPTERON for X86_64 or SGI for IA64
     if [ "$ARCH" = "X86_64" ] ; then
@@ -100,8 +98,12 @@ elif [ "${OS}" = "Linux" ] ; then
         DIST=$(echo $DESC | sed 's/"//g' | cut -d' ' -f1)
         REV=$($LSB_REL -r -s)
         PSEUDONAME=$($LSB_REL -c -s)
-
+                
         case "$DIST" in
+            "openSUSE") if grep -q Tumbleweed /etc/os-release; then
+                # for the roling release tumbleweed the revision is something like 20150727 and no pesudoname is set 
+                REV="Tumbleweed"
+              fi ;;
             "SUSE") DIST="SLE" ;;
             "Debian") REV=$(echo $REV | sed 's/\.[0-9]*$//') ;;
             "Enterprise") DIST="ORACLE" ;;
@@ -144,6 +146,7 @@ elif [ "${OS}" = "Linux" ] ; then
         REV=`cat /etc/redhat-release | sed s/.*release\ // | sed s/\ .*//`
 
     elif [ -f /etc/SuSE-release ] ; then
+    	# as OpenSuse has lsb_release we don't come here in this elif case any more
         SUSEREL="/etc/SuSE-release"
         FIRSTLINE=`head -1 $SUSEREL | sed 'y/'$LOWER'/'$UPPER'/'`
         ENTERPRISE=`echo $FIRSTLINE | cut -f3 -d' '`
@@ -239,12 +242,12 @@ elif [ "${OS}" = "Linux" ] ; then
                 PSEUDONAME="Knoppix";;
         esac
     fi
+       
     if [ -f /etc/UnitedLinux-release ] ; then
         DIST="${DIST}[`cat /etc/UnitedLinux-release | tr "\n" ' ' | sed s/VERSION.*//`]"
     fi
 
     OSSTR="${OS} ${DIST} ${REV} (${PSEUDONAME} ${KERNEL} ${MACH})"
-
 elif [ ${OS} = "Darwin" ]; then
     MACOSINFO=$(system_profiler SPSoftwareDataType | grep 'System Version')
     if [ $? -eq 0 ]; then

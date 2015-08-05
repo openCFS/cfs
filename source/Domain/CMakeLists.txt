@@ -13,8 +13,9 @@ ADD_LIBRARY(domain STATIC ${DOMAIN_SRCS})
 
 SET(TARGET_LL
   cfsgeneral
-  optimization
   mesh
+  optimizer
+  design
   coordsystems
   results
   pde
