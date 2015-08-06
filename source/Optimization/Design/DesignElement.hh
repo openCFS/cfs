@@ -335,7 +335,7 @@ public:
 
     /** Checks out specialResult[]!
      * @param dofs 1 for scalar values */
-    void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const;
+    void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs, Excitation* ex) const;
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
      * @param g mandatory for vs = CONSTRAINT_GRADIENT only */
@@ -565,6 +565,9 @@ public:
   /** reads itsef from the xml element.
    * @param pn our data */
   ResultDescription(PtrParamNode pn);
+
+  /** debug output */
+  std::string ToString();
 
   SolutionType solutionType;
 

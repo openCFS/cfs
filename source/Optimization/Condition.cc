@@ -717,10 +717,10 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
 
-  if(delta_logging_ignored_)
-    in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
-  else
-    in->Get("delta_logging")->SetValue(delta_logging);
+  // if(delta_logging_ignored_)
+  //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
+  // else
+  //  in->Get("delta_logging")->SetValue(delta_logging);
 
   if(region != ALL_REGIONS)
     in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));

@@ -1769,7 +1769,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if(design->HasMultiMaterial())
       total_vol /= design->GetMultiMaterials().GetSize();
 
-    LOG_DBG2(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol;
+    LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol << " ex=" << context.excitation->GetFullLabel();
     for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
