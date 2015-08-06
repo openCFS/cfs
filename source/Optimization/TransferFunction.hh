@@ -41,7 +41,7 @@ namespace CoupledField
       /** applies the transformation
        * @param de contains the design value.
        * @param access if SMART and the filter is accordingly defined the filtered design is the base for penalization*/
-      double Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat = false) const;
+      double Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat = false, int filter_index = -1) const;
 
       /** applies the transformation
        * @param value is the design value. de may be NULL. It is only used in logging and if type is FULL! */

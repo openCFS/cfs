@@ -15,6 +15,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Function.hh"
@@ -267,6 +268,8 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       iteration->Get("active_set")->SetValue(GetCurrenActiveSetSize());
   }
 
+  unsigned int fix = optimization->context.excitation->robust_filter_idx;
+
   // give the norm of the nonlinear gradients (ignore blown up)
   for(unsigned int i = 0; i < optimization->constraints.all.GetSize(); i++)
   {
@@ -277,7 +280,7 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       const StdVector<DesignElement>& data = optimization->GetDesign()->data;
 
       for(int i = 0, n = data.GetSize(); i < n; i++)
-        mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
+        mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, fix, g)));
 
       iteration->Get("max_" + g->ToString() + "_grad")->SetValue(mv);
       if(out) *out << " \t" << mv;

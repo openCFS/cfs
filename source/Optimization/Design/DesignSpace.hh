@@ -14,7 +14,6 @@
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignMaterial.hh"
-#include "Optimization/Design/Filter.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/Transform.hh"
@@ -147,8 +146,9 @@ namespace CoupledField
      /** Apply the transformations if they shall be. The transformation is identified by the excitation of the context if not explicitly given.
       * @param fallback to be returned if transformation does not apply. E.g. again the de parameter
       * @param trans optionally give the transform, such it does not come from context
+      * @param ex optional excitation for DesignSpace::ExtractResults()
       * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
-      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
+      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL, Excitation* ex = NULL) const;
 
       /** the const version. const is sometimes just bullshit! :(*/
 /*      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
@@ -196,13 +196,12 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const
      {
-       if(g == NULL || g->HasDenseJacobian())
-         WriteDenseGradientToExtern(out, vs, access, g, scaling); // is virtual!
+       if(f == NULL || f->HasDenseJacobian())
+         WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
        else
-         WriteSparseGradientToExtern(out, vs, access, g, scaling);
+         WriteSparseGradientToExtern(out, vs, access, f, scaling);
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
@@ -262,11 +261,6 @@ namespace CoupledField
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
-     /** Find the element with the largest Filter neighborhood, if no filter is used or if the
-      * value is not unique (what should be the case) any suitable is returned.
-      * We do not cache the result, and search all, so use with care. */
-     DesignElement* FindElementWithLargesFilter();
-
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
@@ -365,11 +359,6 @@ namespace CoupledField
 
        bool HasBiMaterial() const;
 
-       /** return the filter
-        * @param create if the specified filter is not set, create it. Otherwise error
-        * @param meta the robust excitation index. 0 for the first and also good when we do not robust */
-       Filter& GetFilter(bool create = false, unsigned int meta = 0);
-
        /** the material is PDE dependent therefore we create and cache it on the fly. This makes it
         * easy to be also simple for load ersatz material */
        PtrCoefFct GetBiMaterial(MaterialClass mc, MaterialType mt);
@@ -386,10 +375,6 @@ namespace CoupledField
 
        /** Here we cache the lower end material class. Complicated because of pizeo and stiffness, density */
        std::map<MaterialClass, std::map<MaterialType, PtrCoefFct> > bimaterials_;
-
-       /** this are the Filters for the design and the region. A vector for the robust case, otherwise the first element or none
-        * if we have not Filtering */
-       StdVector<Filter> filter_;
      };
      
      /** Get DesignRegion.  */
@@ -438,11 +423,11 @@ namespace CoupledField
 
      /** handles design and region reordering */
      void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+                                DesignElement::Access access, Function* f, bool scaling = true) const;
 
      /** can handle the sparse slope constraint but no reordering as the dense version */
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+                                DesignElement::Access access, Function* f, bool scaling = true) const;
 
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads

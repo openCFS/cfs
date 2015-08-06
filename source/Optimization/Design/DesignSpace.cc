@@ -762,6 +762,8 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
+                       << " ex=" << domain->GetOptimization()->context.excitation->index
+                       << " fix=" << domain->GetOptimization()->context.excitation->robust_filter_idx
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -919,7 +921,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
-DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
+DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans, Excitation* ex) const
 {
   DesignElement* found = NULL;
 
@@ -934,10 +936,12 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   {
     assert(!(context_ != NULL && context_->excitation->transform == NULL && transform.GetSize() > 1));
 
+    Excitation* excite = ex != NULL ? ex : context_->excitation;
+
     if(context_ != NULL && context_->excitation->transform != NULL)
     {
-      found = context_->excitation->transform->FindSource(de);
-      LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << context_->excitation->label << " a=" << context_->excitation->transform->ToString() << " -> " << DesignElement::ToString(found);
+      found = excite->transform->FindSource(de);
+      LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << excite->label << " a=" << excite->transform->ToString() << " -> " << DesignElement::ToString(found);
     }
     else
     {
@@ -1116,18 +1120,20 @@ void DesignSpace::WriteBoundsToExtern(double* x_l, double* x_u) const {
   }
   assert(d == DesignSpace::GetNumberOfVariables());
 }
-void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
+void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
 {
   // Bastian did some complicated reordering stuff. For the only case of sparse Jacobians (slope constraints)
   // we'll have only the simple standard situation .. if this changes you have at least a test case :) Fabian
   // This should work now as long there is only one region. Jannis
   // had to weaken this condition for DESIGN_TRACKING in debug mode
-  assert((regions[0].GetSize() == 1) || (g->GetType() != Function::DESIGN_TRACKING));
-  assert(g != NULL); // only constraints can have sparse Jacobians
+  assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
+  assert(f != NULL); // only constraints can have sparse Jacobians
   
   unsigned int data_size = DesignSpace::GetNumberOfVariables();
 
-  StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
+  StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
+
+  unsigned int fix = f->GetExcitation()->robust_filter_idx;
 
   assert(out.window.GetSize() == sparsity.GetSize());
   unsigned int base = out.window.GetStart();
@@ -1137,18 +1143,22 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
     if(s <= data_size){ // else we have parts of the sparsity pattern on the aux design
       assert(out.InWindow(base + i));
       double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
-      out[base + i] = data[sparsity[i]].GetValue(vs, access, g) * scaling;
+      out[base + i] = data[sparsity[i]].GetValue(vs, access, fix, f) * scaling;
     }
   }
 }
-void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Condition* g, bool use_scaling) const
+void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool use_scaling) const
 {
   // this does now do reordering as gradients are reordered in the optimizer
   // must be set in the constructor! might be trivial volume fraction or from file!!
-  assert(!(vs == DesignElement::COST_GRADIENT && g != NULL));
+  assert(f != NULL);
+  assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
   unsigned int n0 = out.window.GetStart(); // to grow up to the total number of design variables
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
+
+  unsigned int fix = f->GetExcitation()->robust_filter_idx;
+
   for(unsigned int des = 0; des < nd; des++)
   {
     const StdVector<DesignRegion>& cur_des = regions[des];
@@ -1163,9 +1173,9 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
           //const DesignElement* de = ApplyTransformations(&data[s], true);
-          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, g);
+          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, fix, f);
           assert(out.InWindow(n));
-          out[n++] = data[s].GetValue(vs, access, g) * scaling;
+          out[n++] = data[s].GetValue(vs, access, fix, f) * scaling;
         }
       }
       else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) // in FIXED case nothing is done
@@ -1176,8 +1186,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
           assert(out.InWindow(n));
-          out[n] += data[s].GetValue(vs, access, g) * scaling;
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": out[" << n << "] += design[" << s << "]=" << data[s].GetValue(vs, access, g);
+          out[n] += data[s].GetValue(vs, access, fix, f) * scaling;
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": out[" << n << "] += design[" << s << "]=" << data[s].GetValue(vs, access, fix, f);
         }
         LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": sum = " << out[n] / scaling;
         if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
@@ -1285,18 +1295,7 @@ int DesignSpace::Find(const Elem* elem, bool throw_exception)
   if(!throw_exception) return -1;
   EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
 }
-DesignElement* DesignSpace::FindElementWithLargesFilter()
-{
-  int max = 0;
-  DesignElement* res = NULL;
-  for(unsigned int i = 0, n = data.GetSize(); i < n; i++)
-  {
-    DesignElement* de = &data[i];
-    if(de->simp != NULL && (int) de->simp->neighborhood.GetSize() > max)
-      res = de;
-  }
-  return res;
-}
+
 void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 {
   PtrParamNode tf = in->Get("transferFunctions");
@@ -1579,7 +1578,6 @@ DesignSpace::DesignRegion::DesignRegion()
 {
   regionId = -1;
   multimaterial = NULL;
-  filter_.Reserve(3); // handles the robust case and we can do save resize
 }
 std::string DesignSpace::DesignRegion::ToString() const
 {
@@ -1629,21 +1627,6 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
   }
 }
 
-
-Filter& DesignSpace::DesignRegion::GetFilter(bool create, unsigned int meta)
-{
-  if(meta < filter_.GetSize())
-    return filter_[meta];
-
-  if(!create)
-    EXCEPTION("no filter for design region set with meta index " << meta);
-
-  assert(filter_.Capacity() == 3);
-  assert(meta < 3);
-
-  filter_.Resize(meta + 1); // save as we reserved enough - no copying
-  return filter_[meta];
-}
 
 PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialType mt)
 {

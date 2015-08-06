@@ -200,7 +200,7 @@ void Optimization::PostInitSecond()
         log.AddToHeader("mean_" + g->ToString());
       }
     }
-    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString(me) << " e=" << g->GetExcitation(me)->GetFullLabel() << " ei=" << g->GetExcitation(me)->index;
+    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString(me) << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
 
   log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
@@ -868,7 +868,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   }
 
   if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
+    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART,  objectives.data[0]); // use the first such that we know about the robust index
 }
 
 

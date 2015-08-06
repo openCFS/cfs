@@ -43,14 +43,13 @@ class AuxDesign : public DesignSpace
 
     /** write gradient out to the vector, appending with shape gradient
      * Sparse and dense! */
-    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                               DesignElement::Access access, Condition* constraint = NULL, bool scaling = true) const;
+    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const;
 
     /** write the aux gradient part */
-    void WriteAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
+    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
     
     /** sparse version of WriteAuxGradientToExtern */
-    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Condition* constraint, bool scale = true) const;
+    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
 
     /** same as in DesignSpace, setting elements to zero, but also aux elements */
     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);

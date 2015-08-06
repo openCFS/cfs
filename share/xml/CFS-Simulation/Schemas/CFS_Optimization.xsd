@@ -1861,22 +1861,6 @@
       <!-- optional sub element for target design filter -->
       <xsd:element name="density" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
-          <xsd:sequence>
-            <xsd:element name="robust" minOccurs="0" maxOccurs="3">
-              <xsd:complexType>
-                <xsd:attribute name="eta" type="xsd:float" use="required"/>
-                <xsd:attribute name="excitation" use="required">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:token"> 
-                      <xsd:enumeration value="0"/>
-                      <xsd:enumeration value="1"/>
-                      <xsd:enumeration value="2"/>
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
           <xsd:attribute name="type" use="optional" default="standard">
             <xsd:simpleType>
               <xsd:restriction base="xsd:token">
@@ -1895,7 +1879,7 @@
           <!-- Continuation for Heaviside filter and steepness of tanh -->
           <xsd:attribute name="beta" type="xsd:float" use="optional"/>
 
-          <!-- Switching position for tanh. In the robust case (robust child elements) it must not be given -->
+          <!-- Switching position for tanh. -->
           <xsd:attribute name="eta" type="xsd:float" use="optional"/>
 
           <!-- Overwerites design lower bound for mixed design scenarios. For heaviside and tanh -->
@@ -1931,6 +1915,19 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+
+    <!-- robustness in the sense of Ole makes mostly sense for tanh with varying eta for the different robust_excitation.
+         The robust_excitation are only checked for design=desnity and the value must be ascending from 0. -->
+    <xsd:attribute name="robust_excitation" use="optional">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="0" />
+          <xsd:enumeration value="1" />
+          <xsd:enumeration value="2" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    
   </xsd:complexType>
 
 

@@ -114,6 +114,12 @@ public:
   /** For transformation, this is the applied transformation. NULL means we don't do transformation*/
   Transform* transform;
 
+  /** this is the robust index if we do index. Otherwise it is zero which is the standard filter index for non-robust */
+  unsigned int robust_filter_idx;
+
+  /** When we do robust, the meta_index is only the robust index when we do no concurrent transformation */
+  bool robust;
+
   Assemble* assemble;
 };
 
@@ -151,11 +157,16 @@ public:
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }
 
+  /** Do we do robust */
+  bool DoRobust() const { return num_robust_ > 1; }
+
   /** handles transform and robust */
-  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one); }
+  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
 
   /** The number of transformations. Important when we do homogenization */
   unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
+
+  unsigned int GetNumberRobust(bool mininum_one = false) const { return mininum_one ? std::max(num_robust_, 1) : num_robust_; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -210,7 +221,10 @@ private:
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
 
-  /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
+  /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
+  void ApplyRobust(DesignSpace* space);
+
+  /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
   void ApplyTransformations(DesignSpace* space);
 
   void SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
@@ -233,6 +247,9 @@ private:
 
   /** number of transformations in DesignSpace::transform. This is a meta level*/
   int num_trans_;
+
+  /** number of robust filters. This is a meta level. Only > 1 real robust. 0 and 1 is no robust but standard */
+  int num_robust_;
 };
 
 

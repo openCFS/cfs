@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "General/Exception.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
@@ -222,9 +223,10 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat, int filter_index) const
 {
-  double value = de->GetValue(DesignElement::DESIGN, access);
+  unsigned int fix = filter_index < 0 ? domain->GetOptimization()->context.excitation->robust_filter_idx : (unsigned int) filter_index;
+  double value = de->GetValue(DesignElement::DESIGN, access, fix);
   return this->Transform(value, lower_bimat, de);
 }
 

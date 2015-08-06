@@ -197,9 +197,8 @@ class Function
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
 
-    /** Get the excitation which applies to this function
-     * @return if there is only one excitation we always return that one */
-    Excitation* GetExcitation(MultipleExcitation* me);
+    /** Get at least one excitation which applies to this function. For excite_ == -1 this might be one sample */
+     Excitation* GetExcitation() { return sample_excitation_; }
 
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;
@@ -705,6 +704,9 @@ class Function
     /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
+
+    /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
+    Excitation* sample_excitation_;
 
     /** Is this function excitation sensitive? */
     int excite_sensitive_;

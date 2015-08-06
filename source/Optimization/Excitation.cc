@@ -50,7 +50,8 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->max_gain = 1e4;
   this->multiple_excitation_ = multiple;
   this->type_ = NO_TYPE; // to be possibly overwritten soon
-  this->num_trans_ = -1; // to be set later
+  this->num_trans_  = -1; // to be set later
+  this->num_robust_ = -1; // to be set later
   // if disabled, we don't read anything
   if(!multiple || pn == NULL) return;
 
@@ -119,7 +120,7 @@ unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function*
   if(!DoTransform())
     return base;
   else
-    return total_base_ * f->GetExcitation(this)->transform->index + base;
+    return total_base_ * f->GetExcitation()->transform->index + base;
 }
 
 /*
@@ -135,7 +136,7 @@ unsigned int MultipleExcitation::GetMetaExcitationIndex(Excitation* ex) const
 
 unsigned int MultipleExcitation::GetMetaExcitationIndex(Function* f)
 {
-  return GetMetaExcitationIndex(f->GetExcitation(this));
+  return GetMetaExcitationIndex(f->GetExcitation());
 }*/
 
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
@@ -240,7 +241,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   int num_loads = ass->GetLinForms().GetSize();  // to be faked later for homogenization test strains
 
   // we have no "do_transform" either there is transformation or not
-  num_trans_ = opt->GetDesign()->transform.GetSize();
+  num_trans_  = opt->GetDesign()->transform.GetSize();
+  num_robust_ = opt->GetDesign()->data[0].simp->filter.GetSize();
 
   LOG_DBG(exlog) << "PME: linForms from assemble: " << num_loads << " trans: " << num_trans_;
 
@@ -272,6 +274,14 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     // we average the solutions(s) only for output.
     // In the calculations we average the individual calculations
   } // end IsEnabled()
+  else
+  {
+    if(DoRobust())
+      throw Exception("robust filters are defined but 'multiple_excitation' is not enabled in 'costFunction");
+    if(DoTransform())
+      throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
+  }
+
 
   // read in tracking parameters from XML, for the first and only load
   if(pn->Has("trackings"))
@@ -290,8 +300,13 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   // The basic excitations are set. Now we multiply it by transformation and rotation
   total_base_ = excitations.GetSize();
 
+  if(DoRobust())
+    ApplyRobust(opt->GetDesign()); // mutiply by the robust filters
+
   if(DoTransform())
     ApplyTransformations(opt->GetDesign()); // multiply the existing transformation
+
+
 
   // output summary
   // -------------------
@@ -352,6 +367,50 @@ int MultipleExcitation::SetHomogenizationTestStrains()
 
   return excitations.GetSize();
 }
+
+void MultipleExcitation::ApplyRobust(DesignSpace* space)
+{
+  assert(excitations.GetSize() == total_base_); // first robust, then transformation
+  assert(num_robust_ >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
+
+  // multiply excitations
+  assert(excitations.Capacity() >= total_base_ * num_robust_);
+  excitations.Resize(total_base_ * num_robust_);
+
+  for(int r = 0; r < num_robust_; r++)
+  {
+    for(unsigned int b = 0; b < total_base_; b++)
+    {
+      Excitation& base = excitations[b];
+      Excitation& ex   = excitations[total_base_ * r + b]; // ex == base for the first transform
+
+      if(r > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
+        ex = base; // default copy constructors are cool
+
+      if(b == 0) // the original test strains and loads did not need to reassemble. We need it for a new type of transform only
+        ex.reassemble = true;
+
+      ex.robust = true;
+      ex.meta_index = r; // this might be changed when we do transformation
+      ex.robust_filter_idx = r;
+
+      // only set a label if it was not set already
+      assert(!(ex.label == "" && total_base_ > 1));
+      if(ex.label == "" || total_base_ == 1)
+        ex.label = boost::lexical_cast<std::string>(r);
+
+      // TODO up to now we do not handle weights for the transformations!
+      // If we total_base_ > 1 we assume the weights were properly set and are copied
+      if(total_base_ == 1)
+        ex.weight = 1.0;
+
+      LOG_DBG3(exlog) << "AR: r=" << r << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+                      << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
+
+    }
+  }
+}
+
 
 void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 {
@@ -523,6 +582,8 @@ Excitation::Excitation()
   this->f_link = NULL;
   this->cost = -1.0;
   this->transform = NULL;
+  this->robust = false;
+  this->robust_filter_idx = 0; // a good default value
   this->weight = 1.0;
   this->normalized_weight = 1.0;
   this->reassemble = false; // normally
