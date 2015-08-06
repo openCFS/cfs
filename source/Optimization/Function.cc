@@ -321,6 +321,8 @@ void Function::ToInfo(PtrParamNode info) {
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
 
+  info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
+
   if(local != NULL)
     local->ToInfo(info_);
 }

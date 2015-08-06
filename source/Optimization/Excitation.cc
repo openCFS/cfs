@@ -159,8 +159,11 @@ void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  dou
     PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
     exin->Get("index")->SetValue(ex.index);
     exin->Get("label")->SetValue(ex.label);
-    if(ex.GetMetaLabel() != "")
-      exin->Get("meta")->SetValue(ex.GetMetaLabel());
+    exin->Get("meta_idx")->SetValue(ex.meta_index);
+    if(ex.transform != NULL)
+      exin->Get("transform")->SetValue(ex.transform->ToString(1));
+    if(ex.robust)
+      exin->Get("robust_filter_idx")->SetValue(ex.robust_filter_idx);
     exin->Get("weight")->SetValue(ex.weight);
     exin->Get("normalized_weight")->SetValue(ex.normalized_weight);
     if(ex.forms.GetSize() == 1)

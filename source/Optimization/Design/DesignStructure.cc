@@ -266,10 +266,12 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
-  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours);
+  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours); // goes into the appended filters/filter
+
 
   timer->Stop();
 }
+
 
 void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours)
 {
@@ -319,23 +321,6 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
 
   std::cout << "Filter " << DesignElement::type.ToString(design) << ": avg radius=" << normalized_avg_radius
             << " avg neighbourhood=" << normalized_avg_neighbours << std::endl;
-
-
-  // print about the function filtering
-  for(unsigned int i = 0; em != NULL && i < em->objectives.data.GetSize(); i++)
-  {
-    PtrParamNode in_ = in->Get("functions")->Get("objective", ParamNode::APPEND);
-    Objective* f = em->objectives.data[i];
-    in_->Get("name")->SetValue(f->GetName());
-    in_->Get("filtered")->SetValue(ref.GetType() == Filter::DENSITY ? f->ForDensityFiltering() : f->ForSensitivityFiltering());
-  }
-  for(unsigned int i = 0; em != NULL && i < em->constraints.active.GetSize(); i++)
-  {
-    PtrParamNode in_ = in->Get("functions")->Get("constraint", ParamNode::APPEND);
-    Condition* g = em->constraints.active[i];
-    in_->Get("name")->SetValue(g->ToString());
-    in_->Get("filtered")->SetValue(ref.GetType() == Filter::DENSITY ? g->ForDensityFiltering() : g->ForSensitivityFiltering());
-  }
 
 }
 
@@ -429,7 +414,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
                                       StdVector<SIMPElement::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
+  // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
@@ -781,12 +766,11 @@ void DesignStructure::AppendNeighbors(Elem* check,
   }
 }
 
-string DesignStructure::ToString(StdVector<SIMPElement::NeighbourElement>& data)
+std::string DesignStructure::ToString(const StdVector<SIMPElement::NeighbourElement>& data)
 {
   std::stringstream out;
   for(unsigned int i = 0, ni = data.GetSize(); i < ni; i++)
-    out << data[i].neighbour->elem->elemNum
-        << (i < ni-1 ? ", " : "");
+    out << data[i].neighbour->elem->elemNum << (i < ni-1 ? ", " : "");
   return out.str();
 }
 

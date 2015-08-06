@@ -457,7 +457,7 @@ int DesignElement::GetOptResultIndex(SolutionType st)
   }
 }
 
-void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
+void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs, Excitation* ex) const
 {
   // check for special result
   if(    rd.value == OBJECTIVE
@@ -488,9 +488,9 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(NULL);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
+        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde, ex);
       else
-        out[0] = GetValue(rd.value, rd.access);
+        out[0] = GetValue(rd.value, rd.access, ex != NULL ? ex->index : 0);
     }
     else
     {
@@ -948,13 +948,16 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
+  fix = domain->GetOptimization()->context.excitation->robust_filter_idx;
+
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
   double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
   double denominator = this->weight;
 
-   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                   << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
   for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
   {
@@ -967,8 +970,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
@@ -1288,7 +1290,7 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
       res = diff[2] < 0 ? Z_P : Z_N;
   }
   
-  LOG_DBG(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
+  LOG_DBG2(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
 
   if(res == NONE)
     EXCEPTION("cannot identify relative neighborhood of " << ref.ToString() << " and " << other.ToString());
@@ -1384,5 +1386,18 @@ ResultDescription::ResultDescription(PtrParamNode pn)
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
 
   excitation = pn->Get("excitation")->As<std::string>();
+
+  LOG_DBG(desel) << "RD:RD " << ToString();
 }
 
+
+std::string ResultDescription::ToString()
+{
+  std::stringstream ss;
+  ss << "RD: design=" << DesignElement::type.ToString(design)
+     << " access=" << DesignElement::access.ToString(access)
+     << " value=" << DesignElement::valueSpecifier.ToString(value)
+     // << " detail=" << DesignElement::detail.ToString(detail)
+     << " ex=" << excitation;
+  return ss.str();
+}

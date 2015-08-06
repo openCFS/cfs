@@ -74,12 +74,12 @@ public:
 
   static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
 
+  static std::string ToString(const StdVector<SIMPElement::NeighbourElement>& data);
+
 private:
 
   /** The common Constructor, does much less than Initialize() */
   void Constructor();
-
-
 
   /** The actual constructor, initializes for SetFilter() and ExtendPeriodicNeighborhood() on
    * the fly! The time is not recorded!
@@ -135,11 +135,8 @@ private:
                        StdVector<std::pair<Elem*, int> >& out);
 
 
-  /** Helper for SetFilter() */
+  /** helper for SetFilter() */
   void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours);
-
-  /** Helper for LOG_DBG() */
-  std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);
 
   /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
   enum Contribution { LINEAR, CONSTANT };

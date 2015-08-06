@@ -1439,11 +1439,19 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
     if(resultDescriptions[i].solutionType == ri->resultType)
       def = resultDescriptions[i];
+
+  // this enables extitation specific physical designs (robust, transformation)
+  if(def.excitation != "" && domain->GetOptimization() != NULL)
+    domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->Apply();
+
+  LOG_DBG(designSpace) << "ER def=" << def.ToString();
+
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
   else
     FillElementResults(result, def);
 }
+
 template <class T>
 void DesignSpace::FillNodeResults(Result<T>& result, ResultDescription& descr)
 {
@@ -1456,6 +1464,7 @@ void DesignSpace::FillNodeResults(Result<T>& result, ResultDescription& descr)
     actSol[it.GetPos()] = GetNodalValue(node, descr.value);
   }
 }
+
 template <class T>
 void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr)
 {
@@ -1477,6 +1486,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
+  Excitation* ex = domain->GetOptimization() ? domain->GetOptimization()->context.excitation : NULL;
+
   for ( it.Begin(); !it.IsEnd(); it++ )
   {
     // for elements not in the design region we set to to the default value
@@ -1489,7 +1500,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       // base=0 is first!
       unsigned int data_index = (base * elements) + base_index;
       DesignElement& de = data[data_index];
-      de.GetValue(descr, result_value, dofs);
+      de.GetValue(descr, result_value, dofs, ex);
       #ifdef CHECK_INDEX
         if(de.elem->elemNum != it.GetElem()->elemNum)
           EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
@@ -1513,7 +1524,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
             {
               // make sure the result description is unique and we don't overwrite
               assert(result_value[0] == 0.0);
-              data[e].GetValue(descr, result_value, dofs);
+              data[e].GetValue(descr, result_value, dofs, ex);
             }
         }
       }
