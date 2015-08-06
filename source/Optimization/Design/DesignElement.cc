@@ -490,7 +490,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(domain->GetOptimization()->pde, ex);
       else
-        out[0] = GetValue(rd.value, rd.access, ex != NULL ? ex->index : 0);
+        out[0] = GetValue(rd.value, rd.access);
     }
     else
     {
@@ -500,12 +500,14 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   return;
 }
 
-double DesignElement::GetValue(ValueSpecifier vs, Access access, unsigned int fix, Function* f) const
+double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) const
 {
   // pessimistic assumption :)
   bool sens_filter = false;
   bool design_filter = false;
   bool design_filter_grad = false;
+
+  unsigned int fix = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
 
   if(access == SMART && simp != NULL && (simp->filter.GetSize() > 0 && simp->filter[fix].GetType() != Filter::NO_FILTERING))
   {
@@ -514,16 +516,16 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, unsigned int fi
       if(vs == DesignElement::DESIGN)
         design_filter = true;
       if(vs == DesignElement::COST_GRADIENT)
-        design_filter_grad = f->ForDensityFiltering();
+        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        design_filter_grad = f->ForDensityFiltering();
+        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
     }
     else
     {
       if(vs == DesignElement::COST_GRADIENT)// TODO also check for separate costs! not only sum!
         sens_filter = true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        sens_filter = f->ForSensitivityFiltering();
+        sens_filter = f != NULL ? f->ForSensitivityFiltering() : false;
     }
   }
 
@@ -532,9 +534,9 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, unsigned int fi
   if(sens_filter)
     val = simp->GetSensitivityFilteredValue(vs, f);
   if(design_filter)
-    val = simp->GetDensityFilteredValue(vs, simp->filter[fix].density_, fix);
+    val = simp->GetDensityFilteredValue(vs, simp->filter[fix].density_);
   if(design_filter_grad)
-    val = simp->GetDensityFilteredGradient(vs, f, fix);
+    val = simp->GetDensityFilteredGradient(vs, f);
   if(!sens_filter && !design_filter && !design_filter_grad)
     val = GetPlainValue(vs, dynamic_cast<Condition*>(f));
 
@@ -605,8 +607,6 @@ double DesignElement::GetPhysicalDesign(const SinglePDE* pde, Excitation* ex) co
   // when we have a transformation we want the physical value for the source design
   DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL, ex);
 
-
-  LOG_DBG3(desel) << "GPD ex=" << domain->GetOptimization()->context.excitation->index << " fix=" << domain->GetOptimization()->context.excitation->robust_filter_idx;
   return tf->Transform(trans != NULL ? trans : this, SMART, false); // if there is a transformation return the transformed stuff
 }
 
@@ -937,7 +937,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
 
 
 
-double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd, unsigned int fix) const
+double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
@@ -948,7 +948,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
-  fix = domain->GetOptimization()->context.excitation->robust_filter_idx;
+  unsigned int fix = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
 
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
@@ -999,16 +999,20 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   return p_filt;
 }
 
-double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func, unsigned int fix) const
+double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
+  unsigned int fix = domain->GetOptimization()->context.excitation->robust_filter_idx;
+
   const Filter& f = de_->simp->filter[fix];
+
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
   assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
   assert(func == NULL || func->ForDensityFiltering());
+
 
   // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
@@ -1057,7 +1061,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
       double b = f.beta;
 
       // we need the filtered density -> but the real filtered value!!
-      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD, fix);
+      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
 
       if(f.density_ == Filter::SOLID_HEAVISIDE)
       {

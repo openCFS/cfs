@@ -338,8 +338,8 @@ public:
     void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs, Excitation* ex) const;
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
-     * @param g mandatory for vs = CONSTRAINT_GRADIENT only */
-    double GetValue(ValueSpecifier vs, Access access, unsigned int filter_idx = 0, Function* f = NULL) const;
+     * @param f mandatory for vs = CONSTRAINT_GRADIENT and to determine if we are filtered! */
+    double GetValue(ValueSpecifier vs, Access access, Function* f = NULL) const;
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
@@ -453,18 +453,20 @@ public:
   double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Function* g) const;
 
   /** Does design filtering. */
-  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd, unsigned int filter_idx) const;
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
 
-  /** Helper for GetDensityFilteredValue() */
+  /** Helper for GetDensityFilteredValue()
+   * @param filter_idx to handle robust. 0 shall work in the non-robust case */
   double CalcHeaviside(double input_value, unsigned int filter_idx) const;
 
-  /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010 */
+  /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010
+   * @param filter_idx see CalcHeaviside()*/
   double CalcTanh(double input_value, unsigned int filter_idx) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
    * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
-  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func, unsigned int filter_idx) const;
+  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const;
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const;
