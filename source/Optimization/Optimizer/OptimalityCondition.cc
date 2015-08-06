@@ -17,6 +17,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Function.hh"
@@ -448,6 +449,9 @@ double OptimalityCondition::Evaluate(double lambda)
    // elements but the first have old and new elements in their filter
    // stencil. Hence we store in evaluate_tmp_
    
+   // the current robust filter index
+   unsigned int fix = optimization->context.excitation->robust_filter_idx;
+
    for(unsigned int i = 0; i < data.GetSize(); i++)    
    {
      DesignElement* de = &data[i];
@@ -455,7 +459,7 @@ double OptimalityCondition::Evaluate(double lambda)
      double rho_e = de->GetDesign(DesignElement::PLAIN);   
     
      // if filter is enabled we use the filtered value otherwise the plain one
-     double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART);
+     double smart_obj_grad = de->GetValue(DesignElement::COST_GRADIENT, DesignElement::SMART, fix);
      double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
@@ -466,7 +470,7 @@ double OptimalityCondition::Evaluate(double lambda)
      // for piezo we might become negative lambdas -> cut the positive!
      b_e = lambda >= 0.0 ? std::max(0.0, b_e) : std::min(0.0, b_e);
      
-     b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g));
+     b_e /= (lambda * de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, fix, g));
      
      // next is density times b_e which is compared with box constraints and move limit
      double next = rho_e * std::pow(b_e, oc_damping_);        
@@ -481,7 +485,7 @@ double OptimalityCondition::Evaluate(double lambda)
      
      LOG_DBG3(oc) << "Evaluate:" << de->elem->elemNum << " obj_grad=" << smart_obj_grad
                   << "(" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN) << ")"
-                  << " const_grad=" << de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)
+                  << " const_grad=" << de->GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, fix, g)
                   << " old= " << rho_e << " next=" << next << " lower=" << lower
                   << " upper=" << upper << " new=" << evaluate_tmp_[i];
    }

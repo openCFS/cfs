@@ -212,6 +212,7 @@ void Function::Init() {
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+  this->sample_excitation_ = NULL;
   this->excite_sensitive_ = false;
 
   this->stressType_ = MECH; // set in Condition
@@ -462,17 +463,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTI_OBJECTIVE: // only to make the switch complete
       break;
   }
-}
 
-Excitation* Function::GetExcitation(MultipleExcitation* me)
-{
-  if(me->excitations.GetSize() == 1)
-    return &me->excitations[0];
-
-  if(excite_ >= 0)
-    return &me->excitations[excite_];
-  else
-    return NULL;
+  sample_excitation_ = excite_ >= 0 ? &me->excitations[excite_] : &me->excitations[0];
+  LOG_DBG(func) << "SE f=" << ToString() << " exite_=" << excite_ << " ex=" << sample_excitation_->GetFullLabel();
 }
 
 /** Shall/must we evaluate this objective at this excitation?

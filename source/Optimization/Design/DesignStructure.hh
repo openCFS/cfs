@@ -40,9 +40,8 @@ public:
   /** This is the actual, expensive action. It sets the filters for all
    * relevant design elements of simp->design.data
    * @param pn our parameter section of the filer, includes design name
-   * @param info where to write (in HEADER) the information
-   * @param To be usable for the projection function which has own design elements. NULL takes the standard design space!*/
-  void SetFilters(PtrParamNode pn, PtrParamNode info);
+   * @param info where to write (in HEADER) the information */
+  void SetFilter(PtrParamNode pn, PtrParamNode info);
 
   /** Do we have periodic BC. */
   bool IsPeriodic() const { return periodic; }
@@ -136,13 +135,8 @@ private:
                        StdVector<std::pair<Elem*, int> >& out);
 
 
-  /** helper for SetFilter(). Updates the first filter (ref) and adds the additional filters
-   * @return the input for InfoPrintProjectionFilter */
-  StdVector<Filter*> SetFurtherRobustFilters(PtrParamNode pn, Filter& ref, DesignElement::Type design);
-
-  /** Handle the info stuff for projection filters (heaviside and tanh). For the later also robust is handled.
-   * @para filter normaly one entry, only for robust more */
-  void InfoPrintProjectionFilter(PtrParamNode pn, PtrParamNode in, const StdVector<Filter*>& filter);
+  /** Helper for SetFilter() */
+  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours);
 
   /** Helper for LOG_DBG() */
   std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);

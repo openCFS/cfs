@@ -52,16 +52,11 @@ public:
 
   /** Set non_lin_scale and non_lin_offset. considers explicit_lower_bound_
    * @peram de reference design element for bounds */
-  void SetNonLinCorrection(const DesignElement* de);
+  void SetNonLinCorrection(const DesignElement* de, unsigned int filter_idx);
 
   void SetType(Type t) { type_ = t; }
 
   Type GetType() const { return type_; }
-
-  /** do we really do robust? Which means whe have more than one filter. If this is the case,
-   * we need to the the current filter via the current excitation!
-   * The value is the robust index. -1 for no robust, 0 for the first robust excitation = meta excitation */
-  int robust;
 
   Sensitivity sensitivity_;
   Density     density_;
@@ -85,8 +80,6 @@ public:
 private:
 
   Type type_;
-
-
 
   /** Holds the optional "force_lower_bound" attribute to overwrite the design lower bound
    * for Heaviside and tanh type filters. Necessary for mixed design scenarios where one has

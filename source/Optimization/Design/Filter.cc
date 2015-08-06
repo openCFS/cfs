@@ -22,7 +22,6 @@ Filter::Filter()
   density_       = STANDARD;
   beta           = -1.0;
   eta            = -1.0;
-  robust         = -1;
   non_lin_scale  = -1.0;
   non_lin_offset = -1.0;
   explicit_lower_bound_ = std::numeric_limits<double>::min();
@@ -38,7 +37,7 @@ double Filter::GetLowerBound(const DesignElement* de) const
 }
 
 
-void Filter::SetNonLinCorrection(const DesignElement* ref)
+void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
 {
   if(type_ != DENSITY || !(density_ == SOLID_HEAVISIDE || density_ == VOID_HEAVISIDE || density_ == TANH))
     return;
@@ -50,20 +49,20 @@ void Filter::SetNonLinCorrection(const DesignElement* ref)
 
   DesignElement de = DesignElement();
   de.simp = new SIMPElement(&de);
-  de.simp->filter = this;
+  de.simp->filter = *this; // only copy data, changes don't distribute back
   de.elem = ref->elem; // otherwise the logings segfault
 
   double ub = ref->GetUpperBound();
   double lb = ref->GetLowerBound();
 
   // calc the pure values
-  this->non_lin_scale = 1.0;
-  this->non_lin_offset = 0;
+  de.simp->filter[fix].non_lin_scale = 1.0;
+  de.simp->filter[fix].non_lin_offset = 0;
 
-  double org_u = density_ == TANH ? de.simp->CalcTanh(ub) : de.simp->CalcHeaviside(ub);
-  double org_l = density_ == TANH ? de.simp->CalcTanh(lb) : de.simp->CalcHeaviside(lb);
+  double org_u = density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix);
+  double org_l = density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix);
 
-  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " f=" << density.ToString(density_) << " ub=" << ub << " -> " << org_u << " lb=" << lb << " -> " << org_l;
+  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " fix=" << fix << " f=" << density.ToString(density_) << " ub=" << ub << " -> " << org_u << " lb=" << lb << " -> " << org_l;
 
   assert((org_u-org_l) >= 0.1);
   assert((org_u-org_l) <= 1.0);
@@ -73,9 +72,10 @@ void Filter::SetNonLinCorrection(const DesignElement* ref)
   // scale such that F(u)-F(l) == ub-lb
   this->non_lin_scale  = (ub-lb) / (org_u - org_l);
   this->non_lin_offset = lb - non_lin_scale * org_l;
+  de.simp->filter = *this; // copy again for the asserts checking the results
 
   LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " f=" << density.ToString(density_) << " d==" << (ub-lb) << " od=" << (org_u-org_l) << " -> s=" << non_lin_scale << " o=" << non_lin_offset;
 
-  assert(close(density_ == TANH ? de.simp->CalcTanh(lb) : de.simp->CalcHeaviside(lb), lb));
-  assert(close(density_ == TANH ? de.simp->CalcTanh(ub) : de.simp->CalcHeaviside(ub), ub));
+  assert(close(density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix), lb));
+  assert(close(density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix), ub));
 }

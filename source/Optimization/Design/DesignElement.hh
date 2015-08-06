@@ -20,6 +20,7 @@ class Point;
 
 namespace CoupledField
 {
+class Excitation;
 class Condition;
 class DesignElement;
 class DesignSpace;
@@ -324,7 +325,7 @@ public:
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
+    double GetPhysicalDesign(const SinglePDE* pde = NULL, Excitation* ex = NULL) const;
 
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
@@ -338,7 +339,7 @@ public:
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
      * @param g mandatory for vs = CONSTRAINT_GRADIENT only */
-    double GetValue(ValueSpecifier vs, Access access, Condition* g = NULL) const;
+    double GetValue(ValueSpecifier vs, Access access, unsigned int filter_idx = 0, Function* f = NULL) const;
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
@@ -449,21 +450,21 @@ public:
 
   /** Does sensitvity filtering
    * @param g @see GetPlainValue() */
-  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Condition* g) const;
+  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Function* g) const;
 
   /** Does design filtering. */
-  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
+  double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd, unsigned int filter_idx) const;
 
   /** Helper for GetDensityFilteredValue() */
-  double CalcHeaviside(double input_value) const;
+  double CalcHeaviside(double input_value, unsigned int filter_idx) const;
 
   /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010 */
-  double CalcTanh(double input_value) const;
+  double CalcTanh(double input_value, unsigned int filter_idx) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
    * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
-  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
+  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func, unsigned int filter_idx) const;
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const;
@@ -500,8 +501,11 @@ public:
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
 
-  /** The complete filter settings. The instance is stored in DesignSpace::regions */
-  Filter* filter;
+  /** The complete filter settings. There is a lot of copy and paste data to other elements.
+   * But as we might be design and region dependent, might be robust and robust might also
+   * store the neighborhood it is simply better to have the expensive instances.
+   * Without regularization or with slopes/ perimeter this is empty. Normally we have one entry, with robust it is more  */
+  StdVector<Filter> filter;
 
 private:
 
@@ -581,33 +585,33 @@ public:
 };
 
 inline
-double SIMPElement::CalcHeaviside(double input_value) const
+double SIMPElement::CalcHeaviside(double input_value, unsigned int filter_idx) const
 {
-  const Filter* f = de_->simp->filter;
-  assert(f->GetType() == Filter::DENSITY);
-  assert(f->density_ == Filter::SOLID_HEAVISIDE || f->density_ == Filter::VOID_HEAVISIDE);
+  const Filter& f = de_->simp->filter[filter_idx];
+  assert(f.GetType() == Filter::DENSITY);
+  assert(f.density_ == Filter::SOLID_HEAVISIDE || f.density_ == Filter::VOID_HEAVISIDE);
 
   double result;
 
-  double b = f->beta;
+  double b = f.beta;
   assert(b >= 0.0 && b < 2000);
 
-  if(f->density_ == Filter::SOLID_HEAVISIDE)
+  if(f.density_ == Filter::SOLID_HEAVISIDE)
   {
     double tmp = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b);
-    result = f->non_lin_scale * tmp + f->non_lin_offset;
+    result = f.non_lin_scale * tmp + f.non_lin_offset;
 
     // no LOG_DBG possible due to inline
   }
-  else // if(f->density_ == Filter::MOD_HEAVISIDE)
+  else // if(f.density_ == Filter::MOD_HEAVISIDE)
   {
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
-    assert(f->non_lin_scale > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
+    assert(f.non_lin_scale > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
 
-    result = f->non_lin_scale * (first + second) + f->non_lin_offset;
+    result = f.non_lin_scale * (first + second) + f.non_lin_offset;
     // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
     //           << " +1st=" << first << " +2nd=" << second << " -> " << result << std::endl;
   }
@@ -616,21 +620,21 @@ double SIMPElement::CalcHeaviside(double input_value) const
 }
 
 inline
-double SIMPElement::CalcTanh(double input_value) const
+double SIMPElement::CalcTanh(double input_value, unsigned int filter_idx) const
 {
-  Filter* f = de_->simp->filter;
+  const Filter& f = de_->simp->filter[filter_idx];
 
-  assert(f->GetType() == Filter::DENSITY);
-  assert(f->density_ == Filter::TANH);
+  assert(f.GetType() == Filter::DENSITY);
+  assert(f.density_ == Filter::TANH);
 
-  double b = f->beta;
-  double e = f->eta;
+  double b = f.beta;
+  double e = f.eta;
 
   assert(b >= 0.0 && b < 2000);
 
   // 1 - 1/(exp(2*beta*(x-param)) + 1)
   double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
-  double result = f->non_lin_scale * (func) + f->non_lin_offset;
+  double result = f.non_lin_scale * (func) + f.non_lin_offset;
 
   // LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
   return result;

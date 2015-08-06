@@ -690,7 +690,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
     // the context.excitation is now the last one as we solve and store all excitations first before calculating the gradients
-    Transform* trans = f != NULL && f->GetExcitation(me) != NULL ? f->GetExcitation(me)->transform : NULL; // even ->transform might be NULL
+    Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
     // traverse over our elements
     // in ErsatzMaterialTensor case we loop over all elements, else only over the elements belonging to this design
@@ -1279,7 +1279,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       // if there s no "coord" set it is only meant for evaluate for forward homogenization
       StdVector<double> tmp;
-      CalcHomogenizedTensorEntry(c->coord, true, tmp, f->GetExcitation(me)->meta_index);
+      CalcHomogenizedTensorEntry(c->coord, true, tmp, f->GetExcitation()->meta_index);
       for(unsigned int e = 0, ne = design->GetNumberOfElements(); e < ne; e++)
       design->data[e].AddGradient(c, NULL, tmp[e]);
       return 0.0;
@@ -2538,15 +2538,15 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // PLANE_STRESS: E = E11 * (1-v^2)
 
       StdVector<double> dE11;
-      CalcHomogenizedTensorEntry(boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation(me)->meta_index);
+      CalcHomogenizedTensorEntry(boost::make_tuple(1,1,1.0), true, dE11, f->GetExcitation()->meta_index);
       StdVector<double> dE12;
-      CalcHomogenizedTensorEntry(boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation(me)->meta_index);
+      CalcHomogenizedTensorEntry(boost::make_tuple(1,2,1.0), true, dE12, f->GetExcitation()->meta_index);
       StdVector<double> dE22;
-      CalcHomogenizedTensorEntry(boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation(me)->meta_index);
+      CalcHomogenizedTensorEntry(boost::make_tuple(2,2,1.0), true, dE22, f->GetExcitation()->meta_index);
 
       double grad(0.0);
 
-      Transform* trans = f->GetExcitation(me)->transform; // transform might be NULL
+      Transform* trans = f->GetExcitation()->transform; // transform might be NULL
 
       for(unsigned int o = 0, ne = design->GetNumberOfElements(); o < ne; o++)
       {
@@ -2650,7 +2650,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     result.Init();
 
     // we might have transformations
-    Transform* trans = f->GetExcitation(me) != NULL ? f->GetExcitation(me)->transform : NULL;
+    Transform* trans = f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL;
     for (unsigned int ij = 0;ij < ex_size;++ij)
     {
       // we need the transformation here to have the proper forward solution when we have multiple meta excitations
@@ -2696,7 +2696,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     LOG_DBG(em) << "CHT f=" << f->ToString(me) << " -> " << result.ToString();
     // save e.g. for CommitIteration()
-    homogenizedTensor[f->GetExcitation(me)->meta_index].Assign(result, 1.0);
+    homogenizedTensor[f->GetExcitation()->meta_index].Assign(result, 1.0);
     return result;
   }
 
@@ -2716,7 +2716,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     hom_tensor_deriv.Init();// we set and do not add - hence one init is enough
 
     // we might have transformations
-    Transform* trans = f->GetExcitation(me) != NULL ? f->GetExcitation(me)->transform : NULL;
+    Transform* trans = f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL;
 
     // loop over elements.
     for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
@@ -2762,7 +2762,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // dJ = sum_ij dE_ij*D_ij
     // CalcHomogenizedTensorEntry((i, j), derivative = true, tmp_grad_out) sets the dE_ij in tmp_grad_out
     StdVector<double> tmp_grad_out;
-    unsigned int meta = f->GetExcitation(me)->meta_index;
+    unsigned int meta = f->GetExcitation()->meta_index;
     for (unsigned int y = 0;y < par.GetNumRows();y++)
     {
       for (unsigned int x = 0;x < par.GetNumCols();x++)
@@ -2788,8 +2788,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     StdVector<double> grad;
     double result = 0.0;
 
-    Transform* trans = g->GetExcitation(me)->transform;
-    unsigned int meta = g->GetExcitation(me)->meta_index;
+    Transform* trans = g->GetExcitation()->transform;
+    unsigned int meta = g->GetExcitation()->meta_index;
 
     // we have a list of int,int,double tuples which are added with the double factor.
     // E11 = <0,0,x>
@@ -2813,7 +2813,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       {
         result += factor * t;
 
-        Matrix<double>& ht = homogenizedTensor[g->GetExcitation(me)->meta_index];
+        Matrix<double>& ht = homogenizedTensor[g->GetExcitation()->meta_index];
 
         ht[boost::get<0>(entry)-1][boost::get<1>(entry)-1] = t;
         // all tensors are symmetric. Makes reading easier!
