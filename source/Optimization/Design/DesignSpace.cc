@@ -762,8 +762,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << domain->GetOptimization()->context.excitation->index
-                       << " fix=" << domain->GetOptimization()->context.excitation->robust_filter_idx
+                       << " ex=" << (domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->index : -1)
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -1133,8 +1132,6 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
 
   StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
 
-  unsigned int fix = f->GetExcitation()->robust_filter_idx;
-
   assert(out.window.GetSize() == sparsity.GetSize());
   unsigned int base = out.window.GetStart();
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
@@ -1143,7 +1140,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
     if(s <= data_size){ // else we have parts of the sparsity pattern on the aux design
       assert(out.InWindow(base + i));
       double scaling = use_scaling ? regions[FindDesign(data[s].GetType())][0].scale_design : 1.0;
-      out[base + i] = data[sparsity[i]].GetValue(vs, access, fix, f) * scaling;
+      out[base + i] = data[sparsity[i]].GetValue(vs, access, f) * scaling;
     }
   }
 }
@@ -1157,7 +1154,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
 
-  unsigned int fix = f->GetExcitation()->robust_filter_idx;
+  f->GetExcitation()->Apply(); // this take the proper gradient for robustness and transformation
 
   for(unsigned int des = 0; des < nd; des++)
   {
@@ -1173,9 +1170,9 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
           //const DesignElement* de = ApplyTransformations(&data[s], true);
-          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, fix, f);
+          LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, f);
           assert(out.InWindow(n));
-          out[n++] = data[s].GetValue(vs, access, fix, f) * scaling;
+          out[n++] = data[s].GetValue(vs, access, f) * scaling;
         }
       }
       else if(cur_reg.constant == CONSTANT_PER_REGION || cur_reg.constant == CONSTANT_ON_ALL_REGIONS) // in FIXED case nothing is done
@@ -1186,8 +1183,8 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
           assert(out.InWindow(n));
-          out[n] += data[s].GetValue(vs, access, fix, f) * scaling;
-          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": out[" << n << "] += design[" << s << "]=" << data[s].GetValue(vs, access, fix, f);
+          out[n] += data[s].GetValue(vs, access, f) * scaling;
+          LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": out[" << n << "] += design[" << s << "]=" << data[s].GetValue(vs, access, f);
         }
         LOG_DBG3(designSpace) << "WriteDenseGradientToExtern: constant region " << r << ": sum = " << out[n] / scaling;
         if(cur_reg.constant == CONSTANT_PER_REGION || (cur_reg.constant == CONSTANT_ON_ALL_REGIONS && (r == nr-1) ) )
@@ -1487,6 +1484,8 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
   Excitation* ex = domain->GetOptimization() ? domain->GetOptimization()->context.excitation : NULL;
+  if(ex != NULL)
+    ex->Apply(); // such that robust returns the proper physical design
 
   for ( it.Begin(); !it.IsEnd(); it++ )
   {

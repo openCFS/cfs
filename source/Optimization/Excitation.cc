@@ -281,7 +281,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   {
     if(DoRobust())
       throw Exception("robust filters are defined but 'multiple_excitation' is not enabled in 'costFunction");
-    if(DoTransform())
+    if(num_trans_ > 1)
       throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
   }
 
@@ -296,7 +296,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   if(opt->IsHarmonic())
     SetHarmonic(num_freq);
 
-  if(!opt->IsHarmonic() && IsEnabled() && !DoBloch() && !DoTransform()) // multiple loads case
+  if(!opt->IsHarmonic() && IsEnabled() && !DoBloch()) // multiple loads case
     SetLoadCases(pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   // ------------------------------

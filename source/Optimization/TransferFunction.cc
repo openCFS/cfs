@@ -223,10 +223,10 @@ std::string TransferFunction::ToString()
   return os.str();   
 }
 
-double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat, int filter_index) const
+double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
-  unsigned int fix = filter_index < 0 ? domain->GetOptimization()->context.excitation->robust_filter_idx : (unsigned int) filter_index;
-  double value = de->GetValue(DesignElement::DESIGN, access, fix);
+  double value = de->GetValue(DesignElement::DESIGN, access);
+
   return this->Transform(value, lower_bimat, de);
 }
 
