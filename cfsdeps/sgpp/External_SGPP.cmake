@@ -49,7 +49,7 @@ ExternalProject_Add(sgpp
   CONFIGURE_COMMAND ""
   # let it install inplace where we can prepare to copy to precompiled cfsdeps
   # the libs will be created in lib/sgpp and we manually copy them to lib64/CFS_ARCH_STR
-  BUILD_COMMAND scons -j 4 -s SG_OPT=yes OMP=yes UMFPACK=yes EIGEN=yes ARMADILLO=yes GMMPP=yes VERBOSE=yes
+  BUILD_COMMAND scons -j 4 -s SG_OPT=yes OMP=yes UMFPACK=yes EIGEN=yes ARMADILLO=yes GMMPP=yes
 )
 
 # after the installation we remove libblas.a, remove the confidental source, copy to cfs and might copy to precompiled cfsdeps
