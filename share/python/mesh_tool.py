@@ -349,7 +349,7 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
-  out.write('#ElemNr Level\n\n')
+  out.write('#ElemNr Level\n')
   for e in range(len(mesh.ne)):
     ne = mesh.ne[e]
     for n in range(len(ne[1])):

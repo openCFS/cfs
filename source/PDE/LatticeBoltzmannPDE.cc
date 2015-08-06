@@ -15,6 +15,7 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
+#include "LatticeBoltzmannPDE.hh"
 
 //#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -23,17 +24,28 @@
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
+
 //#include "Domain/AnsatzFct.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
 #include "Domain/Mesh/Grid.hh"
 #include "Domain/Results/ResultInfo.hh"
+
+#include "Utils/StdVector.hh"
+
 #include "Driver/Assemble.hh"
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
+//new integrator concept
+#include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/Operators/GradientOperator.hh"
+
 #include "FeBasis/BaseFE.hh"
+//#include "FeBasis/FeFunctions.hh"
+#include "FeBasis/H1/FeSpaceH1Nodal.hh"
 //#include "Forms/BaseForm.hh"
 #include "General/Exception.hh"
 #include "PDE/SinglePDE.hh"
@@ -41,8 +53,6 @@
 //#include "PDE/eqnMap.hh"
 //#include "PDE/Timestepping.hh"
 //#include "PDE/PseudoTS.hh"
-#include "PDE/LatticeBoltzmannSolver/LatticeBoltzmann.hh"
-#include "Utils/StdVector.hh"
 //#include "Utils/Baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/TransferFunction.hh"
@@ -54,7 +64,6 @@
 #include "MatVec/CRS_Matrix.hh"
 //#include "OLAS/algsys/AlgebraicSys.hh"
 #include "MatVec/SBM_Matrix.hh"
-#include "LatticeBoltzmannPDE.hh"
 
 
 namespace CoupledField {
@@ -67,7 +76,7 @@ namespace CoupledField {
 
   // declare logging stream
   DECLARE_LOG(lbm_pde)
-  DEFINE_LOG(lbm_pde, "lbm_pde")
+  DEFINE_LOG(lbm_pde, "lbmpde")
 
   void test_matrix()
   {
@@ -319,9 +328,9 @@ namespace CoupledField {
     assert(n_elems == n_x_ * n_y_ * n_z_);
 
     // TODO here we assume that the whole mesh is for LBM and the mesh is of lexicographic ordering.
-    // To be good this needs to handled by element neighbours!
+    // To be good this needs to handled by element neighbors!
     if(grid->GetNumElems() != n_elems)
-      EXCEPTION("the current implementation assums the whole mesh to used for LBM and lexicographic ordered. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
+      EXCEPTION("the current implementation assumes the whole mesh to used for LBM and lexicographic ordered. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
 
     idx_to_elem.Resize(n_elems);
     for(unsigned int i = 0; i < n_elems; i++)
@@ -334,25 +343,64 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::DefineIntegrators()
   {
-    // code taken over from mechPDE
+    // code taken from testPDE
 
     // help variables for parameter checking
-//    RegionIdType actRegion;
-//    BaseMaterial* actSDMat = NULL;
-//
-//    std::map<RegionIdType, BaseMaterial*>::iterator it;
-//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
-//      // Set current region and material
-//      actRegion = it->first;
-//      actSDMat = it->second;
-//
-//      // create new entity list
-//      shared_ptr<ElemList> actSDList( new ElemList(ptgrid_ ) );
-//      actSDList->SetRegion( actRegion );
-//
-//      // get current region name and get grip of paramNode
-//      std::string actRegionName;
-//      actRegionName = ptgrid_->GetRegion().ToString( actRegion );
+    RegionIdType actRegion;
+    BaseMaterial * actSDMat = NULL;
+
+    // Define integrators for "standard" materials
+    std::map<RegionIdType, BaseMaterial*>::iterator it;
+
+    //get FEFunction and space
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[LBM_PROBABILITY_DISTRIBUTION];
+    shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
+
+    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+      // Set current region and material
+      actRegion = it->first;
+      actSDMat = it->second;
+
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( actRegion );
+
+      // get current region name and get grip of paramNode
+      std::string actRegionName;
+      actRegionName = ptGrid_->GetRegion().ToString( actRegion );
+
+      // --- Set the FE ansatz for the current region ---
+      PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",actRegionName.c_str());
+//      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
+//      std::string integId = curRegNode->Get("integId")->As<std::string>();
+//      mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      mySpace->SetRegionApproximation(actRegion, "default","default");
+
+      // pass entitylist of fespace / fefunction
+      feFunc->AddEntityList( actSDList );
+
+      // ====================================================================
+      // stiffness integrator
+      // ====================================================================
+      PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
+
+      BaseBDBInt* stiffInt = NULL;
+      if( dim_ == 2 ) {
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
+      } else {
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
+      }
+      stiffInt->SetName("StiffnessIntegrator");
+
+      BiLinFormContext * stiffIntDescr =
+        new BiLinFormContext(stiffInt, STIFFNESS );
+
+      stiffIntDescr->SetEntities( actSDList, actSDList );
+      stiffIntDescr->SetFeFunctions(feFunc,feFunc);
+      stiffInt->SetFeSpace( mySpace );
+
+      assemble_->AddBiLinearForm( stiffIntDescr );
+      bdbInts_[actRegion] = stiffInt;
 
       // ==============  add "standard" linear stiffness ===========================
 //      BaseForm * bilinearStiff = new LatticeBoltzmannInt(actSDMat);
@@ -379,13 +427,13 @@ namespace CoupledField {
 //    EXCEPTION("CreateFeSpaces(..) not implemented for LatticeBoltzmannPDE.");
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
 
-    if( formulation == "default" || formulation == "H1" ){
-      PtrParamNode potSpaceNode = infoNode->Get("pressureDrop");
-      crSpaces[MECH_DISPLACEMENT] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
-      crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
-    }else{
-      EXCEPTION("The formulation " << formulation << "of the mechanic PDE is not known!");
-    }
+//    if( formulation == "default" || formulation == "H1" ){
+      PtrParamNode potSpaceNode = infoNode->Get("LBMProbabilityDistributions");
+      crSpaces[LBM_PROBABILITY_DISTRIBUTION] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+      crSpaces[LBM_PROBABILITY_DISTRIBUTION]->Init(solStrat_);
+//    }else{
+//      EXCEPTION("The formulation " << formulation << "of the mechanic PDE is not known!");
+//    }
     return crSpaces;
   }
 
@@ -403,7 +451,6 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::Solve()
   {
-
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
     in->Get("omega")->SetValue(omega_);
@@ -1302,6 +1349,20 @@ void LatticeBoltzmannPDE::ReadSpecialResults()
 {
 }
 
+void LatticeBoltzmannPDE::DefinePrimaryResults() {
+	shared_ptr<ResultInfo> prob(new ResultInfo);
+	prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
+	StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
+	for(unsigned int i=0, n = n_q_; i < n; i++ )
+		probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
+	prob->dofNames = probDofNames;
+	prob->unit = "";
+	prob->entryType = ResultInfo::VECTOR;
+	prob->definedOn = ResultInfo::ELEMENT;
+	prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
+	feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
+}
+
 
 void LatticeBoltzmannPDE::DefineAvailResults() {
   // =====================================================================
@@ -1315,29 +1376,9 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
   for(unsigned int i=0, n = n_q_; i < n; i++ )
     probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
-  //  probDofNames[0] = "C";
-  //  probDofNames[1] = "E";
-  //  probDofNames[2] = "W";
-  //  probDofNames[3] = "N";
-  //  probDofNames[4] = "S";
-  //  probDofNames[5] = "T";
-  //  probDofNames[6] = "B";
-  //  probDofNames[7] = "NE";
-  //  probDofNames[8] = "SW";
-  //  probDofNames[9] = "NW";
-  //  probDofNames[10] = "SE";
-  //  probDofNames[11] = "TN";
-  //  probDofNames[12] = "BS";
-  //  probDofNames[13] = "TS";
-  //  probDofNames[14] = "BN";
-  //  probDofNames[15] = "TE";
-  //  probDofNames[16] = "BW";
-  //  probDofNames[17] = "TW";
-  //  probDofNames[18] = "BE";
   prob->dofNames = probDofNames;
   prob->unit = "";
   prob->entryType = ResultInfo::VECTOR;
-//  prob->fctType = shared_ptr<ConstFct>(new ConstFct());
   prob->definedOn = ResultInfo::ELEMENT;
   results_.Push_back(prob);
   availResults_.insert(prob);
@@ -1794,3 +1835,5 @@ void LatticeBoltzmannPDE::TestPointsToBoundary()
   assert(PointsToBoundary(0,0,0,Q_NW));
   assert(PointsToBoundary(0,0,0,Q_SW));
 }
+
+} // end of namespace CoupledField

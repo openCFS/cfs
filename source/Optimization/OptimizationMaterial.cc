@@ -27,7 +27,7 @@
 #include "PDE/ElecPDE.hh"
 #include "PDE/HeatPDE.hh"
 #include "PDE/MechPDE.hh"
-// #include "PDE/LatticeBoltzmannPDE.hh"
+ #include "PDE/LatticeBoltzmannPDE.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -658,7 +658,6 @@ void ElecMat::ReInit(){
       LOG_DBG(om) << "OptElecMat: ElecStiffness region=" << domain->GetGrid()->GetRegion().ToString(reg_id) << " bimaterial"
           << std::endl << elecStiffness_map[reg_id].second.ToString(0,true);
     }
-
   }
 }
 
@@ -702,8 +701,8 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
 LBMMat::LBMMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = LBM;
-  assert(false);
-  lbm = NULL; // FIXME dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
+//  assert(false);
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
   assert(lbm != NULL);
 }
 

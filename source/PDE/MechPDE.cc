@@ -129,7 +129,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     // thermal strain coefFunction
     thermalStrain_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
-
 }
 
 
