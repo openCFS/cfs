@@ -9,7 +9,7 @@ DECLARE_LOG(simp)
 
 LBMSIMP::LBMSIMP()
 {
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
+
 }
 
 LBMSIMP::~LBMSIMP()
@@ -19,6 +19,9 @@ LBMSIMP::~LBMSIMP()
 
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
+  assert(pde != NULL);
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
+  assert(lbm != NULL);
   LOG_DBG(simp) << "SSP -> solve";
   lbm->Solve();
 }

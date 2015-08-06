@@ -8,12 +8,12 @@
 #include <string>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/Enum.hh"
-#include "General/defs.hh"
-#include "General/Environment.hh"
-#include "MatVec/Matrix.hh"
-#include "MatVec/Vector.hh"
+//#include "DataInOut/ParamHandling/ParamNode.hh"
+//#include "General/Enum.hh"
+//#include "General/defs.hh"
+//#include "General/Environment.hh"
+//#include "MatVec/Matrix.hh"
+//#include "MatVec/Vector.hh"
 #include "PDE/LatticeBoltzmannSolver/LatticeBoltzmann.hh"
 #include "SinglePDE.hh"
 //#include "Utils/nodestoresol.hh"
@@ -22,6 +22,7 @@
 namespace CoupledField
 {
 class BaseResult;
+class BaseBDBInt;
 class Grid;
 class PDECoupling;
 class DesignElement;
@@ -130,6 +131,9 @@ private:
 
   //! Define available result types
   void DefineAvailResults();
+
+  //! Define available primary result types
+  void DefinePrimaryResults();
 
   /** Calculate the LBM Density of an element idx */
   inline double CalcLBMDensity(unsigned int idx) const;

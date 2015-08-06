@@ -278,6 +278,8 @@ namespace CoupledField {
     // trigger the creation of functionDescriptors
     //======================================================================
     LOG_TRACE(singlepde) << pdename_ << ": Define FE-Functions";
+//    LOG_DBG(singlepde) << "IS1: has MECH_DISPLACEMENT fefunciton? " << (feFunctions_.find(MECH_DISPLACEMENT) != feFunctions_.end());
+
     DefineFeFunctions();
     
     // Register all fe functions with the algebraic system
@@ -377,7 +379,8 @@ namespace CoupledField {
     // =====================================================================
     //  map equations (FeSpaces) and finalize FeFunction (vector creation)
     // =====================================================================
-    LOG_TRACE(singlepde) << pdename_ << ": Mapping Equations";
+    LOG_TRACE(singlepde) << "IS3: " << pdename_ << ": Mapping Equations";
+//    LOG_DBG(singlepde) << "IS3: has MECH_DISPLACEMENT fefunciton? " << (feFunctions_.find(MECH_DISPLACEMENT) != feFunctions_.end());
     // Finalize spaces and fefunctions
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
     fncIt= feFunctions_.begin();
@@ -454,6 +457,7 @@ namespace CoupledField {
     
     // Finally set the initialization flag to true
     isInitialized_ = true;
+//    LOG_DBG(singlepde) << "IS3: has MECH_DISPLACEMENT fefunciton? " << (feFunctions_.find(MECH_DISPLACEMENT) != feFunctions_.end());
     LOG_TRACE(singlepde) << pdename_ << ": Finished initializaton";
 
   }

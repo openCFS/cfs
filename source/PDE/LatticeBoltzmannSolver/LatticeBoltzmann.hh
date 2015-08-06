@@ -5,6 +5,7 @@
 #include <set>
 #include "Utils/StdVector.hh"
 #include "General/Enum.hh"
+#include "DataInOut/ResultHandler.hh"
 /** This file is an extract of the LBM code of Markus Wittmann (RRZE) based on the code of Thomas Guess (AM2) based on the code of Georg Pingen (USA).
 The original code from Markus can be found at
 
@@ -191,7 +192,6 @@ namespace CoupledField
 
           void prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
 
-
           /**
            * LBM operators in 3D
            */
@@ -249,8 +249,6 @@ namespace CoupledField
           StdVector<StdVector<int> > bb;
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
-
-          ResultHandler* rh = NULL;
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
