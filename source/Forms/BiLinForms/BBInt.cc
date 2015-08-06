@@ -17,6 +17,7 @@
 // =====================================================================================
 
 #include "BBInt.hh"
+#include "Domain/Domain.hh"
 
 namespace CoupledField{
 
@@ -70,6 +71,12 @@ namespace CoupledField{
      elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
      elemMat.Init();
 
+     // for LatticeBoltzmannPDE we just need a dummy elemMat
+     if (domain->GetSinglePDE("LatticeBoltzmann") != NULL) {
+       elemMat.InitValue(1.0);
+       return;
+     }
+
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp;
@@ -92,7 +99,6 @@ namespace CoupledField{
 #else
        elemMat += Transpose(bMat) * bMat * this->factor_ * fac;
 #endif
-
      }
    }
    
@@ -294,7 +300,6 @@ namespace CoupledField{
 #else
        elemMat += Transpose(bMat) * this->bMat_ * this->factor_ * fac;
 #endif
-
      }
      //ptFe->SetOnlyLowestOrder(false);
    }
@@ -353,14 +358,12 @@ namespace CoupledField{
        // porposal: let PDE decide via constructor parameter
        this->coefScalar_->GetScalar(fac, lp1);
        fac *= MAT_DATA_TYPE(lp1.jacDet * weights[i]);
-    //  std::cout << fac << std::endl;
 
 #ifdef USE_BLAS_VERSION
        bMatT_.Mult_Blas(this->bMat_, elemMat, false, false, this->factor_ * fac, 1.0);
 #else
        elemMat += Transpose(bMat_) * bMat_ * this->factor_ * fac;
 #endif
-  //     std::cout << elemMat.ToString(0,true) << std::endl;
      }
    }
 
