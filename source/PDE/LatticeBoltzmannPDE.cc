@@ -386,9 +386,9 @@ namespace CoupledField {
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2,9>(), beta,1.0, updatedGeo_ );
       } else {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3,19>(), beta,1.0, updatedGeo_ );
       }
       stiffInt->SetName("StiffnessIntegrator");
 
@@ -1361,6 +1361,8 @@ void LatticeBoltzmannPDE::DefinePrimaryResults() {
 	prob->definedOn = ResultInfo::ELEMENT;
 	prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
 	feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
+	results_.Push_back(prob);
+	availResults_.insert(prob);
 }
 
 
@@ -1371,19 +1373,7 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   PtrParamNode resultsNode = myParam_->Get("storeResults", ParamNode::PASS );
 
   // === solution by LBM solver ===
-  shared_ptr<ResultInfo> prob(new ResultInfo);
-  prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
-  StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
-  for(unsigned int i=0, n = n_q_; i < n; i++ )
-    probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
-  prob->dofNames = probDofNames;
-  prob->unit = "";
-  prob->entryType = ResultInfo::VECTOR;
-  prob->definedOn = ResultInfo::ELEMENT;
-  results_.Push_back(prob);
-  availResults_.insert(prob);
-
-
+  // result LBM_PROBABILITY_DISTRIBUTION already defined in DefinePrimaryResults()
   shared_ptr<ResultInfo> dens(new ResultInfo);
   dens->resultType = LBM_DENSITY;
   dens->unit =  "";

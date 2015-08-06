@@ -488,7 +488,7 @@ void Domain::SolveProblem()
 
 SinglePDE* Domain::GetSinglePDE(const std::string pdeName,  bool throw_exception)
 {
-  // check for the pede an return
+  // check for the pde an return
   for (UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i)
   {
     if (ptSinglePde_[i]->GetName() == pdeName)

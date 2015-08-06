@@ -52,10 +52,7 @@ namespace CoupledField{
   //! Calculate the element matrix
   template< class COEF_DATA_TYPE,
             class B_DATA_TYPE>
-  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
-  CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
-                     EntityIterator& ent1,
-                     EntityIterator& ent2) {
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat, EntityIterator& ent1, EntityIterator& ent2) {
 
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
@@ -308,11 +305,8 @@ namespace CoupledField{
   }
   
   //! Calculate the integration kernel
-  template< class COEF_DATA_TYPE,
-            class B_DATA_TYPE>
-  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
-  CalcKernel( Matrix<MAT_DATA_TYPE>& kernel, 
-              const LocPointMapped& lpm ) {
+  template< class COEF_DATA_TYPE, class B_DATA_TYPE>
+  void BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::CalcKernel( Matrix<MAT_DATA_TYPE>& kernel,const LocPointMapped& lpm ) {
 
     // Obtain FE element from feSpace and integration scheme
     BaseFE* ptFe = ptFeSpace1_->GetFe( lpm.ptEl->elemNum );
