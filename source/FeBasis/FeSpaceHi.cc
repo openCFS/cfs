@@ -763,7 +763,7 @@ void FeSpaceHi::MapCoefFctToSpacePriv(StdVector<shared_ptr<EntityList> > entityL
 
 
     // solve system and aquire solution
-    ctx->algSys->Solve(ctx->infoNode);
+    ctx->algSys->Solve(); // analysis_id ctx->infoNode);
     ctx->algSys->GetSolutionVal(*(ctx->sol));
 
     Vector <T> & sol = dynamic_cast<Vector<T> &>(*(ctx->sol->GetPointer(0)));

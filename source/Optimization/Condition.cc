@@ -467,7 +467,8 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
 {
-  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency());
+  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency())
+    return;
 
   // we need to find all eigenvalue constraints. Then extend each by excitation
 

@@ -65,7 +65,7 @@ bool HasIntersection(const lsnodepair &p)
 
 /******** LEVELSETNODE ***************/
 LevelSetNode::LevelSetNode(const double val, const unsigned int cfs_number) :
-  state(NONE), value(val), phi_temp(0.0), intersection_length(0.0),
+  state(LS_NONE), value(val), phi_temp(0.0), intersection_length(0.0),
   f_ext(0.0), shapegrad(0.0), global_node_number(cfs_number)
 {
   static const unsigned int dim(domain->GetGrid()->GetDim());
@@ -786,9 +786,9 @@ void LevelSet::ExecuteFastMarching(const bool negative, const bool really_dump)
   LOG_DBG(ls) << "fast marching mode is " << (negative ? "NEGATIVE" : "POSITIVE");
   
   // make some tests more readable
-  LevelSetNode::State state_accepted = (negative ? LevelSetNode::ACCEPTED : LevelSetNode::ACCEPTED_POS);
-  LevelSetNode::State state_close = (negative ? LevelSetNode::CLOSE : LevelSetNode::CLOSE_POS);
-  LevelSetNode::State state_far = (negative ? LevelSetNode::FAR : LevelSetNode::FAR_POS);
+  LevelSetNode::State state_accepted = (negative ? LevelSetNode::LS_ACCEPTED : LevelSetNode::LS_ACCEPTED_POS);
+  LevelSetNode::State state_close = (negative ? LevelSetNode::LS_CLOSE : LevelSetNode::LS_CLOSE_POS);
+  LevelSetNode::State state_far = (negative ? LevelSetNode::LS_FAR : LevelSetNode::LS_FAR_POS);
   
   // take a node from close
   while(true)
@@ -930,11 +930,11 @@ bool LevelSet::SetSignedDistanceNodeStates()
   for(unsigned int n = 0; n < nodes_size; ++n)
   {
     LevelSetNode &node = nodes_[n];
-    assert(node.state == LevelSetNode::NONE);
+    assert(node.state == LevelSetNode::LS_NONE);
     // first find all the nodes for accepted
     if(node.IsBoundary())
     {
-      node.state = ((node.value <= 0.0) ? LevelSetNode::ACCEPTED : LevelSetNode::ACCEPTED_POS);
+      node.state = ((node.value <= 0.0) ? LevelSetNode::LS_ACCEPTED : LevelSetNode::LS_ACCEPTED_POS);
       one_accepted = true;
     }
   }
@@ -948,14 +948,14 @@ bool LevelSet::SetSignedDistanceNodeStates()
   {
     LevelSetNode &node = nodes_[n];
     const bool neg(node.value <= 0.0);
-    if(node.state == (neg ? LevelSetNode::ACCEPTED : LevelSetNode::ACCEPTED_POS))
+    if(node.state == (neg ? LevelSetNode::LS_ACCEPTED : LevelSetNode::LS_ACCEPTED_POS))
       continue;
 
     // at this point we are either close or far
     // if there is a neighbour node that is at the boundary we are close
-    if(node.HasAcceptedNeighbour(neg ? LevelSetNode::ACCEPTED : LevelSetNode::ACCEPTED_POS))
+    if(node.HasAcceptedNeighbour(neg ? LevelSetNode::LS_ACCEPTED : LevelSetNode::LS_ACCEPTED_POS))
     { 
-      node.state = (neg ? LevelSetNode::CLOSE : LevelSetNode::CLOSE_POS);
+      node.state = (neg ? LevelSetNode::LS_CLOSE : LevelSetNode::LS_CLOSE_POS);
       FindNewNodeValueFromNeighbours(&node);
     }
     else
@@ -963,7 +963,7 @@ bool LevelSet::SetSignedDistanceNodeStates()
       // node has no accepted neighbour, so we are at far
       // far must be the smallest or largest value, or else the algorithm will not work!
       // FIXME better would be to get the grid dimension and set it to the largest/smallest possible value
-      node.state = (neg ? LevelSetNode::FAR : LevelSetNode::FAR_POS);
+      node.state = (neg ? LevelSetNode::LS_FAR : LevelSetNode::LS_FAR_POS);
       node.value = (neg ? -20.0 : 20.0);
     }
   }
@@ -971,7 +971,7 @@ bool LevelSet::SetSignedDistanceNodeStates()
 #ifndef NDEBUG
   for(unsigned int n = 0; n < nodes_size; ++n)
   {
-    if(nodes_[n].state == LevelSetNode::NONE)
+    if(nodes_[n].state == LevelSetNode::LS_NONE)
       EXCEPTION("some nodes have not been assigned a state!");
   }
 #endif
@@ -992,7 +992,7 @@ void LevelSet::FindNewNodeValueFromNeighbours(LevelSetNode *nodeptr)
     LevelSetNode *curr_nei = nodeptr->neighbours_[i];
     if(curr_nei == NULL) continue;
     // check if neighbour is accepted
-    if(curr_nei->state == ((curr_nei->value <= 0.0) ? LevelSetNode::ACCEPTED : LevelSetNode::ACCEPTED_POS))
+    if(curr_nei->state == ((curr_nei->value <= 0.0) ? LevelSetNode::LS_ACCEPTED : LevelSetNode::LS_ACCEPTED_POS))
     {
       dist.push_back(abs(curr_nei->value));
       orientation.push_back(GetAxisFromIndex(i));

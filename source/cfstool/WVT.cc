@@ -1152,7 +1152,7 @@ namespace CFSTool {
           if(dirCoupled_) 
           {
             u_p_ *= Complex(0,1);
-            u_p_ *= 2*PI*freq;
+            u_p_ *= 2*M_PI*freq;
           }
           else
           {
@@ -1167,7 +1167,7 @@ namespace CFSTool {
               }
               u_p_ = Complex(u_p_real, u_p_imag);
               u_p_ *= Complex(0,1);
-              u_p_ *= 2*PI*freq;
+              u_p_ *= 2*M_PI*freq;
             }
             if(wvtNode->Has("v_p")) {
               PtrParamNode vpNode = wvtNode->Get("v_p");
@@ -1600,7 +1600,7 @@ namespace CFSTool {
                 Xr[2] = n[2] * dp;
                 //                 CrossProd(Xl, Xr, X);
                    
-                Complex complexFreq(0, 2*PI*freq);
+                Complex complexFreq(0, 2*M_PI*freq);
                    
                 X[0] =  Xl[1] * Xr[2] - Xl[2] * Xr[1];
                 X[1] = -Xl[0] * Xr[2] + Xl[2] * Xr[0];
@@ -2020,7 +2020,7 @@ namespace CFSTool {
     std::cout << "\n(u')_P (cf. [Hemp1] (13)):                  "
               << u_p_prime << std::endl;
     std::cout << "\nDeltaPhi (cf. [Hemp1] (18)):                "
-              << deltaPhiVol/PI*180 << "°" << std::endl;
+              << deltaPhiVol/M_PI*180 << "°" << std::endl;
     
     csv << freq << ","
         << u_p_prime.real() << ","
@@ -2028,7 +2028,7 @@ namespace CFSTool {
         << abs(u_p_prime) << ","
         << arg(u_p_prime) << ","
         << deltaPhiVol << ","
-        << (deltaPhiVol/PI*180) << ","
+        << (deltaPhiVol/M_PI*180) << ","
         << vol << ","
         << meanVel << ","
         << meanVelCorrectionFactor
@@ -2059,7 +2059,7 @@ namespace CFSTool {
     val = arg(u_p_prime);
     mf.WriteVector("u_p_prime_phase", 1, &val);
     mf.WriteVector("deltaPhi_rad", 1, &deltaPhiVol);
-    val = (deltaPhiVol/PI*180);
+    val = (deltaPhiVol/M_PI*180);
     mf.WriteVector("deltaPhi_deg", 1, &val);
     mf.WriteVector("fluid_volume", 1, &vol);
     mf.WriteVector("mean_velocity", 1, &meanVel);

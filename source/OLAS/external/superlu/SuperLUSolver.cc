@@ -397,8 +397,7 @@ namespace CoupledField {
   template<typename T>
   void SuperLUSolver<T>::Solve( const BaseMatrix &sysmat,
                                 const BaseVector &rhs,
-                                BaseVector &sol,
-                                 ) {
+                                BaseVector &sol) {
 
     LOG_TRACE(superluSolver) << " -----------------------------------------"
                              << "-------------------------------------";

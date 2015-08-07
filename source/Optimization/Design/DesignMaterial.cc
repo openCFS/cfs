@@ -54,8 +54,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   massFactor_ = pn->Get("massFactor")->As<double>();
 
-  penalty_ = pn->Get("penalty")->As<double>();
-
   trace_ = pn->Get("trace")->As<double>();
 
   dampingIsDesign_ = pn->Get("optimizeDamping")->As<bool>();
@@ -1290,13 +1288,16 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
   double nu13 = params_[DesignElement::POISSON]; //used as theta in the boxed formulations
 
   if (subTensor == PLANE_STRESS) {
-    double dens(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
+    double dens(1.0), factor(1.0), ninv2(0.0), D(0.0), D3(0.0), nD3(0.0);
     if((type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED
         || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) && notation != HILL_MANDEL_NO_DENSITY)
     {
       dens = params_[DesignElement::DENSITY];
-      dens = std::pow(dens, penalty_); // SIMP
- //     dens = dens/(1.0 + 10.0*(1.0-dens)); // RAMP
+      TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+      factor = (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
+    } else {
+      if(direction == DesignElement::DENSITY)
+        factor = 0.0;
     }
     if (type_ == TRANSVERSAL_ISOTROPIC
         || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
@@ -1306,6 +1307,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
     }
     switch (direction) {
     case DesignElement::NO_DERIVATIVE:
+    case DesignElement::DENSITY:
     case DesignElement::ROTANGLE: {
       if (type_ == TRANSVERSAL_ISOTROPIC
           || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
@@ -1319,35 +1321,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }else{
         throw Exception("Not yet implemented!");
       }
-      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) ? dens*2.0*G3 : dens*G3);
-      break;
-    }
-    case DesignElement::DENSITY:
-    {
-      if(type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED
-          || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED)
-      {
-        dens = params_[DesignElement::DENSITY];
-        if (penalty_ == 1.0) {
-          dens = 1.0;
-        } else
-          dens = penalty_ * std::pow(dens, penalty_ - 1);
-        if(notation == HILL_MANDEL_NO_DENSITY)
-          dens = 0.0;
-      }
-      if (type_ == TRANSVERSAL_ISOTROPIC
-          || type_ == DENSITY_TIMES_TRANSVERSAL_ISOTROPIC) {
-        D = E * E3 / (E3 - nu13 * nu13 * E);
-        D3 = E3 * E3 / (E3 - nu13 * nu13 * E);
-        nD3 = nu13 * E * E3 / (E3 - nu13 * nu13 * E);
-      } else if(type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED || type_ == TRANSVERSAL_ISOTROPIC_BOXED || DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED){
-        D = E / (1 - nu13);
-        D3 = E3 / (1 - nu13);
-        nD3 = sqrt(E * E3 * nu13) / (1 - nu13);
-      }else{
-        throw Exception("Not yet implemented!");
-      }
-      SetTransIsoTensor(t, subTensor, dens*D, 0, 0, dens*D3, dens*nD3, (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) ? dens*2.0*G3 : dens*G3);
+      SetTransIsoTensor(t, subTensor, factor*D, 0, 0, factor*D3, factor*nD3, (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) ? factor*2.0*G3 : factor*G3);
       break;
     }
     case DesignElement::EMODULISO: {
@@ -1362,7 +1336,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }else{
         throw Exception("Not yet implemented!");
       }
-      SetTransIsoTensor(t, subTensor, dens * D, 0, 0, dens * D3, dens * nD3, 0);
+      SetTransIsoTensor(t, subTensor, factor * D, 0, 0, factor * D3, factor * nD3, 0);
       break;
     }
     case DesignElement::EMODUL: {
@@ -1377,7 +1351,7 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }else{
         throw Exception("Not yet implemented!");
       }
-      SetTransIsoTensor(t, subTensor, dens * D, 0, 0, dens * D3, dens * nD3, 0);
+      SetTransIsoTensor(t, subTensor, factor * D, 0, 0, factor * D3, factor * nD3, 0);
       break;
     }
     case DesignElement::POISSON: {
@@ -1394,11 +1368,11 @@ void DesignMaterial::GetTransIsoMaterialTensor(Matrix<double>& t, SubTensorType 
       }else{
         throw Exception("Not yet implemented!");
       }
-      SetTransIsoTensor(t, subTensor, dens * D, 0, 0, dens * D3, dens * nD3, 0);
+      SetTransIsoTensor(t, subTensor, factor * D, 0, 0, factor * D3, factor * nD3, 0);
       break;
     }
     case DesignElement::GMODUL: {
-      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) ? 2*dens : dens);
+      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, (type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC || type_ == DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED) ? 2*factor : factor);
       break;
     }
     default:
@@ -1626,15 +1600,15 @@ double DesignMaterial::GetTransIsoMaterialMass(DesignElement::Type direction){
 
 double DesignMaterial::GetDensityTimesTensorMass(DesignElement::Type direction){
   double dens = params_[DesignElement::DENSITY];
+  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
   switch (direction){
   case DesignElement::NO_DERIVATIVE:
   {
-// for mass identity transfer function (which should normally be used) is assumed. This is messy because of lack of TransferFunctions!
-    return dens;
+    return tf->Transform(dens);
   }
   case DesignElement::DENSITY:
   {
-    return 1.0;
+    return tf->Derivative(dens);
   }
   default:
     return 0.0;
@@ -1648,52 +1622,48 @@ void DesignMaterial::GetOrthotropicMaterialTensor(Matrix<double>& t, SubTensorTy
   double e12 = params_[DesignElement::MECH_12];
   double rotAngle = params_[DesignElement::ROTANGLE];
   double lowerEigBound = params_[DesignElement::LOWER_EIG_BOUND];
-  double dens(1.0);
-  if(type_ == DENSITY_TIMES_ORTHOTROPIC)
-  {
+  double dens(1.0), factor(1.0);
+  if((type_ == DENSITY_TIMES_ORTHOTROPIC) && (notation != HILL_MANDEL_NO_DENSITY)){
     dens = params_[DesignElement::DENSITY];
-    dens = std::pow(dens, penalty_);
   }
+  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH); // Identity TransferFunction if not defined
+  factor = tf->Transform(dens); // true in most cases, otherwise set again
 
   if(subTensor == PLANE_STRESS){ //This is the only implemented case for now
     switch(direction){
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
     {
-      SetTransIsoTensor(t, subTensor, dens*(e11*e11+e12*e12)+lowerEigBound, 0, 0,
-          dens*(e12*e12+e22*e22)+lowerEigBound, dens*(e11*e12+e12*e22), dens*e33+lowerEigBound);
+      SetTransIsoTensor(t, subTensor, factor*(e11*e11+e12*e12)+lowerEigBound, 0, 0,
+          factor*(e12*e12+e22*e22)+lowerEigBound, factor*(e11*e12+e12*e22), factor*e33+lowerEigBound);
       break;
     }
     case DesignElement::DENSITY:
     {
-      if(type_ == DENSITY_TIMES_ORTHOTROPIC)
-      {
-        dens = params_[DesignElement::DENSITY];
-        if(penalty_ == 1.0){
-          dens = 1.0;
-        }else dens = penalty_*std::pow(dens, penalty_-1);
-      }
-      SetTransIsoTensor(t, subTensor, dens*(e11*e11+e12*e12), 0, 0, dens*(e12*e12+e22*e22), dens*(e11*e12+e12*e22), dens*e33);
+      factor = tf->Derivative(dens);
+      if(notation == HILL_MANDEL_NO_DENSITY)
+        factor = 0.0;
+      SetTransIsoTensor(t, subTensor, factor*(e11*e11+e12*e12), 0, 0, factor*(e12*e12+e22*e22), factor*(e11*e12+e12*e22), factor*e33);
       break;
     }
     case DesignElement::MECH_11:
     {
-      SetTransIsoTensor(t, subTensor, 2.0*dens*e11, 0, 0, 0, dens*e12, 0);
+      SetTransIsoTensor(t, subTensor, 2.0*factor*e11, 0, 0, 0, factor*e12, 0);
       break;
     }
     case DesignElement::MECH_22:
     {
-      SetTransIsoTensor(t, subTensor, 0, 0, 0, 2.0*dens*e22, dens*e12, 0);
+      SetTransIsoTensor(t, subTensor, 0, 0, 0, 2.0*factor*e22, factor*e12, 0);
       break;
     }
     case DesignElement::MECH_12:
     {
-      SetTransIsoTensor(t, subTensor, 2.0*dens*e12, 0, 0, 2.0*dens*e12, dens*(e11+e22), 0);
+      SetTransIsoTensor(t, subTensor, 2.0*factor*e12, 0, 0, 2.0*factor*e12, factor*(e11+e22), 0);
       break;
     }
     case DesignElement::MECH_33:
     {
-      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, dens);
+      SetTransIsoTensor(t, subTensor, 0, 0, 0, 0, 0, factor);
       break;
     }
     default:
@@ -1741,48 +1711,33 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
     e13 = params_[DesignElement::MECH_13];
     e12 = params_[DesignElement::MECH_12];
   }
-  double d = params_[DesignElement::DENSITY];
   switch (direction) {
   case DesignElement::NO_DERIVATIVE:
   case DesignElement::ROTANGLE:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, d * e11, d * e22, d * e33, d * e23, d * e13, d * e12);
-    break;
-  case DesignElement::DENSITY:
-    if (penalty_ == 1.0) {
-      d = 1.0;
-    } else {
-      d = penalty_ * pow(d, penalty_ - 1);
-    }
-    Set2dVoigtTensor(t, d * e11, d * e22, d * e33, d * e23, d * e13, d * e12);
+  case DesignElement::DENSITY: // Treated after switch
+    Set2dVoigtTensor(t, e11, e22, e33, e23, e13, e12);
     break;
   case DesignElement::MECH_11:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, d, type_ == DENSITY_TIMES_ROTATED_2D_TENSOR ? -d : 0.0,
-        type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 * d : 0.0, 0.0,
+    Set2dVoigtTensor(t, 1.0, type_ == DENSITY_TIMES_ROTATED_2D_TENSOR ? -1.0 : 0.0,
+        type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 : 0.0, 0.0,
         0.0, 0.0);
     break;
   case DesignElement::MECH_22:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, 0.0, d,
-        type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 * d : 0.0, 0.0,
+    Set2dVoigtTensor(t, 0.0, 1.0,
+        type_ == DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE ? -0.5 : 0.0, 0.0,
         0.0, 0.0);
     break;
   case DesignElement::MECH_33:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, 0.0, 0.0, d, 0.0, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0);
     break;
   case DesignElement::MECH_23:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, d, 0.0, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0);
     break;
   case DesignElement::MECH_13:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, d, 0.0);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
     break;
   case DesignElement::MECH_12:
-    d = pow(d, penalty_);
-    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, d);
+    Set2dVoigtTensor(t, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
     break;
   default:
     ZeroTensor(t, subTensor);
@@ -1797,8 +1752,10 @@ void DesignMaterial::GetDensityTimes2dTensorTensor(Matrix<double>& t, SubTensorT
 //      std::cout << t(0,0) << " " << t(0,1) << " " << t(1,1) << " " << t(0,2) << " " << t(1,2) << " " << t(2,2) << std::endl;
 //    }
 //    count++;
-    return;
   }
+  double dens = params_[DesignElement::DENSITY];
+  TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+  t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
 }
 
 
@@ -1893,7 +1850,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::ROTANGLE:
   case DesignElement::ROTANGLEX:
   case DesignElement::ROTANGLEY:
-  case DesignElement::DENSITY:
+  case DesignElement::DENSITY: // Treated after switch
   {
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
@@ -1990,18 +1947,8 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   if (type_ == D_HOM_RECT)
   {
     double dens = params_[DesignElement::DENSITY];
-    if (direction == DesignElement::DENSITY)
-    {
-      if(penalty_ == 1.0)
-        dens = 1.0;
-      else
-        dens = penalty_*std::pow(dens, penalty_-1.0);
-    }
-    else
-    {
-      dens = std::pow(dens, penalty_);
-    }
-    E *= dens;
+    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+    E *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
   /*   for(double y = 0; y <= 0.5; y += 0.25)
    {
@@ -2622,7 +2569,7 @@ void DesignMaterial::GetMappingTensor(Matrix<double>& E, DesignElement::Type dir
          GetRedBasCorrector(corrector_, G);
      }
 
-     if ((direction == DesignElement::NO_DERIVATIVE))
+     if (direction == DesignElement::NO_DERIVATIVE)
      {
        GetModRedHomTensor(E, G,corrector_, notation);
      }
@@ -4131,18 +4078,8 @@ void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
   if (type_ == D_INTERP_TENSOR || type_ == D_INTERP_TENSOR_ROT)
   {
     double dens = params_[DesignElement::DENSITY];
-    if (direction == DesignElement::DENSITY)
-    {
-      if(penalty_ == 1.0)
-        dens = 1.0;
-      else
-        dens = penalty_*std::pow(dens, penalty_-1.0);
-    }
-    else
-    {
-      dens = std::pow(dens, penalty_);
-    }
-    t *= dens;
+    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+    t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
   if(type_ == D_INTERP_TENSOR_ROT){
     // for all rotated types, rotate the material tensor
@@ -4225,7 +4162,7 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
     switch (direction) {
     case DesignElement::NO_DERIVATIVE:
     case DesignElement::ROTANGLE:
-    case DesignElement::DENSITY:
+    case DesignElement::DENSITY: // Treated after switch
     {
       double E11 = -(E*stiff1)/n;
       double E22 = stiff2*E+stiff2*stiff2*nu*nu*E11;
@@ -4261,18 +4198,8 @@ void DesignMaterial::GetLaminatesTensor(Matrix<double>& t, SubTensorType subTens
   if (type_ == D_LAMINATES)
   {
     double dens = params_[DesignElement::DENSITY];
-    if (direction == DesignElement::DENSITY)
-    {
-      if(penalty_ == 1.0)
-        dens = 1.0;
-      else
-        dens = penalty_*std::pow(dens, penalty_-1.0);
-    }
-    else
-    {
-      dens = std::pow(dens, penalty_);
-    }
-    t *= dens;
+    TransferFunction* tf = em_->GetDesign()->GetTransferFunction(DesignElement::DENSITY, Optimization::MECH);
+    t *= (direction == DesignElement::DENSITY) ? tf->Derivative(dens) : tf->Transform(dens);
   }
 
   double rotAngle = params_[DesignElement::ROTANGLE];
@@ -5211,12 +5138,12 @@ void DesignMaterial::GetSVDGTensorParameters(const Matrix<double>& G, Vector<dou
   {
     l1 = -l1;
     l2 = -l2;
-    if (phi< 0) phi = PI +phi;
-    else phi = phi - PI;
+    if (phi< 0) phi = M_PI +phi;
+    else phi = phi - M_PI;
   }
 
-  if (phi <0) phi = phi +2*PI;
-  if (theta<0 ) theta = theta + 2*PI;
+  if (phi <0) phi = phi +2 * M_PI;
+  if (theta<0 ) theta = theta + 2 * M_PI;
 
   paramvec[0] = theta;
   paramvec[1] = phi;
