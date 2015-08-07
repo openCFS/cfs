@@ -97,7 +97,7 @@ Excitation* MultipleExcitation::GetExcitation(unsigned int base, Transform* tran
   if(trans == NULL)
     return &excitations[base];
   else
-    return &excitations[total_base_ * trans->index + base]; // TODO handle robust!
+    return &excitations[total_base_ * GetNumberRobust(true) * trans->index + base];
 }
 
 Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int meta)
@@ -164,10 +164,14 @@ void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  dou
       exin->Get("transform")->SetValue(ex.transform->ToString(1));
     if(ex.robust)
       exin->Get("robust_filter_idx")->SetValue(ex.robust_filter_idx);
+    if(ex.transform || ex.robust)
+      exin->Get("full_label")->SetValue(ex.GetFullLabel());
     exin->Get("weight")->SetValue(ex.weight);
     exin->Get("normalized_weight")->SetValue(ex.normalized_weight);
     if(ex.forms.GetSize() == 1)
       exin->Get("load")->SetValue(ex.forms[0]->GetEntities()->GetName());
+    if(DoMetaExcitation())
+      exin->Get("reassemnle")->SetValue(ex.reassemble);
 
     if(ex.forms.GetSize() > 1)
     {
@@ -403,7 +407,7 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
         ex.label = boost::lexical_cast<std::string>(r);
 
       // TODO up to now we do not handle weights for the transformations!
-      // If we total_base_ > 1 we assume the weights were properly set and are copied
+      // If we have total_base_ > 1 we assume the weights were properly set and are copied
       if(total_base_ == 1)
         ex.weight = 1.0;
 
@@ -420,21 +424,24 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
   StdVector<Transform>& trans = space->transform;
 
   assert(num_trans_ == (int) trans.GetSize());
-  assert(excitations.GetSize() == total_base_);
-  assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
 
-  // multiply excitations
-  assert(excitations.Capacity() >= total_base_ * num_trans_);
-  excitations.Resize(total_base_ * num_trans_);
+  // robust comes before transformation!
+  assert((!DoRobust() && excitations.GetSize() == total_base_) || (DoRobust() && excitations.GetSize() == total_base_ * num_robust_));
+  assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
+  unsigned int old_base = excitations.GetSize();
+
+  // multiply excitations. Robust comes first, the transformation
+  assert(excitations.Capacity() == total_base_ * GetNumberMeta(true));
+  excitations.Resize(total_base_ * GetNumberMeta(true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
   {
     Transform* tr = &trans[t];
 
-    for(unsigned int b = 0; b < total_base_; b++)
+    for(unsigned int b = 0; b < old_base; b++)
     {
       Excitation& base = excitations[b];
-      Excitation& ex   = excitations[total_base_ * t + b]; // ex == base for the first transform
+      Excitation& ex   = excitations[old_base * t + b]; // ex == base for the first transform
 
       if(t > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
         ex = base; // default copy constructors are cool
@@ -443,12 +450,16 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
         ex.reassemble = true;
 
       ex.transform = tr; // the transformations are block wise 0,0,0,0,1,1,1,1,2,2,2,2,....
-      ex.meta_index = t;
+      // the meta_index handles robust and transformation
+      if(!DoRobust())
+        ex.meta_index = t;
+      else
+        ex.meta_index = t * GetNumberRobust() + ex.robust_filter_idx;
 
       // only set a label if it was not set already
       assert(!(ex.label == "" && total_base_ > 1));
       if(ex.label == "" || total_base_ == 1)
-        ex.label = boost::lexical_cast<std::string>(t);
+        ex.label = boost::lexical_cast<std::string>(ex.meta_index);
 
       // TODO up to now we do not handle weights for the transformations!
       // If we total_base_ > 1 we assume the weights were properly set and are copied
@@ -703,18 +714,24 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 
 std::string Excitation::GetMetaLabel() const
 {
-  if(transform == NULL) // TODO add robust
+  if(transform == NULL && !robust)
     return "";
-  else
-    return transform->ToString(0);
+
+  std::stringstream ss;
+  if(robust)
+    ss << "f_" << robust_filter_idx;
+  if(transform != NULL)
+    ss << (robust ? "_" : "") << "t_" << transform->ToString(0);
+
+  return ss.str();
 }
 
 std::string Excitation::GetFullLabel() const
 {
-  if(transform == NULL) // TODO add robust
+  if(transform == NULL && !robust)
     return label;
   else
-    return GetMetaLabel() + "_" + label;
+    return label + "_" + GetMetaLabel();
 }
 
 

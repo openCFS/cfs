@@ -146,9 +146,8 @@ namespace CoupledField
      /** Apply the transformations if they shall be. The transformation is identified by the excitation of the context if not explicitly given.
       * @param fallback to be returned if transformation does not apply. E.g. again the de parameter
       * @param trans optionally give the transform, such it does not come from context
-      * @param ex optional excitation for DesignSpace::ExtractResults()
       * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
-      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL, Excitation* ex = NULL) const;
+      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
 
       /** the const version. const is sometimes just bullshit! :(*/
 /*      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {

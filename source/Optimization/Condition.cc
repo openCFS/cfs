@@ -652,7 +652,7 @@ string Condition::ToString(MultipleExcitation* me) const
   if(me != NULL && me->IsEnabled())  {
     if(type_ == STRESS || type_ == STRESS_DENSITY)
       os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
-    else if(me->GetNumberMeta() > 0)
+    else if(me->DoMetaExcitation())
       os << "_" << me->excitations[excite_].GetMetaLabel();
   }
 

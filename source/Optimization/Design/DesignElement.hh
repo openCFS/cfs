@@ -325,7 +325,7 @@ public:
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    double GetPhysicalDesign(const SinglePDE* pde = NULL, Excitation* ex = NULL) const;
+    double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
 
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
@@ -335,7 +335,7 @@ public:
 
     /** Checks out specialResult[]!
      * @param dofs 1 for scalar values */
-    void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs, Excitation* ex) const;
+    void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const;
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
      * @param f mandatory for vs = CONSTRAINT_GRADIENT and to determine if we are filtered! */
@@ -470,6 +470,11 @@ public:
 
   /** Sums up the weights of the neighbors and optionally the own element */
   double CalcWeightSum(bool include_this) const;
+
+  /** gives the proper filter index from DesignSpace::Context::Excitation */
+  unsigned int DetermineFilterIndex() const;
+
+
 
   /** pre-calculated weight sum */
   double weight_sum;

@@ -886,6 +886,7 @@ double Optimization::CalcConstraint(Condition* g)
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
+    excite.Apply(); // for stuff like robust
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
     double w = g->DoEvaluateAlways() ? excite.GetWeightedFactor(g) : 1.0;
@@ -908,7 +909,10 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
   {
     if(g->DoEvaluate(&me->excitations[i]))
+    {
+      me->excitations[i].Apply();
       CalcFunction(me->excitations[i], g, true);
+    }
   }
 
   // copies from the design element gradient data to a memory array for external optimizers
