@@ -920,7 +920,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
                         + "' is not contained");
 }
 
-DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans, Excitation* ex) const
+DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
 {
   DesignElement* found = NULL;
 
@@ -935,7 +935,7 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   {
     assert(!(context_ != NULL && context_->excitation->transform == NULL && transform.GetSize() > 1));
 
-    Excitation* excite = ex != NULL ? ex : context_->excitation;
+    Excitation* excite = context_->excitation;
 
     if(context_ != NULL && context_->excitation->transform != NULL)
     {
@@ -1437,11 +1437,14 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
     if(resultDescriptions[i].solutionType == ri->resultType)
       def = resultDescriptions[i];
 
-  // this enables extitation specific physical designs (robust, transformation)
-  if(def.excitation != "" && domain->GetOptimization() != NULL)
-    domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->Apply();
+  LOG_DBG(designSpace) << "ER: def=" << def.ToString();
 
-  LOG_DBG(designSpace) << "ER def=" << def.ToString();
+  // this enables extitation specific physical designs (robust, transformation)
+  if(def.excitation != "" && domain->GetOptimization() != NULL) {
+    domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->Apply();
+    LOG_DBG(designSpace) << "ER: apply excitation " << domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->GetFullLabel();
+  }
+
 
   if(ri->definedOn == ResultInfo::NODE)
     FillNodeResults(result, def);
@@ -1483,11 +1486,9 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
-  Excitation* ex = domain->GetOptimization() ? domain->GetOptimization()->context.excitation : NULL;
-  if(ex != NULL)
-    ex->Apply(); // such that robust returns the proper physical design
+  Excitation* ex = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation : NULL;
 
-  for ( it.Begin(); !it.IsEnd(); it++ )
+  for (it.Begin(); !it.IsEnd(); it++)
   {
     // for elements not in the design region we set to to the default value
     for(unsigned int i = 0; i < dofs; i++)
@@ -1498,11 +1499,20 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
       unsigned int base_index = Find(it.GetElem()->elemNum, true, true); // exception and pseudo designs (?)
       // base=0 is first!
       unsigned int data_index = (base * elements) + base_index;
-      DesignElement& de = data[data_index];
-      de.GetValue(descr, result_value, dofs, ex);
+      DesignElement* org = &data[data_index];
+
+      // we need to transform manually only for smart design with excitation given. The physicalPseudoDensity has it by itself
+      if(descr.solutionType != PHYSICAL_PSEUDO_DENSITY && descr.access == DesignElement::SMART && ex != NULL && ex->transform != NULL)
+      {
+        DesignElement* trans = ApplyTransformations(org, org, NULL);
+        trans->GetValue(descr, result_value, dofs);
+      }
+      else
+        org->GetValue(descr, result_value, dofs);
+
       #ifdef CHECK_INDEX
-        if(de.elem->elemNum != it.GetElem()->elemNum)
-          EXCEPTION("mixed up indices:" << de.elem->elemNum << "!=" << it.GetElem()->elemNum
+        if(org->elem->elemNum != it.GetElem()->elemNum)
+          EXCEPTION("mixed up indices:" << org->elem->elemNum << "!=" << it.GetElem()->elemNum
               << " base_index=" << base_index << " data_index=" << data_index << " it.Pos()=" << it.GetPos());
       #endif
     }
@@ -1523,7 +1533,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
             {
               // make sure the result description is unique and we don't overwrite
               assert(result_value[0] == 0.0);
-              data[e].GetValue(descr, result_value, dofs, ex);
+              data[e].GetValue(descr, result_value, dofs);
             }
         }
       }

@@ -457,7 +457,7 @@ int DesignElement::GetOptResultIndex(SolutionType st)
   }
 }
 
-void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs, Excitation* ex) const
+void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const
 {
   // check for special result
   if(    rd.value == OBJECTIVE
@@ -488,7 +488,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(NULL);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde, ex);
+        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
       else
         out[0] = GetValue(rd.value, rd.access);
     }
@@ -507,7 +507,7 @@ double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) co
   bool design_filter = false;
   bool design_filter_grad = false;
 
-  unsigned int fix = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
+  unsigned int fix = simp != NULL ? simp->DetermineFilterIndex() : 0;
 
   if(access == SMART && simp != NULL && (simp->filter.GetSize() > 0 && simp->filter[fix].GetType() != Filter::NO_FILTERING))
   {
@@ -599,13 +599,13 @@ double DesignElement::GetDesign() const
   EXCEPTION("use DesignElement::GetDesign(Access)");
 }
 
-double DesignElement::GetPhysicalDesign(const SinglePDE* pde, Excitation* ex) const
+double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
 {
   assert(space_ != NULL);
   TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
 
   // when we have a transformation we want the physical value for the source design
-  DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL, ex);
+  DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL);
 
   return tf->Transform(trans != NULL ? trans : this, SMART, false); // if there is a transformation return the transformed stuff
 }
@@ -948,7 +948,7 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
-  unsigned int fix = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
+  unsigned int fix = DetermineFilterIndex();
 
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
@@ -1003,7 +1003,8 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
-  unsigned int fix = domain->GetOptimization()->context.excitation->robust_filter_idx;
+
+  unsigned int fix = DetermineFilterIndex();
 
   const Filter& f = de_->simp->filter[fix];
 
@@ -1117,6 +1118,12 @@ std::string SIMPElement::ToString(int level) const
   ss << ")";
   return ss.str();
 }
+
+inline unsigned int SIMPElement::DetermineFilterIndex() const
+{
+  return domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
+}
+
 
 void SIMPElement::Dump()
 {

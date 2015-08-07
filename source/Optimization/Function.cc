@@ -419,7 +419,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
     assert(excite_index < 0);
-    if(me->GetNumberMeta() == 0)
+    if(!me->DoMetaExcitation())
       excite_ = me->excitations.GetSize() - 1; // standard
     else
     {

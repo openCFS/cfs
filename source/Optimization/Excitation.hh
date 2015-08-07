@@ -160,8 +160,8 @@ public:
   /** Do we do robust */
   bool DoRobust() const { return num_robust_ > 1; }
 
-  /** handles transform and robust */
-  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
+  /** Do we do real meta excitation? */
+  bool DoMetaExcitation() const { return DoTransform() || DoRobust(); }
 
   /** The number of transformations. Important when we do homogenization */
   unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
@@ -236,6 +236,10 @@ private:
   void SetBlochWaves(int num_wave);
 
   int ValidateTransformation(Optimization* opt);
+
+  /** handles transform and robust.
+   * @param minimum_one if false take care as num_robust can be 0 or 1 w/o robust */
+  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;

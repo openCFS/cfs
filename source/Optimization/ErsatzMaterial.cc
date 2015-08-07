@@ -436,7 +436,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       PtrParamNode in = iter->Get("homogenizedTensor", ParamNode::APPEND);
 
-      if(me->GetNumberMeta() > 0)
+      if(me->DoMetaExcitation())
        in->Get("case")->SetValue(me->GetExcitation(0, t)->GetMetaLabel());
 
       Matrix<double>& ht = homogenizedTensor[t];
@@ -712,6 +712,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       for(int e = 0; e < elements; e++)
       {
+        // if we do transformation, the physical u is calculated based on transformed elements
         Vector<T>& u1_vec = dynamic_cast<Vector<T>& >(*u1[e]);
         Vector<T>& u2_vec = dynamic_cast<Vector<T>& >(*u2[e]);
 
@@ -1323,6 +1324,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     assert(f != NULL);
+    assert(context.excitation->index == excite.index);
     // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
     Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
     Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
