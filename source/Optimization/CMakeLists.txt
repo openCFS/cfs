@@ -28,13 +28,11 @@ SET(TARGET_LL
   algsys-olas
   cfsgeneral
   datainout
-  design
   domain
   driver
   logging
   materials
   matvec
-  optimizer
   paramh
   pde
   utils

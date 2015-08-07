@@ -208,11 +208,11 @@ namespace CoupledField{
     case CGAL:
 #ifdef USE_CGAL
       {
-      std::list<Point> points;
+      std::list<CGAL::Point> points;
 
       for(UInt i=0; i<n; i++)
       {
-        points.push_back(Point(coordinates_[i][0],
+        points.push_back(CGAL::Point(coordinates_[i][0],
                                coordinates_[i][1],
                                coordinates_[i][2],
                                scatteredData_[i][0] * factor_,
@@ -441,15 +441,15 @@ namespace CoupledField{
       StdVector< Double >& l2Distances,
       StdVector< Vector<T> >& vectors)
   {
-    Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    CGAL::Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
     if(DOFS == 2)
     {
-      Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
+      CGAL::Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
       query = query2;
     }
     else
     {
-      Point query3(globPoint[0], globPoint[1], globPoint[2], 0.0, 0.0, 0.0);
+      CGAL::Point query3(globPoint[0], globPoint[1], globPoint[2], 0.0, 0.0, 0.0);
       query = query3;
     }
 

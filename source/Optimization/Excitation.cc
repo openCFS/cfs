@@ -149,6 +149,10 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
 
     // we average the solutions(s) only for output.
     // In the calculations we average the individual calculations
+  } else {
+    if(pn->Has("multipleExcitation/excitations"))
+      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->
+                  SetValue("'multiple_excitations' set to false but 'multipleExcitation/excitations' given");
   }
 
   // read in tracking parameters from XML, for the first and only load
@@ -203,7 +207,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       // don't mix optimization excitations with bcsAndLoads stuff
       if(ass->GetLinForms().GetSize() > 0)
         opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->
-            SetValue("Excitations are given in optimization mulitload. "
+            SetValue("Excitations are given in optimization multiload. "
             + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
             + " loads from the bcsAndLoads section will be deleted.");
 

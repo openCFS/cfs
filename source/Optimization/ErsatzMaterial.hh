@@ -357,7 +357,7 @@ protected:
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out);
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
