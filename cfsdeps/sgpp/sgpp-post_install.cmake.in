@@ -6,11 +6,12 @@
 
 # copy libraries to correct names
 FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppbasestatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppbase.a")
-FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppoptstatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppopt.a")
+FILE(RENAME "@SGPP_INSTALL@/lib/sgpp/libsgppoptimizationstatic.a" "@SGPP_INSTALL@/lib/sgpp/libsgppoptimization.a")
 
 # copy data from install dir to the target.
 # this is the point where the cfsdeps_precompiled stuff will come in
 # copy the libraries
 FILE(COPY "@SGPP_INSTALL@/lib/sgpp/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/lib64/@CFS_ARCH_STR@")
 # copy the sources
-FILE(COPY "@SGPP_INSTALL@/src/sgpp/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+FILE(COPY "@SGPP_INSTALL@/base/src/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")
+FILE(COPY "@SGPP_INSTALL@/optimization/src/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/include")

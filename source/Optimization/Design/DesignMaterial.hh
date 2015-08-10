@@ -13,10 +13,10 @@
 #include "MatVec/Matrix.hh"
 
 #ifdef USE_SGPP
-#include "base/grid/Grid.hpp"
-#include "base/operation/OperationEval.hpp"
-#include "base/operation/OperationNaiveEvalPartialDerivative.hpp"
-#include "base/datatypes/DataVector.hpp"
+#include "sgpp/base/grid/Grid.hpp"
+#include "sgpp/base/operation/hash/OperationEval.hpp"
+#include "sgpp/base/operation/hash/OperationNaiveEvalPartialDerivative.hpp"
+#include "sgpp/base/datatypes/DataVector.hpp"
 #endif
 
 namespace CoupledField {
@@ -344,8 +344,8 @@ class TransferFunction;
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Fill sparse grid with data values*/
-    void FillSparseGridWithUnhierarchisedData(Matrix<double>& data);
-    void FillSparseGridWithHierarchisedData(Matrix<double>& data);
+    void FillSparseGridWithUnhierarchizedData(Matrix<double>& data);
+    void FillSparseGridWithHierarchizedData(Matrix<double>& data);
 
     /** Initialize sparse grid for interpolation*/
     void InitializeSparseGrid(const char * filename);

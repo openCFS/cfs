@@ -93,8 +93,8 @@ FILE(TO_CMAKE_PATH
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)
   SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
-  SET(SGPP_ID "SGpp_0.9.3")
-  #SET(SGPP_ID "sgopt")
+  #SET(SGPP_ID "SGpp_0.9.3")
+  SET(SGPP_ID "sgopt_r4731")
   SET(SGPP_ZIP "${SGPP_ID}.zip")
   
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")

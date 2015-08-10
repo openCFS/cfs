@@ -67,7 +67,6 @@ struct ResultInfo;
 }  // namespace CoupledField
 
 using namespace std;
-using boost::make_tuple;
 
 DECLARE_LOG(conditions)
 DEFINE_LOG(conditions, "conditions")
