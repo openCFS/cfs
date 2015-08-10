@@ -30,10 +30,6 @@ class SingleVector;
 struct Elem;
 }  // namespace CoupledField
 
-
-using boost::tuple;
-
-
 namespace CoupledField
 {
 class Assemble;
