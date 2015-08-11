@@ -363,7 +363,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   
   assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
-  assert(inclusion_size == None or inclusion_size <= 1.0)
+  assert(inclusion_size == None or inclusion_size <= 2.0)
   
   
   nx = x_res
@@ -381,12 +381,10 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   dx = width / nx
   dy = height / ny
 
-  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
-
   for y in range(ny + 1):
     for x in range(nx + 1):
       mesh.nodes.append((x * dx, y * dy))
- 
+
  
   # count second region
   second = 0 
@@ -449,10 +447,14 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
   mesh.bc.append(("right_lower", [nx]))
   mesh.bc.append(("left_upper", [(nx+1)*ny]))
   mesh.bc.append(("right_upper", [(nx+1)*(ny+1)-1]))
+
+  print 'width=' + str(width) + ' height=' + str(height) + ' dx=' + str(dx) + ' dy=' + str(dy)
+  
+  liu = numpy.unique(left_iface)
   
   if len(left_iface) > 0:
-    mesh.bc.append(("left_iface", numpy.unique(left_iface)))
-    print str(len(numpy.unique(left_iface))) + ' nodes at the left interface'
+    mesh.bc.append(("left_iface", liu))
+    print str(len(liu)) + ' nodes (' + str(len(liu) / float(ny) * 100.) + '%) at the left interface for radius ' + str(inclusion_size)
   if len(right_iface) > 0:
     mesh.bc.append(("right_iface", numpy.unique(right_iface)))
   if len(lower_iface) > 0:
