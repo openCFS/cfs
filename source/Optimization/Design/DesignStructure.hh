@@ -136,7 +136,7 @@ private:
 
 
   /** helper for SetFilter() */
-  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours);
+  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first);
 
   /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
   enum Contribution { LINEAR, CONSTANT };

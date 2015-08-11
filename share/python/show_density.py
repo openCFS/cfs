@@ -84,7 +84,7 @@ def get_image(input, set, design):
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="the density.xml file to visualize or the files with saveall")
 parser.add_argument('--save', help="optional filename to write image")
-parser.add_argument('--saveall', help="uses input as filter (using wildcards) and saves all files as png", action='store_true')
+parser.add_argument('--saveall', help="uses input as filter (using wildcards like '*.density.xml' as input) and saves all files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')

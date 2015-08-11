@@ -266,14 +266,14 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
-  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours); // goes into the appended filters/filter
+  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
 
 
   timer->Stop();
 }
 
 
-void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours)
+void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first)
 {
   in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
 
@@ -283,7 +283,7 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
   if(ref.GetType() == Filter::SENSITIVITY)
     in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(ref.sensitivity_));
 
-  if(ref.GetType() == Filter::DENSITY)  {
+  if(first && ref.GetType() == Filter::DENSITY)  {
     // in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
     if(ref.density_ != Filter::STANDARD && em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
       in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");

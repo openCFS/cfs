@@ -244,7 +244,7 @@ protected:
    * @see constraintGradient */
   StdVector<double> costGradient;
 
-  /** The lower bound of this design variable. Redundant but such faster than look it up */
+  /** The lower bound of this design variable. Redundant but faster than look it up */
   double lower_;
 
   double upper_;
@@ -524,18 +524,23 @@ private:
 class DesignID
 {
 public:
-   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0)
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0, bool enforce_bounds = false)
    {
      this->design = design;
      this->multimaterial = mm;
      this->relative_bound = rb;
+     this->enforce_bounds = enforce_bounds;
    }
 
    DesignElement::Type design;
    /** index. -1 for non-multimaterial */
-   MultiMaterial*      multimaterial;
+   MultiMaterial* multimaterial;
+
    /** relative bounds for design, negative if not applicable, size by number of design types */
-   double              relative_bound;
+   double relative_bound;
+
+   /** shall the bounds be enforced when loading external designs */
+   bool enforce_bounds;
 };
 
 /**required in Design space**/
@@ -590,8 +595,8 @@ public:
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
 
-  /** An optional excitation label */
-  std::string excitation;
+  /** An optional excitation index. Negative for not set*/
+  int excitation;
 };
 
 inline
@@ -646,7 +651,7 @@ double SIMPElement::CalcTanh(double input_value, unsigned int filter_idx) const
   double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
   double result = f.non_lin_scale * (func) + f.non_lin_offset;
 
-  // LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
+  // std::cout << "CT: de=" << ToString() << " fix=" << filter_idx << " s=" << f.non_lin_scale << " o=" << f.non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
   return result;
 }
 

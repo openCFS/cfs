@@ -92,14 +92,6 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
     throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
 }
 
-Excitation* MultipleExcitation::GetExcitation(unsigned int base, Transform* trans)
-{
-  if(trans == NULL)
-    return &excitations[base];
-  else
-    return &excitations[total_base_ * GetNumberRobust(true) * trans->index + base];
-}
-
 Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int meta)
 {
   assert(base <= total_base_);
@@ -117,27 +109,12 @@ Excitation* MultipleExcitation::GetExcitation(unsigned int base, const std::stri
 
 unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function* f)
 {
-  if(!DoTransform())
+  if(!DoMetaExcitation())
     return base;
   else
-    return total_base_ * f->GetExcitation()->transform->index + base;
+    return total_base_ * f->GetExcitation()->meta_index + base;
 }
 
-/*
-unsigned int MultipleExcitation::GetMetaExcitationIndex(Excitation* ex) const
-{
-  assert(ex != NULL);
-
-  if(!DoTransform())
-    return 0;
-  else
-    return ex->transform->index;
-}
-
-unsigned int MultipleExcitation::GetMetaExcitationIndex(Function* f)
-{
-  return GetMetaExcitationIndex(f->GetExcitation());
-}*/
 
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
 {
