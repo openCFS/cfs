@@ -224,8 +224,9 @@ protected:
   }
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
+   * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
-  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
+  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
 
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the

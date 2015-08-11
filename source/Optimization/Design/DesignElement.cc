@@ -1379,7 +1379,7 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
-  excitation = "";
+  excitation = -1;
 }
 
 ResultDescription::ResultDescription(PtrParamNode pn)
@@ -1396,7 +1396,7 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
 
-  excitation = pn->Get("excitation")->As<std::string>();
+  excitation = pn->Has("excitation") ? pn->Get("excitation")->As<int>() : -1;
 
   LOG_DBG(desel) << "RD:RD " << ToString();
 }

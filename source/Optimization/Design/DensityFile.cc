@@ -89,8 +89,7 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   // to be appended by the set name
   std::cout << "++ Load ersatz material file: '" << file << "'" << std::flush;
 
-  PtrParamNode in = space ? info->Get("optimization/designSpace/header/ersatzMaterialFile")
-                                   : info->Get("ersatzMaterialFile");
+  PtrParamNode in = space ? info->Get("optimization/designSpace/header/ersatzMaterialFile") : info->Get("ersatzMaterialFile");
   in->Get("file")->SetValue(file);
   in->Get("source")->SetValue(cmd ? "command line" : "problem file");
 
@@ -122,6 +121,8 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   ParamNodeList elems = set->GetList("element");
   const unsigned int elsize(elems.GetSize());
   bool force_region = pn != NULL && pn->Has("force_region");
+
+  // shall the bounds be enforced?
 
   if(!space)
   {
@@ -170,15 +171,31 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   string name = "design";
   if (pn != NULL && pn->Has("name"))
     name = pn->Get("name")->As<string>();
-  double db = -1;
-  for (unsigned int e = 0; e < elsize; ++e)
+
+  // check bound violations
+  double lower_violation = 0.0;
+  double upper_violation = 0.0;
+
+  DesignElement::Type last_dt = DesignElement::NO_TYPE;
+  bool enforce_bounds = false;
+  double relative_bound = -1.0;
+
+  for(unsigned int e = 0; e < elsize; ++e)
   {
     // the design set consists of entries like
     // <element nr="401" type="density" design="0.886466" physical="0.800454" />
     // only the combination nr and type is unique. E.g. in piezo we might have types density and polarization
-
     unsigned int nr = elems[e]->Get("nr")->As<unsigned int>();
     DesignElement::Type dt = (DesignElement::Type) DesignElement::type.Parse(elems[e]->Get("type")->As<string>());
+
+    if(dt != last_dt) {
+      // we don't want to have different enforce_bounds for the different designs. What is with the regions anyway??
+      assert(!(last_dt != DesignElement::NO_TYPE && enforce_bounds != space->design[space->FindDesign(dt)].enforce_bounds));
+      last_dt = dt;
+      enforce_bounds = space->design[space->FindDesign(dt)].enforce_bounds;
+      relative_bound = space->design[space->FindDesign(dt)].relative_bound;
+    }
+
     double val;
     if (name != "design" && elems[e]->Has(name))
       val = elems[e]->Get(name)->As<double>();
@@ -201,17 +218,39 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
     // this is also for the void-region! mainly for computing high resolution inv hom problems
     if(de != NULL) // && regionIds.Find(de->elem->regionId) >= 0)
     {
+      lower_violation = std::max(lower_violation, de->GetLowerBound() - val);
+      upper_violation = std::max(upper_violation, val - de->GetUpperBound());
+
+      if(enforce_bounds)
+        de->SetDesign(std::min(de->GetUpperBound(), std::max(de->GetLowerBound(), val)));
+      else
         de->SetDesign(val);
-        // Get value of the relative bound for current design variable. If value not set, db = -1.
-        db = space->design[space->FindDesign(dt)].relative_bound;
-        if( db > 0.)
-        {
-          // if a relative_bound is set in the xml file, upper and lower bound are overwritten
-          de->SetUpperBound(val+db);
-          de->SetLowerBound(val-db);
-        }
+
+      // Get value of the relative bound for current design variable. If value not set, db = -1.
+      if(relative_bound > 0.0)
+      {
+        // if a relative_bound is set in the xml file, upper and lower bound are overwritten
+        de->SetUpperBound(val + relative_bound);
+        de->SetLowerBound(val - relative_bound);
+      }
     }
   }
+
+  if(lower_violation > 1e-5) {
+    std::string msg = "the external design violates lower design bounds up to " + boost::lexical_cast<std::string>(lower_violation);
+    if(enforce_bounds)
+      in->Get("bound_violation")->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
+    else
+      in->Get(ParamNode::WARNING)->SetValue(msg);
+  }
+  if(upper_violation > 1e-5) {
+    std::string msg = "the external design violates upper design bounds up to " + boost::lexical_cast<std::string>(upper_violation);
+    if(enforce_bounds)
+      in->Get("bound_violation", ParamNode::APPEND)->SetValue(msg + " but has been cropped due to 'enforce_bounds'");
+    else
+      in->Get(ParamNode::WARNING)->SetValue(msg);
+  }
+
   return space;
 
 }

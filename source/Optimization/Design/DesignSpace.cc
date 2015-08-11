@@ -94,7 +94,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   SetupMultiMaterial(pn_design);
 
   int mm_count = 0;
-  double rb = -1;
+
   // number of different designs, where multimaterial design is special
   for(unsigned int d = 0; d < pn_design.GetSize(); d++)
   {
@@ -112,8 +112,10 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
     }
     else if(FindDesign(dt, false) < 0)
     {
-      rb = pn_design[d]->Has("relative_bound") ? pn_design[d]->Get("relative_bound")->As<double>(): -1;
-      design.Push_back(DesignID(dt, NULL,rb));
+
+      double rb = pn_design[d]->Has("relative_bound") ? pn_design[d]->Get("relative_bound")->As<double>(): -1.0;
+      bool   eb = pn_design[d]->Has("enforce_bounds") ? pn_design[d]->Get("enforce_bounds")->As<bool>(): false;
+      design.Push_back(DesignID(dt, NULL, rb, eb));
     }
     // tolerate non unique designs - e.g. for different regions
   }
@@ -547,7 +549,7 @@ shared_ptr<ResultInfo> DesignSpace::GenerateResultInfo(ResultDescription& rd)
                    + (rd.detail != DesignElement::NONE ? (DesignElement::detail.ToString(rd.detail) + "_") : "")
                    + DesignElement::type.ToString(rd.design) + "_"
                    + DesignElement::access.ToString(rd.access)
-                   + (rd.excitation != "" ? ("_ex_" + rd.excitation) : "");
+                   + (rd.excitation >= 0 ? ("_ex_" + boost::lexical_cast<std::string>(rd.excitation)) : "");
   ri->unit = "";
   ri->entryType = ResultInfo::SCALAR;
   ri->dofNames = "";
@@ -583,7 +585,7 @@ int DesignSpace::GetSpecialResultIndex(DesignElement::Type design, DesignElement
     // two step check
     if(rd.design != design || rd.value != value || rd.detail != detail || rd.access != access) continue;
     // second check
-    if(rd.excitation != "" && rd.excitation != excitation) continue;
+    if(rd.excitation >= 0 && boost::lexical_cast<std::string>(rd.excitation) != excitation) continue;
     // we are right.
     switch(rd.solutionType)
     {
@@ -1439,10 +1441,15 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
 
   LOG_DBG(designSpace) << "ER: def=" << def.ToString();
 
-  // this enables extitation specific physical designs (robust, transformation)
-  if(def.excitation != "" && domain->GetOptimization() != NULL) {
-    domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->Apply();
-    LOG_DBG(designSpace) << "ER: apply excitation " << domain->GetOptimization()->GetMultipleExcitation()->GetExcitation(def.excitation)->GetFullLabel();
+  // this enables excitation specific physical designs (robust, transformation)
+  if(def.excitation >= 0 && domain->GetOptimization() != NULL)
+  {
+    StdVector<Excitation>& mex = domain->GetOptimization()->GetMultipleExcitation()->excitations;
+    if(def.excitation > (int) mex.GetSize())
+      EXCEPTION("'result' has too large 'excitation' index " << def.excitation << " for only " << mex.GetSize() << " excitations");
+
+    mex[def.excitation].Apply();
+    LOG_DBG(designSpace) << "ER: apply excitation " << mex[def.excitation].GetFullLabel();
   }
 
 

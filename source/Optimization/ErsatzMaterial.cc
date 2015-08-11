@@ -208,7 +208,7 @@ void ErsatzMaterial::PostInit()
   me->excitations.First().Apply();
 
   // for transformations we might have more than only one tensor
-  homogenizedTensor.Resize(me->GetNumberTransform(true));
+  homogenizedTensor.Resize(me->GetNumberMeta(true));
   for(unsigned int i = 0; i < homogenizedTensor.GetSize(); i++)
     homogenizedTensor[i].Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
 
@@ -451,9 +451,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         iso->Get(isop[p].first)->SetValue(isop[p].second);
 
       PtrParamNode orth = in->Get("orthotropy");
-      StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht);
+      // for the orthotropic case we need the design. This might be excitation dependend on the robust case
+      Excitation* ex = me->GetExcitation(0, t);
+      StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
       for(unsigned int p = 0; p < ortho.GetSize(); p++)
         orth->Get(ortho[p].first)->SetValue(ortho[p].second);
+
+      LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
 
       in->Get("tensor")->SetValue(ht);
     }
@@ -494,7 +498,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
 }
 
-  StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor)
+  StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
   {
     if(design->regions.GetSize() != 1)
     {
@@ -503,6 +507,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
     else
     {
+      assert(ex != NULL);
+      ex->Apply(); // we read the design. When we do robust, this must match the filter associated to the tensor
+
       BaseMaterial* bm = NULL;
       // this happens when doing shape optimization with homTracking!
       // we then have no design region and need to skip GetForm
@@ -1302,7 +1309,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         std::cout << " v=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
         std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
 
-        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor);
+        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor, f->GetExcitation());
         std::cout << "Orthotrope properties: ";
         if(ortho.GetSize() == 0)
         std::cout << " in 2D only for single region\n";
@@ -2646,6 +2653,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
 
+    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ctxt=" << context.excitation->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
+    assert(context.excitation->robust_filter_idx == f->GetExcitation()->robust_filter_idx);
+
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
     Matrix<double> result(ex_size, ex_size);
@@ -2653,11 +2663,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     // we might have transformations
     Transform* trans = f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL;
+    unsigned int meta = f->GetExcitation()->meta_index; // for transformations but also for robust
     for (unsigned int ij = 0;ij < ex_size;++ij)
     {
       // we need the transformation here to have the proper forward solution when we have multiple meta excitations
       // -> more than one rotation or robust
-      SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, trans)->test_strain);
+      SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, meta)->test_strain);
       StdVector<SingleVector*>& u1 = forward.Get(me->GetExcitationIndex(ij, f))->elem[MECH]; // equal to \chi^{ij}
       for (unsigned int kl = 0;kl < ex_size;++kl)
       {
@@ -2668,7 +2679,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
           result[ij][kl] = result[kl][ij];
           continue;
         }
-        SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, trans)->test_strain);
+        SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, meta)->test_strain);
         StdVector<SingleVector*>& u2 = forward.Get(me->GetExcitationIndex(kl, f))->elem[MECH]; // equal to \chi^{kl}
         // loop over elements. In the gradient case not summed up
 
@@ -2677,7 +2688,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
           // When we rotate, the state u is based on a transformation of e, hence we need here to transform the element
           // BUT do NOT transform the state (they match already).
           DesignElement* de = design->ApplyTransformations(&design->data[e], &design->data[e], trans);
-          LOG_DBG(em) << "CHT: trans e=" << e << " -> " << de->GetIndex();
+          LOG_DBG2(em) << "CHT: trans e=" << e << " -> " << de->GetIndex();
 
           Vector<double>& u1_vec = dynamic_cast<Vector<double>&>(*u1[e]);
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
@@ -2696,7 +2707,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       } // end of kl loop
     } // end of ij loop
 
-    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " -> " << result.ToString();
+    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ex=" << f->GetExcitation()->GetFullLabel() << " mi=" << f->GetExcitation()->meta_index << " -> " << result.ToString();
     // save e.g. for CommitIteration()
     homogenizedTensor[f->GetExcitation()->meta_index].Assign(result, 1.0);
     return result;
@@ -2718,8 +2729,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     hom_tensor_deriv.Init();// we set and do not add - hence one init is enough
 
     // we might have transformations
-    Transform* trans = f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL;
+    assert(f->GetExcitation() != NULL);
 
+    unsigned int meta = f->GetExcitation()->meta_index;
     // loop over elements.
     for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
     {
@@ -2728,7 +2740,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       for (unsigned int ij = 0;ij < ex_size;++ij)
       {
-        SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, trans)->test_strain);
+        SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, meta)->test_strain);
         StdVector<SingleVector*>& u1 = forward.Get(me->GetExcitationIndex(ij, f))->elem[MECH]; // equal to \chi^{ij}
         Vector<double>& u1_vec = dynamic_cast<Vector<double>&>(*u1[e]);
         for (unsigned int kl = 0;kl < ex_size;++kl)
@@ -2740,7 +2752,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
             hom_tensor_deriv[ij][kl] = hom_tensor_deriv[kl][ij];
             continue;
           }
-          SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, trans)->test_strain);
+          SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, meta)->test_strain);
           StdVector<SingleVector*>& u2 = forward.Get(me->GetExcitationIndex(kl, f))->elem[MECH]; // equal to \chi^{kl}
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
