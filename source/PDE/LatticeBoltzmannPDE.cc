@@ -17,15 +17,12 @@
 
 #include "LatticeBoltzmannPDE.hh"
 
-//#include "CoupledPDE/pdecoupling.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-//#include "DataInOut/WriteInfo.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/ResultHandler.hh"
 
-//#include "Domain/AnsatzFct.hh"
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/ElemMapping/Elem.hh"
@@ -48,23 +45,16 @@
 #include "FeBasis/BaseFE.hh"
 //#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
-//#include "Forms/BaseForm.hh"
 #include "General/Exception.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/StdPDE.hh"
-//#include "PDE/eqnMap.hh"
-//#include "PDE/Timestepping.hh"
-//#include "PDE/PseudoTS.hh"
-//#include "Utils/Baseelemstoresol.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Objective.hh"
-//#include "Utils/Result.hh"
 #include "MatVec/Vector.hh"
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
-//#include "OLAS/algsys/AlgebraicSys.hh"
 #include "MatVec/SBM_Matrix.hh"
 
 
@@ -373,16 +363,13 @@ namespace CoupledField {
 
       // --- Set the FE ansatz for the current region ---
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",actRegionName.c_str());
-//      std::string polyId = curRegNode->Get("polyId")->As<std::string>();
-//      std::string integId = curRegNode->Get("integId")->As<std::string>();
-//      mySpace->SetRegionApproximation(actRegion, polyId,integId);
       mySpace->SetRegionApproximation(actRegion, "default","default");
 
       // pass entitylist of fespace / fefunction
       feFunc->AddEntityList( actSDList );
 
       // ====================================================================
-      // stiffness integrator
+      // stiffness integrator (taken from TestPDE)
       // ====================================================================
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
@@ -403,18 +390,6 @@ namespace CoupledField {
 
       assemble_->AddBiLinearForm( stiffIntDescr );
       bdbInts_[actRegion] = stiffInt;
-
-      // ==============  add "standard" linear stiffness ===========================
-//      BaseForm * bilinearStiff = new LatticeBoltzmannInt(actSDMat);
-//
-//      BiLinFormContext * actIntDescrStiff = new BiLinFormContext(bilinearStiff, STIFFNESS );
-//
-//      actIntDescrStiff->SetPtPdes(this, this);
-//      actIntDescrStiff->SetResults( results_[0], results_[0], actSDList, actSDList );
-//      assemble_->AddBiLinearForm( actIntDescrStiff );
-      // Give entities and result to equation numbering class
-      // and solution class
-//      eqnMap_->AddResult( *results_[0], actSDList );
     }
   }
 
@@ -427,13 +402,12 @@ namespace CoupledField {
   std::map<SolutionType, shared_ptr<FeSpace> > LatticeBoltzmannPDE::CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode )
   {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
-
     if( formulation == "default"){
-      PtrParamNode potSpaceNode = infoNode->Get("testDof");
+      PtrParamNode potSpaceNode = infoNode->Get("testDof"); // dummy state solution TEST_DOF
       crSpaces[TEST_DOF] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[TEST_DOF]->Init(solStrat_);
     }else{
-      EXCEPTION("The formulation " << formulation << "of the mechanic PDE is not known!");
+      EXCEPTION("The formulation " << formulation << "of the lattice Boltzmann PDE is not known!");
     }
     return crSpaces;
   }
@@ -452,14 +426,6 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::Solve()
   {
-    // copied from StateSolution::Write(...)
-    // assign state solution to FE function
-//    shared_ptr<BaseFeFunction> fe = GetFeFunction(TEST_DOF);
-//    Vector<Double>* solVec;
-//    solVec = new Vector<Double>();
-//    solVec->Fill(pdfs.GetPointer(),pdfs.GetSize());
-//    *(fe->GetSingleVector()) = *solVec;
-
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
     in->Get("omega")->SetValue(omega_);
@@ -682,14 +648,13 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
-  WriteMatrix("Jacboi.dat",Jacobi_new);
 //  WriteMatrix("Jacobian_col.txt",col_jacobi);
 //  WriteMatrix("Jacobian_old.txt",Jacobi);
 //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
   // use the cfs system matrix to solve the adjoint system
-    SBM_Matrix* mat = algsys_->GetMatrix(SYSTEM);
-    LOG_DBG(lbm_pde) << "SA: mat dump=" << mat->Dump();
-    LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
+//  SBM_Matrix* mat = algsys_->GetMatrix(SYSTEM);
+//  LOG_DBG(lbm_pde) << "SA: mat dump=" << mat->Dump();
+//  LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
 //  double delete_sing_setup = timer.GetCPUTime();
 //
 //  // right-hand side
@@ -857,7 +822,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     dfeqduy[i] = weight[i] * dloc[index]*(3. * transform->off_y + 9. * transform->off_y * dot - 3. * us2);
     dfeqduz[i] = weight[i] * dloc[index]*(3. * transform->off_z + 9. * transform->off_z * dot - 3. * us3);
 
-    //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
+    LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
 
     duxdf[i] = scale * invdloc * (-ux[index] + transform->off_x);
     duydf[i] = scale * invdloc * (-uy[index] + transform->off_y);
@@ -882,7 +847,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     for (unsigned int i = 0; i < n_q_; i++)
       dfeqdf[i][j] = dfeqdrho[i] + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j] + dfeqduz[i] * duzdf[j];
 
-  //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
+  LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
   for (unsigned int i=0;i<n_q_;i++)
@@ -923,11 +888,11 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
       int id = inlet.Find(index);
       dot = transform->off_x * u_in_[id][0] + transform->off_y * u_in_[id][1] + transform->off_z * u_in_[id][2];
       norm = u_in_[id][0] * u_in_[id][0] + u_in_[id][1] * u_in_[id][1] + u_in_[id][2] * u_in_[id][2]; // only one component is not zero
+      LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << u_in_[id][0] << " us2=" << u_in_[id][1] << " us3= " << u_in_[id][2] << " dot=" << dot << " norm=" << norm;
     }
     dfeqdrho[i] = weight[i] * (1. + 3 * dot + 4.5 * dot * dot - 1.5 * norm);
-    // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << us1 << " us2=" << us2 << " dot=" << dot << " norm=" << norm;
   }
-  // LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
+   LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
 
   for (unsigned int i = 0; i < n_q_; i++)
     for (unsigned int j = 0; j < n_q_; j++)
@@ -1139,13 +1104,13 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 //}
 
 
-void LatticeBoltzmannPDE::InitTimeStepping()
-{
+//void LatticeBoltzmannPDE::InitTimeStepping()
+//{
 //  // timestepping formulation
 //  TS_alg_ = new PseudoTS( algsys_);
-}
+//}
 
-void LatticeBoltzmannPDE::CalcOutputCoupling() {
+//void LatticeBoltzmannPDE::CalcOutputCoupling() {
 
 //  SolutionType quantity;
 //  StdVector<UInt> * couplingnodes;
@@ -1177,111 +1142,7 @@ void LatticeBoltzmannPDE::CalcOutputCoupling() {
 //    }
 //
 //  }
-}
-
-//bool LatticeBoltzmannPDE::HasOutput(SolutionType output) {
-//
-//  if (output == LBM_VELOCITY || output == LBM_DENSITY)
-//    return true;
-//  return false;
 //}
-
-//void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
-//{
-//  // get the current state from the LBM Calculation.
-//  // we might come here AFTER LBM->Iterate() or during Iterate() when writing intermediate LBM iterations
-//  pdfs = lbm->GetPdfs();
-//
-//  SolutionType solType = res->GetResultInfo()->resultType ;
-//  switch (solType) {
-//    case LBM_DENSITY:
-//      CalcDensities(res);
-//      break;
-//    case LBM_VELOCITY:
-//      CalcVelocities(res);
-//      break;
-//    case LBM_PRESSURE:
-//      CalcPressures(res);
-//      break;
-//    case MECH_PSEUDO_DENSITY:
-////    case LBM_PHYSICAL_PSEUDO_DENSITY:
-////      if(domain->GetErsatzMaterial(false) == NULL) // no exception
-////        res->Init();
-////      else
-////        domain->GetErsatzMaterial()->ExtractResults(res, false);
-//      break;
-//    case LBM_PROBABILITY_DISTRIBUTION:
-////      ExtractDistribution(res);
-//      break;
-//
-//    default:
-//      WARN("Result type not computable by LatticeBoltzmann PDE" );
-//      break;
-//  }
-//}
-
-//double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
-//{
-//  double density = 0.0;
-//  for(unsigned int h = 0; h < n_q_; h++)
-//    density += GetPdf(elem_to_idx[idx],h);
-//
-//  return density;
-//}
-
-//double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
-//{
-//  if (n_q_ == 9)
-//    return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
-//  else
-//    return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
-//}
-//
-//double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
-//{
-//  if (n_q_ == 9)
-//    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
-//  else
-//    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
-//}
-//
-//double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
-//{
-//  if (n_q_ == 9)
-//    return 0;
-//  else
-//    return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
-//}
-
-//double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
-//{
-//  double density = CalcLBMDensity(idx);
-//  double ux     = CalcVelocityX(idx, density);
-//  double uy     = CalcVelocityY(idx, density);
-//  double uz     = CalcVelocityZ(idx, density);
-//
-//  if (dim_ == 2)
-//    assert(uz == 0);
-//
-//  return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
-//}
-
-
-void LatticeBoltzmannPDE::CalcDensities( shared_ptr<BaseResult> base_result )
-{
-  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-
-  EntityIterator it = res.GetEntityList()->GetIterator();
-  assert(it.GetType() == EntityList::ELEM_LIST);
-
-  Vector<double>& val = res.GetVector();
-  val.Resize(res.GetEntityList()->GetSize());
-
-  // traverse the elements
-  for(it.Begin(); !it.IsEnd(); it++)
-    val[it.GetPos()] = CalcLBMDensity(elem_to_idx[it.GetElem()->elemNum]);
-}
-
 
 Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
 {
@@ -1295,39 +1156,47 @@ Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
   return velo;
 }
 
-//void LatticeBoltzmannPDE::CalcPressures( shared_ptr<BaseResult> base_result )
-//{
-//  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-//
-//  EntityIterator it = res.GetEntityList()->GetIterator();
-//  assert(it.GetType() == EntityList::ELEM_LIST);
-//
-//  Vector<double>& val = res.GetVector();
-//  val.Resize(res.GetEntityList()->GetSize());
-//
-//  // traverse the elements
-//  for(it.Begin(); !it.IsEnd(); it++)
-//    val[it.GetPos()] = CalcPressure(elem_to_idx[it.GetElem()->elemNum]);
-//}
+double LatticeBoltzmannPDE::CalcPressure(unsigned int elemId) const
+{
+  double density = CalcLBMDensity(elemId);
+  assert(density < 1.5);
+  double ux     = CalcVelocityX(elemId, density);
+  double uy     = CalcVelocityY(elemId, density);
+  double uz     = CalcVelocityZ(elemId, density);
 
+  if (dim_ == 2)
+    assert(uz == 0);
+
+  LOG_DBG2(lbm_pde) << "CP: " << "elemId = " << elemId << " density = " << density << " ux = " << ux << " uy = " << uy << " uz = " << uz << " p = " << density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
+  return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
+}
 
 double LatticeBoltzmannPDE::CalcPressureDrop()
 {
   // Calculation of the pressure drop by Pingen
   double in = 0.0;
   for(unsigned int i = 0; i < inlet.GetSize(); i++) {
-    in += CalcPressure(inlet[i]);
+    in += CalcPressure(idx_to_elem[inlet[i]]);
+    LOG_DBG2(lbm_pde) << "CPD: elemId=" << idx_to_elem[inlet[i]] << " p=" << CalcPressure(idx_to_elem[inlet[i]]);
   }
   double out = 0.0;
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
-    out += CalcPressure(outlet[i]);
+    out += CalcPressure(idx_to_elem[outlet[i]]);
+    LOG_DBG2(lbm_pde) << "CPD: elemId=" << idx_to_elem[outlet[i]] << " p=" << CalcPressure(idx_to_elem[outlet[i]]);
   }
+
+  LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
   return in / inlet.GetSize() - out / outlet.GetSize();
 }
 
-Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(){
+Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int elemId){
+  unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world required
   Vector<double> solVec;
-  solVec.Fill(pdfs.GetPointer(), pdfs.GetSize());
+  solVec.Resize(n_q_);
+  for (unsigned int i = 0; i < n_q_; i++) {
+    solVec[i] = GetPdf(idx,i);
+  }
+  LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " pdfs=" << solVec.ToString(0,',');
   return solVec;
 }
 
@@ -1340,7 +1209,7 @@ void LatticeBoltzmannPDE::ReadSpecialResults()
 }
 
 void LatticeBoltzmannPDE::DefinePrimaryResults() {
-  //setting sum dummy state variable
+  //setting some dummy state variable
   shared_ptr<ResultInfo> res1( new ResultInfo);
   res1->resultType = TEST_DOF;
 
@@ -1353,19 +1222,6 @@ void LatticeBoltzmannPDE::DefinePrimaryResults() {
   availResults_.insert( res1 );
   res1->SetFeFunction(feFunctions_[TEST_DOF]);
   DefineFieldResult( feFunctions_[TEST_DOF], res1 );
-
-//	shared_ptr<ResultInfo> prob(new ResultInfo);
-//	prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
-//	StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
-//	for(unsigned int i=0, n = n_q_; i < n; i++ )
-//		probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
-//	prob->dofNames = probDofNames;
-//	prob->unit = "";
-//	prob->entryType = ResultInfo::VECTOR;
-//	prob->definedOn = ResultInfo::ELEMENT;
-//	prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
-//	feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
-//	DefineFieldResult(feFunctions_[LBM_PROBABILITY_DISTRIBUTION],prob);
 }
 
 
@@ -1386,10 +1242,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   probFunc.reset(new CoefFunctionLBM<Double>(this,feFct, prob));
   DefineFieldResult(probFunc,prob);
 
-//  prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
-//  feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
-//  DefineFieldResult(feFunctions_[LBM_PROBABILITY_DISTRIBUTION],prob);
-
   // =====================================================================
   // set solution information
   // =====================================================================
@@ -1406,9 +1258,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> densFunc;
   densFunc.reset(new CoefFunctionLBM<Double>(this,feFct, dens));
   DefineFieldResult(densFunc,dens);
-//  dens->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  availResults_.insert( dens );
-
 
   shared_ptr<ResultInfo> press(new ResultInfo);
   press->resultType = LBM_PRESSURE;
@@ -1419,9 +1268,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> pressFunc;
   pressFunc.reset(new CoefFunctionLBM<Double>(this,feFct, press));
   DefineFieldResult(pressFunc,press);
-//  pres->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  availResults_.insert(pres);
-
 
   shared_ptr<ResultInfo> velo(new ResultInfo);
   velo->resultType = LBM_VELOCITY;
@@ -1437,8 +1283,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> veloFunc;
   veloFunc.reset(new CoefFunctionLBM<Double>(this,feFct, velo));
   DefineFieldResult(veloFunc,velo);
-//  velo->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  availResults_.insert( velo );
 
   // === PSEUDO DENSITY for SIMP ===
   shared_ptr<ResultInfo> mechPD(new ResultInfo);
@@ -1451,8 +1295,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> mechPDFunc;
   mechPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, mechPD));
   DefineFieldResult(mechPDFunc,mechPD);
-//  mechPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  availResults_.insert( mechPD );
 
   shared_ptr<ResultInfo> physicalPD(new ResultInfo);
   physicalPD->resultType = LBM_PHYSICAL_PSEUDO_DENSITY;
@@ -1464,8 +1306,6 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> physicalPDFunc;
   physicalPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, physicalPD));
   DefineFieldResult(physicalPDFunc,physicalPD);
-//  physicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-//  availResults_.insert( physicalPD );
 }
 
 // ***********************************************************************

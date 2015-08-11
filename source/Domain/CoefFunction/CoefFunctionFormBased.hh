@@ -348,10 +348,7 @@ public:
 protected:
 
   //! FeFunction containing the coefficients
-  shared_ptr<FeFunction<TYPE> > feFct_;
-
-  //! Solution of element
-  Vector<TYPE> elemSol_;
+//  shared_ptr<FeFunction<TYPE> > feFct_;
 
   //! Result name
   SolutionType resType_;

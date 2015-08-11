@@ -71,14 +71,14 @@ public:
   virtual void InitCoupling(PDECoupling * Coupling);
 
   //! initialize time stepping: nothing to do in smoother!
-  void InitTimeStepping();
+//  void InitTimeStepping();
 
   //! set time step
   //! \param dt Current time step
-  virtual void SetTimeStep(const Double dt){};
+//  virtual void SetTimeStep(const Double dt){};
 
   //! calculate coupling terms
-  virtual void CalcOutputCoupling();
+//  virtual void CalcOutputCoupling();
 
   /** actually calls LBM. */
   void Solve();
@@ -128,18 +128,7 @@ public:
   }
 
   /** Calculate pressure for given element idx */
-  inline double CalcPressure(unsigned int elemId) const
-  {
-    double density = CalcLBMDensity(elemId);
-    double ux     = CalcVelocityX(elemId, density);
-    double uy     = CalcVelocityY(elemId, density);
-    double uz     = CalcVelocityZ(elemId, density);
-
-    if (dim_ == 2)
-      assert(uz == 0);
-
-    return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
-  }
+  double CalcPressure(unsigned int elemId) const;
 
   /** Calculate velocity components for given density and element idx */
   inline double CalcVelocityX(unsigned int elemId, double density) const
@@ -173,10 +162,7 @@ public:
   Vector<Double> CalcVelocities(unsigned int elemId);
 
   // extract probability distributions for output
-  Vector<Double> ExtractDistribution();
-
-//  //! Contains LBM velocity
-//  NodeStoreSol<Double> solDeriv1_;
+  Vector<Double> ExtractDistribution(unsigned int elemId);
 
   Matrix<Double> couplingNodes_;
 
@@ -236,11 +222,6 @@ private:
 
   // testing PointsToBoundary()
   void TestPointsToBoundary();
-
-  //! Calculate densities
-  void CalcDensities(shared_ptr<BaseResult> res);
-
-  void CalcPressures(shared_ptr<BaseResult> res);
 
   // reads discrete velocities from extern LBM simulation
   void ReadProbabilityDistribution(const std::string& file);
