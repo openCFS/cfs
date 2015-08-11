@@ -1,6 +1,38 @@
 #!/usr/bin/env python
 from mesh_tool import *
 import argparse
+from meld.linkmap import RADIUS
+
+# for inclusion_opverlapp finds inclusion_size for create_2d_mesh via bisection
+def find_inclusion_overlap(args):
+  if args.inclusion_overlap < 0.0 or args.inclusion_overlap > 1.0:
+    print "inclusion_overlap shall be within 0 ... 1"  
+    sys.exit()
+    
+  mesh = None  
+  lower = 0.9
+  upper = numpy.sqrt(2.0) # at least for square
+  err = 10 # we normalize to pixtes
+  ny = args.res if args.y_res is None else args.y_res
+  while numpy.abs(err) > 1.0:
+    radius = lower + (upper - lower)/2
+    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, radius, args.patch)
+    
+    overlap = [item for item in mesh.bc if item[0] == 'left_iface']
+    overlap = 0 if len(overlap) == 0 else len(overlap[0][1])
+    #print overlap
+    #print args.inclusion_overlap
+    err = overlap - args.inclusion_overlap * ny 
+    print "overlap for inclusion_size " + str(radius) + " is " + str(overlap) + " -> error " + str(err) + "\n"
+    
+    if err > 0:
+      upper = radius
+    else:
+      lower = radius
+  
+  return mesh    
+  
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
@@ -12,7 +44,8 @@ parser.add_argument('--type', help="predefined mesh type", choices=['bulk2d', 'b
 parser.add_argument('--lbm', help="subtype for 'lbm'", choices=['two_inlet_one_outlet',  'pipe_bend','pipe','distributor','backstep','diffuser','two_inlet_two_outlet']) 
 parser.add_argument('--patch', help="define many regions", choices=['3x3', '4x4'])
 parser.add_argument('--inclusion', help="inclusion for buld2d", choices=["rect", "ball"])
-parser.add_argument('--inclusion_size', help="mandatory size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
+parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
+parser.add_argument('--inclusion_overlap', help="alternative to inclusion_size for ball. Give fraction of overlapping to boundary", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
 
 args = parser.parse_args()
@@ -24,17 +57,25 @@ if args.lbm and args.type <> "lbm":
   print "error: --lbm only for --type lbm"
   sys.exit()
 
-if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d" or "lbm3d"): 
-  print("inclusions currently only for --type {bulk2d,cantilever2d,lbm3d,lbm2d}") 
+if (args.inclusion or args.inclusion_size or args.inclusion_overlap) and (args.type == "bulk3d" or args.type ==  "cantilever2d_reinforced"): 
+  print "inclusions currently not for your type implemented" 
   sys.exit()  
   
-if (args.inclusion == 'ball' and (args.type == "lbm3d" or "lbm2d")): 
+if args.inclusion_overlap and args.type <> "bulk2d":
+  print "--inclusion_overlap only for bulk2d implemented"
+  sys.exit()  
+  
+if args.inclusion == 'ball' and (args.type == "lbm3d" or args.type == "lbm2d"): 
   print("inclusion ball not implemented yet for lbm meshes") 
   sys.exit() 
   
-if (args.inclusion and not args.inclusion_size) or (args.inclusion_size and not args.inclusion):
-  print "inclusions require both --inclusion and --inclusion_size"
+if (args.inclusion and not (args.inclusion_size or args.inclusion_overlap)) or ((args.inclusion_size or args.inclusion_overlap) and not args.inclusion):
+  print "inclusions require both --inclusion and --inclusion_size or --inclusion_overlap"
   sys.exit()  
+
+if args.inclusion_size and args.inclusion_overlap:
+  print "don't give --inclusion_size and --inclusion_overlap"
+  sys.exit()
 
 if args.inclusion and args.patch:
   print "--inclusion and --patch don't go concurrently"
@@ -43,7 +84,10 @@ if args.inclusion and args.patch:
 if args.type == 'bulk3d':
   mesh = create_3d_mesh(args.type, args.res, args.y_res, args.z_res, args.inclusion, args.inclusion_size)
 elif args.type == 'bulk2d' or args.type.startswith('cantilever2d'):
-  mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
+  if not args.inclusion_overlap:  
+    mesh = create_2d_mesh(args.type, args.res, args.y_res, args.width, args.height, args.inclusion, args.inclusion_size, args.patch)
+  else:
+    mesh = find_inclusion_overlap(args) 
 elif args.type.startswith('lbm'):
   if args.lbm == None:
     print('error: --lbm subtype mandatory for --type lbm')
@@ -69,8 +113,10 @@ if args.width <> 1.0:
   res_name += '-w_' + str(args.width).replace('.', '_')
 if args.height is not None:
   res_name += '-h_' + str(args.height).replace('.', '_')
-if args.inclusion:
+if args.inclusion_size:
   res_name += '_' + args.inclusion + '_' + str(args.inclusion_size).replace('.', '_')
+if args.inclusion_overlap:
+  res_name += '_' + args.inclusion + '_ol_' + str(args.inclusion_overlap).replace('.', '_')
 if args.patch:
   res_name += '_' + args.patch   
 
