@@ -24,11 +24,11 @@ if args.lbm and args.type <> ("lbm2d" or "lbm3d"):
   print "error: --lbm only for --type lbm2d or lbm3d"
   sys.exit()
 
-if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d" or "lbm3d"): 
+if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or args.type == "cantilever2d" or args.type == "lbm3d"): 
   print("inclusions currently only for --type {bulk2d,cantilever2d,lbm3d,lbm2d}") 
   sys.exit()  
   
-if (args.inclusion == 'ball' and (args.type == "lbm3d" or "lbm2d")): 
+if (args.inclusion == 'ball' and (args.type == "lbm3d" or args.type == "lbm2d")): 
   print("inclusion ball not implemented yet for lbm meshes") 
   sys.exit() 
   

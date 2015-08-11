@@ -325,8 +325,40 @@ protected:
 
   //! Solution of element
   Vector<TYPE> elemSol_;
+
 };
 
+/**
+ * Calculates scalar values (e.g. pressure) from lattice Boltzmann(LBM) particle distribution function values
+ */
+template<class TYPE> class CoefFunctionLBM : public CoefFunctionFormBased
+{
+public:
+  CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo);
+
+  virtual ~CoefFunctionLBM();
+
+  virtual void GetScalar(TYPE& coefScal, const LocPointMapped& lpm);
+
+  virtual void GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm);
+
+  //! \copydoc CoefFunction::ToString
+  virtual std::string ToString() const;
+
+protected:
+
+  //! FeFunction containing the coefficients
+  shared_ptr<FeFunction<TYPE> > feFct_;
+
+  //! Solution of element
+  Vector<TYPE> elemSol_;
+
+  //! Result name
+  SolutionType resType_;
+
+  //! Pointer to LBM object. We need this to call functions like CalcDensity() etc.
+  LatticeBoltzmannPDE* lbm_;
+};
 
 /** Simply returns the stiffness tensor. Does not work by using the existining CoefFunction :( */
 template<class TYPE>
