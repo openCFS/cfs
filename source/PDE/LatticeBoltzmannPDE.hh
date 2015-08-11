@@ -91,7 +91,8 @@ public:
 //  void SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f);
 
   /** Perform postprocessing on data. */
-  void CalcResults( shared_ptr<BaseResult> result );
+  // Deprecated
+//  void CalcResults( shared_ptr<BaseResult> result );
 
   /** implementation of objective function */
   double CalcPressureDrop();
@@ -114,6 +115,66 @@ public:
 
   Iface GetIface() const { return iface_; }
 
+  //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
+  /** Calculate the LBM Density of an element idx */
+  inline double CalcLBMDensity(unsigned int elemId) const
+  {
+    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world required
+    double density = 0.0;
+    for(unsigned int h = 0; h < n_q_; h++)
+      density += GetPdf(idx,h);
+
+    return density;
+  }
+
+  /** Calculate pressure for given element idx */
+  inline double CalcPressure(unsigned int elemId) const
+  {
+    double density = CalcLBMDensity(elemId);
+    double ux     = CalcVelocityX(elemId, density);
+    double uy     = CalcVelocityY(elemId, density);
+    double uz     = CalcVelocityZ(elemId, density);
+
+    if (dim_ == 2)
+      assert(uz == 0);
+
+    return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
+  }
+
+  /** Calculate velocity components for given density and element idx */
+  inline double CalcVelocityX(unsigned int elemId, double density) const
+  {
+    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
+    if (n_q_ == 9)
+      return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
+    else
+      return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
+  }
+
+  inline double CalcVelocityY(unsigned int elemId, double density) const
+  {
+    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
+    if (n_q_ == 9)
+      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
+    else
+      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
+  }
+
+  inline double CalcVelocityZ(unsigned int elemId, double density) const
+  {
+    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
+    if (n_q_ == 9)
+      return 0;
+    else
+      return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
+  }
+
+  //! Calculate macroscopic velocities
+  Vector<Double> CalcVelocities(unsigned int elemId);
+
+  // extract probability distributions for output
+  Vector<Double> ExtractDistribution();
+
 //  //! Contains LBM velocity
 //  NodeStoreSol<Double> solDeriv1_;
 
@@ -130,21 +191,10 @@ private:
   void SetupElementMapping(Grid* grid);
 
   //! Define available result types
-  void DefineAvailResults();
+  void DefinePostProcResults();
 
   //! Define available primary result types
   void DefinePrimaryResults();
-
-  /** Calculate the LBM Density of an element idx */
-  inline double CalcLBMDensity(unsigned int idx) const;
-
-  inline double CalcVelocityX(unsigned int idx, double density) const;
-
-  inline double CalcVelocityY(unsigned int idx, double density) const;
-
-  inline double CalcVelocityZ(unsigned int idx, double density) const;
-
-  inline double CalcPressure(unsigned int idx) const;
 
   inline double GetPdf(unsigned int idx, int dir) const  {
     return pdfs[idx * n_q_ + dir];
@@ -187,9 +237,6 @@ private:
   // testing PointsToBoundary()
   void TestPointsToBoundary();
 
-  //! Calculate macroscopic velocities
-  void CalcVelocities(shared_ptr<BaseResult> res);
-
   //! Calculate densities
   void CalcDensities(shared_ptr<BaseResult> res);
 
@@ -197,9 +244,6 @@ private:
 
   // reads discrete velocities from extern LBM simulation
   void ReadProbabilityDistribution(const std::string& file);
-
-  // extract probability distributions for output
-  void ExtractDistribution(shared_ptr<BaseResult> base_result);
 
   /** Setup structure for calling solver */
   void SetupElements();

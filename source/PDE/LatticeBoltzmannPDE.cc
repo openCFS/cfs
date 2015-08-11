@@ -26,6 +26,8 @@
 #include "DataInOut/ResultHandler.hh"
 
 //#include "Domain/AnsatzFct.hh"
+#include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/Domain.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
@@ -338,7 +340,7 @@ namespace CoupledField {
 
     elem_to_idx.Resize(n_elems + 1); // one-based elem_nr
     for(unsigned int i = 0, n = elem_to_idx.GetSize(); i < n; i++)
-      elem_to_idx[i] = i-1; // -1 for non appropriate idx
+      elem_to_idx[i] = i-1; // -1 for not appropriate idx
   }
 
   void LatticeBoltzmannPDE::DefineIntegrators()
@@ -353,7 +355,7 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
 
     //get FEFunction and space
-    shared_ptr<BaseFeFunction> feFunc = feFunctions_[LBM_PROBABILITY_DISTRIBUTION];
+    shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
     shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
 
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
@@ -386,9 +388,9 @@ namespace CoupledField {
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,2,9>(), beta,1.0, updatedGeo_ );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
       } else {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,3,19>(), beta,1.0, updatedGeo_ );
+        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
       }
       stiffInt->SetName("StiffnessIntegrator");
 
@@ -424,16 +426,15 @@ namespace CoupledField {
 
   std::map<SolutionType, shared_ptr<FeSpace> > LatticeBoltzmannPDE::CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode )
   {
-//    EXCEPTION("CreateFeSpaces(..) not implemented for LatticeBoltzmannPDE.");
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
 
-//    if( formulation == "default" || formulation == "H1" ){
-      PtrParamNode potSpaceNode = infoNode->Get("LBMProbabilityDistributions");
-      crSpaces[LBM_PROBABILITY_DISTRIBUTION] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
-      crSpaces[LBM_PROBABILITY_DISTRIBUTION]->Init(solStrat_);
-//    }else{
-//      EXCEPTION("The formulation " << formulation << "of the mechanic PDE is not known!");
-//    }
+    if( formulation == "default"){
+      PtrParamNode potSpaceNode = infoNode->Get("testDof");
+      crSpaces[TEST_DOF] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+      crSpaces[TEST_DOF]->Init(solStrat_);
+    }else{
+      EXCEPTION("The formulation " << formulation << "of the mechanic PDE is not known!");
+    }
     return crSpaces;
   }
 
@@ -451,6 +452,14 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::Solve()
   {
+    // copied from StateSolution::Write(...)
+    // assign state solution to FE function
+//    shared_ptr<BaseFeFunction> fe = GetFeFunction(TEST_DOF);
+//    Vector<Double>* solVec;
+//    solVec = new Vector<Double>();
+//    solVec->Fill(pdfs.GetPointer(),pdfs.GetSize());
+//    *(fe->GetSingleVector()) = *solVec;
+
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
     in->Get("omega")->SetValue(omega_);
@@ -673,6 +682,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
+  WriteMatrix("Jacboi.dat",Jacobi_new);
 //  WriteMatrix("Jacobian_col.txt",col_jacobi);
 //  WriteMatrix("Jacobian_old.txt",Jacobi);
 //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
@@ -1176,85 +1186,85 @@ void LatticeBoltzmannPDE::CalcOutputCoupling() {
 //  return false;
 //}
 
-void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
-{
-  // get the current state from the LBM Calculation.
-  // we might come here AFTER LBM->Iterate() or during Iterate() when writing intermediate LBM iterations
-  pdfs = lbm->GetPdfs();
+//void LatticeBoltzmannPDE::CalcResults( shared_ptr<BaseResult> res )
+//{
+//  // get the current state from the LBM Calculation.
+//  // we might come here AFTER LBM->Iterate() or during Iterate() when writing intermediate LBM iterations
+//  pdfs = lbm->GetPdfs();
+//
+//  SolutionType solType = res->GetResultInfo()->resultType ;
+//  switch (solType) {
+//    case LBM_DENSITY:
+//      CalcDensities(res);
+//      break;
+//    case LBM_VELOCITY:
+//      CalcVelocities(res);
+//      break;
+//    case LBM_PRESSURE:
+//      CalcPressures(res);
+//      break;
+//    case MECH_PSEUDO_DENSITY:
+////    case LBM_PHYSICAL_PSEUDO_DENSITY:
+////      if(domain->GetErsatzMaterial(false) == NULL) // no exception
+////        res->Init();
+////      else
+////        domain->GetErsatzMaterial()->ExtractResults(res, false);
+//      break;
+//    case LBM_PROBABILITY_DISTRIBUTION:
+////      ExtractDistribution(res);
+//      break;
+//
+//    default:
+//      WARN("Result type not computable by LatticeBoltzmann PDE" );
+//      break;
+//  }
+//}
 
-  SolutionType solType = res->GetResultInfo()->resultType ;
-  switch (solType) {
-    case LBM_DENSITY:
-      CalcDensities(res);
-      break;
-    case LBM_VELOCITY:
-      CalcVelocities(res);
-      break;
-    case LBM_PRESSURE:
-      CalcPressures(res);
-      break;
-    case MECH_PSEUDO_DENSITY:
-//    case LBM_PHYSICAL_PSEUDO_DENSITY:
-//      if(domain->GetErsatzMaterial(false) == NULL) // no exception
-//        res->Init();
-//      else
-//        domain->GetErsatzMaterial()->ExtractResults(res, false);
-      break;
-    case LBM_PROBABILITY_DISTRIBUTION:
-      ExtractDistribution(res);
-      break;
+//double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
+//{
+//  double density = 0.0;
+//  for(unsigned int h = 0; h < n_q_; h++)
+//    density += GetPdf(elem_to_idx[idx],h);
+//
+//  return density;
+//}
 
-    default:
-      WARN("Result type not computable by LatticeBoltzmann PDE" );
-      break;
-  }
-}
+//double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
+//{
+//  if (n_q_ == 9)
+//    return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
+//  else
+//    return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
+//}
+//
+//double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
+//{
+//  if (n_q_ == 9)
+//    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
+//  else
+//    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
+//}
+//
+//double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
+//{
+//  if (n_q_ == 9)
+//    return 0;
+//  else
+//    return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
+//}
 
-double LatticeBoltzmannPDE::CalcLBMDensity(unsigned int idx) const
-{
-  double density = 0.0;
-  for(unsigned int h = 0; h < n_q_; h++)
-    density += GetPdf(idx,h);
-
-  return density;
-}
-
-double LatticeBoltzmannPDE::CalcVelocityX(unsigned int idx, double density) const
-{
-  if (n_q_ == 9)
-    return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
-  else
-    return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
-}
-
-double LatticeBoltzmannPDE::CalcVelocityY(unsigned int idx, double density) const
-{
-  if (n_q_ == 9)
-    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
-  else
-    return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
-}
-
-double LatticeBoltzmannPDE::CalcVelocityZ(unsigned int idx, double density) const
-{
-  if (n_q_ == 9)
-    return 0;
-  else
-    return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
-}
-
-double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
-{
-  double density = CalcLBMDensity(idx);
-  double ux     = CalcVelocityX(idx, density);
-  double uy     = CalcVelocityY(idx, density);
-  double uz     = CalcVelocityZ(idx, density);
-
-  if (dim_ == 2)
-    assert(uz == 0);
-
-  return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
-}
+//double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
+//{
+//  double density = CalcLBMDensity(idx);
+//  double ux     = CalcVelocityX(idx, density);
+//  double uy     = CalcVelocityY(idx, density);
+//  double uz     = CalcVelocityZ(idx, density);
+//
+//  if (dim_ == 2)
+//    assert(uz == 0);
+//
+//  return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
+//}
 
 
 void LatticeBoltzmannPDE::CalcDensities( shared_ptr<BaseResult> base_result )
@@ -1273,43 +1283,32 @@ void LatticeBoltzmannPDE::CalcDensities( shared_ptr<BaseResult> base_result )
 }
 
 
-void LatticeBoltzmannPDE::CalcVelocities( shared_ptr<BaseResult> base_result )
+Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
 {
-  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-
-  EntityIterator it = res.GetEntityList()->GetIterator();
-  assert(it.GetType() == EntityList::ELEM_LIST);
-
-  Vector<double>& val = res.GetVector();
-  val.Resize(res.GetEntityList()->GetSize() * dim_);
-
-  // traverse the elements
-  for(it.Begin(); !it.IsEnd(); it++)
-  {
-    unsigned int idx = elem_to_idx[it.GetElem()->elemNum];
-    double density = CalcLBMDensity(idx);
-
-    val[it.GetPos() * dim_]     = CalcVelocityX(idx, density);
-    val[it.GetPos() * dim_ + 1] = CalcVelocityY(idx, density);
-    if (dim_ == 3)
-      val[it.GetPos() * dim_ + 2] = CalcVelocityZ(idx, density);
-  }
+  Vector<Double> velo;
+  velo.Resize(dim_);
+  double density = CalcLBMDensity(elemId);
+  velo[0] =  CalcVelocityX(elemId, density);
+  velo[1] = CalcVelocityY(elemId, density);
+  if (dim_ == 3)
+    velo[2] = CalcVelocityZ(elemId, density);
+  return velo;
 }
 
-void LatticeBoltzmannPDE::CalcPressures( shared_ptr<BaseResult> base_result )
-{
-  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-
-  EntityIterator it = res.GetEntityList()->GetIterator();
-  assert(it.GetType() == EntityList::ELEM_LIST);
-
-  Vector<double>& val = res.GetVector();
-  val.Resize(res.GetEntityList()->GetSize());
-
-  // traverse the elements
-  for(it.Begin(); !it.IsEnd(); it++)
-    val[it.GetPos()] = CalcPressure(elem_to_idx[it.GetElem()->elemNum]);
-}
+//void LatticeBoltzmannPDE::CalcPressures( shared_ptr<BaseResult> base_result )
+//{
+//  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
+//
+//  EntityIterator it = res.GetEntityList()->GetIterator();
+//  assert(it.GetType() == EntityList::ELEM_LIST);
+//
+//  Vector<double>& val = res.GetVector();
+//  val.Resize(res.GetEntityList()->GetSize());
+//
+//  // traverse the elements
+//  for(it.Begin(); !it.IsEnd(); it++)
+//    val[it.GetPos()] = CalcPressure(elem_to_idx[it.GetElem()->elemNum]);
+//}
 
 
 double LatticeBoltzmannPDE::CalcPressureDrop()
@@ -1326,19 +1325,10 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   return in / inlet.GetSize() - out / outlet.GetSize();
 }
 
-void LatticeBoltzmannPDE::ExtractDistribution( shared_ptr<BaseResult> base_result ){
-  Result<double>& res = dynamic_cast<Result<double>&>(*base_result);
-
-  EntityIterator it = res.GetEntityList()->GetIterator();
-  assert(it.GetType() == EntityList::ELEM_LIST);
-  Vector<double>& val = res.GetVector();
-  val.Resize(res.GetEntityList()->GetSize() * n_q_);
-  for(it.Begin(); !it.IsEnd(); it++)
-  {
-    for(unsigned int h = 0; h < n_q_; h++) {
-      val[it.GetPos() * n_q_ + h] = GetPdf(elem_to_idx[it.GetElem()->elemNum],h);
-    }
-  }
+Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(){
+  Vector<double> solVec;
+  solVec.Fill(pdfs.GetPointer(), pdfs.GetSize());
+  return solVec;
 }
 
 
@@ -1350,23 +1340,56 @@ void LatticeBoltzmannPDE::ReadSpecialResults()
 }
 
 void LatticeBoltzmannPDE::DefinePrimaryResults() {
-	shared_ptr<ResultInfo> prob(new ResultInfo);
-	prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
-	StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
-	for(unsigned int i=0, n = n_q_; i < n; i++ )
-		probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
-	prob->dofNames = probDofNames;
-	prob->unit = "";
-	prob->entryType = ResultInfo::VECTOR;
-	prob->definedOn = ResultInfo::ELEMENT;
-	prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
-	feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
-	results_.Push_back(prob);
-	availResults_.insert(prob);
+  //setting sum dummy state variable
+  shared_ptr<ResultInfo> res1( new ResultInfo);
+  res1->resultType = TEST_DOF;
+
+  res1->dofNames = "";
+  res1->unit = "?";
+  res1->definedOn = ResultInfo::NODE;
+  res1->entryType = ResultInfo::SCALAR;
+  feFunctions_[TEST_DOF]->SetResultInfo(res1);
+  results_.Push_back( res1 );
+  availResults_.insert( res1 );
+  res1->SetFeFunction(feFunctions_[TEST_DOF]);
+  DefineFieldResult( feFunctions_[TEST_DOF], res1 );
+
+//	shared_ptr<ResultInfo> prob(new ResultInfo);
+//	prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
+//	StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
+//	for(unsigned int i=0, n = n_q_; i < n; i++ )
+//		probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
+//	prob->dofNames = probDofNames;
+//	prob->unit = "";
+//	prob->entryType = ResultInfo::VECTOR;
+//	prob->definedOn = ResultInfo::ELEMENT;
+//	prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
+//	feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
+//	DefineFieldResult(feFunctions_[LBM_PROBABILITY_DISTRIBUTION],prob);
 }
 
 
-void LatticeBoltzmannPDE::DefineAvailResults() {
+void LatticeBoltzmannPDE::DefinePostProcResults() {
+
+  shared_ptr<BaseFeFunction> feFct = feFunctions_[TEST_DOF];
+
+  shared_ptr<ResultInfo> prob(new ResultInfo);
+  prob->resultType = LBM_PROBABILITY_DISTRIBUTION;
+  StdVector<std::string> probDofNames(n_q_); // "f_0", "f_1", ....
+  for(unsigned int i=0, n = n_q_; i < n; i++ )
+    probDofNames[i] = "f_" + boost::lexical_cast<std::string>(i);
+  prob->dofNames = probDofNames;
+  prob->unit = "";
+  prob->entryType = ResultInfo::VECTOR;
+  prob->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> probFunc;
+  probFunc.reset(new CoefFunctionLBM<Double>(this,feFct, prob));
+  DefineFieldResult(probFunc,prob);
+
+//  prob->SetFeFunction(feFunctions_[LBM_PROBABILITY_DISTRIBUTION]);
+//  feFunctions_[LBM_PROBABILITY_DISTRIBUTION]->SetResultInfo(prob);
+//  DefineFieldResult(feFunctions_[LBM_PROBABILITY_DISTRIBUTION],prob);
+
   // =====================================================================
   // set solution information
   // =====================================================================
@@ -1380,18 +1403,24 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   dens->dofNames = "";
   dens->entryType = ResultInfo::SCALAR;
   dens->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> densFunc;
+  densFunc.reset(new CoefFunctionLBM<Double>(this,feFct, dens));
+  DefineFieldResult(densFunc,dens);
 //  dens->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  availResults_.insert( dens );
+//  availResults_.insert( dens );
 
 
-  shared_ptr<ResultInfo> pres(new ResultInfo);
-  pres->resultType = LBM_PRESSURE;
-  pres->unit =  "";
-  pres->dofNames = "";
-  pres->entryType = ResultInfo::SCALAR;
-  pres->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<ResultInfo> press(new ResultInfo);
+  press->resultType = LBM_PRESSURE;
+  press->unit =  "";
+  press->dofNames = "";
+  press->entryType = ResultInfo::SCALAR;
+  press->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> pressFunc;
+  pressFunc.reset(new CoefFunctionLBM<Double>(this,feFct, press));
+  DefineFieldResult(pressFunc,press);
 //  pres->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  availResults_.insert(pres);
+//  availResults_.insert(pres);
 
 
   shared_ptr<ResultInfo> velo(new ResultInfo);
@@ -1405,8 +1434,11 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   velo->unit =  "";
   velo->entryType = ResultInfo::VECTOR;
   velo->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> veloFunc;
+  veloFunc.reset(new CoefFunctionLBM<Double>(this,feFct, velo));
+  DefineFieldResult(veloFunc,velo);
 //  velo->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  availResults_.insert( velo );
+//  availResults_.insert( velo );
 
   // === PSEUDO DENSITY for SIMP ===
   shared_ptr<ResultInfo> mechPD(new ResultInfo);
@@ -1415,8 +1447,12 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   mechPD->unit = "";
   mechPD->entryType = ResultInfo::SCALAR;
   mechPD->definedOn = ResultInfo::ELEMENT;
+  mechPD->fromOptimization = true;
+  shared_ptr<CoefFunctionFormBased> mechPDFunc;
+  mechPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, mechPD));
+  DefineFieldResult(mechPDFunc,mechPD);
 //  mechPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  availResults_.insert( mechPD );
+//  availResults_.insert( mechPD );
 
   shared_ptr<ResultInfo> physicalPD(new ResultInfo);
   physicalPD->resultType = LBM_PHYSICAL_PSEUDO_DENSITY;
@@ -1424,8 +1460,12 @@ void LatticeBoltzmannPDE::DefineAvailResults() {
   physicalPD->unit = "";
   physicalPD->entryType = ResultInfo::SCALAR;
   physicalPD->definedOn = ResultInfo::ELEMENT;
+  physicalPD->fromOptimization = true;
+  shared_ptr<CoefFunctionFormBased> physicalPDFunc;
+  physicalPDFunc.reset(new CoefFunctionLBM<Double>(this,feFct, physicalPD));
+  DefineFieldResult(physicalPDFunc,physicalPD);
 //  physicalPD->fctType = shared_ptr<ConstFct>(new ConstFct() );
-  availResults_.insert( physicalPD );
+//  availResults_.insert( physicalPD );
 }
 
 // ***********************************************************************

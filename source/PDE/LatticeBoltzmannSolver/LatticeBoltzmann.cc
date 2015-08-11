@@ -220,12 +220,13 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     it++;
 
-    if (writeIntermediateResults) {
-      if (it % m_writeFrequency == 0) {
-        domain->GetDriver()->StoreResults(count,(double) count);
-        count++;
-      }
-    }
+    writeIntermediateResults = false;
+//    if (writeIntermediateResults) {
+//      if (it % m_writeFrequency == 0) {
+//        domain->GetDriver()->StoreResults(count,(double) count);
+//        count++;
+//      }
+//    }
   }
 
   // -- Combined propagation and collision step -------------------------
