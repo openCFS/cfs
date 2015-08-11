@@ -452,7 +452,7 @@ template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
 template<class TYPE> CoefFunctionLBM<TYPE>::CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo) : CoefFunctionFormBased()
 {
 
-  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+//  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
 
   isComplex_ =  false;
 
@@ -499,7 +499,7 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, co
         vec = lbm_->CalcVelocities(lpm.ptEl->elemNum);
         break;
       case LBM_PROBABILITY_DISTRIBUTION:
-        vec = lbm_->ExtractDistribution();
+        vec = lbm_->ExtractDistribution(lpm.ptEl->elemNum);
         break;
       default:
         EXCEPTION("LBM optimization has only velocity and distribution function values as vector solution.")
@@ -509,7 +509,6 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, co
 
 template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
 {
-  //TODO Implement!
     return "We don't need this.";
 }
 

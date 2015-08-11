@@ -679,7 +679,7 @@ void LatticeBoltzmann::prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
     tmp_ux = 3.0 * tmp_ux;
     tmp_uy = 3.0 * tmp_uy;
 
-    LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << std::endl;
+//    LOG_DBG3(lattice) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << std::endl;
 
     for (int dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
