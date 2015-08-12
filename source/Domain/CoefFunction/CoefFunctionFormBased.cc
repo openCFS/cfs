@@ -478,6 +478,7 @@ template<class TYPE> CoefFunctionLBM<TYPE>::~CoefFunctionLBM() { }
 template<class TYPE> void CoefFunctionLBM<TYPE>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
 {
   assert(this->dimType_ == SCALAR);
+  lbm_->ExtractIntermediateSolution();
   switch (resType_)
   {
     case LBM_DENSITY:
@@ -493,6 +494,7 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetScalar(TYPE& coefScal, const
 
 template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
 {
+    lbm_->ExtractIntermediateSolution();
     switch (resType_)
     {
       case LBM_VELOCITY:

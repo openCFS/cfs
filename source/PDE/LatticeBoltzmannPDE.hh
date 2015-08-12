@@ -158,6 +158,8 @@ public:
       return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
   }
 
+  inline void ExtractIntermediateSolution() {pdfs = lbm->GetPdfs();}
+
   //! Calculate macroscopic velocities
   Vector<Double> CalcVelocities(unsigned int elemId);
 

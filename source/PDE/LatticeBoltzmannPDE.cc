@@ -1035,115 +1035,6 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   return rhs; // no copy constructor
 }
 
-//void LatticeBoltzmannPDE::SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f)
-//{
-//  // the gradient over all lbm elements (including boundary) are computed as element wise scalar product of
-//  // x_parardiso * dRds where we could interpret dRds as vector but it is stored as sparse matrix and not all elements are contained
-//
-//
-//  // the solution of the adjoint system:
-//  Vector<double> x_pardiso2;
-//  x_pardiso2.Import("x_pardiso2.dat");
-//
-//  LOG_DBG3(lbm_pde) << "SPG: x_pardiso2 -> " << x_pardiso2.ToString();
-//
-//  // read dRds and store as vector, not set values keep 0.0
-//  Vector<double> dRds(n_q_ * n_elems, 0.0);
-//  // %%MatrixMarket matrix coordinate real symmetric
-//  // %
-//  // % Matrix exported by OLAS
-//  // %
-//  // 900 100 576
-//  // 100 12  0.000110019427034806
-//  // 101 12  -0.00388473301942947
-//  std::ifstream file("dRds.mtx");
-//  if(file.fail())
-//    throw Exception("cannot read dRds.mtx");
-//
-//  std::string line;
-//  bool meta_info_read = false;
-//  while(std::getline(file, line))
-//  {
-//    if(line != "" && !boost::starts_with(line, "%"))
-//    {
-//      std::istringstream ss(line);
-//      // the first non-comment line is the meta data rows cols nnz
-//      if(!meta_info_read)
-//      {
-//        unsigned int rows, cols, nnz;
-//        if(!(ss >> rows >> cols >> nnz) || rows != n_q_*n_elems || cols != n_elems)
-//          throw Exception("error reading dRds.mtx, the first non-comment line has no proper meta data");
-//        meta_info_read = true;
-//      }
-//      else
-//      {
-//        unsigned int row, col;
-//        double val;
-//        if((ss >>  row >> col >> val))
-//          dRds[row - 1] = val;
-//        else
-//          throw Exception("error reading dRds.mtx values in out of line '" + line + "'");
-//      }
-//    }
-//  }
-//  file.close();
-//
-//  LOG_DBG3(lbm_pde) << "SPG: dRds -> " << dRds.ToString();
-//
-//  LOG_DBG3(lbm_pde) << "SPG: design size: " << design.GetSize();
-//
-//  // set the actually requested gradients
-//  for(unsigned int e = 0; e < design.GetSize(); e++)
-//  {
-//    DesignElement* de = design[e];
-//    unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-//    double val = -1.0 * x_pardiso2.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-//    de->AddGradient(f, val);
-//    LOG_DBG3(lbm_pde) << "SPG: idx=" << idx << " e=" << de->elem->elemNum << " xp=" << StdVector<double>::ToString(n_q_, x_pardiso2.GetPointer() + n_q_ * idx) << " dRds=" << StdVector<double>::ToString(n_q_, dRds.GetPointer() + n_q_ * idx) << " -> " << val;
-//  }
-//}
-
-
-//void LatticeBoltzmannPDE::InitTimeStepping()
-//{
-//  // timestepping formulation
-//  TS_alg_ = new PseudoTS( algsys_);
-//}
-
-//void LatticeBoltzmannPDE::CalcOutputCoupling() {
-
-//  SolutionType quantity;
-//  StdVector<UInt> * couplingnodes;
-//  SingleVector * values;
-//
-//  // at first, check if this PDE is iterative coupled
-//  if (isIterCoupled_ == false)
-//    return;
-//
-//  // loop over all output coupling quantities
-//  for (UInt i=0; i<ptCoupling_->GetNumOutputCouplings(); i++) {
-//    quantity = ptCoupling_->GetOutputQuantity(i);
-//
-//    switch(ptCoupling_->GetOutputType(i)) {
-//
-//      case NODE:
-//
-//        ptCoupling_->GetOutputNodes(i, couplingnodes);
-//        ptCoupling_->GetOutputValues(i, values);
-//
-//        if (quantity == LBM_VELOCITY) {
-//          solDeriv1_.SetAlgSysVector(getDeriv(FIRST_DERIV));
-//          solDeriv1_.NodeSolutionToCoupling((*values),*couplingnodes);
-//        }
-//        break;
-//
-//      case ELEM:
-//        EXCEPTION("No Element coupling output");
-//    }
-//
-//  }
-//}
-
 Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
 {
   Vector<Double> velo;
@@ -1159,7 +1050,6 @@ Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
 double LatticeBoltzmannPDE::CalcPressure(unsigned int elemId) const
 {
   double density = CalcLBMDensity(elemId);
-  assert(density < 1.5);
   double ux     = CalcVelocityX(elemId, density);
   double uy     = CalcVelocityY(elemId, density);
   double uz     = CalcVelocityZ(elemId, density);
@@ -1609,7 +1499,6 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
   assert(!elements.IsEmpty());
 
   non_sing.Reserve(n_q_ * n_x_ * n_y_ * n_z_);
-
 
   for(unsigned int z = 0; z < n_z_; z++)
   {
