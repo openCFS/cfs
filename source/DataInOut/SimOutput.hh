@@ -20,7 +20,7 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   //! Forward class declaration
-  class ParamNode;
+  
   
 
   //! Base class for writing result objects to file

@@ -1,22 +1,14 @@
 #!/usr/bin/env python
 
-# This script generates initial density distributions as peseudo density.xml files
-# This is used when doing inverse homogenization.
+# This script generates initial density distributions as pseudo density.xml files
+# This is used when doing inverse homogenization and bloch mode optimization.
 
 import libxml2
 import numpy
 import math
 from optimization_tools import *
+import argparse
 
-# we assume a unit cube (2D/3D) 
-# edge discretization
-divider = 80 
-vol_list = ["0.5"]
-dim = 2 
-# what is the maximal order (1 is linar, 2 quadratic, ...)
-order = 6 
-# the maximal number of spheres as edge basis (1*1, 2*2, 3*3, .., or 1*1*1, 2*2*2, 3*3.3, ...)
-edge = 1
 
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
@@ -72,9 +64,11 @@ def setNDArrayEntry(data, dim, i, j, k, value):
 # center is a Coordinate
 # inner_value is assumed to be smaller outer_value
 # returns the volume
-def make_sphere(data, center, radius, inner_value, outer_value, order):
+def make_sphere(dim, center, radius, inner_value, outer_value, order, invert):
+  
   point = Coordinate(0.0, 0.0, 0.0)
-  dim = data.ndim
+  
+  data = numpy.ones((divider, divider)) if dim == 2 else numpy.ones((divider, divider, divider))
   gap = outer_value - inner_value
   # loop over the whole data
   for i in range(divider):
@@ -93,117 +87,114 @@ def make_sphere(data, center, radius, inner_value, outer_value, order):
           if v < old_value:
             setNDArrayEntry(data, dim, i, j, k, v) 
 
-  return data.sum() / float(data.size)
+  if invert:
+   data = outer_value + inner_value - data # don't make a 0 where we had 1  
 
+  assert(numpy.amax(data) <= outer_value)
+  assert(numpy.amax(data) >= inner_value)
 
-# wrap the calls to make_shere by calling it for each of the center coordinate within grid
-# grid multiple centers as list of Coordinate
-# return data 
-def multiple_make_sphere(dim, divider, grid, radius, inner_value, outer_value, order):
-
-
-  data = cond(dim == 2, numpy.ones((divider, divider)), numpy.ones((divider, divider, divider)))
-  
-  for i in range(len(grid)):
-    point = grid[i]       
-    make_sphere(data, point, radius, inner_value, outer_value, order)
-  
   return data
-           
+
+          
 # find correct radius by bisection
 # vol the desired resulting vol
-# spheres number of shperes
 # return the data  as numpy.ndarray
-def find_radius(dim, vol, spheres, order):
+def find_radius(dim, vol, order, invert):
 
   # set the center coordinates
-  grid = [] 
-  for i in range(spheres):
-    for j in range(spheres):  
-      for k in range(cond(dim == 2, 1, spheres)):
-        grid.append(Coordinate(0.0, 0.0, 0.0))
-        grid[len(grid)-1].toCoordinate(i, j, k, spheres)
+  center = Coordinate(0.5, 0.5, 0.5)
         
   lower = 0.0
-  upper = 30.0
+  upper = 30 # 1.4
   err = upper
   
   data = 0 # placeholder
   iter = 0
   
-  while iter < 30 and abs(err) > 0.01:
+  while iter < 30 and abs(err) > 1e-12:
     mid = 0.5 * (lower + upper)
-
-    data = multiple_make_sphere(dim, divider, grid, mid, 0.002, 1.0, order)
-    act_vol  = data.sum() / float(data.size)  
+    
+    data = make_sphere(dim, center, mid, 0.002, 1.0, order, invert)
+    act_vol = data.sum() / float(data.size)
+    
     err  = vol - act_vol
-
-    if err > 0:
+ 
+    if (not invert and err > 0) or (invert and err < 0):
       upper = mid
     else:
       lower = mid
 
     iter = iter + 1
-    print "     act_vol=" + str(act_vol) + " err=" + str(err) + " mid=" + str(mid) + " next lower=" + str(lower) + " next upper=" + str(upper) 
+    #print "     act_vol=" + str(act_vol) + " err=" + str(err) + " mid=" + str(mid) + " next lower=" + str(lower) + " next upper=" + str(upper) 
   
   # we are so close that left and right data is almost the same
-  print "dim=" + str(dim) + " order=" + str(order) + " spheres=" + str(spheres) + " target_vol=" + str(vol) + " result_vol=" + str(data.sum() / float(data.size))
+  print "dim=" + str(dim) + " order=" + str(order) + " target_vol=" + str(vol) + " result_vol=" + str(data.sum() / float(data.size)) + ' min=' + str(numpy.amin(data)) + ' max=' + str(numpy.amax(data)) 
   return data
 
-# write the data to a density.xml file
-# list of data and list of setnames  
-def write_density_file(filename, data_list, setname_list):
-  out = open(filename, "w")
-  out.write('<?xml version="1.0"?>\n')
-  out.write('<cfsErsatzMaterial>\n')
-  out.write('  <header>\n')
-  out.write('    <design initial="0.5" lower="1e-3" name="density" region="mech" upper="1"/>\n')
-  out.write('    <transferFunction application="mech" design="density" param="1" type="simp"/>\n')
-  out.write('  </header>\n')
+def cross(dim, vol, res, lower):
+  assert(dim == 2)
   
-  for i in range(len(data_list)):
-    data    = data_list[i]
-    setname = setname_list[i]
-    out.write('  <set id="' + setname + '">\n')
-    edge = data.shape[0] # be careful!
-    counter = 1
+  # v = 2*h - h^2 
+  h = 1.0-numpy.sqrt(1-vol) # the other solution is > 1
+  assert(h >= 1/res and h <= 1)
+  s = h * res
 
-    dim = data.ndim 
+  print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
 
-    for i in range(edge):
-      for j in range(edge):
-        for k in range(cond(dim == 2, 1, edge)):
-           val = getNDArrayEntry(data, dim, i, j, k)
-           out.write('    <element nr="' + str(counter) + '" type="density" design="' + str(val) + '"/>\n')
-           counter = counter + 1       
-         
-    out.write('  </set>\n')
-
-  out.write(' </cfsErsatzMaterial>\n')
-  out.close()
+  data = numpy.ones((res, res)) * lower # violate exact volume
   
-# main routine  
-# dim either 2 or 3
-# create a density file with several sets:
-# divider edge discretization of mesh
-# vol target volume fraction
-# max_edge create sets 1*1*1, 2*2*2, 3*3*3, ...n*n*n with n = max_edge
-# max_order the density gradient is linear(1), quadratic(2), cubic(3), ...
-def create_density_file(dim, divider,  vol, max_edge, max_order):
-  filename = "unit_" + str(dim) + "d-div_" + str(divider) + "-vol_" + str(vol) + ".density.xml"
+  start = int(res/2. - s/2. + 0.5)
+  end   = int(res/2. + s/2. + 0.5)
   
-  data_list = []
-  setname_list = []
-   
-  for o in range(1, max_order+1): 
-    for e in range(1, max_edge+1):
-      data = find_radius(dim, vol, e, o)
-      data_list.append(data)
-      setname_list.append("spheres_n_" + str(e) + "-order_" + str(o))   
+  data[:,start : end   ] = 1
+  data[  start : end, :] = 1
+  
+  return data
 
-  write_density_file(filename, data_list, setname_list) 
+parser = argparse.ArgumentParser()
+parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
+parser.add_argument('--vol', help="volume fraction of full domain or ball only", type=float, default=0.5)
+parser.add_argument('--dim', help="square (2) or cube (3)", type=int, default=2)
+parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother", type=int, default=6)
+parser.add_argument('--invert', help="invert to solid inside", action='store_true')
+parser.add_argument('--cross', help="make a simple cross", action='store_true')
+parser.add_argument('--lower', help="value for void material. Default 1e-3", type=float, default=1e-3)
+parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
+
+# parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
+parser.add_argument('--save', help="overwrite default filename")
+
+args = parser.parse_args()
+
+divider = args.res
   
-for vol in vol_list:  
-  create_density_file(dim, divider, float(vol), edge, order)  
+vol = args.vol  
+if args.ball:
+  if args.dim == 2:
+    vol *= 1.0/4.0 * numpy.pi 
+  else:
+    vol *= 1.0/6.0 * numpy.pi
+  print "assign volume " + str(args.vol) + " to ball which restricts the total volume to " + str(vol)    
+    
+  
+ord = ("-o_" + str(args.order)) if args.order <> 6 else ""   
+
+
+data = None
+filename = None
+
+if args.cross:
+  data = cross(args.dim, vol, args.res, args.lower)
+  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(divider) + ".density.xml"
+else:
+  data = find_radius(args.dim, vol, args.order, args.invert)
+  filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
+
+if args.save:
+  filename = args.save
+
+write_density_file(filename, data, "order_" + str(args.order) + ("_inv" if args.invert else ""))
+
+print "generated file '" + filename + "'" 
 
 

@@ -72,7 +72,7 @@ void SIMP::PostInit()
     {
       if(structure_ == NULL)
         structure_ = new DesignStructure(this);
-      structure_->SetFilters(list[i], this->optInfoNode);
+      structure_->SetFilter(list[i], this->optInfoNode);
     }
   }
   

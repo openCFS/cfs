@@ -121,13 +121,6 @@ Function::Function(PtrParamNode pn) {
       throw Exception("function '" + type.ToString(type_) + "' requires the 'ev' with value >= 1");
     break;
 
-  case PROJECTION:
-    if (!pn->Has("filter"))
-      throw Exception("function '" + type.ToString(type_) + "' requires the 'filter' element");
-    if (region != ALL_REGIONS)
-      throw Exception("function '" + type.ToString(type_) + "' cannot be region restricted");
-    break;
-
   case TENSOR_TRACE:
   case GLOBAL_TENSOR_TRACE:
     if(design_ != DesignElement::DEFAULT && design_ != DesignElement::MECH_TRACE && design_ != DesignElement::DIELEC_TRACE && design_ != DesignElement::ALL_DESIGNS)
@@ -203,11 +196,6 @@ Function::~Function()
     local = NULL;
   }
 
-  if (projectionDesign_ != NULL) {
-    delete projectionDesign_;
-    projectionDesign_ = NULL;
-  }
-
   // this might lead to problems when they are active in Assemble and ~Assemble deletes them
   output_forms.Clear();
 }
@@ -218,13 +206,13 @@ void Function::Init() {
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
   this->local = NULL;
-  this->projectionDesign_ = NULL;
 
   // function value to be evaluated
   this->value_ = -1.0;
 
   // -2 is unset, -1 is all, >= 0 the excitation index
   this->excite_ = -1;
+  this->sample_excitation_ = NULL;
   this->excite_sensitive_ = false;
 
   this->stressType_ = MECH; // set in Condition
@@ -333,6 +321,8 @@ void Function::ToInfo(PtrParamNode info) {
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
 
+  info->Get("filtered")->SetValue(ForDensityFiltering() || ForSensitivityFiltering());
+
   if(local != NULL)
     local->ToInfo(info_);
 }
@@ -358,6 +348,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   assert(me != NULL && me->excitations.GetSize() > 0);
 
   // some functions need to be evaluated only once (first) for multiple excitations
+  // however for meta excitations (rotations) whey need to be be evaluates at the last base
+  //
   // multiple excitations are:
   // * static load cases
   // * different frequencies
@@ -367,25 +359,16 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   switch(type_)
   {
+  // this stuff is really to be avaluated only once, even for meta excitations
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
   case REALVOLUME:
   case TYCHONOFF:
   case GREYNESS:
-  case HOM_TENSOR:
-  case HOM_TRACKING:
-  case HOM_FROBENIUS_PRODUCT:
-  case POISSONS_RATIO:
-  case YOUNGS_MODULUS:
-  case YOUNGS_MODULUS_E1:
-  case YOUNGS_MODULUS_E2:
   case SLOPE:
   case GLOBAL_SLOPE:
   case PERIMETER:
-  case ISOTROPY:
-  case ISO_ORTHOTROPY:
-  case ORTHOTROPY:
   case MOLE:
   case GLOBAL_MOLE:
   case OSCILLATION:
@@ -394,7 +377,6 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_JUMP:
   case BUMP:
   case DESIGN_TRACKING:
-  case PROJECTION:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
   case TWO_SCALE_VOL:
@@ -424,6 +406,31 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     assert(excite_index < 0);
     excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
     break;
+
+  // this stuff is to be evaluated at the last base for meta excitations
+  case HOM_TENSOR:
+  case HOM_TRACKING:
+  case HOM_FROBENIUS_PRODUCT:
+  case POISSONS_RATIO:
+  case YOUNGS_MODULUS:
+  case YOUNGS_MODULUS_E1:
+  case YOUNGS_MODULUS_E2:
+  case ISOTROPY:
+  case ISO_ORTHOTROPY:
+  case ORTHOTROPY:
+    assert(excite_index < 0);
+    if(!me->DoMetaExcitation())
+      excite_ = me->excitations.GetSize() - 1; // standard
+    else
+    {
+      if(!pn->Has("excitation"))
+        throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
+
+      excite_ = me->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
+    }
+    break;
+
+  // this stuff is to be avaluated always
   case COMPLIANCE:
   case OUTPUT:
   case DYNAMIC_OUTPUT:
@@ -442,6 +449,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
       excite_sensitive_ = true;
     }
     break;
+
   case STRESS:
   case STRESS_DENSITY:
   case EIGENFREQUENCY: // at least in the bloch mode case! Otherwise there is no multiple excitation for standard ev
@@ -457,6 +465,9 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTI_OBJECTIVE: // only to make the switch complete
       break;
   }
+
+  sample_excitation_ = excite_ >= 0 ? &me->excitations[excite_] : &me->excitations[0];
+  LOG_DBG(func) << "SE f=" << ToString() << " exite_=" << excite_ << " ex=" << sample_excitation_->GetFullLabel();
 }
 
 /** Shall/must we evaluate this objective at this excitation?
@@ -471,6 +482,7 @@ bool Function::DoEvaluate(const Excitation* excite) const {
 bool Function::DoEvaluateAlways() const {
   return excite_ == -1;
 }
+
 
 bool Function::IsExcitationSensitive() const {
   return excite_sensitive_;
@@ -571,7 +583,6 @@ bool Function::ForDensityFiltering() const {
     return true;
   case DEFAULT: // no "filtered=" entry in constraint given. Use default values:
     switch (type_) {
-    case PROJECTION: // for the projection case we have a density filter manually on Function::projectionDesign only
     case SLACK:
     case SHAPE_INF:
     case DESIGN_BOUND: // TODO check if this is really true as pyhsical material might harm the bound ?!
@@ -642,7 +653,6 @@ bool Function::ForSensitivityFiltering() const {
   case GLOBAL_JUMP:
   case BUMP:
   case DESIGN_TRACKING:
-  case PROJECTION:
   case ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case TENSOR_TRACE:
@@ -680,11 +690,6 @@ bool Function::ForSensitivityFiltering() const {
 
   EXCEPTION("can never reach! Stupid C++");
   return false;
-}
-
-StdVector<DesignElement>& Function::GetProjectionDesignClone() {
-  assert(type_ == PROJECTION);
-  return projectionDesign_->data;
 }
 
 void Function::SetElements(DesignSpace* space, RegionIdType region) {
@@ -836,30 +841,6 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure,
       if (space->transfer[i].IsPenalized())
         preInfo_->Get(ParamNode::WARNING)->SetValue("transfer function '" + space->transfer[i].ToString() + " seems also to penalize");
     break;
-
-  case PROJECTION: {
-    // We have to create a deep copy of the original design space. Also the neighborhood must not point to the original design.
-    projectionDesign_ = space->Clone(); // the original regions if all
-
-    DesignStructure ds(projectionDesign_, projectionDesign_->GetRegionIds());
-    VicinityElement::Init(projectionDesign_, &ds);
-
-    StdVector<DesignElement>& fake_data = GetProjectionDesignClone();
-
-    PtrParamNode reg = pn->Get("filter");
-    ds.SetFilters(reg, preInfo_, &fake_data);
-
-    assert(space->data.GetSize() == space->GetTotalElements().GetSize());
-    assert(space->data.GetSize() == fake_data.GetSize());
-
-    for (unsigned int i = 0, n = fake_data.GetSize(); i < n; i++) {
-      // projectionDesign_[i].simp = new SIMPElement(&projectionDesign_[i]);
-      // we need the gradient size for temporary storage in the gradient calculation
-      fake_data[i].PostInit(em->objectives.data.GetSize(),
-          em->constraints.active.GetSize());
-    }
-    break;
-  }
 
   case SLACK:
     if (!space->HasSlackVariable())
@@ -2251,23 +2232,24 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
-    BaseDesignElement* de = GetElement(n);
+    DesignElement* de = dynamic_cast<DesignElement*>(GetElement(n));
 
     // the perimeter is not globalized by sum max(g-g*, 0)^p but it is not local!
     if(!local->IsGlobalized() && ft != PERIMETER)
     {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
       de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-      if(g->ForDensityFiltering())
+      if(g->ForDensityFiltering() && !de->simp->filter.IsEmpty())
       {
+        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+        const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[fix].neighborhood;
         // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
-        for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        for(unsigned int j = 0, nj = neighborhood.GetSize(); j < nj; j++)
         {
-          DesignElement* de2 =  dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour;
+          DesignElement* de2 =  neighborhood[j].neighbour;
           de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-          for(int k = 0; k < (int) de2->simp->neighborhood.GetSize(); k++)
-           // de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g); // Slow (in some cases extreme number of evaluations)
-            de2->simp->neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster
+          for(unsigned int k = 0, nk = de2->simp->filter[fix].neighborhood.GetSize(); k < nk; k++)
+            de2->simp->filter[fix].neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster than calling Reset()
         }
       }
     }

@@ -17,6 +17,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Function.hh"

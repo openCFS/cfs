@@ -636,7 +636,8 @@ void ShapeOpt::CalcHomogenizedTrackingGradient(const Matrix<double>& target, con
   CalcMinusU1dKU2(forward, forward, dynamic_cast<Objective*>(f), dynamic_cast<Condition*>(f), &tensor_diff);
 }
 
-Matrix<double> ShapeOpt::CalcHomogenizedTensor(){
+Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
+{
   const unsigned int ex_size(me->excitations.GetSize());
   assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
   
