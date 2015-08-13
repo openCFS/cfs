@@ -18,6 +18,7 @@
 #include <def_use_ansysrst.hh>
 #include <def_use_comsol.hh>
 #include <def_use_cgns.hh>
+#include <def_use_ensight.hh>
 
 #include "DefineInOutFiles.hh"
 
@@ -62,6 +63,10 @@
 
 #ifdef USE_COMSOL
 #include "DataInOut/SimInOut/COMSOL/SimInputMPHTXT.hh"
+#endif
+
+#ifdef USE_ENSIGHT
+#include "DataInOut/SimInOut/VTKBased/Ensight/SimInputEnsight.hh"
 #endif
 
 #ifdef USE_CGNS

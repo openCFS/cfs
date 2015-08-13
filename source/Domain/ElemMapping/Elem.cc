@@ -2358,6 +2358,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         case ET_WEDGE18:
           ret = ST_WEDGE;
           break;
+        case ET_POLYGON:
+          ret = ST_POLYGON;
+          break;
+        case ET_POLYHEDRON:
+          ret = ST_POLYHEDRON;
+          break;
       }
       return ret;
     }
@@ -2390,6 +2396,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
         case ST_WEDGE:
           feType = ET_WEDGE6;
           break;
+        case ST_POLYGON:
+          feType = ET_POLYGON;
+          break;
+        case ST_POLYHEDRON:
+          feType = ET_POLYHEDRON;
+          break;
         case ST_UNDEF:
           EXCEPTION("Unknown shape type");
       }
@@ -2410,7 +2422,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        EnumTuple(Elem::ST_TET,    "TET"),
        EnumTuple(Elem::ST_HEXA,   "HEX"),
        EnumTuple(Elem::ST_PYRA,   "PYRA"),
-       EnumTuple(Elem::ST_WEDGE,  "WEDGE")
+       EnumTuple(Elem::ST_WEDGE,  "WEDGE"),
+       EnumTuple(Elem::ST_POLYGON,  "POLYGON"),
+       EnumTuple(Elem::ST_POLYHEDRON,  "POLYHEDRON")
     };
     Enum<Elem::ShapeType> Elem::shapeType = \
        Enum<Elem::ShapeType>("Finite Element Shape Types",
@@ -2438,7 +2452,9 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
        EnumTuple(Elem::ET_PYRA14,  "PYRA14"),
        EnumTuple(Elem::ET_WEDGE6,  "WEDGE6"),
        EnumTuple(Elem::ET_WEDGE15, "WEDGE15"),
-       EnumTuple(Elem::ET_WEDGE18, "WEDGE18")
+       EnumTuple(Elem::ET_WEDGE18, "WEDGE18"),
+       EnumTuple(Elem::ET_POLYGON, "POLYGON"),
+       EnumTuple(Elem::ET_POLYHEDRON, "POLYHEDRON")
      };
 
      Enum<Elem::FEType> Elem::feType = \

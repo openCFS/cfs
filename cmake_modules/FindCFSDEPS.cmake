@@ -337,6 +337,17 @@ SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
 INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 
 #-----------------------------------------------------------------------------
+# Find VTK 
+#-----------------------------------------------------------------------------
+IF(USE_VTK)
+  SET(VTK_URL "${LSE17_SOURCES_DIR}/vtk")
+  SET(VTK_TAR "VTK-6.2.0.tar.gz")
+  SET(VTK_VERSION "6.2")
+  SET(VTK_MD5 "4790f8b3acdbc376997fbdc9d203f0b7")
+  INCLUDE("${CFS_SOURCE_DIR}/cfsdeps/vtk/External_VTK.cmake")
+ENDIF(USE_VTK)
+
+#-----------------------------------------------------------------------------
 # Find CGAL
 #-----------------------------------------------------------------------------
 IF(USE_CGAL)

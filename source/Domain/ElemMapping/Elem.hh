@@ -55,7 +55,9 @@ namespace CoupledField
       ST_TET    = 5,
       ST_HEXA   = 6,
       ST_PYRA   = 7,
-      ST_WEDGE  = 8
+      ST_WEDGE  = 8,
+      ST_POLYGON = 9,
+      ST_POLYHEDRON = 10
     } ShapeType;
 
     //! Static Enum for conversion of ElemShapeType
@@ -82,7 +84,9 @@ namespace CoupledField
       ET_PYRA14  = 19,
       ET_WEDGE6  = 16,
       ET_WEDGE15 = 17,
-      ET_WEDGE18 = 18
+      ET_WEDGE18 = 18,
+      ET_POLYGON = 20,
+      ET_POLYHEDRON = 21
     } FEType;
 
     //! Static Enum for FEType

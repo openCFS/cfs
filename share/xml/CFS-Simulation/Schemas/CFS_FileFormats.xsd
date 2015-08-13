@@ -87,6 +87,7 @@
       <xsd:element name="unv" type="DT_InputUNV"/>
       <xsd:element name="cdb" type="DT_InputCDB"/>
       <xsd:element name="internal" type="DT_InputInternal"/>
+      <xsd:element name="ensight" type="DT_InputEnsight"/>      
     </xsd:choice>
   </xsd:group>
 
@@ -521,6 +522,82 @@
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
+
+  <!-- ******************************************************************** -->
+  <!--   Definition of ENSIGHT (Gold) data input type -->
+  <!-- ******************************************************************** -->
+
+  <!-- Data type for specification of input file format -->
+  <xsd:complexType name="DT_InputEnsight">
+    <xsd:complexContent>
+      <xsd:extension base="DT_InputBasic">
+        <xsd:sequence>
+          <xsd:element name="variableList" maxOccurs="1" minOccurs="0">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="variable" minOccurs="0" maxOccurs="unbounded">
+                  <xsd:complexType>
+                    <xsd:attribute name="CFSVarName" use="required"  type="xsd:token"/>
+                      <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                         CFS++ compliant variable name. May be one of fluidMechPressure | fluidMechVelocity |
+                         fluidMechPressure_deriv2
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <xsd:attribute name="EnsightVarName" use="required"  type="xsd:token"/>
+                      <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                          Name of variable as given in case file
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <!--xsd:attribute name="multByCellVolume" use="optional"  type="xsd:boolean" default="false"/-->
+                      <!--xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                          If this is true, the value at node/cellCenter is multiplied by the cell volume
+                          during read. 
+                        </xsd:documentation>
+                      </xsd:annotation-->
+                    <!--xsd:attribute name="type">
+                      <xsd:simpleType>
+                        <xsd:restriction>
+                          <xsd:enumeration value="vector"/>
+                          <xsd:enumeration value="scalar"/>                          
+                        </xsd:restriction>                        
+                      </xsd:simpleType>
+                    </xsd:attribute-->
+                    <xsd:attribute name="dof" use="optional" type="xsd:token">
+                      <xsd:annotation >
+                        <xsd:documentation xml:lang="en">
+                          In case of vectors (e.g. velocity) which are stored component wise as scalar results we can give the 
+                          target dof for CFS here.
+                        </xsd:documentation>
+                      </xsd:annotation>
+                    </xsd:attribute>
+                  </xsd:complexType>
+                </xsd:element>
+              </xsd:sequence>
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:sequence>
+        <xsd:attribute name="readEntities"
+		       type="xsd:token"
+		       default=""/>
+        <xsd:attribute name="linearizeEntities"
+          type="xsd:token"
+          default=""/>
+        <xsd:attribute name="fileName"
+		       type="xsd:token"
+		       default="default"/>
+        <xsd:attribute name="coordSysId"
+           type="xsd:token"
+           default="default"/>
+        <xsd:attribute name="scaleFac"
+           type="xsd:double"
+           default="1.0"/>
+      </xsd:extension>
+    </xsd:complexContent>
+  </xsd:complexType>
+
   
   <!-- ******************************************************************** -->
   <!--   Definition of scattered data input type -->
