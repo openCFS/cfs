@@ -264,6 +264,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       throw Exception("robust filters are defined but 'multiple_excitation' is not enabled in 'costFunction");
     if(num_trans_ > 1)
       throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
+    if(pn->Has("multipleExcitation/excitations"))
+      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("'multiple_excitations' set to false but 'multipleExcitation/excitations' given");
   }
 
 

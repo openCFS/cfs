@@ -1109,23 +1109,11 @@ std::string SIMPElement::ToString(int level) const
 inline unsigned int SIMPElement::DetermineFilterIndex() const
 {
   return Optimization::context.excitation->robust_filter_idx;
-  /*
-  if(domain->GetOptimization() != NULL && domain->GetOptimization()->context.excitation != NULL)
-    return domain->GetOptimization()->context.excitation->robust_filter_idx;
-  else
-    return 0;
-    */
 }
 
 unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
 {
   return Optimization::context.excitation->robust_filter_idx;
-  /*
-  if(domain->GetOptimization() != NULL && domain->GetOptimization()->context.excitation != NULL)
-    return domain->GetOptimization()->context.excitation->robust_filter_idx;
-  else
-    return 0;
-    */
 }
 
 inline Filter& SIMPElement::DetermineFilter()

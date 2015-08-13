@@ -1068,7 +1068,6 @@
                       <xsd:attribute name="massFactor" type="xsd:float" default="1.0"/>
                       <xsd:attribute name="optimizeMass" type="xsd:boolean" use="optional" default="false"/>
                       <xsd:attribute name="optimizeDamping" type="xsd:boolean" use="optional" default="false"/>
-                      <xsd:attribute name="penalty" type="xsd:float" default="3.0"/>
                       <xsd:attribute name="trace" type="xsd:float" default="3.0"/>
                     </xsd:complexType>              
                   </xsd:element>
