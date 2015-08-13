@@ -189,7 +189,6 @@ void FeSpaceConst::MapNodalBCs(){
 }
 
 void FeSpaceConst::CheckEntityType(const EntityIterator ent) const {
-
   if( allowedEntities_.find(ent.GetType()) == allowedEntities_.end() ){
     EXCEPTION("Entity type not allowed.");
   }

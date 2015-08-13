@@ -101,7 +101,13 @@ public:
 //  virtual bool HasOutput(SolutionType output);
 
   // returns how often CalcResults() was called. We need this to write out the last simulation step
-  int GetNumWriteResults();
+  inline int GetNumWriteResults() {return numWriteResults_;}
+
+  // returns how many iterations were required by LBM solver to reach steady-state in last LBM call
+  inline int GetNumIterations() {return numIterations_;}
+
+  // return respective id of element with elemId in LBM world
+  inline int GetLbmId(unsigned int elemId) { return elem_to_idx[elemId]; }
 
   virtual void ReadSpecialResults();
 
@@ -117,9 +123,8 @@ public:
 
   //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
   /** Calculate the LBM Density of an element idx */
-  inline double CalcLBMDensity(unsigned int elemId) const
+  inline double CalcLBMDensity(unsigned int idx) const
   {
-    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world required
     double density = 0.0;
     for(unsigned int h = 0; h < n_q_; h++)
       density += GetPdf(idx,h);
@@ -128,30 +133,27 @@ public:
   }
 
   /** Calculate pressure for given element idx */
-  double CalcPressure(unsigned int elemId) const;
+  double CalcPressure(unsigned int idx) const;
 
   /** Calculate velocity components for given density and element idx */
-  inline double CalcVelocityX(unsigned int elemId, double density) const
+  inline double CalcVelocityX(unsigned int idx, double density) const
   {
-    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
     if (n_q_ == 9)
       return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
     else
       return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
   }
 
-  inline double CalcVelocityY(unsigned int elemId, double density) const
+  inline double CalcVelocityY(unsigned int idx, double density) const
   {
-    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
     if (n_q_ == 9)
       return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
     else
       return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
   }
 
-  inline double CalcVelocityZ(unsigned int elemId, double density) const
+  inline double CalcVelocityZ(unsigned int idx, double density) const
   {
-    unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world
     if (n_q_ == 9)
       return 0;
     else
@@ -161,10 +163,10 @@ public:
   inline void ExtractIntermediateSolution() {pdfs = lbm->GetPdfs();}
 
   //! Calculate macroscopic velocities
-  Vector<Double> CalcVelocities(unsigned int elemId);
+  Vector<Double> CalcVelocities(unsigned int idx);
 
   // extract probability distributions for output
-  Vector<Double> ExtractDistribution(unsigned int elemId);
+  Vector<Double> ExtractDistribution(unsigned int idx);
 
   Matrix<Double> couplingNodes_;
 
@@ -303,6 +305,9 @@ private:
 
   // stores how often CalcResults() was called. We need this for StoreResults() for last time step
   unsigned int numWriteResults_;
+
+  // stores how many iterations were necessary to solve one flow problem with LBM
+  unsigned int numIterations_;
 
   /** the complete structure, special elements (negative) and densities */
   StdVector<double> elements;

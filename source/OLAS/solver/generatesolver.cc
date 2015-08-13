@@ -246,6 +246,7 @@ BaseSolver* GenerateSolverObject( const BaseMatrix &mat,
 
 #ifdef USE_PARDISO
 
+    LOG_DBG(genSolver) << "structure type of matrix: " << mat.GetStructureType();
     // Check suitability of matrix
     if ( mat.GetStructureType() != BaseMatrix::SPARSE_MATRIX ) {
       EXCEPTION( "PardisoSolver only works with (S)CRS_Matrix class!" );

@@ -56,7 +56,7 @@
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/CRS_Matrix.hh"
 #include "MatVec/SBM_Matrix.hh"
-
+#include "MatVec/SBM_Vector.hh"
 
 namespace CoupledField {
 
@@ -146,6 +146,7 @@ namespace CoupledField {
     nonLin_ = false;
     lbm = NULL;
     numWriteResults_ = 0;
+    numIterations_ = 0;
 
     method_ = "mechanic";
 
@@ -354,8 +355,9 @@ namespace CoupledField {
       actSDMat = it->second;
 
       // create new entity list
-      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-      actSDList->SetRegion( actRegion );
+      // we use colList in order to be able to use constant FESpace, which is described by only one equation
+      shared_ptr<CoilList> actSDList( new CoilList(ptGrid_ ) );
+//      actSDList->SetRegion( actRegion );
 
       // get current region name and get grip of paramNode
       std::string actRegionName;
@@ -374,15 +376,16 @@ namespace CoupledField {
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
       BaseBDBInt* stiffInt = NULL;
+      std::set<RegionIdType> volRegions;
       if( dim_ == 2 ) {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, updatedGeo_ );
+        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
       } else {
-        stiffInt = new BBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, updatedGeo_ );
+        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
       }
       stiffInt->SetName("StiffnessIntegrator");
+      LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
 
-      BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
       stiffIntDescr->SetEntities( actSDList, actSDList );
       stiffIntDescr->SetFeFunctions(feFunc,feFunc);
@@ -404,7 +407,7 @@ namespace CoupledField {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
     if( formulation == "default"){
       PtrParamNode potSpaceNode = infoNode->Get("testDof"); // dummy state solution TEST_DOF
-      crSpaces[TEST_DOF] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+      crSpaces[TEST_DOF] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::CONSTANT, ptGrid_);
       crSpaces[TEST_DOF]->Init(solStrat_);
     }else{
       EXCEPTION("The formulation " << formulation << "of the lattice Boltzmann PDE is not known!");
@@ -417,11 +420,6 @@ namespace CoupledField {
   void LatticeBoltzmannPDE::DefineSolveStep()
   {
     solveStep_ = new StdSolveStep(*this);
-  }
-  // returns number of iterations needed in LBM calculation until convergence
-  int LatticeBoltzmannPDE::GetNumWriteResults()
-  {
-    return numWriteResults_;
   }
 
   void LatticeBoltzmannPDE::Solve()
@@ -493,6 +491,8 @@ namespace CoupledField {
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
 
         numWriteResults_ = lbm->GetNumWriteResults();
+
+        numIterations_ = lbm->GetNumIterations();
 
         break;
       }
@@ -630,7 +630,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       }
   }
 
-//  double d_collision_setup = timer.GetCPUTime();
+  double d_collision_setup = timer.GetCPUTime();
 
   // the real jacobi combines d_collision with d_propagation
   mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
@@ -640,7 +640,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   for(unsigned int i=0;i < n_q_ * n_elems; i++)
     Jacobi(i,i) -= 1.;
 
-//  double d_propagation_setup = timer.GetCPUTime();
+  double d_propagation_setup = timer.GetCPUTime();
 
   //Data for Pardiso solver
   compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
@@ -652,38 +652,48 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //  WriteMatrix("Jacobian_old.txt",Jacobi);
 //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
   // use the cfs system matrix to solve the adjoint system
-//  SBM_Matrix* mat = algsys_->GetMatrix(SYSTEM);
-//  LOG_DBG(lbm_pde) << "SA: mat dump=" << mat->Dump();
-//  LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
-//  double delete_sing_setup = timer.GetCPUTime();
+//  algsys_->SetFEMatrixType(SYSTEM,false,false,0,0);
+  StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
+  LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
+  LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
+  LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
+  LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
+  double delete_sing_setup = timer.GetCPUTime();
+
+//  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+  CRS_Matrix<double> crs;
+//  assert(crs != NULL);
+
+  crs.SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+  matrix_sparse_to_crs(Jacobi_new, crs.GetDataPointer(), crs.GetRowPointer(), crs.GetColPointer());
+  mat = &crs;
+
+  // right-hand side
+  Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+  LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
+  SBM_Vector rhs(1,BaseMatrix::DOUBLE);
+  rhs.SetSubVector(&b,0);
+  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs(0).ToString(0,',');
+
+  double rhs_setup = timer.GetCPUTime();
+
+//  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+//  assert(crs != NULL);
 //
-//  // right-hand side
-//  Vector<double> b = d_pressuredrop_d_f(ux, uy, uz);
-//
-//  double rhs_setup = timer.GetCPUTime();
-
-
-//  LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
-
-  /*
-  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-  assert(crs != NULL);
-
-  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
+//  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+//  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
   // time to setup adjoint system before solving
   double setup_wall = timer.GetWallTime();
   double setup_cpu = timer.GetCPUTime();
 
-//  algsys_->InitRHS(b);
-  //TODO
+  algsys_->InitRHS(rhs);
 
 //  PtrParamNode analysis_id = domain->GetDriver()->CreateAnalysisId("lbm_adjoint", 0);
   algsys_->SetupSolver();
   algsys_->Solve();
   Vector<double> sol;
-//  algsys_->GetSolutionVal(sol);
+  algsys_->GetSolutionVal(sol,0,false);
 
   for(unsigned int e = 0; e < f->elements.GetSize(); e++)
   {
@@ -710,7 +720,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
   adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
   adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
-  */
+
 }
 
 void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
@@ -1035,29 +1045,29 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   return rhs; // no copy constructor
 }
 
-Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int elemId)
+Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int idx)
 {
   Vector<Double> velo;
   velo.Resize(dim_);
-  double density = CalcLBMDensity(elemId);
-  velo[0] =  CalcVelocityX(elemId, density);
-  velo[1] = CalcVelocityY(elemId, density);
+  double density = CalcLBMDensity(idx);
+  velo[0] =  CalcVelocityX(idx, density);
+  velo[1] = CalcVelocityY(idx, density);
   if (dim_ == 3)
-    velo[2] = CalcVelocityZ(elemId, density);
+    velo[2] = CalcVelocityZ(idx, density);
   return velo;
 }
 
-double LatticeBoltzmannPDE::CalcPressure(unsigned int elemId) const
+double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
 {
-  double density = CalcLBMDensity(elemId);
-  double ux     = CalcVelocityX(elemId, density);
-  double uy     = CalcVelocityY(elemId, density);
-  double uz     = CalcVelocityZ(elemId, density);
+  double density = CalcLBMDensity(idx);
+  double ux     = CalcVelocityX(idx, density);
+  double uy     = CalcVelocityY(idx, density);
+  double uz     = CalcVelocityZ(idx, density);
 
   if (dim_ == 2)
     assert(uz == 0);
 
-  LOG_DBG2(lbm_pde) << "CP: " << "elemId = " << elemId << " density = " << density << " ux = " << ux << " uy = " << uy << " uz = " << uz << " p = " << density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
+  LOG_DBG2(lbm_pde) << "CP: " << "idx = " << idx << " density = " << density << " ux = " << ux << " uy = " << uy << " uz = " << uz << " p = " << density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
   return density / 3.0 + 0.5 * density * (ux * ux + uy * uy + uz * uz);
 }
 
@@ -1066,21 +1076,20 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
   // Calculation of the pressure drop by Pingen
   double in = 0.0;
   for(unsigned int i = 0; i < inlet.GetSize(); i++) {
-    in += CalcPressure(idx_to_elem[inlet[i]]);
-    LOG_DBG2(lbm_pde) << "CPD: elemId=" << idx_to_elem[inlet[i]] << " p=" << CalcPressure(idx_to_elem[inlet[i]]);
+    in += CalcPressure(inlet[i]);
+    LOG_DBG2(lbm_pde) << "CPD: idx=" << inlet[i] << " p=" << CalcPressure(inlet[i]);
   }
   double out = 0.0;
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
-    out += CalcPressure(idx_to_elem[outlet[i]]);
-    LOG_DBG2(lbm_pde) << "CPD: elemId=" << idx_to_elem[outlet[i]] << " p=" << CalcPressure(idx_to_elem[outlet[i]]);
+    out += CalcPressure(outlet[i]);
+    LOG_DBG2(lbm_pde) << "CPD: idx=" <<outlet[i] << " p=" << CalcPressure(outlet[i]);
   }
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
   return in / inlet.GetSize() - out / outlet.GetSize();
 }
 
-Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int elemId){
-  unsigned int idx = elem_to_idx[elemId]; // conversion between LBM world and CFS world required
+Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
   Vector<double> solVec;
   solVec.Resize(n_q_);
   for (unsigned int i = 0; i < n_q_; i++) {
