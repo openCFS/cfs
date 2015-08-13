@@ -258,6 +258,11 @@ template<typename T> class ElemStoreSol;
     //! and the input vector vec. The value is returned in sum.
     void Inner(const SingleVector& vec, T& sum) const;
     
+    /** computes the inner product only for a defined range
+     * @param start first index
+     * @param end not included index */
+    T Inner(const SingleVector& vec, unsigned int start, unsigned int end) const;
+
     T Inner(const SingleVector& vec) const;
 
     T Inner() const;

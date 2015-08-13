@@ -93,9 +93,11 @@ namespace CoupledField {
 
     // for LBM case we overwrite this data because we might write intermediate LBM iterations
     int step = 0;
+    int numIter = 0;
     if(lbm_) {
       dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->Solve(); // might call many StoreResults() for intermediate steps
       step = dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->GetNumWriteResults();
+      numIter = dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->GetNumIterations();
     }
 
     // in optimization we write the results via StoreResults() because
@@ -103,7 +105,7 @@ namespace CoupledField {
     if(!domain->GetOptimization())
     {
       if (lbm_)
-        StoreResults(step+1,(double)step+1);
+        StoreResults(step+1,(double)numIter+1);
       else
         StoreResults(1,0.0);
       handler_->FinishMultiSequenceStep();

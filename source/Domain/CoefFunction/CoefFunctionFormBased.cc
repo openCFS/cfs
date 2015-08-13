@@ -479,13 +479,14 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetScalar(TYPE& coefScal, const
 {
   assert(this->dimType_ == SCALAR);
   lbm_->ExtractIntermediateSolution();
+  unsigned int idx = lbm_->GetLbmId(lpm.ptEl->elemNum);
   switch (resType_)
   {
     case LBM_DENSITY:
-      coefScal = lbm_->CalcLBMDensity(lpm.ptEl->elemNum);
+      coefScal = lbm_->CalcLBMDensity(idx); // all Calc... functions in LbmPDE need element ids already converted to LBM world
       break;
     case LBM_PRESSURE:
-      coefScal = lbm_->CalcPressure(lpm.ptEl->elemNum);
+      coefScal = lbm_->CalcPressure(idx);
       break;
     default:
       EXCEPTION("LBM optimization has only pressure and density as scalar solution.")
@@ -494,14 +495,16 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetScalar(TYPE& coefScal, const
 
 template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
 {
+    assert(this->dimType_ == VECTOR);
     lbm_->ExtractIntermediateSolution();
+    unsigned int idx = lbm_->GetLbmId(lpm.ptEl->elemNum);
     switch (resType_)
     {
       case LBM_VELOCITY:
-        vec = lbm_->CalcVelocities(lpm.ptEl->elemNum);
+        vec = lbm_->CalcVelocities(idx);
         break;
       case LBM_PROBABILITY_DISTRIBUTION:
-        vec = lbm_->ExtractDistribution(lpm.ptEl->elemNum);
+        vec = lbm_->ExtractDistribution(idx);
         break;
       default:
         EXCEPTION("LBM optimization has only velocity and distribution function values as vector solution.")

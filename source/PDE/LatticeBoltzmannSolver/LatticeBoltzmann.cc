@@ -222,8 +222,8 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     if (writeIntermediateResults) {
       if (it % m_writeFrequency == 0) {
-        count++;
         domain->GetDriver()->StoreResults(count,(double) it);
+        count++;
       }
     }
   }
@@ -262,6 +262,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 //  if (writeIntermediateResults)
 //    m_numWriteResults = count-1;
 //  else
+  m_numIterations = it;
   m_numWriteResults = count;
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)

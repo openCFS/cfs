@@ -1878,6 +1878,8 @@ namespace CoupledField {
   
       // security check: ensure that sub-vector has the same size
       // as the block indices
+      LOG_TRACE(algSys) << " size of subvec" << i+1 << ": " << newRHS(i).GetSize();
+      LOG_DBG3(algSys) << " subvec" << i+1 << "=" << newRHS(i).ToString();
       if( newRHS(i).GetSize() != indices.GetSize() ) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
