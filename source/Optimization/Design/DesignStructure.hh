@@ -74,7 +74,7 @@ public:
 
   static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
 
-  static std::string ToString(const StdVector<SIMPElement::NeighbourElement>& data);
+  static std::string ToString(const StdVector<Filter::NeighbourElement>& data);
 
 private:
 
@@ -89,7 +89,7 @@ private:
   /** finds quite efficiently the neighborhood with an regular grid.
    * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
    * @param neighbors to be reused */
-  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors);
+  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
 
   /** Helper for FindRegularNeighborhood().
    * Defines an element by the number of (+/-) steps in the main axes
@@ -104,7 +104,7 @@ private:
    * See implementation for docu. */
   void FindUnstructuredNeighborhood(DesignElement* base, double radius,
                           StdVector<std::pair<Elem*, int> >& initial,
-                          StdVector<SIMPElement::NeighbourElement>& neighbors,
+                          StdVector<Filter::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
   /** calc the distance between two points for the periodic case,

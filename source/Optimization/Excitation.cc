@@ -578,7 +578,7 @@ Excitation::Excitation()
   this->weight = 1.0;
   this->normalized_weight = 1.0;
   this->reassemble = false; // normally
-  this->assemble = domain->GetBasePDE()->GetAssemble();
+  this->assemble = domain != NULL && domain->GetBasePDE() != NULL ? domain->GetBasePDE()->GetAssemble() : NULL; // not yet ready in Context::Context()
 }
 
 Excitation::~Excitation()

@@ -58,6 +58,37 @@ public:
 
   Type GetType() const { return type_; }
 
+  /** Sums up the weights of the neighbors and optionally the own element */
+  double CalcWeightSum(bool include_this) const;
+
+  void Dump() const;
+
+  /** Neighborhood is element and pre-calculated distance. It is stored in the Filter! */
+  struct NeighbourElement
+  {
+  public:
+    /** read the variable */
+    DesignElement* neighbour;
+
+    /** pre-calculated weight: radius - distanance and >= 0 */
+    double        weight;
+
+    /** the distance in domain dimensions! */
+    double        distance;
+  };
+
+
+  /** pre-calculated weight sum */
+  double weight_sum;
+
+  /** The weight of THIS element which is radius */
+  double weight;
+
+  /** The neighbors if filter otherwise empty.
+   * The element itself is NOT part of the neighborhood!
+   * @see DesignStructure::DesignStructure() */
+  StdVector<NeighbourElement> neighborhood;
+
   Sensitivity sensitivity_;
   Density     density_;
 

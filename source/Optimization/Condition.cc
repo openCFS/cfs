@@ -777,8 +777,7 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
-  /* for debug purposes you can enable the dense pattern by commenting out
-   * the two lines */
+  // for debug purposes you can enable the dense pattern by commenting out the two lines
   assert(IsLocal());
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
@@ -787,13 +786,16 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    BaseDesignElement* de = id.GetElement(i);
+    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
+    assert(de != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
-    if (this->ForDensityFiltering()) {
-      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
-        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
+    if(this->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+    {
+      const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
+      for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
+        indices.push_back(neighborhood[j].neighbour->GetIndex());
     }
   }
 

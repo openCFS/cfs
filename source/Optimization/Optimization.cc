@@ -78,6 +78,8 @@ Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
+Context                              Optimization::context;
+
 Optimization::Optimization()
 {
   this->pde = NULL; // set in PostInit()

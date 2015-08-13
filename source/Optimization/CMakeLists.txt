@@ -18,6 +18,7 @@ SET(OPTIMIZATION_SRCS
   TransferFunction.cc
   Transform.cc
   Objective.cc
+  Context.cc
   ParamMat.cc
  )
 
