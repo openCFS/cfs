@@ -468,38 +468,14 @@ public:
    * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
   double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const;
 
-  /** Sums up the weights of the neighbors and optionally the own element */
-  double CalcWeightSum(bool include_this) const;
-
   /** gives the proper filter index from DesignSpace::Context::Excitation */
   unsigned int DetermineFilterIndex() const;
 
+  /** Of the inlined DetermineFilterIndex() does not link */
+  unsigned int DetermineFilterIndexNonInlined() const;
 
-
-  /** pre-calculated weight sum */
-  double weight_sum;
-
-  /** Neighborhood is element and pre-calculated distance */
-  struct NeighbourElement
-  {
-  public:
-    /** read the variable */
-    DesignElement* neighbour;
-
-    /** pre-calculated weight: radius - distanance and >= 0 */
-    double        weight;
-
-    /** the distance in domain dimensions! */
-    double        distance;
-  };
-
-  /** The weight of THIS element which is radius */
-  double weight;
-
-  /** The neighbors if filter otherwise empty.
-   * The element itself is NOT part of the neighborhood!
-   * @see DesignStructure::DesignStructure() */
-  StdVector<NeighbourElement> neighborhood;
+  /** Gives the appropriate filter based on DetermineFilterIndex() */
+  Filter& DetermineFilter();
 
   /** string representation for logging, includes neighborhood.
    * @param level 0 is elements, 1 is with weighting and distance */

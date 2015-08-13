@@ -2232,23 +2232,24 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
-    BaseDesignElement* de = GetElement(n);
+    DesignElement* de = dynamic_cast<DesignElement*>(GetElement(n));
 
     // the perimeter is not globalized by sum max(g-g*, 0)^p but it is not local!
     if(!local->IsGlobalized() && ft != PERIMETER)
     {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
       de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-      if(g->ForDensityFiltering())
+      if(g->ForDensityFiltering() && !de->simp->filter.IsEmpty())
       {
+        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+        const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[fix].neighborhood;
         // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
-        for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
+        for(unsigned int j = 0, nj = neighborhood.GetSize(); j < nj; j++)
         {
-          DesignElement* de2 =  dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour;
+          DesignElement* de2 =  neighborhood[j].neighbour;
           de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-          for(int k = 0; k < (int) de2->simp->neighborhood.GetSize(); k++)
-           // de2->simp->neighborhood[k].neighbour->Reset(DesignElement::CONSTRAINT_GRADIENT, g); // Slow (in some cases extreme number of evaluations)
-            de2->simp->neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster
+          for(unsigned int k = 0, nk = de2->simp->filter[fix].neighborhood.GetSize(); k < nk; k++)
+            de2->simp->filter[fix].neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster than calling Reset()
         }
       }
     }

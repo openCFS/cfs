@@ -194,7 +194,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
-  StdVector<SIMPElement::NeighbourElement> neighbors; // will become element neighborhood
+  StdVector<Filter::NeighbourElement> neighbors; // will become element neighborhood
 
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
@@ -226,7 +226,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     }
 
     de->simp->filter.Push_back(ref); // copy the reference data
-    assert(de->simp->filter.GetSize() == rex + 1);
+    assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
@@ -244,25 +244,25 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     else
       FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
     // save neighborhood by copy constructor
-    de->simp->neighborhood = neighbors;
+    de->simp->filter.Last().neighborhood = neighbors;
 
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-    de->simp->weight = (contribution_ == CONSTANT ? 1.0 : radius);
+    de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
 
     // this is actually the re-implementation of a bug as it appeared to be not bad :)
     if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
     {
       // normalize with a 'bug'
-      double weight_sum = de->simp->CalcWeightSum(false) + 1.0;
+      double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
       // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
-      de->simp->weight = 1.0 / weight_sum;
-      for(unsigned int j = 0, n = de->simp->neighborhood.GetSize(); j < n; j++)
-        de->simp->neighborhood[j].weight /= weight_sum;
+      de->simp->filter.Last().weight = 1.0 / weight_sum;
+      for(unsigned int j = 0, n = de->simp->filter.Last().neighborhood.GetSize(); j < n; j++)
+        de->simp->filter.Last().neighborhood[j].weight /= weight_sum;
     }
 
     avg_radius += radius;
-    avg_neighbours += de->simp->neighborhood.GetSize();
+    avg_neighbours += de->simp->filter.Last().neighborhood.GetSize();
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
 
@@ -324,7 +324,7 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
 
 }
 
-void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)
+void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
 {
   assert(regular);
   // from the radius define a square/cube and check for every element. The corners are sorted out by distance
@@ -359,7 +359,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
           {
             // value is here a double radius
             // this is the implementation from Bendsoe/ Sigmund
-            SIMPElement::NeighbourElement ne;
+            Filter::NeighbourElement ne;
 
             // map from element number to design
             ne.neighbour = other;
@@ -411,7 +411,7 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
                                       StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<SIMPElement::NeighbourElement>& neighbors,
+                                      StdVector<Filter::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
   // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
@@ -462,7 +462,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     {
       // value is here a double radius
       // this is the implementation from Bendsoe/ Sigmund
-      SIMPElement::NeighbourElement ne;
+      Filter::NeighbourElement ne;
 
       // map from element number to design
       ne.neighbour = test_de;
@@ -766,7 +766,7 @@ void DesignStructure::AppendNeighbors(Elem* check,
   }
 }
 
-std::string DesignStructure::ToString(const StdVector<SIMPElement::NeighbourElement>& data)
+std::string DesignStructure::ToString(const StdVector<Filter::NeighbourElement>& data)
 {
   std::stringstream out;
   for(unsigned int i = 0, ni = data.GetSize(); i < ni; i++)

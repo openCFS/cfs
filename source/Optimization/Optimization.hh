@@ -226,8 +226,8 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
-        /** The current context with our optimization */
-        Context context;
+        /** The current context with our optimization. Very important for meta excitation as it holds the excitation */
+        static Context context;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
         virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;

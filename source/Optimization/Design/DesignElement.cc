@@ -557,11 +557,11 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case COST_GRADIENT:         return SumObjectiveGradient();
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
-    return simp->weight;
+    return simp->DetermineFilter().weight;
 
   case NUM_NEIGHBOURS:       
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
-    return simp->neighborhood.GetSize();
+    return simp->DetermineFilter().neighborhood.GetSize();
 
   case CONSTRAINT_GRADIENT:
     assert(g != NULL);
@@ -848,23 +848,7 @@ void DesignElement::SetEnums()
 SIMPElement::SIMPElement(DesignElement* base)
 {
   this->de_ = base;
-  this->weight  = 1.0;
-  this->weight_sum = -1.0;
 }
-
-double SIMPElement::CalcWeightSum(bool include_this) const
-{
-  double res = 0.0;
-
-  for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
-    res += neighborhood[i].weight;
-
-  if(include_this)
-    res += this->weight;
-
-  return res;
-}
-
 
 double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp, Function* g) const
 {
@@ -872,7 +856,7 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   assert(de_->simp != NULL);
   assert(de_->simp->filter.GetSize() == 1); // no robustness for sensitivity filtering worth implementing
 
-  const Filter& f = de_->simp->filter[0];
+  const Filter& f = filter[DetermineFilterIndex()];
   assert(f.GetType() == Filter::SENSITIVITY);
 
   // See Filter::Sensitivity: w = weight, p is density, f' is cost gradient
@@ -904,12 +888,12 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   double denominator = 0.0;
 
   // mathematically the neighborhood includes this element, but this is not in the structure
-  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
-    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+    const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
     const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-    double w = i == -1 ?  this->weight : ne->weight;
+    double w = i == -1 ?  f.weight : ne->weight;
     double nw = cheat_this_weight && i == -1 ? 1.0 : w;
     double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(g));
     double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
@@ -941,27 +925,30 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
-
   assert(sp == DesignElement::DESIGN);
+  assert(!de_->simp->filter.IsEmpty());
+
+  unsigned int fix = DetermineFilterIndex();
+  const Filter& f = filter[fix];
+
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
-  unsigned int fix = DetermineFilterIndex();
 
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
-  double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = this->weight;
+  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+  double denominator = f.weight;
 
   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
                    << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
-  for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
-    const NeighbourElement* ne = &neighborhood[i];
+    const Filter::NeighbourElement* ne = &f.neighborhood[i];
     const DesignElement* de = ne->neighbour;
 
     double w = ne->weight;
@@ -1005,8 +992,7 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   assert(de_->simp != NULL);
 
   unsigned int fix = DetermineFilterIndex();
-
-  const Filter& f = de_->simp->filter[fix];
+  const Filter& f = filter[fix];
 
   assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
@@ -1027,19 +1013,19 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 
   if(f.density_ == Filter::STANDARD)
   {
-    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
     {
-      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
       double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
 
-      double w = i == -1 ? this->weight : ne->weight;
+      double w = i == -1 ? f.weight : ne->weight;
 
-      if (de->simp->weight_sum < 0.0)
-        de->simp->weight_sum = de->simp->CalcWeightSum(true);
+      if (de->simp->filter[fix].weight_sum < 0.0)
+        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
 
-      double summand = v * w / de->simp->weight_sum;
+      double summand = v * w / de->simp->filter[fix].weight_sum;
       sum += summand;
 
       // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
@@ -1050,9 +1036,9 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
   else // the non Filter::STANDARD case
   {
     // mathematically the neighborhood includes this element, but this is not in the structure
-    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
     {
-      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
       double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
@@ -1085,12 +1071,12 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
         h *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
       }
 
-      double w = i == -1 ? this->weight : ne->weight;
+      double w = i == -1 ? f.weight : ne->weight;
 
-      if (de->simp->weight_sum < 0.0)
-        de->simp->weight_sum = de->simp->CalcWeightSum(true);
+      if (de->simp->filter[fix].weight_sum < 0.0)
+        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
 
-      double summand = v * h * w / de->simp->weight_sum;
+      double summand = v * h * w / de->simp->filter[fix].weight_sum;
       sum += summand;
 
       // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
@@ -1105,14 +1091,15 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 std::string SIMPElement::ToString(int level) const
 {
   std::stringstream ss;
-  ss << "el=" << de_->elem->elemNum << " #n=" << neighborhood.GetSize() << "(";
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+  const Filter& f = filter[DetermineFilterIndex()];
+  ss << "el=" << de_->elem->elemNum << " #n=" << f.neighborhood.GetSize() << "(";
+  for(unsigned int i = 0; i < !filter.IsEmpty() && f.neighborhood.GetSize(); i++)
   {
     if(level == 0)
-      ss << " " << neighborhood[i].neighbour->elem->elemNum;
+      ss << " " << f.neighborhood[i].neighbour->elem->elemNum;
     else {
-      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_w=" << neighborhood[i].weight;
-      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_d=" << neighborhood[i].distance;
+      ss << " n_" << f.neighborhood[i].neighbour->elem->elemNum << "_w=" << f.neighborhood[i].weight;
+      ss << " n_" << f.neighborhood[i].neighbour->elem->elemNum << "_d=" << f.neighborhood[i].distance;
     }
   }
   ss << ")";
@@ -1121,27 +1108,37 @@ std::string SIMPElement::ToString(int level) const
 
 inline unsigned int SIMPElement::DetermineFilterIndex() const
 {
-  return domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->robust_filter_idx : 0;
+  return Optimization::context.excitation->robust_filter_idx;
+  /*
+  if(domain->GetOptimization() != NULL && domain->GetOptimization()->context.excitation != NULL)
+    return domain->GetOptimization()->context.excitation->robust_filter_idx;
+  else
+    return 0;
+    */
 }
 
+unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
+{
+  return Optimization::context.excitation->robust_filter_idx;
+  /*
+  if(domain->GetOptimization() != NULL && domain->GetOptimization()->context.excitation != NULL)
+    return domain->GetOptimization()->context.excitation->robust_filter_idx;
+  else
+    return 0;
+    */
+}
+
+inline Filter& SIMPElement::DetermineFilter()
+{
+  return filter[DetermineFilterIndex()];
+}
 
 void SIMPElement::Dump()
 {
-  double weight_sum = weight;
-  double distance_avg = 0.0;
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
-  {
-    weight_sum   += neighborhood[i].weight;
-    distance_avg += neighborhood[i].distance;
-  }
-  distance_avg /= neighborhood.GetSize();
+  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString() << std::endl;
+  for(unsigned int f = 0; f < filter.GetSize(); f++)
+    filter[f].Dump();
 
-  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString()
-            << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
-    std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
-              << neighborhood[i].neighbour->GetLocation()->ToString()
-              << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 
 

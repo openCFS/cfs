@@ -26,7 +26,24 @@ Filter::Filter()
   non_lin_offset = -1.0;
   explicit_lower_bound_ = std::numeric_limits<double>::min();
   region         = NO_REGION_ID;
+  weight         = 1.0;
+  weight_sum     = -1.0;
 }
+
+
+double Filter::CalcWeightSum(bool include_this) const
+{
+double res = 0.0;
+
+for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
+  res += neighborhood[i].weight;
+
+if(include_this)
+  res += this->weight;
+
+return res;
+}
+
 
 double Filter::GetLowerBound(const DesignElement* de) const
 {
@@ -78,4 +95,23 @@ void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
 
   assert(close(density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix), lb));
   assert(close(density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix), ub));
+}
+
+
+void Filter::Dump() const
+{
+  double weight_sum = weight;
+  double distance_avg = 0.0;
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+  {
+    weight_sum   += neighborhood[i].weight;
+    distance_avg += neighborhood[i].distance;
+  }
+  distance_avg /= neighborhood.GetSize();
+
+  std::cout << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+    std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
+              << neighborhood[i].neighbour->GetLocation()->ToString()
+              << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
