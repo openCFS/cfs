@@ -1836,6 +1836,7 @@ source/OLAS/utils/math/LanczosMethod.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Context.cc -text
 source/Optimization/Context.hh -text
 source/Optimization/Design/AuxDesign.cc -text
 source/Optimization/Design/AuxDesign.hh -text
