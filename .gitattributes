@@ -326,6 +326,10 @@ cfsdeps/superlu/testing/dtest.cmake.in -text
 cfsdeps/superlu/testing/matgen/CMakeLists.txt -text
 cfsdeps/superlu/testing/stest.cmake.in -text
 cfsdeps/superlu/testing/ztest.cmake.in -text
+cfsdeps/vtk/External_VTK.cmake -text
+cfsdeps/vtk/vtk-ensight.patch -text
+cfsdeps/vtk/vtk-patch.cmake.in -text
+cfsdeps/vtk/vtk-semicolon.patch -text
 cfsdeps/xerces/External_Xerces-C.cmake -text
 cfsdeps/xerces/Main_CMakeLists.txt -text
 cfsdeps/xerces/Src_CMakeLists.txt -text
@@ -482,6 +486,7 @@ include/def_use_cfxio.hh.in -text
 include/def_use_cgal.hh.in -text
 include/def_use_cgns.hh.in -text
 include/def_use_comsol.hh.in -text
+include/def_use_ensight.hh.in -text
 include/def_use_fftw.hh.in -text
 include/def_use_flann.hh.in -text
 include/def_use_gidpost.hh.in -text
@@ -1329,6 +1334,11 @@ source/DataInOut/SimInOut/Unverg/unv_dataset_numbers.txt -text
 source/DataInOut/SimInOut/Unverg/unv_if.cc svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_if.hh svneol=native#text/plain
 source/DataInOut/SimInOut/Unverg/unv_reader.cc svneol=native#text/plain
+source/DataInOut/SimInOut/VTKBased/Ensight/CMakeLists.txt -text
+source/DataInOut/SimInOut/VTKBased/Ensight/SimInputEnsight.cc -text
+source/DataInOut/SimInOut/VTKBased/Ensight/SimInputEnsight.hh -text
+source/DataInOut/SimInOut/VTKBased/SimInputVTKBased.cc -text
+source/DataInOut/SimInOut/VTKBased/SimInputVTKBased.hh -text
 source/DataInOut/SimInOut/gmsh/CMakeLists.txt svneol=native#text/plain
 source/DataInOut/SimInOut/gmsh/GmshHelper.cc svneol=native#text/plain
 source/DataInOut/SimInOut/gmsh/GmshHelper.hh svneol=native#text/plain
@@ -2005,6 +2015,10 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfsdat/CMakeLists.txt -text
+source/cfsdat/Filters/BaseFilter.hh -text
+source/cfsdat/Filters/Input/InputFilterGeneric.cc -text
+source/cfsdat/Filters/Input/InputFilterGeneric.hh -text
+source/cfsdat/Filters/Input/InputFilterHDF5.hh -text
 source/cfsdat/README -text
 source/cfsdat/cfsdat.cc -text
 source/cfstool/CMakeLists.txt svneol=native#text/plain

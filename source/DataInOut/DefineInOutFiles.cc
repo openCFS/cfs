@@ -95,7 +95,6 @@ namespace CoupledField
   // ===============
   DefineInOutFiles::DefineInOutFiles() {
     // Initialise internal pointers
-    simInput_ = NULL;
     ptMaterialHandler_ = NULL;
   }
   
@@ -111,9 +110,6 @@ namespace CoupledField
       cla = NULL;
       openFiles_.erase(OLAS_FILE);
     }
-    
-    delete simInput_;
-    simInput_ = NULL;
     
     delete ptMaterialHandler_;
     ptMaterialHandler_ = NULL;
@@ -195,113 +191,10 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
           << "input entries are unique!" );
     }
 
-    if (informat == "mesh")
-    {
-#ifdef USE_MESH
-      if (meshFile.empty())
-        meshFile = simName + ".mesh";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputMESH(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for MESH input file format." );
-#endif // USE_MESH
-    }
-    else if (informat == "cdb")
-    {
-      if (meshFile.empty())
-        meshFile = simName + ".cdb";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputCDB(meshFile, actNode, infoNode));
-    }
-    else if (informat == "hdf5")
-    {
-#ifdef USE_HDF5
-      if (meshFile.empty())
-        meshFile = simName + ".h5";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputHDF5(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for HDF5 input file format." );
-#endif // USE_HDF5
-    }
-    else if (informat == "gmv")
-    {
-#ifdef USE_GMV
-      if(meshFile.empty())
-      meshFile = simName + ".gmv";
-      inFiles[actId] = shared_ptr<SimInput>(new SimInputGMV(meshFile,
-              actNode, infoNode));
-#else
-      EXCEPTION( "No support for GMV input file format." );
-#endif // USE_GMV
-    }
-    else if (informat == "refelem")
-    {
-      if(meshFile.empty())
-      meshFile = simName + ".refelem";
-      inFiles[actId] = shared_ptr<SimInput>(new SimInputRefElems(meshFile,
-              actNode, infoNode));
-    }
-    else if (informat == "gmsh")
-    {
-#ifdef USE_GMSH
-      if (meshFile == "")
-        meshFile = simName + ".msh";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputGmsh(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for GMSH input file format." );
-#endif // USE_GMSH
-    }
-    else if (informat == "mphtxt")
-    {
-#ifdef USE_COMSOL
-      if (meshFile == "")
-        meshFile = simName + ".mphtxt";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputMPHTXT(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for Comsol .mphtxt input file format." );
-#endif // USE_COMSOL
-    }
-    else if (informat == "cgns")
-    {
-#ifdef USE_CGNS
-      if (meshFile == "")
-        meshFile = simName + ".cgns";
-      inFiles[actId] = shared_ptr<SimInput> (
-          new SimInputCGNS(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for CGNS .cgns input file format." );
-#endif // USE_CGNS
-    }
-    else if (informat == "unv")
-    {
-#ifdef USE_UNV
-      if (meshFile.empty())
-        meshFile = simName + ".unv";
-      inFiles[actId]
-          = shared_ptr<SimInput> (new SimInputUnv(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for UNV input file format." );
-#endif // USE_UNV
-    }
-    else if (informat == "internal")
-    {
-#ifdef USE_MESH
-      if (meshFile.empty())
-        meshFile = simName + ".mesh";
-      inFiles[actId] = 
-          shared_ptr<SimInput> (new InternalMesh(meshFile, actNode, infoNode));
-#else
-      EXCEPTION( "No support for internalMesh input file format." );
-#endif // USE_MESH
-    }
-    else
-    {
-      EXCEPTION( "Wrong format for input file. Please, check your data!" );
-    }
+    if (meshFile.empty())
+      meshFile = simName + ".mesh";
 
+    inFiles[actId] =
     // relate gridId with input reader id
     gridInputs[actGridId].Push_back(inFiles[actId]);
   }
@@ -394,110 +287,8 @@ CreateSimOutputFiles(PtrParamNode rootNode,
     actNode->GetValue( "gridId", gridId, ParamNode::PASS );
     gridIds[actId] = gridId;
     
-    if (actFormat == "unv")
-    {
-#ifdef USE_UNV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputUnv(simName, actNode, 
-                                                           infoNode, restart));
-#else
-      EXCEPTION( "No support for UNV output file format." );
-#endif
-    }
-
-    if (actFormat == "cgns")
-    {
-#ifdef USE_CGNS
-      out[actId] = shared_ptr<SimOutput> (new SimOutputCGNS(simName, actNode, 
-                                                           infoNode, restart));
-#else
-      EXCEPTION( "No support for CGNS output file format." );
-#endif
-    }
-
-    if (actFormat == "gid")
-    {
-#ifdef USE_GIDPOST
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGiD(simName, actNode, 
-                                                           infoNode, restart));
-      continue;
-#else
-      EXCEPTION( "No support for GiD output file format." );
-#endif
-    }
-
-    if (actFormat == "gmsh")
-    {
-#ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGmsh(simName, actNode, 
-                                                            infoNode, restart));
-      continue;
-#else
-      EXCEPTION( "No support for Gmsh output file format." );
-#endif
-    }
-
-
-    if (actFormat == "gmshParsed")
-    {
-#ifdef USE_GMSH
-      out[actId] = shared_ptr<SimOutput> (new SimOutputParsed(simName, actNode, 
-                                                              infoNode, restart));
-      continue;
-#else
-      EXCEPTION( "No support for Gmsh parsed output file format." );
-#endif
-    }
-
-    if (actFormat == "gmv")
-    {
-#ifdef USE_GMV
-      out[actId] = shared_ptr<SimOutput> (new SimOutputGMV(simName, actNode, 
-                                                           infoNode, restart));
-#else
-      EXCEPTION( "No support for GMV output file format." );
-#endif
-    }
-
-    if (actFormat == "hdf5")
-    {
-#ifdef USE_HDF5
-      out[actId] = shared_ptr<SimOutput> (new SimOutputHDF5(simName, actNode,
-                                                            infoNode, restart));
-      std::cout << "++ Creating HDF5 writer '" << actId << "'" << std::endl;
-#else
-      EXCEPTION( "No support for HDF5 output file format." );
-#endif
-    }
-
-    if (actFormat == "rst")
-    {
-#ifdef USE_ANSYSRST
-      out[actId] =
-      shared_ptr<SimOutput>( new SimOutputRST( simName, actNode, infoNode, restart ) );
-#else
-      EXCEPTION( "No support for ANSYS RST output file format." );
-#endif
-    }
-
-    if (actFormat == "text" || actFormat == "csv")
-    {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputText(simName, actNode, 
-                                                            infoNode, restart));
-    }
-    
-    if (actFormat == "info")
-    {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputInfo(actNode, infoNode, restart));
-    }
-
-#ifndef __MINGW32__
-#ifndef __INTEL_COMPILER
-    if (actFormat == "streaming")
-    {
-      out[actId] = shared_ptr<SimOutput> (new SimOutputStreaming(actNode, infoNode, restart));
-    }
-#endif
-#endif
+    std::cout << "++ Creating " << actFormat << " writer with ID '" << actId << "'" << std::endl;
+    out[actId]  = CreateSingleOutputFileObject(simName,actNode,infoNode,restart);
 
   } // loop over reader nodes
 }
@@ -540,6 +331,247 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
   }
   return ptMaterialHandler_;
 
+}
+
+shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string fName,
+                                                                    PtrParamNode configNode,
+                                                                    PtrParamNode infoNode,
+                                                                    bool addDefaultFExtension){
+  shared_ptr<SimInput> aInput;
+
+  std::string fFormat = configNode->GetName();
+
+  if (fFormat == "mesh")
+  {
+#ifdef USE_MESH
+    if(addDefaultFExtension){
+      fName += ".mesh";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputMESH(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for MESH input file format." );
+#endif // USE_MESH
+  }
+  else if (fFormat == "cdb")
+  {
+    if(addDefaultFExtension){
+      fName += ".cdb";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputCDB(fName, configNode, infoNode));
+  }
+  else if (fFormat == "hdf5")
+  {
+#ifdef USE_HDF5
+    if(addDefaultFExtension){
+      fName += ".h5";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputHDF5(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for HDF5 input file format." );
+#endif // USE_HDF5
+  }
+  else if (fFormat == "gmv")
+  {
+#ifdef USE_GMV
+    if(addDefaultFExtension){
+      fName += ".gmv";
+    }
+    aInput = shared_ptr<SimInput>(new SimInputGMV(fName,
+        configNode, infoNode));
+#else
+    EXCEPTION( "No support for GMV input file format." );
+#endif // USE_GMV
+  }
+  else if (fFormat == "refelem")
+  {
+    if(addDefaultFExtension){
+      fName += ".refelem";
+    }
+    aInput = shared_ptr<SimInput>(new SimInputRefElems(fName,
+        configNode, infoNode));
+  }
+  else if (fFormat == "gmsh")
+  {
+#ifdef USE_GMSH
+    if(addDefaultFExtension){
+      fName += ".msh";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputGmsh(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for GMSH input file format." );
+#endif // USE_GMSH
+  }
+  else if (fFormat == "mphtxt")
+  {
+#ifdef USE_COMSOL
+    if(addDefaultFExtension){
+      fName += ".mphtxt";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputMPHTXT(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for Comsol .mphtxt input file format." );
+#endif // USE_COMSOL
+  }
+  else if (fFormat == "cgns")
+  {
+#ifdef USE_CGNS
+    if(addDefaultFExtension){
+      fName += ".cgns";
+    }
+    aInput = shared_ptr<SimInput> (
+        new SimInputCGNS(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for CGNS .cgns input file format." );
+#endif // USE_CGNS
+  }
+  else if (fFormat == "unv")
+  {
+#ifdef USE_UNV
+    if(addDefaultFExtension){
+      fName += ".unv";
+    }
+    aInput = shared_ptr<SimInput> (new SimInputUnv(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for UNV input file format." );
+#endif // USE_UNV
+  }
+  else if (fFormat == "internal")
+  {
+#ifdef USE_MESH
+    if(addDefaultFExtension){
+      fName += ".mesh";
+    }
+    aInput =
+        shared_ptr<SimInput> (new InternalMesh(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for internalMesh input file format." );
+#endif // USE_MESH
+  }
+  else
+  {
+    EXCEPTION( "Wrong format for input file. Please, check your data!" );
+  }
+
+  return aInput;
+
+}
+
+shared_ptr<SimOutput> DefineInOutFiles::CreateSingleOutputFileObject(std::string fName,
+                                                                     PtrParamNode configNode,
+                                                                     PtrParamNode infoNode,
+                                                                     bool isRestart){
+  shared_ptr<SimOutput> aOutput;
+  std::string fFormat = configNode->GetName();
+  if (fFormat == "unv")
+  {
+#ifdef USE_UNV
+    aOutput = shared_ptr<SimOutput> (new SimOutputUnv(fName, configNode,
+                                                      infoNode, isRestart));
+#else
+    EXCEPTION( "No support for UNV output file format." );
+#endif
+  }
+
+  if (fFormat == "cgns")
+  {
+#ifdef USE_CGNS
+    aOutput =   shared_ptr<SimOutput> (new SimOutputCGNS(fName, configNode,
+                                                         infoNode, isRestart));
+#else
+    EXCEPTION( "No support for CGNS output file format." );
+#endif
+  }
+
+  if (fFormat == "gid")
+  {
+#ifdef USE_GIDPOST
+    aOutput =   shared_ptr<SimOutput> (new SimOutputGiD(fName, configNode,
+                                                        infoNode, isRestart));
+    continue;
+#else
+    EXCEPTION( "No support for GiD output file format." );
+#endif
+  }
+
+  if (fFormat == "gmsh")
+  {
+#ifdef USE_GMSH
+    aOutput =  shared_ptr<SimOutput> (new SimOutputGmsh(fName, configNode,
+                                                        infoNode, isRestart));
+#else
+    EXCEPTION( "No support for Gmsh output file format." );
+#endif
+  }
+
+
+  if (fFormat == "gmshParsed")
+  {
+#ifdef USE_GMSH
+    aOutput =  shared_ptr<SimOutput> (new SimOutputParsed(fName, configNode,
+                                                          infoNode, isRestart));
+    continue;
+#else
+    EXCEPTION( "No support for Gmsh parsed output file format." );
+#endif
+  }
+
+  if (fFormat == "gmv")
+  {
+#ifdef USE_GMV
+    aOutput = shared_ptr<SimOutput> (new SimOutputGMV(fName, configNode,
+                                                      infoNode, isRestart));
+#else
+    EXCEPTION( "No support for GMV output file format." );
+#endif
+  }
+
+  if (fFormat == "hdf5")
+  {
+#ifdef USE_HDF5
+    aOutput = shared_ptr<SimOutput> (new SimOutputHDF5(fName, configNode,
+                                                       infoNode, isRestart));
+
+#else
+    EXCEPTION( "No support for HDF5 output file format." );
+#endif
+  }
+
+  if (fFormat == "rst")
+  {
+#ifdef USE_ANSYSRST
+    aOutput =
+    shared_ptr<SimOutput>( new SimOutputRST( fName, configNode, infoNode, isRestart ) );
+#else
+    EXCEPTION( "No support for ANSYS RST output file format." );
+#endif
+  }
+
+  if (fFormat == "text" || fFormat == "csv")
+  {
+    aOutput = shared_ptr<SimOutput> (new SimOutputText(fName, configNode,
+                                                       infoNode, isRestart));
+  }
+
+  if (fFormat == "info")
+  {
+    aOutput = shared_ptr<SimOutput> (new SimOutputInfo(fName, infoNode, isRestart));
+  }
+
+#ifndef __MINGW32__
+#ifndef __INTEL_COMPILER
+  if (fFormat == "streaming")
+  {
+    aOutput = shared_ptr<SimOutput> (new SimOutputStreaming(configNode, infoNode, isRestart));
+  }
+#endif
+#endif
+
+  return aOutput;
 }
 
 // ************

@@ -54,6 +54,18 @@ namespace CoupledField
     //! create pointer to Materialfile Handler
     MaterialHandler* CreateMaterialHandler( PtrParamNode rootNode );
 
+    //! Generic function to obtain a single SimInput object based on the given parameters
+    static shared_ptr<SimInput>  CreateSingleInputFileObject(std::string fName,
+                                                             PtrParamNode configNode,
+                                                             PtrParamNode infoNode,
+                                                             bool addDefaultFExtension);
+
+    //! Generic function to obtain a single SimOutpu object based on the given parameters
+    static shared_ptr<SimOutput> CreateSingleOutputFileObject(std::string fName,
+                                                              PtrParamNode configNode,
+                                                              PtrParamNode infoNode,
+                                                              bool isRestart);
+
   private:
 
     //! pointer to a class for reading input data

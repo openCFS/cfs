@@ -14,23 +14,7 @@
 
 //System includes
 #include <iostream>
-
-//boost parameter handling and command line
-#include <boost/program_options/cmdline.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <stdio.h>
 
 
 //CFS includes
@@ -38,48 +22,20 @@
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ProgramOptions.hh"
-#include "DataInOut/SimInput.hh"
-#include "DataInOut/SimOutput.hh"
 
-
-#include "Domain/Mesh/GridCFS/GridCFS.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
 
-//#include <mpi.h>
-#include <stdio.h>
-
-using namespace CoupledField;
-namespace CoupledField
-{
-  class SimInput;
-  class SimOutput;
-}
-//! Global parameter node and info node instance
-PtrParamNode param;
-PtrParamNode info;
+//CFSDatIncludes
+#include "cfsdat/Filters/BaseFilter.hh"
+#include "cfsdat/Filters/Input/InputFilterGeneric.hh"
 
 namespace CFSDat {
 
   namespace po = boost::program_options;
 
   void GenerateParamNode(int argc, char** argv, PtrParamNode param){
-    //lets test with some options
 
-    po::options_description desc("Supported Modes");
-    desc.add_options()
-            ("help,h", "Produce help message")
-            ("version,v", "Print version information");
-
-    po::variables_map vm;
-
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-
-    po::notify(vm);
-
-    //1. check for config files
-    //   - try to validate. But how?
-    //2.
   }
 
 }
@@ -87,39 +43,10 @@ namespace CFSDat {
 int main(int argc, char** argv)
 {
 
-  //int rank, size;
+  //Create dummy program options
+  const char * myOpt[] = { "CFSDatComputation" };
+  CoupledField::progOpts = new CoupledField::ProgramOptions(1,myOpt);
 
-
-//MPI_Init (&argc, &argv);      /* starts MPI */
-//MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
-//MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
-//printf( "Hello world from process %d of %d\Sn", rank, size );
-//MPI_Finalize();
+  shared_ptr<CFSDat::BaseFilter> newFilter(new CFSDat::InputFilterGeneric() );
 return 0;
-
-  /*
-  std::string infoFileName;
-  SetEnvironmentEnums();
-  BasePDE::SetEnums();
-  EntityList::SetEnums();
-  ElemShape::Initialize();
-
-  domain = NULL;
-
-  try
-   {
-     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
-     CFSDat::GenerateParamNode(argc, argv, param);
-
-   } catch(std::exception& ex) {
-     std::cerr << "The following error occured during cfsdat execution:\n\n" << ex.what();
-     if (info != NULL)
-     {
-       info->Get(ParamNode::FAIL)->SetValue(ex.what());
-       info->ToFile(infoFileName);
-     }
-     return -1;
-   }
-   //info->ToFile(infoFileName);
-*/
 }
