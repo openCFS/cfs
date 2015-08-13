@@ -9,7 +9,7 @@
 namespace CoupledField
 {
 
-class ParamNode;
+
 class Timer;
 
 //! driver for harmonic problems. it is derived from BaseDriver

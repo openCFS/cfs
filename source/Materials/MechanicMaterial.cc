@@ -771,7 +771,7 @@ namespace CoupledField
 
     case PLANE_STRAIN:
     {
-      assert(mat != NULL && vol > 0 && vol <= 1.000000001);
+      assert(mat != NULL && vol > 0 && vol <= 1.000001);
       //E1 = 1/(B(1,1) + nusteg^2/rho/Esteg )
       //E2 = 1/(B(2,2) + nusteg^2/rho/Esteg )
       //E3 = rho*Esteg

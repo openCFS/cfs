@@ -155,9 +155,8 @@ namespace CoupledField
     return box;
   }
 
-  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap( const Elem* ptElem,
-                                                  bool isUpdated,
-                                                bool secondary ) {
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated, bool secondary)
+  {
    //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
    //  ret->SetElem(ptElem, isUpdated );
    //  return ret;
@@ -174,7 +173,8 @@ namespace CoupledField
       WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
     }
 
-    if(isUpdated){
+    if(isUpdated)
+    {
       Integer idx = lastShapeElemNumUpdated_[aThread].Find(ptElem->elemNum);
       if(idx>=0){
         ////check for special element number 0 in case of mortar interface elements
@@ -212,7 +212,9 @@ namespace CoupledField
         lastShapeElemNumUpdated_[aThread].Push_back(ptElem->elemNum);
         return newMap;
       }
-    }else{
+    }
+    else // the not updated version
+    {
       Integer idx = lastShapeElemNumOrig_[aThread].Find(ptElem->elemNum);
       if(idx>=0){
         ////check for special element number 0 in case of mortar interface elements
@@ -229,8 +231,10 @@ namespace CoupledField
           }
         }
         return elemShapeMapOrig_[aThread][(UInt)idx];
-      }else{
-        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+      }
+      else // idx is zero
+      {
+        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
         for(UInt aIdx =0;aIdx<elemShapeMapOrig_[aThread].GetSize();aIdx++){
          if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
             elemShapeMapOrig_[aThread][aIdx]->SetElem(ptElem, isUpdated );

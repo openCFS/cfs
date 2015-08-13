@@ -10,7 +10,7 @@ namespace CoupledField {
 
   // Forward class definition
   class Grid;
-  class ParamNode;
+  
   class CoordSystem;
   class MathParser;
   class EntityList;

@@ -124,15 +124,18 @@ StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned i
 {
   LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative << " iF=" << isForward;
 
-  if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
-    if(forward_data_ == NULL){
-      if(data_.find(NULL) == data_.end()){
+  if(isForward)
+  { // if this is true, f is ignored and forward_data_ is used to avoid one map access
+    if(forward_data_ == NULL)
+    {
+      if(data_.find(NULL) == data_.end())
         Init((Function*)NULL);
-      }
       forward_data_ = &data_[NULL];
     }
     return((*forward_data_)[derivative][timestep_mode]->data[excitation_index]);
-  }else{
+  }
+  else
+  {
     // do we have to init first?
     if(data_.find(f) == data_.end())
       Init(f);
@@ -246,7 +249,7 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
-    *(fe->GetSingleVector()) = *raw;
+    *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
   }
   else
     LOG_DBG2(statesol) << "S:W raw not written as it was not set";

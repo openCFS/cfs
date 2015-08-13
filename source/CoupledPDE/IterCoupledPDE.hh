@@ -16,7 +16,7 @@ namespace CoupledField
   class IterSolveStep;
   class StdPDE;
   class SinglePDE;
-  class ParamNode;
+  
   class EntityList;
   class CoefFunctionAccumulator;
   class DirectCoupledPDE;
