@@ -62,7 +62,10 @@ void StateSolutions::Init(Function* f)
   if(f != NULL || nts == 0){ // in case of non-transient or adjoint, do not allocate derivative space
     nderiv = NO_DERIVTYPE;
   }
+
+  // FIXME TODO This resize seems to cause memory leaks!
   list.Resize(nderiv+1);
+
   for(unsigned int deriv = NO_DERIVTYPE; deriv <= nderiv; deriv++){
     list[deriv].Resize(nts);
     for(unsigned int ts = 0; ts < nts; ++ts)
