@@ -45,8 +45,8 @@ ENDIF()
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://pkgs.fedoraproject.org/repo/pkgs/muParser/muparser_v2_2_2.zip/6d77b5cb8096fe2c50afe36ad41bc14a/muparser_v2_2_2.zip"
-  "ftp://ftp.jp.netbsd.org/pub/pkgsrc/distfiles/muparser_v2_2_2.zip"
+  "http://pkgs.fedoraproject.org/repo/pkgs/muParser/${MUPARSER_ZIP}/${MUPARSER_MD5}/${MUPARSER_ZIP}"
+  "ftp://ftp.jp.netbsd.org/pub/pkgsrc/distfiles/${MUPARSER_ZIP}"
   "${MUPARSER_URL}/${MUPARSER_ZIP}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/muparser/${MUPARSER_ZIP}")
@@ -57,56 +57,101 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
+)
+
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "muparser_${muparser_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "muparser_${muparser_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${muparser_prefix}")
+
+SET(ZIPFROMCACHE "${muparser_prefix}/muparser-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${muparser_prefix}/muparser-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The muparser external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(muparser
-  DEPENDS boost
-  PREFIX "${muparser_prefix}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${MUPARSER_MD5}
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(muparser
+    PREFIX "${muparser_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(muparser
+    DEPENDS boost
+    PREFIX "${muparser_prefix}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${MUPARSER_MD5}
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(muparser cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${muparser_prefix}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Set names of patch file and template file.
+  #-------------------------------------------------------------------------------
+  SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/muparser/muparser-patch.cmake.in")
+  SET(PFN "${muparser_prefix}/muparser-patch.cmake")
+  CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(muparser cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${muparser_prefix}
-)
-
-#-------------------------------------------------------------------------------
-# Set names of patch file and template file.
-#-------------------------------------------------------------------------------
-SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/muparser/muparser-patch.cmake.in")
-SET(PFN "${muparser_prefix}/muparser-patch.cmake")
-CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
-
-#-------------------------------------------------------------------------------
-# We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
-# want to apply the patch script  during configuration time but also if it has
-# changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
-# script. This can be achieved by  adding an additional build step between the
-# download and configure steps.
-#
-# NOTE: The  patch script should  be designed  in such a  way, that it  can be
-# applied to  an already patched  source tree. This  is due to the  fact, that
-# ExternalProject_Add only extracts the source if the MD5 sum has has changed.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(muparser custom_patch
-   COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-   DEPENDEES download
-   DEPENDERS configure
-   DEPENDS "${PFN}"
-   WORKING_DIRECTORY ${muparser_source}
-)
+  #-------------------------------------------------------------------------------
+  # We do not use the PATCH_COMMAND  of ExternalProject_Add since we do not only
+  # want to apply the patch script  during configuration time but also if it has
+  # changed.  Therefore,   we  need  a   dependency  on  the   configured  patch
+  # script. This can be achieved by  adding an additional build step between the
+  # download and configure steps.
+  #
+  # NOTE: The  patch script should  be designed  in such a  way, that it  can be
+  # applied to  an already patched  source tree. This  is due to the  fact, that
+  # ExternalProject_Add only extracts the source if the MD5 sum has has changed.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(muparser custom_patch
+    COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    DEPENDEES download
+    DEPENDERS configure
+    DEPENDS "${PFN}"
+    WORKING_DIRECTORY ${muparser_source}
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(muparser cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

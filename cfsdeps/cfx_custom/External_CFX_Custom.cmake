@@ -78,20 +78,61 @@ ExternalData_expand_arguments(cfx_custom_external_data
 # Add a build target to populate the real data.
 ExternalData_Add_Target(cfx_custom_external_data)
 
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${cfxio_prefix}")
+
+SET(ZIPFROMCACHE "${cfxio_prefix}/cfxio-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${cfxio_prefix}/cfxio-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The cfxio external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(cfxio
-  DEPENDS cfx_custom_external_data
-  PREFIX "${cfxio_prefix}"
-  SOURCE_DIR "${cfxio_source}"
-  BUILD_IN_SOURCE 1
-  DOWNLOAD_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND  ${CMAKE_COMMAND} -P ${BUILDCMD}
-  INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INSTCMD}
-)
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(cfxio
+    PREFIX "${cfxio_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ExternalProject_Add(cfxio
+    DEPENDS cfx_custom_external_data
+    PREFIX "${cfxio_prefix}"
+    SOURCE_DIR "${cfxio_source}"
+    BUILD_IN_SOURCE 1
+    DOWNLOAD_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND  ${CMAKE_COMMAND} -P ${BUILDCMD}
+    INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INSTCMD}
+  )
+
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(cfxio cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

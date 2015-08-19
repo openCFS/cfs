@@ -60,18 +60,64 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
 SET(MD5_SUM ${SCPIP_MD5})
+
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "scpip_${SCPIP_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "scpip_${SCPIP_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${scpip_prefix}")
+
+SET(ZIPFROMCACHE "${scpip_prefix}/scpip-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${scpip_prefix}/scpip-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
 #-------------------------------------------------------------------------------
 # The scpip external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(scpip
-  PREFIX "${scpip_prefix}"
-  SOURCE_DIR "${scpip_source}"
-  URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
-  URL_MD5 ${SCPIP_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-)
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(scpip
+    PREFIX "${scpip_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(scpip
+    PREFIX "${scpip_prefix}"
+    SOURCE_DIR "${scpip_source}"
+    URL ${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}
+    URL_MD5 ${SCPIP_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+  )
+    
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(scpip cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

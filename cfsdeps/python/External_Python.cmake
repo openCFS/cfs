@@ -23,7 +23,7 @@ if(WIN32)
   endif()
 
   ExternalProject_Add(${proj}
-    URL ${PYTHON_URL}/${PYTHON_GZ}
+    URL ${PYTHON_URL}/${PYTHON_TGZ}
     URL_MD5 ${PYTHON_MD5}
     DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}
     SOURCE_DIR ${python_build}
@@ -131,7 +131,7 @@ elseif(UNIX)
 
   ExternalProject_Add(python
     PREFIX ${python_prefix}
-    URL ${PYTHON_URL}/${PYTHON_GZ}
+    URL ${PYTHON_URL}/${PYTHON_TGZ}
     URL_MD5 ${PYTHON_MD5}
     DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/python
     SOURCE_DIR ${python_source}

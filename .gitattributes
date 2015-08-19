@@ -348,6 +348,8 @@ cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindSVNKit.cmake -text
 cmake_modules/cfsdeps_download.cmake.in -text
+cmake_modules/cfsdeps_zipFromCache.cmake.in -text
+cmake_modules/cfsdeps_zipToCache.cmake.in -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
