@@ -45,9 +45,9 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://distfiles.macports.org/qt4-mac/qt-everywhere-opensource-src-4.8.2.tar.gz"
-  "http://pkgs.fedoraproject.org/repo/pkgs/qt/qt-everywhere-opensource-src-4.8.2.tar.gz/3c1146ddf56247e16782f96910a8423b/qt-everywhere-opensource-src-4.8.2.tar.gz"
-  "http://download.qt-project.org/archive/qt/4.8/4.8.2/qt-everywhere-opensource-src-4.8.2.tar.gz"
+  "http://distfiles.macports.org/qt4-mac/${QT4_GZ}"
+  "http://pkgs.fedoraproject.org/repo/pkgs/qt/${QT4_GZ}/${QT4_MD5}/${QT4_GZ}"
+  "http://download.qt-project.org/archive/qt/4.8/4.8.2/${QT4_GZ}"
   "${QT4_URL}/${QT4_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/qt4/${QT4_GZ}")
@@ -60,30 +60,75 @@ CONFIGURE_FILE(
   @ONLY
   )
 
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "qt4_${QT4_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "qt4_${QT4_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${qt4_prefix}")
+
+SET(ZIPFROMCACHE "${qt4_prefix}/qt4-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${qt4_prefix}/qt4-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
 #-------------------------------------------------------------------------------
 # The qt4 external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(qt4
-  PREFIX ${qt4_prefix}
-  SOURCE_DIR ${qt4_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${QT4_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CONFIGURE_COMMAND ${Qt4_CONFIGURE_COMMAND}
-  BUILD_COMMAND ${Qt4_BUILD_COMMAND}
-  INSTALL_COMMAND ${Qt4_INSTALL_COMMAND}
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(qt4
+    PREFIX "${qt4_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(qt4
+    PREFIX ${qt4_prefix}
+    SOURCE_DIR ${qt4_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${QT4_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CONFIGURE_COMMAND ${Qt4_CONFIGURE_COMMAND}
+    BUILD_COMMAND ${Qt4_BUILD_COMMAND}
+    INSTALL_COMMAND ${Qt4_INSTALL_COMMAND}
   )
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(qt4 cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${qt4_prefix}
-)
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(qt4 cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${qt4_prefix}
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(qt4 cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 SET(QT_QMAKE_EXECUTABLE "${CFS_BINARY_DIR}/qt4/bin/qmake")
 IF(WIN32 AND NOT MINGW)

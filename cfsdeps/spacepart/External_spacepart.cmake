@@ -51,26 +51,70 @@ IF(USE_LIBFBI)
   SET(PFN "${boost_prefix}/libfbi-patch.cmake")
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
+  IF(WIN32)
+    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+  ELSE(WIN32)
+    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+  ENDIF(WIN32)
+  SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+    
+  SET(PREFIX_DIR "${spacepart_prefix}")
+  
+  SET(ZIPFROMCACHE "${spacepart_prefix}/libfbi-zipFromCache.cmake")
+  CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+  
+  SET(ZIPTOCACHE "${spacepart_prefix}/libfbi-zipToCache.cmake")
+  CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+  
   #-----------------------------------------------------------------------------
   # The fast box intersection library external project
   #-----------------------------------------------------------------------------
-  ExternalProject_Add(libfbi
-    DEPENDS boost
-    PREFIX "${spacepart_prefix}"
-    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/spacepart
-    URL ${LIBFBI_URL}/${LIBFBI_GZ}
-    URL_MD5 ${LIBFBI_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBoost_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
-    -DBoost_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
-    -DENABLE_BENCHMARK:BOOL=OFF
-    -DENABLE_EXAMPLES:BOOL=ON
-    -DENABLE_TESTING:BOOL=ON
-    -DENABLE_MULTITHREADING:BOOL=${USE_OPENMP}
+  IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+    #-------------------------------------------------------------------------------
+    # If precompiled package exists copy files from cache
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add(libfbi
+      PREFIX "${spacepart_prefix}"
+      DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+      PATCH_COMMAND ""
+      UPDATE_COMMAND ""
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
     )
-
+  ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+    #-------------------------------------------------------------------------------
+    # If precompiled package does not exist build external project
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add(libfbi
+      DEPENDS boost
+      PREFIX "${spacepart_prefix}"
+      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/spacepart
+      URL ${LIBFBI_URL}/${LIBFBI_GZ}
+      URL_MD5 ${LIBFBI_MD5}
+      PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+      CMAKE_ARGS
+        ${CMAKE_ARGS}
+        -DBoost_DIR:PATH=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}
+        -DBoost_INCLUDE_DIR:PATH=${CFS_BINARY_DIR}/include
+        -DENABLE_BENCHMARK:BOOL=OFF
+        -DENABLE_EXAMPLES:BOOL=ON
+        -DENABLE_TESTING:BOOL=ON
+        -DENABLE_MULTITHREADING:BOOL=${USE_OPENMP}
+    )
+    
+    IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+      #-------------------------------------------------------------------------------
+      # Add custom step to zip a precompiled package to the cache.
+      #-------------------------------------------------------------------------------
+      ExternalProject_Add_Step(libfbi cfsdeps_zipToCache
+        COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+        DEPENDEES install
+        DEPENDS "${ZIPTOCACHE}"
+        WORKING_DIRECTORY ${CFS_BINARY_DIR}
+      )
+    ENDIF()
+  ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 ENDIF(USE_LIBFBI)
 
 

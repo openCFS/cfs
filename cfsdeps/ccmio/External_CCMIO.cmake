@@ -58,9 +58,9 @@ SET(MIRRORS
   "http://portal.nersc.gov/svn/visit/trunk/third_party/${CCMIO_GZ}"
 # The following files have mostly the same contents as the first one, but have
 # a slightly different size and MD5 sum.
-#  "http://priede.bf.lu.lv/ftp/pub/GIS/bibliotekas/dazadas/libccmio-2.6.1.tar.gz"
-#  "ftp://www.bf.lu.lv/pub/TIS/bibliotekas/dazadas/libccmio-2.6.1.tar.gz"
-#  "ftp://196.203.130.15/pub/logiciels/visit/libccmio-2.6.1.tar.gz"
+#  "http://priede.bf.lu.lv/ftp/pub/GIS/bibliotekas/dazadas/${CCMIO_GZ}"
+#  "ftp://www.bf.lu.lv/pub/TIS/bibliotekas/dazadas/${CCMIO_GZ}"
+#  "ftp://196.203.130.15/pub/logiciels/visit/${CCMIO_GZ}"
   "${CCMIO_URL}/${CCMIO_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ccmio/${CCMIO_GZ}")
@@ -71,33 +71,75 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
+)
+
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ccmio_${CCMIO_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ccmio_${CCMIO_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${ccmio_prefix}")
+
+SET(ZIPFROMCACHE "${ccmio_prefix}/ccmio-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${ccmio_prefix}/ccmio-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The CCMIO-static external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(ccmio-static
-  DEPENDS cgns
-  PREFIX ${ccmio_prefix}
-  SOURCE_DIR ${ccmio_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${CCMIO_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  LIST_SEPARATOR ,
-  CMAKE_ARGS
-     ${CMAKE_ARGS}
-    )
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(ccmio-static
+    PREFIX "${ccmio_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ExternalProject_Add(ccmio-static
+    DEPENDS cgns
+    PREFIX ${ccmio_prefix}
+    SOURCE_DIR ${ccmio_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${CCMIO_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    LIST_SEPARATOR ,
+    CMAKE_ARGS
+       ${CMAKE_ARGS}
+  )
 
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(ccmio-static cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${ccmio_prefix}
-)
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(ccmio-static cfsdeps_download
+     COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+     DEPENDERS download
+     DEPENDS "${DLFN}"
+     WORKING_DIRECTORY ${ccmio_prefix}
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(ccmio-static cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

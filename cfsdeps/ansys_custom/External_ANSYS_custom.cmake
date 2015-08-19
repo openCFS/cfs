@@ -33,7 +33,7 @@ CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY)
 # Add standard remote object stores to user's configuration.
 SET(ExternalData_URL_TEMPLATES
   "${CFS_DS_WEBDAV}/cfsdeps/sources/ansys_custom/%(algo)/%(hash)"
-  )
+)
 
 # Set standard local object stores.
 SET(ExternalData_OBJECT_STORES
@@ -105,28 +105,70 @@ ExternalData_expand_arguments(ansys_custom_external_data
 # Add a build target to populate the real data.
 ExternalData_Add_Target(ansys_custom_external_data)
 
+# There is no ANSYS_CUSTOM_VER yet! 
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ansys_custom_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ansys_custom_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${ansys_custom_prefix}")
+
+SET(ZIPFROMCACHE "${ansys_custom_prefix}/ansys_custom-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${ansys_custom_prefix}/ansys_custom-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The ansys_custom external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(ansys_custom
-  DEPENDS ansys_custom_external_data
-  PREFIX "${ansys_custom_prefix}"
-  SOURCE_DIR "${ansys_custom_source}"
-  BUILD_IN_SOURCE 1
-  DOWNLOAD_COMMAND ""
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND  ${CMAKE_COMMAND} -P ${BUILD}
-  INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INST}
-)
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(ansys_custom
+    PREFIX "${ansys_custom_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(ansys_custom
+    DEPENDS ansys_custom_external_data
+    PREFIX "${ansys_custom_prefix}"
+    SOURCE_DIR "${ansys_custom_source}"
+    BUILD_IN_SOURCE 1
+    DOWNLOAD_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND  ${CMAKE_COMMAND} -P ${BUILD}
+    INSTALL_COMMAND  ${CMAKE_COMMAND} -P ${INST}
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(ansys_custom cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  ansys_custom
-)
+SET(CFSDEPS ${CFSDEPS} ansys_custom)
 
 #-------------------------------------------------------------------------------
 # Determine paths of ANSYS Customization libraries.

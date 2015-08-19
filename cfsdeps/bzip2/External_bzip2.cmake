@@ -27,7 +27,7 @@ SET(CMAKE_ARGS
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
   -DCFS_ARCH_STR:STRING=${CFS_ARCH_STR}
   -DLIB_SUFFIX:STRING=${LIB_SUFFIX}
-  )
+)
 
 IF(CFS_DISTRO STREQUAL "MACOSX")
   SET(CMAKE_ARGS
@@ -35,7 +35,7 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
     -DCMAKE_C_FLAGS:FILEPATH=${CFLAGS}
     -DCMAKE_OSX_ARCHITECTURES:STRING=${CMAKE_OSX_ARCHITECTURES}
     -DCMAKE_OSX_SYSROOT:PATH=${CMAKE_OSX_SYSROOT}
-    )
+  )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
 IF(CMAKE_TOOLCHAIN_FILE)
@@ -59,8 +59,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/bzip2-1.0.6.tar.gz"
-  "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/bzip2-1.0.6.tar.gz"
+  "ftp://ftp3.de.freebsd.org/FreeBSD/ports/distfiles/${BZIP2_GZ}"
+  "ftp://ftp.jussieu.fr/pub/haiku/releases/r1alpha4/sources/${BZIP2_GZ}"
   "${BZIP2_URL}/${BZIP2_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/bzip2/${BZIP2_GZ}")
@@ -71,46 +71,101 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
+)
+
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "bzip2_${BZIP2_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "bzip2_${BZIP2_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${bzip2_prefix}")
+
+SET(ZIPFROMCACHE "${bzip2_prefix}/bzip2-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${bzip2_prefix}/bzip2-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# The bzip2 external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(bzip2-static
+    PREFIX "${bzip2_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
   )
+  ExternalProject_Add(bzip2-shared
+    PREFIX "${bzip2_prefix}"
+    DOWNLOAD_COMMAND ""
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project (static)
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(bzip2-static
+    PREFIX "${bzip2_prefix}"
+    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/bzip2
+    SOURCE_DIR ${bzip2_source}
+    URL ${BZIP2_URL}/${BZIP2_GZ}
+    URL_MD5 ${BZIP2_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=OFF
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(bzip2-static cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+     DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${bzip2_prefix}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project (shared)
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(bzip2-shared
+    DEPENDS bzip2-static
+    PREFIX "${bzip2_prefix}"
+    DOWNLOAD_COMMAND ""
+    SOURCE_DIR ${bzip2_source}
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=ON
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(bzip2-shared cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
-#-------------------------------------------------------------------------------
-# The bzip2 external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(bzip2-static
-  PREFIX "${bzip2_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/bzip2
-  SOURCE_DIR ${bzip2_source}
-  URL ${BZIP2_URL}/${BZIP2_GZ}
-  URL_MD5 ${BZIP2_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-)
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(bzip2-static cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${bzip2_prefix}
-)
-
-#-------------------------------------------------------------------------------
-# The bzip2 external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(bzip2-shared
-  DEPENDS bzip2-static
-  PREFIX "${bzip2_prefix}"
-  DOWNLOAD_COMMAND ""
-  SOURCE_DIR ${bzip2_source}
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=ON
-)
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
