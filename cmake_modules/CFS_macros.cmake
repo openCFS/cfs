@@ -297,7 +297,6 @@ ENDMACRO()
 MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
   IF(EXISTS "${ZIP_FILE}")
     MESSAGE("Found precompiled version ${ZIP_FILE}.")
-    MESSAGE("Extracting ...")
     EXECUTE_PROCESS(
       COMMAND "${CMAKE_COMMAND}" -E tar xzf "${ZIP_FILE}"
       WORKING_DIRECTORY "${TARGET_DIR}"

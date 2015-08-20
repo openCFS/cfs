@@ -6,6 +6,15 @@ set(python_build ${python_prefix}/src/${proj})
 set(python_source ${python_prefix}/src/${proj})
 set(python_BUILD_IN_SOURCE 1)
 
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${python_prefix}")
+
 if(WIN32)
 
   set(python_sln ${python_build}/PCbuild/pcbuild.sln)
@@ -124,34 +133,74 @@ elseif(UNIX)
 #    ${CMAKE_CURRENT_BINARY_DIR}/python_install_step.cmake
 #    @ONLY)
 
-  set(python_PATCH_COMMAND ${CMAKE_COMMAND} -P ${PATCH_STEP})
-  set(python_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF_STEP})
-  set(python_BUILD_COMMAND ${CMAKE_COMMAND} -P ${MAKE_STEP})
-  set(python_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${INST_STEP})
+  SET(ZIPFROMCACHE "${python_prefix}/python-zipFromCache.cmake")
+  CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
 
-  ExternalProject_Add(python
-    PREFIX ${python_prefix}
-    URL ${PYTHON_URL}/${PYTHON_TGZ}
-    URL_MD5 ${PYTHON_MD5}
-    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/python
-    SOURCE_DIR ${python_source}
-    INSTALL_DIR ${python_install}
-    BUILD_IN_SOURCE 1
-    PATCH_COMMAND ${python_PATCH_COMMAND}
-    CONFIGURE_COMMAND ${python_CONFIGURE_COMMAND}
-    BUILD_COMMAND ${python_BUILD_COMMAND}
-    INSTALL_COMMAND ${python_INSTALL_COMMAND}
-    DEPENDS
-      ${python_DEPENDENCIES}
+  SET(ZIPTOCACHE "${python_prefix}/python-zipToCache.cmake")
+  CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+  #-------------------------------------------------------------------------------
+  # The python external project
+  #-------------------------------------------------------------------------------
+  IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+    #-------------------------------------------------------------------------------
+    # If precompiled package exists copy files from cache
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add(python
+      PREFIX "${python_prefix}"
+      DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+      PATCH_COMMAND ""
+      UPDATE_COMMAND ""
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND ""
+      INSTALL_COMMAND ""
     )
-
-#-------------------------------------------------------------------------------
-# Add project to global list of CFSDEPS
-#-------------------------------------------------------------------------------
-SET(CFSDEPS
-  ${CFSDEPS}
-  python)
-
+  ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+    #-------------------------------------------------------------------------------
+    # If precompiled package does not exist build external project
+    #-------------------------------------------------------------------------------
+    
+    set(python_PATCH_COMMAND ${CMAKE_COMMAND} -P ${PATCH_STEP})
+    set(python_CONFIGURE_COMMAND ${CMAKE_COMMAND} -P ${CONF_STEP})
+    set(python_BUILD_COMMAND ${CMAKE_COMMAND} -P ${MAKE_STEP})
+    set(python_INSTALL_COMMAND ${CMAKE_COMMAND} -P ${INST_STEP})
+    
+    ExternalProject_Add(python
+      PREFIX ${python_prefix}
+      URL ${PYTHON_URL}/${PYTHON_TGZ}
+      URL_MD5 ${PYTHON_MD5}
+      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/python
+      SOURCE_DIR ${python_source}
+      INSTALL_DIR ${python_install}
+      BUILD_IN_SOURCE 1
+      PATCH_COMMAND ${python_PATCH_COMMAND}
+      CONFIGURE_COMMAND ${python_CONFIGURE_COMMAND}
+      BUILD_COMMAND ${python_BUILD_COMMAND}
+      INSTALL_COMMAND ${python_INSTALL_COMMAND}
+      DEPENDS
+        ${python_DEPENDENCIES}
+    )
+    
+    IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+      #-------------------------------------------------------------------------------
+      # Add custom step to zip a precompiled package to the cache.
+      #-------------------------------------------------------------------------------
+      ExternalProject_Add_Step(python cfsdeps_zipToCache
+        COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+        DEPENDEES install
+        DEPENDS "${ZIPTOCACHE}"
+        WORKING_DIRECTORY ${CFS_BINARY_DIR}
+      )
+    ENDIF()
+  ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  
+  #-------------------------------------------------------------------------------
+  # Add project to global list of CFSDEPS
+  #-------------------------------------------------------------------------------
+  SET(CFSDEPS
+    ${CFSDEPS}
+    python)
+  
 endif()
 
 #-----------------------------------------------------------------------------
