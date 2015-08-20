@@ -79,9 +79,9 @@ ExternalData_expand_arguments(cfx_custom_external_data
 ExternalData_Add_Target(cfx_custom_external_data)
 
 IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}.zip")
+  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
 ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${FC_ID}.zip")
+  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
 ENDIF(WIN32)
 SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
   

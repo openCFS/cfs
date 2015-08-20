@@ -162,7 +162,7 @@ OPTION(CFS_DEPS_CACHE
   ${CFS_DEPS_CACHE_DEFAULT})
 OPTION(CFS_DEPS_TOCACHE
   "Compile, zip and move cfsdeps into cache."
-  ${CFS_DEPS_CACHE_DEFAULT})
+  ${CFS_DEPS_TOCACHE_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
