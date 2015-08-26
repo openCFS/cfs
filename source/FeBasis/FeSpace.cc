@@ -461,13 +461,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     // Collect edge nodes
     {
-      UInt numEdges = ptElem->edges.GetSize();
+      UInt numEdges = ptElem->extended->edges.GetSize();
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
         // Check for permutation
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::EDGE, i);
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[perm[j]]);
@@ -475,7 +475,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           }
         } else {
           for( UInt i = 0; i < numEdges; ++i ) {
-            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+            StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
             for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
               nodes.Push_back(edgeNodes[j]);
             }
@@ -486,20 +486,20 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
     // Collect face nodes
     {
-      UInt numFaces = ptElem->faces.GetSize();
+      UInt numFaces = ptElem->extended->faces.GetSize();
       if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
         if( ptFe->NeedsNodalPermutation() ) {
           StdVector<UInt> perm;
           for( UInt i = 0; i < numFaces; ++i ) {
             ptFe->GetNodalPermutation( perm, ptElem, BaseFE::FACE, i);
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[perm[j]]);
             }
           }
         } else {
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -784,7 +784,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
           ptFe->GetNumFncs( numFncs, BaseFE::EDGE );
           // loop over edges
           for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
-            UInt edgeNum = std::abs(actEl->edges[iEdge]);
+            UInt edgeNum = std::abs(actEl->extended->edges[iEdge]);
             StdVector<UInt> & en = etn[edgeNum];
 
             // check if edge got already numbered
@@ -820,7 +820,7 @@ ApproxOrder::ApproxOrder(UInt dim ) {
 
           // loop over faces
           for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-            UInt faceNum = actEl->faces[iFace];
+            UInt faceNum = actEl->extended->faces[iFace];
             StdVector<UInt> & fn = ftn[faceNum];
             // check if face got already numbered
             if( numFncs.GetSize() > 0 ) {
@@ -1011,10 +1011,10 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // In case the (only) edge is not numbered yet, we perform a 
       // mapping of edges now
-      if(ptElem->edges.GetSize() != 1) {
+      if(ptElem->extended->edges.GetSize() != 1) {
         ptGrid_->MapEdges();
       }
-      UInt edgeNr = std::abs(ptElem->edges[0]);
+      UInt edgeNr = std::abs(ptElem->extended->edges[0]);
       const StdVector<Elem*> & neighbors = ptGrid_->GetEdge(edgeNr).neighbors; 
      
       // loop until element with highest dimension and acceptable regionId 
@@ -1680,9 +1680,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // Print edge  information
       std::cout << "Edges: ";
-      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+      for( UInt i=0, numEdges = ptElem->extended->edges.GetSize(); i < numEdges; ++i ) {
         StdVector<UInt> edgeNodes;
-        Integer edgeNum = ptElem->edges[i];
+        Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
         std::cout << "E #" << edgeNum << " (" 
                   << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
@@ -1691,9 +1691,9 @@ ApproxOrder::ApproxOrder(UInt dim ) {
       
       // Print face  information
       std::cout << "Faces: ";
-      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+      for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
-        UInt faceNum = ptElem->faces[i];
+        UInt faceNum = ptElem->extended->faces[i];
         ptElem->GetFaceNodes( faceNum, faceNodes );
         std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
@@ -1727,13 +1727,13 @@ ApproxOrder::ApproxOrder(UInt dim ) {
             entNumbers.Resize( shape.numVertices );
           }
         } else if( type == BaseFE::EDGE ) {
-          entNumbers.Resize(ptElem->edges.GetSize());
-          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
-            entNumbers[i] = std::abs(ptElem->edges[i]);
+          entNumbers.Resize(ptElem->extended->edges.GetSize());
+          for( UInt i=0; i < ptElem->extended->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->extended->edges[i]);
         } else if( type == BaseFE::FACE ) {
-          entNumbers.Resize(ptElem->faces.GetSize());
-          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
-            entNumbers[i] = ptElem->faces[i];
+          entNumbers.Resize(ptElem->extended->faces.GetSize());
+          for( UInt i=0; i < ptElem->extended->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->extended->faces[i];
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)

@@ -47,6 +47,15 @@ int main(int argc, char** argv)
   const char * myOpt[] = { "CFSDatComputation" };
   CoupledField::progOpts = new CoupledField::ProgramOptions(1,myOpt);
 
-  shared_ptr<CFSDat::BaseFilter> newFilter(new CFSDat::InputFilterGeneric() );
+  CoupledField::UInt** entityEquations_;
+  entityEquations_ = new CoupledField::UInt*[2];
+  entityEquations_[0] = new CoupledField::UInt[10];
+  entityEquations_[1] = new CoupledField::UInt[10];
+
+  delete entityEquations_[0];
+  delete entityEquations_[1];
+  delete entityEquations_;
+
+ // shared_ptr<CFSDat::BaseFilter> newFilter(new CFSDat::InputFilterGeneric() );
 return 0;
 }

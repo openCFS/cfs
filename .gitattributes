@@ -2002,6 +2002,7 @@ source/Utils/SmoothSpline.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVector.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/StdVector.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/StdVectorSerialize.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/ThreadLocalStorage.hh -text
 source/Utils/Timer.cc -text
 source/Utils/Timer.hh -text
 source/Utils/TriLinInterpolate.cc -text
@@ -2015,6 +2016,9 @@ source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text
 source/Utils/tools.hh -text
 source/cfsdat/CMakeLists.txt -text
+source/cfsdat/DataStructs.hh -text
+source/cfsdat/EqnNumberingSimple.cc -text
+source/cfsdat/EqnNumberingSimple.hh -text
 source/cfsdat/Filters/BaseFilter.hh -text
 source/cfsdat/Filters/Input/InputFilterGeneric.cc -text
 source/cfsdat/Filters/Input/InputFilterGeneric.hh -text

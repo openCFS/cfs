@@ -240,7 +240,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     if(regular)
       FindRegularNeighborhood(de, radius, edges, neighbors);
     else
-      FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
+      FindUnstructuredNeighborhood(de, radius, *(de->elem->extended->neighborhood), neighbors, too_far); // works recursive
     // save neighborhood by copy constructor
     de->simp->neighborhood = neighbors;
     // set own weight
@@ -427,7 +427,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 
       // now do the recursive call!!
       // test is in neighbors or too_far, hence the recursive call does't bounce back
-      FindUnstructuredNeighborhood(base, radius, *test_elem->neighborhood, neighbors, too_far);
+      FindUnstructuredNeighborhood(base, radius, *test_elem->extended->neighborhood, neighbors, too_far);
     }
   }
 }
@@ -435,8 +435,8 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
 double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) const
 {
   // default case
-  const Point& bb = base->barycenter;
-  const Point& tb = test->barycenter;
+  const Point& bb = base->extended->barycenter;
+  const Point& tb = test->extended->barycenter;
 
   assert(!(tb[0] == 0.0 && tb[1] == 0.0 && tb[2] == 0.0)/* && (test->ExpensiveCalcBarycenter()[0] != 0.0 ||  test->ExpensiveCalcBarycenter()[1] != 0.0)*/);
 
@@ -471,8 +471,8 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
     }
   }
 
-  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->barycenter.ToString()
-               << " test=" << test->elemNum << " " << test->barycenter.ToString()
+  LOG_DBG3(ds) << "RD: base=" << base->elemNum << " " << base->extended->barycenter.ToString()
+               << " test=" << test->elemNum << " " << test->extended->barycenter.ToString()
                << " direct=" << dist << " relaxed=" << std::sqrt(preSqrt);
 
   return std::sqrt(preSqrt);
@@ -657,7 +657,7 @@ bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVect
 
   // add the original neighborhood if there is a periodic case
   if(neighbors.GetSize() > 0)
-    AppendNeighbors(*elem->neighborhood, neighbors);
+    AppendNeighbors(*elem->extended->neighborhood, neighbors);
 
   LOG_DBG3(ds) << "EPN_C: elem=" << elem->elemNum << " en=" << ToString(neighbors);
 
@@ -686,7 +686,7 @@ void DesignStructure::AppendNeighbors(Elem* check,
 {
   if(check == NULL) return;
   
-  StdVector<std::pair<Elem*, int> >& source = *(check->neighborhood);
+  StdVector<std::pair<Elem*, int> >& source = *(check->extended->neighborhood);
 
   // check all elements
   for(int s = -1, sn = (int) source.GetSize(); s < sn; s++)

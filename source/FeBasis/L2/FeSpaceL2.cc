@@ -463,7 +463,7 @@ namespace CoupledField{
              for ( UInt iEdge=0; iEdge < actShape.numEdges; iEdge++) {
 
 
-               UInt edgeNum = std::abs(actEl->edges[iEdge]);
+               UInt edgeNum = std::abs(actEl->extended->edges[iEdge]);
                //get the permutation Vector
                ptFe->GetNodalPermutation(permutations,actEl,BaseFE::EDGE,iEdge);
                numEdgeNodes = permutations.GetSize();
@@ -508,7 +508,7 @@ namespace CoupledField{
            // check if faces of this element ware already numbered
            if( ftn.vNodes.GetSize() == 0 ) {
              for ( UInt iFace=0; iFace < actShape.numFaces; iFace++) {
-               UInt faceNum = actEl->faces[iFace];
+               UInt faceNum = actEl->extended->faces[iFace];
                //get the permutation Vector
                ptFe->GetNodalPermutation(permutations,actEl,BaseFE::FACE,iFace);
                numFaceNodes = permutations.GetSize();
@@ -634,9 +634,9 @@ namespace CoupledField{
 
       // Print edge  information
       std::cout << "Edges: ";
-      for( UInt i=0, numEdges = ptElem->edges.GetSize(); i < numEdges; ++i ) {
+      for( UInt i=0, numEdges = ptElem->extended->edges.GetSize(); i < numEdges; ++i ) {
         StdVector<UInt> edgeNodes;
-        Integer edgeNum = ptElem->edges[i];
+        Integer edgeNum = ptElem->extended->edges[i];
         ptElem->GetEdgeNodes( std::abs(edgeNum) , edgeNodes );
         std::cout << "E #" << edgeNum << " (" 
             << edgeNodes[0] << "-> " << edgeNodes[1] << "), ";
@@ -645,9 +645,9 @@ namespace CoupledField{
 
       // Print face  information
       std::cout << "Faces: ";
-      for( UInt i=0, numFaces = ptElem->faces.GetSize(); i < numFaces; ++i ) {
+      for( UInt i=0, numFaces = ptElem->extended->faces.GetSize(); i < numFaces; ++i ) {
         StdVector<UInt> faceNodes;
-        UInt faceNum = ptElem->faces[i];
+        UInt faceNum = ptElem->extended->faces[i];
         ptElem->GetFaceNodes( faceNum, faceNodes );
         std::cout << "F #" << faceNum << " (" << faceNodes.ToString( 0 ) << "), ";
       }
@@ -682,13 +682,13 @@ namespace CoupledField{
           entNumbers = ptElem->connect;
           entNumbers.Resize(offset.GetSize());
         } else if( type == BaseFE::EDGE ) {
-          entNumbers.Resize(ptElem->edges.GetSize());
-          for( UInt i=0; i < ptElem->edges.GetSize(); ++i )
-            entNumbers[i] = std::abs(ptElem->edges[i]);
+          entNumbers.Resize(ptElem->extended->edges.GetSize());
+          for( UInt i=0; i < ptElem->extended->edges.GetSize(); ++i )
+            entNumbers[i] = std::abs(ptElem->extended->edges[i]);
         } else if( type == BaseFE::FACE ) {
-          entNumbers.Resize(ptElem->faces.GetSize());
-          for( UInt i=0; i < ptElem->faces.GetSize(); ++i )
-            entNumbers[i] = ptElem->faces[i];
+          entNumbers.Resize(ptElem->extended->faces.GetSize());
+          for( UInt i=0; i < ptElem->extended->faces.GetSize(); ++i )
+            entNumbers[i] = ptElem->extended->faces[i];
         } else if( type == BaseFE::INTERIOR ) {
           // only treat "interior", if we have any unknowns at all assigned
           // (= size of vNodes != 0)

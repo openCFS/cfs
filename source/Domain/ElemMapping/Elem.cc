@@ -13,8 +13,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     elemNum(0),
     type(ET_UNDEF),
     regionId(NO_REGION_ID),
-    neighborhood(NULL)
+    extended(NULL)
   {}
+
+  Elem::~Elem(){
+    delete extended;
+  }
 
 //
 
@@ -30,9 +34,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      type = t.type;
      regionId=t.regionId;
      connect = t.connect;
-     edges = t.edges;
-     faces = t.faces;
-     faceFlags = t.faceFlags;
+     if(t.extended){
+       extended = new ExtendedElementInfo;
+       extended->edges = t.extended->edges;
+       extended->faces = t.extended->faces;
+       extended->faceFlags = t.extended->faceFlags;
+     }
    }
    return *this;
  }
@@ -41,7 +48,7 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
  
  void Elem::GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const {
    // check, if face is defined at all
-   Integer locFaceIndex = this->faces.Find(faceNum);
+   Integer locFaceIndex = this->extended->faces.Find(faceNum);
    if( locFaceIndex < 0 ) {
      EXCEPTION("Could not find face " << faceNum << " for element #" 
                << this->elemNum );
@@ -59,8 +66,8 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
    // check, if edge is defined at all
    UInt locEdgeIndex = 0;
    bool found = false;
-   while(locEdgeIndex < edges.GetSize() ) {
-     if( std::abs(edges[locEdgeIndex]) == static_cast<Integer>(edgeNum) ) {
+   while(locEdgeIndex < extended->edges.GetSize() ) {
+     if( std::abs(extended->edges[locEdgeIndex]) == static_cast<Integer>(edgeNum) ) {
        found = true;
        break;
      }

@@ -15,6 +15,7 @@ namespace CoupledField
 
   // forward definition
   struct ElemShape;
+  struct ExtendedElementInfo;
 
   //! Class for description of a volume finite element
 
@@ -35,7 +36,7 @@ namespace CoupledField
     Elem();
 
     //! Dummy destructor
-    virtual ~Elem() {;}
+    virtual ~Elem();
 
   public:
     // ========================================================================
@@ -99,10 +100,10 @@ namespace CoupledField
     // ======================================================
 
     //@{ \name Geometrical Information
-    
+
     //! Global element number
     UInt elemNum;
-    
+
     //! Type of element
     Elem::FEType type;
 
@@ -111,6 +112,52 @@ namespace CoupledField
 
     //! Array with node numbers
     StdVector<UInt> connect;
+
+    //! Extended element information
+    ExtendedElementInfo* extended;
+
+    // ======================================================
+    // HELPER METHODS
+    // ======================================================
+    //@{ \name Helper Methods
+
+    //! Overloading operator =
+    Elem & operator=(const Elem& t);
+
+    // Fix problems due to negative Jacobian determinants
+    void CorrectConnectivity( const Grid& grid );
+
+    //! Obtain string representation
+    std::string ToString() const;
+
+    //! Return for given FEtype the corresponding ShapeType
+    static Elem::ShapeType GetShapeType( Elem::FEType type );
+
+    //! Return for given ShapeType corresponding element shape
+
+    //! This method returns for a given shape (ST_QUAD, ST_LINE)
+    //! the corresponding element shape. In our case, we always
+    //! return the shape to the 1st order elements.
+    static ElemShape& GetShape( Elem::ShapeType );
+
+    /** Convenience function but not slow :( */
+    ElemShape& GetShape() { return GetShape(GetShapeType(type)); }
+
+    //! Get nodes of face, identified by global face number
+    void GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const;
+
+    //! Get nodes of edge, identified by global edge number
+    void GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const;
+
+    //@}
+
+  public:
+
+    //! Global collection of reference element shape
+    static std::map<Elem::FEType,ElemShape> shapes;
+  };
+
+  struct ExtendedElementInfo{
 
     //! Array with edge numbers
     
@@ -240,45 +287,6 @@ namespace CoupledField
      * The values are by for the uninitialized case zero, be careful! Check via Grid::RegionData */
     Point barycenter;
 
-    // ======================================================
-    // HELPER METHODS
-    // ======================================================
-    //@{ \name Helper Methods
-
-    //! Overloading operator =
-    Elem & operator=(const Elem& t);
-
-    // Fix problems due to negative Jacobian determinants
-    void CorrectConnectivity( const Grid& grid );
-    
-    //! Obtain string representation
-    std::string ToString() const;
-    
-    //! Return for given FEtype the corresponding ShapeType 
-    static Elem::ShapeType GetShapeType( Elem::FEType type );
-    
-    //! Return for given ShapeType corresponding element shape
-    
-    //! This method returns for a given shape (ST_QUAD, ST_LINE)
-    //! the corresponding element shape. In our case, we always
-    //! return the shape to the 1st order elements.
-    static ElemShape& GetShape( Elem::ShapeType );
-
-    /** Convenience function but not slow :( */
-    ElemShape& GetShape() { return GetShape(GetShapeType(type)); }
-    
-    //! Get nodes of face, identified by global face number
-    void GetFaceNodes( UInt faceNum, StdVector<UInt>& nodes ) const; 
-    
-    //! Get nodes of edge, identified by global edge number
-    void GetEdgeNodes( UInt edgeNum, StdVector<UInt>& nodes ) const;
-    
-    //@}
-   
-  public:
-
-    //! Global collection of reference element shape
-    static std::map<Elem::FEType,ElemShape> shapes;
   };
 
   

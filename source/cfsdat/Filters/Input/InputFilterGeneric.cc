@@ -36,10 +36,7 @@ InputFilterGeneric::InputFilterGeneric(){
   hdfNode->Get("gridId",ParamNode::INSERT)->SetValue("default");
 
   //create input files (dynamic IDs or, as usual, from XML)
-  std::map<std::string, shared_ptr<SimInput> > inFiles;
-  std::map<std::string, StdVector<shared_ptr<SimInput> > > gridInputs;
-  createInput->CreateSimInputFiles(configNode,infoNode,inFiles,gridInputs);
-  inFile_ = inFiles.begin()->second;
+  inFile_ = CoupledField::DefineInOutFiles::CreateSingleInputFileObject("test.h5",hdfNode,infoNode);
 
   //delete the input again
   delete createInput;

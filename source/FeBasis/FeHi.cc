@@ -78,7 +78,7 @@ DEFINE_LOG(feHi, "feHi")
      // -------
      Integer locDir = -1;
      for( UInt iEdge = 0; iEdge < elemShape_.numEdges; ++iEdge ) {
-       LOG_DBG3(feHi) << "\tTreating edge #" << std::abs(ptElem->edges[iEdge]) << std::endl;
+       LOG_DBG3(feHi) << "\tTreating edge #" << std::abs(ptElem->extended->edges[iEdge]) << std::endl;
        locDir = elemShape_.edgeLocDirs[iEdge];
        SetEdgeOrder( iEdge, order[locDir]);
        LOG_DBG3(feHi) << "\t\tdir: #" << ptElem->connect[elemShape_.edgeNodes[iEdge][0]-1]
@@ -96,7 +96,7 @@ DEFINE_LOG(feHi, "feHi")
        UInt locDir1 = 0, locDir2 = 0;
        boost::array<UInt,2> faceOrder;
        for( UInt iFace = 0; iFace < elemShape_.numFaces; ++iFace ) {
-         LOG_DBG3(feHi) << "\tTreating face #" << ptElem->faces[iFace] << std::endl;
+         LOG_DBG3(feHi) << "\tTreating face #" << ptElem->extended->faces[iFace] << std::endl;
          
          const StdVector<UInt>& unsorted = elemShape_.faceNodes[iFace];
          
@@ -112,7 +112,7 @@ DEFINE_LOG(feHi, "feHi")
          locDir1 = elemShape_.faceLocDirs[iFace][0];
          locDir2 = elemShape_.faceLocDirs[iFace][1];
           // check, if directions have to get interchanged
-         if( !ptElem->faceFlags[iFace][2]) { 
+         if( !ptElem->extended->faceFlags[iFace][2]) {
            std::swap( locDir1, locDir2 );
          }
          faceOrder[0] = order[locDir1];
@@ -120,7 +120,7 @@ DEFINE_LOG(feHi, "feHi")
          
          // Logging stuff
          StdVector<UInt> ind;
-         Face::GetSortedIndices( ind, unsorted,  4, ptElem->faceFlags[iFace]);
+         Face::GetSortedIndices( ind, unsorted,  4, ptElem->extended->faceFlags[iFace]);
          LOG_DBG3(feHi) << "\t\tdir1: node #"
                           << ptElem->connect[ind[1]] 
                           << "-> #" << ptElem->connect[ind[0]] 

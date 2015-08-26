@@ -1453,10 +1453,10 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     //for the 2D case, we just determine the correct side of the
     //volume element by checking the edge number
     UInt locENum = 0;
-    UInt numEdges = volElem->edges.GetSize();
+    UInt numEdges = volElem->extended->edges.GetSize();
 
     for(locENum = 0; locENum < numEdges; locENum++){
-      if(abs(edgeFaceElem->edges[0]) == abs(volElem->edges[locENum])){
+      if(abs(edgeFaceElem->extended->edges[0]) == abs(volElem->extended->edges[locENum])){
         edgeFaceFound = true;
         break;
       }
@@ -1484,7 +1484,7 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     UInt locFaceNum = 0;
     //determine on which face the local point is located and the compute the normal for this face
     for(locFaceNum = 0; locFaceNum < numFaces ; locFaceNum++){
-      if(abs(edgeFaceElem->faces[0]) == abs(volElem->faces[locFaceNum])){
+      if(abs(edgeFaceElem->extended->faces[0]) == abs(volElem->extended->faces[locFaceNum])){
         edgeFaceFound = true;
         break;
       }
@@ -1636,10 +1636,10 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     // -------------
     // look for common edge
     // A 1D surface element only has 1 edge
-    UInt edgeNum = std::abs(ptSurfElem->edges[0]);
-    Integer index = ptElem_->edges.Find(edgeNum);
+    UInt edgeNum = std::abs(ptSurfElem->extended->edges[0]);
+    Integer index = ptElem_->extended->edges.Find(edgeNum);
     if (index < 0) {
-      index = ptElem_->edges.Find(-Integer(edgeNum));
+      index = ptElem_->extended->edges.Find(-Integer(edgeNum));
       if (index < 0) {
         EXCEPTION("edge not found");
       }
@@ -1651,8 +1651,8 @@ void LagrangeElemShapeMap::MapSurfLocDirs(const Elem* ptSurfElem,
     //  Common Face
     // -------------
     // a 2D surface element only has one face
-    UInt faceNum = std::abs(ptSurfElem->faces[0]);
-    Integer index = ptElem_->faces.Find(faceNum);
+    UInt faceNum = std::abs(ptSurfElem->extended->faces[0]);
+    Integer index = ptElem_->extended->faces.Find(faceNum);
     if (index < 0) {
       EXCEPTION("face not found");
     }

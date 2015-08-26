@@ -57,8 +57,7 @@ namespace CoupledField
     //! Generic function to obtain a single SimInput object based on the given parameters
     static shared_ptr<SimInput>  CreateSingleInputFileObject(std::string fName,
                                                              PtrParamNode configNode,
-                                                             PtrParamNode infoNode,
-                                                             bool addDefaultFExtension);
+                                                             PtrParamNode infoNode);
 
     //! Generic function to obtain a single SimOutpu object based on the given parameters
     static shared_ptr<SimOutput> CreateSingleOutputFileObject(std::string fName,

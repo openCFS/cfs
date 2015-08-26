@@ -510,6 +510,7 @@ void MortarInterface::UpdateInterface() {
         // We need to make explicit copies of the NcSurfElems, because the
         // Grid deletes all its elements when it gets destroyed.
         ncElemsHelper[i] = new SurfElem(*(elemList_->GetSurfElem(i)));
+        ncElemsHelper[i]->extended = new ExtendedElementInfo;
       }
 
       ptGrid_->AddSurfaceElems(region_, ncElemsHelper, ncElemIds);
@@ -831,6 +832,7 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   // In case of a curved interface store the projected master element.
   // This is needed for coordinate transform of integration points.
   shared_ptr<SurfElem> projMaster( new SurfElem() );
+  projMaster->extended = new ExtendedElementInfo;
   if ( !isCoplanar_ ) {
     projMaster->type = Elem::ET_LINE2;
     projMaster->connect.Resize(2);
@@ -1409,6 +1411,7 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
     if ( !isCoplanar_ ) {
       Vector<Double> nodeCoord;
       projMaster.reset( new SurfElem() );
+      projMaster->extended = new ExtendedElementInfo;
       projMaster->type = ifElem1->type;
       projMaster->connect.Resize(p1Size);
       

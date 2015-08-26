@@ -65,7 +65,7 @@ namespace CoupledField {
       for ( UInt i = 0; i < order_-1 ; i++ ) {
         fncPermutation[i] = i;
       }
-    }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
+    }else if( fctEntityType == FACE && ptElem->extended->faces.GetSize() > 0) {
       if(completeType_ == TENSOR_TYPE){
         //WARNING: for order > 2 we would need to check for orientation. See H1ElemsLagVar.cc
         fncPermutation.Resize((order_-1) * (order_-1));
@@ -83,7 +83,7 @@ namespace CoupledField {
         }
         fncPermutation.Resize(0);
       }
-    }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() > 3){
+    }else if( fctEntityType == INTERIOR && ptElem->extended->faces.GetSize() > 3){
       if(completeType_ == SERENDIPITY_TYPE){
         if(order_>3){
           Exception("Function FeH1LagrangeExpl::GetNodalPermutation needs to be extended for higher order serendipity elements!");

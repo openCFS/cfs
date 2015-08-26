@@ -1232,7 +1232,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     StdVector<DesignElement*>& ve_data = de->vicinity->design; // has proper size of NULLs
 
     // reference case
-    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->neighborhood);
+    StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->extended->neighborhood);
     // reuse the enlarged_data element for the periodic case only
     if(periodic)
     {
@@ -1253,9 +1253,9 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
       Elem* candidate = neighbors[n].first;
 
 
-      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->barycenter.ToString() << " e.dim="
+      LOG_DBG3(desel) << "VE:Init elem=" << de->elem->elemNum << " e.bc=" << de->elem->extended->barycenter.ToString() << " e.dim="
                     << de->elem->GetShape().dim << " e.r=" << de->elem->regionId << " n=" << n << " o.el=" << candidate->elemNum
-                    << " o.bc=" << candidate->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId;
+                    << " o.bc=" << candidate->extended->barycenter.ToString() << " o.dim=" << candidate->GetShape().dim << " o.r=" << candidate->regionId;
 
       // if the neighbor is a surface element we don't want to play with it
       if(de->elem->GetShape().dim != candidate->GetShape().dim)
@@ -1265,7 +1265,7 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
         continue;
 
       // the spacing allows to identify periodic elements
-      int idx = FindRelativeNeighborLocation(de->elem->barycenter, candidate->barycenter, spacing);
+      int idx = FindRelativeNeighborLocation(de->elem->extended->barycenter, candidate->extended->barycenter, spacing);
       ve_data[idx] = space->Find(candidate->elemNum, de->GetType(), false, space->DoNonDesignVicinity());
       LOG_DBG2(desel) << "VE:Init elem=" << de->elem->elemNum << " idx=" << idx << " val=" << ve_data[idx]->ToString() << " neigh=" << DesignElement::ToString(ve_data);
     }

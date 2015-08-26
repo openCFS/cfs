@@ -594,6 +594,9 @@ namespace CoupledField
     //! Vector containing all edges
     StdVector<Edge> edges_;
     
+    //! Boolean controlling the creation of extended element information
+    bool buildExtendedElemInfo_;
+
     // =======================================================================
     // Named Entities
     // =======================================================================

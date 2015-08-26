@@ -474,7 +474,7 @@ namespace CoupledField
     // our operation target
     StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
     for(UInt i = 0;  i < elems.GetSize(); i++)
-      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->barycenter);
+      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->extended->barycenter);
 
     rd.barycenters = true; // don't do it again!
 
@@ -849,6 +849,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numCorners];
         surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
 
         switch(el->type) {
         case Elem::ET_TRIA6:
@@ -894,10 +895,10 @@ namespace CoupledField
     this->SetElementBarycenters(0,false);
     for (UInt i = 0; i < elems.GetSize(); ++i) {
       for (UInt j = 0; j < dim; ++j) {
-        if (elems[i]->barycenter[j] > max[j])
-          max[j] = elems[i]->barycenter[j];
-        if (elems[i]->barycenter[j] < min[j])
-          min[j] = elems[i]->barycenter[j];
+        if (elems[i]->extended->barycenter[j] > max[j])
+          max[j] = elems[i]->extended->barycenter[j];
+        if (elems[i]->extended->barycenter[j] < min[j])
+          min[j] = elems[i]->extended->barycenter[j];
       }
     }
 
@@ -943,7 +944,7 @@ namespace CoupledField
       // get number of edges
       numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
-        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
         edgeCounts[edgeNum]++;
       }
     }
@@ -953,7 +954,7 @@ namespace CoupledField
       // get number of edges
       numEdges = Elem::shapes[el->type].numEdges;
       for(UInt n=0; n<numEdges; n++) {
-        UInt edgeNum = el->edges[n] < 0 ? -el->edges[n] : el->edges[n];
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
         if(edgeCounts[edgeNum] != 1)
         {
           n++;
@@ -1000,6 +1001,7 @@ namespace CoupledField
         surfEl->connect[0] = el->connect[n];
         surfEl->connect[1] = el->connect[(n+1) % numEdges];
         surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
 
         switch(el->type) {
           case Elem::ET_TRIA6:
