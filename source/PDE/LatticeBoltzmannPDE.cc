@@ -356,12 +356,11 @@ namespace CoupledField {
 
       // create new entity list
       // we use colList in order to be able to use constant FESpace, which is described by only one equation
-      shared_ptr<CoilList> actSDList( new CoilList(ptGrid_ ) );
-//      actSDList->SetRegion( actRegion );
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( actRegion );
 
       // get current region name and get grip of paramNode
-      std::string actRegionName;
-      actRegionName = ptGrid_->GetRegion().ToString( actRegion );
+      std::string actRegionName = ptGrid_->GetRegion().ToString( actRegion );
 
       // --- Set the FE ansatz for the current region ---
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",actRegionName.c_str());
@@ -377,11 +376,14 @@ namespace CoupledField {
 
       BaseBDBInt* stiffInt = NULL;
       std::set<RegionIdType> volRegions;
+
       if( dim_ == 2 ) {
+    	// surfaceBBInt is the only currently existing integrator that implies an unsymmetric element matrix
         stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
       } else {
         stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
       }
+
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
 
@@ -660,38 +662,32 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
   double delete_sing_setup = timer.GetCPUTime();
 
-//  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-  CRS_Matrix<double> crs;
-//  assert(crs != NULL);
+  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+  assert(crs != NULL);
 
-  crs.SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-  matrix_sparse_to_crs(Jacobi_new, crs.GetDataPointer(), crs.GetRowPointer(), crs.GetColPointer());
-  mat = &crs;
+  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
   // right-hand side
   Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
   LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
-  SBM_Vector rhs(1,BaseMatrix::DOUBLE);
-  rhs.SetSubVector(&b,0);
-  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs(0).ToString(0,',');
+  SBM_Vector* rhs = new SBM_Vector(1,BaseMatrix::DOUBLE);
+  rhs->SetSubVector(&b,0);
+
+  LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs->GetPointer(0)->GetSize();
+  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs->GetPointer(0)->ToString(0,',');
 
   double rhs_setup = timer.GetCPUTime();
-
-//  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-//  assert(crs != NULL);
-//
-//  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-//  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
   // time to setup adjoint system before solving
   double setup_wall = timer.GetWallTime();
   double setup_cpu = timer.GetCPUTime();
 
-  algsys_->InitRHS(rhs);
+  algsys_->InitRHS(*rhs);
 
 //  PtrParamNode analysis_id = domain->GetDriver()->CreateAnalysisId("lbm_adjoint", 0);
   algsys_->SetupSolver();
-  algsys_->Solve();
+  algsys_->Solve(false);
   Vector<double> sol;
   algsys_->GetSolutionVal(sol,0,false);
 
@@ -702,6 +698,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
     de->AddGradient(f, val);
   }
+
+  LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
 
   timer.Stop();
   adjoint_.Stop();
