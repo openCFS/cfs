@@ -426,8 +426,9 @@ def valid_position_apod6(pos, coords):
     else:
       return False
   return True
+
 # # without rotation and shearing
-def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres=0.0):
+def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres=0.0,csize = None):
   centers, min, max = coords[0:3]  # we cannot use the first region element element dimensions 
   
   cells = vtk.vtkCellArray()
@@ -436,13 +437,20 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
   if scale <= 0:
     scale = 1.0
   
-  dx = (max[0] - min[0]) / ip_nx
-  dy = 0.5*dx
-  dz = dx
-  ip_data, ip_near, out, ndim = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
+  if csize is None:
+    dx = (max[0] - min[0]) / ip_nx
+    dy = dx
+    dz = dx
+  else:
+    dx = csize[0]
+    dy = csize[1]
+    dz = csize[2]
+    
+  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
 
-
-
+  #scales the lattice cells to fit in the design domain exactly
+  #scale = scale_max 
+  
   within = 0
   invalid = 0
   for i in range(len(out)):
@@ -458,37 +466,37 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
         continue
       if s1 >= thres or s2 >= thres or s3 >= thres:
         if s1 >= s2 and s1 >= s3:
-          create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
-          coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (dy - dx * s1),0.]
-          dy_offset = scale * 0.5 * (dy-s1*dx)
+          create_centered_bar(cells, points, coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle)
+          coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (scale_[1] * dy - dx * s1),0.]
+          dy_offset = scale * 0.5 * (scale_[1]*dy-s1*dx)
           create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
           create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
           
-          coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (dz - dx * s1)]
-          dz_offset = scale * 0.5 * (dz-s1*dx)
+          coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (scale_[2] * dz - dx * s1)]
+          dz_offset = scale * 0.5 * (scale_[2]*dz-s1*dx)
           create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
           create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
            
         elif s2 >= s1 and s2 >= s3:
-          create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * dy, scale * s2 * dy), angle)
-          coord_offset = [scale* dy * s2 * 0.5 + scale * 0.25 * (dx - dy * s2),0.,0.]
-          dx_offset = scale * 0.5 * (dx-s2*dy)
+          create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle)
+          coord_offset = [scale* dy * s2 * 0.5 + scale * 0.25 * (scale_[0] * dx - dy * s2),0.,0.]
+          dx_offset = scale * 0.5 * (scale_[0] * dx-s2*dy)
           create_centered_bar(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
           create_centered_bar(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
           
-          coord_offset = [0.,0.,scale * dy * s2 * 0.5 + scale * 0.25 * (dz - dy * s2)]
-          dz_offset = scale * 0.5 * (dz-s2*dy)
+          coord_offset = [0.,0.,scale * dy * s2 * 0.5 + scale * 0.25 * (scale_[2] * dz - dy * s2)]
+          dz_offset = scale * 0.5 * (scale_[2] * dz-s2*dy)
           create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
           create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
         elif s3 >= s1 and s3 >= s2:
-          create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * dz), angle)
-          coord_offset = [scale* dz * s3 * 0.5 + scale * 0.25 * (dx - dz * s3),0.,0.]
-          dx_offset = scale * 0.5 * (dx-s3*dz)
+          create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle)
+          coord_offset = [scale* dz * s3 * 0.5 + scale * 0.25 * (scale_[0] * dx - dz * s3),0.,0.]
+          dx_offset = scale * 0.5 * (scale_[0] * dx-s3*dz)
           create_centered_bar(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
           create_centered_bar(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
           
-          coord_offset = [0.,0.,scale * dz * s3 * 0.5 + scale * 0.25 * (dy - dz * s3)]
-          dy_offset = scale * 0.5 * (dy-s3*dz)
+          coord_offset = [0.,scale * dz * s3 * 0.5 + scale * 0.25 * (scale_[1] * dy - dz * s3),0.]
+          dy_offset = scale * 0.5 * (scale_[1] * dy-s3*dz)
           create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
           create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
 
@@ -518,9 +526,13 @@ def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
  
   delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
   # where we want nodes
-  nx = int(delta[0]/ dx)
+  nx = int(delta[0] / dx)
   ny = int(delta[1] / dy)
   nz = int(delta[2] / dz)
+  
+  scale_x = delta[0]/(nx*dx)
+  scale_y = delta[1]/(ny*dy)
+  scale_z = delta[2]/(nz*dz)
  
   if ny == 0 or nz == 0 or nx == 0:
     print 'chose a higher hom_samples such that also the smallest side gets discretized'
@@ -531,7 +543,7 @@ def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
   for z in range(nz + 1):
     for y in range(ny + 1):
       for x in range(nx + 1):
-        out[idx] = ((mi[0] + float(x) / nx * delta[0], mi[1] + float(y) / ny * delta[1], mi[2] + float(z) / nz * delta[2]))
+        out[idx] = ((mi[0] + 0.5*dx + float(x) / nx * delta[0], mi[1] + 0.5*dy +  float(y) / ny * delta[1], mi[2] + 0.5*dx + float(z) / nz * delta[2]))
         idx += 1
 
   v = numpy.zeros((len(s1), 3 if angle is None else 6))
@@ -546,7 +558,7 @@ def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
   # if the value is -1 we use the nearest interpolation which can also interpolate values outside the convex hull
   ip_near = ip.griddata(centers, v, out, 'nearest') if grad <> 'nearest' else None
   
-  return ip_data, ip_near, out, (nx, ny, nz) 
+  return ip_data, ip_near, out, (nx, ny, nz), (scale_x,scale_y,scale_z)  
 
 
 # # litte helper

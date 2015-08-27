@@ -44,11 +44,17 @@ def save_image_as_densfile(im, outfile):
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
 def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True, triangle=False):
-  # 2D frame structure
+  # creates a density file with one or multiple 2D frame structures, optional: frame with round corners (modify option)
+  # array: density array; minres: resolution of comp. domain; x,y, steps: x/steps is the thickness of the bar in x-direction;
+  # void: densi
+  
+  # triangles or quads used for triangulation
   if triangle:
     array = np.ones((2 * minres, minres))
   else:
     array = np.ones((minres, minres))
+  
+  # creates density file
   eps = 1e-8
   offx = int((minres / (2.*number)) * (float(x) / (steps)) + 0.5 + eps)
   offy = int((minres / (2.*number)) * (float(y) / (steps)) + 0.5 + eps)
@@ -67,7 +73,7 @@ def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True,
             array[2 * i + 1][j] = void
       # TODO: does not work for triangles yet
       if modify:    
-        # modify frame for stress minimization
+        # modify frame for stress minimization with smooth interior corners
         for i in range(offx, minres - offx):
           for j in range(offy, minres - offy):
             if math.ceil((minres - 2.*offx) / 3.) <= math.ceil((minres - 2.*offy) / 3.):
@@ -89,7 +95,7 @@ def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True,
   return array  
 
 def insert_rotated_bar(tx, ty, rot, array, minres, midx, midy):
-  # rotationg angle should be between [0,pi] 
+  # rotation angle should be between [0,pi] 
   # note that thickness of the bars not scaled by rotation angle
   eps = 1e-8
   for angle in [rot, rot + math.pi / 2.]:
@@ -238,6 +244,7 @@ parser.add_argument("--oversampling", help="name of the mesh with size minres/ep
 
 
 
+
 args = parser.parse_args()
 pl = parser.parse_args()
 dim = args.dimension
@@ -247,6 +254,7 @@ folder = args.folder
 void = args.void_material
 
 if dim == 2:
+  #setup calculation directory
   if args.msfem:
     if args.triangle_msfem:
       outfile = str(folder) + '_/jobs' 
@@ -276,13 +284,11 @@ jobfile = open(outfile, "w")
 if dim == 2:
   if args.msfem:
     array = void * np.ones((minres, minres))
-    # steps_rot = 4
-    # drot = math.pi/float(steps_rot)
     midx = minres / 2
     midy = minres / 2
-    # for rot in range(-1.57,drot,1.57):
     rot = 0.
     x = 0
+    # loops over all different frame/cross thicknesses
     while x < steps + 1:
       y = 0
       while y < steps + 1:
@@ -290,6 +296,7 @@ if dim == 2:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
+        # create the design array of the chosen shape for MSFEM 2D
         if args.shape == 'frame_modified':
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, True)
         elif args.shape == 'cross':
@@ -303,7 +310,9 @@ if dim == 2:
         
         densfilename = str(x) + "-" + str(y) + "_msfem.dens.xml"
         
+        # MSFEM oversampling in 2D
         if args.oversampling:
+          # Warning: density file created here is only used for calculation of global stiffness matrix Kglob
           overarray = void * np.ones((int(minres/args.epsilon+0.5+1e-6), int(minres/args.epsilon+0.5+1e-6)))
           if args.shape == 'frame':
             overarray = insert_modified_frame(overarray, int(minres/args.epsilon+0.5+1e-6), y, x, steps, void, 1,False)
@@ -311,19 +320,21 @@ if dim == 2:
             print 'Warning: other shapes not implemented yet for oversampling.'
           overdensfilename = str(x) + "-" + str(y) + "_msfem_oversample.dens.xml"
           if args.filter == 'on':
-            #filtering of the data
+            #filtering of the data due to the theory of homogenization
             overarray_filter = ndimage.uniform_filter(overarray, size=6)
             plt.gray()
             plt.imshow(overarray_filter)
             plt.show()
           else:
             overarray_filter = overarray
+          # write density file
           if not args.sparse_msfem:
             write_density_file(str(folder) + "/" + overdensfilename, overarray_filter, "set")
           else:
             print 'Warning: Sparse meshes not implemented for oversampling yet.'
           overarray = void * np.ones((int(minres/args.epsilon+0.5+1e-6), int(minres/args.epsilon+0.5+1e-6)))   
-          
+        
+        # filter for smoothing the frame/cross, necessary for homogenization theory  
         if args.filter == 'on':
           # filtering of the data
           array_filter = ndimage.uniform_filter(array, size=6)
@@ -335,7 +346,9 @@ if dim == 2:
         if not args.sparse_msfem:
           write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
         array = void * np.ones((minres, minres))
+        
         # WARNING: not tested any more
+        # creating cfs .xml files for msfem cell problems using triangle 2D elements
         if args.triangle_msfem:
           # create xml file for cfs
           doc = libxml2.parseFile("triangle_msfem.xml")
@@ -397,8 +410,8 @@ if dim == 2:
               index += 1
           print str(x) + ' ' + str(y) + ' is done'
         else:
-          # MSFEM for quadrileteral elements 
-          # create xml file for cfs
+          # MSFEM for 2D quadrileteral elements 
+          # create xml file for cfs solving MSFEM cell problems
           doc = libxml2.parseFile("compliance_plain.xml")
           xml = doc.xpathNewContext()
           xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
@@ -481,8 +494,9 @@ if dim == 2:
       if not args.design:
         x +=1    
   elif args.shape == "frame" or args.shape == "frame_modified":
-    # 2D frame structure
+    # Homogenization for 2D frame structures
     array = void * np.ones((minres, minres))
+    joblist = ()
     x = 0
     while x < steps + 1:
       y= 0
@@ -517,9 +531,10 @@ if dim == 2:
       if not args.design:
         x += 1 
   elif args.shape == "cross":
-    # 2D cross structure
+    # Homogenization for 2D cross structure
     array = void * np.ones((minres, minres))
     x = 0
+    joblist = ()
     while x < steps + 1:
       y = 0
       while y < steps + 1:
@@ -559,7 +574,8 @@ if dim == 2:
   else:
     print 'option not defined' 
 elif dim == 3:
-  # 3D cross structure
+  # Homogenization for 3D cross structures
+  joblist = ()
   x = 0
   while x < steps + 1:
     y = 0
@@ -617,7 +633,7 @@ elif dim == 3:
       if not args.design:
         y += 1
     if not args.design:
-      x += 1      
+      x += 1     
 jobfile.close()
 sys.exit()
 
