@@ -55,8 +55,8 @@ namespace CoupledField {
 
     //! Destructor
     virtual ~CRS_Pattern() {
-      delete [] ( cidx_ );
-      delete [] ( rptr_ );
+//      delete [] ( cidx_ );
+//      delete [] ( rptr_ );
     }
 
     //! Array with column indices of non-zero matrix entries

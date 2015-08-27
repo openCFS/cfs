@@ -1867,9 +1867,7 @@ namespace CoupledField {
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
     if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
-      EXCEPTION( "New rhs consists of " << newRHS.GetSize()
-                 << " sub-vectors, the RHS of the algebraic system of "
-                 << rhs_->GetSize() << " entries." )
+      EXCEPTION( "New rhs consists of " << newRHS.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
     }
     
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
@@ -1888,8 +1886,7 @@ namespace CoupledField {
       // security check: ensure that sub-vector has the same size
       // as the block indices
       if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
-        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
-                   "of indices do not match!");
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
       }
       
       if( newRHS.GetEntryType() == BaseMatrix::DOUBLE ) {
@@ -2577,7 +2574,7 @@ namespace CoupledField {
     	ptSol.Init();
     	for (unsigned int i = 0; i < size; i++)
     	{
-    		indices[i] = size - i;
+    		indices[i] = i+1;
     	}
 //        Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
 //    	std::cout << "Size of sol vector: " << sol_->GetPointer(0)->GetSize() << std::endl;

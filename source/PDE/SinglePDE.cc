@@ -110,8 +110,6 @@ namespace CoupledField {
     
   }
 
-
-
   // **************
   //   Destructor
   // **************

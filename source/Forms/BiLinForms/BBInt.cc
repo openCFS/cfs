@@ -54,13 +54,12 @@ namespace CoupledField{
 
      // Obtain FE element from feSpace and integration scheme
      IntegOrder order;
-      IntScheme::IntegMethod method;
-      BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
+     IntScheme::IntegMethod method;
+     BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
      const UInt nrFncs = ptFe->GetNumFncs();
 
      // Get shape map from grid
-     shared_ptr<ElemShapeMap> esm =
-         ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
+     shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
      StdVector<LocPoint> intPoints;
