@@ -43,10 +43,10 @@ def save_image_as_densfile(im, outfile):
 
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
-def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True, triangle=False):
+def insert_modified_frame(array, minres, x, y, steps, void, number, steps_p = 0, modify=True, triangle=False):
   # creates a density file with one or multiple 2D frame structures, optional: frame with round corners (modify option)
   # array: density array; minres: resolution of comp. domain; x,y, steps: x/steps is the thickness of the bar in x-direction;
-  # void: densi
+  # void: density of void material, eg. 1e-9
   
   # triangles or quads used for triangulation
   if triangle:
@@ -56,8 +56,12 @@ def insert_modified_frame(array, minres, x, y, steps, void, number, modify=True,
   
   # creates density file
   eps = 1e-8
-  offx = int((minres / (2.*number)) * (float(x) / (steps)) + 0.5 + eps)
-  offy = int((minres / (2.*number)) * (float(y) / (steps)) + 0.5 + eps)
+  if steps_p:
+    offx = int((minres / (2.*number)) * ((float(x) * steps_p / steps)**3./steps_p) + 0.5 + eps)
+    offy = int((minres / (2.*number)) * ((float(y) * steps_p / steps)**3./steps_p) + 0.5 + eps)
+  else:
+    offx = int((minres / (2.*number)) * (float(x) / steps) + 0.5 + eps)
+    offy = int((minres / (2.*number)) * (float(y) / steps) + 0.5 + eps)
   for nx in range(0, number):
     for ny in range(0, number):
       rx = int(float(nx) / float(number) * minres + 0.5 + eps)
@@ -239,6 +243,8 @@ parser.add_argument("--void_material", help="set value for void material", type=
 parser.add_argument("--epsilon", help="number of frames/crosses in the cell problem", type=int, default=1)
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
 parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
+parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
+
 
 
 
@@ -292,7 +298,16 @@ if dim == 2:
     while x < steps + 1:
       y = 0
       while y < steps + 1:
-        if args.design:
+        if args.penalization:
+          x_tmp = x
+          y_tmp = y
+          x = float(1./ x) if x > 0 else 0
+          y = float(1./ y) if y > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
@@ -342,6 +357,7 @@ if dim == 2:
           plt.imshow(array_filter)
           plt.show()
         else:
+          # no filter is applied
           array_filter = array
         if not args.sparse_msfem:
           write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
@@ -490,6 +506,9 @@ if dim == 2:
             x = steps + 1
             y = steps + 1
         else:
+            if args.penalization:
+              x = x_tmp
+              y = y_tmp
             y += 1
       if not args.design:
         x +=1    
@@ -497,18 +516,29 @@ if dim == 2:
     # Homogenization for 2D frame structures
     array = void * np.ones((minres, minres))
     joblist = ()
+    steps_p = 0
     x = 0
     while x < steps + 1:
       y= 0
       while y < steps + 1:
-        if args.design:
+        if args.penalization:
+          steps_p = args.penalization
+          x_tmp = x
+          y_tmp = y
+          x = float(x) / steps_p if x > 0 else 0
+          y = float(y)/ steps_p if y > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
         if args.shape == "frame_modified":
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, True) 
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p,True) 
         else:
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, False)     
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, False)     
         densfilename = str(x) + "-" + str(y) + ".dens.xml"
         # filtering of the data
         if args.filter == 'on':   
@@ -527,6 +557,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
+          if args.penalization:
+              x = x_tmp
+              y = y_tmp
           y += 1
       if not args.design:
         x += 1 
@@ -538,10 +571,20 @@ if dim == 2:
     while x < steps + 1:
       y = 0
       while y < steps + 1:
-        if args.design:
+        if args.penalization:
+          x_tmp = x
+          y_tmp = y
+          x = float(1./ x) if x > 0 else 0
+          y = float(1./ y) if y > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
+          
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
         offy = int((minres / 2.) * (1 - float(y) / (steps)) + 0.5)
         for i in range(offx, minres - offx):
@@ -568,6 +611,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
+          if args.penalization:
+              x = x_tmp
+              y = y_tmp
           y += 1
       if not args.design:
         x+=1
@@ -582,11 +628,24 @@ elif dim == 3:
     while y < steps + 1:
       z = 0
       while z < steps + 1:
-        if args.design:
+        if args.penalization:
+          x_tmp = x
+          y_tmp = y
+          z_tmp = z
+          x = float(1./ x) if x > 0 else 0
+          y = float(1./ y) if y > 0 else 0
+          z = float(1./ z) if z > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+            z = float(steps * float(tmp[2]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = steps * int(tmp[0])
           y = steps * int(tmp[1])
           z = steps * int(tmp[2])
+          
         array = void * np.ones((minres, minres, minres))
         offx = int((minres / 2.) * (1 - float(x) / (steps)) + 0.5)
         offy = int((minres / 2.) * (1 - float(y) / (steps)) + 0.5)
@@ -629,6 +688,10 @@ elif dim == 3:
           y = steps + 1
           z = steps + 1
         else:
+          if args.penalization:
+              x = x_tmp
+              y = y_tmp
+              z = z_tmp
           z += 1
       if not args.design:
         y += 1

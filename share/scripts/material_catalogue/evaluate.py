@@ -162,12 +162,31 @@ if dim == 2:
     filename = "detailed_stats_" + str(folder)
     out = open(filename, "w")
     out.write('  ' + str(steps) + '   ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 \n')
+    if args.big:
+      joblist = ()
+      # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
+      for line in open(folder+"/jobs", 'r'):
+        joblist += ((line.strip()).split(), )
+      pwd = os.path.dirname(os.path.abspath(__file__))
+      os.chdir(str(pwd)+'/'+str(folder))
+      # start calculation of the Homogenization cell problems, args.big specifies the number of problems run at the same time
+      submit_job_max_len(joblist, max_processes=int(args.big))
+      os.chdir(str(pwd))
 elif dim == 3:
   # setup for homogenization tensor file in 3D
   filename = "detailed_stats_" + str(folder)
   out = open(filename, "w")
   out.write('  ' + str(steps) + '   ' + str(steps) + '  ' + str(steps) + '   0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00 0.000000e+00    0.000000e+00 0.000000e+00 0.000000e+00\n')
-  
+  if args.big:
+    joblist = ()
+    # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
+    for line in open(folder+"/jobs", 'r'):
+      joblist += ((line.strip()).split(), )
+    pwd = os.path.dirname(os.path.abspath(__file__))
+    os.chdir(str(pwd)+'/'+str(folder))
+    # start calculation of the Homogenization cell problems, args.big specifies the number of problems run at the same time
+    submit_job_max_len(joblist, max_processes=int(args.big))
+    os.chdir(str(pwd))  
   
 if dim == 2:
   x = 0
@@ -276,16 +295,6 @@ if dim == 2:
         else:
           y += 1 
     else:
-      if args.big:
-        joblist = ()
-        # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
-        for line in open(folder+"/jobs", 'r'):
-          joblist += ((line.strip()).split(), )
-        pwd = os.path.dirname(os.path.abspath(__file__))
-        os.chdir(str(pwd)+'/'+str(folder))
-        # start calculation of the Homogenization cell problems, args.big specifies the number of problems run at the same time
-        submit_job_max_len(joblist, max_processes=int(args.big))
-        os.chdir(str(pwd))
       y = 0
       while y < steps + 1:
         if args.design:
@@ -316,16 +325,6 @@ if dim == 2:
     if not args.design:
       x += 1
 elif dim == 3:
-  if args.big:
-    joblist = ()
-    # Read homogenized material tensors from cell problems in 2D and create detailed_stats table
-    for line in open(folder+"/jobs", 'r'):
-      joblist += ((line.strip()).split(), )
-    pwd = os.path.dirname(os.path.abspath(__file__))
-    os.chdir(str(pwd)+'/'+str(folder))
-    # start calculation of the Homogenization cell problems, args.big specifies the number of problems run at the same time
-    submit_job_max_len(joblist, max_processes=int(args.big))
-    os.chdir(str(pwd))
   # Read homogenized material tensors from cell problems in 3D and create detailed_stats table
   x = 0
   while x < steps + 1:

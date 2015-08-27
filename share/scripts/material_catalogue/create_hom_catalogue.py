@@ -16,6 +16,8 @@ parser.add_argument("--filt",help="filter for cell problem on or off",default="o
 parser.add_argument("--void",help="density of the void material",type=float,default=1e-9)
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
 parser.add_argument("--big", help="max. number of parallel cfs calculations, if turned on mtx files and vec files are not saved")
+parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
+
 
 
 
@@ -30,10 +32,13 @@ filt = args.filt
 void = args.void
 
 pwd = os.path.dirname(os.path.abspath(__file__))
-if args.design:
-  execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --design '+args.design)
+if args.design and args.penalization:
+  execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --design '+args.design +' --penalization '+str(args.penalization))
+elif args.penalization:
+  execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --penalization '+str(args.penalization))
 else:
   execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --hom ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void))
+
 
 
 if args.big:
