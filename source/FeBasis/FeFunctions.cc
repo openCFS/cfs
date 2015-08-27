@@ -511,8 +511,6 @@ DECLARE_LOG(fefunc)
             myOP = new IdentityOperator<FeH1,2,2,T>();
           else if(dofDim==3)
             myOP = new IdentityOperator<FeH1,2,3,T>();
-          else if (dofDim==9) // only valid for LBM state solution
-            myOP = new IdentityOperator<FeH1,2,9,T>();
         }else{
           if(dofDim==1)
             myOP = new IdentityOperator<FeH1,3,1,T>();

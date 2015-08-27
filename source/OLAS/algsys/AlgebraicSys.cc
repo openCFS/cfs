@@ -338,11 +338,9 @@ namespace CoupledField {
         BaseMatrix::DOUBLE;
 
     // Generate empty SBM vectors
-    rhs_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+    rhs_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
-      sol_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+      sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
       
       if ( rhs_ == NULL || sol_ == NULL ) {
         EXCEPTION( WRONG_CAST_MSG );
@@ -669,6 +667,12 @@ namespace CoupledField {
       solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
     }
     // ======================================================================
+
+    if(domain->GetBasePDE()->GetName() == "LatticeBoltzmann") // we have to adjust size of solution vector for LBM optimization
+    {
+    	LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
+    	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
+    }
 
     myInfo_->GetRoot()->ToFile(); // write current info state
 
@@ -1862,12 +1866,17 @@ namespace CoupledField {
     
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
-    if( newRHS.GetSize() != numFcts_ ) {
+    if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
       EXCEPTION( "New rhs consists of " << newRHS.GetSize()
                  << " sub-vectors, the RHS of the algebraic system of "
                  << rhs_->GetSize() << " entries." )
     }
     
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
+    	*(rhs_) = newRHS;
+    	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+    }
+
     // loop over all feFctIDs
     for(UInt i = 0; i < numFcts_; ++i ) {
 
@@ -1878,9 +1887,7 @@ namespace CoupledField {
   
       // security check: ensure that sub-vector has the same size
       // as the block indices
-      LOG_TRACE(algSys) << " size of subvec" << i+1 << ": " << newRHS(i).GetSize();
-      LOG_DBG3(algSys) << " subvec" << i+1 << "=" << newRHS(i).ToString();
-      if( newRHS(i).GetSize() != indices.GetSize() ) {
+      if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
         EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
                    "of indices do not match!");
       }
@@ -2549,7 +2556,7 @@ namespace CoupledField {
   void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
                                      const FeFctIdType fctId,
                                      bool setIDBC) {
-    
+
     LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
 
     // get all (blockId,index)-combinations for the current fctId
@@ -2558,6 +2565,39 @@ namespace CoupledField {
     UInt size = blockNums.GetSize();
     ptSol.Resize(size);
     ptSol.Init();
+
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
+    {
+    	//FIXME Dirty code, can be improved!
+    	indices.Resize((*(sysMat_[SYSTEM]))(0,0).GetNumCols());
+    	blockNums.Resize(indices.GetSize());
+    	size = blockNums.GetSize();
+    	blockNums.Init(0);
+    	ptSol.Resize(size);
+    	ptSol.Init();
+    	for (unsigned int i = 0; i < size; i++)
+    	{
+    		indices[i] = size - i;
+    	}
+//        Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+//    	std::cout << "Size of sol vector: " << sol_->GetPointer(0)->GetSize() << std::endl;
+//    	unsigned int solSize = sol_->GetPointer(0)->GetSize();
+//    	for (unsigned int i = 0; i < solSize; i++)
+//    	{
+//    		double entry = 0.0;
+//    		sol_->GetPointer(0)->GetEntry(i,entry);
+//    		retVec[i] = entry;
+//    		std::cout << "entry " << i << " = " << entry << std::endl;
+    	}
+//    	// Sequential setting: We copy the solution and add the Dirichlet values
+////    	const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( sol_->GetPointer(0)->GetEntry(0,entry));
+////    	Vector<Double> & retVec = dynamic_cast<Vector<Double>& >( ptSol );
+////    	retVec.Resize( size );
+////    	for (unsigned int i = 0; i < size; i++ ) {
+////    		retVec[i] = dVec1[i];
+////    	}
+////    	return;
+//    }
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );

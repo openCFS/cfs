@@ -141,7 +141,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 {
   int it = 0;
   // counts number of written steps when not in optimization
-  int count = 0;
+  int count = 1;
 
   // this flag cannot be set in constructor, since information about optimization is not available when this constructor is called
   if (domain->GetOptimization() != NULL && domain->GetOptimization()->GetOptimizerType() != Optimization::EVALUATE_INITIAL_DESIGN) {

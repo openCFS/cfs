@@ -23,6 +23,8 @@ FeSpaceConst::FeSpaceConst(PtrParamNode paramNode, PtrParamNode infoNode, Grid* 
 
   allowedEntities_.insert(EntityList::COIL_LIST);
 
+  allowedEntities_.insert(EntityList::ELEM_LIST);
+
 }
 
 FeSpaceConst::~FeSpaceConst(){}
