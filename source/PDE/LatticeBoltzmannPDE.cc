@@ -38,7 +38,8 @@
 #include "Driver/FormsContexts.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 //new integrator concept
-#include "Forms/BiLinForms/BDBInt.hh"
+//#include "Forms/BiLinForms/BDBInt.hh"
+#include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 
@@ -374,15 +375,17 @@ namespace CoupledField {
       // ====================================================================
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
-      BaseBDBInt* stiffInt = NULL;
-      std::set<RegionIdType> volRegions;
+      SingleEntryBiLinInt* stiffInt = NULL;
+//      std::set<RegionIdType> volRegions;
 
-      if( dim_ == 2 ) {
+//      if( dim_ == 2 ) {
     	// surfaceBBInt is the only currently existing integrator that implies an unsymmetric element matrix
-        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
-      } else {
-        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
-      }
+//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
+      shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
+      stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
+//      } else {
+//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
+//      }
 
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
@@ -394,7 +397,7 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-      bdbInts_[actRegion] = stiffInt;
+//      bdbInts_[actRegion] = stiffInt;
     }
   }
 
@@ -565,6 +568,9 @@ namespace CoupledField {
         weights[Q_SE] = 1.0 / 36.0;
       }
     }
+    std::cout << "ux=" << ux.ToString(false) << std::endl;
+    std::cout << "uy=" << uy.ToString(false) << std::endl;
+    std::cout << "dloc=" << dloc.ToString(false) << std::endl;
   }
 
 
@@ -650,11 +656,12 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
+  // for debugging
 //  WriteMatrix("Jacobian_col.txt",col_jacobi);
 //  WriteMatrix("Jacobian_old.txt",Jacobi);
 //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
+
   // use the cfs system matrix to solve the adjoint system
-//  algsys_->SetFEMatrixType(SYSTEM,false,false,0,0);
   StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
   LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
   LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
@@ -670,6 +677,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
   // right-hand side
   Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+  std::cout << "SA: d_pressuredrop_d_f=" << b.ToString(0,',') << std::endl;
+
   LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
   SBM_Vector* rhs = new SBM_Vector(1,BaseMatrix::DOUBLE);
   rhs->SetSubVector(&b,0);
@@ -697,7 +706,10 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
     double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
     de->AddGradient(f, val);
+    std::cout << "gradient of design element " << idx << " is " << val << std::endl;
   }
+
+  std::cout << "SA: Adjoint vector=" << sol.ToString(0,',') << std::endl;
 
   LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
 
@@ -1334,8 +1346,8 @@ void LatticeBoltzmannPDE::WriteMatrix(const std::string& file, const compressed_
   std::ofstream output(file.c_str());
   for (compressed_matrix<double>::const_iterator1 it1 = M.begin1(); it1 != M.end1(); ++it1) {
     for (compressed_matrix<double>::const_iterator2 it2 = it1.begin(); it2 != it1.end(); ++it2) {
-      //      output << it2.index1()+1 << " " << it2.index2()+1 << "        " << *(it2) << std::endl;
-      output << it2.index1() << " " << it2.index2() << "        " << *(it2) << std::endl;
+            output << it2.index1()+1 << " " << it2.index2()+1 << "        " << *(it2) << std::endl;
+//      output << it2.index1() << " " << it2.index2() << "        " << *(it2) << std::endl;
     }
     output << std::endl;
   }

@@ -69,7 +69,14 @@ SingleEntryBiLinInt::SingleEntryBiLinInt::~SingleEntryBiLinInt() {
 void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Double>& stiffMat,
                                              EntityIterator& ent1, 
                                              EntityIterator& ent2) {
-      
+
+
+  // for LatticeBoltzmannPDE we just need a dummy elemMat
+  if (domain->GetSinglePDE("LatticeBoltzmann") != NULL) {
+    stiffMat.Resize(1);
+    stiffMat.InitValue(1.0);
+    return;
+  }
   // we use just a dummy local point, as we assume constant
   // expression coefficient function
   LocPointMapped lpm;
