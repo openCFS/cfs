@@ -125,6 +125,7 @@ parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for deb
 
 parser.add_argument("--big", help="specify number of cfs.rel runs in parallel, if option is turned on, mtx files and vec files are not saved")
 parser.add_argument("--oversampling", help="oversampling: specify number of repetitions in x-direction, eg. oversampling radius = 1 => 3 repetitions")
+parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
 
 
 
@@ -195,7 +196,17 @@ if dim == 2:
     if args.msfem:
       y = 0
       while y < steps + 1:
-        if args.design:
+        if args.penalization:
+          steps_p = args.penalization
+          x_tmp = x
+          y_tmp = y
+          x = float(x) / steps_p if x > 0 else 0
+          y = float(y)/ steps_p if y > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
@@ -293,15 +304,29 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
+          if args.penalization:
+            x = x_tmp
+            y = y_tmp
           y += 1 
     else:
       y = 0
       while y < steps + 1:
-        if args.design:
+        if args.penalization:
+          steps_p = args.penalization
+          x_tmp = x
+          y_tmp = y
+          x = float(x) / steps_p if x > 0 else 0
+          y = float(y)/ steps_p if y > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
-          y = int(steps * float(tmp[1]))  
-        infoxml = str(folder) + "/" + str(x) + "-" + str(y) + ".info.xml"
+          y = int(steps * float(tmp[1]))
+        problem = (str(x_tmp) +"-" + str(y_tmp) + "_" + str(1./steps_p)) if args.penalization else str(x) + "-" + str(y)  
+        infoxml = str(folder) + "/" + problem + ".info.xml"
         # print infoxml
         if os.path.isfile(infoxml):      
           doc = libxml2.parseFile(infoxml)
@@ -321,6 +346,9 @@ if dim == 2:
           x = steps + 1
           y = steps + 1
         else:
+          if args.penalization:
+            x = x_tmp
+            y = y_tmp
           y += 1
     if not args.design:
       x += 1
@@ -332,7 +360,20 @@ elif dim == 3:
     while y < steps + 1:
       z= 0
       while z < steps + 1:
-        if args.design:
+        if args.penalization:
+          steps_p = args.penalization
+          x_tmp = x
+          y_tmp = y
+          z_tmp = z
+          x = float(x) / steps_p if x > 0 else 0
+          y = float(y)/ steps_p if y > 0 else 0
+          z = float(z)/ steps_p if z > 0 else 0
+          if args.design:
+            tmp = args.design.split(',')
+            x = float(steps * float(tmp[0]))
+            y = float(steps * float(tmp[1]))
+            z = int(steps * float(tmp[2]))  
+        elif args.design:
           tmp = args.design.split(',')
           x = int(steps * float(tmp[0]))
           y = int(steps * float(tmp[1]))
@@ -358,6 +399,10 @@ elif dim == 3:
           y = steps + 1
           z = steps + 1
         else:
+          if args.penalization:
+              x = x_tmp
+              y = y_tmp
+              z = z_tmp
           z += 1
       if args.design:
         y += 1
