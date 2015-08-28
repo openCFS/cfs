@@ -568,9 +568,6 @@ namespace CoupledField {
         weights[Q_SE] = 1.0 / 36.0;
       }
     }
-    std::cout << "ux=" << ux.ToString(false) << std::endl;
-    std::cout << "uy=" << uy.ToString(false) << std::endl;
-    std::cout << "dloc=" << dloc.ToString(false) << std::endl;
   }
 
 
@@ -664,6 +661,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // use the cfs system matrix to solve the adjoint system
   StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
   LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
+  LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
   LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
   LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
   LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
@@ -677,14 +675,15 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
   // right-hand side
   Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
-  std::cout << "SA: d_pressuredrop_d_f=" << b.ToString(0,',') << std::endl;
 
   LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
-  SBM_Vector* rhs = new SBM_Vector(1,BaseMatrix::DOUBLE);
-  rhs->SetSubVector(&b,0);
+  SBM_Vector rhs(BaseMatrix::DOUBLE);
+  rhs.Resize(1);
+  rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
+  rhs.AddToSubVector(b,0);
 
-  LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs->GetPointer(0)->GetSize();
-  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs->GetPointer(0)->ToString(0,',');
+  LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
+  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
 
   double rhs_setup = timer.GetCPUTime();
 
@@ -692,11 +691,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   double setup_wall = timer.GetWallTime();
   double setup_cpu = timer.GetCPUTime();
 
-  algsys_->InitRHS(*rhs);
+  algsys_->InitRHS(rhs);
 
 //  PtrParamNode analysis_id = domain->GetDriver()->CreateAnalysisId("lbm_adjoint", 0);
   algsys_->SetupSolver();
-  algsys_->Solve(false);
+  algsys_->Solve();
   Vector<double> sol;
   algsys_->GetSolutionVal(sol,0,false);
 
@@ -706,10 +705,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
     double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
     de->AddGradient(f, val);
-    std::cout << "gradient of design element " << idx << " is " << val << std::endl;
   }
-
-  std::cout << "SA: Adjoint vector=" << sol.ToString(0,',') << std::endl;
 
   LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
 

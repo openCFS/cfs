@@ -1873,6 +1873,7 @@ namespace CoupledField {
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
     	*(rhs_) = newRHS;
     	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+    	return;
     }
 
     // loop over all feFctIDs
@@ -2369,9 +2370,6 @@ namespace CoupledField {
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
 
-//    std::cout << "Updating RHS with matrix "
-//        << feMatrixType.ToString(matrixType) << std::endl;
-
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
     if( fup.GetSize() != numFcts_ ) {
@@ -2566,35 +2564,12 @@ namespace CoupledField {
     if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
     {
     	//FIXME Dirty code, can be improved!
-    	indices.Resize((*(sysMat_[SYSTEM]))(0,0).GetNumCols());
-    	blockNums.Resize(indices.GetSize());
-    	size = blockNums.GetSize();
-    	blockNums.Init(0);
     	ptSol.Resize(size);
-    	ptSol.Init();
-    	for (unsigned int i = 0; i < size; i++)
-    	{
-    		indices[i] = i+1;
-    	}
-//        Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
-//    	std::cout << "Size of sol vector: " << sol_->GetPointer(0)->GetSize() << std::endl;
-//    	unsigned int solSize = sol_->GetPointer(0)->GetSize();
-//    	for (unsigned int i = 0; i < solSize; i++)
-//    	{
-//    		double entry = 0.0;
-//    		sol_->GetPointer(0)->GetEntry(i,entry);
-//    		retVec[i] = entry;
-//    		std::cout << "entry " << i << " = " << entry << std::endl;
-    	}
-//    	// Sequential setting: We copy the solution and add the Dirichlet values
-////    	const Vector<Double> & dVec1 = dynamic_cast<Vector<Double>&>( sol_->GetPointer(0)->GetEntry(0,entry));
-////    	Vector<Double> & retVec = dynamic_cast<Vector<Double>& >( ptSol );
-////    	retVec.Resize( size );
-////    	for (unsigned int i = 0; i < size; i++ ) {
-////    		retVec[i] = dVec1[i];
-////    	}
-////    	return;
-//    }
+    	Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+    	retVec = *(sol_->GetPointer(0));
+
+    	return;
+  	}
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
