@@ -7,6 +7,7 @@ SET(OPTIMIZER_SRCS
 )
 
 SET(TARGET_LL
+  optimization
   cfsgeneral
   datainout
   design
@@ -14,7 +15,6 @@ SET(TARGET_LL
   driver
   logging
   matvec
-  optimization
   paramh
   pde
   utils
@@ -63,4 +63,4 @@ ENDIF(USE_IPOPT)
 
 ADD_LIBRARY(optimizer STATIC ${OPTIMIZER_SRCS})
 
-TARGET_LINK_LIBRARIES(optimizer optimization ${TARGET_LL})
+TARGET_LINK_LIBRARIES(optimizer ${TARGET_LL})

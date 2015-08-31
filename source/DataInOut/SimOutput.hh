@@ -20,7 +20,7 @@ namespace fs = boost::filesystem;
 namespace CoupledField {
 
   //! Forward class declaration
-  class ParamNode;
+  
   
 
   //! Base class for writing result objects to file
@@ -100,7 +100,7 @@ namespace CoupledField {
     //! Get from complex number the angle in degree with lower limit
     inline Double CPhase( const Complex& c ) const {
       return (std::abs(c.imag()) > 1e-16) ?                   
-        std::atan2(c.imag(),c.real() )*180/PI : 
+        std::atan2(c.imag(),c.real() )*180/M_PI : 
          ( c.real() < 0.0 ) ? 180 : 0 ; 
     }
     

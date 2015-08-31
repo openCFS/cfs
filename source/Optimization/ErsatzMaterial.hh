@@ -126,8 +126,9 @@ public:
 
   /** This is the current homogenized tensor.
    * Evaluated by HOM_TRACKING, HOM_TENSOR, HOM_FROBENIUS_PRODUCT (as objective only).
-   * MechPDE reads it when "homogenizedTensor" is a region result! */
-  Matrix<double> homogenizedTensor;
+   * MechPDE reads it when "homogenizedTensor" is a region result!
+   * It is a vector for the variants for transformation and robust */
+  StdVector<Matrix<double> > homogenizedTensor;
 
   OptimizationMaterial* GetMaterial() { return material; }
 
@@ -223,8 +224,9 @@ protected:
   }
 
   /** Helper that asks MechanicMaterial. Works only for a single region.
+   * @param excitation we need to make sure the excitation is the active one for robust
    * @return empty if multiple regions */
-  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor);
+  StdVector<std::pair<std::string, double> > GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex);
 
   /** This is an extension to SolveStateProblem() where the forward problem is solved and stored.
    * Depending on the objective function SolveAdjointProblem() is called to additionally solve and store the
@@ -298,9 +300,6 @@ protected:
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
 
-  /** Calcultates Michael Stingel's norm  sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
-  double CalcProjection(Function* f, bool derivative);
-
   /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
@@ -331,8 +330,8 @@ protected:
   /** takes the result of the test strain computations and calculates the homogenized 
    *  material tensor (see Bendsoe/Sigmund: Topology Optimization, p. 122ff.
    *  It must be called only for the last excitation when all test strains are known.
-   *  Writes the tensor to info.log */
-  virtual Matrix<double> CalcHomogenizedTensor();
+   *  @param f to handle transformaiton and robustness. Extracts the excitation from f */
+  virtual Matrix<double> CalcHomogenizedTensor(Function* f);
 
   /** Calculates the gradient of the homogenization tracking. When J = 0.5 * || E^* - E^H ||^2
    * the this calulates -1 (E^* - E^H) * d(E^H)/d(rho_e) using a matrix scalar product
@@ -356,8 +355,9 @@ protected:
    * @param entry the 1-based!!!! entry within the tensor
    * @param derivative this sets d(E^H)/d(rho_e) for the current tensor entry
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
+   * @param meta the meta excitation index (rotations, robust) or 0 for standard case
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out);
+  double CalcHomogenizedTensorEntry(const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
@@ -439,10 +439,8 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static double CalcHomogenizedElementProduct(ErsatzMaterial* em,
-      DesignElement* de, bool derivative, Vector<double>& u1,
-      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij,
-      Matrix<double>& test_strain_matrix_kl);
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, DesignElement* de, bool derivative, Vector<double>& u1,
+      Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
 

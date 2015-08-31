@@ -24,7 +24,6 @@ namespace CoupledField
   class Grid;
   class BaseMaterial;
   struct Composite;
-  class ParamNode;
   class FunctionDescription;
   class BaseBDBInt;
   class BaseFieldFunctor;

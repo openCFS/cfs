@@ -40,9 +40,8 @@ public:
   /** This is the actual, expensive action. It sets the filters for all
    * relevant design elements of simp->design.data
    * @param pn our parameter section of the filer, includes design name
-   * @param info where to write (in HEADER) the information
-   * @param To be usable for the projection function which has own design elements. NULL takes the standard design space!*/
-  void SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data = NULL);
+   * @param info where to write (in HEADER) the information */
+  void SetFilter(PtrParamNode pn, PtrParamNode info);
 
   /** Do we have periodic BC. */
   bool IsPeriodic() const { return periodic; }
@@ -75,12 +74,12 @@ public:
 
   static std::string ToString(const StdVector<std::pair<Elem*, int> >& data);
 
+  static std::string ToString(const StdVector<Filter::NeighbourElement>& data);
+
 private:
 
   /** The common Constructor, does much less than Initialize() */
   void Constructor();
-
-
 
   /** The actual constructor, initializes for SetFilter() and ExtendPeriodicNeighborhood() on
    * the fly! The time is not recorded!
@@ -90,7 +89,7 @@ private:
   /** finds quite efficiently the neighborhood with an regular grid.
    * The idea is that by radius and edge size we construct a 2D/3D cube and check every element for distance.
    * @param neighbors to be reused */
-  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors);
+  void FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors);
 
   /** Helper for FindRegularNeighborhood().
    * Defines an element by the number of (+/-) steps in the main axes
@@ -105,7 +104,7 @@ private:
    * See implementation for docu. */
   void FindUnstructuredNeighborhood(DesignElement* base, double radius,
                           StdVector<std::pair<Elem*, int> >& initial,
-                          StdVector<SIMPElement::NeighbourElement>& neighbors,
+                          StdVector<Filter::NeighbourElement>& neighbors,
                           StdVector<unsigned int>& too_far);
 
   /** calc the distance between two points for the periodic case,
@@ -135,8 +134,9 @@ private:
                        int min_common,
                        StdVector<std::pair<Elem*, int> >& out);
 
-  /** Helper for LOG_DBG() */
-  std::string ToString(StdVector<SIMPElement::NeighbourElement>& data);
+
+  /** helper for SetFilter() */
+  void WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first);
 
   /** the way of the weighting in the filter. CONSTANT e.g. for MAX filter */
   enum Contribution { LINEAR, CONSTANT };
@@ -156,9 +156,6 @@ private:
 
   /** is the grid regular? */
   bool regular;
-
-  /** The reference filter setting */
-  Filter filter_;
 
   /** The filtered design (for multiple designs only) */
   DesignElement::Type design;
@@ -189,6 +186,8 @@ private:
 
   /** is Initialize() called yet? */
   bool initialized_;
+
+  unsigned int num_robust_;
 
   DesignSpace* space;
   StdVector<RegionIdType> regions;

@@ -75,7 +75,7 @@ namespace CoupledField
                                       PtrParamNode paramNode, PtrParamNode infoNode);  
   
     /** We need to differentiate the SingleDrivers from the MultiSequenceDriver */
-    typedef enum { SINGLE_DRIVER, MULTI_SEQUENCE_DRIVER } DriverClass;
+    typedef enum { SINGLE_DRIVER = 0, MULTI_SEQUENCE_DRIVER } DriverClass;
   
     /** Identification of the driver */
     virtual DriverClass GetDriverClass() = 0;

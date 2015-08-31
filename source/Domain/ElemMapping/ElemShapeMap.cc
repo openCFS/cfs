@@ -91,7 +91,7 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   Vector<Double> globPoint;
   if (esm->IsAxi()) {
     esm->Local2Global(globPoint, lp);
-    jacDet *= 2 * PI * globPoint[0];
+    jacDet *= 2 * M_PI * globPoint[0];
   }
 }
 
@@ -1854,7 +1854,7 @@ if (jac.GetNumCols() == jac.GetNumRows()) {
 Vector<Double> globPoint;
 if (IsAxi()) {
   Local2Global(globPoint, lp);
-  jacDet *= 2 * PI * globPoint[0];
+  jacDet *= 2 * M_PI * globPoint[0];
 }
 
 

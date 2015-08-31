@@ -16,7 +16,9 @@ SET(OPTIMIZATION_SRCS
   PiezoParamMat.cc
   ShapeGrad.cc
   TransferFunction.cc
+  Transform.cc
   Objective.cc
+  Context.cc
   ParamMat.cc
  )
 
@@ -28,13 +30,11 @@ SET(TARGET_LL
   algsys-olas
   cfsgeneral
   datainout
-  design
   domain
   driver
   logging
   materials
   matvec
-  optimizer
   paramh
   pde
   utils

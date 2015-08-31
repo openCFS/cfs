@@ -44,7 +44,7 @@ IF(MINGW)
 ELSE()
   LIST(APPEND TARGET_LL
     -lpthread
-    -lgfortran
+    ${CFS_FORTRAN_DYNRT_LIBS}
     )
 ENDIF()
 
