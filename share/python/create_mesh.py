@@ -20,7 +20,7 @@ args = parser.parse_args()
 mesh_name = args.type
 
 # sanity checks
-if args.lbm and args.type <> ("lbm2d" or "lbm3d"):
+if args.lbm and args.type <> "lbm2d" and args.type <>"lbm3d":
   print "error: --lbm only for --type lbm2d or lbm3d"
   sys.exit()
 
