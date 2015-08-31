@@ -72,7 +72,8 @@ void SingleEntryBiLinInt::CalcElementMatrix( Matrix<Double>& stiffMat,
 
 
   // for LatticeBoltzmannPDE we just need a dummy elemMat
-  if (domain->GetSinglePDE("LatticeBoltzmann") != NULL) {
+  // FIXME: this is only a workaround
+  if (domain->GetSinglePDE("LatticeBoltzmann",false) != NULL) {
     stiffMat.Resize(1);
     stiffMat.InitValue(1.0);
     return;
