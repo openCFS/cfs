@@ -324,7 +324,7 @@ namespace CoupledField {
     // TODO here we assume that the whole mesh is for LBM and the mesh is of lexicographic ordering.
     // To be good this needs to handled by element neighbors!
     if(grid->GetNumElems() != n_elems)
-      EXCEPTION("the current implementation assumes the whole mesh to used for LBM and lexicographic ordered. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
+      EXCEPTION("the current implementation assumes the whole mesh to be used for LBM and lexicographic ordering. Mesh has " << grid->GetNumElems() << " but we assume " << n_elems);
 
     idx_to_elem.Resize(n_elems);
     for(unsigned int i = 0; i < n_elems; i++)
