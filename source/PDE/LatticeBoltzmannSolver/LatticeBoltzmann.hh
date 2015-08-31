@@ -5,7 +5,6 @@
 #include <set>
 #include "Utils/StdVector.hh"
 #include "General/Enum.hh"
-#include "DataInOut/ResultHandler.hh"
 /** This file is an extract of the LBM code of Markus Wittmann (RRZE) based on the code of Thomas Guess (AM2) based on the code of Georg Pingen (USA).
 The original code from Markus can be found at
 

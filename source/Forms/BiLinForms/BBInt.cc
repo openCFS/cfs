@@ -70,12 +70,6 @@ namespace CoupledField{
      elemMat.Resize( nrFncs * bOperator_->GetDimDof() );
      elemMat.Init();
 
-     // for LatticeBoltzmannPDE we just need a dummy elemMat
-     if (domain->GetSinglePDE("LatticeBoltzmann") != NULL) {
-       elemMat.InitValue(1.0);
-       return;
-     }
-
 #define USE_BLAS_VERSION
      // Loop over all integration points
      LocPointMapped lp;
