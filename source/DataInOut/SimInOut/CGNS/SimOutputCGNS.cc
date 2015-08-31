@@ -816,7 +816,7 @@ namespace CoupledField {
                                      const StdVector<shared_ptr<BaseResult> > & solList,
                                      ResultInfo::EntityUnknownType entityType ) {
 
-    static const double H180DEG_OVER_PI = 180.0 / PI;
+    static const double H180DEG_OVER_PI = 180.0 / M_PI;
 
     BaseMatrix::EntryType entryType = solList[0]->GetEntryType();
 

@@ -106,7 +106,7 @@ namespace CoupledField{
      *  convention: set gamma = 0 degree 
      */
     angles[0] = rotMat[1][2];
-    angles[1] = PI/2.0;
+    angles[1] = M_PI/2.0;
     angles[2] = 0;
   }
     

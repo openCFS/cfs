@@ -64,7 +64,7 @@ public:
     EXCEPTION("overload!");
   }
 
-  virtual const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
+  virtual const DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE) {
     EXCEPTION("overload!");
   }
 
@@ -146,8 +146,8 @@ public:
   DenseMatrix& MechMass(const Elem* elem,  bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, bool enforce_unstructured = false);
 
   /** overwrites OptimizationMaterial::Mass */
-  DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1) {
-    return MechMass(elem, bimaterial, multimaterial, DesignElement::NO_DERIVATIVE);
+  DenseMatrix& Mass(const Elem* elem, bool bimaterial = false, int multimaterial = -1, DesignElement::Type direction = DesignElement::NO_DERIVATIVE) {
+    return MechMass(elem, bimaterial, multimaterial, direction);
   }
 
   

@@ -17,7 +17,7 @@ namespace CoupledField
   // forward class declarations
   class BaseSolveStep;
   class Assemble;
-  class ParamNode;
+  
   class BaseFeFunction;
   class SimState;
   class Domain;

@@ -20,11 +20,30 @@ Filter::Filter()
   type_          = NO_FILTERING;
   sensitivity_   = SIGMUND;
   density_       = STANDARD;
-  beta_          = -1.0;
-  heaviside_corr = -1.0;
+  beta           = -1.0;
   eta            = -1.0;
+  non_lin_scale  = -1.0;
+  non_lin_offset = -1.0;
   explicit_lower_bound_ = std::numeric_limits<double>::min();
+  region         = NO_REGION_ID;
+  weight         = 1.0;
+  weight_sum     = -1.0;
 }
+
+
+double Filter::CalcWeightSum(bool include_this) const
+{
+double res = 0.0;
+
+for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
+  res += neighborhood[i].weight;
+
+if(include_this)
+  res += this->weight;
+
+return res;
+}
+
 
 double Filter::GetLowerBound(const DesignElement* de) const
 {
@@ -35,56 +54,64 @@ double Filter::GetLowerBound(const DesignElement* de) const
 }
 
 
-void Filter::SetBeta(double val, const DesignSpace* space)
+void Filter::SetNonLinCorrection(const DesignElement* ref, unsigned int fix)
 {
-  beta_ = val;
-  // is there a need to set heavside_corr?
-  if(type_ != DENSITY || density_ != HEAVISIDE) return;
+  if(type_ != DENSITY || !(density_ == SOLID_HEAVISIDE || density_ == VOID_HEAVISIDE || density_ == TANH))
+    return;
 
-  // in case we do bimaterial optimization disable the correction by setting it to 0 which makes it transparent
-  assert(space->regions.GetSize() == 1 && space->regions[0].GetSize() == 1);
-  if(space->regions[0][space->GetRegionId()].HasBiMaterial())
+  assert(beta >= 0);
+  assert(density_ != TANH || eta >= 0);
+
+  // we ignore the bimat case - the we still have the tahn problem for small beta
+
+  DesignElement de = DesignElement();
+  de.simp = new SIMPElement(&de);
+  de.simp->filter = *this; // only copy data, changes don't distribute back
+  de.elem = ref->elem; // otherwise the logings segfault
+
+  double ub = ref->GetUpperBound();
+  double lb = ref->GetLowerBound();
+
+  // calc the pure values
+  de.simp->filter[fix].non_lin_scale = 1.0;
+  de.simp->filter[fix].non_lin_offset = 0;
+
+  double org_u = density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix);
+  double org_l = density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix);
+
+  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " fix=" << fix << " f=" << density.ToString(density_) << " ub=" << ub << " -> " << org_u << " lb=" << lb << " -> " << org_l;
+
+  assert((org_u-org_l) >= 0.1);
+  assert((org_u-org_l) <= 1.0);
+  assert(org_u > org_l);
+
+  // F ist the filter. We scale with scale*F + offset
+  // scale such that F(u)-F(l) == ub-lb
+  this->non_lin_scale  = (ub-lb) / (org_u - org_l);
+  this->non_lin_offset = lb - non_lin_scale * org_l;
+  de.simp->filter = *this; // copy again for the asserts checking the results
+
+  LOG_DBG(ds) << "SNLC de=" << ref->ToString() << " f=" << density.ToString(density_) << " d==" << (ub-lb) << " od=" << (org_u-org_l) << " -> s=" << non_lin_scale << " o=" << non_lin_offset;
+
+  assert(close(density_ == TANH ? de.simp->CalcTanh(lb, fix) : de.simp->CalcHeaviside(lb, fix), lb));
+  assert(close(density_ == TANH ? de.simp->CalcTanh(ub, fix) : de.simp->CalcHeaviside(ub, fix), ub));
+}
+
+
+void Filter::Dump() const
+{
+  double weight_sum = weight;
+  double distance_avg = 0.0;
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
   {
-    this->heaviside_corr = 0.0;
+    weight_sum   += neighborhood[i].weight;
+    distance_avg += neighborhood[i].distance;
   }
-  else
-  {
-    double lb = GetLowerBound(&(space->data[0]));
-    // we assume a constant lower bound, if this is not he case we need another implementation
-    for(unsigned int i = 0, n = space->data.GetSize(); i < n; i++)
-      assert(GetLowerBound(&(space->data[i])) == lb);
+  distance_avg /= neighborhood.GetSize();
 
-    DesignElement de = DesignElement();
-    de.simp = new SIMPElement(&de);
-    de.simp->filter = *this;
-    de.elem = space->data[0].elem;
-    explicit_lower_bound_ = lb;
-    de.SetDesign(lb);
-
-    // find haviside_corr by a simple bisection (results in 0.2 ... 0.99999)
-    double lower = 1e-6;
-    double upper = 2.0;
-    while(upper - lower > 1e-6) // so close that it doesn't matter in the end which value [lower:upper] is best
-    {
-      // this is nonsense!! TODO
-      // why not like
-      // double mid = 0.5 * (ub + lb);
-      // double test = tf->Transform(NULL, DesignElement::PLAIN, false, mid);
-      // if(test < physical)
-
-      double mid = 0.5 * (upper + lower);
-      de.simp->filter.heaviside_corr = 0.5 * (upper + mid);
-      double err_u = lb - de.simp->CalcHeaviside(lb);
-      de.simp->filter.heaviside_corr = 0.5 * (mid + lower);
-      double err_l = lb - de.simp->CalcHeaviside(lb);
-      if(std::abs(err_u) < std::abs(err_l))
-        lower = mid;
-      else
-        upper = mid;
-      LOG_DBG2(ds) << "Filter:SB val=" << val << " hc=" << de.simp->filter.heaviside_corr << " lower=" << lower
-                   << " beta=" << de.simp->filter.GetBeta() << " upper=" << upper << " err_l=" << err_l << " err_u=" << err_u
-                   << " H(" << lb << ")=" << de.simp->CalcHeaviside(lb);
-    }
-    this->heaviside_corr = de.simp->filter.heaviside_corr;
-  }
+  std::cout << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
+  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+    std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
+              << neighborhood[i].neighbour->GetLocation()->ToString()
+              << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }

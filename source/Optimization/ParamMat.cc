@@ -45,7 +45,7 @@ void ParamMat::PostInit()
     {
       if(structure_ == NULL)
         structure_ = new DesignStructure(this);
-      structure_->SetFilters(list[i], this->optInfoNode);
+      structure_->SetFilter(list[i], this->optInfoNode);
     }
   }
 
@@ -72,27 +72,17 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
     Assign(out, tmp, 1.0);
     if(complex_)
     {
-      // in SIMP we would call AddMassToStiffness(). As we assume to have no damping here and no bimaterial it is simpleer here!
-      assert(mode != EIGENFREQ || (derivative == true && ev > 0)); // EIGENVALUE only for derivative
-      assert(derivative == true);
-      assert(pde->GetDamping(de->elem->regionId) == NONE);
-      assert(de->multimaterial == NULL);
-      double m_factor = mode == EIGENFREQ ? ev : 1.0;
-      double omega = mode != EIGENFREQ ? 2.0 * M_PI * pde->GetSolveStep()->GetActFreq() : 1.0 ;  // todo: check with multiple excitation frequencies!
-      assert(mode != EIGENFREQ || (omega == 1.0 && m_factor != 0)); // note that we might have very_small negative eigenvalues!
-      T1 damp_mass = -1.0 *omega*omega*m_factor;
-      Matrix<double> M;
-      if(material->ComplexElementMatrix(de->elem->regionId)) // true for bloch
+      AddMassToStiffness(tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
+
+      // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
+
+      if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
-        const Matrix<Complex>& T = dynamic_cast<const Matrix<Complex>&>(mech_mat_->MechMass(de->elem, false, -1, de->GetType())); // no bimat, multimatindx -1
-                assert(IsNoise(T.GetPart(Global::IMAG).NormL2())); // up to now we have nothing interesting in the imaginary part of a mass matrix
-        M = T.GetPart(Global::REAL);
+        // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
+        AddMassToStiffness(tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, true, mode, ev); // bimaterial
+
+        // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
-      else
-        M = dynamic_cast<const Matrix<double>& >(mech_mat_->MechMass(de->elem, false, -1, de->GetType()));
-      Add<T1, double>(out, damp_mass, M);
-      LOG_DBG(em) << "PM:SEK de=" << de->ToString() << " app=" << application.ToString(app) << " d=" << derivative << " m_factor=" << m_factor << " omega=" << omega << " -> " << damp_mass << " K=" << tmp.NormL2() << " M=" << M.NormL2();
-      LOG_DBG3(em) << "PM:SEK M=" << M.ToString();
     }
     break;
   }

@@ -62,7 +62,8 @@ namespace CoupledField
     ~LevelSetNode() {}
     
     /** state of the node for fast marching algorithm */
-    enum State {FAR = -3, CLOSE = -2, ACCEPTED = -1, NONE = 0, ACCEPTED_POS = 1, CLOSE_POS = 2, FAR_POS = 3};
+    enum State {LS_FAR = -3, LS_CLOSE = -2, LS_ACCEPTED = -1, LS_NONE = 0, LS_ACCEPTED_POS = 1, LS_CLOSE_POS = 2, LS_FAR_POS = 3};
+    
 
     /** Assumes, the vicinity of the underlying design element to be properly set!
      * sorting is according to VicinityElement::Neighbour: 0 = X_P, 1 = X_N, 2 = Y_P, 3 = Y_N, 4 = Z_P, 5 = Z_N */
@@ -102,7 +103,7 @@ namespace CoupledField
   {
     void operator()(LevelSetNode &node) 
     { 
-      node.state = LevelSetNode::NONE;
+      node.state = LevelSetNode::LS_NONE;
     }
   };
 

@@ -17,6 +17,7 @@
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Function.hh"
@@ -459,7 +460,7 @@ double OptimalityCondition::Evaluate(double lambda)
      double b_e = -1.0 * smart_obj_grad;
 
      // ill posed problems have a problem here!  
-     if(isnan(b_e)) EXCEPTION("b_e is nan");
+     if(std::isnan(b_e)) EXCEPTION("b_e is nan");
 
      // for compliant mechanism the gradient can be positive, this is cut
      // -> Bendsoe/Sigmund. p 97

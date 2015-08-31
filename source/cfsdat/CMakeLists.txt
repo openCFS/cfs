@@ -17,7 +17,6 @@ SET(CFSDAT_SRCS
 ADD_EXECUTABLE(cfsdatbin ${CFSDAT_SRCS})
 
 SET(TARGET_LL ${TARGET_LL}
-#  optimization
   driver
   mesh 
   pde
@@ -25,7 +24,6 @@ SET(TARGET_LL ${TARGET_LL}
   mesh 
   pde
   domain
-#  optimization
   materials
   mathparser
   coupledpde
@@ -84,7 +82,7 @@ LIST(APPEND TARGET_LL
 IF(NOT MINGW)
   LIST(APPEND TARGET_LL
     -lpthread
-    -lgfortran
+    ${CFS_FORTRAN_DYNRT_LIBS}
     )
 ENDIF()
   

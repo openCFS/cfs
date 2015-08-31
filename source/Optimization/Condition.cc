@@ -467,7 +467,8 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
 {
-  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency());
+  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency())
+    return;
 
   // we need to find all eigenvalue constraints. Then extend each by excitation
 
@@ -641,15 +642,19 @@ string Condition::ToString(MultipleExcitation* me) const
     os << "_(" << DesignElement::type.ToString(design_) << ")";
 
   if(type_ == HOM_TENSOR)
-    os << ToString(coords);
+    os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
   if(type_ == OUTPUT && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
-    os << "_" << me->excitations[excite_].label; // change to excite label
+  if(me != NULL && me->IsEnabled())  {
+    if(type_ == STRESS || type_ == STRESS_DENSITY)
+      os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
+    else if(me->DoMetaExcitation())
+      os << "_" << me->excitations[excite_].GetMetaLabel();
+  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
@@ -712,10 +717,10 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
 
-  if(delta_logging_ignored_)
-    in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
-  else
-    in->Get("delta_logging")->SetValue(delta_logging);
+  // if(delta_logging_ignored_)
+  //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
+  // else
+  //  in->Get("delta_logging")->SetValue(delta_logging);
 
   if(region != ALL_REGIONS)
     in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
@@ -727,7 +732,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(me->IsEnabled())
-    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].label);
+    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].GetFullLabel());
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
@@ -772,8 +777,7 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
-  /* for debug purposes you can enable the dense pattern by commenting out
-   * the two lines */
+  // for debug purposes you can enable the dense pattern by commenting out the two lines
   assert(IsLocal());
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
@@ -782,13 +786,16 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    BaseDesignElement* de = id.GetElement(i);
+    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
+    assert(de != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
-    if (this->ForDensityFiltering()) {
-      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
-        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
+    if(this->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+    {
+      const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
+      for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
+        indices.push_back(neighborhood[j].neighbour->GetIndex());
     }
   }
 
