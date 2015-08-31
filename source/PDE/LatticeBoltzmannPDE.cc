@@ -653,6 +653,13 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   // Delete singular rows from the Jacobian
   DeleteSingularities(Jacobi,Jacobi_new);
 
+  double delete_sing_setup = timer.GetCPUTime();
+
+  // right-hand side
+  Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+
+  double rhs_setup = timer.GetCPUTime();
+
   // for debugging
 //  WriteMatrix("Jacobian_col.txt",col_jacobi);
 //  WriteMatrix("Jacobian_old.txt",Jacobi);
@@ -665,7 +672,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
   LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
   LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
-  double delete_sing_setup = timer.GetCPUTime();
 
   CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
   assert(crs != NULL);
@@ -673,8 +679,9 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
   matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
-  // right-hand side
-  Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+  // time to setup adjoint system before solving
+  double setup_wall = timer.GetWallTime();
+  double setup_cpu = timer.GetCPUTime();
 
   LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
   SBM_Vector rhs(BaseMatrix::DOUBLE);
@@ -685,15 +692,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
   LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
 
-  double rhs_setup = timer.GetCPUTime();
-
-  // time to setup adjoint system before solving
-  double setup_wall = timer.GetWallTime();
-  double setup_cpu = timer.GetCPUTime();
-
   algsys_->InitRHS(rhs);
 
-//  PtrParamNode analysis_id = domain->GetDriver()->CreateAnalysisId("lbm_adjoint", 0);
   algsys_->SetupSolver();
   algsys_->Solve();
   Vector<double> sol;
