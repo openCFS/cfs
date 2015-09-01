@@ -13,6 +13,7 @@
 #include "General/Exception.hh"
 #include "MatVec/Matrix.hh"
 #include "Optimization/Condition.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignStructure.hh"
@@ -485,7 +486,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
     if(dofs == 1)
     {
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign();
+        out[0] = GetPhysicalDesign(NULL);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
       else
@@ -499,47 +500,48 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
   return;
 }
 
-double DesignElement::GetValue(ValueSpecifier vs, Access access, Condition* g) const
+double DesignElement::GetValue(ValueSpecifier vs, Access access, Function* f) const
 {
   // pessimistic assumption :)
   bool sens_filter = false;
   bool design_filter = false;
   bool design_filter_grad = false;
 
-  if(access == SMART && simp != NULL && simp->filter.type_ != Filter::NO_FILTERING)
+  unsigned int fix = simp != NULL ? simp->DetermineFilterIndex() : 0;
+
+  if(access == SMART && simp != NULL && (simp->filter.GetSize() > 0 && simp->filter[fix].GetType() != Filter::NO_FILTERING))
   {
-    Filter& f = simp->filter;
-    if(f.type_ == Filter::DENSITY)
+    if(simp->filter[fix].GetType() == Filter::DENSITY)
     {
       if(vs == DesignElement::DESIGN)
         design_filter = true;
-      if(vs == DesignElement::COST_GRADIENT) // TODO also check for separate costs! not only sum!
-        design_filter_grad = true;
+      if(vs == DesignElement::COST_GRADIENT)
+        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        design_filter_grad = g->ForDensityFiltering();
+        design_filter_grad = f != NULL ? f->ForDensityFiltering() : true;
     }
     else
     {
       if(vs == DesignElement::COST_GRADIENT)// TODO also check for separate costs! not only sum!
         sens_filter = true;
       if(vs == DesignElement::CONSTRAINT_GRADIENT)
-        sens_filter = g->ForSensitivityFiltering();
+        sens_filter = f != NULL ? f->ForSensitivityFiltering() : false;
     }
   }
 
   // we are silent if one wants filtering and it is not possible
   double val = 0.0;
   if(sens_filter)
-    val = simp->GetSensitivityFilteredValue(vs, g);
+    val = simp->GetSensitivityFilteredValue(vs, f);
   if(design_filter)
-    val = simp->GetDensityFilteredValue(vs, simp->filter.density_);
+    val = simp->GetDensityFilteredValue(vs, simp->filter[fix].density_);
   if(design_filter_grad)
-    val = simp->GetDensityFilteredGradient(vs, g);
+    val = simp->GetDensityFilteredGradient(vs, f);
   if(!sens_filter && !design_filter && !design_filter_grad)
-    val = GetPlainValue(vs, g);
+    val = GetPlainValue(vs, dynamic_cast<Condition*>(f));
 
   LOG_DBG3(desel) << "GV: " << elem->elemNum << " (" << valueSpecifier.ToString(vs) << ", "
-                << (access == PLAIN ? "plain" : "smart") << ", " << (g == NULL ? "null" : g->ToString())
+                << (access == PLAIN ? "plain" : "smart") << ", " << (f == NULL ? "null" : f->ToString())
                 << ") sf=" << sens_filter << " df=" << design_filter << " dfg=" << design_filter_grad << " -> " << val;
   return val;
 }
@@ -555,11 +557,11 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case COST_GRADIENT:         return SumObjectiveGradient();
   case WEIGHT:
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
-    return simp->weight;
+    return simp->DetermineFilter().weight;
 
   case NUM_NEIGHBOURS:       
     if(simp == NULL) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to SIMP");
-    return simp->neighborhood.GetSize();
+    return simp->DetermineFilter().neighborhood.GetSize();
 
   case CONSTRAINT_GRADIENT:
     assert(g != NULL);
@@ -572,6 +574,7 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
   case PENALIZED_STRESS:
   case TRANSFO_MATRIX:
     assert(false); // should be covered before by special result index
+    break; // only for the compiler
 
   case TOPGRAD_VALUE:
     if(tge == 0) throw Exception("'" + valueSpecifier.ToString(sp) + "' is specific to TopGrad");
@@ -582,8 +585,7 @@ __attribute__((always_inline)) inline double DesignElement::GetPlainValue(ValueS
     return lse_->shapeGradValue;
   default: throw Exception(valueSpecifier.ToString(sp) + " is no scalar value");
   }
-  
-  return -1.0; // cannot happen but to satisfy compiler
+  return -1.0; // cannot happen due to default in switch but to please the compiler :(
 }
 
 
@@ -602,13 +604,16 @@ double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
   assert(space_ != NULL);
   TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
 
-  return tf->Transform(this, SMART);
+  // when we have a transformation we want the physical value for the source design
+  DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL);
+
+  return tf->Transform(trans != NULL ? trans : this, SMART, false); // if there is a transformation return the transformed stuff
 }
 
 
 bool DesignElement::HasPhysicalDesign() const
 {
-  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || simp->filter.type_ == Filter::DENSITY);
+  return(type_ == DENSITY || type_ == POLARIZATION || type_ == ACOU_DENSITY || (!simp->filter.IsEmpty() && simp->filter[0].GetType() == Filter::DENSITY));
 }
 
 
@@ -627,7 +632,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   }
 }
 
-std::string DesignElement::ToString(const DesignElement* de)
+std::string DesignElement::ToString(const DesignElement* de, bool barycenter)
 {
   if(de == NULL) return "null";
 
@@ -640,7 +645,10 @@ std::string DesignElement::ToString(const DesignElement* de)
   else
   {
     ss << "e=" << boost::lexical_cast<std::string>(de->elem->elemNum);
-    ss << " t=" << type.ToString(de->type_);
+    if(barycenter)
+      ss << " bc=" << de->elem->barycenter.ToString();
+    else
+      ss << " t=" << type.ToString(de->type_);
   }
   
   return ss.str();
@@ -694,8 +702,8 @@ void DesignElement::SetEnums()
 
   Filter::density.SetName("Filter::Density");
   Filter::density.Add(Filter::STANDARD, "standard");
-  Filter::density.Add(Filter::HEAVISIDE, "heaviside");
-  Filter::density.Add(Filter::MOD_HEAVISIDE, "mod_heaviside");
+  Filter::density.Add(Filter::SOLID_HEAVISIDE, "solid_heaviside");
+  Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
   type.SetName("BaseDesignElement::Type");
@@ -840,32 +848,16 @@ void DesignElement::SetEnums()
 SIMPElement::SIMPElement(DesignElement* base)
 {
   this->de_ = base;
-  this->filter = Filter();
-  this->weight  = 1.0;
-  this->weight_sum = -1.0;
 }
 
-double SIMPElement::CalcWeightSum(bool include_this) const
-{
-  double res = 0.0;
-
-  for(unsigned int i = 0, n = neighborhood.GetSize(); i < n; i++)
-    res += neighborhood[i].weight;
-
-  if(include_this)
-    res += this->weight;
-
-  return res;
-}
-
-
-double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp, Condition* g) const
+double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp, Function* g) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
+  assert(de_->simp->filter.GetSize() == 1); // no robustness for sensitivity filtering worth implementing
 
-  Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::SENSITIVITY);
+  const Filter& f = filter[DetermineFilterIndex()];
+  assert(f.GetType() == Filter::SENSITIVITY);
 
   // See Filter::Sensitivity: w = weight, p is density, f' is cost gradient
   // Sigmund  = sum_i w(x_i) * p_i * f_i' / p_e * sum_i w(x_i)
@@ -875,17 +867,17 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   // sharp plain = plain, just the filter is setup with normalized weights with a "bug"
 
   // factor design in numerator (SIGMUND and BORRVALL) for densitiy filtering the value is any in
-  bool numerator_design = f->sensitivity_ != Filter::PLAIN && f->sensitivity_ != Filter::SHARP_PLAIN;
+  bool numerator_design = f.sensitivity_ != Filter::PLAIN && f.sensitivity_ != Filter::SHARP_PLAIN;
   // factor design in denominator sum (BORRVALL)
-  bool denominator_design = f->sensitivity_ == Filter::BORRVALL;
+  bool denominator_design = f.sensitivity_ == Filter::BORRVALL;
   // weight the denominator by this design (SIGMUND)
-  bool sigmund_denominator = f->sensitivity_ == Filter::SIGMUND || f->sensitivity_ == Filter::SHARP_SIGMUND;
+  bool sigmund_denominator = f.sensitivity_ == Filter::SIGMUND || f.sensitivity_ == Filter::SHARP_SIGMUND;
   // short-cut for fake in Sharp Sigmund: i=e ? 1:0 : w(x_i)
-  bool cheat_this_weight = f->sensitivity_ == Filter::SHARP_SIGMUND || f->sensitivity_ == Filter::SHARP_PLAIN;
+  bool cheat_this_weight = f.sensitivity_ == Filter::SHARP_SIGMUND || f.sensitivity_ == Filter::SHARP_PLAIN;
 
   LOG_DBG3(desel) << "FGV: el=" << de_->elem->elemNum
                 << " sp=" << DesignElement::valueSpecifier.ToString(sp)
-                << " dens=" << Filter::density.ToString(f->density_)
+                << " dens=" << Filter::density.ToString(f.density_)
                 << " numerator_design=" << numerator_design
                 << " denominator_design=" << denominator_design
                 << " sigmund_denominator=" << sigmund_denominator
@@ -896,14 +888,14 @@ double SIMPElement::GetSensitivityFilteredValue(DesignElement::ValueSpecifier sp
   double denominator = 0.0;
 
   // mathematically the neighborhood includes this element, but this is not in the structure
-  for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
-    const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+    const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
     const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-    double w = i == -1 ?  this->weight : ne->weight;
+    double w = i == -1 ?  f.weight : ne->weight;
     double nw = cheat_this_weight && i == -1 ? 1.0 : w;
-    double v = de->GetPlainValue(sp, g);
+    double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(g));
     double x = de->GetPlainValue(DesignElement::DESIGN); // cheap if not used
 
     double numerator_summand   = nw * v * (numerator_design ? x : 1.0);
@@ -933,24 +925,30 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
-
   assert(sp == DesignElement::DESIGN);
+  assert(!de_->simp->filter.IsEmpty());
+
+  unsigned int fix = DetermineFilterIndex();
+  const Filter& f = filter[fix];
+
 
   // All equations from Sigmund; Morphology based black and white filters for topology optimization; 2007
   // p = rho. P is filtered rho (rho tilde)
   // P = sum_(i in N_e) w(x_i) p_i / sum_(i in N_e) w(x_i)
 
+
   // mathematically the neighborhood includes this element, but this is not in the structure
   // we initialize numerator and denominator with the values obtained from this element
-  double numerator = this->weight * this->de_->GetPlainValue(DesignElement::DESIGN);
-  double denominator = this->weight;
+  double numerator = f.weight * this->de_->GetPlainValue(DesignElement::DESIGN);
+  double denominator = f.weight;
 
-   LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
-                   << " w= " << this->weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " num=" << numerator << " den=" << denominator;
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de_->elem->elemNum
+                   << " w= " << f.weight << " x=" << this->de_->GetPlainValue(DesignElement::DESIGN)
+                   << " num=" << numerator << " den=" << denominator << " fix=" << fix;
 
-  for(int i = 0, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  for(int i = 0, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
   {
-    const NeighbourElement* ne = &neighborhood[i];
+    const Filter::NeighbourElement* ne = &f.neighborhood[i];
     const DesignElement* de = ne->neighbour;
 
     double w = ne->weight;
@@ -959,73 +957,49 @@ double SIMPElement::GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Fi
     numerator   += w * x;
     denominator += w;
 
-     LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-                    << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
+    // LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum  << " w= " << w  << " x=" << x << " num=" << numerator << " den=" << denominator;
   }
 
   double p_filt = numerator / denominator;
 
    LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " filtered_density=" << p_filt;
 
-  assert(fd == Filter::STANDARD || fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE || fd == Filter::TANH);
+  assert(fd == Filter::STANDARD || fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE || fd == Filter::TANH);
 
   // do we need to post proc?
   if(fd != Filter::STANDARD)
   {
-    assert(fd == Filter::HEAVISIDE || fd == Filter::MOD_HEAVISIDE  || fd == Filter::TANH);
+    assert(fd == Filter::SOLID_HEAVISIDE || fd == Filter::VOID_HEAVISIDE  || fd == Filter::TANH);
 
     if(fd == Filter::TANH)
-      p_filt = CalcTanh(p_filt);
+      p_filt = CalcTanh(p_filt, fix);
     else
-      p_filt = CalcHeaviside(p_filt);
+      p_filt = CalcHeaviside(p_filt, fix);
 
-    assert(p_filt <= this->de_->GetUpperBound());
-    assert(p_filt >= 0.7 * this->de_->simp->filter.GetLowerBound(this->de_)); // relax the assert a little, cause of heaviside correction
+    assert(p_filt <= 1.000001 * this->de_->GetUpperBound());
+    assert(p_filt >= 0.7 * this->de_->simp->filter[fix].GetLowerBound(this->de_)); // relax the assert a little, cause of heaviside correction
   }
 
-  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter.density_)
+  LOG_DBG3(desel) << "GDFV: el=" << de_->elem->elemNum << " design=" << Filter::density.ToString(de_->simp->filter[fix].density_)
                    << ": plain=" << this->de_->GetPlainValue(DesignElement::DESIGN) << " -> "<< p_filt;
 
   return p_filt;
 }
 
-
-inline
-double SIMPElement::CalcTanh(double input_value) const
-{
-  Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::DENSITY);
-  assert(f->density_ == Filter::TANH);
-
-  double b = f->GetBeta();
-  double e = f->eta;
-  // make sure we are within the bounds
-  double ub = this->de_->GetUpperBound();
-  double lb = f->GetLowerBound(this->de_);
-
-  assert(b >= 0.0 && b < 2000);
-  assert(e >= lb && e <= ub);
-
-  // 1 - 1/(exp(2*beta*(x-param)) + 1)
-  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
-  double result = (ub-lb) * (func) + lb;
-
-  LOG_DBG3(desel) << "CT: de=" << ToString() << " iv=" << input_value << " func=" << func << " -> " << result;
-  return result;
-}
-
-// this inline could improve speed, works with gcc 4.5.1 but fails for older ones :(
-// inline
-double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const
+double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const
 {
   // We filter over this element and the neighbors.
   assert(de_->simp != NULL);
-  Filter& f = de_->simp->filter;
-  assert(f.type_ == Filter::DENSITY);
+
+  unsigned int fix = DetermineFilterIndex();
+  const Filter& f = filter[fix];
+
+  assert(f.GetType() == Filter::DENSITY);
   assert(sp == DesignElement::COST_GRADIENT || sp == DesignElement::CONSTRAINT_GRADIENT);
-  assert((g == NULL && sp == DesignElement::COST_GRADIENT) || (g != NULL && sp == DesignElement::CONSTRAINT_GRADIENT));
+  assert((func == NULL || (func->IsObjective() && sp == DesignElement::COST_GRADIENT)) || (func == NULL || (!func->IsObjective() && sp == DesignElement::CONSTRAINT_GRADIENT)));
   // projection has density filtering only in the fake filter problem but not in the original problem (which should not be density filtered anyway)
-  assert(g == NULL || (g->ForDensityFiltering() || g->GetType() == Function::PROJECTION));
+  assert(func == NULL || func->ForDensityFiltering());
+
 
   // Density filtering for gradient is (Sigmund; Morphology-based black and white filters for topology optimization; 2007; eqn (35). (36)
   // p is rho and P is rho filtered! d f/d p_e = sum_i(in N_e) d f/d P_i * d P_i/d p_e with d P_i/d p_e = w(x_e)/ sum_j(in N_i) w(x_j)
@@ -1036,101 +1010,79 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
                 //<< " g=" << (g != NULL ? Condition::type.ToString(g->GetType()) : "null");
 
   double sum = 0.0;
-//
-//  if (de_->GetIndex() == 88)
-//  {
-//    std::cout << de_->GetIndex() << std::endl;
-//    std::cout << de_->GetType() << std::endl;
-//    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-//    {
-//      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-//      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
-//      std::cout << de->GetIndex() << ": " << de->GetPlainValue(sp, g) << std::endl;
-//    }
-//    std::cout << std::endl;
-//    assert(de_->simp != NULL);
-//  }
 
-  if(f.density_ != Filter::STANDARD){
-    // mathematically the neighborhood includes this element, but this is not in the structure
-    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
+  if(f.density_ == Filter::STANDARD)
+  {
+    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
     {
-      const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
+      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
       const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-      double v = de->GetPlainValue(sp, g); // d f/d P_i
-      double h = 1.0; // for not-standard filters this is the additional derivative
-      double x_n = 0.0;
+      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
 
-//      if(f.density_ != Filter::STANDARD)
-//      {
-      double b = f.GetBeta();
+      double w = i == -1 ? f.weight : ne->weight;
 
-      // we need the filtered density -> but the real filtered value!!
-      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
+      if (de->simp->filter[fix].weight_sum < 0.0)
+        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
 
-      if(f.density_ == Filter::HEAVISIDE)
-      {
-        // corr = (1 - (1 - x) * hc) * x;
-        //      = x^2 - hc*x  + x
-        // H = 1 - exp(-b * corr) + corr * exp(-b)
-
-        // let the compiler optimize!
-        double corr  = f.heaviside_corr * x_n * f.heaviside_corr * x_n  -  f.heaviside_corr * x_n + x_n;
-        double dcorr = 2.0 * f.heaviside_corr * x_n - f.heaviside_corr + 1;
-
-        h *= b * dcorr * exp(-b * corr) + dcorr * exp(-1.0*b);
-      }
-      if(f.density_ == Filter::MOD_HEAVISIDE)
-      {
-        // general scaling
-        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
-        h *= b * exp(b*(x_n-1.0)) + exp(-1.0*b);
-      }
-      if(f.density_ == Filter::TANH)
-      {
-        // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
-        // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
-        double eta = f.eta;
-        h = de->GetUpperBound() - de->simp->filter.GetLowerBound(de);
-
-        double e = std::exp(2.0 * b * ( x_n - eta));
-        h *= 1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e;
-      }
-//      } // end if(f.density_ != Filter::STANDARD)
-
-      double w = i == -1 ? this->weight : ne->weight;
-
-      if (de->simp->weight_sum < 0.0)
-        de->simp->weight_sum = de->simp->CalcWeightSum(true);
-
-      double summand = v * h * w / de->simp->weight_sum;
+      double summand = v * w / de->simp->filter[fix].weight_sum;
       sum += summand;
 
       // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
       //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
       //                << " summand=" << summand << " sum=" << sum;
     }
-  } else { // end if(f.density_ != Filter::STANDARD). This if-else is ugly but a lot faster in some cases
-    for(int i = -1, ni = (int) neighborhood.GetSize(); i < ni; i++)
-        {
-          const NeighbourElement* ne = i == -1 ? NULL : &neighborhood[i];
-          const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
+  }
+  else // the non Filter::STANDARD case
+  {
+    // mathematically the neighborhood includes this element, but this is not in the structure
+    for(int i = -1, ni = (int) f.neighborhood.GetSize(); i < ni; i++)
+    {
+      const Filter::NeighbourElement* ne = i == -1 ? NULL : &f.neighborhood[i];
+      const DesignElement* de = i == -1 ? this->de_ : ne->neighbour;
 
-          double v = de->GetPlainValue(sp, g); // d f/d P_i
+      double v = de->GetPlainValue(sp, dynamic_cast<Condition*>(func)); // d f/d P_i
+      double h = de->simp->filter[fix].non_lin_scale; // for not-standard filters this is the additional derivative
+      double x_n = 0.0;
 
-          double w = i == -1 ? this->weight : ne->weight;
+      double b = f.beta;
 
-          if (de->simp->weight_sum < 0.0)
-            de->simp->weight_sum = de->simp->CalcWeightSum(true);
+      // we need the filtered density -> but the real filtered value!!
+      x_n = de->simp->GetDensityFilteredValue(DesignElement::DESIGN, Filter::STANDARD);
 
-          double summand = v * w / de->simp->weight_sum;
-          sum += summand;
+      if(f.density_ == Filter::SOLID_HEAVISIDE)
+      {
+       // F = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b)
+       // H = scale * F + offset
+        h *= (b * exp(-b * x_n) + exp(-b));
+      }
+      if(f.density_ == Filter::VOID_HEAVISIDE)
+      {
+        // general scaling
+        h *= (b * exp(b*(x_n-1.0)) + exp(-1.0*b));
+      }
+      if(f.density_ == Filter::TANH)
+      {
+        // f(x)  =  1 - 1/(exp(2*beta*(x-param)) + 1)
+        // f'(x) =  (exp(2*beta*(x-param)+1)^-2 * 2 * beta * exp(2*beta*(x-param))
+        double eta = f.eta;
+        double e = std::exp(2.0 * b * ( x_n - eta));
 
-          // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
-          //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
-          //                << " summand=" << summand << " sum=" << sum;
-        }
+        h *= (1.0/((e+1.0)*(e+1.0)) * 2.0 * b * e);
+      }
+
+      double w = i == -1 ? f.weight : ne->weight;
+
+      if (de->simp->filter[fix].weight_sum < 0.0)
+        de->simp->filter[fix].weight_sum = de->simp->filter[fix].CalcWeightSum(true);
+
+      double summand = v * h * w / de->simp->filter[fix].weight_sum;
+      sum += summand;
+
+      // LOG_DBG3(desel) << "GDFG: el=" << de_->elem->elemNum << ": curr=" << de->elem->elemNum
+      //                << " v= " << v  << " h=" << h << " w=" << w << " x_n=" << x_n << " w_sum=" << w_sum
+      //                << " summand=" << summand << " sum=" << sum;
+    }
   }
 
   return sum;
@@ -1139,37 +1091,42 @@ double SIMPElement::GetDensityFilteredGradient(DesignElement::ValueSpecifier sp,
 std::string SIMPElement::ToString(int level) const
 {
   std::stringstream ss;
-  ss << "el=" << de_->elem->elemNum << " #n=" << neighborhood.GetSize() << "(";
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
+  const Filter& f = filter[DetermineFilterIndex()];
+  ss << "el=" << de_->elem->elemNum << " #n=" << f.neighborhood.GetSize() << "(";
+  for(unsigned int i = 0; i < !filter.IsEmpty() && f.neighborhood.GetSize(); i++)
   {
     if(level == 0)
-      ss << " " << neighborhood[i].neighbour->elem->elemNum;
+      ss << " " << f.neighborhood[i].neighbour->elem->elemNum;
     else {
-      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_w=" << neighborhood[i].weight;
-      ss << " n_" << neighborhood[i].neighbour->elem->elemNum << "_d=" << neighborhood[i].distance;
+      ss << " n_" << f.neighborhood[i].neighbour->elem->elemNum << "_w=" << f.neighborhood[i].weight;
+      ss << " n_" << f.neighborhood[i].neighbour->elem->elemNum << "_d=" << f.neighborhood[i].distance;
     }
   }
   ss << ")";
   return ss.str();
 }
 
+inline unsigned int SIMPElement::DetermineFilterIndex() const
+{
+  return Optimization::context.excitation->robust_filter_idx;
+}
+
+unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
+{
+  return Optimization::context.excitation->robust_filter_idx;
+}
+
+inline Filter& SIMPElement::DetermineFilter()
+{
+  return filter[DetermineFilterIndex()];
+}
+
 void SIMPElement::Dump()
 {
-  double weight_sum = weight;
-  double distance_avg = 0.0;
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
-  {
-    weight_sum   += neighborhood[i].weight;
-    distance_avg += neighborhood[i].distance;
-  }
-  distance_avg /= neighborhood.GetSize();
+  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString() << std::endl;
+  for(unsigned int f = 0; f < filter.GetSize(); f++)
+    filter[f].Dump();
 
-  std::cout << "\nelement: " << de_->elem->elemNum << " location " << de_->GetLocation()->ToString()
-            << " weight sum " << weight_sum << " this weight " << weight <<" distance avg " << distance_avg << std::endl;
-  for(unsigned int i = 0; i < neighborhood.GetSize(); i++)
-    std::cout << "  n[" << i << "]: elem " << neighborhood[i].neighbour->elem->elemNum << " location "
-              << neighborhood[i].neighbour->GetLocation()->ToString()
-              << " dist=" << neighborhood[i].distance << " w=" << neighborhood[i].weight << std::endl;
 }
 
 
@@ -1329,7 +1286,7 @@ VicinityElement::Neighbour VicinityElement::FindRelativeNeighborLocation(Point& 
       res = diff[2] < 0 ? Z_P : Z_N;
   }
   
-  LOG_DBG(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
+  LOG_DBG2(desel) << "VE:FRNL ref =" << ref.ToString() << " other=" << other.ToString() << " -> " << res;
 
   if(res == NONE)
     EXCEPTION("cannot identify relative neighborhood of " << ref.ToString() << " and " << other.ToString());
@@ -1407,7 +1364,7 @@ ResultDescription::ResultDescription()
   access = DesignElement::PLAIN;
   value  = DesignElement::DESIGN;
   design = DesignElement::DEFAULT;
-  excitation = "";
+  excitation = -1;
 }
 
 ResultDescription::ResultDescription(PtrParamNode pn)
@@ -1424,6 +1381,19 @@ ResultDescription::ResultDescription(PtrParamNode pn)
 
   detail = DesignElement::detail.Parse(pn->Get("detail")->As<std::string>());
 
-  excitation = pn->Get("excitation")->As<std::string>();
+  excitation = pn->Has("excitation") ? pn->Get("excitation")->As<int>() : -1;
+
+  LOG_DBG(desel) << "RD:RD " << ToString();
 }
 
+
+std::string ResultDescription::ToString()
+{
+  std::stringstream ss;
+  ss << "RD: design=" << DesignElement::type.ToString(design)
+     << " access=" << DesignElement::access.ToString(access)
+     << " value=" << DesignElement::valueSpecifier.ToString(value)
+     // << " detail=" << DesignElement::detail.ToString(detail)
+     << " ex=" << excitation;
+  return ss.str();
+}

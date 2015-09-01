@@ -12,8 +12,9 @@
 
 namespace CoupledField
 {
-  class ParamNode;
+  
   class Timer;
+  class ParamNode;
   
   /** Definitions of pointers, using boost::shared_ptr */
   typedef boost::shared_ptr<ParamNode> PtrParamNode;

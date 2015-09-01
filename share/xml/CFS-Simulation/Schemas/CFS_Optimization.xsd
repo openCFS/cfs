@@ -90,6 +90,17 @@
                       <xsd:attribute name="parameter" use="optional" type="xsd:float"/>
                       <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
                       <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
+                      <xsd:attribute name="access" use="optional" default="default">
+                        <xsd:simpleType>
+                           <xsd:restriction base="xsd:token">
+                              <xsd:enumeration value="plain"/>
+                              <xsd:enumeration value="filtered"/>
+                              <xsd:enumeration value="physical"/>
+                              <xsd:enumeration value="default"/>
+                           </xsd:restriction>
+                        </xsd:simpleType>
+                      </xsd:attribute>
+                      
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -133,11 +144,11 @@
                 <xsd:attribute name="omega_omega" type="xsd:boolean" default="false" use="optional"/>
               </xsd:complexType>
             </xsd:element>
-            
-            <!--   <multipleExcitation type="fixed_weights/meta_objective">
-                     <metaObjective type="best_value"/>
-                     <adjustWeights stride="1" max_gain="1e4"/>
-                   </multipleExcitation> -->        
+
+           <!-- <multipleExcitation type="fixed_weights/meta_objective"> 
+                  <metaObjective type="best_value"/> 
+                  <adjustWeights stride="1" max_gain="1e4"/> 
+               </multipleExcitation> -->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:all>
@@ -159,6 +170,8 @@
                       <xsd:attribute name="max_gain" use="optional" default="1e4" type="xsd:float"/>
                     </xsd:complexType>
                   </xsd:element>
+                  <!-- The excitions need only to be given explicitly if
+               one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
                   <xsd:element name="excitations" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
@@ -173,6 +186,11 @@
                                <xsd:element name="force"         type="DT_BcInhomVector"/>
                                <xsd:element name="forceDensity"  type="DT_BcInhomVector"/>
                                <xsd:element name="rhsValues"     type="DT_BcInhomVector"/>
+                               <xsd:element name="transform">
+                                 <xsd:complexType>
+                                  <xsd:attribute name="excitation" type="DT_Excitation" use="required"/>
+                                 </xsd:complexType>
+                               </xsd:element>
                              </xsd:choice>
                             <xsd:attribute name="weight" type="xsd:double" use="optional" default="1.0"/>
                           </xsd:complexType>
@@ -189,7 +207,9 @@
                       <xsd:enumeration value="homogenizationTestStrains"/>
                     </xsd:restriction>
                   </xsd:simpleType>
-                </xsd:attribute>  
+                </xsd:attribute>
+                <!-- we might have excitations of excitations. transformation is a possible outer loop -->
+                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>  
               </xsd:complexType>
             </xsd:element>
             
@@ -282,8 +302,6 @@
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
-            <!-- only for the projection constraint -->
-            <xsd:element name="filter" type="DT_Filter" minOccurs="0" maxOccurs="1"/>
             <!-- only for the output constroaint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
@@ -328,8 +346,6 @@
                 <xsd:enumeration value="stressDensity"/>
                 <!-- requires the attribute 'designTarget' to be set to a filename -->
                 <xsd:enumeration value="designTracking"/>
-                <!-- requires the sub-element filter -->
-		            <xsd:enumeration value="projection"/>
 		            <!-- for (DENSITY_TIMES_)ORTHOTROPIC only -->
 		            <xsd:enumeration value="orthotropicTensorTrace"/>
 		            <xsd:enumeration value="globalOrthotropicTensorTrace"/>
@@ -436,22 +452,7 @@
           
           <!-- for a stress constraint we can define the excitation by its label. The enumaration
             can be easy extended here as we do a string compare with the excitation label in the code -->
-          <xsd:attribute name="excitation" use="optional" default="all">
-            <xsd:simpleType>
-              <xsd:restriction base="xsd:string">
-                <xsd:enumeration value="all"/>
-                <xsd:enumeration value="x"/>
-                <xsd:enumeration value="y"/>
-                <xsd:enumeration value="z"/>
-                <xsd:enumeration value="yz"/>
-                <xsd:enumeration value="xz"/>
-                <xsd:enumeration value="xy"/>
-                <xsd:enumeration value="0"/>
-                <xsd:enumeration value="1"/>
-                <xsd:enumeration value="2"/>
-              </xsd:restriction>
-            </xsd:simpleType>
-          </xsd:attribute>
+          <xsd:attribute name="excitation" use="optional" default="all" type="DT_Excitation"/>
           
           <!-- mandatory for design tracking, defines a pseudo density file. If no region is given the periodic boundary elements are used -->
           <xsd:attribute name="designTarget" use="optional" type="xsd:token" />
@@ -907,6 +908,27 @@
               </xsd:complexType>
            </xsd:element>                 
             
+            <xsd:element name="transform" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                <xsd:annotation>
+                  <xsd:documentation>A rotation around an named element counterclockwise in rad. The angle might be given as formula</xsd:documentation>
+                </xsd:annotation>
+                  <xsd:element name="rotate" minOccurs="1" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <!-- named node -->
+                      <xsd:attribute name="center" type="xsd:token" use="required"/>
+                      <!-- angle counter clockwise in rad -->
+                      <xsd:attribute name="angle" type="xsd:token" use="required"/>
+                      <!-- transformation makes only sense for mutliple excitation. To start from 0  -->
+                      <xsd:attribute name="excitation" type="xsd:nonNegativeInteger" use="required"/>
+                    </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            
             <xsd:element name="shapeGrad" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -1121,8 +1143,13 @@
                 <!-- for multimaterial the material attribute is mandatory. otherwise not allowed -->
                 <xsd:attribute name="material" type="xsd:token" use="optional" />
 
+                <!-- shall the design bounds enforced when loading an external design? Otherwise a warning is given on violation -->
+                <xsd:attribute name="enforce_bounds" type="xsd:boolean" default="false" />
+
                 <!-- what are these attributes for? Seems to be so special that a subelement migt be the better place for them! -->
                 <xsd:attribute name="relative_bound" use="optional" default="-1.0" type="xsd:float"/>
+
+
                 <xsd:attribute name="constant" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="fixed" use="optional" type="xsd:boolean" default="false"/>
                 <xsd:attribute name="scale" use="optional" type="xsd:boolean" default="false"/>
@@ -1182,8 +1209,6 @@
                       <xsd:enumeration value="designTracking"/>
                      <!-- This is the gradient matrix -->
                       <xsd:enumeration value="transfoMatrix"/>
-                      <!-- the local value of the projection function -->
-                      <xsd:enumeration value="projection"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1217,30 +1242,9 @@
                 </xsd:attribute>
                 <!-- These are optional parameters for value=objective or specialResult -->
                 <xsd:attribute name="detail" use="optional" default="none" type="result_detail"/>
-                <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. -->
-                <xsd:attribute name="excitation" use="optional" default="">
-                  <xsd:simpleType>
-                    <xsd:restriction base="xsd:string">
-                      <xsd:enumeration value=""/>
-                      <xsd:enumeration value="x"/>
-                      <xsd:enumeration value="y"/>
-                      <xsd:enumeration value="z"/>
-                      <xsd:enumeration value="xy"/>
-                      <xsd:enumeration value="xz"/>
-                      <xsd:enumeration value="yz"/>
-                      <xsd:enumeration value="0"/>
-                      <xsd:enumeration value="1"/>
-                      <xsd:enumeration value="2"/>
-                      <xsd:enumeration value="3"/>
-                      <xsd:enumeration value="4"/>
-                      <xsd:enumeration value="5"/>
-                      <xsd:enumeration value="6"/>
-                      <xsd:enumeration value="7"/>
-                      <xsd:enumeration value="8"/>
-                      <xsd:enumeration value="9"/>                      
-                    </xsd:restriction>
-                  </xsd:simpleType>
-                </xsd:attribute>
+
+                <!-- optional excitation parameter, can be used for penalized stress which is excitation dep. Uses the index, not the label -->
+                <xsd:attribute name="excitation" use="optional" type="xsd:nonNegativeInteger" />
               </xsd:complexType>
             </xsd:element>
             
@@ -1718,8 +1722,6 @@
       <xsd:enumeration value="elec_elec_quad"/>
       <xsd:enumeration value="mech_elec"/>
       <xsd:enumeration value="elec_mech"/>
-      <!-- detail for projection function. The Filter part -->
-      <xsd:enumeration value="projectionFilter"/>
       <!-- detail for constraintGradient in SIMP -->
       <xsd:enumeration value="volume"/>
       <xsd:enumeration value="penalizedVolume"/>
@@ -1848,9 +1850,9 @@
                 <!-- Standard linear density filter -->
                 <xsd:enumeration value="standard"/>
                 <!-- Heaviside filter (Guest) with solid feature size. Continuation by beta -->
-                <xsd:enumeration value="heaviside"/>
+                <xsd:enumeration value="solid_heaviside"/>
                 <!-- Modified Heaviside filter (Sigmund) with void feature size. Continuation by beta -->
-                <xsd:enumeration value="mod_heaviside"/>
+                <xsd:enumeration value="void_heaviside"/>
                 <!-- Black and white filter (Xu) w/o real feature size. Continuation by beta. Switch at eta -->
                 <xsd:enumeration value="tanh"/>
               </xsd:restriction>
@@ -1860,12 +1862,11 @@
           <!-- Continuation for Heaviside filter and steepness of tanh -->
           <xsd:attribute name="beta" type="xsd:float" use="optional"/>
 
-          <!-- Switching position for tanh -->
+          <!-- Switching position for tanh. -->
           <xsd:attribute name="eta" type="xsd:float" use="optional"/>
 
           <!-- Overwerites design lower bound for mixed design scenarios. For heaviside and tanh -->
           <xsd:attribute name="force_lower_bound" type="xsd:float" use="optional"/>
-
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>
@@ -1897,6 +1898,19 @@
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
+
+    <!-- robustness in the sense of Ole makes mostly sense for tanh with varying eta for the different robust_excitation.
+         The robust_excitation are only checked for design=desnity and the value must be ascending from 0. -->
+    <xsd:attribute name="robust_excitation" use="optional">
+      <xsd:simpleType>
+        <xsd:restriction base="xsd:token">
+          <xsd:enumeration value="0" />
+          <xsd:enumeration value="1" />
+          <xsd:enumeration value="2" />
+        </xsd:restriction>
+      </xsd:simpleType>
+    </xsd:attribute>
+    
   </xsd:complexType>
 
 
@@ -2054,6 +2068,31 @@
     </xsd:sequence>
     <xsd:attribute name="name" type="xsd:token" use="required" />
   </xsd:complexType>
+
+
+  <!-- The possible excitations we have -->
+  <xsd:simpleType name="DT_Excitation">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="all" />
+      <xsd:enumeration value="x" />
+      <xsd:enumeration value="y" />
+      <xsd:enumeration value="z" />
+      <xsd:enumeration value="yz" />
+      <xsd:enumeration value="xz" />
+      <xsd:enumeration value="xy" />
+      <xsd:enumeration value="0" />
+      <xsd:enumeration value="1" />
+      <xsd:enumeration value="2" />
+      <xsd:enumeration value="3" />
+      <xsd:enumeration value="4" />
+      <xsd:enumeration value="5" />
+      <xsd:enumeration value="6" />
+      <xsd:enumeration value="7" />
+      <xsd:enumeration value="8" />      
+            
+    </xsd:restriction>
+  </xsd:simpleType>
+
 
 </xsd:schema>
 

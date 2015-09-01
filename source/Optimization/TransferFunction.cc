@@ -8,6 +8,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "Domain/ElemMapping/Elem.hh"
 #include "General/Exception.hh"
+#include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/TransferFunction.hh"
@@ -225,6 +226,7 @@ std::string TransferFunction::ToString()
 double TransferFunction::Transform(const DesignElement* de, DesignElement::Access access, bool lower_bimat) const
 {
   double value = de->GetValue(DesignElement::DESIGN, access);
+
   return this->Transform(value, lower_bimat, de);
 }
 

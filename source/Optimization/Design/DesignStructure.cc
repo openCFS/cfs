@@ -59,13 +59,13 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
 void DesignStructure::Constructor()
 {
   initialized_ = false;
+  num_robust_  = 0;
 
   this->dim  = grid->GetDim();
 
   periodic = domain->HasPerdiodicBC();
 
   filter_space_ = NO_FILTER;
-  filter_ = Filter(); // defaults
 
   value  = -1.0;
 
@@ -102,97 +102,87 @@ void DesignStructure::Initialize()
   initialized_ = true;
 }
 
-void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<DesignElement>* data_ptr)
+void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
 {
   if(!initialized_)
     Initialize();
 
-  StdVector<DesignElement>& data = data_ptr != NULL ? *data_ptr : space->data;
+  StdVector<DesignElement>& data = space->data;
 
-  filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
-  contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
-  value  = pn->Get("value")->As<double>();
   if(pn->Has("design"))
     design = DesignElement::type.Parse(pn->Get("design")->As<std::string>());
   else
     design = DesignElement::ALL_DESIGNS;
 
-  filter_.type_ = Filter::type.Parse(pn->Get("type")->As<std::string>());
+  // This are the designs we deal with
+  unsigned int start = space->FindDesign(design) * space->GetNumberOfElements(); // handles ALL_DESIGNS
+  unsigned int end = design == DesignElement::ALL_DESIGNS ? data.GetSize() : start + space->GetNumberOfElements();
+
+  LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements();
+
+  // Here we store our reference filter or more, if we do robust.
+  // If SetFilters() was already called for this design (element) we must be robust!
+  DesignElement& ref_de = data[start];
+
+  StdVector<Filter>& filter = ref_de.simp->filter;
+  unsigned int rex = 0;
+  if(pn->Has("robust_excitation"))
+  {
+    rex = pn->Get("robust_excitation")->As<unsigned int>();
+    if(rex != filter.GetSize())
+      EXCEPTION("'robust_excitation' in 'filter' is " << rex << " but " << filter.GetSize() << " is expected");
+  }
+  else
+  {
+    if(!filter.IsEmpty())
+      throw Exception("expect 'robust_excitation' for 'filter' as more than one filter is defined for the design");
+  }
+
+  Filter ref;
+
+  ref.SetType(Filter::type.Parse(pn->Get("type")->As<std::string>()));
+  ref.region = space->GetRegionIds()[0];
+
+  filter_space_ = filterSpace.Parse(pn->Get("neighborhood")->As<string>());
+  contribution_ = pn->Get("contribution")->As<string>() == "linear" ? LINEAR : CONSTANT;
+  value  = pn->Get("value")->As<double>();
 
   if(value <= 0.0)
-    filter_.type_ = Filter::NO_FILTERING;
+    ref.SetType(Filter::NO_FILTERING);
 
-  if(filter_.type_ == Filter::SENSITIVITY && pn->Has("sensitivity"))
-    filter_.sensitivity_ = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
+  if(ref.GetType() == Filter::SENSITIVITY && pn->Has("sensitivity"))
+    ref.sensitivity_ = Filter::sensitivity.Parse(pn->Get("sensitivity/type")->As<std::string>());
 
-  if(filter_.type_ == Filter::DENSITY && pn->Has("density"))
-    filter_.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
+  if(ref.GetType() == Filter::DENSITY && pn->Has("density"))
+    ref.density_ = Filter::density.Parse(pn->Get("density/type")->As<string>());
 
-  if(filter_.density_ != Filter::STANDARD)
+  if(ref.density_ != Filter::STANDARD)
   {
     if(!pn->Has("density/beta"))
-      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(filter_.density_) + "' density filtering");
-    filter_.SetBeta(pn->Get("density/beta")->As<double>(), space); // all relevant parameters set!
+      throw Exception("Attribute 'beta' required for '" + Filter::density.ToString(ref.density_) + "' density filtering");
+    ref.beta = pn->Get("density/beta")->As<double>();
 
     if(pn->Has("density/force_lower_bound"))
-      filter_.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
+      ref.SetLowerBound(pn->Get("density/force_lower_bound")->As<double>());
+
+    assert(space->design.GetSize() == 1); // extend for multiple regions with lower bounds which are now stored in non_lin_*
+
+    if(ref.density_ == Filter::TANH)
+    {
+      if(!pn->Has("density/eta"))
+        throw Exception("Attribute 'eta' required for 'tanh' density filtering");
+      ref.eta = pn->Get("density/eta")->As<double>();
+    }
+
+    // for any projection filter
+    ref.SetNonLinCorrection(&data[space->FindDesign(design) * space->GetNumberOfElements()], 0); // further robust filter might already be set
   }
 
-  if(filter_.density_ == Filter::TANH)
-  {
-    if(!pn->Has("density/eta"))
-      throw Exception("Attribute 'eta' required for 'tanh' density filtering");
-    filter_.eta = pn->Get("density/eta")->As<double>();
-  }
-
-  PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters/filter", ParamNode::APPEND);
-
-  in->Get("target")->SetValue(Filter::type.ToString(filter_.type_));
+  PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters")->Get("filter", ParamNode::APPEND);
 
   // do we have to do something?
-  if(filter_.type_ == Filter::NO_FILTERING)
+  if(ref.GetType() == Filter::NO_FILTERING)
     return;
-
-  in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
-
-  in->Get("value")->SetValue(value);
-  in->Get("contribution")->SetValue(contribution_ == LINEAR ? "linear" : "constant");
-
-  if(filter_.type_ == Filter::SENSITIVITY)
-    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(filter_.sensitivity_));
-
-  if(filter_.type_ == Filter::DENSITY)
-  {
-    in->Get("density")->SetValue(Filter::density.ToString(filter_.density_));
-    if(filter_.density_ != Filter::STANDARD)
-    {
-      in->Get("beta")->SetValue(filter_.GetBeta());
-      if(em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
-        in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
-      if(filter_.density_ == Filter::HEAVISIDE)
-        in->Get("heaviside_correction")->SetValue(filter_.heaviside_corr);
-      if(pn->Has("density/force_lower_bound"))
-        in->Get("force_lower_bound")->SetValue(filter_.GetLowerBound(NULL));
-    }
-  }
-
-  in->Get("periodic")->SetValue(periodic);
-
-  // print about the function filtering
-  for(unsigned int i = 0; em != NULL && i < em->objectives.data.GetSize(); i++)
-  {
-    PtrParamNode in_ = in->Get("functions")->Get("objective", ParamNode::APPEND);
-    Objective* f = em->objectives.data[i];
-    in_->Get("name")->SetValue(f->GetName());
-    in_->Get("filtered")->SetValue(filter_.type_ == Filter::DENSITY ? f->ForDensityFiltering() : f->ForSensitivityFiltering());
-  }
-  for(unsigned int i = 0; em != NULL && i < em->constraints.active.GetSize(); i++)
-  {
-    PtrParamNode in_ = in->Get("functions")->Get("constraint", ParamNode::APPEND);
-    Condition* g = em->constraints.active[i];
-    in_->Get("name")->SetValue(g->ToString());
-    in_->Get("filtered")->SetValue(filter_.type_ == Filter::DENSITY ? g->ForDensityFiltering() : g->ForSensitivityFiltering());
-  }
 
   // the initialization was separated!
   boost::shared_ptr<Timer> timer(new Timer()); 
@@ -204,7 +194,7 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
 
   // find simp neighbors for all our elements
   double radius = -1.0; // for each element, set only once for regular.
-  StdVector<SIMPElement::NeighbourElement> neighbors; // will become element neighborhood
+  StdVector<Filter::NeighbourElement> neighbors; // will become element neighborhood
 
   // for unstructured neighborhood search
   StdVector<unsigned int> too_far;   // element numbers too far away
@@ -217,14 +207,26 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     // also initialize the vicinity elements!
     VicinityElement::Init(space, this);
   }
+  assert(!(design == DesignElement::DEFAULT && space->design.GetSize() > 1));
 
-  unsigned int start = design == DesignElement::ALL_DESIGNS ? 0 : space->FindDesign(design)*space->GetNumberOfElements();
-  unsigned int end = design == DesignElement::ALL_DESIGNS ? data.GetSize() : start + space->GetNumberOfElements();
+  LOG_DBG(ds) << "SF: design=" << DesignElement::type.ToString(design) << " start=" << start << " end=" << end << " total=" << space->data.GetSize() << " nel=" << space->GetNumberOfElements() << " rex=" << rex;
+
+  DesignElement::Type ref_design = data[start].GetType();
+
   for(unsigned int e = start; e < end; e++)
   {
     DesignElement* de = &data[e];
 
-    de->simp->filter = filter_;
+    // did we came across a new design or a new region? Then update ref
+    if(de->elem->regionId != ref.region || de->GetType() != ref_design)
+    {
+      ref.region = de->elem->regionId;
+      ref.SetNonLinCorrection(de,rex);
+      ref_design = de->GetType();
+    }
+
+    de->simp->filter.Push_back(ref); // copy the reference data
+    assert(de->simp->filter.GetSize() == rex + 1); // we always work on the last filter in the filter vector
 
     // independent of the filter type, radius determines the neighborhood
     // via barycenter distance.
@@ -242,43 +244,87 @@ void DesignStructure::SetFilters(PtrParamNode pn, PtrParamNode info, StdVector<D
     else
       FindUnstructuredNeighborhood(de, radius, *(de->elem->neighborhood), neighbors, too_far); // works recursive
     // save neighborhood by copy constructor
-    de->simp->neighborhood = neighbors;
+    de->simp->filter.Last().neighborhood = neighbors;
+
     // set own weight
     assert(contribution_ == LINEAR || contribution_ == CONSTANT);
-    de->simp->weight = (contribution_ == CONSTANT ? 1.0 : radius);
+    de->simp->filter.Last().weight = (contribution_ == CONSTANT ? 1.0 : radius);
 
     // this is actually the re-implementation of a bug as it appeared to be not bad :)
-    if(de->simp->filter.sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.sensitivity_ == Filter::SHARP_PLAIN)
+    if(de->simp->filter.Last().sensitivity_ == Filter::SHARP_SIGMUND || de->simp->filter.Last().sensitivity_ == Filter::SHARP_PLAIN)
     {
       // normalize with a 'bug'
-      double weight_sum = de->simp->CalcWeightSum(false) + 1.0;
+      double weight_sum = de->simp->filter.Last().CalcWeightSum(false) + 1.0;
       // assume 1.0 for this weight -> in the end it might be smaller! but in DesignElement::GetFilteredValue() we cheat 1.0 again
-      de->simp->weight = 1.0 / weight_sum;
-      for(unsigned int j = 0, n = de->simp->neighborhood.GetSize(); j < n; j++)
-        de->simp->neighborhood[j].weight /= weight_sum;
+      de->simp->filter.Last().weight = 1.0 / weight_sum;
+      for(unsigned int j = 0, n = de->simp->filter.Last().neighborhood.GetSize(); j < n; j++)
+        de->simp->filter.Last().neighborhood[j].weight /= weight_sum;
     }
 
     avg_radius += radius;
-    avg_neighbours += de->simp->neighborhood.GetSize();
+    avg_neighbours += de->simp->filter.Last().neighborhood.GetSize();
     LOG_DBG2(ds) << "SF: final " << de->simp->ToString(0);
   }
-  double normalized_avg_radius = avg_radius / (data.GetSize()/space->design.GetSize());
-  double normalized_avg_neighbours = avg_neighbours / (data.GetSize()/space->design.GetSize());
-  in->Get("avg_radius")->SetValue(normalized_avg_radius);
-  in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
-//  in->Get("avg_radius")->SetValue(avg_radius / (end-start+1));
-//  in->Get("avg_neighbors")->SetValue(avg_neighbours / (end-start+1));
+
+  WriteFilterInfo(pn, in, ref, avg_radius, avg_neighbours, rex == 0); // goes into the appended filters/filter
+
 
   timer->Stop();
-  
-//  std::cout << "Filter: " << "avg radius: " << (avg_radius / (end-start+1))
-//            << " avg neighbourhood: " << (avg_neighbours / (end-start+1)) << std::endl;
-
-  std::cout << "Filter: " << "avg radius: " << normalized_avg_radius
-            << " avg neighbourhood: " << normalized_avg_neighbours << std::endl;
 }
 
-void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<SIMPElement::NeighbourElement>& neighbors)
+
+void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Filter& ref, double avg_radius, double avg_neighbours, bool first)
+{
+  in->Get("type")->SetValue(filterSpace.ToString(filter_space_));
+
+  in->Get("value")->SetValue(value);
+  in->Get("contribution")->SetValue(contribution_ == LINEAR ? "linear" : "constant");
+
+  if(ref.GetType() == Filter::SENSITIVITY)
+    in->Get("sensitivity")->SetValue(Filter::sensitivity.ToString(ref.sensitivity_));
+
+  if(first && ref.GetType() == Filter::DENSITY)  {
+    // in->Get("density")->SetValue(Filter::density.ToString(ref.density_));
+    if(ref.density_ != Filter::STANDARD && em != NULL && em->constraints.Has(Function::VOLUME) && em->constraints.Get(Function::VOLUME)->IsLinear())
+      in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
+  }
+
+  if(periodic)
+   in->Get("periodic")->SetValue(periodic);
+
+  in->Get("design")->SetValue(DesignElement::type.ToString(design));
+
+  if(pn->Has("robust_excitation")) // here we trust that we did good checks in SetFilter()
+    in->Get("robust_excitation")->SetValue(pn->Get("robust_excitation")->As<int>());
+
+  if(ref.GetType() == Filter::DENSITY && ref.density_ != Filter::STANDARD)
+  {
+    PtrParamNode in_ = in->Get(ref.density.ToString(ref.density_));
+
+    in_->Get("beta")->SetValue(ref.beta);
+
+    if(ref.density_ == Filter::TANH)
+      in_->Get("eta")->SetValue(ref.eta);
+
+    in_->Get("scaling")->SetValue(ref.non_lin_scale);
+    in_->Get("offset")->SetValue(ref.non_lin_offset);
+
+    if(pn->Has("density/force_lower_bound"))
+      in_->Get("force_lower_bound")->SetValue(ref.GetLowerBound(NULL));
+  }
+
+  double normalized_avg_radius = avg_radius / (space->data.GetSize()/space->design.GetSize());
+  double normalized_avg_neighbours = avg_neighbours / (space->data.GetSize()/space->design.GetSize());
+
+  in->Get("avg_radius")->SetValue(normalized_avg_radius);
+  in->Get("avg_neighbors")->SetValue(normalized_avg_neighbours);
+
+  std::cout << "Filter " << DesignElement::type.ToString(design) << ": avg radius=" << normalized_avg_radius
+            << " avg neighbourhood=" << normalized_avg_neighbours << std::endl;
+
+}
+
+void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius, const StdVector<double>& edges, StdVector<Filter::NeighbourElement>& neighbors)
 {
   assert(regular);
   // from the radius define a square/cube and check for every element. The corners are sorted out by distance
@@ -287,7 +333,9 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
   // radius - distance but value - distance. To keep the legacy results we reproduce
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
-  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+
+  Filter& filter = base->simp->filter[0];
+  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   int x = static_cast<int>(ceil(radius / edges[0]));
   int y = static_cast<int>(ceil(radius / edges[1]));
@@ -311,7 +359,7 @@ void DesignStructure::FindRegularNeighborhood(DesignElement* base, double radius
           {
             // value is here a double radius
             // this is the implementation from Bendsoe/ Sigmund
-            SIMPElement::NeighbourElement ne;
+            Filter::NeighbourElement ne;
 
             // map from element number to design
             ne.neighbour = other;
@@ -363,16 +411,17 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
 
 void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double radius,
                                       StdVector<std::pair<Elem*, int> >& initial,
-                                      StdVector<SIMPElement::NeighbourElement>& neighbors,
+                                      StdVector<Filter::NeighbourElement>& neighbors,
                                       StdVector<unsigned int>& too_far)
 {
-  LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
+  // LOG_DBG2(ds) << "FN: base= " << base->elem->elemNum << " initial=" << ToString(initial) << " n=" << ToString(neighbors) << " tf=" << too_far.ToString() << " ext=" << space->DoNonDesignVicinity();
 
   // the legacy SHARP_PLAIN and SHARP_SIGMUND had the bug, that the weight was not
   // radius - distance but value - distance. To keep the legacy results we reproduce
   // the bug. Note, that another bug in SHARP_PLAIN and SHARP_SIGMUND is in normalization
   // and for SHARP_SIGMUND also in the filtering itself! :(
-  double val_rad = filter_.sensitivity_ == Filter::SHARP_PLAIN || filter_.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
+  Filter& filter = base->simp->filter[0];
+  double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
   assert(!periodic); // only regular may be periodic!!
 
@@ -413,7 +462,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
     {
       // value is here a double radius
       // this is the implementation from Bendsoe/ Sigmund
-      SIMPElement::NeighbourElement ne;
+      Filter::NeighbourElement ne;
 
       // map from element number to design
       ne.neighbour = test_de;
@@ -717,12 +766,11 @@ void DesignStructure::AppendNeighbors(Elem* check,
   }
 }
 
-string DesignStructure::ToString(StdVector<SIMPElement::NeighbourElement>& data)
+std::string DesignStructure::ToString(const StdVector<Filter::NeighbourElement>& data)
 {
   std::stringstream out;
   for(unsigned int i = 0, ni = data.GetSize(); i < ni; i++)
-    out << data[i].neighbour->elem->elemNum
-        << (i < ni-1 ? ", " : "");
+    out << data[i].neighbour->elem->elemNum << (i < ni-1 ? ", " : "");
   return out.str();
 }
 

@@ -1064,6 +1064,7 @@ share/python/colormaps.py -text
 share/python/common.py -text
 share/python/continuation.py -text
 share/python/convert_fms_to_hom.py -text
+share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
 share/python/density-to-png.py -text
@@ -1837,6 +1838,8 @@ source/OLAS/utils/math/LanczosMethod.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Context.cc -text
+source/Optimization/Context.hh -text
 source/Optimization/Design/AuxDesign.cc -text
 source/Optimization/Design/AuxDesign.hh -text
 source/Optimization/Design/CMakeLists.txt -text
@@ -1925,6 +1928,8 @@ source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
+source/Optimization/Transform.cc -text
+source/Optimization/Transform.hh -text
 source/PDE/AcousticMixedPDE.cc -text
 source/PDE/AcousticMixedPDE.hh -text
 source/PDE/AcousticPDE.cc -text

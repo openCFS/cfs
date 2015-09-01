@@ -17,7 +17,7 @@ namespace CoupledField {
   class BasePairCoupling;
   class WriteResults;
   class StdSolveStep;
-  class ParamNode;
+  
   class BiotSavart;
   class BaseFeFunction;
   

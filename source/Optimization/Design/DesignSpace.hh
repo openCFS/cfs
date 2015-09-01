@@ -16,6 +16,7 @@
 #include "Optimization/Design/DesignMaterial.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Transform.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField
@@ -25,10 +26,8 @@ namespace CoupledField
   struct Elem;
   struct ResultInfo;
   class CoefFunctionOpt;
-  struct LocPointMapped;
-
-
-  class TransferFunction;
+  class Context;
+  class LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
@@ -42,16 +41,12 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param pn we search for design, transferFunction, result and pamping  */
-     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
 
      virtual ~DesignSpace();
     
      /** Creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
-
-     /** Create a clone for projection method
-      * @return you have to take care of the pointer! */
-     DesignSpace* Clone();
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -148,6 +143,18 @@ namespace CoupledField
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
 
+     /** Apply the transformations if they shall be. The transformation is identified by the excitation of the context if not explicitly given.
+      * @param fallback to be returned if transformation does not apply. E.g. again the de parameter
+      * @param trans optionally give the transform, such it does not come from context
+      * @return null if it did not apply or transformation was out of space (e.g. when rotating) */
+      DesignElement* ApplyTransformations(const DesignElement* de, DesignElement* fallback = NULL, Transform* trans = NULL) const;
+
+      /** the const version. const is sometimes just bullshit! :(*/
+/*      const DesignElement* ApplyTransformations(const DesignElement* de, bool fallback) const {
+        return const_cast<const DesignElement*>(ApplyTransformations(de, fallback ? const_cast<DesignElement*>(de) : NULL));
+      };
+*/
+
      /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
       * element results in the pde and conditionally add it as store results to the pde.</p>
       * @param pde in the current implementation a MechPDE */
@@ -188,13 +195,12 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const
      {
-       if(g == NULL || g->HasDenseJacobian())
-         WriteDenseGradientToExtern(out, vs, access, g, scaling); // is virtual!
+       if(f == NULL || f->HasDenseJacobian())
+         WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!
        else
-         WriteSparseGradientToExtern(out, vs, access, g, scaling);
+         WriteSparseGradientToExtern(out, vs, access, f, scaling);
      }
 
      /** provide the upper and lower bounds on the design variables to the optimizer */
@@ -254,11 +260,6 @@ namespace CoupledField
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
-     /** Find the element with the largest Filter neighborhood, if no filter is used or if the
-      * value is not unique (what should be the case) any suitable is returned.
-      * We do not cache the result, and search all, so use with care. */
-     DesignElement* FindElementWithLargesFilter();
-
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
@@ -279,6 +280,9 @@ namespace CoupledField
 
      /** Our transfer functions */
      StdVector<TransferFunction> transfer;
+
+     /** Our tranformations */
+     StdVector<Transform> transform;
 
      /** Here we store the designs we have. Check with Find() for the element. 
       * Note, that multimaterial_density is not unique here! */
@@ -362,6 +366,7 @@ namespace CoupledField
 
        void ToInfo(PtrParamNode node) const;
 
+
      private:
 
        /** the label for the info.xml */
@@ -417,11 +422,11 @@ namespace CoupledField
 
      /** handles design and region reordering */
      void WriteDenseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+                                DesignElement::Access access, Function* f, bool scaling = true) const;
 
      /** can handle the sparse slope constraint but no reordering as the dense version */
      void WriteSparseGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs,
-                                DesignElement::Access access, Condition* g = NULL, bool scaling = true) const;
+                                DesignElement::Access access, Function* f, bool scaling = true) const;
 
 
      /** This number identifies the design space. It is always incremented if ReadDesignFromExtern() reads
@@ -473,6 +478,9 @@ namespace CoupledField
 
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
+
+     /** When we do optimization we have a context */
+     Context* context_;
 
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
