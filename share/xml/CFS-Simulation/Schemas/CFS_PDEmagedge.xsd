@@ -258,6 +258,7 @@
       <xsd:enumeration value="magPotential"/>
       <xsd:enumeration value="magElemPermeability"/>
       <xsd:enumeration value="magRhsLoad"/>
+      <xsd:enumeration value="magCoreLossDensity"/>
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -267,6 +268,7 @@
       <xsd:enumeration value="magEnergy"/>
       <xsd:enumeration value="magEddyPower"/>
       <xsd:enumeration value="magForceLorentz"/>
+      <xsd:enumeration value="magCoreLoss"/>
     </xsd:restriction>
   </xsd:simpleType>
 
