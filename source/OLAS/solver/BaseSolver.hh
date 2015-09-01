@@ -12,7 +12,7 @@ namespace CoupledField {
   class BaseMatrix;
   class BaseVector;
   class OLAS_Report;
-  class ParamNode;
+  
   class Timer;
 
   // =========================================================================

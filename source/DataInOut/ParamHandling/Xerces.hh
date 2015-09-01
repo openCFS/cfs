@@ -15,8 +15,6 @@
 
 namespace CoupledField {
 
-  class ParamNode;
-
   /** This class fills a ParamNode element with an XML file content using the DOM parser from xerces. 
    * <p>This might be a good place for any XML stuff besides only filling a ParamNode</p>
    * <p>It might be a good idea, to release this object soon to free the system ressources. Note, that

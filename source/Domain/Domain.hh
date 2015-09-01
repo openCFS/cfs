@@ -25,7 +25,7 @@ namespace CoupledField
   class MultiSequenceDriver;
   class SimInput;
   class ResultHandler;
-  class ParamNode;
+  
   class SimState;
   class BaseDriver;
   class MathParser;

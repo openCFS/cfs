@@ -37,7 +37,7 @@ public:
   /** Reads an ersatz material file.
    * @param ersatzMaterial if given the data is overwritten otherwise it is created
    * @return the parameter if given or a new one where one needs remove it! */
-  static DesignSpace* ReadErsatzMaterial(DesignSpace* ersatzMaterial = NULL);
+  static DesignSpace* ReadErsatzMaterial(DesignSpace* space = NULL);
   
   /** set the current iteration and eventually write it. Save to call multiple times with the same parameter
    * @param current_iteration this info is used as set id */
