@@ -80,6 +80,15 @@
                 </xsd:documentation> 
               </xsd:annotation> 
             </xsd:attribute> 
+            
+            <xsd:attribute name="srt" type="xsd:boolean" use="optional" default="true">
+              <xsd:annotation>
+               <xsd:documentation>
+                Flag indication whether SRT LBM model or instead MRT model should be used.
+               </xsd:documentation>
+              </xsd:annotation>
+            </xsd:attribute>
+             
             <xsd:attribute name="Re" type="xsd:double" use="optional"> 
               <xsd:annotation> 
                 <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; at least omega or Re must be specified</xsd:documentation> 
