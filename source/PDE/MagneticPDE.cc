@@ -1469,8 +1469,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     // ===================================================================
     if( hasVoltCoils_ ){
       PtrParamNode voltSpaceNode = infoNode->Get("coilCurrent");
-      crSpaces[COIL_CURRENT] =
-          FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_);
+      crSpaces[COIL_CURRENT] = FeSpace::CreateInstance(myParam_, voltSpaceNode, FeSpace::CONSTANT, ptGrid_);
       crSpaces[COIL_CURRENT]->Init(solStrat_);
     }
     return crSpaces;

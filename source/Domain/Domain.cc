@@ -488,7 +488,7 @@ void Domain::SolveProblem()
 
 SinglePDE* Domain::GetSinglePDE(const std::string pdeName,  bool throw_exception)
 {
-  // check for the pede an return
+  // check for the pde an return
   for (UInt i = 0, s = ptSinglePde_.GetSize(); i < s; ++i)
   {
     if (ptSinglePde_[i]->GetName() == pdeName)
@@ -645,10 +645,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
   // default grid
   Grid * defaultGrid = gridMap_["default"];
 
-  ParamNodeList pdeNodes;
-  pdeNodes
-      = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep) 
-      ->Get("pdeList")->GetChildren();
+  ParamNodeList pdeNodes = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
   ptSinglePde_.Init();
@@ -723,9 +720,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
                                               simState_, this );
     }
     else if (actPdeName == "LatticeBoltzmann") {
-            ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode,
-                                                  simState_, this );
-//      ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode);
+        ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this );
     }
     else
     {
