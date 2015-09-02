@@ -349,7 +349,7 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[Save Nodes]\n')
   out.write('#NodeNr Level\n')
   out.write('\n[Save Elements]\n')
-  out.write('#ElemNr Level\n\n')
+  out.write('#ElemNr Level\n')
   for e in range(len(mesh.ne)):
     ne = mesh.ne[e]
     for n in range(len(ne[1])):
@@ -780,7 +780,6 @@ def create_backstep(x_res, y_res, z_res):
  
    
 def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size): 
-  mesh = Mesh() 
  
   nx = x_res 
   ny = y_res if y_res <> None else x_res 
@@ -798,7 +797,8 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
    
   depth = float(nz)/nx 
   dz = depth / nz 
-   
+
+  mesh = Mesh(nx,ny,nz)    
   eps = 1e-4 
  
   print 'width=' + str(width) + ' height=' + str(height) + ' depth=' + str(depth) + ' dx=' + str(dx) + ' dy=' + str(dy) + ' dz=' + str(dz) 

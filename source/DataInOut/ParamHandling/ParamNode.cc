@@ -593,9 +593,10 @@ bool ParamNode::Has(const string& name) const
   else
   {
     for (unsigned int i = 0, chsize = children_.GetSize(); i < chsize; i++)
+    {
       if (children_[i]->name_ == name)
         return true;
-
+    }
     return false;
   }
 }

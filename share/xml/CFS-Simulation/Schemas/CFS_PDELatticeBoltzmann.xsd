@@ -86,7 +86,7 @@
               </xsd:annotation> 
             </xsd:attribute> 
              
-            <xsd:attribute name="inflowProfile" type="DT_ExternLBMInflow" use="optional" default="block"> 
+            <xsd:attribute name="inflowProfile" type="DT_ExternLBMInflow" use="optional" default="uniform"> 
               <xsd:annotation> 
                 <xsd:documentation>Specify inflow velocity profile. \n 
                   For parabolic profile, velocity specified in "bcAndLoads" is assumed as maximum velocity. So far, only a parabolic velocity profile in x-direction is possible, 
@@ -210,7 +210,7 @@
     <!-- ******************************************************************* --> 
     <xsd:simpleType name="DT_ExternLBMInflow"> 
       <xsd:restriction base="xsd:token"> 
-        <xsd:enumeration value="block" /> 
+        <xsd:enumeration value="uniform" /> 
         <xsd:enumeration value="parabolic" /> 
       </xsd:restriction> 
     </xsd:simpleType> 
