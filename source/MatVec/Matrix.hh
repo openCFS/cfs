@@ -565,7 +565,7 @@ namespace CoupledField
     //@{
     
     //! Returns true if \a mat has the same entries as own matrix
-    inline bool operator ==( const Matrix<TYPE> & mat ) const;
+    inline bool operator==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
     inline bool operator!=( const Matrix<TYPE> & mat ) const;

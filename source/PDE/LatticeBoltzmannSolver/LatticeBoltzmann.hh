@@ -4,6 +4,7 @@
 
 #include <set>
 #include "Utils/StdVector.hh"
+#include "MatVec/Matrix.hh"
 #include "General/Enum.hh"
 #include "DataInOut/ResultHandler.hh"
 /** This file is an extract of the LBM code of Markus Wittmann (RRZE) based on the code of Thomas Guess (AM2) based on the code of Georg Pingen (USA).
@@ -26,7 +27,7 @@ namespace CoupledField
 
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
-        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SE=7, Q_SW=8,          // 2D
           Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
   };
@@ -43,7 +44,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > u_in, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
       ~LatticeBoltzmann();
 
@@ -59,17 +60,17 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double> GetPdfs() {return m_pdfs[m_cur];}
+      inline StdVector<double> GetPdfs() {return pdfs[cur_];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
        */
-      inline int GetNumWriteResults() { return m_numWriteResults; }
+      inline int GetNumWriteResults() { return numWriteResults_; }
 
       /**
        * @return Number of iterations until steady-state convergence
        */
-      inline int GetNumIterations() {return m_numIterations; }
+      inline int GetNumIterations() {return numIterations_; }
 
       inline StdVector<PDFDirectionVector>* GetPDFDirectionVectors() { return &microVelDirections; }
       inline StdVector<Direction>* GetinvPDFDirections() { return &invPDFDirections; }
@@ -106,6 +107,12 @@ namespace CoupledField
 
           /** Set basis vectors of DmQn model */
           void SetMicroVelocities();
+
+          /**
+           * Initialize transformation matrix M for momentum space and corresponding relaxation rates matrix S
+           * M ist orthogonal.
+           */
+          void InitTransformMatrix();
 
           /** get inverse direction of D2Q9 direction */
           // depends on numbering of directions
@@ -149,28 +156,33 @@ namespace CoupledField
           // calculates array index for given grid coordinate in 3D
           inline int GetIndex(int x, int y, int z) const
           {
-            return z * m_sizeX * m_sizeY + y * m_sizeX + x;
+            return z * sizeX_ * sizeY_ + y * sizeX_ + x;
+          }
+
+          // calculates index in pdf array for given elem id and pdf direction
+          inline unsigned int GetPdfIndex(unsigned int id, unsigned int dir) const {
+            return id * n_q_ + dir;
           }
 
           //--------------- array of structures----------------------------------
           inline double& pdf(int cur, int x, int y, int z, int direction)
           {
-            return m_pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline const double pdf(int cur, int x, int y, int z, int direction) const
           {
-            return m_pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline double& pdf(int cur, int elem, int direction)
           {
-            return m_pdfs[cur][direction + n_q_ * elem];
+            return pdfs[cur][direction + n_q_ * elem];
           }
 
           inline const double pdf(int cur, int elem, int direction) const
           {
-            return m_pdfs[cur][direction + n_q_ * elem];
+            return pdfs[cur][direction + n_q_ * elem];
           }
 
           void create_output(const char * file, int cur);
@@ -182,13 +194,18 @@ namespace CoupledField
             int tmp_y = y + tmpDir.off_y;
             int tmp_z = z + tmpDir.off_z;
 
-            return tmp_x < 0 || tmp_x >= m_sizeX || tmp_y < 0 || tmp_y >= m_sizeY || tmp_z < 0 || tmp_z >= m_sizeZ;
+            return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
+
+          /**
+           * Transforming PDFs into momentum space
+           */
+
+          void transform_pdfs(int cur);
 
           /**
            * LBM operators in 2D
            */
-
           void prop_coll_step2D(int cur, int next);
 
           void prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
@@ -208,48 +225,56 @@ namespace CoupledField
 
           void prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >&outlet);
 
-          int m_dim;
-          int m_sizeX;
-          int m_sizeY;
-          int m_sizeZ;
-          int m_nNodes;     // Number of total nodes (fluid + obstacle)
-          double m_ux;      // Inlet x velocity
-          double m_uy;      // Inlet y velocity
-          double m_uz;      // Inlet z velocity
-          double m_omega;
-          int m_maxIter;
-          double m_maxTol;
+          int dim_;
+          int sizeX_;
+          int sizeY_;
+          int sizeZ_;
+          int nNodes_;     // Number of total nodes (fluid + obstacle)
+          double ux_;      // Inlet x velocity
+          double uy_;      // Inlet y velocity
+          double uz_;      // Inlet z velocity
+          double omega_;
+          int maxIter_;
+          double maxTol_;
           /** plot the residuum over lbm iterations */
-          bool m_plot;
+          bool plot_;
           // indicates whether LBM simulation results should be written to hdf5 file every m_writeFrequency'th step or not
           // set to true, if no optimization is done (e.g. design is prescribed by density file)
-          bool writeIntermediateResults;
-          int m_writeFrequency;
+          bool writeIntermediateResults_;
+          int writeFrequency_;
           // counts how many intermediate steps we have already written to hdf5 file
-          int m_numWriteResults;
+          int numWriteResults_;
           // how many iterations until steady-state convergence
-          int m_numIterations;
+          int numIterations_;
+          // indicates whether SRT or MRT model should be used
+          bool srt_;
 
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
 
           int lbmCalls_; //counts how often solver was called
 
-          StdVector<double> Scales;
+          StdVector<double> scales;
 
           StdVector<double> weights;
 
-          StdVector< StdVector<double> > u_in_; // inflow x-velocities in case of parabolic profile
+          StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
-          StdVector< StdVector<double> > m_pdfs;
+          StdVector< StdVector<double> > pdfs;
+
+          StdVector<double> pdfs_moments; // moment vector (transformed version of m_pdfs in momentum space)
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;
           // lookup table to get inverse directions of the pdfs
           StdVector<Direction> invPDFDirections;
-          int m_cur;
-          int m_next;
+          int cur_;
+          int next_;
 
+          // Transformation matrix M for momentum space
+          Matrix<Double> transformation;
+          // Relaxation rate matrix S
+          Matrix<Double> relax_rates;
 
           StdVector<StdVector<int> > inlet;
           StdVector<StdVector<int> > outlet;
