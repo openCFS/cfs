@@ -721,7 +721,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
     else if (actPdeName == "LatticeBoltzmann") {
         ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this );
-//      ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode);
     }
     else
     {

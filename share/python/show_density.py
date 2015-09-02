@@ -4,6 +4,7 @@ from optimization_tools import *
 from PIL import Image, ImageDraw, ImageColor
 import sys
 import argparse
+import glob
 
 # you can approximate the stuff iteratively in python by
 # Image.fromarray(255* data.T).transpose(Image.FLIP_TOP_BOTTOM).show()
@@ -27,8 +28,8 @@ def density_to_image(filename, set, design):
     print "not a valid density file given!"
     sys.exit(1)
 
-  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set)
-  
+  dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=0.0)
+
   x, y, z = getDim(dens)
   
   if z > 1:
@@ -41,7 +42,7 @@ def density_to_image(filename, set, design):
   # copy data from linear list
   for i in range(y):
     for j in range(x):
-        ret[y-i-1][j] = 255 - int(255 * dens[j][i])
+      ret[y-i-1][j] = 255 - int(255 * dens[j][i])
 
   return Image.fromarray(ret), dens
 
@@ -65,9 +66,25 @@ def print_grid_on_image(I, dens):
     draw.line((iii, 0, iii, ysize), fill="Black")
 
 
+def get_image(input, set, design):
+  img,dens = density_to_image(input, set, design)
+  img.convert('L')
+  
+  if args.grid:
+    print_grid_on_image(img,dens)
+  
+  if not args.orgsize:
+    ix, iy = dens.shape[0:2]
+    f = 800 / max(ix, iy)
+    img = img.resize((f * ix, f * iy))
+  
+  return img
+
+
 parser = argparse.ArgumentParser()
-parser.add_argument("input", help="the density.xml file to visualize")
+parser.add_argument("input", help="the density.xml file to visualize or the files with saveall")
 parser.add_argument('--save', help="optional filename to write image")
+parser.add_argument('--saveall', help="uses input as filter (using wildcards like '*.density.xml' as input) and saves all files as png", action='store_true')
 parser.add_argument('--design', help="show 'design' instead of 'physical'", action='store_true')
 parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
@@ -85,24 +102,20 @@ if args.info:
     
   os.sys.exit()  
 
-img,dens = density_to_image(args.input, args.set, args.design)
-img.convert('L')
+if args.saveall:
+  files = glob.glob(args.input)
+  print "saveall with filter '" + args.input + "' finds " + str(len(files)) + " files"
+  for f in files:
+    print "read image '" + f + "'"
+    img = get_image(f, args.set, args.design)
+    base = f[:-12] if f.endswith('.density.xml') else f
+    img.save(base + '.png')
 
-if args.grid:
-  print_grid_on_image(img,dens)
-
-if not args.orgsize:
-  ix, iy = dens.shape
-  f = 800 / max(ix, iy)
-  img = img.resize((f * ix, f * iy))
-#I = I.rotate(90)
-#I = I.transpose(0)
-
-if args.save:
-  print "saving image to file " + args.save
-  img.save(args.save)
 else:
-  img.show()
-
-#I.save("tmp1.png")
-#I.resize((480,480)).save("tmp2.png")
+  img = get_image(args.input, args.set, args.design)
+  
+  if args.save:
+    print "saving image to file " + args.save
+    img.save(args.save)
+  else:
+    img.show()

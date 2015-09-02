@@ -46,7 +46,6 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   else
     n_q_ = 19;
 
-  rh = NULL;
   m_dim = dim;
   m_sizeX = sizeX;
   m_sizeY = sizeY;

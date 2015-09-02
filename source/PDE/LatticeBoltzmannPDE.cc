@@ -40,6 +40,7 @@
 //new integrator concept
 //#include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
+#include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 
 #include "FeBasis/BaseFE.hh"
@@ -375,8 +376,16 @@ namespace CoupledField {
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
       SingleEntryBiLinInt* stiffInt = NULL;
+//      std::set<RegionIdType> volRegions;
+
+//      if( dim_ == 2 ) {
+    	// surfaceBBInt is the only currently existing integrator that implies an unsymmetric element matrix
+//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
       shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
       stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
+//      } else {
+//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
+//      }
 
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
