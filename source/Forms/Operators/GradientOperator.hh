@@ -114,8 +114,7 @@ namespace CoupledField{
     if(DIM_DOF == 1){
       bMat = Transpose(xiDx);
     }else{
-      if (domain->GetSinglePDE("LatticeBoltzmann") != NULL)
-        assert(DIM_SPACE == DIM_DOF);  //this is not valid for LatticeBoltzmann!on
+      assert(DIM_SPACE == DIM_DOF);  //this is not valid for LatticeBoltzmann!on
       for(UInt i = 0; i< numFncs ; ++i){
         for(UInt sDim = 0; sDim < DIM_SPACE; ++sDim){
           bMat[sDim][i*DIM_DOF + sDim] = xiDx[i][sDim];
