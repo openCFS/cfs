@@ -24,7 +24,6 @@ namespace CoupledField
   class LatticeBoltzmannBase
   {
     public:
-
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SE=7, Q_SW=8,          // 2D
@@ -44,7 +43,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt);
 
       ~LatticeBoltzmann();
 
@@ -55,7 +54,7 @@ namespace CoupledField
       StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
-      void prop_step();
+      void Prop_step();
 
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
@@ -165,27 +164,27 @@ namespace CoupledField
           }
 
           //--------------- array of structures----------------------------------
-          inline double& pdf(int cur, int x, int y, int z, int direction)
+          inline double& PDF(int cur, int x, int y, int z, int direction)
           {
             return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline const double pdf(int cur, int x, int y, int z, int direction) const
+          inline const double PDF(int cur, int x, int y, int z, int direction) const
           {
             return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline double& pdf(int cur, int elem, int direction)
+          inline double& PDF(int cur, int elem, int direction)
           {
             return pdfs[cur][direction + n_q_ * elem];
           }
 
-          inline const double pdf(int cur, int elem, int direction) const
+          inline const double PDF(int cur, int elem, int direction) const
           {
             return pdfs[cur][direction + n_q_ * elem];
           }
 
-          void create_output(const char * file, int cur);
+          void CreateOutput(const char * file, int cur);
 
           inline bool PointsToBoundary(int x, int y, int z, int dir)
           {
@@ -200,30 +199,33 @@ namespace CoupledField
           /**
            * Transforming PDFs into momentum space
            */
+          void TransformPdfs(int cur);
 
-          void transform_pdfs(int cur);
-
+          /**
+           * Calculate vector of equilibrium moments based on current pdf array
+           */
+          StdVector<double> CalcEquilMoments(int cur);
           /**
            * LBM operators in 2D
            */
-          void prop_coll_step2D(int cur, int next);
+          void Prop_coll_step2D(int cur, int next);
 
-          void prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+          void Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
-          void prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
+          void Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
 
-          void prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
+          void Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
 
           /**
            * LBM operators in 3D
            */
-          void prop_coll_step3D(int cur, int next);
+          void Prop_coll_step3D(int cur, int next);
 
-          void prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+          void Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
 
-          void prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
+          void Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
 
-          void prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >&outlet);
+          void Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >&outlet);
 
           int dim_;
           int sizeX_;
