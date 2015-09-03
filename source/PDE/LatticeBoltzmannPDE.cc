@@ -159,6 +159,7 @@ namespace CoupledField {
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
     writeFrequency_ = myParam_->Get("LBM/writeFrequency")->As<unsigned int>();
     bool plot    = myParam_->Get("LBM/plot")->As<bool>();
+    bool srt = myParam_->Get("LBM/srt")->As<bool>();
 
     PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
     // only one inlet region
@@ -271,7 +272,7 @@ namespace CoupledField {
     pdfs.Resize(n_elems * n_q_);
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -490,7 +491,7 @@ namespace CoupledField {
         in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
         pdfs = *tmp;
-        lbm->prop_step();
+        lbm->Prop_step();
 
         pdfs = *tmp;
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
