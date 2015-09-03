@@ -204,7 +204,7 @@ namespace CoupledField
           /**
            * Calculate vector of equilibrium moments based on current pdf array
            */
-          StdVector<double> CalcEquilMoments(int cur);
+          Vector<double> CalcEquilMoments(int cur,int i, int j, int k);
           /**
            * LBM operators in 2D
            */
@@ -275,8 +275,10 @@ namespace CoupledField
 
           // Transformation matrix M for momentum space
           Matrix<Double> transformation;
-          // Relaxation rate matrix S
-          Matrix<Double> relax_rates;
+          // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
+          Matrix<Double> m_inv_s;
+          // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
+          StdVector<Double> relax_rates;
 
           StdVector<StdVector<int> > inlet;
           StdVector<StdVector<int> > outlet;
