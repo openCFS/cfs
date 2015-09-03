@@ -1,8 +1,8 @@
-function [Coeff] = bicubic_offline(a,b,E)
+function [Coeff] = bicubic_offline(a,b,E,deriv_a,deriv_b,deriv_a2,deriv_b2)
 %% Vorberechnung der Koeffizienten des Interpolationspolynom für die verschiedenen Intervalle
 m = length(a);
 n = length(b);
-[dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E);
+[dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E,deriv_a,deriv_b,deriv_a2,deriv_b2);
 Coeff = zeros((m-1)*(n-1),16);
 for j=1:m-1
     for k=1:n-1

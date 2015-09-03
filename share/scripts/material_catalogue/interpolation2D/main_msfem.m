@@ -27,7 +27,7 @@ Coeff = zeros(36,(m)*(n),16);
 E = zeros(m+1,n+1);
 for i =1:36
     E(:,:) = A(i,:,:);
-    Coeff(i,:,:) = bicubic_offline(a,b,E);
+    Coeff(i,:,:) = bicubic_offline(a,b,E,[],[],[],[]);
 end
 write_to_xml_msfem(outputfile,m,n,a,b,Coeff);
 end

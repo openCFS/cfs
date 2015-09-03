@@ -124,7 +124,8 @@ parser.add_argument("--sparse",help ="sparse mesh is used for msfem calculations
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
 
 parser.add_argument("--big", help="specify number of cfs.rel runs in parallel, if option is turned on, mtx files and vec files are not saved")
-parser.add_argument("--oversampling", help="oversampling: specify number of repetitions in x-direction, eg. oversampling radius = 1 => 3 repetitions")
+parser.add_argument("--epsilon", help="number of frames/crosses in the cell problem", type=int, default=1)
+parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
 parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
 
 
@@ -135,7 +136,7 @@ getcontext().prec = 16
 steps = args.stp
 folder = args.folder
 dim = args.dimension
-rep = args.oversampling
+rep = args.epsilon
 if dim == 2:
   if args.msfem:
     # setup for MSFEM element matrix data file in 2D
@@ -357,7 +358,6 @@ elif dim == 3:
   x = 0
   while x < steps + 1:
     y = 0
-    while y < steps + 1:
       z= 0
       while z < steps + 1:
         if args.penalization:
