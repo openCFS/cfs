@@ -358,6 +358,7 @@ elif dim == 3:
   x = 0
   while x < steps + 1:
     y = 0
+    while y < steps + 1:
       z= 0
       while z < steps + 1:
         if args.penalization:
