@@ -312,7 +312,8 @@ void LatticeBoltzmann::InitTransformMatrix()
 {
   LOG_TRACE(lbm) << "Initializing transformation matrix M and relaxation rates matrix S.";
 
-  transformation.Resize(n_q_ * n_q_);
+  // transformation matrix M
+  transformation.Resize(n_q_);
   transformation.Init(); // initialize with zeros
   // density mode
   for (int  i = 0; i < n_q_; i++)
@@ -378,23 +379,116 @@ void LatticeBoltzmann::InitTransformMatrix()
   transformation[8][7] = 1.0;
   transformation[8][8] = -1.0;
 
-  LOG_DBG3(lbm) << "IT: M=" << transformation.ToString(3,'\n');
+  LOG_DBG3(lbm) << "IT: M=" << transformation.ToString(3,true);
 
-  relax_rates.Resize(n_q_ * n_q_);
+  std::cout << "---------------Transformation matrix--------------------" << std::endl;
+  std::cout << transformation.ToString(0,true) << std::endl;
+
+  for (int i = 1; i < n_q_; i++)
+  {
+    double sum = 0;
+    for (int j = 0; j < n_q_; j++)
+    {
+      sum += transformation[i][j];
+    }
+    assert(sum == 0);
+  }
+  Matrix<double> transformation_inv;
+  transformation_inv.Resize(n_q_);
+  transformation_inv.Init();
+
+  for (int i = 0; i < n_q_; i++)
+    transformation_inv[i][0] = 2.0;
+
+  transformation_inv[0][1] = -2.0;
+  transformation_inv[0][2] = 2.0;
+  transformation_inv[1][1] = -0.5;
+  transformation_inv[1][2] = -1.0;
+  transformation_inv[1][3] = 3.0;
+  transformation_inv[1][4] = -3.0;
+  transformation_inv[1][7] = 4.5;
+  transformation_inv[2][1] = -0.5;
+  transformation_inv[2][2] = -1.0;
+  transformation_inv[2][5] = 3.0;
+  transformation_inv[2][6] = -3.0;
+  transformation_inv[2][7] = -4.5;
+  transformation_inv[3][1] = -0.5;
+  transformation_inv[3][2] = -1.0;
+  transformation_inv[3][3] = -3.0;
+  transformation_inv[3][4] = 3.0;
+  transformation_inv[3][7] = 4.5;
+  transformation_inv[4][1] = -0.5;
+  transformation_inv[4][2] = -1.0;
+  transformation_inv[4][5] = -3.0;
+  transformation_inv[4][6] = 3;
+  transformation_inv[4][7] = -4.5;
+  transformation_inv[5][1] = 1.0;
+  transformation_inv[5][2] = 0.5;
+  transformation_inv[5][3] = 3.0;
+  transformation_inv[5][4] = 1.5;
+  transformation_inv[5][5] = 3.0;
+  transformation_inv[5][6] = 1.5;
+  transformation_inv[5][8] = 4.5;
+  transformation_inv[6][1] = 1.0;
+  transformation_inv[6][2] = 0.5;
+  transformation_inv[6][3] = -3.0;
+  transformation_inv[6][4] = -1.5;
+  transformation_inv[6][5] = 3.0;
+  transformation_inv[6][6] = 1.5;
+  transformation_inv[6][8] = -4.5;
+  transformation_inv[7][1] = 1.0;
+  transformation_inv[7][2] = 0.5;
+  transformation_inv[7][3] = -3.0;
+  transformation_inv[7][4] = -1.5;
+  transformation_inv[7][5] = -3.0;
+  transformation_inv[7][6] = -1.5;
+  transformation_inv[7][8] = 4.5;
+  transformation_inv[8][1] = 1.0;
+  transformation_inv[8][2] = 0.5;
+  transformation_inv[8][3] = 3.0;
+  transformation_inv[8][4] = 1.5;
+  transformation_inv[8][5] = -3.0;
+  transformation_inv[8][6] = -1.5;
+  transformation_inv[8][8] = -4.5;
+
+  transformation_inv /= 18.0;
+
+  std::cout << "---------------Inverse transformation matrix--------------------" << std::endl;
+  std::cout << transformation_inv.ToString(0,true) << std::endl;
+
+
+  relax_rates.Resize(n_q_);
   relax_rates.Init();
   // relaxation rates matrix S is diagonal
   // entries for density and momentum components are 0 due to collision invariance
   // the first 4 values here, can be chosen arbritrarily between 0 and 2
-  relax_rates[1][1] = 1.9;
-  relax_rates[2][2] = 1.9;
-  relax_rates[4][4] = 1.9;
-  relax_rates[6][6] = 1.9;
+  relax_rates[1] = 1.9;
+  relax_rates[2] = 1.9;
+  relax_rates[4] = 1.9;
+  relax_rates[6] = 1.9;
   // these two values are related to fluid's kinematic viscosity
-  relax_rates[7][7] = omega_;
-  relax_rates[8][8] = omega_;
+  relax_rates[7] = omega_;
+  relax_rates[8] = omega_;
+
+  Timer timer;
+  timer.Start();
+
+  m_inv_s.Resize(n_q_);
+  m_inv_s.Init();
+  // multiply inverse of M with relaxation rates: M^{-1} * S
+  for (int i = 0; i < n_q_; i++)
+  {
+    double rate = relax_rates[i];
+    for (int j = 0; j < n_q_; j++)
+      m_inv_s[i][j] = rate * transformation_inv[i][j];
+  }
+
+  timer.Stop();
+
+  std::cout << "Walltime for matrix multiplication M^{-1}*S: " << timer.GetWallTime();
 
   for (int dir = 0; dir < n_q_; dir++)
-    LOG_DBG3(lbm) << "IT: S(" << dir << "," << dir << ")=" << relax_rates[dir][dir];
+    LOG_DBG3(lbm) << "IT: S(" << dir << "," << dir << ")=" << relax_rates[dir];
 }
 
 void LatticeBoltzmann::SetEnums()
@@ -653,6 +747,7 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   return sum;
 }
 
+// m = M*f
 void LatticeBoltzmann::TransformPdfs(int cur)
 {
   Vector<double> tmp;
@@ -670,9 +765,30 @@ void LatticeBoltzmann::TransformPdfs(int cur)
   }
 }
 
-StdVector<double> LatticeBoltzmann::CalcEquilMoments(int cur)
+// m_eq = M * f_eq
+Vector<double> LatticeBoltzmann::CalcEquilMoments(int cur,int i, int j, int k)
 {
-  StdVector<double> m_eq;
+  Vector<double> m_eq;
+  m_eq.Resize(n_q_);
+  double ux, uy, uz;
+
+  CalcVelocitites(cur,i,j,k,ux,uy,uz);
+  if (dim_ == 2)
+    assert(uz == 0);
+
+  double us = ux * ux + uy * uy + uz * uz;
+  double density = CalcDensity(cur,i,j,k);
+
+  m_eq[0] = 1;
+  m_eq[1] = -2 + 3 * us;
+  m_eq[2] = 1 - 3 * us;
+  m_eq[3] = ux;
+  m_eq[4] = -ux;
+  m_eq[5] = uy;
+  m_eq[6] = -uy;
+  m_eq[7] = ux * ux - uy * uy;
+  m_eq[8] = ux * uy;
+  m_eq.ScalarMult(density);
   return m_eq;
 }
 
@@ -686,7 +802,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 
   int index;
 
-  StdVector<double> pdfs;
+  Vector<double> pdfs;
   pdfs.Resize(n_q_);
   int tmp_x,tmp_y;
 
@@ -694,8 +810,8 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
  private(index), \
  private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), \
  shared(next, cur, z)
-{
-  StdVector<double> pdfs;
+ {
+  Vector<double> pdfs;
   pdfs.Resize(n_q_);
   #pragma omp for collapse(2)
   for (y = 0; y < sizeY_ ; ++y) {
@@ -738,14 +854,31 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
       tmp_ux = 3.0 * tmp_ux;
       tmp_uy = 3.0 * tmp_uy;
 
+      Vector<double> moments, inner, subtrahend;
+      if (!srt_)
+      {
+        moments.Resize(n_q_);
+        transformation.Mult(pdfs,moments); // M * f
+        Vector<double> m_eq = CalcEquilMoments(cur,x,y,z);
+        inner.Resize(n_q_);
+        subtrahend.Resize(n_q_);
+        inner = moments - m_eq;
+        m_inv_s.Mult(inner,subtrahend);
+      }
+
       // propagation and collision in one step
       for (int  dir = 0; dir < n_q_; dir++) {
         tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
         // no collision on the boundaries
         if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
           PDF(next, x, y, z, dir) = pdfs[dir];
-        else
-          PDF(next, x, y, z, dir) = pdfs[dir] + omega_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+        else {
+          if (srt_)
+            PDF(next, x, y, z, dir) = pdfs[dir] + omega_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+          else{
+            PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
+          }
+        }
       }
     }
   }
