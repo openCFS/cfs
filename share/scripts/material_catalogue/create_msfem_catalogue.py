@@ -34,7 +34,7 @@ filt = args.filt
 void = args.void
 
 design = (' --design '+str(args.design)) if args.design else ''
-oversampling =(' --oversamping '+str(args.oversampling)) if args.oversampling else ""
+oversampling =(' --oversampling '+str(args.oversampling)) if args.oversampling else ""
 
 pwd = os.path.dirname(os.path.abspath(__file__))
 
