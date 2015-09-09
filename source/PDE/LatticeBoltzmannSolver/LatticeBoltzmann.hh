@@ -59,7 +59,7 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double> GetPdfs() {return pdfs[cur_];}
+      inline StdVector<double> GetPdfs() {return pdfs_[cur_];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -166,22 +166,22 @@ namespace CoupledField
           //--------------- array of structures----------------------------------
           inline double& PDF(int cur, int x, int y, int z, int direction)
           {
-            return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return pdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline const double PDF(int cur, int x, int y, int z, int direction) const
           {
-            return pdfs[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return pdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline double& PDF(int cur, int elem, int direction)
           {
-            return pdfs[cur][direction + n_q_ * elem];
+            return pdfs_[cur][direction + n_q_ * elem];
           }
 
           inline const double PDF(int cur, int elem, int direction) const
           {
-            return pdfs[cur][direction + n_q_ * elem];
+            return pdfs_[cur][direction + n_q_ * elem];
           }
 
           void CreateOutput(const char * file, int cur);
@@ -199,18 +199,18 @@ namespace CoupledField
           /**
            * Transforming PDFs into momentum space
            */
-          void TransformPdfs(int cur);
+          Vector<double> TransformPdfs(int cur, int id);
 
           /**
            * Calculate vector of equilibrium moments based on current pdf array
            */
-          Vector<double> CalcEquilMoments(int cur,int i, int j, int k);
+          Vector<double> CalcEquilMoments(Vector<double> const moments);
           /**
            * LBM operators in 2D
            */
           void Prop_coll_step2D(int cur, int next);
 
-          void Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+          void Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet);
 
           void Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
 
@@ -221,7 +221,7 @@ namespace CoupledField
            */
           void Prop_coll_step3D(int cur, int next);
 
-          void Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet, double UX, double UY, double UZ);
+          void Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet);
 
           void Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
 
@@ -262,9 +262,7 @@ namespace CoupledField
 
           StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
-          StdVector< StdVector<double> > pdfs;
-
-          StdVector<double> pdfs_moments; // moment vector (transformed version of m_pdfs in momentum space)
+          StdVector< StdVector<double> > pdfs_;
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;
@@ -288,7 +286,7 @@ namespace CoupledField
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
-          void (LatticeBoltzmann::*prop_coll_velinlet)(int, StdVector<StdVector<int> >&, double, double, double);
+          void (LatticeBoltzmann::*prop_coll_velinlet)(int, StdVector<StdVector<int> >&);
           void (LatticeBoltzmann::*prop_coll_bounce_back)(int, StdVector<StdVector<int> >&);
           void (LatticeBoltzmann::*prop_coll_densoutlet)(int, StdVector<StdVector<int> >&);
 

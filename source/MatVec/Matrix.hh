@@ -82,7 +82,7 @@ namespace CoupledField
     //! Initialize matrix with a given scalar entry.
 
     //! Initializes the matrix with a given scalar entry
-    //! If no entry given, it gets initialized with zeroes.
+    //! If no entry given, it gets initialized with zeros.
     //! \param val (input,opt.) Entry the matrix gets initialized with
     //! \note This method does not change the size of the matrix
     inline void Init()
