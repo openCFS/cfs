@@ -43,7 +43,7 @@ def save_image_as_densfile(im, outfile):
 
   out.write('</set>\n </cfsErsatzMaterial>')
   out.close()
-def insert_modified_frame(array, minres, x, y, steps, void, number, steps_p = 0, modify=True, triangle=False):
+def insert_modified_frame(array, minres, x, y, steps, void, number, steps_p = 0, modify=False, triangle=False):
   # creates a density file with one or multiple 2D frame structures, optional: frame with round corners (modify option)
   # array: density array; minres: resolution of comp. domain; x,y, steps: x/steps is the thickness of the bar in x-direction;
   # void: density of void material, eg. 1e-9
@@ -314,13 +314,13 @@ if dim == 2:
           y = int(steps * float(tmp[1]))
         # create the design array of the chosen shape for MSFEM 2D
         if args.shape == 'frame_modified':
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, True)
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, modify = True)
         elif args.shape == 'cross':
           array = insert_rotated_bar(x, y, 0., array, minres, midx, midy)
         elif args.shape == 'frame':
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, False)
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, modify=False)
         elif args.shape == 'frame_w_triangles':
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, False, True)
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon,0, modify=False, triangle = True)
         else:
           print 'Warning: base cell type is undefined, set --shape [frame or frame_modified or cross]'
         
