@@ -570,7 +570,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
   
   max_val = numpy.max([numpy.max(s1), numpy.max(s2)])
   min_val = numpy.min([numpy.min(s1), numpy.min(s2)])
-  sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val), cmap=plt.get_cmap('gray' if color == 'grayscale' else color)) 
+  sm = cmx.ScalarMappable(colors.Normalize(min_val, max_val), cmap=plt.get_cmap('gray' if color == 'grayscale' else color)) if not color == 'black' else 'black'
 
   for i in range(len(s1)):
   
@@ -613,7 +613,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
   return (fig, sub)
   
 # @return the image
-def show_sheared_cross(coords, s1, s2, sh1, direction, nx, scale, color, do_save):
+def show_sheared_rot_cross(coords, s1, s2, sh1, angle, direction, nx, scale, color, do_save):
 
   centers, min, max, elem = coords
   
@@ -638,31 +638,32 @@ def show_sheared_cross(coords, s1, s2, sh1, direction, nx, scale, color, do_save
     v = [0,0]
     v[0] = s1[i,0] / numpy.max((scale, 1.))
     v[1] = s2[i,0] / numpy.max((scale, 1.))
-    theta = sh1[i] - .5
+    phi = (sh1[i] - .5) * numpy.pi
     c = [0,0]
     c[0] = str(1.0 - v[0] / max_val) if color == "grayscale" else 'black'
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
     
     #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
+    theta = angle[i]
     
     # a
     if direction == 'horizontal':
       print v1 
-      pol = to_rectangle_center(length * v[0], length, 0, x_off, dim[1] - y_off)
+      pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)
       draw_verts(pol, sub, c[0])    
     # b
     elif direction == 'vertical':
-      pol = to_rectangle_center(length * v[1], length, theta + numpy.pi/2, x_off, y_off)
+      pol = to_rectangle_center(length * v[1], length, theta + phi + numpy.pi/2, x_off, y_off)
       draw_verts(pol, sub, c[1])
     else:
       vmax = 0 if v[0] > v[1] else 1
       vmin = (vmax + 1) % 2
       shearingangle = [0,0]
-      shearingangle[vmax] = theta 
-      pol = to_rectangle_center(length * v[vmin], length, -(shearingangle[0] + vmin*numpy.pi/2), x_off, y_off)
+      shearingangle[vmax] = phi
+      pol = to_rectangle_center(length * v[vmin], length, theta + shearingangle[0] + vmin*numpy.pi/2, x_off, y_off)
       #draw_verts(pol, sub, str(1.0 - c[vmin]))
       draw_verts(pol, sub, c[vmin])
-      pol = to_rectangle_center(length * v[vmax], length, -(shearingangle[1] + vmax*numpy.pi/2), x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length, theta + shearingangle[1] + vmax*numpy.pi/2, x_off, y_off)
       draw_verts(pol, sub, c[vmax])
  
   return (fig, sub)
