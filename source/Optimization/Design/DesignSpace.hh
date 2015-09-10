@@ -106,7 +106,7 @@ namespace CoupledField
      /** returns the slack variable if present or throws an exception */
      virtual double GetSlackVariable() const { assert(false); return -1; }
 
-     /** Returns true if optimization does provide a complete tensor, not just a density */
+     /** Returns true if optimization does provide a designMaterial, not just a density */
      bool HasErsatzMaterialTensor() const { return designMaterial != NULL; }
      
      /** Returns true if optimization does provide a mass, currently density is not handled by this */

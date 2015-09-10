@@ -689,7 +689,7 @@ bool Function::ForDensityFiltering() const {
   case GLOBAL_SUM_MODULI:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
   case ORTHOTROPIC_TENSOR_TRACE:
-  case GLOBAL_LAMINATES_VOL:
+  //case GLOBAL_LAMINATES_VOL:
   case LAMINATES_VOL:
     return false;
 
@@ -3072,7 +3072,6 @@ double Function::Local::Identifier::CalcLaminatesVolume(const Local* local, Desi
     } else {
       return svol * CalcLatticeVolume3D(local, access, neigh_idx, derivative);
     }
-
   } else {
     switch (GetElement(neigh_idx)->GetType()) {
     case DesignElement::STIFF1:

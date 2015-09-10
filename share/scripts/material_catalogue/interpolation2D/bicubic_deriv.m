@@ -34,8 +34,8 @@ for i=1:n-1
        break;
     end
 end
- da=au-al;
- db=bu-bl;
+da=au-al;
+db=bu-bl;
 ct = Coeff((n-1)*(j-1)+k,:);
 c = zeros(4,4);
 for i=1:4

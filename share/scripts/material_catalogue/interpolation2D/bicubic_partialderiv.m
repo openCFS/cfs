@@ -35,8 +35,10 @@
 % end
 % end
 
-function [dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E)
+function [dEda, dEdb, dEdadb] = bicubic_partialderiv(a,b,E,deriv_a,deriv_b,deriv_a2,deriv_b2)
 % Approximation der Ableitungen in den Interpolationspunkten mit Finiten Differenzen
+% vectors deriv_a and deriv_b are fixed derivatives used by the penalization
+% approach
 dEda = zeros(length(a),length(b));
 dEdb = zeros(length(a),length(b));
 dEdadb = zeros(length(a),length(b));
@@ -60,10 +62,17 @@ end
 %not be used for central difference quotients.
 dEda(1,:) = (E(2,:)-E(1,:))/(a(2)-a(1));
 dEda(length(a)-1,:) = (E(length(a)-1,:)-E(length(a)-2,:))/(a(length(a)-1)-a(length(a)-2));
-dEda(length(a),:) = (E(length(a),:)-E(length(a)-1,:))/(a(length(a))-a(length(a)-1));
-
 dEdb(:,1) = (E(:,2)-E(:,1))/(b(2)-b(1));
 dEdb(:,length(b)-1) = (E(:,length(b)-1)-E(:,length(b)-2))/(b(length(b)-1)-b(length(b)-2));
-dEdb(:,length(b)) = (E(:,length(b))-E(:,length(b)-1))/(b(length(b))-b(length(b)-1));
-
+if isempty(deriv_a)
+    dEda(length(a),:) = (E(length(a),:)-E(length(a)-1,:))/(a(length(a))-a(length(a)-1));
+else
+    dEda(length(a),:) = deriv_a(:);
+    dEda(:,length(b)) = deriv_a2(:);
+end
+if isempty(deriv_b)
+    dEdb(:,length(b)) = (E(:,length(b))-E(:,length(b)-1))/(b(length(b))-b(length(b)-1));
+else
+    dEdb(length(a),:) = deriv_b(:);
+    dEdb(:,length(b)) = deriv_b2(:);
 end

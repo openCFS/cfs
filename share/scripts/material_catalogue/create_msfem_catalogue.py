@@ -32,27 +32,22 @@ msfem = args.msfem
 shape = args.shape
 filt = args.filt
 void = args.void
-if args.oversampling:
-  oversampling = " --oversampling " + str(args.oversampling)
-else:
-  oversampling = ""
+
+design = (' --design '+str(args.design)) if args.design else ''
+oversampling =(' --oversampling '+str(args.oversampling)) if args.oversampling else ""
 
 pwd = os.path.dirname(os.path.abspath(__file__))
-if args.design:
-  execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon) + ' --design '+str(args.design)+oversampling)
-else:
-  execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon)+oversampling)
+
+execute("python calculate-crosses.py " +str(stp)+' '+str(dim)+' '+ str(res)+' '+str(folder)+ ' --msfem ' + str(mesh)+' --shape '+str(shape)+ ' --filter '+str(filt)+' --void_material '+str(void)+' --epsilon '+str(args.epsilon) + design +oversampling)
 
 if args.big:
-    execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+ ' --msfem ' + str(msfem)+' --mesh '+str(mesh)+' --big '+str(args.big)+oversampling)
+    execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+ ' --msfem ' + str(msfem)+' --mesh '+str(mesh)+' --big '+str(args.big)+ ' --epsilon '+str(args.epsilon) +oversampling)
 else:
   os.chdir(str(pwd)+'/'+str(folder))
   execute("bash jobs")
   os.chdir(str(pwd))
-  if args.design:
-    execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+ ' --msfem ' + str(msfem)+ ' --design '+str(args.design)+oversampling)
-  else:
-    execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+ ' --msfem ' + str(msfem))
+  execute("python evaluate.py "+str(stp)+' '+str(dim)+' '+str(res)+' '+str(folder)+ ' --msfem ' + str(msfem)+ ' --epsilon '+str(args.epsilon) +  design + oversampling)
+
 
 
 

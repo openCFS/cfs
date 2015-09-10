@@ -628,7 +628,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           ParamTools::AsMatrix<double>(root->Get(tmp), msfem_coeff_[i]);
         }
   }
-
   LOG_DBG3(dm) << "a = " << hom_rect_a_;
   LOG_DBG3(dm) << "b = " << hom_rect_b_;
   LOG_DBG3(dm) << "c = " << hom_rect_c_;
@@ -1875,7 +1874,6 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E,
   if (subTensor != FULL) {
     rotAngle = params_[DesignElement::ROTANGLE];
   }
-
   Vector<double> p(3);
   if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
     p[0] = -1.0 + 4 * a; // assume max 0.5
@@ -3227,16 +3225,17 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
   // Method uses tricubic interpolation
   // length of the discretized design interval
+  // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
   int o = hom_rect_c_.GetNumRows();
+  // grid size of the discretized design interval, works only for uniform grids
   // grid size of the discretized design interval, works only for uniform grids
   double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
   double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
   double dc = 0.0;
   if (o > 1) {
     dc = hom_rect_c_[1][0] - hom_rect_c_[0][0];
-
   }
   int j, k, l(-1);
   j = GetInterpolationIndex(hom_rect_a_,p[0]);
@@ -3248,6 +3247,7 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
   if (subTensor == FULL) {
     E.Resize(6, 6);
     E.Init(); // for off-diagonal
+    // Calculation of the interpolated tensor values
     // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
@@ -3837,7 +3837,6 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
-
 double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval,
   sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
@@ -3890,6 +3889,8 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
 }
 
 #endif //USE_SGPP
+
+
 
 void DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
     DesignElement::Type direction) {
@@ -4056,7 +4057,6 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
   return deriv;
 }
 
-
 double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n) const {
@@ -4080,7 +4080,6 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
   LOG_DBG(dm) << "Result =" << res;
   return res;
 }
-
 
 double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, int & j, int & k,

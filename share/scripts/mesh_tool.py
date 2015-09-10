@@ -211,26 +211,51 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       e.nodes = ((ll, ll + 1, ll + 1 + nx + 1, ll + nx + 1))
       mesh.elements.append(e)
       # e.dump()
-  if pressure:
-    y = ny - 1
-    for x in range(nx):
-      if (x >= int(0.8 * nx) and y == ny - 1):
-        b = Element()
-        b.type = LINE
-        ll = x
-        b.nodes = ((ll, ll + 1))
-        if e.region == 'mech' or e.region == 'colorful' or e.region == 'red': 
-          b.region = 'pressure2'
-        else:
-          b.region = 'void'
-        mesh.elements.append(b)
-    print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
+#  if pressure:
+#    y = ny - 1
+#    for x in range(nx):
+#      if (x >= int(0.8 * nx) and y == ny - 1):
+#        b = Element()
+#        b.type = LINE
+#        ll = x
+#        b.nodes = ((ll, ll + 1))
+#        if e.region == 'mech' or e.region == 'colorful' or e.region == 'red': 
+#          b.region = 'pressure2'
+#        else:
+#          b.region = 'void'
+#        mesh.elements.append(b)
+#    print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
   mesh.bc.append(("south", range(0, nx + 1)))
   mesh.bc.append(("north", range((nx + 1) * ny, (nx + 1) * (ny + 1))))
   mesh.bc.append(("west", range(0, (nx + 1) * ny + 1, nx + 1)))
   mesh.bc.append(("east", range(nx, (nx + 1) * (ny + 1), nx + 1)))
-  mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
+  if pressure:
+    print 'Warning: pressure area has to be set manually in method create_dense_mesh.'
+    mesh.bc.append(("pressure2", range(int(0.8 * nx), nx + 1)))
+  else:
+    # lower/upper loads
+    mid = int((nx+1.)/2.)
+    off_x = int(0.05 * nx)
+    off_y = int(0.1 * ny)
+    if (nx+1)/2. % 2 == 0:
+      mesh.bc.append(("load1", range(mid-off_x,mid + off_x)))
+      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x, (nx+1)*ny + mid + off_x)))
+    else:
+      mesh.bc.append(("load1", range(mid-off_x,mid + 1 + off_x)))
+      mesh.bc.append(("load2", range((nx+1)*ny + mid-off_x,(nx+1)*ny + mid + off_x + 1)))
+    # support lower left
+    mesh.bc.append(("support", range(0,off_x+1)))
+    mesh.bc.append(("support", range(0,(nx+1)*off_y+1,nx+1)))
+    # support lower right
+    mesh.bc.append(("support", range(nx - off_x,nx+1)))
+    mesh.bc.append(("support", range(nx,(nx+1)*(off_y+1),nx+1)))
+    # support upper left
+    mesh.bc.append(("support", range((nx+1)*ny, (nx+1)*ny+off_x+1)))
+    mesh.bc.append(("support", range((nx+1)*ny-(nx+1)*off_y,(nx+1)*ny+1,nx+1)))
 
+    # support upper right
+    mesh.bc.append(("support", range((nx+1)*(ny+1) -1 - off_x,(nx+1)*(ny+1))))
+    mesh.bc.append(("support", range((nx+1)*(ny+1)-(nx+1)*off_y-1,(nx+1)*(ny+1),nx+1)))
 
 
   
@@ -409,7 +434,7 @@ def write_gid_mesh(mesh, filename):
 def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = None, inclusion_size = None, patch = None):
   mesh = Mesh()
   
-  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced')
+  assert(type == 'bulk2d' or type == 'cantilever2d' or type == 'cantilever2d_reinforced' or type == 'msfem_two_load')
   assert(inclusion == None or inclusion == "rect" or inclusion == "ball")
   assert(inclusion_size == None or inclusion_size <= 1.0)
   

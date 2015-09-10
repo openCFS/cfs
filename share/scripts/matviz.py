@@ -199,7 +199,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
           else:
-            viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
+            if args.cell_size:
+              tmp = args.cell_size.split(',')
+              csize = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
+              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+            else:
+              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
@@ -303,6 +308,7 @@ parser.add_argument("--hom_dir", help="visualization of stiffness directions (de
 parser.add_argument("--angle_factor", help="factor for angle. -1.0 turns, 0.0 disables angles", default=1.0, type=float)
 parser.add_argument("--angle_bias", help="bias for the angle in deg. 90 switches s1 and s2", default=0.0, type=float)
 parser.add_argument("--hom_samples", help="activates interpolation and, the value gives samples in x-direction", type=int)
+parser.add_argument("--cell_size", help="cell size in [mm] in x,y,z direction")
 parser.add_argument("--stream_style", help="select visualization", choices=['line', 'thick'], default='thick')
 parser.add_argument("--stream_step", help="step length for ODE integration per macro cell", type=float, default=0.2)
 parser.add_argument("--stream_s2_samples", help="sampling of s2 if not given hom_samples applies", type=int)
