@@ -23,7 +23,6 @@ class ErsatzMaterial;
 }  // namespace CoupledField
 
 
-using boost::tuple;
 using std::pair;
 using boost::get;
 
@@ -670,7 +669,7 @@ class Function
     Local* InitLocal(DesignSpace* space);
     
     /** extract the "coord" element and parse it to coord */
-    static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
+    static void ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord);
 
     /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
      * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */

@@ -14,5 +14,12 @@
 FILE(REMOVE "@SNOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libblas.a")
 
 # copy data from install dir to the target.
-# this is the point where the cfsdeps_precompiled stuff will come in
 FILE(COPY "@SNOPT_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")
+
+# write install manifest, needed for ZIP_TO_CACHE 
+FILE(GLOB_RECURSE FILES_TO_INSTALL "@SNOPT_INSTALL@/*")
+
+FOREACH(IFILE ${FILES_TO_INSTALL})
+  STRING(REPLACE "@SNOPT_INSTALL@/" "@CMAKE_CURRENT_BINARY_DIR@/" IFILE "${IFILE}")
+  FILE(APPEND "@CMAKE_CURRENT_BINARY_DIR@/cfsdeps/snopt/src/snopt-build/install_manifest.txt" "${IFILE}\n")
+ENDFOREACH()

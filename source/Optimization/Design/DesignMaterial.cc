@@ -28,8 +28,8 @@
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
 #ifdef USE_SGPP
-  #include "sgpp_base.hpp"
-  #include "sgpp_opt.hpp"
+#include "sgpp_base.hpp"
+#include "sgpp_optimization.hpp"
 #endif
 
 DECLARE_LOG(dm)
@@ -501,22 +501,22 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           if (basis_str == "bspline") {
             // B-splines
             sgpp_basis_ = BSPLINE;
-            grid_ = sg::base::Grid::createBsplineGrid(dimension, bspline_degree_);
+            grid_ = SGPP::base::Grid::createBsplineGrid(dimension, bspline_degree_);
           } else {
             // modified B-splines
             sgpp_basis_ = MODBSPLINE;
-            grid_ = sg::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
+            grid_ = SGPP::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
           }
           // optional verbosity for initial hierarchisation
-          sg::opt::tools::printer.setVerbosity(2);
+          SGPP::optimization::printer.setVerbosity(2);
         } else if (basis_str == "modlinear") {
           // modified linear basis
           sgpp_basis_ = MODLINEAR;
-          grid_ = sg::base::Grid::createModLinearGrid(dimension);
+          grid_ = SGPP::base::Grid::createModLinearGrid(dimension);
         } else {
           // (un)modified linear basis
           sgpp_basis_ = LINEAR;
-          grid_ = sg::base::Grid::createLinearGrid(dimension);
+          grid_ = SGPP::base::Grid::createLinearGrid(dimension);
         }
         // read coefficients
         InitializeSparseGrid(file.c_str());
@@ -3284,17 +3284,17 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   if (word != "sparsegrid") {
     // ==> old format
     file.close();
-    bool dataIsHierarchised;
+    bool dataIsHierarchized;
     Matrix<double> data;
-    dataIsHierarchised = ReadDetailedStats(filename, data);
+    dataIsHierarchized = ReadDetailedStats(filename, data);
     // create regular grid
-    sg::base::GridGenerator* gridGen = grid_->createGridGenerator();
+    SGPP::base::GridGenerator* gridGen = grid_->createGridGenerator();
     gridGen->regular(level_);
     delete gridGen;
-    if (dataIsHierarchised) {
-      FillSparseGridWithHierarchisedData(data);
+    if (dataIsHierarchized) {
+      FillSparseGridWithHierarchizedData(data);
     } else {
-      FillSparseGridWithUnhierarchisedData(data);
+      FillSparseGridWithUnhierarchizedData(data);
     }
     return;
   }
@@ -3304,24 +3304,24 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   file >> N >> d >> m >> word;
   // standard assumptions
   assert((d == 2) || (d == 3));
-  assert((m == 4) || (m == 6));
+  assert((m == 5) || (m == 7));
   // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=6))"
-  assert(!shearIsDesign_ || ((d == 3) && (m == 6)));
-  bool hierarchised = (word == "hierarchised");
+  assert(!shearIsDesign_ || ((d == 3) && (m == 7)));
+  bool hierarchized = (word == "hierarchised");
   file >> word;
   Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
   // initialize coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  alpha1_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
+  alpha2_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
+  alpha3_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
+  alpha4_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
   if (shearIsDesign_) {
-    alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-    alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+    alpha5_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
+    alpha6_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(N));
   }
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
-  sg::base::GridIndex grid_point(grid_->getStorage()->dim());
+  SGPP::base::GridIndex grid_point(grid_->getStorage()->dim());
   level_ = 0; // we set that to the maximal level of the grid points
   double duck; // dummy
   unsigned int j = 0;
@@ -3344,11 +3344,8 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         file >> index[0] >> index[1] >> index[2];
         if (level[2] != 1) {
           // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
-          if (m == 4) {
-            // Is there a "non-Ralph" way to do that?
-            file >> duck >> duck >> duck >> duck;
-          } else {
-            file >> duck >> duck >> duck >> duck >> duck >> duck;
+          for (unsigned int j = 0; j < m; j++) {
+            file >> duck;
           }
           continue;
         }
@@ -3361,17 +3358,18 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     grid_->getStorage()->insert(grid_point);
     if (shearIsDesign_) {
       // shearing angle should be optimized ==> Read ALL The Data!
+      // (except for the final value, the volume)
       file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j]
-           >> (*alpha5_)[j] >> (*alpha6_)[j];
+           >> (*alpha5_)[j] >> (*alpha6_)[j] >> duck;
       if (notation == VOIGT) {
         (*alpha6_)[j] *= 2.0;
       }
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
-      if (m == 4) {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j];
+      if (m == 5) {
+        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j] >> duck;
       } else {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j];
+        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j] >> duck;
         LOG_DBG(dm) << (*alpha1_)[j] << (*alpha2_)[j] << (*alpha3_)[j] << (*alpha4_)[j];
       }
       if (notation == VOIGT) {
@@ -3389,11 +3387,12 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha3_->resize(grid_->getStorage()->size());
     alpha4_->resize(grid_->getStorage()->size());
   }
+
   // hierarchisation if needed
-  if (!hierarchised) {
+  if (!hierarchized) {
     if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-      sg::base::OperationHierarchisation *hierOp =
-          sg::op_factory::createOperationHierarchisation(*grid_);
+      SGPP::base::OperationHierarchisation *hierOp =
+          SGPP::op_factory::createOperationHierarchisation(*grid_);
       hierOp->doHierarchisation(*alpha1_);
       hierOp->doHierarchisation(*alpha2_);
       hierOp->doHierarchisation(*alpha3_);
@@ -3404,53 +3403,63 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
       }
       delete hierOp;
     } else {
-      std::vector<sg::base::DataVector *> alphas;
-      alphas.push_back(alpha1_.get());
-      alphas.push_back(alpha2_.get());
-      alphas.push_back(alpha3_.get());
-      alphas.push_back(alpha4_.get());
+      SGPP::base::DataMatrix *alphas = new SGPP::base::DataMatrix(0,0);
+      alphas->appendRow(*alpha1_);
+      alphas->appendRow(*alpha2_);
+      alphas->appendRow(*alpha3_);
+      alphas->appendRow(*alpha4_);
       if (shearIsDesign_) {
-        alphas.push_back(alpha5_.get());
-        alphas.push_back(alpha6_.get());
+        alphas->appendRow(*alpha5_);
+        alphas->appendRow(*alpha6_);
       }
-      sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-      hierOp->doHierarchisation(alphas);
+      SGPP::optimization::OperationMultipleHierarchisation *hierOp =
+        SGPP::op_factory::createOperationMultipleHierarchisation(*grid_);
+      hierOp->doHierarchisation(*alphas);
       delete hierOp;
+
+      alphas->getRow(0,*alpha1_);
+      alphas->getRow(1,*alpha2_);
+      alphas->getRow(2,*alpha3_);
+      alphas->getRow(3,*alpha4_);
+      if (shearIsDesign_) {
+        alphas->getRow(4,*alpha5_);
+        alphas->getRow(5,*alpha6_);
+      }
+      delete alphas;
     }
   }
 }
 
-void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
+void DesignMaterial::FillSparseGridWithUnhierarchizedData(Matrix<double>& data) {
+  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
 
   // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha1_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha2_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha3_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha4_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha5_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha6_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
 
   // put data values in coefficient vectors
   unsigned int dim1, dim2, dim3, index1, index2, index3, row;
   dim1 = catalogueSize_[0];
   dim2 = catalogueSize_[1];
   dim3 = catalogueSize_[2];
-  sg::base::GridIndex* gp;
+  SGPP::base::GridIndex* gp;
   unsigned int sz = gridStorage->size();
   sz = sz + 1;
   for (unsigned int i=0; i < gridStorage->size(); i++) {
     gp = gridStorage->get(i);
     if (catalogueSize_.GetSize() == 2) {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
+      index1 = gp->getCoord(0)*(dim1);
+      index2 = gp->getCoord(1)*(dim2);
       row = (index1-1)*dim2 + index2 - 1;
     } else {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
+      index1 = gp->getCoord(0)*(dim1);
+      index2 = gp->getCoord(1)*(dim2);
       if(shearIsDesign_) {
-        index3 = gp->abs(2)*(dim3+1);
+        index3 = gp->getCoord(2)*(dim3+1);
       } else {
         index3 = .5*(dim3+1);
       }
@@ -3472,27 +3481,13 @@ void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) 
         alpha4_->set(i,data[row][5]);
       }
     }
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
+    LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
         << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
   }
-  // hierarchise data vectors
+  // hierarchize data vectors
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
-    if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
-    }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-    hierOp->doHierarchisation(alphas);
-    delete hierOp;
-  } else {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
+    SGPP::base::OperationHierarchisation *hierOp =
+        SGPP::op_factory::createOperationHierarchisation(*grid_);
     hierOp->doHierarchisation(*alpha1_);
     hierOp->doHierarchisation(*alpha2_);
     hierOp->doHierarchisation(*alpha3_);
@@ -3502,22 +3497,46 @@ void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) 
       hierOp->doHierarchisation(*alpha6_);
     }
     delete hierOp;
+  } else {
+    SGPP::base::DataMatrix *alphas = new SGPP::base::DataMatrix(0,0);
+    alphas->appendRow(*alpha1_);
+    alphas->appendRow(*alpha2_);
+    alphas->appendRow(*alpha3_);
+    alphas->appendRow(*alpha4_);
+    if (shearIsDesign_) {
+      alphas->appendRow(*alpha5_);
+      alphas->appendRow(*alpha6_);
+    }
+    SGPP::optimization::OperationMultipleHierarchisation *hierOp =
+      SGPP::op_factory::createOperationMultipleHierarchisation(*grid_);
+    hierOp->doHierarchisation(*alphas);
+    delete hierOp;
+
+    alphas->getRow(0,*alpha1_);
+    alphas->getRow(1,*alpha2_);
+    alphas->getRow(2,*alpha3_);
+    alphas->getRow(3,*alpha4_);
+    if (shearIsDesign_) {
+      alphas->getRow(4,*alpha5_);
+      alphas->getRow(5,*alpha6_);
+    }
+    delete alphas;
   }
 }
 
-void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
+void DesignMaterial::FillSparseGridWithHierarchizedData(Matrix<double>& data) {
+  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
 
   // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha1_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha2_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha3_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha4_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha5_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
+  alpha6_ = boost::shared_ptr<SGPP::base::DataVector>(new SGPP::base::DataVector(gridStorage->size()));
 
   // put data values in coefficient vectors
-  sg::base::GridIndex* gp;
+  SGPP::base::GridIndex* gp;
   unsigned int sz = gridStorage->size();
   sz = sz + 1;
   for (unsigned int i=0; i < gridStorage->size(); i++) {
@@ -3540,14 +3559,14 @@ void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
       }
     }
     gp = gridStorage->get(i);
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
+    LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
         << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
   }
 
-  // hierarchise data vectors
+  // hierarchize data vectors
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
+    SGPP::base::OperationHierarchisation *hierOp =
+        SGPP::op_factory::createOperationHierarchisation(*grid_);
     hierOp->doHierarchisation(*alpha1_);
     hierOp->doHierarchisation(*alpha2_);
     hierOp->doHierarchisation(*alpha3_);
@@ -3558,31 +3577,41 @@ void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
     }
     delete hierOp;
   } else {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
+    SGPP::base::DataMatrix *alphas = new SGPP::base::DataMatrix(0,0);
+    alphas->appendRow(*alpha1_);
+    alphas->appendRow(*alpha2_);
+    alphas->appendRow(*alpha3_);
+    alphas->appendRow(*alpha4_);
     if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
+      alphas->appendRow(*alpha5_);
+      alphas->appendRow(*alpha6_);
     }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-    hierOp->doHierarchisation(alphas);
+    SGPP::optimization::OperationMultipleHierarchisation *hierOp =
+      SGPP::op_factory::createOperationMultipleHierarchisation(*grid_);
+    hierOp->doHierarchisation(*alphas);
     delete hierOp;
+
+    alphas->getRow(0,*alpha1_);
+    alphas->getRow(1,*alpha2_);
+    alphas->getRow(2,*alpha3_);
+    alphas->getRow(3,*alpha4_);
+    if (shearIsDesign_) {
+      alphas->getRow(4,*alpha5_);
+      alphas->getRow(5,*alpha6_);
+    }
+    delete alphas;
   }
 }
 
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) const {
   // Method uses SGPP interpolation
-  sg::base::DataVector point(p.GetSize());
+  SGPP::base::DataVector point(p.GetSize());
   for (unsigned int i=0; i < p.GetSize(); i++) {
     point[i] = p[i];
   }
-  sg::base::OperationEval* opEval = sg::op_factory::createOperationEval(*grid_);
-  LOG_DBG(dm) << p;
+  SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+  LOG_DBG2(dm) << p;
 
   E.Resize(3,3);
   E.Init(); // for off-diagonal
@@ -3625,8 +3654,8 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
         E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha6_, point, direction);
       }
     } else {
-      sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          sg::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
+      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
+          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
       if (!shearIsDesign_) { // no shearing
         E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha1_, point, direction);
         E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha2_, point, direction);
@@ -3658,7 +3687,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   E.Init(); // for off-diagonal
   const int margin = (bspline_degree_+1)/2 + 1;
   const double a = static_cast<double>((bspline_degree_+1)/2);
-  sg::base::BsplineBasis<int, int> bspline(bspline_degree_);
+  SGPP::base::BsplineBasis<int, int> bspline(bspline_degree_);
 
   if (!shearIsDesign_) {
     E[1-1][1-1] = 0.0;
@@ -3770,8 +3799,8 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
-double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval,
-  sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const {
+double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
+  SGPP::base::DataVector alpha, SGPP::base::DataVector point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
   double h = 1./pow(2,level_+1) * 1e-6;
@@ -3789,8 +3818,8 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* 
     default:
       return 0;
     }
-  sg::base::DataVector pointL = point;
-  sg::base::DataVector pointU = point;
+  SGPP::base::DataVector pointL = point;
+  SGPP::base::DataVector pointU = point;
   pointL[dimension-1] -= h;
   pointU[dimension-1] += h;
 
@@ -3801,8 +3830,8 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* 
 }
 
 inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
-  sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
-  sg::base::DataVector& alpha, sg::base::DataVector& point, DesignElement::Type direction) const {
+  SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
+  SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   unsigned int dimension;
   switch (direction) {
     case DesignElement::STIFF1:
@@ -3927,8 +3956,7 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
   double u =(p[1]-hom_rect_b_[k][0])/(db);
   double t=(p[0]-hom_rect_a_[j][0])/(da);
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
-  LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
-  LOG_DBG(dm)<<"j = "<<j<<" k= "<<k;
+  LOG_DBG(dm)<<"j = "<<j<<" k= "<<k<<"\n";
   double res = 0;
   for (int i = 0;i<4;i++) {
     for (int l=0;l<4;l++) {
@@ -3970,7 +3998,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
 }
 
 bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& ret) {
-  bool isHierarchised;
+  bool isHierarchized;
   unsigned int dim1, dim2, dim3, nRows, nCols;
 
   // open file
@@ -3993,9 +4021,9 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   Notation notation = !strVec[3].compare(0,strVec[3].size(),"voigt") ? VOIGT : HILL_MANDEL;
 
   // initialize matrix
-  // if second entry starts with "L", we have hierarchised data
+  // if second entry starts with "L", we have hierarchized data
   if (strVec[1].compare(0,1,"L") == 0) {
-    isHierarchised = true;
+    isHierarchized = true;
     unsigned int catalogueDimension = strVec[0].compare("3D") == 0 ? 3 : 2;
     level_ = boost::lexical_cast<int>(strVec[1].substr(1));
     for (unsigned int i=0; i<catalogueDimension; i++) {
@@ -4003,7 +4031,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     }
     nRows = boost::lexical_cast<int>(strVec[2]);
   } else {
-    isHierarchised = false;
+    isHierarchized = false;
     dim1 = boost::lexical_cast<int>(strVec[0]);
     dim2 = boost::lexical_cast<int>(strVec[1]);
     dim3 = boost::lexical_cast<int>(strVec[2]);
@@ -4045,7 +4073,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   }
   LOG_DBG3(dm)<<"Data: \n"<<ret;
 
-  return isHierarchised;
+  return isHierarchized;
 }
 
 void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
