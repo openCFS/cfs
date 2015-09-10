@@ -93,7 +93,7 @@ if args.grid:
 
 if not args.orgsize:
   ix, iy = dens.shape
-  f = 800 / max(ix, iy)
+  f = 1600 / max(ix, iy)
   img = img.resize((f * ix, f * iy))
 #I = I.rotate(90)
 #I = I.transpose(0)

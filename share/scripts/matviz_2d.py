@@ -542,11 +542,11 @@ def show_frame(coords, s1, s2, directions, nx,scale):
     offy = int((height / 2.) * (hor) + 0.5+eps)
     if offx == 0:
       if offy > 0:
-        #offx = 1
+        offx = 1
         warn = True      
     elif offy == 0:
       if offx > 0:
-        #offy = 1
+        offy = 1
         warn = True
     #print 'offx = ' +str(offx)+', offy= '+str(offy)  
     for i in range(offx, int(length+eps) - offx):
