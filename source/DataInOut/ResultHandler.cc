@@ -304,12 +304,9 @@ namespace CoupledField {
           }
         }
       }
-
       // In any case: Process also related secondary (postprocessing) results
       FinishStepRec( actContext );
-
     }
-
 
   // Trigger writing of all output writers
   std::map<std::string, shared_ptr<SimOutput> >::iterator fileIt;

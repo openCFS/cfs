@@ -406,7 +406,7 @@ namespace CoupledField {
       resultGroup = currMeshStepGroup_.createGroup( resultName );
     }
 
-    // determine, on whicht type of entity the result is defined
+    // determine, on which type of entity the result is defined
     std::string entityString;
     switch( resInfo->definedOn ) {
     case ResultInfo::NODE:

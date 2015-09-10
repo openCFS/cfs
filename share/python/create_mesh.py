@@ -53,15 +53,15 @@ args = parser.parse_args()
 mesh_name = args.type
 
 # sanity checks
-if args.lbm and args.type <> "lbm":
-  print "error: --lbm only for --type lbm"
+if args.lbm and args.type <> "lbm2d" and args.type <>"lbm3d":
+  print "error: --lbm only for --type lbm2d or lbm3d"
   sys.exit()
 
-if (args.inclusion or args.inclusion_size or args.inclusion_overlap) and (args.type == "bulk3d" or args.type ==  "cantilever2d_reinforced"): 
+if (args.inclusion or args.inclusion_size or args.inclusion_overlap) and not (args.type == "bulk3d" or args.type ==  "cantilever2d_reinforced"or args.type == "lbm3d"): 
   print "inclusions currently not for your type implemented" 
   sys.exit()  
   
-if args.inclusion_overlap and args.type <> "bulk2d":
+if args.inclusion_overlap and args.type <> "bulk2d" and not (args.type == "lbm3d" or args.type == "lbm2d"):
   print "--inclusion_overlap only for bulk2d implemented"
   sys.exit()  
   

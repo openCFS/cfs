@@ -5,6 +5,7 @@
 #include <set>
 #include "Utils/StdVector.hh"
 #include "General/Enum.hh"
+#include "DataInOut/ResultHandler.hh"
 /** This file is an extract of the LBM code of Markus Wittmann (RRZE) based on the code of Thomas Guess (AM2) based on the code of Georg Pingen (USA).
 The original code from Markus can be found at
 
@@ -56,7 +57,7 @@ namespace CoupledField
       void prop_step();
 
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
-       *  @retun copy of pdfs
+       *  @return copy of pdfs
        */
       inline StdVector<double> GetPdfs() {return m_pdfs[m_cur];}
 
@@ -64,6 +65,11 @@ namespace CoupledField
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
        */
       inline int GetNumWriteResults() { return m_numWriteResults; }
+
+      /**
+       * @return Number of iterations until steady-state convergence
+       */
+      inline int GetNumIterations() {return m_numIterations; }
 
       inline StdVector<PDFDirectionVector>* GetPDFDirectionVectors() { return &microVelDirections; }
       inline StdVector<Direction>* GetinvPDFDirections() { return &invPDFDirections; }
@@ -191,7 +197,6 @@ namespace CoupledField
 
           void prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
 
-
           /**
            * LBM operators in 3D
            */
@@ -222,6 +227,8 @@ namespace CoupledField
           int m_writeFrequency;
           // counts how many intermediate steps we have already written to hdf5 file
           int m_numWriteResults;
+          // how many iterations until steady-state convergence
+          int m_numIterations;
 
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
@@ -249,8 +256,6 @@ namespace CoupledField
           StdVector<StdVector<int> > bb;
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
-
-          ResultHandler* rh = NULL;
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);

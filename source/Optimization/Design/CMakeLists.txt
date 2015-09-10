@@ -25,11 +25,11 @@ SET(TARGET_LL
 )
 
 IF(USE_SGPP)
-   SET(TARGET_LL ${TARGET_LL} ${SGPP_LIBRARY})
-
-   # Add a switch for the compiler.
-   # As the SGpp toolbox is not available for everyone, we have to exclude the corresponding source code from compiling.
-   ADD_DEFINITIONS(-DUSE_SGPP)
+  SET(TARGET_LL ${SGPP_LIBRARY} ${TARGET_LL})
+  
+  # Add a switch for the compiler.
+  # As the SGpp toolbox is not available for everyone, we have to exclude the corresponding source code from compiling.
+  ADD_DEFINITIONS(-DUSE_SGPP)
 ENDIF(USE_SGPP)
 
 TARGET_LINK_LIBRARIES(design ${TARGET_LL})

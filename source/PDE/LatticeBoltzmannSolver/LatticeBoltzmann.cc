@@ -170,10 +170,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   Timer timer;
   timer.Start();
 
-    LOG_DBG(lattice) << "bb = " << ToString(bb);
-    LOG_DBG(lattice) << "inlet = " << ToString(inlet);
-    LOG_DBG(lattice) << "outlet = " << ToString(outlet);
-    LOG_DBG(lattice) << "rel = " << ToString(rel);
+  LOG_DBG(lattice) << "bb = " << ToString(bb);
+  LOG_DBG(lattice) << "inlet = " << ToString(inlet);
+  LOG_DBG(lattice) << "outlet = " << ToString(outlet);
+  LOG_DBG(lattice) << "rel = " << ToString(rel);
 
   in->Get("converged")->SetValue("running");
 
@@ -222,21 +222,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     if (writeIntermediateResults) {
       if (it % m_writeFrequency == 0) {
-        domain->GetDriver()->StoreResults(count,(double) count);
+        domain->GetDriver()->StoreResults(count,(double) it);
         count++;
       }
     }
   }
-
-  // -- Combined propagation and collision step -------------------------
-  (this->*prop_coll_step)(m_cur, m_next);
-
-  // -- Bounce back step ------------------------------------------------
-  (this->*prop_coll_bounce_back)(m_next, bb);
-  // -- Inlet condition -------------------------------------------------
-  (this->*prop_coll_velinlet)(m_next, inlet, m_ux, m_uy, m_uz);
-  // -- Outlet condition ------------------------------------------------
-  (this->*prop_coll_densoutlet)(m_next, outlet);
 
   timer.Stop();
 
@@ -269,6 +259,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   if(!steady_state)
     EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
+//  if (writeIntermediateResults)
+//    m_numWriteResults = count-1;
+//  else
+  m_numIterations = it;
   m_numWriteResults = count;
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)

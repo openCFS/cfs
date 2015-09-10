@@ -369,7 +369,7 @@ OPTION(COVERAGE "Turn on code coverage output."
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
   ${CFSTOOL_DEFAULT})
-
+  
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
   ${CFSDAT_DEFAULT})
 

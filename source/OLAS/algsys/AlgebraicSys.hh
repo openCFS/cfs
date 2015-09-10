@@ -788,6 +788,7 @@ namespace CoupledField {
     void GetFEMatrixTypes( std::set<FEMatrixType> &matrixTypes ) const;
 
     /** This is meant mainly for debug purpose */
+//    SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_.find(type)->second; }
     SBM_Matrix* GetMatrix(FEMatrixType type) { assert(sysMat_.find(type) != sysMat_.end()); return sysMat_[type]; }
     
     //! Return, if a non-zero static condensation block is present

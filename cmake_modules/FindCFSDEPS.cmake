@@ -219,9 +219,9 @@ IF(USE_BLAS OR USE_LAPACK)
   #-----------------------------------------------------------------------------
   # Find Intel Math Kernel library
   #-----------------------------------------------------------------------------
-  IF(CFS_BLAS_LAPACK STREQUAL "MKL")
+  IF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
     INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/FindIntelMKL.cmake")
-  ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL")
+  ENDIF(CFS_BLAS_LAPACK STREQUAL "MKL" OR USE_SGPP)
 
   IF(CFS_BLAS_LAPACK STREQUAL "APPLE")
     SET(BLAS_LIBRARY "-framework Accelerate")

@@ -175,6 +175,7 @@ namespace CoupledField {
 
       // Check if pattern can be deleted
       if ( numPatternUsers_[patternID - 1] == 0 ) {
+        patterns_[patternID - 1];
         delete patterns_[patternID - 1];
         patterns_[patternID - 1] = NULL;
         numPatternUsers_[patternID - 1] = -1;
