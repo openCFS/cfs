@@ -2,9 +2,10 @@
 
 
 #include "DataInOut/Logging/LogConfigurator.hh"
+#include "General/Environment.hh"
 #include "PDE/StdPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Forms/BiLinForms/BDBInt.hh"
-
 
 
 namespace CoupledField
@@ -280,7 +281,6 @@ GetVector(Vector<TYPE>& coefVec,
   coefVec *= factor_;
 }
 
-
 template<class TYPE,bool TRANS>
 void CoefFunctionFlux<TYPE,TRANS>::GetScalar(TYPE& coefScal,
                                           const LocPointMapped& lpm ) {
@@ -448,6 +448,75 @@ template<class TYPE> std::string CoefFunctionQuadSol<TYPE>::ToString() const
 
 // -----------------------
 
+// ---------------------- Customized coeff function for optimization with lattice Boltzmann(LBM) -------------------
+template<class TYPE> CoefFunctionLBM<TYPE>::CoefFunctionLBM(LatticeBoltzmannPDE* lbm, shared_ptr<BaseFeFunction> feFct,shared_ptr<ResultInfo> resInfo) : CoefFunctionFormBased()
+{
+
+//  feFct_ = dynamic_pointer_cast<FeFunction<TYPE> >(feFct);
+
+  isComplex_ =  false;
+
+  resType_ = resInfo->resultType;
+
+  lbm_ = lbm;
+
+  // set inherited attributes
+  switch(resInfo->entryType ) {
+    case ResultInfo::SCALAR:
+      this->dimType_ = SCALAR;
+      break;
+    case ResultInfo::VECTOR:
+      this->dimType_ = VECTOR;
+      break;
+    default:
+      EXCEPTION("Entry type of result can only be scalar or vector!")
+  }
+}
+
+template<class TYPE> CoefFunctionLBM<TYPE>::~CoefFunctionLBM() { }
+
+template<class TYPE> void CoefFunctionLBM<TYPE>::GetScalar(TYPE& coefScal, const LocPointMapped& lpm)
+{
+  assert(this->dimType_ == SCALAR);
+  lbm_->ExtractIntermediateSolution();
+  unsigned int idx = lbm_->GetLbmId(lpm.ptEl->elemNum);
+  switch (resType_)
+  {
+    case LBM_DENSITY:
+      coefScal = lbm_->CalcLBMDensity(idx); // all Calc... functions in LbmPDE need element ids already converted to LBM world
+      break;
+    case LBM_PRESSURE:
+      coefScal = lbm_->CalcPressure(idx);
+      break;
+    default:
+      EXCEPTION("LBM optimization has only pressure and density as scalar solution.")
+  }
+}
+
+template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, const LocPointMapped& lpm)
+{
+    assert(this->dimType_ == VECTOR);
+    lbm_->ExtractIntermediateSolution();
+    unsigned int idx = lbm_->GetLbmId(lpm.ptEl->elemNum);
+    switch (resType_)
+    {
+      case LBM_VELOCITY:
+        vec = lbm_->CalcVelocities(idx);
+        break;
+      case LBM_PROBABILITY_DISTRIBUTION:
+        vec = lbm_->ExtractDistribution(idx);
+        break;
+      default:
+        EXCEPTION("LBM optimization has only velocity and distribution function values as vector solution.")
+    }
+
+}
+
+template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
+{
+    return "We don't need this.";
+}
+
 template<class TYPE> CoefFunctionStiffness<TYPE>::CoefFunctionStiffness(shared_ptr<BaseFeFunction> feFct, DesignMaterial::Notation notation) : CoefFunctionFormBased()
 {
   LOG_DBG2(cff) << "CFS:CFS #forms=" << this->forms_.size();
@@ -543,6 +612,8 @@ template class CoefFunctionQuadSol<Complex>;
 
 template class CoefFunctionStiffness<double>;
 template class CoefFunctionStiffness<Complex>;
+
+template class CoefFunctionLBM<double>;
 
    
 } // end of namespace

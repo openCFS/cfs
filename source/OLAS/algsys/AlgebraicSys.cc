@@ -338,11 +338,9 @@ namespace CoupledField {
         BaseMatrix::DOUBLE;
 
     // Generate empty SBM vectors
-    rhs_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+    rhs_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
 
-      sol_ = dynamic_cast<SBM_Vector*>
-             ( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
+      sol_ = dynamic_cast<SBM_Vector*>( GenerateVectorObject( *(sysMat_[SYSTEM]), solEntryType ) );
       
       if ( rhs_ == NULL || sol_ == NULL ) {
         EXCEPTION( WRONG_CAST_MSG );
@@ -669,6 +667,12 @@ namespace CoupledField {
       solStrat_->GetSetupNode()->Get("calcConditionNumber")->SetValue( boost::any(false) );
     }
     // ======================================================================
+
+    if(domain->GetBasePDE()->GetName() == "LatticeBoltzmann") // we have to adjust size of solution vector for LBM optimization
+    {
+    	LOG_DBG(algSys) << "Resized solution vector for LBM optimization to " << (*sysMat_[SYSTEM])(0,0).GetNumRows();
+    	sol_->GetPointer(0)->Resize((*sysMat_[SYSTEM])(0,0).GetNumRows());
+    }
 
     myInfo_->GetRoot()->ToFile(); // write current info state
 
@@ -1862,12 +1866,16 @@ namespace CoupledField {
     
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
-    if( newRHS.GetSize() != numFcts_ ) {
-      EXCEPTION( "New rhs consists of " << newRHS.GetSize()
-                 << " sub-vectors, the RHS of the algebraic system of "
-                 << rhs_->GetSize() << " entries." )
+    if( newRHS.GetSize() != numFcts_ && domain->GetBasePDE()->GetName() != "LatticeBoltzmann") {
+      EXCEPTION( "New rhs consists of " << newRHS.GetSize() << " sub-vectors, the RHS of the algebraic system of " << rhs_->GetSize() << " entries." )
     }
     
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann"){
+    	*(rhs_) = newRHS;
+    	LOG_DBG(algSys) << "InitRHS: Initilized rhs with vector v=" << rhs_->GetPointer(0)->ToString(0,',');
+    	return;
+    }
+
     // loop over all feFctIDs
     for(UInt i = 0; i < numFcts_; ++i ) {
 
@@ -1878,9 +1886,8 @@ namespace CoupledField {
   
       // security check: ensure that sub-vector has the same size
       // as the block indices
-      if( newRHS(i).GetSize() != indices.GetSize() ) {
-        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number "
-                   "of indices do not match!");
+      if( newRHS(i).GetSize() != indices.GetSize() && (domain->GetBasePDE()->GetName() != "LatticeBoltzmann")) {
+        EXCEPTION( "Number of entries of " << i << "-th sub-vector and number of indices do not match!");
       }
       
       if( newRHS.GetEntryType() == BaseMatrix::DOUBLE ) {
@@ -2363,9 +2370,6 @@ namespace CoupledField {
     if(matrixTypes_.find(matrixType) == matrixTypes_.end())
       return;
 
-//    std::cout << "Updating RHS with matrix "
-//        << feMatrixType.ToString(matrixType) << std::endl;
-
     // ensure that the RHS vector to set consists of as many
     // sub-vectors as the RHS of the system
     if( fup.GetSize() != numFcts_ ) {
@@ -2547,7 +2551,7 @@ namespace CoupledField {
   void AlgebraicSys::GetSolutionVal( SingleVector& ptSol,
                                      const FeFctIdType fctId,
                                      bool setIDBC) {
-    
+
     LOG_TRACE(algSys) << "Getting solution values of fct " << fctId;
 
     // get all (blockId,index)-combinations for the current fctId
@@ -2556,6 +2560,16 @@ namespace CoupledField {
     UInt size = blockNums.GetSize();
     ptSol.Resize(size);
     ptSol.Init();
+
+    if (domain->GetBasePDE()->GetName() == "LatticeBoltzmann")
+    {
+    	//FIXME Dirty code, can be improved!
+    	ptSol.Resize(size);
+    	Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );
+    	retVec = *(sol_->GetPointer(0));
+
+    	return;
+  	}
 
     if( ptSol.GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & retVec = dynamic_cast<Vector<Double>&>( ptSol );

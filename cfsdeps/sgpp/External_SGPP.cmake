@@ -62,7 +62,7 @@ IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
   ExternalProject_Add(sgpp
-    PREFIX "${sgpp_prefix}"
+    PREFIX "${SGPP_PREFIX}"
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
@@ -116,8 +116,19 @@ SET(CFSDEPS ${CFSDEPS} sgpp)
 
 # Determine paths of SGPP libraries.
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
+# Old SGPP (SGpp)
 #SET(SGPP_LIBRARY "${LD}/libsgppopt.a;${LD}/libumfpack4sgpp.a;${LD}/libsuitesparseconfig4sgpp.a;${LD}/libarmadillo4sgpp.a;${LD}/libsgppbase.a;${LD}/libsgpppde.a;${LD}/libsgppsolver.a" CACHE FILEPATH "SGPP library.")
-#SET(SGPP_LIBRARY "${LD}/libsgppoptimization.a;${LD}/libumfpack4sgpp.a;${LD}/libsuitesparseconfig4sgpp.a;${LD}/libarmadillo4sgpp.a;${LD}/libsgppbase.a;${LD}/libamd_dlong.a;${LD}/libcholmod_dlong.a;${LD}/libcolamd_dlong.a;${LD}/libccolamd_dlong.a;${LD}/libcamd_dlong.a;${LD}/libarpack.a" CACHE FILEPATH "SGPP library.")
-SET(SGPP_LIBRARY "${LD}/libsgppoptimization.a;${LD}/libumfpack4sgpp.a;${LD}/libsuitesparseconfig4sgpp.a;${LD}/libarmadillo4sgpp.a;${LD}/libsgppbase.a" CACHE FILEPATH "SGPP library.")
+# New SGPP (sgopt)
+SET(SGPP_LIBRARY 
+  ${LD}/libsgppoptimization.a;
+  ${LD}/libsgppbase.a;
+  libarmadillo.so;
+  ${UMFPACK_LIBRARY};
+  ${ARPACK_LIBRARY}
+  CACHE FILEPATH "SGPP library."
+  )
+
+MESSAGE("----SGPP_LIBRARY----")
+MESSAGE("${SGPP_LIBRARY}")
 
 MARK_AS_ADVANCED(SGPP_LIBRARY)

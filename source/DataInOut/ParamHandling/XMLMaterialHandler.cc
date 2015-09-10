@@ -653,8 +653,6 @@ namespace CoupledField {
 //**********************************************************************
   void XMLMaterialHandler::ReadAcoustic(BaseMaterial *material, PtrParamNode acou)
   {
-    Double density(0), blkMod(0), nu(0);
-    LocPointMapped lp_dummy;
 
     //read density
     if(acou->Has("density")) {
@@ -662,7 +660,6 @@ namespace CoupledField {
           CoefFunction::Generate(mp_, Global::REAL, 
                                  acou->Get("density")->As<std::string>() );
       material->SetCoefFct( DENSITY, densFct );
-      densFct->GetScalar( density, lp_dummy );
     }
       
     //read compression modulus
@@ -671,7 +668,6 @@ namespace CoupledField {
                 CoefFunction::Generate(mp_, Global::REAL, 
                                        acou->Get("compressionModulus")->As<std::string>() );
       material->SetCoefFct( ACOU_BULK_MODULUS, blkFct );
-      blkFct->GetScalar( blkMod, lp_dummy );
     }
     //read kinematic viscosity
     if(acou->Has("kinematicViscosity")) {
@@ -679,8 +675,6 @@ namespace CoupledField {
                 CoefFunction::Generate(mp_, Global::REAL,
                                        acou->Get("kinematicViscosity")->As<std::string>() );
       material->SetCoefFct( KINEMATIC_VISCOSITY, kinVisc );
-      //material->SetScalar(acou->Get("kinematicViscosity")->As<Double>(), KINEMATIC_VISCOSITY);
-      kinVisc->GetScalar( nu, lp_dummy );
     }
     // check for acousticDamping
     if(acou->Has("acousticDamping"))
