@@ -294,7 +294,7 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
 }
 
 
-void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord) {
+void Function::ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
   boost::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
   boost::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));

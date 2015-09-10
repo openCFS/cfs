@@ -348,6 +348,8 @@ cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindSVNKit.cmake -text
 cmake_modules/cfsdeps_download.cmake.in -text
+cmake_modules/cfsdeps_zipFromCache.cmake.in -text
+cmake_modules/cfsdeps_zipToCache.cmake.in -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
@@ -1096,6 +1098,7 @@ share/python/test.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/python/xmlreplace.py -text
+share/scripts/CMakeGraphVizOptions.cmake -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
@@ -1113,6 +1116,7 @@ share/scripts/common.bat -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/gendepgraph.sh -text
 share/scripts/generate-standalone-bootstrap-sh.cmake -text
 share/scripts/getdate.bat -text
 share/scripts/h5tool -text

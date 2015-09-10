@@ -38,42 +38,81 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-patch.cmake.in")
 SET(PFN "${IPOPT_PREFIX}/ipopt-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-# the whole build projectll
-ExternalProject_Add(ipopt
-  PREFIX "${IPOPT_PREFIX}"
-  SOURCE_DIR "${IPOPT_SOURCE}"
-  # the stepp cfsdeps_download ensures the file will be found in cfsdepscache
-  URL ${LOCAL_FILE}
-  URL_MD5 ${IPOPT_MD5}
-  # note that when unzipping the source, the Ipopt-3.11.9 directory is omitted
-  BUILD_IN_SOURCE 1
-  # handle mirror
-  # Fill ThirdParty content (blas/ lapack/ HSLold)
-  PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
-  # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-  CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config   
-)
-
 # this handles the mirrors and cfsdepscache source stuff.  
 SET(DLFN "${IPOPT_PREFIX}/ipopt-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
-# doing cfsdescache stuff such that the default external project download takes the file from cfsdescache
-ExternalProject_Add_Step(ipopt cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${ipopt_prefix}
-)
-
-
-# after the installation we remove not necessary libs, copy to cfs and might copy to precompiled cfsdeps
 SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
 SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-# execute the stuff from snopt-post_install.cmake after installation
-ExternalProject_Add_Step(ipopt post_install COMMAND ${CMAKE_COMMAND} -P "${PI}" DEPENDEES install)
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ipopt_${IPOPT_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "ipopt_${IPOPT_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${IPOPT_PREFIX}")
+
+SET(ZIPFROMCACHE "${IPOPT_PREFIX}/ipopt-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${IPOPT_PREFIX}/ipopt-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# The IPOPT external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(ipopt
+    PREFIX "${IPOPT_PREFIX}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(ipopt
+    PREFIX "${IPOPT_PREFIX}"
+    SOURCE_DIR "${IPOPT_SOURCE}"
+    # the stepp cfsdeps_download ensures the file will be found in cfsdepscache
+    URL ${LOCAL_FILE}
+    URL_MD5 ${IPOPT_MD5}
+    # note that when unzipping the source, the Ipopt-3.11.9 directory is omitted
+    BUILD_IN_SOURCE 1
+    # handle mirror
+    # Fill ThirdParty content (blas/ lapack/ HSLold)
+    PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
+    # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
+    CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config   
+  )
+
+  ExternalProject_Add_Step(ipopt post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(ipopt cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} ipopt)

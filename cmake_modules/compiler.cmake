@@ -122,7 +122,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # The C and C++ standards are set to 1998 for compiler versions less than 5
   # and to 2011 for newer compilers.
-  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5)
+  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5 AND ${USE_SGPP} STREQUAL "OFF")
     IF(USE_LIBFBI)
       SET(CFS_CXX_FLAGS "-std=c++0x ${CFS_CXX_FLAGS}")
     ELSE()
