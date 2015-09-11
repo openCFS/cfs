@@ -311,10 +311,17 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     {
       Excitation& ex = excitations[i];
       ex.index = i;
-      ex.normalized_weight = ex.weight / weight_sum;
+      // fixes bug for pressure loads
+      if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
+        // multiple pressure loads not implemented
+        assert(excitations.GetSize() == 1);
+        ex.normalized_weight = 1.;
+      } else {
+        ex.normalized_weight = ex.weight / weight_sum;
+      }
+
       LOG_DBG3(exlog) << "PME: i=" << i << " l=" << excitations[i].label << " w=" << excitations[i].weight << " nw=" << ex.normalized_weight << " ws=" << weight_sum;
     }
-
     WriteInInfo(num_freq, eval_inital_design, weight_sum, opt);
   }
 }

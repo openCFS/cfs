@@ -404,6 +404,9 @@ namespace CoupledField
         /** bloch mode analyis is also eigenvalue but special due to the wave vectors encapsualted in excitations */
         bool bloch_;
 
+        /** Do we use MSFEM or not? */
+        bool msfem;
+
         /** is the first step static */
         bool firstStepStatic;
         
