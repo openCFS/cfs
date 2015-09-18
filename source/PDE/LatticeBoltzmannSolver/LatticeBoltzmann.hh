@@ -199,12 +199,12 @@ namespace CoupledField
           /**
            * Transforming PDFs into momentum space
            */
-          Vector<double> TransformPdfs(int cur, int id);
+          const Vector<double> TransformPdfs(int cur, int id)const;
 
           /**
            * Calculate vector of equilibrium moments based on current pdf array
            */
-          Vector<double> CalcEquilMoments(Vector<double> const moments);
+          const Vector<double> CalcEquilMoments(const Vector<double>&  moments) const;
           /**
            * LBM operators in 2D
            */
@@ -273,6 +273,7 @@ namespace CoupledField
 
           // Transformation matrix M for momentum space
           Matrix<Double> transformation;
+          Matrix<double> transformation_inv;
           // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
           Matrix<Double> m_inv_s;
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
