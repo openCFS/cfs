@@ -346,13 +346,14 @@ class TransferFunction;
     /** Fill sparse grid with data values*/
     void FillSparseGridWithUnhierarchizedData(Matrix<double>& data);
     void FillSparseGridWithHierarchizedData(Matrix<double>& data);
+    void HierarchizeSparseGridCoefficients();
 
     /** Initialize sparse grid for interpolation*/
     void InitializeSparseGrid(const char * filename);
 
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
-    double EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval, sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const;
-    double EvaluateSGPPInterpolation_Deriv_Exact(sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, sg::base::DataVector& alpha, sg::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval, const sg::base::DataVector& alpha, const sg::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv_Exact(sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, const sg::base::DataVector& alpha, const sg::base::DataVector& point, DesignElement::Type direction) const;
 #endif
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
@@ -403,16 +404,16 @@ class TransferFunction;
     enum Interpolation { C1, SGPP, FULL_BSPLINE } interpolation_;
     unsigned int level_;
 
-#if USE_SGPP
+#ifdef USE_SGPP
     /** members for SGPP interpolation */
     enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
-    boost::shared_ptr<sg::base::DataVector> alpha1_;
-    boost::shared_ptr<sg::base::DataVector> alpha2_;
-    boost::shared_ptr<sg::base::DataVector> alpha3_;
-    boost::shared_ptr<sg::base::DataVector> alpha4_;
-    boost::shared_ptr<sg::base::DataVector> alpha5_;
-    boost::shared_ptr<sg::base::DataVector> alpha6_;
+    sg::base::DataVector alpha1_;
+    sg::base::DataVector alpha2_;
+    sg::base::DataVector alpha3_;
+    sg::base::DataVector alpha4_;
+    sg::base::DataVector alpha5_;
+    sg::base::DataVector alpha6_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;
