@@ -36,7 +36,7 @@ DEFINE_LOG(lbm, "lbm")
 // instantiation of the static elements
 Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 
-LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt)
+LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, std::string relaxModel, double omega_e, double omega_eps, double omega_q)
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
@@ -54,12 +54,15 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   ux_ = ux;
   uy_ = uy;
   uz_ = uz;
-  omega_ = omega;
+  omega_nu_ = omega; // this relaxation rate is directly related to the fluid's viscosity (for both SRT and MRT models)
   maxIter_ = maxIterations;
   maxTol_ = maxTolerance;
   writeFrequency_ = writeFrequency;
   numWriteResults_ = 0;
-  srt_ = srt;
+  relaxModel_ = relaxModel;
+  omega_e_ = omega_e;
+  omega_eps_ = omega_eps;
+  omega_q_ = omega_q;
 
   nNodes_ = sizeX_ * sizeY_ * sizeZ_;
 
@@ -96,8 +99,8 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 
   SetMicroVelocities();
 
-  if (!srt)
-  InitTransformMatrix();
+  if (relaxModel == "mrt")
+    InitTransformMatrix();
 
   //initlialize function pointers in dependence on problem's dimension
   if (dim == 2) {
@@ -230,12 +233,12 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
         count++;
       }
     }
-    LOG_DBG3(lbm) << "\n Iteration " << it;
-    for (int elem = 0; elem < nNodes_; elem++) {
-      LOG_DBG3(lbm) << "element " << elem;
-      for(int  dir = 0; dir < n_q_; dir++)
-        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
-    }
+//    LOG_DBG3(lbm) << "\n Iteration " << it;
+//    for (int elem = 0; elem < nNodes_; elem++) {
+//      LOG_DBG3(lbm) << "element " << elem;
+//      for(int  dir = 0; dir < n_q_; dir++)
+//        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
+//    }
   }
 
   timer.Stop();
@@ -471,13 +474,13 @@ void LatticeBoltzmann::InitTransformMatrix()
   // relaxation rates matrix S is diagonal
   // entries for density and momentum components are 0 due to collision invariance
   // the first 4 values here, can be chosen arbritrarily between 0 and 2
-  relax_rates[1] = omega_;
-  relax_rates[2] = omega_;
-  relax_rates[4] = omega_;
-  relax_rates[6] = omega_;
+  relax_rates[1] = omega_e_;
+  relax_rates[2] = omega_eps_;
+  relax_rates[4] = omega_q_;
+  relax_rates[6] = omega_q_;
   // these two values are related to fluid's kinematic viscosity
-  relax_rates[7] = omega_;
-  relax_rates[8] = omega_;
+  relax_rates[7] = omega_nu_;
+  relax_rates[8] = omega_nu_;
 
   invM_S.Resize(n_q_);
   invM_S.Init();
@@ -757,24 +760,12 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   return sum;
 }
 
-// m = M*f
-const Vector<double> LatticeBoltzmann::TransformToMoments(const Vector<double>&  pdfs) const
-{
-  Vector<double> result;
-  result.Resize(n_q_);
-  transformation.Mult(pdfs,result);
-
-  //std::cout << "moments: " << result.ToString(0,',') << std::endl;
-
-  return result;
-}
 
 // m_eq = M * f_eq
 // Here, m_eq is calculated via given formulas avoiding matrix multiplication
 // density and momentum (velocity) can be extracted directly from moments vector
-const Vector<double> LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments) const
+void LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments, Vector<double>& m_eq) const
 {
-  Vector<double> m_eq;
   m_eq.Resize(n_q_);
   double density = moments[0];
   double ux = moments[3] / density;
@@ -799,8 +790,6 @@ const Vector<double> LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  m
   m_eq.ScalarMult(density);
 
   //std::cout << "equil moments: " << m_eq.ToString(0,',') << std::endl;
-
-  return m_eq;
 }
 
 /************************************************** 2D operators *****************************************************/
@@ -813,107 +802,102 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 
   int index;
 
-  Vector<double> pdfs;
-  pdfs.Resize(n_q_);
   int tmp_x,tmp_y;
 
 #pragma omp parallel default(none)\
- private(index), \
- private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), \
- shared(next, cur, z)
- {
-  Vector<double> pdfs;
-  pdfs.Resize(n_q_);
-  #pragma omp for collapse(2)
-  for (y = 0; y < sizeY_ ; ++y) {
-    for (x = 0; x < sizeX_ ; ++x) {
+    private(index), \
+    private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), shared(next, cur, z)
+  {
+    Vector<double> pdfs;
+    pdfs.Resize(n_q_);
+#pragma omp for collapse(2)
+    Vector<double> m_eq(n_q_);
+    Vector<double> moments(n_q_);
+    for (y = 0; y < sizeY_ ; ++y) {
+      for (x = 0; x < sizeX_ ; ++x) {
 
-      index= GetIndex(x,y,z);
+        index= GetIndex(x,y,z);
 
-      // sum: macroscopic density is sum over all discrete distributions of an element
-      sum = 0;
-      tmp_ux = 0;
-      tmp_uy = 0;
-      tmp_us = 0;
+        // sum: macroscopic density is sum over all discrete distributions of an element
+        sum = 0;
+        tmp_ux = 0;
+        tmp_uy = 0;
+        tmp_us = 0;
 
-      // propagation
-      for (int  dir = 0; dir < n_q_; dir++) {
-        int invDir = GetInvDirection((Direction)dir);
-        if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
-          tmp_x = x; // here we only set the coordinates
-          tmp_y = y;
-        }
-        // else: standard propagation (get value from neighbor pdf)
-        else {
-          tmp_x = microVelDirections[invDir].off_x + x;
-          tmp_y = microVelDirections[invDir].off_y + y;
-        }
-
-        //store current pdf values in array for better accessing
-        pdfs[dir] = PDF(cur, tmp_x, tmp_y,  z, dir); // accessed pdf value can be the old one or the neighbor's value
-        sum += pdfs[dir];
-        tmp_ux += microVelDirections[dir].off_x*pdfs[dir];
-        tmp_uy += microVelDirections[dir].off_y*pdfs[dir];
-      }
-
-      // macroscopic scaling by design variable
-      scale = scales[index];
-
-      Vector<double> subtrahend;
-      if (!srt_)
-      {
-        Vector<double> moments = TransformToMoments(pdfs);
-        Vector<double> m_eq = CalcEquilMoments(moments);
-        subtrahend.Resize(n_q_);
-
-        invM_S.Mult(moments - m_eq,subtrahend);
-
-        assert(std::abs(m_eq[0] - moments[0]) < 1e-6);
-        assert(std::abs(m_eq[3] - moments[3]) < 1e-6);
-        assert(std::abs(m_eq[5] - moments[5]) < 1e-6);
-	
-	double density = 0.0;
-	for (int  dir = 0; dir < n_q_; dir++)
-	  density += pdfs[dir];
-	if (std::abs(density - moments[0]) > 1e-6) {
-	  std::cout << "elem " << index << " density=" << density << " moments[0]=" << moments[0] << " difference = " << density - moments[0] << std::endl;
-	  
-	}
-	assert(std::abs(density - moments[0]) < 1e-6);
-//	double u1, u2,u3;
-//	CalcVelocities(cur,x,y,z,u1,u2,u3);
-//	assert(std::abs(u1 - moments[3]) < 1e-3);
-//	assert(std::abs(u2 - moments[5]) < 1e-3);
-
-      } else {
-        tmp_ux = scale * tmp_ux / sum;
-        tmp_uy = scale * tmp_uy / sum;
-        tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
-        tmp_ux = 3.0 * tmp_ux;
-        tmp_uy = 3.0 * tmp_uy;
-      }
-
-      // propagation and collision in one step
-      for (int  dir = 0; dir < n_q_; dir++) {
-        tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
-        // no collision on the boundaries
-        if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
-          PDF(next, x, y, z, dir) = pdfs[dir];
-        else {
-          if (srt_) {
-            PDF(next, x, y, z, dir) = pdfs[dir] + omega_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+        // propagation
+        for (int  dir = 0; dir < n_q_; dir++) {
+          int invDir = GetInvDirection((Direction)dir);
+          if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
+            tmp_x = x; // here we only set the coordinates
+            tmp_y = y;
           }
-          else{
-            PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
-            //std::cout << pdfs[dir] << "-" << subtrahend[dir] << "=" << PDF(next, x, y, z, dir) << std::endl;
+          // else: standard propagation (get value from neighbor pdf)
+          else {
+            tmp_x = microVelDirections[invDir].off_x + x;
+            tmp_y = microVelDirections[invDir].off_y + y;
           }
-          assert(PDF(next, x, y, z, dir) > 0);
-        }
-      }
 
+          //store current pdf values in array for better accessing
+          pdfs[dir] = PDF(cur, tmp_x, tmp_y,  z, dir); // accessed pdf value can be the old one or the neighbor's value
+          sum += pdfs[dir];
+          tmp_ux += microVelDirections[dir].off_x*pdfs[dir];
+          tmp_uy += microVelDirections[dir].off_y*pdfs[dir];
+        }
+
+        // macroscopic scaling by design variable
+        scale = scales[index];
+
+        Vector<double> subtrahend;
+        if (relaxModel_ == "mrt")
+        {
+          transformation.Mult(pdfs,moments); // transform moments  m = M*f
+          CalcEquilMoments(moments, m_eq);
+          subtrahend.Resize(n_q_);
+
+          invM_S.Mult(moments - m_eq,subtrahend);
+
+          assert(std::abs(m_eq[0] - moments[0]) < 1e-6);
+          assert(std::abs(m_eq[3] - moments[3]) < 1e-6);
+          assert(std::abs(m_eq[5] - moments[5]) < 1e-6);
+
+          double density = 0.0;
+          for (int  dir = 0; dir < n_q_; dir++)
+            density += pdfs[dir];
+
+          if (std::abs(density - moments[0]) > 1e-6)
+            std::cout << "elem " << index << " density=" << density << " moments[0]=" << moments[0] << " difference = " << density - moments[0] << std::endl;
+
+          assert(std::abs(density - moments[0]) < 1e-6);
+        }
+        else
+        {
+          tmp_ux = scale * tmp_ux / sum;
+          tmp_uy = scale * tmp_uy / sum;
+          tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+          tmp_ux = 3.0 * tmp_ux;
+          tmp_uy = 3.0 * tmp_uy;
+        }
+
+        // propagation and collision in one step
+        for (int  dir = 0; dir < n_q_; dir++)
+        {
+          tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
+          // no collision on the boundaries
+          if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
+            PDF(next, x, y, z, dir) = pdfs[dir];
+          else
+          {
+            if (relaxModel_ == "srt")
+              PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+            else
+              PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
+            assert(PDF(next, x, y, z, dir) > 0);
+          }
+        }
+
+      }
     }
   }
-}
   return;
 }
 
@@ -947,33 +931,13 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy ;
 
-//    if (srt_) 
-//    {
-      tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
-      tmp_ux = 3.0 * tmp_ux;
-      tmp_uy = 3.0 * tmp_uy;
-      for (int  dir = 0; dir < n_q_; dir++) {
-        tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-        PDF(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
-      }
-//    } else {
-//      for (int  dir = 0; dir < n_q_; dir++) {
-//	pdfs[dir] = PDF(cur,x,y,z,dir);
-//      }
-//      Vector<double> moments = TransformToMoments(pdfs);
-//      double density = CalcDensity(cur,x,y,z);
-//      moments[3] = tmp_ux * density;
-//      moments[5] = tmp_uy * density;
-//      Vector<double> m_eq = CalcEquilMoments(moments);
-//      Vector<double> subtrahend;
-//      subtrahend.Resize(n_q_);
-//      invM_S.Mult(moments - m_eq,subtrahend);
-//      Vector<double> result;
-//      result.Resize(n_q_);
-//      invTransformation.Mult(m_eq,result);
-//      for (int  dir = 0; dir < n_q_; dir++)
-//        PDF(cur, x, y, z, dir) = result[dir];
-//    } 
+    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+    tmp_ux = 3.0 * tmp_ux;
+    tmp_uy = 3.0 * tmp_uy;
+    for (int  dir = 0; dir < n_q_; dir++) {
+      tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
+      PDF(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+    }
   }
   return;
 }
@@ -1104,7 +1068,7 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
           if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
             PDF(next, x, y, z, dir) = pdfs[dir];
           else
-            PDF(next, x, y, z, dir) = pdfs[dir] + omega_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+            PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
 
       }

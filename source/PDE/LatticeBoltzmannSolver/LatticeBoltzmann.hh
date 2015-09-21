@@ -43,7 +43,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, std::string relaxModel, double omega_e, double omega_eps, double omega_q);
 
       ~LatticeBoltzmann();
 
@@ -59,7 +59,7 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double> GetPdfs() {return pdfs_[cur_];}
+      inline StdVector<double>& GetPdfs() {return pdfs_[cur_];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -71,8 +71,8 @@ namespace CoupledField
        */
       inline int GetNumIterations() {return numIterations_; }
 
-      inline StdVector<PDFDirectionVector>* GetPDFDirectionVectors() { return &microVelDirections; }
-      inline StdVector<Direction>* GetinvPDFDirections() { return &invPDFDirections; }
+      inline StdVector<PDFDirectionVector>& GetPDFDirectionVectors() { return microVelDirections; }
+      inline StdVector<Direction>& GetinvPDFDirections() { return invPDFDirections; }
 
     private:
 
@@ -196,15 +196,11 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
-          /**
-           * Transforming PDFs into momentum space
-           */
-          const Vector<double> TransformToMoments(const Vector<double>&  pdfs)const;
 
-          /**
-           * Calculate vector of equilibrium moments based on current pdf array
-           */
-          const Vector<double> CalcEquilMoments(const Vector<double>&  moments) const;
+           /** Calculate vector of equilibrium moments based on current pdf array
+            * m_eq the return value */
+          void CalcEquilMoments(const Vector<double>&  moments,  Vector<double>& m_eq) const;
+
           /**
            * LBM operators in 2D
            */
@@ -214,7 +210,7 @@ namespace CoupledField
 
           void Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
 
-          void Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >&outlet);
+          void Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >& outlet);
 
           /**
            * LBM operators in 3D
@@ -225,7 +221,7 @@ namespace CoupledField
 
           void Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
 
-          void Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >&outlet);
+          void Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >& outlet);
 
           int dim_;
           int sizeX_;
@@ -235,7 +231,7 @@ namespace CoupledField
           double ux_;      // Inlet x velocity
           double uy_;      // Inlet y velocity
           double uz_;      // Inlet z velocity
-          double omega_;
+          double omega_nu_;
           int maxIter_;
           double maxTol_;
           /** plot the residuum over lbm iterations */
@@ -248,8 +244,10 @@ namespace CoupledField
           int numWriteResults_;
           // how many iterations until steady-state convergence
           int numIterations_;
-          // indicates whether SRT or MRT model should be used
-          bool srt_;
+          // indicates which relaxation (SRT or MRT) model should be used
+          std::string relaxModel_;
+          // additional relaxation rates for MRT model
+          double omega_e_, omega_eps_, omega_q_;
 
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
