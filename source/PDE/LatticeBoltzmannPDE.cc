@@ -158,8 +158,9 @@ namespace CoupledField {
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
     writeFrequency_ = myParam_->Get("LBM/writeFrequency")->As<unsigned int>();
+    relaxationModel_ = myParam_->Get("LBM/relaxation")->As<std::string>();
+
     bool plot    = myParam_->Get("LBM/plot")->As<bool>();
-    bool srt = myParam_->Get("LBM/srt")->As<bool>();
 
     PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
     // only one inlet region
@@ -259,7 +260,6 @@ namespace CoupledField {
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
-      omega_ = 1.9;
       if (parabolicInflow_)
         omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5);
       else
@@ -268,11 +268,22 @@ namespace CoupledField {
         EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!");
     }
 
+    // sanity check for MRT relaxation rates
+    if (relaxationModel_ == "mrt")
+    {
+      omega_e_ = myParam_->Get("LBM/MRT/omega_e")->As<double>(); // relaxation rate related to energy
+      omega_eps_ = myParam_->Get("LBM/MRT/omega_epsilon")->As<double>(); // relaxation rate related to squared energy
+      omega_q_ = myParam_->Get("LBM/MRT/omega_q")->As<double>(); // relaxation rate related to heat flux
+
+      if (omega_e_ < 0.0 || omega_e_ > 2.0 || omega_eps_ < 0.0 || omega_eps_ > 2.0 || omega_q_ < 0.0 || omega_q_ > 2.0)
+        EXCEPTION("Check relaxation rates for MRT model! Values must be between 0.0 and 2.0!");
+    }
+
     //Initializing storage for PDFs
     pdfs.Resize(n_elems * n_q_);
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, relaxationModel_, omega_e_, omega_eps_, omega_q_);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -377,16 +388,9 @@ namespace CoupledField {
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
       SingleEntryBiLinInt* stiffInt = NULL;
-//      std::set<RegionIdType> volRegions;
 
-//      if( dim_ == 2 ) {
-    	// surfaceBBInt is the only currently existing integrator that implies an unsymmetric element matrix
-//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
       shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
       stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
-//      } else {
-//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
-//      }
 
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
@@ -398,7 +402,6 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-//      bdbInts_[actRegion] = stiffInt;
     }
   }
 
@@ -432,7 +435,14 @@ namespace CoupledField {
   {
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
-    in->Get("omega")->SetValue(omega_);
+    in->Get("relaxationModel")->SetValue(relaxationModel_);
+    in->Get("omega_nu")->SetValue(omega_);
+    if (relaxationModel_ == "mrt")
+    {
+      in->Get("omega_e")->SetValue(omega_e_);
+      in->Get("omega_eps")->SetValue(omega_eps_);
+      in->Get("omega_q")->SetValue(omega_q_);
+    }
     in->Get("maxIter")->SetValue(maxIter_);
     in->Get("maxWallTime")->SetValue(maxWallTime_);
     in->Get("convergence")->SetValue(convergence_);
@@ -813,7 +823,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
   //partial derivative of f^eq with respect to rho, ux, uy and uz: CORRECT (FDM)
   double us1, us2, us3, dot, norm;
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
 
   //gradient of u_x with respect to f
   StdVector<double> duxdf(n_q_);
@@ -826,28 +836,28 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     us1 = scale * ux[index];
     us2 = scale * uy[index];
     us3 = scale * uz[index];
 
-    dot = transform->off_x * us1 + transform->off_y * us2 + transform->off_z * us3;
+    dot = transform.off_x * us1 + transform.off_y * us2 + transform.off_z * us3;
     norm = us1 * us1 + us2 * us2 + us3 * us3;
 
     dfeqdrho[i] = weight[i] * (1. + 3.*dot + 4.5*dot*dot - 1.5* norm);
-    dfeqdux[i] = weight[i] * dloc[index]*(3. * transform->off_x + 9. * transform->off_x * dot - 3. * us1);
-    dfeqduy[i] = weight[i] * dloc[index]*(3. * transform->off_y + 9. * transform->off_y * dot - 3. * us2);
-    dfeqduz[i] = weight[i] * dloc[index]*(3. * transform->off_z + 9. * transform->off_z * dot - 3. * us3);
+    dfeqdux[i] = weight[i] * dloc[index]*(3. * transform.off_x + 9. * transform.off_x * dot - 3. * us1);
+    dfeqduy[i] = weight[i] * dloc[index]*(3. * transform.off_y + 9. * transform.off_y * dot - 3. * us2);
+    dfeqduz[i] = weight[i] * dloc[index]*(3. * transform.off_z + 9. * transform.off_z * dot - 3. * us3);
 
     LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
 
-    duxdf[i] = scale * invdloc * (-ux[index] + transform->off_x);
-    duydf[i] = scale * invdloc * (-uy[index] + transform->off_y);
-    duzdf[i] = scale * invdloc * (-uz[index] + transform->off_z);
+    duxdf[i] = scale * invdloc * (-ux[index] + transform.off_x);
+    duydf[i] = scale * invdloc * (-uy[index] + transform.off_y);
+    duzdf[i] = scale * invdloc * (-uz[index] + transform.off_z);
     // automatic testing
     if (dim_ == 2) {
       assert(us3 == 0);
-      assert(dot == transform->off_x * us1 + transform->off_y * us2);
+      assert(dot == transform.off_x * us1 + transform.off_y * us2);
       assert(norm == us1 * us1 + us2 * us2);
       assert(dfeqduz[i] == 0);
       assert(duzdf[i] == 0);
@@ -880,7 +890,7 @@ void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
 {
   // bounce-back sensitivities; gradient is just a permutation matrix
   for (unsigned int dir = 0; dir < n_q_; dir++) {
-    block[dir][(*invPDFDirections_)[dir]] = 1.0;
+    block[dir][invPDFDirections_[dir]] = 1.0;
   }
 }
 
@@ -892,18 +902,18 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
 
   if (dim_ == 2) assert(u_max_z_ == 0);
 
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     if (!parabolicInflow_) {
-      dot = transform->off_x * u_max_x_ + transform->off_y * u_max_y_ + transform->off_z * u_max_z_;
+      dot = transform.off_x * u_max_x_ + transform.off_y * u_max_y_ + transform.off_z * u_max_z_;
       norm = u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_ + u_max_z_ * u_max_z_;
     }
     else {
       // find index of vector u_in_ for this element
       int id = inlet.Find(index);
-      dot = transform->off_x * u_in_[id][0] + transform->off_y * u_in_[id][1] + transform->off_z * u_in_[id][2];
+      dot = transform.off_x * u_in_[id][0] + transform.off_y * u_in_[id][1] + transform.off_z * u_in_[id][2];
       norm = u_in_[id][0] * u_in_[id][0] + u_in_[id][1] * u_in_[id][1] + u_in_[id][2] * u_in_[id][2]; // only one component is not zero
       LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << u_in_[id][0] << " us2=" << u_in_[id][1] << " us3= " << u_in_[id][2] << " dot=" << dot << " norm=" << norm;
     }
@@ -921,22 +931,22 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
 {
   // gradient of the density outlet boundary condition with respect to the design variables
   StdVector<double> dfeqdux(n_q_), dfeqduy(n_q_), dfeqduz(n_q_);
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
   double scale = 1.; // no design
   double density = 1.0;  // we have no other case
   double us1, us2, us3, dot;
 
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     us1 = scale * ux[index];
     us2 = scale * uy[index];
     us3 = scale * uz[index];
 
-    dot = transform->off_x * us1 + transform->off_y * us2 + transform->off_z * us3;
-    dfeqdux[i] = weight[i] * density * (3 * transform->off_x + 9. * transform->off_x * dot - 3 * us1);
-    dfeqduy[i] = weight[i] * density * (3 * transform->off_y + 9. * transform->off_y * dot - 3 * us2);
-    dfeqduz[i] = weight[i] * density * (3 * transform->off_z + 9. * transform->off_z * dot - 3 * us3);
+    dot = transform.off_x * us1 + transform.off_y * us2 + transform.off_z * us3;
+    dfeqdux[i] = weight[i] * density * (3 * transform.off_x + 9. * transform.off_x * dot - 3 * us1);
+    dfeqduy[i] = weight[i] * density * (3 * transform.off_y + 9. * transform.off_y * dot - 3 * us2);
+    dfeqduz[i] = weight[i] * density * (3 * transform.off_z + 9. * transform.off_z * dot - 3 * us3);
   }
   //gradient of u_x/u_y with respect to f
   StdVector<double> duxdf(n_q_), duydf(n_q_), duzdf(n_q_);
@@ -944,10 +954,10 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
   double invdloc = 1.0 / dloc[index];
 
   for (unsigned int i = 0; i < n_q_ ; i++) {
-    transform = &(*microVelDirections_)[i];
-    duxdf[i] = invdloc * (-ux[index] + transform->off_x);
-    duydf[i] = invdloc * (-uy[index] + transform->off_y);
-    duzdf[i] = invdloc * (-uz[index] + transform->off_z);
+    transform = microVelDirections_[i];
+    duxdf[i] = invdloc * (-ux[index] + transform.off_x);
+    duydf[i] = invdloc * (-uy[index] + transform.off_y);
+    duzdf[i] = invdloc * (-uz[index] + transform.off_z);
   }
   //gradient of u_x with respect to f
   for (unsigned int i = 0; i < n_q_; i++)
@@ -970,21 +980,21 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   unsigned int x, y, z;
   int rows1,rows2;
   mapped_matrix<double>::const_iterator1 iter;
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
 
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
       for(x = 0; x < n_x_ ; x++) {
         for (unsigned int dir = 0; dir < n_q_; dir++) {
-          transform = &(*microVelDirections_)[dir];
+          transform = microVelDirections_[dir];
 
           // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
           if (!PointsToBoundary(x,y,z,dir)) {
             rows1 = GetPdfIndex(x,y,z,dir);
-            rows2 = GetPdfIndex(x + transform->off_x,y + transform->off_y, z + transform->off_z, dir);
+            rows2 = GetPdfIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z, dir);
 
             // case 1; if inverse distribution function of f_* points inside the domain, f_* is tangent to its boundary edge
-            if (!PointsToBoundary(x,y,z,(*invPDFDirections_)[dir])) {
+            if (!PointsToBoundary(x,y,z,(invPDFDirections_)[dir])) {
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
@@ -1024,9 +1034,9 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   for (unsigned int i = 0; i < inlet.GetSize(); i++) {
     index = inlet[i];
     for (unsigned int dir = 0; dir < n_q_; dir++) {
-      dUX = (*microVelDirections_)[dir].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
-      dUY = (*microVelDirections_)[dir].off_y - uy[index];
-      dUZ = (*microVelDirections_)[dir].off_z - uz[index];
+      dUX = microVelDirections_[dir].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
+      dUY = microVelDirections_[dir].off_y - uy[index];
+      dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
     }
   }
@@ -1034,9 +1044,9 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   for (unsigned int i = 0; i < outlet.GetSize(); i++) {
     index = outlet[i];
     for (unsigned int dir = 0; dir < n_q_; dir++) {
-      dUX = (*microVelDirections_)[dir].off_x - ux[index];
-      dUY = (*microVelDirections_)[dir].off_y - uy[index];
-      dUZ = (*microVelDirections_)[dir].off_z - uz[index];
+      dUX = microVelDirections_[dir].off_x - ux[index];
+      dUY = microVelDirections_[dir].off_y - uy[index];
+      dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
     }
   }
@@ -1536,7 +1546,7 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
           // distributions which point towards a bounce-back boundary point
 
           for (unsigned int dir = 0; dir < n_q_; dir++) {
-            LatticeBoltzmann::PDFDirectionVector f = (*microVelDirections_)[dir];
+            LatticeBoltzmann::PDFDirectionVector f = microVelDirections_[dir];
             // test, if the node in direction f is not bounce back
             if (!PointsToBoundary(x,y,z,dir) && elements[GetIndex(x+f.off_x, y+f.off_y, z+f.off_z)] != LBM_NODE_TYPE_BB)
             {

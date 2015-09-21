@@ -217,7 +217,7 @@ private:
 
   inline bool PointsToBoundary(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
   {
-    LatticeBoltzmann::PDFDirectionVector tmp = (*microVelDirections_)[dir];
+    LatticeBoltzmann::PDFDirectionVector tmp = microVelDirections_[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
     int tmp_z = z + tmp.off_z;
@@ -270,6 +270,8 @@ private:
   //! Method of smoothing
   std::string method_;
 
+  //! LBM relaxation model
+  std::string relaxationModel_;
   //! Flag indicating if PDE is assembled for first time
   bool firstTurn_;
 
@@ -331,6 +333,7 @@ private:
 //  StdVector<unsigned int> obstacle;
 
   double omega_; /** molecular collision frequency */
+  double omega_e_, omega_eps_, omega_q_; // relaxation rates for MRT model
   double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;
   unsigned int maxIter_;
@@ -349,8 +352,8 @@ private:
   // inlet velocities for parabolic inflow profile
   StdVector< StdVector<double> > u_in_;
 
-  StdVector<LatticeBoltzmann::PDFDirectionVector>* microVelDirections_;
-  StdVector<LatticeBoltzmannBase::Direction>* invPDFDirections_;
+  StdVector<LatticeBoltzmann::PDFDirectionVector> microVelDirections_;
+  StdVector<LatticeBoltzmannBase::Direction> invPDFDirections_;
 
   /** external lbm */
   std::string executable;
