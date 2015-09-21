@@ -119,7 +119,7 @@ LatticeBoltzmann::~LatticeBoltzmann()
 {
 }
 
-void LatticeBoltzmann::CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz)
+void LatticeBoltzmann::CalcVelocities(int cur, int i, int j, int k, double& ux, double& uy, double& uz)
 {
 
   double density = CalcDensity(cur, i, j, k);
@@ -183,6 +183,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
+//    std::cout << "Iteration " << it << std::endl;
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -223,25 +224,18 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     it++;
 
-//    std::cout << "\n Iteration " << it << std::endl;
-//    for (int elem = 0; elem < nNodes_; elem++)
- //   {
-   //   std::cout << "elem " << elem << ": ";
-  //    for (int dir = 0; dir < n_q_; dir++)
-   //   {
-   //     std::cout << pdfs_[1][GetPdfIndex(elem,dir)] << " ";
-   //   }
-  //    std::cout << std::endl;
-  //  }
     if (writeIntermediateResults_) {
       if (it % writeFrequency_ == 0) {
         domain->GetDriver()->StoreResults(count,(double) it);
         count++;
       }
     }
-//    std::cout << pdfs_.ToString() << std::endl ;
-//    std::cout << std::endl;
-//    std::cout << "pdfs[0]:" << pdfs_[0][0] << "," << pdfs_[0][1] << "," << pdfs_[0][2] << "," << pdfs_[0][3] << "," << pdfs_[0][4] << "," << pdfs_[0][5] << "," << pdfs_[0][6] << "," << pdfs_[0][7] << "," << pdfs_[0][8] << std::endl;
+    LOG_DBG3(lbm) << "\n Iteration " << it;
+    for (int elem = 0; elem < nNodes_; elem++) {
+      LOG_DBG3(lbm) << "element " << elem;
+      for(int  dir = 0; dir < n_q_; dir++)
+        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
+    }
   }
 
   timer.Stop();
@@ -395,6 +389,7 @@ void LatticeBoltzmann::InitTransformMatrix()
 //  std::cout << "---------------Transformation matrix--------------------" << std::endl;
 //  std::cout << transformation.ToString(0,true) << std::endl;
 
+  // sanity check
   for (int i = 1; i < n_q_; i++)
   {
     double sum = 0;
@@ -404,101 +399,99 @@ void LatticeBoltzmann::InitTransformMatrix()
     }
     assert(sum == 0);
   }
-//  Matrix<double> transformation_inv;
-  transformation_inv.Resize(n_q_);
-  transformation_inv.Init();
+  invTransformation.Resize(n_q_);
+  invTransformation.Init();
 
   for (int i = 0; i < n_q_; i++)
-    transformation_inv[i][0] = 2.0;
+    invTransformation[i][0] = 2.0;
 
-  transformation_inv[0][1] = -2.0;
-  transformation_inv[0][2] = 2.0;
-  transformation_inv[1][1] = -0.5;
-  transformation_inv[1][2] = -1.0;
-  transformation_inv[1][3] = 3.0;
-  transformation_inv[1][4] = -3.0;
-  transformation_inv[1][7] = 4.5;
-  transformation_inv[2][1] = -0.5;
-  transformation_inv[2][2] = -1.0;
-  transformation_inv[2][5] = 3.0;
-  transformation_inv[2][6] = -3.0;
-  transformation_inv[2][7] = -4.5;
-  transformation_inv[3][1] = -0.5;
-  transformation_inv[3][2] = -1.0;
-  transformation_inv[3][3] = -3.0;
-  transformation_inv[3][4] = 3.0;
-  transformation_inv[3][7] = 4.5;
-  transformation_inv[4][1] = -0.5;
-  transformation_inv[4][2] = -1.0;
-  transformation_inv[4][5] = -3.0;
-  transformation_inv[4][6] = 3;
-  transformation_inv[4][7] = -4.5;
-  transformation_inv[5][1] = 1.0;
-  transformation_inv[5][2] = 0.5;
-  transformation_inv[5][3] = 3.0;
-  transformation_inv[5][4] = 1.5;
-  transformation_inv[5][5] = 3.0;
-  transformation_inv[5][6] = 1.5;
-  transformation_inv[5][8] = 4.5;
-  transformation_inv[6][1] = 1.0;
-  transformation_inv[6][2] = 0.5;
-  transformation_inv[6][3] = -3.0;
-  transformation_inv[6][4] = -1.5;
-  transformation_inv[6][5] = 3.0;
-  transformation_inv[6][6] = 1.5;
-  transformation_inv[6][8] = -4.5;
-  transformation_inv[7][1] = 1.0;
-  transformation_inv[7][2] = 0.5;
-  transformation_inv[7][3] = -3.0;
-  transformation_inv[7][4] = -1.5;
-  transformation_inv[7][5] = -3.0;
-  transformation_inv[7][6] = -1.5;
-  transformation_inv[7][8] = 4.5;
-  transformation_inv[8][1] = 1.0;
-  transformation_inv[8][2] = 0.5;
-  transformation_inv[8][3] = 3.0;
-  transformation_inv[8][4] = 1.5;
-  transformation_inv[8][5] = -3.0;
-  transformation_inv[8][6] = -1.5;
-  transformation_inv[8][8] = -4.5;
+  invTransformation[0][1] = -2.0;
+  invTransformation[0][2] = 2.0;
+  invTransformation[1][1] = -0.5;
+  invTransformation[1][2] = -1.0;
+  invTransformation[1][3] = 3.0;
+  invTransformation[1][4] = -3.0;
+  invTransformation[1][7] = 4.5;
+  invTransformation[2][1] = -0.5;
+  invTransformation[2][2] = -1.0;
+  invTransformation[2][5] = 3.0;
+  invTransformation[2][6] = -3.0;
+  invTransformation[2][7] = -4.5;
+  invTransformation[3][1] = -0.5;
+  invTransformation[3][2] = -1.0;
+  invTransformation[3][3] = -3.0;
+  invTransformation[3][4] = 3.0;
+  invTransformation[3][7] = 4.5;
+  invTransformation[4][1] = -0.5;
+  invTransformation[4][2] = -1.0;
+  invTransformation[4][5] = -3.0;
+  invTransformation[4][6] = 3;
+  invTransformation[4][7] = -4.5;
+  invTransformation[5][1] = 1.0;
+  invTransformation[5][2] = 0.5;
+  invTransformation[5][3] = 3.0;
+  invTransformation[5][4] = 1.5;
+  invTransformation[5][5] = 3.0;
+  invTransformation[5][6] = 1.5;
+  invTransformation[5][8] = 4.5;
+  invTransformation[6][1] = 1.0;
+  invTransformation[6][2] = 0.5;
+  invTransformation[6][3] = -3.0;
+  invTransformation[6][4] = -1.5;
+  invTransformation[6][5] = 3.0;
+  invTransformation[6][6] = 1.5;
+  invTransformation[6][8] = -4.5;
+  invTransformation[7][1] = 1.0;
+  invTransformation[7][2] = 0.5;
+  invTransformation[7][3] = -3.0;
+  invTransformation[7][4] = -1.5;
+  invTransformation[7][5] = -3.0;
+  invTransformation[7][6] = -1.5;
+  invTransformation[7][8] = 4.5;
+  invTransformation[8][1] = 1.0;
+  invTransformation[8][2] = 0.5;
+  invTransformation[8][3] = 3.0;
+  invTransformation[8][4] = 1.5;
+  invTransformation[8][5] = -3.0;
+  invTransformation[8][6] = -1.5;
+  invTransformation[8][8] = -4.5;
 
-  transformation_inv /= 18.0;
+  invTransformation /= 18.0;
 
 //  Matrix<Double> identity;
 //  identity.Resize(n_q_);
-//  transformation_inv.Mult(transformation,identity);
+//  invTransformation.Mult(transformation,identity);
 //  std::cout << identity.ToString(0,true)<< std::endl;
 
 //  std::cout << "---------------Inverse transformation matrix--------------------" << std::endl;
-//  std::cout << transformation_inv.ToString(0,true) << std::endl;
+//  std::cout << invTransformation.ToString(0,true) << std::endl;
 
   relax_rates.Resize(n_q_);
   relax_rates.Init();
   // relaxation rates matrix S is diagonal
   // entries for density and momentum components are 0 due to collision invariance
   // the first 4 values here, can be chosen arbritrarily between 0 and 2
-  relax_rates[1] = 1.9;
-  relax_rates[2] = 1.9;
-  relax_rates[4] = 1.9;
-  relax_rates[6] = 1.9;
+  relax_rates[1] = omega_;
+  relax_rates[2] = omega_;
+  relax_rates[4] = omega_;
+  relax_rates[6] = omega_;
   // these two values are related to fluid's kinematic viscosity
   relax_rates[7] = omega_;
   relax_rates[8] = omega_;
 
-  m_inv_s.Resize(n_q_);
-  m_inv_s.Init();
+  invM_S.Resize(n_q_);
+  invM_S.Init();
   // multiply inverse of M with relaxation rates: M^{-1} * S
   for (int i = 0; i < n_q_; i++)
   {
     for (int j = 0; j < n_q_; j++)
     {
-      m_inv_s[i][j] = relax_rates[j] * transformation_inv[i][j];
-//      std::cout << "m_inv_s[" << i << "][" << j << "]=" << relax_rates[j] << "*" << transformation_inv[i][j] << std::endl;
+      invM_S[i][j] = relax_rates[j] * invTransformation[i][j];
     }
   }
-//
+
 //    std::cout << "---------------M^-1 S--------------------" << std::endl;
-//    std::cout << m_inv_s.ToString(0,true) << std::endl;
+//    std::cout << invM_S.ToString(0,true) << std::endl;
 
   for (int dir = 0; dir < n_q_; dir++)
     LOG_DBG3(lbm) << "IT: S(" << dir << "," << dir << ")=" << relax_rates[dir];
@@ -708,7 +701,6 @@ void LatticeBoltzmann::CreateOutput(const char * file, int cur)
 
     f << std::endl;
   }
-
   f.close();
 }
 
@@ -750,14 +742,13 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   double sum = 0;
   for (int  dir = 0; dir < n_q_; dir++) {
     sum += PDF(cur, i, j, k, dir);
-//    std::cout << "sum+=" << PDF(cur, i, j, k, dir) << std::endl;
   }
 
   // debugging
 //  if (sum > 1.5 || sum < 1e-8) {
 //    std::cout << "i: " << i << " j: " << j << " k: " << j << " sum: " << sum << std::endl;
 //    for (int  dir = 0; dir < n_q_; dir++) {
-//      std::cout << "dir " << dir << " pdf " <<  pdfiter(cur, i, j, k, dir) << std::endl;
+//      std::cout << "dir " << dir << " pdf " <<  pdf(cur, i, j, k, dir) << std::endl;
 //    }
 //    EXCEPTION("LBM simulation has problems, macroscopic densities are too big!");
 //  }
@@ -767,26 +758,19 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
 }
 
 // m = M*f
-const Vector<double> LatticeBoltzmann::TransformPdfs(int cur, int id) const
+const Vector<double> LatticeBoltzmann::TransformToMoments(const Vector<double>&  pdfs) const
 {
-  Vector<double> tmp;
   Vector<double> result;
-  tmp.Resize(n_q_);
   result.Resize(n_q_);
+  transformation.Mult(pdfs,result);
 
-  for (int  dir = 0; dir < n_q_; dir++)
-    tmp[dir] = PDF(cur,id,dir);
-
-  std::cout << "pdfs: " << tmp.ToString(0,',') << std::endl;
-
-  transformation.Mult(tmp,result);
-
-  std::cout << "moments: " << result.ToString(0,',') << std::endl;
+  //std::cout << "moments: " << result.ToString(0,',') << std::endl;
 
   return result;
 }
 
 // m_eq = M * f_eq
+// Here, m_eq is calculated via given formulas avoiding matrix multiplication
 // density and momentum (velocity) can be extracted directly from moments vector
 const Vector<double> LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments) const
 {
@@ -852,6 +836,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
       tmp_uy = 0;
       tmp_us = 0;
 
+      // propagation
       for (int  dir = 0; dir < n_q_; dir++) {
         int invDir = GetInvDirection((Direction)dir);
         if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
@@ -877,32 +862,28 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
       Vector<double> subtrahend;
       if (!srt_)
       {
-//	std::cout << std::endl;
-//        Vector<double> moments = TransformPdfs(cur,index); // M*f
-        Vector<double> moments;
-	moments.Resize(n_q_);
-        transformation.Mult(pdfs,moments);
+        Vector<double> moments = TransformToMoments(pdfs);
         Vector<double> m_eq = CalcEquilMoments(moments);
-        Vector<double> inner;
-        inner.Resize(n_q_);
         subtrahend.Resize(n_q_);
-        inner = moments - m_eq;
 
-        m_inv_s.Mult(inner,subtrahend);
+        invM_S.Mult(moments - m_eq,subtrahend);
 
-        assert(m_eq[0] == moments[0]);
- //       if (m_eq[3] != moments[3])
-  //      {
-   //       std::cout << "m_eq[3]=" << m_eq[3] << " moments[3]=" << moments[3] << std::endl;
-    //      std::cout << "difference: " << m_eq[3] -  moments[3] << std::endl;
-     //   }
+        assert(std::abs(m_eq[0] - moments[0]) < 1e-6);
         assert(std::abs(m_eq[3] - moments[3]) < 1e-6);
- //       if (m_eq[5] != moments[5])
-//        {
- //         std::cout << "m_eq[3]=" << m_eq[5] << " moments[3]=" << moments[5] << std::endl;
-   //       std::cout << "difference: " << m_eq[5] -  moments[5] << std::endl;
-  //      }
         assert(std::abs(m_eq[5] - moments[5]) < 1e-6);
+	
+	double density = 0.0;
+	for (int  dir = 0; dir < n_q_; dir++)
+	  density += pdfs[dir];
+	if (std::abs(density - moments[0]) > 1e-6) {
+	  std::cout << "elem " << index << " density=" << density << " moments[0]=" << moments[0] << " difference = " << density - moments[0] << std::endl;
+	  
+	}
+	assert(std::abs(density - moments[0]) < 1e-6);
+//	double u1, u2,u3;
+//	CalcVelocities(cur,x,y,z,u1,u2,u3);
+//	assert(std::abs(u1 - moments[3]) < 1e-3);
+//	assert(std::abs(u2 - moments[5]) < 1e-3);
 
       } else {
         tmp_ux = scale * tmp_ux / sum;
@@ -926,11 +907,10 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
             PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
             //std::cout << pdfs[dir] << "-" << subtrahend[dir] << "=" << PDF(next, x, y, z, dir) << std::endl;
           }
-	  if (PDF(next, x, y, z, dir) < -1e-4)
-		std::cout << "dir " << dir << " elem " << index << " density " << CalcDensity(cur,x,y,z) << " PDF(next, x, y, z, dir)=" << PDF(next, x, y, z, dir) << std::endl;
-//          assert(PDF(next, x, y, z, dir) > 0);
+          assert(PDF(next, x, y, z, dir) > 0);
         }
       }
+
     }
   }
 }
@@ -967,7 +947,8 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy ;
 
-    if (srt_) {
+//    if (srt_) 
+//    {
       tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
       tmp_ux = 3.0 * tmp_ux;
       tmp_uy = 3.0 * tmp_uy;
@@ -975,35 +956,24 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
         tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
         PDF(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
       }
-    } else {
-//      Vector<double> multResult;
-//      multResult.Resize(n_q_);
+//    } else {
+//      for (int  dir = 0; dir < n_q_; dir++) {
+//	pdfs[dir] = PDF(cur,x,y,z,dir);
+//      }
+//      Vector<double> moments = TransformToMoments(pdfs);
 //      double density = CalcDensity(cur,x,y,z);
-//      Vector<double> moments = TransformPdfs(cur,GetIndex(x,y,0));
-	Vector<double> moments;
-	moments.Resize(n_q_);
-        transformation.Mult(pdfs,moments);
-      moments[3] = tmp_ux;
-      moments[5] = tmp_uy;
-      Vector<double> m_eq = CalcEquilMoments(moments);
-      assert(m_eq[0] - moments[0] < 1e-6);
-      assert(m_eq[3] - moments[3] < 1e-6);
-      assert(m_eq[5] - moments[5] < 1e-6);
-      Vector<double> tmp;
-      tmp.Resize(9);
-      transformation_inv.Mult(m_eq,tmp);
-//      Vector<double> diff;
-//      diff.Resize(n_q_);
-//      diff = moments - m_eq;
-//      m_inv_s.Mult(diff,multResult);
-//      m_inv_s.Mult(m_eq,multResult);
-      for (int  dir = 0; dir < n_q_; dir++)
-      {
-////        PDF(cur, x, y, z, dir)  += multResult[dir];
-        PDF(cur, x, y, z, dir)  = tmp[dir];
-        assert(PDF(cur, x, y, z, dir) > 0);
-      }
-    }
+//      moments[3] = tmp_ux * density;
+//      moments[5] = tmp_uy * density;
+//      Vector<double> m_eq = CalcEquilMoments(moments);
+//      Vector<double> subtrahend;
+//      subtrahend.Resize(n_q_);
+//      invM_S.Mult(moments - m_eq,subtrahend);
+//      Vector<double> result;
+//      result.Resize(n_q_);
+//      invTransformation.Mult(m_eq,result);
+//      for (int  dir = 0; dir < n_q_; dir++)
+//        PDF(cur, x, y, z, dir) = result[dir];
+//    } 
   }
   return;
 }
@@ -1049,42 +1019,16 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
 
     assert (z == 0);
 
-    CalcVelocitites(cur, x, y, z, tmp_ux, tmp_uy, tmp);
+    CalcVelocities(cur, x, y, z, tmp_ux, tmp_uy, tmp);
 
     sum = 1.0; // the enforced density
 
-    if (srt_)
-    {
-      tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
-      tmp_ux = 3.0 * tmp_ux;
-      tmp_uy = 3.0 * tmp_uy;
-      for (int  dir = 0; dir < n_q_; dir++) {
-        tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-        PDF(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
-      }
-    } else {
-      //Vector<double> moments = TransformPdfs(cur,GetIndex(x,y,0));
-      Vector<double> moments;
-	moments.Resize(n_q_);
-        transformation.Mult(pdfs,moments);
-      moments[0] = 1.0;
-      Vector<double> m_eq = CalcEquilMoments(moments);
-//      Vector<double> diff;
-//      diff.Resize(n_q_);
-//      diff = moments - m_eq;
-      Vector<double> multResult;
-      multResult.Resize(n_q_);
-//      m_inv_s.Mult(diff,multResult);
-      transformation_inv.Mult(m_eq,multResult);
-
-      assert(m_eq[0] == moments[0]);
-      assert(m_eq[3] == moments[3]);
-      assert(m_eq[5] == moments[5]);
-
-      for (int  dir = 0; dir < n_q_; dir++){
-        PDF(cur, x, y, z, dir)  = multResult[dir];
-        assert(PDF(cur, x, y, z, dir) > 0);
-      }
+    tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+    tmp_ux = 3.0 * tmp_ux;
+    tmp_uy = 3.0 * tmp_uy;
+    for (int  dir = 0; dir < n_q_; dir++) {
+      tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
+      PDF(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
   return;
@@ -1255,7 +1199,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> 
     y = outlet[i][1];
     z = outlet[i][2];
 
-    CalcVelocitites(cur, x, y, z, tmp_ux, tmp_uy, tmp_uz);
+    CalcVelocities(cur, x, y, z, tmp_ux, tmp_uy, tmp_uz);
 
     sum = 1.0; // the enforced density
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);

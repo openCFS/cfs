@@ -26,7 +26,7 @@ namespace CoupledField
     public:
         // In 2D: 9 microscopic directions
         // In 3D: 19 microscopic directions
-        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SE=7, Q_SW=8,          // 2D
+        typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
           Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
   };
@@ -88,7 +88,7 @@ namespace CoupledField
           /**
            * Calculates x, y and z velocity for element with coordinate (i,j,k)
            */
-          void CalcVelocitites(int cur, int i, int j, int k, double& ux, double& uy, double& uz);
+          void CalcVelocities(int cur, int i, int j, int k, double& ux, double& uy, double& uz);
 
           /**
            * Calculates macroscopic density for given element
@@ -199,7 +199,7 @@ namespace CoupledField
           /**
            * Transforming PDFs into momentum space
            */
-          const Vector<double> TransformPdfs(int cur, int id)const;
+          const Vector<double> TransformToMoments(const Vector<double>&  pdfs)const;
 
           /**
            * Calculate vector of equilibrium moments based on current pdf array
@@ -273,9 +273,9 @@ namespace CoupledField
 
           // Transformation matrix M for momentum space
           Matrix<Double> transformation;
-          Matrix<double> transformation_inv;
+          Matrix<double> invTransformation;
           // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
-          Matrix<Double> m_inv_s;
+          Matrix<Double> invM_S;
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
           StdVector<Double> relax_rates;
 
