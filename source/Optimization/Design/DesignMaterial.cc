@@ -492,6 +492,16 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 1.0 : 0.5);
         // the tensor is orthotropic
       }
+
+    LOG_DBG3(dm) << "a = " << hom_rect_a_;
+    LOG_DBG3(dm) << "b = " << hom_rect_b_;
+    LOG_DBG3(dm) << "c = " << hom_rect_c_;
+    LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
     } else {
 
 #ifdef USE_SGPP
@@ -614,16 +624,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 #endif //USE_SGPP
     }
   }
-
-  LOG_DBG3(dm) << "a = " << hom_rect_a_;
-  LOG_DBG3(dm) << "b = " << hom_rect_b_;
-  LOG_DBG3(dm) << "c = " << hom_rect_c_;
-  LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -1856,8 +1856,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::ROTANGLE:
   case DesignElement::ROTANGLEX:
   case DesignElement::ROTANGLEY:
-  case DesignElement::DENSITY: // Treated after switch
-  {
+  case DesignElement::DENSITY:
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
 
@@ -1871,7 +1870,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-      else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -1879,12 +1878,10 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
 #endif //USE_SGPP
     }
     break;
-  }
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
   case DesignElement::SHEAR1:
-  {
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Matrix<double> dummy; // not used -> strange function ?! :(
       Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
@@ -1900,7 +1897,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-      else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -1938,10 +1935,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       }
     }
     break;
-  }
   default:
-  ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
-}
+    ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
+  }
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
   if (subTensor == FULL) {
     RotateVoigtTensor(E, direction);
@@ -3191,24 +3187,15 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     E.Init(); // for off-diagonal
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da,
-          db, dc, j, k, l, m, n, o);
-      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da,
-          db, dc, j, k, l, m, n, o);
-      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da,
-          db, dc, j, k, l, m, n, o);
-      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,
-          db, dc, j, k, l, m, n, o);
-      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,
-          db, dc, j, k, l, m, n, o);
-      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,
-          db, dc, j, k, l, m, n, o);
-      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da,
-          db, dc, j, k, l, m, n, o);
-      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da,
-          db, dc, j, k, l, m, n, o);
-      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da,
-          db, dc, j, k, l, m, n, o);
+      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
+      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
+      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
+      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
+      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
+      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
+      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
+      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
       E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
       E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
       E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
@@ -3384,7 +3371,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     }
     j++;
   }
-  LOG_DBG(dm) << "DM:ISG: level = " << level_ << "\n";
+  LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
   file.close();
   if (!shearIsDesign_) {
     // coefficient vectors were too big, because we skipped grid points
