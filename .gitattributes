@@ -941,6 +941,8 @@ share/doc/user/xmlFile/xmlReference.cfg -text
 share/doc/user/xmlFile/xmlReference.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
+share/fluent/sourceterms2D.c -text
+share/fluent/sourceterms3D.c -text
 share/matlab/FftHdf5Core.m -text
 share/matlab/FindPathHDF5.m -text
 share/matlab/PCOLOR.m svneol=native#text/plain
