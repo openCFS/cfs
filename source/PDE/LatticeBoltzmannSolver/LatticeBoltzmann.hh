@@ -43,7 +43,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, std::string relaxModel, double omega_e, double omega_eps, double omega_q);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q);
 
       ~LatticeBoltzmann();
 
@@ -244,8 +244,8 @@ namespace CoupledField
           int numWriteResults_;
           // how many iterations until steady-state convergence
           int numIterations_;
-          // indicates which relaxation (SRT or MRT) model should be used
-          std::string relaxModel_;
+          // indicates whether SRT or MRT model should be used
+          bool srt_;
           // additional relaxation rates for MRT model
           double omega_e_, omega_eps_, omega_q_;
 

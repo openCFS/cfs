@@ -270,8 +270,8 @@ private:
   //! Method of smoothing
   std::string method_;
 
-  //! LBM relaxation model
-  std::string relaxationModel_;
+  //! Flag indicating whether SRT or MRT LBM model should be used
+  bool srt_;
   //! Flag indicating if PDE is assembled for first time
   bool firstTurn_;
 

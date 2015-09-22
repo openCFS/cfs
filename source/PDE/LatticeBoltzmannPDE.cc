@@ -158,7 +158,7 @@ namespace CoupledField {
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
     writeFrequency_ = myParam_->Get("LBM/writeFrequency")->As<unsigned int>();
-    relaxationModel_ = myParam_->Get("LBM/relaxation")->As<std::string>();
+    srt_ = myParam_->Get("LBM/relaxation")->As<std::string>() == "srt";
 
     bool plot    = myParam_->Get("LBM/plot")->As<bool>();
 
@@ -269,7 +269,7 @@ namespace CoupledField {
     }
 
     // sanity check for MRT relaxation rates
-    if (relaxationModel_ == "mrt")
+    if (!srt_)
     {
       omega_e_ = myParam_->Get("LBM/MRT/omega_e")->As<double>(); // relaxation rate related to energy
       omega_eps_ = myParam_->Get("LBM/MRT/omega_epsilon")->As<double>(); // relaxation rate related to squared energy
@@ -283,7 +283,7 @@ namespace CoupledField {
     pdfs.Resize(n_elems * n_q_);
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, relaxationModel_, omega_e_, omega_eps_, omega_q_);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -435,22 +435,26 @@ namespace CoupledField {
   {
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
-    in->Get("relaxationModel")->SetValue(relaxationModel_);
+    if (srt_)
+      in->Get("relaxation")->SetValue("SRT");
+    else
+      in->Get("relaxation")->SetValue("MRT");
     in->Get("omega_nu")->SetValue(omega_);
-    if (relaxationModel_ == "mrt")
+    if (!srt_)
     {
-      in->Get("omega_e")->SetValue(omega_e_);
-      in->Get("omega_eps")->SetValue(omega_eps_);
-      in->Get("omega_q")->SetValue(omega_q_);
+      in->Get("MRT/omega_e")->SetValue(omega_e_);
+      in->Get("MRT/omega_eps")->SetValue(omega_eps_);
+      in->Get("MRT/omega_q")->SetValue(omega_q_);
     }
+    in->Get("Re")->SetValue(Re_);
     in->Get("maxIter")->SetValue(maxIter_);
     in->Get("maxWallTime")->SetValue(maxWallTime_);
     in->Get("convergence")->SetValue(convergence_);
     in->Get("iface")->SetValue(iface.ToString(iface_));
-    in->Get("Re")->SetValue(Re_);
     in->Get("u_max_x")->SetValue(u_max_x_);
     in->Get("u_max_y")->SetValue(u_max_y_);
     in->Get("u_max_z")->SetValue(u_max_z_);
+
     // in the constructor we don't have the densities yet
     SetupElements();
 
@@ -516,6 +520,7 @@ namespace CoupledField {
 
     timer.Stop();
     state_.Stop();
+
     in = infoNode_->Get(ParamNode::SUMMARY)->Get("stateProblem");
     in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
     in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());

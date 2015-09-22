@@ -36,7 +36,7 @@ DEFINE_LOG(lbm, "lbm")
 // instantiation of the static elements
 Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 
-LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, std::string relaxModel, double omega_e, double omega_eps, double omega_q)
+LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q)
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
@@ -59,7 +59,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   maxTol_ = maxTolerance;
   writeFrequency_ = writeFrequency;
   numWriteResults_ = 0;
-  relaxModel_ = relaxModel;
+  srt_ = srt;
   omega_e_ = omega_e;
   omega_eps_ = omega_eps;
   omega_q_ = omega_q;
@@ -99,7 +99,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 
   SetMicroVelocities();
 
-  if (relaxModel == "mrt")
+  if (!srt_)
     InitTransformMatrix();
 
   //initlialize function pointers in dependence on problem's dimension
@@ -186,7 +186,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-//    std::cout << "Iteration " << it << std::endl;
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -848,7 +847,26 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
         scale = scales[index];
 
         Vector<double> subtrahend;
-        if (relaxModel_ == "mrt")
+        if (srt_)
+        {
+          tmp_ux = scale * tmp_ux / sum;
+          tmp_uy = scale * tmp_uy / sum;
+          tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
+          tmp_ux = 3.0 * tmp_ux;
+          tmp_uy = 3.0 * tmp_uy;
+
+          // propagation and collision in one step
+          for (int  dir = 0; dir < n_q_; dir++)
+          {
+            tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
+            // no collision on the boundaries
+            if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
+              PDF(next, x, y, z, dir) = pdfs[dir];
+            else
+              PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+          }
+        }
+        else // MRT case
         {
           transformation.Mult(pdfs,moments); // transform moments  m = M*f
           CalcEquilMoments(moments, m_eq);
@@ -864,34 +882,16 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           for (int  dir = 0; dir < n_q_; dir++)
             density += pdfs[dir];
 
-          if (std::abs(density - moments[0]) > 1e-6)
-            std::cout << "elem " << index << " density=" << density << " moments[0]=" << moments[0] << " difference = " << density - moments[0] << std::endl;
-
           assert(std::abs(density - moments[0]) < 1e-6);
-        }
-        else
-        {
-          tmp_ux = scale * tmp_ux / sum;
-          tmp_uy = scale * tmp_uy / sum;
-          tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
-          tmp_ux = 3.0 * tmp_ux;
-          tmp_uy = 3.0 * tmp_uy;
-        }
 
-        // propagation and collision in one step
-        for (int  dir = 0; dir < n_q_; dir++)
-        {
-          tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
-          // no collision on the boundaries
-          if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
-            PDF(next, x, y, z, dir) = pdfs[dir];
-          else
+          // propagation and collision in one step
+          for (int  dir = 0; dir < n_q_; dir++)
           {
-            if (relaxModel_ == "srt")
-              PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * (sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+            // no collision on the boundaries
+            if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
+              PDF(next, x, y, z, dir) = pdfs[dir];
             else
               PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
-            assert(PDF(next, x, y, z, dir) > 0);
           }
         }
 
