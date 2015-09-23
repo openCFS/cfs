@@ -98,7 +98,7 @@ namespace CoupledField
           double CalcDensity(const Vector<double>& pdfs);
 
           /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
-          void CalcDarcyForce(int elemId, Vector<double>& f1, Vector<double>& f2);
+          void CalcDarcyForce(int cur, int elemId, Vector<double>& f1, Vector<double>& f2);
 
           /** Calculates dissipation contribution of given node */
           double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);
@@ -286,12 +286,12 @@ namespace CoupledField
           int next_;
 
           // Transformation matrix M for momentum space
-          Matrix<Double> transformation;
+          Matrix<double> transformation;
           Matrix<double> invTransformation;
           // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
-          Matrix<Double> invM_S;
+          Matrix<double> invM_S;
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
-          StdVector<Double> relax_rates;
+          StdVector<double> relax_rates;
 
           StdVector<StdVector<int> > inlet;
           StdVector<StdVector<int> > outlet;
