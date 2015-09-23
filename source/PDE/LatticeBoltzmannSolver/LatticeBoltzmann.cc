@@ -187,6 +187,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
+    LOG_DBG3(lbm) << "Iteration " << it;
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -786,30 +787,45 @@ double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
   return sum;
 }
 
-//void LatticeBoltzmann::CalcDarcyForce(int elemId, Vector<double>& f1, Vector<double>& f2)
-//{
-//  f1.Resize(n_q_);
-//  f1.Init(0.0);
-//  f2.Resize(n_q_);
-//  f2.Init(0.0);
-//
-//  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
-//  // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamme is the porosity (0 is solid and 1 is fluid)
-//  double alpha = alpha_max_ * q * scales[elemId] / (q +  1 - scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
-//
-//  double ux, uy, uz;
-//  CalcVelocities()
-//
-//  f1[3] = fx; // the assembly of f1 and f2 are taken from MRT paper
-//  f1[4] = -f1[3];
-//  f1[5] = fy;
-//  f1[6] = -f1[5];
-//
-//  f2[1] = 6 * (fx * ux + fy * uy);
-//  f2[2] = -f2[1];
-//  f2[7] = 2 * (fx * ux + fy * uy);
-//  f2[8] = fy * ux + fx * uy;
-//}
+void LatticeBoltzmann::CalcDarcyForce(int cur, int elemId, Vector<double>& f1, Vector<double>& f2)
+{
+  f1.Resize(n_q_);
+  f1.Init(0.0);
+  f2.Resize(n_q_);
+  f2.Init(0.0);
+
+  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
+  // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamma is the porosity (0 is solid and 1 is fluid)
+  double alpha = alpha_max_ * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
+  double ux, uy, uz;
+  Vector<double> pdfs;
+  pdfs.Resize(n_q_);
+
+  for (int dir = 0; dir < n_q_; dir++)
+    pdfs[dir] = PDF(cur,elemId,dir);
+
+  double rho = CalcDensity(pdfs);
+  CalcVelocities(pdfs,ux,uy,uz);
+
+  double fx = -alpha * rho * ux;
+  double fy = -alpha * rho * uy;
+
+  LOG_DBG3(lbm) << "CDF: Element " << elemId << " has LBM density " << scales[elemId] << " and porosity " << scales[elemId];
+  LOG_DBG3(lbm) << "CDF: alpha= " << alpha << " fx=" << fx << " fy=" << fy;
+
+  f1[3] = fx; // the assembly of f1 and f2 are taken from MRT paper
+  f1[4] = -f1[3];
+  f1[5] = fy;
+  f1[6] = -f1[5];
+
+  f2[1] = 6 * (fx * ux + fy * uy);
+  f2[2] = -f2[1];
+  f2[7] = 2 * (fx * ux + fy * uy);
+  f2[8] = fy * ux + fx * uy;
+
+  LOG_DBG3(lbm) << "CDF: F1=" << f1.ToString(0,',');
+  LOG_DBG3(lbm) << "CDF: F2=" << f2.ToString(0,',') << "\n";
+}
 
 // m_eq = M * f_eq
 // Here, m_eq is calculated via given formulas avoiding matrix multiplication
@@ -905,7 +921,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
         // macroscopic scaling by design variable
         scale = scales[index];
 
-        Vector<double> subtrahend;
+        Vector<double> collResult;
         if (srt_)
         {
           tmp_ux = scale * tmp_ux / sum;
@@ -927,31 +943,48 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
         }
         else // MRT case
         {
+          // no collision on the boundaries
+          if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
+          {
+            for (int  dir = 0; dir < n_q_; dir++)
+              PDF(next, x, y, z, dir) = pdfs[dir];
+            continue;
+          }
+
           transformation.Mult(pdfs,moments); // transform moments  m = M*f
-          CalcEquilMoments(moments, m_eq);
-          subtrahend.Resize(n_q_);
+          CalcEquilMoments(moments, m_eq); // compute equilibirum moments from moments
+//          subtrahend.Resize(n_q_);
+//          invM_S.Mult(moments - m_eq,subtrahend); // back transformation with relaxation
 
-          invM_S.Mult(moments - m_eq,subtrahend);
+          Vector<double> momentsAfterCollision; // result of collision step in moment space including porosity model
+          Vector<double> term1(n_q_);
+          Vector<double> noneq_moments = moments - m_eq;
+          for (int dir = 0; dir < n_q_; dir++) {
+            term1[dir] = relax_rates[dir] * noneq_moments[dir];
+          }
 
-          assert(std::abs(m_eq[0] - moments[0]) < 1e-6);
-          assert(std::abs(m_eq[3] - moments[3]) < 1e-6);
-          assert(std::abs(m_eq[5] - moments[5]) < 1e-6);
+          Vector<double> f1, f2;
+          CalcDarcyForce(cur,index,f1,f2);
 
-          double density = 0.0;
-          for (int  dir = 0; dir < n_q_; dir++)
-            density += pdfs[dir];
+          Vector<double> term2(n_q_);
+          for (int dir = 0; dir < n_q_; dir++) {
+            term2[dir] = (1.0 - 0.5 * relax_rates[dir]) * f2[dir];
+          }
+
+          // m* = m - S * (m - m_eq) + F1 + (I - S/2) * F2
+          momentsAfterCollision = moments - term1 + f1 + term2;
+
+          collResult.Resize(n_q_);
+
+          invTransformation.Mult(momentsAfterCollision,collResult);
+
+          double density = CalcDensity(pdfs);
 
           assert(std::abs(density - moments[0]) < 1e-6);
 
           // propagation and collision in one step
           for (int  dir = 0; dir < n_q_; dir++)
-          {
-            // no collision on the boundaries
-            if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1)
-              PDF(next, x, y, z, dir) = pdfs[dir];
-            else
-              PDF(next, x, y, z, dir) = pdfs[dir] - subtrahend[dir];
-          }
+            PDF(next, x, y, z, dir) = collResult[dir];
         }
 
       }
@@ -991,8 +1024,6 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
       tmp_ux = u_in[i][0];
       tmp_uy = u_in[i][1];
     }
-
-    LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy ;
 
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy);
     tmp_ux = 3.0 * tmp_ux;
