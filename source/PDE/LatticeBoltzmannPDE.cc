@@ -274,6 +274,7 @@ namespace CoupledField {
       omega_e_ = myParam_->Get("LBM/MRT/omega_e")->As<double>(); // relaxation rate related to energy
       omega_eps_ = myParam_->Get("LBM/MRT/omega_epsilon")->As<double>(); // relaxation rate related to squared energy
       omega_q_ = myParam_->Get("LBM/MRT/omega_q")->As<double>(); // relaxation rate related to heat flux
+      alpha_max_ = myParam_->Get("LBM/MRT/alpha_max")->As<double>(); // parameter used in MRT porosity model
 
       if (omega_e_ < 0.0 || omega_e_ > 2.0 || omega_eps_ < 0.0 || omega_eps_ > 2.0 || omega_q_ < 0.0 || omega_q_ > 2.0)
         EXCEPTION("Check relaxation rates for MRT model! Values must be between 0.0 and 2.0!");
@@ -283,7 +284,7 @@ namespace CoupledField {
     pdfs.Resize(n_elems * n_q_);
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_,alpha_max_);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -1320,7 +1321,7 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   {
     for(unsigned int y = 0; y < n_y_; y++)
     {
-      // out: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porisity
+      // out: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porosity
       // out: 1 bb1, 2 inlet, 3 outlet, 0 for porosity
       int v = (int) -1.0 * elements[n_x_ * y + x];
       obst << std::max(0, v) << " "; // org porosity would be -1

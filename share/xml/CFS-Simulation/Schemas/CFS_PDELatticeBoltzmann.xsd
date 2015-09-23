@@ -90,6 +90,11 @@
                         <xsd:documentation>Relaxation rate for heat flux entry in moments vector</xsd:documentation>
                       </xsd:annotation>              
                     </xsd:attribute>
+                    <xsd:attribute name="alpha_max" type="xsd:double" use="required"> 
+                      <xsd:annotation>
+                        <xsd:documentation>This value is related to the RAMP approximation used in the porosity model proposed by Liu et al.(2014), e.g. 800</xsd:documentation>
+                      </xsd:annotation>              
+                    </xsd:attribute>
                 </xsd:complexType>
               </xsd:element>
                 
