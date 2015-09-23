@@ -334,6 +334,7 @@ private:
 
   double omega_; /** molecular collision frequency */
   double omega_e_, omega_eps_, omega_q_; // relaxation rates for MRT model
+  double alpha_max_; // parameter used in MRT porosity model
   double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;
   unsigned int maxIter_;

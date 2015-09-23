@@ -12,7 +12,9 @@ The original code from Markus can be found at
 
 svn+ssh://eamc080.eam.uni-erlangen.de/home/svn_repo/repository/catalyst/OptiLBM/src
 
-This version makes it simpler and extends to 3D (Fabian Wein) */
+An generalization and extension to 3D of the SRT model was added.
+The MRT model was added in correspondance to the descriptions made in the paper of Geng Liu et al. (2014)
+*/
 
 namespace CoupledField
 {
@@ -43,7 +45,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q, double alpha_max);
 
       ~LatticeBoltzmann();
 
@@ -88,12 +90,18 @@ namespace CoupledField
           /**
            * Calculates x, y and z velocity for element with coordinate (i,j,k)
            */
-          void CalcVelocities(int cur, int i, int j, int k, double& ux, double& uy, double& uz);
+          void CalcVelocities(const Vector<double>& pdfs, double& ux, double& uy, double& uz);
 
           /**
            * Calculates macroscopic density for given element
            */
-          double CalcDensity(int cur, int i, int j, int k);
+          double CalcDensity(const Vector<double>& pdfs);
+
+          /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
+          void CalcDarcyForce(int elemId, Vector<double>& f1, Vector<double>& f2);
+
+          /** Calculates dissipation contribution of given node */
+          double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);
 
           /** set enumerations for directions and boundaries*/
           void SetEnums();
@@ -234,6 +242,8 @@ namespace CoupledField
           double omega_nu_;
           int maxIter_;
           double maxTol_;
+
+
           /** plot the residuum over lbm iterations */
           bool plot_;
           // indicates whether LBM simulation results should be written to hdf5 file every m_writeFrequency'th step or not
@@ -248,6 +258,7 @@ namespace CoupledField
           bool srt_;
           // additional relaxation rates for MRT model
           double omega_e_, omega_eps_, omega_q_;
+          double alpha_max_; // parameter used in porosity model of MRT simulation
 
           // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
           int n_q_;
@@ -261,6 +272,11 @@ namespace CoupledField
           StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
           StdVector< StdVector<double> > pdfs_;
+
+          // store moments and equilibrium moments of steady state solution
+          // need this for adjoint LBM simulation
+          StdVector<double> moments_;
+          StdVector<double> eqMoments_;
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;

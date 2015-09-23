@@ -36,7 +36,7 @@ DEFINE_LOG(lbm, "lbm")
 // instantiation of the static elements
 Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 
-LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q)
+LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q, double alpha_max)
 {
   assert(dim == 2 || dim == 3);
   // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
@@ -63,11 +63,15 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   omega_e_ = omega_e;
   omega_eps_ = omega_eps;
   omega_q_ = omega_q;
+  alpha_max_ = alpha_max;
 
   nNodes_ = sizeX_ * sizeY_ * sizeZ_;
 
   u_in.Resize(nNodes_);
   u_in = uin;
+
+  moments_.Resize(nNodes_);
+  eqMoments_.Resize(nNodes_);
 
   plot_ = plot;
 
@@ -122,22 +126,19 @@ LatticeBoltzmann::~LatticeBoltzmann()
 {
 }
 
-void LatticeBoltzmann::CalcVelocities(int cur, int i, int j, int k, double& ux, double& uy, double& uz)
+void LatticeBoltzmann::CalcVelocities(const Vector<double>& pdfs, double& ux, double& uy, double& uz)
 {
 
-  double density = CalcDensity(cur, i, j, k);
+  double density = CalcDensity(pdfs);
   double tmp_ux = 0;
   double tmp_uy = 0;
   double tmp_uz = 0;
-  StdVector<double> pdfs;
-  pdfs.Resize(n_q_);
 
   for (int  dir = 0; dir < n_q_; dir++) {
     //store current pdf values in array for better accessing
-    pdfs[dir] = PDF(cur, i, j, k, dir);
-    tmp_ux += microVelDirections[dir].off_x*pdfs[dir];
-    tmp_uy += microVelDirections[dir].off_y*pdfs[dir];
-    tmp_uz += microVelDirections[dir].off_z*pdfs[dir];
+    tmp_ux += microVelDirections[dir].off_x * pdfs[dir];
+    tmp_uy += microVelDirections[dir].off_y * pdfs[dir];
+    tmp_uz += microVelDirections[dir].off_z * pdfs[dir];
   }
 
   ux = tmp_ux / density;
@@ -275,6 +276,32 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   numWriteResults_ = count;
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)
+
+  if (!srt_)
+  {
+    Vector<double> pdfs;
+    pdfs.Resize(9);
+    double dissipation = 0.0;
+    for (int node = 0; node < nNodes_; node++) {
+      for (int dir = 0; dir < n_q_; dir++)
+        pdfs[dir] = PDF(cur_,node,dir);
+
+      Vector<double> moms;
+      moms.Resize(n_q_);
+      transformation.Mult(pdfs,moms);
+      Vector<double> eqMoms;
+      CalcEquilMoments(moms,eqMoms);
+
+      // store moments and equilibrium moments of steady-state solution
+      for (int dir = 0; dir < n_q_; dir++) {
+        moments_[dir] = moms[dir];
+        eqMoments_[dir] = eqMoms[dir];
+      }
+      if (LbmNodeTypeIsFluid(elements[node]))
+        dissipation += CalcDissipation(moms,eqMoms,0,0); // FIXME Add body forces
+    }
+  }
+
 
   return &(pdfs_[cur_]);
 }
@@ -739,11 +766,11 @@ void LatticeBoltzmann::Prop_step()
 }
 
 // Calculates macroscopic density for given element
-double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
+double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
 {
   double sum = 0;
   for (int  dir = 0; dir < n_q_; dir++) {
-    sum += PDF(cur, i, j, k, dir);
+    sum += pdfs[dir];
   }
 
   // debugging
@@ -759,6 +786,30 @@ double LatticeBoltzmann::CalcDensity(int cur, int i, int j, int k)
   return sum;
 }
 
+//void LatticeBoltzmann::CalcDarcyForce(int elemId, Vector<double>& f1, Vector<double>& f2)
+//{
+//  f1.Resize(n_q_);
+//  f1.Init(0.0);
+//  f2.Resize(n_q_);
+//  f2.Init(0.0);
+//
+//  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
+//  // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamme is the porosity (0 is solid and 1 is fluid)
+//  double alpha = alpha_max_ * q * scales[elemId] / (q +  1 - scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
+//
+//  double ux, uy, uz;
+//  CalcVelocities()
+//
+//  f1[3] = fx; // the assembly of f1 and f2 are taken from MRT paper
+//  f1[4] = -f1[3];
+//  f1[5] = fy;
+//  f1[6] = -f1[5];
+//
+//  f2[1] = 6 * (fx * ux + fy * uy);
+//  f2[2] = -f2[1];
+//  f2[7] = 2 * (fx * ux + fy * uy);
+//  f2[8] = fy * ux + fx * uy;
+//}
 
 // m_eq = M * f_eq
 // Here, m_eq is calculated via given formulas avoiding matrix multiplication
@@ -789,6 +840,14 @@ void LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments, Vector<d
   m_eq.ScalarMult(density);
 
   //std::cout << "equil moments: " << m_eq.ToString(0,',') << std::endl;
+}
+
+double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy)
+{
+  double nu = (1/3.0 * (1/omega_nu_ - 0.5)); // fluid's kinematic viscosity in LBM terms
+  double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]);
+  double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]);
+  return nu * (0.25 * 1/moments[0] * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * term2 + 3 * omega_nu_ * (eqMoments[8] - moments[8]) )) - fx * moments[5] - fy * moments[7];
 }
 
 /************************************************** 2D operators *****************************************************/
@@ -919,7 +978,11 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 
     assert(z == 0);
 
-    sum = CalcDensity(cur, x, y, z);
+    for (int  dir = 0; dir < n_q_; dir++) {
+      pdfs[dir] = PDF(cur,x,y,z,dir);
+    }
+
+    sum = CalcDensity(pdfs);
 
     tmp_ux = ux_; // velocity at inlet is prescribed
     tmp_uy = uy_;
@@ -983,7 +1046,11 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
 
     assert (z == 0);
 
-    CalcVelocities(cur, x, y, z, tmp_ux, tmp_uy, tmp);
+    for (int  dir = 0; dir < n_q_; dir++) {
+      pdfs[dir] = PDF(cur,x,y,z,dir);
+    }
+
+    CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp);
 
     sum = 1.0; // the enforced density
 
@@ -1084,7 +1151,7 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum;
   double tmp;
 
-  StdVector<double> pdfs;
+  Vector<double> pdfs;
   pdfs.Resize(n_q_);
 
   for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
@@ -1092,7 +1159,10 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
     y = inlet[i][1];
     z = inlet[i][2];
 
-    sum = CalcDensity(cur, x, y, z);
+    for (int dir = 0; dir < n_q_; dir ++)
+      pdfs[dir] = PDF(cur,x,y,z,dir);
+
+    sum = CalcDensity(pdfs);
 
     tmp_ux = ux_;
     tmp_uy = uy_;
@@ -1153,7 +1223,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> 
 {
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum, tmp;
 
-  StdVector<double> pdfs;
+  Vector<double> pdfs;
   pdfs.Resize(n_q_);
 
   int x, y, z;
@@ -1163,7 +1233,10 @@ void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> 
     y = outlet[i][1];
     z = outlet[i][2];
 
-    CalcVelocities(cur, x, y, z, tmp_ux, tmp_uy, tmp_uz);
+    for (int dir = 0; dir < n_q_; dir ++)
+      pdfs[dir] = PDF(cur,x,y,z,dir);
+
+    CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp_uz);
 
     sum = 1.0; // the enforced density
     tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
