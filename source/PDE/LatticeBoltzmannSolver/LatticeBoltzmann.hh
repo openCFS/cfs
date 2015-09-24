@@ -98,7 +98,7 @@ namespace CoupledField
           double CalcDensity(const Vector<double>& pdfs);
 
           /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
-          void CalcDarcyForce(int cur, int elemId, Vector<double>& f1, Vector<double>& f2);
+          void CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2);
 
           /** Calculates dissipation contribution of given node */
           double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);

@@ -187,7 +187,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    LOG_DBG3(lbm) << "Iteration " << it;
+    LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -509,6 +509,7 @@ void LatticeBoltzmann::InitTransformMatrix()
   relax_rates[7] = omega_nu_;
   relax_rates[8] = omega_nu_;
 
+  LOG_TRACE(lbm) << "MRT relaxation rates are [0," << omega_e_ << "," << omega_eps_ << ",0," << omega_q_ << "," << omega_nu_ << "," << omega_nu_ << "]";
   invM_S.Resize(n_q_);
   invM_S.Init();
   // multiply inverse of M with relaxation rates: M^{-1} * S
@@ -523,8 +524,6 @@ void LatticeBoltzmann::InitTransformMatrix()
 //    std::cout << "---------------M^-1 S--------------------" << std::endl;
 //    std::cout << invM_S.ToString(0,true) << std::endl;
 
-  for (int dir = 0; dir < n_q_; dir++)
-    LOG_DBG3(lbm) << "IT: S(" << dir << "," << dir << ")=" << relax_rates[dir];
 }
 
 void LatticeBoltzmann::SetEnums()
@@ -787,7 +786,7 @@ double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
   return sum;
 }
 
-void LatticeBoltzmann::CalcDarcyForce(int cur, int elemId, Vector<double>& f1, Vector<double>& f2)
+void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2)
 {
   f1.Resize(n_q_);
   f1.Init(0.0);
@@ -795,23 +794,27 @@ void LatticeBoltzmann::CalcDarcyForce(int cur, int elemId, Vector<double>& f1, V
   f2.Init(0.0);
 
   double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
+  double nu_water =1.004e6; // unit m^2/s
+  double time_ref = 1/3.0 * (1/1.9-0.5) * 1.0/(sizeX_*sizeX_) / nu_water; // reference time unit for conversion from physical units to LBM ones
+  double alpha_lb = alpha_max_ * time_ref;
+//  std::cout << "alpha_max in LB units: " << alpha_lb << std::endl;
   // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamma is the porosity (0 is solid and 1 is fluid)
-  double alpha = alpha_max_ * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
-  double ux, uy, uz;
-  Vector<double> pdfs;
-  pdfs.Resize(n_q_);
+  double alpha = alpha_lb * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
 
-  for (int dir = 0; dir < n_q_; dir++)
-    pdfs[dir] = PDF(cur,elemId,dir);
-
-  double rho = CalcDensity(pdfs);
-  CalcVelocities(pdfs,ux,uy,uz);
+  double rho = moments[0];
+  double ux = moments[3];
+  double uy = moments[5];
 
   double fx = -alpha * rho * ux;
   double fy = -alpha * rho * uy;
 
-  LOG_DBG3(lbm) << "CDF: Element " << elemId << " has LBM density " << scales[elemId] << " and porosity " << scales[elemId];
+  LOG_DBG3(lbm) << " CDF: Element " << elemId << " has LBM density " << rho << " and porosity " << scales[elemId];
+  LOG_DBG3(lbm) << "CDF: fx=" << fx << "= -" << alpha << "*" << rho << "*" << ux;
   LOG_DBG3(lbm) << "CDF: alpha= " << alpha << " fx=" << fx << " fy=" << fy;
+//  if (scales[elemId] == 0.0) {
+//  for(int dir = 0; dir < n_q_; dir++)
+//    LOG_DBG3(lbm) << pdfs[dir];
+//  }
 
   f1[3] = fx; // the assembly of f1 and f2 are taken from MRT paper
   f1[4] = -f1[3];
@@ -820,8 +823,14 @@ void LatticeBoltzmann::CalcDarcyForce(int cur, int elemId, Vector<double>& f1, V
 
   f2[1] = 6 * (fx * ux + fy * uy);
   f2[2] = -f2[1];
-  f2[7] = 2 * (fx * ux + fy * uy);
+  f2[7] = 2 * (fx * ux - fy * uy);
   f2[8] = fy * ux + fx * uy;
+
+  //debugging
+//  if (scales[elemId] == 0.0) {
+//    for(int dir = 0; dir < n_q_; dir++)
+//      std::cout << pdfs[dir] << " ";
+//  }
 
   LOG_DBG3(lbm) << "CDF: F1=" << f1.ToString(0,',');
   LOG_DBG3(lbm) << "CDF: F2=" << f2.ToString(0,',') << "\n";
@@ -958,13 +967,18 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 
           Vector<double> momentsAfterCollision; // result of collision step in moment space including porosity model
           Vector<double> term1(n_q_);
-          Vector<double> noneq_moments = moments - m_eq;
+          Vector<double> f1, f2;
+          CalcDarcyForce(moments,index,f1,f2);
+          Vector<double> noneq_moments(n_q_);
+          for (int dir = 0; dir < n_q_; dir++)
+          {
+            noneq_moments[dir] = moments[dir] - m_eq[dir];
+          }
+
+          // S * (m - m_eq)
           for (int dir = 0; dir < n_q_; dir++) {
             term1[dir] = relax_rates[dir] * noneq_moments[dir];
           }
-
-          Vector<double> f1, f2;
-          CalcDarcyForce(cur,index,f1,f2);
 
           Vector<double> term2(n_q_);
           for (int dir = 0; dir < n_q_; dir++) {
@@ -978,9 +992,13 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 
           invTransformation.Mult(momentsAfterCollision,collResult);
 
-          double density = CalcDensity(pdfs);
+          for (int dir = 0; dir < n_q_; dir++) {
+            LOG_DBG3(lbm) << "f=" << collResult[dir] << " m* = " << momentsAfterCollision[dir] << "=" << moments[dir] << "-" << relax_rates[dir] << "*(" << moments[dir] << "-" << m_eq[dir] <<")"  << "+" << f1[dir] << "+" << term2[dir];
+          }
 
-          assert(std::abs(density - moments[0]) < 1e-6);
+//          double density = CalcDensity(pdfs);
+
+//          assert(std::abs(density - moments[0]) < 1e-6);
 
           // propagation and collision in one step
           for (int  dir = 0; dir < n_q_; dir++)
