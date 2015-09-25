@@ -405,7 +405,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // full C1 interpolation with XML coefficients
     } else if (interpolation_str == "c1") {
       interpolation_ = C1;
-      Xerces xerces(file);
+      Xerces xerces;
+      xerces.SetFile(file);
+      std::cout << file << "\n";
       PtrParamNode root = xerces.CreateParamNodeInstance();
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       if (dim == 2) {
@@ -437,14 +439,27 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         } else {
           int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
           int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-          int dim3 = root->Get("a/matrix/dim1")->As<int>();
-          int dim4 = root->Get("b/matrix/dim1")->As<int>();
-          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+          //int dim3 = root->Get("a/matrix/dim1")->As<int>();
+          //int dim4 = root->Get("b/matrix/dim1")->As<int>();
+          //PtrParamNode tmp = root->Get("coeff11/matrix/real", ParamNode::PASS);
+          //hom_rect_coeff11_ = tmp->As<Matrix<Double> >();
+          ParamTools::AsTensor<Double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+//          tmp = root->Get("coeff12/matrix/real", ParamNode::PASS);
+//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff11_);
+//          tmp = root->Get("coeff22/matrix/real", ParamNode::PASS);
+//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff22_);
+//          tmp = root->Get("coeff33/matrix/real", ParamNode::PASS);
+//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff33_);
+//          tmp = root->Get("a/matrix/real", ParamNode::PASS);
+//          ParamTools::AsTensor<Double>(tmp, dim3, 1, hom_rect_a_);
+//          tmp = root->Get("b/matrix/real", ParamNode::PASS);
+//          ParamTools::AsTensor<Double>(tmp, dim4, 1, hom_rect_b_);
+//          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+//          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+//          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+//          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+//          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+//          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
           hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
           if (root->Has("c")) {
             int dim5 = root->Get("c/matrix/dim1")->As<int>();
