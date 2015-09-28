@@ -536,13 +536,13 @@ namespace CoupledField{
     }
     std::memcpy(buff,buff2,bfrS);
     if(remainingBytes>0){
-      delete buff2;
+      delete[] buff2;
       buff2 = NULL;
       buff2 = new char[remainingBytes];
       infile->read(buff2,remainingBytes);
       outfile->write(buff,bfrS);
       bfrS = remainingBytes;
-      delete buff;
+      delete[] buff;
       buff = NULL;
       buff = new char[bfrS];
       std::memcpy(buff,buff2,bfrS);
