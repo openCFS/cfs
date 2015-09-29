@@ -291,3 +291,45 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   ENDIF()
 ENDMACRO()
 
+#-------------------------------------------------------------------------------
+# Extract ZIP_FILE to TARGET_DIR
+#-------------------------------------------------------------------------------
+MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
+  IF(EXISTS "${ZIP_FILE}")
+    MESSAGE("Found precompiled version ${ZIP_FILE}.")
+    EXECUTE_PROCESS(
+      COMMAND "${CMAKE_COMMAND}" -E tar xzf "${ZIP_FILE}"
+      WORKING_DIRECTORY "${TARGET_DIR}"
+      OUTPUT_QUIET
+      RESULT_VARIABLE rv
+      )
+    IF(NOT "${rv}" STREQUAL "0")
+      MESSAGE("Could not extract ${ZIP_FILE}.")
+    ENDIF()
+  ENDIF()
+ENDMACRO()
+
+#-------------------------------------------------------------------------------
+# Create ZIP_FILE with files from PREFIX_DIR/src/*-build/install_manifest.txt
+#-------------------------------------------------------------------------------
+MACRO(ZIP_TO_CACHE ZIP_FILE PREFIX_DIR)
+  STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
+  STRING(REGEX REPLACE "${ZIP_NAME}$" "" TARGET_DIR ${ZIP_FILE})
+  
+  IF(NOT EXISTS "${TARGET_DIR}")
+    FILE(MAKE_DIRECTORY "${TARGET_DIR}")
+  ENDIF()
+  
+  FILE(GLOB MANIFESTS "${PREFIX_DIR}/src/*-build/install_manifest.txt")
+  FOREACH(manifest ${MANIFESTS})
+    EXECUTE_PROCESS(
+      COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
+      COMMAND zip -@ -g ${ZIP_FILE}
+      OUTPUT_QUIET
+      RESULT_VARIABLE rv
+    )
+    IF(NOT "${rv}" STREQUAL "0")
+      MESSAGE("Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
+    ENDIF()
+  ENDFOREACH()
+ENDMACRO()

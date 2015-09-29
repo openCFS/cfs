@@ -1333,10 +1333,13 @@ namespace CoupledField
 
       // associated result types
       std::string tmp;
-      tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
-      row->Get("result")->SetValue(tmp);
-      tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
-      col->Get("result")->SetValue(tmp);
+      if (context.GetFirstResultInfo()!= NULL) {
+    	  tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+    	  row->Get("result")->SetValue(tmp);
+    	  tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+    	  col->Get("result")->SetValue(tmp);
+      }
+
       
       // matrix destination
       PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
@@ -1703,12 +1706,7 @@ namespace CoupledField
     if( analysisType_ == BasePDE::TRANSIENT
         || analysisType_ == BasePDE::STATIC
         || analysisType_ == BasePDE::EIGENFREQUENCY) {
-      algsys_->SetElementMatrix( mappedDest, elemMat,
-                                 fctId1, eqnVec1,
-                                 fctId2, eqnVec2,
-                                 context.IsSetCounterPart(),
-                                 preventStaticCond,
-                                 context.isDiagonal());
+      algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
 
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);

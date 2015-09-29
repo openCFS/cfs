@@ -1,0 +1,3 @@
+INCLUDE("@CFS_SOURCE_DIR@/cmake_modules/CFS_macros.cmake")
+
+ZIP_TO_CACHE(@PRECOMPILED_PCKG_FILE@ @PREFIX_DIR@)

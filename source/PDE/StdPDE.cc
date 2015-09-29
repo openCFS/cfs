@@ -141,9 +141,7 @@ namespace CoupledField {
 
     LOG_DBG(stdPde) << pdename_ << ": Registering functions";
     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fctIt;
-    for( fctIt = feFunctions_.begin(); 
-        fctIt != feFunctions_.end(); 
-        fctIt++ ) {
+    for( fctIt = feFunctions_.begin(); fctIt != feFunctions_.end(); fctIt++ ) {
       FeSpace & feSpace = *(fctIt->second->GetFeSpace());
       FeFctIdType fctId = fctIt->second->GetFctId();
       shared_ptr<ResultInfo> res = fctIt->second->GetResultInfo();
@@ -180,8 +178,7 @@ namespace CoupledField {
 
       // register block. In addition we check, if this is the inner block
       // and static condensation is activated
-      bool isInnerBlock = solStrat_->UseStaticCondensation() &&
-          (i == numBlocks-1);
+      bool isInnerBlock = solStrat_->UseStaticCondensation() && (i == numBlocks-1);
       sbmIndex = algsys_->DefineSBMMatrixBlock( sbmBlocks[i], isInnerBlock );
       if( minorBlocks.size() != 0 && sbmIndex != -1) {
         StdVector<std::set<Integer> >& sbmSubBlocks = minorBlocks[i];

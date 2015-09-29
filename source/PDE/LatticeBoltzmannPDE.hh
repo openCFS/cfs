@@ -8,12 +8,12 @@
 #include <string>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
-#include "DataInOut/ParamHandling/ParamNode.hh"
-#include "General/Enum.hh"
-#include "General/defs.hh"
-#include "General/Environment.hh"
-#include "MatVec/Matrix.hh"
-#include "MatVec/Vector.hh"
+//#include "DataInOut/ParamHandling/ParamNode.hh"
+//#include "General/Enum.hh"
+//#include "General/defs.hh"
+//#include "General/Environment.hh"
+//#include "MatVec/Matrix.hh"
+//#include "MatVec/Vector.hh"
 #include "PDE/LatticeBoltzmannSolver/LatticeBoltzmann.hh"
 #include "SinglePDE.hh"
 //#include "Utils/nodestoresol.hh"
@@ -22,6 +22,7 @@
 namespace CoupledField
 {
 class BaseResult;
+class BaseBDBInt;
 class Grid;
 class PDECoupling;
 class DesignElement;
@@ -70,14 +71,14 @@ public:
   virtual void InitCoupling(PDECoupling * Coupling);
 
   //! initialize time stepping: nothing to do in smoother!
-  void InitTimeStepping();
+//  void InitTimeStepping();
 
   //! set time step
   //! \param dt Current time step
-  virtual void SetTimeStep(const Double dt){};
+//  virtual void SetTimeStep(const Double dt){};
 
   //! calculate coupling terms
-  virtual void CalcOutputCoupling();
+//  virtual void CalcOutputCoupling();
 
   /** actually calls LBM. */
   void Solve();
@@ -90,7 +91,8 @@ public:
 //  void SetPrecalculatedGradient(StdVector<DesignElement*>& design, Function* f);
 
   /** Perform postprocessing on data. */
-  void CalcResults( shared_ptr<BaseResult> result );
+  // Deprecated
+//  void CalcResults( shared_ptr<BaseResult> result );
 
   /** implementation of objective function */
   double CalcPressureDrop();
@@ -99,7 +101,13 @@ public:
 //  virtual bool HasOutput(SolutionType output);
 
   // returns how often CalcResults() was called. We need this to write out the last simulation step
-  int GetNumWriteResults();
+  inline int GetNumWriteResults() {return numWriteResults_;}
+
+  // returns how many iterations were required by LBM solver to reach steady-state in last LBM call
+  inline int GetNumIterations() {return numIterations_;}
+
+  // return respective id of element with elemId in LBM world
+  inline int GetLbmId(unsigned int elemId) { return elem_to_idx[elemId]; }
 
   virtual void ReadSpecialResults();
 
@@ -113,8 +121,52 @@ public:
 
   Iface GetIface() const { return iface_; }
 
-//  //! Contains LBM velocity
-//  NodeStoreSol<Double> solDeriv1_;
+  //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
+  /** Calculate the LBM Density of an element idx */
+  inline double CalcLBMDensity(unsigned int idx) const
+  {
+    double density = 0.0;
+    for(unsigned int h = 0; h < n_q_; h++)
+      density += GetPdf(idx,h);
+
+    return density;
+  }
+
+  /** Calculate pressure for given element idx */
+  double CalcPressure(unsigned int idx) const;
+
+  /** Calculate velocity components for given density and element idx */
+  inline double CalcVelocityX(unsigned int idx, double density) const
+  {
+    if (n_q_ == 9)
+      return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
+    else
+      return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
+  }
+
+  inline double CalcVelocityY(unsigned int idx, double density) const
+  {
+    if (n_q_ == 9)
+      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
+    else
+      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
+  }
+
+  inline double CalcVelocityZ(unsigned int idx, double density) const
+  {
+    if (n_q_ == 9)
+      return 0;
+    else
+      return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
+  }
+
+  inline void ExtractIntermediateSolution() {pdfs = lbm->GetPdfs();}
+
+  //! Calculate macroscopic velocities
+  Vector<Double> CalcVelocities(unsigned int idx);
+
+  // extract probability distributions for output
+  Vector<Double> ExtractDistribution(unsigned int idx);
 
   Matrix<Double> couplingNodes_;
 
@@ -129,18 +181,10 @@ private:
   void SetupElementMapping(Grid* grid);
 
   //! Define available result types
-  void DefineAvailResults();
+  void DefinePostProcResults();
 
-  /** Calculate the LBM Density of an element idx */
-  inline double CalcLBMDensity(unsigned int idx) const;
-
-  inline double CalcVelocityX(unsigned int idx, double density) const;
-
-  inline double CalcVelocityY(unsigned int idx, double density) const;
-
-  inline double CalcVelocityZ(unsigned int idx, double density) const;
-
-  inline double CalcPressure(unsigned int idx) const;
+  //! Define available primary result types
+  void DefinePrimaryResults();
 
   inline double GetPdf(unsigned int idx, int dir) const  {
     return pdfs[idx * n_q_ + dir];
@@ -183,19 +227,8 @@ private:
   // testing PointsToBoundary()
   void TestPointsToBoundary();
 
-  //! Calculate macroscopic velocities
-  void CalcVelocities(shared_ptr<BaseResult> res);
-
-  //! Calculate densities
-  void CalcDensities(shared_ptr<BaseResult> res);
-
-  void CalcPressures(shared_ptr<BaseResult> res);
-
   // reads discrete velocities from extern LBM simulation
   void ReadProbabilityDistribution(const std::string& file);
-
-  // extract probability distributions for output
-  void ExtractDistribution(shared_ptr<BaseResult> base_result);
 
   /** Setup structure for calling solver */
   void SetupElements();
@@ -272,6 +305,9 @@ private:
 
   // stores how often CalcResults() was called. We need this for StoreResults() for last time step
   unsigned int numWriteResults_;
+
+  // stores how many iterations were necessary to solve one flow problem with LBM
+  unsigned int numIterations_;
 
   /** the complete structure, special elements (negative) and densities */
   StdVector<double> elements;

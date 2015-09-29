@@ -32,30 +32,83 @@ if(NOT CFS_KEY_SNOPT)
   message(FATAL_ERROR "Key for encrypted ${SNOPT_ZIP} required in CFS_KEY_SNOPT. Set e.g. in your ~/.cfs_platform_defaults.cmake")
 endif()    
 
-# precompiled cfsdeps not yet implemented!
-
-# the whole build project
-ExternalProject_Add(snopt
-  PREFIX "${SNOPT_PREFIX}"
-  SOURCE_DIR "${SNOPT_SOURCE}"
-  # all in the zip is below snopt7
-  BINARY_DIR "${SNOPT_SOURCE}/snopt7"
-  # don't dowload but simply copy w/o md5 check
-  DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SNOPT_SOURCE}
-  # the zip file is encrypted!
-  PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
-  # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
-  # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
-  CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c
-)
-
-# after the installation we remove libblas.a, remove the confidental source, copy to cfs and might copy to precompiled cfsdeps
+#-------------------------------------------------------------------------------
+# After the installation we remove libblas.a, remove the confidental source and
+# copy to cfs
+#-------------------------------------------------------------------------------
 SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/snopt/snopt-post_install.cmake.in")
 SET(PI "${SNOPT_PREFIX}/snopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-# execute the stuff from snopt-post_install.cmake after installation
-ExternalProject_Add_Step(snopt post_install COMMAND ${CMAKE_COMMAND} -P "${PI}" DEPENDEES install)
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "snopt_${SNOPT_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "snopt_${SNOPT_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${SNOPT_PREFIX}")
+
+SET(ZIPFROMCACHE "${SNOPT_PREFIX}/snopt-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${SNOPT_PREFIX}/snopt-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# The snopt external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(snopt
+    PREFIX "${snopt_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(snopt
+    PREFIX "${SNOPT_PREFIX}"
+    SOURCE_DIR "${SNOPT_SOURCE}"
+    # all in the zip is below snopt7
+    BINARY_DIR "${SNOPT_SOURCE}/snopt7"
+    # don't dowload but simply copy w/o md5 check
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SNOPT_SOURCE}
+    # the zip file is encrypted!
+    PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
+    # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
+    # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
+    CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Execute the stuff from snopt-post_install.cmake after installation
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(snopt post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(snopt cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES post_install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} snopt)
@@ -65,4 +118,3 @@ SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 SET(SNOPT_LIBRARY "${LD}/libsnopt.a;${LD}/libsnprint.a" CACHE FILEPATH "SNOPT library.")
 
 MARK_AS_ADVANCED(SNOPT_LIBRARY)
-

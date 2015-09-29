@@ -27,7 +27,7 @@ namespace CoupledField
   struct ResultInfo;
   class CoefFunctionOpt;
   class Context;
-  class LocPointMapped;
+  struct LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
@@ -109,10 +109,18 @@ namespace CoupledField
      virtual double GetSlackVariable() const { assert(false); return -1; }
      virtual double GetAlphaVariable() const { assert(false); return -1; }
 /*
+
      /** Returns true if optimization also provides damping parameters for Rayleigh-Damping (alpha, beta) */
      //bool HasErsatzMaterialDamping() { return(designMaterial != NULL && designMaterial->DampingIsDesign()); }
 
      
+     /** Calculates the corresponding ErsatzElementMatrix for the given element
+      * @param t holds the resulting Element Matrix
+      * @param elem Element
+      * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
+      * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
+     bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
      /** Get the ErsatzMaterialDampingParameters
       * @param alpha Damping Parameter alpha
       * @param beta Damping Parameter beta

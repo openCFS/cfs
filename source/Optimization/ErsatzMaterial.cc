@@ -68,7 +68,6 @@ struct ResultInfo;
 }  // namespace CoupledField
 
 using namespace std;
-using boost::make_tuple;
 
 DECLARE_LOG(conditions)
 DEFINE_LOG(conditions, "conditions")
@@ -131,6 +130,8 @@ ErsatzMaterial::ErsatzMaterial() :
       std::string bimat = region_list[i]->Has("bimaterial") ? region_list[i]->Get("bimaterial")->As<std::string>() : "";
       if(!grid->GetRegion().IsValid(reg))
         throw Exception("region given in ersatzMaterial is invalid");
+      if (std::count (regions.Begin(), regions.End(), grid->GetRegion().Parse(reg)) > 0)
+        throw Exception("region "+ reg + " is given multiple times in ErsatzMaterial");
       regions.Push_back(grid->GetRegion().Parse(reg));
     }
   }
