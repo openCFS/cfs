@@ -100,8 +100,14 @@ namespace CoupledField
           /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
           void CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2);
 
+          /** Calculates resistance coefficient \alpha used in porosity model which is expressed by RAMP */
+          double CalcResistanceCoeff(int elemId);
+
           /** Calculates dissipation contribution of given node */
           double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);
+
+          /** Calculates adjoint collision matrix after solving of primal fluid field */
+          void CalcAdjointCollMatrix(int elemId, const Vector<double>& moments, Matrix<double>& out);
 
           /** set enumerations for directions and boundaries*/
           void SetEnums();
