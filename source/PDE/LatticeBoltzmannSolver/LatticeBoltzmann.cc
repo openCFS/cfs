@@ -287,9 +287,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     Vector<double> pdfs;
     pdfs.Resize(9);
     double dissipation = 0.0;
-    for (int node = 0; node < nNodes_; node++) {
+    for (int elem = 0; elem < nNodes_; elem++) {
       for (int dir = 0; dir < n_q_; dir++)
-        pdfs[dir] = PDF(cur_,node,dir);
+        pdfs[dir] = PDF(cur_,elem,dir);
 
       Vector<double> moms;
       moms.Resize(n_q_);
@@ -302,9 +302,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
         moments_[dir] = moms[dir];
         eqMoments_[dir] = eqMoms[dir];
       }
-      if (LbmNodeTypeIsFluid(elements[node]))
-        dissipation += CalcDissipation(moms,eqMoms,0,0); // FIXME Add body forces
+      Vector<double> f1,f2;
+      CalcDarcyForce(moms,elem,f1,f2);
+      dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]); // FIXME Add body forces
     }
+    node->Get("dissipation")->SetValue(dissipation);
   }
 
 
@@ -810,7 +812,7 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
 //  std::cout << "alpha_max in LB units: " << alpha_lb << " time scale: " << time_ref << std::endl;
   // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamma is the porosity (0 is solid and 1 is fluid)
 //  double alpha = alpha_lb * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
-    double alpha = alpha_max_ * (1 - scales[elemId]) / (1 +  scales[elemId]);
+  double alpha = CalcResistanceCoeff(elemId);
 
   double rho = moments[0];
   double ux = moments[3];
@@ -847,6 +849,11 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   LOG_DBG3(lbm) << "CDF: F2=" << f2.ToString(0,',') << "\n";
 }
 
+double LatticeBoltzmann::CalcResistanceCoeff(int elemId)
+{
+  return alpha_max_ * (1 - scales[elemId]) / (1 +  scales[elemId]);
+}
+
 // m_eq = M * f_eq
 // Here, m_eq is calculated via given formulas avoiding matrix multiplication
 // density and momentum (velocity) can be extracted directly from moments vector
@@ -880,12 +887,76 @@ void LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments, Vector<d
 
 double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy)
 {
-  double nu = (1/3.0 * (1/omega_nu_ - 0.5)); // fluid's kinematic viscosity in LBM terms
+  double nu = (1/omega_nu_ - 0.5) / 3.0; // fluid's kinematic viscosity in LBM terms
   double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]);
   double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]);
-  return nu * (0.25 * 1/moments[0] * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * term2 + 3 * omega_nu_ * (eqMoments[8] - moments[8]) )) - fx * moments[5] - fy * moments[7];
+  double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]);
+  double ux =  moments[5] / moments[0];
+  double uy =  moments[7] / moments[0];
+  return nu / moments[0] *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
 }
 
+void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& moments, Matrix<double>& out)
+{
+  // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
+
+  double rho = moments[0];
+  double rho2Inv = 1 / (rho * rho);
+  double jx = moments[3];
+  double jy = moments[5];
+  double ux = jx / rho;
+  double uy = jy / rho;
+  double u2 = ux * ux + uy * uy;
+
+  // non-zero entries of d_mEq/d_m
+  Vector<double> d_mEq_d_rho(n_q_);
+  d_mEq_d_rho.Init(0.0);
+  d_mEq_d_rho[0] = 1.0;
+  d_mEq_d_rho[1] = - 2.0 - 3 * u2;
+  d_mEq_d_rho[2] = 1 + 3 * u2;
+  d_mEq_d_rho[7] = - ux * ux + uy * uy;
+  d_mEq_d_rho[8] = - ux * uy;
+  Vector<double> d_mEq_djx(n_q_);
+  d_mEq_djx.Init(0.0);
+  d_mEq_djx[1] = 6 * ux;
+  d_mEq_djx[2] = -6 * ux;
+  d_mEq_djx[3] = 1.0;
+  d_mEq_djx[4] = -1.0;
+  d_mEq_djx[7] = 2 * ux;
+  d_mEq_djx[8] = uy;
+  Vector<double> d_mEq_djy(n_q_);
+  d_mEq_djy.Init(0.0);
+  d_mEq_djy[1] = 6 * uy;
+  d_mEq_djy[2] = - 6 * uy;
+  d_mEq_djy[5] = 1.0;
+  d_mEq_djy[6] = -1.0;
+  d_mEq_djy[7] = -2*uy;
+  d_mEq_djy[8] = ux;
+
+  Vector<double> d_F1_d_jx(n_q_),d_F1_d_jy(n_q_);
+  d_F1_d_jx.Init(0.0);
+  d_F1_d_jy.Init(0.0);
+  double alpha = CalcResistanceCoeff(elemId);
+  d_F1_d_jx[3] = -alpha;
+  d_F1_d_jx[4] = alpha;
+  d_F1_d_jy[5] = -alpha;
+  d_F1_d_jy[6] = alpha;
+
+  Vector<double> d_F2_d_jx(n_q_),d_F2_d_jy(n_q_);
+  d_F2_d_jx.Init(0.0);
+  d_F2_d_jy.Init(0.0);
+  d_F2_d_jx[1] = -12 * jx;
+  d_F2_d_jx[2] = 12 * jx;
+  d_F2_d_jx[7] = -4 * jx;
+  d_F2_d_jx[8] = -2 * jy;
+  d_F2_d_jx.ScalarMult(alpha/rho);
+  d_F2_d_jy[1] = -12 * jy;
+  d_F2_d_jy[2] = 12 * jy;
+  d_F2_d_jy[7] = 4 * jy;
+  d_F2_d_jy[8] = -2 * jx;
+  d_F2_d_jy.ScalarMult(alpha/rho);
+
+}
 /************************************************** 2D operators *****************************************************/
 
 void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
