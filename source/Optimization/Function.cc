@@ -294,7 +294,7 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
 }
 
 
-void Function::ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord) {
+void Function::ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord) {
   string val = pn->Get("coord")->As<string>();
   boost::get<0>(coord) = lexical_cast<unsigned int>(val.at(0));
   boost::get<1>(coord) = lexical_cast<unsigned int>(val.at(1));
@@ -1571,7 +1571,7 @@ void Function::Local::SetupMultDesignsElementMap(const Function* f) {
   for(unsigned int e = 0; e < elems; e++)
   {
     DesignElement* de = func_->elements[e];
-    assert((int ) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
+    //assert((int ) e == space->Find(de->elem, true)); // assert that we still are on the right finite element
 
     neighbours.Resize(0);
 

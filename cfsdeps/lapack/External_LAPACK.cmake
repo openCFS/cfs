@@ -48,8 +48,8 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/lapack-3.4.2.tgz"
-  "http://www.netlib.org/lapack/lapack-3.4.2.tgz"
+  "ftp://ftp.mirrorservice.org/sites/distfiles.macports.org/atlas/${LAPACK_GZ}"
+  "http://www.netlib.org/lapack/${LAPACK_GZ}"
   "${LAPACK_URL}/${LAPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/lapack/${LAPACK_GZ}")
@@ -60,31 +60,76 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
-
-#-------------------------------------------------------------------------------
-# The Lapack external project
-#-------------------------------------------------------------------------------
-ExternalProject_Add(lapack
-  PREFIX "${lapack_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lapack
-  URL ${LOCAL_FILE}
-  URL_MD5 ${LAPACK_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-  )
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(lapack cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${lapack_prefix}
 )
+
+IF(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "lapack_${LAPACK_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
+ELSE(WIN32)
+  SET(PRECOMPILED_PCKG_NAME "lapack_${LAPACK_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+ENDIF(WIN32)
+SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  
+SET(PREFIX_DIR "${lapack_prefix}")
+
+SET(ZIPFROMCACHE "${lapack_prefix}/lapack-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${lapack_prefix}/lapack-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# The lapack external project
+#-------------------------------------------------------------------------------
+IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(lapack
+    PREFIX "${lapack_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(lapack
+    PREFIX "${lapack_prefix}"
+    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/lapack
+    URL ${LOCAL_FILE}
+    URL_MD5 ${LAPACK_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(lapack cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${lapack_prefix}
+  )
+  
+  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(lapack cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

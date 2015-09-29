@@ -122,7 +122,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # The C and C++ standards are set to 1998 for compiler versions less than 5
   # and to 2011 for newer compilers.
-  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5)
+  IF(CFS_CXX_COMPILER_MAJOR_VER LESS 5 AND ${USE_SGPP} STREQUAL "OFF")
     IF(USE_LIBFBI)
       SET(CFS_CXX_FLAGS "-std=c++0x ${CFS_CXX_FLAGS}")
     ELSE()
@@ -195,17 +195,18 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
   # Disable some annoying warnings.
   #-----------------------------------------------------------------------------
   SET(CFS_SUPPRESSIONS "-Wno-long-long -Wno-unknown-pragmas -Wno-comment -Wno-strict-aliasing -Wno-deprecated")
-  IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR
-     CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
-    IF(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-      SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs")
-    ENDIF()
+  IF(CFS_CXX_COMPILER_VER MATCHES "4.8" OR CFS_CXX_COMPILER_VER VERSION_GREATER "4.8")
+    
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-unused-local-typedefs") 
   ENDIF()
 
   SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-attributes")
 
   IF(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-c++11-extensions")
+    # required for boost:  error: unused typedef 'boost_static_assert_typedef_890
+    # also boost: /include/boost/bimap/support/iterator_type_by.hpp:128:1: error: class member cannot be redeclared 
+    # ResultHandler.cc: error: expression with side effects will be evaluated despite being used as an operand to 'typeid' "if( typeid(*fct) == typeid(FieldCoefFunctor<Double>"
+    SET(CFS_SUPPRESSIONS "${CFS_SUPPRESSIONS} -Wno-overloaded-virtual -Wno-c++11-extensions -Wno-unused-local-typedefs -Wno-redeclared-class-member -Wno-potentially-evaluated-expression")
 
     STRING(TOUPPER "${CMAKE_CXX_COMPILER_ID}" CFS_CXX_COMPILER_NAME)
     SET(CFS_CXX_COMPILER_VER ${CMAKE_CXX_COMPILER_VERSION})

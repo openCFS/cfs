@@ -7,25 +7,29 @@ from cfs_utils import *
 
 ## performs heaviside continuation by doubling filter/density/beta, starting from 1
 
-def continuation(initial, old_beta, beta, mesh, problem, executable):
+def continuation(initial, old_beta, beta, mesh, short_problem, executable):
+    
+  beta_problem = short_problem + "-beta_" + str(beta)  
     
   # first without iniital  
-  start = "" if old_beta == 1 else "-x " + problem + "-beta_" + str(old_beta) + ".density.xml"
+  start = "" if old_beta < 1 else "-x " + short_problem + "-beta_" + str(old_beta) + ".density.xml"
   # now check for initial
-  if old_beta == 1 and initial <> None:
+  if old_beta < 1 and initial <> None:
     assert(start == "")
     start = "-x " + initial    
   
-  doc = libxml2.parseFile(problem + ".xml")
+  doc = libxml2.parseFile(short_problem + ".xml")
   xml = doc.xpathNewContext()
   xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
 
   replace(xml, "//cfs:filter/cfs:density/@beta", str(beta))
   
-  doc.saveFile(problem + "-beta_" + str(beta) + ".xml")
+  doc.saveFile(beta_problem + ".xml")
   
-  cmd = executable + " " + start + " -m " + mesh + " " + problem + "-beta_" + str(beta)
+  cmd = executable + " " + start + " -m " + mesh + " " + beta_problem
   execute(cmd, output=True)
+  execute("show_density.py " + beta_problem + ".density.xml --save " + beta_problem + ".png")
+
   return
 
 
@@ -38,7 +42,7 @@ parser.add_argument('--executable', help="what to call for cfs", default='cfs_re
 
 args = parser.parse_args()
 
-old = 1
+old = -1  
 beta = 1
 
 while beta <= args.max_beta:

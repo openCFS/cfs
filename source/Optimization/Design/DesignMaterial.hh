@@ -13,10 +13,10 @@
 #include "MatVec/Matrix.hh"
 
 #ifdef USE_SGPP
-#include "base/grid/Grid.hpp"
-#include "base/operation/OperationEval.hpp"
-#include "base/operation/OperationNaiveEvalPartialDerivative.hpp"
-#include "base/datatypes/DataVector.hpp"
+#include "sgpp/base/grid/Grid.hpp"
+#include "sgpp/base/operation/hash/OperationEval.hpp"
+#include "sgpp/base/operation/hash/OperationNaiveEvalPartialDerivative.hpp"
+#include "sgpp/base/datatypes/DataVector.hpp"
 #endif
 
 namespace CoupledField {
@@ -34,7 +34,7 @@ class TransferFunction;
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED,
       DENSITY_TIMES_TRANSVERSAL_ISOTROPIC, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC,
       DENSITY_TIMES_ROT_TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_ROT_PA12, ORTHOTROPIC, DENSITY_TIMES_ORTHOTROPIC, DENSITY_TIMES_2D_TENSOR,
-      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
+      DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE, DENSITY_TIMES_ROTATED_2D_TENSOR,D_INTERP_TENSOR, D_INTERP_TENSOR_ROT, LAMINATES, D_LAMINATES, HOM_RECT, D_HOM_RECT, HOM_RECT_C1, MSFEM_C1, REDBAS_PARAM, REDBAS_FREE, GREEDY_PARAM, GREEDY_FREE, GREEDY_MAPPING, REDBAS_MAPPING} Type;
 
     /* possibilities for the isotropic plane in transversal isotropy
     typedef enum { FMO, ISOTROPIC, LAME_ISOTROPIC, TRANSVERSAL_ISOTROPIC, TRANSVERSAL_ISOTROPIC_BOXED, DENSITY_TIMES_TRANSVERSAL_ISOTROPIC,
@@ -78,6 +78,9 @@ class TransferFunction;
     bool GetMechTensor(Matrix<Complex>& t, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction = DesignElement::NO_DERIVATIVE, Notation notation = VOIGT);
 
     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
+
+    /** returns MSFEM element matrix for a regular grid from material catalogue*/
+    void GetErsatzElementMatrixMSFEM(Matrix<double>& A, DesignElement::Type direction);
 
     /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
     void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param);
@@ -344,8 +347,8 @@ class TransferFunction;
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
     /** Fill sparse grid with data values*/
-    void FillSparseGridWithUnhierarchisedData(Matrix<double>& data);
-    void FillSparseGridWithHierarchisedData(Matrix<double>& data);
+    void FillSparseGridWithUnhierarchizedData(Matrix<double>& data);
+    void FillSparseGridWithHierarchizedData(Matrix<double>& data);
 
     /** Initialize sparse grid for interpolation*/
     void InitializeSparseGrid(const char * filename);
@@ -358,7 +361,7 @@ class TransferFunction;
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
     Matrix<double> hom_rect_samples_;
-    /** sampled values for coefficients of the bicubic interpolation polynomial; number of sample elements rows and 16 columns*/
+    /** sampled values for coefficients of the bicubic interpolation polynomial; number of sample elements rows and 16 columns/64 columns (3D)*/
     Matrix<double> hom_rect_coeff11_;
     Matrix<double> hom_rect_coeff12_;
     Matrix<double> hom_rect_coeff22_;
@@ -371,6 +374,12 @@ class TransferFunction;
     Matrix<double> hom_rect_a_;
     Matrix<double> hom_rect_b_;
     Matrix<double> hom_rect_c_;
+
+    /** MSFEM element matrix coefficients of the bi-/tricubic interpolation polynomial from material catalogue; number of sample elements rows and 64 columns */
+    Matrix<double> msfem_a_;
+    Matrix<double> msfem_b_;
+    Matrix<double> msfem_rot_;
+    StdVector<Matrix<double> > msfem_coeff_;
 
     //** Contains the matrices and vectors with the information for the model reduction case (reduced basis or greedy)
     UInt dimension_;
