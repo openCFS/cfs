@@ -173,7 +173,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   assert((int) elements.GetSize() == nNodes_);
   for (int i = 0; i < nNodes_; ++i) {
     scales[i] = 1.0 - elements[i];
+
+    LOG_DBG3(lbm) << "Element " << i << " has density " << elements[i] << " and porosity " << scales[i];
   }
+
+
 
   Timer timer;
   timer.Start();
@@ -793,13 +797,20 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   f2.Resize(n_q_);
   f2.Init(0.0);
 
-  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
-  double nu_water =1.004e6; // unit m^2/s
-  double time_ref = 1/3.0 * (1/1.9-0.5) * 1.0/(sizeX_*sizeX_) / nu_water; // reference time unit for conversion from physical units to LBM ones
-  double alpha_lb = alpha_max_ * time_ref;
-//  std::cout << "alpha_max in LB units: " << alpha_lb << std::endl;
+//  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
+//  double nu_water =1.004e-6; // unit m^2/s
+//  double characLength = 1e-3; // 1 mm
+//  double nu_lb = 0.1;  // nu = 1/3*(1/omega_nu - 0.5)
+//  double time_ref = 1/3.0 * (1/1.9-0.5) * 1e-2/(sizeX_*sizeX_) / nu_water; // reference time unit for conversion from physical units to LBM ones
+//  double time_ref = nu_lb * characLength * characLength / nu_water;
+//  std::cout << "time_ref =" << time_ref << " = " <<  nu_lb << "*" << characLength << "*" << characLength << "/" << nu_water << std::endl;
+  //double alpha_lb = alpha_max_ * time_ref;
+//  double alpha_lb = 1.7;
+
+//  std::cout << "alpha_max in LB units: " << alpha_lb << " time scale: " << time_ref << std::endl;
   // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamma is the porosity (0 is solid and 1 is fluid)
-  double alpha = alpha_lb * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
+//  double alpha = alpha_lb * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
+    double alpha = alpha_max_ * (1 - scales[elemId]) / (1 +  scales[elemId]);
 
   double rho = moments[0];
   double ux = moments[3];
@@ -992,13 +1003,9 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 
           invTransformation.Mult(momentsAfterCollision,collResult);
 
-          for (int dir = 0; dir < n_q_; dir++) {
-            LOG_DBG3(lbm) << "f=" << collResult[dir] << " m* = " << momentsAfterCollision[dir] << "=" << moments[dir] << "-" << relax_rates[dir] << "*(" << moments[dir] << "-" << m_eq[dir] <<")"  << "+" << f1[dir] << "+" << term2[dir];
-          }
-
-//          double density = CalcDensity(pdfs);
-
-//          assert(std::abs(density - moments[0]) < 1e-6);
+//          for (int dir = 0; dir < n_q_; dir++) {
+//            LOG_DBG3(lbm) << "f=" << collResult[dir] << " m* = " << momentsAfterCollision[dir] << "=" << moments[dir] << "-" << relax_rates[dir] << "*(" << moments[dir] << "-" << m_eq[dir] <<")"  << "+" << f1[dir] << "+" << term2[dir];
+//          }
 
           // propagation and collision in one step
           for (int  dir = 0; dir < n_q_; dir++)
