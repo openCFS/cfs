@@ -1420,6 +1420,12 @@ void LatticeBoltzmannPDE::SetupElements()
     }
   }
 
+//  for (unsigned int e = 0; e < n_elems; e++)
+//  {
+//    std::cout << "Element " << e << " has density " << elements[e] << " and porosity " << 1-elements[e] << std::endl;
+//  }
+
+
   StdVector<std::string> regionNames;
   grd->GetRegionNames(regionNames);
   //specify regionId for boundary and inner region
