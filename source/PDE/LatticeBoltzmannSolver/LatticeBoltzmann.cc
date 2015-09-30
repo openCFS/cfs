@@ -72,6 +72,8 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
 
   moments_.Resize(nNodes_);
   eqMoments_.Resize(nNodes_);
+  adjCollision.Resize(nNodes_);
+  d_diss_d_m.Resize(nNodes_);
 
   plot_ = plot;
 
@@ -304,7 +306,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       }
       Vector<double> f1,f2;
       CalcDarcyForce(moms,elem,f1,f2);
-      dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]); // FIXME Add body forces
+      dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+
+      CalcAdjointCollMatrix(elem,moms);
+      d_diss_d_moments(elem,moms);
     }
     node->Get("dissipation")->SetValue(dissipation);
   }
@@ -795,9 +800,9 @@ double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
 void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2)
 {
   f1.Resize(n_q_);
-  f1.Init(0.0);
+  f1.Init();
   f2.Resize(n_q_);
-  f2.Init(0.0);
+  f2.Init();
 
 //  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
 //  double nu_water =1.004e-6; // unit m^2/s
@@ -817,6 +822,8 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   double rho = moments[0];
   double ux = moments[3];
   double uy = moments[5];
+
+  alpha = 1-scales[elemId]; ///
 
   double fx = -alpha * rho * ux;
   double fy = -alpha * rho * uy;
@@ -847,11 +854,6 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
 
   LOG_DBG3(lbm) << "CDF: F1=" << f1.ToString(0,',');
   LOG_DBG3(lbm) << "CDF: F2=" << f2.ToString(0,',') << "\n";
-}
-
-double LatticeBoltzmann::CalcResistanceCoeff(int elemId)
-{
-  return alpha_max_ * (1 - scales[elemId]) / (1 +  scales[elemId]);
 }
 
 // m_eq = M * f_eq
@@ -896,66 +898,131 @@ double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Ve
   return nu / moments[0] *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
 }
 
-void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& moments, Matrix<double>& out)
+void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& moments)
 {
   // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
 
   double rho = moments[0];
-  double rho2Inv = 1 / (rho * rho);
   double jx = moments[3];
   double jy = moments[5];
   double ux = jx / rho;
   double uy = jy / rho;
   double u2 = ux * ux + uy * uy;
 
+  Matrix<double> identity(n_q_,n_q_), relaxation(n_q_,n_q_);
+  identity.InitValue(0.0);
+  relaxation.InitValue(0.0);
+  for (int dir = 0; dir < n_q_; dir++)
+  {
+    identity[dir][dir] = 1.0;
+    relaxation[dir][dir] = relax_rates[dir];
+  }
+
   // non-zero entries of d_mEq/d_m
-  Vector<double> d_mEq_d_rho(n_q_);
-  d_mEq_d_rho.Init(0.0);
-  d_mEq_d_rho[0] = 1.0;
-  d_mEq_d_rho[1] = - 2.0 - 3 * u2;
-  d_mEq_d_rho[2] = 1 + 3 * u2;
-  d_mEq_d_rho[7] = - ux * ux + uy * uy;
-  d_mEq_d_rho[8] = - ux * uy;
-  Vector<double> d_mEq_djx(n_q_);
-  d_mEq_djx.Init(0.0);
-  d_mEq_djx[1] = 6 * ux;
-  d_mEq_djx[2] = -6 * ux;
-  d_mEq_djx[3] = 1.0;
-  d_mEq_djx[4] = -1.0;
-  d_mEq_djx[7] = 2 * ux;
-  d_mEq_djx[8] = uy;
-  Vector<double> d_mEq_djy(n_q_);
-  d_mEq_djy.Init(0.0);
-  d_mEq_djy[1] = 6 * uy;
-  d_mEq_djy[2] = - 6 * uy;
-  d_mEq_djy[5] = 1.0;
-  d_mEq_djy[6] = -1.0;
-  d_mEq_djy[7] = -2*uy;
-  d_mEq_djy[8] = ux;
+  Matrix<double> d_mEq_d_m(n_q_,n_q_);
+  d_mEq_d_m.InitValue(0.0);
+//  Vector<double> d_mEq_d_rho(n_q_);
+//  d_mEq_d_rho.Init(0.0);
+  d_mEq_d_m[0][0] = 1.0; // 0th row of d_mEq/d_m describes d_mEq/d_rho
+  d_mEq_d_m[0][1] = - 2.0 - 3 * u2;
+  d_mEq_d_m[0][2] = 1 + 3 * u2;
+  d_mEq_d_m[0][7] = - ux * ux + uy * uy;
+  d_mEq_d_m[0][8] = - ux * uy;
+//  Vector<double> d_mEq_djx(n_q_);
+//  d_mEq_djx.Init(0.0);
+  d_mEq_d_m[3][1] = 6 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
+  d_mEq_d_m[3][2] = -6 * ux;
+  d_mEq_d_m[3][3] = 1.0;
+  d_mEq_d_m[3][4] = -1.0;
+  d_mEq_d_m[3][7] = 2 * ux;
+  d_mEq_d_m[3][8] = uy;
+//  Vector<double> d_mEq_djy(n_q_);
+//  d_mEq_djy.Init(0.0);
+  d_mEq_d_m[5][1] = 6 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
+  d_mEq_d_m[5][2] = - 6 * uy;
+  d_mEq_d_m[5][5] = 1.0;
+  d_mEq_d_m[5][6] = -1.0;
+  d_mEq_d_m[5][7] = -2*uy;
+  d_mEq_d_m[5][8] = ux;
 
-  Vector<double> d_F1_d_jx(n_q_),d_F1_d_jy(n_q_);
-  d_F1_d_jx.Init(0.0);
-  d_F1_d_jy.Init(0.0);
+  Matrix<double> d_F1_d_m(n_q_,n_q_);
+  d_F1_d_m.InitValue(0.0);
   double alpha = CalcResistanceCoeff(elemId);
-  d_F1_d_jx[3] = -alpha;
-  d_F1_d_jx[4] = alpha;
-  d_F1_d_jy[5] = -alpha;
-  d_F1_d_jy[6] = alpha;
+  d_F1_d_m[3][3] = -alpha;
+  d_F1_d_m[3][4] = alpha;
+  d_F1_d_m[5][5] = -alpha;
+  d_F1_d_m[5][6] = alpha;
 
-  Vector<double> d_F2_d_jx(n_q_),d_F2_d_jy(n_q_);
-  d_F2_d_jx.Init(0.0);
-  d_F2_d_jy.Init(0.0);
-  d_F2_d_jx[1] = -12 * jx;
-  d_F2_d_jx[2] = 12 * jx;
-  d_F2_d_jx[7] = -4 * jx;
-  d_F2_d_jx[8] = -2 * jy;
-  d_F2_d_jx.ScalarMult(alpha/rho);
-  d_F2_d_jy[1] = -12 * jy;
-  d_F2_d_jy[2] = 12 * jy;
-  d_F2_d_jy[7] = 4 * jy;
-  d_F2_d_jy[8] = -2 * jx;
-  d_F2_d_jy.ScalarMult(alpha/rho);
+  Matrix<double> d_F2_d_m(n_q_,n_q_);
+  d_F2_d_m.InitValue(0.0);
+  d_F2_d_m[3][1] = -12 * ux;
+  d_F2_d_m[3][2] = 12 * ux;
+  d_F2_d_m[3][7] = -4 * ux;
+  d_F2_d_m[3][8] = -2 * uy;
+  d_F2_d_m[5][1] = -12 * uy;
+  d_F2_d_m[5][2] = 12 * uy;
+  d_F2_d_m[5][7] = 4 * uy;
+  d_F2_d_m[5][8] = -2 * ux;
+  d_F2_d_m *= alpha;
 
+  // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
+  Matrix<double> relax_tmp(relaxation);
+  relax_tmp *= 0.5; // matrix is diagonal
+
+  adjCollision[elemId] = identity - relaxation * (identity - d_mEq_d_m) + d_F1_d_m + (identity - relax_tmp) * d_F2_d_m;
+  int count = 0;
+  for (int i = 0; i < n_q_; i++) // counting number of non-zero elements in adjoint collision matrix
+    for (int j = 0; j < n_q_; j++)
+      if (adjCollision[elemId][i][j] != 0.0)
+        count++;
+  std::cout << "fill in factor of adj coll matrix of element " << elemId << ": " << count / (double)(n_q_*n_q_) << std::endl;
+}
+
+void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moments)
+{
+  Vector<double> result(n_q_);
+  result.Init();
+  double rho = moments[0];
+  double e = moments[1];
+  double jx = moments[3];
+  double jy = moments[5];
+  double pxx = moments[7];
+  double pxy = moments[8];
+
+  double nu = (1/omega_nu_ - 0.5) / 3.0; // fluid's kinematic viscosity in LBM units
+  double se2 = omega_e_ * omega_e_;
+  double snu2 = omega_nu_ * omega_nu_;
+  double j2 = jx * jx + jy * jy;
+  double rho2 = rho * rho;
+  double rho3 = rho * rho * rho;
+  double rho4 = rho * rho * rho * rho;
+  double alpha = CalcResistanceCoeff(elemId);
+  double fx = -alpha * jx;
+  double fy = -alpha * jy;
+
+  // 0th entry: d_diss/d_rho
+  result[0] = 4.0 * nu * se2 - 27.0 * nu * (4.0 * se2 + snu2) * j2 * j2 / (4.0 * rho4)
+      + 3.0 * nu * (4.0 * se2 * e * j2 + 3.0 * snu2 * (pxx * (jx * jx - jy * jy) + 4.0 * jx * jy * pxy)) / rho3
+      - nu * (4.0 * se2 * (e * e - 12 * j2) + 9.0 * snu2 * (pxx * pxx + 4.0 * pxy * pxy)) / (4.0 * rho2) + (fx * jx + fy * jy) / rho2;
+
+  // 1th entry: d_diss/d_e
+  result[1] = 2.0 * nu * se2 * (-3.0 * j2 + rho * (e + 2.0 * rho)) / rho2;
+
+  // 3th entry: d_diss/d_jx
+  result[3] = 9.0 * nu * jx * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jx + 3 * snu2 * (jx * pxx + 2.0 * jy * pxy)) / rho2
+      - (fx + 24.0 * nu * se2 * jx - jx * alpha) / rho;
+
+  // 5th entry: d_diss/d_jy
+  result[5] = 9.0 * nu * jy * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jy + 3.0 * snu2 *(-jy * pxx + 2.0 * jx * pxy)) / rho2
+      - (fy + 24.0 * nu * se2 * jy - alpha * jy) / rho;
+
+  // 7th entry: d_diss/d_pxx
+  result[7] = 9.0 * nu * snu2 * (-jx * jx + jy * jy + pxx * rho) / (2.0 * rho2);
+
+  // 8th entry: d_diss/d_pxy
+  result[8] = 18.0 * nu * snu2 * (-jx * jy + pxy * rho) / rho2;
+
+  d_diss_d_m[elemId] = result;
 }
 /************************************************** 2D operators *****************************************************/
 

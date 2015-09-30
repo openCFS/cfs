@@ -101,13 +101,19 @@ namespace CoupledField
           void CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2);
 
           /** Calculates resistance coefficient \alpha used in porosity model which is expressed by RAMP */
-          double CalcResistanceCoeff(int elemId);
+          inline double CalcResistanceCoeff(int elemId)
+          {
+            return alpha_max_ * (1 - scales[elemId]) / (1 + scales[elemId]);
+          }
 
           /** Calculates dissipation contribution of given node */
           double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);
 
           /** Calculates adjoint collision matrix after solving of primal fluid field */
-          void CalcAdjointCollMatrix(int elemId, const Vector<double>& moments, Matrix<double>& out);
+          void CalcAdjointCollMatrix(int elemId, const Vector<double>& moments);
+
+          /** Calculates sensitivity of dissipation (objective function) with respect to LBM moments */
+          void d_diss_d_moments(int elemId, const Vector<double>& moments);
 
           /** set enumerations for directions and boundaries*/
           void SetEnums();
@@ -304,6 +310,8 @@ namespace CoupledField
           StdVector<StdVector<int> > bb;
           StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
+          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
+          StdVector<Vector<double> > d_diss_d_m; // partial derivatives of dissipation function w.r.t moments
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
