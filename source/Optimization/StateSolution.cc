@@ -417,9 +417,9 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::
       // check for first call
       if(elem_vec.GetSize() == 0)
       {
-        elem_vec.Resize(n + pn);
+        elem_vec.Resize(n + pn); // save resize as the size was checked for zero
         for(int ve = 0; ve < (n + pn); ve++)
-          elem_vec[ve] = new Vector<T>;
+          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete
       }
 
       // store the results of the standard design elements in our own structure
