@@ -51,7 +51,6 @@ SnOpt::SnOpt(Optimization* opt, PtrParamNode pn) :
   iSumm(6),         // variable for file output, 6 == stdout
   iPrint(0),        // variable for file output, 6 == stdout
   iSpecs(0),        // variable for file input
-  DerOpt(1),
   minrw(500),
   miniw(500),
   mincw(500),

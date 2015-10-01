@@ -24,8 +24,6 @@ SET(MIRRORS
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ipopt/${IPOPT_TGZ}")
 SET(MD5_SUM ${IPOPT_MD5})
 
-# precompiled cfsdeps not yet implemented!
-
 # the encrypted ipopt_hsl.zip is so small and for everyone available on the web if you register, we provide it
 # in the cfs/cfsdeps/ipopt itself. You just need the key.
 if(NOT CFS_KEY_IPOPT_HSL)
@@ -93,7 +91,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # Fill ThirdParty content (blas/ lapack/ HSLold)
     PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
     # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-    CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config   
+    cd CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config 
   )
 
   ExternalProject_Add_Step(ipopt post_install
