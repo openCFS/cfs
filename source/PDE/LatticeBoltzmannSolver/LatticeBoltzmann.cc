@@ -84,6 +84,10 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   pdfs_[0].Resize(nNodes_ * n_q_);
   pdfs_[1].Resize(nNodes_ * n_q_);
 
+  adjPdfs_.Resize(2);
+  adjPdfs_[0].Resize(nNodes_ * n_q_);
+  adjPdfs_[1].Resize(nNodes_ * n_q_);
+
   // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
   microVelDirections.Resize(n_q_);
 
@@ -161,7 +165,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   else
     writeIntermediateResults_ = true;
 
-  double res = -1.;
   double R = 1.0;
   bool steady_state = false;
 
@@ -178,8 +181,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     LOG_DBG3(lbm) << "Element " << i << " has density " << elements[i] << " and porosity " << scales[i];
   }
-
-
 
   Timer timer;
   timer.Start();
@@ -202,21 +203,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     (this->*prop_coll_velinlet)(next_, inlet);
     // -- Outlet condition ------------------------------------------------
     (this->*prop_coll_densoutlet)(next_, outlet);
-    if((it == 0 || it % 100 == 0))
+
+    if((it == 0 || it % 100 == 0)) // check convergence
     {
-      //Calculation of the residual
-      R = 0.;
-
-      for (int elem = 0; elem < nNodes_; elem++) {
-        //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
-        for(int  dir = 0; dir < n_q_; dir++)
-        {
-          res = PDF(next_, elem, dir) - PDF(cur_, elem, dir);
-          R += res * res;
-        }
-      }
-
-      R = sqrt(R);
+      R = CalcResidual(cur_,next_,false);
 
       if(R <= maxTol_)
         steady_state = true;
@@ -312,8 +302,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
       d_diss_d_moments(elem,moms);
     }
     node->Get("dissipation")->SetValue(dissipation);
-  }
 
+    int adjCur  = 0;
+//    int adjNext = 1;
+    adjPdfs_[adjCur] = pdfs_[cur_];
+  }
 
   return &(pdfs_[cur_]);
 }
@@ -823,8 +816,6 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   double ux = moments[3];
   double uy = moments[5];
 
-  alpha = 1-scales[elemId]; ///
-
   double fx = -alpha * rho * ux;
   double fy = -alpha * rho * uy;
 
@@ -970,12 +961,6 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   relax_tmp *= 0.5; // matrix is diagonal
 
   adjCollision[elemId] = identity - relaxation * (identity - d_mEq_d_m) + d_F1_d_m + (identity - relax_tmp) * d_F2_d_m;
-  int count = 0;
-  for (int i = 0; i < n_q_; i++) // counting number of non-zero elements in adjoint collision matrix
-    for (int j = 0; j < n_q_; j++)
-      if (adjCollision[elemId][i][j] != 0.0)
-        count++;
-  std::cout << "fill in factor of adj coll matrix of element " << elemId << ": " << count / (double)(n_q_*n_q_) << std::endl;
 }
 
 void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moments)
@@ -1040,11 +1025,10 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
     private(index), \
     private(tmp_ux, tmp_uy, tmp_us, scale, sum, tmp, x, y, tmp_x, tmp_y), shared(next, cur, z)
   {
-    Vector<double> pdfs;
-    pdfs.Resize(n_q_);
-#pragma omp for collapse(2)
-    Vector<double> m_eq(n_q_);
+    Vector<double> pdfs(n_q_);
+    Vector<double> eqMoments(n_q_);
     Vector<double> moments(n_q_);
+#pragma omp for collapse(2)
     for (y = 0; y < sizeY_ ; ++y) {
       for (x = 0; x < sizeX_ ; ++x) {
 
@@ -1110,7 +1094,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           }
 
           transformation.Mult(pdfs,moments); // transform moments  m = M*f
-          CalcEquilMoments(moments, m_eq); // compute equilibirum moments from moments
+          CalcEquilMoments(moments, eqMoments); // compute equilibirum moments from moments
 //          subtrahend.Resize(n_q_);
 //          invM_S.Mult(moments - m_eq,subtrahend); // back transformation with relaxation
 
@@ -1121,7 +1105,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           Vector<double> noneq_moments(n_q_);
           for (int dir = 0; dir < n_q_; dir++)
           {
-            noneq_moments[dir] = moments[dir] - m_eq[dir];
+            noneq_moments[dir] = moments[dir] - eqMoments[dir];
           }
 
           // S * (m - m_eq)
@@ -1259,6 +1243,143 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
   return;
 }
 
+/************************************************** adjoint 2D operators *****************************************************/
+void LatticeBoltzmann::AdjointCollision(int cur, int next)
+{
+  int index;
+  int z = 0;
+  Matrix<double> adjTransformation(n_q_,n_q_);
+  invTransformation.Transpose(adjTransformation);// adjoint transformation matrix is tranposed inverse of primal transformation matrix
+  Vector<double> pdfs(n_q_);
+  Vector<double> moments(n_q_);
+  Vector<double> eqMoments(n_q_);
+  for (int x = 1; x < sizeX_ - 1; x++)
+    for (int y = 1; y < sizeY_ - 1; y++)
+    {
+      index = GetIndex(x,y,z);
+
+      for (int dir = 0; dir < n_q_; dir++)
+        pdfs[dir] = APDF(cur,index,dir);
+
+      adjTransformation.Mult(pdfs,moments);
+      CalcEquilMoments(moments,eqMoments);
+
+      Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
+      Matrix<double> transpose(n_q_, n_q_);
+      transformation.Transpose(transpose); // adjoint backstransformation matrix is tranpose of primal transformation matrix
+      momentsAfterCollision = d_diss_d_m[index] + transpose * pdfs;
+
+      Vector<double> collResult(n_q_);
+      transpose.Mult(momentsAfterCollision, collResult);
+
+      for (int dir = 0; dir < n_q_; dir++)
+        APDF(next,index,dir) = collResult[dir];
+    }
+}
+
+void LatticeBoltzmann::AdjointPropagation(int cur, int next)
+{
+  Vector<double> pdfs(n_q_);
+
+  int index;
+  int z = 0;
+  int tmp_x, tmp_y, tmp_z = 0;
+
+  for (int x = 0; x < sizeX_; x++)
+    for (int y = 0; y < sizeY_; y++)
+    {
+      index = GetIndex(x,y,z);
+
+      for (int dir = 0; dir < n_q_; dir++)
+        pdfs[dir] = APDF(next,index,dir);
+
+      // propagation
+      for (int  dir = 0; dir < n_q_; dir++) {
+        if (PointsToBoundary(x,y,z,dir)) { // if the neighbor element that I want to access is outside the domain, keep current value
+          tmp_x = x; // here we only set the coordinates
+          tmp_y = y;
+        }
+        // else: standard propagation (get value from neighbor pdf)
+        else {
+          tmp_x = microVelDirections[dir].off_x + x;
+          tmp_y = microVelDirections[dir].off_y + y;
+        }
+
+        APDF(next,x,y,z,dir) = APDF(cur, tmp_x, tmp_y,  tmp_z, dir);
+      }
+
+    }
+}
+
+StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
+{
+  int adjCur  = 0;
+  int adjNext = 1;
+
+  Timer timer;
+  timer.Start();
+
+  int it = 0;
+  double R = 0.0;
+  bool steady_state = false;
+
+  std::ofstream plot;
+  if(plot_)
+    plot.open(std::string(progOpts->GetSimName() + ".adjLbm.dat").c_str());
+
+  adjPdfs_[adjCur] = pdfs_[cur_]; // initialize start values with steady-state solution of primal problem
+
+  while(it < maxIter_ && !steady_state && R <= 1000)
+  {
+    LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
+    // collision
+    AdjointCollision(adjCur, adjNext)M
+    // -- Bounce back step ------------------------------------------------
+    (this->*prop_coll_bounce_back)(next_, bb);
+    // -- Inlet condition -------------------------------------------------
+    (this->*prop_coll_velinlet)(next_, inlet);
+    // -- Outlet condition ------------------------------------------------
+    (this->*prop_coll_densoutlet)(next_, outlet);
+
+    if((it == 0 || it % 100 == 0)) // check convergence
+    {
+      R = CalcResidual(cur_,next_,false);
+
+      if(R <= maxTol_)
+        steady_state = true;
+
+      if(plot_)
+        plot << it << "\t" << R << "\n";
+
+      in->Get("iterations")->SetValue(it);
+      in->Get("residuum")->SetValue(R);
+      domain->GetInfoRoot()->ToFile(); // is not written when called too often
+    }
+
+    cur_  = (cur_  + 1) % 2;
+    next_ = (next_ + 1) % 2;
+
+    it++;
+
+    if (writeIntermediateResults_) {
+      if (it % writeFrequency_ == 0) {
+        domain->GetDriver()->StoreResults(count,(double) it);
+        count++;
+      }
+    }
+    //    LOG_DBG3(lbm) << "\n Iteration " << it;
+    //    for (int elem = 0; elem < nNodes_; elem++) {
+    //      LOG_DBG3(lbm) << "element " << elem;
+    //      for(int  dir = 0; dir < n_q_; dir++)
+    //        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
+    //    }
+  }
+
+  timer.Stop();
+
+
+  return adjPdfs_[adjCur];
+}
 
 /************************************************** 3D operators *****************************************************/
 void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
