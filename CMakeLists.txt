@@ -157,12 +157,9 @@ INCLUDE("cmake_modules/platform_defaults.cmake")
 #-----------------------------------------------------------------------------
 # Switch on/off usage of cfsdepscache
 #-----------------------------------------------------------------------------
-OPTION(CFS_DEPS_CACHE
-  "Use precompiled cfsdeps if existent."
-  ${CFS_DEPS_CACHE_DEFAULT})
-OPTION(CFS_DEPS_TOCACHE
-  "Compile, zip and move cfsdeps into cache."
-  ${CFS_DEPS_TOCACHE_DEFAULT})
+OPTION(CFS_DEPS_PRECOMPILED
+  "Use precompiled cfsdeps. If no precompiled version exists, compile, zip and move package into cache."
+  ${CFS_DEPS_PRECOMPILED_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
@@ -438,7 +435,6 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
-MARK_AS_ADVANCED(CFS_DEPS_TOCACHE)
 MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
