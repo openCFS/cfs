@@ -97,13 +97,35 @@ namespace CoupledField
            */
           double CalcDensity(const Vector<double>& pdfs);
 
+          /** Calculates residual as difference between two iteration solutions.
+           *  Parameter adjoint indicates whether residual should be calculated for pdfs or adjoint pdfs array.
+           */
+          inline double CalcResidual(int cur, int next, bool adjoint)
+          {
+            double R = 0.0;
+            double res = -1.0;
+
+            for (int elem = 0; elem < nNodes_; elem++) {
+              //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
+              for(int  dir = 0; dir < n_q_; dir++) {
+                if (adjoint)
+                  res = APDF(next, elem, dir) - APDF(cur, elem, dir);
+                else
+                  res = PDF(next, elem, dir) - PDF(cur, elem, dir);
+                R += res * res;
+              }
+            }
+            return sqrt(R);
+          }
+
           /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
           void CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2);
 
           /** Calculates resistance coefficient \alpha used in porosity model which is expressed by RAMP */
           inline double CalcResistanceCoeff(int elemId)
           {
-            return alpha_max_ * (1 - scales[elemId]) / (1 + scales[elemId]);
+//            return alpha_max_ * (1 - scales[elemId]) / (1 + scales[elemId]); //RAMP
+            return 1-scales[elemId];
           }
 
           /** Calculates dissipation contribution of given node */
@@ -204,6 +226,26 @@ namespace CoupledField
             return pdfs_[cur][direction + n_q_ * elem];
           }
 
+          inline double& APDF(int cur, int x, int y, int z, int direction)
+          {
+            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline const double APDF(int cur, int x, int y, int z, int direction) const
+          {
+            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline double& APDF(int cur, int elem, int direction)
+          {
+            return adjPdfs_[cur][direction + n_q_ * elem];
+          }
+
+          inline const double APDF(int cur, int elem, int direction) const
+          {
+            return adjPdfs_[cur][direction + n_q_ * elem];
+          }
+
           void CreateOutput(const char * file, int cur);
 
           inline bool PointsToBoundary(int x, int y, int z, int dir)
@@ -216,10 +258,15 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
-
            /** Calculate vector of equilibrium moments based on current pdf array
             * m_eq the return value */
           void CalcEquilMoments(const Vector<double>&  moments,  Vector<double>& m_eq) const;
+
+          /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
+           * @param info stores current and final info there. Saves under way
+           * @param niter stores how many iterations til convergence for one simulation call is needed
+           * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
+          StdVector<double>* IterateAdjoint(PtrParamNode info);
 
           /**
            * LBM operators in 2D
@@ -231,6 +278,10 @@ namespace CoupledField
           void Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
 
           void Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >& outlet);
+
+          void AdjointCollision(int cur, int next);
+
+          void AdjointPropagation(int cur, int next);
 
           /**
            * LBM operators in 3D
@@ -284,6 +335,7 @@ namespace CoupledField
           StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
           StdVector< StdVector<double> > pdfs_;
+          StdVector< StdVector<double> > adjPdfs_;
 
           // store moments and equilibrium moments of steady state solution
           // need this for adjoint LBM simulation
