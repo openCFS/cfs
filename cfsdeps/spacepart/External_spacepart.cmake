@@ -54,7 +54,7 @@ IF(USE_LIBFBI)
   IF(WIN32)
     SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
   ELSE(WIN32)
-    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
   ENDIF(WIN32)
   SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
     
@@ -69,7 +69,7 @@ IF(USE_LIBFBI)
   #-----------------------------------------------------------------------------
   # The fast box intersection library external project
   #-----------------------------------------------------------------------------
-  IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package exists copy files from cache
     #-------------------------------------------------------------------------------
@@ -82,7 +82,7 @@ IF(USE_LIBFBI)
       BUILD_COMMAND ""
       INSTALL_COMMAND ""
     )
-  ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package does not exist build external project
     #-------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ IF(USE_LIBFBI)
         -DENABLE_MULTITHREADING:BOOL=${USE_OPENMP}
     )
     
-    IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
       #-------------------------------------------------------------------------------
       # Add custom step to zip a precompiled package to the cache.
       #-------------------------------------------------------------------------------
@@ -114,7 +114,7 @@ IF(USE_LIBFBI)
         WORKING_DIRECTORY ${CFS_BINARY_DIR}
       )
     ENDIF()
-  ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 ENDIF(USE_LIBFBI)
 
 

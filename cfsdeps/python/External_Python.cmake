@@ -9,7 +9,7 @@ set(python_BUILD_IN_SOURCE 1)
 IF(WIN32)
   SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
 ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
+  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
 ENDIF(WIN32)
 SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
   
@@ -142,7 +142,7 @@ elseif(UNIX)
   #-------------------------------------------------------------------------------
   # The python external project
   #-------------------------------------------------------------------------------
-  IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package exists copy files from cache
     #-------------------------------------------------------------------------------
@@ -155,7 +155,7 @@ elseif(UNIX)
       BUILD_COMMAND ""
       INSTALL_COMMAND ""
     )
-  ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package does not exist build external project
     #-------------------------------------------------------------------------------
@@ -181,7 +181,7 @@ elseif(UNIX)
         ${python_DEPENDENCIES}
     )
     
-    IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
       #-------------------------------------------------------------------------------
       # Add custom step to zip a precompiled package to the cache.
       #-------------------------------------------------------------------------------
@@ -192,7 +192,7 @@ elseif(UNIX)
         WORKING_DIRECTORY ${CFS_BINARY_DIR}
       )
     ENDIF()
-  ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   
   #-------------------------------------------------------------------------------
   # Add project to global list of CFSDEPS
