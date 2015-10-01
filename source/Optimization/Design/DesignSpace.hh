@@ -27,7 +27,7 @@ namespace CoupledField
   struct ResultInfo;
   class CoefFunctionOpt;
   class Context;
-  class LocPointMapped;
+  struct LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
