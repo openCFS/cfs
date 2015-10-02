@@ -903,6 +903,7 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   Matrix<double> identity(n_q_,n_q_), relaxation(n_q_,n_q_);
   identity.InitValue(0.0);
   relaxation.InitValue(0.0);
+
   for (int dir = 0; dir < n_q_; dir++)
   {
     identity[dir][dir] = 1.0;
@@ -946,11 +947,15 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
 
   Matrix<double> d_F2_d_m(n_q_,n_q_);
   d_F2_d_m.InitValue(0.0);
-  d_F2_d_m[3][1] = -12 * ux;
+  d_F2_d_m[0][1] = -6.0 * alpha * u2; // d_F2_d_rho
+  d_F2_d_m[0][2] = -d_F2_d_m[0][2];
+  d_F2_d_m[0][7] = -2.0 * alpha * (ux * ux - uy * uy);
+  d_F2_d_m[0][8] = -2.0 * alpha * ux * uy;
+  d_F2_d_m[3][1] = -12 * ux; // d_F2/d_jx
   d_F2_d_m[3][2] = 12 * ux;
   d_F2_d_m[3][7] = -4 * ux;
   d_F2_d_m[3][8] = -2 * uy;
-  d_F2_d_m[5][1] = -12 * uy;
+  d_F2_d_m[5][1] = -12 * uy; // d_F2/d_jy
   d_F2_d_m[5][2] = 12 * uy;
   d_F2_d_m[5][7] = 4 * uy;
   d_F2_d_m[5][8] = -2 * ux;
@@ -960,7 +965,45 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   Matrix<double> relax_tmp(relaxation);
   relax_tmp *= 0.5; // matrix is diagonal
 
-  adjCollision[elemId] = identity - relaxation * (identity - d_mEq_d_m) + d_F1_d_m + (identity - relax_tmp) * d_F2_d_m;
+  if (inlet.Contains(elemId))
+  {
+    d_mEq_d_m[0][0] = 1.0; // d_mEq/d_rho
+    d_mEq_d_m[0][1] = -2.0 + 3.0 * u2;
+    d_mEq_d_m[0][2] = 1.0 - 3.0 * u2;
+    d_mEq_d_m[0][3] = ux;
+    d_mEq_d_m[0][4] = -ux;
+    d_mEq_d_m[0][5] = uy;
+    d_mEq_d_m[0][6] = -uy;
+    d_mEq_d_m[0][7] = ux * ux - uy * uy;
+    d_mEq_d_m[0][8] = ux * uy;
+
+    d_F1_d_m.Init();
+    d_F2_d_m.Init();
+  }
+  else if (outlet.Contains(elemId))
+  {
+    d_mEq_d_m[0][0] = 0.0;
+    d_mEq_d_m[0][1] = 0.0;
+    d_mEq_d_m[0][2] = 0.0;
+    d_mEq_d_m[0][7] = 0.0;
+    d_mEq_d_m[0][8] = 0.0;
+
+  }
+  else if (bb.Contains(elemId)) // adjoint of node bounce back is node bounce back
+  {
+    Matrix<double>& mat = adjCollision[elemId]; // bounce back operator in moment space
+    mat.Init();
+    mat[0][0] = 1.0;
+    mat[1][1] = 1.0;
+    mat[2][2] = 1.0;
+    mat[3][3] = -1.0;
+    mat[4][4] = -1.0;
+    mat[5][5] = -1.0;
+    mat[6][6] = -1.0;
+    mat[7][7] = 1.0;
+    mat[8][8] = 1.0;
+  } else
+    adjCollision[elemId] = identity - relaxation * (identity - d_mEq_d_m) + d_F1_d_m + (identity - relax_tmp) * d_F2_d_m;
 }
 
 void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moments)
@@ -1333,9 +1376,9 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   {
     LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // collision
-    AdjointCollision(adjCur, adjNext)M
+    AdjointCollision(adjCur, adjNext);
     // -- Bounce back step ------------------------------------------------
-    (this->*prop_coll_bounce_back)(next_, bb);
+    Prop_coll_bounce_back2D(adjCur,bb);
     // -- Inlet condition -------------------------------------------------
     (this->*prop_coll_velinlet)(next_, inlet);
     // -- Outlet condition ------------------------------------------------
