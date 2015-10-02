@@ -273,11 +273,11 @@ namespace CoupledField
            */
           void Prop_coll_step2D(int cur, int next);
 
-          void Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet);
+          void Prop_coll_velinlet2D(int cur);
 
-          void Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb);
+          void Prop_coll_bounce_back2D(int cur);
 
-          void Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >& outlet);
+          void Prop_coll_densoutlet2D(int cur);
 
           void AdjointCollision(int cur, int next);
 
@@ -288,11 +288,11 @@ namespace CoupledField
            */
           void Prop_coll_step3D(int cur, int next);
 
-          void Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet);
+          void Prop_coll_velinlet3D(int cur);
 
-          void Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb);
+          void Prop_coll_bounce_back3D(int cur);
 
-          void Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >& outlet);
+          void Prop_coll_densoutlet3D(int cur);
 
           int dim_;
           int sizeX_;
@@ -357,19 +357,19 @@ namespace CoupledField
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
           StdVector<double> relax_rates;
 
-          StdVector<StdVector<int> > inlet;
-          StdVector<StdVector<int> > outlet;
-          StdVector<StdVector<int> > bb;
-          StdVector<StdVector<int> > rel; // indices of the fluid m_nodes
+          StdVector<int> inlet;
+          StdVector<int> outlet;
+          StdVector<int> bb;
+          StdVector<int> rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
           StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
           StdVector<Vector<double> > d_diss_d_m; // partial derivatives of dissipation function w.r.t moments
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
-          void (LatticeBoltzmann::*prop_coll_velinlet)(int, StdVector<StdVector<int> >&);
-          void (LatticeBoltzmann::*prop_coll_bounce_back)(int, StdVector<StdVector<int> >&);
-          void (LatticeBoltzmann::*prop_coll_densoutlet)(int, StdVector<StdVector<int> >&);
+          void (LatticeBoltzmann::*prop_coll_velinlet)(int);
+          void (LatticeBoltzmann::*prop_coll_bounce_back)(int);
+          void (LatticeBoltzmann::*prop_coll_densoutlet)(int);
 
   }; // end LatticeBoltzmann
 
