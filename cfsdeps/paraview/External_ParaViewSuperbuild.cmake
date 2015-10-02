@@ -241,13 +241,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 Find_Package(Git)
 
-# There is no PARAVIEW_VER yet!
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "paraview_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "paraview_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "paraview" "no_ver")  
   
 SET(PREFIX_DIR "${pvsb_prefix}")
 

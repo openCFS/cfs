@@ -298,20 +298,6 @@ ELSEIF(MSVC)
 #-------------------------------------------------------------------------------
 ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   #-----------------------------------------------------------------------------
-  # Check for the case that Intel compiler is just GCC 4.2 compatible but the
-  # system GCC is version 4.3. In this case Intel C++ fails to compile due
-  # to incompatibilities.
-  #-----------------------------------------------------------------------------
-  IF(CFS_CXX_COMPILER_GNU_VER EQUAL "4.2" AND
-     GNU_CXX_COMPILER_VER EQUAL "4.3")
-    MESSAGE(FATAL_ERROR "Intel C++ ${CFS_CXX_COMPILER_VER} is known to be broken with g++ ${GNU_CXX_COMPILER_VER}! Intel C++ 11.x should work.")
-  ELSE(CFS_CXX_COMPILER_GNU_VER EQUAL "4.2" AND
-      GNU_CXX_COMPILER_VER  EQUAL "4.3")
-    IF(CFS_CXX_COMPILER_GNU_VER LESS GNU_CXX_COMPILER_VER)
-      MESSAGE("Intel C++ ${CFS_CXX_COMPILER_GNU_VER} might not work with g++ ${GNU_CXX_COMPILER_VER}.")
-    ENDIF(CFS_CXX_COMPILER_GNU_VER LESS GNU_CXX_COMPILER_VER)
-  ENDIF(CFS_CXX_COMPILER_GNU_VER EQUAL "4.2" AND
-    GNU_CXX_COMPILER_VER EQUAL "4.3")
 
   #-----------------------------------------------------------------------------
   # Check for a parallel compiler

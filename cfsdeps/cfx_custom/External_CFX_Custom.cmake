@@ -78,13 +78,8 @@ ExternalData_expand_arguments(cfx_custom_external_data
 # Add a build target to populate the real data.
 ExternalData_Add_Target(cfx_custom_external_data)
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "cfxio_${CFXIO_VER}_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
-  
+PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "cfxio" "${CFXIO_VER}")
+
 SET(PREFIX_DIR "${cfxio_prefix}")
 
 SET(ZIPFROMCACHE "${cfxio_prefix}/cfxio-zipFromCache.cmake")
