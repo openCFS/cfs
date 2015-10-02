@@ -6,12 +6,7 @@ set(python_build ${python_prefix}/src/${proj})
 set(python_source ${python_prefix}/src/${proj})
 set(python_BUILD_IN_SOURCE 1)
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "python_${python_VER}_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "python" "${python_VER}")  
   
 SET(PREFIX_DIR "${python_prefix}")
 
