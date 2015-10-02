@@ -185,10 +185,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   Timer timer;
   timer.Start();
 
-  LOG_DBG(lbm) << "bb = " << ToString(bb);
-  LOG_DBG(lbm) << "inlet = " << ToString(inlet);
-  LOG_DBG(lbm) << "outlet = " << ToString(outlet);
-  LOG_DBG(lbm) << "rel = " << ToString(rel);
+//  LOG_DBG(lbm) << "bb = " << ToString(bb);
+//  LOG_DBG(lbm) << "inlet = " << ToString(inlet);
+//  LOG_DBG(lbm) << "outlet = " << ToString(outlet);
+//  LOG_DBG(lbm) << "rel = " << ToString(rel);
 
   in->Get("converged")->SetValue("running");
 
@@ -198,11 +198,11 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
-    (this->*prop_coll_bounce_back)(next_, bb);
+    (this->*prop_coll_bounce_back)(next_);
     // -- Inlet condition -------------------------------------------------
-    (this->*prop_coll_velinlet)(next_, inlet);
+    (this->*prop_coll_velinlet)(next_);
     // -- Outlet condition ------------------------------------------------
-    (this->*prop_coll_densoutlet)(next_, outlet);
+    (this->*prop_coll_densoutlet)(next_);
 
     if((it == 0 || it % 100 == 0)) // check convergence
     {
@@ -274,6 +274,8 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)
 
+  std::cout << "Primal simulation: " << it << " iterations" << std::endl;
+
   if (!srt_)
   {
     Vector<double> pdfs;
@@ -300,12 +302,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
       CalcAdjointCollMatrix(elem,moms);
       d_diss_d_moments(elem,moms);
+
     }
     node->Get("dissipation")->SetValue(dissipation);
-
-    int adjCur  = 0;
-//    int adjNext = 1;
-    adjPdfs_[adjCur] = pdfs_[cur_];
+    IterateAdjoint(in);
   }
 
   return &(pdfs_[cur_]);
@@ -653,54 +653,25 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
   inlet.Clear();
   outlet.Clear();
 
-  StdVector<int> tmp(3);
-
-  int n = 0;
   double porosity;
 
-  for(int k = 0; k < sizeZ_; k++)
+  for(int elem = 0; elem < nNodes_; elem++)
   {
-    for(int j = 0; j < sizeY_; j++)
-    {
-      for(int i = 0; i < sizeX_; i++)
-      {
-        porosity = elements[n];
+    porosity = elements[elem];
 
-        if (LbmNodeTypeIsFluid(porosity)) {
-          tmp[0] = i;
-          tmp[1] = j;
-          tmp[2] = k;
-          rel.Push_back(tmp);
-//          std::cout << "(" << tmp[0] << "," <<  tmp[1] << "," << tmp[2] << ") is fluid node" << std::endl;
-        } else if (LbmNodeTypeIsBB(porosity)) {
-          tmp[0] = i;
-          tmp[1] = j;
-          tmp[2] = k;
-          bb.Push_back(tmp);
-//          std::cout << "(" << tmp[0] << "," <<  tmp[1] << "," << tmp[2] << ") is bb node" << std::endl;
-        } else if (LbmNodeTypeIsInlet(porosity)) {
-          tmp[0] = i;
-          tmp[1] = j;
-          tmp[2] = k;
-          inlet.Push_back(tmp);
-//          std::cout << "(" << tmp[0] << "," <<  tmp[1] << "," << tmp[2] << ") is inlet node" << std::endl;
-        } else if (LbmNodeTypeIsOutlet(porosity)) {
-          tmp[0] = i;
-          tmp[1] = j;
-          tmp[2] = k;
-          outlet.Push_back(tmp);
-//          std::cout << "(" << tmp[0] << "," <<  tmp[1] << "," << tmp[2] << ") is outlet node" << std::endl;
-        } else if (LbmNodeIsObstacle(porosity)) {
-          obst.Push_back(GetIndex(i,j,k));
-//          std::cout << "(" << tmp[0] << "," <<  tmp[1] << "," << tmp[2] << ") is obstacle node" << std::endl;
-        }
-        ++n;
-      }
-    }
+    if (LbmNodeTypeIsFluid(porosity))
+      rel.Push_back(elem);
+    else if (LbmNodeTypeIsBB(porosity))
+      bb.Push_back(elem);
+    else if (LbmNodeTypeIsInlet(porosity))
+      inlet.Push_back(elem);
+    else if (LbmNodeTypeIsOutlet(porosity))
+      outlet.Push_back(elem);
+    else if (LbmNodeIsObstacle(porosity))
+      obst.Push_back(elem);
   }
-  assert(nNodes_ == n);
-}
 
+}
 
 std::string LatticeBoltzmann::ToString(const StdVector<StdVector<int> >& data)
 {
@@ -1010,6 +981,12 @@ void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moment
 {
   Vector<double> result(n_q_);
   result.Init();
+
+  if (!rel.Contains(elemId)) { // at the boundary the derivative of dissipation does not exist
+    d_diss_d_m[elemId] = result;
+    return;
+  }
+
   double rho = moments[0];
   double e = moments[1];
   double jx = moments[3];
@@ -1184,11 +1161,10 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 }
 
 
-void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >& inlet)
+void LatticeBoltzmann::Prop_coll_velinlet2D(int cur)
 {
   assert(uz_ == 0);
 
-  int x, y, z = 0;
   double tmp_ux, tmp_uy, tmp_us, sum;
   double tmp;
 
@@ -1196,13 +1172,10 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
   pdfs.Resize(n_q_);
 
   for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
-    x = inlet[i][0];
-    y = inlet[i][1];
-
-    assert(z == 0);
+    int index = inlet[i];
 
     for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = PDF(cur,x,y,z,dir);
+      pdfs[dir] = PDF(cur,index,dir);
     }
 
     sum = CalcDensity(pdfs);
@@ -1220,7 +1193,7 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
     tmp_uy = 3.0 * tmp_uy;
     for (int  dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-      PDF(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+      PDF(cur, index, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
   return;
@@ -1228,21 +1201,19 @@ void LatticeBoltzmann::Prop_coll_velinlet2D(int cur, StdVector<StdVector<int> >&
 //
 // Performs a bounce back step.
 //
-void LatticeBoltzmann::Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int> >& bb)
+void LatticeBoltzmann::Prop_coll_bounce_back2D(int cur)
 {
-  int x, y, z = 0;
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
 
   for(unsigned int  i = 0; i < bb.GetSize(); i++) {
-    x = bb[i][0];
-    y = bb[i][1];
+    int index = bb[i];
 
     for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = PDF(cur, x, y, z, dir);
+      pdfs[dir] = PDF(cur, index, dir);
     }
     for (int  dir = 0; dir < n_q_; dir++) {
-      PDF(cur, x, y, z, GetInvDirection((Direction)dir)) = pdfs[dir];
+      PDF(cur, index, GetInvDirection((Direction)dir)) = pdfs[dir];
     }
   }
 
@@ -1252,23 +1223,18 @@ void LatticeBoltzmann::Prop_coll_bounce_back2D(int cur, StdVector<StdVector<int>
 //
 // Density outlet condition.
 //
-void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> >& outlet)
+void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
 {
   double tmp_ux, tmp_uy, tmp_us, sum, tmp;
 
   Vector<double> pdfs;
   pdfs.Resize(n_q_);
 
-  int x, y, z = 0;
-
   for(unsigned int  i = 0; i < outlet.GetSize(); i++) {
-    x = outlet[i][0];
-    y = outlet[i][1];
-
-    assert (z == 0);
+    int index = outlet[i];
 
     for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = PDF(cur,x,y,z,dir);
+      pdfs[dir] = PDF(cur,index,dir);
     }
 
     CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp);
@@ -1280,7 +1246,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur, StdVector<StdVector<int> 
     tmp_uy = 3.0 * tmp_uy;
     for (int  dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy;
-      PDF(cur, x, y, z, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+      PDF(cur, index, dir) =  sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
   return;
@@ -1378,15 +1344,16 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     // collision
     AdjointCollision(adjCur, adjNext);
     // -- Bounce back step ------------------------------------------------
-    Prop_coll_bounce_back2D(adjCur,bb);
+    Prop_coll_bounce_back2D(adjCur);
+    AdjointPropagation(adjCur,adjNext);
     // -- Inlet condition -------------------------------------------------
-    (this->*prop_coll_velinlet)(next_, inlet);
+//    (this->*prop_coll_velinlet)(next_);
     // -- Outlet condition ------------------------------------------------
-    (this->*prop_coll_densoutlet)(next_, outlet);
+//    (this->*prop_coll_densoutlet)(next_);
 
     if((it == 0 || it % 100 == 0)) // check convergence
     {
-      R = CalcResidual(cur_,next_,false);
+      R = CalcResidual(adjCur,adjNext,true);
 
       if(R <= maxTol_)
         steady_state = true;
@@ -1394,22 +1361,22 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
       if(plot_)
         plot << it << "\t" << R << "\n";
 
-      in->Get("iterations")->SetValue(it);
-      in->Get("residuum")->SetValue(R);
+      info->Get("adjoint/iterations")->SetValue(it);
+      info->Get("adjoint/residuum")->SetValue(R);
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
     }
 
-    cur_  = (cur_  + 1) % 2;
-    next_ = (next_ + 1) % 2;
+    adjCur  = (adjCur  + 1) % 2;
+    adjNext = (adjNext + 1) % 2;
 
     it++;
 
-    if (writeIntermediateResults_) {
-      if (it % writeFrequency_ == 0) {
-        domain->GetDriver()->StoreResults(count,(double) it);
-        count++;
-      }
-    }
+//    if (writeIntermediateResults_) {
+//      if (it % writeFrequency_ == 0) {
+//        domain->GetDriver()->StoreResults(count,(double) it);
+//        count++;
+//      }
+//    }
     //    LOG_DBG3(lbm) << "\n Iteration " << it;
     //    for (int elem = 0; elem < nNodes_; elem++) {
     //      LOG_DBG3(lbm) << "element " << elem;
@@ -1420,8 +1387,9 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   timer.Stop();
 
+  std::cout << "adjoint simulation: " << it << " iterations" << std::endl;
 
-  return adjPdfs_[adjCur];
+  return &adjPdfs_[adjCur];
 }
 
 /************************************************** 3D operators *****************************************************/
@@ -1491,9 +1459,9 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
         for (int  dir = 0; dir < n_q_; dir++) {
           tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
           if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
-            PDF(next, x, y, z, dir) = pdfs[dir];
+            PDF(next, index, dir) = pdfs[dir];
           else
-            PDF(next, x, y, z, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+            PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
 
       }
@@ -1503,9 +1471,8 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
   return;
 }
 
-void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >& inlet)
+void LatticeBoltzmann::Prop_coll_velinlet3D(int cur)
 {
-  int x, y, z;
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum;
   double tmp;
 
@@ -1513,12 +1480,9 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
   pdfs.Resize(n_q_);
 
   for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
-    x = inlet[i][0];
-    y = inlet[i][1];
-    z = inlet[i][2];
-
+    int index = inlet[i];
     for (int dir = 0; dir < n_q_; dir ++)
-      pdfs[dir] = PDF(cur,x,y,z,dir);
+      pdfs[dir] = PDF(cur,index,dir);
 
     sum = CalcDensity(pdfs);
 
@@ -1541,7 +1505,7 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
 
     for (int  dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
-      PDF(cur, x, y, z, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+      PDF(cur, index, dir)  = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
 
@@ -1552,23 +1516,19 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur, StdVector<StdVector<int> >&
 //
 // Performs a bounce back step.
 //
-void LatticeBoltzmann::Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int> >& bb)
+void LatticeBoltzmann::Prop_coll_bounce_back3D(int cur)
 {
-
-  int x, y, z;
   StdVector<double> pdfs;
   pdfs.Resize(n_q_);
 
   for(unsigned int  i = 0; i < bb.GetSize(); i++) {
-    x = bb[i][0];
-    y = bb[i][1];
-    z = bb[i][2];
+    int index = bb[i];
 
     for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = PDF(cur, x, y, z, dir);
+      pdfs[dir] = PDF(cur,index, dir);
     }
     for (int  dir = 0; dir < n_q_; dir++) {
-      PDF(cur, x, y, z, GetInvDirection((Direction)dir)) = pdfs[dir];
+      PDF(cur, index, GetInvDirection((Direction)dir)) = pdfs[dir];
     }
   }
   return;
@@ -1577,22 +1537,18 @@ void LatticeBoltzmann::Prop_coll_bounce_back3D(int cur, StdVector<StdVector<int>
 //
 // Density outlet condition.
 //
-void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> >& outlet)
+void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur)
 {
   double tmp_ux, tmp_uy, tmp_uz, tmp_us, sum, tmp;
 
   Vector<double> pdfs;
   pdfs.Resize(n_q_);
 
-  int x, y, z;
-
   for(unsigned int  i = 0; i < outlet.GetSize(); i++) {
-    x = outlet[i][0];
-    y = outlet[i][1];
-    z = outlet[i][2];
+    int index = outlet[i];
 
     for (int dir = 0; dir < n_q_; dir ++)
-      pdfs[dir] = PDF(cur,x,y,z,dir);
+      pdfs[dir] = PDF(cur,index,dir);
 
     CalcVelocities(pdfs, tmp_ux, tmp_uy, tmp_uz);
 
@@ -1604,7 +1560,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet3D(int cur, StdVector<StdVector<int> 
 
     for (int  dir = 0; dir < n_q_; dir++) {
       tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
-      PDF(cur, x, y, z, dir) = sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
+      PDF(cur, index, dir) = sum * weights[dir] * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us);
     }
   }
 
