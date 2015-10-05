@@ -1365,6 +1365,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(LBM_DENSITY, "LBMDensity");
     SolutionTypeEnum.Add(LBM_PRESSURE, "LBMPressure");
     SolutionTypeEnum.Add(LBM_PHYSICAL_PSEUDO_DENSITY, "LBMPhysicalPseudoDensity");
+    SolutionTypeEnum.Add(LBM_PROBABILITY_DISTRIBUTION_ADJOINT,"LBMProbabilityDistributionAdjoint");
+    SolutionTypeEnum.Add(LBM_VELOCITY_ADJOINT, "LBMAdjointVelocity");
 
     // ==== Initialization of Material Constants ====
     MaterialTypeEnum.Add( NO_MATERIAL, "noMaterial" );

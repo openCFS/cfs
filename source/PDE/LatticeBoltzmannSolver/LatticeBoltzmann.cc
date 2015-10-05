@@ -70,8 +70,8 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   u_in.Resize(nNodes_);
   u_in = uin;
 
-  moments_.Resize(nNodes_);
-  eqMoments_.Resize(nNodes_);
+//  moments_.Resize(nNodes_);
+//  eqMoments_.Resize(nNodes_);
   adjCollision.Resize(nNodes_);
   d_diss_d_m.Resize(nNodes_);
 
@@ -87,6 +87,8 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   adjPdfs_.Resize(2);
   adjPdfs_[0].Resize(nNodes_ * n_q_);
   adjPdfs_[1].Resize(nNodes_ * n_q_);
+  adjPdfs_[0].Init(0.0);
+  adjPdfs_[1].Init(0.0);
 
   // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
   microVelDirections.Resize(n_q_);
@@ -276,37 +278,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   std::cout << "Primal simulation: " << it << " iterations" << std::endl;
 
-  if (!srt_)
-  {
-    Vector<double> pdfs;
-    pdfs.Resize(9);
-    double dissipation = 0.0;
-    for (int elem = 0; elem < nNodes_; elem++) {
-      for (int dir = 0; dir < n_q_; dir++)
-        pdfs[dir] = PDF(cur_,elem,dir);
-
-      Vector<double> moms;
-      moms.Resize(n_q_);
-      transformation.Mult(pdfs,moms);
-      Vector<double> eqMoms;
-      CalcEquilMoments(moms,eqMoms);
-
-      // store moments and equilibrium moments of steady-state solution
-      for (int dir = 0; dir < n_q_; dir++) {
-        moments_[dir] = moms[dir];
-        eqMoments_[dir] = eqMoms[dir];
-      }
-      Vector<double> f1,f2;
-      CalcDarcyForce(moms,elem,f1,f2);
-      dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
-
-      CalcAdjointCollMatrix(elem,moms);
-      d_diss_d_moments(elem,moms);
-
-    }
-    node->Get("dissipation")->SetValue(dissipation);
-    IterateAdjoint(in);
-  }
+//  if (!srt_)
+//  {
+//    IterateAdjoint(in);
+//  }
 
   return &(pdfs_[cur_]);
 }
@@ -938,31 +913,37 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
 
   if (inlet.Contains(elemId))
   {
-    d_mEq_d_m[0][0] = 1.0; // d_mEq/d_rho
-    d_mEq_d_m[0][1] = -2.0 + 3.0 * u2;
-    d_mEq_d_m[0][2] = 1.0 - 3.0 * u2;
-    d_mEq_d_m[0][3] = ux;
-    d_mEq_d_m[0][4] = -ux;
-    d_mEq_d_m[0][5] = uy;
-    d_mEq_d_m[0][6] = -uy;
-    d_mEq_d_m[0][7] = ux * ux - uy * uy;
-    d_mEq_d_m[0][8] = ux * uy;
+    Matrix<double>& mat = adjCollision[elemId];
+    mat.Resize(n_q_);
+    mat.Init();
+    mat[0][0] = 1.0; // d_mEq/d_rho
+    mat[0][1] = -2.0 + 3.0 * u2;
+    mat[0][2] = 1.0 - 3.0 * u2;
+    mat[0][3] = ux;
+    mat[0][4] = -ux;
+    mat[0][5] = uy;
+    mat[0][6] = -uy;
+    mat[0][7] = ux * ux - uy * uy;
+    mat[0][8] = ux * uy;
 
     d_F1_d_m.Init();
     d_F2_d_m.Init();
   }
   else if (outlet.Contains(elemId))
   {
-    d_mEq_d_m[0][0] = 0.0;
-    d_mEq_d_m[0][1] = 0.0;
-    d_mEq_d_m[0][2] = 0.0;
-    d_mEq_d_m[0][7] = 0.0;
-    d_mEq_d_m[0][8] = 0.0;
-
+    Matrix<double>& mat = adjCollision[elemId];
+    mat.Resize(n_q_);
+    mat.Init();
+    mat[0][0] = 0.0;
+    mat[0][1] = 0.0;
+    mat[0][2] = 0.0;
+    mat[0][7] = 0.0;
+    mat[0][8] = 0.0;
   }
   else if (bb.Contains(elemId)) // adjoint of node bounce back is node bounce back
   {
     Matrix<double>& mat = adjCollision[elemId]; // bounce back operator in moment space
+    mat.Resize(n_q_);
     mat.Init();
     mat[0][0] = 1.0;
     mat[1][1] = 1.0;
@@ -1322,8 +1303,39 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 {
+  Vector<double> pdfs;
+  pdfs.Resize(9);
+  double dissipation = 0.0;
+  for (int elem = 0; elem < nNodes_; elem++) {
+    for (int dir = 0; dir < n_q_; dir++)
+      pdfs[dir] = PDF(cur_,elem,dir);
+
+    Vector<double> moms;
+    moms.Resize(n_q_);
+    transformation.Mult(pdfs,moms);
+    Vector<double> eqMoms;
+    CalcEquilMoments(moms,eqMoms);
+
+//    // store moments and equilibrium moments of steady-state solution
+//    for (int dir = 0; dir < n_q_; dir++) {
+//      moments_[dir] = moms[dir];
+//      eqMoments_[dir] = eqMoms[dir];
+//    }
+    Vector<double> f1,f2;
+    CalcDarcyForce(moms,elem,f1,f2);
+    dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+
+    CalcAdjointCollMatrix(elem,moms);
+    d_diss_d_moments(elem,moms);
+  }
+
+  PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND);
+  node->Get("dissipation")->SetValue(dissipation);
+
   int adjCur  = 0;
   int adjNext = 1;
+
+  int count = numWriteResults_;
 
   Timer timer;
   timer.Start();
@@ -1351,7 +1363,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     // -- Outlet condition ------------------------------------------------
 //    (this->*prop_coll_densoutlet)(next_);
 
-    if((it == 0 || it % 100 == 0)) // check convergence
+    if((it == 0 || it % 100 == 0))
+//    if((it == 0 || it % 100 == 0)) // check convergence
     {
       R = CalcResidual(adjCur,adjNext,true);
 
@@ -1371,12 +1384,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
     it++;
 
-//    if (writeIntermediateResults_) {
-//      if (it % writeFrequency_ == 0) {
-//        domain->GetDriver()->StoreResults(count,(double) it);
-//        count++;
-//      }
-//    }
+    if (writeIntermediateResults_) {
+      if (it % writeFrequency_ == 0) {
+        domain->GetDriver()->StoreResults(count,(double) numIterations_ + it);
+        count++;
+      }
+    }
     //    LOG_DBG3(lbm) << "\n Iteration " << it;
     //    for (int elem = 0; elem < nNodes_; elem++) {
     //      LOG_DBG3(lbm) << "element " << elem;
@@ -1384,6 +1397,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     //        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
     //    }
   }
+
+  numWriteResults_ = count;
 
   timer.Stop();
 
