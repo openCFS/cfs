@@ -282,6 +282,8 @@ namespace CoupledField {
 
     //Initializing storage for PDFs
     pdfs.Resize(n_elems * n_q_);
+    adjPdfs.Resize(n_elems * n_q_);
+    adjPdfs.Init(0.0);
 
     if(iface_ == INTERNAL) {
       lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_,alpha_max_);
@@ -501,6 +503,11 @@ namespace CoupledField {
         // this data is the final simulation but it lacks an additional propagation step for the adjoint calculation
         // We need to perform an additional propagation step as base for the adjoint system setup
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
+
+        if (!srt_) {
+          StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
+          adjPdfs = *tmpAdj;
+        }
 
         pdfs = *tmp;
         in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
@@ -1080,6 +1087,18 @@ Vector<Double> LatticeBoltzmannPDE::CalcVelocities(unsigned int idx)
   return velo;
 }
 
+Vector<Double> LatticeBoltzmannPDE::CalcAdjVelocities(unsigned int idx)
+{
+  Vector<Double> velo;
+  velo.Resize(dim_);
+  double density = CalcAdjLBMDensity(idx);
+  velo[0] =  CalcAdjVelocityX(idx, density);
+  velo[1] = CalcAdjVelocityY(idx, density);
+  if (dim_ == 3)
+    velo[2] = CalcAdjVelocityZ(idx, density);
+  return velo;
+}
+
 double LatticeBoltzmannPDE::CalcPressure(unsigned int idx) const
 {
   double density = CalcLBMDensity(idx);
@@ -1119,6 +1138,16 @@ Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
     solVec[i] = GetPdf(idx,i);
   }
   LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " pdfs=" << solVec.ToString(0,',');
+  return solVec;
+}
+
+Vector<Double> LatticeBoltzmannPDE::ExtractAdjointDistribution(unsigned int idx){
+  Vector<double> solVec;
+  solVec.Resize(n_q_);
+  for (unsigned int i = 0; i < n_q_; i++) {
+    solVec[i] = GetAdjPdf(idx,i);
+  }
+  LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " adjPdfs=" << solVec.ToString(0,',');
   return solVec;
 }
 
@@ -1164,6 +1193,16 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   probFunc.reset(new CoefFunctionLBM<Double>(this,feFct, prob));
   DefineFieldResult(probFunc,prob);
 
+  shared_ptr<ResultInfo> adjProb(new ResultInfo);
+  adjProb->resultType = LBM_PROBABILITY_DISTRIBUTION_ADJOINT;
+  adjProb->dofNames = probDofNames;
+  adjProb->unit = "";
+  adjProb->entryType = ResultInfo::VECTOR;
+  adjProb->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> adjProbFunc;
+  adjProbFunc.reset(new CoefFunctionLBM<Double>(this,feFct, adjProb));
+  DefineFieldResult(adjProbFunc,adjProb);
+
   // =====================================================================
   // set solution information
   // =====================================================================
@@ -1205,6 +1244,16 @@ void LatticeBoltzmannPDE::DefinePostProcResults() {
   shared_ptr<CoefFunctionFormBased> veloFunc;
   veloFunc.reset(new CoefFunctionLBM<Double>(this,feFct, velo));
   DefineFieldResult(veloFunc,velo);
+
+  shared_ptr<ResultInfo> adjVelo(new ResultInfo);
+  adjVelo->resultType = LBM_VELOCITY_ADJOINT;
+  adjVelo->dofNames = velDofNames;
+  adjVelo->unit =  "";
+  adjVelo->entryType = ResultInfo::VECTOR;
+  adjVelo->definedOn = ResultInfo::ELEMENT;
+  shared_ptr<CoefFunctionFormBased> adjVeloFunc;
+  adjVeloFunc.reset(new CoefFunctionLBM<Double>(this,feFct, adjVelo));
+  DefineFieldResult(adjVeloFunc,adjVelo);
 
   // === PSEUDO DENSITY for SIMP ===
   shared_ptr<ResultInfo> mechPD(new ResultInfo);

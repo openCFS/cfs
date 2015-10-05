@@ -55,6 +55,10 @@ namespace CoupledField
        * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
       StdVector<double>* Iterate(const StdVector<double>& elements, PtrParamNode info);
 
+      /** Performs all the adjoint LBM iterations until a steady-state with a given tolerance is reached.
+       * @param info stores current and final info there */
+      StdVector<double>* IterateAdjoint(PtrParamNode info);
+
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
 
@@ -62,6 +66,11 @@ namespace CoupledField
        *  @return copy of pdfs
        */
       inline StdVector<double>& GetPdfs() {return pdfs_[cur_];}
+
+      /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
+       *  @return copy of pdfs
+       */
+      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[cur_];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -262,12 +271,6 @@ namespace CoupledField
             * m_eq the return value */
           void CalcEquilMoments(const Vector<double>&  moments,  Vector<double>& m_eq) const;
 
-          /** Performs all the LBM iterations until a steady-state with a given tolerance is reached.
-           * @param info stores current and final info there. Saves under way
-           * @param niter stores how many iterations til convergence for one simulation call is needed
-           * @return pdfs will be subject to coll_step() called from LatticeBoltzmannPDE */
-          StdVector<double>* IterateAdjoint(PtrParamNode info);
-
           /**
            * LBM operators in 2D
            */
@@ -339,8 +342,8 @@ namespace CoupledField
 
           // store moments and equilibrium moments of steady state solution
           // need this for adjoint LBM simulation
-          StdVector<double> moments_;
-          StdVector<double> eqMoments_;
+//          StdVector<double> moments_;
+//          StdVector<double> eqMoments_;
 
           // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;

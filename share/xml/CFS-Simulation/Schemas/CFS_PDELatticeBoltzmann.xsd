@@ -248,7 +248,9 @@
 	<xsd:simpleType name="DT_ExternLBMElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="LBMVelocity"/>
-      <xsd:enumeration value="LBMProbabilityDistribution"/> 
+      <xsd:enumeration value="LBMAdjointVelocity"/>
+      <xsd:enumeration value="LBMProbabilityDistribution"/>
+      <xsd:enumeration value="LBMProbabilityDistributionAdjoint"/> 
       <xsd:enumeration value="LBMDensity"/>
       <xsd:enumeration value="LBMPressure"/>      
       <xsd:enumeration value="mechPseudoDensity"/>
