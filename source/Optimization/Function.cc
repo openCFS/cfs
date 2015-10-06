@@ -591,7 +591,7 @@ bool Function::ForDensityFiltering() const {
     case GLOBAL_SUM_MODULI:
     case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
     case ORTHOTROPIC_TENSOR_TRACE:
-    case GLOBAL_TWO_SCALE_VOL:
+//    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
       return false;
 
@@ -1950,8 +1950,6 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     break;
 
   case TWO_SCALE_VOL:
-    fv = CalcTwoScaleVolume(local, access);
-        break;
   case GLOBAL_TWO_SCALE_VOL:
     fv = CalcTwoScaleVolume(local, access);
     break;

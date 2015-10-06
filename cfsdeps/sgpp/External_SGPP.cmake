@@ -86,7 +86,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
     # the libs will be created in lib/sgpp and we manually copy them to lib64/CFS_ARCH_STR
-#    BUILD_COMMAND scons -j 4 -s SG_OPT=yes OMP=yes UMFPACK=yes EIGEN=yes ARMADILLO=yes GMMPP=yes
     BUILD_COMMAND scons -j 4 -s OMP=yes USE_UMFPACK=yes USE_EIGEN=yes USE_ARMADILLO=yes USE_GMMPP=no NO_UNIT_TESTS=yes
   )  
   
@@ -117,7 +116,16 @@ SET(CFSDEPS ${CFSDEPS} sgpp)
 # Determine paths of SGPP libraries.
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 # Old SGPP (SGpp)
-#SET(SGPP_LIBRARY "${LD}/libsgppopt.a;${LD}/libumfpack4sgpp.a;${LD}/libsuitesparseconfig4sgpp.a;${LD}/libarmadillo4sgpp.a;${LD}/libsgppbase.a;${LD}/libsgpppde.a;${LD}/libsgppsolver.a" CACHE FILEPATH "SGPP library.")
+#SET(SGPP_LIBRARY
+#  ${LD}/libsgppopt.a;
+#  ${LD}/libumfpack4sgpp.a;
+#  ${LD}/libsuitesparseconfig4sgpp.a;
+#  ${LD}/libarmadillo4sgpp.a;
+#  ${LD}/libsgppbase.a;
+#  ${LD}/libsgpppde.a;
+#  ${LD}/libsgppsolver.a
+#  CACHE FILEPATH "SGPP library."
+#  )
 # New SGPP (sgopt)
 SET(SGPP_LIBRARY 
   ${LD}/libsgppoptimization.a;

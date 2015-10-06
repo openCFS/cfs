@@ -477,7 +477,7 @@ ENDIF(USE_IPOPT)
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)
   SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
-  #SET(SGPP_BASW "SGpp_")
+  #SET(SGPP_BASE "SGpp")
   #SET(SGPP_VER "0.9.3")
   SET(SGPP_BASE "sgopt")
   SET(SGPP_VER "r4892")
