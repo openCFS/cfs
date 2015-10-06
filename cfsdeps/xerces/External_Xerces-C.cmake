@@ -58,6 +58,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(MIRRORS
   "ftp://ftp.de.cw.net/pub/FreeBSD/ports/distfiles/xerces-c-3.1.1.tar.gz"
   "http://xml.apache.org/dist/xerces-c/3/sources/xerces-c-3.1.1.tar.gz"
+  "http://archive.apache.org/dist/xerces/c/3/sources//xerces-c-3.1.1.tar.gz"
   "${XERCES_URL}/${XERCES_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/xerces/${XERCES_GZ}")
