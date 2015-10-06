@@ -12,7 +12,6 @@
 #include "Domain/Mesh/Grid.hh"
 #include "General/defs.hh"
 #include "General/Exception.hh"
-#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/TransferFunction.hh"
@@ -23,7 +22,6 @@
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "MatVec/Matrix.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
@@ -42,13 +40,16 @@ Enum<DesignMaterial::Type> DesignMaterial::type;
 Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
 
-DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em) :
+DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
+#ifdef USE_SGPP
+  :
   alpha1_(SGPP::base::DataVector(0)),
   alpha2_(SGPP::base::DataVector(0)),
   alpha3_(SGPP::base::DataVector(0)),
   alpha4_(SGPP::base::DataVector(0)),
   alpha5_(SGPP::base::DataVector(0)),
   alpha6_(SGPP::base::DataVector(0))
+#endif
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
 
@@ -3317,17 +3318,17 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   if (word != "sparsegrid") {
     // ==> old format
     file.close();
-    bool dataIsHierarchized;
+    bool dataIsSparse;
     Matrix<double> data;
-    dataIsHierarchized = ReadDetailedStats(filename, data);
+    dataIsSparse = ReadDetailedStats(filename, data);
     // create regular grid
     SGPP::base::GridGenerator* gridGen = grid_->createGridGenerator();
     gridGen->regular(level_);
     delete gridGen;
-    if (dataIsHierarchized) {
-      FillSparseGridWithHierarchizedData(data);
+    if (dataIsSparse) {
+      FillSparseGridWithSparseGridData(data);
     } else {
-      FillSparseGridWithUnhierarchizedData(data);
+      FillSparseGridWithFullGridData(data);
     }
     return;
   }
@@ -3337,9 +3338,9 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   file >> N >> d >> m >> word;
   // standard assumptions
   assert((d == 2) || (d == 3));
-  assert((m == 5) || (m == 7));
+  assert((m == 5) || (m == 6) || (m == 7));
   // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=7))"
-  assert(!shearIsDesign_ || ((d == 3) && (m == 7)));
+  assert(!shearIsDesign_ || ((d == 3) && ((m == 6) || (m == 7))));
   bool hierarchized = (word == "hierarchized");
   file >> word;
   Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
@@ -3393,22 +3394,34 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
       // shearing angle should be optimized ==> Read ALL The Data!
       // (except for the final value, the volume)
       file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
-           >> alpha5_[j] >> alpha6_[j] >> duck;
+           >> alpha5_[j] >> alpha6_[j];
+      if (m == 7) {
+        file >> duck;
+      }
       if (notation == VOIGT) {
         alpha6_[j] *= 2.0;
       }
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
-      if (m == 5) {
+      switch (m) {
+      case 4:
+        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j];
+        break;
+      case 5:
         file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> duck;
-      } else {
+        break;
+      case 6:
+        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j];
+        break;
+      case 7:
         file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> duck;
-        LOG_DBG(dm) << alpha1_[j] << alpha2_[j] << alpha3_[j] << alpha4_[j];
+        break;
       }
       if (notation == VOIGT) {
         alpha4_[j] *= 2.0;
       }
     }
+    LOG_DBG(dm) << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
     j++;
   }
   LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
@@ -3448,7 +3461,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   std::cout << "]\n";*/
 }
 
-void DesignMaterial::FillSparseGridWithUnhierarchizedData(Matrix<double>& data) {
+void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
   SGPP::base::GridStorage* gridStorage = grid_->getStorage();
 
   // create coefficient vectors
@@ -3506,7 +3519,7 @@ void DesignMaterial::FillSparseGridWithUnhierarchizedData(Matrix<double>& data) 
   HierarchizeSparseGridCoefficients();
 }
 
-void DesignMaterial::FillSparseGridWithHierarchizedData(Matrix<double>& data) {
+void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
   SGPP::base::GridStorage* gridStorage = grid_->getStorage();
 
   // create coefficient vectors
@@ -3544,6 +3557,8 @@ void DesignMaterial::FillSparseGridWithHierarchizedData(Matrix<double>& data) {
     LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
         << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
   }
+  // hierarchize data vectors
+  HierarchizeSparseGridCoefficients();
 }
 
 void DesignMaterial::HierarchizeSparseGridCoefficients() {
