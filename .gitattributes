@@ -945,6 +945,7 @@ share/doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
 share/matlab/FftHdf5Core.m -text
 share/matlab/FindPathHDF5.m -text
+share/matlab/Matlab_for_Julian.zip -text svneol=unset#application/zip
 share/matlab/PCOLOR.m svneol=native#text/plain
 share/matlab/README -text
 share/matlab/Time2FreqHDF5.m -text
