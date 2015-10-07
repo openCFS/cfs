@@ -945,7 +945,6 @@ share/doc/user/xmlFile/xmlcover.tex svneol=native#text/plain
 share/doc/user/xmlFile/xmlintro.tex svneol=native#text/plain
 share/matlab/FftHdf5Core.m -text
 share/matlab/FindPathHDF5.m -text
-share/matlab/Matlab_for_Julian.zip -text svneol=unset#application/zip
 share/matlab/PCOLOR.m svneol=native#text/plain
 share/matlab/README -text
 share/matlab/Time2FreqHDF5.m -text
@@ -1046,6 +1045,122 @@ share/matlab/hdf5tools/test/th5runsuite.m -text
 share/matlab/hdf5tools/test/th5varget.m -text
 share/matlab/hdf5tools/test/th5varget.mat -text
 share/matlab/hdf5tools/test/th5varput.m -text
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_master.xml -text
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/mat.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/Veraltet/E11.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/array_to_densfile.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/bad.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/bad_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/coeff.h -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolant.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValuesForHoleblock.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValues_old.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computePP.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createCross.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createCrossShear.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createFrame.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/detailed_stats_presets4D_127_fixed_frame.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/generateShearedCross.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolant.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValuesFromFile.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValuesFromFileForHoleblock.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/good1.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good1_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good2.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good2_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/interpolate.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/over.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/under.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/verybad.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/verybad_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/computeInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/generateCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateCrossWithVertBar.m -text
+share/matlab/material_catalogue/+Homogenization/generateFrame.m -text
+share/matlab/material_catalogue/+Homogenization/generateFramedCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateFramedCrossExact.m -text
+share/matlab/material_catalogue/+Homogenization/generateShearedCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateShearedCrossExact.m -text
+share/matlab/material_catalogue/+Homogenization/geometryToMeshAndDensity.m -text
+share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMaterial.m -text
+share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMicroCell.m -text
+share/matlab/material_catalogue/+Homogenization/getInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToDensity.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMesh.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMeshOrDensity.m -text
+share/matlab/material_catalogue/+Homogenization/plotEh.m -text
+share/matlab/material_catalogue/+Homogenization/plotmesh.m -text
+share/matlab/material_catalogue/+Homogenization/png_to_densfile.m -text
+share/matlab/material_catalogue/+Homogenization/read_matrix_from_xml.m -text
+share/matlab/material_catalogue/+Homogenization/readmesh.m -text
+share/matlab/material_catalogue/+Homogenization/writeDensityFile.m -text
+share/matlab/material_catalogue/callCatalogueGeneration.m -text
+share/matlab/material_catalogue/callMatlab.sh -text
+share/matlab/material_catalogue/createPresetsFullGrid.m -text
+share/matlab/material_catalogue/createPresetsSparseGrid.m -text
+share/matlab/material_catalogue/extractPartialCatalogue.m -text
+share/matlab/material_catalogue/generateCatalogueParallel.sh -text
+share/matlab/material_catalogue/generate_points/generate_points.py -text
+share/matlab/material_catalogue/generate_points/interpolation.py -text
+share/matlab/material_catalogue/getMissingCatalogueValues.m -text
+share/matlab/material_catalogue/getWrongCatalogueValues.m -text
+share/matlab/material_catalogue/hillmandeltovoigt.m -text
+share/matlab/material_catalogue/interpolate.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_coeff.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_deriv.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_int.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_offline.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_partialderiv.m -text
+share/matlab/material_catalogue/interpolation2D/detailed_stats_10 -text
+share/matlab/material_catalogue/interpolation2D/hom_stats_to_mat.m -text
+share/matlab/material_catalogue/interpolation2D/main.m -text
+share/matlab/material_catalogue/interpolation2D/main_msfem.m -text
+share/matlab/material_catalogue/interpolation2D/msfem_stats_to_mat.m -text
+share/matlab/material_catalogue/interpolation2D/plot_interp.m -text
+share/matlab/material_catalogue/interpolation2D/test.m -text
+share/matlab/material_catalogue/interpolation2D/write_to_xml.m -text
+share/matlab/material_catalogue/interpolation2D/write_to_xml_msfem.m -text
+share/matlab/material_catalogue/interpolation3D/Makefile -text
+share/matlab/material_catalogue/interpolation3D/calc3Dvol.m -text
+share/matlab/material_catalogue/interpolation3D/coeff.h -text
+share/matlab/material_catalogue/interpolation3D/coeff_3D.xml -text
+share/matlab/material_catalogue/interpolation3D/coeff_vol3D.xml -text
+share/matlab/material_catalogue/interpolation3D/detailed_stats_10_3D -text
+share/matlab/material_catalogue/interpolation3D/getA.m -text
+share/matlab/material_catalogue/interpolation3D/getMatrix -text
+share/matlab/material_catalogue/interpolation3D/getMatrix.cc -text
+share/matlab/material_catalogue/interpolation3D/matrix.dat -text
+share/matlab/material_catalogue/interpolation3D/test -text
+share/matlab/material_catalogue/interpolation3D/test_3D.m -text
+share/matlab/material_catalogue/interpolation3D/test_data.dat -text
+share/matlab/material_catalogue/interpolation3D/text -text
+share/matlab/material_catalogue/interpolation3D/tri -text
+share/matlab/material_catalogue/interpolation3D/tricubic -text
+share/matlab/material_catalogue/interpolation3D/tricubic2 -text
+share/matlab/material_catalogue/interpolation3D/tricubic_coeff.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_deriv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int.cc -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int2.cc -text
+share/matlab/material_catalogue/interpolation3D/tricubic_offline.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_parderiv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv_copy.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv_variante.m -text
+share/matlab/material_catalogue/interpolation3D/wrapper_3D.m -text
+share/matlab/material_catalogue/interpolation3D/write_to_xml_3D.m -text
+share/matlab/material_catalogue/ismemberf.m -text
+share/matlab/material_catalogue/java.opts -text
+share/matlab/material_catalogue/parfortest.m -text
+share/matlab/material_catalogue/plotTensors.m -text
+share/matlab/material_catalogue/rotatehillmandel.m -text
+share/matlab/material_catalogue/rotatevoigt.m -text
+share/matlab/material_catalogue/sortCatalogue.m -text
+share/matlab/material_catalogue/validateCFS.m -text
+share/matlab/material_catalogue/voigttohillmandel.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
 share/matlab/mmwrite.m -text
@@ -1083,49 +1198,6 @@ share/python/material_catalogue/compliance_plain.xml -text
 share/python/material_catalogue/create_hom_catalogue.py -text
 share/python/material_catalogue/create_msfem_catalogue.py -text
 share/python/material_catalogue/evaluate.py -text
-share/python/material_catalogue/interpolation2D/bicubic_coeff.m -text
-share/python/material_catalogue/interpolation2D/bicubic_deriv.m -text
-share/python/material_catalogue/interpolation2D/bicubic_int.m -text
-share/python/material_catalogue/interpolation2D/bicubic_offline.m -text
-share/python/material_catalogue/interpolation2D/bicubic_partialderiv.m -text
-share/python/material_catalogue/interpolation2D/detailed_stats_10 -text
-share/python/material_catalogue/interpolation2D/hom_stats_to_mat.m -text
-share/python/material_catalogue/interpolation2D/main.m -text
-share/python/material_catalogue/interpolation2D/main_msfem.m -text
-share/python/material_catalogue/interpolation2D/msfem_stats_to_mat.m -text
-share/python/material_catalogue/interpolation2D/plot_interp.m -text
-share/python/material_catalogue/interpolation2D/test.m -text
-share/python/material_catalogue/interpolation2D/write_to_xml.m -text
-share/python/material_catalogue/interpolation2D/write_to_xml_msfem.m -text
-share/python/material_catalogue/interpolation3D/Makefile -text
-share/python/material_catalogue/interpolation3D/calc3Dvol.m -text
-share/python/material_catalogue/interpolation3D/coeff.h -text
-share/python/material_catalogue/interpolation3D/coeff_3D.xml -text
-share/python/material_catalogue/interpolation3D/coeff_vol3D.xml -text
-share/python/material_catalogue/interpolation3D/detailed_stats_10_3D -text
-share/python/material_catalogue/interpolation3D/getA.m -text
-share/python/material_catalogue/interpolation3D/getMatrix -text
-share/python/material_catalogue/interpolation3D/getMatrix.cc -text
-share/python/material_catalogue/interpolation3D/matrix.dat -text
-share/python/material_catalogue/interpolation3D/test -text
-share/python/material_catalogue/interpolation3D/test_3D.m -text
-share/python/material_catalogue/interpolation3D/test_data.dat -text
-share/python/material_catalogue/interpolation3D/text -text
-share/python/material_catalogue/interpolation3D/tri -text
-share/python/material_catalogue/interpolation3D/tricubic -text
-share/python/material_catalogue/interpolation3D/tricubic2 -text
-share/python/material_catalogue/interpolation3D/tricubic_coeff.m -text
-share/python/material_catalogue/interpolation3D/tricubic_deriv.m -text
-share/python/material_catalogue/interpolation3D/tricubic_int.cc -text
-share/python/material_catalogue/interpolation3D/tricubic_int.m -text
-share/python/material_catalogue/interpolation3D/tricubic_int2.cc -text
-share/python/material_catalogue/interpolation3D/tricubic_offline.m -text
-share/python/material_catalogue/interpolation3D/tricubic_parderiv.m -text
-share/python/material_catalogue/interpolation3D/tricubic_partialderiv.m -text
-share/python/material_catalogue/interpolation3D/tricubic_partialderiv_copy.m -text
-share/python/material_catalogue/interpolation3D/tricubic_partialderiv_variante.m -text
-share/python/material_catalogue/interpolation3D/wrapper_3D.m -text
-share/python/material_catalogue/interpolation3D/write_to_xml_3D.m -text
 share/python/material_catalogue/inv_tensor.xml -text
 share/python/material_catalogue/inv_tensor_3D.xml -text
 share/python/material_catalogue/mat.xml -text
