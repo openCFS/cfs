@@ -51,12 +51,8 @@ IF(USE_LIBFBI)
   SET(PFN "${boost_prefix}/libfbi-patch.cmake")
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-  IF(WIN32)
-    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-  ELSE(WIN32)
-    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
-  ENDIF(WIN32)
-  SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  # not sure if precompiled makes sense, the lib claims to be c++ header only 
+  PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
     
   SET(PREFIX_DIR "${spacepart_prefix}")
   

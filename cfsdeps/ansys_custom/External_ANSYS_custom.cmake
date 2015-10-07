@@ -106,12 +106,7 @@ ExternalData_expand_arguments(ansys_custom_external_data
 ExternalData_Add_Target(ansys_custom_external_data)
 
 # There is no ANSYS_CUSTOM_VER yet! 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ansys_custom_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ansys_custom_${CFS_ARCH_STR}_${CFS_CXX_COMPILER_NAME}_${CFS_CXX_COMPILER_VER}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "ansys_custom" "no_ver") 
   
 SET(PREFIX_DIR "${ansys_custom_prefix}")
 
