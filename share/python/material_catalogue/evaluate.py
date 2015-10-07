@@ -405,9 +405,9 @@ elif dim == 3:
               y = y_tmp
               z = z_tmp
           z += 1
-      if args.design:
+      if not args.design:
         y += 1
-    if args.design:
+    if not args.design:
       x += 1
 out.close()
 

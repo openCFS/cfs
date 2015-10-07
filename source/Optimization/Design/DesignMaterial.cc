@@ -407,7 +407,6 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       interpolation_ = C1;
       Xerces xerces;
       xerces.SetFile(file);
-      std::cout << file << "\n";
       PtrParamNode root = xerces.CreateParamNodeInstance();
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       if (dim == 2) {
@@ -439,27 +438,14 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         } else {
           int dim1 = root->Get("coeff11/matrix/dim1")->As<int>();
           int dim2 = root->Get("coeff11/matrix/dim2")->As<int>();
-          //int dim3 = root->Get("a/matrix/dim1")->As<int>();
-          //int dim4 = root->Get("b/matrix/dim1")->As<int>();
-          //PtrParamNode tmp = root->Get("coeff11/matrix/real", ParamNode::PASS);
-          //hom_rect_coeff11_ = tmp->As<Matrix<Double> >();
-          ParamTools::AsTensor<Double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-//          tmp = root->Get("coeff12/matrix/real", ParamNode::PASS);
-//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff11_);
-//          tmp = root->Get("coeff22/matrix/real", ParamNode::PASS);
-//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff22_);
-//          tmp = root->Get("coeff33/matrix/real", ParamNode::PASS);
-//          ParamTools::AsTensor<Double>(tmp, dim1, dim2, hom_rect_coeff33_);
-//          tmp = root->Get("a/matrix/real", ParamNode::PASS);
-//          ParamTools::AsTensor<Double>(tmp, dim3, 1, hom_rect_a_);
-//          tmp = root->Get("b/matrix/real", ParamNode::PASS);
-//          ParamTools::AsTensor<Double>(tmp, dim4, 1, hom_rect_b_);
-//          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
-//          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
-//          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
-//          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
-//          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
-//          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
+          int dim3 = root->Get("a/matrix/dim1")->As<int>();
+          int dim4 = root->Get("b/matrix/dim1")->As<int>();
+          ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
+          ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
+          ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
+          ParamTools::AsTensor<double>(root->Get("coeff33/matrix/real"), dim1, dim2, hom_rect_coeff33_);
+          ParamTools::AsTensor<double>(root->Get("a/matrix/real"), dim3, 1, hom_rect_a_);
+          ParamTools::AsTensor<double>(root->Get("b/matrix/real"), dim4, 1, hom_rect_b_);
           hom_rect_coeff33_ = hom_rect_coeff33_ * (notation == VOIGT ? 2.0 : 1.0);
           if (root->Has("c")) {
             int dim5 = root->Get("c/matrix/dim1")->As<int>();
@@ -627,13 +613,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // Read interpolation coefficients of MSFEM element stiffness matrices from material catalogue
         PtrParamNode hr = pn->Get("MSFEMC1");
         std::string file = hr->Get("file")->As<std::string>();
-        Xerces xerces(file);
+        Xerces xerces;
+        xerces.SetFile(file);
         PtrParamNode root = xerces.CreateParamNodeInstance();
         ParamTools::AsMatrix<double>(root->Get("a/matrix"),msfem_a_);
         ParamTools::AsMatrix<double>(root->Get("b/matrix"),msfem_b_);
-        if (HasParameter(DesignElement::ROTANGLE)){
-          ParamTools::AsMatrix<double>(root->Get("c/matrix"),msfem_rot_);
-        }
         StdVector<std::string> index;
         index = "11","12","13","14","15","16","17","18","22","23","24","25",
             "26","27","28","33","34","35","36","37","38","44","45","46","47","48","55","56","57","58","66","67","68","77","78","88";
@@ -644,16 +628,20 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           std::string tmp = ss.str();
           ParamTools::AsMatrix<double>(root->Get(tmp), msfem_coeff_[i]);
         }
+        LOG_DBG3(dm) << "a = " << msfem_a_;
+        LOG_DBG3(dm) << "b = " << msfem_b_;
+        LOG_DBG3(dm) << "Size of msfem_coeff = " << msfem_coeff_.GetSize();
+  } else {
+    LOG_DBG3(dm) << "a = " << hom_rect_a_;
+    LOG_DBG3(dm) << "b = " << hom_rect_b_;
+    LOG_DBG3(dm) << "c = " << hom_rect_c_;
+    LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
   }
-  LOG_DBG3(dm) << "a = " << hom_rect_a_;
-  LOG_DBG3(dm) << "b = " << hom_rect_b_;
-  LOG_DBG3(dm) << "c = " << hom_rect_c_;
-  LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -1009,9 +997,9 @@ unsigned int DesignMaterial::RequiredParameters(
       return r + 6;
   case MSFEM_C1:
     if (dim == 2)
-      return r + 2;
-    else
       return r + 3;
+    else
+      return r + 6;
   case D_HOM_RECT:
     return r + 4;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
@@ -1206,10 +1194,13 @@ bool DesignMaterial::CheckRequiredDesigns(
     if (dim == 3) {
       return (design.Find(DesignElement::STIFF1) >= 0
           && design.Find(DesignElement::STIFF2) >= 0
-          && design.Find(DesignElement::STIFF3) >= 0);
+          && design.Find(DesignElement::STIFF3) >= 0
+          && design.Find(DesignElement::ROTANGLEX) >= 0
+          && design.Find(DesignElement::ROTANGLEY) >= 0);
     } else {
       return (design.Find(DesignElement::STIFF1) >= 0
-          && design.Find(DesignElement::STIFF2) >= 0);
+          && design.Find(DesignElement::STIFF2) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0);
     }
   }
   assert(false);
@@ -3916,72 +3907,77 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
 
 
 
-void DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
-    DesignElement::Type direction) {
+bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
+    const Elem* elem,DesignElement::Type direction) {
     assert((type_ == MSFEM_C1));
+
+    // collect all parameters
+    if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+      throw Exception("no elem data for MSFEM defined");
 
     // read design variables
     double a = params_[DesignElement::STIFF1];
     double b = params_[DesignElement::STIFF2];
-    double rotAngle = 0.;
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      rotAngle = params_[DesignElement::ROTANGLE];
-    }
+    //double rotAngle = 0.;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  rotAngle = params_[DesignElement::ROTANGLE];
+    //}
     Vector<double> p(2);
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      p.Resize(3);
-    }
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  p.Resize(3);
+    //}
     p[0] = a;
     p[1] = b;
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      p[2] = rotAngle;
-    }
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  p[2] = rotAngle;
+    //}
     // length of the discretized design interval
     int m = msfem_a_.GetNumRows();
     int n = msfem_b_.GetNumRows();
-    int o = -1;
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      o = msfem_rot_.GetNumRows();
-    }
+    //int o = -1;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  o = msfem_rot_.GetNumRows();
+    //}
 
     // grid size of the discretized design interval, works only for uniform material catalogue grids so far
     double da = msfem_a_[1][0] - msfem_a_[0][0];
     double db = msfem_b_[1][0] - msfem_b_[0][0];
-    double drot = 0.;
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      drot = msfem_rot_[1][0] - msfem_rot_[0][0];
-    }
+    //double drot = 0.;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  drot = msfem_rot_[1][0] - msfem_rot_[0][0];
+    //}
 
     int j = GetInterpolationIndex(msfem_a_,p[0]);
     int k = GetInterpolationIndex(msfem_b_,p[1]);
-    int l = -1;
-    if (HasParameter(DesignElement::ROTANGLE)) {
-      l = GetInterpolationIndex(msfem_rot_,p[2]);
-    }
+    //int l = -1;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  l = GetInterpolationIndex(msfem_rot_,p[2]);
+    //}
 
     int count = 0;
     A.Resize(8,8);
     for (int ii = 0;ii<8;ii++) {
       for (int jj = ii;jj<8;jj++) {
-        if (HasParameter(DesignElement::ROTANGLE)) {
-          if (direction == DesignElement::NO_DERIVATIVE) {
-            A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
-          } else {
-            A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count], da,db, drot, j, k, l, m, n, o);
-          }
-        } else {
-          if (direction == DesignElement::NO_DERIVATIVE) {
+        //if (HasParameter(DesignElement::ROTANGLE)) {
+        //  if (direction == DesignElement::NO_DERIVATIVE) {
+        //    A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
+        //  } else {
+        //    A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count], da,db, drot, j, k, l, m, n, o);
+        //  }
+        //} else {
+          if (direction == BaseDesignElement::NO_DERIVATIVE) {
             A[ii][jj] = EvaluateC1Interpolation(p, msfem_coeff_[count],da,db,j,k,m,n);
           } else {
             A[ii][jj] = EvaluateC1Interpolation_Deriv(p, msfem_coeff_[count], da,db,j,k,m,n,direction);
           }
-        }
+        //}
         if (ii!=jj) {
           A[jj][ii] = A[ii][jj];
         }
         count++;
       }
     }
+    return true;
 }
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
@@ -4109,13 +4105,13 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n, DesignElement::Type direction) const {
   double u,t;
-    if (type_ == MSFEM_C1) {
-      t = (p[0] - msfem_a_[j][0]) / (da);
-      u = (p[1] - msfem_b_[k][0]) / (db);
-    } else {
-      t = (p[0] - hom_rect_a_[j][0]) / (da);
-      u = (p[1] - hom_rect_b_[k][0]) / (db);
-    }
+  if (type_ == MSFEM_C1) {
+    t = (p[0] - msfem_a_[j][0]) / (da);
+    u = (p[1] - msfem_b_[k][0]) / (db);
+  } else {
+    t = (p[0] - hom_rect_a_[j][0]) / (da);
+    u = (p[1] - hom_rect_b_[k][0]) / (db);
+  }
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
 
   double deriv = 0;
@@ -5033,6 +5029,9 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case D_INTERP_TENSOR:
   case D_INTERP_TENSOR_ROT:
     GetInterpolatedTensor(t, subTensor, direction, notation);
+    break;
+  case MSFEM_C1:
+    ZeroTensor(t, subTensor);
     break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");

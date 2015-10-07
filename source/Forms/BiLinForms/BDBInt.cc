@@ -56,7 +56,6 @@ namespace CoupledField{
 
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
-
     MAT_DATA_TYPE fac = 0.0;
 
     // Obtain FE element from feSpace and integration scheme
@@ -84,6 +83,13 @@ namespace CoupledField{
 
     // Loop over all integration points
     LocPointMapped lp;
+    // if MSFEM get Element Matrix from material catalog
+    if(domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
+      lp.Set( intPoints[0], esm, weights[0] );
+      dData_->GetMsfemElementMatrix(dynamic_cast <Matrix<Double> &> (elemMat),lp);
+      LOG_DBG3(bdbint) << "BDB elemMatrix=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum<<" elemMat=" << elemMat.ToString();
+      return;
+    }
     const UInt numIntPts = intPoints.GetSize();
     for( UInt i = 0; i < numIntPts; i++  ) {
 
