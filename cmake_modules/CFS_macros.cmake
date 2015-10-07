@@ -182,13 +182,13 @@ ENDMACRO (TODAY)
 #-------------------------------------------------------------------------------
 # Convert new line style of files
 #-------------------------------------------------------------------------------
-MACRO (CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
+MACRO(CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
   foreach(file ${FILES})
     MESSAGE(STATUS "Converting newlines to ${STYLE} for ${file}")
     CONFIGURE_FILE(${file} ${TEMPFILE} @ONLY NEWLINE_STYLE ${STYLE})
     CONFIGURE_FILE(${TEMPFILE} ${file} @ONLY NEWLINE_STYLE ${STYLE})
   endforeach(file)
-ENDMACRO (CHANGE_NEWLINE_STYLE)
+ENDMACRO(CHANGE_NEWLINE_STYLE)
 
 #-------------------------------------------------------------------------------
 # Apply patches
@@ -306,7 +306,10 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
     IF(NOT "${rv}" STREQUAL "0")
       MESSAGE("Could not extract ${ZIP_FILE}.")
     ENDIF()
+  ELSE()
+    MESSAGE("Could not find precompiled ${ZIP_FILE}.")
   ENDIF()
+  
 ENDMACRO()
 
 #-------------------------------------------------------------------------------
@@ -332,4 +335,49 @@ MACRO(ZIP_TO_CACHE ZIP_FILE PREFIX_DIR)
       MESSAGE("Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
     ENDIF()
   ENDFOREACH()
+ENDMACRO()
+
+# ------------------------------------------------------------------------------
+# Generate a package name for the precompiled zip file based on a C/C++ compiler
+# ------------------------------------------------------------------------------
+MACRO(PRECOMPILED_ZIP_CXX RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
+ENDMACRO()
+
+MACRO(PRECOMPILED_ZIP_CXX_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
+ENDMACRO()
+
+
+# ------------------------------------------------------------------------------
+# Generate a package name for the precompiled zip file based on a Fortran compiler
+# ------------------------------------------------------------------------------
+# e.g. PRECOMPILED_FOR_ZIP("arpack" "${ARPACK_VER}")
+MACRO(PRECOMPILED_ZIP_FOR RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
+
+  # in the intel case:
+  # FC_VERSION=16.0 20150815
+  # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
+  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
+ENDMACRO()
+
+MACRO(PRECOMPILED_ZIP_FOR_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
+
+  # in the intel case:
+  # FC_VERSION=16.0 20150815
+  # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
+  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}.zip")
+ENDMACRO()
+
+
+#------------------------------------------------------
+# Display all available variables
+#------------------------------------------------------
+MACRO(DISPLAY_ALL_VARIABLES)
+  get_cmake_property(_variableNames VARIABLES)
+  foreach (_variableName ${_variableNames})
+    message("${_variableName}=${${_variableName}}")
+  endforeach()
 ENDMACRO()
