@@ -101,7 +101,9 @@ CONFIGURE_FILE(
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "hdf5" "${HDF5_VER}")  
   
-SET(PREFIX_DIR "${hdf5_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${hdf5_prefix}/src")
 
 SET(ZIPFROMCACHE "${hdf5_prefix}/hdf5-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

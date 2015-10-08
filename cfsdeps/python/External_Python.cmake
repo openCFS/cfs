@@ -8,7 +8,9 @@ set(python_BUILD_IN_SOURCE 1)
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "python" "${python_VER}")  
   
-SET(PREFIX_DIR "${python_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${python_prefix}/src")
 
 if(WIN32)
 

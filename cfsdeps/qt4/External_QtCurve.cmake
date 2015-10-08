@@ -11,7 +11,9 @@ SET(QTCURVE_MD5 "3082f48597c9584b24ba144040f1ac34")
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "qtcurve" "${QTCURVE_VER}")  
   
-SET(PREFIX_DIR "${qtcurve_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${qtcurve_prefix}/src")
 
 SET(ZIPFROMCACHE "${qtcurve_prefix}/qtcurve-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

@@ -42,7 +42,9 @@ CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "sgpp" "${SGPP_VER}")  
   
-SET(PREFIX_DIR "${SGPP_PREFIX}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${SGPP_PREFIX}/src")
 
 SET(ZIPFROMCACHE "${SGPP_PREFIX}/sgpp-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
