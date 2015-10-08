@@ -1,6 +1,9 @@
 dim  = 3;
 level = 3;
 
+% Get current path
+path = fileparts(which('createPresetsSparseGrid.m'));
+
 % Generate points with python script
 tmp = pwd;
 cd('generate_points/');
@@ -14,7 +17,7 @@ cd(tmp);
 
 % Read levels and indices
 format = ['[ ',repmat('%d, %d, ',1,dim-1),'%d, %d ]\n'];
-fid = fopen('/home/daniel/Masterarbeit/generate_points/grid_points.csv');
+fid = fopen([path,'/generate_points/grid_points.csv']);
 A = fscanf(fid,format);
 fclose(fid);
 
