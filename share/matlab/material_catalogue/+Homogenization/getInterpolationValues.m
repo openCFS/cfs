@@ -6,8 +6,11 @@ function getInterpolationValues(gridfile, threadID)
 meshgenerationfunc = @Homogenization.generateShearedCrossExact;
 % meshgenerationfunc = @Homogenization.generateFramedCross;
 % meshgenerationfunc = @Homogenization.generateFramedCrossExact;
-    
-cfsworkingdirectory = '/home/daniel/Masterarbeit/Matlab/+Homogenization/CFS_Working_Directory';
+
+% Get current path
+path = fileparts(which('+Homogenization/getInterpolationValues.m'));
+
+cfsworkingdirectory = [path,'/CFS_Working_Directory'];
 
 % GET INTERPOLANTS FOR ELASTICITY TENSOR
 try

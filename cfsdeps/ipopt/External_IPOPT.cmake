@@ -46,7 +46,9 @@ CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "ipopt" "${IPOPT_VER}")  
   
-SET(PREFIX_DIR "${IPOPT_PREFIX}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${IPOPT_PREFIX}/install")
 
 SET(ZIPFROMCACHE "${IPOPT_PREFIX}/ipopt-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -77,7 +79,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   ExternalProject_Add(ipopt
     PREFIX "${IPOPT_PREFIX}"
     SOURCE_DIR "${IPOPT_SOURCE}"
-    # the stepp cfsdeps_download ensures the file will be found in cfsdepscache
+    # the step cfsdeps_download ensures the file will be found in cfsdepscache
     URL ${LOCAL_FILE}
     URL_MD5 ${IPOPT_MD5}
     # note that when unzipping the source, the Ipopt-3.11.9 directory is omitted
@@ -88,6 +90,13 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
     cd CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3 
   )
+  
+  ExternalProject_Add_Step(ipopt cfsdeps_download 
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}" 
+    DEPENDERS download 
+    DEPENDS "${DLFN}" 
+    WORKING_DIRECTORY ${ipopt_prefix} 
+  ) 
 
   ExternalProject_Add_Step(ipopt post_install
     COMMAND ${CMAKE_COMMAND} -P "${PI}"
