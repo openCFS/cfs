@@ -29,7 +29,9 @@ CONFIGURE_FILE("${INST_TEMPL}" "${INST}" @ONLY)
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "cmake" "${CMAKE_VER}")
   
-SET(PREFIX_DIR "${cmake_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${cmake_prefix}/src")
 
 SET(ZIPFROMCACHE "${cmake_prefix}/cmake-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
