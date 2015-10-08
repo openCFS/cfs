@@ -53,7 +53,9 @@ CONFIGURE_FILE(
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
   
-SET(PREFIX_DIR "${gmp_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${gmp_prefix}/src")
 
 SET(ZIPFROMCACHE "${gmp_prefix}/gmp-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

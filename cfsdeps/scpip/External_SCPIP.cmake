@@ -63,7 +63,9 @@ SET(MD5_SUM ${SCPIP_MD5})
 
 PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "scpip" "${SCPIP_VER}")
   
-SET(PREFIX_DIR "${scpip_prefix}")
+# This should be either PREFIX_DIR/src (install manifest is used for zipping)
+# or PREFIX_DIR/install (install directory will be zipped)
+SET(TMP_DIR "${scpip_prefix}/src")
 
 SET(ZIPFROMCACHE "${scpip_prefix}/scpip-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
