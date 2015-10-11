@@ -70,7 +70,7 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[cur_];}
+      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[adjCur_];}
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -118,7 +118,9 @@ namespace CoupledField
               //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
               for(int  dir = 0; dir < n_q_; dir++) {
                 if (adjoint)
+                {
                   res = APDF(next, elem, dir) - APDF(cur, elem, dir);
+                }
                 else
                   res = PDF(next, elem, dir) - PDF(cur, elem, dir);
                 R += res * res;
@@ -349,8 +351,8 @@ namespace CoupledField
           StdVector<PDFDirectionVector> microVelDirections;
           // lookup table to get inverse directions of the pdfs
           StdVector<Direction> invPDFDirections;
-          int cur_;
-          int next_;
+          int cur_, adjCur_;
+          int next_, adjNext_;
 
           // Transformation matrix M for momentum space
           Matrix<double> transformation;
