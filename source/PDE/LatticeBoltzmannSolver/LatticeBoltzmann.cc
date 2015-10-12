@@ -859,36 +859,33 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   }
 
   // non-zero entries of d_mEq/d_m
-  // NOTE: matrix is already transposed!
   Matrix<double> d_mEq_d_m(n_q_,n_q_);
   d_mEq_d_m.InitValue(0.0);
   d_mEq_d_m[0][0] = 1.0; // 0th row of d_mEq/d_m describes d_mEq/d_rho
-  d_mEq_d_m[0][1] = - 2.0 - 3.0 * u2;
-  d_mEq_d_m[0][2] = 1.0 + 3.0 * u2;
-  d_mEq_d_m[0][7] = - (ux * ux - uy * uy);
-  d_mEq_d_m[0][8] = - ux * uy;
-  d_mEq_d_m[3][1] = 6.0 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
-  d_mEq_d_m[3][2] = -6.0 * ux;
+  d_mEq_d_m[1][0] = - 2.0 - 3.0 * u2;
+  d_mEq_d_m[2][0] = 1.0 + 3.0 * u2;
+  d_mEq_d_m[7][0] = - (ux * ux - uy * uy);
+  d_mEq_d_m[8][0] = - ux * uy;
+  d_mEq_d_m[1][3] = 6.0 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
+  d_mEq_d_m[2][3] = -6.0 * ux;
   d_mEq_d_m[3][3] = 1.0;
-  d_mEq_d_m[3][4] = -1.0;
-  d_mEq_d_m[3][7] = 2 * ux;
-  d_mEq_d_m[3][8] = uy;
-  d_mEq_d_m[5][1] = 6.0 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
-  d_mEq_d_m[5][2] = - 6.0 * uy;
+  d_mEq_d_m[4][3] = -1.0;
+  d_mEq_d_m[7][3] = 2 * ux;
+  d_mEq_d_m[8][3] = uy;
+  d_mEq_d_m[1][5] = 6.0 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
+  d_mEq_d_m[2][5] = - 6.0 * uy;
   d_mEq_d_m[5][5] = 1.0;
-  d_mEq_d_m[5][6] = -1.0;
-  d_mEq_d_m[5][7] = -2.0 * uy;
-  d_mEq_d_m[5][8] = ux;
+  d_mEq_d_m[6][5] = -1.0;
+  d_mEq_d_m[7][5] = -2.0 * uy;
+  d_mEq_d_m[8][5] = ux;
 
   Matrix<double> d_F1_d_m(n_q_,n_q_);
   d_F1_d_m.InitValue(0.0);
   double alpha = CalcResistanceCoeff(elemId);
-  if (elemId == 4)
-    std::cout << "alpha: " << alpha << std::endl;
-  d_F1_d_m[3][3] = -alpha;
-  d_F1_d_m[3][4] = alpha;
-  d_F1_d_m[5][5] = -alpha;
-  d_F1_d_m[5][6] = alpha;
+  d_F1_d_m[3][3] = -alpha; // d_F1_d_jx
+  d_F1_d_m[4][3] = alpha;
+  d_F1_d_m[5][5] = -alpha; // d_F1_d_jy
+  d_F1_d_m[6][5] = alpha;
 
   Matrix<double> d_F2_d_m(n_q_,n_q_);
   d_F2_d_m.InitValue(0.0);
@@ -1265,8 +1262,9 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
 }
 
 /************************************************** adjoint 2D operators *****************************************************/
-void LatticeBoltzmann::AdjointCollision(int cur, int next)
+void LatticeBoltzmann::AdjointCollision(int cur)
 {
+  tmpPdfs_.Resize(nNodes_ * n_q_);
   int index;
   int z = 0;
   Matrix<double> adjTransformation(n_q_,n_q_);
@@ -1285,7 +1283,9 @@ void LatticeBoltzmann::AdjointCollision(int cur, int next)
 
       Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
       Matrix<double> collMatrix = adjCollision[index];
-      momentsAfterCollision = d_diss_d_m[index] + collMatrix * moments; // collMatrix is already transposed, so is d_diss_d_m
+      Matrix<double> collMatrixT(n_q_,n_q_);
+      collMatrix.Transpose(collMatrixT);
+      momentsAfterCollision = d_diss_d_m[index] + collMatrixT * moments;
 
       Vector<double> collResult(n_q_);
       Matrix<double> transpose(n_q_, n_q_);
@@ -1293,7 +1293,8 @@ void LatticeBoltzmann::AdjointCollision(int cur, int next)
       transpose.Mult(momentsAfterCollision, collResult);
 
       for (int dir = 0; dir < n_q_; dir++)
-        APDF(cur,index,dir) = collResult[dir];
+        tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
+//        APDF(cur,index,dir) = collResult[dir];
     }
 }
 
@@ -1301,17 +1302,12 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 {
   Vector<double> pdfs(n_q_);
 
-//  int index;
   int z = 0;
   int tmp_x, tmp_y, tmp_z = 0;
 
   for (int x = 0; x < sizeX_; x++)
     for (int y = 0; y < sizeY_; y++)
     {
-//      index = GetIndex(x,y,z);
-
-//      for (int dir = 0; dir < n_q_; dir++)
-//        pdfs[dir] = APDF(cur,index,dir);
 
       // propagation
       for (int  dir = 0; dir < n_q_; dir++) {
@@ -1325,7 +1321,9 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
           tmp_y = microVelDirections[dir].off_y + y;
         }
 
-        APDF(next,x,y,z,dir) = APDF(cur, tmp_x, tmp_y,  tmp_z, dir);
+        int index = GetIndex(tmp_x,tmp_y,tmp_z);
+        APDF(next,x,y,z,dir) = tmpPdfs_[GetPdfIndex(index,dir)];
+//        APDF(next,x,y,z,dir) = APDF(cur, tmp_x, tmp_y,  tmp_z, dir);
       }
 
     }
@@ -1373,8 +1371,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   LOG_DBG3(lbm) << "\n steady state pdfs: " << pdfs_.ToString(false) << std::endl;
 
-//  while(it < maxIter_ && !steady_state && R <= 1000)
-  while(it < 90 && !steady_state && R <= 1000)
+  while(it < maxIter_ && !steady_state && R <= 1000)
   {
     LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
 //    std::cout << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------" << std::endl;
@@ -1385,31 +1382,53 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 //        std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
 //      std::cout << std::endl;
 //    }
-    // collision
-    AdjointCollision(adjCur_, adjNext_);
-    std::cout << "\nAfter collision and backtransformation: " << std::endl;
-    for (int elem = 0; elem < nNodes_; elem++)
-    {
-      for (int dir = 0; dir < n_q_; dir++)
-        std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
-      std::cout << std::endl;
+//    // collision
+    AdjointCollision(adjCur_);
+    if (it == 1000 || it == 1001 || it == 1002) {
+      std::cout << "\nAfter collision and backtransformation: " << std::endl;
+      for (int elem = 0; elem < nNodes_; elem++)
+      {
+        for (int dir = 0; dir < n_q_; dir++)
+          std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
+        std::cout << std::endl;
+      }
     }
 
     // -- Bounce back step ------------------------------------------------
 //    Prop_coll_bounce_back2D(adjCur_);
     AdjointPropagation(adjCur_,adjNext_);
-    std::cout << " \nAfter propagation: " << std::endl;
-    for (int elem = 0; elem < nNodes_; elem++)
-    {
-      for (int dir = 0; dir < n_q_; dir++)
-        std::cout << adjPdfs_[adjNext_][GetPdfIndex(elem,dir)] << " " ;
-      std::cout << std::endl;
-    }
-exit(-1);
+//    if (it == 8000 || it == 8001 || it == 8002) {
+//      std::cout << " \nAfter propagation: " << std::endl;
+//      for (int elem = 0; elem < nNodes_; elem++)
+//      {
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << adjPdfs_[adjNext_][GetPdfIndex(elem,dir)] << " " ;
+//        std::cout << std::endl;
+//      }
+//    }
+//exit(-1);
 //     -- Inlet condition -------------------------------------------------
 //    (this->*prop_coll_velinlet)(next_);
 //     -- Outlet condition ------------------------------------------------
 //    (this->*prop_coll_densoutlet)(next_);
+
+    if (it == 1000 || it == 1001 || it == 1002) {
+      std::cout << "Adj cur: " << std::endl;
+      for (int elem = 0; elem < nNodes_; elem++)
+      {
+        for (int dir = 0; dir < n_q_; dir++)
+          std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
+        std::cout << std::endl;
+      }
+
+      std::cout << "Adj next: " << std::endl;
+      for (int elem = 0; elem < nNodes_; elem++)
+      {
+        for (int dir = 0; dir < n_q_; dir++)
+          std::cout << adjPdfs_[adjNext_][GetPdfIndex(elem,dir)] << " " ;
+        std::cout << std::endl;
+      }
+    }
 
     if((it == 0 || it % 100 == 0))
 //    if((it == 0 || it % 100 == 0)) // check convergence
@@ -1426,6 +1445,7 @@ exit(-1);
       info->Get("adjoint/residuum")->SetValue(R);
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
       std::cout << "residual at iteration " << it << " is " << R << std::endl;
+
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
@@ -1448,11 +1468,11 @@ exit(-1);
 //    exit(-1);
   }
 
-//  if(R >= 1000)
-//    EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");
+  if(R >= 1000)
+    EXCEPTION("In LBM iteration " << it << " residuum " << R << " too large ... abort");
 
-//  if(!steady_state)
-//    EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
+  if(!steady_state)
+    EXCEPTION("internal LBM simulation could not converge: iterations: " << it << " residuum: " << R);
 
   numWriteResults_ = count;
 

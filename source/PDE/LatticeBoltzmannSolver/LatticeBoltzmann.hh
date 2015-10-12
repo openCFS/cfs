@@ -284,7 +284,7 @@ namespace CoupledField
 
           void Prop_coll_densoutlet2D(int cur);
 
-          void AdjointCollision(int cur, int next);
+          void AdjointCollision(int cur);
 
           void AdjointPropagation(int cur, int next);
 
@@ -341,6 +341,7 @@ namespace CoupledField
 
           StdVector< StdVector<double> > pdfs_;
           StdVector< StdVector<double> > adjPdfs_;
+          StdVector<double> tmpPdfs_;
 
           // store moments and equilibrium moments of steady state solution
           // need this for adjoint LBM simulation
