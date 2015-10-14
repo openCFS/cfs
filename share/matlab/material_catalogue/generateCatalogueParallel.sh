@@ -1,16 +1,25 @@
 #!/bin/sh
 
-rm my_log
+freecores=1
 
 ncores=$(nproc)
+ncores=$((ncores-freecores))
 
-filename=${1##*/}
+if (( "$ncores" < "0" )); then
+  echo "Too much free cores requested. Please lower number of cores to be left free."
+  exit
+fi
+
+filename=${1##*/} # Split string at / and take last part
 filesize=$(stat --printf="%s" $1)
 
 blocksize=$(($filesize/$ncores))
 blocksize=$(($blocksize>0?$blocksize:1))
 
-parallel --will-cite --pipepart -a $1 --block $blocksize --joblog my_log --jobs 200% --resume-failed --header '.*\n' "cat > {#}; ./callMatlab.sh {#}"
+logfile=$filename.log
+rm $logfile
+
+parallel --will-cite --pipepart -a $1 --block $blocksize --joblog $logfile --jobs $ncores --resume-failed --header '.*\n' "cat > {#}; ./callMatlab.sh {#}"
 
 cat catalogues/detailed_stats_[123456789]* >> catalogues/detailed_stats_$filename
 

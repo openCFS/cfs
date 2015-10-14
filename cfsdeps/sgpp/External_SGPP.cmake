@@ -39,12 +39,11 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/sgpp/sgpp-post_install.cmake.in")
 SET(PI "${SGPP_PREFIX}/sgpp-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "sgpp" "${SGPP_VER}")  
   
-# This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${SGPP_PREFIX}/src")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${SGPP_PREFIX}")
 
 SET(ZIPFROMCACHE "${SGPP_PREFIX}/sgpp-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -67,6 +66,17 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
+  )
+    
+  # BUGFIX: Hardcoded fix for the linker command
+  # When configuring with SGPP, CMake moves the intel libs at the end of the
+  # linker command for cfstoolbin but leaves the group inplace. Hence linking
+  # of cfstoolbin fails.
+  SET(INTEL_LIBS "/opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_core.a")
+  ExternalProject_Add_Step(sgpp fix_link_command
+    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    DEPENDEES install
   )
 ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
@@ -93,6 +103,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   ExternalProject_Add_Step(sgpp post_install
     COMMAND ${CMAKE_COMMAND} -P "${PI}"
     DEPENDEES install
+    DEPENDS "${PI}"
   )
   
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
