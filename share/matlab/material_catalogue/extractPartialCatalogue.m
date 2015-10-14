@@ -1,5 +1,5 @@
-cataloguefile = 'catalogues/detailed_stats_presets3D_127';
-presetsfile = 'presets/presets3D_63';
+cataloguefile = 'catalogues/detailed_stats_presets3D_63';
+presetsfile = 'presets/presets3D_L5';
 
 fid = fopen(cataloguefile);
 tmp = fscanf(fid,'%dD\t%d');
