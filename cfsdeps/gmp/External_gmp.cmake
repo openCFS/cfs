@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------
 set(gmp_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/gmp")
 set(gmp_source  "${gmp_prefix}/src/gmp")
-set(gmp_install  "${CMAKE_CURRENT_BINARY_DIR}")
+set(gmp_install  "${gmp_prefix}/install")
 
 #-------------------------------------------------------------------------------
 # Set names of configure file and template file.
@@ -44,18 +44,20 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gmp/${GMP_BZ2}")
 SET(MD5_SUM ${GMP_MD5})
 
 SET(DLFN "${gmp_prefix}/gmp-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
+#-------------------------------------------------------------------------------
+# After the installation we copy to cfs
+#-------------------------------------------------------------------------------
+SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-post_install.cmake.in")
+SET(PI "${gmp_prefix}/gmp-post_install.cmake")
+CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
   
 # This should be either PREFIX_DIR/src (install manifest is used for zipping)
 # or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${gmp_prefix}/src")
+SET(TMP_DIR "${gmp_prefix}/install")
 
 SET(ZIPFROMCACHE "${gmp_prefix}/gmp-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -106,13 +108,21 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     WORKING_DIRECTORY ${gmp_prefix}
   )
   
+  #-------------------------------------------------------------------------------
+  # Execute the stuff from gmp-post_install.cmake after installation
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(gmp post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
+  
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(gmp cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
+      DEPENDEES post_install
       DEPENDS "${ZIPTOCACHE}"
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )

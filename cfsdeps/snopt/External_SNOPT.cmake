@@ -60,7 +60,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
   ExternalProject_Add(snopt
-    PREFIX "${snopt_prefix}"
+    PREFIX "${SNOPT_PREFIX}"
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
