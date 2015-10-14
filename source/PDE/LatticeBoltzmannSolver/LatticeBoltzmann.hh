@@ -72,6 +72,27 @@ namespace CoupledField
        */
       inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[adjCur_];}
 
+      /** Returns overall dissipation calculated with current pdfs */
+      inline double GetDissipation()
+      {
+        Vector<double> pdfs(n_q_);
+        double dissipation = 0.0;
+        for (int elem = 0; elem < nNodes_; elem++) {
+          for (int dir = 0; dir < n_q_; dir++)
+            pdfs[dir] = PDF(cur_,elem,dir);
+
+          Vector<double> moms(n_q_);
+          transformation.Mult(pdfs,moms);
+          Vector<double> eqMoms;
+          CalcEquilMoments(moms,eqMoms);
+
+          Vector<double> f1,f2;
+          CalcDarcyForce(moms,elem,f1,f2);
+          dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+        }
+        return dissipation;
+      }
+
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
        */
@@ -81,6 +102,9 @@ namespace CoupledField
        * @return Number of iterations until steady-state convergence
        */
       inline int GetNumIterations() {return numIterations_; }
+
+      /** return adjoint transformation matrix for conversion of adjoint pdfs into momentum space*/
+      inline const Matrix<double>& GetAdjTransformation() {return adjTransformation; }
 
       inline StdVector<PDFDirectionVector>& GetPDFDirectionVectors() { return microVelDirections; }
       inline StdVector<Direction>& GetinvPDFDirections() { return invPDFDirections; }
@@ -358,6 +382,7 @@ namespace CoupledField
           // Transformation matrix M for momentum space
           Matrix<double> transformation;
           Matrix<double> invTransformation;
+          Matrix<double> adjTransformation;
           // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
           Matrix<double> invM_S;
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries

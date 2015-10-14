@@ -504,7 +504,7 @@ namespace CoupledField {
         // We need to perform an additional propagation step as base for the adjoint system setup
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
-        if (!srt_) {
+        if (!srt_ && domain_->GetOptimization() != NULL) {
           StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
           adjPdfs = *tmpAdj;
         }
@@ -603,6 +603,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   timer.Start();
   adjoint_.Start();
 
+  if (srt_)
+  {
   // Initialization of the data structures
   StdVector<double> ux(n_elems);
   StdVector<double> uy(n_elems);
@@ -750,7 +752,58 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
   adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
   adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
+  }
+  else // in MRT case, adjoint LBM solver delivers adjoint solution
+  {
+    Vector<double> pdfs(n_q_);
+    Vector<double> adjPdfs(n_q_);
+    const Matrix<double>& adjTransformation = lbm->GetAdjTransformation();
+    for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+    {
+      DesignElement* de = f->elements[e];
+      unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+      for (unsigned int  dir = 0; dir < n_q_; dir++) {
+        pdfs[dir] = GetPdf(idx,dir);
+        adjPdfs[dir] = GetAdjPdf(idx,dir);
+      }
 
+      Vector<double> adjMoments(n_q_);
+      adjTransformation.Mult(adjPdfs,adjMoments);
+      Vector<double> d_F1_d_rho(n_q_);
+      Vector<double> d_F2_d_rho(n_q_);
+      double density = CalcLBMDensity(idx);
+      double jx = CalcVelocityX(idx,density) / density;
+      double jy = CalcVelocityY(idx,density) / density;
+
+      d_F1_d_rho.Init();
+      d_F1_d_rho[3] = -jx;
+      d_F1_d_rho[4] = jx;
+      d_F1_d_rho[5] = -jy;
+      d_F1_d_rho[6] = jy;
+
+      d_F2_d_rho[1] = -6.0 * density * (jx * jx + jy * jy);
+      d_F2_d_rho[2] = -d_F2_d_rho[1];
+      d_F2_d_rho[7] = 2.0 * density * (-jx * jx + jy * jy);
+      d_F2_d_rho[8] = -2.0 * jx * jy / density;
+//      double val = 0.0;
+      //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
+      Matrix<double> mat(n_q_,n_q_); // I - S/2
+      mat.Init();
+      mat[1][1] = 1.0 - 0.5 * omega_e_;
+      mat[2][2] = 1.0 - 0.5 * omega_eps_;
+      mat[4][4] = 1.0 - 0.5 * omega_q_;
+      mat[6][6] = 1.0 - 0.5 * omega_q_;
+      mat[7][7] = 1.0 - 0.5 * omega_;
+      mat[8][8] = 1.0 - 0.5 * omega_;
+
+      Vector<double> tmp(n_q_);
+      mat.Mult(d_F2_d_rho,tmp);
+      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
+      double sens = (jx * jx + jy * jy) / density +  d_coll_d_rho.Inner(adjMoments);
+
+      de->AddGradient(f, sens);
+    }
+  }
 }
 
 void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
@@ -883,16 +936,16 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     dfeqdf[dir].Resize(n_q_);
   }
 
-  for (unsigned int j= 0; j < n_q_; j++)
+  for (unsigned int j = 0; j < n_q_; j++)
     for (unsigned int i = 0; i < n_q_; i++)
       dfeqdf[i][j] = dfeqdrho[i] + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j] + dfeqduz[i] * duzdf[j];
 
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
-  for (unsigned int i=0;i<n_q_;i++)
+  for (unsigned int i = 0; i < n_q_; i++)
   {
-    for (unsigned int j= 0;j<n_q_;j++)
+    for (unsigned int j = 0; j < n_q_; j++)
     {
       block[i][j] = (i == j) * (1 - omega_) + omega_ * dfeqdf[i][j];
     }
@@ -1129,6 +1182,11 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
   return in / inlet.GetSize() - out / outlet.GetSize();
+}
+
+double LatticeBoltzmannPDE::GetDissipation()
+{
+  return lbm->GetDissipation();
 }
 
 Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
