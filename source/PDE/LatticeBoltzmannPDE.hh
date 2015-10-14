@@ -97,6 +97,8 @@ public:
   /** implementation of objective function */
   double CalcPressureDrop();
 
+ /** Returns dissipation; should be called after solving forward problem */
+  double GetDissipation();
   //! returns if PDE can compute the quantity
 //  virtual bool HasOutput(SolutionType output);
 
@@ -120,6 +122,8 @@ public:
   void create_output(const char * file);
 
   Iface GetIface() const { return iface_; }
+
+  bool IsSRTModel() { return srt_; }
 
   //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
   /** Calculate the LBM Density of an element idx */

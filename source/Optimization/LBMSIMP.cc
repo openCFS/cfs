@@ -40,7 +40,12 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::PRESSURE_DROP:
   {
     if(!derivative)
-      return lbm->CalcPressureDrop();
+    {
+      if (lbm->IsSRTModel())
+        return lbm->CalcPressureDrop();
+      else
+        return lbm->GetDissipation();
+    }
     else
     {
       switch(lbm->GetIface())

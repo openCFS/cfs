@@ -244,7 +244,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   timer.Stop();
 
-  PtrParamNode node = in->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write out how many lbm iterations until convergence
+  PtrParamNode node = in->Get(ParamNode::PROCESS)->Get("forward", ParamNode::APPEND); // write out how many lbm iterations until convergence
   node->Get("number")->SetValue(lbmCalls_);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
@@ -277,13 +277,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   numWriteResults_ = count;
 
   lbmCalls_++; // first solver call is call number 0 (to match iteration numbering of optimizer)
-
-  std::cout << "Primal simulation: " << it << " iterations" << std::endl;
-
-//  if (!srt_)
-//  {
-//    IterateAdjoint(in);
-//  }
 
   return &(pdfs_[cur_]);
 }
@@ -468,6 +461,9 @@ void LatticeBoltzmann::InitTransformMatrix()
   invTransformation[8][8] = -4.5;
 
   invTransformation /= 18.0;
+
+  adjTransformation.Resize(n_q_);
+  invTransformation.Transpose(adjTransformation); // adjoint transformation matrix is tranposed inverse of primal transformation matrix
 
 //  Matrix<Double> identity;
 //  identity.Resize(n_q_);
@@ -927,7 +923,6 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
     Matrix<double>& mat = adjCollision[elemId];
     mat.Resize(n_q_);
     mat.Init();
-
     mat[1][3] = 6.0 * ux;  // 3rd column: d_mEq_d_jx
     mat[2][3] = - 6.0 * ux;
     mat[3][3] = 1.0;
@@ -1267,8 +1262,6 @@ void LatticeBoltzmann::AdjointCollision(int cur)
   tmpPdfs_.Resize(nNodes_ * n_q_);
   int index;
   int z = 0;
-  Matrix<double> adjTransformation(n_q_,n_q_);
-  invTransformation.Transpose(adjTransformation);// adjoint transformation matrix is tranposed inverse of primal transformation matrix
   Vector<double> pdfs(n_q_);
   Vector<double> moments(n_q_);
   for (int x = 0; x < sizeX_ ; x++)
@@ -1325,7 +1318,6 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
         APDF(next,x,y,z,dir) = tmpPdfs_[GetPdfIndex(index,dir)];
 //        APDF(next,x,y,z,dir) = APDF(cur, tmp_x, tmp_y,  tmp_z, dir);
       }
-
     }
 }
 
@@ -1350,9 +1342,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     d_diss_d_moments(elem,moms);
   }
 
-  PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND);
-  node->Get("dissipation")->SetValue(dissipation);
-
   int count = numWriteResults_;
 
   Timer timer;
@@ -1374,64 +1363,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
     LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
-//    std::cout << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------" << std::endl;
-//    std::cout << "Before collision: " << std::endl;
-//    for (int elem = 0; elem < nNodes_; elem++)
-//    {
-//      for (int dir = 0; dir < n_q_; dir++)
-//        std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
-//      std::cout << std::endl;
-//    }
-//    // collision
     AdjointCollision(adjCur_);
-    if (it == 1000 || it == 1001 || it == 1002) {
-      std::cout << "\nAfter collision and backtransformation: " << std::endl;
-      for (int elem = 0; elem < nNodes_; elem++)
-      {
-        for (int dir = 0; dir < n_q_; dir++)
-          std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
-        std::cout << std::endl;
-      }
-    }
 
     // -- Bounce back step ------------------------------------------------
-//    Prop_coll_bounce_back2D(adjCur_);
     AdjointPropagation(adjCur_,adjNext_);
-//    if (it == 8000 || it == 8001 || it == 8002) {
-//      std::cout << " \nAfter propagation: " << std::endl;
-//      for (int elem = 0; elem < nNodes_; elem++)
-//      {
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << adjPdfs_[adjNext_][GetPdfIndex(elem,dir)] << " " ;
-//        std::cout << std::endl;
-//      }
-//    }
-//exit(-1);
-//     -- Inlet condition -------------------------------------------------
-//    (this->*prop_coll_velinlet)(next_);
-//     -- Outlet condition ------------------------------------------------
-//    (this->*prop_coll_densoutlet)(next_);
-
-    if (it == 1000 || it == 1001 || it == 1002) {
-      std::cout << "Adj cur: " << std::endl;
-      for (int elem = 0; elem < nNodes_; elem++)
-      {
-        for (int dir = 0; dir < n_q_; dir++)
-          std::cout << adjPdfs_[adjCur_][GetPdfIndex(elem,dir)] << " " ;
-        std::cout << std::endl;
-      }
-
-      std::cout << "Adj next: " << std::endl;
-      for (int elem = 0; elem < nNodes_; elem++)
-      {
-        for (int dir = 0; dir < n_q_; dir++)
-          std::cout << adjPdfs_[adjNext_][GetPdfIndex(elem,dir)] << " " ;
-        std::cout << std::endl;
-      }
-    }
 
     if((it == 0 || it % 100 == 0))
-//    if((it == 0 || it % 100 == 0)) // check convergence
     {
       R = CalcResidual(adjCur_,adjNext_,true);
 
@@ -1441,11 +1378,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
       if(plot_)
         plot << it << "\t" << R << "\n";
 
-      info->Get("adjoint/iterations")->SetValue(it);
-      info->Get("adjoint/residuum")->SetValue(R);
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
-      std::cout << "residual at iteration " << it << " is " << R << std::endl;
-
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
@@ -1478,7 +1411,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   timer.Stop();
 
-  std::cout << "adjoint simulation: " << it << " iterations" << " residual: " << R << std::endl;
+  PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
+  node->Get("number")->SetValue(lbmCalls_);
+  node->Get("iterations")->SetValue(it);
+  node->Get("residuum")->SetValue(R);
+  node->Get("converged")->SetValue(steady_state);
+  node->Get("dissipation")->SetValue(dissipation);
 
   return &adjPdfs_[adjCur_];
 }
