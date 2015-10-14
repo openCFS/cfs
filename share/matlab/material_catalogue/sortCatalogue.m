@@ -20,7 +20,8 @@ if ischar(arg1)
     end
 else
     tmp = strsplit(file2,{'/','\'});
-    cataloguefile = ['detailed_stats_',tmp(end)];
+    cataloguefile = ['catalogues/detailed_stats_',tmp{end}];
+    firstentry = arg1(1);
     data = arg1;
     dim = size(data,2) - 7;
 end

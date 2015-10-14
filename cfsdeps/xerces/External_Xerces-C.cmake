@@ -68,9 +68,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "xerces" "${XERCES_VER}")  
   
-# This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${xerces_prefix}/src")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${xerces_prefix}")
 
 SET(ZIPFROMCACHE "${xerces_prefix}/xerces-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

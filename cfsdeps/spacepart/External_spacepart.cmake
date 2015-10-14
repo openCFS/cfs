@@ -54,9 +54,9 @@ IF(USE_LIBFBI)
   # not sure if precompiled makes sense, the lib claims to be c++ header only 
   PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
     
-  # This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${spacepart_prefix}/src")
+  # This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${spacepart_prefix}")
   
   SET(ZIPFROMCACHE "${spacepart_prefix}/libfbi-zipFromCache.cmake")
   CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
