@@ -605,153 +605,153 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
   if (srt_)
   {
-  // Initialization of the data structures
-  StdVector<double> ux(n_elems);
-  StdVector<double> uy(n_elems);
-  StdVector<double> uz(n_elems);
-  StdVector<double> dloc(n_elems);
-  StdVector<double> weights(n_q_);
+    // Initialization of the data structures
+    StdVector<double> ux(n_elems);
+    StdVector<double> uy(n_elems);
+    StdVector<double> uz(n_elems);
+    StdVector<double> dloc(n_elems);
+    StdVector<double> weights(n_q_);
 
-  // setting values in data structures
-  SetupSensitivityAnalysis(ux, uy, uz, dloc, weights);
+    // setting values in data structures
+    SetupSensitivityAnalysis(ux, uy, uz, dloc, weights);
 
-  // derivative of the residual with respect to design variables
-  Vector<double> dRds(n_q_ * n_elems);
-  dRds.Init(0.0);
+    // derivative of the residual with respect to design variables
+    Vector<double> dRds(n_q_ * n_elems);
+    dRds.Init(0.0);
 
-  // derivative of the collision operator with respect to p
-  mapped_matrix<double> col_jacobi(n_q_ * n_elems, n_q_ * n_elems);
+    // derivative of the collision operator with respect to p
+    mapped_matrix<double> col_jacobi(n_q_ * n_elems, n_q_ * n_elems);
 
-  StdVector<double> dfeqdux(n_q_);
-  StdVector<double> dfeqduy(n_q_);
-  StdVector<double> dfeqduz(n_q_);
+    StdVector<double> dfeqdux(n_q_);
+    StdVector<double> dfeqduy(n_q_);
+    StdVector<double> dfeqduz(n_q_);
 
-  Matrix<double> block(n_q_,n_q_);
+    Matrix<double> block(n_q_,n_q_);
 
-  for(unsigned int index = 0; index < n_elems ; index++)
-  {
-    block.InitValue(0.0);
-    // interior
-    if(elements[index] >= 0 && !obstacles.Contains(index))  {
-      // Jacobi matrix of the collision operator with respect to the design variables
-      d_collision_step_d_f(index, block, dfeqdux, dfeqduy, dfeqduz, ux, uy, uz, dloc, weights);
+    for(unsigned int index = 0; index < n_elems ; index++)
+    {
+      block.InitValue(0.0);
+      // interior
+      if(elements[index] >= 0 && !obstacles.Contains(index))  {
+        // Jacobi matrix of the collision operator with respect to the design variables
+        d_collision_step_d_f(index, block, dfeqdux, dfeqduy, dfeqduz, ux, uy, uz, dloc, weights);
 
-      // simple choice of the mapping between p and s
-      DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
-      double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
-      for (unsigned int k = 0; k < n_q_; k++)
-        dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
-    }
-    else if(elements[index] == LBM_NODE_TYPE_BB) {
-      d_bounceback_d_f(block); // bounce-back sensitivities
-    }
-    else if(elements[index] == LBM_NODE_TYPE_INLET) {
-      d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
-    }
-    else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
-      d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
-    }
-    else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
-      assert(false);
-    }
-    // fill transpose of block in col_jacobi
-    for(unsigned int k = 0; k < n_q_; k++)
-      for(unsigned int l = 0; l< n_q_; l++) {
-        col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
+        // simple choice of the mapping between p and s
+        DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
+        double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
+        for (unsigned int k = 0; k < n_q_; k++)
+          dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
       }
-  }
+      else if(elements[index] == LBM_NODE_TYPE_BB) {
+        d_bounceback_d_f(block); // bounce-back sensitivities
+      }
+      else if(elements[index] == LBM_NODE_TYPE_INLET) {
+        d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
+      }
+      else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
+        d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
+      }
+      else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
+        assert(false);
+      }
+      // fill transpose of block in col_jacobi
+      for(unsigned int k = 0; k < n_q_; k++)
+        for(unsigned int l = 0; l< n_q_; l++) {
+          col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
+        }
+    }
 
-  double d_collision_setup = timer.GetCPUTime();
+    double d_collision_setup = timer.GetCPUTime();
 
-  // the real jacobi combines d_collision with d_propagation
-  mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
-  d_propagate_d_f(Jacobi,col_jacobi);
+    // the real jacobi combines d_collision with d_propagation
+    mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
+    d_propagate_d_f(Jacobi,col_jacobi);
 
-  // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
-  for(unsigned int i=0;i < n_q_ * n_elems; i++)
-    Jacobi(i,i) -= 1.;
+    // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
+    for(unsigned int i=0;i < n_q_ * n_elems; i++)
+      Jacobi(i,i) -= 1.;
 
-  double d_propagation_setup = timer.GetCPUTime();
+    double d_propagation_setup = timer.GetCPUTime();
 
-  //Data for Pardiso solver
-  compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
+    //Data for Pardiso solver
+    compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
 
-  // Delete singular rows from the Jacobian
-  DeleteSingularities(Jacobi,Jacobi_new);
+    // Delete singular rows from the Jacobian
+    DeleteSingularities(Jacobi,Jacobi_new);
 
-  double delete_sing_setup = timer.GetCPUTime();
+    double delete_sing_setup = timer.GetCPUTime();
 
-  // right-hand side
-  Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+    // right-hand side
+    Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
 
-  double rhs_setup = timer.GetCPUTime();
+    double rhs_setup = timer.GetCPUTime();
 
-  // for debugging
-//  WriteMatrix("Jacobian_col.txt",col_jacobi);
-//  WriteMatrix("Jacobian_old.txt",Jacobi);
-//  WriteMatrix("Jacobian_new.txt",Jacobi_new);
+    // for debugging
+  //  WriteMatrix("Jacobian_col.txt",col_jacobi);
+  //  WriteMatrix("Jacobian_old.txt",Jacobi);
+  //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
 
-  // use the cfs system matrix to solve the adjoint system
-  StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
-  LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
-  LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
-  LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
-  LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
-  LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
+    // use the cfs system matrix to solve the adjoint system
+    StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
+    LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
+    LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
+    LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
+    LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
+    LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
 
-  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-  assert(crs != NULL);
+    CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+    assert(crs != NULL);
 
-  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
+    crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+    matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
-  // time to setup adjoint system before solving
-  double setup_wall = timer.GetWallTime();
-  double setup_cpu = timer.GetCPUTime();
+    // time to setup adjoint system before solving
+    double setup_wall = timer.GetWallTime();
+    double setup_cpu = timer.GetCPUTime();
 
-  LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
-  SBM_Vector rhs(BaseMatrix::DOUBLE);
-  rhs.Resize(1);
-  rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
-  rhs.AddToSubVector(b,0);
+    LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
+    SBM_Vector rhs(BaseMatrix::DOUBLE);
+    rhs.Resize(1);
+    rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
+    rhs.AddToSubVector(b,0);
 
-  LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
-  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
+    LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
+    LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
 
-  algsys_->InitRHS(rhs);
+    algsys_->InitRHS(rhs);
 
-  algsys_->SetupSolver();
-  algsys_->Solve();
-  Vector<double> sol;
-  algsys_->GetSolutionVal(sol,0,false);
+    algsys_->SetupSolver();
+    algsys_->Solve();
+    Vector<double> sol;
+    algsys_->GetSolutionVal(sol,0,false);
 
-  for(unsigned int e = 0; e < f->elements.GetSize(); e++)
-  {
-    DesignElement* de = f->elements[e];
-    unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-    double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-    de->AddGradient(f, val);
-  }
+    for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+    {
+      DesignElement* de = f->elements[e];
+      unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+      double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
+      de->AddGradient(f, val);
+    }
 
-  LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
+    LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
 
-  timer.Stop();
-  adjoint_.Stop();
-  PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
-  adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
-  adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
-  adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
-  adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
-  adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
-  adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
-  adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
-  adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+    timer.Stop();
+    adjoint_.Stop();
+    PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
+    adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
+    adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
+    adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
+    adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+    adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
+    adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
+    adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
 
 
-  adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
-  adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
-  adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
-  adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
+    adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
+    adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
+    adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
+    adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
   }
   else // in MRT case, adjoint LBM solver delivers adjoint solution
   {
@@ -772,8 +772,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> d_F1_d_rho(n_q_);
       Vector<double> d_F2_d_rho(n_q_);
       double density = CalcLBMDensity(idx);
-      double jx = CalcVelocityX(idx,density) / density;
-      double jy = CalcVelocityY(idx,density) / density;
+      double jx = CalcVelocityX(idx,density) * density;
+      double jy = CalcVelocityY(idx,density) * density;
 
       d_F1_d_rho.Init();
       d_F1_d_rho[3] = -jx;
@@ -781,9 +781,9 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_F1_d_rho[5] = -jy;
       d_F1_d_rho[6] = jy;
 
-      d_F2_d_rho[1] = -6.0 * density * (jx * jx + jy * jy);
+      d_F2_d_rho[1] = -6.0 / density * (jx * jx + jy * jy);
       d_F2_d_rho[2] = -d_F2_d_rho[1];
-      d_F2_d_rho[7] = 2.0 * density * (-jx * jx + jy * jy);
+      d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
       d_F2_d_rho[8] = -2.0 * jx * jy / density;
 //      double val = 0.0;
       //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
@@ -1174,6 +1174,7 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
     in += CalcPressure(inlet[i]);
     LOG_DBG2(lbm_pde) << "CPD: idx=" << inlet[i] << " p=" << CalcPressure(inlet[i]);
   }
+
   double out = 0.0;
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
     out += CalcPressure(outlet[i]);
