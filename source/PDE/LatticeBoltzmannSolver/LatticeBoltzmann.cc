@@ -465,14 +465,6 @@ void LatticeBoltzmann::InitTransformMatrix()
   adjTransformation.Resize(n_q_);
   invTransformation.Transpose(adjTransformation); // adjoint transformation matrix is tranposed inverse of primal transformation matrix
 
-//  Matrix<Double> identity;
-//  identity.Resize(n_q_);
-//  invTransformation.Mult(transformation,identity);
-//  std::cout << identity.ToString(0,true)<< std::endl;
-
-//  std::cout << "---------------Inverse transformation matrix--------------------" << std::endl;
-//  std::cout << invTransformation.ToString(0,true) << std::endl;
-
   relax_rates.Resize(n_q_);
   relax_rates.Init();
   // relaxation rates matrix S is diagonal
@@ -886,17 +878,17 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   Matrix<double> d_F2_d_m(n_q_,n_q_);
   d_F2_d_m.InitValue(0.0);
   d_F2_d_m[1][0] = 6.0 *  u2; // d_F2_d_rho
-  d_F2_d_m[2][0] = -d_F2_d_m[0][2];
+  d_F2_d_m[2][0] = -6.0 * u2;
   d_F2_d_m[7][0] = 2.0 * (ux * ux - uy * uy);
   d_F2_d_m[8][0] = 2.0 * ux * uy;
-  d_F2_d_m[1][3] = -12 * ux; // d_F2/d_jx
-  d_F2_d_m[2][3] = 12 * ux;
-  d_F2_d_m[7][3] = -4 * ux;
-  d_F2_d_m[8][3] = -2 * uy;
-  d_F2_d_m[1][5] = -12 * uy; // d_F2/d_jy
-  d_F2_d_m[2][5] = 12 * uy;
-  d_F2_d_m[7][5] = 4 * uy;
-  d_F2_d_m[8][5] = -2 * ux;
+  d_F2_d_m[1][3] = -12.0 * ux; // d_F2/d_jx
+  d_F2_d_m[2][3] = 12.0 * ux;
+  d_F2_d_m[7][3] = -4.0 * ux;
+  d_F2_d_m[8][3] = -2.0 * uy;
+  d_F2_d_m[1][5] = -12.0 * uy; // d_F2/d_jy
+  d_F2_d_m[2][5] = 12.0 * uy;
+  d_F2_d_m[7][5] = 4.0 * uy;
+  d_F2_d_m[8][5] = -2.0 * ux;
   d_F2_d_m *= alpha;
 
   // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
@@ -1412,7 +1404,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   timer.Stop();
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
-  node->Get("number")->SetValue(lbmCalls_);
+  node->Get("number")->SetValue(lbmCalls_-1);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
   node->Get("converged")->SetValue(steady_state);
