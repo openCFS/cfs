@@ -156,6 +156,7 @@ cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text
 cfsdeps/gmp/gmp-mingw64.patch -text
 cfsdeps/gmp/gmp-patch.cmake.in -text
+cfsdeps/gmp/gmp-post_install.cmake.in -text
 cfsdeps/hdf5/External_HDF5.cmake -text
 cfsdeps/hdf5/H5Tinit_MACOSX_I386.c -text
 cfsdeps/hdf5/H5Tinit_MACOSX_X86_64.c -text
@@ -212,6 +213,7 @@ cfsdeps/metis/metis-patch.cmake.in -text
 cfsdeps/metis/metis-windows.patch -text
 cfsdeps/mpfr/External_mpfr.cmake -text
 cfsdeps/mpfr/mpfr-configure.cmake.in -text
+cfsdeps/mpfr/mpfr-post_install.cmake.in -text
 cfsdeps/muparser/CMakeLists.txt -text
 cfsdeps/muparser/External_muParser.cmake -text
 cfsdeps/muparser/muparser-clang-nested-anon-types.patch -text

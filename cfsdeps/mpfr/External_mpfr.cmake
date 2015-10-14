@@ -11,7 +11,7 @@
 #-------------------------------------------------------------------------------
 set(mpfr_prefix  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/mpfr")
 set(mpfr_source  "${mpfr_prefix}/src/mpfr")
-set(mpfr_install  "${CMAKE_CURRENT_BINARY_DIR}")
+set(mpfr_install  "${mpfr_prefix}/install")
 
 #-------------------------------------------------------------------------------
 # Set names of configure file and template file.
@@ -37,17 +37,20 @@ SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/mpfr/${MPFR_BZ2}")
 SET(MD5_SUM ${MPFR_MD5})
 
 SET(DLFN "${mpfr_prefix}/mpfr-download.cmake")
-CONFIGURE_FILE(
-  "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
-  "${DLFN}"
-  @ONLY
-)
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+#-------------------------------------------------------------------------------
+# After the installation we copy to cfs
+#-------------------------------------------------------------------------------
+SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/mpfr/mpfr-post_install.cmake.in")
+SET(PI "${mpfr_prefix}/mpfr-post_install.cmake")
+CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "mpfr" "${MPFR_VER}")  
   
 # This should be either PREFIX_DIR/src (install manifest is used for zipping)
 # or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${mpfr_prefix}/src")
+SET(TMP_DIR "${mpfr_prefix}/install")
 
 SET(ZIPFROMCACHE "${mpfr_prefix}/mpfr-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -97,6 +100,14 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     DEPENDS "${DLFN}"
     WORKING_DIRECTORY ${mpfr_prefix}
   )
+
+  #-------------------------------------------------------------------------------
+  # Execute the stuff from mpfr-post_install.cmake after installation
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(mpfr post_install
+    COMMAND ${CMAKE_COMMAND} -P "${PI}"
+    DEPENDEES install
+  )
   
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
@@ -104,7 +115,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(mpfr cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
-      DEPENDEES install
+      DEPENDEES post_install
       DEPENDS "${ZIPTOCACHE}"
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
