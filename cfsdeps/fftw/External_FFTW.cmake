@@ -43,9 +43,9 @@ CONFIGURE_FILE(
 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "fftw" "${FFTW_VER}") 
   
-# This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${fftw_prefix}/src")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${fftw_prefix}")
 
 SET(ZIPFROMCACHE "${fftw_prefix}/fftw-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

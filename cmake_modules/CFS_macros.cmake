@@ -325,7 +325,7 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
-  FILE(GLOB MANIFESTS "${TMP_DIR}/*-build/install_manifest.txt")
+  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
   IF("${MANIFESTS}" STREQUAL "")
     # No manifests exists -> zip TMP_DIR
     EXECUTE_PROCESS(

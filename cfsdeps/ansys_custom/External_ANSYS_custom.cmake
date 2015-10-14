@@ -108,9 +108,9 @@ ExternalData_Add_Target(ansys_custom_external_data)
 # There is no ANSYS_CUSTOM_VER yet! 
 PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "ansys_custom" "no_ver") 
   
-# This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${ansys_custom_prefix}/src")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${ansys_custom_prefix}")
 
 SET(ZIPFROMCACHE "${ansys_custom_prefix}/ansys_custom-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)

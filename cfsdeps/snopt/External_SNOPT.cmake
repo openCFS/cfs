@@ -42,9 +42,9 @@ CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY)
 
 PRECOMPILED_ZIP_FOR_NOBUILD(PRECOMPILED_PCKG_FILE "snopt" "${SNOPT_VER}")
   
-# This should be either PREFIX_DIR/src (install manifest is used for zipping)
-# or PREFIX_DIR/install (install directory will be zipped)
-SET(TMP_DIR "${SNOPT_PREFIX}/src")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${SNOPT_INSTALL}")
 
 SET(ZIPFROMCACHE "${SNOPT_PREFIX}/snopt-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
