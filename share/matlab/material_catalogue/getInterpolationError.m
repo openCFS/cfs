@@ -59,23 +59,39 @@ fprintf('\n')
 subplot(1,2,1)
 title( sprintf('Tensorindex %d for p[2]=%f', tensoridx, intdata(1,3)) )
 hold on;
-scatter3(realdata(:,1),realdata(:,2),realdata(:,tensoridx),10,[0 .8 1],'*');
-scatter3(realdata(:,1),realdata(:,2),intdata(:,tensoridx),15,'k');
+scatter3(realdata(:,1),realdata(:,2),realdata(:,tensoridx),5,[0 .8 1],'*');
+scatter3(realdata(:,1),realdata(:,2),intdata(:,tensoridx),10,'k');
 scatter3(interpolationdatapoints(:,1),interpolationdatapoints(:,2),interpolationdatapoints(:,tensoridx),'r*');
 hold off;
-legend('realdata', 'intdata','supp points','Location','SouthOutside')
-grid on
 view(-30,20)
+legh1 = legend(gca,'realdata', 'intdata','supp points','Location','SouthOutside','Orientation','horizontal');
+pos1 = get(legh1,'Position');
+set(legh1,'Position',[pos1(1) 0.02 pos1(3) pos1(4)]);
+grid on
 
 % plot relative error
 subplot(1,2,2)
 title('relative error')
 hold on;
 scatter3(realdata(:,1),realdata(:,2),relerr(:,tensoridx),10,relerr(:,tensoridx))
-zlim([0,10])
 colormap('Cool')
 scatter(interpolationdatapoints(:,1),interpolationdatapoints(:,2),'r*');
 hold off;
-legend('reldiff','supp points','Location','SouthOutside')
-grid on
 view(-30,20)
+legh2 = legend(gca,'reldiff','supp points','Location','SouthOutside','Orientation','horizontal');
+pos2 = get(legh2,'Position');
+set(legh2,'Position',[pos2(1) 0.02 pos2(3) pos2(4)]);
+grid on
+
+axes('Position',[0 0 1 1],'Xlim',[0 1],'Ylim',[0 1],'Box','off','Visible','off','Units','normalized', 'clipping' , 'off');
+text(0.29,0,...
+    sprintf('maximal absolute error: %f   norm of absolute error: %f', aerrmax, aerrnorm),...
+    'HorizontalAlignment','center','VerticalAlignment', 'bottom')
+text(0.75,0,...
+    sprintf('maximal relative error: %f   norm of relative error: %f', relerrmax, relerrnorm),...
+    'HorizontalAlignment','center','VerticalAlignment', 'bottom')
+
+h = gcf;
+set(h,'PaperOrientation','landscape');
+set(h,'PaperPosition', [1 1 28 19]);
+print(h, '-dpdf', sprintf('relerr_3D_L%d_TI%d_p2_0%d.pdf', level, tensoridx, intdata(1,3)*1e6));
