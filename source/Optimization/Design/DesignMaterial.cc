@@ -111,7 +111,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     std::cout << "Reading files " << std::endl;
 
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     PtrParamNode hr = root->Get("modRed");
     dimension_ = hr->Get("dimension")->As<UInt>();
@@ -148,7 +149,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if((type_ == GREEDY_FREE) || (type_ == GREEDY_PARAM) || (type_ == GREEDY_MAPPING))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     PtrParamNode hr = root->Get("modRed");
 
@@ -469,6 +471,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         int dim3 = root->Get("a/matrix/dim1")->As<int>();
         int dim4 = root->Get("b/matrix/dim1")->As<int>();
         int dim5 = root->Get("c/matrix/dim1")->As<int>();
+
         ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
         ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
         ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
@@ -527,7 +530,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       } else if (interpolation_str == "full_bspline") {
         interpolation_ = FULL_BSPLINE;
         bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
-        Xerces xerces(file);
+        Xerces xerces;
+        xerces.SetFile(file);;
         PtrParamNode root = xerces.CreateParamNodeInstance();
         Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
         // read coefficients from XML
