@@ -338,11 +338,11 @@ def write_gid_elements(out, elements, dim):
     e = elements[i]
     if elem_dim(e.type) == dim:
       nodes = len(e.nodes)
-      out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(nodes) + ' ' + e.region + "\n")
+      out.write(str(i + 1) + ' ' + str(e.type) + ' ' + str(nodes_by_type(e.type)) + ' ' + e.region + "\n")
     
       # prepare for second order elements
-      for n in range(nodes):
-        out.write(str(e.nodes[n] + 1) + ("\n" if n == len(e.nodes) - 1 else " "))  # write one based node numbers
+      for n in range(nodes_by_type(e.type)):
+        out.write(str(e.nodes[n] + 1) + ("\n" if n == nodes_by_type(e.type) - 1 else " "))  # write one based node numbers
 
 
 def write_gid_mesh(mesh, filename):
@@ -434,7 +434,8 @@ def write_gid_mesh(mesh, filename):
     ne = mesh.ne[e]
     for n in range(len(ne[1])):
       out.write(str(ne[1][n] + 1) + " " + ne[0] + "\n")
-
+  
+  out.write("\n \n")
   out.close()
   
   
@@ -1169,19 +1170,21 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
   return mesh 
 
 # creates a mesh from hdf5 file  
-def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, region_support=None, threshold=0.):
+def create_mesh_from_hdf5(hdf5_f, region, bcregions, region_force=None, region_support=None, threshold=0.):
+  hdf5_file = h5py.File(hdf5_f, 'r')
   all_elements = hdf5_file['/Mesh/Elements/Connectivity'].value  # for all regions
-  reg_elements_des = hdf5_file['/Mesh/Regions/' + region[0] + '/Elements'].value
-  if len(region) > 1:
-    reg_elements_nondes = hdf5_file['/Mesh/Regions/' + region[1] + '/Elements'].value
-    reg_elements_void = hdf5_file['/Mesh/Regions/' + region[2] + '/Elements'].value
+  # assume that region[0] is design, region[1] is non-design or void 
+  reg_elements_region = []
+  for i in range(len(region)):
+    reg_elements_region.append(hdf5_file['/Mesh/Regions/' + region[i] + '/Elements'].value)
+    
   types = hdf5_file['/Mesh/Elements/Types'].value
   all_nodes = hdf5_file['/Mesh/Nodes/Coordinates'].value
   length = len(hdf5_file['/Mesh/Regions/' + region[0] + '/Nodes'].value)
-  reg_nodes = [[0 for col in range(len(region))] for row in range(length)]
-  for i in range(len(region)):
-    reg_nodes[i][:] = hdf5_file['/Mesh/Regions/' + region[i] + '/Nodes']
-  design_var = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/physicalPseudoDensity/mech/Elements/Real'].value
+  #reg_nodes = [[0 for col in range(len(region))] for row in range(length)]
+  #for i in range(len(region)):
+  #  reg_nodes[i][:] = hdf5_file['/Mesh/Regions/' + region[i] + '/Nodes']
+  #design_var = hdf5_file['/Results/Mesh/MultiStep_1/Step_0/physicalPseudoDensity/mech/Elements/Real'].value
     
   # Create mesh  
   mesh = Mesh()
@@ -1200,29 +1203,21 @@ def create_mesh_from_hdf5(hdf5_file, region, bcregions, region_force=None, regio
   
   for i in range(len(all_nodes)):
     mesh.nodes.append(all_nodes[i])
-  idx = 0
-  idx2 = 0
-  idx3 = 0  
+  idx = range(len(region))
+  for i in range(len(region)):
+    idx[i] = 0  
   for i in range(len(all_elements[:, 0])):
     e = Element()
     e.nodes = (all_elements[i, :] - 1)
-    e.density = design_var[i]
-    if idx < len(reg_elements_des):
-      if i + 1 == reg_elements_des[idx]:
-        if e.density >= threshold:
-          e.region = region[0]
-        else:
-          e.region = 'void'
-        idx += 1
-    if len(region) > 1:
-      if idx2 < len(reg_elements_nondes):
-        if i + 1 == reg_elements_nondes[idx2]:
-          e.region = 'nondesign'
-          idx2 += 1
-      if idx3 < len(reg_elements_void):
-        if i + 1 == reg_elements_void[idx3]:
-          e.region = 'void'
-          idx3 += 1
+    #e.density = design_var[i]
+    for j in range(len(region)):
+      if idx[j] < len(reg_elements_region[j]):
+        if i + 1 == reg_elements_region[j][idx[j]]:
+          #if e.density >= threshold:
+          e.region = region[j]
+          #else:
+          #  e.region = 'void'
+          idx[j] += 1
     e.type = mesh_type_from_hdf5(types[i])
     mesh.elements.append(e) 
   return mesh
@@ -1238,7 +1233,7 @@ def create_mesh_from_tetgen(meshfile, region):
   # all_edges = numpy.loadtxt(meshfile+'1.edge',skiprows=1)
   
     
-  # Create mesh  
+  # Create mesh 3D Tetrahedron  
   mesh = Mesh()  
   for i in range(len(all_nodes)):
     mesh.nodes.append(all_nodes[i, 1:])  
@@ -1251,19 +1246,17 @@ def create_mesh_from_tetgen(meshfile, region):
     mesh.elements.append(e) 
   return mesh
 
-def create_mesh_from_optistruct(meshfile):
+def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [], support = []):#,support2 = [],support3 = [],support4 = [],support5 = []):
   # create element and nodes files by hand from optistruct
-  
-  # load files
-  hexa_elements = numpy.loadtxt(meshfile + '.hexa.elements', dtype='int', skiprows=1)
-  wedge_elements = numpy.loadtxt(meshfile + '.wedge.elements', dtype='int', skiprows=1)
-  all_nodes = numpy.loadtxt(meshfile + '.nodes', skiprows=1)
-  # ax = 0.0849
-  ay = -0.084636333418591
-  # az = 0.1358
-  # Rx = numpy.matrix(((1., 0., 0.), (0., math.cos(ax), -math.sin(ax)), (0., math.sin(ax), math.cos(ax))))
-  Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
-  # Rz = numpy.matrix(((math.cos(az), -math.sin(az), 0.), (math.sin(az), math.cos(az), 0.), (0., 0., 1.)))
+  if len(all_nodes) == 0:
+    # load files from optistruct file
+    hexa_elements = numpy.loadtxt(meshfile + '.hexa.elements', dtype='int', skiprows=1)
+    wedge_elements = numpy.loadtxt(meshfile + '.wedge.elements', dtype='int', skiprows=1)
+    all_nodes = numpy.loadtxt(meshfile + '.nodes', skiprows=1)
+    # Rotate nodes for apod6
+    ay = -0.084636333418591
+    Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
+
   # Create mesh  
   # add nodes    
   mesh = Mesh()  
@@ -1271,76 +1264,286 @@ def create_mesh_from_optistruct(meshfile):
     coord = numpy.matrix(((all_nodes[i, 1]), (all_nodes[i, 2]), all_nodes[i, 3])).T
     # print Rx
     # print coord  
-    new_coord = Ry * coord
+    new_coord = coord#Ry * coord
     # new_coord = Rz * new_coord
     mesh.nodes.append([new_coord[0, 0], new_coord[1, 0], new_coord[2, 0]])
+  if len(elements) == 0:  
+    # hexaeder     
+    for i in range(len(hexa_elements[:, 0])):
+      e = Element()
+      e.nodes = (hexa_elements[i, 1:] - 1)
+      e.density = 1.
+      shell = 0
+      for j in range(8):
+        coord = mesh.nodes[e.nodes[j]]
+        if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
+          shell += 1
+      if shell > 3:
+        e.region = 'non-design'
+      else:
+        e.region = 'design'
+      e.type = HEXA8
+      mesh.elements.append(e)
     
-  # hexaeder     
-  for i in range(len(hexa_elements[:, 0])):
-    e = Element()
-    e.nodes = (hexa_elements[i, 1:] - 1)
-    e.density = 1.
-    shell = 0
-    for j in range(8):
-      coord = mesh.nodes[e.nodes[j]]
-      if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
-        shell += 1
-    if shell > 3:
-      e.region = 'non-design'
-    else:
-      e.region = 'design'
-    e.type = HEXA8
-    mesh.elements.append(e)
-    
-  # wedge elements  
-  for i in range(len(wedge_elements[:, 0])):
-    e = Element()
-    e.nodes = (wedge_elements[i, 1:] - 1)
-    e.density = 1.
-    shell = 0
-    for j in range(6):
-      coord = mesh.nodes[e.nodes[j]]
-      if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
-        shell += 1
-    if shell > 2:
-      e.region = 'non-design'
-    else:
-      e.region = 'design'
-    e.type = WEDGE6
-    mesh.elements.append(e)
-  
+    # wedge elements  
+    for i in range(len(wedge_elements[:, 0])):
+      e = Element()
+      e.nodes = (wedge_elements[i, 1:] - 1)
+      e.density = 1.
+      shell = 0
+      for j in range(6):
+        coord = mesh.nodes[e.nodes[j]]
+        if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
+          shell += 1
+      if shell > 2:
+        e.region = 'non-design'
+      else:
+        e.region = 'design'
+      e.type = WEDGE6
+      mesh.elements.append(e)
+  else:
+    for i in range(len(elements)):
+      e = Element()
+      e.nodes = (elements[i][1:])
+      for k in range (len(e.nodes)):
+        e.nodes[k] -= 1
+      e.density = 1.
+      shell = 0
+      for j in range(len(e.nodes)):
+        coord = mesh.nodes[e.nodes[j]]
+        if (coord[1] + 353.) < 1. or abs(coord[1] + 333.) < 1.:
+          shell += 1
+        if shell >= 3:
+          e.region = 'non-design'
+        else:
+          e.region = 'design'
+        if len(e.nodes) == 4:
+          e.type = TET4
+        elif len(e.nodes) == 6:
+          e.type = WEDGE6
+        elif len(e.nodes) == 8:
+          e.type = HEXA8
+      mesh.elements.append(e)
   # include boundary conditions for 442.mesh manually
-  m1 = [33052., -353., -2474.]
-  m2 = [33046., -353., -2518.]
-  m3 = [33131., -353., -2449.]
-  m4 = [33124., -353., -2498.]
-  m5 = [32978., -353., -2436.]
-  m6 = [32971., -353., -2485.]
-  m7 = [33023., -353., -2559.]
-  r1 = 19.5
-  r2 = 16.5
-  r3 = 5.8
-  force1 = []
-  force2 = []
-  support = []
-  for i in range(len(all_nodes)):
-    coord = all_nodes[i, 1:]
-    if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
-      force1.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
-      force2.append(i)
-    elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
-      support.append(i)
-    elif (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < r3 ** 2:
-      support.append(i)
-    elif (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < r3 ** 2:
-      support.append(i)
-    elif (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < r3 ** 2:
-      support.append(i)
-    elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
-      support.append(i)
+  if len(force1) == 0 and len(force2) == 0:
+    m1 = [33052., -353., -2474.]
+    m2 = [33046., -353., -2518.]
+    m3 = [33131., -353., -2449.]
+    m4 = [33124., -353., -2498.]
+    m5 = [32978., -353., -2436.]
+    m6 = [32971., -353., -2485.]
+    m7 = [33023., -353., -2559.]
+    r1 = 19.5
+    r2 = 16.5
+    r3 = 5.8
+    force1 = []
+    force2 = []
+    support = []
+    for i in range(len(all_nodes)):
+      coord = all_nodes[i, 1:]
+      if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
+        force1.append(i)
+      elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
+        force2.append(i)
+      elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
+        support.append(i)
+      elif (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < r3 ** 2:
+        support.append(i)
+      elif (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < r3 ** 2:
+        support.append(i)
+      elif (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < r3 ** 2:
+        support.append(i)
+      elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
+        support.append(i)
   
   mesh.bc.append(('force1', force1))
   mesh.bc.append(('force2', force2))
-  mesh.bc.append(('support', support))    
+  mesh.bc.append(('support', support))
+  if len(elements) == 0:
+    write_gid_mesh(mesh, meshfile+".mesh")     
   return mesh
+
+def create_mesh_apod6_from_gmsh(meshfile):
+  # read 3D tetrahedron gmsh mesh
+  inp = open(meshfile).readlines()
+  nodes = []
+  elem = []
+  force1 = []
+  force2 = []
+  support = []
+  count = 1
+  num_node = 0
+  num_elem = 0
+  for line in inp:
+    item = str.split(line)
+    # read and check header
+    if count == 2:
+      if float(item[0]) != 2.2:
+        print 'Error: Gmsh format should be 2.2, result probably wrong'
+    # read number of nodes
+    elif count == 5:
+      num_node = int(item[0])
+    #add nodes
+    elif count > 5 and count <= num_node + 5:
+      nodes.append([int(item[0]),float(item[1]),float(item[2]),float(item[3])])
+    elif count > num_node + 5 and count <= num_node + 7:
+      #skip lines
+      count += 1 
+      continue
+    # read number of elements
+    elif count == num_node + 8:
+      num_elem = int(item[0])
+    # add elements
+    elif count > num_node + 8 and count <= num_node + 8 + num_elem:
+      # read 3D tetrahedron elements
+      if int(item[1]) == 4:
+        elem.append([int(item[0]),int(item[5]),int(item[6]),int(item[7]),int(item[8])])
+      # read 3D hexahedron elements
+      elif int(item[1]) == 5:
+        elem.append([int(item[0]),int(item[5]),int(item[6]),int(item[7]),int(item[8]),int(item[9]),int(item[10]),int(item[11]),int(item[12])])
+      # read 3D wedge elements
+      elif int(item[1]) == 6:
+        elem.append([int(item[0]),int(item[5]),int(item[6]),int(item[7]),int(item[8]),int(item[9]),int(item[10])])
+      elif int(item[1]) == 15:
+        # support
+        if int(item[4]) == 5:
+          support.append(int(item[5])-1)
+        # force1  
+        elif int(item[4]) == 6:
+          force1.append(int(item[5])-1)
+        # force2  
+        elif int(item[4]) == 7:
+          force2.append(int(item[5])-1)
+    count += 1  
+  nodes = numpy.asarray(nodes)
+  mesh = create_mesh_for_apod6(meshfile,nodes,elem)
+  write_gid_mesh(mesh, meshfile+".mesh") 
+  
+def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
+  # force names and support name has to be set manually, default force1, force2, support
+  mesh = create_mesh_from_hdf5(hdf5_file, region, bcregions)
+  write_gid_mesh(mesh, "test.mesh") 
+  out = open(output, "w")
+  # gmsh header
+  out.write('$MeshFormat \n')
+  out.write('2.2 0 8\n')
+  out.write('$EndMeshFormat \n')
+  out.write('$Nodes \n')
+  out.write(str(len(mesh.nodes))+' \n')
+  dim = len(mesh.nodes[0])
+  #write nodes
+  for i in range(len(mesh.nodes)):  # write one based!
+    out.write(str(i + 1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]))
+    if dim == 3:
+      out.write("  " + str(mesh.nodes[i][2]) + "\n")
+    else:
+      out.write("  0.0\n")
+  #write elements
+  out.write('$EndNodes \n')
+  out.write('$Elements \n')
+  out.write(str(len(mesh.elements)+len(mesh.bc[0][1]) + len(mesh.bc[1][1]) + len(mesh.bc[2][1]))+ '\n') #+ len(mesh.bc[3][1]) + len(mesh.bc[4][1]) + len(mesh.bc[5][1]) + len(mesh.bc[6][1]))+ '\n')
+  # 1D boundary elements support, forces
+  count = 0
+  for k in range(len(mesh.bc)):
+    bc = mesh.bc[k]
+    if bc[0] == 'support':
+      id = 5
+    elif bc[0] == 'force1':
+      id = 6
+    elif bc[0] == 'force2':
+      id = 7
+    else:
+      print 'Warning mesh.bc type not handled!'
+    for l in range(len(bc[1])):
+      out.write(str(count+1) + ' ' +str(15) + ' 2 0 ' + str(id) + ' ' + str(bc[1][l] + 1)+' \n')
+      count +=1
+  # write 3D elements
+  for i in range(len(mesh.elements)):  # write one based!
+    e = mesh.elements[i]
+    nodes = len(e.nodes)
+    out.write(str(count + 1) + ' ' + str(5 if nodes_by_type(e.type) == 8 else 6) + ' 2 0 ' + str(2 if e.region == 'design' else 3))
+    count +=1
+    for n in range(nodes_by_type(e.type)):
+      out.write(' '+ str(e.nodes[n] + 1))
+    out.write('\n')
+        
+  out.write('$EndElements \n')
+  #write forces, support
+  
+  out.write(' ')
+  out.close()
+  
+def create_nastran_mesh_from_cfs(meshfile):
+  mesh = create_mesh_from_hdf5('442_fine.h5', ['design','non-design'], ['support','force1','force2'])
+  out = open(meshfile, "w")
+  #design nodes and non-design nodes
+  #out2 = open(meshfile + '.design', "w")
+  #out3 = open(meshfile + 'non-desi"w")
+  # gmsh header
+  out.write('ENDCONTROL\n')
+  out.write('SUBCASE       1\n')
+  out.write('  LABEL= SUBCASE 1\n')
+  out.write('LOAD =       1\n')
+  out.write('SUBCASE       2\n')
+  out.write('  LABEL= SUBCASE 2\n')
+  out.write('  LOAD =       2\n')
+  out.write('BEGIN BULK\n')
+  # write nodes
+  for i in range(len(mesh.nodes)):
+    n = mesh.nodes[i]
+    #out.write('GRID%12d%8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
+    out.write('GRID    ' + '%-8d%-8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
+  # Hexaeder elements
+  for i in range(len(mesh.elements)):
+    e = mesh.elements[i]
+    n = mesh.elements[i].nodes
+    if e.type == HEXA8 and e.region == 'design':
+      #out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      #out.write('+       %8d%8d\n'%(n[6],n[7]))
+      out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
+      out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6],n[7]))
+    elif e.type == HEXA8 and e.region == 'non-design':
+      #out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      #out.write('+       %8d%8d\n'%(n[6],n[7]))
+      out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
+      out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6],n[7]))
+  # Wedge elements
+  for i in range(len(mesh.elements)):
+    e = mesh.elements[i]
+    n = mesh.elements[i].nodes
+    if e.type == WEDGE6 and e.region == 'design':
+      #out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+    elif e.type == WEDGE6 and e.region == 'non-design':
+      #out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+  # write forces1
+  for i in range(len(mesh.bc[0][1])):
+    #out.write('FORCE%11d%8d%8d1.0     0.0     0.01923076923080.0\n'%(1,mesh.bc[0][1][i]+1,0))
+    out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
+
+    # write forces2
+  for i in range(len(mesh.bc[1][1])):
+    #out.write('FORCE%11d%8d%8d1.0     0.0     0.01923076923080.0\n'%(2,mesh.bc[1][1][i]+1,0))
+    out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
+
+  for i in range(len(mesh.bc[2][1])):
+    #out.write('SPC%13d%8d  123   0.0\n'%(1,mesh.bc[2][1][i]+1))
+    out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
+    
+  #out.write('PSOLID         1       1\n')          
+  #out.write('PSOLID         2       1\n')
+  out.write('PSOLID  1       1       \n')          
+  out.write('PSOLID  2       1       \n')            
+  #out.write('MAT1    1       1.00E0  0.34     0.0     0.785E-5  12.E-6                +M1\n')     
+  #out.write('+M1     100.    -100.   100.\n')    
+  #out.write('MAT1    2       7.00E4  0.34     0.0     0.785E-5  12.E-6                +M1\n')     
+  #out.write('+M1     100.    -100.   100.\n')
+  # Ti6Al4
+  out.write('MAT1    %-8d%-.2e        %-8f%-8f%-8f%-8f%-8f\n'%(1,1.2E11,0.342,1.0,1.0,0.,1.))
+  # Aluminum
+  out.write('MAT1    %-8d%-.2e        %-8f%-8f%-8f%-8f%-8f\n'%(2,6.8E10,0.36,1.0,1.0,0.,1.)) 
+  out.write('ENDDATA\n')
+  
+  out.close()  
+  
