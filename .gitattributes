@@ -1101,12 +1101,16 @@ share/matlab/material_catalogue/+Homogenization/readmesh.m -text
 share/matlab/material_catalogue/+Homogenization/writeDensityFile.m -text
 share/matlab/material_catalogue/callCatalogueGeneration.m -text
 share/matlab/material_catalogue/callMatlab.sh -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_31 -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5 -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5_interpolant -text
 share/matlab/material_catalogue/createPresetsFullGrid.m -text
 share/matlab/material_catalogue/createPresetsSparseGrid.m -text
 share/matlab/material_catalogue/extractPartialCatalogue.m -text
 share/matlab/material_catalogue/generateCatalogueParallel.sh -text
 share/matlab/material_catalogue/generate_points/generate_points.py -text
 share/matlab/material_catalogue/generate_points/interpolation.py -text
+share/matlab/material_catalogue/getInterpolationError.m -text
 share/matlab/material_catalogue/getMissingCatalogueValues.m -text
 share/matlab/material_catalogue/getWrongCatalogueValues.m -text
 share/matlab/material_catalogue/hillmandeltovoigt.m -text
