@@ -1211,6 +1211,7 @@ share/python/matviz_streamline.py -text
 share/python/matviz_unstructured_mesh.py -text
 share/python/matviz_vtk.py -text
 share/python/mesh_tool.py -text
+share/python/monotone-plot.dat.py -text
 share/python/nas-tool-gid-to-nas.py -text
 share/python/nas-tool-nas2msh.py -text
 share/python/nas-tool-voidmesh.py -text
