@@ -355,8 +355,8 @@ class TransferFunction;
     void InitializeSparseGrid(const char * filename);
 
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
-    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, const SGPP::base::DataVector& alpha, const SGPP::base::DataVector& point, DesignElement::Type direction) const;
-    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, const SGPP::base::DataVector& alpha, const SGPP::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
 #endif
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
@@ -417,12 +417,18 @@ class TransferFunction;
     /** members for SGPP interpolation */
     enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
-    SGPP::base::DataVector alpha1_;
-    SGPP::base::DataVector alpha2_;
-    SGPP::base::DataVector alpha3_;
-    SGPP::base::DataVector alpha4_;
-    SGPP::base::DataVector alpha5_;
-    SGPP::base::DataVector alpha6_;
+//    SGPP::base::DataVector alpha1_;
+//    SGPP::base::DataVector alpha2_;
+//    SGPP::base::DataVector alpha3_;
+//    SGPP::base::DataVector alpha4_;
+//    SGPP::base::DataVector alpha5_;
+//    SGPP::base::DataVector alpha6_;
+    boost::shared_ptr<sg::base::DataVector> alpha1_;
+    boost::shared_ptr<sg::base::DataVector> alpha2_;
+    boost::shared_ptr<sg::base::DataVector> alpha3_;
+    boost::shared_ptr<sg::base::DataVector> alpha4_;
+    boost::shared_ptr<sg::base::DataVector> alpha5_;
+    boost::shared_ptr<sg::base::DataVector> alpha6_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;

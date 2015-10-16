@@ -12,7 +12,8 @@ parfor i=1:N
 end
 parallel_time=toc
 end
+
 function result=slow_fun(x)
-    pause(0.001);
+    pause(0.01);
     result=x;
 end
