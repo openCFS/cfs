@@ -100,8 +100,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL ${LOCAL_FILE}
     URL_MD5 ${ARPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
+    CMAKE_ARGS ${CMAKE_ARGS}
   )
 
   #-------------------------------------------------------------------------------
