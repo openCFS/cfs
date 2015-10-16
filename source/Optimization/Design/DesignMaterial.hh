@@ -340,7 +340,7 @@ class TransferFunction;
 #ifdef USE_SGPP
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
-    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
@@ -417,18 +417,12 @@ class TransferFunction;
     /** members for SGPP interpolation */
     enum SGPPBasis { LINEAR, MODLINEAR, BSPLINE, MODBSPLINE } sgpp_basis_;
     unsigned int bspline_degree_;
-//    SGPP::base::DataVector alpha1_;
-//    SGPP::base::DataVector alpha2_;
-//    SGPP::base::DataVector alpha3_;
-//    SGPP::base::DataVector alpha4_;
-//    SGPP::base::DataVector alpha5_;
-//    SGPP::base::DataVector alpha6_;
-    boost::shared_ptr<sg::base::DataVector> alpha1_;
-    boost::shared_ptr<sg::base::DataVector> alpha2_;
-    boost::shared_ptr<sg::base::DataVector> alpha3_;
-    boost::shared_ptr<sg::base::DataVector> alpha4_;
-    boost::shared_ptr<sg::base::DataVector> alpha5_;
-    boost::shared_ptr<sg::base::DataVector> alpha6_;
+    SGPP::base::DataVector alpha1_;
+    SGPP::base::DataVector alpha2_;
+    SGPP::base::DataVector alpha3_;
+    SGPP::base::DataVector alpha4_;
+    SGPP::base::DataVector alpha5_;
+    SGPP::base::DataVector alpha6_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;
