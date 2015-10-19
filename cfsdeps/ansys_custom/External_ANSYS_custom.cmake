@@ -106,7 +106,7 @@ ExternalData_expand_arguments(ansys_custom_external_data
 ExternalData_Add_Target(ansys_custom_external_data)
 
 # There is no ANSYS_CUSTOM_VER yet! 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "ansys_custom" "no_ver") 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ansys_custom" "no_ver") 
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

@@ -61,7 +61,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/scpip/${SCPIP_BZ2}")
 SET(MD5_SUM ${SCPIP_MD5})
 
-PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "scpip" "${SCPIP_VER}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "scpip" "${SCPIP_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

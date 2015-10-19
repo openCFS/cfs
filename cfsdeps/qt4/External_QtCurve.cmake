@@ -9,7 +9,7 @@ SET(QTCURVE_BASE "QtCurve")
 SET(QTCURVE_VER "KDE4-1.8.4")
 SET(QTCURVE_MD5 "3082f48597c9584b24ba144040f1ac34")
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "qtcurve" "${QTCURVE_VER}")  
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "qtcurve" "${QTCURVE_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
