@@ -8,6 +8,7 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(gmp_source "@gmp_source@")
+SET(gmp_install "@gmp_install@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(CFS_ARCH "@CFS_ARCH@")
@@ -49,10 +50,10 @@ IF(MINGW AND NOT CMAKE_CROSSCOMPILING)
 ENDIF()
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
-  "--prefix=${CFS_BINARY_DIR}"
-  "--bindir=${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
-  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
-  "--includedir=${CFS_BINARY_DIR}/include"
+  "--prefix=${gmp_install}"
+  "--bindir=${gmp_install}/bin/${CFS_ARCH_STR}"
+  "--libdir=${gmp_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--includedir=${gmp_install}/include"
   "--enable-shared=no"
   "--enable-cxx"
   "ABI=${ABI}"

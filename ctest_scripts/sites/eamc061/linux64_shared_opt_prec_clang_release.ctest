@@ -1,0 +1,140 @@
+# This is a single test case to be called via nightly_test.cmake.
+#
+# You may test this script alone via ctest -T <test>.ctest
+#
+# see nightly_test. or https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
+# enable highlighting in kate via Tools->Highlighting->Other->CMake
+#
+#-----------------------------------------------------------------------------
+# Set source and binary directories on the machine
+#-----------------------------------------------------------------------------
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_ctest")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_prec_clang_release")
+
+#-----------------------------------------------------------------------------
+# Specify that we want to do an experimental build without updating the CFS++
+# working copy. I.e. we leave away the ExperimentalUpdate step between
+# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
+# done by simon on mac before the the test scripts on rom get executed.
+#-----------------------------------------------------------------------------
+SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Include macros for CFS++ specific testing (e.g. default initial cache, etc)
+#-----------------------------------------------------------------------------
+INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
+
+#-----------------------------------------------------------------------------
+# Use CMake (cmake) executable corresponding to CTest executable used to run
+# this script.
+#-----------------------------------------------------------------------------
+SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
+
+#-----------------------------------------------------------------------------
+# Set the following environment variables for the test run. This can be used
+# to specifiy the compilers and that all messages should be output in English
+# language, so that CTest may properly parse them.
+#-----------------------------------------------------------------------------
+SET(ENV{CC} "/usr/bin/clang")
+SET(ENV{CXX} "/usr/bin/clang")
+SET(ENV{FC} "/usr/bin/gfortran")
+SET(ENV{LC_MESSAGES} "C")
+SET(ENV{LC_ALL} "C")
+SET(ENV{LANG} "C")
+SET(ENV{LANGUAGE} "C")
+
+SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
+SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
+SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
+
+#-----------------------------------------------------------------------------
+# Let's first find out some infos about the system GNU compiler first.
+#-----------------------------------------------------------------------------
+SET(COMPILER "$ENV{CXX}")
+
+SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
+CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
+
+# create build/tmp directory
+EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
+
+# read ID_CXX 
+EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
+
+INCLUDE("${COMPILER_ID_FILE}")
+
+EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
+  ARGS
+  OUTPUT_VARIABLE DISTRO_OUT
+  RETURN_VALUE RETVAL)
+
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
+INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+
+# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
+# MESSAGE("${DIST} ${REV} ${ARCH}")
+
+SET(BUILDTYPE "RELEASE")
+SET(BUILDNAME "shared_opt prec ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+
+SITE_NAME(CFS_BUILD_HOST)
+STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
+LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
+#SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
+set(CTEST_SITE "${CFS_BUILD_HOST}")
+set(CTEST_BUILD_NAME "${BUILDNAME}")
+
+#-----------------------------------------------------------------------------
+# Start out with an empty binary directory.
+#-----------------------------------------------------------------------------
+SET(CTEST_START_WITH_EMPTY_BINARY_DIRECTORY TRUE)
+
+#-----------------------------------------------------------------------------
+# Enter the following values into the initial cache
+# ${CTEST_BINARY_DIRECTORY}/CMakeCache.txt before starting the configure
+# run.
+#-----------------------------------------------------------------------------
+INIT_CACHE(CTEST_INITIAL_CACHE)
+SET(CTEST_INITIAL_CACHE
+  "${CTEST_INITIAL_CACHE}
+   DEBUG:BOOL=OFF
+   CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/cfs-test
+   CFS_DEPS_PRECOMPILED:BOOL=ON
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   USE_PARDISO:BOOL=ON
+   USE_CGAL:BOOL=OFF
+   USE_CGNS:BOOL=OFF
+   USE_CCMIO:BOOL=OFF
+   USE_FLANN:BOOL=OFF
+   USE_SNOPT:BOOL=ON
+   USE_SCPIP:BOOL=ON
+   USE_IPOPT:BOOL=ON
+   USE_OPENMP:BOOL=ON
+   USE_ILUPACK:BOOL=OFF
+   MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
+   BUILDNAME:STRING=${BUILDNAME}")
+
+SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")
+
+message("Start dashboard...")
+# see http://www.vtk.org/Wiki/CTest:Nightly,_Experimental,_Continuous
+ctest_start(Nightly)
+
+message("  Update")
+find_program(CTEST_SVN_COMMAND NAMES svn)
+ctest_update(SOURCE "${CTEST_SOURCE_DIRECTORY}" RETURN_VALUE res)
+
+message("  Configure")
+FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeCache.txt" ${CTEST_INITIAL_CACHE})
+# some configurations require to repeat the same ctest_configure() command
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+ctest_configure(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+
+message("  Build")
+ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Test")
+ctest_test(BUILD "${CTEST_BINARY_DIRECTORY}" RETURN_VALUE res)
+message("  Submit")
+ctest_submit(RETURN_VALUE res)
+message("  All done")
