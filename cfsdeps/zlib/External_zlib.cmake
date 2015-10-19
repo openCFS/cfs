@@ -81,7 +81,7 @@ CONFIGURE_FILE(
   @ONLY
 )
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "zlib" "${ZLIB_VER}")  
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "zlib" "${ZLIB_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

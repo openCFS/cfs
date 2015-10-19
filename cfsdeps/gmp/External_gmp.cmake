@@ -53,7 +53,7 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/gmp/gmp-post_install.cmake.in")
 SET(PI "${gmp_prefix}/gmp-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "gmp" "${GMP_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
