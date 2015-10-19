@@ -11,6 +11,6 @@ ENDIF(LA_FILES)
 FILE(REMOVE @IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libcoinblas.a)
 FILE(REMOVE @IPOPT_INSTALL@/lib64/@CFS_ARCH_STR@/libcoinlapack.a)
 
-# copy data from install dir to the targer.
+# copy data from install dir to the target.
 # this is the point where the cfsdeps_precompiled stuff will come in
 FILE(COPY "@IPOPT_INSTALL@/" DESTINATION "@CMAKE_CURRENT_BINARY_DIR@/")

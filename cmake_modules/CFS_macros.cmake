@@ -182,13 +182,13 @@ ENDMACRO (TODAY)
 #-------------------------------------------------------------------------------
 # Convert new line style of files
 #-------------------------------------------------------------------------------
-MACRO (CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
+MACRO(CHANGE_NEWLINE_STYLE FILES TEMPFILE STYLE)
   foreach(file ${FILES})
     MESSAGE(STATUS "Converting newlines to ${STYLE} for ${file}")
     CONFIGURE_FILE(${file} ${TEMPFILE} @ONLY NEWLINE_STYLE ${STYLE})
     CONFIGURE_FILE(${TEMPFILE} ${file} @ONLY NEWLINE_STYLE ${STYLE})
   endforeach(file)
-ENDMACRO (CHANGE_NEWLINE_STYLE)
+ENDMACRO(CHANGE_NEWLINE_STYLE)
 
 #-------------------------------------------------------------------------------
 # Apply patches
@@ -304,15 +304,20 @@ MACRO(ZIP_FROM_CACHE ZIP_FILE TARGET_DIR)
       RESULT_VARIABLE rv
       )
     IF(NOT "${rv}" STREQUAL "0")
-      MESSAGE("Could not extract ${ZIP_FILE}.")
+      MESSAGE(SEND_ERROR "Could not extract ${ZIP_FILE}.")
     ENDIF()
+  ELSE()
+    MESSAGE(SEND_ERROR "Could not find precompiled ${ZIP_FILE}.")
   ENDIF()
+  
 ENDMACRO()
 
 #-------------------------------------------------------------------------------
-# Create ZIP_FILE with files from PREFIX_DIR/src/*-build/install_manifest.txt
+# Create ZIP_FILE
+# If a TMP_DIR/src/*-build/install_manifest.txt exists, we zip all files
+# listed in there else we zip TMP_INSTALL_DIR.
 #-------------------------------------------------------------------------------
-MACRO(ZIP_TO_CACHE ZIP_FILE PREFIX_DIR)
+MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
   STRING(REGEX REPLACE "^.+[/\\]" "" ZIP_NAME ${ZIP_FILE})
   STRING(REGEX REPLACE "${ZIP_NAME}$" "" TARGET_DIR ${ZIP_FILE})
   
@@ -320,16 +325,63 @@ MACRO(ZIP_TO_CACHE ZIP_FILE PREFIX_DIR)
     FILE(MAKE_DIRECTORY "${TARGET_DIR}")
   ENDIF()
   
-  FILE(GLOB MANIFESTS "${PREFIX_DIR}/src/*-build/install_manifest.txt")
-  FOREACH(manifest ${MANIFESTS})
+  FILE(GLOB MANIFESTS "${TMP_DIR}/src/*-build/install_manifest.txt")
+  IF("${MANIFESTS}" STREQUAL "")
+    # No manifests exists -> zip TMP_DIR
     EXECUTE_PROCESS(
-      COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
-      COMMAND zip -@ -g ${ZIP_FILE}
-      OUTPUT_QUIET
+      COMMAND zip -g -r ${ZIP_FILE} "."
+      WORKING_DIRECTORY "${TMP_DIR}"
       RESULT_VARIABLE rv
     )
-    IF(NOT "${rv}" STREQUAL "0")
-      MESSAGE("Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
-    ENDIF()
-  ENDFOREACH()
+  ELSE()
+    # Manifests exists -> zip files listed therein
+    FOREACH(manifest ${MANIFESTS})
+      EXECUTE_PROCESS(
+        COMMAND sed "s@${CMAKE_CURRENT_BINARY_DIR}/@@g" ${manifest} 
+        COMMAND zip -@ -g ${ZIP_FILE}
+        OUTPUT_QUIET
+        RESULT_VARIABLE rv
+      )
+    ENDFOREACH()
+  ENDIF()
+  IF(NOT "${rv}" STREQUAL "0")
+    MESSAGE(WARNING "Could not create ${ZIP_NAME} at ${TARGET_DIR}.")
+  ENDIF()
+ENDMACRO()
+
+# ------------------------------------------------------------------------------
+# Generate a package name for the precompiled zip file. 
+# Names the compiler. If C/C++ and Fortan are different, both are named. Otherwise it would
+# lead to issues with clang
+# ------------------------------------------------------------------------------
+MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
+  IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${CMAKE_Fortran_COMPILER_VERSION})
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
+  ELSE()
+    # in the intel case:
+    # FC_VERSION=16.0 20150815
+    # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")  
+  ENDIF()    
+ENDMACRO()
+
+# don't add Release or Debug when the package is built independently
+MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${CMAKE_Fortran_COMPILER_VERSION})
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
+  ELSE()
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}.zip")  
+  ENDIF()    
+ENDMACRO()
+
+
+#------------------------------------------------------
+# Display all available variables
+#------------------------------------------------------
+MACRO(DISPLAY_ALL_VARIABLES)
+  get_cmake_property(_variableNames VARIABLES)
+  foreach (_variableName ${_variableNames})
+    message("${_variableName}=${${_variableName}}")
+  endforeach()
 ENDMACRO()

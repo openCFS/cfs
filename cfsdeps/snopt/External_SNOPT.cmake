@@ -40,14 +40,11 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/snopt/snopt-post_install.cmake.in")
 SET(PI "${SNOPT_PREFIX}/snopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "snopt_${SNOPT_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "snopt_${SNOPT_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "snopt" "${SNOPT_VER}")
   
-SET(PREFIX_DIR "${SNOPT_PREFIX}")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${SNOPT_INSTALL}")
 
 SET(ZIPFROMCACHE "${SNOPT_PREFIX}/snopt-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -58,12 +55,12 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # The snopt external project
 #-------------------------------------------------------------------------------
-IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
   ExternalProject_Add(snopt
-    PREFIX "${snopt_prefix}"
+    PREFIX "${SNOPT_PREFIX}"
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
     PATCH_COMMAND ""
     UPDATE_COMMAND ""
@@ -71,7 +68,7 @@ IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
@@ -86,7 +83,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SNOPT} ${SNOPT_ZIP}
     # let it install to the temporay directory where we can remove libblas.a and prepare to copy to precompiled cfsdeps
     # the libs will be created in install/lib64 and we manually copy them to lib64/CFS_ARCH_STR
-    CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c
+    CONFIGURE_COMMAND ${SNOPT_SOURCE}/snopt7/configure --prefix=${SNOPT_INSTALL} --libdir=${SNOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --enable-static --without-f2c F77=${CMAKE_Fortran_COMPILER} FFLAGS=-O3 
   )
   
   #-------------------------------------------------------------------------------
@@ -97,7 +94,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     DEPENDEES install
   )
   
-  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
@@ -108,7 +105,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} snopt)

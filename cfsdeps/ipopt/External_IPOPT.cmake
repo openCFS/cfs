@@ -44,14 +44,11 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
 SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ipopt_${IPOPT_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ipopt_${IPOPT_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "ipopt" "${IPOPT_VER}")  
   
-SET(PREFIX_DIR "${IPOPT_PREFIX}")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${IPOPT_INSTALL}")
 
 SET(ZIPFROMCACHE "${IPOPT_PREFIX}/ipopt-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -62,7 +59,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # The IPOPT external project
 #-------------------------------------------------------------------------------
-IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
@@ -75,14 +72,14 @@ IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
   ExternalProject_Add(ipopt
     PREFIX "${IPOPT_PREFIX}"
     SOURCE_DIR "${IPOPT_SOURCE}"
-    # the stepp cfsdeps_download ensures the file will be found in cfsdepscache
+    # the step cfsdeps_download ensures the file will be found in cfsdepscache
     URL ${LOCAL_FILE}
     URL_MD5 ${IPOPT_MD5}
     # note that when unzipping the source, the Ipopt-3.11.9 directory is omitted
@@ -91,15 +88,22 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     # Fill ThirdParty content (blas/ lapack/ HSLold)
     PATCH_COMMAND  ${CMAKE_COMMAND} -P "${PFN}"
     # let it install to the temporay directory where we can remove libcoinblas and libcoinlapack and prepare to copy to precompiled cfsdeps
-    cd CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config 
+    cd CONFIGURE_COMMAND ${IPOPT_SOURCE}/configure --prefix=${IPOPT_INSTALL} --libdir=${IPOPT_INSTALL}/lib64/${CFS_ARCH_STR} --disable-shared --disable-linear-solver-loader --with-metis-lib=${METIS_LIBRARY} --with-metis-incdir=${CMAKE_CURRENT_BINARY_DIR}/include --disable-pkg-config F77=${CMAKE_Fortran_COMPILER} OPT_FFLAGSS=-O3 CXX=${CMAKE_CXX_COMPILER} OPT_CXXFLAGS=-O3 
   )
+  
+  ExternalProject_Add_Step(ipopt cfsdeps_download 
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}" 
+    DEPENDERS download 
+    DEPENDS "${DLFN}" 
+    WORKING_DIRECTORY ${ipopt_prefix} 
+  ) 
 
   ExternalProject_Add_Step(ipopt post_install
     COMMAND ${CMAKE_COMMAND} -P "${PI}"
     DEPENDEES install
   )
   
-  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
@@ -110,7 +114,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # Add project to global list of CFSDEPS, this allows "make snopt"
 SET(CFSDEPS ${CFSDEPS} ipopt)

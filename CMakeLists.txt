@@ -95,7 +95,7 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "07")
+SET(CFS_VERSION_MONTH "10")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
@@ -157,12 +157,9 @@ INCLUDE("cmake_modules/platform_defaults.cmake")
 #-----------------------------------------------------------------------------
 # Switch on/off usage of cfsdepscache
 #-----------------------------------------------------------------------------
-OPTION(CFS_DEPS_CACHE
-  "Use precompiled cfsdeps if existent."
-  ${CFS_DEPS_CACHE_DEFAULT})
-OPTION(CFS_DEPS_TOCACHE
-  "Compile, zip and move cfsdeps into cache."
-  ${CFS_DEPS_TOCACHE_DEFAULT})
+OPTION(CFS_DEPS_PRECOMPILED
+  "Use precompiled cfsdeps. If no precompiled version exists, compile, zip and move package into cache."
+  ${CFS_DEPS_PRECOMPILED_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
@@ -218,11 +215,11 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
   "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
 
-SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
+SET(CFS_PARDISO "MKL"
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 
-OPTION(USE_PARDISO "Use Pardiso"
+OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
@@ -438,6 +435,7 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(CFS_PARDISO)
 MARK_AS_ADVANCED(CFS_DEPS_TOCACHE)
 MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)

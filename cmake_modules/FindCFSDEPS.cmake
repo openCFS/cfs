@@ -477,10 +477,10 @@ ENDIF(USE_IPOPT)
 #-----------------------------------------------------------------------------
 IF(USE_SGPP)
   SET(SGPP_PATH "${CFS_BINARY_DIR}/cfsdeps/sgpp")
-  #SET(SGPP_BASW "SGpp_")
+  #SET(SGPP_BASE "SGpp")
   #SET(SGPP_VER "0.9.3")
   SET(SGPP_BASE "sgopt")
-  SET(SGPP_VER "r4731")
+  SET(SGPP_VER "r4892")
   SET(SGPP_ZIP "${SGPP_BASE}_${SGPP_VER}.zip")
   
   INCLUDE("${CFSDEPS_DIR}/sgpp/External_SGPP.cmake")

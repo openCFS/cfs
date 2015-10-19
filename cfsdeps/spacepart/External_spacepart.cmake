@@ -51,14 +51,12 @@ IF(USE_LIBFBI)
   SET(PFN "${boost_prefix}/libfbi-patch.cmake")
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-  IF(WIN32)
-    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-  ELSE(WIN32)
-    SET(PRECOMPILED_PCKG_NAME "libfbi_${LIBFBI_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
-  ENDIF(WIN32)
-  SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+  # not sure if precompiled makes sense, the lib claims to be c++ header only 
+  PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
     
-  SET(PREFIX_DIR "${spacepart_prefix}")
+  # This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${spacepart_prefix}")
   
   SET(ZIPFROMCACHE "${spacepart_prefix}/libfbi-zipFromCache.cmake")
   CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -69,7 +67,7 @@ IF(USE_LIBFBI)
   #-----------------------------------------------------------------------------
   # The fast box intersection library external project
   #-----------------------------------------------------------------------------
-  IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package exists copy files from cache
     #-------------------------------------------------------------------------------
@@ -82,7 +80,7 @@ IF(USE_LIBFBI)
       BUILD_COMMAND ""
       INSTALL_COMMAND ""
     )
-  ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     #-------------------------------------------------------------------------------
     # If precompiled package does not exist build external project
     #-------------------------------------------------------------------------------
@@ -103,7 +101,7 @@ IF(USE_LIBFBI)
         -DENABLE_MULTITHREADING:BOOL=${USE_OPENMP}
     )
     
-    IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+    IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
       #-------------------------------------------------------------------------------
       # Add custom step to zip a precompiled package to the cache.
       #-------------------------------------------------------------------------------
@@ -114,7 +112,7 @@ IF(USE_LIBFBI)
         WORKING_DIRECTORY ${CFS_BINARY_DIR}
       )
     ENDIF()
-  ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 ENDIF(USE_LIBFBI)
 
 
