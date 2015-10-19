@@ -8,7 +8,7 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared_ctest")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_release")
 
 #-----------------------------------------------------------------------------
@@ -80,7 +80,7 @@ SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
-MESSAGE("CBH=${CFS_BUILD_HOST}")
+
 #SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
@@ -100,7 +100,7 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/cfs-test
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
    CFS_DEPS_PRECOMPILED:BOOL=OFF
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
    USE_PARDISO:BOOL=ON

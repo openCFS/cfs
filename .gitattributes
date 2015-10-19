@@ -373,6 +373,7 @@ ctest_scripts/sites/eamc061/linux64_shared_opt_intel_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_prec_clang_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_prec_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_prec_intel_release.ctest -text
+ctest_scripts/sites/eamc061/site_specific_init.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_debug.ctest -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_release.ctest -text
