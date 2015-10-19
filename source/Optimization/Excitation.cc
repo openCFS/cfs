@@ -452,7 +452,7 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
       if(total_base_ == 1)
         ex.weight = 1.0;
 
-      LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+      LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
                       << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
 
     }

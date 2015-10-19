@@ -3,7 +3,6 @@
 #-----------------------------------------------------------------------------
 SET(CFS_BLAS_LAPACK_DEFAULT "MKL")
 SET(USE_PARDISO_DEFAULT "ON")
-SET(CFS_PARDISO_DEFAULT "MKL")
 
 SET(MKL_ROOT_DIR_DEFAULT "/opt/pckg/intel/parallel_studio_xe_2011_sp1_update1/mkl")
 
