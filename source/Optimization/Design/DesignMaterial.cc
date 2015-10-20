@@ -3602,7 +3602,7 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
 }
 
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
-     DesignElement::Type direction, SubTensorType subTensor) const {
+     DesignElement::Type direction, SubTensorType subTensor) {
   /*// Method uses SGPP interpolation
   SGPP::base::DataVector point(p.GetSize());
   for (unsigned int i=0; i < p.GetSize(); i++) {
@@ -3685,7 +3685,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Resize(3,3);
   E.Init(); // for off-diagonal
 
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
     SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
       if (!shearIsDesign_) { // no shearing
@@ -3896,7 +3896,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
 }
 
 double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
-                                                       const SGPP::base::DataVector& alpha, const SGPP::base::DataVector &point, DesignElement::Type direction) const {
+                                                       SGPP::base::DataVector& alpha, SGPP::base::DataVector &point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
   double h = 1./pow(2,level_+1) * 1e-6;
@@ -3927,7 +3927,7 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval
 
 inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
   SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
-  const SGPP::base::DataVector& alpha, const SGPP::base::DataVector& point, DesignElement::Type direction) const {
+  SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   unsigned int dimension;
   switch (direction) {
     case DesignElement::STIFF1:

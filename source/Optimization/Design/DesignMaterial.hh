@@ -340,7 +340,7 @@ class TransferFunction;
 #ifdef USE_SGPP
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
-    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+    void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
@@ -355,8 +355,8 @@ class TransferFunction;
     void InitializeSparseGrid(const char * filename);
 
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
-    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, const SGPP::base::DataVector& alpha, const SGPP::base::DataVector& point, DesignElement::Type direction) const;
-    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, const SGPP::base::DataVector& alpha, const SGPP::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
+    double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
 #endif
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
