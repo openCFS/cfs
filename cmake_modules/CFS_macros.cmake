@@ -356,7 +356,6 @@ ENDMACRO()
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
-  # DISPLAY_ALL_VARIABLES()
   IF(${CMAKE_Fortran_COMPILER_VERSION})
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
