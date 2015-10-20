@@ -350,37 +350,42 @@ MACRO(ZIP_TO_CACHE ZIP_FILE TMP_DIR)
 ENDMACRO()
 
 # ------------------------------------------------------------------------------
-# Generate a package name for the precompiled zip file based on a C/C++ compiler
+# Generate a package name for the precompiled zip file. 
+# Names the compiler. If C/C++ and Fortan are different, both are named. Otherwise it would
+# lead to issues with clang
 # ------------------------------------------------------------------------------
-MACRO(PRECOMPILED_ZIP_CXX RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
-ENDMACRO()
-
-MACRO(PRECOMPILED_ZIP_CXX_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
-ENDMACRO()
-
-
-# ------------------------------------------------------------------------------
-# Generate a package name for the precompiled zip file based on a Fortran compiler
-# ------------------------------------------------------------------------------
-# e.g. PRECOMPILED_FOR_ZIP("arpack" "${ARPACK_VER}")
-MACRO(PRECOMPILED_ZIP_FOR RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
+  # DISPLAY_ALL_VARIABLES()
+  IF(${CMAKE_Fortran_COMPILER_VERSION})
+    SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
+  ELSE()
+    SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
+  ENDIF()
 
-  # in the intel case:
-  # FC_VERSION=16.0 20150815
-  # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
+  IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
+  ELSE()
+    # in the intel case:
+    # FC_VERSION=16.0 20150815
+    # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")  
+  ENDIF()    
 ENDMACRO()
 
-MACRO(PRECOMPILED_ZIP_FOR_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
+# don't add Release or Debug when the package is built independently
+MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
+  IF(${CMAKE_Fortran_COMPILER_VERSION})
+    SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
+  ELSE()
+    SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
+  ENDIF()
 
-  # in the intel case:
-  # FC_VERSION=16.0 20150815
-  # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-  SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}.zip")
+  IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
+  ELSE()
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}.zip")  
+  ENDIF()    
 ENDMACRO()
 
 

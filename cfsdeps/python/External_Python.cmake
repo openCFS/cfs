@@ -6,7 +6,7 @@ set(python_build ${python_prefix}/src/${proj})
 set(python_source ${python_prefix}/src/${proj})
 set(python_BUILD_IN_SOURCE 1)
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "python" "${python_VER}")  
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "python" "${python_VER}")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

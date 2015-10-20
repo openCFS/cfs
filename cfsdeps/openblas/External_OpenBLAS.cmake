@@ -34,7 +34,7 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/openblas/openblas-patch.cmake.in")
 SET(PFN "${openblas_prefix}/openblas-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

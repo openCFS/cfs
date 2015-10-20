@@ -1010,11 +1010,15 @@ ConditionContainer::~ConditionContainer()
 {
   delete(view);
 
-  //for(unsigned int i = 0; i < active.GetSize(); i++)
-  //  delete active[i];
+  for(unsigned int i = 0; i < active.GetSize(); i++) {
+    delete active[i];
+    active[i] = NULL;
+  }
 
-  //for(unsigned int i = 0; i < observe.GetSize(); i++)
-  //  delete observe[i];
+  for(unsigned int i = 0; i < observe.GetSize(); i++) {
+    delete observe[i];
+    observe[i] = NULL;
+  }
 }
 
 void ConditionContainer::Read(ParamNodeList pn_list)

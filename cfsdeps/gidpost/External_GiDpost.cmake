@@ -89,7 +89,7 @@ CONFIGURE_FILE(
   @ONLY
 )
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "gidpost" "${GIDPOST_VER}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "gidpost" "${GIDPOST_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

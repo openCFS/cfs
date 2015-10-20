@@ -31,11 +31,9 @@ namespace CoupledField
   
   public:
 
-    //! Dummy constructor
     Elem();
 
-    //! Dummy destructor
-    virtual ~Elem() {;}
+    virtual ~Elem();
 
   public:
     // ========================================================================

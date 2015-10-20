@@ -40,7 +40,7 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/snopt/snopt-post_install.cmake.in")
 SET(PI "${SNOPT_PREFIX}/snopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-PRECOMPILED_ZIP_FOR_NOBUILD(PRECOMPILED_PCKG_FILE "snopt" "${SNOPT_VER}")
+PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "snopt" "${SNOPT_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
