@@ -1456,7 +1456,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   if(def.excitation >= 0 && domain->GetOptimization() != NULL)
   {
     StdVector<Excitation>& mex = domain->GetOptimization()->GetMultipleExcitation()->excitations;
-    if(def.excitation > (int) mex.GetSize())
+    if(def.excitation >= (int) mex.GetSize())
       EXCEPTION("'result' has too large 'excitation' index " << def.excitation << " for only " << mex.GetSize() << " excitations");
 
     mex[def.excitation].Apply();

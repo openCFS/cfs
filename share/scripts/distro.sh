@@ -28,6 +28,7 @@ Help()
     echo "-h      print distribution info human readable"
     echo "-a      print distribution info awk parsable"
     echo "-u      print distribution info unique"
+    echo "-c      print distribution info for cmake"
 }
 
 if [ -z "$1" ]; then

@@ -52,7 +52,7 @@ IF(USE_LIBFBI)
   CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
   # not sure if precompiled makes sense, the lib claims to be c++ header only 
-  PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
+  PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "libfbi" "${LIBFBI_VER}")
     
   # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

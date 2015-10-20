@@ -67,7 +67,7 @@ CONFIGURE_FILE(
   @ONLY
 )
 
-PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "metis" "${METIS_VER}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "metis" "${METIS_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

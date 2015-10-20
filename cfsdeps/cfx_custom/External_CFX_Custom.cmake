@@ -78,7 +78,7 @@ ExternalData_expand_arguments(cfx_custom_external_data
 # Add a build target to populate the real data.
 ExternalData_Add_Target(cfx_custom_external_data)
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "cfxio" "${CFXIO_VER}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "cfxio" "${CFXIO_VER}")
 
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

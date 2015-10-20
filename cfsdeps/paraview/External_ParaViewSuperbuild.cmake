@@ -241,7 +241,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 Find_Package(Git)
 
-PRECOMPILED_ZIP_CXX(PRECOMPILED_PCKG_FILE "paraview" "no_ver")  
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "paraview" "no_ver")  
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)

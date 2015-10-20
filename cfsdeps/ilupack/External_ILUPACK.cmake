@@ -13,41 +13,6 @@ STRING(REPLACE ";" "^" ILUPACK_AMD_LIBRARY "${AMD_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_BLAS_LIBRARY "${BLAS_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 
-#-------------------------------------------------------------------------------
-# Configure target for downloading ILUPACK sources using CMake ExternalData
-# mechanism.
-#-------------------------------------------------------------------------------
-# Add standard remote object stores to user's configuration.
-SET(ExternalData_URL_TEMPLATES
-  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
-  )
-
-# Set standard local object stores.
-SET(ExternalData_OBJECT_STORES
-  "${CFS_DEPS_CACHE_DIR}/sources/ilupack"
-)
-
-# Give a hint about downloading the source archive to the developer.
-FILE(READ "cfsdeps/ilupack/${ILUPACK_GZ}.md5" ILUPACK_HASH)
-STRING(STRIP ${ILUPACK_HASH} ILUPACK_HASH)
-
-IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}")
-  SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_HASH}'")
-  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}'.")
-
-  colormsg(HIYELLOW "${MSG}")
-ENDIF()
-
-set(ILUPACK_EXTERNAL_DATA "DATA{cfsdeps/ilupack/${ILUPACK_GZ}}")
-
-# Expand all arguments as a single string to preserve escaped semicolons.
-ExternalData_expand_arguments(ilupack_external_data
-  targetArgs "${ILUPACK_EXTERNAL_DATA}")
-
-# Add a build target to populate the real data.
-ExternalData_Add_Target(ilupack_external_data)
-
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
@@ -100,7 +65,23 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
 SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "ilupack" "${ILUPACK_VER}")
+
+#-------------------------------------------------------------------------------
+# The ilupack source is closed source! It must not be redistributed!!
+# There is a copy at ${CFS_DS_WEBDAV}/.... but due to an improper ssl certificate
+# "common name ‘cfs’ doesn't match requested host name ‘cfs.mdmt.tuwien.ac.at’"
+# you might need to do wget URL --no-check-certificate manually and store the
+# file at cfsdepscache/source/ikupack
+#-------------------------------------------------------------------------------
+SET(MIRRORS "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}")
+SET(MD5_SUM ${ILUPACK_MD5})
+
+SET(DLFN "${ilupack_prefix}/ilupack-download.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ilupack" "${ILUPACK_VER}")
   
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
@@ -145,7 +126,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     DEPENDS ilupack_external_data lapack metis suitesparse
     PREFIX "${ilupack_prefix}"
     SOURCE_DIR "${ilupack_source}"
-    URL ${ILUPACK_PATH}/${ILUPACK_GZ}
+    URL ${LOCAL_FIILE}
     URL_MD5 ${ILUPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     LIST_SEPARATOR "^"

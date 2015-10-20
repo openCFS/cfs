@@ -63,7 +63,7 @@ SET(MD5_SUM ${ARPACK_MD5})
 SET(DLFN "${ARPACK_prefix}/arpack-download.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
 
-PRECOMPILED_ZIP_FOR(PRECOMPILED_PCKG_FILE "arpack" "${ARPACK_VER}") 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "arpack" "${ARPACK_VER}") 
 
 # This should be either PREFIX_DIR (install manifest is used for zipping)
 # or INSTALL_DIR (install directory will be zipped)
@@ -100,8 +100,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     URL ${LOCAL_FILE}
     URL_MD5 ${ARPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
+    CMAKE_ARGS ${CMAKE_ARGS}
   )
 
   #-------------------------------------------------------------------------------
