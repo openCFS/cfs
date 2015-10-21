@@ -1,5 +1,5 @@
 function [createcataloguetime] = computeInterpolationValues(points, meshgenerationfunc, cfsworkingdirectory, threadID)
-% COMPUTEINTERPOLATIONVALUES Computes values of homogenized elasticity
+% COMPUTEINTERPOLATIONVALUES computes values of homogenized elasticity
 %                            tensor using CFS in VOIGT notation.
 % 
 %    computeInterpolationValues(points, meshgenerationfunc, cfsworkingdirectory, threadID)
@@ -33,46 +33,26 @@ function [createcataloguetime] = computeInterpolationValues(points, meshgenerati
 % At the moment the catalogue generation only works on unix systems. For
 % other platforms use C = computer; if (C == ... and modify
 % Homogenization.getElasticityTensorOfMicroCell
-
 if ~isunix
     warning('computeInterpolationValues:NoUnixSystem',...
         'computeInterpolationValues using CFS++ only works on UNIX systems!');
     return;
 end
 
-if ischar(points)
-    % Read gridpoints from file
-    file = points;
-    gridPoints = load(file);
+[points, givenByLevelAndIndex] = readPresets(points);
+
+% pointsCoords may be given by level and index, we need coordinates
+if givenByLevelAndIndex
+    pointsCoords = pow2(-double(points(:,1:2:end))) .* double(points(:,2:2:end));
 else
-    % Gridpoints are given as input matrix
-    gridPoints = points;
+    pointsCoords = points;
 end
 
-% First line contains dimension and level (and maybe number of points)
-if gridPoints(1,1) > 1
-    dim = gridPoints(1,1);
-    level = gridPoints(1,2);
-    gridPoints(1,:) = [];
-else
-    dim = size(gridPoints,2);
-    level = 1;
-end
-
-if size(gridPoints,2) > dim
-    gridPoints = gridPoints(:,1:dim);
-end
-
-% Map to intervall from 0 to 1
-if ischar(points)
-    gridPoints = (gridPoints + 1) / 2;
-end
-
-numPoints = size(gridPoints,1);
+numPoints = size(pointsCoords,1);
 
 % Check if catalogue fits to meshgenerationfunc by calling the function once
 try
-    meshfile = meshgenerationfunc(gridPoints(1,:), '.');
+    meshfile = meshgenerationfunc(pointsCoords(1,:), '.');
     [meshfilepath, meshfilename] = fileparts(meshfile);
     if exist( sprintf('%s/%s.dens', meshfilepath, meshfilename), 'file' )
         delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
@@ -85,12 +65,6 @@ catch ME
 end
 
 Efull = Homogenization.getElasticityTensorOfMaterial( sprintf('%s/inv_tensor.xml',cfsworkingdirectory) );
-
-%if ~isempty(level)
-%    id = strcat(num2str(dim),'D_level_',num2str(level));
-%else
-%    id = strcat(num2str(dim),'D_numpoints_',num2str(numPoints));
-%end
 
 % Create folder 'catalogues' if necessary
 if ~exist('catalogues','dir')
@@ -109,11 +83,10 @@ else
     filename = strcat('catalogues/detailed_stats_', num2str(threadID));
 end
 fid = fopen(filename,'wt');
-% fprintf(fid,'%dD\tL%d\t%d\t%s\t%e\t%e\t%e\t%e\t%e\t%e\t%e\n',dim,level,numPoints,'voigt',zeros(1,11-dim));
 for i=1:numPoints
-    point = gridPoints(i,:);
+    point = pointsCoords(i,:);
 %     Take advantage of symmetry
-%     [ism, idx] = ismemberf(point([1 3 2]),gridPoints(1:i-1,:),'rows');
+%     [ism, idx] = ismemberf(point([1 3 2]),pointsCoords(1:i-1,:),'rows');
 %     disp(ism)
 %     if ism && ~ismemberf(point([2 1]),cache,'rows');
 %         Tensor = zeros(3,3);
@@ -132,7 +105,7 @@ for i=1:numPoints
 %     end
     if ~isempty(Eh)
         Tensors(i,:) = [Eh(1,1) Eh(1,2) Eh(1,3) Eh(2,2) Eh(2,3) Eh(3,3) volume];
-        fprintf(fid,'%.10f\t',point);
+        fprintf(fid,'%.10f\t',points(i,:));
         fprintf(fid,'%e\t%e\t%e\t',Eh(1,1),Eh(1,2),Eh(1,3));
         fprintf(fid,'%e\t%e\t%e\t',Eh(2,2),Eh(2,3),Eh(3,3));
         fprintf(fid,'%e\n',volume);
@@ -165,6 +138,37 @@ fprintf('time for creating catalogue:     %f s\n', createcataloguetime);
 
 end
 
+
+
+function [pointsCoords, givenByLevelAndIndex] = readPresets(points)
+% READPRESETS reads the presets. 
+
+if ischar(points)
+    % Read pointsCoords from file
+    pointsCoords = load(points);
+else
+    % pointsCoords are given as matrix
+    pointsCoords = points;
+end
+
+% First line contains flag for givenByLevelAndIndex, dimension and level (and maybe number of points)
+if any(pointsCoords(:,1) > 1)
+    givenByLevelAndIndex = 1;
+    dim = pointsCoords(1,2);
+    pointsCoords(1,:) = [];
+else
+    givenByLevelAndIndex = 0;
+    dim = size(pointsCoords,2);
+end
+
+% Remove possible line trailing zeros (points given by coords)
+if givenByLevelAndIndex
+    pointsCoords = pointsCoords(:,1:2*dim);
+else
+    pointsCoords = pointsCoords(:,1:dim);
+end
+
+end
 
 
 function showProgress(counter,complete)

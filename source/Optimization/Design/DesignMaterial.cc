@@ -3362,8 +3362,9 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   for (unsigned int i = 0; i < N; i++) {
     if (shearIsDesign_) {
       // shearing angle should be optimized ==> Read ALL The Data!
-      file >> level[0] >> level[1] >> level[2];
-      file >> index[0] >> index[1] >> index[2];
+      file >> level[0] >> index[0];
+      file >> level[1] >> index[1];
+      file >> level[2] >> index[2];
       grid_point.set(0, level[0], index[0]);
       grid_point.set(1, level[1], index[1]);
       grid_point.set(2, level[2], index[2]);
@@ -3371,11 +3372,12 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
       if (d == 2) {
-        file >> level[0] >> level[1];
-        file >> index[0] >> index[1];
+        file >> level[0] >> index[0];
+        file >> level[1] >> index[1];
       } else {
-        file >> level[0] >> level[1] >> level[2];
-        file >> index[0] >> index[1] >> index[2];
+        file >> level[0] >> index[0];
+        file >> level[1] >> index[1];
+        file >> level[2] >> index[2];
         if (level[2] != 1) {
           // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
           for (unsigned int j = 0; j < m; j++) {

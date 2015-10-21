@@ -1,5 +1,5 @@
 dim  = 3;
-level = 3;
+level = 7;
 
 % Get current path
 path = fileparts(which('createPresetsSparseGrid.m'));
@@ -21,22 +21,27 @@ fid = fopen([path,'/generate_points/grid_points.csv']);
 A = fscanf(fid,format);
 fclose(fid);
 
-A = reshape(A,2*dim,[]);
+A = reshape(A,2*dim,size(A,1)/2/dim)';
 
-grid.Xl = uint64(A(1:2:2*dim,:)');
-grid.Xi = uint64(A(2:2:2*dim,:)');
+grid.Xl = uint64(A(:,1:2:2*dim));
+grid.Xi = uint64(A(:,2:2:2*dim));
 
 % Calculate coordinates
 grid.X = pow2(-double(grid.Xl)) .* double(grid.Xi) * 2 - 1;
+
+% Map to intervall from 0 to 1
+grid.X = (grid.X + 1) / 2;
 sz = size(grid.X);
 
 % Write coordinates
-data = [dim, level, sz(1), zeros(1,sz(2)-3); grid.X, zeros(sz(1), 3-sz(2))];
+coords = [0, dim, level, sz(1), zeros(1,sz(2)-4); grid.X, zeros(sz(1), 4-sz(2))];
+A = [1, dim, level, sz(1), zeros(1,2*dim-4); A, zeros(sz(1), 4-2*dim)];
 % csvwrite('presets',data);
 if ~exist('presets','dir')
     mkdir('presets')
 end
-dlmwrite( sprintf('presets/presets%dD_L%d',dim,level), data, 'delimiter', ',', 'precision', '%f' );
+dlmwrite( sprintf('presets/byCoords/presets%dD_L%d',dim,level), coords, 'delimiter', ',', 'precision', '%f' );
+dlmwrite( sprintf('presets/byLevelAndIndex/presets%dD_L%d',dim,level), A, 'delimiter', ',', 'precision', '%f' );
 
 % Clean up
-clear tmp format fid A B C Proj
+clear tmp format status result fid ans A sz

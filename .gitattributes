@@ -1111,7 +1111,6 @@ share/matlab/material_catalogue/callCatalogueGeneration.m -text
 share/matlab/material_catalogue/callMatlab.sh -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_31 -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5 -text
-share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5_interpolant -text
 share/matlab/material_catalogue/createPresetsFullGrid.m -text
 share/matlab/material_catalogue/createPresetsSparseGrid.m -text
 share/matlab/material_catalogue/extractPartialCatalogue.m -text
@@ -1175,6 +1174,7 @@ share/matlab/material_catalogue/rotatevoigt.m -text
 share/matlab/material_catalogue/sortCatalogue.m -text
 share/matlab/material_catalogue/validateCFS.m -text
 share/matlab/material_catalogue/voigttohillmandel.m -text
+share/matlab/material_catalogue/writeHeader.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
 share/matlab/mmwrite.m -text
