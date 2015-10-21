@@ -282,8 +282,8 @@ namespace CoupledField {
 
     //Initializing storage for PDFs
     pdfs.Resize(n_elems * n_q_);
-    adjPdfs.Resize(n_elems * n_q_);
-    adjPdfs.Init(0.0);
+    adjMoments.Resize(n_elems * n_q_);
+    adjMoments.Init(0.0);
 
     if(iface_ == INTERNAL) {
       lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_,alpha_max_);
@@ -506,7 +506,7 @@ namespace CoupledField {
 
         if (!srt_ && domain_->GetOptimization() != NULL) {
           StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
-          adjPdfs = *tmpAdj;
+          adjMoments = *tmpAdj;
         }
 
         pdfs = *tmp;
@@ -756,19 +756,16 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   else // in MRT case, adjoint LBM solver delivers adjoint solution
   {
     Vector<double> pdfs(n_q_);
-    Vector<double> adjPdfs(n_q_);
-    const Matrix<double>& adjTransformation = lbm->GetAdjTransformation();
+    Vector<double> adjMoments(n_q_);
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
       unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
       for (unsigned int  dir = 0; dir < n_q_; dir++) {
         pdfs[dir] = GetPdf(idx,dir);
-        adjPdfs[dir] = GetAdjPdf(idx,dir);
+        adjMoments[dir] = GetAdjPdf(idx,dir);
       }
 
-      Vector<double> adjMoments(n_q_);
-      adjTransformation.Mult(adjPdfs,adjMoments);
       Vector<double> d_F1_d_rho(n_q_);
       Vector<double> d_F2_d_rho(n_q_);
       double density = CalcLBMDensity(idx);

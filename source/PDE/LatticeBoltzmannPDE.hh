@@ -199,7 +199,7 @@ public:
 
   inline void ExtractIntermediateSolution() {
     pdfs = lbm->GetPdfs();
-    adjPdfs = lbm->GetAdjPdfs();
+    adjMoments = lbm->GetAdjPdfs();
   }
 
   //! Calculate macroscopic velocities
@@ -241,7 +241,11 @@ private:
   };
 
   inline double GetAdjPdf(unsigned int idx, int dir) const  {
-      return adjPdfs[idx * n_q_ + dir];
+      return adjMoments[idx * n_q_ + dir];
+  };
+
+  inline double GetAdjMoments(unsigned int idx, int dir) const  {
+    return adjMoments[idx * n_q_ + dir];
   };
 
   inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
@@ -372,7 +376,7 @@ private:
   StdVector<double> pdfs;
 
   /** storage for adjoint particle distribution. This is the simulation result for the function evaluation. */
-  StdVector<double> adjPdfs;
+  StdVector<double> adjMoments;
 
   /** these are the indices of the inlet elements */
   StdVector<unsigned int> inlet;

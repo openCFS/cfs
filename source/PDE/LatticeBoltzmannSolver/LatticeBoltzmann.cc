@@ -84,11 +84,11 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   pdfs_[0].Resize(nNodes_ * n_q_);
   pdfs_[1].Resize(nNodes_ * n_q_);
 
-  adjPdfs_.Resize(2);
-  adjPdfs_[0].Resize(nNodes_ * n_q_);
-  adjPdfs_[1].Resize(nNodes_ * n_q_);
-  adjPdfs_[0].Init(0.0);
-  adjPdfs_[1].Init(0.0);
+  adjMoments_.Resize(2);
+  adjMoments_[0].Resize(nNodes_ * n_q_);
+  adjMoments_[1].Resize(nNodes_ * n_q_);
+  adjMoments_[0].Init(0.0);
+  adjMoments_[1].Init(0.0);
 
   // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
   microVelDirections.Resize(n_q_);
@@ -288,6 +288,19 @@ void LatticeBoltzmann::InitializePdfs()
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
+      APDF(0, elem, dir) = weights[dir];
+      APDF(1, elem, dir) = weights[dir];
+    }
+  }
+  for (int elem = 0; elem < nNodes_; elem++) {
+    Vector<double> pdfs(n_q_);
+    Vector<double> moments(n_q_);
+    for (int dir = 0; dir < n_q_; dir++)
+      pdfs[dir] = APDF(0, elem, dir);
+    adjTransformation.Mult(pdfs, moments);
+    for (int dir = 0; dir < n_q_; dir++) {
+      APDF(0, elem, dir) = moments[dir];
+      APDF(1, elem, dir) = moments[dir];
     }
   }
 }
@@ -978,44 +991,44 @@ void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moment
   double nu = (1/omega_nu_ - 0.5) / 3.0; // fluid's kinematic viscosity in LBM units
   double se2 = omega_e_ * omega_e_;
   double snu2 = omega_nu_ * omega_nu_;
-//  double j2 = jx * jx + jy * jy;
-  double jx2 = jx * jx;
-  double jy2 = jy * jy;
+  double j2 = jx * jx + jy * jy;
+//  double jx2 = jx * jx;
+//  double jy2 = jy * jy;
   double rho2 = rho * rho;
   double rho3 = rho * rho * rho;
   double rho4 = rho * rho * rho * rho;
   double alpha = CalcResistanceCoeff(elemId);
-//  double fx = -alpha * jx;
-//  double fy = -alpha * jy;
+  double fx = -alpha * jx;
+  double fy = -alpha * jy;
 
   // 0th entry: d_diss/d_rho
-//  result[0] = 4.0 * nu * se2 - 27.0 * nu * (4.0 * se2 + snu2) * j2 * j2 / (4.0 * rho4)
-//      + 3.0 * nu * (4.0 * se2 * e * j2 + 3.0 * snu2 * (pxx * (jx * jx - jy * jy) + 4.0 * jx * jy * pxy)) / rho3
-//      - nu * (4.0 * se2 * (e * e - 12 * j2) + 9.0 * snu2 * (pxx * pxx + 4.0 * pxy * pxy)) / (4.0 * rho2) + (fx * jx + fy * jy) / rho2;
-  result[0] = -9.0 * nu * snu2 * pxy * pxy / rho2 - 9.0 * nu * snu2 * pxx * pxx / (4*rho2)+ 36.0 * nu * snu2 * jx * jy * pxy / rho3
-      - 9 * nu * snu2 * pxx * jy2 / rho3 + 9.0 * nu * snu2 * pxx * jx * jx / rho3
-      - 27.0 * nu * snu2 * jy * jy * jy * jy / (4*rho4) - 27 * nu * snu2 * jx *jx * jy * jy / (2.0*rho4) - 27.0 * nu * snu2 * jx * jx * jx * jx / (4*rho4)
-      + nu * se2 + 3.0 * nu * se2 / rho2 * jy2 + 3 * nu * se2 / rho2 * jx * jx2 - nu * se2 * e * e / (4.0*rho2) + 3 * nu * se2 * e * jy * jy / rho3
-      + 3 * nu * se2 * jx * jx * e / rho3 - 27 * nu * se2 * jy * jy * jy * jy / (4*rho4) - 27 * nu * se2 * jx * jx * jy * jy / (2*rho4)
-      - 27 * nu * se2 * jx * jx * jx * jx / (4*rho4) - alpha * jy * jy / rho2 - alpha * jx * jx / rho2;
+  result[0] = 4.0 * nu * se2 - 27.0 * nu * (4.0 * se2 + snu2) * j2 * j2 / (4.0 * rho4)
+      + 3.0 * nu * (4.0 * se2 * e * j2 + 3.0 * snu2 * (pxx * (jx * jx - jy * jy) + 4.0 * jx * jy * pxy)) / rho3
+      - nu * (4.0 * se2 * (e * e - 12 * j2) + 9.0 * snu2 * (pxx * pxx + 4.0 * pxy * pxy)) / (4.0 * rho2) + (fx * jx + fy * jy) / rho2;
+//  result[0] = -9.0 * nu * snu2 * pxy * pxy / rho2 - 9.0 * nu * snu2 * pxx * pxx / (4*rho2)+ 36.0 * nu * snu2 * jx * jy * pxy / rho3
+//      - 9 * nu * snu2 * pxx * jy2 / rho3 + 9.0 * nu * snu2 * pxx * jx * jx / rho3
+//      - 27.0 * nu * snu2 * jy * jy * jy * jy / (4*rho4) - 27 * nu * snu2 * jx *jx * jy * jy / (2.0*rho4) - 27.0 * nu * snu2 * jx * jx * jx * jx / (4*rho4)
+//      + nu * se2 + 3.0 * nu * se2 / rho2 * jy2 + 3 * nu * se2 / rho2 * jx * jx2 - nu * se2 * e * e / (4.0*rho2) + 3 * nu * se2 * e * jy * jy / rho3
+//      + 3 * nu * se2 * jx * jx * e / rho3 - 27 * nu * se2 * jy * jy * jy * jy / (4*rho4) - 27 * nu * se2 * jx * jx * jy * jy / (2*rho4)
+//      - 27 * nu * se2 * jx * jx * jx * jx / (4*rho4) - alpha * jy * jy / rho2 - alpha * jx * jx / rho2;
 
   // 1th entry: d_diss/d_e
-//  result[1] = 2.0 * nu * se2 * (-3.0 * j2 + rho * (e + 2.0 * rho)) / rho2;
-  result[1] = nu * se2 / (2.0 * rho) * e - (3.0 * nu * se2 * jy2 + 3.0 * nu * se2 * jx2) / (2 * rho2) + nu * se2;
+  result[1] = 2.0 * nu * se2 * (-3.0 * j2 + rho * (e + 2.0 * rho)) / rho2;
+//  result[1] = nu * se2 / (2.0 * rho) * e - (3.0 * nu * se2 * jy2 + 3.0 * nu * se2 * jx2) / (2 * rho2) + nu * se2;
 
   // 3th entry: d_diss/d_jx
-//  result[3] = 9.0 * nu * jx * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jx + 3.0 * snu2 * (jx * pxx + 2.0 * jy * pxy)) / rho2
-//      - (fx + 24.0 * nu * se2 * jx - jx * alpha) / rho;
-  result[3] = (9.0 * nu * snu2 * jx * jy2 + 9.0 * nu * snu2 * jx2 * jx + 9.0 * nu * se2 * jx * jy2 + 9.0 * nu * se2 * jx2 * jx) / rho3
-      + (-18.0 * nu * snu2 * jy * pxy - 9.0 * nu * snu2 * jx * pxx - 3.0 * nu * se2 * e * jx) / rho2
-      + (-6.0 * nu * se2 * jx + 2.0 * alpha * jx) / rho;
+  result[3] = 9.0 * nu * jx * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jx + 3.0 * snu2 * (jx * pxx + 2.0 * jy * pxy)) / rho2
+      - (fx + 24.0 * nu * se2 * jx - jx * alpha) / rho;
+//  result[3] = (9.0 * nu * snu2 * jx * jy2 + 9.0 * nu * snu2 * jx2 * jx + 9.0 * nu * se2 * jx * jy2 + 9.0 * nu * se2 * jx2 * jx) / rho3
+//      + (-18.0 * nu * snu2 * jy * pxy - 9.0 * nu * snu2 * jx * pxx - 3.0 * nu * se2 * e * jx) / rho2
+//      + (-6.0 * nu * se2 * jx + 2.0 * alpha * jx) / rho;
 
   // 5th entry: d_diss/d_jy
-//  result[5] = 9.0 * nu * jy * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jy + 3.0 * snu2 *(-jy * pxx + 2.0 * jx * pxy)) / rho2
-//      - (fy + 24.0 * nu * se2 * jy - alpha * jy) / rho;
-    result[5] = (-18.0 * nu * snu2 * jx * pxy + 9.0 * nu * snu2 * jy * pxx - 3.0 * nu * se2 * e * jy) / rho2
-        + (9.0 * nu * snu2 * jy2 * jy + 9.0 * nu * snu2 * jx2 * jy + 9.0 * nu * se2 * jy2 * jy + 9.0 * nu * se2 * jx2 * jy) / rho3
-        + (-6.0 * nu * se2 * jy + 2.0 * alpha * jy) / rho;
+  result[5] = 9.0 * nu * jy * (4.0 * se2 + snu2) * j2 / rho3 - 3.0 * nu * (4.0 * se2 * e * jy + 3.0 * snu2 *(-jy * pxx + 2.0 * jx * pxy)) / rho2
+      - (fy + 24.0 * nu * se2 * jy - alpha * jy) / rho;
+//    result[5] = (-18.0 * nu * snu2 * jx * pxy + 9.0 * nu * snu2 * jy * pxx - 3.0 * nu * se2 * e * jy) / rho2
+//        + (9.0 * nu * snu2 * jy2 * jy + 9.0 * nu * snu2 * jx2 * jy + 9.0 * nu * se2 * jy2 * jy + 9.0 * nu * se2 * jx2 * jy) / rho3
+//        + (-6.0 * nu * se2 * jy + 2.0 * alpha * jy) / rho;
 
   // 7th entry: d_diss/d_pxx
   result[7] = 9.0 * nu * snu2 * (-jx * jx + jy * jy + pxx * rho) / (2.0 * rho2);
@@ -1254,7 +1267,6 @@ void LatticeBoltzmann::AdjointCollision(int cur)
   tmpPdfs_.Resize(nNodes_ * n_q_);
   int index;
   int z = 0;
-  Vector<double> pdfs(n_q_);
   Vector<double> moments(n_q_);
   for (int x = 0; x < sizeX_ ; x++)
     for (int y = 0; y < sizeY_; y++)
@@ -1262,9 +1274,7 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       index = GetIndex(x,y,z);
 
       for (int dir = 0; dir < n_q_; dir++)
-        pdfs[dir] = APDF(cur,index,dir);
-
-      adjTransformation.Mult(pdfs,moments);
+        moments[dir] = APDF(cur,index,dir);
 
       Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
       Matrix<double> collMatrix = adjCollision[index];
@@ -1277,9 +1287,11 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       transformation.Transpose(transpose); // adjoint backstransformation matrix is tranpose of primal transformation matrix
       transpose.Mult(momentsAfterCollision, collResult);
 
+//      adjTransformation.Mult(momentsAfterCollision,collResult); // transforming adjoint moments to adjoint distributions
+
       for (int dir = 0; dir < n_q_; dir++)
+//        tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
         tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
-//        APDF(cur,index,dir) = collResult[dir];
     }
 }
 
@@ -1293,7 +1305,6 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
   for (int x = 0; x < sizeX_; x++)
     for (int y = 0; y < sizeY_; y++)
     {
-
       // propagation
       for (int  dir = 0; dir < n_q_; dir++) {
         if (PointsToBoundary(x,y,z,dir)) { // if the neighbor element that I want to access is outside the domain, keep current value
@@ -1308,9 +1319,23 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 
         int index = GetIndex(tmp_x,tmp_y,tmp_z);
         APDF(next,x,y,z,dir) = tmpPdfs_[GetPdfIndex(index,dir)];
-//        APDF(next,x,y,z,dir) = APDF(cur, tmp_x, tmp_y,  tmp_z, dir);
       }
     }
+
+  // tranforming adjoint distributions back to adjoint moments
+  for (int elem = 0; elem < nNodes_; elem++) {
+    for (int dir = 0; dir < n_q_; dir++)
+      pdfs[dir] = APDF(next,elem,dir);
+
+//    Matrix<double> transpose(n_q_,n_q_);
+    Vector<double> moments(n_q_);
+//    transformation.Transpose(transpose);
+//    transpose.Mult(pdfs,moments);
+    adjTransformation.Mult(pdfs,moments);
+
+    for (int dir = 0; dir < n_q_; dir++)
+      APDF(next,elem,dir) = moments[dir];
+  }
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1332,6 +1357,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
     CalcAdjointCollMatrix(elem,moms);
     d_diss_d_moments(elem,moms);
+
+//    Vector<double> tmp(n_q_);
+//    adjTransformation.Mult(pdfs,tmp);
+
+//    for (int dir = 0; dir < n_q_; dir++)
+//      adjMoments_[adjCur_][GetPdfIndex(elem,dir)] = moms[dir];
   }
 
   int count = numWriteResults_;
@@ -1347,8 +1378,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   if(plot_)
     plot.open(std::string(progOpts->GetSimName() + ".adjLbm.dat").c_str());
 
-  adjPdfs_[adjCur_] = pdfs_[cur_]; // initialize start values with steady-state solution of primal problem
-  assert(adjPdfs_[adjCur_] == pdfs_[cur_]);
+//  adjMoments_[adjCur_] = pdfs_[cur_]; // initialize start values with steady-state solution of primal problem
+//  assert(adjMoments_[adjCur_] == pdfs_[cur_]);
 
   LOG_DBG3(lbm) << "\n steady state pdfs: " << pdfs_.ToString(false) << std::endl;
 
@@ -1371,6 +1402,22 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
         plot << it << "\t" << R << "\n";
 
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
+
+      std::cout << "Adjoint iteration " << it << " residual: " << R << std::endl;
+
+//      std::cout << "\n adjoint moments cur: " << std::endl;
+//      for (int elem = 0; elem < nNodes_; elem++) {
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << adjMoments_[adjCur_][GetPdfIndex(elem,dir)] << " ";
+//        std::cout << std::endl;
+//      }
+//
+//      std::cout << "\n adjoint moments next: " << std::endl;
+//      for (int elem = 0; elem < nNodes_; elem++) {
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << adjMoments_[adjNext_][GetPdfIndex(elem,dir)] << " ";
+//        std::cout << std::endl;
+//      }
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
@@ -1410,7 +1457,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   node->Get("converged")->SetValue(steady_state);
   node->Get("dissipation")->SetValue(dissipation);
 
-  return &adjPdfs_[adjCur_];
+  return &adjMoments_[adjCur_];
 }
 
 /************************************************** 3D operators *****************************************************/
