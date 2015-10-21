@@ -70,7 +70,7 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[adjCur_];}
+      inline StdVector<double>& GetAdjPdfs() {return adjMoments_[adjCur_];}
 
       /** Returns overall dissipation calculated with current pdfs */
       inline double GetDissipation()
@@ -263,22 +263,22 @@ namespace CoupledField
 
           inline double& APDF(int cur, int x, int y, int z, int direction)
           {
-            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline const double APDF(int cur, int x, int y, int z, int direction) const
           {
-            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+            return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
           inline double& APDF(int cur, int elem, int direction)
           {
-            return adjPdfs_[cur][direction + n_q_ * elem];
+            return adjMoments_[cur][direction + n_q_ * elem];
           }
 
           inline const double APDF(int cur, int elem, int direction) const
           {
-            return adjPdfs_[cur][direction + n_q_ * elem];
+            return adjMoments_[cur][direction + n_q_ * elem];
           }
 
           void CreateOutput(const char * file, int cur);
@@ -364,7 +364,7 @@ namespace CoupledField
           StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
           StdVector< StdVector<double> > pdfs_;
-          StdVector< StdVector<double> > adjPdfs_;
+          StdVector< StdVector<double> > adjMoments_;
           StdVector<double> tmpPdfs_;
 
           // store moments and equilibrium moments of steady state solution
