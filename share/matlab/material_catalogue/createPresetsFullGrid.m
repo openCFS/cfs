@@ -27,7 +27,7 @@ y = repmat(reshape(repmat(pointsPerDim,npoints,1),[],1),npoints,1);
 z = repmat(pointsPerDim',npoints^2,1);
 
 points = [x,y,z];
-points = points/(npoints+1)*2-1;
+points = points/(npoints+1);
 
 % Write coordinates
 if sz(2) > 3
