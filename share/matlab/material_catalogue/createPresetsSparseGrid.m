@@ -1,5 +1,5 @@
 dim  = 3;
-level = 7;
+level = 3;
 
 % Get current path
 path = fileparts(which('createPresetsSparseGrid.m'));

@@ -3353,6 +3353,8 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha5_.resize(N);
     alpha6_.resize(N);
   }
+  double leveld;
+  double indexd;
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
   SGPP::base::GridIndex grid_point(grid_->getStorage()->dim());
@@ -3362,22 +3364,28 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   for (unsigned int i = 0; i < N; i++) {
     if (shearIsDesign_) {
       // shearing angle should be optimized ==> Read ALL The Data!
-      file >> level[0] >> index[0];
-      file >> level[1] >> index[1];
-      file >> level[2] >> index[2];
-      grid_point.set(0, level[0], index[0]);
-      grid_point.set(1, level[1], index[1]);
-      grid_point.set(2, level[2], index[2]);
+      for (unsigned int idx = 0; idx < 3; idx++) {
+        file >> leveld >> indexd;
+        level[idx] = static_cast<unsigned int>(leveld);
+        index[idx] = static_cast<unsigned int>(indexd);
+        grid_point.set(idx, level[idx], index[idx]);
+      }
       level_ = std::max(level_, std::max(level[0], std::max(level[1], level[2])));
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
       if (d == 2) {
-        file >> level[0] >> index[0];
-        file >> level[1] >> index[1];
+        for (unsigned int idx = 0; idx < 2; idx++) {
+          file >> leveld >> indexd;
+          level[idx] = static_cast<unsigned int>(leveld);
+          index[idx] = static_cast<unsigned int>(indexd);
+          grid_point.set(idx, level[idx], index[idx]);
+        }
       } else {
-        file >> level[0] >> index[0];
-        file >> level[1] >> index[1];
-        file >> level[2] >> index[2];
+        for (unsigned int idx = 0; idx < 3; idx++) {
+          file >> leveld >> indexd;
+          level[idx] = static_cast<unsigned int>(leveld);
+          index[idx] = static_cast<unsigned int>(indexd);
+        }
         if (level[2] != 1) {
           // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
           for (unsigned int j = 0; j < m; j++) {
@@ -3423,7 +3431,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         alpha4_[j] *= 2.0;
       }
     }
-    LOG_DBG(dm) << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
+    LOG_DBG(dm) << "ISG: alpha[1-4]: " << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
     j++;
   }
   LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
