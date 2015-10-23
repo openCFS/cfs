@@ -26,5 +26,5 @@ cat catalogues/detailed_stats_[123456789]* >> catalogues/detailed_stats_$filenam
 rm [123456789]*
 rm catalogues/detailed_stats_[123456789]*
 
-#matlab -nodesktop -nodisplay -nosplash -r "try;writeHeader('catalogues/detailed_stats_$filename');catch ME;disp(ME.message);end;exit;">$filename.out 2>$filename.err
+matlab -nodesktop -nodisplay -nosplash -r "try;writeHeader('catalogues/detailed_stats_$filename');catch ME;disp(ME.message);end;exit;">$filename.out 2>$filename.err
 

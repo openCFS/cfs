@@ -105,7 +105,11 @@ for i=1:numPoints
 %     end
     if ~isempty(Eh)
         Tensors(i,:) = [Eh(1,1) Eh(1,2) Eh(1,3) Eh(2,2) Eh(2,3) Eh(3,3) volume];
-        fprintf(fid,'%.10f\t',points(i,:));
+        if givenByLevelAndIndex
+            fprintf(fid,'%d\t',points(i,:));
+        else
+            fprintf(fid,'%.10f\t',points(i,:));
+        end
         fprintf(fid,'%e\t%e\t%e\t',Eh(1,1),Eh(1,2),Eh(1,3));
         fprintf(fid,'%e\t%e\t%e\t',Eh(2,2),Eh(2,3),Eh(3,3));
         fprintf(fid,'%e\n',volume);
