@@ -1,10 +1,7 @@
 from matviz_rot import *
 from hdf5_tools import *
 import platform
-if platform.system() == 'Darwin':
-  from PIL import Image, ImageDraw
-else:
-  import Image, ImageDraw
+from PIL import Image, ImageDraw
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
 # matplotlib.use('Agg')
@@ -81,7 +78,7 @@ def calc_volume(s1, s2):
 #
 # from paraview_fmo import *
 # c0 = [12.6, 11.7, 2.3, 0, 0, 8.41]
-# import Image, ImageDraw
+# from PIL import Image, ImageDraw
 # im = Image.new("RGB",(200,200), "white")
 # draw = ImageDraw.Draw(im)
 # t = to_polygons(data, 100, 100, 2)
