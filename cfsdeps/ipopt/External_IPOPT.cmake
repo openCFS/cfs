@@ -44,9 +44,7 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
 SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-IF(NOT EXISTS "${IPOPT_INSTALL}")
-  MKDIR("${IPOPT_INSTALL}")
-ENDIF()
+file(MAKE_DIRECTORY ${IPOPT_INSTALL})
 
 PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "ipopt" "${IPOPT_VER}")  
   
