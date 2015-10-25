@@ -13,6 +13,11 @@ SET(CFS_DS_HOSTNAME "cfs.mdmt.tuwien.ac.at")
 SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}")
 
 #-----------------------------------------------------------------------------
+# Base directory for secure FTP server.
+#-----------------------------------------------------------------------------
+SET(CFS_DS_SFTP "sftp://${CFS_DS_HOSTNAME}")
+
+#-----------------------------------------------------------------------------
 # Base directory for restricted HTTPS server.
 #-----------------------------------------------------------------------------
 SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}")
