@@ -4049,7 +4049,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 0; jj < 4; jj++) {
         for (int kk = 0; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * ii * pow(u, ii - 1) * pow(t, jj) * pow(v, kk);
+              + 16 * kk] * ii * pow(t, ii - 1) * pow(u, jj) * pow(v, kk);
         }
       }
     }
@@ -4060,7 +4060,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 1; jj < 4; jj++) {
         for (int kk = 0; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * jj * pow(u, ii) * pow(t, jj - 1) * pow(v, kk);
+              + 16 * kk] * jj * pow(t, ii) * pow(u, jj - 1) * pow(v, kk);
         }
       }
     }
@@ -4071,7 +4071,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 0; jj < 4; jj++) {
         for (int kk = 1; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * kk * pow(u, ii) * pow(t, jj) * pow(v, kk - 1);
+              + 16 * kk] * kk * pow(t, ii) * pow(u, jj) * pow(v, kk - 1);
         }
       }
     }
