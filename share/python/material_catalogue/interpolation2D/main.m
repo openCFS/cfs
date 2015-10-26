@@ -1,4 +1,4 @@
-function [Coeff11,Coeff12,Coeff22,Coeff33,a,b,E11,E12,E22,E33] = main(inputfile,outputfile,opt,inputfile2,outputfile2)
+function [Coeff11,Coeff12,Coeff22,Coeff33,a,b,E11,E12,E22,E33] = main(inputfile,outputfile,opt,outputfile2)
 %Einlesen_der Materialtensoren aus dem Materialkatalog
 % Rotation des Materialkatalogs
 %angle = 0;%pi/4;
@@ -43,30 +43,68 @@ write_to_xml(outputfile,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33);
 
 % Calculate penalization material catalogue
 if opt
-    list2 = load(inputfile2);
-    m_p = list2(1,1);
-    n_p = list2(1,2);
+    % load material catalog for [0, 0.1]
+    %list2 = load(inputfile2);
+    m_p = list(1,1);
+    n_p = list(1,2);
     da_p = a(2)/m_p;
     db_p = b(2)/n_p;
     a_p = [0:da_p:a(2)];
     b_p = [0:db_p:b(2)];
     E11_p = zeros(m_p+1,n_p+1);
-    for i=2:size(list2,1)
-        E11_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,3);
+    for i=1:m_p+1
+       for j=1:n_p+1
+          E11_p(i,j) = E11(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
+          if E11_p(i,j) < E11(1,1)
+             E11_p(i,j) = E11(1,1); 
+          end
+       end
     end
     E12_p = zeros(m_p+1,n_p+1);
-    for i=2:size(list,1)
-        E12_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,4);
+    for i=1:m_p+1
+       for j=1:n_p+1
+          E12_p(i,j) = E12(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
+          if E12_p(i,j) < E12(1,1)
+             E12_p(i,j) = E12(1,1); 
+          end
+       end
     end
-
     E22_p = zeros(m_p+1,n_p+1);
-    for i=2:size(list2,1)
-        E22_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,5);
+    for i=1:m_p+1
+       for j=1:n_p+1
+          E22_p(i,j) = E22(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
+          if E22_p(i,j) < E22(1,1)
+             E22_p(i,j) = E22(1,1); 
+          end
+       end
     end
     E33_p = zeros(m_p+1,n_p+1);
-    for i=2:size(list2,1)
-        E33_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,6);
+    for i=1:m_p+1
+       for j=1:n_p+1
+          E33_p(i,j) = E33(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
+          if E33_p(i,j) < E33(1,1)
+             E33_p(i,j) = E33(1,1); 
+          end
+       end
     end
+%     for i=2:size(list2,1)
+%         E11_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,3);
+%     end
+%     E12_p = zeros(m_p+1,n_p+1);
+%     for i=2:size(list,1)
+%         E12_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,4);
+%     end
+% 
+%     E22_p = zeros(m_p+1,n_p+1);
+%     for i=2:size(list2,1)
+%         E22_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,5);
+%     end
+%     E33_p = zeros(m_p+1,n_p+1);
+%     for i=2:size(list2,1)
+%         E33_p(list2(i,1)*m_p+1,list2(i,2)*n_p+1) = list2(i,6);
+%     end
+    % Calculate derivatives from material catalogue [0,1] at end points 
+    % and calculate penalization interpolation coefficients Coeff_p
     deriv_a = zeros(n_p,1);
     deriv_b = zeros(n_p,1);
     for i = 1:n_p+1

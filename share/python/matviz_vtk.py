@@ -334,7 +334,8 @@ def valid_position(pos, coords):
 def valid_position_apod6(pos, coords):
   # coordinates of the holes manually, returns False if point is inside a hole
   # mesh is rotated by Ry
-  ay = -0.084636333418591
+  #ay = -0.084636333418591
+  ay = 0.
   Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
   tmp = Ry*numpy.matrix(((33052.), (-353.), (-2474.))).T
   m1 = [tmp[0][0],tmp[1][0],tmp[2][0]]

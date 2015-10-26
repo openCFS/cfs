@@ -814,7 +814,7 @@ def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
               
         mesh.elements.append(e)
 
-  mesh.bc.append(("left", range(0, (nnx * nny * z) + (nnx * ny) + 1, nnx)))
+  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
 
   side = (("bottom", []))
@@ -1491,45 +1491,45 @@ def create_nastran_mesh_from_cfs(meshfile):
   # write nodes
   for i in range(len(mesh.nodes)):
     n = mesh.nodes[i]
-    #out.write('GRID%12d%8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
-    out.write('GRID    ' + '%-8d%-8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
+    out.write('GRID%12d%8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
+    #out.write('GRID    ' + '%-8d%-8d'% (i+1,0) + str(n[0])[0:8] + str(n[1])[0:8] + str(n[2])[0:8] +'\n')
   # Hexaeder elements
   for i in range(len(mesh.elements)):
     e = mesh.elements[i]
     n = mesh.elements[i].nodes
     if e.type == HEXA8 and e.region == 'design':
-      #out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
-      #out.write('+       %8d%8d\n'%(n[6],n[7]))
-      out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
-      out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6],n[7]))
+      out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
+      #out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
+      #out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6]+1,n[7]+1))
     elif e.type == HEXA8 and e.region == 'non-design':
-      #out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
-      #out.write('+       %8d%8d\n'%(n[6],n[7]))
-      out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
-      out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6],n[7]))
+      out.write('CHEXA%11d%8d%8d%8d%8d%8d%8d%8d+\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('+       %8d%8d\n'%(n[6]+1,n[7]+1))
+      #out.write('CHEXA   ' + '%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d+E%-6d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1,i+1))
+      #out.write('+E%-6d%-8d%-8d\n'%(i+1,n[6]+1,n[7]+1))
   # Wedge elements
   for i in range(len(mesh.elements)):
     e = mesh.elements[i]
     n = mesh.elements[i].nodes
     if e.type == WEDGE6 and e.region == 'design':
-      #out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
-      out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,1,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
     elif e.type == WEDGE6 and e.region == 'non-design':
-      #out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
-      out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      out.write('CPENTA%10d%8d%8d%8d%8d%8d%8d%8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
+      #out.write('CPENTA  ' +'%-8d%-8d%-8d%-8d%-8d%-8d%-8d%-8d\n'%(i+1,2,n[0]+1,n[1]+1,n[2]+1,n[3]+1,n[4]+1,n[5]+1))
   # write forces1
   for i in range(len(mesh.bc[0][1])):
-    #out.write('FORCE%11d%8d%8d1.0     0.0     0.01923076923080.0\n'%(1,mesh.bc[0][1][i]+1,0))
-    out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])))
+    #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(1,mesh.bc[0][1][i]+1,0,5000./len(mesh.bc[0][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
     # write forces2
   for i in range(len(mesh.bc[1][1])):
-    #out.write('FORCE%11d%8d%8d1.0     0.0     0.01923076923080.0\n'%(2,mesh.bc[1][1][i]+1,0))
-    out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])))
+    #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
   for i in range(len(mesh.bc[2][1])):
-    #out.write('SPC%13d%8d  123   0.0\n'%(1,mesh.bc[2][1][i]+1))
-    out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
+    out.write('SPC%13d%8d  123     \n'%(1,mesh.bc[2][1][i]+1))
+    #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
     
   #out.write('PSOLID         1       1\n')          
   #out.write('PSOLID         2       1\n')
