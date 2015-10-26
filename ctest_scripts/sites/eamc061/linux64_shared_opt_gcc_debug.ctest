@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_release")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_gcc_debug")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -74,7 +74,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
-SET(BUILDTYPE "RELEASE")
+SET(BUILDTYPE "DEBUG")
 SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
