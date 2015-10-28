@@ -84,7 +84,7 @@ namespace CoupledField{
     // Loop over all integration points
     LocPointMapped lp;
     // if MSFEM get Element Matrix from material catalog
-    if(domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
+    if(domain->GetDesign()->designMaterial != NULL && domain->GetDesign()->getDesignMaterialType() == domain->GetDesign()->designMaterial->MSFEM_C1) {
       lp.Set( intPoints[0], esm, weights[0] );
       dData_->GetMsfemElementMatrix(dynamic_cast <Matrix<Double> &> (elemMat),lp);
       LOG_DBG3(bdbint) << "BDB elemMatrix=" << ptElem->elemNum << " == "<< lp.ptEl->elemNum<<" elemMat=" << elemMat.ToString();
