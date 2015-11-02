@@ -63,7 +63,7 @@ ENDIF()
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://download.zeromq.org/zeromq-4.1.3.tar.gz"
+  "http://download.zeromq.org/${ZEROMQ_GZ}"
   "${ZEROMQ_URL}/${ZEROMQ_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/zeromq/${ZEROMQ_GZ}")
@@ -101,9 +101,25 @@ ExternalProject_Add_Step(zeromq cfsdeps_download
 )
 
 #-------------------------------------------------------------------------------
+# Add custom step for downloading and installing C++ binding (header only)
+#-------------------------------------------------------------------------------
+SET(cppzmq_prefix "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cppzmq")
+ExternalProject_Add(cppzmq
+  DEPENDS zeromq
+  PREFIX "${cppzmq_prefix}"
+  #  PREFIX "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/cppzmq"
+  GIT_REPOSITORY "https://github.com/zeromq/cppzmq.git"
+  GIT_TAG "master"
+  PATCH_COMMAND ""
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND ""
+  INSTALL_COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${cppzmq_prefix}/src/cppzmq/zmq.hpp" "${CFS_BINARY_DIR}/include"
+)
+
+#-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
-LIST(APPEND CFSDEPS zeromq)
+LIST(APPEND CFSDEPS zeromq cppzmq)
 
 IF(MINGW)
   SET(ZEROMQ_LIB zmqstatic)
