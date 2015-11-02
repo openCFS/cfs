@@ -446,6 +446,17 @@ IF(USE_IPOPT)
 ENDIF(USE_IPOPT)
 
 
+#-------------------------------------------------------------------------------
+# Build ZeroMQ distributed messaging library
+#-------------------------------------------------------------------------------
+IF(USE_ZEROMQ)
+  SET(ZEROMQ_URL "${CFS_DS_SOURCES_DIR}/zeromq")
+  SET(ZEROMQ_GZ "zeromq-4.1.3.tar.gz")
+  SET(ZEROMQ_MD5 "d0824317348cfb44b8692e19cc73dc3a")
+
+  INCLUDE("${CFSDEPS_DIR}/zeromq/External_zeromq.cmake")
+ENDIF(USE_ZEROMQ)
+
 
 #-----------------------------------------------------------------------------
 # Find ANSYS Customizations

@@ -361,6 +361,13 @@ OPTION(USE_FLANN
   "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
   ${USE_FLANN_DEFAULT})
 
+#-----------------------------------------------------------------------------
+# Use the ZeroMQ distributed messaging library 
+#-----------------------------------------------------------------------------
+OPTION(USE_ZEROMQ
+  "Enable support for ZeroMQ distributed messaging library"
+  ${USE_ZEROMQ_DEFAULT})
+
 OPTION(DEBUG "Build debug version of the code."
   ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."

@@ -336,6 +336,7 @@ cfsdeps/xerces/Src_CMakeLists.txt -text
 cfsdeps/xerces/Xerces_autoconf_config_cmake.hpp.in -text
 cfsdeps/xerces/config_cmake.h.in -text
 cfsdeps/xerces/xerces-patch.cmake.in -text
+cfsdeps/zeromq/External_zeromq.cmake svneol=native#text/plain
 cfsdeps/zlib/CMakeListsMinizip.txt -text
 cfsdeps/zlib/External_zlib.cmake -text
 cfsdeps/zlib/copyright.txt -text
