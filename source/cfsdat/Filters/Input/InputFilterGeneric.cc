@@ -36,7 +36,7 @@ InputFilterGeneric::InputFilterGeneric(){
   hdfNode->Get("gridId",ParamNode::INSERT)->SetValue("default");
 
   //create input files (dynamic IDs or, as usual, from XML)
-  inFile_ = CoupledField::DefineInOutFiles::CreateSingleInputFileObject("test.h5",hdfNode,infoNode);
+  inFile_ = CoupledField::DefineInOutFiles::CreateSingleInputFileObject("test.h5","dummy",hdfNode,infoNode);
 
   //delete the input again
   delete createInput;

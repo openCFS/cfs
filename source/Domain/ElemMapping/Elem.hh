@@ -159,6 +159,10 @@ namespace CoupledField
 
   struct ExtendedElementInfo{
 
+    ExtendedElementInfo(){
+
+    }
+
     //! Array with edge numbers
     
     //! This array contains the global edge numbers of the element 

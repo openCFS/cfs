@@ -191,8 +191,7 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
           << "input entries are unique!" );
     }
 
-
-    inFiles[actId] = CreateSingleInputFileObject(meshFile,actNode,infoNode);
+    inFiles[actId] = CreateSingleInputFileObject(meshFile,simName,actNode,infoNode);
     // relate gridId with input reader id
     gridInputs[actGridId].Push_back(inFiles[actId]);
   }
@@ -332,6 +331,7 @@ DefineInOutFiles::CreateMaterialHandler(PtrParamNode rootNode )
 }
 
 shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string fName,
+                                                                    std::string simName,
                                                                     PtrParamNode configNode,
                                                                     PtrParamNode infoNode){
   shared_ptr<SimInput> aInput;
@@ -342,7 +342,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_MESH
     if(fName.empty()){
-      fName += ".mesh";
+      fName += simName + ".mesh";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputMESH(fName, configNode, infoNode));
@@ -353,7 +353,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   else if (fFormat == "cdb")
   {
     if(fName.empty()){
-      fName += ".cdb";
+      fName += simName + ".cdb";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputCDB(fName, configNode, infoNode));
@@ -362,7 +362,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_HDF5
     if(fName.empty()){
-      fName += ".h5";
+      fName += simName + ".h5";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputHDF5(fName, configNode, infoNode));
@@ -374,7 +374,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_GMV
     if(fName.empty()){
-      fName += ".gmv";
+      fName += simName + ".gmv";
     }
     aInput = shared_ptr<SimInput>(new SimInputGMV(fName,
         configNode, infoNode));
@@ -385,7 +385,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   else if (fFormat == "refelem")
   {
     if(fName.empty()){
-      fName += ".refelem";
+      fName += simName + ".refelem";
     }
     aInput = shared_ptr<SimInput>(new SimInputRefElems(fName,
         configNode, infoNode));
@@ -394,7 +394,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_GMSH
     if(fName.empty()){
-      fName += ".msh";
+      fName += simName + ".msh";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputGmsh(fName, configNode, infoNode));
@@ -406,7 +406,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_COMSOL
     if(fName.empty()){
-      fName += ".mphtxt";
+      fName += simName + ".mphtxt";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputMPHTXT(fName, configNode, infoNode));
@@ -418,7 +418,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_CGNS
     if(fName.empty()){
-      fName += ".cgns";
+      fName += simName + ".cgns";
     }
     aInput = shared_ptr<SimInput> (
         new SimInputCGNS(fName, configNode, infoNode));
@@ -430,7 +430,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_UNV
     if(fName.empty()){
-      fName += ".unv";
+      fName += simName + ".unv";
     }
     aInput = shared_ptr<SimInput> (new SimInputUnv(fName, configNode, infoNode));
 #else
@@ -441,7 +441,7 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
   {
 #ifdef USE_MESH
     if(fName.empty()){
-      fName += ".mesh";
+      fName += simName + ".mesh";
     }
     aInput =
         shared_ptr<SimInput> (new InternalMesh(fName, configNode, infoNode));

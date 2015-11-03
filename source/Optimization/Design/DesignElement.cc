@@ -317,6 +317,8 @@ DesignElement::DesignElement(Elem* elem, Type type, unsigned int index, int pseu
 {
   Init();
   this->elem = elem;
+  if(!elem->extended)
+    this->elem->extended = new ExtendedElementInfo;
   this->type_ = type;
   this->index_ = index;
   this->pseudoElementIndex_ = pseudoElementIndex;
@@ -1232,6 +1234,8 @@ void VicinityElement::Init(DesignSpace* space, DesignStructure* structure)
     StdVector<DesignElement*>& ve_data = de->vicinity->design; // has proper size of NULLs
 
     // reference case
+    if(!de->elem->extended)
+      de->elem->extended = new ExtendedElementInfo;
     StdVector<std::pair<Elem*, int> >& neighbors = *(de->elem->extended->neighborhood);
     // reuse the enlarged_data element for the periodic case only
     if(periodic)
