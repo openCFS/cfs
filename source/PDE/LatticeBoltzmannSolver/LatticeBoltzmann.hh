@@ -143,7 +143,7 @@ namespace CoupledField
               for(int  dir = 0; dir < n_q_; dir++) {
                 if (adjoint)
                 {
-                  res = APDF(next, elem, dir) - APDF(cur, elem, dir);
+                  res = AMoments(next, elem, dir) - AMoments(cur, elem, dir);
                 }
                 else
                   res = PDF(next, elem, dir) - PDF(cur, elem, dir);
@@ -261,22 +261,22 @@ namespace CoupledField
             return pdfs_[cur][direction + n_q_ * elem];
           }
 
-          inline double& APDF(int cur, int x, int y, int z, int direction)
+          inline double& AMoments(int cur, int x, int y, int z, int direction)
           {
             return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline const double APDF(int cur, int x, int y, int z, int direction) const
+          inline const double AMoments(int cur, int x, int y, int z, int direction) const
           {
             return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline double& APDF(int cur, int elem, int direction)
+          inline double& AMoments(int cur, int elem, int direction)
           {
             return adjMoments_[cur][direction + n_q_ * elem];
           }
 
-          inline const double APDF(int cur, int elem, int direction) const
+          inline const double AMoments(int cur, int elem, int direction) const
           {
             return adjMoments_[cur][direction + n_q_ * elem];
           }
@@ -365,7 +365,7 @@ namespace CoupledField
 
           StdVector< StdVector<double> > pdfs_;
           StdVector< StdVector<double> > adjMoments_;
-          StdVector<double> tmpPdfs_;
+          Vector<double> tmpPdfs_;
 
           // store moments and equilibrium moments of steady state solution
           // need this for adjoint LBM simulation

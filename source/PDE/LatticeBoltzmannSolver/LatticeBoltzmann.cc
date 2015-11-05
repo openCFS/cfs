@@ -288,21 +288,21 @@ void LatticeBoltzmann::InitializePdfs()
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
-      APDF(0, elem, dir) = weights[dir];
-      APDF(1, elem, dir) = weights[dir];
     }
   }
+
   for (int elem = 0; elem < nNodes_; elem++) {
     Vector<double> pdfs(n_q_);
     Vector<double> moments(n_q_);
     for (int dir = 0; dir < n_q_; dir++)
-      pdfs[dir] = APDF(0, elem, dir);
-    adjTransformation.Mult(pdfs, moments);
+      pdfs[dir] = PDF(0, elem, dir);
+    transformation.Mult(pdfs, moments);
     for (int dir = 0; dir < n_q_; dir++) {
-      APDF(0, elem, dir) = moments[dir];
-      APDF(1, elem, dir) = moments[dir];
+      AMoments(0, elem, dir) = moments[dir];
+      AMoments(1, elem, dir) = moments[dir];
     }
   }
+
 }
 
 void LatticeBoltzmann::SetMicroVelocities()
@@ -762,14 +762,13 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   double alpha = CalcResistanceCoeff(elemId);
 
   double rho = moments[0];
-  double ux = moments[3];
-  double uy = moments[5];
+  double ux = moments[3] / rho;
+  double uy = moments[5] / rho;
 
   double fx = -alpha * rho * ux;
   double fy = -alpha * rho * uy;
 
   LOG_DBG3(lbm) << " CDF: Element " << elemId << " has LBM density " << rho << " and porosity " << scales[elemId];
-  LOG_DBG3(lbm) << "CDF: fx=" << fx << "= -" << alpha << "*" << rho << "*" << ux;
   LOG_DBG3(lbm) << "CDF: alpha= " << alpha << " fx=" << fx << " fy=" << fy;
 //  if (scales[elemId] == 0.0) {
 //  for(int dir = 0; dir < n_q_; dir++)
@@ -777,13 +776,13 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
 //  }
 
   f1[3] = fx; // the assembly of f1 and f2 are taken from MRT paper
-  f1[4] = -f1[3];
+  f1[4] = -fx;
   f1[5] = fy;
-  f1[6] = -f1[5];
+  f1[6] = -fy;
 
-  f2[1] = 6 * (fx * ux + fy * uy);
-  f2[2] = -f2[1];
-  f2[7] = 2 * (fx * ux - fy * uy);
+  f2[1] = 6.0 * (fx * ux + fy * uy);
+  f2[2] = -6.0 * (fx * ux + fy * uy);
+  f2[7] = 2.0 * (fx * ux + fy * uy);
   f2[8] = fy * ux + fx * uy;
 
   //debugging
@@ -830,9 +829,22 @@ void LatticeBoltzmann::CalcEquilMoments(const Vector<double>&  moments, Vector<d
 double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy)
 {
   double nu = (1/omega_nu_ - 0.5) / 3.0; // fluid's kinematic viscosity in LBM terms
-  double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]);
-  double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]);
-  double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]);
+  double rho = moments[0];
+  double jx = moments[3];
+  double jy = moments[5];
+
+  //debugging
+  double e_eq = -2.0 * rho + 3.0 / rho * (jx*jx + jy*jy);
+  assert(std::fabs(e_eq - eqMoments[1]) < EPS);
+  double pxx_eq = (jx*jx-jy*jy) / rho;
+  if (std::fabs(pxx_eq - eqMoments[7]) > EPS)
+  assert(std::fabs(pxx_eq - eqMoments[7]) < EPS);
+  double pxy_eq = jx*jy/rho;
+  assert(std::fabs(pxy_eq - eqMoments[8]) < EPS);
+
+  double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]); // (e^eq - e)^2
+  double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]); // (p_xx^eq - p_xx)^2
+  double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]); // (p_xy^eq - p_xy)^2
   double ux =  moments[5] / moments[0];
   double uy =  moments[7] / moments[0];
   return nu / moments[0] *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
@@ -863,18 +875,20 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   Matrix<double> d_mEq_d_m(n_q_,n_q_);
   d_mEq_d_m.InitValue(0.0);
   d_mEq_d_m[0][0] = 1.0; // 0th row of d_mEq/d_m describes d_mEq/d_rho
-  d_mEq_d_m[1][0] = - 2.0 - 3.0 * u2;
+  d_mEq_d_m[1][0] = -2.0 - 3.0 * u2;
   d_mEq_d_m[2][0] = 1.0 + 3.0 * u2;
-  d_mEq_d_m[7][0] = - (ux * ux - uy * uy);
-  d_mEq_d_m[8][0] = - ux * uy;
+  d_mEq_d_m[7][0] = -(ux * ux - uy * uy);
+  d_mEq_d_m[8][0] = -ux * uy;
+
   d_mEq_d_m[1][3] = 6.0 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
   d_mEq_d_m[2][3] = -6.0 * ux;
   d_mEq_d_m[3][3] = 1.0;
   d_mEq_d_m[4][3] = -1.0;
-  d_mEq_d_m[7][3] = 2 * ux;
+  d_mEq_d_m[7][3] = 2.0 * ux;
   d_mEq_d_m[8][3] = uy;
+
   d_mEq_d_m[1][5] = 6.0 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
-  d_mEq_d_m[2][5] = - 6.0 * uy;
+  d_mEq_d_m[2][5] = -6.0 * uy;
   d_mEq_d_m[5][5] = 1.0;
   d_mEq_d_m[6][5] = -1.0;
   d_mEq_d_m[7][5] = -2.0 * uy;
@@ -894,10 +908,12 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   d_F2_d_m[2][0] = -6.0 * u2;
   d_F2_d_m[7][0] = 2.0 * (ux * ux - uy * uy);
   d_F2_d_m[8][0] = 2.0 * ux * uy;
+
   d_F2_d_m[1][3] = -12.0 * ux; // d_F2/d_jx
   d_F2_d_m[2][3] = 12.0 * ux;
   d_F2_d_m[7][3] = -4.0 * ux;
   d_F2_d_m[8][3] = -2.0 * uy;
+
   d_F2_d_m[1][5] = -12.0 * uy; // d_F2/d_jy
   d_F2_d_m[2][5] = 12.0 * uy;
   d_F2_d_m[7][5] = 4.0 * uy;
@@ -929,7 +945,7 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
     mat.Resize(n_q_);
     mat.Init();
     mat[1][3] = 6.0 * ux;  // 3rd column: d_mEq_d_jx
-    mat[2][3] = - 6.0 * ux;
+    mat[2][3] = -6.0 * ux;
     mat[3][3] = 1.0;
     mat[4][3] = -1.0;
     mat[7][3] = 2.0 * ux;
@@ -1274,7 +1290,7 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       index = GetIndex(x,y,z);
 
       for (int dir = 0; dir < n_q_; dir++)
-        moments[dir] = APDF(cur,index,dir);
+        moments[dir] = AMoments(cur,index,dir);
 
       Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
       Matrix<double> collMatrix = adjCollision[index];
@@ -1286,8 +1302,6 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       Matrix<double> transpose(n_q_, n_q_);
       transformation.Transpose(transpose); // adjoint backstransformation matrix is tranpose of primal transformation matrix
       transpose.Mult(momentsAfterCollision, collResult);
-
-//      adjTransformation.Mult(momentsAfterCollision,collResult); // transforming adjoint moments to adjoint distributions
 
       for (int dir = 0; dir < n_q_; dir++)
 //        tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
@@ -1301,7 +1315,7 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 
   int z = 0;
   int tmp_x, tmp_y, tmp_z = 0;
-
+  Vector<double> tmp(n_q_);
   for (int x = 0; x < sizeX_; x++)
     for (int y = 0; y < sizeY_; y++)
     {
@@ -1318,24 +1332,14 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
         }
 
         int index = GetIndex(tmp_x,tmp_y,tmp_z);
-        APDF(next,x,y,z,dir) = tmpPdfs_[GetPdfIndex(index,dir)];
+
+        tmp[dir] = tmpPdfs_[GetPdfIndex(index,dir)];
       }
+      Vector<double> propResult(n_q_);
+      adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
+      for (int dir = 0; dir < n_q_; dir++)
+        AMoments(next,x,y,z,dir) = propResult[dir];
     }
-
-  // tranforming adjoint distributions back to adjoint moments
-  for (int elem = 0; elem < nNodes_; elem++) {
-    for (int dir = 0; dir < n_q_; dir++)
-      pdfs[dir] = APDF(next,elem,dir);
-
-//    Matrix<double> transpose(n_q_,n_q_);
-    Vector<double> moments(n_q_);
-//    transformation.Transpose(transpose);
-//    transpose.Mult(pdfs,moments);
-    adjTransformation.Mult(pdfs,moments);
-
-    for (int dir = 0; dir < n_q_; dir++)
-      APDF(next,elem,dir) = moments[dir];
-  }
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1357,12 +1361,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
     CalcAdjointCollMatrix(elem,moms);
     d_diss_d_moments(elem,moms);
-
-//    Vector<double> tmp(n_q_);
-//    adjTransformation.Mult(pdfs,tmp);
-
-//    for (int dir = 0; dir < n_q_; dir++)
-//      adjMoments_[adjCur_][GetPdfIndex(elem,dir)] = moms[dir];
   }
 
   int count = numWriteResults_;
@@ -1377,9 +1375,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   std::ofstream plot;
   if(plot_)
     plot.open(std::string(progOpts->GetSimName() + ".adjLbm.dat").c_str());
-
-//  adjMoments_[adjCur_] = pdfs_[cur_]; // initialize start values with steady-state solution of primal problem
-//  assert(adjMoments_[adjCur_] == pdfs_[cur_]);
 
   LOG_DBG3(lbm) << "\n steady state pdfs: " << pdfs_.ToString(false) << std::endl;
 

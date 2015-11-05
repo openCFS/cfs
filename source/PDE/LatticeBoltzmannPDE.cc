@@ -763,7 +763,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
       for (unsigned int  dir = 0; dir < n_q_; dir++) {
         pdfs[dir] = GetPdf(idx,dir);
-        adjMoments[dir] = GetAdjPdf(idx,dir);
+        adjMoments[dir] = GetAdjMoments(idx,dir);
       }
 
       Vector<double> d_F1_d_rho(n_q_);
@@ -779,16 +779,18 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_F1_d_rho[6] = jy;
 
       d_F2_d_rho[1] = -6.0 / density * (jx * jx + jy * jy);
-      d_F2_d_rho[2] = -d_F2_d_rho[1];
+      d_F2_d_rho[2] = 6.0 / density * (jx * jx + jy * jy);
       d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
       d_F2_d_rho[8] = -2.0 * jx * jy / density;
-//      double val = 0.0;
       //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
       Matrix<double> mat(n_q_,n_q_); // I - S/2
       mat.Init();
+      mat[0][0] = 1.0;
       mat[1][1] = 1.0 - 0.5 * omega_e_;
       mat[2][2] = 1.0 - 0.5 * omega_eps_;
+      mat[3][3] = 1.0;
       mat[4][4] = 1.0 - 0.5 * omega_q_;
+      mat[5][5] = 1.0;
       mat[6][6] = 1.0 - 0.5 * omega_q_;
       mat[7][7] = 1.0 - 0.5 * omega_;
       mat[8][8] = 1.0 - 0.5 * omega_;
