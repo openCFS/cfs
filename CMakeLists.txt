@@ -87,7 +87,7 @@ SET(ENV{LC_MESSAGES} "en_EN")
 SET(ENV{LANG} C)
 
 #-----------------------------------------------------------------------------
-# Include some utility macros (for building ext. libs, etc...) 
+# Include some utility macros (for building ext. libs, etc...)
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")
 
