@@ -158,7 +158,7 @@ INCLUDE("cmake_modules/platform_defaults.cmake")
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
 OPTION(USE_PYTHON
-  "Build our own Python for CFS++." 
+  "Build our own Python for CFS++."
   ${USE_PYTHON_DEFAULT})
 
 #-----------------------------------------------------------------------------
