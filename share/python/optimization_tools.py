@@ -6,10 +6,9 @@ import numpy.linalg
 import math
 import os
 from lxml import etree
-
+from PIL import Image
 from cfs_utils import *
-from distutils.command.build_scripts import first_line_re
-from numpy.distutils.misc_util import cxx_ext_match
+
 
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
@@ -152,6 +151,18 @@ def read_set_ids(filename):
   sett = root.xpath("//set/@id")
   return sett
   
+  
+## tests for an attribute in the density.xml
+# @param attribute you might want to check for physical which is not present when generated via create_density.py
+# @return True if the attribute is given
+def test_density_xml_attribute(filename, attribute, set = None):
+  tree = etree.parse(filename, etree.XMLParser(remove_comments=True))      
+  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
+  query += '/element/@' + attribute
+  s = tree.getroot().xpath(query)
+  return len(s) > 0
+    
+  
 ## parse the 'mesh' information of the header of a density.xml file
 # @param silent if True and no mesh info is found return None, None, None otherwise raise exception
 # return x, y, z as ints
@@ -275,6 +286,7 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   out.close()
 
 ## reads partial domain within a full array. E.g. if the design domain is circular
+# visualize via img = Image.fromarray(a, 'RGB'), img.show()
 def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
   msh  = read_mesh_info(filename, silent = False)
   vals = read_density_as_vector(filename, attribute, set)
@@ -290,10 +302,12 @@ def read_density_as_full_array(filename, attribute='design', fill=0.0, set = Non
   assert(len(nrs) <= nx * ny)
   
   for i in range(len(nrs)):
-    n = int(nrs[i])
+    n = int(nrs[i]) -1 # the element number is 1 based!
     # assume a lexicographic order
     y = int(n / ny)
     x = n % ny
+    #print 'i=' + str(i) + ' y=' + str(y) + ' x=' + str(x) 
+    
     a[y, x] = vals[i]
       
   return a
@@ -323,6 +337,8 @@ def apply_elmennr_mapping(org, map):
             
   return result
   
+
+
 
 
 # # evaluates the physical volume fraction
@@ -1000,6 +1016,101 @@ def rotate(data, center, angle):
          ret[y, x] = data[y2, x2] 
        
   return ret
+  
+  
+## returns an image out of an numpy array.
+# @param data numpy array
+# @param scale if not given the original size is given 
+# @return visualize with .show()
+def get_image(data, scale = None):
+  
+  x, y = data.shape
+    
+  ret = numpy.zeros((y, x), dtype="uint8")
+  
+  # copy data from linear list
+  for i in range(y):
+    for j in range(x):
+      ret[y-i-1][j] = 255 - int(255 * data[j][i])
+
+  img = Image.fromarray(ret)
+  if scale:
+    img = img.resize((scale, y/x * scale), Image.NEAREST) # higher quality with ANTIALIAS
+  return img
+
+
+## calculate the normalized perimeter
+# @param data array
+# @param eps for continuation, 0.0 is ok
+# @param order TV order, 2 = taxi cap or 4. See Petersson, Beckers and Duysinx, 1999
+# @param normalze if not normalized we give the perimeter in m assuming a 1x1m domain  
+def perimeter(data, eps = 0.0, order = 2, normalize = True):
+  
+  assert(order == 2 or order == 4)
+ 
+  n2, n1 = data.shape
+  per = 0.0
+
+  h1 = 1.0/n1
+  h2 = 1.0/n2
+
+   
+  for j in range(0,n2): 
+    for i in range(1,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j,i-1] # rho_i-1,j
+      scale = h2/(n1-1) if normalize else h2
+      per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  for j in range(1,n2):
+    for i in range(0,n1):
+      mine  = data[j,i]    # rho_ij
+      other  = data[j-1,i] # rho_i,j-1
+      scale = h1/(n2-1) if normalize else h1
+      per += h1 * (numpy.sqrt((mine-other)**2 + eps**2) - eps)    
+
+  if order == 4:
+    # Petersson, Beckers and Dun2sinn1, "Almost Isotropic Perimeters in Topologn2 Optimization: Theoretical and Numerical Aspects", 1999  
+    # -> (5)      
+    h = numpy.sqrt(h1**2 + h2**2)
+
+    for j in range(0,n2-1):
+      for i in range(0,n1-1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i+1] # rho_i+1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h) 
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+  
+    for j in range(0,n2-1):
+      for i in range(1,n1):
+        mine  = data[j,i]      # rho_ij
+        other  = data[j+1,i-1] # rho_i-1,j+1
+        scale = 1./((n2-1)*(n1-1)) if normalize else (h1*h2/h)
+        per += scale * (numpy.sqrt((mine-other)**2 + eps**2) - eps)         
+
+  # normalization is done for TV_2, for TV_4 we need to correkt the diagonal elements -> c_4^-1 = 1 + 2 | cos(theta) | below (3)
+  if not normalize and order ==4:
+    per /= 1 + 2 * numpy.cos(numpy.pi / 4)
+  
+  return per
+  
+# add a save ghost cell around an array
+# @param reproduce shall the outer boundary be copied 
+def add_ghost_cells(data, reproduce = False):
+  x, y = data.shape
+  result = numpy.zeros((x + 2, y + 2))
+  result[1:x+1, 1:y+1] = data
+
+  # copy the boundary
+  if reproduce:
+    result[0,]    = result[1,]
+    result[y+1,]  = result[y,]
+    result[:,0]   = result[:,1]
+    result[:,x+1] = result[:,x] 
+
+  return result
+  
+  
     
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11

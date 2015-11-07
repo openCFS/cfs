@@ -189,7 +189,7 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
       # assign region    
       if multi_design == 1:
         # are we gray or not?
-        if is_gray or (input_array[x, y][0] == input_array[x, y][1] and input_array[x, y][1] == input_array[x, y][2]):  
+        if is_data or is_gray or (input_array[x, y][0] == input_array[x, y][1] and input_array[x, y][1] == input_array[x, y][2]):  
           if e.density >= threshold:
             e.region = 'mech'
             mech_count += 1
@@ -435,6 +435,9 @@ def write_gid_mesh(mesh, filename):
     for n in range(len(ne[1])):
       out.write(str(ne[1][n] + 1) + " " + ne[0] + "\n")
 
+  # the mesh parser is very sensitive to too few eol's in the file. From hacking to error message
+  out.write("\n\n")
+ 
   out.close()
   
   

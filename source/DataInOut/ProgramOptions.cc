@@ -54,6 +54,7 @@
 #include <zlib.h>
 
 #include <H5public.h>
+#include <H5Ppublic.h>
 
 #ifdef USE_METIS
 #include <defs.h> 

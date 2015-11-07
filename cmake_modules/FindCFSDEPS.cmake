@@ -117,8 +117,10 @@ IF(USE_HDF5)
   SET(HDF5_URL "${CFS_DS_SOURCES_DIR}/hdf5")
   SET(HDF5_BASE "hdf5")
   SET(HDF5_VER "1.8.12")
+  # SET(HDF5_VER "1.8.15-patch1")
   SET(HDF5_BZ2 "${HDF5_BASE}-${HDF5_VER}.tar.bz2")
   SET(HDF5_MD5 "03ad766d225f5e872eb3e5ce95524a08")
+ # SET(HDF5_MD5 "3c0d7a8c38d1abc7b40fc12c1d5f2bb8") # 1.8.15-patch1
 
   INCLUDE("${CFSDEPS_DIR}/hdf5/External_HDF5.cmake")
 ENDIF(USE_HDF5)
@@ -353,9 +355,10 @@ INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 #-------------------------------------------------------------------------------
 SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
 SET(XERCES_BASE "xerces")
-SET(XERCES_VER "3.1.1")
+SET(XERCES_VER "3.1.2")
 SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
-SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
+# SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
+SET(XERCES_MD5 "9eb1048939e88d6a7232c67569b23985")
   
 INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 

@@ -64,11 +64,6 @@ elif '.txt' in args.input:
 elif '.h5' in args.input:
   f = h5py.File(args.input, 'r')
   mesh = create_mesh_from_hdf5(f, ['mech'],['bottom','top','left','right'], threshold = float(args.threshold))
-  if args.sparsemesh:
-    sparse = convert_to_sparse_mesh(mesh)
-    mesh = sparse
-  write_gid_mesh(mesh, args.sparsemesh if args.sparsemesh else args.densemesh)
-  
 
 else:
   # read the png into a list

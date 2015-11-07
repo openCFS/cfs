@@ -222,22 +222,22 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(TIMEOUT 60)                         
 
   IF(EXISTS ${LOCAL_FILE})
-#    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
+    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
 
     FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
     STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
 
-#    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
-#    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
 
     STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
 
     IF(NOT MD5_EQUAL)
       FILE(REMOVE ${LOCAL_FILE})
       SET(PERFORM_DOWNLOAD 1)   
-#      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
+      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
     ELSE()                                                          
-#      MESSAGE("MD5 sums match! Very fine!")
+      MESSAGE("MD5 sums match! Very fine!")
       SET(DOWNLOAD_OKAY 1)
     ENDIF()
   ELSE()
@@ -379,7 +379,7 @@ ENDMACRO()
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
-MACRO(DISPLAY_ALL_VARIABLES)
+MACRO(DUMP_VARIABLES)
   get_cmake_property(_variableNames VARIABLES)
   foreach (_variableName ${_variableNames})
     message("${_variableName}=${${_variableName}}")

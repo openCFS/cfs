@@ -1,10 +1,7 @@
 from matviz_rot import *
 from hdf5_tools import *
 import platform
-if platform.system() == 'Darwin':
-  from PIL import Image, ImageDraw
-else:
-  import Image, ImageDraw
+from PIL import Image, ImageDraw
 import matplotlib
 # necessary for remote execution, even when only saved: http://stackoverflow.com/questions/2801882/generating-a-png-with-matplotlib-when-display-is-undefined
 # matplotlib.use('Agg')

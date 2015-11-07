@@ -28,6 +28,11 @@ def density_to_image(filename, set, design):
     print "not a valid density file given!"
     sys.exit(1)
 
+
+  if not design and not test_density_xml_attribute(filename, 'physical', set):
+    print "the 'physical' design is not present, use non-physical 'design'"
+    design = 'desgin'
+  
   dens = read_density(filename, attribute = 'design' if design else 'physical', set=set, fill=0.0)
 
   x, y, z = getDim(dens)
@@ -66,8 +71,9 @@ def print_grid_on_image(I, dens):
     draw.line((iii, 0, iii, ysize), fill="Black")
 
 
+# return image and density
 def get_image(input, set, design):
-  img,dens = density_to_image(input, set, design)
+  img, dens = density_to_image(input, set, design)
   img.convert('L')
   
   if args.grid:
@@ -78,7 +84,7 @@ def get_image(input, set, design):
     f = 800 / max(ix, iy)
     img = img.resize((f * ix, f * iy))
   
-  return img
+  return img, dens
 
 
 parser = argparse.ArgumentParser()
@@ -110,9 +116,11 @@ if args.saveall:
     img = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
     img.save(base + '.png')
-
 else:
-  img = get_image(args.input, args.set, args.design)
+  if not os.path.exists(args.input):  
+    print "file '" + args.input + "' not found"
+    os.sys.exit()
+  img, den = get_image(args.input, args.set, args.design)
   
   if args.save:
     print "saving image to file " + args.save

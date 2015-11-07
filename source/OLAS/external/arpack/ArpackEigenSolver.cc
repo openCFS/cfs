@@ -168,10 +168,8 @@ namespace CoupledField {
       EXCEPTION( WRONG_CAST_MSG );
     }
 
-    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be hermitian and standard
-    // complex solvers assume just symmetric for symmetric matrices.
-    if(bloch && matrixA_->GetStorageType() != BaseMatrix::SPARSE_NONSYM) // ignore skyline - who needs it?!
-      throw Exception("Bloch EVA needs non-symmetric system matrices. Use solver directLU or matrix storage='sparseNonSym'");
+    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
+    // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
 
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
     if ( matrixB_ == NULL ) {
