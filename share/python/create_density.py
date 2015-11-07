@@ -4,10 +4,12 @@
 # This is used when doing inverse homogenization and bloch mode optimization.
 
 import libxml2
-import numpy
+from numpy import *
 import math
 from optimization_tools import *
+from mesh_tool import *
 import argparse
+
 
 
 # there shall be a predefined class somewhere, I just didn't find it
@@ -151,18 +153,56 @@ def cross(dim, vol, res, lower):
   
   return data
 
+
+
+def hashtag(res, amplitude, thickness, speed, lower):
+  
+  data = numpy.ones((res, res)) * lower # violate exact volume
+  
+  h = 1.0/res
+  
+  for x in range(res):
+    for y in range(res):
+      # data[x,y] = 1- hashtag_dist(h*x,h*y)
+      if hashtag_dist(h*x,h*y, amplitude, speed) < thickness/2: 
+        data[x,y] = 1
+  return data;
+
+## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
+def hashtag_dist(x, y, amplitude, speed):
+  #  0.1*sin(2*x*pi+pi/2) + 0.25, 0.25, -0.1*sin(2*x*pi+pi/2) + 0.75, 0.75
+  y1 = amplitude * sin(2*speed*pi*x+pi/2) + 0.25
+  y2 = -amplitude * sin(2*speed*pi*x+pi/2) + 0.75
+  #print "x=" + str(x) + " y=" + str(y) + " y1=" + str(y1) + " y2=" + str(y2)
+  y_dist = min(abs(y-y1), abs(y-y2))
+  
+  inv = -1 if speed == 1 else 1 
+  
+  x1 = inv * amplitude * sin(2*speed*pi*y+pi/2) + 0.25
+  x2 = -inv * amplitude * sin(2*speed*pi*y+pi/2) + 0.75
+  x_dist = min(abs(x-x1), abs(x-x2))
+  
+  return min(y_dist, x_dist)
+  #return y_dist 
+      
+  
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
-parser.add_argument('--vol', help="volume fraction of full domain or ball only", type=float, default=0.5)
 parser.add_argument('--dim', help="square (2) or cube (3)", type=int, default=2)
+parser.add_argument('--lower', help="value for void material. Default 1e-3", type=float, default=1e-3)
+parser.add_argument('--vol', help="volume fraction of full domain or ball only", type=float, default=0.5)
 parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother", type=int, default=6)
 parser.add_argument('--invert', help="invert to solid inside", action='store_true')
 parser.add_argument('--cross', help="make a simple cross", action='store_true')
-parser.add_argument('--lower', help="value for void material. Default 1e-3", type=float, default=1e-3)
+parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
+parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
+parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
 parser.add_argument('--ball', help="account vol only on the inner ball with diameter 1.0", action='store_true')
+parser.add_argument('--show', help="additionaly visualize the image", action='store_true')
+parser.add_argument('--save', help="overwrite default filename, when it ends with an image extension the image is written")
+parser.add_argument('--write_mesh', help="optionally create a sparse mesh. For more options use process_image.py", action='store_true')
 
 # parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
-parser.add_argument('--save', help="overwrite default filename")
 
 args = parser.parse_args()
 
@@ -176,25 +216,42 @@ if args.ball:
     vol *= 1.0/6.0 * numpy.pi
   print "assign volume " + str(args.vol) + " to ball which restricts the total volume to " + str(vol)    
     
-  
 ord = ("-o_" + str(args.order)) if args.order <> 6 else ""   
-
 
 data = None
 filename = None
+setname = "standard"
 
 if args.cross:
   data = cross(args.dim, vol, args.res, args.lower)
   filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(divider) + ".density.xml"
+elif args.hashtag is not None: # also capture 0.0
+  assert(args.dim == 2)
+  data = hashtag(args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
+  filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 else:
   data = find_radius(args.dim, vol, args.order, args.invert)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
+  setname = "order_" + str(args.order) + ("_inv" if args.invert else "")
 
 if args.save:
   filename = args.save
 
-write_density_file(filename, data, "order_" + str(args.order) + ("_inv" if args.invert else ""))
+if filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.gif') or filename.endswith('.tif'):
+ get_image(data).save(filename)
+else:
+  write_density_file(filename, data, setname)
 
 print "generated file '" + filename + "'" 
 
+if args.write_mesh:
+  mesh = Mesh()  
+  create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin = 1e-3, multi_d=1) # rhomin is irrelevant as we make sparse
+  sparse = convert_to_sparse_mesh(mesh)
+  mesh_name = filename.replace('.density.xml', '.mesh')
+  write_gid_mesh(sparse, mesh_name)
+  print "generated sparse mesh '" + mesh_name + "'"
+  
+if args.show:
+  get_image(data, 800).show()
 

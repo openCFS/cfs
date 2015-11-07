@@ -123,7 +123,8 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   # If precompiled package does not exist build external project (double real)
   #-------------------------------------------------------------------------------
   ExternalProject_Add(ilupack-double
-    DEPENDS ilupack_external_data lapack metis suitesparse
+    #DEPENDS ilupack_external_data lapack metis suitesparse
+    DEPENDS lapack metis suitesparse
     PREFIX "${ilupack_prefix}"
     SOURCE_DIR "${ilupack_source}"
     URL ${LOCAL_FIILE}

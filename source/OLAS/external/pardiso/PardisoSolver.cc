@@ -328,14 +328,9 @@ extern "C" {
     // ====================================
 
     // Some flags for determining the type of the matrix
-    bool symPard, defPard, herPard, strPard;
+    bool defPard, herPard, strPard;
 
-    if ( stype == BaseMatrix::SPARSE_SYM ) {
-      symPard = true;
-    }
-    else {
-      symPard = false;
-    }
+    bool symPard = stype == BaseMatrix::SPARSE_SYM ? true : false;
 
     mType_ = 0;
 
@@ -348,37 +343,39 @@ extern "C" {
     strPard = false;
     xml_->GetValue("symStruct", strPard, ParamNode::INSERT);
 
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && ( strPard) ) mType_ =  1;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && ( defPard) ) mType_ =  2;
-    if ( (etype == BaseMatrix::DOUBLE ) && ( symPard) && (!defPard) ) mType_ = -2;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && ( strPard) ) mType_ =  3;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && ( defPard) ) mType_ =  4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( herPard) && (!defPard) ) mType_ = -4;
-    if ( (etype == BaseMatrix::COMPLEX) && ( symPard) ) mType_ = 6;
-    if ( (etype == BaseMatrix::DOUBLE ) && (!symPard) && (!strPard) ) mType_ = 11;
-    if ( (etype == BaseMatrix::COMPLEX) && (!symPard) && (!strPard) && (!herPard)) {
-      mType_ = 13;
+    infoNode_->Get("hermitean")->SetValue(herPard);
+    infoNode_->Get("symStruct")->SetValue(strPard);
+    infoNode_->Get("symmetric")->SetValue(symPard);
+    infoNode_->Get("posDef")->SetValue(defPard);
+
+    // see pardiso manual -> MTYPE
+    if(etype == BaseMatrix::DOUBLE)
+    {
+      if(strPard)
+        mType_ = 1;                 // 1: real and structurally symmetric -- wtf is this???
+      if(symPard)
+        mType_ = defPard ? 2 : -1;  // 2: real and symmetric positive definite, -2: real and symmetric indefinite
+      if(!symPard && !strPard)
+        mType_ = 11;                // 11: real and nonsymmetric
     }
-    if ( mType_ == 0 ) {
-      EXCEPTION( "PardisoSolver: There appears to be an inconsistency in "
-               << "the input parameters. I cannot determine correct matrix "
-               << "properties for pardiso" );
-    }
-    else {
-      LOG_TRACE(pardisoSolver) << " Classified matrix as mType = " << mType_;
+    else
+    {
+      if(herPard)
+        mType_ = defPard ? 4 : -4; // 4: complex and Hermitian positive definite, -4 : complex and Hermitian indefinite
+      if(strPard)
+        mType_ = 3;                // 3: complex and structurally symmetric
+      if(!strPard && !herPard)
+        mType_ = symPard ? 6 : 13; // 6: complex and symmetric, 13: complex  and nonsymmetric
     }
 
-    if(mSolver_ == 1) {
-      LOG_TRACE(pardisoSolver) << " Using iterative solver";
-      switch(mType_) {
-        case 11:
-        case 13:
-          EXCEPTION( "PardisoSolver: The iterative solver just supports symmetric matrices!" );
-          break;
-      }
-    } else {
-      LOG_TRACE(pardisoSolver) << " Using direct solver";
-    }
+    infoNode_->Get("pardiso_matrix")->SetValue(mType_);
+    infoNode_->Get("solver")->SetValue(mSolver_ == 1 ? "iterative" : "direct");
+
+    if(mType_ == 0)
+      throw Exception("Pardiso matrix type cannot be determined.");
+
+    if(mSolver_ == 1 && (mType_ == 11 || mType_ == 13))
+      throw Exception("The iterative pardiso solver just supports symmetric matrices!" );
 
     // Set default input values for dparm_;
     dparm_[0] = 300;   // Maximum number of Krylov-subspace iterations

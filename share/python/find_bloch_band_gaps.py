@@ -27,8 +27,6 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
       print 'set object ' + str(gap_count) + ' rect from ' + str(range_start) + ',' + str(ma) + ' to ' + str(range_end) + ',' + str(mi)
     else:
       type = 'full' if range_end - range_start > data.shape[0] else 'partial'
-      print type + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1),
-      print ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel)
       if xml is not None:
         node = etree.SubElement(xml, type)
         node.append(etree.Element("wave_vector", start=str(range_start), end=str(range_end)))
@@ -37,6 +35,9 @@ def check_gap(data, test_col, range_start, range_end, eps, gnuplot, xml):
         node.attrib["size"] = str(mi - ma)
         node.attrib["rel_size"] = str(rel)
         node.attrib["count"] = str(gap_count)
+      else:
+        print type + ' band gap between ' + str(ma) + ' and ' + str(mi) + ' within ' + str(range_start) + ' -> ' + str(range_end) + ' between modes ' + str(test_col-offset) + ' and ' + str(test_col-offset+1),
+        print ' size: ' + str(mi - ma) + ' rel.size: ' + str(rel)
 
 # tries to determine dimension. searches for k_z in comment if there is a comment. 
 # if dim is given at arguement and there is a mismatch prints a warning 
@@ -67,15 +68,14 @@ def get_dim(args):
     return args.dim                                                                                                     
   
 parser = argparse.ArgumentParser()
-parser.add_argument("bloch", help="a sorted bloch.dat file. You might use sort_bloch.py first")
+parser.add_argument("bloch", help="a sorted bloch.dat file. Sort by sort_bloch.py")
 parser.add_argument("--dim", help="2 or three dimensions", type=int, required=False, choices=[2,3])
 parser.add_argument('--mingap', help="minimal absolute (partial) band gap size (default 0.0 = all gaps)", default=0.0)
 parser.add_argument('--nopartial', action='store_true', help='handle only full band gaps')
 parser.add_argument('--maxmode', help="maximal mode number to be considered (default 9999)", default=9999, type=int)
 parser.add_argument('--info', action='store_true', help='show range for all modes')
 parser.add_argument('--xml', help='export info to a xml file')
-parser.add_argument('--gnuplot', action='store_true', help='create gnuplot output')
-parser.add_argument('--eps', action='store_true', help='gnuplot: use eps terminal output')
+parser.add_argument('--gnuplot', help='create gnuplot output, specify the type', choices = ['eps', 'png', 'console'])
 parser.add_argument('--nolines', action='store_true', help='gnuplot: do not concatenate points by lines')
 parser.add_argument('--commonsymbol', action='store_true', help='gnuplot: use the same line symbol for all lines')
 parser.add_argument('--nicelabel', action='store_true', help='gnuplot: use nice labels')
@@ -87,7 +87,18 @@ org = numpy.loadtxt(args.bloch)
 dim = get_dim(args)
 
 offset = 3 if dim == 2 else 4 # step, k_x, k_y (,k_z)
+
+# check for unsorted
+# we may not simpy sort here as the plot is done via the original data which needs also the sorted and saved to another file
+for w in range(len(org)):
+  wv = org[w]
+  for ev in range(offset+1, len(wv)):
+    if wv[ev] < wv[ev-1]:
+      print 'unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1])                 
+
+
 segment = org.shape[0]/offset # number of k for G->X = X->M = M -> G
+
 
 # we search also for partial band gaps. The points are X=0, M, G, (R for 3D), Y=X=0 (again)
 M = (org.shape[0]-1) / (dim+1) # -1 because the real data is %3 and %4 but the first line is repeated
@@ -133,11 +144,49 @@ if args.xml:
     mode.attrib["size"] = str(ma - mi)
     mode.attrib["rel_size"] = str((ma - mi)/((ma+mi)/2.0))
 
+gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
+  
 if args.gnuplot:
-  if args.eps:
+  if args.gnuplot == "eps":
     print 'set size ratio 1.0'
-    print 'set terminal postscript eps enhanced "Helvetica, 20" monochrome'
+    print 'set terminal postscript eps enhanced "Helvetica, 20" color' #  change to monochrome for papers
+    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
+  if args.gnuplot == "png":
+    print 'set size ratio 1.0'
+    print 'set terminal png font Helvetica size 1000,1000'
+    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.png"'
+        
     # print 'set output "tmp.eps"'
+  # unset eventually older boxes
+  for i in range(60):
+     print 'unset object ' + str(i)
+  print 'set style rectangle back fc rgb "gray"'         
+
+  
+# search for partial band gaps
+if not args.nopartial:
+  if not args.gnuplot and not args.xml:
+    print "\npartial band gaps >= rel.size " + str(eps)
+    print "---------------------------------------"
+  for i in range(offset+1, max_mode):
+    check_gap(org, i, 0, M, eps, args.gnuplot, gaps)
+    if not args.horizontal:
+      check_gap(org, i, M, G, eps, args.gnuplot, gaps)
+      if dim == 2:
+        check_gap(org, i, G, Y, eps, args.gnuplot, gaps)
+      else:
+        check_gap(org, i, G, R, eps, args.gnuplot, gaps)
+        check_gap(org, i, R, Y, eps, args.gnuplot, gaps)
+  
+# search for full band gaps
+if not args.horizontal:
+  if not args.gnuplot and not args.xml:
+    print "\nfull band gaps >= rel.size " + str(eps)
+    print "---------------------------------------"
+  for i in range(offset+1,  max_mode): # we start comparing the second to the first
+    check_gap(org, i, 0, Y, eps, args.gnuplot, gaps)
+
+if args.gnuplot:
   if args.commonsymbol:
     print 'set yrange [0:*]'
   else:
@@ -161,42 +210,13 @@ if args.gnuplot:
     print 'unset xlabel'     
 
   
-  print 'set style rectangle back fc rgb "gray"'
+
   wl =   '' if args.nolines else ' with linespoints '
   lc = ' lc 7 lt 1 ' if args.commonsymbol else ''
   for i in range(offset,  max_mode): # 1-based
     title = ' notitle ' if args.commonsymbol else ' t "' + str(i-offset+1) + '. mode" ' 
     print ('plot' if i <= offset else '    ') + '"' + args.bloch + '" u ' + str(i+1) + title + wl + lc + (' ,\\' if i < max_mode -1  else '')
-
-  if args.eps:
-    print 'set output "' + args.bloch[:-len(".bloch.dat")] + '.eps"'
-  print 'replot' # necessary to show the boxes   
-  print 'replot' # necessary to show the boxes
-  
-gaps = None if args.xml is None else etree.SubElement(root, "gaps")  
-  
-# search for partial band gaps
-if not args.nopartial:
-  if not args.gnuplot:
-    print "\npartial band gaps >= rel.size " + str(eps)
-    print "---------------------------------------"
-  for i in range(offset+1, max_mode):
-    check_gap(org, i, 0, M, eps, args.gnuplot, gaps)
-    if not args.horizontal:
-      check_gap(org, i, M, G, eps, args.gnuplot, gaps)
-      if dim == 2:
-        check_gap(org, i, G, Y, eps, args.gnuplot, gaps)
-      else:
-        check_gap(org, i, G, R, eps, args.gnuplot, gaps)
-        check_gap(org, i, R, Y, eps, args.gnuplot, gaps)
-  
-# search for full band gaps
-if not args.horizontal:
-  if not args.gnuplot:
-    print "\nfull band gaps >= rel.size " + str(eps)
-    print "---------------------------------------"
-  for i in range(offset+1,  max_mode): # we start comparing the second to the first
-    check_gap(org, i, 0, Y, eps, args.gnuplot, gaps)
+ 
  
 if args.xml:
   root.find("gaps").attrib["count"]=str(gap_count)
