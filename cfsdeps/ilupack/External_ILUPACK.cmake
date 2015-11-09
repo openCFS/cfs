@@ -68,12 +68,14 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The ilupack source is closed source! It must not be redistributed!!
-# There is a copy at ${CFS_DS_WEBDAV}/.... but due to an improper ssl certificate
-# "common name ‘cfs’ doesn't match requested host name ‘cfs.mdmt.tuwien.ac.at’"
-# you might need to do wget URL --no-check-certificate manually and store the
-# file at cfsdepscache/source/ikupack
+# There is a copy at ${CFS_DS_WEBDAV}/ but it has certificate issuses, therefore there
+# is also a mirror by the FAU CFS optimization group.
+# To obfuscate the download,. the filename is replaced by its md5 sum.
 #-------------------------------------------------------------------------------
-SET(MIRRORS "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
+SET(MIRRORS 
+  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}"
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
+  
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}")
 SET(MD5_SUM ${ILUPACK_MD5})
 
@@ -118,7 +120,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project (double real)
   #-------------------------------------------------------------------------------
@@ -127,7 +129,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
     DEPENDS lapack metis suitesparse
     PREFIX "${ilupack_prefix}"
     SOURCE_DIR "${ilupack_source}"
-    URL ${LOCAL_FIILE}
+    URL ${LOCAL_FILE}
     URL_MD5 ${ILUPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     LIST_SEPARATOR "^"
@@ -135,10 +137,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       ${CMAKE_ARGS}
       -DFLOAT_TYPE:STRING=DOUBLE_REAL
   )
-  
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project (double complex)
-  #-------------------------------------------------------------------------------
   ExternalProject_Add(ilupack-complex
     DEPENDS ilupack-double
     PREFIX "${ilupack_prefix}"
@@ -150,9 +148,27 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       -DFLOAT_TYPE:STRING=DOUBLE_COMPLEX
   )
   
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(ilupack-double cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${ilupack_prefix}
+  )
+  ExternalProject_Add_Step(ilupack-complex cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${ilupack_prefix}
+  )
+  
   IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
+    # Add custom step to zip a precompiled package to the cache. complex seems sufficient
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(ilupack-complex cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
