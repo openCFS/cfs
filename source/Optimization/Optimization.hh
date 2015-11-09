@@ -181,16 +181,8 @@ namespace CoupledField
          * Shall be called after CommitIteration() ! */
         virtual bool DoStopOptimization();
 
-        /** Do we have a harmonic problem? Then we are complex. Even if not, we might be eigenvalue and also complex*/
-        bool IsHarmonic() const { return harmonic_; }
-        
-        /** we are complex in the harmonic or eigenvalue case */
-        bool IsComplex() const { return complex_; }
-
-        /** do we solve eigenvalue problems? Then we are complex! */
-        bool IsEigenvalue() const { return eigenvalue_; }
-
-        /** are we in transient optimization? */
+        /** are we in transient optimization?
+         * FIXE -> Context */
         static bool IsTransient();
         
         /** in transient, first step can be static, so that start displacement can depend on material parameters */
@@ -322,7 +314,8 @@ namespace CoupledField
          * @see ToPDE() */
         std::map<Application, SinglePDE*> pdes;
 
-        /** This is simple one SinglePDE from pdes. */
+        /** This is simple one SinglePDE from pdes.
+         * FIXME -> Context*/
         SinglePDE* pde;
 
         /** Our MultipleExcitation objecte - by default disabled */
@@ -392,17 +385,6 @@ namespace CoupledField
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
 
-        /** are we harmonic/EV or static/transient? */
-        bool complex_;
-        
-        /** only for the driver, not for complex_! */
-        bool harmonic_;
-
-        /** do we solve an eigenvalue problem. Includes block mode problems */
-        bool eigenvalue_;
-
-        /** bloch mode analyis is also eigenvalue but special due to the wave vectors encapsualted in excitations */
-        bool bloch_;
 
         /** Do we use MSFEM or not? */
         bool msfem;

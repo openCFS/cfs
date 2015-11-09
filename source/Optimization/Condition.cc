@@ -1092,7 +1092,7 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   }
 
   // check for uniqueness of the eigenvalue id
-  if(em->IsEigenvalue())
+  if(Optimization::context.IsEigenvalue())
   {
     unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumSteps();
 

@@ -227,7 +227,7 @@ std::string StateSolution::ToString()
 
 SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
 {
-  if (em_->complex_)
+  if (Optimization::context.IsComplex())
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
   else
     return Read<double> (st, pde, app, save_sol, derivative);
@@ -236,7 +236,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::
 /** Writes the solution (raw vector) back to the pde */
 void StateSolution::Write(SinglePDE* pde)
 {
-  if (em_->complex_)
+  if (Optimization::context.IsComplex())
     Write<std::complex<double> >(pde);
   else
     Write<double>(pde);

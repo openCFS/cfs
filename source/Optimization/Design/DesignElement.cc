@@ -1108,12 +1108,12 @@ std::string SIMPElement::ToString(int level) const
 
 inline unsigned int SIMPElement::DetermineFilterIndex() const
 {
-  return Optimization::context.excitation->robust_filter_idx;
+  return Optimization::context.GetExcitation()->robust_filter_idx;
 }
 
 unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
 {
-  return Optimization::context.excitation->robust_filter_idx;
+  return Optimization::context.GetExcitation()->robust_filter_idx;
 }
 
 inline Filter& SIMPElement::DetermineFilter()

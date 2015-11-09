@@ -217,7 +217,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
 
-  int num_freq = opt->IsHarmonic() ? dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize() : 0;
+  int num_freq = Optimization::context.IsHarmonic() ? dynamic_cast<HarmonicDriver*>(domain->GetDriver())->freqs.GetSize() : 0;
 
   // bloch mode analysis wave vectors
   int num_wave = DoBloch() ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->wave_vectors.GetSize() : 0;
@@ -238,7 +238,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   {
     // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
     // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
-    if(!opt->IsHarmonic() && pn->Has("multipleExcitation/excitations"))
+    if(!Optimization::context.IsHarmonic() && pn->Has("multipleExcitation/excitations"))
     {
       pn_ex = pn->Get("multipleExcitation/excitations")->GetChildren();
       num_loads = pn_ex.GetSize();
@@ -276,10 +276,10 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
   if(num_wave > 0)
     SetBlochWaves(num_wave);
 
-  if(opt->IsHarmonic())
+  if(Optimization::context.IsHarmonic())
     SetHarmonic(num_freq);
 
-  if(!opt->IsHarmonic() && IsEnabled() && !DoBloch()) // multiple loads case
+  if(!Optimization::context.IsHarmonic() && IsEnabled() && !DoBloch()) // multiple loads case
     SetLoadCases(pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   // ------------------------------
@@ -305,7 +305,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
       excitations[i].label = lexical_cast<string>(i);
   }
   // calculate the initial normalized_weight and print info.
-  if(IsEnabled() || opt->IsHarmonic())
+  if(IsEnabled() || Optimization::context.IsHarmonic())
   {
     for (unsigned int i = 0; i < excitations.GetSize(); i++)
     {
@@ -600,7 +600,7 @@ Excitation::~Excitation()
 
 void Excitation::Apply()
 {
-  domain->GetOptimization()->context.excitation = this;
+  Optimization::context.SetExcitation(this);
 
   if(forms.GetSize() > 0)
   {

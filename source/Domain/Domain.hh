@@ -127,7 +127,7 @@ namespace CoupledField
     /** Get pointer to SinglePDE by name.
      * @param throw_exception shall an exception be thrown if the name does not exist
      * @return the pde or NULL if !throw_exception */
-    SinglePDE * GetSinglePDE(const std::string pdename, bool throw_exception = true);
+    SinglePDE* GetSinglePDE(const std::string pdename, bool throw_exception = true);
 
     //! Get driver object
     BaseDriver* GetDriver();
@@ -136,22 +136,17 @@ namespace CoupledField
      * MultiSequenceDrivers(). */ 
     void SetDriver( BaseDriver * driver );
 
-    /** Get driver object. Note, that this might be NULL for not initialized 
-     * MultiSequenceDriver()! */
-    SingleDriver * GetSingleDriver() { return ptSingleDriver_; }
+    /** Get driver object. Note, that this might be NULL for not initialized MultiSequenceDriver()! */
+    SingleDriver* GetSingleDriver() { return ptSingleDriver_; }
+
+    /** Gets the multi sequence driver or NULL if we have none */
+    MultiSequenceDriver* GetMultiSequenceDriver() { return multiSequenceDriver_; }
 
     //! Get pointer to CoupledPDE
-    DirectCoupledPDE* GetDirectCoupledPDE()
-    {  if (ptDirectCoupledPde_.GetSize() > 0)
-      return ptDirectCoupledPde_[0]; 
-    else 
-      return NULL;
-    }
+    DirectCoupledPDE* GetDirectCoupledPDE() { return ptDirectCoupledPde_.GetSize() > 0 ? ptDirectCoupledPde_[0] : NULL; }
     
     //! Get map for all registered grids and their reader
-    std::map<std::string, Grid* >  GetGridMap() {
-      return gridMap_;
-    }
+    std::map<std::string, Grid* >  GetGridMap() {  return gridMap_;  }
 
     //! Get pointer to input-file
       //    FileType * GetInFile(){ return InFile_;}
@@ -166,14 +161,13 @@ namespace CoupledField
     shared_ptr<SimState> GetSimState() {return simState_; }
     
     //! Get pointer to grid object
-    Grid * GetGrid( const std::string& id = "default" );
+    Grid* GetGrid( const std::string& id = "default" );
 
     //! Return local coordinate system by name
-    CoordSystem * GetCoordSystem( const std::string & name 
-                                  = std::string("default") );
+    CoordSystem* GetCoordSystem( const std::string & name = std::string("default") );
 
     //! Return Math Parser object for evaluating math expressions
-    MathParser * GetMathParser() { return mathParser_; }
+    MathParser* GetMathParser() { return mathParser_; }
 
     /** Returns the optimization
      *  @return null if there is none */

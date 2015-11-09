@@ -45,7 +45,7 @@ void EvaluateOnly::SolveProblem()
 
   // in the harmonic case we sweep over multiple frequencies if we have not "multipleExcitation"
   HarmonicDriver* hd = dynamic_cast<HarmonicDriver*>(domain->GetDriver());
-  int end = optimization->IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
+  int end = optimization->context.IsHarmonic() && !optimization->GetMultipleExcitation()->IsEnabled() ? hd->freqs.GetSize() : 1;
 
   // space to store the gradient values, we need it to evaluate density filtering.
   StdVector<double> grad(optimization->GetDesign()->GetNumberOfVariables());

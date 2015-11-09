@@ -87,21 +87,18 @@ Optimization::Optimization()
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
-  // even a standard EV problem is in CFS complex (with imag=0). For Bloch we are complex anyways
-  this->complex_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
-  this->harmonic_ = domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC;
-  this->eigenvalue_ = domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY;
-  this->bloch_ = domain->GetDriver()->DoBlochModeEigenfrequency();
   this->currentIteration = 0; // a 1 or 0 can make a lot of difference! 0 is initial design!
   this->writeCounter_ = 0;
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
 
+  Optimization::context.Init();
+
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
 
-  assert((complex_ && driver->IsComplex()) || (!complex_ && !driver->IsComplex()));
+  assert((context.IsComplex() && driver->IsComplex()) || (!context.IsComplex() && !driver->IsComplex()));
 
 
   if(driver->GetDriverClass() != BaseDriver::SINGLE_DRIVER)
@@ -111,10 +108,10 @@ Optimization::Optimization()
   PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);
   optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
   
-  header->Get("complex")->SetValue(complex_);
-  header->Get("harmonic")->SetValue(harmonic_);
-  header->Get("eigenvalue")->SetValue(eigenvalue_);
-  header->Get("bloch")->SetValue(bloch_);
+  header->Get("complex")->SetValue(context.IsComplex());
+  header->Get("harmonic")->SetValue(context.IsHarmonic());
+  header->Get("eigenvalue")->SetValue(context.IsEigenvalue());
+  header->Get("bloch")->SetValue(context.DoBloch());
 
 
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
@@ -135,7 +132,7 @@ Optimization::Optimization()
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   log.AddToHeader("iter");
-  if(harmonic_)
+  if(context.IsHarmonic())
     log.AddToHeader("freq");
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
     log.AddToHeader(objectives.data[i]->GetName());
@@ -686,19 +683,19 @@ void Optimization::SolveStateProblem(Excitation* excite)
   }
                                          
   // Do not store the results. This is to be done in CommitIteration
-  if(harmonic_ && excite != NULL)
+  if(context.IsHarmonic() && excite != NULL)
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
     dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step);
   }
-  else if(bloch_)
+  else if(context.DoBloch())
   {
     LOG_DBG(opt) << "SSP: bloch step=" << excite->wave_vector.ToString();
     dynamic_cast<EigenFrequencyDriver*>(driver)->ComputeBlochWaveVector(excite->index);
   }
   else
   {
-    assert(!bloch_ || !harmonic_);
+    assert(!context.DoBloch() || !context.IsHarmonic());
     driver->SolveProblem();
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
@@ -722,7 +719,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
   }
 
   // Do not store the results. This is adjoint.
-  if(!complex_)
+  if(!context.IsComplex())
     assert(false);
     // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
   else
@@ -1035,7 +1032,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out)
   {
     *out << currentIteration;
-    if(harmonic_)
+    if(context.IsHarmonic())
       *out << " \t" << GetIterationFrequency();
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
@@ -1046,7 +1043,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
 
   iteration->Get("number")->SetValue(currentIteration);
 
-  if(harmonic_)
+  if(context.IsHarmonic())
     iteration->Get("frequency")->SetValue(GetIterationFrequency());
 
   if(design->HasAlphaVariable()) // needs to be written to the plot.dat file in ErsatzMaterial as Optimization::Optimization() knows no design yet
