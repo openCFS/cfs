@@ -37,32 +37,33 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
   switch(f->GetType())
   {
-  case Function::PRESSURE_DROP:
-  {
-    if(!derivative)
+    case Function::PRESSURE_DROP:
+    case Function::LBM_DISSIPATION:
     {
-      if (lbm->IsSRTModel())
-        return lbm->CalcPressureDrop();
-      else
-        return lbm->GetDissipation();
-    }
-    else
-    {
-      switch(lbm->GetIface())
+      if(!derivative)
       {
-      case LatticeBoltzmannPDE::EXTERNAL:
-      case LatticeBoltzmannPDE::INTERNAL:
-//    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
-        lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
-        break;
+        if (lbm->IsSRTModel())
+          return lbm->CalcPressureDrop();
+        else
+          return lbm->GetDissipation();
       }
-      return 0.0;
+      else
+      {
+        switch(lbm->GetIface())
+        {
+        case LatticeBoltzmannPDE::EXTERNAL:
+        case LatticeBoltzmannPDE::INTERNAL:
+  //    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
+          lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+          break;
+        }
+        return 0.0;
+      }
     }
-  }
-  break;
-
-  default: // return below as we don't implement
     break;
+
+    default: // return below as we don't implement
+      break;
   }
 
   return SIMP::CalcFunction(excite, f, derivative);

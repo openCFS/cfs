@@ -100,6 +100,7 @@ class Function
 
       // External Solvers
       PRESSURE_DROP,             /*!< LBM Pressure Drop */
+      LBM_DISSIPATION,           /*!< LBM dissipation */
 
       // This is constraint only!
       GREYNESS,                  /*!< inaccurate - best for observation only */

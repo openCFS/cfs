@@ -78,6 +78,8 @@ namespace CoupledField
         Vector<double> pdfs(n_q_);
         double dissipation = 0.0;
         for (int elem = 0; elem < nNodes_; elem++) {
+          if (!rel.Contains(elem)) // only sum up local dissipation at design nodes
+            continue;
           for (int dir = 0; dir < n_q_; dir++)
             pdfs[dir] = PDF(cur_,elem,dir);
 
