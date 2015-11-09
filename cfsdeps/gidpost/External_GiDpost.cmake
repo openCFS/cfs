@@ -77,6 +77,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 SET(MIRRORS
   "ftp://www.gidhome.com/pub/Tools/gidpost/old/${GIDPOST_ZIP}"
+  "${CFS_FAU_MIRROR}/sources/gidpost/${GIDPOST_ZIP}"
   "${GIDPOST_URL}/${GIDPOST_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/gidpost/${GIDPOST_ZIP}")
