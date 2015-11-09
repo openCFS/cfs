@@ -773,15 +773,16 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       double jy = CalcVelocityY(idx,density) * density;
 
       d_F1_d_rho.Init();
-      d_F1_d_rho[3] = -jx;
-      d_F1_d_rho[4] = jx;
-      d_F1_d_rho[5] = -jy;
-      d_F1_d_rho[6] = jy;
+      d_F2_d_rho.Init();
+      d_F1_d_rho[3] = jx;
+      d_F1_d_rho[4] = -jx;
+      d_F1_d_rho[5] = jy;
+      d_F1_d_rho[6] = -jy;
 
-      d_F2_d_rho[1] = -6.0 / density * (jx * jx + jy * jy);
-      d_F2_d_rho[2] = 6.0 / density * (jx * jx + jy * jy);
-      d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
-      d_F2_d_rho[8] = -2.0 * jx * jy / density;
+      d_F2_d_rho[1] = 6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[2] = -6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[7] = 2.0 / density * (jx * jx - jy * jy);
+      d_F2_d_rho[8] = 2.0 * jx * jy / density;
       //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
       Matrix<double> mat(n_q_,n_q_); // I - S/2
       mat.Init();
@@ -798,10 +799,14 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> tmp(n_q_);
       mat.Mult(d_F2_d_rho,tmp);
       Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
-      double sens = (jx * jx + jy * jy) / density +  d_coll_d_rho.Inner(adjMoments);
-
+      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
+      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;
+      std::cout << "term1: " << (jx * jx + jy * jy) / density << " inner product: " << d_coll_d_rho.Inner(adjMoments) << std::endl;
+      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoments);
+//      double sens = (jx * jx + jy * jy) / density;
       de->AddGradient(f, sens);
     }
+//    exit(-1);
   }
 }
 

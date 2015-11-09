@@ -369,6 +369,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
+  Function::type.Add(Function::LBM_DISSIPATION, "dissipation");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");

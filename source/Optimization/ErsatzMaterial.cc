@@ -1504,6 +1504,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
+      case Function::LBM_DISSIPATION:
       assert(false);// shall be handled before
       break;
 

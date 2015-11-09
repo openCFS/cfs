@@ -291,18 +291,20 @@ void LatticeBoltzmann::InitializePdfs()
     }
   }
 
-  for (int elem = 0; elem < nNodes_; elem++) {
-    Vector<double> pdfs(n_q_);
-    Vector<double> moments(n_q_);
-    for (int dir = 0; dir < n_q_; dir++)
-      pdfs[dir] = PDF(0, elem, dir);
-    transformation.Mult(pdfs, moments);
-    for (int dir = 0; dir < n_q_; dir++) {
-      AMoments(0, elem, dir) = moments[dir];
-      AMoments(1, elem, dir) = moments[dir];
+  if (!srt_)
+  {
+    for (int elem = 0; elem < nNodes_; elem++) {
+      Vector<double> pdfs(n_q_);
+      Vector<double> moments(n_q_);
+      for (int dir = 0; dir < n_q_; dir++)
+        pdfs[dir] = PDF(0, elem, dir);
+      transformation.Mult(pdfs, moments);
+      for (int dir = 0; dir < n_q_; dir++) {
+        AMoments(0, elem, dir) = moments[dir];
+        AMoments(1, elem, dir) = moments[dir];
+      }
     }
   }
-
 }
 
 void LatticeBoltzmann::SetMicroVelocities()
@@ -1398,7 +1400,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
 
-      std::cout << "Adjoint iteration " << it << " residual: " << R << std::endl;
+//      std::cout << "Adjoint iteration " << it << " residual: " << R << std::endl;
 
 //      std::cout << "\n adjoint moments cur: " << std::endl;
 //      for (int elem = 0; elem < nNodes_; elem++) {
@@ -1452,7 +1454,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   node->Get("converged")->SetValue(steady_state);
   node->Get("dissipation")->SetValue(dissipation);
 
-  return &adjMoments_[adjCur_];
+  return &(adjMoments_[adjCur_]);
 }
 
 /************************************************** 3D operators *****************************************************/
