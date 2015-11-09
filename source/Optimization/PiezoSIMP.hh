@@ -43,8 +43,8 @@ protected:
   {
     if(f->GetType() == Objective::ELEC_ENERGY)
     {
-      if(complex_) ConstructAdjointRHS<std::complex<double> >(excite, f);
-              else ConstructAdjointRHS<double>(excite, f);
+      if(context.IsComplex()) ConstructAdjointRHS<std::complex<double> >(excite, f);
+                         else ConstructAdjointRHS<double>(excite, f);
     }
     else
     {
@@ -57,7 +57,7 @@ protected:
    * PIEZO_COUPLING ( + transposed) */
   virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
-    if(complex_)
+    if(context.IsComplex())
       SetElementK<std::complex<double>, double >(de, tf, app, out, derivative, calcMode, ev);
     else
       SetElementK<double, double>(de, tf, app, out, derivative, calcMode, ev);

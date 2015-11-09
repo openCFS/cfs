@@ -765,7 +765,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << (domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation->index : -1)
+                       << " ex=" << (domain->GetOptimization() != NULL ? domain->GetOptimization()->context.GetExcitation()->index : -1)
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -946,11 +946,11 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   }
   else
   {
-    assert(!(context_ != NULL && context_->excitation->transform == NULL && transform.GetSize() > 1));
+    assert(!(context_ != NULL && context_->GetExcitation()->transform == NULL && transform.GetSize() > 1));
 
-    Excitation* excite = context_->excitation;
+    Excitation* excite = context_->GetExcitation();
 
-    if(context_ != NULL && context_->excitation->transform != NULL)
+    if(context_ != NULL && context_->GetExcitation()->transform != NULL)
     {
       found = excite->transform->FindSource(de);
       LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << excite->label << " a=" << excite->transform->ToString() << " -> " << DesignElement::ToString(found);
@@ -1504,7 +1504,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
-  Excitation* ex = domain->GetOptimization() != NULL ? domain->GetOptimization()->context.excitation : NULL;
+  Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context.GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
   {

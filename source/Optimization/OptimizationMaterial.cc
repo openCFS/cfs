@@ -53,8 +53,8 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* spac
 
   regionIds = this->space->GetRegionIds();
 
-  needs_mass_ = em->IsComplex() || em->IsTransient() || em->IsEigenvalue();
-  complex_ =  em->IsComplex();
+  needs_mass_ = em->context.IsComplex() || em->IsTransient() || em->context.IsEigenvalue();
+  complex_ =  em->context.IsComplex();
   transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
@@ -672,7 +672,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, NULL, direction);
       elecStiffness_map[elem->regionId].first.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].first.SetPart(Global::REAL, tmp_mat);
-      if (opt->IsComplex()){
+      if (opt->context.IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, NULL, direction);
         elecStiffness_map[elem->regionId].first.SetPart(Global::IMAG, tmp_mat);
@@ -686,7 +686,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, bm, direction);
       elecStiffness_map[elem->regionId].second.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].second.SetPart(Global::REAL, tmp_mat);
-      if (opt->IsComplex()){
+      if (opt->context.IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, bm, direction);
         elecStiffness_map[elem->regionId].second.SetPart(Global::IMAG, tmp_mat);

@@ -1094,12 +1094,12 @@ void Domain::SetDriver(BaseDriver * driver)
 {
   if (driver->GetAnalysisType() == BasePDE::MULTI_SEQUENCE)
   {
-    multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*> (driver);
+    multiSequenceDriver_ = dynamic_cast<MultiSequenceDriver*>(driver);
     ptSingleDriver_ = multiSequenceDriver_->GetSingleDriver(); // NULL before Init()!!
   }
   else
   {
-    ptSingleDriver_ = dynamic_cast<SingleDriver*> (driver);
+    ptSingleDriver_ = dynamic_cast<SingleDriver*>(driver);
   }
 }
 

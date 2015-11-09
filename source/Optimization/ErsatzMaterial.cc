@@ -250,18 +250,18 @@ void ErsatzMaterial::PostInit()
     case Function::YOUNGS_MODULUS_E1:
     case Function::YOUNGS_MODULUS_E2:
     case Function::ELEC_ENERGY: // it simply does not work yet in the harmonics
-      if(complex_)
+      if(context.IsComplex())
         throw Exception(func + " is only for static state problems");
       break;
 
     case Function::DYNAMIC_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
-      if(!complex_)
+      if(!context.IsComplex())
         throw Exception(func + " is only for harmonic state problems");
       break;
 
     case Function::EIGENFREQUENCY:
-      if(!eigenvalue_)
+      if(!context.IsEigenvalue())
         throw Exception(func + " is only for eigenvalue state problems");
       break;
 
@@ -347,7 +347,7 @@ void ErsatzMaterial::PostInit()
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
 
-  if(eigenvalue_ && optParamNode->Has("eigenvalue/sort"))
+  if(context.IsEigenvalue() && optParamNode->Has("eigenvalue/sort"))
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
@@ -465,7 +465,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   }
 
   // log mode switching only for the functions
-  if(eigenvalue_ && ev_.DoSorting())
+  if(context.IsEigenvalue() && ev_.DoSorting())
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
@@ -488,7 +488,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   if(out && design->HasAlphaVariable())
     *out << " \t" << design->GetAlphaVariable();
 
-  if(out && eigenvalue_ && ev_.DoSorting())
+  if(out && context.IsEigenvalue() && ev_.DoSorting())
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
@@ -527,7 +527,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   string ErsatzMaterial::GetIterationFrequency()
   {
-    if (!harmonic_)
+    if (!context.IsHarmonic())
       return "";
 
     // make clear, when doing *real* multiple excitations, that this is no single
@@ -676,7 +676,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       return CalcU1KU2_mapping(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx);
     }
-    if (complex_)
+    if(context.IsComplex())
       return CalcU1KU2<std::complex<double> >(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx, ev);
     else
       return CalcU1KU2<double>(tf, u1, k, u2, rhs, factor, calcMode, f, res_idx, ev);
@@ -697,7 +697,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     Vector<T> mat_vec(u1[0]->GetSize());
     TransferFunction* rtf = rhs != NULL && rhs->valid ? design->GetTransferFunction(tf->GetDesign(), rhs->app) : NULL;
 
-    // the context.excitation is now the last one as we solve and store all excitations first before calculating the gradients
+    // the context.GetExcitation() is now the last one as we solve and store all excitations first before calculating the gradients
     Transform* trans = f != NULL && f->GetExcitation() != NULL ? f->GetExcitation()->transform : NULL; // even ->transform might be NULL
 
     // traverse over our elements
@@ -772,7 +772,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // in real case it is simple value = factor * sp.
         // factor shall be +/- 1!
         double this_value = factor;
-        if(harmonic_ && calcMode == STANDARD)
+        if(context.IsHarmonic() && calcMode == STANDARD)
           this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
         else
           this_value *= ((complex<double>) sp).real();// CONJ_QUAD, EIGENFREQ or real STANDARD
@@ -853,7 +853,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 else sp = mat_vec * u1_vec;
 
                 double this_value = factor;
-                if(complex_ && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                if(context.IsComplex() && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
                 else this_value *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
 
                 grad = grad + this_value;
@@ -944,7 +944,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 else sp = mat_vec * u1_vec;
 
                 double this_value = factor;
-                if(complex_ && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                if(context.IsComplex() && calcMode != CONJ_QUAD) this_value *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
                 else this_value *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
 
                 grad = grad + this_value;
@@ -992,7 +992,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                         else sp = mat_vec * u1_nw;
 
                         double this_value_nw = factor;
-                        if(complex_ && calcMode != CONJ_QUAD) this_value_nw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                        if(context.IsComplex() && calcMode != CONJ_QUAD) this_value_nw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
                         else this_value_nw *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
 
                         grad = grad + this_value_nw;
@@ -1058,7 +1058,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                   else sp = mat_vec * u1_sw;
 
                   double this_value_sw = factor;
-                  if(complex_ && calcMode != CONJ_QUAD) this_value_sw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                  if(context.IsComplex() && calcMode != CONJ_QUAD) this_value_sw *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
                   else this_value_sw *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
 
                   grad = grad + this_value_sw;
@@ -1116,7 +1116,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                     else sp = mat_vec * u1_se;
 
                     double this_value_se = factor;
-                    if(complex_ && calcMode != CONJ_QUAD) this_value_se *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
+                    if(context.IsComplex() && calcMode != CONJ_QUAD) this_value_se *= 2 * ((complex<double>) sp).real();// 2 * Re{...}
                     else this_value_se *= ((complex<double>) sp).real();// CONJ_QUAD or real STANDARD
 
                     grad = grad + this_value_se;
@@ -1339,7 +1339,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     assert(f != NULL);
-    assert(context.excitation->index == excite.index);
+    assert(context.GetExcitation()->index == excite.index);
     // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
     Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
     Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
@@ -1378,7 +1378,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       {
         // copy data for element von Mises stress
         Vector<double> data;
-        if(complex_)
+        if(context.IsComplex())
         {
           StressConstraint<complex<double> > sc(&excite, f, this, &forward);
           sc.CalcStresses(data);
@@ -1477,7 +1477,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::DYNAMIC_OUTPUT:
       case Function::CONJUGATE_COMPLIANCE:
       case Function::ABS_OUTPUT:
-      if(complex_)
+      if(context.IsComplex())
         if (derivative){
           Application app = ToApp(pde);
           // synthesis of compliant mechanism: As our adjoint PDE
@@ -1786,7 +1786,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if(design->HasMultiMaterial())
       total_vol /= design->GetMultiMaterials().GetSize();
 
-    LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol << " ex=" << context.excitation->GetFullLabel();
+    LOG_DBG(em) << "CTV: d=" << derivative << " p=" << f->IsPhysical() << " n=" << normalized << " tv=" << total_vol << " ex=" << context.GetExcitation()->GetFullLabel();
     for (unsigned int i = base; i < base+numEls; i++)
     {
       DesignElement* de = f->elements[i];
@@ -1990,7 +1990,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Objective::CONJUGATE_COMPLIANCE:
       {
         // this is <u,L conj(u)> and only defined for the harmonic case!
-        if(!complex_) throw Exception("'" + f->type.ToString(f->GetType()) + "' is only defined for harmonic!");
+        if(!context.IsComplex()) throw Exception("'" + f->type.ToString(f->GetType()) + "' is only defined for harmonic!");
 
         // we loop over the vectors and do the scalar product by hand as we have
         // no diagonal matrix version of l
@@ -2438,7 +2438,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       LOG_DBG2(em) << "CE idx=" << idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
 
       // we need to set the current wave_vector such that SetElementK determines the right stiffness matrices!
-      if(bloch_)
+      if(context.DoBloch())
         dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->SetCurrentWaveVector(excite.index); // no need to reset!
 
       CalcU1KU2(tf, sol->elem[MECH], MECH, sol->elem[MECH], NULL, factor, EIGENFREQ, f, -1, ev);
@@ -2661,8 +2661,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
 
-    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ctxt=" << context.excitation->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
-    assert(context.excitation->robust_filter_idx == f->GetExcitation()->robust_filter_idx);
+    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ctxt=" << context.GetExcitation()->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
+    assert(context.GetExcitation()->robust_filter_idx == f->GetExcitation()->robust_filter_idx);
 
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
@@ -3096,7 +3096,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
   {
-    if(bloch_)
+    if(context.DoBloch())
       dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->SetupBlochPlot();
 
     // if ev_only_exite is set we use the given excitation
@@ -3117,9 +3117,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       if(!IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
-        unsigned int nm = eigenvalue_ ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->eigenFreqs->GetSize() : 1;
+        unsigned int nm = context.IsEigenvalue() ? dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->eigenFreqs->GetSize() : 1;
         for(unsigned int m = 0; m < nm ; m++)
-          StorePDESolution(forward, excite, NULL, m, true, true, (eigenvalue_ ? true : false), NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
+          StorePDESolution(forward, excite, NULL, m, true, true, (context.IsEigenvalue() ? true : false), NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
       }
 
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
@@ -3132,7 +3132,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
         // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
-        if(complex_ && me->excitations.GetSize() > 1 && !me->DoBloch()) // bloch has no adjoint
+        if(context.IsComplex() && me->excitations.GetSize() > 1 && !me->DoBloch()) // bloch has no adjoint
           SolveAdjointProblem(&excite, f);
 
         // when we do multiple excitations with adjusted weights we calculate the objective here
@@ -3161,7 +3161,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     assert(!(ev_only_exite != NULL && me->IsEnabled()));
 // in the harmonic multiple frequency case me must not solve for the adjoints, as
 // only in the forward problems the matrix is reassembled and the system factorized
-    if(!complex_ || me->excitations.GetSize() == 1)
+    if(!context.IsComplex() || me->excitations.GetSize() == 1)
     {
       for(unsigned int e = 0; e < me->excitations.GetSize(); ++e)
       {
@@ -3180,7 +3180,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     // in the eigenvalue case we have not only one solution vector but one for each mode.
     // Stores the mode in the the solution part of algsys
-    if(eigenvalue_)
+    if(context.IsEigenvalue())
       assemble_->GetAlgSys()->GetEigenMode(timestep_mode);
 
     // store solution element wise for gradient and raw vector for objective.
@@ -3222,13 +3222,13 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // drivers start counting steps with 1
     if(adjParams == NULL)
     {
-      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, NO_DERIVTYPE, "forward");
-      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, FIRST_DERIV, "forward-derivative");
-      StorePDESolution(forward, *context.excitation, NULL, timeStep-1, true, false, false, SECOND_DERIV, "forward-second-derivative");
+      StorePDESolution(forward, *context.GetExcitation(), NULL, timeStep-1, true, false, false, NO_DERIVTYPE, "forward");
+      StorePDESolution(forward, *context.GetExcitation(), NULL, timeStep-1, true, false, false, FIRST_DERIV, "forward-derivative");
+      StorePDESolution(forward, *context.GetExcitation(), NULL, timeStep-1, true, false, false, SECOND_DERIV, "forward-second-derivative");
     }
     else
     {
-      StorePDESolution(adjoint, *context.excitation, adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
+      StorePDESolution(adjoint, *context.GetExcitation(), adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
     }
   }
 
@@ -3238,11 +3238,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     { // only in transient case this is needed
       if(adjParams == NULL)
       {
-        StorePDESolution(forward, *context.excitation, NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "forward");
+        StorePDESolution(forward, *context.GetExcitation(), NULL, domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "forward");
       }
       else
       {
-        StorePDESolution(adjoint, *context.excitation, adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "adjoint");
+        StorePDESolution(adjoint, *context.GetExcitation(), adjParams->GetFunction(), domain->GetDriver()->GetActStep("mech")-1, false, true, false, NO_DERIVTYPE, "adjoint");
       }
     }
   }
@@ -3306,7 +3306,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 */
   void ErsatzMaterial::SolveAdjointProblem(Excitation* excite, Function* f)
   {
-    if(complex_)
+    if(context.IsComplex())
       SolveAdjointProblem<std::complex<double> >(excite, f);
     else
       SolveAdjointProblem<double>(excite, f);
@@ -3558,7 +3558,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   void ErsatzMaterial::ConstructAdjointRHS(Excitation& excite, Function* f)
   {
     // cannot be inlined due to linker problems
-    if (complex_)
+    if (context.IsComplex())
       ConstructComplexAdjointRHS(excite, f);
     else
       ConstructRealAdjointRHS(excite, f);
