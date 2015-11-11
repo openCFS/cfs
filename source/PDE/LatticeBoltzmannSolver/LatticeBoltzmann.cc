@@ -847,9 +847,9 @@ double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Ve
   double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]); // (e^eq - e)^2
   double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]); // (p_xx^eq - p_xx)^2
   double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]); // (p_xy^eq - p_xy)^2
-  double ux =  moments[5] / moments[0];
-  double uy =  moments[7] / moments[0];
-  return nu / moments[0] *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
+  double ux =  jx / rho;
+  double uy =  jy / rho;
+  return nu / rho *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9.0 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
 }
 
 void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& moments)
