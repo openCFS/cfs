@@ -770,32 +770,20 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> d_F1_d_rho(n_q_);
       Vector<double> d_F2_d_rho(n_q_);
       double density = CalcLBMDensity(idx);
-//      double ux = CalcVelocityX(idx,density);
-//      double uy = CalcVelocityY(idx,density);
       double jx = CalcVelocityX(idx,density) * density;
       double jy = CalcVelocityY(idx,density) * density;
 
       d_F1_d_rho.Init();
       d_F2_d_rho.Init();
-      d_F1_d_rho[3] = jx;
-      d_F1_d_rho[4] = -jx;
-      d_F1_d_rho[5] = jy;
-      d_F1_d_rho[6] = -jy;
-//      d_F1_d_rho[3] = -ux;
-//      d_F1_d_rho[4] = ux;
-//      d_F1_d_rho[5] = -uy;
-//      d_F1_d_rho[6] = uy;
-//      d_F1_d_rho *= density;
+      d_F1_d_rho[3] = -jx;
+      d_F1_d_rho[4] = jx;
+      d_F1_d_rho[5] = -jy;
+      d_F1_d_rho[6] = jy;
 
-      d_F2_d_rho[1] = 6.0 / density * (jx * jx + jy * jy);
-      d_F2_d_rho[2] = -6.0 / density * (jx * jx + jy * jy);
-      d_F2_d_rho[7] = 2.0 / density * (jx * jx - jy * jy);
-      d_F2_d_rho[8] = 2.0 * jx * jy / density;
-//      d_F2_d_rho[1] = -6.0 * (ux * ux + uy * uy);
-//      d_F2_d_rho[2] = 6.0 * (ux * ux + uy * uy);
-//      d_F2_d_rho[7] = -2.0 * (ux * ux - uy * uy);
-//      d_F2_d_rho[8] = 2.0 * ux * uy;
-//      d_F2_d_rho *= density;
+      d_F2_d_rho[1] = -6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[2] = 6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
+      d_F2_d_rho[8] = -2.0 * jx * jy / density;
       //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
       Matrix<double> mat(n_q_,n_q_); // I - S/2
       mat.Init();
@@ -817,9 +805,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;
 //      std::cout << "d_coll_d_rho: " << d_coll_d_rho.ToString() << std::endl;
 //      std::cout << "adjoint moms: " << adjMoms.ToString() << std::endl;
-//      std::cout << "term1: " << (jx * jx + jy * jy) / density << " inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
+//      std::cout << "term1: " << (jx * jx + jy * jy) / density << " + inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
       double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
-//      double sens = density * (ux * ux + uy * uy) + d_coll_d_rho.Inner(adjMoms);
 //      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
       de->AddGradient(f, sens);
     }
@@ -1525,7 +1512,7 @@ void LatticeBoltzmannPDE::SetupElements()
   StdVector<Elem*> boundaries;
   StdVector<Elem*> obst;
   // auxiliary vector
-  // vector initialized with porosity value of inner cells
+  // vector initialized with density value of inner cells
   elements.Resize(n_elems, 0.0);
 
   DesignSpace* space = domain->GetDesign(false);
