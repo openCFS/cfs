@@ -720,7 +720,7 @@ void LatticeBoltzmann::Prop_step()
   pdfs_[cur_] = pdfs_[next_];
 }
 
-// Calculates macroscopic density for given element
+// Calculates macroscopic density for given pdfs of an element
 double LatticeBoltzmann::CalcDensity(const Vector<double>& pdfs)
 {
   double sum = 0;
@@ -784,7 +784,7 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
 
   f2[1] = 6.0 * (fx * ux + fy * uy);
   f2[2] = -6.0 * (fx * ux + fy * uy);
-  f2[7] = 2.0 * (fx * ux + fy * uy);
+  f2[7] = 2.0 * (fx * ux - fy * uy);
   f2[8] = fy * ux + fx * uy;
 
   //debugging
@@ -906,7 +906,7 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
 
   Matrix<double> d_F2_d_m(n_q_,n_q_);
   d_F2_d_m.InitValue(0.0);
-  d_F2_d_m[1][0] = 6.0 *  u2; // d_F2_d_rho
+  d_F2_d_m[1][0] = 6.0 * u2; // d_F2_d_rho; rho is LBM density
   d_F2_d_m[2][0] = -6.0 * u2;
   d_F2_d_m[7][0] = 2.0 * (ux * ux - uy * uy);
   d_F2_d_m[8][0] = 2.0 * ux * uy;
@@ -1434,7 +1434,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     //      for(int  dir = 0; dir < n_q_; dir++)
     //        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
     //    }
-//    exit(-1);
   }
 
   if(R >= 1000)

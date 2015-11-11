@@ -752,23 +752,26 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
     adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
     adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
+
   }
   else // in MRT case, adjoint LBM solver delivers adjoint solution
   {
     Vector<double> pdfs(n_q_);
-    Vector<double> adjMoments(n_q_);
+    Vector<double> adjMoms(n_q_);
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
       unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
       for (unsigned int  dir = 0; dir < n_q_; dir++) {
         pdfs[dir] = GetPdf(idx,dir);
-        adjMoments[dir] = GetAdjMoments(idx,dir);
+        adjMoms[dir] = GetAdjMoments(idx,dir);
       }
 
       Vector<double> d_F1_d_rho(n_q_);
       Vector<double> d_F2_d_rho(n_q_);
       double density = CalcLBMDensity(idx);
+//      double ux = CalcVelocityX(idx,density);
+//      double uy = CalcVelocityY(idx,density);
       double jx = CalcVelocityX(idx,density) * density;
       double jy = CalcVelocityY(idx,density) * density;
 
@@ -778,11 +781,21 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_F1_d_rho[4] = -jx;
       d_F1_d_rho[5] = jy;
       d_F1_d_rho[6] = -jy;
+//      d_F1_d_rho[3] = -ux;
+//      d_F1_d_rho[4] = ux;
+//      d_F1_d_rho[5] = -uy;
+//      d_F1_d_rho[6] = uy;
+//      d_F1_d_rho *= density;
 
       d_F2_d_rho[1] = 6.0 / density * (jx * jx + jy * jy);
       d_F2_d_rho[2] = -6.0 / density * (jx * jx + jy * jy);
       d_F2_d_rho[7] = 2.0 / density * (jx * jx - jy * jy);
       d_F2_d_rho[8] = 2.0 * jx * jy / density;
+//      d_F2_d_rho[1] = -6.0 * (ux * ux + uy * uy);
+//      d_F2_d_rho[2] = 6.0 * (ux * ux + uy * uy);
+//      d_F2_d_rho[7] = -2.0 * (ux * ux - uy * uy);
+//      d_F2_d_rho[8] = 2.0 * ux * uy;
+//      d_F2_d_rho *= density;
       //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
       Matrix<double> mat(n_q_,n_q_); // I - S/2
       mat.Init();
@@ -799,14 +812,17 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> tmp(n_q_);
       mat.Mult(d_F2_d_rho,tmp);
       Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
-      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
-      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;
-      std::cout << "term1: " << (jx * jx + jy * jy) / density << " inner product: " << d_coll_d_rho.Inner(adjMoments) << std::endl;
-      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoments);
-//      double sens = (jx * jx + jy * jy) / density;
+//      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
+//      std::cout << "tmp: " << tmp.ToString() << std::endl;
+//      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;
+//      std::cout << "d_coll_d_rho: " << d_coll_d_rho.ToString() << std::endl;
+//      std::cout << "adjoint moms: " << adjMoms.ToString() << std::endl;
+//      std::cout << "term1: " << (jx * jx + jy * jy) / density << " inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
+      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
+//      double sens = density * (ux * ux + uy * uy) + d_coll_d_rho.Inner(adjMoms);
+//      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
       de->AddGradient(f, sens);
     }
-//    exit(-1);
   }
 }
 
