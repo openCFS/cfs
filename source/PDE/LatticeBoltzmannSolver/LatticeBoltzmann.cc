@@ -140,20 +140,20 @@ void LatticeBoltzmann::CalcVelocities(const Vector<double>& pdfs, double& ux, do
 {
 
   double density = CalcDensity(pdfs);
-  double tmp_ux = 0;
-  double tmp_uy = 0;
-  double tmp_uz = 0;
+  double jx = 0;
+  double jy = 0;
+  double jz = 0;
 
   for (int  dir = 0; dir < n_q_; dir++) {
     //store current pdf values in array for better accessing
-    tmp_ux += microVelDirections[dir].off_x * pdfs[dir];
-    tmp_uy += microVelDirections[dir].off_y * pdfs[dir];
-    tmp_uz += microVelDirections[dir].off_z * pdfs[dir];
+    jx += microVelDirections[dir].off_x * pdfs[dir];
+    jy += microVelDirections[dir].off_y * pdfs[dir];
+    jz += microVelDirections[dir].off_z * pdfs[dir];
   }
 
-  ux = tmp_ux / density;
-  uy = tmp_uy / density;
-  uz = tmp_uz / density;
+  ux = jx / density;
+  uy = jy / density;
+  uz = jz / density;
 }
 
 StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, PtrParamNode in)
@@ -748,19 +748,6 @@ void LatticeBoltzmann::CalcDarcyForce(const Vector<double>& moments, int elemId,
   f2.Resize(n_q_);
   f2.Init();
 
-//  double q = 1; // this value was is always set to 1 in accordance to the paper of Liu et al. (2014); but can also be chosen differently
-//  double nu_water =1.004e-6; // unit m^2/s
-//  double characLength = 1e-3; // 1 mm
-//  double nu_lb = 0.1;  // nu = 1/3*(1/omega_nu - 0.5)
-//  double time_ref = 1/3.0 * (1/1.9-0.5) * 1e-2/(sizeX_*sizeX_) / nu_water; // reference time unit for conversion from physical units to LBM ones
-//  double time_ref = nu_lb * characLength * characLength / nu_water;
-//  std::cout << "time_ref =" << time_ref << " = " <<  nu_lb << "*" << characLength << "*" << characLength << "/" << nu_water << std::endl;
-  //double alpha_lb = alpha_max_ * time_ref;
-//  double alpha_lb = 1.7;
-
-//  std::cout << "alpha_max in LB units: " << alpha_lb << " time scale: " << time_ref << std::endl;
-  // alpha = alphaMax * q(1-gamma) / (q + gamma), where gamma is the porosity (0 is solid and 1 is fluid)
-//  double alpha = alpha_lb * q * (1 - scales[elemId]) / (q +  scales[elemId]); // TODO Check if mapping between design variable and porosity is correct
   double alpha = CalcResistanceCoeff(elemId);
 
   double rho = moments[0];
@@ -844,12 +831,26 @@ double LatticeBoltzmann::CalcDissipation(const Vector<double>& moments, const Ve
   double pxy_eq = jx*jy/rho;
   assert(std::fabs(pxy_eq - eqMoments[8]) < EPS);
 
-  double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]); // (e^eq - e)^2
-  double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]); // (p_xx^eq - p_xx)^2
-  double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]); // (p_xy^eq - p_xy)^2
+
+//  double term1 = (eqMoments[1] - moments[1]) * (eqMoments[1] - moments[1]); // (e^eq - e)^2
+//  double term2 = (eqMoments[7] - moments[7]) * (eqMoments[7] - moments[7]); // (p_xx^eq - p_xx)^2
+//  double term3 = (eqMoments[8] - moments[8]) * (eqMoments[8] - moments[8]); // (p_xy^eq - p_xy)^2
   double ux =  jx / rho;
   double uy =  jy / rho;
-  return nu / rho *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9.0 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
+//
+//  return nu * rho *  (0.25 * (omega_e_ * omega_e_ * term1 + 9 * omega_nu_ * omega_nu_ * term2) + 9.0 * omega_nu_ * omega_nu_ * term3 ) - fx * ux - fy * uy;
+  double e = moments[1];
+  double pxx = moments[7];
+  double pxy = moments[8];
+
+  double term1 = omega_e_ / (2.0 * rho) * (e_eq - e);
+  double term2 = 3.0 * omega_nu_ / (2.0 * rho) * (pxx_eq - pxx);
+
+  double dxux = 0.5 * (term1 + term2);
+  double dyuy = 0.5 * (term1 - term2);
+  double dxuydyux = 3.0 * omega_nu_ / rho * (pxy_eq - pxy);
+
+  return nu * rho * (2.0 * dxux*dxux + 2.0 * dyuy * dyuy + dxuydyux * dxuydyux) - fx * ux - fy * uy;
 }
 
 void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& moments)
@@ -1010,8 +1011,6 @@ void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moment
   double se2 = omega_e_ * omega_e_;
   double snu2 = omega_nu_ * omega_nu_;
   double j2 = jx * jx + jy * jy;
-//  double jx2 = jx * jx;
-//  double jy2 = jy * jy;
   double rho2 = rho * rho;
   double rho3 = rho * rho * rho;
   double rho4 = rho * rho * rho * rho;
@@ -1022,7 +1021,7 @@ void LatticeBoltzmann::d_diss_d_moments(int elemId, const Vector<double>& moment
   // 0th entry: d_diss/d_rho
   result[0] = 4.0 * nu * se2 - 27.0 * nu * (4.0 * se2 + snu2) * j2 * j2 / (4.0 * rho4)
       + 3.0 * nu * (4.0 * se2 * e * j2 + 3.0 * snu2 * (pxx * (jx * jx - jy * jy) + 4.0 * jx * jy * pxy)) / rho3
-      - nu * (4.0 * se2 * (e * e - 12 * j2) + 9.0 * snu2 * (pxx * pxx + 4.0 * pxy * pxy)) / (4.0 * rho2) + (fx * jx + fy * jy) / rho2;
+      - nu * (4.0 * se2 * (e * e - 12.0 * j2) + 9.0 * snu2 * (pxx * pxx + 4.0 * pxy * pxy)) / (4.0 * rho2) + (fx * jx + fy * jy) / rho2;
 //  result[0] = -9.0 * nu * snu2 * pxy * pxy / rho2 - 9.0 * nu * snu2 * pxx * pxx / (4*rho2)+ 36.0 * nu * snu2 * jx * jy * pxy / rho3
 //      - 9 * nu * snu2 * pxx * jy2 / rho3 + 9.0 * nu * snu2 * pxx * jx * jx / rho3
 //      - 27.0 * nu * snu2 * jy * jy * jy * jy / (4*rho4) - 27 * nu * snu2 * jx *jx * jy * jy / (2.0*rho4) - 27.0 * nu * snu2 * jx * jx * jx * jx / (4*rho4)
@@ -1306,7 +1305,6 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       transpose.Mult(momentsAfterCollision, collResult);
 
       for (int dir = 0; dir < n_q_; dir++)
-//        tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
         tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
     }
 }
@@ -1357,9 +1355,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     Vector<double> eqMoms;
     CalcEquilMoments(moms,eqMoms);
 
-    Vector<double> f1,f2;
-    CalcDarcyForce(moms,elem,f1,f2);
-    dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+    if (rel.Contains(elem))
+    {// we assume that dissipation does not happen on the boundary
+      Vector<double> f1,f2;
+      CalcDarcyForce(moms,elem,f1,f2);
+      dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+    }
 
     CalcAdjointCollMatrix(elem,moms);
     d_diss_d_moments(elem,moms);
