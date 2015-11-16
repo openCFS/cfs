@@ -799,7 +799,10 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
       Vector<double> tmp(n_q_);
       mat.Mult(d_F2_d_rho,tmp);
-      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
+      Vector<double> d_coll_d_rho(n_q_);
+      for (unsigned int i = 0; i < n_q_; i ++)
+        d_coll_d_rho[i] = d_F1_d_rho[i] + tmp[i];
+//      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
 //      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
 //      std::cout << "tmp: " << tmp.ToString() << std::endl;
 //      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;

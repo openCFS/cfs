@@ -923,7 +923,6 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   d_F2_d_m[8][5] = -2.0 * ux;
   d_F2_d_m *= alpha;
 
-  // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
   Matrix<double> relax_tmp(relaxation);
   relax_tmp *= 0.5; // matrix is diagonal
 
@@ -976,7 +975,14 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
     mat[7][7] = 1.0;
     mat[8][8] = 1.0;
   } else
-    adjCollision[elemId] = identity - relaxation * (identity - d_mEq_d_m) + d_F1_d_m + (identity - relax_tmp) * d_F2_d_m;
+  {
+    Matrix<double> tmp1 = identity;
+    tmp1.Add(-1.0,d_mEq_d_m);
+    Matrix<double> tmp2 = identity;
+    tmp2.Add(-1.0,relax_tmp);
+    // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
+    adjCollision[elemId] = identity - relaxation * tmp1 + d_F1_d_m + tmp2 * d_F2_d_m;
+  }
 //  if (elemId == 4)
 //  {
 //    std::cout << "moments: " << moments.ToString(0,',') << std::endl;
