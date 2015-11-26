@@ -214,7 +214,7 @@ def create_point_vector_centered_bar(center, dim, angle=None):
 # @param points vtk.vtkPoints() where the points are added
 # @param dim list of length, width, height
 # @param angle list of angle_x, angle_y, angle_z or None
-def create_centered_bar(cells, points, center, dim, angle=None):
+def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None):
   base = points.GetNumberOfPoints()
   # calculate corner points of quad and add them to global points list
   point_vec = create_point_vector_centered_bar(center, dim, angle)
@@ -225,53 +225,59 @@ def create_centered_bar(cells, points, center, dim, angle=None):
   # quads = vtk.vtkCellArray()
   
   # Create a quad on the four points
-  # a
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 0)
-  quad.GetPointIds().SetId(1, base + 1)
-  quad.GetPointIds().SetId(2, base + 2)
-  quad.GetPointIds().SetId(3, base + 3)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'front' or not_drawn[1] != 'front':
+    # front face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 0)
+    quad.GetPointIds().SetId(1, base + 1)
+    quad.GetPointIds().SetId(2, base + 2)
+    quad.GetPointIds().SetId(3, base + 3)
+    cells.InsertNextCell(quad)
   
-  # b
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 1)
-  quad.GetPointIds().SetId(1, base + 4)
-  quad.GetPointIds().SetId(2, base + 6)
-  quad.GetPointIds().SetId(3, base + 2)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'right' or not_drawn[1] != 'right':
+    # right face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 1)
+    quad.GetPointIds().SetId(1, base + 4)
+    quad.GetPointIds().SetId(2, base + 6)
+    quad.GetPointIds().SetId(3, base + 2)
+    cells.InsertNextCell(quad)
   
-  # c
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 4)
-  quad.GetPointIds().SetId(1, base + 6)
-  quad.GetPointIds().SetId(2, base + 7)
-  quad.GetPointIds().SetId(3, base + 5)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'back' or not_drawn[1] != 'back':
+    # back face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 4)
+    quad.GetPointIds().SetId(1, base + 6)
+    quad.GetPointIds().SetId(2, base + 7)
+    quad.GetPointIds().SetId(3, base + 5)
+    cells.InsertNextCell(quad)
   
-  # d
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 2)
-  quad.GetPointIds().SetId(1, base + 6)
-  quad.GetPointIds().SetId(2, base + 7)
-  quad.GetPointIds().SetId(3, base + 3)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'top' or not_drawn[1] != 'top':
+    # top face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 2)
+    quad.GetPointIds().SetId(1, base + 6)
+    quad.GetPointIds().SetId(2, base + 7)
+    quad.GetPointIds().SetId(3, base + 3)
+    cells.InsertNextCell(quad)
   
-  # e
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 0)
-  quad.GetPointIds().SetId(1, base + 5)
-  quad.GetPointIds().SetId(2, base + 7)
-  quad.GetPointIds().SetId(3, base + 3)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'left' or not_drawn[1] != 'left':
+    # left face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 0)
+    quad.GetPointIds().SetId(1, base + 5)
+    quad.GetPointIds().SetId(2, base + 7)
+    quad.GetPointIds().SetId(3, base + 3)
+    cells.InsertNextCell(quad)
   
-  # f
-  quad = vtk.vtkQuad()
-  quad.GetPointIds().SetId(0, base + 0)
-  quad.GetPointIds().SetId(1, base + 1)
-  quad.GetPointIds().SetId(2, base + 4)
-  quad.GetPointIds().SetId(3, base + 5)
-  cells.InsertNextCell(quad)
+  if not_drawn is None or not_drawn[0] != 'bottom' or not_drawn[1] != 'bottom':
+    # bottom face
+    quad = vtk.vtkQuad()
+    quad.GetPointIds().SetId(0, base + 0)
+    quad.GetPointIds().SetId(1, base + 1)
+    quad.GetPointIds().SetId(2, base + 4)
+    quad.GetPointIds().SetId(3, base + 5)
+    cells.InsertNextCell(quad)
 
 # # without rotation and shearing
 def create_3d_frame(coords, s1, s2, s3, angles, dir, scale):
@@ -440,6 +446,7 @@ def valid_position_apod6(pos, coords):
 
 # # without rotation and shearing
 def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres=0.0,csize = None):
+  print 'WARNING: Currently only used for Apod6 (valid_position_apod6)'
   centers, min, max = coords[0:3]  # we cannot use the first region element element dimensions 
   
   cells = vtk.vtkCellArray()
@@ -456,7 +463,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
     dx = csize[0]
     dy = csize[1]
     dz = csize[2]
-    
+  vol = calc_cross_elem_vol_3D(s1,s2,s3) 
   ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
 
   #scales the lattice cells to fit in the design domain exactly
@@ -464,67 +471,79 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
   
   within = 0
   invalid = 0
+  real_volume = 0.
   for i in range(len(out)):
     coord = out[i]
     s1, s2, s3 = ip_data[i][0:3]
     angle = None if angles is None else ip_data[i][3:6]
     # if s1 < 0 point is out of the convex hull
     if s1 > 0.0:
-      within += 1
-      
       if not valid_position_apod6(coord, coords):
         invalid += 1
         continue
+      within += 1
       if s1 >= thres or s2 >= thres or s3 >= thres:
         if s1 >= s2 and s1 >= s3:
-          if valid_bar_position_apod6(points,coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle):
-            create_centered_bar(cells, points, coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle)
+          if s1 >= thres:#valid_bar_position_apod6(points,coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle):      
+            create_centered_bar(cells, points, coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            real_volume += scale * scale_[0] * dx * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (scale_[1] * dy - dx * s1),0.]
           dy_offset = scale * 0.5 * (scale_[1]*dy-s1*dx)
-          if valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+          if s2 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            real_volume += scale * s2 * dy* dy_offset* scale * s2 * dy
+          if s2 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
           
           coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (scale_[2] * dz - dx * s1)]
           dz_offset = scale * 0.5 * (scale_[2]*dz-s1*dx)
-          if valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
-           
+          if s3 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
+          if s3 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
         elif s2 >= s1 and s2 >= s3:
-          if valid_bar_position_apod6(points,coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle):
-            create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle)
+          if s2 >= thres:#valid_bar_position_apod6(points,coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle):
+            create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle,['top','bottom'])
+            real_volume += scale * s2 * dy * scale * scale_[1]* dy * scale * s2 * dy
           coord_offset = [scale* dy * s2 * 0.5 + scale * 0.25 * (scale_[0] * dx - dy * s2),0.,0.]
           dx_offset = scale * 0.5 * (scale_[0] * dx-s2*dy)
-          if valid_bar_position_apod6(points,coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle)
-          
+          if s1 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
+          if s1 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (dx_offset, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,0.,scale * dy * s2 * 0.5 + scale * 0.25 * (scale_[2] * dz - dy * s2)]
           dz_offset = scale * 0.5 * (scale_[2] * dz-s2*dy)
-          if valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle)
-        elif s3 >= s1 and s3 >= s2:
-          if valid_bar_position_apod6(points,coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle):
-            create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle)
+          if s3 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
+          if s3 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
+            real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
+        elif s3 >= s1 and s3 >= s2:  
+          if s3 >= thres:#valid_bar_position_apod6(points,coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle):
+            create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle,['front','back'])
+            real_volume += scale * s3 * dz * scale * s3 * dz * scale * scale_[2] * dz
           coord_offset = [scale* dz * s3 * 0.5 + scale * 0.25 * (scale_[0] * dx - dz * s3),0.,0.]
           dx_offset = scale * 0.5 * (scale_[0] * dx-s3*dz)
-          if valid_bar_position_apod6(points,coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle)
-          
+          if s1 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
+          if s1 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (dx_offset,scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
+            real_volume += dx_offset * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale * dz * s3 * 0.5 + scale * 0.25 * (scale_[1] * dy - dz * s3),0.]
           dy_offset = scale * 0.5 * (scale_[1] * dy-s3*dz)
-          if valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
-          if valid_bar_position_apod6(points,coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
-            create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle)
+          if s2 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
+            create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
+          if s2 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
+            create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
+            real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
 
         #if dir == 'horizontal' or dir == 'all':
         #  create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
@@ -532,7 +551,9 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
         #  create_centered_bar(cells, points, coord, (scale * s2 * dx, scale * dx, scale * s2 * dx), angle)
         #if dir == 'sagittal' or dir == 'all':
         #  create_centered_bar(cells, points, coord, (scale * s3 * dx, scale * s3 * dx, scale * dx), angle)
-    
+  real_volume /= within * dx * dy * dz
+  print 'volume of 3D Two-scale result = ' + str(vol)
+  print 'real volume of 3D lattice = ' + str(real_volume)  
   if grad <> 'nearest':  
     print str(within) + ' elements out of ' + str(len(out)) + ' in convex hull'  
   if invalid > 0:  
@@ -544,7 +565,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
     
   return polydata
 
-# this is copy & paste from matviz_2d but extendet to 3D
+# this is copy & paste from matviz_2d but extended to 3D
 # @param nx_ip number of interpolations within x
 def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
   # we make our own elem
@@ -601,3 +622,20 @@ def show_write_vtk(poly, res, save, actors=[]):
     writer.Write()    
   else:
     show_vtk(poly, res, actors)  
+    
+def calc_cross_elem_vol_3D(s1,s2,s3):
+  # calculates element volume of cross structure in 3D
+  vol = 0.
+  for i in range(len(s1[:,0])):
+    stiff1 = s1[i,0]
+    stiff2 = s2[i,0]
+    stiff3 = s3[i,0]
+    if stiff1 >= stiff2 and stiff1 >= stiff3:
+      vol += stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff1*stiff3*stiff3 - stiff1*stiff2*stiff2
+    elif stiff2 >= stiff1 and stiff2 >= stiff3:
+      vol += stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff2*stiff3*stiff3 - stiff2*stiff1*stiff1
+    elif stiff3 >= stiff2 and stiff3 >= stiff2:
+      vol += stiff1*stiff1 + stiff2*stiff2 + stiff3*stiff3 - stiff3*stiff2*stiff2 - stiff3*stiff1*stiff1
+    else:
+      vol += 0.
+  return vol/len(s1[:,0])

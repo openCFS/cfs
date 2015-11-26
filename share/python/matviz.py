@@ -138,7 +138,7 @@ def plot_angle_data(file, angle, data):
 # we extract the main processing such that we can run it within a loop to find the optimal scaling
 # @param force_scale overwrites args.scale
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,nondes_coords = None):
   
   volume = None  # might ne set
   
@@ -153,8 +153,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
     if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod':
 
       s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
-      v = calc_volume(s1, s2)
-      print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi / 180
@@ -169,6 +167,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
   
       # viz is either Image or polydata
       if dim_2D:
+        v = calc_volume(s1, s2)
+        print "Only correct in 2D: volume for regular grid: " + str(v)
         if args.show == "hom_rect": 
           if args.hom_grad == 'none':
             viz = show_frame(coords, s1, s2, args.hom_dir, args.res, args.scale)
@@ -205,7 +205,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
             if args.cell_size:
               tmp = args.cell_size.split(',')
               csize = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+              if args.mesh:
+                me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.hom_dir, scale,[8,8,8],args.thres,csize)
+                write_gid_mesh(me, args.mesh+".mesh")  
+              else:
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+
             else:
               viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
         else:  # no sample
@@ -328,6 +333,8 @@ parser.add_argument("--info", help="creates a xml file of given name with additi
 parser.add_argument("--unstructured", help="number of structured elements per coordinate as list nx,ny,nz", default="")
 parser.add_argument("--nodefile", help="name of the design to node file", default="")
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
+parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
+
 
 args = parser.parse_args()
 
@@ -401,11 +408,17 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print 'detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region" 
   centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  if args.mesh:
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
   dim_2D = min[2] == max[2]
   print 'detected dimension ' + ('2D' if dim_2D else '3D')  
 # do we have to do 1D optimization? 
 if not args.target_volume:
-  perform(args, h5_read, dim_2D, tensor, centers, aux_code)
+  if args.mesh:
+    nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords)
+  else:
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code)
 else:
   if args.scale > 0:
     print "Error: don't give --scale and --target_volume concurrently!"

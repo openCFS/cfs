@@ -41,20 +41,23 @@ deriv_b2 = [];
 %test(a,b,E11);
 write_to_xml(outputfile,m,n,a,b,Coeff11,Coeff12,Coeff22,Coeff33);
 
-% Calculate penalization material catalogue
+% Calculate penalization material catalogue in 2D for interval
+% [0,da]x[0,db]
+% penalization: scale material tensor entry E(da,db) by function (x/a(2))^3 * (y/b(2))^3
 if opt
-    % load material catalog for [0, 0.1]
     %list2 = load(inputfile2);
     m_p = list(1,1);
     n_p = list(1,2);
     da_p = a(2)/m_p;
     db_p = b(2)/n_p;
+    %a(2) and b(2) is e.g. 0.1 if material catalogue is [0:0.1:1]
     a_p = [0:da_p:a(2)];
     b_p = [0:db_p:b(2)];
     E11_p = zeros(m_p+1,n_p+1);
     for i=1:m_p+1
        for j=1:n_p+1
           E11_p(i,j) = E11(2,2)*(a_p(i)/a(2))^3*(b_p(j)/b(2))^3;
+          % check if penalized value is lower than void tensor
           if E11_p(i,j) < E11(1,1)
              E11_p(i,j) = E11(1,1); 
           end
