@@ -2148,8 +2148,8 @@ source/Utils/Interpolate1D.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/Interpolate1D.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/LinInterpolate.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/LinInterpolate.hh svneol=native#text/x-c%2B%2Bhdr
-source/Utils/Point.cc -text
 source/Utils/Point.hh -text
+source/Utils/Point2.cc -text
 source/Utils/Polynomial.cc -text
 source/Utils/Polynomial.hh -text
 source/Utils/SmoothSpline.cc svneol=native#text/x-c%2B%2Bsrc
