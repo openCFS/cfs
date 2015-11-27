@@ -70,12 +70,12 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://distfiles.macports.org/flann/${FLANN_GZ}"
-  "http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_GZ}/${FLANN_MD5}/${FLANN_GZ}"
-  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_GZ}"
-  "${FLANN_URL}/${FLANN_GZ}"
+  "http://distfiles.macports.org/flann/${FLANN_ZIP}"
+  "http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
+  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
+  "${FLANN_URL}/${FLANN_ZIP}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_GZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_ZIP}")
 SET(MD5_SUM ${FLANN_MD5})
 
 SET(DLFN "${flann_prefix}/flann-download.cmake")
