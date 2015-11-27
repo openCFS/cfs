@@ -14,7 +14,6 @@ namespace CoupledField {
   // forward class declarations
   class Grid;
   class BaseResult;
-  class ParamNode;
 
   //! Base class for defining interface for operations on result objects
   class PostProc {

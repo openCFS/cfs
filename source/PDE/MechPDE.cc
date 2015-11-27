@@ -129,7 +129,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     // thermal strain coefFunction
     thermalStrain_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
-
 }
 
 
@@ -1810,23 +1809,20 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // the OPT_RESULT_* are added via the optimization stuff in DesignSpace.
   }
   
-  std::map<SolutionType, shared_ptr<FeSpace> >
-   MechPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {
-     
+  std::map<SolutionType, shared_ptr<FeSpace> > MechPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode)
+  {
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
-    
-    if( formulation == "default" || formulation == "H1" ){
-      PtrParamNode potSpaceNode = infoNode->Get("mechDisplacement");
-      crSpaces[MECH_DISPLACEMENT] =
-          FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
-      crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
 
-    }else{
-       EXCEPTION( "The formulation " << formulation 
-                  << "of the mechanic PDE is not known!" );
-     }
-     return crSpaces;
-   }
+    if( formulation == "default" || formulation == "H1" )
+    {
+      PtrParamNode potSpaceNode = infoNode->Get("mechDisplacement");
+      crSpaces[MECH_DISPLACEMENT] = FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
+      crSpaces[MECH_DISPLACEMENT]->Init(solStrat_);
+    }
+    else
+      EXCEPTION( "The formulation " << formulation << "of the mechanic PDE is not known!" );
+    return crSpaces;
+  }
 
   //+++++++++++++++++++++++++++++++++++++++++++++++++
   // PreStressing CoefFunction Creation

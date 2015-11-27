@@ -5,11 +5,12 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
-DECLARE_LOG(simp)
+DECLARE_LOG(lbmsimp)
+DEFINE_LOG(lbmsimp, "lbmsimp")
 
 LBMSIMP::LBMSIMP()
 {
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
+	lbm = NULL;
 }
 
 LBMSIMP::~LBMSIMP()
@@ -19,7 +20,10 @@ LBMSIMP::~LBMSIMP()
 
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
-  LOG_DBG(simp) << "SSP -> solve";
+  assert(pde != NULL);
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
+  assert(lbm != NULL);
+  LOG_DBG(lbmsimp) << "SSP -> solve";
   lbm->Solve();
 }
 
@@ -27,7 +31,7 @@ void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
  * @see ErsatzMaterial::CalcFunction */
 double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
-  LOG_DBG(simp) << "CF -> f=" << f->ToString() << " d=" << derivative;
+  LOG_DBG(lbmsimp) << "CF -> f=" << f->ToString() << " d=" << derivative;
 
   // assume the problem is solved for the current design by DesignChanged()
 
@@ -43,6 +47,7 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       {
       case LatticeBoltzmannPDE::EXTERNAL:
       case LatticeBoltzmannPDE::INTERNAL:
+//    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
         lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
       }

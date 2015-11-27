@@ -23,7 +23,6 @@ class ErsatzMaterial;
 }  // namespace CoupledField
 
 
-using boost::tuple;
 using std::pair;
 using boost::get;
 
@@ -96,7 +95,6 @@ class Function
       PERIMETER,                 /*!< perimeter constraint is a globalization of the (not meaningful local perimeter) */
       STRESS,                    /*!< global stress constraint: Kocvara and Stingl; 2007. Has adjoint! */
       STRESS_DENSITY,            /*!< global stress divided by volume */
-      PROJECTION,                /*!< Michael's idea: sum_i || nu(rho_i) - H_eta_beta(rho_i) ||^2 <= eps */
       EIGENFREQUENCY,            /*!< with the attribute ev for the number of the eigenfrequency/ eigenvalue */
 
       // External Solvers
@@ -197,6 +195,9 @@ class Function
      * Stress constraints in homogenization are triggered for a single constraint only.
      * @param excite_index -2 is uninitialized/auto, -1 is always */
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
+
+    /** Get at least one excitation which applies to this function. For excite_ == -1 this might be one sample */
+     Excitation* GetExcitation() { return sample_excitation_; }
 
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;
@@ -634,9 +635,6 @@ class Function
     /** The design type is by default DEFAULT :) */
     DesignElement::Type GetDesignType() const {return design_; }
 
-    /** Give the projection data */
-    StdVector<DesignElement>& GetProjectionDesignClone();
-
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space to to dummy elements if the region is not within the design (stress)
      * @param region as long as only the Condition has this stuff it is an parameter*/
@@ -671,7 +669,7 @@ class Function
     Local* InitLocal(DesignSpace* space);
     
     /** extract the "coord" element and parse it to coord */
-    static void ParseCoord(PtrParamNode pn, tuple<int, int, double>& coord);
+    static void ParseCoord(PtrParamNode pn, boost::tuple<int, int, double>& coord);
 
     /** By the size of DesignSpace::GetNumberOfVariables() which might include slack - to be handled in AuxDesign.
      * the sparse patterns are determined on the fly by LocalCondition::GetSparsityPattern() */
@@ -706,6 +704,9 @@ class Function
      * -2 is for unset! */
     int excite_;
 
+    /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
+    Excitation* sample_excitation_;
+
     /** Is this function excitation sensitive? */
     int excite_sensitive_;
 
@@ -723,9 +724,6 @@ class Function
 
     /** Do we have local information? E.G. (global) slopes */
     Local* local;
-
-    /** Do we have a filter element? Only for the projection function we store an alternative design set which we can filter */
-    DesignSpace* projectionDesign_;
 
     /** Here we store our info node. Set only by ToInfo() *after* PostProc. Use preInfo_ instead. Is null when not set, yet. */
     PtrParamNode info_;

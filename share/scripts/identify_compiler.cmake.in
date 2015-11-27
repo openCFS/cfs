@@ -177,7 +177,7 @@ foreach(line IN LISTS COMPILER_OUTPUT)
     STRING(REPLACE "FC_VERSION "
       "" FC_VERSION
       ${line})
-#    MESSAGE("FC_VERSION: ${FC_VERSION}")
+    # MESSAGE("FC_VERSION: ${FC_VERSION}")
   ENDIF(line MATCHES "^FC_VERSION ")
 
 endforeach(line)

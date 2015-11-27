@@ -17,7 +17,7 @@ namespace CoupledField
   // forward class declarations
   class BaseSolveStep;
   class Assemble;
-  class ParamNode;
+  
   class BaseFeFunction;
   class SimState;
   class Domain;
@@ -127,7 +127,7 @@ namespace CoupledField
     //! ParamNode of current pde
     PtrParamNode myParam_;
     
-    //! Info ParameerNode of current pde
+    //! Info ParameterNode of current pde
     PtrParamNode myInfo_;
     //@}
 

@@ -207,6 +207,19 @@ namespace CoupledField {
   }
 
   template <typename T>
+  T Vector<T>::Inner(const SingleVector& vec, unsigned int start, unsigned int end) const
+  {
+    T sum(0);
+
+    const Vector<T>& secVec = dynamic_cast<const Vector<T>&>(vec);
+
+    for(unsigned int i = start; i < end; i++)
+      sum += OpType<T>::dotProduct(data_[i], secVec[i]);
+
+    return sum;
+  }
+
+  template <typename T>
   T Vector<T>::Inner() const
   {
     T sum(0);
@@ -216,7 +229,6 @@ namespace CoupledField {
 
     return sum;
   }
-
   
   template<typename T>
   Vector<T> Vector<T>::Conj() const {

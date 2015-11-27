@@ -137,7 +137,6 @@ private:
   integer iSumm; // choose 6 for output to stdout
   integer iPrint; // choose 6 for output to stdout
   integer iSpecs;
-  integer DerOpt;
   
   /** some variables that snopt needs for info passing
    *  they must all have size at least 500 */
