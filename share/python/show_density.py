@@ -113,7 +113,7 @@ if args.saveall:
   print "saveall with filter '" + args.input + "' finds " + str(len(files)) + " files"
   for f in files:
     print "read image '" + f + "'"
-    img = get_image(f, args.set, args.design)
+    img, den = get_image(f, args.set, args.design)
     base = f[:-12] if f.endswith('.density.xml') else f
     img.save(base + '.png')
 else:

@@ -129,26 +129,23 @@ DEFINE_LOG(msDriver, "msDriver")
     // get nodes for all sequencesteps
     ParamNodeList seqNodes = domain_->GetParamRoot()->GetList("sequenceStep");
 
-    // 1.) Fill vector with step indices and ensure that all occur
+    // Fill vector with step indices and ensure that all occur.
+    // One based, compact but arbitrary order
     std::set<UInt> stepIndices;
-    for( UInt i = 0; i < seqNodes.GetSize(); i++ ) {
+    for(UInt i = 0; i < seqNodes.GetSize(); i++ )
+    {
       UInt actStepIndex = seqNodes[i]->Get("index")->As<UInt>();
-      if( stepIndices.find( actStepIndex ) != stepIndices.end() ) {
-        EXCEPTION( "Multisequence step with index " << actStepIndex
-                   << " occurs more than one time!") ;
-      } else {
-        stepIndices.insert( actStepIndex );
-      }
+      paramPerStep[actStepIndex] = seqNodes[i];
+      if(stepIndices.find(actStepIndex) != stepIndices.end())
+        EXCEPTION("Multisequence step with index " << actStepIndex << " occurs more than once!");
+      stepIndices.insert(actStepIndex);
     }
-    for( UInt i = 1; i <= seqNodes.GetSize(); i++ ) {
-      if( stepIndices.find( i ) == stepIndices.end() ) {
-        EXCEPTION( "Multisequence step  with index "
-            << i << " is not defined!" );
-      }
-    }
+    // verify the 1-based, compatness requirement
+    for(UInt i = 1; i <= seqNodes.GetSize(); i++ )
+      if(stepIndices.find(i) == stepIndices.end())
+        EXCEPTION("Multisequence step  with index " << i << " is not defined!" );
 
     numSteps_ = stepIndices.size();
-
 
     // 3.) Read in all pdes and analysis types
 
@@ -156,13 +153,10 @@ DEFINE_LOG(msDriver, "msDriver")
     for( UInt iStep = 1; iStep <= numSteps_; iStep++) {
 
       // get current step node
-      PtrParamNode actStepNode = 
-          domain_->GetParamRoot()->GetByVal("sequenceStep", std::string("index"), iStep);
+      PtrParamNode actStepNode = paramPerStep[iStep];
 
       // get current analysistype
-      std::string analysisString;
-      analysisString = 
-          actStepNode->Get("analysis")->GetChild()->GetName();
+      std::string analysisString = actStepNode->Get("analysis")->GetChild()->GetName();
       analysisPerStep_[iStep] = BasePDE::analysisType.Parse(analysisString);
 
       // get all pde-nodes in current sequence step
@@ -171,12 +165,11 @@ DEFINE_LOG(msDriver, "msDriver")
 
       // iterate over all pdes
       pdesPerStep_[iStep].Resize( pdeNodes.GetSize() );
-      for( UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++ ) {
-
+      for( UInt iPde = 0; iPde < pdeNodes.GetSize(); iPde++ )
+      {
         // get pdeName
         std::string pdeName = pdeNodes[iPde]->GetName();
         pdesPerStep_[iStep][iPde] = pdeName;
-
       } // loop over pdes
     } // loop over sequence steps
 
@@ -185,12 +178,12 @@ DEFINE_LOG(msDriver, "msDriver")
     
   }
   
-  void MultiSequenceDriver::SetSequenceStep(UInt sequenceStep ) {
+  void MultiSequenceDriver::SetSequenceStep(UInt sequenceStep )
+  {
     LOG_TRACE(msDriver) << "Calling SetSequenceStep with step " << sequenceStep;
-    if( sequenceStep > numSteps_) {
-      EXCEPTION( "Can not update to mulstistep " << sequenceStep 
-                 << " as only " << numSteps_ << " are defined" );
-    }
+    if(sequenceStep > numSteps_)
+      EXCEPTION( "Can not update to mulstistep " << sequenceStep << " as only " << numSteps_ << " are defined" );
+
     SetupStep(sequenceStep);
     sequenceStep_ = sequenceStep;
     
@@ -200,10 +193,9 @@ DEFINE_LOG(msDriver, "msDriver")
 
     LOG_TRACE(msDriver) << "SetupStep for MS " << sequenceStep;
     // Only setup step once
-    if( sequenceStep_ == sequenceStep && 
-        actDriver_ !=  NULL) {
+    if(sequenceStep_ == sequenceStep && actDriver_ !=  NULL)
       return;
-    }
+
     
     if( actDriver_ ) {
       delete actDriver_;
@@ -212,7 +204,7 @@ DEFINE_LOG(msDriver, "msDriver")
     sequenceStep_ = sequenceStep;
     
     // obtain paramNode and infoNode
-    PtrParamNode seqNode = param_->GetByVal("sequenceStep","index",sequenceStep)->Get("analysis");
+    PtrParamNode seqNode = paramPerStep[sequenceStep]->Get("analysis");
     PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
     info->Get("index")->SetValue(sequenceStep);
     
@@ -221,27 +213,21 @@ DEFINE_LOG(msDriver, "msDriver")
     // analysis is allowed, we simple access
     // the first entry fo analysisPerStep_
     if (analysisPerStep_[sequenceStep] == BasePDE::STATIC) {
-      actDriver_ = new StaticDriver( sequenceStep, true, 
-                                     simState_, domain_, seqNode, info );
+      actDriver_ = new StaticDriver( sequenceStep, true, simState_, domain_, seqNode, info );
     }
     else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {      
-      TransientDriver * tD = new TransientDriver( sequenceStep,true, 
-                                                 simState_, domain_, seqNode, info  );
+      TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );
       // pass accumulated time
       tD->SetAccumulatedTime( accumulatedTime_ );
       actDriver_ = tD;
     }
     else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
-      actDriver_ = new HarmonicDriver( sequenceStep, true, 
-                                       simState_, domain_, seqNode, info  );
+      actDriver_ = new HarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
     }
     else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
-      actDriver_ = new EigenFrequencyDriver( sequenceStep, true, 
-                                             simState_, domain_, seqNode, info  );
+      actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
     }
-    LOG_DBG(msDriver) << "\tCreated driver of type " 
-        << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType())
-        << "(adress: " << actDriver_ << ")";
+    LOG_DBG(msDriver) << "\tCreated driver of type "  << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType()) << "(adress: " << actDriver_ << ")";
 
     // Initialize all PDEs
     LOG_DBG(msDriver) << "\tCreating PDEs"; 
@@ -251,8 +237,7 @@ DEFINE_LOG(msDriver, "msDriver")
     actDriver_->SetPDE(domain_->GetBasePDE());
 
     // Initialize driver objects
-    LOG_DBG(msDriver) << "\tInitializing single driver (isRestarted = " 
-                        << (isRestarted_ ? "true" :"false") << ")";
+    LOG_DBG(msDriver) << "\tInitializing single driver (isRestarted = " << (isRestarted_ ? "true" :"false") << ")";
     actDriver_->Init(isRestarted_);
 
     //! Initialize Pdes, after having set the memento object
@@ -260,7 +245,6 @@ DEFINE_LOG(msDriver, "msDriver")
     domain_->InitPDEs( sequenceStep);
     
     LOG_TRACE(msDriver) << "Finished SetupStep";
-
   }
   
   void MultiSequenceDriver::ReadRestart() {
@@ -277,11 +261,9 @@ DEFINE_LOG(msDriver, "msDriver")
       }
     
     // Create input reader from current output reader
-    bool hasInput = simState_->SetInputReaderToSameOutput();
-    if( !hasInput)  {
-      EXCEPTION( "Can not perform restarted simulation, as HDF5 file "
-          << "contains no restart information.");
-    }
+    if(!simState_->SetInputReaderToSameOutput())
+      EXCEPTION("Can not perform restarted simulation, as HDF5 file contains no restart information.");
+
     
     // Get all analysis types
     std::map<UInt, BasePDE::AnalysisType> analysis;
@@ -291,7 +273,8 @@ DEFINE_LOG(msDriver, "msDriver")
     std::map<UInt, BasePDE::AnalysisType>::const_iterator it;
     it = analysis.begin();
     UInt lastStepFinished = 0;
-    for( ; it != analysis.end(); ++it ) {
+    for( ; it != analysis.end(); ++it )
+    {
       UInt actMsStep = it->first;
       // set sequenceStep
       if( isFinished[actMsStep]) {

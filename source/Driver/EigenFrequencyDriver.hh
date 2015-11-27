@@ -22,7 +22,6 @@ class SingleVector;
                            shared_ptr<SimState> state,
                            Domain* domain,
                            PtrParamNode paramNode, PtrParamNode infoNode );
-    
     //! Destructor 
     ~EigenFrequencyDriver();
 
@@ -62,6 +61,9 @@ class SingleVector;
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() { return numFreq_; }
 
+    /** Helper for ContextManager in multi sequence optimzation */
+    static unsigned int GetNumBlochWave(PtrParamNode node);
+
     /** @see BaseDriver::StoreResults()
      * stepNum and step_val are ignored!! */
     void StoreResults(UInt stepNum, double step_val);
@@ -78,6 +80,9 @@ class SingleVector;
 
     /** create header for .bloch.dat file. For cfs -d the iteration is added to the filename */
     void SetupBlochPlot();
+
+    /** for multi sequence optimization we need some information before driver instantiation */
+    static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs;

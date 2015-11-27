@@ -51,7 +51,7 @@ namespace CoupledField
    };
    
   /** This is a general optimization object. The optimiziation loop is around
-   *  domain->GetDriver()->SolveProblem() and as such general. Note convention,
+   *  Driver::SolveProblem() and as such general. Note convention,
    * that Optimization solves an optimization problem and an Optimizer is the
    * solver to be used.*/
   class Optimization
@@ -218,8 +218,13 @@ namespace CoupledField
          * and several virtual views on that */
         ConditionContainer constraints;
 
-        /** The current context with our optimization. Very important for meta excitation as it holds the excitation */
-        static Context context;
+        /** The current context with our optimization. Very important for meta excitation as it holds the excitation.
+         * A context corresponds to a multi sequence step, e.g. bloch mode optimization with concurrent stiffness control.
+         * @see ContextManager */
+        static Context* context;
+
+        /** Manages the context. Enables to deal with multi sequence optimization, e.g. for different pdes */
+        static ContextManager contextManager;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
         virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
@@ -318,7 +323,10 @@ namespace CoupledField
          * FIXME -> Context*/
         SinglePDE* pde;
 
-        /** Our MultipleExcitation objecte - by default disabled */
+        /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
+         * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have
+         * only one MultipleExcitaiton object. However some of the information is stored in the corresponding context
+         * @see Optimization::contextManager */
         MultipleExcitation* me;
 
 

@@ -26,13 +26,13 @@ namespace CoupledField
   struct Elem;
   struct ResultInfo;
   class CoefFunctionOpt;
-  class Context;
   struct LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
   struct MultiMaterial;
+  class Context;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -41,12 +41,12 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param pn we search for design, transferFunction, result and pamping  */
-     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** Creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -374,7 +374,6 @@ namespace CoupledField
 
        void ToInfo(PtrParamNode node) const;
 
-
      private:
 
        /** the label for the info.xml */
@@ -487,9 +486,6 @@ namespace CoupledField
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
 
-     /** When we do optimization we have a context */
-     Context* context_;
-
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
      bool all_regions_regular_;
@@ -525,6 +521,9 @@ namespace CoupledField
      PtrParamNode info_;
 
      ErsatzMaterial::Method method_;
+
+     /** Shortcut to Optimization::context */
+     Context* context_;
   };
 
 

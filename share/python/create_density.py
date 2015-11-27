@@ -101,7 +101,7 @@ def make_sphere(dim, center, radius, inner_value, outer_value, order, invert):
 # find correct radius by bisection
 # vol the desired resulting vol
 # return the data  as numpy.ndarray
-def find_radius(dim, vol, order, invert):
+def find_radius(dim, vol, order, invert, lower_val):
 
   # set the center coordinates
   center = Coordinate(0.5, 0.5, 0.5)
@@ -116,7 +116,7 @@ def find_radius(dim, vol, order, invert):
   while iter < 30 and abs(err) > 1e-12:
     mid = 0.5 * (lower + upper)
     
-    data = make_sphere(dim, center, mid, 0.002, 1.0, order, invert)
+    data = make_sphere(dim, center, mid, lower_val, 1.0, order, invert)
     act_vol = data.sum() / float(data.size)
     
     err  = vol - act_vol
@@ -230,7 +230,7 @@ elif args.hashtag is not None: # also capture 0.0
   data = hashtag(args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 else:
-  data = find_radius(args.dim, vol, args.order, args.invert)
+  data = find_radius(args.dim, vol, args.order, args.invert, args.lower)
   filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
   setname = "order_" + str(args.order) + ("_inv" if args.invert else "")
 

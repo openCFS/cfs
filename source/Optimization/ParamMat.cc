@@ -70,7 +70,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   {
     const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
-    if(context.IsComplex())
+    if(context->IsComplex())
     {
       AddMassToStiffness(tf, de, dynamic_cast<Matrix<Complex>& >(out), derivative, false, mode, ev); // no bimaterial
 

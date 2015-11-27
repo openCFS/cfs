@@ -530,7 +530,7 @@ class Function
         /** to be reused */
         static StdVector<double> tmp1;
         static StdVector<double> tmp2;
-      };
+      }; // end of struct Identifier
 
       /** Elements with no full neighborhood are not stored. If they would be stored
        * we could easily calculate the virtual element number.
@@ -597,7 +597,7 @@ class Function
         double radius;
         double value;
         DesignStructure::FilterSpace fs;
-      };
+      }; // end of struct NeighborhoodStructure
 
       NeighborhoodStructure* structure_;
 
@@ -704,6 +704,10 @@ class Function
      * -2 is for unset! */
     int excite_;
 
+    /** the multiple sequence step we belong to. 1-based. 1 for only one pde
+     * @see ContextManager */
+    int sequence;
+
     /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
     Excitation* sample_excitation_;
 
@@ -715,9 +719,6 @@ class Function
 
     /** the "ev" parameter for the eigenvalue function. 1-based! */
     int eigenvalue_id_;
-
-    /** complex for harmonic and eigenvalue problems */
-    bool complex_;
 
     /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
     bool linear_;

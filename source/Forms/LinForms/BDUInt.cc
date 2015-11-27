@@ -119,7 +119,17 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        
        bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
        // Calculate BdMat
-       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0);
+
+#undef USE_BLAS_VERSION // FIXME #define USE_BLAS_VERSION
+
+#ifdef USE_BLAS_VERSION
+       bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0); // bdMat = 1.0 * bMat * dMat + 0.0 * bdMat
+#else
+       bdMat = (bMat * dMat) * fac;
+#endif
+
+
+
 
        rhsCoefs_->GetVector(cVec,lp);  
        //elemVec += bMat * cVec * fac;

@@ -81,10 +81,15 @@ Function::Function(PtrParamNode pn) {
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
-  if (!complex_ && omega_omega_)
-    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+  // FIXME
+  //if (!complex_ && omega_omega_)
+  //  throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
+
+  this->sequence = pn->Get("sequence")->As<int>();
+  if(sequence > (int) Optimization::contextManager.context.GetSize()) // note 1-based!
+    EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
 
   notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
@@ -201,7 +206,6 @@ Function::~Function()
 }
 
 void Function::Init() {
-  this->complex_ = domain->GetDriver()->IsComplex();
   this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
@@ -308,7 +312,7 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
-  if(complex_)
+  if(Optimization::context->IsComplex())
     info->Get("omega_omega")->SetValue(omega_omega_);
   // we check for valid ocurence of paramter in the constructor
   if(pn->Has("parameter") || IsLocal(type_))

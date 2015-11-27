@@ -845,6 +845,15 @@ namespace CoupledField {
       OpType<T>::MultWithComplex( data_[i], factor ); 
   }
 
+  template<class TYPE>
+  bool Vector<TYPE>::Contains(const TYPE val) const
+  {
+    for(UInt k = 0, s = size_; k < s; ++k)
+      if(data_[k] == val) return true;
+
+    return false;
+  }
+
 
   template<class TYPE>
   bool Vector<TYPE>::ContainsNaN() const

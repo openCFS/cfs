@@ -82,7 +82,7 @@ PiezoSIMP::~PiezoSIMP()
 void PiezoSIMP::PostInit()
 {
   // ignores the SetPDE() framework :(
-  if(context.IsComplex()) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
+  if(context->IsComplex()) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
           else elecRHS.Init<double>(design, CHARGE_DENSITY);
 
   SIMP::PostInit();
@@ -231,7 +231,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::ELEC_ENERGY:
     if(!derivative)
     {
-      return context.IsComplex() ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
+      return context->IsComplex() ? CalcElecEnergy<std::complex<double> >(excite) : CalcElecEnergy<double>(excite);
     }
     factor *= 0.5; // no break! -> J = 0.5 p^T K_pp p
 

@@ -76,7 +76,7 @@ void SIMP::PostInit()
     }
   }
   
-  if(context.IsComplex()) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
+  if(context->IsComplex()) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
                      else mechRHS.Init<double>(design, PRESSURE);
 
   ErsatzMaterial::PostInit();
@@ -84,7 +84,7 @@ void SIMP::PostInit()
 
 void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
 {
-  if(context.IsComplex())
+  if(context->IsComplex())
   {
     if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
       SetElementK<Complex, Complex >(de, tf, app, out, derivative, calcMode, ev);
@@ -129,7 +129,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
-    if(context.IsComplex())
+    if(context->IsComplex())
     {
       tf = design->GetTransferFunction(de->GetType(), MASS);
       AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
@@ -155,7 +155,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
-    if (context.IsComplex())
+    if (context->IsComplex())
       Assign(out, dynamic_cast<Matrix<T1>& >(stiffness), k_factor);
     else
       Assign(out, stiffness.GetPart(Global::REAL), k_factor);
@@ -168,7 +168,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
       Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(material)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
-      if(context.IsComplex())
+      if(context->IsComplex())
         Add(out, k_factor, dynamic_cast<Matrix<T1>& >(bimat));
       else
         Add(out, k_factor, bimat.GetPart(Global::REAL));
@@ -246,7 +246,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // 2 * stress^T * M * (rho^p)' * E_0 * B * u
   Vector<double> appendix;
 
-  if(context.IsComplex())
+  if(context->IsComplex())
   {
     StressConstraint<complex<double> > sc(&excite, f, this, &forward);
     sc.CalcGlobalizationFactor(alpha);

@@ -100,7 +100,7 @@
                            </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
-                      
+                      <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -145,10 +145,11 @@
               </xsd:complexType>
             </xsd:element>
 
-           <!-- <multipleExcitation type="fixed_weights/meta_objective"> 
+           <!-- <multipleExcitation type="fixed_weights/meta_objective/homogenizationTestStrains"> 
                   <metaObjective type="best_value"/> 
                   <adjustWeights stride="1" max_gain="1e4"/> 
-               </multipleExcitation> -->
+               </multipleExcitation>
+               one might want to implement many multipleExcitation for each multi sequence step with a unique sequence attribute -->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:all>
@@ -171,7 +172,7 @@
                     </xsd:complexType>
                   </xsd:element>
                   <!-- The excitions need only to be given explicitly if
-               one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
+                       one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
                   <xsd:element name="excitations" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
@@ -209,7 +210,10 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 <!-- we might have excitations of excitations. transformation is a possible outer loop -->
-                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>  
+                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>
+                <!--  for the multi sequence case we may need to assign the sequence (e.g. which one to homogenize).
+                      One might even want to implement as many multipleExcitation as sequences, just do it if you need it :) -->
+                <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1"/>
               </xsd:complexType>
             </xsd:element>
             
@@ -265,6 +269,10 @@
 
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
+          
+          <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
+          <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
+          
         </xsd:complexType>
       </xsd:element>
       
@@ -482,6 +490,9 @@
           
           <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
           <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+          
+          <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
+          <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
           
         </xsd:complexType>
         

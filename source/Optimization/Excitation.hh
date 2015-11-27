@@ -10,6 +10,7 @@
 #include "MatVec/Vector.hh"
 #include "PDE/MechPDE.hh"
 #include "Utils/StdVector.hh"
+#include "Optimization/Context.hh"
 
 
 namespace CoupledField
@@ -67,6 +68,9 @@ public:
 
   /** the meta index */
   int meta_index;
+
+  /** the corresponding sequence step. 1-base. @see ContextManager */
+  int sequence;
 
   /** For several loads, we need to store the form context with the entities but also the dof and the value!
    * When no excitations are given in the optimization part the bcsAndLoads are used.
@@ -140,9 +144,16 @@ public:
   /** Do we do multiple excitation at all? */
   bool IsEnabled() const { return multiple_excitation_; }
 
+  /** To be called prior to PrepareMultipleExcitations() */
+  void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
+
   /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
-   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations(Optimization* opt, bool eval_inital_design);
+   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC.
+   * @param ctxt an own version of Context to setup a multi sequence system */
+  void PrepareMultipleExcitations(Optimization* opt, Context* ctxt);
+
+  /** To be called after PrepareMultipleExcitations() */
+  void FinalizeMultipleExcitations(Optimization* opt, ContextManager* manager, bool eval_inital_design);
 
   /** Do we do adjust weights */
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
@@ -151,8 +162,6 @@ public:
 
   /** The number of homogenization test strains. Important when we do also transform */
   unsigned int GetNumberHomogenization() const { return DoHomogenization() ? total_base_ : 0; }
-
-  bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }
@@ -218,8 +227,9 @@ public:
 
 private:
 
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
-  int SetHomogenizationTestStrains();
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains
+   * @param context_base the size of excitations intially for the current context (0 in single or first sequence case) */
+  int SetHomogenizationTestStrains(unsigned int context_base, Context* ctxt);
 
   /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
   void ApplyRobust(DesignSpace* space);
@@ -227,13 +237,14 @@ private:
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
   void ApplyTransformations(DesignSpace* space);
 
-  void SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
+  void SetLoadCases(Context* ctxt, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
   void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
 
-  void SetHarmonic(int num_freq);
+  void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
 
-  void SetBlochWaves(int num_wave);
+  /** @see SetHomogenizationTestStrains() */
+  void SetBlochWaves(Context* ctxt, unsigned int context_base, int num_wave);
 
   int ValidateTransformation(Optimization* opt);
 
@@ -241,6 +252,10 @@ private:
   bool multiple_excitation_;
 
   Type type_;
+
+  /** the optional sequence attribute for multi sequence optimization. Note we assume only one multiExcitation xml element for a single sequence
+   * in the multi sequence case. E.G. bloch mode as sequence one and homogenization as sequence two */
+  int sequence_; // 1-based!!
 
   /** the base number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
   unsigned int total_base_;

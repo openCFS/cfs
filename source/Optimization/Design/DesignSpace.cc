@@ -29,8 +29,8 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/ErsatzMaterial.hh"
-#include "Optimization/Context.hh"
 #include "Optimization/Excitation.hh"
+#include "Optimization/Context.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/StdVector.hh"
 #include "boost/lexical_cast.hpp"
@@ -47,7 +47,7 @@ DEFINE_LOG(designSpace, "designSpace")
 DECLARE_LOG(ersatz)
 DEFINE_LOG(ersatz, "ersatzMaterialFactor")
 
-DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
+DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   LOG_DBG(designSpace) << "DesignSpace for regions=" << reg_data;
   all_regions_regular_ = domain->GetGrid()->IsRegionRegular(reg_data);
@@ -55,7 +55,13 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   method_ = method;
   pn_ = pn;
   info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
-  context_ = context;
+
+  // make sure we have a context, even when we have no optimization
+  if(!Optimization::contextManager.IsInitialized())
+    Optimization::contextManager.Init();
+
+  context_ = Optimization::context;
+
   // for convenience
   regionIds_ = reg_data;
   design_id = 0;
@@ -229,8 +235,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
-            //if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
-            if(curr_design_pn->Get("fixed")->As<bool>())
+            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
@@ -369,7 +374,7 @@ double DesignSpace::DetermineLowerBound(PtrParamNode pn, TransferFunction* tf)
   assert(false);
   return -1;
 }
-DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method, Context* context)
+DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrParamNode pn, ErsatzMaterial::Method method)
 {
   switch(method)
   {
@@ -378,9 +383,9 @@ DesignSpace* DesignSpace::CreateInstance(StdVector<RegionIdType> reg_data, PtrPa
     return new ShapeDesign(reg_data, pn, method);
   default:
     if(pn->HasByVal("design", "name", "slack"))
-      return new AuxDesign(reg_data, pn, method, context, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
+      return new AuxDesign(reg_data, pn, method, pn->HasByVal("design", "name", "alpha") ? 2 : 1); // slack variable and eventually also alpha
     else
-      return new DesignSpace(reg_data, pn, method, context);
+      return new DesignSpace(reg_data, pn, method);
   }
 }
 
@@ -388,7 +393,8 @@ void DesignSpace::PostInit(int objectives, int constraints)
 {
   if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
-    if(domain->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+    // FIXME there might be an multi sequence issue
+    if(context_->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
       TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silent
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
         // std::cout << domain->GetBasePDE()->GetName() << std::endl;
@@ -765,7 +771,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimizat
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << (domain->GetOptimization() != NULL ? domain->GetOptimization()->context.GetExcitation()->index : -1)
+                       << " ex=" << (domain->GetOptimization() != NULL ? context_->GetExcitation()->index : -1)
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -946,11 +952,11 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   }
   else
   {
-    assert(!(context_ != NULL && context_->GetExcitation()->transform == NULL && transform.GetSize() > 1));
+    assert(!(context_->GetExcitation()->transform == NULL && transform.GetSize() > 1));
 
     Excitation* excite = context_->GetExcitation();
 
-    if(context_ != NULL && context_->GetExcitation()->transform != NULL)
+    if(context_->GetExcitation()->transform != NULL)
     {
       found = excite->transform->FindSource(de);
       LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << excite->label << " a=" << excite->transform->ToString() << " -> " << DesignElement::ToString(found);
@@ -1504,7 +1510,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
-  Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context.GetExcitation() : NULL;
+  Excitation* ex = domain->GetOptimization() != NULL ? context_->GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
   {
@@ -1680,8 +1686,7 @@ PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialTy
     case MECH_STIFFNESS_TENSOR:
     {
       SinglePDE* mech = domain->GetSinglePDE("mechanic");
-
-      if(domain->GetDriver()->DoBlochModeEigenfrequency() || mech->HasComplexMatData(regionId))
+      if(Optimization::context->DoBloch() || mech->HasComplexMatData(regionId))
         bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::COMPLEX);
       else
         bimaterials_[mc][mt] = mat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, mech->GetSubTensorType(), Global::REAL);

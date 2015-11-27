@@ -50,7 +50,8 @@ template<typename T>
 CholMod<T>::~CholMod()
 {
   CholModFreeFactorization();
-  free(mat_); // this should not free pointers contained in mat, just mat itself
+  delete mat_; // this should not free pointers contained in mat, just mat itself
+  mat_ = NULL;
   cholmod_finish(&common_);
   LOG_TRACE(cholmod) <<  "~CholMod()";
 }

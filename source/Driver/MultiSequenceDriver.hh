@@ -55,11 +55,19 @@ namespace CoupledField
     /** Helper method which determines if an AnalyisType is complex. */
     virtual bool IsComplex() { return actDriver_->IsComplex(); };
 
+    unsigned int GetNumberOfSequenceSteps() const { return numSteps_; }
+
+    /** required for optimization of multi sequence steps. Creates a copy otherwise we would have to deal with const maps :( */
+    std::map<UInt, BasePDE::AnalysisType> GetAnalyisPerStep() const { return analysisPerStep_; }
+
+    /** small service for Optimization. The ParamNodes for the steps. CFS reads the steps one after another
+     * but we need the basic information already when we initialze optimization to setup multiple excitations correctly */
+    std::map<unsigned int, PtrParamNode> paramPerStep;
+
   private:
     
     //! Print out information about multisequence steps
-    void WriteMultiSequenceStep(const UInt sequenceStep, 
-                                const BasePDE::AnalysisType analysis);
+    void WriteMultiSequenceStep(const UInt sequenceStep, const BasePDE::AnalysisType analysis);
     
     //! Set state to given step
     void SetupStep(UInt sequenceStep);
@@ -84,7 +92,6 @@ namespace CoupledField
 
     //! stores for each step the analisystype of each pde
     std::map<UInt, BasePDE::AnalysisType > analysisPerStep_;
-
   };
 
 }
