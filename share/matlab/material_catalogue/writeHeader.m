@@ -12,9 +12,13 @@ else
     givenByLevelAndIndex = 0;
     dim = size(data,2)-7;
     level = size(data,1)^(1/dim);
+    if ~(mod(level,1) == 0)
+        level = log( numel(unique(data(:,1)))+1 ) / log(2);
+    end
     m = size(data,2)-dim;
 end
 
+size(data)
 % Write header and data
 fid = fopen(file,'wt');
 if givenByLevelAndIndex

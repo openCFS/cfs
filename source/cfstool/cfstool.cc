@@ -1032,7 +1032,7 @@ int main(int argc, char** argv)
     {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)
@@ -1043,7 +1043,7 @@ int main(int argc, char** argv)
     } else if (param_mode == "convert") {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)

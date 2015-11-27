@@ -155,15 +155,22 @@ else
     pointsCoords = points;
 end
 
-% First line contains flag for givenByLevelAndIndex, dimension and level (and maybe number of points)
-if any(pointsCoords(:,1) > 1)
+% First line contains either
+% flag for givenByLevelAndIndex, dimension and level or
+% dimension, nPoints per dimension and nPoints
+if pointsCoords(1,1) == 1
     givenByLevelAndIndex = 1;
     dim = pointsCoords(1,2);
-    pointsCoords(1,:) = [];
 else
     givenByLevelAndIndex = 0;
-    dim = size(pointsCoords,2);
-end
+    if pointsCoords(1,1) == 0
+        dim = pointsCoords(1,2);
+    else
+        dim = pointsCoords(1,1);
+    end
+end;
+
+pointsCoords(1,:) = [];
 
 % Remove possible line trailing zeros (points given by coords)
 if givenByLevelAndIndex

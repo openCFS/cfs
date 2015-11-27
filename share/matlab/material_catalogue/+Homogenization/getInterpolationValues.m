@@ -2,8 +2,8 @@ function getInterpolationValues(gridfile, threadID)
 
 % meshgenerationfunc = @Homogenization.generateFrame;
 % meshgenerationfunc = @Homogenization.generateCross;
-% meshgenerationfunc = @Homogenization.generateShearedCross;
-meshgenerationfunc = @Homogenization.generateShearedCrossExact;
+meshgenerationfunc = @Homogenization.generateShearedCross;
+% meshgenerationfunc = @Homogenization.generateShearedCrossExact;
 % meshgenerationfunc = @Homogenization.generateFramedCross;
 % meshgenerationfunc = @Homogenization.generateFramedCrossExact;
 

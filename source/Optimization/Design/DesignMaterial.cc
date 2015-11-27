@@ -3431,7 +3431,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         alpha4_[j] *= 2.0;
       }
     }
-    LOG_DBG(dm) << "ISG: alpha[1-4]: " << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
+    LOG_DBG3(dm) << "DM::ISG: alpha[1-4]: " << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
     j++;
   }
   LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
@@ -3446,12 +3446,12 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
 
   // DEBUG
   /*std::cout << "m = " << m << ", d = " << d << ", shearIsDesign_ = " << shearIsDesign_ << "\n";
-  std::cout << "alpha1_before_hierarchization = [";
-  for (size_t i = 0; i < alpha1_.getSize(); i++) {
+  std::cout << "alpha2_before_hierarchization = [";
+  for (size_t i = 0; i < alpha2_.getSize(); i++) {
     if (i > 0) {
       std::cout << ", ";
     }
-    std::cout << alpha1_[i];
+    std::cout << alpha2_[i];
   }
   std::cout << "]\n";*/
 
@@ -3461,18 +3461,63 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   }
 
   // DEBUG
-  /*std::cout << "alpha1_after_hierarchization = [";
-  for (size_t i = 0; i < alpha1_.getSize(); i++) {
+  /*std::cout << "alpha2_after_hierarchization = [";
+  for (size_t i = 0; i < alpha2_.getSize(); i++) {
     if (i > 0) {
       std::cout << ", ";
     }
-    std::cout << alpha1_[i];
+    std::cout << alpha2_[i];
   }
   std::cout << "]\n";*/
+
+//  EvaluateFullGrid();
+}
+
+void DesignMaterial::EvaluateFullGrid() {
+  Matrix<double> E;
+  double stepsize;
+  LocPoint p;
+  p.coord.Resize(3);
+
+  p.coord[2] = .5;
+  stepsize = 1./128;
+
+  std::ofstream file;
+  file.open("gridData.5.txt");
+  file.precision(8);
+  file.flags(std::ios::scientific);
+
+  for (unsigned int ii = 1; ii < 1/stepsize; ii++) {
+    p.coord[0] = ii * stepsize;
+    for (unsigned int jj = 1; jj < 1/stepsize; jj++) {
+      p.coord[1] = jj * stepsize;
+      ApplyHomRectSGPPTensor(E,p.coord,DesignElement::NO_DERIVATIVE,FULL);
+      file << p.coord[0] << "\t" << p.coord[1] << "\t" << p.coord[2] << "\t" << E(0,0) << "\t" << E(0,1) << "\t" << E(0,2) << "\t" << E(1,1) << "\t" << E(1,2) << "\t" << E(2,2) << std::endl;
+    }
+  }
+  file.close();
+
+  p.coord[2] = .125;
+
+  file.open("gridData.125.txt");
+  file.precision(8);
+  file.flags(std::ios::scientific);
+
+  for (unsigned int ii = 1; ii < 1/stepsize; ii++) {
+    p.coord[0] = ii * stepsize;
+    for (unsigned int jj = 1; jj < 1/stepsize; jj++) {
+      p.coord[1] = jj * stepsize;
+      ApplyHomRectSGPPTensor(E,p.coord,DesignElement::NO_DERIVATIVE,FULL);
+      file << p.coord[0] << "\t" << p.coord[1] << "\t" << p.coord[2] << "\t" << E(0,0) << "\t" << E(0,1) << "\t" << E(0,2) << "\t" << E(1,1) << "\t" << E(1,2) << "\t" << E(2,2) << std::endl;
+    }
+  }
+  file.close();
 }
 
 void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
   SGPP::base::GridStorage* gridStorage = grid_->getStorage();
+  // Catalogue has to be in correct order! High error risk!
+  // Better use new format instead
 
   // create coefficient vectors
   alpha1_.resize(gridStorage->size());
@@ -3531,6 +3576,8 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
 
 void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
   SGPP::base::GridStorage* gridStorage = grid_->getStorage();
+  // Catalogue has to be in correct order! High error risk!
+  // Better use new format instead
 
   // create coefficient vectors
   alpha1_.resize(gridStorage->size());
@@ -3572,6 +3619,7 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
 }
 
 void DesignMaterial::HierarchizeSparseGridCoefficients() {
+  std::cout << "++ Hierarchizing data vectors of Sparse Grid\n" << std::flush;
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
     SGPP::base::OperationHierarchisation *hierOp =
         SGPP::op_factory::createOperationHierarchisation(*grid_);
@@ -3613,81 +3661,6 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
 
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
      DesignElement::Type direction, SubTensorType subTensor) {
-  /*// Method uses SGPP interpolation
-  SGPP::base::DataVector point(p.GetSize());
-  for (unsigned int i=0; i < p.GetSize(); i++) {
-    point[i] = p[i];
-  }
-  SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
-  LOG_DBG2(dm) << p;
-
-  E.Resize(3,3);
-  E.Init(); // for off-diagonal
-  if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-    if (!shearIsDesign_) { // no shearing
-      E[1-1][1-1] = opEval->eval(alpha1_, point);
-      E[1-1][2-1] = opEval->eval(alpha2_, point);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = opEval->eval(alpha3_, point);
-      E[3-1][3-1] = opEval->eval(alpha4_, point);
-    } else { // shearing
-      E[1-1][1-1] = opEval->eval(alpha1_, point);
-      E[1-1][2-1] = opEval->eval(alpha2_, point);
-      E[1-1][3-1] = opEval->eval(alpha3_, point);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = opEval->eval(alpha4_, point);
-      E[2-1][3-1] = opEval->eval(alpha5_, point);
-      E[3-1][1-1] = E[1-1][3-1];
-      E[3-1][2-1] = E[2-1][3-1];
-      E[3-1][3-1] = opEval->eval(alpha6_, point);
-    }
-    LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
-  } else {
-    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-      if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
-      } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha5_, point, direction);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha6_, point, direction);
-      }
-    } else {
-      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
-      if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
-      } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
-        E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha5_, point, direction);
-        E[3-1][1-1] = E[1-1][3-1];
-        E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha6_, point, direction);
-      }
-      delete opEvalPartDeriv;
-    }
-    LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
-        <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
-  }
-  delete opEval;*/
-
   // Method uses SGPP interpolation
   SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
   LOG_DBG2(dm) << p;
@@ -3695,7 +3668,7 @@ void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p
   E.Resize(3,3);
   E.Init(); // for off-diagonal
 
-    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
     SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
     if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
       if (!shearIsDesign_) { // no shearing
