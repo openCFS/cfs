@@ -2921,7 +2921,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     const unsigned int dim_ = obj->dim;
 
-    LOG_DBG3(em) << "CHEP: de=" << de->ToString() << " u1_vec=" << u1_vec.ToString() << " u2_vec=" << u2_vec.ToString();
+    LOG_DBG3(em) << "CHEP: de=" << de->ToString() << " der=" << derivative; // << " u1_vec=" << u1_vec.ToString() << " u2_vec=" << u2_vec.ToString();
     // TODO too much temporary matrices and vectors!
     // from the coordinates of this element we build a "test displacement" vector
     // u1(,2)_0. it contains linear strains which are assembled in the following lines

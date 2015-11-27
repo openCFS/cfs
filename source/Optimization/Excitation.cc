@@ -185,7 +185,7 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
 
   HarmonicDriver* hd = ctxt->GetHarmonicDriver();
 
-  assert(excitations.Capacity() <= base + num_freq);
+  assert(excitations.Capacity() >= base + num_freq);
   excitations.Resize(base + num_freq);
 
   for (unsigned int i = 0; i < excitations.GetSize(); i++)
@@ -235,7 +235,6 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
     // we don't know determine the real number of loads, hence make an estimate. It's just to reserve!
     if(ctxt.analysis == BasePDE::STATIC)
       tmp = std::max(tmp, (unsigned int) 10); // FIXME we don't have Context::num_static_loads yet
-    assert(tmp >= 1);
     upper_bound += tmp;
   }
 
@@ -249,8 +248,6 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   assert(num_trans_ >= 0 && num_robust_ >= 0);
 
   Assemble* ass = domain->GetBasePDE()->GetAssemble();
-  int mss = ctxt->sequence;
-  assert(mss >= 1);
 
   // the already existing excitations from prior a context
   unsigned int context_base = excitations.GetSize();
@@ -261,13 +258,11 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   assert(excitations.Capacity() >= context_base + 1); // avoid moving by resize like hell
   excitations.Resize(context_base + 1);
   excitations[context_base].index = context_base;
-  excitations[context_base].sequence = mss;
 
   PtrParamNode pn = opt->optParamNode->Get("costFunction");
 
   // the actual multipleExcitation description is read in Optimization as part of
   // objective function block
-
   int num_freq = ctxt->num_harm_freq;
 
   // bloch mode analysis wave vectors
@@ -332,6 +327,10 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   if(!ctxt->IsHarmonic() && IsEnabled() && !ctxt->DoBloch()) // multiple loads case
     SetLoadCases(ctxt, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
+
+  assert(ctxt->sequence >= 1);
+  for(unsigned int i = context_base; i < excitations.GetSize(); i++)
+    excitations[i].sequence = ctxt->sequence;
 }
 
 void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextManager* manager, bool eval_inital_design)
@@ -415,8 +414,6 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     // in 2D only 0, 1 and 5
     if(dim == 2 && (i == 2 || i == 3 || i == 4)) continue;
 
-    ex.sequence = ctxt->sequence;
-
     ex.label = MechPDE::testStrain.ToString(ts);
 
     ex.ReadTestStrain(ts);
@@ -488,7 +485,7 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
   unsigned int old_base = excitations.GetSize();
 
   // multiply excitations. Robust comes first, the transformation
-  assert(excitations.Capacity() == total_base_ * GetNumberMeta(true));
+  assert(excitations.Capacity() >= total_base_ * GetNumberMeta(true));
   excitations.Resize(total_base_ * GetNumberMeta(true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)

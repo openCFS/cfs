@@ -348,13 +348,13 @@ extern "C" {
     infoNode_->Get("symmetric")->SetValue(symPard);
     infoNode_->Get("posDef")->SetValue(defPard);
 
-    // see pardiso manual -> MTYPE
+    // see pardiso manual -> MTYPE, page 9
     if(etype == BaseMatrix::DOUBLE)
     {
       if(strPard)
         mType_ = 1;                 // 1: real and structurally symmetric -- wtf is this???
       if(symPard)
-        mType_ = defPard ? 2 : -1;  // 2: real and symmetric positive definite, -2: real and symmetric indefinite
+        mType_ = defPard ? 2 : -2;  // 2: real and symmetric positive definite, -2: real and symmetric indefinite
       if(!symPard && !strPard)
         mType_ = 11;                // 11: real and nonsymmetric
     }
@@ -367,6 +367,8 @@ extern "C" {
       if(!strPard && !herPard)
         mType_ = symPard ? 6 : 13; // 6: complex and symmetric, 13: complex  and nonsymmetric
     }
+
+
 
     infoNode_->Get("pardiso_matrix")->SetValue(mType_);
     infoNode_->Get("solver")->SetValue(mSolver_ == 1 ? "iterative" : "direct");

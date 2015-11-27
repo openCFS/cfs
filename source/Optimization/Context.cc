@@ -52,6 +52,7 @@ void Context::Init(ContextManager* manager, BasePDE::AnalysisType analyis, PtrPa
   {
   case BasePDE::HARMONIC:
     complex_ = true;
+    harmonic_ = true;
     num_harm_freq = HarmonicDriver::GetNumFreq(node);
     break;
 
