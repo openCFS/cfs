@@ -18,6 +18,7 @@ blocksize=$(($blocksize>0?$blocksize:1))
 
 logfile=$filename.log
 rm $logfile
+rm catalogues/detailed_stats_$filename
 
 parallel --will-cite --pipepart -a $1 --block $blocksize --joblog $logfile --jobs $ncores --resume-failed --header '.*\n' "cat > {#}; ./callMatlab.sh {#}"
 
