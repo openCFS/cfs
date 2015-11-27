@@ -241,38 +241,79 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 #-------------------------------------------------------------------------------
 Find_Package(Git)
 
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "paraview" "no_ver")  
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${pvsb_prefix}")
+
+SET(ZIPFROMCACHE "${pvsb_prefix}/pvsb-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${pvsb_prefix}/pvsb-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
+
 #-------------------------------------------------------------------------------
 # The ParaView Superbuild pvsb external project
 #-------------------------------------------------------------------------------
-IF(0) # GIT_FOUND)
-  # Clone Git repo for ParaView Superbuild 4.1.
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
   ExternalProject_Add(pvsb
-    DEPENDS ${CFS_PV_DEPENDENCIES}
-    PREFIX ${pvsb_prefix}
-    GIT_REPOSITORY http://paraview.org/ParaViewSuperbuild.git
-    GIT_TAG "5867b1c34b73aee16cc9411007b2d70a4fad73a4"
-    SOURCE_DIR ${pvsb_source}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
-    )
-ELSE()
-  # If we do not have the Git executable available, fall back
-  # to downloading a zipped archive of the Git repo.
-  MESSAGE("paraview_source ${paraview_source}")
-  ExternalProject_Add(pvsb
-    DEPENDS ${CFS_PV_DEPENDENCIES}
-    PREFIX ${pvsb_prefix}
-    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
-    SOURCE_DIR ${pvsb_source}
-    URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_GZ}
-    URL_MD5 ${PARAVIEW_SB_MD5}
-    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-    CMAKE_ARGS
-      ${CMAKE_ARGS}
+    PREFIX "${pvsb_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
   )
-ENDIF()
-
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  IF(0) # GIT_FOUND)
+    # Clone Git repo for ParaView Superbuild 4.1.
+    ExternalProject_Add(pvsb
+      DEPENDS ${CFS_PV_DEPENDENCIES}
+      PREFIX ${pvsb_prefix}
+      GIT_REPOSITORY http://paraview.org/ParaViewSuperbuild.git
+      GIT_TAG "5867b1c34b73aee16cc9411007b2d70a4fad73a4"
+      SOURCE_DIR ${pvsb_source}
+      PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+      CMAKE_ARGS
+        ${CMAKE_ARGS}
+    )
+  ELSE()
+    # If we do not have the Git executable available, fall back
+    # to downloading a zipped archive of the Git repo.
+    MESSAGE("paraview_source ${paraview_source}")
+    ExternalProject_Add(pvsb
+      DEPENDS ${CFS_PV_DEPENDENCIES}
+      PREFIX ${pvsb_prefix}
+      DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/paraview
+      SOURCE_DIR ${pvsb_source}
+      URL ${PARAVIEW_SB_URL}/${PARAVIEW_SB_TGZ}
+      URL_MD5 ${PARAVIEW_SB_MD5}
+      PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+      CMAKE_ARGS
+        ${CMAKE_ARGS}
+    )
+  ENDIF()
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(pvsb cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

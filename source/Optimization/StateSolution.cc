@@ -62,7 +62,10 @@ void StateSolutions::Init(Function* f)
   if(f != NULL || nts == 0){ // in case of non-transient or adjoint, do not allocate derivative space
     nderiv = NO_DERIVTYPE;
   }
+
+  // FIXME TODO This resize seems to cause memory leaks!
   list.Resize(nderiv+1);
+
   for(unsigned int deriv = NO_DERIVTYPE; deriv <= nderiv; deriv++){
     list[deriv].Resize(nts);
     for(unsigned int ts = 0; ts < nts; ++ts)
@@ -124,15 +127,18 @@ StateSolution* StateSolutions::Get(int excitation_index, Function* f, unsigned i
 {
   LOG_DBG2(statesol) << "S:G: ei=" << excitation_index << " f=" << (f != NULL ? f->type.ToString(f->GetType()) : "NULL") << " ts=" << timestep_mode << " d=" << derivative << " iF=" << isForward;
 
-  if(isForward){ // if this is true, f is ignored and forward_data_ is used to avoid one map access
-    if(forward_data_ == NULL){
-      if(data_.find(NULL) == data_.end()){
+  if(isForward)
+  { // if this is true, f is ignored and forward_data_ is used to avoid one map access
+    if(forward_data_ == NULL)
+    {
+      if(data_.find(NULL) == data_.end())
         Init((Function*)NULL);
-      }
       forward_data_ = &data_[NULL];
     }
     return((*forward_data_)[derivative][timestep_mode]->data[excitation_index]);
-  }else{
+  }
+  else
+  {
     // do we have to init first?
     if(data_.find(f) == data_.end())
       Init(f);
@@ -246,7 +252,7 @@ void StateSolution::Write(SinglePDE* pde)
 
     SolutionType solt = GetSolutionType(pde);
     shared_ptr<BaseFeFunction> fe = pde->GetFeFunction(solt);
-    *(fe->GetSingleVector()) = *raw;
+    *(fe->GetSingleVector()) = *raw; // out of two pointers we make references and then use the assignment operator
   }
   else
     LOG_DBG2(statesol) << "S:W raw not written as it was not set";
@@ -411,9 +417,9 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::
       // check for first call
       if(elem_vec.GetSize() == 0)
       {
-        elem_vec.Resize(n + pn);
+        elem_vec.Resize(n + pn); // save resize as the size was checked for zero
         for(int ve = 0; ve < (n + pn); ve++)
-          elem_vec[ve] = new Vector<T>;
+          elem_vec[ve] = new Vector<T>; // FIXME: where do we delete
       }
 
       // store the results of the standard design elements in our own structure

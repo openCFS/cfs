@@ -1,5 +1,3 @@
-// dummy
-
 #include <stddef.h>
 #include <ostream>
 

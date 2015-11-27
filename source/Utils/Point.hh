@@ -1,5 +1,3 @@
-// dummy
-
 #ifndef POINT_HH_
 #define POINT_HH_
 

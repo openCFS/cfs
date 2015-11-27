@@ -477,25 +477,21 @@ namespace CoupledField
       StdVector<BiLinFormContext*> & forms = listIt->second;
       EntityList& firstEntities = *(listIt->first.first);
       EntityList& secondEntities = *(listIt->first.second);
-      UInt size = std::max( firstEntities.GetSize(),
-                            secondEntities.GetSize() );
+      UInt size = std::max(firstEntities.GetSize(), secondEntities.GetSize());
 
       // Total work: numElement x numForms
       std::stringstream progStream;
       boost::progress_display progress( size*forms.GetSize(), progStream );
 
-      if( printProgressBar_) {
-        std::cout << "  - Calculating BiLinearForms on '"
-            << firstEntities.GetName()
-            << " (" << size << " elements)'\n";
-      }
+      if( printProgressBar_)
+        std::cout << "  - Calculating BiLinearForms on '"  << firstEntities.GetName() << " (" << size << " elements)'\n";
+
 
       if ( !isNewtonPart) {
         // First loop over all integrators to check, if any of them
         // gets re-assembled
         // Loop over all bilinearforms
         bool anyReassemble = false;
-
 
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
 
@@ -533,8 +529,7 @@ namespace CoupledField
 
       for( UInt i = 0; i < size; ++i  ) {
 
-        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() 
-            << " and " << it2.GetIdString();
+        LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() << " and " << it2.GetIdString();
 
         // Loop over all bilinear forms
         for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
@@ -1338,10 +1333,13 @@ namespace CoupledField
 
       // associated result types
       std::string tmp;
-      tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
-      row->Get("result")->SetValue(tmp);
-      tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
-      col->Get("result")->SetValue(tmp);
+      if (context.GetFirstResultInfo()!= NULL) {
+    	  tmp = SolutionTypeEnum.ToString(context.GetFirstResultInfo()->resultType);
+    	  row->Get("result")->SetValue(tmp);
+    	  tmp = SolutionTypeEnum.ToString(context.GetSecondResultInfo()->resultType);
+    	  col->Get("result")->SetValue(tmp);
+      }
+
       
       // matrix destination
       PtrParamNode dest = form->Get("destination", ParamNode::APPEND);
@@ -1708,12 +1706,7 @@ namespace CoupledField
     if( analysisType_ == BasePDE::TRANSIENT
         || analysisType_ == BasePDE::STATIC
         || analysisType_ == BasePDE::EIGENFREQUENCY) {
-      algsys_->SetElementMatrix( mappedDest, elemMat,
-                                 fctId1, eqnVec1,
-                                 fctId2, eqnVec2,
-                                 context.IsSetCounterPart(),
-                                 preventStaticCond,
-                                 context.isDiagonal());
+      algsys_->SetElementMatrix( mappedDest, elemMat, fctId1, eqnVec1, fctId2, eqnVec2, context.IsSetCounterPart(), preventStaticCond, context.isDiagonal());
 
     } else {
       assert(analysisType_ == BasePDE::HARMONIC);

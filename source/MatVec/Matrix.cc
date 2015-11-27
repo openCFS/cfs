@@ -1130,9 +1130,9 @@ namespace CoupledField
 
     Integer *lp_interchanges;
     
-    std::complex<double> *lp_rhsVecf77;
-    std::complex<double> *lp_sysVecf77;
-    std::complex<double> *lp_workf77;
+    std::complex<double>* lp_rhsVecf77;
+    std::complex<double>* lp_sysVecf77;
+    std::complex<double>* lp_workf77;
     std::complex<double> auxVal2;
     
     Vector<Complex> lp_sysVec, lp_work;
@@ -1231,10 +1231,10 @@ namespace CoupledField
       for (UInt j=0;j<bcols;++j)
         b1[i][j]=lp_rhsVec[i+j*brows];
   
-    delete[] (lp_rhsVecf77);
-    delete[] (lp_interchanges);
-    delete[] (lp_sysVecf77);
-    delete[] (lp_workf77 );
+    delete[] lp_rhsVecf77;
+    delete[] lp_interchanges;
+    delete[] lp_sysVecf77;
+    delete[] lp_workf77;
     
   }
 #endif
@@ -1270,10 +1270,10 @@ namespace CoupledField
     Integer lp_infof77;
     std::complex<double> auxValC;
 
-    std::complex<double> * lp_af77 = new std::complex<double>[size_row_*size_row_];
-    double * lp_wf77 = new double[size_row_];
-    std::complex<double> * lp_workf77 = new std::complex<double>[99];
-    double * lp_rworkf77 = new double[3*size_row_-2];
+    std::complex<double>* lp_af77    = new std::complex<double>[size_row_*size_row_];
+    std::complex<double>* lp_workf77 = new std::complex<double>[99];
+    double* lp_wf77     = new double[size_row_];
+    double* lp_rworkf77 = new double[3*size_row_-2];
       
     // Convert CFS++ Vector<Complex> to Vector<std::complex<double>>
     for ( UInt count = 0; count < size_row_; count++ ) 
@@ -1299,10 +1299,10 @@ namespace CoupledField
     for ( UInt count = 0; count < size_row_; count++ ) 
       lp_w[count] = lp_wf77[count];
     
-    delete lp_workf77;
-    delete lp_rworkf77;
-    delete lp_af77;
-    delete lp_wf77;
+    delete[] lp_workf77;
+    delete[] lp_rworkf77;
+    delete[] lp_af77;
+    delete[] lp_wf77;
     
   }
 
@@ -1931,24 +1931,11 @@ namespace CoupledField
 
     for(UInt i = 1; i < size_row_; ++i)
       for(UInt j = i+1; j < size_col_; ++j)
-        if(std::abs(data_[i][j] != data_[j][i]) > eps) return false;
+        if(!close(data_[i][j], data_[j][i]))
+          return false;
 
     return true;
   }
-
-  template<>
-  bool Matrix<Complex>::IsSymmetric(double eps) const
-  {
-    if(!IsQuadratic())
-      return false;
-
-    for(UInt i = 1; i < size_row_; ++i)
-      for(UInt j = i+1; j < size_col_; ++j)
-        if(!close(data_[i][j], data_[j][i], eps)) return false;
-
-    return true;
-  }
-
 
   template<class TYPE>
   TYPE Matrix<TYPE>::NormL2() const

@@ -70,12 +70,12 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://distfiles.macports.org/flann/flann-1.8.4-src.zip"
-  "http://pkgs.fedoraproject.org/repo/pkgs/flann/flann-1.8.4-src.zip/a0ecd46be2ee11a68d2a7d9c6b4ce701/flann-1.8.4-src.zip"
-  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/flann-1.8.4-src.zip"
-  "${FLANN_URL}/${FLANN_GZ}"
+  "http://distfiles.macports.org/flann/${FLANN_ZIP}"
+  "http://pkgs.fedoraproject.org/repo/pkgs/flann/${FLANN_ZIP}/${FLANN_MD5}/${FLANN_ZIP}"
+  "http://www.cs.ubc.ca/research/flann/uploads/FLANN/${FLANN_ZIP}"
+  "${FLANN_URL}/${FLANN_ZIP}"
 )
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_GZ}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/flann/${FLANN_ZIP}")
 SET(MD5_SUM ${FLANN_MD5})
 
 SET(DLFN "${flann_prefix}/flann-download.cmake")
@@ -83,38 +83,80 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  )
+)
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "flann" "${FLANN_VER}") 
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${flann_prefix}")
+
+SET(ZIPFROMCACHE "${flann_prefix}/flann-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${flann_prefix}/flann-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The flann external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(flann
-  DEPENDS hdf5-static
-  PREFIX ${flann_prefix}
-  SOURCE_DIR ${flann_source}
-  URL ${LOCAL_FILE}
-  URL_MD5 ${FLANN_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  LIST_SEPARATOR ,
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_CUDA_LIB:BOOL=OFF
-    -DBUILD_C_BINDINGS=OFF
-    -DBUILD_MATLAB_BINDINGS=OFF
-    -DBUILD_PYTHON_BINDINGS=OFF
-    -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
-)
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(flann cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${flann_prefix}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(flann
+    PREFIX "${flann_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(flann
+    DEPENDS hdf5-static
+    PREFIX ${flann_prefix}
+    SOURCE_DIR ${flann_source}
+    URL ${LOCAL_FILE}
+    URL_MD5 ${FLANN_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    LIST_SEPARATOR ,
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_CUDA_LIB:BOOL=OFF
+      -DBUILD_C_BINDINGS=OFF
+      -DBUILD_MATLAB_BINDINGS=OFF
+      -DBUILD_PYTHON_BINDINGS=OFF
+      -DPYTHON_EXECUTABLE=PYTHON_EXECUTABLE_NOTFOUND
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(flann cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${flann_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(flann cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

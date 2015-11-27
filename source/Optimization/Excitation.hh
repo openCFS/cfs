@@ -19,6 +19,7 @@ class Function;
 class LinearFormContext;
 class ObjectiveContainer;
 class SinglePDE;
+class Transform;
 
 /** For multiple loads (compliance or multiple frequency optimization) we use
  * the summarized term multiple excitations. This object encapsulates a excitation inclusive weight. */
@@ -32,7 +33,7 @@ public:
   ~Excitation();
 
   /** This method makes the current load active.
-   * For multiple frequencies it does nothing. The actual frequency is chosen by default. */
+   * For multiple frequencies it does nothing. The actual frequency is chosen by default.  */
   void Apply();
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
@@ -54,8 +55,18 @@ public:
 
   void ReadTestCharges(const Vector<double>& vec);
 
-  /** the index of this excitation in the excitations array. If -1 something went wront */
+  /** does not label the frequency, load or test strain but the rotation or robust case if present
+   * @return "" if not present */
+  std::string GetMetaLabel() const;
+
+  /** the full label is meta label plus base label or it is simply label */
+  std::string GetFullLabel() const;
+
+  /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
+
+  /** the meta index */
+  int meta_index;
 
   /** For several loads, we need to store the form context with the entities but also the dof and the value!
    * When no excitations are given in the optimization part the bcsAndLoads are used.
@@ -79,6 +90,9 @@ public:
    * @see normalized_weight */
   double weight;
 
+  /** do we need to reassemble the system? True for frequency, robust and transformation */
+  bool reassemble;
+
   /** this is the normalized weight (sum of all weights of all excitations is 1).
    * Note that for functions with a single excitation (e.g. stress, volume) it shall be 1 */
   double normalized_weight;
@@ -96,6 +110,15 @@ public:
   /** for the calculation of a homogenized material tensor, we use the test
    * strains defined in ErsatzMaterial::SetHomogenizationTestStrains() */
   Vector<double> test_strain;
+
+  /** For transformation, this is the applied transformation. NULL means we don't do transformation*/
+  Transform* transform;
+
+  /** this is the robust index if we do index. Otherwise it is zero which is the standard filter index for non-robust */
+  unsigned int robust_filter_idx;
+
+  /** When we do robust, the meta_index is only the robust index when we do no concurrent transformation */
+  bool robust;
 
   Assemble* assemble;
 };
@@ -126,11 +149,54 @@ public:
 
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
+  /** The number of homogenization test strains. Important when we do also transform */
+  unsigned int GetNumberHomogenization() const { return DoHomogenization() ? total_base_ : 0; }
+
   bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
+
+  /** apply excitation specific transformation (rotation) */
+  bool DoTransform() const { return num_trans_ > 0; }
+
+  /** Do we do robust */
+  bool DoRobust() const { return num_robust_ > 1; }
+
+  /** Do we do real meta excitation? */
+  bool DoMetaExcitation() const { return DoTransform() || DoRobust(); }
+
+  /** handles transform and robust.
+   * @param minimum_one if false take care as num_robust can be 0 or 1 w/o robust */
+  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
+
+  /** The number of transformations. Important when we do homogenization */
+  unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
+
+  unsigned int GetNumberRobust(bool mininum_one = false) const { return mininum_one ? std::max(num_robust_, 1) : num_robust_; }
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);
+
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta e.g. the number of the */
+  Excitation* GetExcitation(unsigned int base, unsigned int meta);
+
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta needs to be a number */
+  Excitation* GetExcitation(unsigned int base, const std::string& meta);
+
+  /** The excitation index is not that easy if we have loads/homogenization/frequencies and concurrently robustness and transformations.
+   * The functions have excitations for the later but not necessarily for the first
+   * @param base the "normal" index of test strains, ...
+   * @param f checks for transformation and robustness in the excitation of the function.
+   * @see GetExcitation(unsigned int, Transform*) */
+   unsigned int GetExcitationIndex(unsigned int base, Function* f);
+
+  /** The meta excitation index considers only the meta level (transformation, robustness) not the base level (frequency, wave, test strain)
+   * @return 0 if we have no meta stuff
+   * You may also aks Excitation::meta_index*/
+  // unsigned int GetMetaExcitationIndex(Function* f);
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.
@@ -155,9 +221,35 @@ private:
   /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
   int SetHomogenizationTestStrains();
 
+  /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
+  void ApplyRobust(DesignSpace* space);
+
+  /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
+  void ApplyTransformations(DesignSpace* space);
+
+  void SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
+
+  void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
+
+  void SetHarmonic(int num_freq);
+
+  void SetBlochWaves(int num_wave);
+
+  int ValidateTransformation(Optimization* opt);
+
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;
+
   Type type_;
+
+  /** the base number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
+  unsigned int total_base_;
+
+  /** number of transformations in DesignSpace::transform. This is a meta level*/
+  int num_trans_;
+
+  /** number of robust filters. This is a meta level. Only > 1 real robust. 0 and 1 is no robust but standard */
+  int num_robust_;
 };
 
 

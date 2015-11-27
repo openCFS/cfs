@@ -95,14 +95,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "07")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Verlorene Soehne")
+SET(CFS_NAME "Back To The Future")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -153,6 +153,13 @@ SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 # specify his own defaults in $HOME/.cfs_platform_defaults.cmake
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/platform_defaults.cmake")
+
+#-----------------------------------------------------------------------------
+# Switch on/off usage of cfsdepscache
+#-----------------------------------------------------------------------------
+OPTION(CFS_DEPS_PRECOMPILED
+  "Use precompiled cfsdeps. If no precompiled version exists, compile, zip and move package into cache."
+  ${CFS_DEPS_PRECOMPILED_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
@@ -208,11 +215,11 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
   "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
 
-SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
+SET(CFS_PARDISO "MKL"
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 
-OPTION(USE_PARDISO "Use Pardiso"
+OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
@@ -359,7 +366,7 @@ OPTION(COVERAGE "Turn on code coverage output."
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
   ${CFSTOOL_DEFAULT})
-
+  
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
   ${CFSDAT_DEFAULT})
 
@@ -428,6 +435,8 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(CFS_PARDISO)
+MARK_AS_ADVANCED(CFS_DEPS_TOCACHE)
 MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
