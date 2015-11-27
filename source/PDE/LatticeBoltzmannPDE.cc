@@ -37,14 +37,11 @@
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
-//new integrator concept
-//#include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 
 #include "FeBasis/BaseFE.hh"
-//#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "General/Exception.hh"
 #include "PDE/SinglePDE.hh"
@@ -767,8 +764,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         adjMoms[dir] = GetAdjMoments(idx,dir);
       }
 
-      Vector<double> d_F1_d_rho(n_q_);
-      Vector<double> d_F2_d_rho(n_q_);
+      Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
+      Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s
       double density = CalcLBMDensity(idx);
       double jx = CalcVelocityX(idx,density) * density;
       double jy = CalcVelocityY(idx,density) * density;
@@ -784,7 +781,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_F2_d_rho[2] = 6.0 / density * (jx * jx + jy * jy);
       d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
       d_F2_d_rho[8] = -2.0 * jx * jy / density;
-      //d_coll_d_rho = d_F1_d_rho + (I - S/2) * d_F2_d_rho
+      //d_coll_d_s = d_F1_d_s + (I - S/2) * d_F2_d_s
       Matrix<double> mat(n_q_,n_q_); // I - S/2
       mat.Init();
       mat[0][0] = 1.0;
@@ -809,7 +806,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //      std::cout << "d_coll_d_rho: " << d_coll_d_rho.ToString() << std::endl;
 //      std::cout << "adjoint moms: " << adjMoms.ToString() << std::endl;
 //      std::cout << "term1: " << (jx * jx + jy * jy) / density << " + inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
-      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
+//      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
+      double sens = d_coll_d_rho.Inner(adjMoms);
 //      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
       de->AddGradient(f, sens);
     }
