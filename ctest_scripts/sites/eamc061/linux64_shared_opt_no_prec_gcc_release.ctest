@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_prec_clang_release")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_no_prec_gcc_release")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -35,9 +35,9 @@ SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 # to specifiy the compilers and that all messages should be output in English
 # language, so that CTest may properly parse them.
 #-----------------------------------------------------------------------------
-SET(ENV{CC} "clang")
-SET(ENV{CXX} "clang++")
-SET(ENV{FC} "ifort")
+SET(ENV{CC} "/usr/bin/gcc")
+SET(ENV{CXX} "/usr/bin/g++")
+SET(ENV{FC} "/usr/bin/gfortran")
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
@@ -75,11 +75,12 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "shared_opt prec ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "shared_opt no_prec ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
+
 #SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
@@ -100,18 +101,17 @@ SET(CTEST_INITIAL_CACHE
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
-   CFS_DEPS_PRECOMPILED:BOOL=ON
+   CFS_DEPS_PRECOMPILED:BOOL=OFF
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
-   USE_FLANN:BOOL=OFF
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
-   USE_IPOPT:BOOL=OFF
+   USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
-   USE_ILUPACK:BOOL=OFF
+   USE_ILUPACK:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 

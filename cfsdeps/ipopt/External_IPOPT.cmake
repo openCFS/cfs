@@ -14,7 +14,7 @@ set(IPOPT_SOURCE  "${IPOPT_PREFIX}/src/ipopt")
 # we use this as temporary install directory to alllow packing for precompiled cfsdeps
 set(IPOPT_INSTALL  "${IPOPT_PREFIX}/install")
 
-# snopt is build by configure, therefore no cmake args needed
+# ipopt is build by configure, therefore no cmake args needed
 
 SET(MIRRORS
   "http://www.coin-or.org/download/source/Ipopt/${IPOPT_TGZ}"
@@ -43,6 +43,8 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ipopt/ipopt-post_install.cmake.in")
 SET(PI "${IPOPT_PREFIX}/ipopt-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
+
+file(MAKE_DIRECTORY ${IPOPT_INSTALL})
 
 PRECOMPILED_ZIP_NOBUILD(PRECOMPILED_PCKG_FILE "ipopt" "${IPOPT_VER}")  
   
