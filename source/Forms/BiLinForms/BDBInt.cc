@@ -96,13 +96,13 @@ namespace CoupledField{
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
-      assert(dMat_.IsSymmetric() > 0);
+      assert(dMat_.IsSymmetric(1e-8) > 0);
       
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
-#undef USE_BLAS_VERSION // FIXME #define USE_BLAS_VERSION
+#define USE_BLAS_VERSION
 
 #ifdef USE_BLAS_VERSION
       dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_

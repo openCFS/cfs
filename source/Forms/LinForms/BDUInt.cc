@@ -120,7 +120,7 @@ BDUIntegrator(VEC_DATA_TYPE factor,
        bdMat.Resize(nrFncs * B_OP::DIM_DOF, dMat.GetNumRows());
        // Calculate BdMat
 
-#undef USE_BLAS_VERSION // FIXME #define USE_BLAS_VERSION
+#define USE_BLAS_VERSION
 
 #ifdef USE_BLAS_VERSION
        bMat.Mult_Blas(dMat, bdMat,false,false,fac,0.0); // bdMat = 1.0 * bMat * dMat + 0.0 * bdMat
