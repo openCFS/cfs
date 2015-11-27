@@ -29,7 +29,7 @@ class TransferFunction;
      * @param outn pointer where the matrix should be stored */
     virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0)
     {
-      if(context.IsComplex())
+      if(context->IsComplex())
       {
         if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
           SetElementK<Complex, Complex >(de, tf, app, mat_out, derivative, calcMode, ev);

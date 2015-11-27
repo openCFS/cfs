@@ -466,7 +466,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
 {
-  if(!me->IsEnabled() || !domain->GetDriver()->DoBlochModeEigenfrequency())
+  if(!me->IsEnabled() || !Optimization::context->GetDriver()->DoBlochModeEigenfrequency())
     return;
 
   // we need to find all eigenvalue constraints. Then extend each by excitation
@@ -1092,9 +1092,9 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   }
 
   // check for uniqueness of the eigenvalue id
-  if(Optimization::context.IsEigenvalue())
+  if(Optimization::context->IsEigenvalue())
   {
-    unsigned int max = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetNumSteps();
+    unsigned int max = Optimization::context->GetEigenFrequencyDriver()->GetNumSteps();
 
     StdVector<unsigned int> ids;
 

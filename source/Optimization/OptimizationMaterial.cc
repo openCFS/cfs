@@ -53,8 +53,8 @@ OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* spac
 
   regionIds = this->space->GetRegionIds();
 
-  needs_mass_ = em->context.IsComplex() || em->IsTransient() || em->context.IsEigenvalue();
-  complex_ =  em->context.IsComplex();
+  needs_mass_ = em->context->IsComplex() || em->IsTransient() || em->context->IsEigenvalue();
+  complex_ =  em->context->IsComplex();
   transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
@@ -235,7 +235,8 @@ Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, St
 
 bool OptimizationMaterial::ComplexElementMatrix(RegionIdType reg) const
 {
-  if(domain->GetDriver()->DoBlochModeEigenfrequency())
+  assert(!Optimization::context->DoMultiSequence());
+  if(Optimization::context->DoBloch())
     return true;
 
   assert(reg != NO_REGION_ID);
@@ -279,7 +280,8 @@ void MechMat::Init()
     unsigned int max = space->HasMultiMaterial() ? mm.GetSize() : (bimat ? 2 : 1);
 
     // first the bloch case
-    if(domain->GetDriver()->DoBlochModeEigenfrequency())
+    assert(!Optimization::context->DoMultiSequence());
+    if(Optimization::context->DoBloch())
       current_wave_vector_[reg_id].Resize(max, -1.0);
 
     if(ComplexElementMatrix(reg_id)) {
@@ -329,7 +331,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
     direction = DesignElement::NO_MULTIMATERIAL;
 
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
-  bool new_wave_vector = domain->GetDriver()->DoBlochModeEigenfrequency() && dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
+  bool new_wave_vector = Optimization::context->DoBloch() && Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
 
   LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index << " es=" << enforce_unstructured << " s=" << structured_ << " nwv=" << new_wave_vector;
 
@@ -344,8 +346,8 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
     else
       GetElementMatrix<double>(K[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
 
-   if(domain->GetDriver()->DoBlochModeEigenfrequency())
-     current_wave_vector_[reg_id][index] = dynamic_cast<EigenFrequencyDriver*>(domain->GetDriver())->GetCurrentWaveVector().NormL2();
+   if(Optimization::context->DoBloch())
+     current_wave_vector_[reg_id][index] = Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2();
   }
 
   // e.g. structured case
@@ -672,7 +674,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, NULL, direction);
       elecStiffness_map[elem->regionId].first.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].first.SetPart(Global::REAL, tmp_mat);
-      if (opt->context.IsComplex()){
+      if (opt->context->IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, NULL, direction);
         elecStiffness_map[elem->regionId].first.SetPart(Global::IMAG, tmp_mat);
@@ -686,7 +688,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, bm, direction);
       elecStiffness_map[elem->regionId].second.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].second.SetPart(Global::REAL, tmp_mat);
-      if (opt->context.IsComplex()){
+      if (opt->context->IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, bm, direction);
         elecStiffness_map[elem->regionId].second.SetPart(Global::IMAG, tmp_mat);

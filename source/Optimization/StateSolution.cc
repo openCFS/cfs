@@ -49,7 +49,7 @@ void StateSolutions::Init(Function* f)
 
   StdVector<StdVector<Unit*> >& list = data_[f];
   
-  unsigned int nts = domain->GetDriver()->GetNumSteps();
+  unsigned int nts = Optimization::context->GetDriver()->GetNumSteps();
 
   // we have to delete the old data before overwriting with new stuff!
   for(unsigned int deriv = 0; deriv < list.GetSize(); deriv++){
@@ -101,7 +101,7 @@ StdVector<double> StateSolutions::CollectEigenfrequencies(unsigned int wave_vect
   StdVector<Unit*>& dat = (*forward_data_)[0];
   // number of modesStdVector<Unit*>
   unsigned int modes = dat.GetSize();
-  assert(domain->GetDriver()->GetAnalysisType() == BasePDE::EIGENFREQUENCY && domain->GetDriver()->GetNumSteps() == modes);
+  assert(Optimization::context->IsEigenvalue() && Optimization::context->GetDriver()->GetNumSteps() == modes);
 
   StdVector<double> efs(modes);
 
@@ -227,7 +227,7 @@ std::string StateSolution::ToString()
 
 SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
 {
-  if (Optimization::context.IsComplex())
+  if (Optimization::context->IsComplex())
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
   else
     return Read<double> (st, pde, app, save_sol, derivative);
@@ -236,7 +236,7 @@ SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::
 /** Writes the solution (raw vector) back to the pde */
 void StateSolution::Write(SinglePDE* pde)
 {
-  if (Optimization::context.IsComplex())
+  if (Optimization::context->IsComplex())
     Write<std::complex<double> >(pde);
   else
     Write<double>(pde);
@@ -261,7 +261,7 @@ void StateSolution::Write(SinglePDE* pde)
 
 void StateSolution::Write(SinglePDE* pde, StateSolutions& sol, Function* f, int time_step, StdVector<Excitation>& excitations)
 {
-  if(domain->GetDriver()->IsComplex())
+  if(Optimization::context->IsComplex())
     Write<complex<double> >(pde, sol, f, time_step, excitations);
   else
     Write<double>(pde, sol, f, time_step, excitations);

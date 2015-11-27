@@ -813,7 +813,7 @@ def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
               
         mesh.elements.append(e)
 
-  mesh.bc.append(("left", range(0, (nnx * nny * z) + (nnx * ny) + 1, nnx)))
+  mesh.bc.append(("left", range(0, (nnx * nny * nz) + (nnx * ny) + 1, nnx)))
   mesh.bc.append(("right", range(nx, (nnx * nny * nnz) + 1, nnx)))
 
   side = (("bottom", []))

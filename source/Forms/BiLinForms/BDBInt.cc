@@ -80,8 +80,6 @@ namespace CoupledField{
     elemMat.Resize( nrFncs * bOperator_->GetDimDof());
     elemMat.Init();
     
-#define USE_BLAS_VERSION
-
     // Loop over all integration points
     LocPointMapped lp;
     const UInt numIntPts = intPoints.GetSize();
@@ -98,17 +96,20 @@ namespace CoupledField{
 
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
+      assert(dMat_.IsSymmetric() > 0);
       
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());
 
+#undef USE_BLAS_VERSION // FIXME #define USE_BLAS_VERSION
+
 #ifdef USE_BLAS_VERSION
-      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0);
-      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex
+      dMat_.Mult_Blas(bMat_,dbMat_,false,false,1.0,0); // dbMat_ = 1.0 * dMat_ * bMat_ + 0.0 * dbMat_
+      bMat_.Mult_Blas(dbMat_,elemMat,true,false,factor_*fac,1.0, true); // conjugate complex; elemMat = factor_*fac * bMat_^H * dbMat_ + 1.0 * elemMat
 #else
-      dbMat = (dMat * bMat) * fac;
-      elemMat += TransposeConjugate(bMat) * dbMat * factor_;
+      dbMat_ = (dMat_ * bMat_) * fac;
+      elemMat += TransposeConjugate(bMat_) * dbMat_ * factor_;
 #endif
 
     }

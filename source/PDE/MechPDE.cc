@@ -1112,6 +1112,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     StdVector<PtrCoefFct> strain(dim_ == 2 ? 3 : 6);
     strain.Init(zero);
     strain[dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test] = one; // xy goes to the third element (z) for 2D
+    LOG_DBG(mechpde) << "DTSI: idx=" << (dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test) << " -> one";
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
@@ -1125,7 +1126,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrCoefFct ts = CoefFunction::Generate(mp_, Global::REAL, strain);
       assert(regionStiffness_[actRegion]->GetDimType() == CoefFunction::TENSOR);
       assert(ts->GetDimType() == CoefFunction::VECTOR);
-      LinearForm* lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+      LinearForm* lin = NULL;
+      if(dim_ == 3)
+        lin = new BDUIntegrator<StrainOperator3D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+      else
+        lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
 
       LinearFormContext* ctx = new LinearFormContext(lin);
       ctx->SetEntities(actSDList);

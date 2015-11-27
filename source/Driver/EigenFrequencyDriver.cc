@@ -35,9 +35,8 @@ namespace CoupledField {
                                              shared_ptr<SimState> state,
                                              Domain* domain,
                                              PtrParamNode paramNode, PtrParamNode infoNode ) 
-    : SingleDriver( sequenceStep, isPartOfSequence, state, domain,
-                    paramNode, infoNode) {
-
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain, paramNode, infoNode)
+  {
     // set correct analysistype
     analysis_ = BasePDE::EIGENFREQUENCY;
 
@@ -54,7 +53,7 @@ namespace CoupledField {
     param_ = param_->Get("eigenFrequency");
     info_ = info_->Get("eigenFrequency");
 
-    isBloch_ = param_->Has("bloch");
+    isBloch_ = DoBloch(param_);
 
   }
 
@@ -107,6 +106,17 @@ namespace CoupledField {
     if(domain->GetGrid()->GetDim() == 3)
       bloch_plot_ << "\tk_z";
     bloch_plot_ << "\t1.mode\t2.mode\t..." << std::endl;
+  }
+
+  unsigned int EigenFrequencyDriver::GetNumBlochWave(PtrParamNode node)
+  {
+    if(!node->Has("bloch"))
+      return 0;
+
+    if(node->Has("bloch/waveVector/ibz/steps"))
+      return node->Get("bloch/waveVector/ibz/steps")->As<unsigned int>();
+
+    return node->Get("bloch")->GetList("waveVector").GetSize();
   }
 
   void EigenFrequencyDriver::FillWaveVectors(PtrParamNode bloch_pn)
