@@ -226,7 +226,6 @@ namespace CoupledField{
       }else{
         StdVector<Vector<Double> > CoordVec(nodeNums.GetSize());
         StdVector< DATA_TYPE > values(nodeNums.GetSize());
-#pragma omp parallel for
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
           srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
         }
@@ -254,7 +253,6 @@ namespace CoupledField{
       bool needTinterp=false;
       Double factor1,factor2;
       if(this->snapToCFSStep_){
-        //we need this to set some class variables... this is not very good style
         stepnumber = GetStepNum(needTinterp,factor1,factor2);
         stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
         if(lastStepRead_ != stepnumber){
@@ -265,7 +263,6 @@ namespace CoupledField{
       }else{
         stepnumber = GetStepNum(needTinterp,factor1,factor2);
         if(needTinterp){
-          WARN("Interpolating between src-file timestep #" << lastStepRead_ << " and " << stepnumber);
           if(this->solVecFuture_.GetSize() == 0){
             this->solVecFuture_.Resize(numEqns_);
             this->solVecFuture_.Init();
@@ -273,27 +270,27 @@ namespace CoupledField{
           if(lastStepRead_ != stepnumber){
             this->solVecOld_ = this->solVecFuture_;
             this->ReadSolution(stepnumber,this->solVecFuture_);
+            lastStepRead_ = stepnumber;
             updated = true;
           }
           //should not happen anyway
           if(this->solVecOld_.GetSize() == 0){
-            this->solVecOld_.Resize(this->solVecFuture_.GetSize());
-            this->solVecOld_.Init();
+            EXCEPTION("Time interpolation of sources failed: solVecOld_ is empty");
+            //this->solVecOld_.Resize(this->solVecFuture_.GetSize());
+            //this->solVecOld_.Init();
           }
 
+          WARN("Interpolating between src-file timestep #" << stepnumber -1 << " and " << stepnumber);
 #pragma omp parallel for
           for(UInt i=0;i<this->solVecOld_.GetSize();i++){
             this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
           }
-          lastStepRead_ = stepnumber;
         }else{
-          //std::cout << "Got Step : " << lastStepRead_ << "Computed Step:" << stepnumber << std::endl;
-          //we just read the solution vector
-          if(lastStepRead_ != stepnumber){
-            this->ReadSolution(stepnumber,this->solVec_);
-            lastStepRead_ = stepnumber;
-            updated = true;
-          }
+          std::cout << "++ Reading source step #" << stepnumber << " ...";
+          this->ReadSolution(stepnumber,this->solVec_);
+          lastStepRead_ = stepnumber;
+          updated = true;
+          std::cout << "Done." << std::endl;
         }
       }
     }
@@ -315,8 +312,7 @@ namespace CoupledField{
 
     //Ok, this is the case for which it is possible that we need
     //temporal interpolation
-    Double aTimeFreq = this->mp_->Eval(mHandleStep_);
-    curTStep_ = aTimeFreq;
+    curTStep_ = this->mp_->Eval(mHandleStep_);
     UInt step = 0;
   
     //std::cout << "timestep: " << curTStep_ << std::endl;
@@ -324,7 +320,7 @@ namespace CoupledField{
     // apply some tolerance..
     std::map<UInt,Double>::iterator stepIter = stepValueMap_.begin();
     for(;stepIter != stepValueMap_.end(); ++stepIter){
-      if(abs(stepIter->second - aTimeFreq) < 1e-10){
+      if(abs(stepIter->second - curTStep_) < 1e-10){
         break;
       }
     }
@@ -336,18 +332,27 @@ namespace CoupledField{
       UInt pos = 1;
       if(curTStep_ > oldTime){
         for(;stepIter != stepValueMap_.end(); ++stepIter,++pos){
-          if(oldTime < curTStep_ && stepIter->second > curTStep_){
+          if(stepIter->second > curTStep_){
             break;
           }else{
             oldTime = stepIter->second;
           }
         }
+      } else { // interpolated time steps befor first real time step
+        // determine t_{-1} time step
+        if (stepValueMap_.size() == 1)
+        {
+          oldTime = 0.0;
+        } else {
+          oldTime *= 2; 
+          ++stepIter;
+          oldTime -= stepIter->second; 
+          --stepIter;
+        }
       }
       interpolateT = true;
-//      std::cout << "oldTime = " << oldTime << std::endl;
-//      std::cout << "stepIter->second = " << stepIter->second << std::endl;
       Double dt = stepIter->second - oldTime;
-      iFactor1 = (stepIter->second  - curTStep_)/dt;
+      iFactor1 = (stepIter->second - curTStep_)/dt;
       iFactor2 = (curTStep_  - oldTime)/dt;
   
       if(stepIter==stepValueMap_.end()){

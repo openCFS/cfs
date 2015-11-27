@@ -369,36 +369,42 @@ void HeatPDE::DefineIntegrators() {
     myFct->AddEntityList(ent[i]);
   } // for
 
-
   // ======================================================================
-  // Neumann boundary condition
+  // Heat flux boundary condition
   // ======================================================================
-//   try{
-//     for( UInt iBc = 0; iBc < inBcs_.GetSize(); iBc++ ) {
+  ReadRhsExcitation( "heatFlux", dispDofNames, ResultInfo::SCALAR, isComplex_,
+                      ent, coef, updatedGeo_ );
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // check type of entitylist
+    if (ent[i]->GetType() == EntityList::NODE_LIST) {
+      EXCEPTION("Heat flux must be defined on elements")
+    }
 
-//       // get current Bc
-//       InhomNeumannBc const & actBc = *inBcs_[iBc];
+    if( dim_ == 2) {
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,2>(),
+                                          Complex(1.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,2>(),
+                                         1.0, coef[i], updatedGeo_ );
+      }
+    } else  {
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1,3>(),
+                                          Complex(1.0), coef[i], updatedGeo_ );
+      } else {
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1,3>(),
+                                         1.0, coef[i], updatedGeo_ );
+      }
+    }
+    lin->SetName("HeatFluxInt");
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities( ent[i] );
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+    myFct->AddEntityList(ent[i]);
+  } // for
 
-//       LinearSurfForm *neumannBC =
-//           new LinNeumannInt( actBc.value, actBc.phase,
-//                              NO_SOLUTION_TYPE, HEAT_CONDUCTIVITY, isaxi_ );
-
-//       neumannBC->SetVoluInfo( materials_ );
-
-//       LinearFormContext * neumannContext =
-//         new LinearFormContext( neumannBC );
-//       neumannContext->SetPtPde( this );
-//       neumannContext->SetResult( actBc.result, actBc.entities );
-
-//       assemble_->AddLinearForm( neumannContext );
-
-//       // Give result to equation numbering class
-//       eqnMap_->AddResult( *actBc.result, actBc.entities );
-//     }
-//   } catch(Exception & ex){
-//     RETHROW_EXCEPTION(ex, "Could not assemble Neumann boundary condition"
-//         <<" in HeatPDE!" );
-//   }
 
 //   // ======================================================================
 //   // Robin boundary condition

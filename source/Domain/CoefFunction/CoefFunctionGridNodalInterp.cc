@@ -116,7 +116,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::GetVector(Vector<DATA_TYPE>& CoefMa
   //if this is the first time we call the procedure, std interpolation is not ready
   //so we prepare it
   if(!this->stdInterpReady_){
-    std::cout << "Preparing for interpolation of external data...";
+    std::cout << "++ Preparing for interpolation of external data...";
     std::cout.flush();
     //====================================================
     // Create Data structures for easy solution access
@@ -432,7 +432,7 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
                                                                       Vector<DATA_TYPE>& feFncVec){
 
   if(!this->consInterpReady_){
-    std::cout << "Preparing for conservative interpolation of external data... ";
+    std::cout << "++ Preparing for conservative interpolation of external data... ";
     std::cout.flush();
     boost::shared_ptr<Timer> t(new Timer);
     t->Start();
@@ -547,6 +547,8 @@ void CoefFunctionGridNodalInterp<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
   }
 
   //here it gets simple we just take the external solution vector and multiply with matrix
+  //std::cout << this->consInterpMat_->GetNumRows() << " " << this->consInterpMat_->GetNumCols() << std::endl;
+  //std::cout << this->solVec_.GetSize() << " " << feFncVec.GetSize() << std::endl;
   this->consInterpMat_->MultAdd(this->solVec_,feFncVec);
 
 
