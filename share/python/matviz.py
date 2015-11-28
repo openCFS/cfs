@@ -206,7 +206,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
               tmp = args.cell_size.split(',')
               csize = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
               if args.mesh:
-                me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.hom_dir, scale,[8,8,8],args.thres,csize)
+		# number of fine elements in each direction
+                tmp = args.nf.split(',')
+                n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
+                me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")  
               else:
                 viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
@@ -334,6 +337,7 @@ parser.add_argument("--unstructured", help="number of structured elements per co
 parser.add_argument("--nodefile", help="name of the design to node file", default="")
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
+parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
 
 
 args = parser.parse_args()
