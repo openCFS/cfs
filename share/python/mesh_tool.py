@@ -1259,7 +1259,7 @@ def create_mesh_from_tetgen(meshfile, region):
   return mesh
 
 
-def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,thres=0.0,csize = None):
+def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,thres=0.0,csize = None,simp = None):
   print 'WARNING: Currently only used for Apod6 (valid_position_apod6)'
   centers, mi, ma = coords[0:3]  # we cannot use the first region element element dimensions 
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
@@ -1280,8 +1280,11 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
     dz = csize[2]
   # calculate convex hull of non-des_nodes
   hull = Delaunay(nondes_centers)
-  print 'calculating convex hull of non-design done'  
-  ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz)
+  print 'calculating convex hull of non-design done'
+  if simp is None:
+    ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz)
+  else:
+    ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1,None,None, dx,dy,dz)
   print 'interpolation of thicknesses done'
 
   # lowest density = void density
@@ -1311,11 +1314,15 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
     for j in xrange(dy_f,ny + 1,dy_f):
       for i in xrange(0,nx-dx_f + 1,dx_f):    
         coord = out[count]
-        s1, s2, s3 = ip_data[count][0:3]
+        if simp is None:
+          s1, s2, s3 = ip_data[count][0:3]
+        else:
+          s1 = ip_data[count][0]
         l = [i,j,k]
         u = [i+dx_f,j+dy_f,k+dz_f]
         # if s1 < 0 point is out of the convex hull
-        if s1 > 0.0:
+        if s1 > 0.0 and simp is None:
+          # 2scale optimization
           if s1 >= thres or s2 >= thres or s3 >= thres:
             if not valid_position_apod6(coord, coords):
               create_cross_3D(array,l,u,void,void,void,void,res)
@@ -1323,8 +1330,20 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
               create_cross_3D(array,l,u,s1,s2,s3,void,res)
           else:
               create_cross_3D(array,l,u,void,void,void,void,res)
-        else:
+        elif simp is None:
           create_cross_3D(array,l,u,void,void,void,void,res)
+        else:
+          # simp
+          if s1 > 0:
+            if s1 >= thres:
+              if not valid_position_apod6(coord, coords):
+                  array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))
+              else:
+                  array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = numpy.ones((res[0], res[1], res[2]))
+            else:
+                array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))
+          else:
+              array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))             
         count += 1
   print 'calculation of density array done'
   for z in range(nz):
@@ -1370,7 +1389,7 @@ def in_hull(p, hull):
   #  hull = Delaunay(hull)
   return hull.find_simplex(p)>=0    
 
-def create_cross_3D(array,l,u,s1,s2,s3,void,res):
+def create_cross_3D(array,l,u,s1,s2,s3,res):
   # creates 3D cross in array for fine mesh generation; validation of optimal result by FEM
   # l, u are the upper and lower bounds for the subdomain, e.g [lx,ly,lz] [ux,uy,uz]
   # s1,s2,s3 are the cross thicknesses of one cross
@@ -1378,7 +1397,7 @@ def create_cross_3D(array,l,u,s1,s2,s3,void,res):
   # res is the discretization resolution for each cross, e.g. [resx,resy,resz]
   # array is the density array
   
-  array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))
+  array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = s1 * numpy.ones((res[0], res[1], res[2]))
   offx = int((res[0] / 2.) * (1. - s1) + 0.5)
   offy = int((res[1] / 2.) * (1. - s2) + 0.5)
   offz = int((res[2] / 2.) * (1. - s3) + 0.5)

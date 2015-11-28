@@ -592,13 +592,16 @@ def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
       for x in range(nx + 1):
         out[idx] = ((mi[0] + 0.5*dx + float(x) / nx * delta[0], mi[1] + 0.5*dy +  float(y) / ny * delta[1], mi[2] + 0.5*dx + float(z) / nz * delta[2]))
         idx += 1
-
-  v = numpy.zeros((len(s1), 3 if angle is None else 6))
-  v[:, 0] = s1[:, 0]
-  v[:, 1] = s2[:, 0]
-  v[:, 2] = s3[:, 0]
-  if angle is not None:
-	  v[:, 3:6] = angle[:, :]
+  if s2 is None and s3 is None:
+      v = numpy.zeros((len(s1), 1))
+      v[:, 0] = s1[:, 0]
+  else:
+    v = numpy.zeros((len(s1), 3 if angle is None else 6))
+    v[:, 0] = s1[:, 0]
+    v[:, 1] = s2[:, 0]
+    v[:, 2] = s3[:, 0]
+    if angle is not None:
+	     v[:, 3:6] = angle[:, :]
   
   ip_data = ip.griddata(centers, v, out, grad, -1.0)
   # any interpolation, ie. linear interpolation can only interpolate in the convex hull,
