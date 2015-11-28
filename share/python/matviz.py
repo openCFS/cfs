@@ -48,6 +48,10 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+  elif args.parametrization == 'simp':
+    s1 = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    angle = numpy.zeros(((len(s1), 3)))
+    return s1,angle,sh1
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
@@ -73,7 +77,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
         angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception, e:
       print 'could not read angle, ignore it: ', e
-      
+  
   return s1, s2, s3, angle, sh1 
 
 # # show or write either Image or polydata
@@ -150,9 +154,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod':
-
-      s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
+    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod' or args.show == 'simp':
+      if args.show == "simp":
+        args.parametrization = 'simp'
+        s1,angle,sh1 = read_stiff_angle(f, dim_2D, args)
+      else:
+        s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi / 180
@@ -161,12 +168,13 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
       if args.angle_factor <> 1.0:
         print 'scale angle by ' + str(args.angle_factor)
         angle *= args.angle_factor  
-      
-      print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
-  
+      if not args.show == "simp":
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+      else:
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
   
       # viz is either Image or polydata
-      if dim_2D:
+      if dim_2D and not args.show == 'simp':
         v = calc_volume(s1, s2)
         print "Only correct in 2D: volume for regular grid: " + str(v)
         if args.show == "hom_rect": 
@@ -197,7 +205,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           s1 = ones((len(s1), 1)) * 0.25
           s2 = ones((len(s1), 1)) * 0.25
           s3 = ones((len(s1), 1)) * 0.25
-        if args.hom_samples:
+        if args.hom_samples or args.cell_size:
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
@@ -206,13 +214,17 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
               tmp = args.cell_size.split(',')
               csize = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
               if args.mesh:
-		# number of fine elements in each direction
+		            # number of fine elements in each direction
                 tmp = args.nf.split(',')
                 n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
-                me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, args.hom_samples, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize)
-                write_gid_mesh(me, args.mesh+".mesh")  
+                if args.show == 'simp':
+                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize,args.show)
+                else:
+                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize)
+                write_gid_mesh(me, args.mesh+".mesh")
+                exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, args.hom_dir, scale, args.thres,csize)
 
             else:
               viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
@@ -306,7 +318,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'rot', 'stream', 'hom_rect_mod']) 
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'rot', 'stream', 'hom_rect_mod','simp']) 
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
