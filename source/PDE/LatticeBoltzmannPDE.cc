@@ -722,6 +722,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     Vector<double> sol;
     algsys_->GetSolutionVal(sol,0,false);
 
+    std::cout << "solution of adjoint system has size: "<< sol.GetSize() << "\n" << sol.ToString(0,',') << std::endl;
+
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
@@ -755,6 +757,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   {
     Vector<double> pdfs(n_q_);
     Vector<double> adjMoms(n_q_);
+    std::cout << "Adjoint variable in PDE: \n" << adjMoments.ToString(false) << std::endl;
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
@@ -767,8 +770,10 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
       Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s
       double density = CalcLBMDensity(idx);
-      double jx = CalcVelocityX(idx,density) * density;
-      double jy = CalcVelocityY(idx,density) * density;
+      double ux = CalcVelocityX(idx,density);
+      double uy = CalcVelocityY(idx,density);
+      double jx = ux * density;
+      double jy = uy * density;
 
       d_F1_d_rho.Init();
       d_F2_d_rho.Init();
@@ -782,23 +787,23 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
       d_F2_d_rho[8] = -2.0 * jx * jy / density;
       //d_coll_d_s = d_F1_d_s + (I - S/2) * d_F2_d_s
-      Matrix<double> mat(n_q_,n_q_); // I - S/2
-      mat.Init();
-      mat[0][0] = 1.0;
-      mat[1][1] = 1.0 - 0.5 * omega_e_;
-      mat[2][2] = 1.0 - 0.5 * omega_eps_;
-      mat[3][3] = 1.0;
-      mat[4][4] = 1.0 - 0.5 * omega_q_;
-      mat[5][5] = 1.0;
-      mat[6][6] = 1.0 - 0.5 * omega_q_;
-      mat[7][7] = 1.0 - 0.5 * omega_;
-      mat[8][8] = 1.0 - 0.5 * omega_;
-
-      Vector<double> tmp(n_q_);
-      mat.Mult(d_F2_d_rho,tmp);
-      Vector<double> d_coll_d_rho(n_q_);
-      for (unsigned int i = 0; i < n_q_; i ++)
-        d_coll_d_rho[i] = d_F1_d_rho[i] + tmp[i];
+//      Matrix<double> mat(n_q_,n_q_); // I - S/2
+//      mat.Init();
+//      mat[0][0] = 1.0;
+//      mat[1][1] = 1.0 - 0.5 * omega_e_;
+//      mat[2][2] = 1.0 - 0.5 * omega_eps_;
+//      mat[3][3] = 1.0;
+//      mat[4][4] = 1.0 - 0.5 * omega_q_;
+//      mat[5][5] = 1.0;
+//      mat[6][6] = 1.0 - 0.5 * omega_q_;
+//      mat[7][7] = 1.0 - 0.5 * omega_;
+//      mat[8][8] = 1.0 - 0.5 * omega_;
+//
+//      Vector<double> tmp(n_q_);
+//      mat.Mult(d_F2_d_rho,tmp);
+//      Vector<double> d_coll_d_rho(n_q_);
+//      for (unsigned int i = 0; i < n_q_; i ++)
+//        d_coll_d_rho[i] = d_F1_d_rho[i] + tmp[i];
 //      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
 //      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
 //      std::cout << "tmp: " << tmp.ToString() << std::endl;
@@ -807,8 +812,41 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //      std::cout << "adjoint moms: " << adjMoms.ToString() << std::endl;
 //      std::cout << "term1: " << (jx * jx + jy * jy) / density << " + inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
 //      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
-      double sens = d_coll_d_rho.Inner(adjMoms);
+//      double sens = d_coll_d_rho.Inner(adjMoms);
 //      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
+      Vector<double> d_coll_d_s(n_q_), dmEq_ds(n_q_), dm_ds(n_q_);
+      double u2 = ux * ux + uy * uy;
+      double s = 1-elements[idx]; // value of design variable
+      dmEq_ds[0] = 0.0;
+      dmEq_ds[1] = -6*(1-s)*density*u2;
+      dmEq_ds[2] = 6*(1-s)*density*u2;
+      dmEq_ds[3] = -density*ux;
+      dmEq_ds[4] = density*ux;
+      dmEq_ds[5] = -density*uy;
+      dmEq_ds[6] = density*uy;
+      dmEq_ds[7] = -2*(1-s)*density*(ux*ux-uy*uy);
+      dmEq_ds[8] = -2*(1-s)*density*ux*uy;
+
+      dm_ds[0] = 0;
+      dm_ds[1] = 0;
+      dm_ds[2] = 0;
+      dm_ds[3] = -jx;
+      dm_ds[4] = 0;
+      dm_ds[5] = -jy;
+      dm_ds[6] = 0;
+      dm_ds[7] = 0;
+      dm_ds[8] = 0;
+
+      Matrix<double> relaxation(n_q_,n_q_);
+      relaxation.Init();
+      relaxation[1][1] = omega_e_;
+      relaxation[2][2] = omega_eps_;
+      relaxation[4][4] = omega_q_;
+      relaxation[6][6] = omega_q_;
+      relaxation[7][7] = omega_;
+      relaxation[8][8] = omega_;
+      d_coll_d_s = dm_ds -relaxation * (dm_ds - dmEq_ds);
+      double sens =  d_coll_d_s.Inner(adjMoms);
       de->AddGradient(f, sens);
     }
   }

@@ -865,6 +865,8 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
 
   double rho = moments[0];
+//  double jx = moments[3] * scales[elemId];
+//  double jy = moments[5] * scales[elemId];
   double jx = moments[3];
   double jy = moments[5];
   double ux = jx / rho;
@@ -884,78 +886,101 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   // non-zero entries of d_mEq/d_m
   Matrix<double> d_mEq_d_m(n_q_,n_q_);
   d_mEq_d_m.InitValue(0.0);
-  d_mEq_d_m[0][0] = 1.0; // 0th row of d_mEq/d_m describes d_mEq/d_rho
-  d_mEq_d_m[1][0] = -2.0 - 3.0 * u2;
-  d_mEq_d_m[2][0] = 1.0 + 3.0 * u2;
-  d_mEq_d_m[7][0] = -(ux * ux - uy * uy);
-  d_mEq_d_m[8][0] = -ux * uy;
+//  d_mEq_d_m[0][0] = 1.0; // 0th row of d_mEq/d_m describes d_mEq/d_rho
+//  d_mEq_d_m[1][0] = -2.0 - 3.0 * u2;
+//  d_mEq_d_m[2][0] = 1.0 + 3.0 * u2;
+//  d_mEq_d_m[7][0] = -(ux * ux - uy * uy);
+//  d_mEq_d_m[8][0] = -ux * uy;
+//
+//  d_mEq_d_m[1][3] = 6.0 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
+//  if(elemId == 4) {
+//    std::cout << "d_mEq_d_m[1][3]=" << d_mEq_d_m[1][3] << "= 6.0 * " << ux << std::endl;
+//  }
+//  d_mEq_d_m[2][3] = -6.0 * ux;
+//  d_mEq_d_m[3][3] = 1.0;
+//  d_mEq_d_m[4][3] = -1.0;
+//  d_mEq_d_m[7][3] = 2.0 * ux;
+//  d_mEq_d_m[8][3] = uy;
+//
+//  d_mEq_d_m[1][5] = 6.0 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
+//  d_mEq_d_m[2][5] = -6.0 * uy;
+//  d_mEq_d_m[5][5] = 1.0;
+//  d_mEq_d_m[6][5] = -1.0;
+//  d_mEq_d_m[7][5] = -2.0 * uy;
+//  d_mEq_d_m[8][5] = ux;
 
-  d_mEq_d_m[1][3] = 6.0 * ux; // 3th row of d_mEq/d_m describes d_mEq/d_jx
-  if(elemId == 4) {
-    std::cout << "d_mEq_d_m[1][3]=" << d_mEq_d_m[1][3] << "= 6.0 * " << ux << std::endl;
-  }
-  d_mEq_d_m[2][3] = -6.0 * ux;
-  d_mEq_d_m[3][3] = 1.0;
-  d_mEq_d_m[4][3] = -1.0;
-  d_mEq_d_m[7][3] = 2.0 * ux;
-  d_mEq_d_m[8][3] = uy;
+  double por = scales[elemId];
+  double por2 = scales[elemId] * scales[elemId];
+  d_mEq_d_m[0][0] = 1.0;
+  d_mEq_d_m[1][0] = - 2.0 - 3.0 * por2 * u2;
+  d_mEq_d_m[2][0] = 1.0 + 3.0 * por2 * u2;
+  d_mEq_d_m[7][0] = - por2 * (ux * ux - uy * uy);
+  d_mEq_d_m[8][0] = - por2 * ux * uy;
 
-  d_mEq_d_m[1][5] = 6.0 * uy; // 5th row of d_mEq/d_m describes d_mEq/d_jy
-  d_mEq_d_m[2][5] = -6.0 * uy;
-  d_mEq_d_m[5][5] = 1.0;
-  d_mEq_d_m[6][5] = -1.0;
-  d_mEq_d_m[7][5] = -2.0 * uy;
-  d_mEq_d_m[8][5] = ux;
+  d_mEq_d_m[1][3] = 6.0 * por2 * ux;
+  d_mEq_d_m[2][3] = -6.0 * por2 * ux;
+  d_mEq_d_m[3][3] = por;
+  d_mEq_d_m[4][3] = -por;
+  d_mEq_d_m[7][3] = 2.0 * por2 * ux;
+  d_mEq_d_m[8][3] = por2 * uy;
 
-  Matrix<double> d_F1_d_m(n_q_,n_q_);
-  d_F1_d_m.InitValue(0.0);
-  double alpha = CalcResistanceCoeff(elemId);
-  d_F1_d_m[3][3] = -alpha; // d_F1_d_jx
-  d_F1_d_m[4][3] = alpha;
-  d_F1_d_m[5][5] = -alpha; // d_F1_d_jy
-  d_F1_d_m[6][5] = alpha;
+  d_mEq_d_m[1][5] = 6.0 * por2 * uy;
+  d_mEq_d_m[2][5] = -6.0 * por2 * uy;
+  d_mEq_d_m[5][5] = por;
+  d_mEq_d_m[6][5] = -por;
+  d_mEq_d_m[7][5] = -2.0 * por2 * uy;
+  d_mEq_d_m[8][5] = por2 * ux;
 
-  Matrix<double> d_F2_d_m(n_q_,n_q_);
-  d_F2_d_m.InitValue(0.0);
-  d_F2_d_m[1][0] = 6.0 * u2; // d_F2_d_rho; rho is LBM density
-  d_F2_d_m[2][0] = -6.0 * u2;
-  d_F2_d_m[7][0] = 2.0 * (ux * ux - uy * uy);
-  d_F2_d_m[8][0] = 2.0 * ux * uy;
 
-  d_F2_d_m[1][3] = -12.0 * ux; // d_F2/d_jx
-  d_F2_d_m[2][3] = 12.0 * ux;
-  d_F2_d_m[7][3] = -4.0 * ux;
-  d_F2_d_m[8][3] = -2.0 * uy;
+//  Matrix<double> d_F1_d_m(n_q_,n_q_);
+//  d_F1_d_m.InitValue(0.0);
+//  double alpha = CalcResistanceCoeff(elemId);
+//  d_F1_d_m[3][3] = -alpha; // d_F1_d_jx
+//  d_F1_d_m[4][3] = alpha;
+//  d_F1_d_m[5][5] = -alpha; // d_F1_d_jy
+//  d_F1_d_m[6][5] = alpha;
+//
+//  Matrix<double> d_F2_d_m(n_q_,n_q_);
+//  d_F2_d_m.InitValue(0.0);
+//  d_F2_d_m[1][0] = 6.0 * u2; // d_F2_d_rho; rho is LBM density
+//  d_F2_d_m[2][0] = -6.0 * u2;
+//  d_F2_d_m[7][0] = 2.0 * (ux * ux - uy * uy);
+//  d_F2_d_m[8][0] = 2.0 * ux * uy;
+//
+//  d_F2_d_m[1][3] = -12.0 * ux; // d_F2/d_jx
+//  d_F2_d_m[2][3] = 12.0 * ux;
+//  d_F2_d_m[7][3] = -4.0 * ux;
+//  d_F2_d_m[8][3] = -2.0 * uy;
+//
+//  d_F2_d_m[1][5] = -12.0 * uy; // d_F2/d_jy
+//  d_F2_d_m[2][5] = 12.0 * uy;
+//  d_F2_d_m[7][5] = 4.0 * uy;
+//  d_F2_d_m[8][5] = -2.0 * ux;
+//  d_F2_d_m *= alpha;
 
-  d_F2_d_m[1][5] = -12.0 * uy; // d_F2/d_jy
-  d_F2_d_m[2][5] = 12.0 * uy;
-  d_F2_d_m[7][5] = 4.0 * uy;
-  d_F2_d_m[8][5] = -2.0 * ux;
-  d_F2_d_m *= alpha;
+//  if (elemId == 4) {
+//    std::cout << "\n Element 4\n d_mEq_d_m\n:";
+//    for (int i = 0; i < n_q_; i++) {
+//      for (int j = 0; j < n_q_; j++)
+//        if (d_mEq_d_m[i][j] != 0)
+//          std::cout << "(" << i << "," << j << "): " << d_mEq_d_m[i][j] << std::endl;
+//    }
+//    std::cout << "\n d_F1_d_m:\n";
+//    for (int i = 0; i < n_q_; i++) {
+//      for (int j = 0; j < n_q_; j++)
+//        if (d_F1_d_m[i][j] != 0)
+//          std::cout << "(" << i << "," << j << "): " << d_F1_d_m[i][j] << std::endl;
+//    }
+//    std::cout << "\n d_F2_d_m:\n";
+//    for (int i = 0; i < n_q_; i++) {
+//      for (int j = 0; j < n_q_; j++)
+//        if (d_F2_d_m[i][j] != 0)
+//          std::cout << "(" << i << "," << j << "): " << d_F2_d_m[i][j] << std::endl;
+//    }
+//  }
 
-  if (elemId == 4) {
-    std::cout << "\n Element 4\n d_mEq_d_m\n:";
-    for (int i = 0; i < n_q_; i++) {
-      for (int j = 0; j < n_q_; j++)
-        if (d_mEq_d_m[i][j] != 0)
-          std::cout << "(" << i << "," << j << "): " << d_mEq_d_m[i][j] << std::endl;
-    }
-    std::cout << "\n d_F1_d_m:\n";
-    for (int i = 0; i < n_q_; i++) {
-      for (int j = 0; j < n_q_; j++)
-        if (d_F1_d_m[i][j] != 0)
-          std::cout << "(" << i << "," << j << "): " << d_F1_d_m[i][j] << std::endl;
-    }
-    std::cout << "\n d_F2_d_m:\n";
-    for (int i = 0; i < n_q_; i++) {
-      for (int j = 0; j < n_q_; j++)
-        if (d_F2_d_m[i][j] != 0)
-          std::cout << "(" << i << "," << j << "): " << d_F2_d_m[i][j] << std::endl;
-    }
-  }
-
-  Matrix<double> relax_tmp(relaxation);
-  relax_tmp *= 0.5; // matrix is diagonal
+//  Matrix<double> relax_tmp(relaxation);
+//  relax_tmp *= 0.5; // matrix is diagonal
 
   if (inlet.Contains(elemId))
   {
@@ -1070,10 +1095,11 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
   {
     Matrix<double> tmp1 = identity;
     tmp1.Add(-1.0,d_mEq_d_m);
-    Matrix<double> tmp2 = identity;
-    tmp2.Add(-1.0,relax_tmp);
+//    Matrix<double> tmp2 = identity;
+//    tmp2.Add(-1.0,relax_tmp);
     // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
-    adjCollision[elemId] = identity - relaxation * tmp1 + d_F1_d_m + tmp2 * d_F2_d_m;
+//    adjCollision[elemId] = identity - relaxation * tmp1 + d_F1_d_m + tmp2 * d_F2_d_m;
+    adjCollision[elemId] = identity - relaxation * tmp1;
 //    std::cout << "identity:\n" << identity.ToString(0,true) << "\n";
 //    std::cout << "relaxation: \n" << relaxation.ToString(0,true) << "\n";
 //    std::cout << "dmEq_dm:\n" << d_mEq_d_m.ToString(0,true) << "\n";
@@ -1248,6 +1274,11 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           }
 
           transformation.Mult(pdfs,moments); // transform moments  m = M*f
+
+// using porosity model of Pingen [u*=(1-s)u]
+	  
+          moments[3] = scales[index] * moments[3];
+          moments[5] = scales[index] * moments[5];
           CalcEquilMoments(moments, eqMoments); // compute equilibirum moments from moments
 //          subtrahend.Resize(n_q_);
 //          invM_S.Mult(moments - m_eq,subtrahend); // back transformation with relaxation
@@ -1273,8 +1304,8 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           }
 
           // m* = m - S * (m - m_eq) + F1 + (I - S/2) * F2
-          momentsAfterCollision = moments - term1 + f1 + term2;
-
+//          momentsAfterCollision = moments - term1 + f1 + term2;
+          momentsAfterCollision = moments - term1;
           collResult.Resize(n_q_);
 
           invTransformation.Mult(momentsAfterCollision,collResult);
@@ -1407,6 +1438,11 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       Matrix<double> collMatrixT(n_q_,n_q_);
       collMatrix.Transpose(collMatrixT);
       momentsAfterCollision = d_diss_d_m[index] + collMatrixT * moments;
+//      momentsAfterCollision = collMatrix * moments;
+
+//      if (index == 4) {
+//        std::cout << "Collision matrix:\n " << collMatrix.ToString(0,true) << std::endl;
+//      }
 
       Vector<double> collResult(n_q_);
       Matrix<double> transpose(n_q_, n_q_);
@@ -1471,15 +1507,15 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 {
   Vector<double> pdfs(n_q_);
   double dissipation = GetDissipation();
-  std::cout << "Dissipation: " << dissipation << std::endl;
+//  std::cout << "Dissipation: " << dissipation << std::endl;
   for (int elem = 0; elem < nNodes_; elem++) {
     for (int dir = 0; dir < n_q_; dir++)
       pdfs[dir] = PDF(cur_,elem,dir);
 
     Vector<double> moms(n_q_);
     transformation.Mult(pdfs,moms);
-    Vector<double> eqMoms;
-    CalcEquilMoments(moms,eqMoms);
+//    Vector<double> eqMoms;
+//    CalcEquilMoments(moms,eqMoms);
 
 //    if (rel.Contains(elem))
 //    {// we assume that dissipation does not happen on the boundary
@@ -1541,6 +1577,11 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 //    exit(-1);
     AdjointPropagation(adjCur_,adjNext_);
 
+//    std::cout << "Adjoint entry for element 4: ";
+//    for (int dir = 0; dir < n_q_; dir++)
+//      std::cout << AMoments(adjCur_,4,dir) << " ";
+//    std::cout << std::endl;
+
     if((it == 0 || it % 100 == 0))
     {
       R = CalcResidual(adjCur_,adjNext_,true);
@@ -1588,6 +1629,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     //        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
     //    }
   }
+
+  std::cout << "adjoint variable:\n" << adjMoments_[adjCur_].ToString(false) << std::endl;
 
   if(R >= 1000)
     EXCEPTION("In adjoint LBM iteration " << it << " residuum " << R << " too large ... abort");
