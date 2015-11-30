@@ -365,7 +365,7 @@ private:
   // stores how many iterations were necessary to solve one flow problem with LBM
   unsigned int numIterations_;
 
-  /** the complete structure, special elements (negative) and densities */
+  /** the complete structure, special elements (negative) and porosities */
   StdVector<double> elements;
 
   /** This are the indices of the later Jacobian matrix entries which are non-singular.
