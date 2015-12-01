@@ -87,7 +87,7 @@ SET(ENV{LC_MESSAGES} "en_EN")
 SET(ENV{LANG} C)
 
 #-----------------------------------------------------------------------------
-# Include some utility macros (for building ext. libs, etc...) 
+# Include some utility macros (for building ext. libs, etc...)
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")
 
@@ -95,14 +95,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "10")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Verlorene Soehne")
+SET(CFS_NAME "Back To The Future")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -139,7 +139,7 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
 
 ELSEIF(UNIX OR MINGW)
   EXECUTE_PROCESS(
-    COMMAND id -u -nr 
+    COMMAND id -u -nr
     WORKING_DIRECTORY "."
     OUTPUT_VARIABLE CFS_BUILD_USER
     )
@@ -165,7 +165,7 @@ OPTION(CFS_DEPS_PRECOMPILED
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
 OPTION(USE_PYTHON
-  "Build our own Python for CFS++." 
+  "Build our own Python for CFS++."
   ${USE_PYTHON_DEFAULT})
 
 #-----------------------------------------------------------------------------
@@ -262,7 +262,7 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
     FORCE)
-  # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")   
+  # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------

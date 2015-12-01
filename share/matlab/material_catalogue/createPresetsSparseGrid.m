@@ -1,4 +1,4 @@
-dim  = 2;
+dim  = 3;
 level = 5;
 
 % Get current path
