@@ -129,6 +129,8 @@ namespace CoupledField
      * @return the pde or NULL if !throw_exception */
     SinglePDE* GetSinglePDE(const std::string pdename, bool throw_exception = true);
 
+    const StdVector<SinglePDE*> GetSinglePDEs() const { return ptSinglePde_; }
+
     //! Get driver object
     BaseDriver* GetDriver();
 
@@ -186,9 +188,9 @@ namespace CoupledField
      * @param regionId the region for the ersatz material */
      void SetDesign(DesignSpace* data) { this->designSpace_ = data; }
 
-    /** The post init does more advancec stuff like reading the ersatz material.
+    /** The post init does more advanced stuff like reading the ersatz material.
      * For this purpose the constructor needs to be finished. 
-     * @excpetion checks for error, thefore this is a void method */
+     * @excpetion checks for error, therefore this is a void method */
     void PostInit( UInt sequenceStep = 1 );
 
     /** solves the problem, either the "driver" or the optimization problem.

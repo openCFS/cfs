@@ -36,7 +36,9 @@ ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
 
 void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 {
-  if(pde->GetName() != "mechanic") return;
+  if(context->pde->GetName() != "mechanic")
+    return;
+
   // TODO: extend for multi-region-optimization if necessary
   assert(false);
   const BaseMaterial* material = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
@@ -47,7 +49,7 @@ void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 
 void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                                     const unsigned int e, const SubTensorType type,
-                                    Application app)
+                                    App::Type app)
 { 
   assert(false);
   /* FIXME
@@ -74,7 +76,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
 
   switch(app)
   {
-  case MECH:
+  case App::MECH:
     {
       // set element solution to matrix
       // use forward as adjoint because it is selfadjoint anyway (and make sign mistake!)
@@ -95,7 +97,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
       strain->CalcStrainVec(vecadjoint, 1, it);
     }
     break;
-  case HEAT:
+  case App::HEAT:
     node_store_sol->GetElemSolution(vecforward, it, 0);
     node_store_sol->GetElemSolution(vecadjoint, it, 0);
     break;
@@ -111,7 +113,8 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
 
 linElastInt* ShapeGrad::getBDBForm()
 {
-  if(pde->GetName() != "mechanic") return NULL;
+  if(context->pde->GetName() != "mechanic")
+    return NULL;
   assert(false);
   return NULL; // FIXME dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "LinElastInt"));
 }
@@ -121,7 +124,9 @@ void ShapeGrad::PostInit()
 {
   ErsatzMaterial::PostInit();
 
-  if(pde->GetName() != "mechanic") return;
+  if(context->pde->GetName() != "mechanic")
+    return;
+
   mech_mat_ = dynamic_cast<MechMat*>(material); // just created in PostInit()
   assert(material != NULL);
 }

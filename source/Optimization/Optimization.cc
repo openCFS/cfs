@@ -75,7 +75,7 @@ DEFINE_LOG(opt, "opt")
 
 // instantiation of the static elements
 Enum<Optimization::Optimizer>        Optimization::optimizer;
-Enum<Optimization::Application>      Optimization::application;
+Enum<App::Type>                      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
 Context*                             Optimization::context;
@@ -84,7 +84,6 @@ ContextManager                       Optimization::contextManager;
 
 Optimization::Optimization()
 {
-  this->pde = NULL; // set in PostInit()
   this->assemble_ = NULL;
   this->lastStoredResult_ = -1;
   this->design = NULL;
@@ -175,8 +174,8 @@ Optimization::~Optimization()
 
 void Optimization::PostInit()
 {
-  SetPDEs(ParseSystem());
-  this->assemble_ = pde->GetAssemble();
+  assert(context->pde != NULL);
+  this->assemble_ = context->pde->GetAssemble();
 
 }
 
@@ -443,19 +442,19 @@ void Optimization::SetEnums()
   OptimizationMaterial::system.Add(OptimizationMaterial::ACOUSTIC, "acoustic");
   OptimizationMaterial::system.Add(OptimizationMaterial::LBM, "lbm");
 
-  application.SetName("Optimization::Application");
-  application.Add(NO_APP, "no_app");
-  application.Add(ACOUSTIC, "acoustic");
-  application.Add(HEAT, "heat");
-  application.Add(LAPLACE, "laplace");
-  application.Add(MECH, "mech");
-  application.Add(MASS, "mass");
-  application.Add(ELEC, "elec");
-  application.Add(PIEZO_COUPLING, "piezoCoupling");
-  application.Add(PRESSURE, "pressure");
-  application.Add(CHARGE_DENSITY, "chargeDensity");
-  application.Add(STRESS, "stress");
-  application.Add(LBM, "lbm");
+  application.SetName("App::Type");
+  application.Add(App::NO_APP, "no_app");
+  application.Add(App::ACOUSTIC, "acoustic");
+  application.Add(App::HEAT, "heat");
+  application.Add(App::LAPLACE, "laplace");
+  application.Add(App::MECH, "mech");
+  application.Add(App::MASS, "mass");
+  application.Add(App::ELEC, "elec");
+  application.Add(App::PIEZO_COUPLING, "piezoCoupling");
+  application.Add(App::PRESSURE, "pressure");
+  application.Add(App::CHARGE_DENSITY, "chargeDensity");
+  application.Add(App::STRESS, "stress");
+  application.Add(App::LBM, "lbm");
 
   LevelSet::Action::type.SetName("LevelSet::Action::Type");
   LevelSet::Action::type.Add(LevelSet::Action::SIGNED_DISTANCE_FIELD, "signedDistanceField");
@@ -665,7 +664,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   assert(!(!me->IsEnabled() && excite->label == ""));
 
   if(excite->reassemble)
-    pde->GetAssemble()->ResetMatrixReassembly();
+    context->pde->GetAssemble()->ResetMatrixReassembly();
 
   id.excite = me->IsEnabled() ? excite->GetFullLabel() : "";
   id.adjoint = false;
@@ -1143,77 +1142,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   if(out) out->flush();
 }
 
-void Optimization::SetPDEs(OptimizationMaterial::System sys)
-{
-  switch(sys)
-  {
-  case OptimizationMaterial::MECH:
-  case OptimizationMaterial::PIEZOCOUPLING:
-    pde = domain->GetSinglePDE("mechanic");
-    pdes[MECH] = pde;
-    break;
 
-  case OptimizationMaterial::HEAT:
-    pde = domain->GetSinglePDE("heatConduction");
-    pdes[HEAT] = pde;
-    break;
-
-  case OptimizationMaterial::ACOUSTIC:
-    pde = domain->GetSinglePDE("acoustic", true);
-    pdes[ACOUSTIC] = pde;
-    break;
-
-  case OptimizationMaterial::ELEC:
-    pde = domain->GetSinglePDE("electrostatic", true);
-    pdes[ELEC] = pde;
-    break;
-
-  case OptimizationMaterial::LBM:
-    pde = domain->GetSinglePDE("LatticeBoltzmann", true);
-    pdes[LBM] = pde;
-    break;
-
-  default:
-    std::cout << "sys = " << sys << std::endl;
-    assert(false);
-  }
-
-  // make it more smart when using energy flux for other pdes
-  if(objectives.Has(Function::ENERGY_FLUX))
-    pdes[ACOUSTIC] = domain->GetSinglePDE("acoustic", true);
-
-  // ELEC is set in PiezoSIMP()
-}
-
-
-SinglePDE* Optimization::ToPDE(Application app, bool throw_exception) const
-{
-  map<Application, SinglePDE*>::const_iterator it = pdes.find(app);
-  if(it != pdes.end())
-    return it->second;
-
-  // nothing found
-  if(throw_exception)
-    EXCEPTION("No PDE '" << app << "' stored");
-
-  return NULL;
-}
-
-
-Optimization::Application Optimization::ToApp(DesignElement::Type dt)
-{
-  switch(dt)
-  {
-  case DesignElement::DENSITY:
-    return MECH;
-  case DesignElement::ACOU_DENSITY:
-    return ACOUSTIC;
-  case DesignElement::POLARIZATION:
-    return ELEC;
-  default:
-    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to Application");
-  }
-}
 
 DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
 {
@@ -1225,17 +1154,20 @@ DesignElement::Type Optimization::ToDesign(const SinglePDE* pde) const
   throw Exception("invalid");
 }
 
-Optimization::Application Optimization::ToApp(const SinglePDE* pde) const
+App::Type Optimization::ToApp(DesignElement::Type dt)
 {
-  if(pde->GetName() == "electrostatic") return ELEC;
-  if(pde->GetName() == "mechanic") return MECH;
-  if(pde->GetName() == "heatConduction") return HEAT;
-  if(pde->GetName() == "acoustic") return ACOUSTIC;
-  if(pde->GetName() == "LatticeBoltzmann") return LBM;
-
-  throw Exception("invalid");
+  switch(dt)
+  {
+  case DesignElement::DENSITY:
+    return App::MECH;
+  case DesignElement::ACOU_DENSITY:
+    return App::ACOUSTIC;
+  case DesignElement::POLARIZATION:
+    return App::ELEC;
+  default:
+    EXCEPTION("DesignType " << DesignElement::type.ToString(dt) << " doesn't map to App::Type");
+  }
 }
-
 
 
 Optimization::Log::Log()

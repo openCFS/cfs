@@ -108,7 +108,7 @@ public:
     ELEMENT_VECTORS = 0, RAW_VECTOR = 1, RHS_VECTOR = 2, SEL_VECTOR = 3, GRIDELEM_VECTORS = 4
   } StorageType;
 
-  static SolutionType GetSolutionType(SinglePDE* pde, Optimization::Application app = Optimization::NO_APP);
+  static SolutionType GetSolutionType(SinglePDE* pde, App::Type app = App::NO_APP);
 
   /** Copies the solution for the pde in our own storage.
    * In the ELEMENT_VECTORS case make sure, that the solution is in the PDE!
@@ -116,15 +116,15 @@ public:
    * In ELEMENT_VECTORS also the registered pseudo elements are considered.
    * @param st if we copy the vector as RAW_VECTOR or element wise
    * @param pde will me mech in SIMP and also elec in PiezoSIMP
-   * @param app redundant to pde. NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
+   * @param app redundant to pde. App::NO_APP for non ELEMENT_VECTOR as long as OLAS makes no difference
    * @param save_sol when an adjoint system was solved, one has to call
    *        "SaveSolution()" in the pde such that we can extract it element wise.
    *        Only relevant for st = ELEMENT_VECTORS ---------- FIXE! still required!
    * @return NULL if st = ELEMENT_VECTOR, otherwise it is the vector */
-  SingleVector* Read(StorageType st, SinglePDE* pde, Optimization::Application app = Optimization::NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+  SingleVector* Read(StorageType st, SinglePDE* pde, App::Type app = App::NO_APP, bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
 
   template<class T>
-  SingleVector* Read(StorageType st, SinglePDE* pde, Optimization::Application app,  bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
+  SingleVector* Read(StorageType st, SinglePDE* pde, App::Type app,  bool save_sol = false, DERIVType derivative = NO_DERIVTYPE);
 
   /** Writes the solution (raw vector) back to the pde */
   void Write(SinglePDE* pde);
@@ -154,13 +154,13 @@ public:
   std::string ToString();
 
   /** This is an element wise storage of the solution
-   * the Application shall be MECH or ELEC */
-  std::map<Optimization::Application, StdVector<SingleVector*> > elem;
+   * the App::Type shall be App::MECH or App::ELEC */
+  std::map<App::Type, StdVector<SingleVector*> > elem;
 
   /** This is an element wise storage of the solution
    * considering all elements from the grid instead of all design elements only
    * needed by shape optimization */
-  std::map<Optimization::Application, StdVector<SingleVector*> > gridelem;
+  std::map<App::Type, StdVector<SingleVector*> > gridelem;
 
   /** for eigenvalue problems, this is the frequency (not the eigenvalue)
    * @see StateSolutions::CollectEigenfrequencies() */
@@ -180,20 +180,20 @@ private:
 
   /** This is the algsys solution vector. */
   SingleVector* raw;
-  //std::map<Application, SingleVector* > raw;
+  //std::map<App::Type, SingleVector* > raw;
 
   /** This stores the right hand sides in raw format.
    * In the adjoint case this might be based on select for output like objectives.
    * In the forward case this stores the rhs from the forward excitation to perform multiple
    * load cases. */
   SingleVector* rhs;
-  // std::map<Application, SingleVector* > rhs;
+  // std::map<App::Type, SingleVector* > rhs;
 
   /** For output like objectives this stores the selection l resp. L which is found by
    * an artificial load-case in the adjoint section. Otherwise it is not used.
    * This kind of base for the rhs information which is additionally multiplied by -1, -1 u^*, ...*/
   SingleVector* select;
-  //std::map<Application, SingleVector* > select;
+  //std::map<App::Type, SingleVector* > select;
 
   /** Reference to our optimization problem */
   ErsatzMaterial* em_;

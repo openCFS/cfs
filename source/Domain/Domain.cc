@@ -298,7 +298,6 @@ void Domain::ReadGrid(const std::string & gridId,
 
 void Domain::PostInit(UInt sequenceStep)
 {
-  
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
   // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init.
@@ -309,21 +308,25 @@ void Domain::PostInit(UInt sequenceStep)
 
   SetDriver(driver); // see above!
 
+  // initialize the driver
+  // Note: In case this is not the parent / main domain, we do not read a
+  // restart file.
+  driver->Init(isParentDomain_ ? progOpts->GetRestart() : false);
+
+
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if (GetParamRoot()->Has("optimization"))
+  {
     Optimization::CreateInstance(); // has an SetOptimization() included
-  else {
+  }
+  else
+  {
     // check if we simulate with ersatz material - after driver and only if not used with optimization
     // if used with optimization loadErsatzMaterial specifies the starting point for optimization
     // and is loaded from Optimization::PostInit because scaling (and EvalObjectiveGradient) is already done before we reach here
     if(DensityFile::NeedLoadErsatzMaterial())
       designSpace_ = DensityFile::ReadErsatzMaterial();
   }
-
-  // initialize the driver
-  // Note: In case this is not the parent / main domain, we do not read a 
-  // restart file.
-  driver->Init( isParentDomain_ ? progOpts->GetRestart() : false );
 
   // we need driver->Init() first
   if(optimization_ != NULL)
@@ -334,8 +337,10 @@ void Domain::PostInit(UInt sequenceStep)
     optimization_->PostInitSecond();
   }
 
+  // note that in the common case isParentDomain_ is true
   if(multiSequenceDriver_ && !isParentDomain_)
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
+
 
 }
 
@@ -854,7 +859,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 //
 //    }
 //    
-    // *** ACOU-MECH Coupling ***
+    // *** ACOU-App::MECH Coupling ***
     else if (couplingName == "acouMechDirect")
     {
 
@@ -883,7 +888,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
                                       simState_, this );
     }
     
-    // *** FLUID-MECH Coupling ***
+    // *** FLUID-App::MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
     {
 
@@ -906,7 +911,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new WaterWaveAcousticCoupling(pde1, pde2, pairNodes[i], info_,
                                                simState_, this );
     }
-    // *** Water Wave-MECH Coupling ***
+    // *** Water Wave-App::MECH Coupling ***
     else if (couplingName == "waterWaveMechDirect")
     {
 
@@ -918,7 +923,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
 //
 //    // ------------------------------------------------------------------------
-//    // *** THERMO-MECH Coupling ***
+//    // *** THERMO-App::MECH Coupling ***
 //    else if (couplingName == "thermoMechDirect")
 //    {
 //

@@ -104,7 +104,7 @@ void ShapeOptimizer::SolveProblem()
       optimization->SolveStateProblem();
     }
     
-    if(dynamic_cast<ErsatzMaterial*>(optimization)->ToPDE(Optimization::MECH, false) != NULL)
+    if(Optimization::context->ToPDE(App::MECH, false) != NULL)
     {
       if(topgrad_ && curr_iter > 0)
       {

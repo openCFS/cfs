@@ -82,11 +82,6 @@ namespace CoupledField
           * minimum or max iterations is reached. Overwrite on demand*/
          void SolveProblem();
 
-         /** Where we apply the transformation.
-          * A subset of the values are PDE identifiers for ToPDE() and ToApp().
-          * The heat and acoustic transfer functions are Laplace! */
-         typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Application;
-
          /** Not the optimization problem but the solver! */
          typedef enum { OPTIMALITY_CONDITION, IPOPT_SOLVER, SCPIP_SOLVER, SNOPT_SOLVER, KNITRO_SOLVER,
                         FEAS_PP_SOLVER, SHAPE_SOLVER, EVALUATE_INITIAL_DESIGN, GRADIENT_CHECK  } Optimizer;
@@ -94,13 +89,12 @@ namespace CoupledField
          /** to convert string/enum for this type */
          static Enum<Optimizer> optimizer;
 
-         static Enum<Application> application;
+         static Enum<App::Type> application;
 
          /** the commit mode defines what of the iterations is to be written to gid, ... */
          typedef enum { FORWARD, ADJOINT, BOTH, EACH_FORWARD, EACH_ADJOINT } CommitMode;
 
          static Enum<CommitMode> commitMode;
-         
 
          /** The DesignSpace element is a container for the complex DesignElements.
           * There are service methods in the container to exchange with external
@@ -235,27 +229,11 @@ namespace CoupledField
         Assemble* GetAssemble() { return assemble_; }
 
         /** Helper to convert from natural solution/design to application
-         * @param DesignElement::DENSITY -> MECH, DesignElement::POLARIZATION -> ELEC */
-        static Application ToApp(DesignElement::Type dt);
+         * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */
+        static App::Type ToApp(DesignElement::Type dt);
 
         /** Default standard design type (not mass) by PDE */
         DesignElement::Type ToDesign(const SinglePDE* pde) const;
-
-        /** Helper that converts from mechPDE to MECH and elecPDE to ELEC, ...
-         * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
-         *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
-         * @throws if neither mechPDE nor elecPDE
-         * @see ToPDE()
-         * @see SetPDEs() */
-        Application ToApp(const SinglePDE* pde) const;
-
-        /** Find our PDE in SIMP by application from the pdes map
-         * @see ToApp()*/
-        SinglePDE* ToPDE(Application app, bool throw_exception = true) const;
-
-        /** This is to be overwritten for any case there are other PDEs in ErsatzMaterial::pdes to be set.
-         * PiezoSIMP does it simply in the constructor */
-        virtual void SetPDEs(OptimizationMaterial::System sys);
 
         /** optimizer type */
         Optimizer GetOptimizerType() const { return optimizer_; }
@@ -314,14 +292,6 @@ namespace CoupledField
          * @param step_val the "label" of the "transient" step. -1 is the integer counter */
         virtual void StoreResults(double step_val = -1.0);
 
-        /** The order of the pdes is not defined, Therefore we use the map
-         * @see ToApp()
-         * @see ToPDE() */
-        std::map<Application, SinglePDE*> pdes;
-
-        /** This is simple one SinglePDE from pdes.
-         * FIXME -> Context*/
-        SinglePDE* pde;
 
         /** Our MultipleExcitation objecte - by default disabled. Even if we have potenitally more than one
          * "multipleExcitation" element in the xml problem file in the case of multi sequence optimization we have

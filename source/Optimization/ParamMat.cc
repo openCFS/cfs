@@ -57,7 +57,7 @@ void ParamMat::PostInit()
 
 
 template <class T1, class T2>
-void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
+void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode mode, double ev)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
@@ -66,7 +66,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
   int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
   switch(app)
   {
-  case MECH:
+  case App::MECH:
   {
     const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
@@ -86,7 +86,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
     }
     break;
   }
-  case MASS:
+  case App::MASS:
   {
     const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
@@ -100,7 +100,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Applic
 }
 
 
-void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // this is only called from CalcU1KU2 which is only used in derivative calculation (compliance, tracking, volume)
   // therefore we always return a derivative, de indicating which
@@ -112,10 +112,10 @@ void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type typ
 
   switch(app)
   {
-  case MECH:
+  case App::MECH:
     out = dynamic_cast<Matrix<double> &>(mech_mat_->MechStiffness(de->elem, false, mm, t));
     break;
-  case MASS:
+  case App::MASS:
     out = dynamic_cast<Matrix<double> &>(mech_mat_->MechMass(de->elem, false, mm, t));
     break;
   default:
@@ -127,8 +127,8 @@ void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type typ
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template void ParamMat::SetElementK<double, double>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
-template void ParamMat::SetElementK<Complex, Complex>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
-template void ParamMat::SetElementK<Complex, double>(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<double, double>(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, Complex>(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
+template void ParamMat::SetElementK<Complex, double>(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev);
 #endif
 

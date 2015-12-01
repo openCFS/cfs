@@ -100,7 +100,8 @@ shared_ptr<CoefFunctionOpt> OptimizationMaterial::GetMatCoef(const std::string& 
     BaseBDBInt* bdb = dynamic_cast<BaseBDBInt*>(context->GetIntegrator());
     if(bdb != NULL)
     {
-      PtrCoefFct coef = bdb->GetCoef();
+      assert(bdb->GetCoef());
+      LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
       return dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
     }
   }
@@ -124,6 +125,7 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   EntityIterator it = elemList.GetIterator();
 
   shared_ptr<CoefFunctionOpt> coef = GetMatCoef(integrator, c, elem->regionId);
+  assert(!(coef == NULL));
 
   // we temporarily switch the coef to one of three states and after evaluating the element matrix switch it back to optimization
   assert(!(lower_bimat && (direction != DesignElement::NO_DERIVATIVE && direction != DesignElement::NO_MULTIMATERIAL)));
@@ -242,7 +244,7 @@ bool OptimizationMaterial::ComplexElementMatrix(RegionIdType reg) const
   assert(reg != NO_REGION_ID);
 
   if(opt != NULL)
-    return opt->pde->HasComplexMatData(reg);
+    return opt->context->pde->HasComplexMatData(reg);
 
   assert(false); // why should opt be NULL??
   return false;
@@ -265,7 +267,7 @@ SinglePDE* MechMat::GetPDE() {
 void MechMat::Init()
 {
   system_ = MECH;
-  mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->ToPDE(Optimization::MECH) : domain->GetSinglePDE("mechanic"));
+  mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->context->ToPDE(App::MECH) : domain->GetSinglePDE("mechanic"));
   assert(mech != NULL);
 
   StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
@@ -414,7 +416,7 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = ACOUSTIC;
-  acou = dynamic_cast<AcousticPDE*>(opt != NULL ? opt->ToPDE(Optimization::ACOUSTIC) : domain->GetSinglePDE("acoustic"));
+  acou = dynamic_cast<AcousticPDE*>(opt != NULL ? opt->context->ToPDE(App::ACOUSTIC) : domain->GetSinglePDE("acoustic"));
   assert(acou != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -504,7 +506,7 @@ PiezoElecMat::PiezoElecMat(ErsatzMaterial* em) :
   MechMat(em)
 {
   system_ = PIEZOCOUPLING;
-  elec = dynamic_cast<ElecPDE*>(opt != NULL ? opt->ToPDE(Optimization::ELEC) : domain->GetSinglePDE("electrostatic"));
+  elec = dynamic_cast<ElecPDE*>(opt != NULL ? opt->context->ToPDE(App::ELEC) : domain->GetSinglePDE("electrostatic"));
   assert(elec != NULL);
 
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
@@ -566,7 +568,7 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
 {
   system_ = HEAT;
   assert(false);
-  heat = NULL; // FIXME dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
+  heat = NULL; // FIXME dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::App::HEAT) : domain->GetSinglePDE("heatConduction"));
   assert(heat != NULL);
 }
 
@@ -581,7 +583,7 @@ SinglePDE* HeatMat::GetPDE() {
 ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = ELEC;
-  elec = dynamic_cast<ElecPDE*>(opt->ToPDE(Optimization::ELEC));
+  elec = dynamic_cast<ElecPDE*>(opt->context->ToPDE(App::ELEC));
   assert(elec != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -704,7 +706,7 @@ LBMMat::LBMMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = LBM;
 //  assert(false);
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->ToPDE(Optimization::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->context->ToPDE(App::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
   assert(lbm != NULL);
 }
 

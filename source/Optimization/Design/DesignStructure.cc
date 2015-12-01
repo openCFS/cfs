@@ -568,15 +568,14 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
 
 void DesignStructure::SetPeriodicConstraintMapping()
 {
-  assert(em != NULL); // is not called otherwise!
+   assert(em != NULL); // is not called otherwise!
    constraintMapping.Resize(grid->GetNumNodes() + 1); // 1-based
 
-   if(em->pde == NULL)
-     em->SetPDEs(em->ParseSystem());
+   assert(Optimization::context->pde != NULL); // if(em->pde == NULL) em->SetPDEs(em->ParseSystem());
 
-   ConstraintList glist = em->pde->GetFeFunctions().begin()->second->GetConstraints();
+   ConstraintList glist = Optimization::context->pde->GetFeFunctions().begin()->second->GetConstraints();
 
-   assert(em->pdes.size() == 1);
+   assert(Optimization::context->pdes.size() == 1);
    assert(glist.GetSize() > 0);
 
    LOG_DBG(ds) << "SPCM: constraint list = " << glist.GetSize();

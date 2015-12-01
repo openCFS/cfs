@@ -94,7 +94,7 @@ namespace CoupledField
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial = false);
+     double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -146,7 +146,7 @@ namespace CoupledField
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found!
       * @param use_single when there is only one transfer function, use this one and ignore design and application */
-     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true, bool use_single = false);
+     TransferFunction* GetTransferFunction(DesignElement::Type design, App::Type application, bool throw_exception = true, bool use_single = false);
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
@@ -479,7 +479,7 @@ namespace CoupledField
       * -1 for element numbers with no associated design */
      StdVector<std::pair<int, bool> > elemToDesign;
 
-     /** This transforms FormName (Integrator) to Application -> so the enum is actually Application 
+     /** This transforms FormName (Integrator) to App::Type -> so the enum is actually App::Type 
       * but here int because of circular includes :( */
      Enum<int> applicationForm;
 

@@ -9,14 +9,9 @@ using namespace CoupledField;
 
 Context::Context()
 {
-  // no instance to avoid the include in Context.hh
-  default_excitation_ = new Excitation(); // has no assemble yet!
-
   // to be replaces by any current Excitation::Apply()
-  excitation_ = default_excitation_;
+  excitation_ = NULL;
 
-  // we are a globally initialized object, there is no domain yet!
-  assert(domain == NULL);
   driver = NULL;
   manager_ = NULL;
   sequence = -1;
@@ -31,16 +26,15 @@ Context::Context()
   harmonic_ = false;
   eigenvalue_ = false;
   bloch_ = false;
+  pde = NULL;
 
 }
 
 Context::~Context()
 {
-  delete default_excitation_;
-  default_excitation_ = NULL;
 }
 
-void Context::Init(ContextManager* manager, BasePDE::AnalysisType analyis, PtrParamNode node, int sequence_step)
+void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrParamNode node, int sequence_step)
 {
   this->manager_ = manager;
   assert(sequence_step >= 1);
@@ -78,6 +72,12 @@ void Context::Init(ContextManager* manager, BasePDE::AnalysisType analyis, PtrPa
   }
 }
 
+void Context::Update()
+{
+  driver = domain->GetSingleDriver();
+  SetPDEs();
+}
+
 EigenFrequencyDriver* Context::GetEigenFrequencyDriver()
 {
   return dynamic_cast<EigenFrequencyDriver*>(driver);
@@ -100,6 +100,77 @@ void Context::SetExcitation(Excitation* ex)
   this->excitation_ = ex;
 }
 
+
+App::Type Context::ToApp(const SinglePDE* pde)
+{
+  if(pde->GetName() == "electrostatic") return App::ELEC;
+  if(pde->GetName() == "mechanic") return App::MECH;
+  if(pde->GetName() == "heatConduction") return App::HEAT;
+  if(pde->GetName() == "acoustic") return App::ACOUSTIC;
+  if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
+
+  throw Exception("invalid");
+}
+
+SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
+{
+  std::map<App::Type, SinglePDE*>::const_iterator it = pdes.find(app);
+  if(it != pdes.end())
+    return it->second;
+
+  // nothing found
+  if(throw_exception)
+    EXCEPTION("No PDE '" << app << "' stored");
+
+  return NULL;
+}
+
+
+void Context::SetPDEs()
+{
+  // re-read pdes. Might change for multiple sequence steps
+  pdes.clear();
+
+  const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
+  assert(!avail.IsEmpty());
+
+  for(unsigned int i = 0; i < avail.GetSize(); i++)
+  {
+    const SinglePDE* sp = avail[i];
+
+    if(sp->GetName() == "heatConduction") {
+      pde = domain->GetSinglePDE("heatConduction", true);
+      pdes[App::HEAT] = pde;
+    }
+
+    if(sp->GetName() == "acoustic") {
+      pde = domain->GetSinglePDE("acoustic", true);
+      pdes[App::ACOUSTIC] = pde;
+    }
+
+    // this sets elec for the piezo-case even if we want only to optimize mechanic
+    if(sp->GetName() == "electrostatic") {
+      pde = domain->GetSinglePDE("electrostatic", true);
+      pdes[App::ELEC] = pde;
+    }
+
+    if(sp->GetName() == "LatticeBoltzmann") {
+      pde = domain->GetSinglePDE("LatticeBoltzmann", true);
+      pdes[App::LBM] = pde;
+    }
+
+    // mechanic last to have mechanic in the piezo-case as pde shortcut
+    if(sp->GetName() == "mechanic") {
+      pde = domain->GetSinglePDE("mechanic", true);
+      pdes[App::MECH] = pde;
+    }
+  }
+
+  assert(pdes.size() == avail.GetSize());
+}
+
+
+
 ContextManager::ContextManager()
 {
   this->initialized_ = false;
@@ -107,13 +178,17 @@ ContextManager::ContextManager()
   Optimization::context = &context[0];
 }
 
+ContextManager::~ContextManager()
+{
+}
 
 void ContextManager::Init()
 {
-  if(domain->GetDriver()->GetDriverClass() == BaseDriver::SINGLE_DRIVER)
+  if(domain->GetMultiSequenceDriver() == NULL)
   {
+    assert(domain->GetDriver()->GetDriverClass() == BaseDriver::SINGLE_DRIVER);
     assert(context.GetSize() == 1);
-    context[0].Init(this, domain->GetSingleDriver()->GetAnalysisType(), domain->GetDriver()->GetParam(), 1);
+    context[0].Setup(this, domain->GetSingleDriver()->GetAnalysisType(), domain->GetDriver()->GetParam(), 1);
   }
   else
   {
@@ -125,12 +200,13 @@ void ContextManager::Init()
     assert(nms > 1);
     assert(map.size() == nms);
     assert(map.find(1) != map.end()); // the steps are one based and need to be consecutive
-    assert(map.find(nms+1) != map.end()); // no idea why a map is used ?!
+    assert(map.find(nms) != map.end()); // no idea why a map is used ?!
+    assert(map.find(nms+1) == map.end()); // 1-based!
 
     context.Resize(nms);
 
     for(unsigned int i = 0; i < context.GetSize(); i++)
-      context[i].Init(this, map[i+1], pns[i+1], i+1);
+      context[i].Setup(this, map[i+1], pns[i+1], i+1);
   }
 
   for(unsigned int i = 0; i < context.GetSize(); i++)
@@ -143,25 +219,34 @@ void ContextManager::Init()
   }
 
   SwitchContext(0);
+
+  // we have no Excitations yet in this phase
+  assert(Optimization::context->GetExcitation() == NULL);
+
   this->initialized_ = true;
 }
 
 void ContextManager::SwitchContext(int index)
 {
-  if(domain->GetDriver()->GetDriverClass() == BaseDriver::SINGLE_DRIVER)
-  {
-    assert(context.GetSize() == 1);
-    context[0].driver = domain->GetSingleDriver();
-  }
-  else
+  if(domain->GetMultiSequenceDriver() != NULL)
   {
     // remove all drivers, we create a new one
     for(unsigned int i = 0; i < context.GetSize(); i++)
       context[i].driver = NULL; // we don't have the ownership
 
-    domain->GetMultiSequenceDriver()->SetSequenceStep(index + 1);
+    // detect if we already have the context. Special care for initial initialization, then no single driver is set yet
+    if(domain->GetSingleDriver() == NULL || (int) domain->GetMultiSequenceDriver()->GetActSequenceStep() != index + 1)
+      domain->GetMultiSequenceDriver()->SetSequenceStep(index + 1);
+
+  }
+  else
+  {
+    assert(domain->GetDriver()->GetDriverClass() == BaseDriver::SINGLE_DRIVER);
+    assert(context.GetSize() == 1);
+    assert(index == 0);
   }
 
   Optimization::context = &context[index];
+  Optimization::context->Update();
 }
 

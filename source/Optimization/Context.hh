@@ -10,9 +10,20 @@ namespace CoupledField
 class ContextManager;
 class Excitation;
 class SingleDriver;
+class SinglePDE;
 class EigenFrequencyDriver;
 class HarmonicDriver;
 class Exciation;
+
+
+struct App
+{
+  /** The App::Type type identifies the PDE to use.
+   *  A subset of the values are PDE identifiers for Context::ToPDE() and Context::ToApp().
+   * The heat and acoustic transfer functions are Laplace! */
+  typedef enum { MECH, ELEC, PIEZO_COUPLING, PRESSURE, CHARGE_DENSITY, MASS, HEAT, ACOUSTIC, LAPLACE, STRESS, LBM, NO_APP} Type;
+};
+
 
 /** The context describes where we are within the current optimization process.
  *
@@ -33,7 +44,10 @@ class Context
 
   /** the real optimizer to be called once we have domain initialized.
    * In the multisequence case the drivers are only initialized on request */
-  void Init(ContextManager* manager, BasePDE::AnalysisType analyis, PtrParamNode node, int sequence_step);
+  void Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrParamNode node, int sequence_step);
+
+  /** We initialize after each context switch to get the current driver and pdes */
+  void Update();
 
   /** this holds the current excitation. */
   Excitation* GetExcitation() { return excitation_; }
@@ -62,8 +76,25 @@ class Context
   /** Dow we Bloch Mode analysis? */
   bool DoBloch() const { return bloch_; }
 
+  /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
+  unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }
+
   /** are we within an multi sequence optimization */
   bool DoMultiSequence() const;
+
+  /** Helper that converts from mechPDE to App::MECH and elecPDE to App::ELEC, ...
+   * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
+   *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
+   * @throws if neither mechPDE nor elecPDE
+   * @see ToPDE()
+   * @see SetPDEs() */
+  static App::Type ToApp(const SinglePDE* pde);
+
+  App::Type ToApp() const { return ToApp(pde); }
+
+  /** Find our PDE in SIMP by application from the pdes map
+   * @see ToApp()*/
+  SinglePDE* ToPDE(App::Type app, bool throw_exception = true);
 
   /** the corresponding 1-based multi sequence step or -1 of not set yes */
   int sequence;
@@ -74,8 +105,6 @@ class Context
   /** Is only set when active, otherwise it is zero */
   SingleDriver* driver;
 
-  /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
-  unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }
 
   /** our analysis type */
   BasePDE::AnalysisType analysis;
@@ -90,7 +119,20 @@ class Context
    * Is a reference to portions of Optimization::MultipleExcitation::excitation and set in MultipleExcitation::FinalizeMultipleExcitation() */
   StdVector<Excitation*> excitation;
 
-  private:
+  /** The pdes from the current sequence state.
+   * Note that for multiple sequence optimization the pdes are always newly created and we must not store the pointer!
+   * The order of the pdes is not defined, Therefore we use the map. Set via SetPDEs()
+   * @see ToApp()
+   * @see ToPDE() */
+  std::map<App::Type, SinglePDE*> pdes;
+
+  /** This is simple one SinglePDE from pdes. */
+  SinglePDE* pde;
+
+private:
+
+  /** make shortcuts for the currently available PDEs in pdes */
+  void SetPDEs();
 
   /** are we harmonic/EV or static/transient? */
   bool complex_;
@@ -109,9 +151,6 @@ class Context
 
   Excitation* excitation_;
 
-  /** to have not memory responsibility issues */
-  Excitation* default_excitation_;
-
   ContextManager* manager_;
 };
 
@@ -123,6 +162,8 @@ class ContextManager
 public:
   /** called via static initialization before there is a domain with driver */
   ContextManager();
+
+  ~ContextManager();
 
   /** initialize after cfs has initialized the drivers */
   void Init();

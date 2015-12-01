@@ -39,14 +39,14 @@ public:
   void GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                           const unsigned int e,
                           const SubTensorType type = PLANE_STRAIN,
-                          Application app = MECH);
+                          App::Type app = App::MECH);
 
   StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
     if(forward_solution)
-      return forward.Get(0)->elem[MECH];
+      return forward.Get(0)->elem[App::MECH];
     else // adjoint
-      return adjoint.Get(0)->elem[MECH];
+      return adjoint.Get(0)->elem[App::MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */

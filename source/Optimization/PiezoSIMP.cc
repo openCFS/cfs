@@ -55,19 +55,19 @@ PiezoSIMP::PiezoSIMP()
   // validate the transfer functions
   if(design->FindDesign(DesignElement::DENSITY, false) >= 0)
   {
-    if(design->GetTransferFunction(DesignElement::DENSITY, MECH, false) == NULL)
+    if(design->GetTransferFunction(DesignElement::DENSITY, App::MECH, false) == NULL)
       throw Exception("miss transfer function for densitiy and mechanic");
 
-    if(design->GetTransferFunction(DesignElement::DENSITY, ELEC, false) == NULL &&
-        design->GetTransferFunction(DesignElement::POLARIZATION, ELEC, false) == NULL)
+    if(design->GetTransferFunction(DesignElement::DENSITY, App::ELEC, false) == NULL &&
+        design->GetTransferFunction(DesignElement::POLARIZATION, App::ELEC, false) == NULL)
       throw Exception("miss transfer function for densitiy/polarization and electrostatic");
 
-    if(design->GetTransferFunction(DesignElement::DENSITY, PIEZO_COUPLING, false) == NULL)
+    if(design->GetTransferFunction(DesignElement::DENSITY, App::PIEZO_COUPLING, false) == NULL)
       throw Exception("miss transfer function for densitiy and coupling");
   }
   if(design->FindDesign(DesignElement::POLARIZATION, false) >= 0)
   {
-    if(design->GetTransferFunction(DesignElement::POLARIZATION, PIEZO_COUPLING, false) == NULL)
+    if(design->GetTransferFunction(DesignElement::POLARIZATION, App::PIEZO_COUPLING, false) == NULL)
       throw Exception("miss transfer function for polarization and coupling");
   }
 
@@ -82,8 +82,8 @@ PiezoSIMP::~PiezoSIMP()
 void PiezoSIMP::PostInit()
 {
   // ignores the SetPDE() framework :(
-  if(context->IsComplex()) elecRHS.Init<complex<double> >(design, CHARGE_DENSITY); // mechRHS in SIMP!
-          else elecRHS.Init<double>(design, CHARGE_DENSITY);
+  if(context->IsComplex()) elecRHS.Init<complex<double> >(design, App::CHARGE_DENSITY); // mechRHS in SIMP!
+          else elecRHS.Init<double>(design, App::CHARGE_DENSITY);
 
   SIMP::PostInit();
 
@@ -105,10 +105,10 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
   assert(design->design.GetSize() == 1);
   
   DesignElement::Type dt = design->design[0].design;
-  TransferFunction* tf = design->GetTransferFunction(dt, ELEC);
+  TransferFunction* tf = design->GetTransferFunction(dt, App::ELEC);
   
   // our solution vectors
-  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[ELEC];
+  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[App::ELEC];
   Matrix<T> mat(all_p[0]->GetSize(), all_p[0]->GetSize());
   
   Vector<T> mat_vec(all_p[0]->GetSize()); // for the temporary K_pp * p result
@@ -159,10 +159,10 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
   assert(design->design.GetSize() == 1);
 
   DesignElement::Type dt = design->design[0].design;
-  TransferFunction* tf = design->GetTransferFunction(dt, ELEC);
+  TransferFunction* tf = design->GetTransferFunction(dt, App::ELEC);
 
   // our solution vectors
-  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[ELEC];
+  StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[App::ELEC];
   Matrix<T> mat(all_p[0]->GetSize(), all_p[0]->GetSize()); // store K_pp
 
   // define our new adjont RHS
@@ -286,34 +286,34 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
       if(f->GetType() == Objective::ELEC_ENERGY)
       {
         // p^T K_pp' p^*
-        tf = design->GetTransferFunction(dt, ELEC, true);
-        res_idx = GetSpecialResultIndex(ELEC, ELEC, CONJ_QUAD);
-        CalcU1KU2(tf, sol->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, CONJ_QUAD, f, res_idx);
+        tf = design->GetTransferFunction(dt, App::ELEC, true);
+        res_idx = GetSpecialResultIndex(App::ELEC, App::ELEC, CONJ_QUAD);
+        CalcU1KU2(tf, sol->elem[App::ELEC], App::ELEC, sol->elem[App::ELEC], elec_rhs, factor, CONJ_QUAD, f, res_idx);
       }
 
       // lambda_u * K_uu' * u
-      tf = design->GetTransferFunction(dt, MECH, false); // we allow NULL
-      res_idx = GetSpecialResultIndex(MECH, MECH);
+      tf = design->GetTransferFunction(dt, App::MECH, false); // we allow NULL
+      res_idx = GetSpecialResultIndex(App::MECH, App::MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[MECH], MECH, sol->elem[MECH], mech_rhs, factor, STANDARD, f, res_idx);
+        CalcU1KU2(tf, adj->elem[App::MECH], App::MECH, sol->elem[App::MECH], mech_rhs, factor, STANDARD, f, res_idx);
 
       // lambda_u * K_up' * p
-      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
-      res_idx = GetSpecialResultIndex(MECH, ELEC);
+      tf = design->GetTransferFunction(dt, App::PIEZO_COUPLING, false);
+      res_idx = GetSpecialResultIndex(App::MECH, App::ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[MECH], PIEZO_COUPLING, sol->elem[ELEC], mech_rhs, factor, STANDARD, f, res_idx);
+        CalcU1KU2(tf, adj->elem[App::MECH], App::PIEZO_COUPLING, sol->elem[App::ELEC], mech_rhs, factor, STANDARD, f, res_idx);
 
       // lambda_p * (K_up^T)' * u
-      tf = design->GetTransferFunction(dt, PIEZO_COUPLING, false);
-      res_idx = GetSpecialResultIndex(ELEC, MECH);
+      tf = design->GetTransferFunction(dt, App::PIEZO_COUPLING, false);
+      res_idx = GetSpecialResultIndex(App::ELEC, App::MECH);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[ELEC], PIEZO_COUPLING, sol->elem[MECH], elec_rhs, factor, STANDARD, f, res_idx);
+        CalcU1KU2(tf, adj->elem[App::ELEC], App::PIEZO_COUPLING, sol->elem[App::MECH], elec_rhs, factor, STANDARD, f, res_idx);
 
       // lambda_p * K_pp' * p
-      tf = design->GetTransferFunction(dt, ELEC, false);
-      res_idx = GetSpecialResultIndex(ELEC, ELEC);
+      tf = design->GetTransferFunction(dt, App::ELEC, false);
+      res_idx = GetSpecialResultIndex(App::ELEC, App::ELEC);
       if(tf != NULL)
-        CalcU1KU2(tf, adj->elem[ELEC], ELEC, sol->elem[ELEC], elec_rhs, factor, STANDARD, f, res_idx);
+        CalcU1KU2(tf, adj->elem[App::ELEC], App::ELEC, sol->elem[App::ELEC], elec_rhs, factor, STANDARD, f, res_idx);
     }
   }
   return 0.0; // we calculated only derivatives
@@ -328,7 +328,7 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 
 template <class T1, class T2>
-void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
@@ -336,14 +336,14 @@ void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Appli
 
   switch(app)
   {
-  case ELEC:
+  case App::ELEC:
     if(calcMode == CONJ_QUAD)
       Assign(out, piezo_mat_->ElecStiffnessPos(de), factor); // we need the K_pp matrix
     else // STANDARD and GRAD_N
       Assign(out, piezo_mat_->ElecStiffnessNeg(de), factor); // we need the -K_pp matrix
     break;
 
-  case PIEZO_COUPLING:
+  case App::PIEZO_COUPLING:
   {
     assert(out.GetNumCols() != out.GetNumRows());
     if(out.GetNumRows() > out.GetNumCols())

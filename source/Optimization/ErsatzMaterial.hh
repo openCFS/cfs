@@ -170,31 +170,31 @@ protected:
    * @param res_idx store in de->specialResult. use ErsatzMaterial::GetSpecialResultIndex() -1 is no special result
    * @param ev in the eigenvalue case factor for M' which is the eigenvalue. Then calcMode is EIGENVALUE */
   double CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
 
 
 
   double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
   double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
-      Application k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
+      App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
 
   /** Helper calling CalcU1KU2()
    * If there is a result with value='costGradient' or 'constraintGradient' it is checked for detail='mech_mech',
    * 'elec_elec', 'elec_elec_quad', 'elec_mech', 'mech_elec' */
-  int GetSpecialResultIndex(Application app1, Application app2,
+  int GetSpecialResultIndex(App::Type app1, App::Type app2,
       CalcMode calcMode = STANDARD, Condition* constraint = NULL);
 
   /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
+  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
   {
     throw Exception("not implemented");
   }
@@ -205,7 +205,7 @@ protected:
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
   virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf,
-      Application app, DenseMatrix* out, CalcMode calcMode, bool derivative =
+      App::Type app, DenseMatrix* out, CalcMode calcMode, bool derivative =
           true)
   {
     throw Exception("not implemented");
@@ -213,7 +213,7 @@ protected:
 
 
   virtual void SetElementRHS(DesignElement* de, const TransferFunction* tf,
-      Application app, SingleVector* out, CalcMode calcMode, bool derivative =
+      App::Type app, SingleVector* out, CalcMode calcMode, bool derivative =
           true)
   {
     throw Exception("not implemented");
@@ -408,7 +408,7 @@ protected:
   /** This contains our concrete material class */
   OptimizationMaterial* material;
 
-  /** This is a helper for SetElementK() which adds for MECH in the harmonic case damping and mass
+  /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
   void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
@@ -442,19 +442,20 @@ private:
 
   /** See the non-template version for documentation! */
   template<class T> double CalcU1KU2(TransferFunction* tf,
-      StdVector<SingleVector*>& u1, Application k, StdVector<SingleVector*>& u2,
+      StdVector<SingleVector*>& u1, App::Type k, StdVector<SingleVector*>& u2,
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
+
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and
    * substracts for all dof of that node only */
-  template<class T> void SubtractGradSurfaceRHS(DesignElement* de,
-      TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
+  template<class T> void SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out);
+
   /** Called by CalcU1KU2 on IfStrainExcitedSystem()
    * @param rhs might be null but if not takes the test_strain. */
-  template<class T> void SubtractGradStrainRHS(DesignElement* de,
-      TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out);
+  template<class T> void SubtractGradStrainRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* rhs, Vector<T>& in_out);
+
   /** Calculates a scalar product of two vectors and the derivative of the right hand side newmark update,
    * used for transient optimization derivative calculation
    * @param excite excitation to consider
@@ -463,16 +464,18 @@ private:
    * @param factor factor to multiply the value by (can be excitation weight)
    * @param f objective the result is to be stored with
    * @param g constraint the result is to be stored with */
-  void CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward,
-      StateSolutions& adjoint, double factor, Objective* f, Condition* g);
+  void CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward, StateSolutions& adjoint, double factor, Objective* f, Condition* g);
+
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
+
   /** Set the rhs for the adjoint equation, called by assemble */
   virtual void SetAdjointRhs(AdjointParameters* adjointParams);
+
   /** Set the rhs for the tracking adjoint */
   void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
-  /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[MECH] */
+  /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[App::MECH] */
   template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);
 
   /** Helper for CommitIteration. Appends or replaces a design line */
