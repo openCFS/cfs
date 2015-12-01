@@ -32,7 +32,7 @@ TransferFunction::TransferFunction()
   type_ = IDENTITY;
   orgType_ = NO_TYPE;
   design_ = DesignElement::DEFAULT;
-  application_ = Optimization::NO_APP;
+  application_ = App::NO_APP;
   param_ = 0.0;
   beta_ = -1.0;
   scaling_ = 1.0;
@@ -40,7 +40,7 @@ TransferFunction::TransferFunction()
 }
 
 
-TransferFunction::TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design)
+TransferFunction::TransferFunction(App::Type app, TransferFunction::Type tf_type, double param, DesignElement::Type design)
 {
   assert(type.map.size() > 0);
 
@@ -86,27 +86,27 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
     throw Exception("'param' for transfer function 'tanh' out of bound [0:1]");
 
   // validate design/application
-  if(design_ == DesignElement::POLARIZATION && application_ != Optimization::PIEZO_COUPLING)
+  if(design_ == DesignElement::POLARIZATION && application_ != App::PIEZO_COUPLING)
     throw Exception("transfer functions for 'polarization' can only be '" 
-        + Optimization::application.ToString(Optimization::PIEZO_COUPLING) + "'");
+        + Optimization::application.ToString(App::PIEZO_COUPLING) + "'");
 
   LOG_DBG(trans) << "TF::TF " << ToString();
 }
 
 
 
-Optimization::Application TransferFunction::Default(const SinglePDE* pde)
+App::Type TransferFunction::Default(const SinglePDE* pde)
 {
-  if(pde->GetName() == "electrostatic")    return Optimization::ELEC;
-  if(pde->GetName() == "mechanic")         return Optimization::MECH;
-  if(pde->GetName() == "heatConduction")   return Optimization::LAPLACE;
-  if(pde->GetName() == "acoustic")         return Optimization::LAPLACE;
-  if(pde->GetName() == "LatticeBoltzmann") return Optimization::LBM;
+  if(pde->GetName() == "electrostatic")    return App::ELEC;
+  if(pde->GetName() == "mechanic")         return App::MECH;
+  if(pde->GetName() == "heatConduction")   return App::LAPLACE;
+  if(pde->GetName() == "acoustic")         return App::LAPLACE;
+  if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
   throw Exception("invalid");
 }
 
 /** see the other Default */
-Optimization::Application TransferFunction::Default(DesignElement::Type type, const SinglePDE* pde)
+App::Type TransferFunction::Default(DesignElement::Type type, const SinglePDE* pde)
 {
   switch(type)
   {
@@ -139,11 +139,11 @@ Optimization::Application TransferFunction::Default(DesignElement::Type type, co
   case DesignElement::G_MAP_Y:
   case DesignElement::MULTIMATERIAL:
   case DesignElement::INTERPOLATION:
-    return Optimization::MECH;
+    return App::MECH;
   case DesignElement::ACOU_DENSITY:
-    return Optimization::LAPLACE;
+    return App::LAPLACE;
   case DesignElement::POLARIZATION:
-    return Optimization::PIEZO_COUPLING;
+    return App::PIEZO_COUPLING;
   default:
     throw Exception("invalid request for transfer function");
   }
@@ -216,7 +216,7 @@ std::string TransferFunction::ToString()
 {
   std::ostringstream os;
   os << "TransferFunction[type= " << type.ToString(type_) 
-     << "; application=" << Optimization::application.ToString(application_) 
+     << "; application=" << Optimization::application.ToString(application_)
      << "; design=" << DesignElement::type.ToString(design_)
      << "; param=" << param_  
      << (orgType_ == NO_TYPE ? "; enabled" : "; DISABLED!") << "]";

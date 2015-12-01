@@ -71,7 +71,7 @@ class MaterialHandler;
         
   }
 
-  Domain * SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
+  Domain* SimState::GetDomain(UInt sequenceStep, const GridMap& map ) {
 
     LOG_TRACE(simState) << " GetDomain for sequenceStep " << sequenceStep;
     if( map.size() > 0 ) {

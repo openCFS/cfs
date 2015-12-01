@@ -794,8 +794,8 @@ void Function::CalcHessian(StdVector<double>& out, double factor) {
   return;
 }
 
-void Function::PostProc(DesignSpace* space, DesignStructure* structure,
-    ErsatzMaterial* em) {
+void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
+{
   // pre-init step
   switch (type_) {
   case SLOPE:

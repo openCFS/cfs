@@ -20,8 +20,8 @@ LBMSIMP::~LBMSIMP()
 
 void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 {
-  assert(pde != NULL);
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(pde);
+  assert(context->pde != NULL);
+  lbm = dynamic_cast<LatticeBoltzmannPDE*>(context->pde);
   assert(lbm != NULL);
   LOG_DBG(lbmsimp) << "SSP -> solve";
   lbm->Solve();

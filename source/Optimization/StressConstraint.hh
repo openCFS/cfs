@@ -55,7 +55,7 @@ private:
 
   /** Set up element data which is integration point independent (E1) */
   /** Set up the data for the general formula (E1 ... stress2). E2 is mode dependent, but not u1 */
-  void SetupElement(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode);
+  void SetupElement(DesignElement* de, App::Type app1, App::Type app2, Mode mode);
 
   /** Set up integration point dependent element data after SetupElement is called!
    * calculates: stain1, B1, B2.
@@ -67,7 +67,7 @@ private:
 
   /** Determines if we have mech stress or piezoelectric stress.
    * @return mech/mech or mech/mech, piezo/mech, piezo/piezo, mech/piezo */
-  StdVector<std::pair<Optimization::Application, Optimization::Application> > GetApplications();
+  StdVector<std::pair<App::Type, App::Type> > GetApplications();
 
   /** This is the general formula E1*B1*u1)^T*M*(E2*B2*u2).
    * In the adjoint case u1 = u1^* and u2 is omitted, in the grad case E2 = grad_E2 */

@@ -33,7 +33,7 @@ PiezoParamMat::~PiezoParamMat()
 }
 
 
-void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);
@@ -45,15 +45,15 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
 
   switch(app)
   {
-  case MECH:
+  case App::MECH:
     out = dynamic_cast<const Matrix<double>& >(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
-  case ELEC:
+  case App::ELEC:
     out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
-  case PIEZO_COUPLING:
+  case App::PIEZO_COUPLING:
     // out needs to be defined
     assert(out.GetNumCols() != out.GetNumRows());
 
@@ -71,7 +71,7 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   LOG_DBG2(ppm) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " d=" << derivative << " dt=" << dt;
 }
 
-void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);
@@ -83,15 +83,15 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
 
   switch(app)
   {
-  case MECH:
+  case App::MECH:
     out = dynamic_cast<Matrix<double> &>(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
-  case ELEC:
+  case App::ELEC:
     out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
-  case PIEZO_COUPLING:
+  case App::PIEZO_COUPLING:
     // out needs to be defined
     assert(out.GetNumCols() != out.GetNumRows());
 

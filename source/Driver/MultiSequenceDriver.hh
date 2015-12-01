@@ -36,9 +36,9 @@ namespace CoupledField
     //! Initialization method
     void Init(bool restart);
     
-    //! Change the current sequenceStep
+    //! Change the current sequenceStep. Calls SetupStep() */
     void SetSequenceStep(UInt sequenceStep);
-  
+
     //! main method, where time-stepping is implemented. 
     //! it is for transient and static problem
     void SolveProblem();

@@ -488,7 +488,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(NULL);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
+        out[0] = GetPhysicalDesign(Optimization::context->pde);
       else
         out[0] = GetValue(rd.value, rd.access);
     }

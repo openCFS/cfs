@@ -145,13 +145,14 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
 
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != MECH)
-  {
+  // shall not be necessary when we register all pdes!
+  //if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != App::MECH)
+  // {
     // it might be that we do piezo stresses on a pure elastic optimization problem.
-    // Then register the ELEC PDE such that it is stored for the stress calculation by StressConstraint()
+    // Then register the App::ELEC PDE such that it is stored for the stress calculation by StressConstraint()
     // if we do PiezoSIMP this is simply redundant
-    em->pdes[Optimization::ELEC] = domain->GetSinglePDE("electrostatic");
-  }
+    // Optimization::context->pdes[App::ELEC] = domain->GetSinglePDE("electrostatic");
+  // }
 
   // note, meanwhile we have info_ set! but not yet in the constructor
   Function::PostProc(space, structure, em);

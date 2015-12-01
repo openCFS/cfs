@@ -176,7 +176,7 @@ StateSolution::~StateSolution()
   delete rhs;
   delete select;
 
-  std::map<Optimization::Application, StdVector<SingleVector* > >::iterator elem_iter;
+  std::map<App::Type, StdVector<SingleVector* > >::iterator elem_iter;
   for(elem_iter = elem.begin(); elem_iter != elem.end(); elem_iter++)
   {
     StdVector<SingleVector* >& data = elem_iter->second;
@@ -187,27 +187,27 @@ StateSolution::~StateSolution()
   }
 }
 
-SolutionType StateSolution::GetSolutionType(SinglePDE* pde, Optimization::Application app)
+SolutionType StateSolution::GetSolutionType(SinglePDE* pde, App::Type app)
 {
   switch(app)
   {
-  case Optimization::NO_APP: // up to now
+  case App::NO_APP: // up to now
     assert(pde != NULL);
     return pde->GetNativeSolutionType();
-  case Optimization::MECH:
+  case App::MECH:
     return MECH_DISPLACEMENT;
-  case Optimization::ELEC:
+  case App::ELEC:
     return ELEC_POTENTIAL;
-  case Optimization::HEAT:
+  case App::HEAT:
     return HEAT_TEMPERATURE;
-  case Optimization::ACOUSTIC:
+  case App::ACOUSTIC:
     return ACOU_POTENTIAL;
-  case Optimization::LAPLACE:
+  case App::LAPLACE:
     assert(false);
     break;
-    // app = MECH;
+    // app = App::MECH;
     //solt = MECH_DISPLACEMENT;
-  case Optimization::LBM:
+  case App::LBM:
     return LBM_PROBABILITY_DISTRIBUTION;
   default:
     EXCEPTION("Solution type not implemented");
@@ -225,7 +225,7 @@ std::string StateSolution::ToString()
   return ss.str();
 }
 
-SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app, bool save_sol, DERIVType derivative)
 {
   if (Optimization::context->IsComplex())
     return Read<std::complex<double> > (st, pde, app, save_sol, derivative);
@@ -245,7 +245,7 @@ void StateSolution::Write(SinglePDE* pde)
 template <class T>
 void StateSolution::Write(SinglePDE* pde)
 {
-  // TODO make robust for LBM
+  // TODO make robust for App::LBM
   if(raw != NULL)
   {
     assert(raw->GetSize() != 0);
@@ -356,16 +356,16 @@ Vector<complex<double> >& StateSolution::GetComplexVector(StorageType st)
 }
 
 template <class T>
-SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, Optimization::Application app, bool save_sol, DERIVType derivative)
+SingleVector* StateSolution::Read(StorageType st, SinglePDE* pde, App::Type app, bool save_sol, DERIVType derivative)
 {
   assert(derivative == NO_DERIVTYPE); // would change solt!
 
   SolutionType solt = GetSolutionType(pde, app);
 
-  if(app == Optimization::LAPLACE)
+  if(app == App::LAPLACE)
   {
     assert(false); // FIXME
-    app = Optimization::MECH;
+    app = App::MECH;
     solt = MECH_DISPLACEMENT;
   }
 

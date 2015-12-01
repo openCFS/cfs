@@ -18,7 +18,7 @@ namespace CoupledField
 {
 class LatticeBoltzmannPDE;
 
-/** Extension for LBM optimization based on an non-FE solver */
+/** Extension for App::LBM optimization based on an non-FE solver */
 class LBMSIMP : public SIMP
 {
 public:

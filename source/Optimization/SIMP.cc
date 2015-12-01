@@ -64,6 +64,8 @@ SIMP::~SIMP()
 
 void SIMP::PostInit()
 {
+  ErsatzMaterial::PostInit();
+
   if(pn->Has("filters"))
   {
     ParamNodeList list = pn->Get("filters")->GetList("filter");
@@ -76,13 +78,11 @@ void SIMP::PostInit()
     }
   }
   
-  if(context->IsComplex()) mechRHS.Init<complex<double> >(design, PRESSURE); // in many cases NULL;
-                     else mechRHS.Init<double>(design, PRESSURE);
-
-  ErsatzMaterial::PostInit();
+  if(context->IsComplex()) mechRHS.Init<complex<double> >(design, App::PRESSURE); // in many cases NULL;
+                     else mechRHS.Init<double>(design, App::PRESSURE);
 }
 
-void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
 {
   if(context->IsComplex())
   {
@@ -96,21 +96,21 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 }
 
 template <class T1, class T2>
-void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
 
 
   switch(app)
   {
-  case MECH:
-  case ACOUSTIC:
+  case App::MECH:
+  case App::ACOUSTIC:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(material->Stiffness(de->elem, false, mm)); // no bimaterial
 
-    // Find the transfer function for K (e.g. DENSITY, MECH)
+    // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
 
     // copy from real mechStiffness to potential complex out and factor the derivative
@@ -131,7 +131,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 
     if(context->IsComplex())
     {
-      tf = design->GetTransferFunction(de->GetType(), MASS);
+      tf = design->GetTransferFunction(de->GetType(), App::MASS);
       AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
@@ -147,11 +147,11 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
     break;
   }
 
-  case ELEC:
+  case App::ELEC:
   {
     Matrix<std::complex<double> >& stiffness = dynamic_cast<ElecMat *>(material)->ElecStiffness(de->elem, false); // no bimaterial
 
-    // Find the transfer function for K (e.g. DENSITY, MECH)
+    // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
@@ -186,7 +186,8 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   // this app is for the PDE
-  Application app = ToApp(pde);
+  App::Type app = context->ToApp();
+  SinglePDE*  pde = context->pde;
 
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
@@ -261,9 +262,9 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   assert(appendix.GetSize() == alpha.GetSize());
 
   DesignDependentRHS rhs;
-  rhs.Init<double>(Optimization::STRESS, excite.label);
+  rhs.Init<double>(App::STRESS, excite.label);
   // calc lambda^T *  K' * u -> this already stores the results by AddGradient()!
-  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[MECH], MECH, forward.Get(excite)->elem[MECH], &rhs, 1.0, STANDARD, f);
+  CalcU1KU2(tf, adjoint.Get(excite, f)->elem[App::MECH], App::MECH, forward.Get(excite)->elem[App::MECH], &rhs, 1.0, STANDARD, f);
 
   // add the appendix stuff
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
@@ -302,7 +303,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
 DesignDependentRHS::DesignDependentRHS()
 {
   valid       = false;
-  app         = Optimization::NO_APP;
+  app         = App::NO_APP;
   vec         = NULL;
   elem        = NULL;
   test_strain = MechPDE::NOT_SET;
@@ -315,10 +316,10 @@ DesignDependentRHS::~DesignDependentRHS()
 }
 
 template <class T>
-bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app)
+bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 {
-  assert(app == Optimization::CHARGE_DENSITY || app == Optimization::PRESSURE);
-  std::string name = app == Optimization::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
+  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE);
+  std::string name = app == App::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
 
 
   // check if we have a form with the application name
@@ -403,9 +404,9 @@ bool DesignDependentRHS::Init(DesignSpace* design, Optimization::Application app
 
 
 template <class T>
-bool DesignDependentRHS::Init(Optimization::Application app, std::string excite_label)
+bool DesignDependentRHS::Init(App::Type app, std::string excite_label)
 {
-  assert(app == Optimization::STRESS);
+  assert(app == App::STRESS);
   this->app = app;
   this->test_strain = MechPDE::testStrain.IsValid(excite_label) ? MechPDE::testStrain.Parse(excite_label) : MechPDE::NOT_SET;
   return true;
@@ -436,6 +437,6 @@ std::string DesignDependentRHS::ToString(int level)
 
   // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
-template bool DesignDependentRHS::Init<double>(DesignSpace* design, Optimization::Application app);
-template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, Optimization::Application app);
+template bool DesignDependentRHS::Init<double>(DesignSpace* design, App::Type app);
+template bool DesignDependentRHS::Init<complex<double> >(DesignSpace* design, App::Type app);
 #endif

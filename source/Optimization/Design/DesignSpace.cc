@@ -68,17 +68,17 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   optimizer_ = NULL;
   designMaterial = NULL;
   applicationForm.SetName("DesignSpace::ApplicationForm");
-  applicationForm.Add(Optimization::ELEC, "linGradBDBInt");
-  applicationForm.Add(Optimization::MECH, "LinElastInt");
+  applicationForm.Add(App::ELEC, "linGradBDBInt");
+  applicationForm.Add(App::MECH, "LinElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
-  applicationForm.Add(Optimization::MECH, "MechStressStrain", false);
-  applicationForm.Add(Optimization::MECH, "PiezoStressStrain", false);
-  applicationForm.Add(Optimization::PIEZO_COUPLING, "linPiezoCoupling");
-  applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
-  applicationForm.Add(Optimization::PRESSURE, "PressureLinForm");
-  applicationForm.Add(Optimization::MASS, "MassInt");
+  applicationForm.Add(App::MECH, "MechStressStrain", false);
+  applicationForm.Add(App::MECH, "PiezoStressStrain", false);
+  applicationForm.Add(App::PIEZO_COUPLING, "linPiezoCoupling");
+  applicationForm.Add(App::CHARGE_DENSITY, "LinNeumannInt");
+  applicationForm.Add(App::PRESSURE, "PressureLinForm");
+  applicationForm.Add(App::MASS, "MassInt");
   // acoustic and heat
-  applicationForm.Add(Optimization::LAPLACE, "LaplaceInt");
+  applicationForm.Add(App::LAPLACE, "LaplaceInt");
   // read the elements
   elements = domain->GetGrid()->GetNumElems(reg_data);
 
@@ -244,7 +244,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
               dr.SetBiMaterial(design_bim);
             double upper = curr_design_pn->Get("upper")->As<double>();
             // for tanh and heaviside scaling and offset is set in the physical case
-            TransferFunction* tf = GetTransferFunction(dt, Optimization::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
+            TransferFunction* tf = GetTransferFunction(dt, App::MECH, false); // assume mech - otherwise we normally don't penalize - change if you need it
             double lower = DetermineLowerBound(curr_design_pn, tf);
 
             if(curr_design_pn->Has("scale") && curr_design_pn->Get("scale")->As<bool>()){
@@ -395,7 +395,7 @@ void DesignSpace::PostInit(int objectives, int constraints)
   {
     // FIXME there might be an multi sequence issue
     if(context_->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
-      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, Optimization::MASS, false); // silent
+      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
       if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
         // std::cout << domain->GetBasePDE()->GetName() << std::endl;
         PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
@@ -675,7 +675,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
   double bimat_factor = -1.0;
 
-  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // this is not the bimat case
 
@@ -718,7 +718,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 
   double bimat_factor = -1.0;
 
-  Optimization::Application app = (Optimization::Application) applicationForm.Parse(coef->GetForm()->GetName());
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetScalar(retScal, *lpm);
@@ -740,7 +740,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 }
 
 
-double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial)
+double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
@@ -789,7 +789,7 @@ bool DesignSpace::GetErsatzMaterialPamping(const Elem* elem, Matrix<double>& ele
   if(de == NULL)
     return false;
   // we use the physical design variable to match better
-  TransferFunction* tf = GetTransferFunction(de->GetType(), Optimization::MASS);
+  TransferFunction* tf = GetTransferFunction(de->GetType(), App::MASS);
   double tv = tf->Transform(de, DesignElement::SMART); // be consistent with ErsatzMaterial::AddMassToStiffness()
   // now the original mass matrix
   const Matrix<double>& mass = dynamic_cast<const Matrix<double>&>(mm.Mass(de->elem)); // FIXME might be complex!
@@ -844,7 +844,7 @@ bool DesignSpace::GetMultiMaterialTensor(Matrix<double>& t, const Elem* elem, Tr
   if(tf == NULL && derivative != NULL)
     tf = GetTransferFunction(derivative);
   if(tf == NULL)
-    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, Optimization::MECH);
+    tf = GetTransferFunction(DesignElement::MULTIMATERIAL, App::MECH);
 
   if(derivative != NULL)
   {
@@ -911,7 +911,7 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
   return res;
 }
 
-TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
+TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, App::Type application, bool throw_exception, bool use_single)
 {
   //if(HasNonDensityDesignMaterial())
   //  return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
@@ -922,7 +922,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   for(unsigned int i = 0; i < transfer.GetSize(); i++)
   {
     TransferFunction* tf = &transfer[i];
-    // it would be better to call CalcTrivialVolume() not unconditionally with app = MECH (fails for LBM)
+    // it would be better to call CalcTrivialVolume() not unconditionally with app = App::MECH (fails for App::LBM)
     if(transfer.GetSize() > 1 && tf->GetApplication() != application) // be only that sensitive when we have more than one transfer function
       continue;
     if(tf->GetDesign() == design)
@@ -933,10 +933,10 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, O
   if(designMaterial != NULL)
     return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization with no / not all TransferFunctions given
 
-  if(!throw_exception) return NULL;
-  else throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
-                        + "' in application '" + Optimization::application.ToString(application)
-                        + "' is not contained");
+  if(throw_exception)
+   throw Exception("the desired transfer function for design '" + DesignElement::type.ToString(design)
+                    + "' in application '" + Optimization::application.ToString(application) + "' is not contained");
+  return NULL;
 }
 
 DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
@@ -1337,7 +1337,7 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
     if(design[this->FindDesign(de.GetType())].relative_bound > 0.) {
       dv->Get("design", ParamNode::APPEND)->Get("relative_bound")->SetValue(design[this->FindDesign(de.GetType())].relative_bound);
     }
-    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), Optimization::MECH, false), em); // silent!
+    de.ToInfo(dv->Get("design", ParamNode::APPEND), GetTransferFunction(de.GetType(), App::MECH, false), em); // silent!
   }
 
   in->Get("pamping")->SetValue(pamping_);
@@ -1718,21 +1718,23 @@ void MultiMaterial::ToInfo(PtrParamNode in, ErsatzMaterial* em)
   Matrix<double> E;
   BaseMaterial* bm = NULL;
 
+  SubTensorType stt = em->context->pde->GetSubTensorType();
+
   switch(em->GetMaterial()->GetSystem())
   {
   case OptimizationMaterial::PIEZOCOUPLING:
     bm = GetMultiMaterial(ELECTROSTATIC);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(ELECTROSTATIC), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(ELECTROSTATIC), Global::REAL, stt);
     in->Get("electrostatic")->SetValue(E);
 
     bm = GetMultiMaterial(PIEZO);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(PIEZO), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(PIEZO), Global::REAL, stt);
     in->Get("piezo")->SetValue(E);
 
     // no break by intention
   case OptimizationMaterial::MECH:
     bm = GetMultiMaterial(MECHANIC);
-    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(MECHANIC), Global::REAL, em->pde->GetSubTensorType());
+    bm->GetTensor(E, BaseMaterial::ConvertMaterialClass(MECHANIC), Global::REAL, stt);
     in->Get("mechanic")->SetValue(E);
     break;
 

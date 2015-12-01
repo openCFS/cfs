@@ -36,7 +36,7 @@ namespace CoupledField
       TransferFunction(PtrParamNode pn, DesignElement::Type default_type = DesignElement::NO_TYPE);
      
       /** E.G. for the stresses we temporarily construct a own transfer function */
-      TransferFunction(Optimization::Application app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
+      TransferFunction(App::Type app, TransferFunction::Type tf_type, double param, DesignElement::Type design = DesignElement::NO_TYPE);
     
       /** applies the transformation
        * @param de contains the design value.
@@ -55,14 +55,14 @@ namespace CoupledField
        * @see Transform() */
       double Derivative(double value, bool lower_bimat = false) const;
 
-      /** Gives the standard, non-mass Application to find the transfer-function. Note that the application for transfer functions
+      /** Gives the standard, non-mass App::Type to find the transfer-function. Note that the application for transfer functions
        * does not coincide with pde application due to the laplace stuff */
-      static Optimization::Application Default(const SinglePDE* pde);
+      static App::Type Default(const SinglePDE* pde);
 
       /** see the other Default */
-      static Optimization::Application Default(DesignElement::Type type, const SinglePDE* = NULL);
+      static App::Type Default(DesignElement::Type type, const SinglePDE* = NULL);
 
-      Optimization::Application GetApplication() { return application_; }
+      App::Type GetApplication() { return application_; }
       
       DesignElement::Type GetDesign() { return design_; }
       
@@ -101,8 +101,8 @@ namespace CoupledField
       /** our real type of transfer function, only set if disabled, else NO_TYPE. */
       Type orgType_; 
        
-      /** on of the ELAST, MECH, PIEZO_COUPLING */ 
-      Optimization::Application application_;
+      /** on of the ELAST, App::MECH, App::PIEZO_COUPLING */ 
+      App::Type application_;
        
       /** the exponent for SIMP, not used in IDENTIY */
       double param_;
