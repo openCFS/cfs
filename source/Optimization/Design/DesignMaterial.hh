@@ -342,11 +342,11 @@ class TransferFunction;
        * @param vector p has the values of the design variable */
     void ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor);
 
-    void EvaluateFullGrid();
-
     /** little helper for GetHomRectTensor(). We assume we are in Hill-Mandel world
        * @param vector p has the values of the design variable */
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
+
+    void EvaluateFullGrid();
 
     /** Fill sparse grid with data values*/
     void FillSparseGridWithFullGridData(Matrix<double>& data);
