@@ -65,3 +65,9 @@ ADD_CUSTOM_TARGET(share_xml_config ALL
   COMMENT "Updating XML & JSON config files for cfstool and logging..."
 )
 
+SET(SRC_DIR ${CFS_SOURCE_DIR}/share/xml/CFS-Dat)
+SET(DST_DIR ${CFS_BINARY_DIR}/share/xml/CFS-Dat)
+ADD_CUSTOM_TARGET(share_xml_dat ALL
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${SRC_DIR}/CFS_Dat.xsd ${DST_DIR}/CFS_Dat.xsd
+  COMMENT "Updating XML schemata for CFS-Dat..."
+)

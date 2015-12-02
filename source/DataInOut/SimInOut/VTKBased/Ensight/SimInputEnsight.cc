@@ -26,6 +26,7 @@
 #include "vtkDataArrayCollection.h"
 #include "vtkDataArrayCollectionIterator.h"
 #include "vtkCellData.h"
+#include "vtkPointData.h"
 #include "vtkMultiBlockDataSet.h"
 #include "vtkArrayIteratorTemplate.h"
 #include "vtkFloatArray.h"
@@ -122,11 +123,11 @@ void SimInputEnsight::CreateReader(){
 
   //fill the user supplied result names
   //and figure out how the result is definied
-  ParamNodeList variableDef = this->myParam_->GetList("variableList");
+  ParamNodeList variableDef = this->myParam_->Get("variableList")->GetList("variable");
   for(UInt aNode = 0; aNode < variableDef.GetSize(); aNode++){
     //try to parse the element name to a result name
     //extract the string, fill the names
-    PtrParamNode varNode = variableDef[aNode]->Get("variable");
+    PtrParamNode varNode = variableDef[aNode];
     std::string cfsVarName = varNode->Get("CFSVarName")->As<std::string>();
     std::string varNames = varNode->Get("EnsightVarName")->As<std::string>();
     boost::char_separator<char> sep(" ,");
@@ -137,7 +138,7 @@ void SimInputEnsight::CreateReader(){
       reader->SetPointArrayStatus(beg->c_str(), 1);
       this->cfsEnsightResMap_[cfsSol].dofNameMap.Push_back(beg->c_str());
       this->cfsEnsightResMap_[cfsSol].isValid_.Push_back(false);
-      this->cfsEnsightResMap_[cfsSol].multByCellVol = varNode->Get("multByCellVolume")->As<bool>();
+      this->cfsEnsightResMap_[cfsSol].multByCellVol = false;
     }
   }
   ValidateResultDefinition();
@@ -232,6 +233,7 @@ void SimInputEnsight::FillResultMap(){
   this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res.reset( new ResultInfo);
   shared_ptr<ResultInfo> velocity = this->cfsEnsightResMap_[FLUIDMECH_VELOCITY].res;
   velocity->resultType = FLUIDMECH_VELOCITY;
+  velocity->resultName = SolutionTypeEnum.ToString(FLUIDMECH_VELOCITY);
   if(dim_ == 3)
     velocity->dofNames = "x", "y", "z";
   else
@@ -249,6 +251,7 @@ void SimInputEnsight::FillResultMap(){
   this->cfsEnsightResMap_[FLUIDMECH_PRESSURE].res.reset( new ResultInfo);
   shared_ptr<ResultInfo> pressure = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE].res;
   pressure->resultType = FLUIDMECH_PRESSURE;
+  pressure->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE);
   pressure->dofNames = "";
   pressure->unit = "Pa";
 
@@ -262,11 +265,29 @@ void SimInputEnsight::FillResultMap(){
   this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_2].res.reset( new ResultInfo);
   shared_ptr<ResultInfo> pressureD2 = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_2].res;
   pressureD2->resultType = FLUIDMECH_PRESSURE_DERIV_2;
+  pressureD2->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_DERIV_2);
   pressureD2->dofNames = "";
   pressureD2->unit = "Pa/m^2";
 
   pressureD2->definedOn = ResultInfo::NODE;
   pressureD2->entryType = ResultInfo::SCALAR;
+
+  //================================================
+  // Gradient of FluidMechPressure
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_1].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> gradP = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_DERIV_1].res;
+  gradP->resultType = FLUIDMECH_PRESSURE_DERIV_1;
+  gradP->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_DERIV_1);
+  if(dim_ == 3)
+    gradP->dofNames = "x", "y", "z";
+  else
+    gradP->dofNames = "x", "y";
+  gradP->unit = "Pa/m";
+
+  gradP->definedOn = ResultInfo::NODE;
+  gradP->entryType = ResultInfo::VECTOR;
 
 }
 
@@ -373,6 +394,7 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
   shared_ptr<EntityList> resList = result->GetEntityList();
   EntityIterator iter = resList->GetIterator();
   vtkCellData* cellData = NULL;
+  vtkPointData* pointData = NULL;
   vtkDataSet* ds = NULL;
   //vtkDataArray* data = NULL;
   RegionIdType lastReadRegion = 999999;
@@ -452,7 +474,51 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
 
       }
     }else{
-      EXCEPTION("Only element results work right now");
+
+      RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
+      //obtain block id
+      UInt blockId = this->regionAssoc_[id];
+      if(lastReadRegion != id){
+        ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
+        pointData = ds->GetPointData();
+        lastReadRegion = id;
+        regionUpdate = true;
+      }else{
+        regionUpdate = false;
+      }
+      UInt numNodeArrays = pointData->GetNumberOfArrays();
+      if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
+        scalarForVector = false;
+      }else{
+        scalarForVector = true;
+      }
+      if(numNodeArrays > 0){
+        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numNodeArrays){
+          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
+        }
+        if(regionUpdate){
+          CurArrays.Resize(numNodeArrays);
+          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
+          for (UInt array=0; array < numNodeArrays; array++,nameIter++){
+            CurArrays[array] = pointData->GetArray(nameIter->c_str());
+          }
+        }
+        if(!scalarForVector){
+          StdVector<double> myValues(numDofs);
+          myValues.Init();
+          CurArrays[0]->GetTuple(iter.GetPos(),myValues.GetPointer());
+          for(UInt j=0; j<numDofs; j++) {
+            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myValues[j]);
+          }
+        }else{
+          double myVal=0;
+          for(UInt j=0; j<numDofs; j++) {
+            CurArrays[j]->GetTuple(iter.GetPos(),&myVal);
+            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myVal);
+          }
+
+        }
+      }
     }
     iter++;
     resIdx++;

@@ -4,19 +4,21 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     InputFilterHDF5.hh
- *       \brief    This wraps the HDF5 input with some special features
+ *       \file     SimInputEnsightGold.cc
+ *       \brief    <Description>
  *
- *       \date     Aug 13, 2015
+ *       \date     Sep 17, 2015
  *       \author   ahueppe
  */
 //================================================================================================
 
-#ifndef INPUTFILTERHDF5_HH_
-#define INPUTFILTERHDF5_HH_
+#include "DataInOut/SimInOut/EnSight/SimInputEnsightGold.hh"
 
+namespace CoupledField{
 
+SimInputEnSightGold::SimInputEnSightGold( std::string fileName, PtrParamNode inputNode,
+                                          PtrParamNode infoNode ){
 
+}
 
-
-#endif /* INPUTFILTERHDF5_HH_ */
+}

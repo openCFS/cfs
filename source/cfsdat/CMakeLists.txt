@@ -6,14 +6,25 @@ INCLUDE_DIRECTORIES(
 # List of source codes for current target.
 SET(CFSDAT_SRCS
   cfsdat.cc
-  Filters/Input/InputFilterGeneric.cc
+  Filters/BaseFilter.cc
+  Filters/Input/InputFilter.cc
+  Filters/Output/OutputFilter.cc
+  Filters/Derivatives/TimeDerivFilter.cc
+  Filters/Derivatives/RotatingSubstDt.cc
+  Filters/Interpolators/BaseInterpolationFilter.cc
+  Filters/Interpolators/CentroidInterpolator.cc
+  Utils/EqnNumberingSimple.cc
+  Utils/CFSDatProgramOptions.cc
+  Utils/ResultManager.cc
+  Utils/AnalyticalFields.cc
 )
 
 # Main CFS++ Dat executable target.
 ADD_EXECUTABLE(cfsdatbin ${CFSDAT_SRCS})
 
 SET(TARGET_LL 
- datainout
+  datainout
+  matvec
 )
 
 

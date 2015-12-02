@@ -324,6 +324,10 @@ namespace CoupledField
                                const std::set<RegionIdType>& srcRegions
                                = std::set<RegionIdType>() );
 
+
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated) = 0;
+
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     //+++++++++++++++++++++++++++ REGION INFORMATION +++++++++++++++++++++++++
     //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

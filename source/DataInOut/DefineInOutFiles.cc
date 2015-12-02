@@ -437,6 +437,17 @@ shared_ptr<SimInput>  DefineInOutFiles::CreateSingleInputFileObject(std::string 
     EXCEPTION( "No support for UNV input file format." );
 #endif // USE_UNV
   }
+  else if (fFormat == "ensight")
+  {
+#ifdef USE_ENSIGHT
+    if(fName.empty()){
+      fName += simName + ".case";
+    }
+    aInput = shared_ptr<SimInput> (new SimInputEnsight(fName, configNode, infoNode));
+#else
+    EXCEPTION( "No support for ENSIGHT Gold input file format." );
+#endif // USE_UNV
+  }
   else if (fFormat == "internal")
   {
 #ifdef USE_MESH

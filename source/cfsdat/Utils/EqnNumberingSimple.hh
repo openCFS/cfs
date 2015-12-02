@@ -19,10 +19,11 @@
 #include "General/Environment.hh"
 #include "Utils/ThreadLocalStorage.hh"
 #include "boost/shared_ptr.hpp"
+#include "Domain/Results/BaseResults.hh"
+#include "cfsdat/Utils/Defines.hh"
+
 
 namespace CFSDat{
-
-namespace CF = CoupledField;
 
 //!  This class implements a simple equation mapping for CFS grids.
 /*!
@@ -39,51 +40,56 @@ namespace CF = CoupledField;
 class EqnMapSimple{
 
 public:
-   EqnMapSimple(CF::ResultInfo::EntityUnknownType type,
-                     boost::shared_ptr<CF::Grid> myGrid,
-                     CF::UInt eqnPerEnt = 1, bool isOneBased = true);
+   EqnMapSimple(CoupledField::ResultInfo::EntityUnknownType type,
+                     CoupledField::Grid* myGrid,
+                     CoupledField::UInt eqnPerEnt = 1, bool isOneBased = true);
 
   virtual ~EqnMapSimple(){
     delete entityEquations_;
   }
 
-  void AddRegion(CF::RegionIdType region){
+  void AddRegion(CoupledField::RegionIdType region){
     regions_.Push_back(region);
   }
 
   virtual void Finalize();
 
-  virtual void GetEquation(CF::StdVector<CF::UInt> & eqns,
-                           const CF::UInt globalEntNum,
+  virtual CoupledField::UInt GetNumEquations(){
+    return numEqns_;
+  }
+
+  virtual void GetEquation(CF::StdVector<UInt> & eqns,
+                           const UInt globalEntNum,
                            CF::ResultInfo::EntityUnknownType type) const;
 
-  void GetRegionEquations(CF::StdVector<CF::UInt> & eqns,
-                          CF::RegionIdType region) const;
+  void GetRegionEquations(CF::StdVector<UInt> & eqns, CF::RegionIdType region) const;
+
+  void GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<UInt> & globalEntNumbers) const;
 
 protected:
   //! equation indices, 0 indicates "not mapped"
-  CF::UInt* entityEquations_;
+  UInt* entityEquations_;
 
   //! Array of regions managed by the eqnMap
   CF::StdVector<CF::RegionIdType> regions_;
 
   //! pointer to grid associated to equations
-  boost::shared_ptr<CF::Grid> ptGrid_;
+  CF::Grid* ptGrid_;
 
   //! stores entry type of eqnMap
   CF::ResultInfo::EntityUnknownType mapType_;
 
   //! Equations per entity
-  CF::UInt eqnPerEnt_;
+  UInt eqnPerEnt_;
 
   //! number of equations
-  CF::UInt numEqns_;
+  UInt numEqns_;
 
   //! maximum number of equations
-  CF::UInt maxNumEqns_;
+  UInt maxNumEqns_;
 
   //! offset switch for zero and one based entity numbers
-  CF::UInt zeroOne_;
+  UInt zeroOne_;
 
   //! flag indicating if equation numbering is finalized
   bool isFinalized_;

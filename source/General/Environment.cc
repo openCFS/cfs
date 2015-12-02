@@ -77,6 +77,7 @@ namespace CoupledField {
         return "m^2/s^2";
         break;
 
+
       case ACOU_POTENTIAL_DERIV_2:
         return "m^2/s^3";
         break;
@@ -233,6 +234,14 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case FLUIDMECH_VELOCITY_DERIV_1:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_VELOCITY_DERIV_2:
+        return "1/s^2";
+        break;
+
       case MEAN_FLUIDMECH_VELOCITY_NORMAL:
         return "m/s";
         break;
@@ -245,9 +254,19 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case FLUIDMECH_PRESSURE_DERIV_1:
+        return "Pa/m";
+        break;
+
+      case FLUIDMECH_PRESSURE_DERIV_2:
+        return "Pa/m^2";
+        break;
+
       case FLUIDMECH_DENSITY:
         return "kg/m^3";
         break;
+
+
 
       case FLUIDMECH_TKE:
         return "J";

@@ -16,14 +16,16 @@
 
 namespace CFSDat{
 
+namespace CF = CoupledField;
+
 EqnMapSimple::EqnMapSimple(CF::ResultInfo::EntityUnknownType type,
-                           boost::shared_ptr<CF::Grid> myGrid,
+                           CF::Grid* myGrid,
                            CF::UInt eqnPerEnt, bool isOneBased)
-             : mapType_(type),numEqns_(0),isFinalized_(false),
-               maxNumEqns_(0),eqnPerEnt_(eqnPerEnt){
+             : mapType_(type),eqnPerEnt_(eqnPerEnt),numEqns_(0),
+               maxNumEqns_(0),zeroOne_(0),isFinalized_(false){
 
  entityEquations_ = NULL;
-
+ ptGrid_ = myGrid;
  //obtain maximum number of entities of given type in Grid
  CF::UInt numEntries = 0;
  if(mapType_==CF::ResultInfo::ELEMENT){
@@ -66,8 +68,10 @@ void EqnMapSimple::Finalize(){
 
     for(CF::UInt i=0 ; i < regEntities.GetSize() ; i++){
       CF::UInt aENum = regEntities[i];
-      entityEquations_[aENum-zeroOne_] = (entityEquations_[aENum-zeroOne_]==0)? numEqns_ : 0;
-      numEqns_+=eqnPerEnt_;
+      if(entityEquations_[aENum-zeroOne_]==0){
+        entityEquations_[aENum-zeroOne_] = numEqns_;
+        numEqns_+=eqnPerEnt_;
+      }
     }
   }
   isFinalized_ = true;
@@ -78,7 +82,7 @@ void EqnMapSimple::GetEquation(CF::StdVector<CF::UInt> & eqns,
                                const CF::UInt globalEntNum,
                                CF::ResultInfo::EntityUnknownType type) const {
   // Some mild security checks
-  CF::assert(type == mapType_);
+  assert(type == mapType_);
   if(globalEntNum > maxNumEqns_){
     CF::Exception("Requested equation number for an invalid entity number (Exceeds maximum)");
   }
@@ -107,9 +111,23 @@ void EqnMapSimple::GetRegionEquations(CF::StdVector<CF::UInt> & eqns, CF::Region
   }
 
   eqns.Resize(regEntities.GetSize() * eqnPerEnt_);
-
+  eqns.Init(99999999);
   for(CF::UInt aEnt = 0 ; aEnt < regEntities.GetSize() ; aEnt++){
     aEntNum = regEntities[aEnt];
+    start = entityEquations_[aEntNum-zeroOne_];
+
+    for(CF::UInt aDof = 0;aDof < eqnPerEnt_;aDof++){
+      eqns[(aEnt*eqnPerEnt_)+aDof] = start+aDof;
+    }
+  }
+}
+void EqnMapSimple::GetSubsetEquations(CF::StdVector<UInt> & eqns, CF::StdVector<UInt> & globalEntNumbers) const{
+  UInt aEntNum = 0;
+  UInt start = 0;
+
+  eqns.Resize(globalEntNumbers.GetSize() * eqnPerEnt_);
+  for(CF::UInt aEnt = 0 ; aEnt < globalEntNumbers.GetSize() ; aEnt++){
+    aEntNum = globalEntNumbers[aEnt];
     start = entityEquations_[aEntNum-zeroOne_];
 
     for(CF::UInt aDof = 0;aDof < eqnPerEnt_;aDof++){

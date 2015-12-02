@@ -85,6 +85,13 @@ namespace CoupledField
       
     virtual void ReadMesh( Grid *mi ) = 0;
 
+    //! Tries to copy all relevant mesh related information rather than creating a
+    //! mesh of its own. USefull if different results are defined in different
+    //! result files and one wants to combine those. Works only!!! for identical meshes.
+    virtual void CopyMeshInfo( shared_ptr<SimInput> otherInput ){
+      EXCEPTION("Copy of mesh data from other simInputs is not supported");
+    }
+
     // ========================================================================
     // GENERAL MESH INFORMATION
     // ========================================================================

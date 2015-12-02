@@ -1,0 +1,291 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// vim: set ts=2 sw=2 et nu ai ft=cpp cindent !:
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+// ================================================================================================
+/*!
+ *       \file     CentroidInterpolator.cc
+ *       \brief    <Description>
+ *
+ *       \date     Dec 1, 2015
+ *       \author   ahueppe
+ */
+//================================================================================================
+
+
+#include "CentroidInterpolator.hh"
+#include "FeBasis/H1/H1Elems.hh"
+#include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include <algorithm>
+#include <vector>
+
+namespace CFSDat{
+
+CentroidInterpolator::CentroidInterpolator(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
+                     :BaseInterpolationFilter(numWorkers,config,resMan){
+
+  this->filtSteamType_ = FIFO_FILTER;
+
+  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
+  std::string outRes = params_->Get("singleResult")->Get("outputQuantity")->Get("resultName")->As<std::string>();
+  filtResNames.insert(outRes);
+  upResNames.insert(inRes);
+
+  ParamNodeList srcList =  params_->Get("regions")->Get("sourceRegions")->GetList("region");
+  for(UInt iP = 0; iP < srcList.GetSize(); ++iP){
+    srcRegions_.insert(srcList[iP]->Get("name")->As<std::string>());
+  }
+
+  ParamNodeList trgList =  params_->Get("regions")->Get("targetRegions")->GetList("region");
+  for(UInt iP = 0; iP < trgList.GetSize(); ++iP){
+    srcRegions_.insert(trgList[iP]->Get("name")->As<std::string>());
+  }
+
+  //Now we read the input grid. Another possibility would be to give the user the opportunity
+  //to perform interpolation onto a grid which already has results
+  //a grid only input filter is not directly possible due to the concept of a result driven pipeline.
+
+  //create grid
+  CreateDummyCfsParamNode();
+  UInt maxDim = trgMeshInp_->GetDim();
+
+  PtrParamNode infoNode;
+  //now we can create the mesh
+  //right now only full grids are supported
+  std::string gridMode = params_->Get("gridType",ParamNode::EX)->As<std::string>();
+  if(gridMode == "fullGrid"){
+    trgGrid_ = new CF::GridCFS(maxDim,dummyXMLNode_,infoNode,filterId_);
+  }else{
+    EXCEPTION("Interpolation filter needs full grid input. ID: " << this->filterId_)
+  }
+
+  trgMeshInp_->ReadMesh(trgGrid_);
+  //it would be nice not to finish the grid here
+  //in order to let other filters add some entities
+  //unfortunately this is not possible as we can not access anything
+  //without it another question, how can two inputs share a common grid?
+  trgGrid_->FinishInit();
+
+
+}
+
+CentroidInterpolator::~CentroidInterpolator(){
+delete trgGrid_;
+}
+
+bool CentroidInterpolator::Run(){
+  //this is somehow end of the line
+  // we deactivate every result, except for our own
+  std::set<uuids::uuid> activeResults = resultManager_->GetActiveResults();
+  std::set<uuids::uuid>::iterator aIter = activeResults.begin();
+  for(; aIter != activeResults.end(); ++aIter){
+    if(filterResIds.Find(*aIter) == -1){
+      WARN(" There are still active results when reaching the interpolation filter. This indicates an unexpected use of the pipeline.")
+    }
+    resultManager_->DeactivateResult(*aIter);
+  }
+  Double aTF = resultManager_->GetStepValue(filterResIds[0]);
+  resultManager_->SetTimeValue(upResIds[0],aTF);
+  // now we deactivate our own result and activate the others
+  resultManager_->ActivateResult(upResIds[0]);
+
+  //now we call for upstream data in each source
+  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  for(; srcIter != sources_.End() ; srcIter++){
+    // should we check here anything for success?
+    (*srcIter)->Run();
+  }
+
+  CF::StdVector<UInt> eqnNums;
+  Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
+  Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
+
+  returnVec.Init();
+
+  //perform interpolation
+  CF::StdVector<UInt> elemNodes;
+  CF::Vector<Double> shFnc;
+  CF::StdVector<UInt> eqns;
+  shared_ptr<ElemShapeMap> eShape;
+  str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
+  for(UInt i=0;interpolData_.size();++i){
+    InpolationStruct& aStru = interpolData_[i];
+
+    const Elem* curE = trgGrid_->GetElem(aStru.tENum);
+    eShape = trgGrid_->GetElemShapeMap(curE,true);
+
+    trgGrid_->GetElemNodes(elemNodes,curE->elemNum);
+
+    FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
+    Double value = inVec[aStru.srcEqn];
+    myElem->GetShFnc(shFnc,aStru.localCoords,curE);
+    Double curval = 0.0;
+    for(UInt aNode =0;aNode < elemNodes.GetSize(); ++aNode){
+      downMap->GetEquation(eqns,elemNodes[aNode],ExtendedResultInfo::NODE);
+      curval  = shFnc[aNode] * value * aStru.volume;
+      for(UInt aDof=0;aDof < eqns.GetSize(); aDof++){
+        returnVec[eqns[aDof]] += curval * inVec[aStru.srcEqn+aDof];
+      }
+    }
+  }
+
+  resultManager_->ActivateResult(filterResIds[0]);
+
+  //now deactivate own upstream results
+  for(UInt aRes=0;aRes<upResIds.GetSize();aRes++){
+    resultManager_->DeactivateResult(upResIds[aRes]);
+  }
+
+  return true;
+}
+
+void CentroidInterpolator::FinishInit(){
+  //first go up
+  CF::StdVector< str1::shared_ptr<BaseFilter> >::iterator srcIter =  sources_.Begin();
+  for(; srcIter != sources_.End() ; srcIter++){
+    // should we check here anything for success?
+    (*srcIter)->FinishInit();
+  }
+
+  //1. Get Cell centroids from input
+  //2. Get Cell volumes from input
+  //3. Search for containing elements in trg
+  //4. Store for each src cell local Coordinates, src cell Idx, trg cell idx
+
+  std::cout << "\t ---> CentroidInterpolator preparing for interpolation" << std::endl;
+
+  //in this filter we only have one upstream result
+  uuids::uuid upRes = upResIds[0];
+
+  Grid* inGrid   = resultManager_->GetExtInfo(upRes)->ptGrid;
+
+  //lets declare some variables and estimate the memory
+  std::vector<UInt> allSrcElems;
+  CF::StdVector<const CF::Elem*> trgElements;
+  CF::StdVector< LocPoint > locPoints;
+  CF::StdVector< CF::Vector<Double> > elemCentroids;
+
+  //loop over source regions and add element numbers to vector
+
+  std::set<std::string>::iterator sRegIter = srcRegions_.begin();
+  for(;sRegIter != srcRegions_.end();++sRegIter){
+    StdVector<UInt> curElems;
+    inGrid->GetElemNumsByName(curElems,*sRegIter);
+    allSrcElems.insert(allSrcElems.end(),curElems.Begin(),curElems.End());
+  }
+
+  std::cout << "\t\t Interpolator is dealing with " << allSrcElems.size() <<
+               " source elements" << std::endl;
+
+  std::cout << "\t\t 1/6 Obtaining source element centroids " << std::endl;
+  //should not be necessary to make it unique
+  elemCentroids.Resize(allSrcElems.size());
+  locPoints.Resize(allSrcElems.size());
+  for(UInt i=0;i<allSrcElems.size();++i){
+    inGrid->GetElemCentroid(elemCentroids[i],allSrcElems[i],true);
+  }
+
+  std::cout << "\t\t 2/6 Searching for containing target elements (can take a while)..." << std::endl;
+  trgGrid_->GetElemsAtGlobalCoords(elemCentroids,locPoints,trgElements,
+                                   StdVector<shared_ptr<EntityList> >(),
+                                   1e-6, 1e-3);
+
+  std::cout << "\t\t 3/6 Generating interpolation info ..." << std::endl;
+  interpolData_.reserve(trgElements.GetSize());
+  for(UInt aMatch = 0;aMatch < trgElements.GetSize();++aMatch){
+    if(trgElements[aMatch]!= NULL){
+      //obtain element volume
+      InpolationStruct newStruct;
+      shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
+      newStruct.volume = eShape->CalcVolume();
+      newStruct.localCoords = locPoints.GetPointer()->coord;
+      newStruct.srcEqn = allSrcElems[aMatch];
+      newStruct.tENum = trgElements[aMatch]->elemNum;
+      interpolData_.push_back(newStruct);
+    }
+  }
+  std::cout << "\t\t 4/6 Clear generated temporary data storage ..." << std::endl;
+  trgElements.Clear(false);
+  elemCentroids.Clear(false);
+  locPoints.Clear(false);
+  allSrcElems.clear();
+
+  //for an export import step, here would be the right place
+
+  std::cout << "\t\t 5/6 Remap data to equation numbers ..." << std::endl;
+  str1::shared_ptr<EqnMapSimple> upMap = resultManager_->GetResultAdpter(upRes)->mapping;
+  CF::StdVector<UInt> sEqn;
+  for(UInt i=0;interpolData_.size();++i){
+    upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
+    //save as scalar even for vector types
+    interpolData_[i].srcEqn = sEqn[0];
+  }
+
+  std::cout << "\t\t 6/6 Sort Data according to eqn numbers ..." << std::endl;
+  std::sort(interpolData_.begin(),interpolData_.end());
+
+  std::cout << "\t\t Interpolation prepared!" << std::endl;
+}
+
+ResultIdList CentroidInterpolator::SetUpstreamResults(){
+  ResultIdList generated;
+  //we should only have one filter Result
+  CF::StdVector<uuids::uuid>::iterator aIt = filterResIds.Begin();
+  std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
+
+  //add input result to manager
+  std::string inRes = params_->Get("singleResult")->Get("inputQuantity")->Get("resultName")->As<std::string>();
+  uuids::uuid newId = resultManager_->AddResult(inRes,this->filterTag_);
+
+  //set the timeline of upstream data if already set
+  resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
+  generated.Push_back(newId);
+
+  return generated;
+
+}
+
+void CentroidInterpolator::AdaptFilterResults(){
+  //some checks
+  ResultManager::ConstInfoPtr inInfo = resultManager_->GetExtInfo(upResIds[0]);
+  //we require mesh result input
+  if(!inInfo->isMeshResult){
+    EXCEPTION("Centroid interpolation required input to be defined on mesh");
+  }
+  //require defined on elems
+  if(inInfo->definedOn != ExtendedResultInfo::ELEMENT){
+    EXCEPTION("Centroid interpolation can only handle element results");
+  }
+  //got the upstream result validated?
+  if(!inInfo->isValid){
+    EXCEPTION("Problem in filter pipeline detected. Interpolator input result \"" <<  inInfo->resultName << "\" could not be provided.")
+  }
+
+  resultManager_->CopyResultData(upResIds[0],filterResIds[0]);
+  //but now, we need to overwrite some things
+  resultManager_->SetRegionNames(filterResIds[0],this->trgRegions_);
+  //after this filter we have nodal values on different regions
+  //on a different grid
+  resultManager_->SetDefOn(filterResIds[0],ExtendedResultInfo::NODE);
+  resultManager_->SetGrid(filterResIds[0],this->trgGrid_);
+  resultManager_->SetMeshResult(filterResIds[0],true);
+
+  //validate own result
+  resultManager_->SetValid(filterResIds[0]);
+}
+
+//TODO for now copy paste code from inputfilter... not very nice
+void CentroidInterpolator::CreateDummyCfsParamNode(){
+
+  PtrParamNode meshInputNode = params_->Get("targetMesh")->GetChild();
+  dummyXMLNode_.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
+  CoupledField::PtrParamNode iNode = dummyXMLNode_->Get("fileFormats",ParamNode::APPEND)->Get("input",ParamNode::INSERT);
+  iNode->AddChildNode(meshInputNode);
+
+  //create domain node
+  //UInt dim = inFile_->GetDim();
+  CoupledField::PtrParamNode dNode = dummyXMLNode_->Get("domain",ParamNode::APPEND);
+  //dNode->Get("geometryType",ParamNode::APPEND)->SetValue(itoa(dim));
+
+}
+}

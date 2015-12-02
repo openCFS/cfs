@@ -307,6 +307,9 @@ namespace CoupledField
     //! If not found, Elem vector \parm surfEl (in) is empty.
     virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS);
     
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated);
+
     //@}
 
     // =======================================================================

@@ -11,7 +11,7 @@ namespace CoupledField {
  #define EXCEPTION(STR){                                          \
     std::ostringstream ostr;                                      \
     ostr << STR;                                                  \
-    Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str()); \
+    CoupledField::Exception ex__(NULL, __FILE__, __LINE__, ostr.str().c_str()); \
     throw ex__;                                                   \
   }
     
