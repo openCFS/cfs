@@ -141,8 +141,8 @@ ErsatzMaterial::ErsatzMaterial() :
   // the L-mesh of the stress constraint benchmark is meshed by gid with different positions of
   // element nodes, such that one cannot use the same element matrix, even if the grid is regular
   // therefore the attribute enforce_unstructured
-  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT
-      && !pn->Get("enforce_unstructured")->As<bool>();
+  assume_constant_element_matrices_ = design->IsRegular() && method_ != ErsatzMaterial::PARAM_MAT && !pn->Get("enforce_unstructured")->As<bool>();
+
   LOG_TRACE2(em) << "EM:EM: const_mat=" << assume_constant_element_matrices_ << " reg=" << design->IsRegular()
                      << " PARAM_MAT=" << (method_ == ErsatzMaterial::PARAM_MAT) << " enforce_unstr=" << pn->Get("enforce_unstructured")->As<bool>();
 
@@ -202,6 +202,22 @@ ErsatzMaterial::~ErsatzMaterial()
 
 void ErsatzMaterial::PostInit()
 {
+  // updates context which we need for the filters (pde)
+  Optimization::PostInit();
+
+  // from the filters we detect robustness which we need for multiple excitations
+  if(pn->Has("filters"))
+  {
+    ParamNodeList list = pn->Get("filters")->GetList("filter");
+    // this is save for design=polarization
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+    {
+      if(structure_ == NULL)
+        structure_ = new DesignStructure(this);
+      structure_->SetFilter(list[i], this->optInfoNode);
+    }
+  }
+
   // check for multiple load cases (might be frequencies)
   me->InitializeMultipleExcitations(this, &contextManager);
   for(unsigned int i = 0; i < contextManager.context.GetSize(); i++)
@@ -209,7 +225,6 @@ void ErsatzMaterial::PostInit()
   me->FinalizeMultipleExcitations(this, &contextManager, optimizer_ == EVALUATE_INITIAL_DESIGN);
   me->excitations.First().Apply(); // this sets the
 
-  Optimization::PostInit();
 
 
   // for transformations we might have more than only one tensor

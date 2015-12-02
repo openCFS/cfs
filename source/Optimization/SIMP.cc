@@ -65,21 +65,9 @@ SIMP::~SIMP()
 void SIMP::PostInit()
 {
   ErsatzMaterial::PostInit();
-
-  if(pn->Has("filters"))
-  {
-    ParamNodeList list = pn->Get("filters")->GetList("filter");
-    // this is save for design=polarization
-    for(unsigned int i = 0; i < list.GetSize(); i++)
-    {
-      if(structure_ == NULL)
-        structure_ = new DesignStructure(this);
-      structure_->SetFilter(list[i], this->optInfoNode);
-    }
-  }
   
   if(context->IsComplex()) mechRHS.Init<complex<double> >(design, App::PRESSURE); // in many cases NULL;
-                     else mechRHS.Init<double>(design, App::PRESSURE);
+                      else mechRHS.Init<double>(design, App::PRESSURE);
 }
 
 void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)

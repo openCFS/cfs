@@ -37,18 +37,6 @@ ParamMat::ParamMat() : ErsatzMaterial()
 
 void ParamMat::PostInit()
 {
-  if(pn->Has("filters"))
-  {
-    ParamNodeList list = pn->Get("filters")->GetList("filter");
-    // this is save for design=polarization
-    for(unsigned int i = 0; i < list.GetSize(); i++)
-    {
-      if(structure_ == NULL)
-        structure_ = new DesignStructure(this);
-      structure_->SetFilter(list[i], this->optInfoNode);
-    }
-  }
-
   ErsatzMaterial::PostInit();
   
   mech_mat_ = dynamic_cast<MechMat*>(material); // just set in EM:PostInit()

@@ -101,7 +101,7 @@ shared_ptr<CoefFunctionOpt> OptimizationMaterial::GetMatCoef(const std::string& 
     if(bdb != NULL)
     {
       assert(bdb->GetCoef());
-      LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
+      // LOG_DBG3(om) << "GMC int=" << integrator << " coef=" << bdb->GetCoef()->ToString();
       return dynamic_pointer_cast<CoefFunctionOpt>(bdb->GetCoef());
     }
   }

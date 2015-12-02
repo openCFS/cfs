@@ -174,6 +174,8 @@ Optimization::~Optimization()
 
 void Optimization::PostInit()
 {
+  // during Optimization construction there were no pdes, now in PostInit() we need to read them
+  context->Update();
   assert(context->pde != NULL);
   this->assemble_ = context->pde->GetAssemble();
 
