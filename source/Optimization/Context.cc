@@ -132,8 +132,10 @@ void Context::SetPDEs()
   pdes.clear();
 
   const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
-  assert(!avail.IsEmpty());
 
+  // might be empty for the first call within Optimization constructor. Here we set the design which we need
+  // to setup the pdes with the proper optimization based material coefficients
+  // -> call Context::Update() again in Optimization::PostInit()
   for(unsigned int i = 0; i < avail.GetSize(); i++)
   {
     const SinglePDE* sp = avail[i];
@@ -174,12 +176,15 @@ void Context::SetPDEs()
 ContextManager::ContextManager()
 {
   this->initialized_ = false;
+  this->default_excitation_ = new Excitation(); // for the load ersatz material case
   context.Resize(1); // default
   Optimization::context = &context[0];
+  Optimization::context->SetExcitation(default_excitation_);
 }
 
 ContextManager::~ContextManager()
 {
+  delete default_excitation_;
 }
 
 void ContextManager::Init()
@@ -220,9 +225,7 @@ void ContextManager::Init()
 
   SwitchContext(0);
 
-  // we have no Excitations yet in this phase
-  assert(Optimization::context->GetExcitation() == NULL);
-
+  // we have the default excitation to allow ersatz material only without optimization
   this->initialized_ = true;
 }
 

@@ -308,12 +308,6 @@ void Domain::PostInit(UInt sequenceStep)
 
   SetDriver(driver); // see above!
 
-  // initialize the driver
-  // Note: In case this is not the parent / main domain, we do not read a
-  // restart file.
-  driver->Init(isParentDomain_ ? progOpts->GetRestart() : false);
-
-
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if (GetParamRoot()->Has("optimization"))
   {
@@ -327,6 +321,12 @@ void Domain::PostInit(UInt sequenceStep)
     if(DensityFile::NeedLoadErsatzMaterial())
       designSpace_ = DensityFile::ReadErsatzMaterial();
   }
+
+  // initialize the driver.
+  // For optimization the design needs to be set to initialize the proper material coefficients
+  // Note: In case this is not the parent / main domain, we do not read a restart file.
+  driver->Init(isParentDomain_ ? progOpts->GetRestart() : false);
+
 
   // we need driver->Init() first
   if(optimization_ != NULL)
@@ -859,7 +859,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
 //
 //    }
 //    
-    // *** ACOU-App::MECH Coupling ***
+    // *** ACOU-MECH Coupling ***
     else if (couplingName == "acouMechDirect")
     {
 
@@ -888,7 +888,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
                                       simState_, this );
     }
     
-    // *** FLUID-App::MECH Coupling ***
+    // *** FLUID-MECH Coupling ***
     else if (couplingName == "fluidMechDirect")
     {
 
@@ -911,7 +911,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
       coupling = new WaterWaveAcousticCoupling(pde1, pde2, pairNodes[i], info_,
                                                simState_, this );
     }
-    // *** Water Wave-App::MECH Coupling ***
+    // *** Water Wave-MECH Coupling ***
     else if (couplingName == "waterWaveMechDirect")
     {
 
@@ -923,7 +923,7 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
     }
 //
 //    // ------------------------------------------------------------------------
-//    // *** THERMO-App::MECH Coupling ***
+//    // *** THERMO-MECH Coupling ***
 //    else if (couplingName == "thermoMechDirect")
 //    {
 //

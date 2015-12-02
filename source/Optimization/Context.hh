@@ -191,6 +191,9 @@ public:
 
 private:
 
+  // we need a default Excitation in the case of load ersatzmaterial only for the default filter index
+  Excitation* default_excitation_;
+
   bool initialized_;
 
   AnyContext any_;
