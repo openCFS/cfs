@@ -501,11 +501,6 @@ namespace CoupledField {
         // We need to perform an additional propagation step as base for the adjoint system setup
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
-        if (!srt_ && domain_->GetOptimization() != NULL) {
-          StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
-          adjMoments = *tmpAdj;
-        }
-
         pdfs = *tmp;
         in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
@@ -515,10 +510,18 @@ namespace CoupledField {
         pdfs = *tmp;
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
 
+        std::cout << "CalcPressureDrop(): " << CalcPressureDrop() << " niter: " << lbm->GetNumIterations() << std::endl;
+        std::cout << "GetObjective(): " << GetDissipation() << std::endl;
+
+        if (!srt_ && domain_->GetOptimization() != NULL) {
+          StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
+          adjMoments = *tmpAdj;
+        }
+
         numWriteResults_ = lbm->GetNumWriteResults();
 
         numIterations_ = lbm->GetNumIterations();
-
+        exit(-1);
         break;
       }
     }
@@ -729,6 +732,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       DesignElement* de = f->elements[e];
       unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
       double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
+      std::cout << "Adjoint solution for element " << idx << ":\n";
+      for (unsigned int dir = 0; dir < n_q_; dir++) {
+        std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+      }
+      std::cout << std::endl;
       de->AddGradient(f, val);
     }
 
@@ -757,7 +765,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   {
     Vector<double> pdfs(n_q_);
     Vector<double> adjMoms(n_q_);
-    std::cout << "Adjoint variable in PDE: \n" << adjMoments.ToString(false) << std::endl;
+//    std::cout << "Adjoint variable in PDE: \n" << adjMoments.ToString(false) << std::endl;
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
@@ -766,6 +774,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         pdfs[dir] = GetPdf(idx,dir);
         adjMoms[dir] = GetAdjMoments(idx,dir);
       }
+
+      std::cout << "Adjoint solution for element " << idx << ":\n";
+      std::cout << adjMoms.ToString(0,',') << std::endl;
+
+//      exit(-1);
 
       Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
       Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s
@@ -845,7 +858,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       relaxation[6][6] = omega_q_;
       relaxation[7][7] = omega_;
       relaxation[8][8] = omega_;
-      d_coll_d_s = dm_ds -relaxation * (dm_ds - dmEq_ds);
+//      d_coll_d_s = dm_ds - relaxation * (dm_ds - dmEq_ds);
+      d_coll_d_s = relaxation * dmEq_ds;
       double sens =  d_coll_d_s.Inner(adjMoms);
       de->AddGradient(f, sens);
     }

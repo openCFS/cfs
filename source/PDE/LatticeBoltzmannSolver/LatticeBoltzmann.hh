@@ -75,24 +75,50 @@ namespace CoupledField
       /** Returns overall dissipation calculated with current pdfs */
       inline double GetDissipation()
       {
-        Vector<double> pdfs(n_q_);
-        double dissipation = 0.0;
-        for (int elem = 0; elem < nNodes_; elem++) {
-          if (!rel.Contains(elem)) // only sum up local dissipation at design nodes
-            continue;
+//        Vector<double> pdfs(n_q_);
+//        double dissipation = 0.0;
+//        for (int elem = 0; elem < nNodes_; elem++) {
+//          if (!rel.Contains(elem)) // only sum up local dissipation at design nodes
+//            continue;
+//          for (int dir = 0; dir < n_q_; dir++)
+//            pdfs[dir] = PDF(cur_,elem,dir);
+//
+//          Vector<double> moms(n_q_);
+//          transformation.Mult(pdfs,moms);
+//          Vector<double> eqMoms;
+//          CalcEquilMoments(moms,eqMoms);
+//
+//          Vector<double> f1,f2;
+//          CalcDarcyForce(moms,elem,f1,f2);
+//          dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+//        }
+//        return dissipation;
+        double in = 0.0;
+        double out = 0.0;
+        for (unsigned int i = 0; i < inlet.GetSize(); i++) {
+          int index = inlet[i];
+          Vector<double> pdfs(n_q_);
           for (int dir = 0; dir < n_q_; dir++)
-            pdfs[dir] = PDF(cur_,elem,dir);
-
-          Vector<double> moms(n_q_);
-          transformation.Mult(pdfs,moms);
-          Vector<double> eqMoms;
-          CalcEquilMoments(moms,eqMoms);
-
-          Vector<double> f1,f2;
-          CalcDarcyForce(moms,elem,f1,f2);
-          dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
+            pdfs[dir] = PDF(cur_,index,dir);
+          double rho = CalcDensity(pdfs);
+          double ux, uy, uz;
+          CalcVelocities(pdfs,ux,uy,uz);
+          assert(uz == 0.0);
+          in += rho / 3.0 + 0.5 * rho * (ux * ux + uy * uy);
         }
-        return dissipation;
+
+        for (unsigned int i = 0; i < outlet.GetSize(); i++) {
+          int index = outlet[i];
+          Vector<double> pdfs(n_q_);
+          for (int dir = 0; dir < n_q_; dir++)
+            pdfs[dir] = PDF(cur_,index,dir);
+          double rho = 1.0; // enforced density
+          double ux, uy, uz;
+          CalcVelocities(pdfs,ux,uy,uz);
+          assert(uz == 0.0);
+          out += rho / 3.0 + 0.5 * rho * (ux * ux + uy * uy);
+        }
+        return in / inlet.GetSize() - out / outlet.GetSize();
       }
 
       /**
@@ -174,6 +200,8 @@ namespace CoupledField
 
           /** Calculates sensitivity of dissipation (objective function) with respect to LBM moments */
           void d_diss_d_moments(int elemId, const Vector<double>& moments);
+
+          void d_pdrop_d_moments(int elemId, const Vector<double>& moments);
 
           /** set enumerations for directions and boundaries*/
           void SetEnums();
@@ -401,6 +429,7 @@ namespace CoupledField
           StdVector<int > obst; // indices of obstacle nodes
           StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
           StdVector<Vector<double> > d_diss_d_m; // partial derivatives of dissipation function w.r.t moments
+          StdVector<Vector<double> > d_pdrop_d_m;
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
