@@ -549,11 +549,11 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         // read coefficients from XML
         ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
         ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
-        if (shearIsDesign_) {
+        if (grid_->getStorage()->dim() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
-        if (shearIsDesign_) {
+        if (grid_->getStorage()->dim() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
@@ -3349,7 +3349,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   alpha2_.resize(N);
   alpha3_.resize(N);
   alpha4_.resize(N);
-  if (shearIsDesign_) {
+  if (grid_->getStorage()->dim() == 3) {
     alpha5_.resize(N);
     alpha6_.resize(N);
   }
@@ -3362,7 +3362,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   double duck; // dummy
   unsigned int j = 0;
   for (unsigned int i = 0; i < N; i++) {
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
       for (unsigned int idx = 0; idx < 3; idx++) {
         file >> leveld >> indexd;
@@ -3400,7 +3400,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     }
     // add grid point
     grid_->getStorage()->insert(grid_point);
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
       // (except for the final value, the volume)
       file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
@@ -3431,12 +3431,20 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         alpha4_[j] *= 2.0;
       }
     }
-    LOG_DBG3(dm) << "DM::ISG: alpha[1-4]: " << alpha1_[j] << "\t" << alpha2_[j] << "\t" << alpha3_[j] << "\t" << alpha4_[j];
+    SGPP::base::GridIndex* gp = grid_->getStorage()->get(i);
+    if (grid_->getStorage()->dim() == 3) {
+      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j];
+    } else {
+      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j];
+    }
+
     j++;
   }
   LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
   file.close();
-  if (!shearIsDesign_) {
+  if (grid_->getStorage()->dim() == 2) {
     // coefficient vectors were too big, because we skipped grid points
     alpha1_.resize(grid_->getStorage()->size());
     alpha2_.resize(grid_->getStorage()->size());
@@ -3553,7 +3561,7 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
     }
     alpha1_[i] = data[row][0];
     alpha2_[i] = data[row][1];
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       alpha3_[i] = data[row][2];
       alpha4_[i] = data[row][3];
       alpha5_[i] = data[row][4];
@@ -3584,15 +3592,17 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
   alpha2_.resize(gridStorage->size());
   alpha3_.resize(gridStorage->size());
   alpha4_.resize(gridStorage->size());
-  alpha5_.resize(gridStorage->size());
-  alpha6_.resize(gridStorage->size());
+  if (gridStorage->dim() == 3) {
+    alpha5_.resize(gridStorage->size());
+    alpha6_.resize(gridStorage->size());
+  }
 
   // put data values in coefficient vectors
   SGPP::base::GridIndex* gp;
   unsigned int sz = gridStorage->size();
   sz = sz + 1;
   for (unsigned int i=0; i < gridStorage->size(); i++) {
-    if (shearIsDesign_) {
+    if (gridStorage->dim() == 3) {
       alpha1_[i] = data[i][0];
       alpha2_[i] = data[i][1];
       alpha3_[i] = data[i][2];
@@ -3611,8 +3621,13 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
       }
     }
     gp = gridStorage->get(i);
-    LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+    if (gridStorage->dim() == 3) {
+      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+    } else {
+      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+    }
   }
   // hierarchize data vectors
   HierarchizeSparseGridCoefficients();
@@ -3627,18 +3642,18 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
     hierOp->doHierarchisation(alpha2_);
     hierOp->doHierarchisation(alpha3_);
     hierOp->doHierarchisation(alpha4_);
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       hierOp->doHierarchisation(alpha5_);
       hierOp->doHierarchisation(alpha6_);
     }
     delete hierOp;
   } else {
-    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (shearIsDesign_ ? 6 : 4));
+    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 6 : 4));
     alphas.setColumn(0, alpha1_);
     alphas.setColumn(1, alpha2_);
     alphas.setColumn(2, alpha3_);
     alphas.setColumn(3, alpha4_);
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       alphas.setColumn(4, alpha5_);
       alphas.setColumn(5, alpha6_);
     }
@@ -3652,7 +3667,7 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
     alphas.getColumn(1, alpha2_);
     alphas.getColumn(2, alpha3_);
     alphas.getColumn(3, alpha4_);
-    if (shearIsDesign_) {
+    if (grid_->getStorage()->dim() == 3) {
       alphas.getColumn(4, alpha5_);
       alphas.getColumn(5, alpha6_);
     }
@@ -4186,7 +4201,7 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     unsigned int catalogueDimension = strVec[0].compare("3D") == 0 ? 3 : 2;
     level_ = boost::lexical_cast<int>(strVec[1].substr(1));
     for (unsigned int i=0; i<catalogueDimension; i++) {
-      catalogueSize_.Push_back(2^level_);
+      catalogueSize_.Push_back(pow(2,level_));
     }
     nRows = boost::lexical_cast<int>(strVec[2]);
   } else {
@@ -4205,17 +4220,20 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     level_ = log2(dim1);
   }
 
-  if (shearIsDesign_) {
+  if (grid_->getStorage()->dim() == 3) {
     assert(catalogueSize_.GetSize() == 3);
   }
 
-  if (catalogueSize_.GetSize() == 2) {
+  if (strVec.GetSize() <= catalogueSize_.GetSize() + 4 + 1) {
+    // only tensor entries E11 E12 E22 E33 (and volume) are given
     nCols = 4;
   } else {
+    // all tensor entries are given
     nCols = 6;
   }
-  ret.Resize(nRows,nCols);
-  ret.Init();
+  Matrix<double> data;
+  data.Resize(nRows,nCols);
+  data.Init();
   LOG_DBG(dm)<<"ReadDetailedStats: nRows = "<<nRows<<", nCols = "<<nCols<<", level = "<<level_;
 
   for (unsigned int i=0; i<nRows; i++) {
@@ -4224,12 +4242,28 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     strVec.Clear();
     SplitStringListWhitespace(line, strVec);
     for (unsigned int j=0; j<nCols; j++) {
-      ret[i][j] = boost::lexical_cast<double>(strVec[j+catalogueSize_.GetSize()]);
+      data[i][j] = boost::lexical_cast<double>(strVec[j+catalogueSize_.GetSize()]);
     }
     if (notation == VOIGT) {
-      ret[i][nCols-1] = ret[i][nCols-1] * 2.0;
+      data[i][nCols-1] = data[i][nCols-1] * 2.0;
     }
   }
+
+  // If too many tensor entries are given we extract the needed ones
+  if (catalogueSize_.GetSize() == 2 && nCols == 6) {
+    // extract the columns for entries E11 E12 E22 E33
+    std::vector<UInt> rows(nRows);
+    std::iota(std::begin(rows), std::end(rows), 0);
+    std::vector<UInt> cols(4);
+    cols[0] = 0;
+    cols[1] = 1;
+    cols[2] = 3;
+    cols[3] = 5;
+    data.GetSubMatrixByInd(ret,rows,cols);
+  } else {
+    ret = data;
+  }
+
   LOG_DBG3(dm)<<"Data: \n"<<ret;
 
   return isHierarchized;
