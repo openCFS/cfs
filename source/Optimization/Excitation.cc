@@ -694,7 +694,7 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 
   mech->DefineTestStrainIntegrator(ts, &forms);
 
-  test_strain.Resize(6); // always full dimensions
+  test_strain.Resize(6, 0.0); // always full dimensions
   test_strain[ts] = 1.0;
 }
 
