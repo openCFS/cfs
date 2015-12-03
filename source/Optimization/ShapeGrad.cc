@@ -25,7 +25,7 @@ namespace CoupledField
 DECLARE_LOG(shapeGrad)
 DEFINE_LOG(shapeGrad, "shapeGrad")
 
-ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
+ShapeGrad::ShapeGrad() : ErsatzMaterial()
 {
   PtrParamNode pncf = domain->GetParamRoot()->Get("optimization")->Get("costFunction");
   if(pncf->Has("multipleExcitation"))
@@ -41,9 +41,9 @@ void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 
   // TODO: extend for multi-region-optimization if necessary
   assert(false);
-  const BaseMaterial* material = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
-  material->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
-  material->GetScalar(mu, MECH_LAME_MU, Global::REAL);
+  const BaseMaterial* bm = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
+  bm->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
+  bm->GetScalar(mu, MECH_LAME_MU, Global::REAL);
   LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
 }
 
@@ -126,9 +126,6 @@ void ShapeGrad::PostInit()
 
   if(context->pde->GetName() != "mechanic")
     return;
-
-  mech_mat_ = dynamic_cast<MechMat*>(material); // just created in PostInit()
-  assert(material != NULL);
 }
 
 } //namespace

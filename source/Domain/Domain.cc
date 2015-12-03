@@ -300,13 +300,18 @@ void Domain::PostInit(UInt sequenceStep)
 {
   // set up the driver first
   // SetDriver extracts the SingleDriver which is what CreateInstance returns
-  // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init.
+  // but in the case of a MultiSequenceDriver the SingeDriver is NULL up to init (which is done later!).
 
   // we do not have to delete driver as it is due to SetDriver() deleted
   // either via ptSingleDriver_ or multiSequenceDriver_ in the destructor
   BaseDriver* driver = BaseDriver::CreateInstance( simState_, this, param_, info_ );
+  SetDriver(driver);
+  bool restart = isParentDomain_ ? progOpts->GetRestart() : false;
 
-  SetDriver(driver); // see above!
+  // the single driver initilized the pde which cannot be done prior initialization of optimization,
+  // the multisequence intitialization does not set up the pdes itself and is necessary to init optimization
+  if(domain->GetMultiSequenceDriver() != NULL)
+    driver->Init(restart);
 
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
   if (GetParamRoot()->Has("optimization"))
@@ -322,10 +327,10 @@ void Domain::PostInit(UInt sequenceStep)
       designSpace_ = DensityFile::ReadErsatzMaterial();
   }
 
-  // initialize the driver.
-  // For optimization the design needs to be set to initialize the proper material coefficients
-  // Note: In case this is not the parent / main domain, we do not read a restart file.
-  driver->Init(isParentDomain_ ? progOpts->GetRestart() : false);
+  // For optimization the design needs to be already set to initialize the proper material coefficients
+  // in the multisequence case init does something else and was already called above
+  if(domain->GetMultiSequenceDriver() == NULL)
+    driver->Init(restart);
 
 
   // we need driver->Init() first
@@ -340,8 +345,6 @@ void Domain::PostInit(UInt sequenceStep)
   // note that in the common case isParentDomain_ is true
   if(multiSequenceDriver_ && !isParentDomain_)
     multiSequenceDriver_->SetSequenceStep(sequenceStep);
-
-
 }
 
 // **************

@@ -31,7 +31,7 @@ class TransferFunction;
     {
       if(context->IsComplex())
       {
-        if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+        if(context->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
           SetElementK<Complex, Complex >(de, tf, app, mat_out, derivative, calcMode, ev);
         else
           SetElementK<Complex, double >(de, tf, app, mat_out, derivative, calcMode, ev);
@@ -41,9 +41,6 @@ class TransferFunction;
     }
     
     virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
-
-    /** this is a shortcut to the material class */
-    MechMat* mech_mat_;
 
     /** see the SIMP case
      * T1 is the out matrix type

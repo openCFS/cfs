@@ -62,13 +62,6 @@ protected:
     else
       SetElementK<double, double>(de, tf, app, out, derivative, calcMode, ev);
   }
-
-  /** is a cast of the ErsatzMaterial::material attribute. Set in PostInit() */
-  PiezoElecMat* piezo_mat_;
-
-  /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  ElecPDE* elec;
-
 private:
 
   template <class T1, class T2>

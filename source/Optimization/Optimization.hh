@@ -218,7 +218,7 @@ namespace CoupledField
         static Context* context;
 
         /** Manages the context. Enables to deal with multi sequence optimization, e.g. for different pdes */
-        static ContextManager contextManager;
+        static ContextManager manager;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
         virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
@@ -226,8 +226,6 @@ namespace CoupledField
         /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
         virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
         
-        Assemble* GetAssemble() { return assemble_; }
-
         /** Helper to convert from natural solution/design to application
          * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */
         static App::Type ToApp(DesignElement::Type dt);

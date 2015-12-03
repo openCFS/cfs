@@ -659,6 +659,10 @@ class Function
     /** When we optimize output we store here the rhs loads */
     StdVector<LinearFormContext*> output_forms;
 
+    /** the multiple sequence step we belong to. 1-based. 1 for only one pde
+     * @see ContextManager */
+    int sequence;
+
   protected:
 
     /** common constructor stuff. To be called from special Objective constructor, too */
@@ -703,10 +707,6 @@ class Function
     /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
-
-    /** the multiple sequence step we belong to. 1-based. 1 for only one pde
-     * @see ContextManager */
-    int sequence;
 
     /** (sample) excitation. For excite_ -1 this is only an exemplaric excitation */
     Excitation* sample_excitation_;

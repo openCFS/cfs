@@ -141,7 +141,7 @@ namespace CoupledField {
   {
     LOG_DBG(resHandler) << "BMS step=" << step << " n=" << numSteps;
 
-    assert(numSteps >= numSteps_);
+    //assert(numSteps >= numSteps_);
 
     // store current sequencestep
     sequenceStep_ = step;

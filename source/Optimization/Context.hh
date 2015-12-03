@@ -14,7 +14,8 @@ class SinglePDE;
 class EigenFrequencyDriver;
 class HarmonicDriver;
 class Exciation;
-
+class Function;
+class OptimizationMaterial;
 
 struct App
 {
@@ -102,9 +103,11 @@ class Context
   /** the 0-based index within ContextManager::context. Is sequence -1 if set. -1 if not set yet */
   unsigned int context_idx;
 
-  /** Is only set when active, otherwise it is zero */
+  /** Is only set when active, otherwise it is zero, don't cache! In the multiple sequence case the driver is always newly created! */
   SingleDriver* driver;
 
+  /** the pde dependend optimization material. Due to multiple sequence needs to wait for Update() to be set first */
+  OptimizationMaterial* mat;
 
   /** our analysis type */
   BasePDE::AnalysisType analysis;
@@ -119,17 +122,19 @@ class Context
    * Is a reference to portions of Optimization::MultipleExcitation::excitation and set in MultipleExcitation::FinalizeMultipleExcitation() */
   StdVector<Excitation*> excitation;
 
-  /** The pdes from the current sequence state.
+  /** The pdes from the current sequence state, don't cache!
    * Note that for multiple sequence optimization the pdes are always newly created and we must not store the pointer!
    * The order of the pdes is not defined, Therefore we use the map. Set via SetPDEs()
    * @see ToApp()
    * @see ToPDE() */
   std::map<App::Type, SinglePDE*> pdes;
 
-  /** This is simple one SinglePDE from pdes. */
+  /** This is simple one SinglePDE from pdes, don't cache! */
   SinglePDE* pde;
 
-private:
+  PtrParamNode infoNode;
+
+  private:
 
   /** make shortcuts for the currently available PDEs in pdes */
   void SetPDEs();
@@ -174,6 +179,10 @@ public:
    * freshly initialized
    * @param index 0-based */
   void SwitchContext(int index);
+
+  /** gives the context corresponding to the function.
+   * Simply used the 1-based sequence attribute of the function */
+  const Context& GetContext(const Function* f) const;
 
   StdVector<Context> context;
 

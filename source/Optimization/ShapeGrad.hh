@@ -68,9 +68,6 @@ private:
   /** \var int max_volume_to_remove_
    * \brief How much volume should be removed in total (from xml) */
   int max_volume_to_remove_;
-
-  /** This is our material shortcut, currently only mechanic. Set in PostInit() */
-  MechMat* mech_mat_;
 };
 
 } // namespace

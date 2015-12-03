@@ -31,16 +31,11 @@ ParamMat::ParamMat() : ErsatzMaterial()
   if((method_ == PARAM_MAT || method_ == SHAPE_PARAM_MAT) && pn->Has("paramMat")){ 
     design->SetDesignMaterial(pn->Get("paramMat/designMaterial"), OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
   }
-  
-  mech_mat_ = NULL; // set in PostInit()
 }
 
 void ParamMat::PostInit()
 {
   ErsatzMaterial::PostInit();
-  
-  mech_mat_ = dynamic_cast<MechMat*>(material); // just set in EM:PostInit()
-  assert(mech_mat_ != NULL);
 }
 
 
@@ -52,11 +47,13 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, App::T
   // for transient problems, this does also need to return the derivative of the mass matrix
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
   int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+  MechMat* mech_mat = dynamic_cast<MechMat*>(context->mat); // don't cache
+
   switch(app)
   {
   case App::MECH:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->MechStiffness(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
     if(context->IsComplex())
     {
@@ -76,7 +73,7 @@ void ParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, App::T
   }
   case App::MASS:
   {
-    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat_->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
+    const Matrix<T2>& tmp = dynamic_cast<const Matrix<T2>& >(mech_mat->MechMass(de->elem, false, mm, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE));
     Assign(out, tmp, 1.0);
     break;
   }
@@ -95,16 +92,17 @@ void ParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type typ
   // for transient problems, this does also need to return the derivative of the mass matrix
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
   int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
+  MechMat* mech_mat = dynamic_cast<MechMat*>(context->mat); // don't cache
 
   DesignElement::Type t = derivative ? type : DesignElement::NO_DERIVATIVE;
 
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<Matrix<double> &>(mech_mat_->MechStiffness(de->elem, false, mm, t));
+    out = dynamic_cast<Matrix<double> &>(mech_mat->MechStiffness(de->elem, false, mm, t));
     break;
   case App::MASS:
-    out = dynamic_cast<Matrix<double> &>(mech_mat_->MechMass(de->elem, false, mm, t));
+    out = dynamic_cast<Matrix<double> &>(mech_mat->MechMass(de->elem, false, mm, t));
     break;
   default:
     Exception("Only mech and mass matrix are available for paramMat");

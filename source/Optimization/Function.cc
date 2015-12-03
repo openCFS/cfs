@@ -88,7 +88,7 @@ Function::Function(PtrParamNode pn) {
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
   this->sequence = pn->Get("sequence")->As<int>();
-  if(sequence > (int) Optimization::contextManager.context.GetSize()) // note 1-based!
+  if(sequence > (int) Optimization::manager.context.GetSize()) // note 1-based!
     EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
 
   notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;

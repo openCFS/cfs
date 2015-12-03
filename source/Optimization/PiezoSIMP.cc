@@ -70,8 +70,6 @@ PiezoSIMP::PiezoSIMP()
     if(design->GetTransferFunction(DesignElement::POLARIZATION, App::PIEZO_COUPLING, false) == NULL)
       throw Exception("miss transfer function for polarization and coupling");
   }
-
-  piezo_mat_ = NULL; // to be set in PostInit()
 }
 
 PiezoSIMP::~PiezoSIMP()
@@ -86,10 +84,6 @@ void PiezoSIMP::PostInit()
           else elecRHS.Init<double>(design, App::CHARGE_DENSITY);
 
   SIMP::PostInit();
-
-  // just created in PostInit
-  piezo_mat_ = dynamic_cast<PiezoElecMat*>(material);
-  assert(piezo_mat_ != NULL);
 }
 
 
@@ -101,8 +95,8 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
   // (it is real and K_pp = K_pp^T). As the complex scalar product is
   // <x, y> = \sum x_i y_i^* we have 
   // <K_pp p, p> =  p^T K_pp p in the real case and p^T K_pp p^* in complex 
-  
   assert(design->design.GetSize() == 1);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache!
   
   DesignElement::Type dt = design->design[0].design;
   TransferFunction* tf = design->GetTransferFunction(dt, App::ELEC);
@@ -127,7 +121,7 @@ double PiezoSIMP::CalcElecEnergy(Excitation& excite)
 
     LOG_DBG3(simp) << "CalcElecEnergy: e=" << i << " 'density'=" << tf->Transform(de, DesignElement::SMART) << " p=" << p_vec.ToString();
     
-    Assign(mat, piezo_mat_->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
+    Assign(mat, pem->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
     
     LOG_DBG3(simp) << "CalcElecEnergy: mat: " << mat.ToString();
     
@@ -160,6 +154,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
 
   DesignElement::Type dt = design->design[0].design;
   TransferFunction* tf = design->GetTransferFunction(dt, App::ELEC);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache!
 
   // our solution vectors
   StdVector<SingleVector*>& all_p = forward.Get(excite)->elem[App::ELEC];
@@ -184,7 +179,7 @@ void PiezoSIMP::ConstructAdjointRHS(Excitation& excite, Function* f)
     DesignElement* de = &design->data[e];
 
     // gain +K_pp(rho), the plus because K_pp is only in the piezo -K_pp
-    Assign(mat, piezo_mat_->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
+    Assign(mat, pem->ElecStiffnessPos(de), tf->Transform(de, DesignElement::SMART));
 
     // in the complex case with the conjugate complex
     mat.MultInner(p_vec, mat_vec);
@@ -330,6 +325,8 @@ double PiezoSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 template <class T1, class T2>
 void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache!
+
   double factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
@@ -338,18 +335,18 @@ void PiezoSIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::
   {
   case App::ELEC:
     if(calcMode == CONJ_QUAD)
-      Assign(out, piezo_mat_->ElecStiffnessPos(de), factor); // we need the K_pp matrix
+      Assign(out, pem->ElecStiffnessPos(de), factor); // we need the K_pp matrix
     else // STANDARD and GRAD_N
-      Assign(out, piezo_mat_->ElecStiffnessNeg(de), factor); // we need the -K_pp matrix
+      Assign(out, pem->ElecStiffnessNeg(de), factor); // we need the -K_pp matrix
     break;
 
   case App::PIEZO_COUPLING:
   {
     assert(out.GetNumCols() != out.GetNumRows());
     if(out.GetNumRows() > out.GetNumCols())
-      Assign(out, piezo_mat_->CoupledStiffness(de), factor);
+      Assign(out, pem->CoupledStiffness(de), factor);
     else
-      Assign(out, piezo_mat_->CoupledStiffnessTransposed(de), factor);
+      Assign(out, pem->CoupledStiffnessTransposed(de), factor);
     break;
   }
 

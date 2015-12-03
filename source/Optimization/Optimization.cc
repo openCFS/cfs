@@ -79,12 +79,11 @@ Enum<App::Type>                      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
 Context*                             Optimization::context;
-ContextManager                       Optimization::contextManager;
+ContextManager                       Optimization::manager;
 
 
 Optimization::Optimization()
 {
-  this->assemble_ = NULL;
   this->lastStoredResult_ = -1;
   this->design = NULL;
   this->baseOptimizer_ = NULL;
@@ -94,18 +93,12 @@ Optimization::Optimization()
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
 
-  Optimization::contextManager.Init(); // there is also an init in DesignSpace
+  Optimization::manager.Init(); // there is also an init in DesignSpace
 
   optInfoNode = domain->GetInfoRoot()->Get("optimization");   // store our info results here
   PtrParamNode header = optInfoNode->Get(ParamNode::HEADER);
   optParamNode = domain->GetParamRoot()->Get("optimization"); // read our parameters from the xml file
   
-  header->Get("complex")->SetValue(context->IsComplex());
-  header->Get("harmonic")->SetValue(context->IsHarmonic());
-  header->Get("eigenvalue")->SetValue(context->IsEigenvalue());
-  header->Get("bloch")->SetValue(context->DoBloch());
-
-
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = optParamNode->Has("firstStepStatic");
   if(firstStepStatic){
@@ -139,7 +132,7 @@ Optimization::Optimization()
   if(dme)
     me->ToInfo(header->Get("multipleExcitations"));
 
-  if(contextManager.any().bloch && !dme)
+  if(manager.any().bloch && !dme)
     header->Get(ParamNode::WARNING)->SetValue("Bloch mode analysis but not multiple excitation activated");
 
   // slope constraints to be processed in SIMP -> Constraints::PostProc
@@ -154,8 +147,8 @@ Optimization::Optimization()
   optInfoNode->Get("commit/mode")->SetValue(cm);
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
   
-  // write out the directory where the HALTOPT file will be searched for
-  optInfoNode->Get("haltopt_directory")->SetValue(fs::current_path().string());
+  // write the HALTOPT file, helps to memorize how to write the file
+  optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + ".HALTOPT");
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
@@ -177,8 +170,6 @@ void Optimization::PostInit()
   // during Optimization construction there were no pdes, now in PostInit() we need to read them
   context->Update();
   assert(context->pde != NULL);
-  this->assemble_ = context->pde->GetAssemble();
-
 }
 
 void Optimization::PostInitSecond()

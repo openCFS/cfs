@@ -534,7 +534,7 @@ namespace CoupledField
     BaseMaterial* GetMultiMaterial(const MaterialClass mc);
 
     /** for all material classes */
-    void ToInfo(PtrParamNode in, ErsatzMaterial* opt);
+    void ToInfo(PtrParamNode in);
 
     /** material name, to be allow creation on the fly. */
     std::string name;

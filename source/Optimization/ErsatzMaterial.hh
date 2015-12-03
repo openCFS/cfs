@@ -126,11 +126,12 @@ public:
    * It is a vector for the variants for transformation and robust */
   StdVector<Matrix<double> > homogenizedTensor;
 
-  OptimizationMaterial* GetMaterial() { return material; }
-
   DensityFile* GetDensityFile() { return densityFile; }
 
   Method GetMethod() { return method_; }
+
+  /** this is the optimization->ersatzMaterial XML element */
+  PtrParamNode pn;
 
 protected:
   
@@ -396,17 +397,11 @@ protected:
   /** do we do SIMP or FreeMat or ... */
   Method method_;
 
-  /** this is the optimization->ersatzMaterial XML element */
-  PtrParamNode pn;
-
   /** true, if assuming regular grid, and only optimizing density, not DesignMaterial */
   bool assume_constant_element_matrices_;
 
   /** cache the 1.0 / complete volume of the domain */
   double volume_fraction_;
-
-  /** This contains our concrete material class */
-  OptimizationMaterial* material;
 
   /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */

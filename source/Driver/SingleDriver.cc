@@ -30,16 +30,13 @@ namespace CoupledField{
   }
   
   void SingleDriver::InitializePDEs() {
-   
-       // read in pde data 
+    // read in pde data
     if( ! isPartOfSequence_ ) {
-      
       // Initialize pdes 
       domain_->CreatePDEs( 1, info_->GetParent() );
       ptPDE_ = domain_->GetBasePDE();
 
       domain_->InitPDEs( 1 );
-
     }
   }
 
