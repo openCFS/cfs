@@ -22,12 +22,6 @@
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "PDE/SinglePDE.hh"
-#include "PDE/AcousticPDE.hh"
-#include "PDE/BasePDE.hh"
-#include "PDE/ElecPDE.hh"
-#include "PDE/HeatPDE.hh"
-#include "PDE/MechPDE.hh"
- #include "PDE/LatticeBoltzmannPDE.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -117,7 +111,11 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   assert(entryType != Global::IMAG);
   assert(elem != NULL);
 
-  BiLinFormContext* c = GetPDE()->GetAssemble()->GetBiLinForm(integrator, elem->regionId, GetPDE(), GetPDE(), false);
+  SinglePDE* pde = Optimization::context->pde;
+  assert(pde != NULL);
+
+
+  BiLinFormContext* c = pde->GetAssemble()->GetBiLinForm(integrator, elem->regionId, pde, pde, false);
 
   // create an element list to gain the iterator in the loop
   ElemList elemList(domain->GetGrid());
@@ -185,7 +183,7 @@ void OptimizationMaterial::GetElementVector(LinearForm* form, Vector<double>& ou
 
 
 Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map, const DesignElement* de, MaterialClass mc,
-                                                       StdPDE* pde1, StdPDE* pde2, DesignElement::Type direction, double factor, bool transposed)
+                                                       DesignElement::Type direction, double factor, bool transposed)
 {
   unsigned int index = de->multimaterial != NULL ? de->multimaterial->index : 0;
 
@@ -260,15 +258,9 @@ MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, space)
   Init();
 }
 
-SinglePDE* MechMat::GetPDE() {
-  return dynamic_cast<SinglePDE*>(mech);
-}
-
 void MechMat::Init()
 {
   system_ = MECH;
-  mech = dynamic_cast<MechPDE*>(opt != NULL ? opt->context->ToPDE(App::MECH) : domain->GetSinglePDE("mechanic"));
-  assert(mech != NULL);
 
   StdVector<MultiMaterial>& mm = space->GetMultiMaterials();
 
@@ -299,14 +291,13 @@ void MechMat::Init()
 
     // this check is for Virginie's mapping with a ghost region not being part of the simulation
     // can be removed if we use nodal design elements
-    if(this->opt->GetAssemble()->UseRegion(reg_id))
+    if(Optimization::context->pde->GetAssemble()->UseRegion(reg_id))
     {
-
-    // the normal and multimaterial case, not the bimaterial case
-    for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++) {
-      MechStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
-      if(needs_mass_)
-        MechMass(elem, false, m, DesignElement::NO_DERIVATIVE, true);
+      // the normal and multimaterial case, not the bimaterial case
+      for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++) {
+        MechStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
+        if(needs_mass_)
+          MechMass(elem, false, m, DesignElement::NO_DERIVATIVE, true);
     }
 
     // now the bimaterial case
@@ -416,8 +407,6 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = ACOUSTIC;
-  acou = dynamic_cast<AcousticPDE*>(opt != NULL ? opt->context->ToPDE(App::ACOUSTIC) : domain->GetSinglePDE("acoustic"));
-  assert(acou != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
   {
@@ -448,10 +437,6 @@ AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
   }
 }
 
-
-SinglePDE* AcouMat::GetPDE() {
-  return dynamic_cast<SinglePDE*>(acou);
-}
 
 
 Matrix<double>& AcouMat::AcouStiffness(const Elem* elem, bool bimaterial)
@@ -506,8 +491,6 @@ PiezoElecMat::PiezoElecMat(ErsatzMaterial* em) :
   MechMat(em)
 {
   system_ = PIEZOCOUPLING;
-  elec = dynamic_cast<ElecPDE*>(opt != NULL ? opt->context->ToPDE(App::ELEC) : domain->GetSinglePDE("electrostatic"));
-  assert(elec != NULL);
 
   for(unsigned int r = 0; r < regionIds.GetSize(); r++)
   {
@@ -529,15 +512,11 @@ PiezoElecMat::PiezoElecMat(ErsatzMaterial* em) :
   }
 }
 
-SinglePDE* PiezoElecMat::GetPDE() {
-  return dynamic_cast<SinglePDE*>(elec);
-}
-
 
 
 const Matrix<double>& PiezoElecMat::ElecStiffnessPos(const DesignElement* de, DesignElement::Type direction)
 {
-  Matrix<double>& mat = GeneralStiffness(elecStiffness_map, de, ELECTROSTATIC, elec, elec, direction, -1.0 , false); // piezo form already negates
+  Matrix<double>& mat = GeneralStiffness(elecStiffness_map, de, ELECTROSTATIC, direction, -1.0 , false); // piezo form already negates
   mat *= -1.0;
   assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() >= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
   return mat;
@@ -545,7 +524,7 @@ const Matrix<double>& PiezoElecMat::ElecStiffnessPos(const DesignElement* de, De
 
 const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, DesignElement::Type direction)
 {
-  Matrix<double>& mat = GeneralStiffness(elecStiffness_neg_map, de, ELECTROSTATIC, elec, elec, direction, 1.0, false); // piezo form already negates
+  Matrix<double>& mat = GeneralStiffness(elecStiffness_neg_map, de, ELECTROSTATIC, direction, 1.0, false); // piezo form already negates
   //   type.Add(NO_MULTIMATERIAL, "no_multimaterial");LOG_DBG3(om) << "PEM:ESN de=" << de->ToString() << " dt=" << DesignElement::type.ToString(direction) << " -> " << mat.ToString();
   assert(direction != DesignElement::NO_DERIVATIVE || mat.Trace() <= 0.0); // allow zero in case of piezo-fmo for non-DIELEC direction
   return mat;
@@ -554,13 +533,13 @@ const Matrix<double>& PiezoElecMat::ElecStiffnessNeg(const DesignElement* de, De
 
 const Matrix<double>& PiezoElecMat::CoupledStiffness(const DesignElement* de, DesignElement::Type direction)
 {
-  return GeneralStiffness(coupledStiffness_map, de, PIEZO, mech, elec, direction, 1.0, false);
+  return GeneralStiffness(coupledStiffness_map, de, PIEZO, direction, 1.0, false);
 }
 
 
 const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction)
 {
-  return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, mech, elec, direction, 1.0, true);
+  return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, direction, 1.0, true);
 }
 
 HeatMat::HeatMat(ErsatzMaterial* em) :
@@ -568,22 +547,14 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
 {
   system_ = HEAT;
   assert(false);
-  heat = NULL; // FIXME dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::App::HEAT) : domain->GetSinglePDE("heatConduction"));
-  assert(heat != NULL);
 }
-
-SinglePDE* HeatMat::GetPDE() {
-  assert(false);
-  return NULL;
-  // FIXME return dynamic_cast<SinglePDE*>(heat);
-}
-
 
 
 ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = ELEC;
-  elec = dynamic_cast<ElecPDE*>(opt->context->ToPDE(App::ELEC));
+
+  SinglePDE* elec = opt->context->ToPDE(App::ELEC);
   assert(elec != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -623,11 +594,10 @@ ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 }
 
 
-SinglePDE* ElecMat::GetPDE() {
-  return dynamic_cast<SinglePDE*>(elec);
-}
 
-void ElecMat::ReInit(){
+void ElecMat::ReInit()
+{
+  SinglePDE* elec = opt->context->ToPDE(App::ELEC);
   assert(elec != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -694,7 +664,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, bm, direction);
         elecStiffness_map[elem->regionId].second.SetPart(Global::IMAG, tmp_mat);
-        //  GetElementMatrix(opt->GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].second, elem, bm, direction);
+        //  GetElementMatrix(kate GetForm(elem->regionId, elec, elec, "linGradBDBInt"), elecStiffness_map[elem->regionId].second, elem, bm, direction);
       }
     }
   }
@@ -705,9 +675,6 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
 LBMMat::LBMMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {
   system_ = LBM;
-//  assert(false);
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(opt != NULL ? opt->context->ToPDE(App::LBM) : domain->GetSinglePDE("LatticeBoltzmann"));
-  assert(lbm != NULL);
 }
 
 

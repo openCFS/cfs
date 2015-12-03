@@ -628,7 +628,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   {
     in->Get("material")->SetValue(multimaterial->name);
     in->Get("mm_index")->SetValue(multimaterial->index);
-    multimaterial->ToInfo(in, em);
+    multimaterial->ToInfo(in);
   }
 }
 

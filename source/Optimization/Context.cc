@@ -1,9 +1,11 @@
 #include "Optimization/Context.hh"
+#include "Optimization/Optimization.hh"
+#include "Optimization/ErsatzMaterial.hh"
+#include "Optimization/OptimizationMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
-#include "Optimization/Optimization.hh"
 
 using namespace CoupledField;
 
@@ -13,6 +15,7 @@ Context::Context()
   excitation_ = NULL;
 
   driver = NULL;
+  mat = NULL;
   manager_ = NULL;
   sequence = -1;
   context_idx = -1;
@@ -32,6 +35,7 @@ Context::Context()
 
 Context::~Context()
 {
+  delete mat;
 }
 
 void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrParamNode node, int sequence_step)
@@ -41,6 +45,11 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
   this->sequence = sequence_step;
   this->context_idx = sequence_step - 1;
   this->analysis = analyis;
+
+  if(domain->GetOptimization() != NULL)
+    this->infoNode = domain->GetOptimization()->optInfoNode->Get(ParamNode::HEADER)->GetByVal("sequence", "step", sequence_step);
+  else
+    this->infoNode = domain->GetInfoRoot()->Get("coreOptContext")->GetByVal("sequence", "step", sequence_step);
 
   switch(analysis)
   {
@@ -70,12 +79,30 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     assert(false);
     break;
   }
+
+  infoNode->Get("complex")->SetValue(complex_);
+  infoNode->Get("harmonic")->SetValue(harmonic_);
+  infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
+  infoNode->Get("bloch")->SetValue(bloch_);
+
+
 }
 
 void Context::Update()
 {
   driver = domain->GetSingleDriver();
   SetPDEs();
+
+  ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()); // not set in first place
+
+  // once is enough!
+  if(mat == NULL && em != NULL) // might be
+  {
+    assert(Optimization::context == this); // we are already set as active -> necessary for OptimizationMaterial
+    mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em);
+
+    infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
+  }
 }
 
 EigenFrequencyDriver* Context::GetEigenFrequencyDriver()
@@ -191,13 +218,15 @@ void ContextManager::Init()
 {
   if(domain->GetMultiSequenceDriver() == NULL)
   {
-    assert(domain->GetDriver()->GetDriverClass() == BaseDriver::SINGLE_DRIVER);
+    SingleDriver* sd = domain->GetSingleDriver();
+    assert(sd->GetDriverClass() == BaseDriver::SINGLE_DRIVER);
     assert(context.GetSize() == 1);
-    context[0].Setup(this, domain->GetSingleDriver()->GetAnalysisType(), domain->GetDriver()->GetParam(), 1);
+    context[0].Setup(this, sd->GetAnalysisType(), sd->GetParam(), 1);
   }
   else
   {
     MultiSequenceDriver* msd = domain->GetMultiSequenceDriver();
+    assert(msd != NULL);
     std::map<UInt, BasePDE::AnalysisType> map = msd->GetAnalyisPerStep();
     std::map<unsigned int, PtrParamNode>  pns = msd->paramPerStep;
     unsigned int nms = msd->GetNumberOfSequenceSteps();
@@ -253,3 +282,7 @@ void ContextManager::SwitchContext(int index)
   Optimization::context->Update();
 }
 
+const Context& ContextManager::GetContext(const Function* f) const
+{
+  return context[f->sequence -1];
+}

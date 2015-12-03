@@ -81,9 +81,8 @@ namespace CoupledField {
 Enum<ErsatzMaterial::Method> ErsatzMaterial::method;
 
 ErsatzMaterial::ErsatzMaterial() :
-      Optimization(),
-      material(NULL), // to be set in PostInit()
-      dim(grid->GetDim())
+  Optimization(),
+  dim(grid->GetDim())
 {
   /** We store here the solution */
   volume_fraction_ = 0.0;
@@ -192,8 +191,6 @@ ErsatzMaterial::~ErsatzMaterial()
   // if write to file close the xml envelope and the file
   if(densityFile != NULL) { delete densityFile; densityFile = NULL; }
 
-  delete material;
-
   delete structure_;
 
   // "remove" the ersatzMaterial (=data) from the domain
@@ -219,13 +216,11 @@ void ErsatzMaterial::PostInit()
   }
 
   // check for multiple load cases (might be frequencies)
-  me->InitializeMultipleExcitations(this, &contextManager);
-  for(unsigned int i = 0; i < contextManager.context.GetSize(); i++)
-    me->PrepareMultipleExcitations(this, &(contextManager.context[i]));
-  me->FinalizeMultipleExcitations(this, &contextManager, optimizer_ == EVALUATE_INITIAL_DESIGN);
+  me->InitializeMultipleExcitations(this, &manager);
+  for(unsigned int i = 0; i < manager.context.GetSize(); i++)
+    me->PrepareMultipleExcitations(this, &(manager.context[i]));
+  me->FinalizeMultipleExcitations(this, &manager, optimizer_ == EVALUATE_INITIAL_DESIGN);
   me->excitations.First().Apply(); // this sets the
-
-
 
   // for transformations we might have more than only one tensor
   homogenizedTensor.Resize(me->GetNumberMeta(true));
@@ -252,6 +247,7 @@ void ErsatzMaterial::PostInit()
   for(unsigned int i = 0; i < total; i++)
   {
     Function* f = i < objectives.data.GetSize() ? dynamic_cast<Function*>(objectives.data[i]) : dynamic_cast<Function*>(constraints.active[i - objectives.data.GetSize()]);
+    const Context& ctxt = manager.GetContext(f);
 
     std::string func = "'" + f->type.ToString(f->GetType()) + "'";
 
@@ -269,18 +265,18 @@ void ErsatzMaterial::PostInit()
     case Function::YOUNGS_MODULUS_E1:
     case Function::YOUNGS_MODULUS_E2:
     case Function::ELEC_ENERGY: // it simply does not work yet in the harmonics
-      if(context->IsComplex())
+      if(ctxt.IsComplex())
         throw Exception(func + " is only for static state problems");
       break;
 
     case Function::DYNAMIC_OUTPUT:
     case Function::GLOBAL_DYNAMIC_COMPLIANCE:
-      if(!context->IsComplex())
+      if(!ctxt.IsComplex())
         throw Exception(func + " is only for harmonic state problems");
       break;
 
     case Function::EIGENFREQUENCY:
-      if(!context->IsEigenvalue())
+      if(!ctxt.IsEigenvalue())
         throw Exception(func + " is only for eigenvalue state problems");
       break;
 
@@ -345,14 +341,6 @@ void ErsatzMaterial::PostInit()
     }
   }
 
-  // create Material class
-  if(context->pde != NULL)
-  {
-    material = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(pn->Get("material")->As<std::string>()), this);
-
-    optInfoNode->Get(ParamNode::HEADER)->Get("material")->SetValue(OptimizationMaterial::system.ToString(material->GetSystem()));
-  }
-
   // if loadErsatzMaterial is used with optimization specifying a starting point,
   // we have to load it here, before scaling is done.
   if(DensityFile::NeedLoadErsatzMaterial())
@@ -367,7 +355,7 @@ void ErsatzMaterial::PostInit()
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
 
-  if(context->IsEigenvalue() && optParamNode->Has("eigenvalue/sort"))
+  if(manager.any().eigenvalue && optParamNode->Has("eigenvalue/sort"))
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
     {
@@ -586,6 +574,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward, StateSolutions& adjoint, double factor, Objective* c, Condition* g)
   {
+    Assemble* assemble = context->pde->GetAssemble();
+
     // this calculates p^T (dF - dA) u
     // where p is solution of adjoint, dF is derivative of newmark update, dA is derivative of system matrix, u is solution of forward problem
     Function* f = Function::Cast(c, g);
@@ -637,8 +627,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         {
           RegionIdType regionId = de->elem->regionId;
           SinglePDE* pde = context->pde;
-          BiLinFormContext* linElastIntCtxt = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde, false);
-          BiLinFormContext* linMassIntCtxt = assemble_->GetBiLinForm("MassInt", regionId, pde, pde, false);
+          BiLinFormContext* linElastIntCtxt = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde, false);
+          BiLinFormContext* linMassIntCtxt = assemble->GetBiLinForm("MassInt", regionId, pde, pde, false);
           if (linElastIntCtxt->GetSecDestMat() != NOTYPE)
           {
             parser->SetExpr(mathParserHandle, linElastIntCtxt->GetSecMatFac());
@@ -1170,7 +1160,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // j*omega*pamping*rho'*M - j*2*omega*pamping*rho*rho'*M = j*omega*pamping*rho'(1-2*rho)
     //
     // the eigenvalue derivative is u^T (K' - ev M') u
+    Assemble* assemble = context->pde->GetAssemble();
+
     double mtv(0.0), mdv(0.0), m_factor(1.0);
+
     if(this->method_ != ErsatzMaterial::PARAM_MAT) // density is treated in Mass(...) function in case of ParamMat
     {
       mtv =  mtf->Transform(de, DesignElement::SMART, bimaterial);
@@ -1196,9 +1189,9 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       SinglePDE* pde = context->pde;
       // the alpha and beta might be calculated and adjusted, get them
       // from the integrators in the form as they are used for the state problem!
-      alpha_k = assemble_->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
+      alpha_k = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
       // now alpha_m
-      alpha_m = assemble_->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
+      alpha_m = assemble->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
       assert(omega > 0);
       // pamping stuff without omega
       double pamping = design->GetPampingValue(); // 0 if not applicable
@@ -1221,10 +1214,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // multimaterial stuff
     int index = de->multimaterial != NULL ? de->multimaterial->index : -1;
     LOG_DBG3(em) << "AMTS: e=" << de->elem->elemNum << " S=" << S.ToString();
-    if(material->ComplexElementMatrix(de->elem->regionId))
+    if(context->mat->ComplexElementMatrix(de->elem->regionId))
     {
       // only accessed as derivative in ParamMat case
-      const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(material->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
+      const Matrix<Complex>& M = dynamic_cast<const Matrix<Complex>&>(context->mat->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
       assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
       Add<Complex, Complex>(S, damp_mass, M);
       LOG_DBG3(em) << "AMTS: 3. complex e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
@@ -1232,7 +1225,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     else
     {
       // only accessed as derivative in ParamMat case
-      const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(material->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
+      const Matrix<double>& M = dynamic_cast<const Matrix<double>&>(context->mat->Mass(de->elem, bimaterial, index, (this->method_ == ErsatzMaterial::PARAM_MAT) ? de->GetType() : DesignElement::NO_DERIVATIVE));
       assert(S.GetNumRows() == M.GetNumRows() && S.GetNumCols() == M.GetNumCols());
       Add<Complex, double>(S, damp_mass, M);
       LOG_DBG3(em) << "AMTS: 3. real e=" << de->elem->elemNum << " damp_mass=" << damp_mass << " S=" << S.ToString();
@@ -1249,14 +1242,14 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   {
     assert(rhs == NULL || rhs->app == App::STRESS);
     MechPDE::TestStrain ts = rhs != NULL ? rhs->test_strain : MechPDE::NOT_SET;
-// OptMechMat is base for any further child!
-    const Vector<double>& vec = dynamic_cast<MechMat*>(material)->MechStrainRHS(de->elem, ts);
+    // OptMechMat is base for any further child!
+    const Vector<double>& vec = dynamic_cast<MechMat*>(context->mat)->MechStrainRHS(de->elem, ts);
     double factor = tf->Derivative(de, DesignElement::SMART);
-// LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
-// LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    vec=" << vec.ToString();
-// LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    val=" << de->GetDesign(DesignElement::PLAIN) << " drho=" << factor;
+    // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << " in_out=" << in_out.ToString();
+    // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    vec=" << vec.ToString();
+    // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "    val=" << de->GetDesign(DesignElement::PLAIN) << " drho=" << factor;
     in_out.Add(-1.0 * factor, vec);// -1.0 as we want to subtract!
-// LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
+    // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
   }
 
   bool ErsatzMaterial::IsStrainExcitedSystem() const
@@ -1265,7 +1258,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if (homogenization_)
       return true;
 
-    StdVector<LinearFormContext*>& lf = assemble_->GetLinForms();
+    StdVector<LinearFormContext*>& lf = context->pde->GetAssemble()->GetLinForms();
     // ignore the regions!!
     for(unsigned int i = 0;i < lf.GetSize();i++)
       if (lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
@@ -2044,6 +2037,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams)
   {
+    Assemble* assemble = context->pde->GetAssemble();
     int ts = context->GetDriver()->GetActStep("mech") - 1; // drivers count timesteps starting with 1
     Excitation& excite = *(adjointParams->GetExcitation());
     switch(adjointParams->GetFunction()->GetType())
@@ -2053,17 +2047,17 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       break;
       case Objective::COMPLIANCE: // adjoint has the original rhs (scaled with weight per timestep), but time walks backwards
       {
-        assemble_->AssembleLinRHS();
+        assemble->AssembleLinRHS();
         Vector<Double> rhs;
         assert(false);
-        // FIXME assemble_->GetAlgSys()->GetRHSVal(rhs);
+        // FIXME assemble->GetAlgSys()->GetRHSVal(rhs);
         double w = GetStepWeight(ts);
         for(unsigned int i = 0; i < rhs.GetSize(); ++i)
         {
           rhs[i] *= w;
         }
         assert(false);
-        // FIXME assemble_->GetAlgSys()->InitRHS(rhs);
+        // FIXME assemble->GetAlgSys()->InitRHS(rhs);
       }
       break;
 
@@ -2086,25 +2080,25 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       Vector<Double> coeffMass = pp;
       coeffMass.ScalarMult(1.0 / dt);
       coeffMass.Add(1.0 - gamma, ppp);
-      assemble_->GetAlgSys()->UpdateRHS(CoupledField::App::MASS, coeffMass);
+      assemble->GetAlgSys()->UpdateRHS(CoupledField::App::MASS, coeffMass);
 
       // look up, whether the damping matrix exists
       std::set<FEMatrixType> matTypes;
-      assemble_->GetAlgSys()->GetFEMatrixTypes(matTypes);
+      assemble->GetAlgSys()->GetFEMatrixTypes(matTypes);
       if(matTypes.find(CoupledField::DAMPING) != matTypes.end()){
         Vector<Double> coeffDamping(0);
-        assemble_->GetAlgSys()->GetSolutionVal(coeffDamping);
+        assemble->GetAlgSys()->GetSolutionVal(coeffDamping);
         coeffDamping.ScalarMult(1.0 / dt);
         coeffDamping.Add(0.5, pp);
         coeffDamping.Add(0.5 * (gamma - 2*beta) * dt, ppp);
-        assemble_->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
+        assemble->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
       }
       */
     }
 
     // in case of contact, we have to inform the solver, that an adjoint system is solved
     assert(false);
-    // FIXME assemble_->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
+    // FIXME assemble->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
   }
 
   double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
@@ -2253,7 +2247,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     CoordSystem* coosy = domain->GetCoordSystem();
     Vector<Double> rhs;
     assert(false)
-    // FIXME assemble_->GetAlgSys()->GetRHSVal(rhs);
+    // FIXME assemble->GetAlgSys()->GetRHSVal(rhs);
 // set rhs to 0
     rhs.Init();
     double w = GetStepWeight(ts);
@@ -2279,13 +2273,14 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         }
       }
     }
-    assemble_->GetAlgSys()->InitRHS(rhs);
+    assemble->GetAlgSys()->InitRHS(rhs);
     parser->ReleaseHandle(mathParserHandle);
     */
   }
 
   void ErsatzMaterial::SortEigenvalues()
   {
+    Assemble* assemble = context->pde->GetAssemble();
     EigenFrequencyDriver* driver = context->GetEigenFrequencyDriver();
     Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
 
@@ -2367,7 +2362,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       {
         for(unsigned int s = 0; s < multiplicity.GetSize(); s++)
         {
-          assemble_->GetAlgSys()->GetEigenMode(ev_.permutation[multiplicity[s]]);
+          assemble->GetAlgSys()->GetEigenMode(ev_.permutation[multiplicity[s]]);
           current.Read(StateSolution::RAW_VECTOR, context->pde, App::MECH, true);
           // diff norm to last mode of the same number
           double same = NormL2(current.GetVector(StateSolution::RAW_VECTOR), ev_.last[multiplicity[s]]->GetVector(StateSolution::RAW_VECTOR));
@@ -3223,13 +3218,14 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   void ErsatzMaterial::StorePDESolution(StateSolutions& solutions, Excitation& excite, Function* f, unsigned int timestep_mode, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
   {
+    Assemble* assemble = context->pde->GetAssemble();
     StateSolution& sol = *(solutions.Get(excite, f, timestep_mode, derivative));
     SingleVector* raw = NULL;
 
     // in the eigenvalue case we have not only one solution vector but one for each mode.
     // Stores the mode in the the solution part of algsys
     if(context->IsEigenvalue())
-      assemble_->GetAlgSys()->GetEigenMode(timestep_mode);
+      assemble->GetAlgSys()->GetEigenMode(timestep_mode);
 
     // store solution element wise for gradient and raw vector for objective.
     // This is redundant as currently the solution is the global one!
@@ -3423,9 +3419,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   template<class T>
   void ErsatzMaterial::SetAndSolveAdjointRHS(Excitation& excite, Function* f)
   {
+    Assemble* assemble = context->pde->GetAssemble();
     // the adjoint RHS might be an output stuff, then the loads are changed.
     // save and restore them in any case.
-    StdVector<LinearFormContext*> org_forms = assemble_->GetLinForms();
+    StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
     // set pseudo loads (if there are output nodes)
     if (f->NeedsSelectionVector())
       ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
@@ -3452,7 +3449,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
-    assemble_->GetAlgSys()->Solve();
+    assemble->GetAlgSys()->Solve();
 
     context->GetDriver()->GetAnalysisId().adjoint = false;
 
@@ -3462,31 +3459,32 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     fe->ApplyBC();
 
     // reset the original loads, they have been changed in the output case
-    assemble_->GetLinForms() = org_forms;
+    assemble->GetLinForms() = org_forms;
   }
 
   void ErsatzMaterial::ConstructSelection(Excitation& excite, Function* f, bool alter_rhs)
   {
+    Assemble* assemble = context->pde->GetAssemble();
     // in SolveStateProblem() the clean variant for the objective
     StdVector<LinearFormContext*> org_forms;
     if (!alter_rhs)
-      org_forms = assemble_->GetLinForms();
+      org_forms = assemble->GetLinForms();
 
     if (f->GetType() != Objective::CONJUGATE_COMPLIANCE){
       // overwrite the assemble loads with "pseudo loads"s loads
-      assemble_->GetLinForms() = f->output_forms;
+      assemble->GetLinForms() = f->output_forms;
     }
     // set our own RHS but delete first as Assemble adds
-    assemble_->GetAlgSys()->InitRHS();
+    assemble->GetAlgSys()->InitRHS();
     // assemble the output nodes
-    assemble_->AssembleLinRHS();
+    assemble->AssembleLinRHS();
 
     // save the "pseudo loading" which is the selection as the rhs for the adjoint
     // This is exactly what has been constructed. Not that for an adjoint RHS it needs
     // post processing.
     adjoint.Get(excite, f)->Read(StateSolution::SEL_VECTOR, context->pde);
     if (!alter_rhs)
-      assemble_->GetLinForms() = org_forms;
+      assemble->GetLinForms() = org_forms;
 
     LOG_DBG2(em) << "ConstructSelection: excite=" << excite.index << " f=" << f->ToString() << " alter=" << alter_rhs
         << " sel=" << adjoint.Get(excite, f)->GetVector(StateSolution::SEL_VECTOR)->ToString(1);

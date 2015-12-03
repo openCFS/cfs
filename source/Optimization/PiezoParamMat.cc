@@ -40,17 +40,18 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   assert(calcMode == STANDARD);
 
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache!
 
   DesignElement::Type dt = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<const Matrix<double>& >(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+    out = dynamic_cast<const Matrix<double>& >(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
   case App::ELEC:
-    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
+    out = pem->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
   case App::PIEZO_COUPLING:
@@ -58,9 +59,9 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
     assert(out.GetNumCols() != out.GetNumRows());
 
     if(out.GetNumCols() > out.GetNumRows())
-      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
+      out = pem->CoupledStiffnessTransposed(de, dt);
     else
-      out = piezo_mat_->CoupledStiffness(de, dt);
+      out = pem->CoupledStiffness(de, dt);
     break;
 
   default:
@@ -76,6 +77,7 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);
   assert(calcMode == STANDARD);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache outside the function because of multiple seqeuence issues
 
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
 
@@ -84,11 +86,11 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
   switch(app)
   {
   case App::MECH:
-    out = dynamic_cast<Matrix<double> &>(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+    out = dynamic_cast<Matrix<double> &>(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
   case App::ELEC:
-    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
+    out = pem->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
   case App::PIEZO_COUPLING:
@@ -96,9 +98,9 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
     assert(out.GetNumCols() != out.GetNumRows());
 
     if(out.GetNumCols() > out.GetNumRows())
-      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
+      out = pem->CoupledStiffnessTransposed(de, dt);
     else
-      out = piezo_mat_->CoupledStiffness(de, dt);
+      out = pem->CoupledStiffness(de, dt);
     break;
 
   default:

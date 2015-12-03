@@ -57,8 +57,8 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   info_ = domain->GetInfoRoot()->Get("optimization/designSpace");
 
   // make sure we have a context, even when we have no optimization
-  if(!Optimization::contextManager.IsInitialized())
-    Optimization::contextManager.Init();
+  if(!Optimization::manager.IsInitialized())
+    Optimization::manager.Init();
 
   context_ = Optimization::context;
 
@@ -1712,15 +1712,16 @@ void DesignSpace::DesignRegion::ToInfo(PtrParamNode node) const
   node->Get("bimaterial")->SetValue(HasBiMaterial() ? bimaterial_ : "-");
 }
 
-void MultiMaterial::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+void MultiMaterial::ToInfo(PtrParamNode in)
 {
-  assert(em != NULL);
   Matrix<double> E;
   BaseMaterial* bm = NULL;
 
-  SubTensorType stt = em->context->pde->GetSubTensorType();
+  SubTensorType stt = Optimization::context->pde->GetSubTensorType();
 
-  switch(em->GetMaterial()->GetSystem())
+  assert(!Optimization::context->DoMultiSequence());
+
+  switch(Optimization::context->mat->GetSystem())
   {
   case OptimizationMaterial::PIEZOCOUPLING:
     bm = GetMultiMaterial(ELECTROSTATIC);

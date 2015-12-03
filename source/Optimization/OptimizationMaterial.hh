@@ -91,12 +91,9 @@ protected:
   /** service function handling multimaterial
    * @param de we need elem->region, multimaterial might be NULL otherwise we check for index */
   Matrix<double>& GeneralStiffness(std::map<RegionIdType, StdVector<Matrix<double> > >& map,
-      const DesignElement* de, MaterialClass mc, StdPDE* pde1, StdPDE* pde2, DesignElement::Type direction,
-      double factor, bool transposed);
+      const DesignElement* de, MaterialClass mc, DesignElement::Type direction, double factor, bool transposed);
 
   virtual shared_ptr<CoefFunctionOpt> GetMatCoef(const std::string& integrator, BiLinFormContext* context = NULL, RegionIdType reg_id = NO_REGION_ID);
-
-  virtual SinglePDE* GetPDE() = 0;
 
   DesignElement* FirstDesignByRegion(RegionIdType reg);
 
@@ -116,7 +113,6 @@ protected:
 
   // what we are;
   System system_;
-
 };
 
 class MechMat : public OptimizationMaterial
@@ -158,8 +154,6 @@ public:
 
 protected:
 
-  SinglePDE* GetPDE();
-
   /** The mechanical element stiffness matrix is constant.
    * We store multimaterial as a vector. No material one entry and bimaterial two entries */
   std::map<RegionIdType, StdVector<Matrix<double> > > mechStiffness_map;
@@ -172,8 +166,6 @@ protected:
   
   /** We do not cache the vectors but always precalculate them */
   Vector<double> mechStrainRHS;
-
-  MechPDE* mech;
 
   /** for Bloch mode optimization only the imaginary part of the stiffness matrices depends on the current wave_vector
    * in the EigenFrequencyDriver (to be set in ErsatzMaterial::CalcEigenfrequencies) as it determines the complex B-operators.
@@ -209,12 +201,8 @@ public:
 
 protected:
 
-  SinglePDE* GetPDE();
-
   std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouStiffness_map;
   std::map<RegionIdType, std::pair<Matrix<double>, Matrix<double> > > acouMass_map;
-
-  AcousticPDE* acou;
 };
 
 
@@ -241,9 +229,6 @@ public:
    * @return a pointer to the Element Mass Matrix*/
   const Matrix<double>& CoupledStiffnessTransposed(const DesignElement* de, DesignElement::Type direction = DesignElement::NO_DERIVATIVE);
   
-protected:
-  SinglePDE* GetPDE();
-
 private:
   /** The elec stiffness matrix $K_{\phi \phi}$. */
   std::map<RegionIdType, StdVector<Matrix<double> > > elecStiffness_map;
@@ -256,8 +241,6 @@ private:
 
   /** The transposed coupling stiffness matrix $K_{u \phi}^T$ */
   std::map<RegionIdType, StdVector<Matrix<double> > > coupledStiffnessTransposed_map;
-  
-  ElecPDE* elec;
 };
 
 
@@ -288,13 +271,9 @@ public:
 
 protected:
 
-  SinglePDE* GetPDE();
-
   /** The electrostatic element stiffness matrix is constant.
    * We store the results for standard (first) and bimaterial (second)  */
   std::map<RegionIdType, std::pair<Matrix<std::complex <double> >, Matrix<std::complex <double> > > > elecStiffness_map;
-
-  ElecPDE* elec;
 };
 
 
@@ -302,11 +281,6 @@ class HeatMat : public OptimizationMaterial
 {
 public:
   HeatMat(ErsatzMaterial* em);
-
-protected:
-  SinglePDE* GetPDE();
-
-  HeatCondPDE* heat;
 };
 
 
@@ -315,12 +289,6 @@ class LBMMat : public OptimizationMaterial
 {
 public:
   LBMMat(ErsatzMaterial* em);
-
-protected:
-
-  SinglePDE* GetPDE() { assert(false); return NULL; } // FIXME
-
-  LatticeBoltzmannPDE* lbm;
 };
 
 

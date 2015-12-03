@@ -60,8 +60,8 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
     this->type_ = type.Parse(pn->Get("type")->As<std::string>());
     this->sequence_ = pn->Get("sequence")->As<int>();
     // validate sequence
-    assert(Optimization::contextManager.IsInitialized());
-    if(sequence_ > (int) Optimization::contextManager.context.GetSize()) // 1-based!
+    assert(Optimization::manager.IsInitialized());
+    if(sequence_ > (int) Optimization::manager.context.GetSize()) // 1-based!
       throw Exception("In 'multipleExcitation' the 1-based 'sequence' attribute has a too high value.");
 
     // adjust defaults
