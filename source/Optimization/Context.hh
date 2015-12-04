@@ -173,10 +173,14 @@ public:
 
   bool IsInitialized() const { return initialized_; }
 
-  /** sets and initializes the context as active. resets the information from the other context as the drivers will be
-   * freshly initialized
+  /** sets and initializes the context as active.
+   * Resets the information from the other context as the single driver and the pde(s) will be newly created!
    * @param index 0-based */
   void SwitchContext(int index);
+
+  /** just to prevent the 0-based index issue. Also sets the excitation
+   * @see SwitchContext(int) */
+  void SwitchContext(Excitation* excitation);
 
   /** gives the context corresponding to the function.
    * Simply used the 1-based sequence attribute of the function */

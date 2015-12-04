@@ -128,7 +128,6 @@ void Context::SetExcitation(Excitation* ex)
   this->excitation_ = ex;
 }
 
-
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
@@ -285,6 +284,13 @@ void ContextManager::SwitchContext(int index)
 
   Optimization::context = &context[index];
   Optimization::context->Update();
+}
+
+void ContextManager::SwitchContext(Excitation* excitation)
+{
+  assert(excitation->sequence >= 1); // 1-based
+  SwitchContext(excitation->sequence -1); // 0-based
+  Optimization::context->SetExcitation(excitation);
 }
 
 const Context& ContextManager::GetContext(const Function* f) const
