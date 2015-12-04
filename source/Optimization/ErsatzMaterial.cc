@@ -2035,6 +2035,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     return result;
   }
 
+
+  /* tracking and transient
   void ErsatzMaterial::SetAdjointRhs(AdjointParameters* adjointParams)
   {
     Assemble* assemble = context->pde->GetAssemble();
@@ -2068,7 +2070,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if (IsFirstTransientStepStatic() && ts == 0)
     {
       assert(false);
-      /* FIXME FE-Space
+       FIXME FE-Space
       double dt = dynamic_cast<TransientDriver*>(domain->GetDriver())->GetDeltaT();
       double gamma =pde->getTimeStepping()->GetNewmarkGamma();
       double beta = pde->getTimeStepping()->GetNewmarkBeta();
@@ -2093,13 +2095,15 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         coeffDamping.Add(0.5 * (gamma - 2*beta) * dt, ppp);
         assemble->GetAlgSys()->UpdateRHS(CoupledField::DAMPING, coeffDamping);
       }
-      */
+
     }
 
     // in case of contact, we have to inform the solver, that an adjoint system is solved
     assert(false);
     // FIXME assemble->GetAlgSys()->PrepareForAdjoint(forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR));
   }
+
+  */
 
   double ErsatzMaterial::CalcEnergyFlux(Excitation& excite, Objective* f)
   {
@@ -2233,10 +2237,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     LOG_DBG3(em) << "FCN se=" << se->elemNum << " vol=" << vol->elemNum << " common=" << common_nodes.ToString();
   }
 
+  /*
   void ErsatzMaterial::SetTrackingAdjointRhs(Excitation& excite, int ts)
   {
     assert(false);
-    /*
+
     // this is for the static and for the transient case.
     Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(Solution::RAW_VECTOR);
     LOG_DBG3(em) << "SolveTrackingProblem: displacement vector: (" << u.GetSize() << ") " << u.ToString();
@@ -2275,8 +2280,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
     assemble->GetAlgSys()->InitRHS(rhs);
     parser->ReleaseHandle(mathParserHandle);
-    */
   }
+  */
 
   void ErsatzMaterial::SortEigenvalues()
   {
@@ -3140,7 +3145,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   void ErsatzMaterial::SolveStateProblem(Excitation* ev_only_exite)
   {
     if(context->DoBloch())
-      context->GetEigenFrequencyDriver()->SetupBlochPlot();
+      context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration
 
     // if ev_only_exite is set we use the given excitation
     // -> it shall not coincide
@@ -3174,8 +3179,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
-        // Note, that SolveAdointProblem*s*() must not be called, it would overwrite the adjoints with wrong results
-        if(context->IsComplex() && me->excitations.GetSize() > 1 && !context->DoBloch()) // bloch has no adjoint
+        // Note, that SolveAdointProblem_s_() must not be called, it would overwrite the adjoints with wrong results
+        if(context->IsComplex() && me->excitations.GetSize() > 1 && f->IsAdjointBased()) // && !context->DoBloch() bloch has no adjoint
           SolveAdjointProblem(&excite, f);
 
         // when we do multiple excitations with adjusted weights we calculate the objective here
@@ -3200,10 +3205,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
   void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)
   {
-// solve all adjoints needed for gradient calculation
+    // solve all adjoints needed for gradient calculation
     assert(!(ev_only_exite != NULL && me->IsEnabled()));
-// in the harmonic multiple frequency case me must not solve for the adjoints, as
-// only in the forward problems the matrix is reassembled and the system factorized
+    // in the harmonic multiple frequency case me must not solve for the adjoints, as
+    // only in the forward problems the matrix is reassembled and the system factorized
     if(!context->IsComplex() || me->excitations.GetSize() == 1)
     {
       for(unsigned int e = 0; e < me->excitations.GetSize(); ++e)
@@ -3257,7 +3262,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
     }
   }
-
+/* tracking and transient
   void ErsatzMaterial::TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams)
   {
     // is only called in transient case
@@ -3275,7 +3280,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       StorePDESolution(adjoint, *context->GetExcitation(), adjParams->GetFunction(), timeStep-1, true, false, false, NO_DERIVTYPE, "adjoint");
     }
   }
-
+*/
+  /* tracking and transient
   void ErsatzMaterial::RhsCalculated(AdjointParameters* adjParams)
   {
     if(IsTransient())
@@ -3290,6 +3296,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
     }
   }
+  */
 /*
   StdVector<pair<SinglePDE*,IdBcList> > ErsatzMaterial::SetHDBC()
   {
@@ -3367,12 +3374,12 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::COMPLIANCE:
       if(IsTransient())
       { // in transient case, everything has an adjoint
-        Optimization::SolveAdjointProblem(excite, f);
+        // Optimization::SolveAdjointProblem(excite, f);
       }
       break;
       case Function::TRACKING:
       // these objectives need their adjoint problems only for gradient calculation
-      Optimization::SolveAdjointProblem(excite, f);
+      // Optimization::SolveAdjointProblem(excite, f);
 
       if(!IsTransient())
       { // transient solutions are read every timestep

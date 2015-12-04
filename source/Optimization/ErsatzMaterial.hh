@@ -379,8 +379,9 @@ protected:
   virtual void StorePDESolution(StateSolutions& solutions, Excitation& excite,
       Function* f, unsigned int timestep, bool read_sol, bool read_rhs,
       bool save_sol, DERIVType derivative, const std::string& comment);
-  virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
-  virtual void RhsCalculated(AdjointParameters* adjParams);
+
+  // virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
+  // virtual void RhsCalculated(AdjointParameters* adjParams);
 
   /** Is the current system test strain excitated? True for special test case and homogenization */
   bool IsStrainExcitedSystem() const;
@@ -465,10 +466,10 @@ private:
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
 
   /** Set the rhs for the adjoint equation, called by assemble */
-  virtual void SetAdjointRhs(AdjointParameters* adjointParams);
+  // virtual void SetAdjointRhs(AdjointParameters* adjointParams);
 
   /** Set the rhs for the tracking adjoint */
-  void SetTrackingAdjointRhs(Excitation& excite, int ts);
+  // void SetTrackingAdjointRhs(Excitation& excite, int ts);
 
   /** Takes care for making CFS solving the adjoint PDE. Sets the rhs as  adjoint[excite.index]->rhs[App::MECH] */
   template<class T> void SetAndSolveAdjointRHS(Excitation& excite,  Function* cost);

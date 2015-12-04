@@ -168,7 +168,7 @@ Optimization::~Optimization()
 void Optimization::PostInit()
 {
   // during Optimization construction there were no pdes, now in PostInit() we need to read them
-  context->Update();
+  manager.SwitchContext(0);
   assert(context->pde != NULL);
 }
 
@@ -693,28 +693,6 @@ void Optimization::SolveStateProblem(Excitation* excite)
   problemWithinIteration++;
 }
 
-void Optimization::SolveAdjointProblem(Excitation* excite, Function* f){
-  // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
-  assert(false);
-  // FIXME BaseDriver* driver = domain->GetDriver();
-  
-  AdjointParameters adjointParams(f, excite);
-  
-  if(IsTransient()){
-    assert(false);
-    /* FIXME
-    SinglePDE* mech = domain->GetSinglePDE("mechanic");
-    mech->GetSolveStep()->ReInit(); */
-  }
-
-  // Do not store the results. This is adjoint.
-  if(!context->IsComplex())
-    assert(false);
-    // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
-  else
-    EXCEPTION("Harmonic adjoint not implemented!");
-}
-
 void Optimization::SolveAdjointProblems(Excitation* excite)
 {
   // solve for objectives and constraints
@@ -726,6 +704,32 @@ void Optimization::SolveAdjointProblems(Excitation* excite)
     if(f->IsAdjointBased() && f->DoEvaluate(excite))
       SolveAdjointProblem(excite, f); // virtual! calls ErsatzMaterial implementation
   }
+}
+
+// only for transient and tracking
+void Optimization::SolveAdjointProblem(Excitation* excite, Function* f)
+{
+  // is obviously not called?!
+  // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
+  assert(false);
+  /*
+  // FIXME BaseDriver* driver = domain->GetDriver();
+
+  AdjointParameters adjointParams(f, excite);
+
+  if(IsTransient()){
+    assert(false);
+   //    SinglePDE* mech = domain->GetSinglePDE("mechanic");
+    //mech->GetSolveStep()->ReInit();
+  }
+
+  // Do not store the results. This is adjoint.
+  if(!context->IsComplex())
+    assert(false);
+    // FIXME driver->SolveProblem(false, CreateAdjointAnalysisIdNode("adjoint", excite), &adjointParams); // static and transient optimization
+  else
+    EXCEPTION("Harmonic adjoint not implemented!");
+    */
 }
 
 StdVector<Function*> Optimization::GetActiveFunctions() const

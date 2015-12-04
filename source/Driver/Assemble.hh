@@ -20,7 +20,6 @@ namespace CoupledField {
   class TimeFunc;
   class Timer;
   class StdPDE;
-  class AdjointParameters;
   class AlgebraicSys;
 
   //! Class for assembling element/entities matrices and RHS vectors

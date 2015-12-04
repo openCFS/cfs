@@ -235,7 +235,6 @@ Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, St
 
 bool OptimizationMaterial::ComplexElementMatrix(RegionIdType reg) const
 {
-  assert(!Optimization::context->DoMultiSequence());
   if(Optimization::context->DoBloch())
     return true;
 
@@ -274,7 +273,6 @@ void MechMat::Init()
     unsigned int max = space->HasMultiMaterial() ? mm.GetSize() : (bimat ? 2 : 1);
 
     // first the bloch case
-    assert(!Optimization::context->DoMultiSequence());
     if(Optimization::context->DoBloch())
       current_wave_vector_[reg_id].Resize(max, -1.0);
 

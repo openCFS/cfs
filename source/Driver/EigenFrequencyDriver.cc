@@ -113,8 +113,10 @@ namespace CoupledField {
     if(!node->Has("bloch"))
       return 0;
 
-    if(node->Has("bloch/waveVector/ibz/steps"))
-      return node->Get("bloch/waveVector/ibz/steps")->As<unsigned int>();
+    node->Dump();
+
+    if(node->Has("bloch/ibz/steps"))
+      return node->Get("bloch/ibz/steps")->As<unsigned int>();
 
     return node->Get("bloch")->GetList("waveVector").GetSize();
   }

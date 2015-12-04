@@ -106,7 +106,7 @@ class Context
   /** Is only set when active, otherwise it is zero, don't cache! In the multiple sequence case the driver is always newly created! */
   SingleDriver* driver;
 
-  /** the pde dependend optimization material. Due to multiple sequence needs to wait for Update() to be set first */
+  /** the pde dependend optimization material. Due to multiple sequence needs to wait for Up */
   OptimizationMaterial* mat;
 
   /** our analysis type */
@@ -132,9 +132,7 @@ class Context
   /** This is simple one SinglePDE from pdes, don't cache! */
   SinglePDE* pde;
 
-  PtrParamNode infoNode;
-
-  private:
+private:
 
   /** make shortcuts for the currently available PDEs in pdes */
   void SetPDEs();

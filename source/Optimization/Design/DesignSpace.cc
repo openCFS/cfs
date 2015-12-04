@@ -235,7 +235,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
-            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
+            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>()) // for load ersatz material only we have no default value from the schema!
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
