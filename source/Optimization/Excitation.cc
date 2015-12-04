@@ -668,10 +668,14 @@ Excitation::~Excitation()
       delete forms[i];
 }
 
-void Excitation::Apply()
+void Excitation::Apply(bool switch_context)
 {
-  Optimization::context->SetExcitation(this);
-  assert(Optimization::context->sequence == sequence);
+  if(switch_context && Optimization::context->sequence != this->sequence)
+    Optimization::manager.SwitchContext(this); // also sets the excitation
+  else
+    Optimization::context->SetExcitation(this);
+
+  assert(!switch_context || Optimization::context->sequence == sequence);
 
   if(forms.GetSize() > 0)
   {

@@ -3157,7 +3157,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
       Excitation& excite = ev_only_exite != NULL ? *ev_only_exite : me->excitations[e];
-      excite.Apply();
+      excite.Apply(true); // make the multiple sequence switch if necessary
 
       // this is true for all problem types
       Optimization::SolveStateProblem(&excite);
@@ -3179,9 +3179,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         // in the harmonic case the system matrix depends on the frequency. Hence we have to
         // use the current assembly and factorization to solve the adjoint problem.
-        // Note, that SolveAdointProblem_s_() must not be called, it would overwrite the adjoints with wrong results
-        if(context->IsComplex() && me->excitations.GetSize() > 1 && f->IsAdjointBased()) // && !context->DoBloch() bloch has no adjoint
-          SolveAdjointProblem(&excite, f);
+        if(f->IsAdjointBased() && DoSolveAdjointWithState())
+          SolveAdjointProblem(&excite, f); // not called in a standard case
 
         // when we do multiple excitations with adjusted weights we calculate the objective here
         // to find the best weights. CalcObjective is so cheap, it is done later again by
@@ -3190,8 +3189,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         {
           // in the first iteration we adjust the weights
           // stride = 0 is only the first time
-          if((me->stride < 1 && GetCurrentIteration() == 0) ||
-              ((GetCurrentIteration() % me->stride) == 0))
+          if((me->stride < 1 && GetCurrentIteration() == 0) || ((GetCurrentIteration() % me->stride) == 0))
           {
             excite.cost = CalcFunction(excite, f, false); // to be normalized
             normalize = true;
@@ -3200,22 +3198,24 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
     }
     // we need only to normalize when the properties have changed. This also reflects the stride
-    if (normalize)
-    me->NormalizeMultipleExcitations(&objectives);
+    if(normalize)
+      me->NormalizeMultipleExcitations(&objectives);
   }
   void ErsatzMaterial::SolveAdjointProblems(Excitation* ev_only_exite)
   {
     // solve all adjoints needed for gradient calculation
     assert(!(ev_only_exite != NULL && me->IsEnabled()));
-    // in the harmonic multiple frequency case me must not solve for the adjoints, as
-    // only in the forward problems the matrix is reassembled and the system factorized
-    if(!context->IsComplex() || me->excitations.GetSize() == 1)
+
+    // check ErsatzMaterial::SolveStateProblem() and DoSolveAdjointWithState().
+    if(!DoSolveAdjointWithState()) // was it already computed in ErsatzMaterial::SolveStateProblem() ?
     {
       for(unsigned int e = 0; e < me->excitations.GetSize(); ++e)
       {
         Excitation* excite = ev_only_exite != NULL ? ev_only_exite : &me->excitations[e];
 
-        // processs all functions and call SolveAdjointProblem() if the function requires it
+        // it seems an excite.Apply() is missing for robustness ?!
+
+        // will check for all functions and call SolveAdjointProblem() if the function requires it
         Optimization::SolveAdjointProblems(excite);
       }
     }

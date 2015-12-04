@@ -135,19 +135,22 @@ namespace CoupledField
         void EvaluateSpecialResults();
 
         /** Evaluates the state problem, does not increment the iteration counter.
+         * This is actually a mere helper for the overwritten version in ErsatzMaterial!
          * @param excite provide for multiharmonic steps */
         virtual void SolveStateProblem(Excitation* excite = NULL);
+
+        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
+         * if the functions needs it.
+         * The reason for separating state and adjoint problem is that we need the adjoint for gradient evaluation
+         * and in the line search case we need only states and not the adjoint
+         * @see Function::IsAdjointBased() */
+        virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Solves the Adjoint problem, for given excite and objective
          * This does the real work
          * @param excite multi-excitation
          * @param cost multi-objective */
         virtual void SolveAdjointProblem(Excitation* excite, Function* f);
-        
-        /** Traverses all objective and active constraint functions (non local) and calls SolveAdjointProblem()
-         * if the functions needs it
-         * @see Function::IsAdjointBased() */
-        virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Sets the rhs for the adjoint, called by assemle */
         // only for transient and tracking
@@ -322,6 +325,15 @@ namespace CoupledField
          * in multifrequency case. Not a fast method!
          * @return an empty string in the non-harmonic case */
         virtual std::string GetIterationFrequency() { return "not implemented"; }
+
+        /** Determines if the adjoint problem shall be solved directly after the state problem.
+         * Note that we have one adjoint for every adjoint sensitive function.
+         * Usually they are separated as the adjoint is only necessary for the gradient and in the line search case we don't need it.
+         * However it is necessary to solve the adjoint directly after the state in case of multiple harmonic excitations
+         * (each frequency assembles a new system matrix) and in the case of multiple sequences as for each sequence step a
+         * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence). */
+        bool DoSolveAdjointWithState() const;
+
 
         /** The assemble class for our PDE */
         Assemble* assemble_;

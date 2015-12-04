@@ -647,6 +647,15 @@ void Optimization::SolveProblem()
   delete e;
 }
 
+bool Optimization::DoSolveAdjointWithState() const
+{
+  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1))
+    return true;
+  else
+    return false;
+}
+
+
 void Optimization::SolveStateProblem(Excitation* excite)
 {
   SingleDriver* driver = domain->GetSingleDriver();
@@ -711,7 +720,7 @@ void Optimization::SolveAdjointProblem(Excitation* excite, Function* f)
 {
   // is obviously not called?!
   // does almost the same as SolveStateProblem now, but passing, that we want the adjoint to be solved
-  assert(false);
+  assert(false); // gcc debug needs this for linking but not icc and clang
   /*
   // FIXME BaseDriver* driver = domain->GetDriver();
 
