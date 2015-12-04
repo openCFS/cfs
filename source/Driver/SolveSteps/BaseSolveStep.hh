@@ -10,7 +10,6 @@ namespace CoupledField
 {
 
   class BaseDriver;
-  class AdjointParameters;
 
   //! Base class for solution of a single step
 

@@ -46,11 +46,6 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
   this->context_idx = sequence_step - 1;
   this->analysis = analyis;
 
-  if(domain->GetOptimization() != NULL)
-    this->infoNode = domain->GetOptimization()->optInfoNode->Get(ParamNode::HEADER)->GetByVal("sequence", "step", sequence_step);
-  else
-    this->infoNode = domain->GetInfoRoot()->Get("coreOptContext")->GetByVal("sequence", "step", sequence_step);
-
   switch(analysis)
   {
   case BasePDE::HARMONIC:
@@ -80,12 +75,7 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
     break;
   }
 
-  infoNode->Get("complex")->SetValue(complex_);
-  infoNode->Get("harmonic")->SetValue(harmonic_);
-  infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
-  infoNode->Get("bloch")->SetValue(bloch_);
-
-
+  // this is too early to access domain->GetOptimization()->infoNode
 }
 
 void Context::Update()
@@ -95,12 +85,23 @@ void Context::Update()
 
   ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization()); // not set in first place
 
-  // once is enough!
-  if(mat == NULL && em != NULL) // might be
+  // once is enough but do it only when the pdes are initialized (not yet done in Domain::PostInit()) for the multimaterial case)
+  if(pde != NULL && mat == NULL && em != NULL) // might be
   {
     assert(Optimization::context == this); // we are already set as active -> necessary for OptimizationMaterial
     mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em);
 
+    // would be too early in Setup()
+    PtrParamNode infoNode;
+    if(domain->GetOptimization() != NULL)
+      infoNode = domain->GetOptimization()->optInfoNode->Get(ParamNode::HEADER)->GetByVal("sequence", "step", sequence);
+    else
+      infoNode = domain->GetInfoRoot()->Get("coreOptContext")->GetByVal("sequence", "step", sequence);
+
+    infoNode->Get("complex")->SetValue(complex_);
+    infoNode->Get("harmonic")->SetValue(harmonic_);
+    infoNode->Get("eigenvalue")->SetValue(eigenvalue_);
+    infoNode->Get("bloch")->SetValue(bloch_);
     infoNode->Get("material")->SetValue(OptimizationMaterial::system.ToString(mat->GetSystem()));
   }
 }
@@ -252,7 +253,11 @@ void ContextManager::Init()
     any_.eigenvalue = c.IsEigenvalue() ? true : any_.eigenvalue;
   }
 
-  SwitchContext(0);
+  // SwitchContext(0) is too early for the multi sequence case. It triggers initialization of the pdes which triggers
+  // creation of integrator which check for the existence of optimization with is too early as we are still in the
+  // constructor of Optimization.
+  Optimization::context = &context[0];
+  Optimization::context->Update();
 
   // we have the default excitation to allow ersatz material only without optimization
   this->initialized_ = true;

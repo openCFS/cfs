@@ -32,7 +32,8 @@ namespace CoupledField
    // FIXME: this is originally from timestepping.hh and has to be replaced
    typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} DERIVType;
 
-   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble */
+   /** This is a simple class used as a parameter to SetAdjointRhs called by assemble
+    * only for tracking and transient
    class AdjointParameters {
    public:
      AdjointParameters(Function* f, Excitation* e) {
@@ -48,7 +49,7 @@ namespace CoupledField
    private:
      Function* function;
      Excitation* excite;
-   };
+   };*/
    
   /** This is a general optimization object. The optimiziation loop is around
    *  Driver::SolveProblem() and as such general. Note convention,
@@ -149,7 +150,8 @@ namespace CoupledField
         virtual void SolveAdjointProblems(Excitation* excite = NULL);
         
         /** Sets the rhs for the adjoint, called by assemle */
-        virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
+        // only for transient and tracking
+        // virtual void SetAdjointRhs(AdjointParameters* adjointParams) = 0;
 
         /** The maximal number of iterations */
         int GetMaxIterations() { return maxIterations; }
@@ -221,10 +223,10 @@ namespace CoupledField
         static ContextManager manager;
         
         /** is called from transientDriver after each time step is finished, to store the solution */
-        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
+//        virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams) = 0;
         
         /** is called from assemble, after the calculation of the right-hand side, to get the rhs without Update from Newmark */
-        virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
+  //      virtual void RhsCalculated(AdjointParameters* adjParams) = 0;
         
         /** Helper to convert from natural solution/design to application
          * @param DesignElement::DENSITY -> App::MECH, DesignElement::POLARIZATION -> App::ELEC */

@@ -215,6 +215,7 @@ void MultipleExcitation::SetBlochWaves(Context* ctxt, unsigned int base, int num
   }
 }
 
+
 void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, ContextManager* manager)
 {
   // this is to be called once prior to any PrepareMultipleExcitations() call
