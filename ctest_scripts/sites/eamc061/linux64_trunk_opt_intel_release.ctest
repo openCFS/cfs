@@ -8,8 +8,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_intel_release")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_opt_intel_release")
 
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 
@@ -42,7 +42,7 @@ SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
 SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
 
 #-----------------------------------------------------------------------------
-# Let's first find out some infos about the system GNU compiler first.
+# Let's first find out some infos about the system compiler first.
 #-----------------------------------------------------------------------------
 SET(COMPILER "$ENV{CXX}")
 
@@ -69,7 +69,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "trunk_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
@@ -93,9 +93,9 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/trunk_cfs-test
    CFS_DEPS_PRECOMPILED:BOOL=ON 
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/trunk_cfsdepscache
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF
