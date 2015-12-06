@@ -103,7 +103,7 @@ int main(int argc, const char** argv)
     std::set<std::string>::iterator inIter = fIter->second->GetInputIds().begin();
     for(;inIter != fIter->second->GetInputIds().end();++inIter){
       if(*inIter != "none"){
-        std::cout << "\t ---> Adding filter \"" << allFilters[*inIter]->GetId() << "\" as source for filter \"" <<  fIter->second->GetId() << "\"" << std::endl;
+        std::cout << "\t---> Adding filter \"" << allFilters[*inIter]->GetId() << "\" as source for filter \"" <<  fIter->second->GetId() << "\"" << std::endl;
         CFSDat::BaseFilter::Connect(allFilters[*inIter],fIter->second);
       }
     }

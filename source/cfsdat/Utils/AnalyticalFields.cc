@@ -57,7 +57,8 @@ template<>
 inline void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point){
 
   //obtain center
-  CF::Vector<Double> dist = v-pt1;
+  CF::Vector<Double> dist(2);
+  dist = v - pt1;
   v.Resize(2);
   v.Init();
   Double rad = dist.NormL2();
