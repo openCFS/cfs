@@ -9,7 +9,7 @@
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_opt_intel_release")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_intel_release")
 
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 
@@ -69,7 +69,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "trunk_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
