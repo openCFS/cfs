@@ -2032,6 +2032,8 @@ source/cfsdat/Filters/Derivatives/TimeDerivFilter.cc -text
 source/cfsdat/Filters/Derivatives/TimeDerivFilter.hh -text
 source/cfsdat/Filters/Input/InputFilter.cc -text
 source/cfsdat/Filters/Input/InputFilter.hh -text
+source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.cc -text
+source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.hh -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.hh -text
 source/cfsdat/Filters/Output/OutputFilter.cc -text

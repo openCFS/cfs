@@ -25,7 +25,7 @@ namespace CoupledField {
   DEFINE_LOG(gridcfs, "grid.cfs")
 
   GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,
-      const std::string &id) 
+      const std::string &id, bool buildExtend)
   : Grid( param, info ) {
     gridId_ = id;
     isQuadratic_ = false;
@@ -42,7 +42,7 @@ namespace CoupledField {
     maxNumElemNodes_ = 0;
 
 
-    if(id == "default")
+    if(buildExtend)
       buildExtendedElemInfo_ = true;
     else
       buildExtendedElemInfo_ = false;
@@ -2465,6 +2465,11 @@ namespace CoupledField {
     LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
+      std::cerr << "Available Regions: " << std::endl;
+      std::map<std::string, EntityList::DefineType>::iterator eIter = nameTypeMap_.begin();
+      for(;eIter != nameTypeMap_.end(); ++eIter){
+        std::cerr << eIter->first << std::endl;
+      }
       EXCEPTION( "There are no entities with name '" << elemName
                  << "' in the grid");
     }

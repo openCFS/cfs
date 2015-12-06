@@ -280,26 +280,29 @@ void ResultManager::CopyResultData(uuids::uuid srcId, uuids::uuid trgId){
     std::map<Integer, uuids::uuid>::iterator assocIter =  masterResMap_[trgId].begin();
     for(;assocIter !=  masterResMap_[trgId].end();++assocIter){
       resultMap_[assocIter->second].first->dType = srcInfo->dType;
-      resultMap_[assocIter->second].first->regNames = srcInfo->regNames;
       resultMap_[assocIter->second].first->complexFormat = srcInfo->complexFormat;
       resultMap_[assocIter->second].first->definedOn = srcInfo->definedOn;
       resultMap_[assocIter->second].first->dofNames = srcInfo->dofNames;
       resultMap_[assocIter->second].first->entryType = srcInfo->entryType;
       resultMap_[assocIter->second].first->ptGrid = srcInfo->ptGrid;
+      resultMap_[assocIter->second].first->isMeshResult = srcInfo->isMeshResult;
     }
     (*masterInfos_[trgId]->entityNumbers.get()) = (*srcInfo->entityNumbers.get());
     (*masterInfos_[trgId]->eqnNumbers.get()) = (*srcInfo->eqnNumbers.get());
     (*masterInfos_[trgId]->timeLine.get()) = (*srcInfo->timeLine.get());
     (*masterInfos_[trgId]->stepNumbers.get()) = (*srcInfo->stepNumbers.get());
+    (*masterInfos_[trgId]->regNames.get()) = (*srcInfo->regNames.get());
+    masterInfos_[trgId]->isMeshResult = srcInfo->isMeshResult;
   }else{
     resultMap_[trgId].first->dType = srcInfo->dType;
-    resultMap_[trgId].first->regNames = srcInfo->regNames;
     resultMap_[trgId].first->complexFormat = srcInfo->complexFormat;
     resultMap_[trgId].first->definedOn = srcInfo->definedOn;
     resultMap_[trgId].first->dofNames = srcInfo->dofNames;
     resultMap_[trgId].first->entryType = srcInfo->entryType;
     resultMap_[trgId].first->ptGrid = srcInfo->ptGrid;
+    resultMap_[trgId].first->isMeshResult = srcInfo->isMeshResult;
 
+    (*resultMap_[trgId].first->regNames.get())  = (*srcInfo->regNames.get());
     (*resultMap_[trgId].first->entityNumbers.get()) = (*srcInfo->entityNumbers.get());
     (*resultMap_[trgId].first->eqnNumbers.get()) = (*srcInfo->eqnNumbers.get());
     (*resultMap_[trgId].first->timeLine.get()) = (*srcInfo->timeLine.get());
@@ -482,6 +485,13 @@ void ResultManager::Finalize(){
     }
   }
 
+//  uuidIter = resultMap_.begin();
+//  for(;uuidIter != resultMap_.end();++uuidIter){
+//    print_ExtInfoFields((*uuidIter->second.first.get()));
+//    //std::cout <<uuidIter->second.second->mapping << std::endl;
+//    std::cout << "--------------------------------------------------" << std::endl;
+//  }
+
   //check if we have results which are consistent with caching results and add those to master results
   MasterUuidMap::iterator maIter = masterResMap_.begin();
   for(;maIter!=masterResMap_.end();++maIter){
@@ -626,12 +636,7 @@ void ResultManager::Finalize(){
   }
 
 
-//  uuidIter = resultMap_.begin();
-//  for(;uuidIter != resultMap_.end();++uuidIter){
-//    print_ExtInfoFields((*uuidIter->second.first.get()));
-//    std::cout <<uuidIter->second.second->mapping << std::endl;
-//    std::cout << "--------------------------------------------------" << std::endl;
-//  }
+
   this->isFinalized_ = true;
 
 }

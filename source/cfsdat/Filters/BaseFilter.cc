@@ -36,7 +36,7 @@ if(filtNode->GetName() == "meshInput"){
 }else if(filtNode->GetName() == "substantialDeriv"){
   newPtr = FilterPtr(new CFSDat::RotatingSubstDt(0,filtNode,resMana));
 }else if(filtNode->GetName() == "interpolation"){
-  newPtr = BaseInterpolationFilter::Generate(filtNode,resMana);
+  newPtr = BaseInterpolationFilter::GenerateInterpolator(filtNode,resMana);
 }
 return newPtr;
 }

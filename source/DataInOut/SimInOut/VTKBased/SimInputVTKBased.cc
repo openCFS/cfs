@@ -180,7 +180,6 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
       ds->GetPoint(j, pt);
       Vector<Double> aNodeC;
       aNodeC.Fill(pt,gDim);
-      aNodeC *= 1e-3;
       mi_->SetNodeCoordinate(numNodes,aNodeC);
       pointMap[regionName].Push_back(numNodes);
     }

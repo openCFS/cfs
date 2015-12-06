@@ -1717,7 +1717,10 @@ void LagrangeElemShapeMap::CalcBarycenter(Point& barycenter)
   UInt n_dims  = coords_.GetNumRows();
   UInt n_elems = coords_.GetNumCols();
 
-  assert(n_dims == domain->GetGrid()->GetDim());
+  //somtimes there is no domain pointer
+  if(domain){
+    assert(n_dims == domain->GetGrid()->GetDim());
+  }
 
   // init barycenter for safty reason
   barycenter.SetZero();

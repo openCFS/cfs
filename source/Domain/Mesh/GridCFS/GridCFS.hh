@@ -32,7 +32,7 @@ namespace CoupledField
 
     //! Standard Constructor 
     GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
-        const std::string &id = "default");
+        const std::string &id = "default",bool buildExtend = true);
   
     //! Destructor
     virtual ~GridCFS();
