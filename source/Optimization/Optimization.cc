@@ -39,6 +39,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
+#include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
 #include "Utils/tools.hh"
@@ -77,7 +78,7 @@ Enum<Optimization::Optimizer>        Optimization::optimizer;
 Enum<Optimization::Application>      Optimization::application;
 Enum<Optimization::CommitMode>       Optimization::commitMode;
 
-
+Context                              Optimization::context;
 
 Optimization::Optimization()
 {
@@ -96,7 +97,6 @@ Optimization::Optimization()
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
-  this->applied_excitation = NULL;
 
   // inject the driver and tell him that we do optimization
   BaseDriver* driver = domain->GetDriver();
@@ -156,23 +156,6 @@ Optimization::Optimization()
   constraints.Read(list);
   PtrParamNode in = header->Get("constraints");
 
-  // constraints.ToInfo() is called in PostInitSecond()
-
-  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
-  {
-    Condition* g = constraints.all[i];
-    if(!g->IsLocalCondition())
-      log.AddToHeader(g->ToString());
-    else {
-      if(log.localDetail) {
-        log.AddToHeader("max_" + g->ToString());
-        log.AddToHeader("mean_" + g->ToString());
-      }
-    }
-  }
-
-  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
-
   // the commit stuff
   string cm = optParamNode->Has("commit") ? optParamNode->Get("commit/mode")->As<string>() : "forward";
   this->commitMode_ = commitMode.Parse(cm);
@@ -207,6 +190,24 @@ void Optimization::PostInit()
 
 void Optimization::PostInitSecond()
 {
+  // constraints.ToInfo() is called in PostInitSecond()
+  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+  {
+    Condition* g = constraints.all[i];
+    if(!g->IsLocalCondition())
+      log.AddToHeader(g->ToString(me));
+    else {
+      if(log.localDetail) {
+        log.AddToHeader("max_" + g->ToString());
+        log.AddToHeader("mean_" + g->ToString());
+      }
+    }
+    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString(me) << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
+  }
+
+  log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
+
+
   PtrParamNode opt = optParamNode->Get("optimizer");
 
   switch(optimizer_)
@@ -324,7 +325,6 @@ void Optimization::SetEnums()
   Function::type.Add(Function::YOUNGS_MODULUS_E2, "youngsModulusE2");
   Function::type.Add(Function::TYCHONOFF, "tychonoff");
   Function::type.Add(Function::TEMPERATURE, "temperature");
-  Function::type.Add(Function::PROJECTION, "projection");
   Function::type.Add(Function::GREYNESS, "greyness");
   Function::type.Add(Function::STRESS, "stress");
   Function::type.Add(Function::STRESS_DENSITY, "stressDensity");
@@ -475,6 +475,9 @@ void Optimization::SetEnums()
   MultipleExcitation::type.Add(MultipleExcitation::FIXED_WEIGHT, "fixed_weights");
   MultipleExcitation::type.Add(MultipleExcitation::META_OBJECTIVE, "meta_objective");
   MultipleExcitation::type.Add(MultipleExcitation::HOMOGENIZATION_TEST_STRAINS, "homogenizationTestStrains");
+
+  Transform::type.SetName("Transform::Type");
+  Transform::type.Add(Transform::ROTATION, "rotate");
 }
 
 bool Optimization::IsTransient() {
@@ -667,7 +670,10 @@ void Optimization::SolveStateProblem(Excitation* excite)
   assert(excite != NULL);
   assert(!(!me->IsEnabled() && excite->label == ""));
 
-  id.excite = me->IsEnabled() ? excite->label : "";
+  if(excite->reassemble)
+    pde->GetAssemble()->ResetMatrixReassembly();
+
+  id.excite = me->IsEnabled() ? excite->GetFullLabel() : "";
   id.adjoint = false;
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
@@ -815,6 +821,7 @@ double Optimization::CalcObjective()
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
+    excite.Apply(); // sets the corresponding context
     excite.cost = 0.0;
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
@@ -822,7 +829,8 @@ double Optimization::CalcObjective()
       Objective* f = objectives.data[o];
 
       // some objectives are only to be evaluated for the last excitation
-      if(!f->DoEvaluate(&excite)) continue;
+      if(!f->DoEvaluate(&excite))
+        continue;
 
       //double ov = CalcObjective(excite, f); // this is virtual!
       double ov = CalcFunction(excite, f, false); // this is virtual!
@@ -856,15 +864,18 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
     for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
     {
       Excitation& excite = me->excitations[idx];
+
       // some objectives are only to be evaluated for the last excitation
-      if(!cost->DoEvaluate(&excite)) continue;
+      if(!cost->DoEvaluate(&excite))
+        continue;
+      excite.Apply(); // set the correct context
 
       CalcFunction(excite, cost, true);
     }
   }
 
   if(grad_out != NULL)
-    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART);
+    design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART,  objectives.data[0]); // use the first such that we know about the robust index
 }
 
 
@@ -882,6 +893,7 @@ double Optimization::CalcConstraint(Condition* g)
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
+    excite.Apply(); // for stuff like robust
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
     double w = g->DoEvaluateAlways() ? excite.GetWeightedFactor(g) : 1.0;
@@ -904,7 +916,10 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
   {
     if(g->DoEvaluate(&me->excitations[i]))
+    {
+      me->excitations[i].Apply();
       CalcFunction(me->excitations[i], g, true);
+    }
   }
 
   // copies from the design element gradient data to a memory array for external optimizers
@@ -1060,7 +1075,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
-    if(g->GetType() == Function::SHAPE_INF) continue; //TODO: MaxValue does not correctly set indexes in view
+    if(g->GetType() == Function::SHAPE_INF)
+      continue; //TODO: MaxValue does not correctly set indexes in view
 
     if(g->IsLocalCondition())
     {
@@ -1075,8 +1091,10 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     else
     {
       double value = g->GetValue();
-      if(g->delta_logging) value = value - g->GetBoundValue();
-      if(out) *out << " \t" << value;
+      if(g->delta_logging)
+        value = value - g->GetBoundValue();
+      if(out)
+        *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one
       if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
       {

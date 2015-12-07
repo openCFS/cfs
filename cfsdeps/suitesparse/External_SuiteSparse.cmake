@@ -81,7 +81,7 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://www.cise.ufl.edu/research/sparse/SuiteSparse/${SUITESPARSE_GZ}"
+  "http://faculty.cse.tamu.edu/davis/SuiteSparse/${SUITESPARSE_GZ}"
   "${SUITESPARSE_URL}/${SUITESPARSE_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/suitesparse/${SUITESPARSE_GZ}")
@@ -92,33 +92,75 @@ CONFIGURE_FILE(
   "${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in"
   "${DLFN}"
   @ONLY
-  ) 
+) 
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "suitesparse" "${SUITESPARSE_VER}")
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${suitesparse_prefix}")
+
+SET(ZIPFROMCACHE "${suitesparse_prefix}/suitesparse-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${suitesparse_prefix}/suitesparse-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
 # The suitesparse external project
 #-------------------------------------------------------------------------------
-ExternalProject_Add(suitesparse
-  DEPENDS metis
-  PREFIX "${suitesparse_prefix}"
-  SOURCE_DIR "${suitesparse_source}"
-  URL ${LOCAL_FILE}
-  URL_MD5 ${SUITESPARSE_MD5}
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CMAKE_ARGS
-    ${CMAKE_ARGS}
-    -DBUILD_SHARED_LIBS:BOOL=OFF
-)
-
-#-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
-#-------------------------------------------------------------------------------
-ExternalProject_Add_Step(suitesparse cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${suitesparse_prefix}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(suitesparse
+    PREFIX "${suitesparse_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(suitesparse
+    DEPENDS metis
+    PREFIX "${suitesparse_prefix}"
+    SOURCE_DIR "${suitesparse_source}"
+    URL ${LOCAL_FILE}
+    URL_MD5 ${SUITESPARSE_MD5}
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CMAKE_ARGS
+      ${CMAKE_ARGS}
+      -DBUILD_SHARED_LIBS:BOOL=OFF
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(suitesparse cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${suitesparse_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(suitesparse cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
@@ -181,8 +223,8 @@ LIST(APPEND CHOLMOD_LIBRARY
   ${AMD_LIBRARY}
   ${METIS_LIBRARY}
   ${LAPACK_LIBRARY}
-  ${BLAS_LIBRARY})
-
+  ${BLAS_LIBRARY}
+  )
 SET(UMFPACK_LIBS
   umfpack_dlong
   umfpack_dint

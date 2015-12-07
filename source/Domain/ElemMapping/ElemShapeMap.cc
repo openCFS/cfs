@@ -1769,11 +1769,27 @@ void LagrangeElemShapeMap::GetEdgeLength(StdVector<Double>& edges_out)
 
   edges_out.Resize(shape.dim, 0.0);
 
-  for (UInt i = 0; i < shape.numEdges; ++i)
-    for (UInt iDim = 0; iDim < shape.dim; ++iDim)
-      edges_out[iDim] += abs(coords_[iDim][shape.edgeVertices[i][1] - 1] - coords_[iDim][shape.edgeVertices[i][0] - 1]) / shape.dim;
+//  for (UInt i = 0; i < shape.numEdges; ++i)
+//    for (UInt iDim = 0; iDim < shape.dim; ++iDim){
+//      std::cout << "nodes of edge " << i << ": " << shape.edgeVertices[i][0] << "," << shape.edgeVertices[i][1] << std::endl;
+//      edges_out[iDim] += abs(coords_[iDim][shape.edgeVertices[i][1] - 1] - coords_[iDim][shape.edgeVertices[i][0] - 1]) / shape.dim;
+//      std::cout <<"idim " << iDim << ":" <<  edges_out[iDim] << "+=" <<  abs(coords_[iDim][shape.edgeVertices[i][1] - 1] - coords_[iDim][shape.edgeVertices[i][0] - 1])  << "/" << shape.dim << std::endl;
+//
+//      std::cout << "edge number: " << i << " edges_out[" << iDim <<"]=" << edges_out[iDim] << std::endl;
+//    }
+//
+//   std::cout << "edges=" << edges_out.ToString() << std::endl;
+   // maybe computation is not correct but I do not see where we need a loop?
+   // see RectangleFE::GetEdgeLength()
 
-  // std::cout << "edges=" << edges_out.ToString() << std::endl;
+   for(UInt i = 0; i < shape.dim; ++i)
+   {
+     // for all dimensions, add offset; only in one direction this is not 0
+     edges_out[i]  = abs(coords_[i][0] - coords_[i][1]);
+     edges_out[i] += abs(coords_[i][0] - coords_[i][3]);
+     if (shape.dim == 3)
+       edges_out[i] += abs(coords_[i][0] - coords_[i][4]);
+   }
 }
 
 void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {

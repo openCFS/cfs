@@ -46,7 +46,6 @@ namespace CoupledField {
   public:
     enum SeverityType{EXCEPTION, WARNING};
     
-  public:
     /** Creates an exception which can be thrown and then
      * catched by the main program. If the corresponding
      * flag is set this constructor will generate a segfault.

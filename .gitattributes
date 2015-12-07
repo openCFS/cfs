@@ -156,6 +156,7 @@ cfsdeps/gmp/gmp-configure.cmake.in -text
 cfsdeps/gmp/gmp-intel-atomic.patch -text
 cfsdeps/gmp/gmp-mingw64.patch -text
 cfsdeps/gmp/gmp-patch.cmake.in -text
+cfsdeps/gmp/gmp-post_install.cmake.in -text
 cfsdeps/hdf5/External_HDF5.cmake -text
 cfsdeps/hdf5/H5Tinit_MACOSX_I386.c -text
 cfsdeps/hdf5/H5Tinit_MACOSX_X86_64.c -text
@@ -212,6 +213,7 @@ cfsdeps/metis/metis-patch.cmake.in -text
 cfsdeps/metis/metis-windows.patch -text
 cfsdeps/mpfr/External_mpfr.cmake -text
 cfsdeps/mpfr/mpfr-configure.cmake.in -text
+cfsdeps/mpfr/mpfr-post_install.cmake.in -text
 cfsdeps/muparser/CMakeLists.txt -text
 cfsdeps/muparser/External_muParser.cmake -text
 cfsdeps/muparser/muparser-clang-nested-anon-types.patch -text
@@ -353,6 +355,8 @@ cmake_modules/FindIntelMKL.cmake -text
 cmake_modules/FindPrograms.cmake -text
 cmake_modules/FindSVNKit.cmake -text
 cmake_modules/cfsdeps_download.cmake.in -text
+cmake_modules/cfsdeps_zipFromCache.cmake.in -text
+cmake_modules/cfsdeps_zipToCache.cmake.in -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
 cmake_modules/distro.cmake -text
@@ -367,6 +371,25 @@ ctest_scripts/nightly_test.cmake -text
 ctest_scripts/shared/CTestConfig.cmake.in -text
 ctest_scripts/shared/provision_nightly_tests_linux.sh -text
 ctest_scripts/shared/test_macros.cmake -text
+ctest_scripts/sites/SL7/Vagrantfile -text
+ctest_scripts/sites/SL7/linux64_trunk_gcc_release.ctest -text
+ctest_scripts/sites/SL7/linux64_trunk_gcc_release_deploy.cmake -text
+ctest_scripts/sites/SL7/site_specific_finish.cmake -text
+ctest_scripts/sites/SL7/site_specific_init.cmake -text
+ctest_scripts/sites/SL7/site_specific_vars.cmake -text
+ctest_scripts/sites/draco/ctest_update.cmake -text
+ctest_scripts/sites/draco/di_log.cmake -text
+ctest_scripts/sites/draco/macros_for_draco.cmake -text
+ctest_scripts/sites/draco/site_specific_finish.cmake -text
+ctest_scripts/sites/draco/site_specific_init.cmake -text
+ctest_scripts/sites/draco/site_specific_vars.cmake -text
+ctest_scripts/sites/eamc061/generate_test_name_list.cmake -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_clang_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_debug.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_intel_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_no_prec_gcc_release.ctest -text
+ctest_scripts/sites/eamc061/site_specific_init.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_debug.ctest -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_release.ctest -text
@@ -1051,6 +1074,126 @@ share/matlab/hdf5tools/test/th5runsuite.m -text
 share/matlab/hdf5tools/test/th5varget.m -text
 share/matlab/hdf5tools/test/th5varget.mat -text
 share/matlab/hdf5tools/test/th5varput.m -text
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_master.xml -text
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/mat.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/Veraltet/E11.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/array_to_densfile.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/bad.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/bad_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/coeff.h -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolant.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValuesForHoleblock.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computeInterpolationValues_old.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/computePP.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createCross.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createCrossShear.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/createFrame.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/detailed_stats_presets4D_127_fixed_frame.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/generateShearedCross.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolant.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValuesFromFile.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/getInterpolationValuesFromFileForHoleblock.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/good1.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good1_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good2.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/good2_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/interpolate.m -text
+share/matlab/material_catalogue/+Homogenization/Veraltet/over.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/under.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/verybad.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/Veraltet/verybad_c.png -text svneol=unset#image/png
+share/matlab/material_catalogue/+Homogenization/computeInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/generateCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateCrossWithVertBar.m -text
+share/matlab/material_catalogue/+Homogenization/generateFrame.m -text
+share/matlab/material_catalogue/+Homogenization/generateFramedCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateFramedCrossExact.m -text
+share/matlab/material_catalogue/+Homogenization/generateShearedCross.m -text
+share/matlab/material_catalogue/+Homogenization/generateShearedCrossExact.m -text
+share/matlab/material_catalogue/+Homogenization/geometryToMeshAndDensity.m -text
+share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMaterial.m -text
+share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMicroCell.m -text
+share/matlab/material_catalogue/+Homogenization/getInterpolationValues.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToDensity.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMesh.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMeshOrDensity.m -text
+share/matlab/material_catalogue/+Homogenization/plotEh.m -text
+share/matlab/material_catalogue/+Homogenization/plotmesh.m -text
+share/matlab/material_catalogue/+Homogenization/png_to_densfile.m -text
+share/matlab/material_catalogue/+Homogenization/read_matrix_from_xml.m -text
+share/matlab/material_catalogue/+Homogenization/readmesh.m -text
+share/matlab/material_catalogue/+Homogenization/writeDensityFile.m -text
+share/matlab/material_catalogue/callCatalogueGeneration.m -text
+share/matlab/material_catalogue/callMatlab.sh -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_31 -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5 -text
+share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5_interpolant -text
+share/matlab/material_catalogue/createPresetsFullGrid.m -text
+share/matlab/material_catalogue/createPresetsSparseGrid.m -text
+share/matlab/material_catalogue/extractPartialCatalogue.m -text
+share/matlab/material_catalogue/generateCatalogueParallel.sh -text
+share/matlab/material_catalogue/generate_points/generate_points.py -text
+share/matlab/material_catalogue/generate_points/interpolation.py -text
+share/matlab/material_catalogue/getInterpolationError.m -text
+share/matlab/material_catalogue/getMissingCatalogueValues.m -text
+share/matlab/material_catalogue/getWrongCatalogueValues.m -text
+share/matlab/material_catalogue/hillmandeltovoigt.m -text
+share/matlab/material_catalogue/interpolate.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_coeff.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_deriv.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_int.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_offline.m -text
+share/matlab/material_catalogue/interpolation2D/bicubic_partialderiv.m -text
+share/matlab/material_catalogue/interpolation2D/detailed_stats_10 -text
+share/matlab/material_catalogue/interpolation2D/hom_stats_to_mat.m -text
+share/matlab/material_catalogue/interpolation2D/main.m -text
+share/matlab/material_catalogue/interpolation2D/main_msfem.m -text
+share/matlab/material_catalogue/interpolation2D/msfem_stats_to_mat.m -text
+share/matlab/material_catalogue/interpolation2D/plot_interp.m -text
+share/matlab/material_catalogue/interpolation2D/test.m -text
+share/matlab/material_catalogue/interpolation2D/write_to_xml.m -text
+share/matlab/material_catalogue/interpolation2D/write_to_xml_msfem.m -text
+share/matlab/material_catalogue/interpolation3D/Makefile -text
+share/matlab/material_catalogue/interpolation3D/calc3Dvol.m -text
+share/matlab/material_catalogue/interpolation3D/coeff.h -text
+share/matlab/material_catalogue/interpolation3D/coeff_3D.xml -text
+share/matlab/material_catalogue/interpolation3D/coeff_vol3D.xml -text
+share/matlab/material_catalogue/interpolation3D/detailed_stats_10_3D -text
+share/matlab/material_catalogue/interpolation3D/getA.m -text
+share/matlab/material_catalogue/interpolation3D/getMatrix -text
+share/matlab/material_catalogue/interpolation3D/getMatrix.cc -text
+share/matlab/material_catalogue/interpolation3D/matrix.dat -text
+share/matlab/material_catalogue/interpolation3D/test -text
+share/matlab/material_catalogue/interpolation3D/test_3D.m -text
+share/matlab/material_catalogue/interpolation3D/test_data.dat -text
+share/matlab/material_catalogue/interpolation3D/text -text
+share/matlab/material_catalogue/interpolation3D/tri -text
+share/matlab/material_catalogue/interpolation3D/tricubic -text
+share/matlab/material_catalogue/interpolation3D/tricubic2 -text
+share/matlab/material_catalogue/interpolation3D/tricubic_coeff.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_deriv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int.cc -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_int2.cc -text
+share/matlab/material_catalogue/interpolation3D/tricubic_offline.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_parderiv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv_copy.m -text
+share/matlab/material_catalogue/interpolation3D/tricubic_partialderiv_variante.m -text
+share/matlab/material_catalogue/interpolation3D/wrapper_3D.m -text
+share/matlab/material_catalogue/interpolation3D/write_to_xml_3D.m -text
+share/matlab/material_catalogue/ismemberf.m -text
+share/matlab/material_catalogue/java.opts -text
+share/matlab/material_catalogue/parfortest.m -text
+share/matlab/material_catalogue/plotTensors.m -text
+share/matlab/material_catalogue/rotatehillmandel.m -text
+share/matlab/material_catalogue/rotatevoigt.m -text
+share/matlab/material_catalogue/sortCatalogue.m -text
+share/matlab/material_catalogue/validateCFS.m -text
+share/matlab/material_catalogue/voigttohillmandel.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
 share/matlab/mmwrite.m -text
@@ -1070,6 +1213,7 @@ share/python/colormaps.py -text
 share/python/common.py -text
 share/python/continuation.py -text
 share/python/convert_fms_to_hom.py -text
+share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
 share/python/density-to-png.py -text
@@ -1078,14 +1222,27 @@ share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
 share/python/find_bloch_band_gaps.py -text
 share/python/fmk-extracttensorsfromh5.py -text
+share/python/geometry_mesher.py -text
 share/python/gid_screenshots.py -text
 share/python/hdf5_tools.py -text
+share/python/material_catalogue/calculate-crosses.py -text
+share/python/material_catalogue/cellproblem_fine.xml -text
+share/python/material_catalogue/compliance_plain.xml -text
+share/python/material_catalogue/create_hom_catalogue.py -text
+share/python/material_catalogue/create_msfem_catalogue.py -text
+share/python/material_catalogue/evaluate.py -text
+share/python/material_catalogue/inv_tensor.xml -text
+share/python/material_catalogue/inv_tensor_3D.xml -text
+share/python/material_catalogue/mat.xml -text
+share/python/material_catalogue/process_sparse.py -text
 share/python/matviz.py -text
 share/python/matviz_2d.py -text
 share/python/matviz_rot.py -text
 share/python/matviz_streamline.py -text
+share/python/matviz_unstructured_mesh.py -text
 share/python/matviz_vtk.py -text
 share/python/mesh_tool.py -text
+share/python/monotone-plot.dat.py -text
 share/python/nas-tool-gid-to-nas.py -text
 share/python/nas-tool-nas2msh.py -text
 share/python/nas-tool-voidmesh.py -text
@@ -1103,6 +1260,7 @@ share/python/test.py -text
 share/python/wedge15.py -text
 share/python/wedge18.py -text
 share/python/xmlreplace.py -text
+share/scripts/CMakeGraphVizOptions.cmake -text
 share/scripts/CMakeLists.txt svneol=native#text/plain
 share/scripts/IdentifyCCompiler.c svneol=native#text/plain
 share/scripts/IdentifyCXXCompiler.cpp svneol=native#text/plain
@@ -1120,6 +1278,7 @@ share/scripts/common.bat -text
 share/scripts/common.sh svneol=native#text/plain
 share/scripts/compile_mkl_test.sh.in -text
 share/scripts/distro.sh svneol=native#text/plain
+share/scripts/gendepgraph.sh -text
 share/scripts/generate-standalone-bootstrap-sh.cmake -text
 share/scripts/getdate.bat -text
 share/scripts/h5tool -text
@@ -1852,6 +2011,8 @@ source/OLAS/utils/math/LanczosMethod.hh svneol=native#text/x-c%2B%2Bhdr
 source/Optimization/CMakeLists.txt -text
 source/Optimization/Condition.cc svneol=native#text/x-c%2B%2Bsrc
 source/Optimization/Condition.hh svneol=native#text/x-c%2B%2Bhdr
+source/Optimization/Context.cc -text
+source/Optimization/Context.hh -text
 source/Optimization/Design/AuxDesign.cc -text
 source/Optimization/Design/AuxDesign.hh -text
 source/Optimization/Design/CMakeLists.txt -text
@@ -1940,6 +2101,8 @@ source/Optimization/TopGrad.cc -text
 source/Optimization/TopGrad.hh -text
 source/Optimization/TransferFunction.cc -text
 source/Optimization/TransferFunction.hh -text
+source/Optimization/Transform.cc -text
+source/Optimization/Transform.hh -text
 source/PDE/AcousticMixedPDE.cc -text
 source/PDE/AcousticMixedPDE.hh -text
 source/PDE/AcousticPDE.cc -text

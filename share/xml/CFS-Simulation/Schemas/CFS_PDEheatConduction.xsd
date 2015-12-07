@@ -105,6 +105,12 @@
                   </xsd:annotation>
                 </xsd:element>
 
+                <xsd:element name="heatFlux" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines heat flux (Neumann B.C.)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+
                 <!-- heat specific boundary conditions -->
                 <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>

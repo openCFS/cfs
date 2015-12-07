@@ -1,6 +1,5 @@
 # This collects some tool routines for optimization
 
-
 import libxml2
 import numpy
 import numpy.linalg
@@ -10,6 +9,7 @@ from lxml import etree
 
 from cfs_utils import *
 from distutils.command.build_scripts import first_line_re
+from numpy.distutils.misc_util import cxx_ext_match
 
 # # Read an arbitrary density file as NDArray
 # Uses the <mesh x="30" y="20" z="1"/> element in the header of the density file
@@ -17,7 +17,8 @@ from distutils.command.build_scripts import first_line_re
 # @param attribute the scalar attribute: "design" (default), "physical", "nr"
 # @param x, y, z optional mesh size in case it is not given in the density file. Note, the smallest number is 1, not 0!!
 # @param set optional name of set, if not given use default
-def read_density(filename, attribute="design", x=None, y=None, z=None, set=None):
+# @param fill if the density is a subset of the mesh return 1D or fill with fill_value if fill is set
+def read_density(filename, attribute="design", x=None, y=None, z=None, set=None, fill = None):
   vals = read_density_as_vector(filename, attribute, set)
   mx, my, mz = read_mesh_info(filename, silent=True)
 
@@ -34,21 +35,16 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None)
     z = 1
 
   assert(x > 0 and y > 0 and z > 0)  
-
+  
   # density files where not the whole domain is design domain are read and re-written
   # as 1D arrays
   dim = cond(y > 1, cond(z > 1, 3, 2), 1)
-  ret = 0
-     
+  ret = numpy.zeros((x, y)) if dim == 2 else numpy.zeros((x, y, z)) # might be overwritten to 1D 
+       
   if len(vals) > x * y * z:
     raise RuntimeError("density mesh information x=" + str(x) + " y=" + str(y) + " z=" + str(z)\
                         + " does not match " + str(len(vals)) + " elements in " + filename) 
   if len(vals) == x * y * z:
-    # full array!
-    if dim == 2:
-      ret = numpy.zeros((x, y))
-    else:
-      ret = numpy.zeros((x, y, z))
 
     # copy data from linear list
     for k in range(z):
@@ -60,13 +56,24 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None)
 
   
   if len(vals) < x * y * z:
-    # we need to be 1D
-    print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
-         + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
-    x = len(vals)
-    ret = numpy.zeros((x))
-    for i in range(x):
-      ret[i] = vals[i]    
+    if fill == None:
+      # we need to be 1D
+      print "read density file '" + filename + "' with " + str(len(vals)) + " element smaller x=" + str(x) \
+           + " y=" + str(y) + " z=" + str(z) + " mesh as " + attribute
+      x = len(vals)
+      ret = numpy.zeros((x)) # overwrite full array
+      for i in range(x):
+        ret[i] = vals[i]    
+    else:
+      print "fill with " + str(fill) + " values '" + attribute + "' from non complete file '" + filename \
+           + "' with " + str(len(vals)) + " elements for x=" + str(x) + " y=" + str(y) + " z=" + str(z)
+
+      ret += fill # was zeros, fill with default value
+      num = read_density_as_vector(filename, 'nr', set)
+      nt = x * y * z
+      for c in range(len(num)):
+        n = int(num[c] -1)
+        setNDArrayEntry(ret, n % x, n/y, n/(x*y), vals[c]) # 'nr' is one base in general
         
   return ret
 
@@ -267,7 +274,29 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
 
+## reads partial domain within a full array. E.g. if the design domain is circular
+def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
+  msh  = read_mesh_info(filename, silent = False)
+  vals = read_density_as_vector(filename, attribute, set)
+  nrs  = read_density_as_vector(filename, 'nr', set)
 
+  assert(msh[2] == 1) # implement 3D if you need it
+  
+  a = numpy.ones(msh[0:2]) * fill  
+  
+  nx = msh[0]
+  ny = msh[1]
+  
+  assert(len(nrs) <= nx * ny)
+  
+  for i in range(len(nrs)):
+    n = int(nrs[i])
+    # assume a lexicographic order
+    y = int(n / ny)
+    x = n % ny
+    a[y, x] = vals[i]
+      
+  return a
 
 # # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)
@@ -937,6 +966,40 @@ def convert_hom_rect_tensor_to_xml(tensordata, xmlfile=None):
     file.close()
 
   return out    
+
+# # rotate if possible
+# @param data 2d array 
+# @param center list with sufficient size of indices
+# @param angle counter-clock-wise in rad
+# @return new array with org where no rotation was possible
+def rotate(data, center, angle):
+  ret = data.copy()
+  
+  cx, cy = center
+  
+  nx, ny = data.shape
+  
+  # the general algorithm for rotation around a given point is
+  # - translate to center
+  # - rotate around center
+  # - translate back
+  
+  for y in range(ny):
+    for x in range(nx):
+       x2 = numpy.cos(angle) * (x - cx) - numpy.sin(angle) * (y - cy) + cx
+       y2 = numpy.sin(angle) * (x - cx) + numpy.cos(angle) * (y - cy) + cx
+       #print "x=" + str(x) + " y=" + str(y) + " v="  + str(data[y, x]) + " ->  x2=" + str(x2) + " y2=" + str(y2)
+       h = 1.0/nx
+       bx = 0.5*h + x*h
+       by = 0.5*h + y*h
+       bx2 = 0.5*h + x2*h
+       by2 = 0.5*h + y2*h
+       print "org=(" + str(bx) + ", " + str(by) + ") v="  + str(data[y, x]) + " ->  (" + str(bx2) + ", " + str(by2) + ")"
+        
+       if x2 >= 0 and x2 < nx and y2 >= 0 and y2 < ny:
+         ret[y, x] = data[y2, x2] 
+       
+  return ret
     
 # a = read_multi_design("fmomulti-40.density.xml", "stiff1", "stiff2", "rotAngle", "rotAngle2")
 # a[:,0] *= 0.11

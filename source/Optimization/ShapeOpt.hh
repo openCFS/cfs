@@ -46,7 +46,7 @@ template <class TYPE> class Vector;
     virtual void CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f);
     
     /** Overwritten version of ErsatzMaterial::CalcHomogenizedTensor */
-    virtual Matrix<double> CalcHomogenizedTensor();
+    virtual Matrix<double> CalcHomogenizedTensor(Function* f);
 
     /** Pointer to the DesignSpace, with the correct type */
     ShapeDesign* shapedesign;

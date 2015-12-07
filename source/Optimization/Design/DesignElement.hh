@@ -20,6 +20,7 @@ class Point;
 
 namespace CoupledField
 {
+class Excitation;
 class Condition;
 class DesignElement;
 class DesignSpace;
@@ -243,7 +244,7 @@ protected:
    * @see constraintGradient */
   StdVector<double> costGradient;
 
-  /** The lower bound of this design variable. Redundant but such faster than look it up */
+  /** The lower bound of this design variable. Redundant but faster than look it up */
   double lower_;
 
   double upper_;
@@ -326,7 +327,6 @@ public:
      * Therefore there is no access as we are implicit SMART */
     double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
 
-
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;
 
@@ -338,8 +338,8 @@ public:
     void GetValue(ResultDescription& rd, StdVector<double>& out, unsigned int dofs) const;
 
     /** This method decides if either GetFilteredValue() or GetPlainValue() is to be returned.
-     * @param g mandatory for vs = CONSTRAINT_GRADIENT only */
-    double GetValue(ValueSpecifier vs, Access access, Condition* g = NULL) const;
+     * @param f mandatory for vs = CONSTRAINT_GRADIENT and to determine if we are filtered! */
+    double GetValue(ValueSpecifier vs, Access access, Function* f = NULL) const;
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
@@ -356,10 +356,10 @@ public:
     void ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial* em) const;
 
     /** @see BaseDesignElement::ToString() */
-    std::string ToString() const { return ToString(this); }
+    std::string ToString(bool barycenter = false) const { return ToString(this, barycenter); }
 
     /** makes a short dump, handles NULL */
-    static std::string ToString(const DesignElement* de);
+    static std::string ToString(const DesignElement* de, bool barycenter = false);
     
     /** helper for LOG output */
     static std::string ToString(const StdVector<DesignElement*>& vec, bool print_type = false);
@@ -450,49 +450,32 @@ public:
 
   /** Does sensitvity filtering
    * @param g @see GetPlainValue() */
-  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Condition* g) const;
+  double GetSensitivityFilteredValue(DesignElement::ValueSpecifier valueSpecifier, Function* g) const;
 
   /** Does design filtering. */
   double GetDensityFilteredValue(DesignElement::ValueSpecifier sp, Filter::Density fd) const;
 
-  /** Helper for GetDensityFilteredValue() */
-  double CalcHeaviside(double input_value) const;
+  /** Helper for GetDensityFilteredValue()
+   * @param filter_idx to handle robust. 0 shall work in the non-robust case */
+  double CalcHeaviside(double input_value, unsigned int filter_idx) const;
 
-  /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010 */
-  double CalcTanh(double input_value) const;
+  /** Calculates the tanh function. This is a variant of the Xu-Filter, see also Wang/Laraow/Sigmund;2010
+   * @param filter_idx see CalcHeaviside()*/
+  double CalcTanh(double input_value, unsigned int filter_idx) const;
 
   /** only for sensitivities for density filtering.
    * See Sigmund; Morpology-based black and white filters for topology optimization; 2007; (35) and (36)
    * @param sp COST_GRADIENT, CONSTRAINT_GRADIENT or DENSITY for PROJECTION only */
-  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Condition* g) const;
+  double GetDensityFilteredGradient(DesignElement::ValueSpecifier sp, Function* func) const;
 
-  /** Sums up the weights of the neighbors and optionally the own element */
-  double CalcWeightSum(bool include_this) const;
+  /** gives the proper filter index from DesignSpace::Context::Excitation */
+  unsigned int DetermineFilterIndex() const;
 
-  /** pre-calculated weight sum */
-  double weight_sum;
+  /** Of the inlined DetermineFilterIndex() does not link */
+  unsigned int DetermineFilterIndexNonInlined() const;
 
-  /** Neighborhood is element and pre-calculated distance */
-  struct NeighbourElement
-  {
-  public:
-    /** read the variable */
-    DesignElement* neighbour;
-
-    /** pre-calculated weight: radius - distanance and >= 0 */
-    double        weight;
-
-    /** the distance in domain dimensions! */
-    double        distance;
-  };
-
-  /** The weight of THIS element which is radius */
-  double weight;
-
-  /** The neighbors if filter otherwise empty.
-   * The element itself is NOT part of the neighborhood!
-   * @see DesignStructure::DesignStructure() */
-  StdVector<NeighbourElement> neighborhood;
+  /** Gives the appropriate filter based on DetermineFilterIndex() */
+  Filter& DetermineFilter();
 
   /** string representation for logging, includes neighborhood.
    * @param level 0 is elements, 1 is with weighting and distance */
@@ -501,8 +484,11 @@ public:
   /** for debugging. Sums the weights of all neighbors, ... */
   void Dump();
 
-  /** The complete filter settings */
-  Filter filter;
+  /** The complete filter settings. There is a lot of copy and paste data to other elements.
+   * But as we might be design and region dependent, might be robust and robust might also
+   * store the neighborhood it is simply better to have the expensive instances.
+   * Without regularization or with slopes/ perimeter this is empty. Normally we have one entry, with robust it is more  */
+  StdVector<Filter> filter;
 
 private:
 
@@ -514,18 +500,23 @@ private:
 class DesignID
 {
 public:
-   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0)
+   DesignID(DesignElement::Type design = DesignElement::NO_TYPE, MultiMaterial* mm = NULL, double rb = -1.0, bool enforce_bounds = false)
    {
      this->design = design;
      this->multimaterial = mm;
      this->relative_bound = rb;
+     this->enforce_bounds = enforce_bounds;
    }
 
    DesignElement::Type design;
    /** index. -1 for non-multimaterial */
-   MultiMaterial*      multimaterial;
+   MultiMaterial* multimaterial;
+
    /** relative bounds for design, negative if not applicable, size by number of design types */
-   double              relative_bound;
+   double relative_bound;
+
+   /** shall the bounds be enforced when loading external designs */
+   bool enforce_bounds;
 };
 
 /**required in Design space**/
@@ -563,6 +554,9 @@ public:
    * @param pn our data */
   ResultDescription(PtrParamNode pn);
 
+  /** debug output */
+  std::string ToString();
+
   SolutionType solutionType;
 
   /** Finds the proper design element by element number */
@@ -577,51 +571,66 @@ public:
   /** An optional detail for values COST_GRADIENT and OBJECTIVE in PiezoSIMP case */
   DesignElement::Detail detail;
 
-  /** An optional excitation label */
-  std::string excitation;
+  /** An optional excitation index. Negative for not set*/
+  int excitation;
 };
 
 inline
-double SIMPElement::CalcHeaviside(double input_value) const
+double SIMPElement::CalcHeaviside(double input_value, unsigned int filter_idx) const
 {
-  const Filter* f = &de_->simp->filter;
-  assert(f->type_ == Filter::DENSITY);
-  assert(f->density_ == Filter::HEAVISIDE || f->density_ == Filter::MOD_HEAVISIDE);
+  const Filter& f = de_->simp->filter[filter_idx];
+  assert(f.GetType() == Filter::DENSITY);
+  assert(f.density_ == Filter::SOLID_HEAVISIDE || f.density_ == Filter::VOID_HEAVISIDE);
 
   double result;
 
-  double b = f->GetBeta();
+  double b = f.beta;
   assert(b >= 0.0 && b < 2000);
 
-  if(f->density_ == Filter::HEAVISIDE)
+  if(f.density_ == Filter::SOLID_HEAVISIDE)
   {
-    // we apply the correction factor in a way that H(rho_min) = rho_min and H(1) = 1
-    double corr = (1.0 - (1.0 - input_value) * f->heaviside_corr) * input_value;
-    result = 1.0 - std::exp(-1.0 * b * corr) + corr * std::exp(-1.0 * b);
+    double tmp = 1.0 - std::exp(-b * input_value) + input_value * std::exp(-b);
+    result = f.non_lin_scale * tmp + f.non_lin_offset;
 
     // no LOG_DBG possible due to inline
-    // std::cout << "CH: de=" << de_->elem->elemNum << " f=" << f->density.ToString(f->density_)
-    ///          << " hc=" << f->heaviside_corr << " corr=" << corr << " iv=" << input_value << " -> " << result << std::endl;
   }
-  else // if(f->density_ == Filter::MOD_HEAVISIDE)
+  else // if(f.density_ == Filter::MOD_HEAVISIDE)
   {
-    // make sure we are within the bounds
-    double ub = this->de_->GetUpperBound();
-    double lb = f->GetLowerBound(this->de_); // might be force_lower_bound from the filter setting
 
     double first    = std::exp(-1.0 * b * (1.0 - input_value));
     double second   = -1.0 * (1.0 - input_value) * std::exp(-1.0 * b);
 
-    assert((ub-lb) > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
+    assert(f.non_lin_scale > 1e-2); // if not you probably forgot to set force_lower_bound in the filter definition
 
-    result = (ub-lb) * (first + second) + lb;
-
+    result = f.non_lin_scale * (first + second) + f.non_lin_offset;
     // std::cout << "CH: el=" << de_->elem->elemNum << " iv=" << input_value << " b=" << b << " lb=" << lb << " (ub-lb)=" << (ub-lb)
     //           << " +1st=" << first << " +2nd=" << second << " -> " << result << std::endl;
   }
 
   return result;
 }
+
+inline
+double SIMPElement::CalcTanh(double input_value, unsigned int filter_idx) const
+{
+  const Filter& f = de_->simp->filter[filter_idx];
+
+  assert(f.GetType() == Filter::DENSITY);
+  assert(f.density_ == Filter::TANH);
+
+  double b = f.beta;
+  double e = f.eta;
+
+  assert(b >= 0.0 && b < 2000);
+
+  // 1 - 1/(exp(2*beta*(x-param)) + 1)
+  double func = 1.0 - 1.0/(std::exp(2.0 * b * (input_value - e)) + 1.0);
+  double result = f.non_lin_scale * (func) + f.non_lin_offset;
+
+  // std::cout << "CT: de=" << ToString() << " fix=" << filter_idx << " s=" << f.non_lin_scale << " o=" << f.non_lin_offset << " iv=" << input_value << " func=" << func << " -> " << result << std::endl;
+  return result;
+}
+
 
 } // end of namespace
 

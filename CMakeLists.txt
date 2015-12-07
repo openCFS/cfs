@@ -95,14 +95,14 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
 SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "08")
+SET(CFS_VERSION_MONTH "11")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Erneuertes CA(A)fehaus")
+SET(CFS_NAME "CA(A)fehaus of the future")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -155,6 +155,13 @@ SET(CMAKE_MODULE_PATH ${CFS_SOURCE_DIR}/cmake_modules)
 INCLUDE("cmake_modules/platform_defaults.cmake")
 
 #-----------------------------------------------------------------------------
+# Switch on/off usage of cfsdepscache
+#-----------------------------------------------------------------------------
+OPTION(CFS_DEPS_PRECOMPILED
+  "Use precompiled cfsdeps. If no precompiled version exists, compile, zip and move package into cache."
+  ${CFS_DEPS_PRECOMPILED_DEFAULT})
+
+#-----------------------------------------------------------------------------
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
 OPTION(USE_PYTHON
@@ -182,11 +189,9 @@ OPTION(USE_GMV
 OPTION(USE_UNV
   "Use Universal File for simulation output."
   ${USE_UNV_DEFAULT})
-
 OPTION(USE_ENSIGHT
   "Support for Ensight Gold file format for input.."
   ${USE_ENSIGHT_DEFAULT})
-
 OPTION(USE_SGPP
   "Enable support for sparse grid interpolation."
   ${USE_SGPP_DEFAULT})
@@ -213,11 +218,11 @@ SET(CFS_BLAS_LAPACK ${CFS_BLAS_LAPACK_DEFAULT}
   CACHE STRING
   "BLAS/LAPACK implementation. May be one of APPLE, OPENBLAS, MKL, NETLIB")
 
-SET(CFS_PARDISO  ${CFS_PARDISO_DEFAULT}
+SET(CFS_PARDISO "MKL"
   CACHE STRING
   "Pardiso implementation for CFS. May be one of MKL or SCHENK. Irrelevant if disabled via USE_PARDISO")
 
-OPTION(USE_PARDISO "Use Pardiso"
+OPTION(USE_PARDISO "Use Pardiso, see also advanced option CFS_PARDISO (MKL or SCHENK)"
   ${USE_PARDISO_DEFAULT})
 OPTION(USE_ARPACK "Use the ARPACK eigensolver library."
   ${USE_ARPACK_DEFAULT})
@@ -277,7 +282,7 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 OPTION(USE_FFTW
   "Activate DFT and filtering capabilities of cfstool." 
   ${USE_FFTW_DEFAULT})
-
+ 
 #-----------------------------------------------------------------------------
 # VTK - Build VTK library 
 #-----------------------------------------------------------------------------
@@ -361,13 +366,6 @@ OPTION(USE_FLANN
   "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
   ${USE_FLANN_DEFAULT})
 
-#-----------------------------------------------------------------------------
-# Use the ZeroMQ distributed messaging library 
-#-----------------------------------------------------------------------------
-OPTION(USE_ZEROMQ
-  "Enable support for ZeroMQ distributed messaging library"
-  ${USE_ZEROMQ_DEFAULT})
-
 OPTION(DEBUG "Build debug version of the code."
   ${DEBUG_DEFAULT})
 OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."
@@ -377,7 +375,7 @@ OPTION(COVERAGE "Turn on code coverage output."
 
 OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
   ${CFSTOOL_DEFAULT})
-
+  
 OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
   ${CFSDAT_DEFAULT})
 
@@ -446,6 +444,8 @@ ENDIF(NOT TESTSUITE_DIR STREQUAL "TESTSUITE_DIR_NOT_FOUND")
 #-----------------------------------------------------------------------------
 # Mark some of the options as advanced to clear up the standard selection
 #-----------------------------------------------------------------------------
+MARK_AS_ADVANCED(CFS_PARDISO)
+MARK_AS_ADVANCED(CFS_DEPS_TOCACHE)
 MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
@@ -709,7 +709,7 @@ ENDIF(USE_GIDPOST)
 IF(USE_UNV)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Unverg)
 ENDIF(USE_UNV)
-
+ 
 IF(USE_ENSIGHT)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/VTKBased/Ensight)
   SET(USE_VTK ON 

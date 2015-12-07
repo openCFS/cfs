@@ -265,8 +265,7 @@ namespace CoupledField
     //! Returns the node numbers of a  given element.
     //! \param connect (out) contains global node numbers
     //! \param iElem (in) element number
-    virtual void GetElemNodes( StdVector<UInt> & connect,
-                               const UInt iElem ) = 0;
+    virtual void GetElemNodes(StdVector<UInt> & connect, const UInt iElem) = 0;
 
     //! Returns node numbers of a list of Elements
 
@@ -426,7 +425,18 @@ namespace CoupledField
      * Checks the RegionData::barycenters and does nothing if already set.
      * @param updated handle updated coordinates?
      * @return the number of actually set barycenters. */
-    UInt SetElementBarycenters(RegionIdType region, bool updated);
+    unsigned int SetElementBarycenters(RegionIdType region, bool updated);
+
+    /** set the element barycenters for all regions */
+    unsigned int SetElementBarycenters(bool updated)
+    {
+      unsigned int total = 0;
+
+      for(unsigned int i = 0; i < regionData.GetSize(); i++)
+        total += SetElementBarycenters(regionData[i].id, updated);
+
+      return total;
+    };
 
     /** Determines the neighborhood of elements and store in within the elements.
      * It checks if already called and does nothing if called multiple times. */

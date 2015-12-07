@@ -9,8 +9,8 @@
 namespace CoupledField {
   
   class StdMatrix;
-  class ParamNode;
-  class ParamNode;
+  
+  
   
   // =========================================================================
   //   ARPACK SOLVER

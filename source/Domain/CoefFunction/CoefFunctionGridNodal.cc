@@ -226,7 +226,6 @@ namespace CoupledField{
       }else{
         StdVector<Vector<Double> > CoordVec(nodeNums.GetSize());
         StdVector< DATA_TYPE > values(nodeNums.GetSize());
-#pragma omp parallel for
         for( UInt aN=0;aN<nodeNums.GetSize();aN++){
           srcGrid_->GetNodeCoordinate(CoordVec[aN],nodeNums[aN],true);
         }
@@ -254,7 +253,6 @@ namespace CoupledField{
       bool needTinterp=false;
       Double factor1,factor2;
       if(this->snapToCFSStep_){
-        //we need this to set some class variables... this is not very good style
         stepnumber = GetStepNum(needTinterp,factor1,factor2);
         stepnumber = this->domain_->GetBasePDE()->GetSolveStep()->GetActStep();
         if(lastStepRead_ != stepnumber){
@@ -288,10 +286,11 @@ namespace CoupledField{
             this->solVec_[i] = factor1 * this->solVecOld_[i] + factor2 *  this->solVecFuture_[i];
           }
         }else{
-          std::cout << "Got Step : " << lastStepRead_ << " Computed Step:" << stepnumber << std::endl;
+          std::cout << "++ Reading source step #" << stepnumber << " ...";
           this->ReadSolution(stepnumber,this->solVec_);
           lastStepRead_ = stepnumber;
           updated = true;
+          std::cout << "Done." << std::endl;
         }
       }
     }

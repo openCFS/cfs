@@ -27,7 +27,6 @@
 #include "Utils/tools.hh"
 
 using std::string;
-using boost::make_tuple;
 using std::pair;
 
 using namespace CoupledField;
@@ -234,8 +233,8 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
     if(org == ISOTROPY || org == ISO_ORTHOTROPY)
     {
       // E11 - E22 = 0
-      g->coords.Push_back(make_tuple(1,1,1.0)); // no AppendSubCondtion()/Clear() in first case
-      g->coords.Push_back(make_tuple(2,2,-1.0));
+      g->coords.Push_back(boost::make_tuple(1,1,1.0)); // no AppendSubCondtion()/Clear() in first case
+      g->coords.Push_back(boost::make_tuple(2,2,-1.0));
 
       g = g->AppendSubCondition(list);
       g->coords.Clear(); // do here, see below
@@ -244,12 +243,12 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
     // E13 = 0
     // AppendSubCondtion()/Clear() not in ISO_ORTHOTROPY case and done otherwise above.
     // this is very ugly, but switching the order makes problems for SCPIP to solve trivial max E11 in the testsuite!!
-    g->coords.Push_back(make_tuple(1,3,1.0));
+    g->coords.Push_back(boost::make_tuple(1,3,1.0));
 
     // E23 = 0
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,3,1.0));
+    g->coords.Push_back(boost::make_tuple(2,3,1.0));
 
 
     if(org == ISOTROPY)
@@ -257,9 +256,9 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       // E11 - E12 - 2E33 = E11 - E12 - E33 - E33 = 0
       g = g->AppendSubCondition(list);
       g->coords.Clear(); // the copy constructor above copies old stuff
-      g->coords.Push_back(make_tuple(1,1,1.0));
-      g->coords.Push_back(make_tuple(1,2,-1.0));
-      g->coords.Push_back(make_tuple(3,3,-2.0));
+      g->coords.Push_back(boost::make_tuple(1,1,1.0));
+      g->coords.Push_back(boost::make_tuple(1,2,-1.0));
+      g->coords.Push_back(boost::make_tuple(3,3,-2.0));
     } // else case is common for 2D and 3D
   }
   else
@@ -272,37 +271,37 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
     {
       // non-shear diagonal is constant
       // E11 = E22 = E33 -> E11 - E22 = 0, E22 - E33 = 0
-      g->coords.Push_back(make_tuple(1,1,1.0));
-      g->coords.Push_back(make_tuple(2,2,-1.0));
+      g->coords.Push_back(boost::make_tuple(1,1,1.0));
+      g->coords.Push_back(boost::make_tuple(2,2,-1.0));
 
       g = g->AppendSubCondition(list);
       g->coords.Clear();
-      g->coords.Push_back(make_tuple(2,2,1.0));
-      g->coords.Push_back(make_tuple(3,3,-1.0));
+      g->coords.Push_back(boost::make_tuple(2,2,1.0));
+      g->coords.Push_back(boost::make_tuple(3,3,-1.0));
 
       // upper non-shear triangle is constant
       // E12 = E13 = E23 -> E12 - E13 = 0, E13 - E23 = 0
       g = g->AppendSubCondition(list);
       g->coords.Clear();
-      g->coords.Push_back(make_tuple(1,2,1.0));
-      g->coords.Push_back(make_tuple(1,3,-1.0));
+      g->coords.Push_back(boost::make_tuple(1,2,1.0));
+      g->coords.Push_back(boost::make_tuple(1,3,-1.0));
 
       g = g->AppendSubCondition(list);
       g->coords.Clear();
-      g->coords.Push_back(make_tuple(1,3,1.0));
-      g->coords.Push_back(make_tuple(2,3,-1.0));
+      g->coords.Push_back(boost::make_tuple(1,3,1.0));
+      g->coords.Push_back(boost::make_tuple(2,3,-1.0));
 
       // shear diagonal is constant
       // E44 = E55 = E66 -> E44 - E55 = 0, E55 - E66 = 0
       g = g->AppendSubCondition(list);
       g->coords.Clear();
-      g->coords.Push_back(make_tuple(4,4,1.0));
-      g->coords.Push_back(make_tuple(5,5,-1.0));
+      g->coords.Push_back(boost::make_tuple(4,4,1.0));
+      g->coords.Push_back(boost::make_tuple(5,5,-1.0));
 
       g = g->AppendSubCondition(list);
       g->coords.Clear();
-      g->coords.Push_back(make_tuple(5,5,1.0));
-      g->coords.Push_back(make_tuple(6,6,-1.0));
+      g->coords.Push_back(boost::make_tuple(5,5,1.0));
+      g->coords.Push_back(boost::make_tuple(6,6,-1.0));
 
       g = g->AppendSubCondition(list);
       g->coords.Clear(); // see 2D why we have to do this nonsense
@@ -311,51 +310,51 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
 
     // the zero entries
     // E14 = E15 = E16 = E24 = E25 = E26 = E34 = E35 = E36 = E45 = E46 = E56 = 0
-    g->coords.Push_back(make_tuple(1,4,1.0));
+    g->coords.Push_back(boost::make_tuple(1,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,5,1.0));
+    g->coords.Push_back(boost::make_tuple(1,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(1,6,1.0));
+    g->coords.Push_back(boost::make_tuple(1,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,4,1.0));
+    g->coords.Push_back(boost::make_tuple(2,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,5,1.0));
+    g->coords.Push_back(boost::make_tuple(2,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(2,6,1.0));
+    g->coords.Push_back(boost::make_tuple(2,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(3,4,1.0));
+    g->coords.Push_back(boost::make_tuple(3,4,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(3,5,1.0));
+    g->coords.Push_back(boost::make_tuple(3,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(3,6,1.0));
+    g->coords.Push_back(boost::make_tuple(3,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(4,5,1.0));
+    g->coords.Push_back(boost::make_tuple(4,5,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(4,6,1.0));
+    g->coords.Push_back(boost::make_tuple(4,6,1.0));
 
     g = g->AppendSubCondition(list);
     g->coords.Clear();
-    g->coords.Push_back(make_tuple(5,6,1.0));
+    g->coords.Push_back(boost::make_tuple(5,6,1.0));
 
     if(org == ISOTROPY)
     {
@@ -363,9 +362,9 @@ void Condition::AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& lis
       // E11 - E12 - 2E66 = E11 - E12 - E66 - E66 = 0
       g = g->AppendSubCondition(list);
       g->coords.Clear(); // the copy constructor above copies old stuff
-      g->coords.Push_back(make_tuple(1,1,1.0));
-      g->coords.Push_back(make_tuple(1,2,-1.0));
-      g->coords.Push_back(make_tuple(6,6,-2.0));
+      g->coords.Push_back(boost::make_tuple(1,1,1.0));
+      g->coords.Push_back(boost::make_tuple(1,2,-1.0));
+      g->coords.Push_back(boost::make_tuple(6,6,-2.0));
     }
 
   }
@@ -383,7 +382,7 @@ void Condition::AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Co
     // for the conversion of the indices see Thesis from Ole Sigmund, p 30 and book of Manfred
     // p 42 (first edition)
     g->coords.Resize(1);
-    tuple<int, int, double>& entry = g->coords[0];
+    boost::tuple<int, int, double>& entry = g->coords[0];
     get<0>(entry) = 1; // 1. ijkl = 1111
     get<1>(entry) = 1;
     get<2>(entry) = 1.0;
@@ -517,7 +516,7 @@ Condition* Condition::AppendSubCondition(StdVector<Condition*>& list, int pos_x,
 {
   Condition* sub = AppendSubCondition(list);
   sub->coords.Resize(1);
-  tuple<int, int, double>& entry = sub->coords[0];
+  boost::tuple<int, int, double>& entry = sub->coords[0];
   get<0>(entry) = pos_x;
   get<1>(entry) = pos_y;
   get<2>(entry) = 1.0; // default
@@ -642,15 +641,19 @@ string Condition::ToString(MultipleExcitation* me) const
     os << "_(" << DesignElement::type.ToString(design_) << ")";
 
   if(type_ == HOM_TENSOR)
-    os << ToString(coords);
+    os << "_" << ToString(coords);
 
   // with multiple output constraints we need to identify
   if(type_ == OUTPUT && !output_forms.IsEmpty())
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
-  if((type_ == STRESS || type_ == STRESS_DENSITY) && me != NULL && me->IsEnabled())
-    os << "_" << me->excitations[excite_].label; // change to excite label
+  if(me != NULL && me->IsEnabled())  {
+    if(type_ == STRESS || type_ == STRESS_DENSITY)
+      os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
+    else if(me->DoMetaExcitation())
+      os << "_" << me->excitations[excite_].GetMetaLabel();
+  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
@@ -658,7 +661,7 @@ string Condition::ToString(MultipleExcitation* me) const
   return os.str();  
 }
 
-string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
+string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coords)
 {
   assert(coords.GetSize() > 0);
   assert(get<2>(coords[0]) == 1.0); // so we don't have to start with a minus
@@ -668,7 +671,7 @@ string Condition::ToString(const StdVector<tuple<int, int, double> >& coords)
   // 11_p12_2m33
   for(unsigned int i = 0; i < coords.GetSize(); i++)
   {
-    const tuple<int, int, double>& entry = coords[i];
+    const boost::tuple<int, int, double>& entry = coords[i];
     assert(std::floor(get<2>(entry)) - get<2>(entry) == 0.0);
     int factor = static_cast<int>(get<2>(entry));
     assert((i == 0 && factor == 1) || i != 0);
@@ -713,10 +716,10 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == HOM_TENSOR)
     in->Get("tensor_entry")->SetValue(ToString(coords));
 
-  if(delta_logging_ignored_)
-    in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
-  else
-    in->Get("delta_logging")->SetValue(delta_logging);
+  // if(delta_logging_ignored_)
+  //  in->Get("delta_logging")->Get(ParamNode::WARNING)->SetValue("no value given");
+  // else
+  //  in->Get("delta_logging")->SetValue(delta_logging);
 
   if(region != ALL_REGIONS)
     in->Get("region")->SetValue(domain->GetGrid()->GetRegion().ToString(region));
@@ -728,7 +731,7 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(me->IsEnabled())
-    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].label);
+    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].GetFullLabel());
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!
@@ -773,8 +776,7 @@ unsigned int LocalCondition::GetSparsityPatternSize() const
 
 StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
 {
-  /* for debug purposes you can enable the dense pattern by commenting out
-   * the two lines */
+  // for debug purposes you can enable the dense pattern by commenting out the two lines
   assert(IsLocal());
 
   Function::Local::Identifier& id = GetCurrentVirtualContext();
@@ -783,13 +785,16 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    BaseDesignElement* de = id.GetElement(i);
+    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
+    assert(de != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
     int other_idx = de->GetIndex();
     indices.push_back(other_idx);
-    if (this->ForDensityFiltering()) {
-      for(int j = 0; j < (int) dynamic_cast<DesignElement*>(de)->simp->neighborhood.GetSize(); j++)
-        indices.push_back(dynamic_cast<DesignElement*>(de)->simp->neighborhood[j].neighbour->GetIndex());
+    if(this->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+    {
+      const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
+      for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
+        indices.push_back(neighborhood[j].neighbour->GetIndex());
     }
   }
 
@@ -1005,11 +1010,15 @@ ConditionContainer::~ConditionContainer()
 {
   delete(view);
 
-  //for(unsigned int i = 0; i < active.GetSize(); i++)
-  //  delete active[i];
+  for(unsigned int i = 0; i < active.GetSize(); i++) {
+    delete active[i];
+    active[i] = NULL;
+  }
 
-  //for(unsigned int i = 0; i < observe.GetSize(); i++)
-  //  delete observe[i];
+  for(unsigned int i = 0; i < observe.GetSize(); i++) {
+    delete observe[i];
+    observe[i] = NULL;
+  }
 }
 
 void ConditionContainer::Read(ParamNodeList pn_list)

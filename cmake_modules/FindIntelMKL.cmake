@@ -93,15 +93,15 @@ IF(MINGW OR MSVC)
       SET(MKL_BLAS_LIB
         # This works with MinGW GCC 4.7.1 on Windows XP
         -Wl,--start-group
-	${MKL_LIB_DIR}/mkl_intel_c_dll.lib
-	# ${MKL_LIB_DIR}/mkl_sequential_dll.lib
-	${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
-	${MKL_LIB_DIR}/mkl_core_dll.lib
+    	${MKL_LIB_DIR}/mkl_intel_c_dll.lib
+    	# ${MKL_LIB_DIR}/mkl_sequential_dll.lib
+    	${MKL_LIB_DIR}/mkl_intel_thread_dll.lib
+    	${MKL_LIB_DIR}/mkl_core_dll.lib
         -Wl,--end-group
         # libiomp5md is not needed for mkl_sequential lib
-	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
-	${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
-	)
+    	${MKL_ROOT_DIR}/compiler/lib/ia32/libiomp5md.lib
+    	${MKL_ROOT_DIR}/../msvcrt/msvc90/ia32/runtmchk.lib
+    	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB "")
@@ -112,14 +112,14 @@ IF(MINGW OR MSVC)
       SET(MKL_BLAS_LIB
         # This works with MinGW GCC 4.5.3 on CentOS/Oracle 6
         -Wl,--start-group
-	${MKL_LIB_DIR}/mkl_intel_lp64.lib
-	# ${MKL_LIB_DIR}/mkl_intel_thread.lib
-	${MKL_LIB_DIR}/mkl_sequential.lib
-	${MKL_LIB_DIR}/mkl_core.lib
+    	${MKL_LIB_DIR}/mkl_intel_lp64.lib
+    	# ${MKL_LIB_DIR}/mkl_intel_thread.lib
+    	${MKL_LIB_DIR}/mkl_sequential.lib
+    	${MKL_LIB_DIR}/mkl_core.lib
         -Wl,--end-group
-	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
-	${MKL_ROOT_DIR}/../msvcrt/msvc100/amd64/runtmchk.lib
-	)
+    	# ${MKL_ROOT_DIR}/compiler/lib/intel64/libiomp5md.lib
+    	${MKL_ROOT_DIR}/../msvcrt/msvc100/amd64/runtmchk.lib
+    	)
       SET(MKL_LAPACK_LIB ${MKL_BLAS_LIB})
       
       SET(MKL_PARDISO_LIB "")
@@ -359,7 +359,7 @@ ELSE(WIN32)
                         flags. Please run ${CFS_BINARY_DIR}/tmp/mkl_test/compile_mkl_test.sh
                         by hand to investigate the problem.")
   ENDIF(RETVAL EQUAL 0)
-
+  
 ENDIF(WIN32)
 # MESSAGE("MKL_ROOT_DIR ${MKL_ROOT_DIR}")
 # MESSAGE("MKL_MAJOR_VERSION ${MKL_MAJOR_VERSION}")

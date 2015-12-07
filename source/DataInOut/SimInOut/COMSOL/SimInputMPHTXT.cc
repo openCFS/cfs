@@ -206,8 +206,10 @@ namespace CoupledField {
     
     for(;;) {
       
-      if(Comsolrow(line,in)) goto end;
-      if(line == NULL) goto end;
+      if(Comsolrow(line,in))
+        goto end;
+
+      //if(line == NULL) goto end;  clang is right here:  error: comparison of array 'line' equal to a null pointer is always false
       
       if(strstr(line,"# sdim")) {
         cp = line;

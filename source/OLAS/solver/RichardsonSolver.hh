@@ -13,7 +13,7 @@
 namespace CoupledField {
 
   class BasePrecond;
-  class ParamNode;
+  
   class OLAS_Report;
   
   // template<typename> class Matrix;

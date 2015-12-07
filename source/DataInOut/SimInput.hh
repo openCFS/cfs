@@ -21,7 +21,7 @@ namespace CoupledField
 {
 
   //! Forward class declaration
-  class ParamNode;
+  
   class BaseResult;
 
   //! Abstract base class for handling exceptions and errors
