@@ -1013,7 +1013,7 @@ PtrParamNode Optimization::CommitIteration(bool keep_iteration_number)
   if(optimizer_ != IPOPT_SOLVER && optimizer_ != SNOPT_SOLVER && optimizer_ != KNITRO_SOLVER)
   {
     cout << "iteration " << (currentIteration);
-    if(f != "") cout << " f = " << f << "Hz";
+    if(f != "") cout << " f = " << f << " Hz";
     cout << " -> cost = " << objectives.GetHistoryValue() << endl;
   }
 

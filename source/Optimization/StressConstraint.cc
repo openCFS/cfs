@@ -38,7 +38,7 @@ namespace CoupledField
 {
 
 template<typename T>
-StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateSolutions* forward) :
+StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateContainer* forward) :
     elemList(domain->GetGrid())
 {
   assert(f->GetType() == Function::STRESS || f->GetType() == Function::STRESS_DENSITY);

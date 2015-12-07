@@ -61,6 +61,8 @@ class SingleVector;
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() { return numFreq_; }
 
+    static unsigned int GetNumModes(PtrParamNode node);
+
     /** Helper for ContextManager in multi sequence optimzation */
     static unsigned int GetNumBlochWave(PtrParamNode node);
 

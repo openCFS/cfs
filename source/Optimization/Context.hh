@@ -13,7 +13,7 @@ class SingleDriver;
 class SinglePDE;
 class EigenFrequencyDriver;
 class HarmonicDriver;
-class Exciation;
+class Exctiation;
 class Function;
 class OptimizationMaterial;
 
@@ -118,6 +118,9 @@ class Context
   /** number of bloch wave vectors in bloch eigenfrequency case */
   unsigned int num_bloch_wave_vectors;
 
+  /** number of eigenmodes - also in the non-bloch case! */
+  unsigned int num_eigenmodes;
+
   /** context specific excitations (at least one).
    * Is a reference to portions of Optimization::MultipleExcitation::excitation and set in MultipleExcitation::FinalizeMultipleExcitation() */
   StdVector<Excitation*> excitation;
@@ -185,6 +188,7 @@ public:
   /** gives the context corresponding to the function.
    * Simply used the 1-based sequence attribute of the function */
   const Context& GetContext(const Function* f) const;
+  const Context& GetContext(const Excitation* ex) const;
 
   StdVector<Context> context;
 

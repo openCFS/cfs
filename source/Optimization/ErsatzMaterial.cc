@@ -178,12 +178,6 @@ ErsatzMaterial::ErsatzMaterial() :
   // postpone to PostInit
   // add optimization results to the pde
   // design->AppendOptimizationResults(pde);
-
-  // forward and adjoint are initialized in PostInit()
-  forward.Init(this);
-  forward.SetIsForward(true);
-  adjoint.Init(this);
-
 }
 
 ErsatzMaterial::~ErsatzMaterial()
@@ -380,27 +374,34 @@ void ErsatzMaterial::StoreResults(double step_val)
 
   if(cm == EACH_FORWARD)
   {
-    for(unsigned int e = 0; e < me->excitations.GetSize(); e++) {
-      forward.Get(e)->Write(context->pde);
+    for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
+    {
+      assert(!context->DoMultiSequence()); // extend! 
+      // in case of eigenvalues we have for each excitation many modes but write only the first one here
+      // in that case we need mode number 0 instead of the default -1
+      int mode = context->IsEigenvalue() ? 0 : -1;
+      forward.Get(me->excitations[e], NULL, mode)->Write(context->pde); // forward is function NULL
       // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
       Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
     }
   }
 
   if(cm == FORWARD || cm == BOTH) {
-    StateSolution::Write(context->pde, forward, NULL, 0, me->excitations); // no function for forward, no time step
+    assert(!context->DoMultiSequence()); // extend!
+    forward.WriteAverage(context->pde, context->sequence); // func = NULL
     Optimization::StoreResults(step_val);
   }
 
   // over all functions, mostly only one or none
-  StdVector<Function*> funcs = adjoint.GetFunctions();
+  StdVector<const Function*> funcs = adjoint.GetFunctions();
   for(unsigned int fi = 0; fi < funcs.GetSize(); fi++)
   {
     LOG_DBG(em) << "StoreResults(" << step_val << ") rs=" << real_step << " adjoint_function=" << funcs[fi]->ToString();
     if(cm == EACH_ADJOINT)
     {
-      for(unsigned int e = 0; me->excitations.GetSize(); e++) {
-        adjoint.Get(e, funcs[fi])->Write(context->pde);
+      for(unsigned int e = 0; me->excitations.GetSize(); e++)
+      {
+        adjoint.Get(me->excitations[e], funcs[fi])->Write(context->pde);
         // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
         double index = (me->excitations.GetSize() * funcs.GetSize()) * (fi * funcs.GetSize()) * e;
         Optimization::StoreResults(real_step + 0.5 + (0.5 / index));
@@ -409,7 +410,8 @@ void ErsatzMaterial::StoreResults(double step_val)
 
     if(cm == ADJOINT || cm == BOTH) {
       // sum up if there are more excitations
-      StateSolution::Write(context->pde, adjoint, funcs[fi], 0, me->excitations); // TODO no time step set!
+      assert(!context->DoMultiSequence()); // extend!)
+      adjoint.WriteAverage(context->pde, context->sequence, funcs[fi]); // time step??
       Optimization::StoreResults(real_step + 0.5 + (0.5 / funcs.GetSize()) * fi);
     }
   }
@@ -572,7 +574,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     return index;
   }
 
-  void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward, StateSolutions& adjoint, double factor, Objective* c, Condition* g)
+  void ErsatzMaterial::CalcNewmarkDerivative(Excitation& excite, StateContainer& forward, StateContainer& adjoint, double factor, Objective* c, Condition* g)
   {
     Assemble* assemble = context->pde->GetAssemble();
 
@@ -1947,15 +1949,20 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       UInt timesteps = context->GetDriver()->GetNumSteps();
       result = 0.0;
       for(unsigned int ts = 0; ts < timesteps; ++ts)
-      { // this formulation works for transient as well as static cases, integral over time
+      {
+        // this formulation works for transient as well as static cases, integral over time
         // compliance is easier computed using f^T u on nodes with force
         // to avoid any work for assembling force again, we simply calculate solution times rhs from the system
-        Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RAW_VECTOR);
-        Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RHS_VECTOR);
+
+        // when not transient or eigenvalue we dont't store timestep_mode as the default 0 is valid there as timestep-nr/mode-nr.
+        int corr_ts = timesteps == 1 ? -1 : (int) ts;
+        LOG_DBG2(em) << "CC: ts=" << ts << " corr_ts=" << corr_ts;
+        Vector<double>& u = forward.Get(excite, NULL, corr_ts)->GetRealVector(StateSolution::RAW_VECTOR);
+        Vector<double>& rhs = forward.Get(excite, NULL, corr_ts)->GetRealVector(StateSolution::RHS_VECTOR);
         double sp = 0.0;
         u.Inner(rhs, sp);
         result += sp * excite.GetFactor(func) * GetStepWeight(ts);
-        LOG_DBG(em) << "CalcCompliance(): result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
+        LOG_DBG(em) << "CC: result=" << result << " sp=" << sp << " u=" << u.ToString() << " func=" << func->ToString();
 
         if ((method_== PARAM_MAT) && ( ((design->getDesignMaterialType()) == DesignMaterial::GREEDY_MAPPING) || ((design->getDesignMaterialType()) == DesignMaterial::REDBAS_MAPPING)) )
         {
@@ -2353,7 +2360,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
     }
 
-    StateSolution current(this);
+    StateSolution current;
 
     // investigate within each cluster the optimal permutation
     for(unsigned int c = 0; c < cluster.GetSize(); c++)
@@ -2424,7 +2431,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // the eigenvalues lambda = (2*pi*ef)^2 !!
 
     // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitetation idx is the wave number
-    StdVector<double> efs = forward.CollectEigenfrequencies(excite.index);
+    StdVector<double> efs = forward.CollectEigenfrequencies(excite.sequence);
 
     // the "constructor" of ev_. We use it always, even if we don't do pertubation. ev_.pertubation is then 1:1
     if(ev_.last.IsEmpty())
@@ -2458,7 +2465,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // our eigenvalue
       double ev = std::pow(2.0 * M_PI * freq, 2);
 
-      StateSolution* sol = forward.Get(excite, f, idx);
+      StateSolution* sol = forward.Get(excite, NULL, idx); // never give a function for forward!
+      assert(sol->ContainsState());
 
       LOG_DBG2(em) << "CE idx=" << idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
 
@@ -2792,7 +2800,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
           double p = CalcHomogenizedElementProduct(this, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
-#
           hom_tensor_deriv[ij][kl] = p / cube_vol;// normalize for volume
         } // end of kl loop
 
@@ -3165,9 +3172,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       if(!IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
-        unsigned int nm = context->IsEigenvalue() ? context->GetEigenFrequencyDriver()->eigenFreqs->GetSize() : 1;
-        for(unsigned int m = 0; m < nm ; m++)
-          StorePDESolution(forward, excite, NULL, m, true, true, (context->IsEigenvalue() ? true : false), NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
+        if(!context->IsEigenvalue())
+          StorePDESolution(forward, excite, NULL, -1, true, true, false, NO_DERIVTYPE, "forward"); // no solution and mode is -1 as it is not set
+        else
+          for(int m = 0; m < (int) context->GetEigenFrequencyDriver()->eigenFreqs->GetSize() ; m++)
+            StorePDESolution(forward, excite, NULL, m, true, true, true, NO_DERIVTYPE, "forward"); // only in the ev case we need to save the solution
       }
 
       for(unsigned fi = 0; fi < funcs.GetSize(); fi++)
@@ -3221,7 +3230,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     }
   }
 
-  void ErsatzMaterial::StorePDESolution(StateSolutions& solutions, Excitation& excite, Function* f, unsigned int timestep_mode, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment)
+  void ErsatzMaterial::StorePDESolution(StateContainer& solutions, Excitation& excite, Function* f, int timestep_mode, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment)
   {
     Assemble* assemble = context->pde->GetAssemble();
     StateSolution& sol = *(solutions.Get(excite, f, timestep_mode, derivative));
@@ -3411,7 +3420,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         SetAndSolveAdjointRHS<T>(*excite, f);
 
         // store the stuff -> no rhs but special handling of element results
-        StorePDESolution(adjoint, *excite, f, 0, true, false, true, NO_DERIVTYPE, "adjoint");
+        StorePDESolution(adjoint, *excite, f, -1, true, false, true, NO_DERIVTYPE, "adjoint");
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
         forward.Get(*excite)->Write(context->pde);
@@ -3643,7 +3652,7 @@ void EigenvalueState::Init(ErsatzMaterial* opt_, unsigned int modes, int iter)
 
   for(unsigned int i = 0; i < modes; i++)
   {
-    last[i] = new StateSolution(opt);
+    last[i] = new StateSolution();
     pde->GetAssemble()->GetAlgSys()->GetEigenMode(i);
     last[i]->Read(StateSolution::RAW_VECTOR, pde, App::MECH, true); // it is save to have this for the first comparison with "last"
     permutation[i] = i; // default is no permutation

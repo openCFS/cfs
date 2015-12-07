@@ -30,7 +30,7 @@ namespace CoupledField
    class StdPDE;
 
    // FIXME: this is originally from timestepping.hh and has to be replaced
-   typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} DERIVType;
+   typedef enum {NO_DERIVTYPE = 0, FIRST_DERIV = 1, SECOND_DERIV = 2} TimeDeriv;
 
    /** This is a simple class used as a parameter to SetAdjointRhs called by assemble
     * only for tracking and transient

@@ -57,8 +57,9 @@ void Context::Setup(ContextManager* manager, BasePDE::AnalysisType analyis, PtrP
   case BasePDE::EIGENFREQUENCY:
     complex_ = true;
     eigenvalue_ = true;
-    bloch_ = EigenFrequencyDriver::DoBloch(node);
+    bloch_                 = EigenFrequencyDriver::DoBloch(node);
     num_bloch_wave_vectors = EigenFrequencyDriver::GetNumBlochWave(node); // 0 when not bloch
+    num_eigenmodes         = EigenFrequencyDriver::GetNumModes(node); // also in the non-bloch case
     break;
 
   case BasePDE::STATIC:
@@ -292,6 +293,12 @@ void ContextManager::SwitchContext(Excitation* excitation)
   SwitchContext(excitation->sequence -1); // 0-based
   Optimization::context->SetExcitation(excitation);
 }
+
+const Context& ContextManager::GetContext(const Excitation* ex) const
+{
+  return context[ex->sequence -1];
+}
+
 
 const Context& ContextManager::GetContext(const Function* f) const
 {

@@ -8,6 +8,7 @@
 #include "General/Environment.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Optimization.hh"
+#include "Optimization/Excitation.hh"
 #include "Utils/StdVector.hh"
 
 namespace CoupledField {
@@ -43,10 +44,12 @@ public:
 
   StdVector<SingleVector*>& getSolutionVectors(const bool forward_solution = true)
   {
+    assert(me->excitations.GetSize() == 1);
+    assert(context->GetExcitation() != NULL);
     if(forward_solution)
-      return forward.Get(0)->elem[App::MECH];
+      return forward.Get(*(context->GetExcitation()))->elem[App::MECH];
     else // adjoint
-      return adjoint.Get(0)->elem[App::MECH];
+      return adjoint.Get(*(context->GetExcitation()))->elem[App::MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */
