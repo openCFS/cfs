@@ -5,8 +5,8 @@ MACRO(GENERATE_TEST_NAME_LIST TEST_NAME_LIST)
     linux64_shared_opt_clang_release
     linux64_shared_opt_intel_release
     linux64_shared_opt_gcc_debug
-    linux64_shared_opt_no_prec_gcc_release
     linux64_trunk_intel_release
+    linux64_shared_opt_no_prec_gcc_release
   )
 ENDMACRO()
 
