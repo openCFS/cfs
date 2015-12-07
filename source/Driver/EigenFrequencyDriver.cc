@@ -108,6 +108,13 @@ namespace CoupledField {
     bloch_plot_ << "\t1.mode\t2.mode\t..." << std::endl;
   }
 
+  unsigned int EigenFrequencyDriver::GetNumModes(PtrParamNode node)
+  {
+    assert(node->Has("numModes"));
+    return node->Get("numModes")->As<unsigned int>();
+  }
+
+
   unsigned int EigenFrequencyDriver::GetNumBlochWave(PtrParamNode node)
   {
     if(!node->Has("bloch"))

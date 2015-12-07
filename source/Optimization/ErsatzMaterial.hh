@@ -376,9 +376,9 @@ protected:
    * @param read_rhs is only interesting for the forward problem
    * @param save_sol set this in the adjoint problem -> see Solution::Read()
    * @param comment is just to LOG_DBG */
-  virtual void StorePDESolution(StateSolutions& solutions, Excitation& excite,
-      Function* f, unsigned int timestep, bool read_sol, bool read_rhs,
-      bool save_sol, DERIVType derivative, const std::string& comment);
+  virtual void StorePDESolution(StateContainer& solutions, Excitation& excite,
+      Function* f, int timestep_mode, bool read_sol, bool read_rhs,
+      bool save_sol, TimeDeriv derivative, const std::string& comment);
 
   // virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
   // virtual void RhsCalculated(AdjointParameters* adjParams);
@@ -390,10 +390,10 @@ protected:
   void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
   /** Here we store the solution of the problem. Multiple solutions for multiple loadcases */
-  StateSolutions forward;
+  StateContainer forward;
 
   /** Here we store the solution of the adjoint problem. */
-  StateSolutions adjoint;
+  StateContainer adjoint;
 
   /** do we do SIMP or FreeMat or ... */
   Method method_;
@@ -460,7 +460,7 @@ private:
    * @param factor factor to multiply the value by (can be excitation weight)
    * @param f objective the result is to be stored with
    * @param g constraint the result is to be stored with */
-  void CalcNewmarkDerivative(Excitation& excite, StateSolutions& forward, StateSolutions& adjoint, double factor, Objective* f, Condition* g);
+  void CalcNewmarkDerivative(Excitation& excite, StateContainer& forward, StateContainer& adjoint, double factor, Objective* f, Condition* g);
 
   /** This solves the adjoint problem problem only and stores all relevant data. Calls SetAndSolveAdjointRHS() */
   template<class T> void SolveAdjointProblem(Excitation* excite, Function* f);
