@@ -1,0 +1,5 @@
+// Define used to check if METIS library is used
+
+#cmakedefine USE_METIS
+
+#define CFS_METIS_VERSION "@CFS_METIS_VERSION@"

@@ -1,0 +1,13 @@
+--- src/cgnstools/CMakeLists.txt.orig	2011-07-27 10:55:32.000000000 +0200
++++ src/cgnstools/CMakeLists.txt	2011-07-27 11:06:09.000000000 +0200
+@@ -32,6 +32,10 @@
+ 
+ if (OPENGL_FOUND)
+   mark_as_advanced(FORCE OPENGL_INCLUDE_PATH OPENGL_gl_LIBRARY)
++  SET(OPENGL_INCLUDE_DIR "/usr/X11/include")
++  INCLUDE_DIRECTORIES(${OPENGL_INCLUDE_DIR})
++  SET(OPENGL_gl_LIBRARY "-L/usr/X11/lib;-lGL")
++  SET(OPENGL_glu_LIBRARY "-lGLU")
+ else (OPENGL_FOUND)
+   mark_as_advanced(CLEAR OPENGL_INCLUDE_PATH OPENGL_gl_LIBRARY)
+   list(APPEND Missing "OPENGL_gl")

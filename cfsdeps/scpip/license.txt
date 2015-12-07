@@ -1,0 +1,33 @@
+                            ACHTUNG!!!
+
+SCPIP ist keine Shareware oder Public Domain Software. Die Nutzung ist
+nur im Zusammenhang mit CFS++ an den Lehrstühlen LSE in Erlangen und
+Angewandte Mechatronik in Klagenfurt zu Forschungszwecken erlaubt.
+
+Hierzu die EMail von Christian Zillober an Fabian Wein (LSE) bezüglich
+der Verwendung des Quelltexts von SCPIP als Teil der CFSDEPS (23.4.2009).
+
+----------
+Lieber Herr Wein,
+
+
+> > ich verwende nach wie vor mit Erfolg SCPIP - vielen Dank  :) 
+> >   
+freut mich immer wieder zu hören!
+> >
+> > Wenn Sie uns erlauben würden, ihren automatisch kompilieren zu lassen
+> > wäre es eine Erleichterung. Die Mitarbeiter und Studenten des
+> > Lehrstuhls hätten dadurch aber Zugriff a.d. Code (auch wenn wir
+> > Ingenieure und C++ Programmierer nicht viel davon verstehen).
+> > Nach aussen würde er aber natürlich nicht gegeben.
+> >
+> > Wäre eine Lockerung unserer Vereinbarung für sie vertretbar?
+> >
+> >   
+Das geht o.k., wenn allen Beteiligten klar ist, dass es sich hier weder
+um public domain, noch um shareware o.ä. handelt.
+
+Schöne Grüße und weiterhin viel Erfolg,
+
+Christian Zillober
+

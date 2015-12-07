@@ -1,0 +1,7 @@
+list=mshlist()
+[nn,ee]=readmesh(list{1});
+listg=geolist()
+[nn1,ee1]=readgeo(listg{2});
+cyl=createcylinders(nn1,ee1,0.5);
+ret=createdens( nn, ee, 0, [], cyl);
+writexml('cube_2.xml',ee,ret);

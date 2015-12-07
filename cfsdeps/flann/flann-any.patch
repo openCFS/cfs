@@ -1,0 +1,11 @@
+--- src/cpp/flann/util/any.h.orig	2013-01-15 22:38:32.000000000 +0100
++++ src/cpp/flann/util/any.h	2014-05-05 20:54:00.000000000 +0200
+@@ -47,6 +47,8 @@
+     virtual ::size_t get_size() = 0;
+     virtual const std::type_info& type() = 0;
+     virtual void print(std::ostream& out, void* const* src) = 0;
++
++    virtual ~base_any_policy() {}
+ };
+ 
+ template<typename T>

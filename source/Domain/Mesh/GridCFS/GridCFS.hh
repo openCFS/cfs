@@ -1,0 +1,628 @@
+#ifndef FILE_SCFE_GRID_CFS_2001
+#define FILE_SCFE_GRID_CFS_2001
+
+
+#include "Domain/Mesh/Grid.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace CoupledField
+{
+
+  // Forward class declarations
+  struct Elem;
+  struct SurfElem;
+  
+
+  //! Implementation of a simple, one level grid.
+
+  //! This class implements the base class Grid. Is is a simple
+  //! grid class, which is able to handle one level of geometry without
+  //! mesh refinement and multilevel elements.
+  class GridCFS : public Grid
+  {
+  public:
+
+
+    // =======================================================================
+    // CONSTRUCTION AND INTIIALIZATION
+    // =======================================================================
+    //@{ \name Constructor / Initialization
+  
+    //! Constructor 
+
+    //! Standard Constructor 
+    GridCFS(UInt dim, PtrParamNode param, PtrParamNode infoNode,
+        const std::string &id = "default",bool buildExtend = true);
+  
+    //! Destructor
+    virtual ~GridCFS();
+
+    //! Trigger mapping of elements' faces
+
+    //! This method calculates global surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapFaces();
+    
+    //! Trigger mapping of edges
+
+    //! This method calculates global edge and surface numbers and 
+    //! makes them available in the element definitions, so they can
+    //! be used for higher order elements or edge functions.
+    void MapEdges();
+
+
+    virtual void FinishInit();
+    
+    //! Create result for grid information (local directions etc., Jacobian
+    //! determinant)
+    void CreateGridInformation( ResultHandler* ptRes,
+                                std::map<std::string, CoordSystem*>& coordSysMap );
+
+    //@}
+
+
+    // =======================================================================
+    // GENERAL GRID INFORMATION
+    // =======================================================================
+    //@{ \name General Grid Information
+
+    //! Return if grid uses quadratic elements
+    bool IsQuadratic() const { return isQuadratic_; }
+
+    //! Return number of elements of a given type
+    //! \param type Type of finite element (LINE, TRIA, ...)
+    UInt GetNumElemOfType( Elem::FEType type );
+    
+    //! Return number of element of a given dimension
+    UInt GetNumElemOfDim( UInt dim );
+
+    //! Return dimension of mesh
+
+    //! Returns the geometrical dimension of the mesh. Currently only
+    //! two- and three-dimensional meshes are supported.
+    UInt GetDim() const;  
+
+    virtual void AddNodes(const UInt numNodes);
+      
+
+    /** @see Grid::GetNumNodes() */
+    UInt GetNumNodes(RegionIdType reg_id = ALL_REGIONS) const;
+
+    //! Returns the number of nodes in the given nodelist
+    UInt GetNumNodes( const std::string & nodesName ) const;
+
+    virtual void AddElems(UInt nElems);
+      
+    virtual void SetElemData(UInt ielem,
+                             Elem::FEType type,
+                             RegionIdType region,
+                             const UInt* connect);
+
+    virtual void GetElemData(const UInt ielem,
+                             Elem::FEType & type,
+                             RegionIdType & region,
+                             UInt* connect) const;
+
+    /** @see Grid::GetNumElems() */
+    UInt GetNumElems(RegionIdType = ALL_REGIONS) const;
+    
+    //! Return maximum number of elements 
+
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumVolElems(RegionIdType = ALL_REGIONS) const;
+
+    /** @see Grid::GetNumVolElems() */
+    UInt GetNumSurfElems(RegionIdType = ALL_REGIONS) const;
+  
+    //! Returns number of element contained in one region
+
+    //! Returns the number of element, which belong to a list of given
+    //! regions.
+    //! \param regions (in) contains the regionIds of 
+    UInt GetNumElems(const StdVector<RegionIdType> & regions) const;
+  
+    //! Get list with names of all named nodes
+    
+    //! Get a list with names of all named nodes in the grid
+    //! \param nodeNames list of names of nodes
+    virtual void GetListNodeNames( StdVector<std::string> & nodeNames);
+
+    //! Get list with names of all named elements
+
+    //! Get a list with names of all named elements in the grid
+    //! \param elemNames list of names of elements
+    virtual void GetListElemNames( StdVector<std::string> & elemNames);
+
+    //@}
+
+
+    // =======================================================================
+    // NODE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Node Access Functions
+
+    //! Get list of nodes by their name
+
+    //! Returns a list of nodes, which are defined by a name.
+    //! These names can specify e.g. boundary nodes or nodes for
+    //! saving results.
+    //! \param nodeList (out) list with node numbers
+    //! \param name (in) name of nodes
+    void GetNodesByName( StdVector<UInt> & nodeList,
+                         const std::string & name );
+
+    //! Get list of nodes contained in a region
+
+    //! Returns a list of all nodes, which are contained in a 
+    //! volume- or surface-region.
+    //! \param nodeList (out) list with node numbers
+    //! \param regionId (in) region identifier
+    void GetNodesByRegion( StdVector<UInt> & nodeList,
+                           const RegionIdType regionId );
+    
+    //! \see Grid::GetNodeCoordinate
+    void GetNodeCoordinate( Vector<Double> & rfPoint,
+                            const UInt inode,
+                            bool updated ) const;
+    
+    //! \see Grid::GetNodeCoordinate3D
+    void GetNodeCoordinate3D( Vector<Double> & rfPoint,
+                              const UInt inode,
+                              bool updated ) const;
+    
+    //! \see Grid::SetNodeCoordinate
+    void SetNodeCoordinate( const UInt nodeNum, 
+                            const Vector<Double> & coord );
+    //@}
+
+    // =======================================================================
+    // ELEMENT ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Element Access Functions
+
+    //! Get element with given element number
+    
+    //! Returns a single element with the given element number
+    //! \param elemNr element number
+    const Elem * GetElem( UInt elemNr );
+
+    virtual UInt GetMaxNumNodesPerElem()
+    {
+      return maxNumElemNodes_;
+    }
+      
+    virtual void SetElemRegion(UInt ielem, RegionIdType region);
+
+    /** @see Grid::FindElementNeighorhood() */
+    void FindElementNeighorhood();
+
+    virtual void GetElemRegion(UInt ielem, RegionIdType & region);
+
+    //! Get list of elements (surface / volumes)
+    
+    //! Returns all elems for a given surface / volume region. If the desired 
+    //! region consists of surface elements, they are up-casted into Elem*.
+    //! \param elems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    void GetElems( StdVector<Elem*> & elems,
+                   const RegionIdType regionId );
+
+    
+    //! Get list of volume elements
+
+    //! Returns all elements for a given volume region.
+    //! \param elems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    void GetVolElems( StdVector<Elem*> & elems, 
+                      const RegionIdType regionId );
+
+    //! Get list of surface elements
+  
+    //! Returns all elements for a given surface region 
+    //! \param elems (out) vector with elements for given regionId
+    //! \param regionId (in) region identifier
+    void GetSurfElems( StdVector<SurfElem*> & elems, 
+                       const RegionIdType regionId );
+
+    //! Get list
+    void GetElemsByName( StdVector<Elem*> & elems,
+                         const std::string & elemsName );
+
+    //! Returns the element numbers of a region or element list.
+    //! \param elemNums (out) vector with element numbers of given region
+    //! \param elemName (in) name identifying a region or element list
+    void GetElemNumsByName( StdVector<UInt> & elemNums,
+                               const std::string & elemName );
+    
+    //! Get node numbers of given element
+    //! Returns the node numbers of a  given element.
+    //! \param connect (out) contains global node numbers
+    //! \param iElem (in) element number
+    void GetElemNodes( StdVector<UInt> & connect, 
+                       const UInt iElem );
+
+
+    virtual void AddNamedNodes( std::string name, StdVector<UInt> & nodeNums);
+    
+    virtual void AddNamedElems( std::string name, StdVector<UInt> & elemNums);
+
+
+    //! Get coordinates of element nodes
+
+    //! Returns the coordinates of all nodes of one element.
+    //! \param coordMat (out) coordinates of the element nodes 
+    //!                         (spaceDim \f$\times\f$ nrNodes);
+    //! \param connect (in) global node numbers of element
+    //! \param updated (in) flag indicating if updated geometry should be used
+    void GetElemNodesCoord( Matrix<Double> & coordMat,  
+                            const StdVector<UInt> & connect,
+                            bool updated );
+  
+    //! Get elements associated with given nodes
+
+    //! Returns a list of elements, which have one or more of the given
+    //! common. The elements are taken out of a given list of regions.
+    //! \param elemList (out) elements which have one or more nodes of 
+    //!                          nodeList
+    //! \param nodeList (in) list of nodes for which neighbouring elements 
+    //!                         are needed
+    //! \param regionIds (in) identifiers for the regions, where the 
+    //!                          neihgbouring elements are searched in
+    void GetElemsNextToNodes( StdVector<Elem*> & elemList, 
+                              const StdVector<UInt> & nodeList,
+                              const StdVector<RegionIdType> 
+                              & regionIds );
+
+    //! Get volume elements lying next to given surface elements
+  
+    //! Returns for a given list of surface elements those (volume) elements, 
+    //! which are neighbouring / have a face in common and are within a given 
+    //! listof regions. This can be used to determine interfaces.
+    //!
+    //! \note A surface element is considered to be a neighbour of a volume
+    //! element only, if all nodes of the surface element are common with 
+    //! a volume element
+    //! 
+    //! \param neighbours (out) vector of neighbouring elements
+    //! \param surfElems (in) vector of surface elements
+    //! \param neighRegions (in) region ids, where the volume elems 
+    //!                             must lie in
+    //!
+    //! \note If not each surface element was assigned to EXACTLY ONE volume
+    //! element, an error is thrown. If the search was successfull, the
+    //! i-th entry in the surfElems-vector corresponds to the i-th
+    //! entry in the volElems-vector
+    void GetElemsNextToSurface( StdVector<Elem*> & neighbours, 
+                                const StdVector<Elem*> & surfElems,
+                                const StdVector<RegionIdType> 
+                                &neighRegions );
+
+    //! Get list of volume regions attached to another region. e.g. get all the volume regions of a surface
+    //! \param reg_id (in) query parameter
+    //! \param volRegIds (out) list
+    virtual void GetListOfVolumeRegions( const RegionIdType reg_id, StdVector<RegionIdType> &volRegIds );
+
+    //! Get the surface element of which \param volElemNum is in ptVolElems[0,1]. Surf elem must be in region reg_id.
+    //! If not found, Elem vector \parm surfEl (in) is empty.
+    virtual void GetAdjacentSurfElem( const UInt volElemNum, StdVector<Elem *> & surfEl, const RegionIdType reg_id = ALL_REGIONS);
+    
+    //! Extract center of element
+    virtual void GetElemCentroid(Vector<Double>& center, UInt eNUm, bool isupdated);
+
+    //@}
+
+    // =======================================================================
+    // ELEMENT FACE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Surface Access Functions
+
+    //! Get total number of faces in the grid
+    UInt GetNumFaces();
+
+    //! Return face with given face
+    const Face& GetFace( UInt faceNr);
+
+    //@}
+
+    // =======================================================================
+    // ELEMENT EDGE ACCESS FUNCTIONS
+    // =======================================================================
+    //@{ \name Edge Access Functions
+    
+    //! Get number of edges
+    UInt GetNumEdges();
+    
+    //! Return edge with given number
+    const Edge& GetEdge( UInt edgeNr );
+
+    //@}
+
+    // =======================================================================
+    // GEOMETRY CALCULATION
+    // =======================================================================
+    //@{ \name Geometry Calculation
+    
+    //! Returns the volume of a given region
+
+    //! This method returns the volume of a given region by iterating over
+    //! all elements (volume / surface) and summing up their volume. 
+    //! 'Volume' here means, that for 2D elements the third dimension is 
+    //! assumed to be 1m.
+    //! \param regionId (in) region identifier 
+    //! \param updated (in) flag indicating if updated geometry should be used
+    double CalcVolumeOfRegion( const RegionIdType regionId, bool updated = false);
+
+
+    //! \copydoc Grid::CalcVolumeOfEntityList
+    Double CalcVolumeOfEntityList( shared_ptr<EntityList> ent,
+                                   bool updated = false );
+
+    //! @copydoc Grid::CalcBoundingBoxOfRegion
+    void CalcBoundingBoxOfRegion (const RegionIdType regId,
+                                  Matrix<Double> & minMax,
+                                  CoordSystem* cSys);
+    //@}
+
+
+    // =======================================================================
+    // MISCELLANEOUS
+    // =======================================================================
+    //@{ \name Miscellaneous  
+ 
+    //! Returns node numbers of a list of Elements
+
+    //! This method returns the unique node numbers of
+    //! a list of given elements. There are no duplicate entries.
+    //! \param nodeList (out) list of unique node numbers in elemList
+    //! \param elemList (in) list of elements
+    //! \param onlyLinNodes (in) if true, only the corner nodes are retrieved
+    void GetNodesOfElemList( StdVector<UInt> & nodeList,
+                             const StdVector<Elem*> & elemList,
+			     bool onlyLinNodes = false);
+    
+
+    //! Set offset for coordinates due to updated Lagrangian formulation
+    void SetNodeOffset( const StdVector<UInt>& nodes, 
+                        const Vector<Double>& offsets );
+
+    //! Return status of presence of nodal coordinate offsets (up. Lagrange)
+    bool HasNodalOffset();
+    //@}
+
+    //! add node to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    virtual void AddNode( const Vector<Double> & coord, UInt & inode );
+    
+    //! add multiple nodes to the grid
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param coords (in) coordinates of points
+    //! \param inode (out) node numbers
+    virtual void AddNodes( const StdVector< Vector<Double> > & coords,
+                           StdVector< UInt > & inodes);
+
+    //! Add surface elements
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param regionId (in) elements will be added to region with this id
+    //! \param surfelems (in) surface elements to be added
+    //! \param elemids (out) element id numbers returned
+    virtual void AddSurfaceElems( const RegionIdType regionid,
+                                  const StdVector< SurfElem* > & surfelems,
+                                  StdVector< UInt > & elemids);
+
+    //! Add volume elements 
+    //! USAGE OF THIS FUNCTION CAN BE DANGEROUS NOT
+    //! ALL NECCESARY FEATURES MAY BE IMPLEMENTED 
+    //! \param regionId (in) elements will be added to region with this id
+    //! \param volelems (in) volume elements to be added
+    //! \param elemids (out) element id numbers returned
+    virtual void AddVolumeElems(  const RegionIdType regionid,
+                                  const StdVector< Elem* > & volelems,
+                                  StdVector< UInt > & elemids);
+
+    //! Remove all elements from the given region
+    //! \param regionid (in) id of the region
+    virtual void ClearRegion( const RegionIdType regionid );
+
+    //! DIRTY HACK WARNING: Deletes the nodes in the list regardless of
+    //! whether they are still connected to elements or not!
+    //! Used with rotating nonconforming interfaces for deleting the
+    //! new nodes of intersection elements after each time step.
+    void DeleteNamedNodes( const std::string &name );
+    
+    /** gives the element with the lowest elemNum for a region.
+     * Slow implementation with linear search */
+    Elem* SearchFistRegionElement(RegionIdType reg) const;
+
+
+  private:
+
+    /** checks the domain in the xml file for a pattern region.
+     * @param replace resized to elements+1 by element number. True if the
+     * pattern region has an entry there. Untouched if no pattern region
+     * @return in case of an pattern region it is added to regionData and the
+     * id is returned, otherwise NO_REGION_ID */
+    RegionIdType CheckPatternRegion(StdVector<bool>& replace);
+
+    /** Helper for FinishInit(). Determines if there are only regular elements.
+     * Can be expensive!
+     * @return true means that the region is regular */
+    bool CheckForRegularRegion(RegionIdType reg);
+
+
+    //! helper struct for passing information about nodes
+    struct PointSelection{
+      bool isFree;
+      std::string comp;
+      Double start, stop, inc; // only for free components
+      std::string value; // only for fixed components
+    };
+
+    // =======================================================================
+    // Helper Methods
+    // =======================================================================
+    //@{ \name Helper Methods
+
+    //! Creates the surface elements
+
+    //! This method creates the surface elements, by assigning each surface 
+    //! element one or two volume neighbours. Also the flag for indicating
+    //! the direction of the surface normal is calculated.
+    //! \param elems (input) set containing surface elements which are not
+    //!                      yet converted to \a SurfElem*
+    //! \param mappedElems (output) set containing mapped surface elements 
+    void CreateSurfaceElements( StdVector<Elem*> & elems,
+                                StdVector<SurfElem*>& mappedElems );
+
+    //! This method creates surface elements for each "volume" element contained
+    //! in the given regions. We assume, that a surface element is always one
+    //! of lower space dimension than its vloume element. the new elements get a
+    //! virtual element number and are not! contained in the grid
+    //! \param (in) regionList the volume regions we want to create surfaces for
+    //! \param (out) interiorSurfElems list of surface elements which have at least one neighbor
+    //! \param (out) exteriorSurfElems list of elements on the boundary of the volume given
+    //!              by the regionList. i.e. they have no surfelem neighbors
+    virtual void GenerateDGSurfaceElemes(std::set<RegionIdType> regionList,
+                                         StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                         StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems);
+
+    //! Helper method for GenerateDGSurfaceElemes. We assume here that the NcSurfElem
+    //! list hold only valid surface elements. i.e. the normal and everything is already computed
+    //! there are two modes. The first one for the conforming case checks neighbor information
+    //! according to egde or face numbers, the second one tries to gues the correct neighbors by
+    //! performing tests related to the surface normal and intersection areas
+    //! \param (in) surfElemList list of elements to be tested
+    //! \param (out) interiorSurfElems list of surface elements which have at least one neighbor
+    //! \param (out) exteriorSurfElems list of elements on the boundary of the volume given
+    //!              by the regionList. i.e. they have no surfelem neighbors
+    virtual void ComputeSurfElemNeighbors(StdVector<shared_ptr<NcSurfElem> > surfElemList,
+                                          StdVector<shared_ptr<NcSurfElem> > & interiorSurfElems,
+                                          StdVector<shared_ptr<NcSurfElem> > & exteriorSurfElems,
+                                          bool conforming);
+
+    //! Trigger projection of mid-side nodes to element interior
+    virtual void MapMidSideNodes();
+        
+    //! Prints information about the grid into the .info.xml file
+    void ToInfo(PtrParamNode in);
+    
+    //! Create new nodes / elements, which are defined either by point coordinate
+    //! or parametric description
+    void CreateUserDefinedNodesElems();
+
+    //! add new node / element given by parametric description
+    void AddEntityByParam( const std::string& name, bool isNode, 
+                           const std::string& coordSysId,
+                           StdVector<PointSelection>& coords );
+
+    //! find entity with minimum distance
+    UInt FindEntityMinDistance( bool isNode, Vector<Double>& coord );
+
+    //! Correct connectivity in case of negative Jacobian determinants
+    void CorrectElementConnectivities();
+
+    /** 
+     * makes named nodes from line
+     * gmesh can not creat named nodes from line as ansys so cfs++ needs to do
+     * it. It is also capable of exluding nodes which are found in a different
+     * line. This may be needed if you want only the interior nodes of a line.
+     */
+    void makeNameNodesFromLines();
+
+    //@}
+
+    // =======================================================================
+    // General attributes
+    // =======================================================================
+    //@{ \name General Attributes
+
+    //! ID of grid
+    std::string gridId_;
+    
+    //! Dimension of grid
+    UInt dim_;
+
+    //! Total number of nodes
+    UInt numNodes_;
+
+    //! Total number of elements
+    UInt numElems_;
+
+    //! Number of dynamically generated surfelems
+    UInt numNcSurfElems_;
+
+    //! Total number of faces
+    UInt numFaces_;
+
+    //! Total number of edges
+    UInt numEdges_;
+
+    //! Flag indicating if edges are already mapped
+    bool edgesMapped_;
+
+    //! Flag indicating if faces are already mapped
+    bool facesMapped_;
+    
+    //! Flag indicating use of quadratic elements
+    bool isQuadratic_;
+
+    //@}
+
+    // =======================================================================
+    // Mesh attributes
+    // =======================================================================
+    //@{ \name Mesh Attributes
+  
+    //! Vector with nodal coordinates
+    StdVector<Vector<Double> > coords_;
+
+    //! Vector with nodal coordinate offsets
+    StdVector<Vector<Double> > deltCoords_;
+  
+    //! Vector with elements (surface and volume), ordered by element number
+    StdVector<Elem*> orderedElems_;
+  
+    //! Map containing number elements of each type
+    std::map<Elem::FEType, UInt> numElemTypes_;
+
+    UInt maxNumElemNodes_;
+    //@}
+  
+    //! Vector containing all faces 
+    StdVector<Face> faces_;
+
+    //! Vector containing all edges
+    StdVector<Edge> edges_;
+    
+    //! Boolean controlling the creation of extended element information
+    bool buildExtendedElemInfo_;
+
+    // =======================================================================
+    // Named Entities
+    // =======================================================================
+    //@{ \name Named Entities
+
+    //! Vector with named Nodes
+    StdVector<StdVector<UInt> > namedNodes_;
+  
+    //! Vector with names of named nodes
+    StdVector<std::string> namedNodeNames_;
+
+    //! Vector with named elements
+    StdVector<StdVector<UInt> > namedElems_;
+    
+    //! Vector with nodes of named elements
+    StdVector<StdVector<UInt> > namedElemNodes_;
+  
+    //! Vector with names of named elements
+    StdVector<std::string> namedElemNames_;
+
+    //@}
+
+  };
+
+} // end of namespace
+#endif // FILE_GRID_CFS

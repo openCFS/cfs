@@ -1,0 +1,128 @@
+\documentclass[fontsize=12pt,paper=a4]{scrreprt}
+%
+\usepackage{ifpdf}
+
+%
+%
+\usepackage{lsepaper}
+\usepackage{ifthen}
+\usepackage[utf8]{inputenc}
+\usepackage{subfig}
+\usepackage{amssymb,amsmath}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\newcommand{\otoprule}{\midrule[\heavyrulewidth]}
+\newcolumntype{x}[1]{>{\centering\arraybackslash\hspace{0pt}}m{#1}}
+
+\usepackage{wrapfig}
+\usepackage[usenames,dvipsnames]{xcolor}
+
+\usepackage{rotating}
+\usepackage{tikz}
+
+%
+% =============================================================================
+% PDF STUFF
+% =============================================================================
+%
+\ifpdf
+\typeout{--> PDF: Output mode detected}
+\typeout{--> PDF: Setting general document info}
+
+\usepackage{graphicx}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\usepackage{float}
+\usepackage[pdftex,bookmarks,breaklinks]{hyperref}
+\usepackage[all]{hypcap}
+\usepackage{thumbpdf}
+\usepackage{url}
+\hypersetup{pdfpagemode=UseThumbs}
+\hypersetup{colorlinks=true}
+\hypersetup{linkcolor=red}
+\hypersetup{citecolor=blue}
+
+\hypersetup{pdfauthor=cfs-devel}
+\hypersetup{pdftitle={CFS++ --- Developer's Manual}}
+\hypersetup{pdfsubject={Developer's Guide}}
+\else
+\usepackage{graphicx}
+\DeclareGraphicsExtensions{.jpg,.pdf,.png}
+\graphicspath{{./pics/}{../../auxilliaries/Pics/}}
+\fi
+
+\usepackage[percent]{overpic}
+
+%% Using  pdflatex one may attach  arbitrary files to the  generated PDF.
+\usepackage{attachfile}
+
+%% Package for entering TODO notes
+\usepackage{todonotes}
+
+%% Algorithmic Package for pseudocode
+\usepackage{algorithmic}
+\usepackage[chapter]{algorithm}
+
+%%multirowpackage
+\usepackage{multirow}
+\usepackage{arydshln}
+%
+% =============================================================================
+%
+\include{mycommands}
+\include{pygmentize}
+\include{develserver}
+
+%% Trennungsliste (fuer Woerter die nicht oder falsch getrennt werden):
+\hyphenation{ro-tat-ions-sym-met-rische}
+
+
+% include own commands
+\newcommand{\fn}{{\footnotesize}}
+\newcommand{\add}[1]{{\bf{\color{red}{#1}}}}
+
+%
+% =============================================================================
+\begin{document}
+% =============================================================================
+%
+%
+\LSETITLE{CFS++ -- Developer's Manual}{~}{~}
+%
+%
+\tableofcontents
+%
+\clearpage
+\pagestyle{headings}
+\pagenumbering{arabic}
+%
+%
+
+\listoftodos
+
+\todo[inline]{Move common parts of all manuals (e.g. common preambles) up the directory hierarchy and unify the build process of as many manuals as possible (cplreader, scripting, xml, devel, etc...)}
+
+\todo[inline]{Include development roadmaps of SLES \url{http://www.slideshare.net/NOVL/suse-linux-enterprise-technology-roadmap}, Ubuntu \url{http://en.wikipedia.org/wiki/Ubuntu_(operating_system)} \url{https://wiki.ubuntu.com/LTS}, Red Hat \url{http://www.redhat.com/f/pdf/summit/tburke_1050_rhel_roadmap.pdf}, \url{http://www.redhat.com/promo/summit/2010/presentations/summit/whats-next/wed/tburke-1020-rhel6-roadmap/tburke_rhel6_summit.pdf}}
+
+\include{introduction}
+\include{getConfigCompile}
+\include{firstTimeImplementing}
+\include{concepts}
+\include{howtos}
+
+\appendix
+\include{mounting}
+\include{debugging}
+\include{infrastructure}
+\include{contributors}
+
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{alpha}
+\bibliography{develManual,Int}
+
+%
+%
+% =============================================================================
+\end{document}
+% =============================================================================

@@ -1,0 +1,211 @@
+// -*- mode: c++; coding: utf-8; indent-tabs-mode: nil; -*-
+// kate: space-indent on; indent-width 2; encoding utf-8;
+// kate: auto-brackets on; mixedindent off; indent-mode cstyle;
+
+#ifndef FILE_CFS_PROGRAM_OPTIONS_HH
+#define FILE_CFS_PROGRAM_OPTIONS_HH
+
+#include <boost/program_options.hpp>
+#include <boost/filesystem/path.hpp>
+
+
+// Include defs
+#include <def_build_type_options.hh>
+
+
+// Required for the CFS own data types
+#include "General/Environment.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+
+namespace po = boost::program_options;
+namespace fs = boost::filesystem;
+
+namespace CoupledField
+{
+  class ProgramOptions;
+
+  //! Define global instance of this class
+  extern ProgramOptions* progOpts;
+
+  class ProgramOptions
+  {
+
+  public:
+
+    //! Standard constructor
+    ProgramOptions( Integer argc,
+                    const char **argv );
+
+    virtual ~ProgramOptions();
+
+    //! Gather information from commandline and environment
+
+    //! This method triggers the reading of information from the command line
+    //! and the environment.
+    virtual void ParseData();
+
+    // =======================================================================
+    // QUERY METHODS FOR PARAMETERS
+    // =======================================================================
+
+    //@{
+    //! \name Query methods for command line parameters
+    //! For each command line parameter there exists an associated query
+    //! method. If no command line value was specified than the query method
+    //! will return the corresponding default, if it exists.
+
+    //! Return base name of simulation run (without path information)
+
+    //! This method can be used to query the name of the current simulation
+    //! run, which may be something like e.g. plate3D. This name is used by
+    //! CFS internally as basename for the generation of several (default)
+    //! names for input and output files.
+    virtual std::string GetSimName() const;
+
+    //! Return path to simulation files
+
+    //! This method can be used to query the directory of the current,
+    //! i.e. where the output files will be created.
+    virtual fs::path GetSimPath() const;
+    virtual std::string GetSimPathStr() const;
+
+    //! Return name of XML parameter file (including path)
+
+    //! This method can be used to query the name of the parameter file in
+    //! XML format that contains the steering parameters for the simulation.
+    virtual fs::path GetParamFile() const;
+    virtual std::string GetParamFileStr() const;
+
+    //! Return name of log configuration file
+
+    //! This method returns the full name of an (optional) log configuration 
+    //! file, i.e. a xml file, which contains the module names, log levels
+    //! and destination, where the log stream gets logged to. 
+    //!  If no filename was provided an empty string is returned.
+    virtual fs::path GetLogConfFile() const;
+    virtual std::string GetLogConfFileStr() const;
+
+    /** Return the optional ersatz  material density file
+     * @return "" if nothing given. */
+    virtual std::string GetErsatzMaterialStr() const;
+
+    //! Return path to XML schema file
+
+    //! This method can be used to query the path to the XML schema file
+    //! used by validating XML parsers to verify the formal correctness
+    //! of the XML parameter file.
+    //! \note
+    //! - There is currently no way to specify the name of the schema
+    //!   file itself. This must be called CFS.xsd!
+    //! - This path is also used to locate the default XML-file that is
+    //!   currently still needed by the XMLParamHandler.
+    virtual fs::path GetSchemaPath() const;
+    virtual std::string GetSchemaPathStr() const;
+
+    //! Return name of mesh file (including path)
+
+    //! This method can be used to query the name of the mesh file containing
+    //! the description of the FEM mesh for the simulation.
+    virtual fs::path GetMeshFile() const;
+    virtual std::string GetMeshFileStr() const;
+
+    //! Return printGrid flag
+
+    //! This method can be used to query the status of the printGrid flag.
+    //! By specifying this flag one instructs the executable to do not
+    //! perform an actual simulation, but to only import the grid and
+    //! re-export it to an output file in the format specified in the XML
+    //! parameter file.
+    virtual bool GetPrintGrid() const;
+
+    /** exports the grid to the info.xml file.
+     * Might get really big!! */
+    virtual bool DoExportGrid() const;
+
+    //! Return Restart flag
+
+    //! This method can be used to query the status of the restart flag.
+    //! If this flag is true the simulation restarts from an previous state.
+    virtual bool GetRestart() const;
+
+    //! Return writeSkeleton flag
+
+    //! This method can be used to query the status of the writeSkeleton flag.
+    //! As a convenience for the CFS++ user it is possible to let the
+    //! executable write a skeleton XML parameter file that must then be
+    //! filled out by the user for a subsequent simulation run.
+    virtual bool GetWriteSkeleton() const;
+
+    //! Returns license path
+
+    //! Return forceSegfault flag
+
+    //! This method can be used to query the status of the forceSegFault flag.
+    //! If this flag is set now exception will be thrown, but a segmentation
+    //! fault will be forced instead, which enables one to use a debugger
+    //! to get a stack trace.
+    virtual bool GetForceSegFault() const;
+    //@}
+
+    /** Also more detailed info.xml output as with DoListMapping */
+    virtual bool DoDetailedInfo() const;
+
+    /** Is cfs invoked with the quite flag to compress console output? */
+    virtual bool IsQuiet() const;
+
+    // =======================================================================
+    // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
+    // =======================================================================
+
+    //@{ \name Auxilliary methods for outputting information
+
+    //! Print help information to command line
+    virtual void PrintHelp( std::ostream &out );
+
+    /** Write the command line options to the info.xml file */
+    virtual void ToInfo(PtrParamNode in) const;
+
+    /** collects all available data to the string 
+     *  It containts valuable information about the executable like the 
+     *  distro on which it was built on, the compiler it was built with and so on. */
+    static void GetVersionString( std::ostream & outstr, bool colorise);
+    
+    /** Major release history notes. From Dec. 08 */
+    static void GetHistoryString(std::ostream& out);
+    
+    /** This gives the head line of CFS++ printed to cout */
+    virtual void GetHeaderString(std::ostream& out);
+    
+    // @}
+
+ private:
+    // =======================================================================
+    // INTERNAL HELPER METHODS
+    // =======================================================================
+
+    //@{ \name Additional internal helper methods
+
+    //! Helper function for mapping environment variables to internal names
+    std::string EnvironmentNameMapper( const std::string& envVarName );
+
+    //@}
+
+ protected:
+    // =======================================================================
+    // INTERNAL DATA
+    // =======================================================================
+
+    //! Command line arguments as vector
+    std::vector<std::string> args_;
+
+    //! Path to executable
+    std::string exe_;
+
+    //! Help message as string
+    std::string helpMsg_;
+
+    //! Boost's argument map
+    po::variables_map varMap_;
+  };
+}
+#endif

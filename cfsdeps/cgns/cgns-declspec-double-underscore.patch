@@ -1,0 +1,58 @@
+--- src/cgnslib.h.orig	2014-02-18 19:14:39.325038903 +0100
++++ src/cgnslib.h	2014-02-18 19:16:25.100038888 +0100
+@@ -42,9 +42,9 @@
+ #ifndef CGNSDLL
+ # ifdef _WIN32
+ #  if defined(BUILD_DLL)
+-#    define CGNSDLL _declspec(dllexport)
++#    define CGNSDLL __declspec(dllexport)
+ #  elif defined(USE_DLL)
+-#    define CGNSDLL _declspec(dllimport)
++#    define CGNSDLL __declspec(dllimport)
+ #  else
+ #    define CGNSDLL
+ #  endif
+--- src/cgns_io.h.orig	2014-02-18 19:14:52.036038902 +0100
++++ src/cgns_io.h	2014-02-18 19:16:54.739038884 +0100
+@@ -24,7 +24,7 @@
+ #include "cgnstypes.h"
+ 
+ #if defined(_WIN32) && defined(BUILD_DLL)
+-# define CGEXTERN extern _declspec(dllexport)
++# define CGEXTERN extern __declspec(dllexport)
+ #else
+ # define CGEXTERN extern
+ #endif
+--- src/cgns_header.h.orig	2014-02-18 19:15:07.989038900 +0100
++++ src/cgns_header.h	2014-02-18 19:17:43.836038875 +0100
+@@ -917,7 +917,7 @@
+ /* need some of these routines exported for CGNStools */
+ 
+ #if defined(_WIN32) && defined(BUILD_DLL)
+-# define CGNSDLL _declspec(dllexport)
++# define CGNSDLL __declspec(dllexport)
+ #else
+ # define CGNSDLL
+ #endif
+--- src/adf/ADF.h.orig	2014-02-18 19:15:38.228038895 +0100
++++ src/adf/ADF.h	2014-02-18 19:18:16.411038872 +0100
+@@ -18,7 +18,7 @@
+ #include "cgnstypes.h"
+ 
+ #if defined(_WIN32) && defined(BUILD_DLL)
+-# define EXTERN extern _declspec(dllexport)
++# define EXTERN extern __declspec(dllexport)
+ #else
+ # define EXTERN extern
+ #endif
+--- src/adfh/ADFH.h.orig	2014-02-18 19:15:48.997038894 +0100
++++ src/adfh/ADFH.h	2014-02-18 19:18:33.371038868 +0100
+@@ -145,7 +145,7 @@
+ ***********************************************************************/
+ 
+ #if defined(_WIN32) && defined(BUILD_DLL)
+-# define EXTERN extern _declspec(dllexport)
++# define EXTERN extern __declspec(dllexport)
+ #else
+ # define EXTERN extern
+ #endif

@@ -1,0 +1,109 @@
+#include "BaseDriver.hh"
+#include "driver_header.hh"
+
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include "Utils/tools.hh"
+#include "Utils/StdVector.hh"
+#include "General/Exception.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/ResultHandler.hh"
+#include "Domain/Domain.hh"
+
+using namespace CoupledField;
+
+// initialize static HALT flag
+bool BaseDriver::abortSimulation_ = false;
+
+BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom,
+                        PtrParamNode paramNode, PtrParamNode infoNode)
+{
+  sequenceStep_ = 0;
+  domain_ = myDom;
+  handler_ = domain_->GetResultHandler();
+  simState_ = simState;
+
+  param_ = paramNode;
+  info_ = infoNode;
+}
+
+BaseDriver::~BaseDriver()
+{
+  //delete ptdomain_;
+}
+
+
+UInt BaseDriver::GetActSequenceStep() {
+  return sequenceStep_;
+}
+
+
+// static stuff
+BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom,
+                                       PtrParamNode paramNode, PtrParamNode infoNode)
+{
+
+  BaseDriver *ptdriver = NULL;
+  StdVector<std::string>  analysisTypes;
+
+  // Get number of occurences of step-variable
+  BasePDE::AnalysisType type;
+  UInt numSteps = paramNode->Count( "sequenceStep" );
+
+  // a) if count is bigger than one -> create multiSequence
+  if( numSteps == 1 ) {
+    std::string analysisString;
+    UInt seqStep = 1;
+    std::string name = "sequenceStep";
+    std::string idx = "index";
+    std::string one = "1";
+
+    PtrParamNode seqNode = paramNode->Get("sequenceStep")->Get("analysis");
+    
+    PtrParamNode info = infoNode->Get("sequenceStep",ParamNode::APPEND);
+    
+    infoNode->Get("index")->SetValue(1);
+    analysisString =
+        myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
+    type = BasePDE::analysisType.Parse(analysisString);
+
+    // Generate driver
+    switch( type ) {
+      case BasePDE::STATIC:
+
+        ptdriver = new StaticDriver( seqStep, false, state, myDom, 
+                                     seqNode, info );
+        break;
+
+      case BasePDE::TRANSIENT:
+        ptdriver = new TransientDriver( seqStep, false, state, myDom, 
+                                        seqNode, info );
+        break;
+
+      case BasePDE::HARMONIC:
+        ptdriver = new HarmonicDriver( seqStep, false, state, myDom, 
+                                       seqNode, info  );
+        break;
+
+      case BasePDE::EIGENFREQUENCY:
+        ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom, 
+                                             seqNode, info );
+        break;
+
+      default:
+        EXCEPTION( "Could not create driver" );
+    }
+
+    // b) create multiSequence driver
+  } else if( numSteps > 1 ) {
+    ptdriver = new MultiSequenceDriver(state, myDom, paramNode, infoNode);
+  } else {
+    EXCEPTION( "At least one sequenceStep has to be provided" );
+  }
+  
+  // Pass driver to domain object
+  return ptdriver;
+}

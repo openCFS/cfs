@@ -1,0 +1,36 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(WIN32 "@WIN32@")
+SET(MSVC "@MSVC@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Apply some patches.
+#=============================================================================
+SET(patches
+  "flann-for-cfs.patch"
+
+  # cf. https://github.com/mariusmuja/flann/issues/82
+  "flann-basic-type-serializer-for-64bit-ints.patch"
+
+  # Extra commas at the end of enum lists may irritate some compilers.
+  "flann-extra-commas-at-end-of-enum-lists.patch"
+
+  # warning: ‘struct flann::anyimpl::base_any_policy’ has virtual functions
+  # but non-virtual destructor 
+  "flann-any.patch"
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/flann")

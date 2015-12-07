@@ -1,0 +1,15 @@
+--- Scpip30.f.org	2009-08-18 11:38:49.000000000 +0200
++++ Scpip30.f	2009-08-26 09:21:49.000000000 +0200
+@@ -2853,7 +2853,11 @@
+ C     DFMIN IS THE LOWEST SECOND DERIVATIVE COMPONENT, DFMAX THE LARGEST
+ 
+       DUM=1.D6*EPS
+-      IF (DFMAX .LT. DUM) DUM2 = DUM
++      IF (DFMAX .LT. DUM) THEN
++         DUM2 = DUM
++      ELSE
++         DUM2 = DFMAX
++      ENDIF
+ 
+       DUM=1.D-5
+ c      DUM=1.d-2

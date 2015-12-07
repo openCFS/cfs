@@ -1,0 +1,97 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(MINGW "@MINGW@")
+SET(APPLE "@APPLE@")
+SET(boost_source "@boost_source@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Unpack Boost.CMake for building Boost using CMake instead of bjam. The
+# Boost.CMake project is the predecessor of the Ryppl project.
+#=============================================================================
+EXECUTE_PROCESS(
+  COMMAND ${CMAKE_COMMAND} -E tar xvf "${CFS_SOURCE_DIR}/cfsdeps/boost/boost-cmake.tar.bz2"
+  WORKING_DIRECTORY "${boost_source}"
+)
+
+#=============================================================================
+# Apply some patches.
+#=============================================================================
+SET(patches
+  "boost-multi_array.patch"
+  # "boost-newline.patch" # Not working for Boost 1.58
+  
+  # Remove shared_ptr_helper.cpp from list of files to compile for Boost 1.58
+  boost-shared-ptr-helper-1.58.patch
+
+  # Suround get_pointer(auto_ptr<T>) function with #ifdef BOOST_NO_AUTO_PTR.
+  boost-get-ptr-no-auto-ptr.patch
+
+  # Fix warning about uninitialized variable result.
+  boost-lexical-cast-uninitialized-var.patch
+
+  # Fix uninitialized variable problem
+  boost-math-policies-error-handling.patch
+)
+
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+  LIST(APPEND patches
+    # The following patch fixes a bug regarding a missing function
+    # __builtin_signbit. This patch replaces the use of this internal
+    # function by a plain if-statement. There is already a bug description
+    # at intel:
+    # http://secure-software.intel.com/en-us/forums/showthread.php?t=98532
+    # As soon as there is an official patch available, we should incorporate
+    # it here.
+    "boost-intel-signbit-intrinsic.patch"
+    )
+ENDIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+
+IF(MINGW)
+  LIST(APPEND patches
+    # gcc 4.4 Warning: inline ... declared as dllimport: attribute ignored
+    # https://svn.boost.org/trac/boost/ticket/4315
+#    "4315.patch"
+    # Threading is disabled for gcc 4.7 by default. This patch reenables it.
+    # https://svn.boost.org/trac/boost/ticket/6165
+#    "boost-1.48.0-gcc47-winthreads.patch"
+
+    # Fix problems due to undefined references to Interlocked* functions
+    # from the Windows headers. Applies to Boost 1.5.2.
+    # https://svn.boost.org/trac/boost/ticket/4849
+    # https://svn.boost.org/trac/boost/changeset/85865?format=diff&new=85865
+    boost-interlocked-mingw64.patch
+
+    # /home/oracle/Documents/dev/mingw/include/boost/smart_ptr/detail/lwm_win32_cs.hpp:52:93: warning: declaration of 'void boost::detail::InitializeCriticalSection(boost::detail::critical_section*)' with C language linkage
+    # /home/oracle/Documents/dev/mingw/include/boost/signals2/detail/lwm_win32_cs.hpp:55:49: warning: conflicts with previous declaration 'void boost::signals2::InitializeCriticalSection(boost::signals2::critical_section*)'
+    # http://www.developpez.net/forums/d1046060/c-cpp/cpp/bibliotheques/boost/conflits-void-signals2-detail-initializecriticalsection-signals2-detail-critical_section/
+    boost-mingw-critical-section.patch
+    )
+ENDIF(MINGW)
+
+LIST(APPEND patches
+  # Fix Boost thread lib dependency on system lib.
+  boost-shared-libs-build.patch
+  )
+
+IF(APPLE)
+  LIST(APPEND patches
+    # The BOOST_HAS_NANOSLEEP flag needs to be defined for GCC 4,5 and 6.
+    boost-has-nanosleep-mac.patch
+    )
+ENDIF()
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/boost")

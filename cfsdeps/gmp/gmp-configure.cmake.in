@@ -1,0 +1,87 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(gmp_source "@gmp_source@")
+SET(gmp_install "@gmp_install@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CMAKE_CROSSCOMPILING "@CMAKE_CROSSCOMPILING@")
+SET(CMAKE_TOOLCHAIN_FILE "@CMAKE_TOOLCHAIN_FILE@")
+SET(APPLE "@APPLE@")
+SET(MINGW "@MINGW@")
+
+IF(CMAKE_TOOLCHAIN_FILE)
+  INCLUDE("${CMAKE_TOOLCHAIN_FILE}")
+ENDIF()
+
+if(CFS_ARCH STREQUAL "I386")
+  IF(APPLE AND CMAKE_CROSSCOMPILING)
+    SET(ABI "long")
+  ELSE()
+    SET(ABI "32")
+  ENDIF()
+else(CFS_ARCH STREQUAL "I386")
+  IF(APPLE AND CMAKE_CROSSCOMPILING)
+    SET(ABI "longlong")
+  ELSE()
+    SET(ABI "64")
+  ENDIF()
+endif(CFS_ARCH STREQUAL "I386")
+
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{CFLAGS} "@CFSDEPS_C_FLAGS@")
+SET(ENV{CXXFLAGS} "@CFSDEPS_CXX_FLAGS@")
+
+find_program(SH sh)
+
+SET(CONFIGURE_CMD
+  "${SH}")
+IF(MINGW AND NOT CMAKE_CROSSCOMPILING)
+  LIST(APPEND CONFIGURE_CMD --login -i)
+ENDIF()
+LIST(APPEND CONFIGURE_CMD 
+  "./configure"
+  "--prefix=${gmp_install}"
+  "--bindir=${gmp_install}/bin/${CFS_ARCH_STR}"
+  "--libdir=${gmp_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--includedir=${gmp_install}/include"
+  "--enable-shared=no"
+  "--enable-cxx"
+  "ABI=${ABI}"
+)
+
+IF(CMAKE_CROSSCOMPILING)
+  SET(TOOLCHAIN_PREFIX ${CMAKE_TOOLCHAIN_PREFIX})
+
+  IF(APPLE)
+    # If we specify i686-apple-darwin10, configure thinks that we can only use
+    # ABI=32, even if we are compiling for x86_64. Therefore, we set here
+    # none-apple-darwin10 and tell configure manually, which tools to use.
+    STRING(REPLACE "i686" "none" TOOLCHAIN_PREFIX ${CMAKE_TOOLCHAIN_PREFIX})
+
+    SET(ENV{AR} "@CMAKE_AR@")
+    SET(ENV{RANLIB} "@CMAKE_RANLIB@")
+  ENDIF()
+
+  LIST(APPEND CONFIGURE_CMD
+    "--build=${BUILD_PREFIX}"
+    "--host=${TOOLCHAIN_PREFIX}"
+    )
+ENDIF()
+
+EXECUTE_PROCESS(
+  COMMAND ${CONFIGURE_CMD}
+  WORKING_DIRECTORY "${gmp_source}"
+  ERROR_FILE gmp-config.out
+  OUTPUT_FILE gmp-config.out
+  RESULT_VARIABLE rv
+  )

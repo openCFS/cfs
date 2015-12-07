@@ -1,0 +1,57 @@
+# -*- mode: cmake; coding: utf-8; indent-tabs-mode: nil; -*-
+# kate: indent-width 2; encoding utf-8; auto-brackets on;
+# kate: mixedindent on; indent-mode cstyle; line-numbers on;
+# kate: syntax cmake; replace-tabs on; background-color #D1EBFF;
+# kate: remove-trailing-space on; bracket-highlight-color #ff00ff;
+
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(qt4_source "@qt4_source@")
+SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
+SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
+SET(CFS_ARCH "@CFS_ARCH@")
+SET(CFS_DISTRO "@CFS_DISTRO@")
+SET(CFS_OS "@CFS_OS@")
+SET(LIB_SUFFIX "@LIB_SUFFIX@")
+SET(CMAKE_OSX_DEPLOYMENT_TARGET "@CMAKE_OSX_DEPLOYMENT_TARGET@")
+SET(CMAKE_OSX_ARCHITECTURES "@CMAKE_OSX_ARCHITECTURES@")
+SET(CMAKE_OSX_SYSROOT "@CMAKE_OSX_SYSROOT@")
+
+#=============================================================================
+# Set environment variables for configure process.
+#=============================================================================
+SET(ENV{CC} "@CMAKE_C_COMPILER@")
+SET(ENV{CXX} "@CMAKE_CXX_COMPILER@")
+SET(ENV{CFLAGS} "@CFLAGS@")
+SET(ENV{CXXFLAGS} "@CFLAGS@")
+
+SET(CONFIGURE_CMD
+  "sh"
+  "./configure"
+  "-prefix" "${CFS_BINARY_DIR}/qt4"
+  "-release"
+  "-nomake" "examples"
+  "-nomake" "demos"
+  "-no-separate-debug-info"
+  "-dbus"
+)
+
+IF(CFS_DISTRO STREQUAL "MACOSX")
+  LIST(APPEND CONFIGURE_CMD "-sdk")
+  LIST(APPEND CONFIGURE_CMD "${CMAKE_OSX_SYSROOT}")
+  LIST(APPEND CONFIGURE_CMD "-platform")
+  IF(CMAKE_OSX_ARCHITECTURES STREQUAL "x86_64")
+    LIST(APPEND CONFIGURE_CMD "macx-g++-64")
+  ELSE()
+    LIST(APPEND CONFIGURE_CMD "macx-g++")
+  ENDIF()
+ENDIF()
+
+EXECUTE_PROCESS(
+  COMMAND ${CONFIGURE_CMD}
+  WORKING_DIRECTORY "${qt4_source}"
+#  ERROR_FILE qt4-config.out
+#  OUTPUT_FILE qt4-config.out
+  RESULT_VARIABLE rv
+  )

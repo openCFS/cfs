@@ -1,0 +1,11 @@
+--- src/muParserBase.cpp.orig	2012-12-19 15:07:17.277200000 +0100
++++ src/muParserBase.cpp	2012-12-19 15:07:46.364200002 +0100
+@@ -1047,7 +1047,7 @@
+                   continue;
+ 
+       case  cmPOW: 
+-              Stack[--sidx]  = MathImpl<value_type>::Pow(Stack[sidx], Stack[1+sidx]); ;
++              --sidx; Stack[sidx] = MathImpl<value_type>::Pow(Stack[sidx], Stack[1+sidx]);
+               continue;
+ 
+       case  cmLAND: --sidx; Stack[sidx]  = Stack[sidx] && Stack[sidx+1]; continue;

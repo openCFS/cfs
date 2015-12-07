@@ -1,0 +1,341 @@
+--- orderings/permamd.c.orig	2013-01-10 15:02:53.096911810 +0100
++++ orderings/permamd.c	2013-01-10 15:22:29.191856504 +0100
+@@ -150,9 +150,9 @@
+    for (i=0; i<nz; i++)
+        A.ja[i]--;
+ #ifdef _LONG_INTEGER_
+-   amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #else
+-   amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #endif
+    // conversion back
+    for (i=0; i<=A.nc; i++)
+--- orderings/perm_amd_FC.c.orig	2013-01-10 15:05:30.968879853 +0100
++++ orderings/perm_amd_FC.c	2013-01-10 15:23:04.943856983 +0100
+@@ -150,9 +150,9 @@
+    for (i=0; i<nz; i++)
+        A.ja[i]--;
+ #ifdef _LONG_INTEGER_
+-   amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #else
+-   amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #endif
+    // conversion back
+    for (i=0; i<=A.nc; i++)
+--- orderings/perm_amd_FCv.c.orig	2013-01-10 15:05:38.880879686 +0100
++++ orderings/perm_amd_FCv.c	2013-01-10 15:23:58.423869308 +0100
+@@ -151,9 +151,9 @@
+    for (i=0; i<nz; i++)
+        A.ja[i]--;
+ #ifdef _LONG_INTEGER_
+-   amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #else
+-   amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #endif
+    // conversion back
+    for (i=0; i<=A.nc; i++)
+--- orderings/perm_matching_amd.c.orig	2013-01-10 15:05:49.184885054 +0100
++++ orderings/perm_matching_amd.c	2013-01-10 15:24:33.631857632 +0100
+@@ -865,9 +865,9 @@
+        }
+        
+ #ifdef _LONG_INTEGER_
+-       amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #else
+-       amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #endif
+        if (2*nz>param->niaux)
+ 	  free(C.ja);
+--- orderings/permMC64amd.c.orig	2013-01-10 15:05:57.864880901 +0100
++++ orderings/permMC64amd.c	2013-01-10 15:24:55.943886647 +0100
+@@ -880,9 +880,9 @@
+        }
+        
+ #ifdef _LONG_INTEGER_
+-       amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #else
+-       amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #endif
+        if (2*nz>param->niaux)
+ 	  free(C.ja);
+--- orderings/permMWA_amd.c.orig	2013-01-10 15:06:07.904911349 +0100
++++ orderings/permMWA_amd.c	2013-01-10 15:25:28.143854731 +0100
+@@ -887,9 +887,9 @@
+        }
+        
+ #ifdef _LONG_INTEGER_
+-       amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #else
+-       amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #endif
+        if (2*nz>param->niaux)
+ 	  free(C.ja);
+--- orderings/permmwmamd.c.orig	2013-01-10 15:06:18.904941205 +0100
++++ orderings/permmwmamd.c	2013-01-10 15:26:01.439886795 +0100
+@@ -678,9 +678,9 @@
+ 	   C.ja[i]--;
+ 
+ #ifdef _LONG_INTEGER_
+-       amd_l_preprocess(C.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_l_preprocess(C.nc,C.ia,C.ja,ia,ja);
+ #else
+-       amd_preprocess(C.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_preprocess(C.nc,C.ia,C.ja,ia,ja);
+ #endif
+        if (nz>param->niaux)
+ 	  free(C.ja);
+@@ -1032,9 +1032,9 @@
+        */
+ 
+ #ifdef _LONG_INTEGER_
+-       amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_l_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #else
+-       amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
++       ilupack_amd_preprocess(A.nc,C.ia,C.ja,ia,ja);
+ #endif
+        if (2*nz>param->niaux)
+ 	  free(C.ja);
+--- orderings/symperm_amd_FC.c.orig	2013-01-10 15:06:48.032877713 +0100
++++ orderings/symperm_amd_FC.c	2013-01-10 15:26:23.983855631 +0100
+@@ -247,9 +247,9 @@
+    for (i=0; i<nz; i++)
+        A.ja[i]--;
+ #ifdef _LONG_INTEGER_
+-   amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #else
+-   amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #endif
+    // conversion back
+    for (i=0; i<=A.nc; i++)
+--- orderings/symperm_amd_FCv.c.orig	2013-01-10 15:07:01.296878709 +0100
++++ orderings/symperm_amd_FCv.c	2013-01-10 15:26:36.975856787 +0100
+@@ -245,9 +245,9 @@
+    for (i=0; i<nz; i++)
+        A.ja[i]--;
+ #ifdef _LONG_INTEGER_
+-   amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_l_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #else
+-   amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
++   ilupack_amd_preprocess(A.nc,A.ia,A.ja,ia,ja);
+ #endif
+    // conversion back
+    for (i=0; i<=A.nc; i++)
+ 
+--- /dev/null	2013-01-10 16:13:38.257880020 +0100
++++ amd/ilupack_amd_preprocess.c	2013-01-10 16:30:22.489887615 +0100
+@@ -0,0 +1,148 @@
++/* ========================================================================= */
++/* === AMD_preprocess ====================================================== */
++/* ========================================================================= */
++
++/* ------------------------------------------------------------------------- */
++/* AMD Version 1.1 (Jan. 21, 2004), Copyright (c) 2004 by Timothy A. Davis,  */
++/* Patrick R. Amestoy, and Iain S. Duff.  See ../README for License.         */
++/* email: davis@cise.ufl.edu    CISE Department, Univ. of Florida.           */
++/* web: http://www.cise.ufl.edu/research/sparse/amd                          */
++/* ------------------------------------------------------------------------- */
++
++/* Sorts, removes duplicate entries, and transposes from the nonzero pattern of
++ * a column-form matrix A, to obtain the matrix R.
++ * See amd.h for a complete description of AMD_preprocess 
++ */
++
++#include "amd_internal.h"
++
++#ifdef __cplusplus
++extern "C"
++{
++#endif
++GLOBAL void AMD_preprocess
++(
++    Int n,              /* input matrix: A is n-by-n */
++    const Int Ap [ ],   /* size n+1 */
++    const Int Ai [ ],   /* size nz = Ap [n] */
++
++    /* output matrix R: */
++    Int Rp [ ],         /* size n+1 */
++    Int Ri [ ],         /* size nz (or less, if duplicates present) */
++
++    Int W [ ],          /* workspace of size n */
++    Int Flag [ ]        /* workspace of size n */
++);
++#ifdef __cplusplus
++}
++#endif
++
++
++GLOBAL Int ilupack_AMD_preprocess   /* returns AMD_OK if input is OK, AMD_INVALID
++			     * if the matrix is invalid, or AMD_OUT_OF_MEMORY
++			     * if out of memory for the 2n workspace. */
++(
++    Int n,		/* input matrix: A is n-by-n */
++    const Int Ap [ ],	/* size n+1 */
++    const Int Ai [ ],	/* size nz = Ap [n] */
++
++    /* output matrix R: */
++    Int Rp [ ],		/* size n+1 */
++    Int Ri [ ]		/* size nz (or less, if duplicates present) */
++)
++{
++    /* --------------------------------------------------------------------- */
++    /* local variables */
++    /* --------------------------------------------------------------------- */
++
++    Int *Flag, *W ;
++
++    /* --------------------------------------------------------------------- */
++    /* check inputs (note: fewer restrictions than AMD_order) */
++    /* --------------------------------------------------------------------- */
++
++    if (!ilupack_AMD_preprocess_valid (n, Ap, Ai) || !Ri || !Rp)
++    {
++	return (AMD_INVALID) ;
++    }
++
++    /* --------------------------------------------------------------------- */
++    /* allocate workspace */
++    /* --------------------------------------------------------------------- */
++
++    W = (Int *) ALLOCATE (MAX (n,1) * sizeof (Int)) ;
++    if (!W)
++    {
++	return (AMD_OUT_OF_MEMORY) ;
++    }
++    Flag = (Int *) ALLOCATE (MAX (n,1) * sizeof (Int)) ;
++    if (!Flag)
++    {
++	FREE (W) ;
++	return (AMD_OUT_OF_MEMORY) ;
++    }
++
++    /* --------------------------------------------------------------------- */
++    /* preprocess the matrix:  sort, remove duplicates, and transpose */
++    /* --------------------------------------------------------------------- */
++
++    AMD_preprocess (n, Ap, Ai, Rp, Ri, W, Flag) ;
++
++    /* --------------------------------------------------------------------- */
++    /* free the workspace */
++    /* --------------------------------------------------------------------- */
++
++    FREE (W) ;
++    FREE (Flag) ;
++    return (AMD_OK) ;
++}
++
++/* ========================================================================= */
++/* === AMD_preprocess_valid ================================================ */
++/* ========================================================================= */
++
++/* Not user-callable.  Checks a matrix and returns TRUE if it is valid as input
++ * to AMD_wpreprocess, FALSE otherwise. */
++
++GLOBAL Int ilupack_AMD_preprocess_valid
++(
++    Int n,
++    const Int Ap [ ],
++    const Int Ai [ ]
++)
++{
++    Int i, j, p, nz ;
++
++    if (n < 0 || !Ai || !Ap)
++    {
++	return (FALSE) ;
++    }
++    nz = Ap [n] ;
++    if (Ap [0] != 0 || nz < 0)
++    {
++	/* column pointers must start at Ap [0] = 0, and Ap [n] must be >= 0 */
++	AMD_DEBUG0 (("column 0 pointer bad or nz < 0\n")) ;
++	return (FALSE) ;
++    }
++    for (j = 0 ; j < n ; j++)
++    {
++	if (Ap [j] > Ap [j+1])
++	{
++	    /* column pointers must be ascending */
++	    AMD_DEBUG0 (("column "ID" pointer bad\n", j)) ;
++	    return (FALSE) ;
++	}
++    }
++    for (p = 0 ; p < nz ; p++)
++    {
++	i = Ai [p] ;
++	AMD_DEBUG3 (("row: "ID"\n", i)) ;
++	if (i < 0 || i >= n)
++	{
++	    /* row index out of range */
++	    AMD_DEBUG0 (("index out of range, col "ID" row "ID"\n", j, i)) ;
++	    return (FALSE) ;
++	}
++    }
++    return (TRUE) ;
++}
+--- include/amd.h.orig	2013-01-10 16:31:12.922909790 +0100
++++ include/amd.h	2013-01-10 16:31:49.905939685 +0100
+@@ -254,7 +254,7 @@
+  * amd_preprocess since they represent a more serious error that should be
+  * flagged with the AMD_INVALID error code.
+  */ 
+-
++#if 0
+ int amd_preprocess
+ (
+     int n,
+@@ -272,6 +272,7 @@
+     long Rp [ ],
+     long Ri [ ]
+ ) ;
++#endif
+ 
+ /* Input arguments (not modified):
+  *
+--- amd/amd_internal.orig.h	2013-01-10 16:17:38.570910194 +0100
++++ amd/amd_internal.h	2013-01-10 16:49:57.545886919 +0100
+@@ -187,6 +187,9 @@
+ #define AMD_wpreprocess amd_l_wpreprocess
+ #define AMD_preprocess amd_l_preprocess
+ #define AMD_preprocess_valid amd_l_preprocess_valid
++#define ilupack_AMD_preprocess ilupack_amd_l_preprocess
++#define ilupack_AMD_preprocess_valid ilupack_amd_l_preprocess_valid
++
+ 
+ #else
+ 
+@@ -211,6 +214,9 @@
+ #define AMD_wpreprocess amd_wpreprocess
+ #define AMD_preprocess amd_preprocess
+ #define AMD_preprocess_valid amd_preprocess_valid
++#define ilupack_AMD_preprocess ilupack_amd_preprocess
++#define ilupack_AMD_preprocess_valid ilupack_amd_preprocess_valid
++
+ 
+ #endif
+ 
+--- solvers/spdAMGsolver.c.orig        2013-01-10 17:12:06.691930590 +0100
++++ solvers/spdAMGsolver.c     2013-01-10 17:12:33.155939919 +0100
+@@ -12,6 +12,7 @@
+ #define STDOUT          stdout
+ #define MAX(A,B)        (((A)>(B))?(A):(B))
+ #define MIN(A,B)        (((A)<(B))?(A):(B))
++#define DMEGA      131072.0
+
+
+ #define PRINT_INFO

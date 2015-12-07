@@ -1,0 +1,296 @@
+<xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+  targetNamespace="http://www.cfs++.org"
+  xmlns="http://www.cfs++.org"
+  xmlns:cfs="http://www.cfs++.org"
+  elementFormDefault="qualified">
+
+  <xsd:annotation>
+    <xsd:documentation xml:lang="en">
+      Coupled Field Solver project CFS++
+      Schema for material description of an mechanical material
+    </xsd:documentation>
+  </xsd:annotation>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of material for mechanical PDEs -->
+  <!-- ******************************************************************* -->
+
+  <xsd:complexType name="DT_MatMechanical">
+    <xsd:sequence>
+      <xsd:element name="density" type="xsd:token"/>
+      <xsd:element name="elasticity" type="DT_MechElasticity"/>
+      <xsd:element name="viscoelasticity"
+      type="DT_MechViscoElasticity" minOccurs="0"/>
+      <xsd:element name="elasticityCoefficient"
+        type="DT_NonLinMechElastCoeff" minOccurs="0"/>
+      <xsd:element name="irreversibleStrainCoefficient"
+        type="DT_IrreversibelStrainCoeff" minOccurs="0"/>
+      <xsd:element name="thermalExpanison" type="DT_ThermalExpansion" minOccurs="0"/>
+      <xsd:element name="mechanicalDamping" type="DT_MechDamping"
+        minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical elasticity tensor                        -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastTensor">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+      <xsd:element name="imag" minOccurs="0">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="36"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element> 
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+  
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical elasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElasticity">
+    <xsd:choice>
+      <xsd:element name="tensor" type="DT_MechElastTensor"/>
+      <xsd:element name="isotropic" type="DT_MechElastIsotropic"/>
+      <xsd:element name="transversalIsotropic" type="DT_MechElastTransIsotrop"/>
+      <xsd:element name="orthotropic" type="DT_MechElastOrthotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical elasticity -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechViscoElasticity">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_MechViscoElastIsotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic mechanical elasticity                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of transversal isotropic mechanical elasticity                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastTransIsotrop">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastTransIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastTransIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of orthotropic mechanical elasticity                     -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_MechElastOrthotrRealImag"/>
+      <xsd:element name="imag" type="DT_MechElastOrthotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part isotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastIsotrRealImag">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="xsd:token"/>
+        <!--<xsd:element name="poissonNumber" type="DT_FloatPoissonInterval"/>-->
+        <xsd:element name="poissonNumber" type="xsd:token"/>
+      </xsd:sequence>
+<!--      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="shearModulus" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="compressionModulus" type="DT_NonNegFloat"/>
+      </xsd:sequence> -->
+      <xsd:sequence>
+        <xsd:element name="shearModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="compressionModulus" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+      <xsd:sequence>
+        <xsd:element name="lameParameterMu" type="DT_NonNegFloat"/>
+        <xsd:element name="lameParameterLamda" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part transversAl isotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastTransIsotrRealImag">
+    <xsd:choice>
+      <xsd:sequence>
+        <xsd:element name="elasticityModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="elasticityModulus_3" type="DT_NonNegFloat"/>
+        <xsd:element name="poissonNumber" type="DT_FloatPoissonInterval"/>
+        <xsd:element name="poissonNumber_3" type="DT_FloatPoissonInterval"/>
+        <xsd:element name="shearModulus" type="DT_NonNegFloat"/>
+        <xsd:element name="shearModulus_3" type="DT_NonNegFloat"/>
+      </xsd:sequence>
+    </xsd:choice>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery part orthotropic mechanical elasticity  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechElastOrthotrRealImag">
+    <xsd:sequence>
+      <xsd:element name="elasticityModulus_1" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_2" type="DT_NonNegFloat"/>
+      <xsd:element name="elasticityModulus_3" type="DT_NonNegFloat"/>
+      <xsd:element name="poissonNumber_12" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_23" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="poissonNumber_13" type="DT_FloatPoissonInterval"/>
+      <xsd:element name="shearModulus_23" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_31" type="DT_NonNegFloat"/>
+      <xsd:element name="shearModulus_12" type="DT_NonNegFloat"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of a mechanical nonlinear elasticity coefficient       -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_NonLinMechElastCoeff">
+    <xsd:sequence>
+      <xsd:element name="entry" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="dependency" type="xsd:string"/>
+      <xsd:element name="approxType" type="xsd:string"/>
+      <xsd:element name="dataName" type="xsd:string"/>
+    </xsd:sequence>
+    <xsd:attribute name="nonlinear" type="xsd:string" use="required"/>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of thermal expansion coefficients -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansion">
+    <xsd:choice>
+      <xsd:element name="isotropic" type="DT_ThermalExpansionIsotropic"/>
+      <xsd:element name="orthotropic" type="DT_ThermalExpansionOrthotropic"/>
+    </xsd:choice>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of isotropic thermal expansion coefficien              -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansionIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_ThermalExpIsotrRealImag"/>
+      <xsd:element name="imag" type="DT_ThermalExpIsotrRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery isotropic thermal expansion coefficien  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpIsotrRealImag">
+    <xsd:sequence>
+      <xsd:element name="refTemperature" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC" type="xsd:token" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of orthotropic thermal expansion coefficien              -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpansionOrthotropic">
+    <xsd:sequence>
+      <xsd:element name="real" type="DT_ThermalExpOrthoRealImag"/>
+      <xsd:element name="imag" type="DT_ThermalExpOrthoRealImag" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of real and imaginery orthotropic thermal expansion coefficien  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_ThermalExpOrthoRealImag">
+    <xsd:sequence>
+      <xsd:element name="refTemperature" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC1" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC2" type="xsd:token" minOccurs="0"/>
+      <xsd:element name="TEC3" type="xsd:token" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical damping                                  -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechDamping">
+    <xsd:sequence>
+      <xsd:element name="rayleigh" type="DT_RayleighDamping" minOccurs="0"/>
+      <xsd:element name="fractional" type="DT_MechFractionalDamping" minOccurs="0"/>
+    </xsd:sequence>
+  </xsd:complexType>
+
+ 
+  <!-- ******************************************************************* -->
+  <!--   Definition of mechanical fractional damping model -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechFractionalDamping">
+    <xsd:sequence>
+      <xsd:element name="alg" type="xsd:string"/>
+      <xsd:element name="memory" type="xsd:nonNegativeInteger"/>
+      <xsd:element name="interpolation" type="xsd:string"/>
+    </xsd:sequence>
+  </xsd:complexType>
+  
+  <!-- ******************************************************************* -->
+  <!--   Definition of polynomial coefficients of irreversible strain-->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_IrreversibelStrainCoeff">
+     <xsd:sequence>
+       <xsd:element name="coeffs">
+          <xsd:simpleType>
+            <xsd:restriction base="DT_DoubleList">
+              <xsd:maxLength value="5"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+       </xsd:element> 
+     </xsd:sequence>
+    <xsd:attribute name="dim" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
+
+  <!-- ******************************************************************* -->
+  <!--   Definition of piezo coupling tensor                               -->
+  <!-- ******************************************************************* -->
+  <xsd:complexType name="DT_MechViscoElastIsotropic">
+    <xsd:sequence>
+      <xsd:element name="real">
+        <xsd:simpleType>
+          <xsd:restriction base="DT_TokenList">
+            <xsd:maxLength value="30"/>
+          </xsd:restriction>
+        </xsd:simpleType>
+      </xsd:element>
+    </xsd:sequence>
+    <xsd:attribute name="dim1" type="xsd:nonNegativeInteger" use="required"/>
+    <xsd:attribute name="dim2" type="xsd:nonNegativeInteger" use="required"/>
+  </xsd:complexType>
+
+</xsd:schema>

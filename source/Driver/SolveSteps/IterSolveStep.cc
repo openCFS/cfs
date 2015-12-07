@@ -1,0 +1,886 @@
+#include "IterSolveStep.hh"
+
+#include <iomanip>
+
+#include "MatVec/BaseMatrix.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/SinglePDE.hh"
+#include "CoupledPDE/IterCoupledPDE.hh"
+#include "CoupledPDE/DirectCoupledPDE.hh"
+#include "Domain/CoefFunction/CoefFunctionAccumulator.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+namespace CoupledField
+{
+
+
+// declare logging stream
+DECLARE_LOG(itersolvestep)
+DEFINE_LOG(itersolvestep, "itersolvestep")
+
+// ======================================================================
+//  Classes for Convergence Criterions
+// ======================================================================
+
+  ConvCriterion::ConvCriterion( NormType type, Double value ) {
+    normType_ = type;
+    finalNorm_ = value;
+  }
+  
+  Double ConvCriterion::CalcNorm( Double newVal, Double oldVal ) {
+    Double ret = 0.0;
+    Double delta = std::abs( std::abs(newVal) - std::abs(oldVal) );
+    switch( normType_) {
+      case NO_NORM:
+        break;
+      case L2ABS:
+        ret = std::abs(newVal);
+        break;
+      case L2REL:
+        if (std::abs(newVal) > 1.0 ) {
+          ret = delta / std::abs(newVal);
+        } else {
+          ret = delta;
+        }
+        break;
+    }
+    return ret;
+  }
+
+  // Definition of norm types
+  static EnumTuple normTypeTuples[] = 
+  {
+   EnumTuple(ConvCriterion::NO_NORM, "no"),                                    
+   EnumTuple(ConvCriterion::L2REL, "rel"),
+   EnumTuple(ConvCriterion::L2ABS, "abs")
+  };
+  Enum<ConvCriterion::NormType> ConvCriterion::NormTypeEnum = 
+      Enum<ConvCriterion::NormType> ("Types of boundary conditions",
+         sizeof(normTypeTuples) / sizeof(EnumTuple),
+         normTypeTuples);
+
+
+  ConvCriterionAccu::ConvCriterionAccu(NormType type, Double value )
+  : ConvCriterion(type, value) {
+    actNorm_ = 0.0;
+    oldNorm_ = 0.0;
+  }
+  
+  ConvCriterionAccu::~ConvCriterionAccu() {
+    
+  }
+  
+  void ConvCriterionAccu::AddCoefFct( shared_ptr<EntityList> list,
+                                      shared_ptr<CoefFunctionAccumulator> coefFct ) {
+    
+   coefs_[list] = coefFct;
+   oldNorm_ = 0.0;
+  }
+  
+  void ConvCriterionAccu::ResetValues() {
+    oldNorm_ = 0.0;
+    actNorm_ = 0.0;
+    
+  }
+  
+  void ConvCriterionAccu::StartSampling() {
+    
+    std::map<shared_ptr<EntityList>, shared_ptr<CoefFunctionAccumulator> >::iterator it;
+    it = coefs_.begin();
+    
+    // Remember old norm
+    oldNorm_ = actNorm_;
+    
+    // Re-set all oceffunction accumulator
+    for( ; it != coefs_.end(); ++it ) {
+      it->second->ResetSampling();
+    }
+  }
+  
+  void ConvCriterionAccu::StopSampling(){
+    std::map<shared_ptr<EntityList>, shared_ptr<CoefFunctionAccumulator> >::iterator it;
+    it = coefs_.begin();
+    actNorm_ = 0.0;
+    // Re-set all oceffunction accumulator
+    for( ; it != coefs_.end(); ++it ) {
+      Double tmp = it->second->GetNorm();
+      actNorm_ +=  tmp * tmp; 
+    }
+    actNorm_ = sqrt(actNorm_);
+  }
+  
+  Double ConvCriterionAccu::GetNorm() {
+    return CalcNorm(actNorm_, oldNorm_);
+  }
+  
+  bool ConvCriterionAccu::Converged() {
+    if( normType_ == ConvCriterion::NO_NORM ) {
+      return true;
+    } else {
+      return CalcNorm( actNorm_, oldNorm_) <= finalNorm_;
+    }
+  }
+  
+  StdVector<shared_ptr<EntityList> > ConvCriterionAccu::GetSupport() {
+    StdVector<shared_ptr<EntityList> > ret;
+    ret.Reserve( coefs_.size());
+    std::map<shared_ptr<EntityList>, shared_ptr<CoefFunctionAccumulator> >::iterator it;
+    for( ; it != coefs_.end(); ++it ) {
+      ret.Push_back(it->first);
+    }
+    return ret;
+  }
+  // ------------------------------------------------------------------------
+  
+  ConvCriterionDisplacement::ConvCriterionDisplacement( NormType type, 
+                                                        Double value )
+  : ConvCriterion(type, value) {
+    actNorm_ = 0.0;
+    oldNorm_ = 0.0;
+  }
+  
+  ConvCriterionDisplacement::~ConvCriterionDisplacement() {
+    
+  }
+  
+  void ConvCriterionDisplacement::SetDispFct( shared_ptr<FeFunction<Double> > disp) {
+    assert(disp);
+    disp_ = disp;
+  }
+  
+  void ConvCriterionDisplacement::AddRegion(RegionIdType region ) {
+    updatedRegions_.insert(region);
+  }
+  
+  
+  void ConvCriterionDisplacement::ResetValues() {
+      oldNorm_ = 0.0;
+      actNorm_ = 0.0;
+      
+    }
+  
+  void ConvCriterionDisplacement::StartSampling() {
+    // update grid to current values
+      // Check if displacement fefunction is set
+      if( !disp_)
+        return;
+      
+      Grid * ptGrid = disp_->GetGrid();
+      const UInt dim = ptGrid->GetDim();
+      // Loop over all regions of FeFunction
+      shared_ptr<EntityList> nodes;
+      std::set<RegionIdType> dispRegions = disp_->GetRegions();
+      std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
+      
+      for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
+        
+        std::string regionName = ptGrid->GetRegion().ToString(*regionIt);
+        
+        // check if this region is contained in the displacement function as well
+        if( dispRegions.find(*regionIt) == dispRegions.end() ) {
+          WARN( "Can not perform geometry update on region"
+              << regionName << ", as there are no displacement defined on it!");
+        }
+        
+        nodes = ptGrid->GetEntityList(EntityList::NODE_LIST, regionName);
+        EntityIterator nodeIt = nodes->GetIterator();
+        
+        // Loop over all nodes
+        Vector<Double> offset(dim), totalOffset(nodes->GetSize() * dim );
+        StdVector<UInt> nodeNums(nodes->GetSize());
+        UInt pos = 0;
+        for( ; !nodeIt.IsEnd(); nodeIt++, pos++ ) {
+
+          nodeNums[pos] = nodeIt.GetNode();
+          // aquire nodal solution
+          disp_->GetEntitySolution(offset, nodeIt);
+          
+          UInt offsetPos = pos*dim;
+          for( UInt iDim = 0; iDim < dim; ++iDim ) {
+            totalOffset[offsetPos+iDim] = offset[iDim];
+          }
+
+        } 
+        // Pass total array
+        ptGrid->SetNodeOffset(nodeNums, totalOffset);
+      
+      }
+  }
+  
+  void ConvCriterionDisplacement::StopSampling() {
+
+    // if no displacement is set, just leave
+    if( !disp_)
+      return;
+    
+    oldNorm_ = actNorm_;
+    actNorm_ = 0.0;
+
+    // Calculate norm of total displacement
+    Grid * ptGrid = disp_->GetGrid();
+    const UInt dim = ptGrid->GetDim();
+    // Loop over all regions of FeFunction
+    shared_ptr<EntityList> nodes;
+    std::set<RegionIdType> dispRegions = disp_->GetRegions();
+    std::set<RegionIdType>::const_iterator regionIt = updatedRegions_.begin();
+
+    for( ; regionIt != updatedRegions_.end(); regionIt++ ) {
+      std::string regionName = ptGrid->GetRegion().ToString(*regionIt);
+
+      // check if this region is contained in the displacement function as well
+      if( dispRegions.find(*regionIt) == dispRegions.end() ) {
+        WARN( "Can not perform geometry update on region"
+            << regionName << ", as there are no displacement defined on it!");
+      }
+
+      nodes = ptGrid->GetEntityList(EntityList::NODE_LIST, regionName);
+      EntityIterator nodeIt = nodes->GetIterator();
+
+      // Loop over all nodes
+      Vector<Double> offset(dim);
+      StdVector<UInt> nodeNums(nodes->GetSize());
+      UInt pos = 0;
+      for( ; !nodeIt.IsEnd(); nodeIt++, pos++ ) {
+
+        nodeNums[pos] = nodeIt.GetNode();
+        // aquire nodal solution
+        disp_->GetEntitySolution(offset, nodeIt);
+        for( UInt iDim = 0; iDim < dim; ++iDim ) {
+          actNorm_ +=  offset[iDim] * offset[iDim];
+        }
+      } // loop: nodes
+    } // loop: regions
+    
+    // take squre root 
+    actNorm_ = sqrt(actNorm_);
+  }
+
+  Double ConvCriterionDisplacement::GetNorm() {
+    return CalcNorm( actNorm_, oldNorm_);
+    
+    
+  }
+      
+  bool ConvCriterionDisplacement::Converged() {
+    if( normType_ == ConvCriterion::NO_NORM ) {
+      return true;
+    } else {
+      return CalcNorm( actNorm_, oldNorm_) <= finalNorm_;
+    }
+  }
+  
+  StdVector<shared_ptr<EntityList> > ConvCriterionDisplacement::GetSupport() {
+    StdVector<shared_ptr<EntityList> > ret;
+    return ret;
+  }
+
+
+  
+// ======================================================================
+  //! Derived class for step-wise solving of iterative coupled StdPDEs
+
+  IterSolveStep::IterSolveStep(IterCoupledPDE &apde, PtrParamNode node,
+                               PtrParamNode infoNode) 
+    : BaseSolveStep(),
+      rPDE_(apde)
+  {
+    param_ = node;
+    info_ = infoNode;
+    startStep_ = 1;
+    isFinalized_ = false;
+    nonLinLogging_ = false;
+    stopOnDivergence_ =  false;
+    maxiter_ = 0;
+    
+    // Initialize solution map
+    solutionMap_[MAG_FORCE_LORENTZ_DENSITY] = MAG_FORCE_LORENTZ;
+    solutionMap_[ELEC_POWER_DENSITY] = ELEC_POWER;
+  }
+  
+    
+   
+
+  IterSolveStep::~IterSolveStep()
+  {
+  }
+
+
+  void IterSolveStep::Init() {
+
+    LOG_TRACE(itersolvestep) << "Initializing iterative coupling";
+    
+    // fetch "convergence" node
+    PtrParamNode convParamNode; 
+    if( param_ )
+      convParamNode = param_->Get("convergence", ParamNode::PASS );
+    convNode_ = info_->Get("convergence");
+
+    // get maximum number of iterations (optional)
+    maxiter_ = 1;
+    if( convParamNode )
+      convParamNode->GetValue( "maxNumIters", maxiter_, ParamNode::PASS );
+    convNode_->Get("maxNumIters")->SetValue(maxiter_);
+
+    // query logging flag
+    nonLinLogging_ = true;
+    if( convParamNode ) 
+      convParamNode->GetValue( "logging", nonLinLogging_, ParamNode::PASS );
+    convNode_->Get("logging")->SetValue(nonLinLogging_);
+    
+    // query divergence behavior
+    stopOnDivergence_ = true;
+    if( convParamNode ) 
+      convParamNode->GetValue( "stopOnDivergence", stopOnDivergence_, ParamNode::PASS );
+    convNode_->Get("stopOnDivergence")->SetValue(stopOnDivergence_);
+
+    // 1) Check for general convergence criterions
+    if( convParamNode && convParamNode->Has("quantity") ) {
+      LOG_TRACE(itersolvestep) << "Checking convergence criterions";
+      ParamNodeList q = convParamNode->GetList("quantity");
+      for( UInt i = 0; i < q.GetSize(); ++i ) {
+        std::string quantity = q[i]->Get("name")->As<std::string>();
+        SolutionType solType = SolutionTypeEnum.Parse(quantity);
+        Double norm = q[i]->Get("value")->As<Double>();
+        ConvCriterion::NormType type = 
+            ConvCriterion::NormTypeEnum.Parse(q[i]->Get("normType")
+                                              ->As<std::string>());
+        LOG_DBG3(itersolvestep) << "\tQuantity: " << quantity;
+        LOG_DBG3(itersolvestep) << "\tNorm:     " << norm;
+        LOG_DBG3(itersolvestep) << "\tNormType: " << ConvCriterion::NormTypeEnum.ToString(type);
+        // Create new convergence criterion, depending on solution type
+        shared_ptr<ConvCriterion> crit;
+        if( solType == MECH_DISPLACEMENT ) {
+          LOG_DBG3(itersolvestep) << "\t=> Creating special displacement convergence criterion";
+          shared_ptr<ConvCriterionDisplacement> accu (new ConvCriterionDisplacement(type, norm));
+          crit  = accu;
+        } else {
+          LOG_DBG3(itersolvestep) << "\t=> Creating general accumulated convergence criterion";
+          shared_ptr<ConvCriterionAccu> accu (new ConvCriterionAccu(type, norm));
+          crit = accu;
+        }
+      criterions_[solType] = crit;
+      } // loop: quantities
+    }
+  }
+  
+  
+  void IterSolveStep::Finalize() {
+    LOG_TRACE(itersolvestep) << "Finalizing iterative coupled solve step";
+    
+    
+    
+    // 1) Check for updated geometry
+    if( param_->Has("geometryUpdate") ) {
+      ParamNodeList regionNodes = param_->Get("geometryUpdate")->GetChildren();
+
+      if( regionNodes.GetSize() > 0 ) {
+
+        // check for presence of mechanical PDE
+        shared_ptr<FeFunction<Double> > disp;
+        UInt numSinglePDEs = rPDE_.singlePDEs_.GetSize();
+        for( UInt i = 0; i < numSinglePDEs; ++i ) {
+          SinglePDE * ptPde = rPDE_.singlePDEs_[i]; 
+          if( ptPde->GetName() == "mechanic" ) {
+            disp = dynamic_pointer_cast<FeFunction<Double> >
+            (ptPde->GetFeFunction(MECH_DISPLACEMENT));
+            LOG_DBG(itersolvestep) << "=> Found MECH_DISPLACEMENT as coupling quantity";
+            break;
+          }
+        }
+
+        if(!disp) {
+          WARN( "No geometry updated will performed, as no mechanical "
+              << "physic is defined");
+        } else {
+          // Check if convergence criterion for mechanic is present
+          shared_ptr<ConvCriterionDisplacement> convDisp;
+          if( criterions_.find(MECH_DISPLACEMENT) != criterions_.end()) {
+            convDisp = 
+                dynamic_pointer_cast<ConvCriterionDisplacement>(criterions_[MECH_DISPLACEMENT]);
+          } else {
+            convDisp.reset(new ConvCriterionDisplacement(ConvCriterion::NO_NORM, 0.0));
+          }
+
+          convDisp->SetDispFct( disp );
+          Grid * ptGrid = disp->GetGrid();
+
+          LOG_DBG(itersolvestep) << "Performing geometry update on the following regions:";
+          // Read in all regions, which have geometric update
+          for( UInt i = 0; i < regionNodes.GetSize(); ++i ) {
+            std::string regionName = regionNodes[i]->Get("name")->As<std::string>();
+            RegionIdType regionId = ptGrid->GetRegion().Parse(regionName); 
+            convDisp->AddRegion( regionId );
+            LOG_DBG(itersolvestep) << "\t "<< regionName;
+          }
+        }
+
+      }
+    }
+    
+    // 2) Loop over all convergence criterions, which are not explicitly "set"
+    // and try to get CoefFunction from a related PDE.
+    // ... to be implemented in a further step
+    
+    // 3) Resort the PDE order 
+    ResortPDEOrder();
+    isFinalized_ = true;
+  }
+  
+  void IterSolveStep::ResortPDEOrder() {
+    LOG_TRACE(itersolvestep) << "Resorting PDE order";
+
+    // Collect all uncoupled SinglePDes
+    std::set<SinglePDE*> uncoupledPdes;
+    uncoupledPdes.insert(rPDE_.singlePDEs_.Begin(), 
+                         rPDE_.singlePDEs_.End() );
+
+    // loop over all coupled SinglePDEs and remove involved
+    // SinglePDEs
+    for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+      StdVector<SinglePDE*> sPdes = rPDE_.coupledPDEs_[i]->GetSinglePDEs();
+      for( UInt j = 0; j < sPdes.GetSize(); ++j ) {
+        SinglePDE * singlePde = sPdes[j];
+        if( uncoupledPdes.find(singlePde) != uncoupledPdes.end() ) {
+          uncoupledPdes.erase(singlePde);
+        }
+      }
+    }
+    
+    // Now assemble the list of StdPDEs. Currently we pursue the 
+    // following strategy:
+    // 1) We start by all uncoupled Pdes
+    // 2) Add coupled Pdes in the end
+    rPDE_.numPDEs_ = uncoupledPdes.size() + rPDE_.coupledPDEs_.GetSize();
+
+    rPDE_.PDEs_.Reserve( rPDE_.numPDEs_ );
+    std::set<SinglePDE*>::iterator it = uncoupledPdes.begin();
+    // remember mechanic PDE if present
+    SinglePDE * mechPDE = NULL;
+    SinglePDE * heatPDE = NULL;
+    for( ; it != uncoupledPdes.end(); ++it ) {
+      if( (*it)->GetName() == "mechanic" ) {
+        mechPDE = *it;
+      }
+      else if ( (*it)->GetName() == "heatConduction" ) {
+        heatPDE = *it;
+      }
+      else {
+        rPDE_.PDEs_.Push_back( *it );
+      }
+    }
+
+    if ( heatPDE )
+      rPDE_.PDEs_.Push_back( heatPDE );
+
+    if( mechPDE )
+      rPDE_.PDEs_.Push_back(mechPDE);
+    
+    for( UInt i = 0; i < rPDE_.coupledPDEs_.GetSize(); ++i ) {
+      rPDE_.PDEs_.Push_back( rPDE_.coupledPDEs_[i] );
+    }
+    
+    // In the end print final ordering:
+    LOG_DBG(itersolvestep) << "Final ordering of PDEs:";
+    for( UInt i = 0; i < rPDE_.numPDEs_; ++i ) {
+      LOG_DBG(itersolvestep) << "\t" << i+1 << ": " 
+          <<  rPDE_.PDEs_[i]->GetName();
+    }
+  }
+  
+  PtrCoefFct IterSolveStep::GetCouplingCoefFct( SolutionType type,
+                                                shared_ptr<EntityList>  list,
+                                                const std::string& pdeName,
+                                                bool& updateGeo ) {
+    LOG_TRACE(itersolvestep) << "Returning Coupling CoefFct for quantity '"
+        << SolutionTypeEnum.ToString(type) << "' of PDE '" << pdeName 
+        << "' on entityList '" << list->GetName() << "'";
+    
+    // finalize, if not yet done
+    if( !isFinalized_ ) {
+      LOG_DBG(itersolvestep) << "Calling ::Finalize()";
+      Finalize();
+    }
+     
+     PtrCoefFct ret, coef;
+     
+     
+     // Initial implementation: Directly access CoefFct of PDE
+     // Later we use the interface, which keeps track of the norm of the coupling quantity
+     for( UInt i = 0; i < rPDE_.singlePDEs_.GetSize(); ++i ) {
+       if( rPDE_.singlePDEs_[i]->GetName() == pdeName ) {
+         coef = rPDE_.singlePDEs_[i]->GetCoefFct(type);
+         updateGeo = rPDE_.singlePDEs_[i]->IsUpdatedGeo();
+         if( coef ) {
+           LOG_DBG(itersolvestep) << "\t=> Found quantity, updateGeo: " << 
+                        (updateGeo ? "yes" : "no");
+           break;
+         }
+       }
+     }
+     if( !coef ) {
+       EXCEPTION( "Could not return coupling quantity '" 
+           << SolutionTypeEnum.ToString(type) << "' for Physic '"
+           << pdeName << "' on entityList '" << list->GetName() << "'");
+     }
+     
+     // wrap the return coefficient function in a CoefFunctionAccumulator
+     shared_ptr<CoefFunctionAccumulator> acc(new CoefFunctionAccumulator(coef, true));
+     
+     // If this is a density quantity (e.g. force density), a possible convergence
+     // criterion might be defined in terms of the absolute force (e.g. force), so we initially try
+     // to find the derived value
+     SolutionType mappedType = type;
+     if( solutionMap_.find(type) != solutionMap_.end() ) {
+       mappedType = solutionMap_[type]; 
+       LOG_DBG(itersolvestep) << "\tRe-map solution type  to " <<
+           SolutionTypeEnum.ToString(mappedType);
+     }
+     
+     // Check, if there was a convergence criterion defined for this quantity.
+     // In this case, we add it to the ConvergenceCriterion instance.
+     if( criterions_.find(mappedType) != criterions_.end() ) {
+       LOG_DBG(itersolvestep) << "\tQuantity is associated to convergence criterion";
+       // add accumulated coefficient function to list
+       shared_ptr<ConvCriterionAccu> c 
+       = dynamic_pointer_cast<ConvCriterionAccu>(criterions_[mappedType]);
+       c->AddCoefFct( list, acc );
+     }
+     
+     return acc;
+   }
+  
+  // ========================================================================
+  //  STATIC COUPLED ITERATION
+  // ========================================================================
+
+  void IterSolveStep::SolveStepStatic() {
+    LOG_TRACE(itersolvestep) << "----------------------";
+    LOG_TRACE(itersolvestep) << " Solving static step  ";
+    LOG_TRACE(itersolvestep) << "----------------------\n";
+    
+    UInt iter = 0;
+    bool normsReached = false;
+    std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
+
+    PtrParamNode actNode = convNode_->Get("step",ParamNode::APPEND); 
+    actNode->Get("number")->SetValue(actStep_);
+    if (nonLinLogging_) {
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+        actNode->Get("quantity")->Get("name")->SetValue(quantityName);
+      }
+    }
+    
+    // Create a stream for logging the convergence. It will be used in the end,
+    // if no convergence was achieved to report the status of the lastest iteration.
+    std::stringstream msg;
+    UInt width[4] = {20, 10, 15, 15}; // define widths for convergence output
+    while (iter < maxiter_ &&  (! normsReached)) {
+      LOG_DBG(itersolvestep) << "\n";
+      LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
+
+      // --------------------------------------
+      //  1) Re-Set all convergence criterions
+      // --------------------------------------
+      LOG_DBG(itersolvestep) << "Calling StartSampling for criterions";
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+        convIt->second->StartSampling();
+      }
+
+      // -----------------------------------
+      //  2) Calculate Sinlge PDEs
+      // -----------------------------------
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+
+        LOG_DBG(itersolvestep) << "Processing PDE '" << 
+            rPDE_.PDEs_[i]->GetName() << "'";
+
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
+        rPDE_.PDEs_[i]->GetSolveStep()->PreStepStatic();
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepStatic();
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
+      } // end of for-loop
+
+
+      // -----------------------------------
+      //  3) Compute Coupling Criterions
+      // -----------------------------------
+      normsReached = true;
+      msg.str(""); // clear logging information stream
+      msg << std::setw(width[0]) << "Quantity"
+          << std::setw(width[1]) << "Converged"
+          << std::setw(width[2]) << "Norm"
+          << std::setw(width[3]) << "Goal" << std::endl
+          << std::setw(width[0]+width[1]+width[2]+width[3]);
+      msg << std::setfill('-') << "" << std::setfill(' ') << std::endl;
+      
+      LOG_DBG(itersolvestep) << "Calling StopSampling for criterions";
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+        convIt->second->StopSampling();
+        
+
+        // Obtain norm
+        Double norm = convIt->second->GetNorm();
+        normsReached &= convIt->second->Converged();
+        if (nonLinLogging_) {
+          std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+          PtrParamNode itNode =actNode->GetByVal("quantity","name", quantityName)
+                      ->Get("iteration",ParamNode::APPEND);
+          itNode->Get("count")->SetValue(iter+1);
+          itNode->Get("norm")->SetValue(norm);
+          itNode->Get("converged")->SetValue(convIt->second->Converged());
+          
+          // put information also to message stream
+          msg << std::setw(width[0]) << quantityName 
+              << std::setw(width[1]) << (convIt->second->Converged() ? "yes" : "no")
+              << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
+              << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
+              << std::endl;
+        }
+      }
+      iter++;
+    } // end of while-loop
+    
+    LOG_DBG(itersolvestep) << "Finished loop in " << iter << " iterations";
+    
+    actNode->Get("numIters")->SetValue(iter);
+    if (iter >= maxiter_ && !normsReached) {
+      actNode->Get("converged")->SetValue(normsReached);
+      if( stopOnDivergence_ ) {
+        EXCEPTION("Iterative PDE coupling did not converge\n\n" << msg.str());
+      } else {
+        WARN("Iterative PDE coupling did not converge\n\n" << msg.str());
+      }
+    } else {
+      actNode->Get("converged")->SetValue(normsReached); 
+    }
+    
+    // now we are converged and can compute any postprocessing-quantities
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->PostStepStatic();
+  }
+
+
+  //----------------------- TRANSIENT-----------------------------------------
+  
+  void IterSolveStep::InitTimeStepping() {
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      rPDE_.PDEs_[i]->GetSolveStep()->InitTimeStepping();
+    }
+  }
+  
+  void IterSolveStep::PreStepTrans()
+  {
+  }
+  
+  
+  
+  void IterSolveStep::SolveStepTrans() {
+
+    LOG_TRACE(itersolvestep) << "--------------------------------------"; 
+    LOG_TRACE(itersolvestep) <<" Solving transient step " << actStep_ 
+                             << ", t = " << actTime_;
+    LOG_TRACE(itersolvestep) << "--------------------------------------\n";
+    
+    UInt iter = 0;
+    bool normsReached = false;
+    std::map<SolutionType, shared_ptr<ConvCriterion> >::iterator convIt;
+
+
+    PtrParamNode actNode = convNode_->Get("step",ParamNode::APPEND); 
+    actNode->Get("number")->SetValue(actStep_);
+    if (nonLinLogging_) {
+
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        convIt->second->ResetValues();
+        std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+        actNode->Get("quantity")->Get("name")->SetValue(quantityName);
+      }
+    }
+    // Create a stream for logging the convergence. It will be used in the end,
+    // if no convergence was achieved to report the status of the lastest iteration.
+    std::stringstream msg;
+    UInt width[4] = {20, 10, 15, 15}; // define widths for convergence output
+    while (iter < maxiter_ &&  (! normsReached)) {
+      LOG_DBG(itersolvestep) << "\n";
+      LOG_DBG(itersolvestep) << "=== Iteration #" << iter+1 << "===";
+
+      //std::cout << "=== Iteration #" << iter+1 << "===" << std::endl;
+
+      // --------------------------------------
+      //  1) Re-Set all convergence criterions
+      // --------------------------------------
+      LOG_DBG(itersolvestep) << "Calling StartSampling for criterions";
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        convIt->second->StartSampling();
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+      }
+
+      // -----------------------------------
+      //  2) Calculate Single PDEs
+      // -----------------------------------
+      for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+
+        LOG_DBG(itersolvestep) << "Processing PDE '" << 
+            rPDE_.PDEs_[i]->GetName() << "'";
+
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep_);
+        rPDE_.PDEs_[i]->GetSolveStep()->SetCouplingIter(iter);
+        rPDE_.PDEs_[i]->GetSolveStep()->PreStepTrans();
+        rPDE_.PDEs_[i]->GetSolveStep()->SolveStepTrans();
+        rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
+      } // end of for-loop
+
+
+      // -----------------------------------
+      //  3) Compute Coupling Criterions 
+      // -----------------------------------
+      normsReached = true;
+      msg.str(""); // clear logging information stream
+      msg << std::setw(width[0]) << "Quantity"
+               << std::setw(width[1]) << "Converged"
+               << std::setw(width[2]) << "Norm"
+               << std::setw(width[3]) << "Goal" << std::endl
+               << std::setw(width[0]+width[1]+width[2]+width[3]);
+      msg << std::setfill('-') << "" << std::setfill(' ') << std::endl;
+      
+      LOG_DBG(itersolvestep) << "Calling StopSampling for criterions";
+      for( convIt = criterions_.begin(); 
+          convIt != criterions_.end(); ++convIt ) {
+        LOG_DBG3(itersolvestep) << "\t" << SolutionTypeEnum.ToString(convIt->first);
+        convIt->second->StopSampling();
+        
+
+        // Obtain norm
+        Double norm = convIt->second->GetNorm();
+        normsReached &= convIt->second->Converged();
+        if (nonLinLogging_) {
+          std::string quantityName = SolutionTypeEnum.ToString(convIt->first);
+          PtrParamNode itNode =actNode->GetByVal("quantity","name", quantityName)
+                  ->Get("iteration",ParamNode::APPEND);
+          itNode->Get("count")->SetValue(iter+1);
+          itNode->Get("norm")->SetValue(norm);
+          itNode->Get("converged")->SetValue(convIt->second->Converged());
+
+          // put information also to message stream
+          msg << std::setw(width[0]) << quantityName 
+              << std::setw(width[1]) << (convIt->second->Converged() ? "yes" : "no")
+              << std::setw(width[2]) << std::setiosflags(std::ios::scientific) << norm
+              << std::setw(width[3]) << std::setiosflags(std::ios::scientific) << convIt->second->GetFinalNorm()
+              << std::endl;
+
+          //std::cout << "Quantity " << quantityName << " :" << norm << std::endl;
+        }
+      }
+      iter++;
+    } // end of while-loop
+    
+    LOG_DBG(itersolvestep) << "Finished loop in " << iter << " iterations";
+
+    actNode->Get("numIters")->SetValue(iter);
+    if (iter >= maxiter_ && !normsReached) {
+
+      actNode->Get("converged")->SetValue(normsReached);
+      if( stopOnDivergence_ ) {
+        EXCEPTION("Iterative PDE coupling did not converge\n\n" << msg.str());
+      } else {
+        WARN("Iterative PDE coupling did not converge\n\n" << msg.str());
+      }
+    } else {
+      actNode->Get("converged")->SetValue(normsReached); 
+    }
+    
+    // now we are converged and can compute any postprocessing-quantities
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++)
+      rPDE_.PDEs_[i]->GetSolveStep()->PostStepTrans();
+  } 
+
+  //----------------------- HARMONIC---------------------------------------
+  void IterSolveStep::PreStepHarmonic()
+  {
+  }
+  
+  void IterSolveStep::SolveStepHarmonic()
+  {
+    EXCEPTION("Harmonic iterative coupling is not yet implemented"); 
+  }
+
+
+  void IterSolveStep::SetActTime( const Double actTime )
+  {
+
+    actTime_ = actTime;
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActTime(actTime);
+    }
+  }
+
+  void IterSolveStep::SetActFreq( const Double actFreq )
+  {
+
+    actFreq_ = actFreq;
+    
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == BasePDE::HARMONIC )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActFreq(actFreq);
+    }
+  }
+
+  void IterSolveStep::SetActStep( const UInt actStep )
+  {
+    
+    actStep_ = actStep;
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(actStep);
+      // Dirty Hack!!
+      else if ( actAnalysisType_ == BasePDE::HARMONIC )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetActStep(1);
+    }
+  }
+
+
+  void IterSolveStep::SetNumTimeSteps( UInt numTimeStep)
+  {
+
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == BasePDE::TRANSIENT ) {
+        rPDE_.PDEs_[i]->GetSolveStep()->SetNumTimeSteps(numTimeStep);
+        numTimeStep_=numTimeStep;
+      }
+    }
+  }
+
+  void IterSolveStep::SetStartStep( const UInt startStep )
+  {
+    
+    for (UInt i=0; i<rPDE_.PDEs_.GetSize(); i++) {
+      actAnalysisType_ = rPDE_.PDEs_[i]->GetAnalysisType();
+
+      if ( actAnalysisType_ == BasePDE::TRANSIENT )
+        rPDE_.PDEs_[i]->GetSolveStep()->SetStartStep(startStep);
+    }
+  }
+
+    
+} // end of namespace

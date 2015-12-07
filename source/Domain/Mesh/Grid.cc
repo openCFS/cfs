@@ -1,0 +1,1983 @@
+#include "Grid.hh"
+#include "NcInterfaces/BaseNcInterface.hh"
+#include "NcInterfaces/MortarInterface.hh"
+
+
+#include <cmath>
+#include <string>
+#include <limits>
+#include <boost/scoped_array.hpp>
+
+#ifdef USE_LIBFBI
+#include <fbi/tuplegenerator.h> //TraitsGenerator
+#include <fbi/fbi.h> //SetA::intersect
+#include <fbi/tuple.h>
+#endif
+
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
+#include "General/Exception.hh"
+#include "Utils/mathfunctions.hh"
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "Domain/Domain.hh"
+
+#include "Domain/CoordinateSystems/CoordSystem.hh"
+
+namespace CoupledField
+{
+
+  // declare class specific logging stream
+  DECLARE_LOG(grid)
+  DEFINE_LOG(grid, "grid")
+
+  Grid::Grid(PtrParamNode param, PtrParamNode infoNode)
+  {
+    isInitialized_ = false; // set by FinishInit()
+    isAxi_ = false;
+    param_ = param;
+    info_ = infoNode;
+    
+    region_.SetName("Grid::region");
+    region_.Add(ALL_REGIONS, "all");
+    
+    integScheme_.reset( new IntScheme() );
+
+    // in addition, add always the NO_REGION to the enum
+    region_.Add( NO_REGION_ID, "_NO_REGION_");
+
+    numOMPThreads_ = 1;
+
+#ifdef _OPENMP
+    numOMPThreads_ = omp_get_max_threads();
+#endif
+
+    elemShapeMapOrig_.Resize(numOMPThreads_);
+    lastShapeElemNumOrig_.Resize(numOMPThreads_);
+
+    elemShapeMapUpdated_.Resize(numOMPThreads_);
+    lastShapeElemNumUpdated_.Resize(numOMPThreads_);
+
+    //elemShapeMapOrig2nd_.Resize(numOMPThreads_);
+    //lastShapeElemNumOrig2nd_.Resize(numOMPThreads_);
+    //
+    //elemShapeMapUpdated2nd_.Resize(numOMPThreads_);
+    //lastShapeElemNumUpdated2nd_.Resize(numOMPThreads_);
+
+    UInt slotsToReserve = 6;
+    for(UInt aT = 0; aT < numOMPThreads_; aT++){
+      lastShapeElemNumOrig_[aT].Reserve(slotsToReserve);
+      lastShapeElemNumUpdated_[aT].Reserve(slotsToReserve);
+      elemShapeMapOrig_[aT].Reserve(slotsToReserve);
+      elemShapeMapUpdated_[aT].Reserve(slotsToReserve);
+    }
+    //  this->elemShapeMapOrig_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapUpdated_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapOrig2nd_[aT].reset(new LagrangeElemShapeMap(this));
+    //  this->elemShapeMapUpdated2nd_[aT].reset(new LagrangeElemShapeMap(this));
+    //
+    //  this->lastShapeElemNumOrig_[aT] = 0;
+    //  this->lastShapeElemNumUpdated_[aT] = 0;
+    //
+    //  this->lastShapeElemNumOrig2nd_[aT] = 0;
+    //  this->lastShapeElemNumUpdated2nd_[aT] = 0;
+    //}
+
+  }
+
+  Grid::~Grid()
+  {
+  }
+
+  Grid::RegionData::RegionData()
+  {
+    name = "";
+    id   = -1;
+    type = NOT_SET;
+    type_idx = -1;
+    regular = false;
+    homogeneous = true;
+    barycenters = false;
+  }
+
+  double Grid::CalcGridVolume(bool updated)
+  {
+    double s = 0.0;
+    for(unsigned int i = 0; i < volRegionIds_.GetSize(); i++)
+      s += CalcVolumeOfRegion(volRegionIds_[i], updated);
+
+    return s;
+  }
+
+  Matrix<double>& Grid::CalcGridBoundingBox(CoordSystem* sys, bool force_3D)
+  {
+    Matrix<double>& box = grid_bounding_box_;
+    if(box.GetNumRows() == 0)
+    {
+      // set the box ignoring force_3D!
+      if(sys == NULL) sys = domain->GetCoordSystem();
+
+      StdVector<RegionIdType> regs;
+      GetVolRegionIds(regs);
+
+      Matrix<double> tmp;
+
+      for(unsigned int r = 0; r < regs.GetSize(); r++)
+      {
+        CalcBoundingBoxOfRegion(regs[r], tmp, sys);
+
+        LOG_DBG(grid) << "CGBB: tmp rows= " << tmp.GetNumRows() << " cols = " << tmp.GetNumCols();
+        LOG_DBG(grid) << "CGBB: " << r << " regs[r]reg=" << regs[r] << " = " << region_.ToString(regs[r]) << " bb=" << tmp.ToString(0, false);
+        if(r == 0) // the first region is the first guess
+          box = tmp;
+        else
+        {
+          for(unsigned int d = 0; d < tmp.GetNumRows(); d++)
+          {
+            box[d][0] = std::min(box[d][0], tmp[d][0]);
+            box[d][1] = std::max(box[d][1], tmp[d][1]);
+          }
+        }
+      }
+    }
+
+    // now the box is set but it might be that force_3D is ignored
+    // this also works if box was created in a previous call but with another force_3D parameter
+    if(GetDim() == 2 && ((!force_3D && box.GetNumRows() == 3) || (force_3D && box.GetNumRows() == 2)))
+    {
+      Matrix<double> tmp(force_3D ? 3 : 2,2);
+      tmp.Assign(box, 1.0, true); // size tolerant
+      box = tmp;
+    }
+    return box;
+  }
+
+  shared_ptr<ElemShapeMap> Grid::GetElemShapeMap(const Elem* ptElem, bool isUpdated, bool secondary)
+  {
+   //  shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+   //  ret->SetElem(ptElem, isUpdated );
+   //  return ret;
+    UInt aThread = 0;
+#ifdef OPENMP
+    int at = omp_get_thread_num();
+    if(at<0){
+      EXCEPTION("Current thread number is negative, this may not happen!")
+    }
+    //do we need to check anything?
+    aThread = (UInt)at;
+#endif
+    if(elemShapeMapUpdated_[aThread].GetSize() > 10){
+      WARN("More than 10 cached elemShapeMaps detected. This is unlikely to happen. Check for memory overflow.");
+    }
+
+    if(isUpdated)
+    {
+      Integer idx = lastShapeElemNumUpdated_[aThread].Find(ptElem->elemNum);
+      if(idx>=0){
+        ////check for special element number 0 in case of mortar interface elements
+        if(ptElem->elemNum==0){
+          //still, there may be situations in which some object still holds references
+          //this is just due to the incosistent element numbering of mortarNcElems, as well as
+          //the projected master construct. We will have to fix this or find another way around
+          if(elemShapeMapUpdated_[aThread][(UInt)idx].use_count()>1){
+            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+            ret->SetElem(ptElem, isUpdated );
+            return ret;
+          }else{
+            elemShapeMapUpdated_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+          }
+        }
+        //even if we found it, we can only return it, if we really have reference count==1
+        //this is because we have cached variables inside the class itself...
+        // thereby, if we just return it, it can happen that the cached shape function
+        // inside the shape map class becomes outdated which is dangerous
+        // decision by element number is a piece of crap. we can cache some shape maps
+        // to avoid memory reallocation but otherwise, it just does not work out
+        return elemShapeMapUpdated_[aThread][(UInt)idx];
+      }else{
+        //iterate over vector, reset entry with refernce count == 1 push back to vector otherwise
+        for(UInt aIdx =0;aIdx<elemShapeMapUpdated_[aThread].GetSize();aIdx++){
+         if(elemShapeMapUpdated_[aThread][aIdx].use_count()==1){
+            elemShapeMapUpdated_[aThread][aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumUpdated_[aThread][aIdx] = ptElem->elemNum;
+            return elemShapeMapUpdated_[aThread][aIdx];
+          }
+        }
+        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
+        newMap->SetElem(ptElem, isUpdated );
+        elemShapeMapUpdated_[aThread].Push_back(newMap);
+        lastShapeElemNumUpdated_[aThread].Push_back(ptElem->elemNum);
+        return newMap;
+      }
+    }
+    else // the not updated version
+    {
+      Integer idx = lastShapeElemNumOrig_[aThread].Find(ptElem->elemNum);
+      if(idx>=0){
+        ////check for special element number 0 in case of mortar interface elements
+        if(ptElem->elemNum==0){
+          //still, there may be situations in which some object still holds references
+          //this is just due to the incosistent element numbering of mortarNcElems, as well as
+          //the projected master construct. We will have to fix this or find another way around
+          if(elemShapeMapOrig_[aThread][(UInt)idx].use_count()>1){
+            shared_ptr<ElemShapeMap> ret(new LagrangeElemShapeMap(this));
+            ret->SetElem(ptElem, isUpdated );
+            return ret;
+          }else{
+            elemShapeMapOrig_[aThread][(UInt)idx]->SetElem(ptElem, isUpdated );
+          }
+        }
+        return elemShapeMapOrig_[aThread][(UInt)idx];
+      }
+      else // idx is zero
+      {
+        //iterate over vector, reset entry with reference count == 1 push back to vector otherwise
+        for(UInt aIdx =0;aIdx<elemShapeMapOrig_[aThread].GetSize();aIdx++){
+         if(elemShapeMapOrig_[aThread][aIdx].use_count()==1){
+            elemShapeMapOrig_[aThread][aIdx]->SetElem(ptElem, isUpdated );
+            lastShapeElemNumOrig_[aThread][aIdx] = ptElem->elemNum;
+            return elemShapeMapOrig_[aThread][aIdx];
+          }
+        }
+        shared_ptr<ElemShapeMap> newMap(new LagrangeElemShapeMap(this));
+        newMap->SetElem(ptElem, isUpdated );
+        elemShapeMapOrig_[aThread].Push_back(newMap);
+        lastShapeElemNumOrig_[aThread].Push_back(ptElem->elemNum);
+        return newMap;
+      }
+    }
+    // 1) check for use of secondary element shape map
+
+
+    //if ( !secondary ) {
+    //  // === Primary element maps ===
+    //  if( isUpdated ) {
+    //    if (ptElem->elemNum != lastShapeElemNumUpdated_[aThread]) {
+    //      elemShapeMapUpdated_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumUpdated_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapUpdated_[aThread];
+    //  } else {
+    //    if (ptElem->elemNum != lastShapeElemNumOrig_[aThread]) {
+    //      elemShapeMapOrig_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumOrig_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapOrig_[aThread];
+    //  }
+    //} else {
+    //  // === Secondary element maps ===
+    //  if( isUpdated ) {
+    //    if (ptElem->elemNum != lastShapeElemNumUpdated2nd_[aThread]) {
+    //      elemShapeMapUpdated2nd_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumUpdated2nd_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapUpdated2nd_[aThread];
+    //  } else {
+    //    if (ptElem->elemNum != lastShapeElemNumOrig2nd_[aThread]) {
+    //      elemShapeMapOrig2nd_[aThread]->SetElem(ptElem, isUpdated );
+    //      lastShapeElemNumOrig2nd_[aThread] = ptElem->elemNum;
+    //    }
+    //    return elemShapeMapOrig2nd_[aThread];
+    //  }
+    //}
+  }
+  
+  RegionIdType Grid::AddRegion(const std::string& name, bool reg)
+  {
+    RegionData rd;
+    rd.name = name;
+    rd.regular = reg;
+    rd.id   = regionData.GetSize();
+    regionData.Push_back(rd);
+    region_.Add(rd.id, rd.name);
+
+    nameTypeMap_[name] = EntityList::REGION;
+
+    return rd.id;
+  }
+
+  void Grid::AddRegions(const StdVector<std::string> & names, StdVector<RegionIdType> & ids)
+  {
+    ids.Resize(names.GetSize());
+
+    for(unsigned int i = 0; i < names.GetSize(); i++)
+      ids[i] = AddRegion(names[i]);
+  }
+
+  RegionIdType Grid::AddRegion(const std::string& name, RegionType type)
+  {
+    // Check if entities with given name exist already
+    if( nameTypeMap_.find( name) != nameTypeMap_.end() )
+      EXCEPTION("Entities with name " << name << " are already defined");
+
+    if(!isInitialized_)
+      EXCEPTION("Cannot add a region to an uninitialized grid!");
+
+    RegionIdType id = AddRegion(name);
+    regionData[id].type = type;
+
+    StdVector<Elem*> dummy_elems;
+    std::set<UInt> dummy_nodes;
+
+    if(type == SURFACE_REGION)
+    {
+      regionData[id].type_idx = surfRegionIds_.GetSize();
+      surfRegionIds_.Push_back(id);
+      surfElems_.Push_back(dummy_elems);
+      numSurfElemNodes_.Push_back(0);
+    }
+    else
+    {
+      regionData[id].type_idx = volRegionIds_.GetSize();
+      volRegionIds_.Push_back(id);
+      volElems_.Push_back(dummy_elems);
+      numVolElemNodes_.Push_back(0);
+    }
+
+    return id;
+  }
+
+
+  UInt Grid::GetNumVolRegions()
+  {
+    return volRegionIds_.GetSize();
+  }
+
+  UInt Grid::GetNumSurfRegions()
+  {
+    return surfRegionIds_.GetSize();
+  }
+
+  UInt Grid::GetNumNodes(const StdVector<RegionIdType>& regions) const
+  {
+    UInt numNodes = 0;
+
+    for (UInt i=0; i < regions.GetSize(); i++)
+      numNodes += GetNumNodes(regions[i]);
+    return numNodes;
+  }
+
+
+  bool Grid::IsRegionRegular(StdVector<RegionIdType>& regions) const
+  {
+    bool regular = true;
+
+    for(unsigned int i = 0; i < regions.GetSize(); i++)
+      if(!regionData[regions[i]].regular)
+        regular = false;
+
+    return regular;
+  }
+
+  void Grid::GetRegionNames( StdVector<std::string>& regionNames )
+  {
+    regionNames.Resize(regionData.GetSize());
+
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+      regionNames[i] = regionData[i].name;
+  }
+
+
+  void Grid::GetVolRegionIds( StdVector<RegionIdType> & volRegions ) {
+    volRegions = volRegionIds_;
+  }
+
+  void Grid::GetSurfRegionIds( StdVector<RegionIdType> & surfRegions ) {
+
+    surfRegions = surfRegionIds_;
+  }
+  
+
+  const Elem* Grid::GetElemAtGlobalCoord(const Vector<double>& globCoord,
+                                         LocPoint& locCoord,
+                                         const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                         bool printWarnings) {
+    
+    StdVector<Vector<Double> > globCoords(1);
+    StdVector<LocPoint> lps;
+    StdVector<const Elem*> elems;
+    globCoords[0] = globCoord;
+    globCoords[0].Resize(GetDim());
+    GetElemsAtGlobalCoords( globCoords, lps, elems, srcEntities);
+    if( elems.GetSize() == 0 && printWarnings ) {
+      WARN( "Could not find element at global position " << globCoord.ToString() );
+    }
+    locCoord = lps[0];
+    return elems[0];
+  }
+
+  void Grid::GetElemsAtGlobalCoords( const StdVector<Vector<double> >& globCoords,
+                                     StdVector< LocPoint >& localCoords,
+                                     StdVector< const Elem* > & elems,
+                                     const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                     Double globalTol, Double localTol,
+                                     bool printWarnings) {
+
+    // 1) first, determine element candidates for each point, determined by
+    //    intersection of bounding-boxes. The algorithm used depends on the
+    //    library used (CGAL, own one, libfbi)
+    const UInt numPts = globCoords.GetSize();
+    StdVector<PointElemMatch> matches( numPts );
+    for( UInt i = 0; i < numPts; ++i ) {
+     matches[i].globCoord = globCoords[i];
+    }
+    
+    MapPointsToBoundingBoxes( matches, srcEntities, globalTol );
+
+    // Debug information about found macthes
+//    std::cerr << "Found the following matches:\n";
+//    for( UInt i = 0; i < numPts; ++i ) {
+//      std::cerr << "coord: " <<matches[i].globCoord.ToString() << std::endl;
+//      std::cerr << "matches # " << matches[i].matches.size() << ":\n\t";
+//      std::set<const Elem*>::const_iterator it = matches[i].matches.begin();
+//      for( ; it != matches[i].matches.end(); ++it ) {
+//        std::cerr << (*it)->elemNum << ", ";
+//      }
+//      std::cerr<< "\n";
+//    }// loop over all matches
+    
+    // 2) Afterwards loop over all candidates 
+    MapGlobPointsToLoc( matches, elems, localCoords, localTol, printWarnings );
+  }
+  
+  const Elem* Grid::GetElemAtNode( UInt nodeNum,
+                                   LocPoint& locCoord,
+                                   const std::set<RegionIdType>& srcRegions ) {
+    const Elem* ret = NULL;
+    // check if nodes were already mapped
+    if( !midNodeProjections_.size() ) {
+      // Perform mapping of mid-side nodes
+      MapMidSideNodes();
+    }
+    boost::unordered_map<UInt, NodeElemMatch>::const_iterator it;
+    it = midNodeProjections_.find(nodeNum); 
+    if( it != midNodeProjections_.end() ) {
+      const NodeElemMatch& matches = it->second;
+      const UInt size = matches.GetSize();
+      for( UInt i = 0; i < size; ++i ) {
+        if( srcRegions.find(matches[i].first->regionId) != srcRegions.end() ) {
+          ret = (matches[i]).first;
+          locCoord = (matches[i]).second;
+          break;
+        }
+      }
+    }
+    return ret;
+  }
+  
+  
+  UInt Grid::SetElementBarycenters(RegionIdType reg, bool updated)
+  {
+    RegionData& rd = regionData[reg];
+
+    if(rd.barycenters) return 0;
+
+    // our operation target
+    StdVector<Elem*>& elems = rd.type == VOLUME_REGION ? volElems_[rd.type_idx] : surfElems_[rd.type_idx];
+    for(UInt i = 0;  i < elems.GetSize(); i++)
+      GetElemShapeMap(elems[i], updated)->CalcBarycenter(elems[i]->extended->barycenter);
+
+    rd.barycenters = true; // don't do it again!
+
+    return elems.GetSize();
+    return 0;
+  }
+
+  shared_ptr<EntityList> Grid::GetEntityList( EntityList::ListType listType,
+                                              const std::string& name ) {
+
+    // First check, if there any entites with this name at all
+    if( nameTypeMap_.find( name) == nameTypeMap_.end() ) {
+      EXCEPTION( "There are no entities with name '" << name
+                 << "' in the mesh" ) ;
+    }
+
+    EntityList::DefineType entityType = nameTypeMap_[name];
+
+    shared_ptr<EntityList> ret;
+
+    // check, if name denotes a list of surface elements
+    bool isSurface = false;
+    if( GetEntityDim(name) == GetDim()-1 ) {
+      isSurface = true;
+    }
+    
+    if( listType == EntityList::ELEM_LIST ) {
+      shared_ptr<ElemList> eList;
+      if( isSurface ) {
+        eList.reset(new SurfElemList(this) );
+      } else {
+        eList.reset( new ElemList(this) );
+      }
+      if( entityType == EntityList::REGION ) {
+        RegionIdType regionId = GetRegion().Parse( name );
+        eList->SetRegion( regionId);
+      } else {
+        eList->SetNamedElems( name );
+      }
+      ret = eList;
+
+    } else if( listType == EntityList::SURF_ELEM_LIST ) {
+      shared_ptr<SurfElemList> surfList ( new SurfElemList(this) );
+      if( entityType == EntityList::REGION ) {
+        RegionIdType regionId = GetRegion().Parse( name );
+        surfList->SetRegion( regionId);
+      } else {
+        surfList->SetNamedElems( name );
+      }
+      ret = surfList;
+
+    } else if( listType == EntityList::NODE_LIST ) {
+      shared_ptr<NodeList> nodeList ( new NodeList(this) );
+      // Check if name describes a nodeList
+      if( entityType == EntityList::NAMED_NODES ) {
+        StdVector<std::string> nodeNames;
+        GetListNodeNames( nodeNames );
+        nodeList->SetNamedNodes( name );
+      } else if( entityType == EntityList::NAMED_ELEMS ) {
+          nodeList->SetNamedNodes( name );
+      } else if( entityType == EntityList::REGION ) {
+        RegionIdType regionId = GetRegion().Parse( name );
+        nodeList->SetNodesOfRegion( regionId );
+      } else {
+        EXCEPTION("GetEntityList with NODE_LIST works only with regions"
+                  << " and named nodes!" );
+      }
+      ret = nodeList;
+    } else if( listType == EntityList::REGION_LIST ) {
+      shared_ptr<RegionList> regionList ( new RegionList(this) );
+      if( entityType == EntityList::REGION ) {
+        RegionIdType regionId = GetRegion().Parse( name );
+        regionList->SetRegion( regionId );
+      } else if (entityType){
+        EXCEPTION( "GetEntityList with REGION_LIST works only with regions!" );
+      }
+      ret = regionList;
+    } else if( listType == EntityList::NAME_LIST ) {
+      shared_ptr<NameList> nameList =
+          shared_ptr<NameList>( new NameList(this) );
+      nameList->SetName( name );
+      ret = nameList;
+    } else {
+      EXCEPTION( "Type '" << listType << "' describes no EntityList which is created "
+                 << "by the grid-class." );
+    }
+
+    return ret;
+
+  }
+  
+  EntityList::DefineType Grid::GetEntityType( const std::string& name ) const {
+    EntityList::DefineType ret = EntityList::NO_TYPE;
+    std::map<std::string, EntityList::DefineType>::const_iterator it;
+    it = nameTypeMap_.find(name);
+    if( it != nameTypeMap_.end() ){
+      ret = it->second;
+    }
+    return ret;  
+  }
+  
+  UInt Grid::GetEntityDim( const std::string& name ) const {
+    UInt dim = 0;
+    std::map<std::string, UInt>::const_iterator it = entityDim_.find(name);
+    if( it != entityDim_.end() ){
+      dim = it->second;
+    } else {
+      EXCEPTION( "No entities with name '" << name << "' are defined in the grid")
+    }
+    return dim;  
+  }
+  
+  
+  void Grid::Dump()
+  {
+    StdVector<Elem*>   elems;
+
+    std::cout << "Grid: elements=" << GetNumElems() << " nodes=" << GetNumNodes() << std::endl;
+
+    for(UInt i = 0; i < regionData.GetSize(); i++)
+    {
+      GetElems(elems, i);
+
+      std::cout << "region: " << regionData[i].name << " id=" << i << " elements=" << elems.GetSize() <<  std::endl;
+    }
+  }
+
+  // =========================================================================
+  // NONCONFORMING INTERFACES SECTION
+  // =========================================================================
+
+  void Grid::InitNcInterfacesFromXML() {
+    // if no param object is present, just leave
+    if (!param_) return;
+
+    // check if there is a ncInterfaceList, if not just leave
+    PtrParamNode nciListNode = param_->Get("domain")
+                  ->Get("ncInterfaceList", ParamNode::PASS);
+    if (!nciListNode) return;
+
+    ParamNodeList nciList = nciListNode->GetList("ncInterface");
+    UInt numNCIs = nciList.GetSize();
+    ncInterfaces_.Reserve(numNCIs);
+
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+    }
+  }
+
+  shared_ptr<BaseNcInterface> Grid::GetNcInterface(NcInterfaceId ncId) const {
+    if ( ncId < ncInterfaces_.GetSize() ) {
+      return ncInterfaces_[ncId];
+    } else {
+      EXCEPTION("NcInterface with ID " << ncId << " is unknown.");
+    }
+  }
+
+  Grid::NcInterfaceId Grid::GetNcInterfaceId(const std::string &name) const {
+    std::map< std::string, NcInterfaceId >::const_iterator ncId
+        =nciNameMap_.find(name);
+    if ( ncId != nciNameMap_.end() ) {
+      return ncId->second;
+    } else {
+      EXCEPTION("NcInterface with name '" << name << " is unknown.");
+    }
+  }
+
+  Grid::NcInterfaceId Grid::AddNcInterface(shared_ptr<BaseNcInterface> ncIf) {
+    ncInterfaces_.Push_back(ncIf);
+    if ( ncIf->GetName().length() > 0 ) {
+      nciNameMap_[ncIf->GetName()] = ncInterfaces_.GetSize()-1;
+    }
+    return ncInterfaces_.GetSize()-1;
+  }
+
+  void Grid::MoveNcInterfaces() {
+    StdVector< shared_ptr<BaseNcInterface> >::iterator it = ncInterfaces_.Begin(),
+        itEnd = ncInterfaces_.End();
+
+    //Here some special things need to be done
+    //basically this code is very experimental and may fail in many
+    //situations. anyhow, we first remove the NCInterface nodes and update
+    //in a second step
+    for ( ; it != itEnd; ++it) {
+      (*it)->ResetInterface();
+    }
+    it = ncInterfaces_.Begin();
+    for ( ; it != itEnd; ++it) {
+      (*it)->UpdateInterface();
+    }
+  }
+  
+  
+  bool Grid::IsSurfacePlanar(const StdVector<SurfElem*>& ifaceElems) const
+  {
+    std::set<Integer> ifaceNodes;
+    std::set<Integer>::iterator it,end;
+    Vector<Double> pv1, pv2, pv3;
+    Vector<Double> v1, v2, normal, n;
+    Double innerProd = 0.0, norm1 = 0.0, norm2 = 0.0;
+    Double eps = 1e-15;
+    UInt pnum=0; // number of point in ifaceNodes
+    UInt dim = GetDim();
+
+    // Determine set of points on interface.
+    for(UInt i=0; i<ifaceElems.GetSize(); i++)
+    {
+      for(UInt j=0; j<ifaceElems[i]->connect.GetSize(); j++)
+      {
+        ifaceNodes.insert(ifaceElems[i]->connect[j]);
+      }
+    }
+
+    normal.Resize(3);
+    normal[0] = 0.0;
+    normal[1] = 0.0;
+    normal[2] = 0.0;
+
+    // Loop through all interface points and determine if they are coplanar.
+    for(it=ifaceNodes.begin(), end=ifaceNodes.end(); it!=end; it++)
+    {
+      if(pnum == 0)
+        // Get coordinates of first point.
+        GetNodeCoordinate(pv1, (*it));
+      else if(pnum == 1)
+      {
+        // Get coordinates of second point, compute vector
+        // from first to second point and normalize it.
+        GetNodeCoordinate(pv2, (*it));
+        v1 = pv2 - pv1;
+        // Normalize v1.
+        norm1 = v1.Normalize();
+        if(norm1 < eps)
+          norm1 = 0.0;
+      }
+      else
+      {
+        // Get coordinate of point pnum, compute vector
+        // from first to point pnum and normalize it.
+        GetNodeCoordinate(pv3, (*it));
+        v2 = pv3 - pv1;
+
+        // Normalize v2.
+        norm2 = v2.Normalize();
+        if(norm2 < eps)
+          norm2 = 0.0;
+
+        // If point pnum and the first point coincide
+        // both points are on the interface -> continue.
+        if(norm2 == 0.0)
+          continue;
+
+        // If the first and second point coincide we need
+        // a new vector v1 to get the direction of the interface.
+        if(norm1 == 0.0)
+        {
+          v1 = v2;
+          norm1 = norm2;
+          // We don't want to compare the vector to itself!
+          continue;
+        }
+
+        switch(dim)
+        {
+        case 2:
+          // Compute the inner product of v1 and v2. If the vectors
+          // point to the same direction the result must be 1
+          v1.Inner(v2, innerProd);
+
+          if((1.0 - std::fabs(innerProd)) >= eps)
+            return false;
+
+          break;
+
+        case 3:
+          if(normal.NormL2() == 0)
+          {
+            v1.CrossProduct(v2, normal);
+
+            // We may not use a zero-normal vector to perform our
+            // test for coplanarity.
+            if(normal.NormL2() < eps)
+            {
+              normal[0] = 0.0;
+              normal[1] = 0.0;
+              normal[2] = 0.0;
+              continue;
+            }
+            normal.Normalize();
+            continue;
+          }
+          v1.CrossProduct(v2, n);
+
+          // If the norm of n is smaller than eps we have multiplied
+          // linearly dependant vectors -> a point in the plane
+          // has been found.
+          if(n.NormL2() < eps)
+          {
+            continue;
+          }
+
+          n.Normalize();
+
+          n.Inner(normal, innerProd);
+
+          // At this place we should have either linearly dependant normal
+          // and n vectors or they face to different directions.
+          // The value of innerProd indicates what is the case.
+          if((1.0 - std::fabs(innerProd)) >= eps)
+            return false;
+
+          break;
+        }
+
+      }
+      pnum++;
+    }
+
+    return true;
+  }
+
+  void Grid::SurfRegionFromVolRegions(
+    const std::string& surfRegionName,
+    const std::string& region1,
+    const std::string& region2) {
+
+    StdVector<SurfElem*> newSurfaceElems;
+    StdVector<Elem*> region1Elems;
+    StdVector<UInt> region2Nodes;
+    StdVector<UInt> surfElemIds;
+    RegionIdType region1Id;
+    RegionIdType region2Id;
+    RegionIdType surfRegionId;
+    Elem* el;
+    SurfElem* surfEl;
+
+    if(GetDim() != 2)
+      EXCEPTION("SurfRegionFromVolRegions is only implemented for 2D!");
+
+    if(region2 == "NO_REGION") {
+      SurfRegionFromSingleVolRegion(surfRegionName, region1);
+      return;
+    }
+
+    region1Id = GetRegion().Parse(region1);
+    region2Id = GetRegion().Parse(region2);
+
+    this->GetElems(region1Elems, region1Id);
+    this->GetNodesByRegion(region2Nodes, region2Id);
+
+    UInt nElemsRegion1 = region1Elems.GetSize();
+    UInt numCorners;
+    // UInt lastCornerInRegion2;
+
+    for(UInt i=0; i<nElemsRegion1; i++) {
+      el = region1Elems[i];
+      numCorners = Elem::shapes[el->type].numVertices;
+      // lastCornerInRegion2 = 0;
+      for(UInt n=0; n<numCorners; ) {
+        if(region2Nodes.Find(el->connect[n]) < 0) {
+          n++;
+          continue;
+        }
+
+        if(region2Nodes.Find(el->connect[(n+1) % numCorners]) < 0) {
+          n+=2;
+          continue;
+        }
+
+        surfEl = new SurfElem();
+        surfEl->connect.Resize(3);
+        surfEl->connect[0] = el->connect[n];
+        surfEl->connect[1] = el->connect[(n+1) % numCorners];
+        surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
+
+        switch(el->type) {
+        case Elem::ET_TRIA6:
+        case Elem::ET_QUAD8:
+        case Elem::ET_QUAD9:
+          surfEl->connect[2] = el->connect[n+numCorners];
+          surfEl->type = Elem::ET_LINE3;
+          break;
+        default:
+          break;
+        }
+
+        newSurfaceElems.Push_back(surfEl);
+
+        n++;
+      }
+    }
+
+    if(newSurfaceElems.GetSize() != 0)
+    {
+      surfRegionId = AddSurfaceRegion(surfRegionName);
+      AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
+    }
+
+  }
+
+  StdVector<UInt> Grid::GetBoundaries(RegionIdType region)
+  {
+    StdVector<UInt> n(3);
+    n.Init(0.0);
+    if(!IsRegionRegular(region))
+      return n;
+
+    StdVector<double> min(3);
+    StdVector<double> max(3);
+    UInt dim = this->GetDim();
+    min.Init(1e10);
+    max.Init(1e-10);
+
+    StdVector <Elem*> elems;
+    this->GetElems(elems,region);
+
+    this->SetElementBarycenters(0,false);
+    for (UInt i = 0; i < elems.GetSize(); ++i) {
+      for (UInt j = 0; j < dim; ++j) {
+        if (elems[i]->extended->barycenter[j] > max[j])
+          max[j] = elems[i]->extended->barycenter[j];
+        if (elems[i]->extended->barycenter[j] < min[j])
+          min[j] = elems[i]->extended->barycenter[j];
+      }
+    }
+
+    // Computes lattice spacing
+    StdVector<double> spacing; // the output
+    GetElemShapeMap(elems[0], false)->GetEdgeLength(spacing);
+
+    if (dim == 2)
+      n[2] = 1;
+    for (UInt i = 0; i < dim; ++i)
+      n[i] = 1.00001 * (max[i] - min[i]) / spacing[i] + 1;
+
+    LOG_DBG2(grid) << "GB(" << region << ") min=" << min.ToString() << " max=" << max.ToString() << " spacing=" << spacing.ToString() << " -> " << n.ToString();
+
+    return n;
+  }
+
+  void Grid::SurfRegionFromSingleVolRegion(
+    const std::string& surfRegionName,
+    const std::string& region)
+  {
+    StdVector<SurfElem*> newSurfaceElems;
+    StdVector<Elem*> regionElems;
+    StdVector<UInt> regionNodes;
+    StdVector<UInt> surfElemIds;
+    std::map<UInt, UInt> edgeCounts;
+    RegionIdType regionId;
+    RegionIdType surfRegionId;
+    Elem* el;
+    SurfElem* surfEl;
+
+    regionId = GetRegion().Parse(region);
+
+    this->GetElems(regionElems, regionId);
+    this->GetNodesByRegion(regionNodes, regionId);
+
+    UInt nElemsRegion = regionElems.GetSize();
+    UInt numEdges;
+    //    UInt lastCornerOnBnd;
+
+    for(UInt i=0; i<nElemsRegion; i++) {
+      el = regionElems[i];
+      // get number of edges
+      numEdges = Elem::shapes[el->type].numEdges;
+      for(UInt n=0; n<numEdges; n++) {
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
+        edgeCounts[edgeNum]++;
+      }
+    }
+
+    for(UInt i=0; i<nElemsRegion; i++) {
+      el = regionElems[i];
+      // get number of edges
+      numEdges = Elem::shapes[el->type].numEdges;
+      for(UInt n=0; n<numEdges; n++) {
+        UInt edgeNum = el->extended->edges[n] < 0 ? -el->extended->edges[n] : el->extended->edges[n];
+        if(edgeCounts[edgeNum] != 1)
+        {
+          n++;
+          continue;
+        }
+
+
+        /*
+                  UInt cornerCount1 = cornerCounts[el->connect[n]];
+                  UInt cornerCount2 = cornerCounts[el->connect[(n+1) % numCorners]];
+
+                  switch(cornerCount1) {
+                  case 1:
+                  case 2:
+                  if(cornerCount2 > 3) {
+                  n+=2;
+                  continue;
+                  }
+                  break;
+                  case 3:
+                  if(cornerCount2 > 2) {
+                  n+=2;
+                  continue;
+                  }
+                  break;
+                  default:
+                  n++;
+                  continue;
+                  }
+                  /*
+                  if(cornerCount1 > 2) {
+                  n++;
+                  continue;
+                  }
+
+                  if(cornerCount1 > 2) {
+                  n+=2;
+                  continue;
+                  }
+        */
+
+        surfEl = new SurfElem();
+        surfEl->connect.Resize(3);
+        surfEl->connect[0] = el->connect[n];
+        surfEl->connect[1] = el->connect[(n+1) % numEdges];
+        surfEl->type = Elem::ET_LINE2;
+        surfEl->extended = new ExtendedElementInfo;
+
+        switch(el->type) {
+          case Elem::ET_TRIA6:
+          case Elem::ET_QUAD8:
+          case Elem::ET_QUAD9:
+            surfEl->connect[2] = el->connect[n+numEdges];
+            surfEl->type = Elem::ET_LINE2;
+            break;
+          default:
+            break;
+        }
+
+        newSurfaceElems.Push_back(surfEl);
+
+        n++;
+      }
+    }
+
+    if(newSurfaceElems.GetSize() != 0)
+    {
+      surfRegionId = AddSurfaceRegion(surfRegionName);
+      AddSurfaceElems( surfRegionId, newSurfaceElems, surfElemIds);
+    }
+
+  }
+
+  void Grid::GetElemNums( boost::unordered_set<UInt>& elemNums, 
+                          std::set<UInt>& dims,
+                          const StdVector<shared_ptr<EntityList> >& entities ) {
+    elemNums.clear();
+    // Loop over entities
+    for( UInt i = 0; i < entities.GetSize(); ++i ) {
+      UInt dim = GetEntityDim(entities[i]->GetName());
+      dims.insert(dim);
+      StdVector<UInt> elemNumVec;
+      GetElemNumsByName(elemNumVec, entities[i]->GetName());
+      elemNums.insert(elemNumVec.Begin(), elemNumVec.End());
+    }
+  }
+  
+  // =======================================================================
+  //  ELEMENT / POINT MAPPING
+  // =======================================================================
+
+  
+  void Grid::MapGlobPointsToLoc( const StdVector<PointElemMatch>& matches,
+                                 StdVector<const Elem*>& elems,
+                                 StdVector<LocPoint>& lps,
+                                 Double tol,
+                                 bool printWarnings) {
+    
+    
+    UInt numMatches = matches.GetSize(); 
+    elems.Resize(numMatches);
+    lps.Resize(numMatches);
+    elems.Init( NULL );
+
+    // loop over matches, perform global->local mapping of coordinates
+    // and check, if coordinate is really contained in this element
+#pragma omp parallel for
+    for( UInt iM = 0; iM < numMatches; ++iM ) {
+      std::set<const Elem*>::const_iterator it;
+      Vector<Double> locCoord;
+      const std::set<const Elem*> & mElems = matches[iM].matches;
+      StdVector<const Elem*> candidateElem, vagueCandElem;
+      StdVector<LocPoint>  candidateLp, vagueCandLp;
+
+      
+      // loop over elements
+      for( it = mElems.begin(); it != mElems.end(); ++it ) {
+
+        // check, if global point can be mapped to the element
+        shared_ptr<ElemShapeMap> esm = GetElemShapeMap(*it);
+        esm->Global2Local(locCoord, matches[iM].globCoord );
+        if( esm->CoordIsInsideElem(locCoord, 0.0) ) {
+          candidateElem.Push_back( *it );
+          candidateLp.Push_back( locCoord );
+        } else if ( esm->CoordIsInsideElem(locCoord, tol) ) {
+          vagueCandElem.Push_back( *it );
+          vagueCandLp.Push_back( locCoord );
+        }
+      }
+
+      // Check, how many elements have been found
+      if ( candidateElem.GetSize() == 0 ) {
+        if ( vagueCandElem.GetSize() > 0 ) {
+          elems[iM] = vagueCandElem[0];
+          lps[iM] = vagueCandLp[0];
+        } else if (printWarnings) {
+          WARN( "No element found for location "
+                << matches[iM].globCoord.ToString() );
+        }
+      } else {
+        elems[iM] = candidateElem[0];
+        lps[iM] = candidateLp[0];
+      }
+    }
+  }
+  
+  void Grid::CreateBBoxFromElement(const Elem* elem,
+                                   Double globToler,
+                                   Double* bbox,
+                                   double updated)
+  {
+    Vector<Double> p;
+    Double& xmin = bbox[0];
+    Double& xmax = bbox[3];
+    Double& ymin = bbox[1];
+    Double& ymax = bbox[4];
+    Double& zmin = bbox[2];
+    Double& zmax = bbox[5];
+
+    // Create an exact bounding box from all corner nodes.
+    GetNodeCoordinate(p, elem->connect[0],updated);
+    UInt globalDim = p.GetSize();
+
+    xmin = xmax = p[0];
+    ymin = ymax = p[1];
+    if(globalDim == 2) {
+      zmin = zmax = 0.0;
+    }
+    else {
+      zmin = zmax = p[2];
+    }
+
+    for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
+    {
+      GetNodeCoordinate(p, elem->connect[j],updated);
+      xmin = (p[0] < xmin) ? p[0] : xmin;
+      xmax = (p[0] > xmax) ? p[0] : xmax;
+      ymin = (p[1] < ymin) ? p[1] : ymin;
+      ymax = (p[1] > ymax) ? p[1] : ymax;
+      if (globalDim == 3) {
+        zmin = (p[2] < zmin) ? p[2] : zmin;
+        zmax = (p[2] > zmax) ? p[2] : zmax;
+      }
+    }
+
+    // Calculate a diameter of the  element in each coordinate direction.  Use
+    // L2-length of element for directions in which no diameter is available.
+    shared_ptr<ElemShapeMap> esm = GetElemShapeMap(elem,updated);
+    Vector<Double> dia;    
+    esm->CalcDiameter(dia);
+    UInt elemDim = dia.GetSize();
+    Double length = NormL2(&dia[0], elemDim);
+    if(elemDim < 3) 
+    {
+      Vector<Double> tmpDia = dia;
+      dia.Resize(3);
+      for( UInt i=0; i<tmpDia.GetSize(); ++i ) {
+        dia[i] = tmpDia[i];
+      }
+      for(UInt i=elemDim; i<3; i++) 
+      {
+        dia[i] = length;
+      }
+    }    
+
+    xmin -= globToler*dia[0];
+    xmax += globToler*dia[0];
+    ymin -= globToler*dia[1];
+    ymax += globToler*dia[1];
+    zmin -= globToler*dia[2];
+    zmax += globToler*dia[2];
+  }
+
+#ifdef USE_CGAL
+
+  // ========================================================================
+  //  C G A L  -  S P E C I F I C   I M P L E M E N T A T I O N
+  // ========================================================================
+  
+
+  //! Define box handler, which additionally stores an index
+  typedef CGAL::Box_intersection_d
+      ::Box_with_handle_d<double,3,const UInt*> HandleBox;
+
+
+  typedef CGAL::Bbox_3 BBox3D;
+  
+  // Iterator reporter class, returning the two ids of the CGAL-Boxes,
+  // the first being the element number, the second being the node index
+  template <class OutputIterator>
+  struct CGAL_ElemPointIdReporter {
+    OutputIterator it;
+    CGAL_ElemPointIdReporter(OutputIterator i  ) 
+    : it(i) {} // store iterator in object
+
+    // We write the id-number of box a to the output iterator assuming
+    // that box b (the query box) is not interesting in the result.
+    void operator()( const HandleBox& a, const HandleBox& b) {
+      UInt elemNum = *a.handle();
+      UInt pointIndex = *b.handle();
+      std::pair<UInt, UInt > pair;
+      pair.first = pointIndex;
+      pair.second = elemNum;
+      *it++ = pair;
+    }
+  };
+  // helper function to create the function object
+  template <class Iter> 
+  CGAL_ElemPointIdReporter<Iter> elemPointIdReporter(Iter it) 
+  { return CGAL_ElemPointIdReporter<Iter>(it); }
+
+  
+  
+
+  HandleBox Grid::CreateBoxFromCoord( const Vector<double>& coords, UInt* id,
+                                      Double tol )
+  {
+    if(coords.GetSize()==2){
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0, 0.0,
+                              coords[0]+tol/2.0, coords[1]+tol/2.0, 0.0), id);
+    }else{
+      return HandleBox(BBox3D(coords[0]-tol/2.0, coords[1]-tol/2.0,
+                              coords[2]-tol/2.0, coords[0]+tol/2.0,
+                              coords[1]+tol/2.0, coords[2]+tol/2.0), id);
+    }
+  }
+
+  void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                       Double tol ) {
+    boost::array<Double,6> bbox;
+
+    // If we haven't initialized the grid bounding boxes yet, do so now!
+    if(elemBoxes_.empty())
+    {
+      StdVector<Elem*> elems;
+      Vector<Double> p(3);
+      GetElems(elems, ALL_REGIONS);
+      
+      // Loop over dimensions
+      for( UInt dim = 1; dim <= GetDim(); ++dim ) {
+        std::vector<HandleBox> & boxes = elemBoxes_[dim];
+        UInt size = this->GetNumElemOfDim(GetDim());
+
+        boxes.reserve( size );
+        for(UInt i = 0; i < elems.GetSize(); i++)       {
+          // immediately leave, if the dimension of the element is 
+          // lower-dimensional
+          if( Elem::shapes[elems[i]->type].dim != dim ) 
+            continue;
+
+          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
+
+          HandleBox hbox(BBox3D(bbox[0], bbox[1], bbox[2],
+                                bbox[3], bbox[4], bbox[5]),
+                         &elems[i]->elemNum);
+
+          boxes.push_back( hbox );
+        }
+      } //loop: dimension
+    }
+    
+    // Get all element numbers and their dimension
+    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> dims;
+    if( srcEntities.GetSize() != 0 ) {
+      GetElemNums(elemNums, dims, srcEntities);
+    } else {
+      dims.insert(1);
+      dims.insert(GetDim());
+      dims.insert(GetDim()-1);
+    }
+    
+    // now set up box list containing the point coordinates
+    UInt numPoints = matches.GetSize();
+    std::vector<HandleBox> pointBoxes (numPoints);
+    
+    // create also temporary index array (will be automatically deleted)
+    boost::scoped_array<UInt> nodeIndices(new UInt[numPoints]);
+    
+    for( UInt i = 0; i < numPoints; ++i ) {
+      nodeIndices[i] = i;
+      pointBoxes[i] = CreateBoxFromCoord( matches[i].globCoord,
+                                          &nodeIndices[i], tol );
+    }
+    
+    // Loop over all dimensions
+    std::set<UInt>::const_iterator dimIt = dims.begin();
+    for( ; dimIt != dims.end(); ++dimIt ) {
+      UInt dim = *dimIt;
+      std::vector<HandleBox> & boxes = elemBoxes_[dim];
+
+      // run the intersection algorithm and store results in a vector
+      std::vector< std::pair<UInt, UInt > > result;
+      CGAL::box_intersection_d( boxes.begin(), boxes.end(),
+                                pointBoxes.begin(), pointBoxes.end(),
+                                elemPointIdReporter( std::back_inserter( result )));
+
+      // now loop over all results and store for each point all candidate elements
+      // if they are contained in the desired regions
+      std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
+      for(; it != result.end(); ++it ) {
+        UInt pointIndex = it->first;
+        UInt elemNum = it->second;
+        const Elem* ptEl = GetElem(elemNum);
+        if( elemNums.size() ) { 
+          if( elemNums.find(ptEl->elemNum) != elemNums.end() ) {
+            matches[pointIndex].matches.insert(ptEl);
+          }
+        } else {
+          matches[pointIndex].matches.insert(ptEl);
+        }
+      }
+    }
+  }
+  
+
+//  void Grid::ComputeConservativeInterpolationWeights(const ElemList& destElemList,
+//          const NodeList& sourceNodeList,
+//          const std::string& coordSysId,
+//          ciTolerance& globalEpsilon,
+//          ciTolerance& localEpsilon,
+//          Double z,
+//          Double zEpsilon,
+//          std::vector< std::map<UInt, Double> >& consInterpWeights,
+//          StdVector<UInt> &unmapped_nodes)
+//  {
+//    EXCEPTION("Not yet adjusted to new implementation");
+//    Double xmin, ymin, xmax, ymax, zmin, zmax;
+//    Double globEps, locEps;
+//    UInt i;
+//    UInt dim = GetDim();
+//    UInt numSourceNodes = sourceNodeList.GetSize(); // number of nodes in source region
+//    UInt numActualSourceNodes = 0; // actual number of nodes to be interpolated
+//    CoordSystem* coordSys = domain->GetCoordSystem(coordSysId);
+//    Grid* source = sourceNodeList.GetGrid();
+//    UInt srcDim = source->GetDim();
+//    Point p;
+//    StdVector<UInt> sourceNodeNumbers, sourceNodeIndices;
+//    Vector<Double> point;
+//    Vector<Double> globPoint;
+//    std::vector< Vector<Double> > nodeCoords;
+//    std::vector<HandleBox> elemBoxes2;
+//
+//    // initialize memory of interpolation weights, if necessary
+//    if (consInterpWeights.empty())
+//      consInterpWeights.resize(numSourceNodes);
+//
+//    // initialize memory for coordinates of source nodes
+//    nodeCoords.resize(numSourceNodes);
+//    for (UInt i=0; i<numSourceNodes; ++i) {
+//      nodeCoords[i].Clear();
+//    }
+//
+//    // If we haven't initialized the gstd::crid bounding boxes yet, do so now!
+//    if (elemBoxes_.empty()) {
+//      
+//      elemBoxes_.reserve( destElemList.GetSize() );
+//      const Elem* elem = NULL;
+//
+//      for(UInt i = 0, m=destElemList.GetSize(); i < m; ++i)
+//      {
+//        elem = destElemList.GetElem(i);
+//        GetNodeCoordinate(p, elem->connect[0]);
+//
+//        xmin = xmax = p[0];
+//        ymin = ymax = p[1];
+//        zmin = zmax = p[2];
+//
+//        for(UInt j = 1, n=elem->connect.GetSize(); j < n; ++j)
+//        {
+//          GetNodeCoordinate(p, elem->connect[j]);
+//          xmin = p[0] < xmin ? p[0] : xmin;
+//          xmax = p[0]> xmax ? p[0] : xmax;
+//          ymin = p[1] < ymin ? p[1] : ymin;
+//          ymax = p[1]> ymax ? p[1] : ymax;
+//          zmin = p[2] < zmin ? p[2] : zmin;
+//          zmax = p[2]> zmax ? p[2] : zmax;
+//        }
+//
+//        elemBoxes_.push_back( HandleBox(BBox3D(xmin, ymin, zmin, xmax, ymax, zmax),
+//                              &elem->elemNum) );
+//
+//        //std::cout << "element " << elems[i]->elemNum << " BBox3D (" << xmin
+//        //          << ", " << ymin << ", " << zmin << ") (" << xmax <<  ", "
+//        //          << ymax << ", " << zmax << ")" << std::endl;
+//
+//      }
+//    }
+//
+//    // check that tolerances make sense
+//    if (globalEpsilon.end < globalEpsilon.start)
+//      globalEpsilon.end = globalEpsilon.start;
+//    if (globalEpsilon.inc == 0.0) {
+//      if (globalEpsilon.start == 0.0)
+//        globalEpsilon.inc = 1.0e-6;
+//      else
+//        globalEpsilon.inc = globalEpsilon.start;
+//    }
+//    if (localEpsilon.end < localEpsilon.start)
+//      localEpsilon.end = localEpsilon.start;
+//    if (localEpsilon.inc == 0.0) {
+//      if (localEpsilon.start == 0.0)
+//        localEpsilon.inc = 1.0e-3;
+//      else
+//        localEpsilon.inc = localEpsilon.start;
+//    }
+//
+//    // loop over tolerance ranges
+//    for (locEps = localEpsilon.start;
+//         locEps <= localEpsilon.end;
+//         locEps += localEpsilon.inc) {
+//
+//      // global tolerance is inner loop, because
+//      // it doesn't cause numerical errors
+//      for (globEps = globalEpsilon.start;
+//           globEps <= globalEpsilon.end;
+//           globEps += localEpsilon.inc) {
+//
+//        EntityIterator it = sourceNodeList.GetIterator();
+//        sourceNodeNumbers.Clear();
+//        sourceNodeIndices.Clear();
+//        elemBoxes2.clear();
+//        i=0;
+//
+//        // create a list of nodes that still need to be interpolated
+//        while (!it.IsEnd())
+//        {
+//          if (!consInterpWeights.empty())
+//          {
+//            if (consInterpWeights[i].empty())
+//            {
+//              // If the source grid is 3D and the destination grid is 2D
+//              // we have to map the global source coordinates into the
+//              // local source coordinate sys and only use those nodes
+//              // with given z.
+//              if ( srcDim == 3 && dim == 2)
+//              {
+//                source->GetNodeCoordinate(point, it.GetNode(), true);
+//                coordSys->Global2LocalCoord(globPoint, point);
+//
+//                if ( std::fabs(globPoint[2] - z) < zEpsilon )
+//                {
+//                  sourceNodeNumbers.Push_back(it.GetNode());
+//                  sourceNodeIndices.Push_back(it.GetPos());
+//                }
+//              }
+//              else
+//              {
+//                sourceNodeNumbers.Push_back(it.GetNode());
+//                sourceNodeIndices.Push_back(it.GetPos());
+//              }
+//            }
+//          }
+//          else
+//          {
+//            if ( srcDim == 3 && dim == 2)
+//            {
+//              source->GetNodeCoordinate(point, it.GetNode(), true);
+//              coordSys->Global2LocalCoord(globPoint, point);
+//
+//              if ( std::fabs(globPoint[2] - z) < zEpsilon )
+//              {
+//                sourceNodeNumbers.Push_back(it.GetNode());
+//                sourceNodeIndices.Push_back(it.GetPos());
+//              }
+//            }
+//            else
+//            {
+//              sourceNodeNumbers.Push_back(it.GetNode());
+//              sourceNodeIndices.Push_back(it.GetPos());
+//            }
+//
+//          }
+//
+//          it++;
+//          ++i;
+//        }
+//
+//        numActualSourceNodes = sourceNodeNumbers.GetSize();
+//
+//        if (numActualSourceNodes == 0)
+//          return;
+//
+//        // add global tolerance to bounding boxes
+//        for(UInt n=0; n<numActualSourceNodes; ++n)
+//        {
+//          source->GetNodeCoordinate(point, sourceNodeNumbers[n], true);
+//          coordSys->Global2LocalCoord(nodeCoords[sourceNodeIndices[n]], point);
+//
+//          // subtract origin here!
+//          if(dim == 3)
+//            elemBoxes2.push_back(HandleBox(
+//                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
+//                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
+//                       nodeCoords[sourceNodeIndices[n]][2]-globEps,
+//                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
+//                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
+//                       nodeCoords[sourceNodeIndices[n]][2]+globEps),
+//                  &sourceNodeIndices[n]));
+//          else
+//            elemBoxes2.push_back(HandleBox(
+//                BBox3D(nodeCoords[sourceNodeIndices[n]][0]-globEps,
+//                       nodeCoords[sourceNodeIndices[n]][1]-globEps,
+//                       0.0,
+//                       nodeCoords[sourceNodeIndices[n]][0]+globEps,
+//                       nodeCoords[sourceNodeIndices[n]][1]+globEps,
+//                       0.0),
+//                  &sourceNodeIndices[n]));
+//        }
+//
+//        // run the intersection algorithm and store results in a vector
+//
+//        CGAL::box_intersection_d( elemBoxes_.begin(), elemBoxes_.end(),
+//                                  elemBoxes2.begin(), elemBoxes2.end(),
+//                                  GenConsInterpReportFunctor(destElemList,
+//                                      sourceNodeList,
+//                                      nodeCoords,
+//                                      locEps,
+//                                      consInterpWeights));
+//      }
+//    }
+//
+//    for (UInt i=0; i<numActualSourceNodes; ++i) {
+//      if (consInterpWeights[sourceNodeIndices[i]].empty()) {
+//        // just add the number of the unmapped node.
+//        // DO NOT CLEAR the vector before this loop,
+//        // because this function is called several times.
+//        unmapped_nodes.Push_back(sourceNodeNumbers[i]);
+//      }
+//    }
+
+//  }
+
+//  Grid::ConsInterpReportFunctor::ConsInterpReportFunctor(const ElemList& destElemList,
+//                                                         const NodeList& sourceNodeList,
+//                                                         const std::vector< Vector<Double> >& nodeCoords,
+//                                                         Double localEpsilon,
+//                                                         std::vector< std::map<UInt, Double> >& consInterpWeights)
+//      : //destElemList_(destElemList),
+//      //sourceNodeList_(sourceNodeList),
+//        nodeCoords_(nodeCoords),
+//        localEpsilon_(localEpsilon),
+//        consInterpWeights_(consInterpWeights),
+//        nodeCounter_(0),
+//        percentage_(0),
+//        oldPercentage_(9)
+//    {
+//      numSourceNodes_ = consInterpWeights_.size();
+//      connect_.resize(64);
+//
+//      sourceGrid_ = sourceNodeList.GetGrid();
+//      destGrid_ = destElemList.GetGrid();
+//
+//      StdVector<UInt> destNodeNumbers;
+//      NodeList destNodeList(destGrid_);
+//      destNodeList.SetNodesOfRegion(destElemList.GetRegion());
+//      EntityIterator it = destNodeList.GetIterator();
+//      while(!it.IsEnd())
+//      {
+//        destNodeNumToPosMap_[it.GetNode()] = it.GetPos();
+//        it++;
+//      }
+//
+//      destNodeNumbers = destNodeList.GetNodes();
+//    } // store iterator in object
+//
+//  void Grid::ConsInterpReportFunctor::operator()( const HandleBox& a,
+//                                                  const HandleBox& b) {
+//      UInt destElemNum = *a.handle();
+//      UInt sourceNodeIndex = *b.handle();
+//      UInt dim = destGrid_->GetDim();
+//      UInt localDim;
+//      UInt numElemNodes;
+//      Elem::FEType type;
+//      RegionIdType region;
+//      Matrix<Double> coordMat;
+//      Matrix<Double> globCoordMat;
+//      Matrix<Double> localCoords;
+//      Vector<Double> point;
+//      StdVector<bool> coordsInside;
+//      Vector<Double> locCoords;
+//      const Elem* elem = NULL;
+//
+//      //      std::cout << "Elem Number " << elemNum << " <- " << sourceNodeNum << std::endl;
+//
+//      // If source to destination node map already contains entries
+//      // for the source node, refuse to do any further calculations
+//      // because weights already exist for this node.
+//      if(!consInterpWeights_[sourceNodeIndex].empty())
+//      {
+//        //        std::cout << "Rejecting mapping from source node index " << sourceNodeIndex << " to element " << destElemNum << std::endl;
+//        return;
+//      }
+//      
+//
+//      // Fill coordinate matrix with node coords of destination element
+//      destGrid_->GetElemData(destElemNum, type, region, &connect_[0]);
+//      numElemNodes = Elem::GetNumElemNodes(type);
+//      coordMat.Resize(dim, numElemNodes);
+//      for(UInt i=0; i<numElemNodes; i++)
+//      {
+//        destGrid_->GetNodeCoordinate(point, connect_[i], true);
+//        for(UInt j=0; j<dim; j++) {
+//          coordMat[j][i] = point[j];
+//        }
+//      }
+//
+//      // Fill global coordinate matrix for node of source grid
+//      globCoordMat.Resize(dim, 1);
+//      for(UInt j=0; j<dim; j++) {
+//        globCoordMat[j][0] = nodeCoords_[sourceNodeIndex][j];
+//      }
+//
+//      // Get local coordinate of source node in respect to potential
+//      // destination element
+//      elem = destGrid_->GetElem(destElemNum);
+//      elem->ptElem->Global2LocalCoords(localCoords, globCoordMat, coordMat);
+//      elem->ptElem->CoordsInsideElem(localCoords, localEpsilon_, coordsInside);
+//
+//      // If node is inside potential destination element, calculate
+//      // conservative interpolation weights.
+//      if(coordsInside[0])
+//      {
+//        localDim = localCoords.GetNumRows();
+//        locCoords.Resize(localDim);
+//
+//        for(UInt j=0; j<localDim; j++) {
+//          locCoords[j] = localCoords[j][0];
+//        }
+//
+//        // The vector S contains the values of the shape functions
+//        // at the local coordinate of the source node. These values
+//        // serve also as the interpolation weights.
+//        Vector<double> S;
+//        elem->ptElem->GetShFnc(S, locCoords, elem );
+//
+//        //        std::cout << "Local Coord: " << locCoords << std::endl;
+//        //        std::cout << "Shape functions: " << S << std::endl;
+//
+//        // Put weights into correct position of source -> destination
+//        // node map.
+//        for(UInt i=0; i<numElemNodes; i++)
+//        {
+//          UInt pos = destNodeNumToPosMap_[connect_[i]];
+//
+//          if(consInterpWeights_[sourceNodeIndex].find(pos) ==
+//             consInterpWeights_[sourceNodeIndex].end())
+//          {
+//            if(S[i] != 0.0)
+//            {
+//              consInterpWeights_[sourceNodeIndex][pos] = S[i];
+//            }
+//            //            std::cout << "Node: " << connect_[i] << ": " << S[i] << std::endl;
+//          }
+//        }
+//
+//        nodeCounter_++;
+//        percentage_ = (UInt)(100*(Double)nodeCounter_ / (Double)numSourceNodes_);
+//        if(((percentage_ % 10) == 0) && ((oldPercentage_ % 10) == 9))
+//        {
+//          //std::cout << percentage_ << "% done... " << std::endl;
+//          std::cout << "."; // use a short status display
+//        }
+//        oldPercentage_ = percentage_;
+//      }
+//#if 0
+//      else
+//      {
+//        std::cout << sourceNodeNum << ": Local Coord: " << localCoords[0][0] << " " << localCoords[1][0] << std::endl;
+//      }
+//#endif
+//    }
+
+#elif USE_LIBFBI // USE_CGAL
+
+} // end namespace CoupledField
+
+
+namespace fbi {
+  template<>
+  struct Traits<CoupledField::Elem*> : mpl::TraitsGenerator<double, double, double> {};
+  
+  template<>
+  struct Traits< CoupledField::Vector<Double>* > : mpl::TraitsGenerator<double, double, double> {};
+} // end namespace fbi
+
+namespace CoupledField {
+
+  struct ElemBoxGenerator
+  {
+    template <size_t N>
+    typename fbi::tuple_element<N,
+                                typename fbi::Traits<Elem*>::key_type>::type
+    get(const Elem*) const;
+    Grid* ptGrid_;
+    double globTol_;
+    UInt dim_;
+    ElemBoxGenerator(Grid* ptGrid, double globTol, UInt dim)
+      : ptGrid_(ptGrid), globTol_(globTol), dim_(dim) {}
+  };
+  
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<0>(const Elem* elem) const
+  {
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+
+    return std::make_pair(bbox[0], bbox[3]);
+  }
+  
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<1>(const Elem* elem) const
+  {
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+
+    return std::make_pair(bbox[1], bbox[4]);
+  }
+
+  template <>
+  std::pair<double, double>
+  ElemBoxGenerator::get<2>(const Elem* elem) const
+  {
+    // create bounding box array, with the following indices:
+    // [xmin, ymin,  zmin, xmax, ymax, zmax]
+    //   0     1      2     3     4     5
+    boost::array<Double,6> bbox;
+    
+    ptGrid_->CreateBBoxFromElement(elem, globTol_, &bbox[0]);
+
+    return std::make_pair(bbox[2], bbox[5]);
+  }
+
+  struct PointBoxGenerator
+  {
+    template <size_t N>
+    typename fbi::tuple_element<N,
+                                typename fbi::Traits< Vector<Double>* >::key_type>::type
+    get(const Vector<Double>*) const;
+    UInt dim_;
+    PointBoxGenerator(UInt dim)
+      : dim_(dim) {}
+  };
+  
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<0>(const Vector<Double>* p) const
+  {
+    return std::make_pair((*p)[0], (*p)[0]);
+  }
+  
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<1>(const Vector<Double>* p) const
+  {
+    return std::make_pair((*p)[1], (*p)[1]);
+  }
+
+  template <>
+  std::pair<double, double>
+  PointBoxGenerator::get<2>(const Vector<Double>* p) const
+  {
+    if(dim_ == 3) 
+    {
+      return std::make_pair((*p)[2], (*p)[2]);
+    }
+    else 
+    {
+      return std::make_pair(0, 0);
+    }    
+  }
+
+  void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                       Double tol ) {
+    std::vector< Elem* > elems;
+    std::vector< Vector<Double>* > points;
+    
+    StdVector<Elem*> allElems;
+    GetElems(allElems, ALL_REGIONS);
+
+    if(srcEntities.GetSize()) 
+    {
+      for( UInt i = 0; i < srcEntities.GetSize(); ++i ) {
+        EntityIterator it = srcEntities[i]->GetIterator();
+        for( ; !it.IsEnd(); it++ ) {
+          const Elem* ptEl = it.GetElem();
+          StdVector<Elem*>::iterator elIt;
+          elIt = std::find(allElems.Begin(), allElems.End(), ptEl);          
+          elems.push_back(*elIt);
+        }
+      }
+    }
+    else 
+    {
+      StdVector<Elem*> volElems;
+      GetVolElems(volElems, ALL_REGIONS);
+      std::copy(volElems.Begin(), volElems.End(), std::back_inserter(elems));
+    } 
+    
+    UInt numPts = matches.GetSize();
+    // Loop over all matches
+    for( UInt iPt = 0; iPt < numPts; ++iPt ) {
+      Vector<Double>* point = &matches[iPt].globCoord;
+      
+      points.push_back(point);
+    } // loop over points
+    
+    ElemBoxGenerator ebg(this, tol, GetDim());
+    PointBoxGenerator pbg(GetDim());
+
+    // For 2D:
+    //  auto adjList = fbi::SetA<Elem*, 0, 1>::SetB<Vector<Double>*, 0, 1>::intersect(
+    //    elems, ElemBoxGenerator(this, tol, GetDim()), points, PointBoxGenerator(GetDim()));
+    
+    fbi::SetA<Elem*, 0, 1, 2>::ResultType adjList;
+    adjList = fbi::SetA<Elem*, 0, 1, 2>::SetB<Vector<Double>*, 0, 1, 2>::intersect(
+      elems, ebg, points, pbg);
+    
+    typedef fbi::SetA<Elem*, 0, 1, 2>::IntType LabelType;
+    
+    for(UInt i=elems.size(), n=adjList.size(), ptIdx = 0;
+        i < n;
+        i++, ptIdx++ ) {
+      
+      std::vector<LabelType> queryResultIndexes = adjList[i];
+      std::vector<LabelType>::iterator it = queryResultIndexes.begin();
+      std::vector<LabelType>::iterator end = queryResultIndexes.end();
+      
+      // std::cout << "Size of queryResultIndexes for node: " << queryResultIndexes.size() << std::endl;
+      for( ; it != end; it++) 
+      {
+        const Elem* ptEl = elems[(*it)];
+        // std::cout << "Elem: " << ptEl->elemNum << std::endl;
+        matches[ptIdx].matches.insert(ptEl);
+      }    
+    }
+  }
+  
+#else // USE_CGAL
+  
+  // This is a very basic implementation for axis-parallel box intersection. It is just used
+  // as internal replacement in case we want to use valgrind and can not use CGAL.
+  void Grid::MapPointsToBoundingBoxes( StdVector<PointElemMatch>& matches,
+                                       const StdVector<shared_ptr<EntityList> >& srcEntities,
+                                       Double tol ) {
+
+    // obtain all volume elements from grid
+    StdVector<Elem*> elems;
+    GetElems(elems, ALL_REGIONS);
+    
+    // check, if element boxes are already initialized
+    if( elemBoxes_.size() == 0 ) {
+
+      Vector<Double> p(3);
+      
+      // Loop over dimensions
+      for( UInt dim = 1; dim <= GetDim(); ++dim ) {
+        StdVector<BoxType> & boxes = elemBoxes_[dim];
+        boxes.Reserve(GetNumElemOfDim(dim));
+
+        // loop over all elements
+        for(UInt i = 0, m=elems.GetSize(); i < m; i++)       {
+          Vector<Double> p(3);
+
+          // only map elements of the given dimension
+          if( Elem::shapes[elems[i]->type].dim != dim) 
+            continue;
+
+          // create bounding box array, with the following indices:
+          // [xmin, ymin,  zmin, xmax, ymax, zmax]
+          //   0     1      2     3     4     5
+          boost::array<Double,6> bbox;
+
+          CreateBBoxFromElement(elems[i], tol, &bbox[0]);
+          
+          // assemble tuple of (bounding box, element number)
+          boxes.Push_back(BoxType(bbox, elems[i]->elemNum));
+          
+//          std::cerr << "created box for elem #" << elems[i]->elemNum << " with \n\t"
+//              << bbox[0] << ", " 
+//              << bbox[1] << ", "
+//              << bbox[2] << ", "
+//              << bbox[3] << ", "
+//              << bbox[4] << ", "
+//              << bbox[5] << std::endl;
+        } //loop: elements
+      } //loop: dimensions
+    } // check for empty element boxes
+
+
+    // result vector (pair first: point-index, second: element number)
+    std::vector<std::pair<UInt, UInt> > result;
+    
+    
+    // Get all element numbers and their dimension
+    boost::unordered_set<UInt> elemNums;
+    std::set<UInt> dims;
+    if( srcEntities.GetSize() != 0 ) {
+      GetElemNums(elemNums, dims, srcEntities);
+    } else {
+      dims.insert(1);
+      dims.insert(GetDim());
+      dims.insert(GetDim()-1);
+    }
+    
+    UInt numPts = matches.GetSize();
+    result.reserve(numPts * 2); // assume 2 matches on average
+          
+    // Loop over all dimensions
+    std::set<UInt>::const_iterator dimIt = dims.begin();
+    for( ; dimIt != dims.end(); ++dimIt ) {
+      UInt dim = *dimIt;
+      StdVector<BoxType> & boxes = elemBoxes_[dim];
+      
+      // Loop over all elements of given dimension
+      UInt numElems = boxes.GetSize();
+
+      for( UInt iEl = 0; iEl < numElems; ++iEl ) {
+        const BoxType& actBox = boxes[iEl];
+        
+        const boost::array<Double,6> & eb = actBox.first;
+        UInt elemNum = actBox.second;
+//        const Elem* ptEl = GetElem(elemNum);
+//        std::cerr << "checking elem #" << ptEl->elemNum 
+//            << " with bbox \n\t " 
+//            << "x: [" << eb[0] << ", " << eb[3] << "] "
+//            << "y: [" << eb[1] << ", " << eb[4] << "] "
+//            << "y: [" << eb[2] << ", " << eb[5] << "] "
+//            << "\n----------------------------\n"; 
+
+        // Loop over all points and check bounding box
+        for( UInt iPt = 0; iPt < numPts; ++iPt ) {
+          const Vector<Double> & point = matches[iPt].globCoord;
+          if( point[0] >= eb[0] && point[0] <= eb[3]) {
+            if( point[1] >= eb[1] && point[1] <= eb[4]) {
+              if( dim == 3 ) {
+                if( point[2] >= eb[2] && point[2] <= eb[5]) {
+                  result.push_back(std::pair<UInt,UInt>(iPt, elemNum));
+                }
+              } else {
+                result.push_back(std::pair<UInt,UInt>(iPt, elemNum));
+              }
+            }
+          }
+        } // loop over points
+      } // loop over elements
+    } // loop over dimension
+
+    // now loop over all results and store for each point all candidate elements
+    // if they are contained in the desired regions
+    std::vector< std::pair<UInt, UInt> >::iterator it = result.begin();
+    for(; it != result.end(); ++it ) {
+      UInt pointIndex = it->first;
+      UInt elemNum = it->second;
+      const Elem* ptEl = GetElem(elemNum);
+      if( elemNums.size() ) { 
+        if( elemNums.find(ptEl->elemNum) != elemNums.end() ) {
+          matches[pointIndex].matches.insert(ptEl);
+        } else {
+          //
+        }
+      } else {
+        matches[pointIndex].matches.insert(ptEl);
+      }
+    }
+  }
+  
+
+#endif // USE_CGAL
+} // end of namespace

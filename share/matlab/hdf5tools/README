@@ -1,0 +1,6 @@
+Many test datasets included in test/data are produced by code generated
+by The HDF Group's "HDF5 Examples" web page,
+<http://www.hdfgroup.uiuc.edu/UserSupport/examples-by-api/>.  The image
+datasets were retrieved from The HDF Group's Image API tutorial at
+<http://www.hdfgroup.org/HDF5/Tutor/h5image.html>
+

@@ -1,0 +1,151 @@
+#include <fstream>
+#include <iostream>
+#include <string>
+
+#include "StaticDriver.hh"
+#include "Driver/SolveSteps/StdSolveStep.hh"
+
+#include "DataInOut/ParamHandling/ParamNode.hh"
+#include "DataInOut/ProgramOptions.hh"
+#include "PDE/StdPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
+#include "Domain/Domain.hh"
+#include "DataInOut/ResultHandler.hh"
+#include "DataInOut/SimState.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+
+DECLARE_LOG(stdr)
+DEFINE_LOG(stdr, "staticDriver")
+
+
+namespace CoupledField {
+
+  // ***************
+  //   Constructor
+  // ***************
+  StaticDriver::StaticDriver( UInt sequenceStep,
+                              bool isPartOfSequence,
+                              shared_ptr<SimState> state, Domain* domain,
+                              PtrParamNode paramNode, PtrParamNode infoNode ) 
+    : SingleDriver( sequenceStep, isPartOfSequence, state, domain, paramNode, infoNode )
+  {
+    analysis_ = BasePDE::STATIC;
+    param_ = param_->Get("static");
+    info_ = info_->Get("static");
+   
+    // read flag if all results should get written to database file section
+    // to allow e.g. for general postprocessing or result extraction
+    param_->GetValue("allowPostProc", writeAllSteps_, ParamNode::PASS );
+
+    lbm_ = false;
+  }
+
+  void StaticDriver::Init(bool restart)
+  {
+    InitializePDEs();
+  }
+
+
+  // **********************
+  //   Default destructor
+  // **********************
+  StaticDriver::~StaticDriver() {
+  }
+
+
+  // *****************
+  //   Solve problem
+  // *****************
+  void StaticDriver::SolveProblem()
+  {
+    LOG_DBG(stdr) << "SP: writeAllSteps_=" << writeAllSteps_ << " isPartOfSequence_=" << isPartOfSequence_
+                  << " sequenceStep_=" << sequenceStep_ << " analysis_=" << analysis_;
+
+    // Initialize first multisequence step, as the method "CheckStoreResults"
+    // relies on the result handler to know already about the current
+    // sequence step. However, in case of optimization, the sequence step
+    // gets initialized in Optimization::SolveProblem()
+    if(ptPDE_->GetName() == "LatticeBoltzmann")
+      lbm_ = true;
+    if(!domain_->GetOptimization()) {
+      if (lbm_)
+        handler_->BeginMultiSequenceStep( sequenceStep_, BasePDE::TRANSIENT, 9999);
+      else
+      handler_->BeginMultiSequenceStep( sequenceStep_, analysis_, 1);
+    }
+    // In case we allow general postprocessing or this analysis is part of 
+    // a multisequence (in which case the subsequent run could need this
+    // simulation as restart information)
+    if(writeAllSteps_ || isPartOfSequence_)
+      simState_->BeginMultiSequenceStep( sequenceStep_, analysis_ );
+
+    // set dummy time to zero
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
+    
+    // 'TimeStepping' is here the optimization iteration
+    ptPDE_->GetSolveStep()->SetActTime(0.0);
+    ptPDE_->GetSolveStep()->SetActStep(1);
+    
+    ptPDE_->GetSolveStep()->PreStepStatic();
+    ptPDE_->GetSolveStep()->SolveStepStatic();
+    
+    ptPDE_->GetSolveStep()->PostStepStatic();
+
+    // for LBM case we overwrite this data because we might write intermediate LBM iterations
+    int step = 0;
+    int numIter = 0;
+    if(lbm_) {
+      dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->Solve(); // might call many StoreResults() for intermediate steps
+      step = dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->GetNumWriteResults();
+      numIter = dynamic_cast<LatticeBoltzmannPDE*>(ptPDE_)->GetNumIterations();
+    }
+
+    // in optimization we write the results via StoreResults() because
+    // we don't necessarily write every forward step.
+    if(!domain->GetOptimization())
+    {
+      if (lbm_)
+        StoreResults(step+1,(double)numIter+1);
+      else
+        StoreResults(1,0.0);
+      handler_->FinishMultiSequenceStep();
+
+      if(!isPartOfSequence_)
+        handler_->Finalize(); // to be called only once in a HDF5 lifetime!
+    }
+    
+    if(writeAllSteps_ || isPartOfSequence_ ) { 
+      simState_->FinishMultiSequenceStep(true);
+    }
+  }
+  
+  void StaticDriver::SetToStepValue(UInt stepNum, Double stepVal ) {
+    // ensure that this method is only called if simState has input
+    if( ! simState_->HasInput()) {
+      EXCEPTION( "Can only set external time step, if simulation state "
+              << "is read from external file" );
+    }
+    
+    if( stepNum != 1 || stepVal > EPS ) {
+      EXCEPTION( "A static driver only has 1 step and its time value is 0.0!")
+    }
+    
+    
+    // For a static driver only stepNum == 1 and stepVal == 0.0 make sense
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "t", 0.0 );
+    mathParser_->SetValue( MathParser::GLOB_HANDLER, "step", 1 );    
+  }
+
+  void StaticDriver::StoreResults(UInt stepNum, double step_val)
+  {
+    assert(analysis_ == BasePDE::STATIC);
+
+    handler_->BeginStep(stepNum, step_val);
+    ptPDE_->WriteResultsInFile(stepNum, step_val);
+    ptPDE_->WriteGeneralPDEdefines();
+    handler_->FinishStep();
+    if( writeAllSteps_ || isPartOfSequence_ )
+      simState_->WriteStep(stepNum, step_val );
+  }
+
+} // end of namespace

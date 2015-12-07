@@ -1,0 +1,95 @@
+--- CGAL-3.3/install_cgal.build-library.bak	2007-05-30 14:05:18.000000000 +0200
++++ CGAL-3.3/install_cgal	2007-05-30 14:14:10.000000000 +0200
+@@ -937,7 +937,6 @@
+ 	    #### settings for sgi mipspro compiler on irix5
+ 	    CGAL_SHARED_LIB_CXXFLAGS=
+ 	    CGAL_SHARED_LIB_LDFLAGS="-lm"
+-	    RUNTIME_LINKER_FLAG="-rpath "
+ 	    PRINT_STACKTRACE_PROGRAM="dbx"
+ 	    ;;
+ 	*IRIX*6.*CC*7.3*)
+@@ -946,14 +945,12 @@
+ 	    ADDITIONAL_LDFLAGS="-LANG:std"
+ 	    CGAL_STATIC_LIB_CREATE="\$(CGAL_CXX) -ar -o''"
+ 	    CGAL_SHARED_LIB_CXXFLAGS=
+-	    RUNTIME_LINKER_FLAG="-rpath "
+ 	    PRINT_STACKTRACE_PROGRAM="dbx"
+ 	    ;;
+ 	*IRIX*6.*CC*)
+ 	    #### settings for sgi mipspro compiler on irix6
+ 	    CGAL_STATIC_LIB_CREATE="\$(CGAL_CXX) -ar -o''"
+ 	    CGAL_SHARED_LIB_CXXFLAGS=
+-	    RUNTIME_LINKER_FLAG="-rpath "
+ 	    PRINT_STACKTRACE_PROGRAM="dbx"
+ 	    ;;
+ 	*IRIX*g++*)
+@@ -961,7 +958,6 @@
+ 	    ADDITIONAL_CXXFLAGS="-Wall"
+ 	    LONG_NAME_PROBLEM_LDFLAGS="-U -s"
+ 	    CGAL_SHARED_LIB_LDFLAGS="-lm"
+-	    RUNTIME_LINKER_FLAG="-Xlinker -rpath -Xlinker "
+ 	    CGAL_SHARED_LIB_SONAME="-Wl,-soname,\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOMAJOR="\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+@@ -973,7 +969,6 @@
+ 	    CGAL_STATIC_LIB_CREATE="\$(CGAL_CXX) -xar -o ''"
+ 	    CGAL_SHARED_LIB_CXXFLAGS="-PIC"
+ 	    CGAL_SHARED_LIB_CREATE="\$(CGAL_CXX) -G"
+-	    RUNTIME_LINKER_FLAG="-R "
+ 	    PRINT_STACKTRACE_PROGRAM="dbx"
+ 	    CGAL_SHARED_LIB_SONAME="-Qoption ld -h\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+@@ -986,7 +981,6 @@
+ 	    LONG_NAME_PROBLEM_CXXFLAGS="-g"
+ 	    LONG_NAME_PROBLEM_LDFLAGS="-z nodefs -s"
+ 	    CGAL_SHARED_LIB_CREATE="\$(CGAL_CXX) -G"
+-	    RUNTIME_LINKER_FLAG="-R "
+ 	    CGAL_SHARED_LIB_SONAME="-h \$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOMAJOR="\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+@@ -995,7 +989,6 @@
+ 	    #### settings for g++ on alpha-linux (special FPU handling)
+ 	    #### LONG_NAME_PROBLEM is cured by disabling debugging
+ 	    ADDITIONAL_CXXFLAGS="-Wall -mieee -mfp-rounding-mode=d"
+-	    RUNTIME_LINKER_FLAG='-Wl,-R'
+ 	    CGAL_SHARED_LIB_SONAME="-Wl,-soname,\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOMAJOR="\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+@@ -1003,7 +996,6 @@
+ 	*Linux*g++*)
+ 	    #### settings for g++ on linux
+ 	    ADDITIONAL_CXXFLAGS="-Wall"
+-	    RUNTIME_LINKER_FLAG='-Wl,-R'
+ 	    CGAL_SHARED_LIB_SONAME="-Wl,-soname,\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOMAJOR="\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+@@ -1013,12 +1005,10 @@
+ 	    # -mp is required for correct enough floating point operations
+ 	    # necessary for interval arithmetic.
+ 	    ADDITIONAL_CXXFLAGS="-mp"
+-	    RUNTIME_LINKER_FLAG='-Wl,-R'
+ 	    PRINT_STACKTRACE_PROGRAM="idb"
+ 	    ;;
+ 	*Linux*pgCC*|*Linux*pgcpp*)
+ 	    #### settings for Portland Group Compiler on linux
+-	    RUNTIME_LINKER_FLAG='-Wl,-R'
+ 	    # PGCC has long name problems with "-g".
+ 	    DEBUG_OPT=""
+ 	    ;;
+@@ -1029,7 +1019,6 @@
+ 	    CGAL_STATIC_LIB_CREATE="\$(CGAL_CXX) -xar -o ''"
+ 	    CGAL_SHARED_LIB_CXXFLAGS="-PIC"
+ 	    CGAL_SHARED_LIB_CREATE="\$(CGAL_CXX) -G"
+-	    RUNTIME_LINKER_FLAG="-R "
+ 	    PRINT_STACKTRACE_PROGRAM="dbx"
+ 	    CGAL_SHARED_LIB_SONAME="-Qoption ld -h\$(CGAL_SHARED_LIBNAME).\$(SOMAJOR)"
+ 	    CGAL_SHARED_LIBNAME_WITH_SOVERSION="\$(CGAL_SHARED_LIBNAME).\$(SOVERSION)"
+@@ -4335,7 +4319,7 @@
+     _buildlog_marker="log for $1 $2 shown"
+ 
+     ${_printf} "%s %s\n" "${MAKE}" "${MAKE_OPTION}" > "${COMPILE_LOGFILE}"
+-    if ${MAKE} ${MAKE_OPTION} >"${COMPILE_LOGFILE}" 2>&1; then
++    if ${MAKE} ${MAKE_OPTION} | tee "${COMPILE_LOGFILE}" 2>&1; then
+ 	log_print "Compilation of $1 $2 ${_libname} succeeded."
+ 	log_print "vvvvvvvvvvvv build ${_buildlog_marker} below vvvvvvvvvvvv"
+ 	eval ${_cat} \"${COMPILE_LOGFILE}\" ${INSTALL_LOGFILE_REDIRECTION}
