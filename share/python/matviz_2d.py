@@ -704,11 +704,14 @@ def show_cross_bar(coords, s1, s2, s3, angle, direction, nx, scale, color, do_sa
       vmid = vidx[1]
       vmax = vidx[2]
       angle = [numpy.pi/2, -numpy.pi/4, numpy.pi/4]
-      pol = to_rectangle_center(length * v[vmin], length * sqrt(1+pow(sin(2*angle[vmin]),2)), angle[vmin], x_off, y_off)
+      #pol = to_rectangle_center(length * v[vmin], length * sqrt(1+pow(sin(2*angle[vmin]),2)), angle[vmin], x_off, y_off)
+      pol = to_rectangle_center(length * v[vmin], length, angle[vmin], x_off, y_off)
       draw_verts(pol, sub, c[vmin])
-      pol = to_rectangle_center(length * v[vmid], length * sqrt(1+pow(sin(2*angle[vmid]),2)), angle[vmid], x_off, y_off)
+      #pol = to_rectangle_center(length * v[vmid], length * sqrt(1+pow(sin(2*angle[vmid]),2)), angle[vmid], x_off, y_off)
+      pol = to_rectangle_center(length * v[vmid], length, angle[vmid], x_off, y_off)
       draw_verts(pol, sub, c[vmid])
-      pol = to_rectangle_center(length * v[vmax], length * sqrt(1+pow(sin(2*angle[vmax]),2)), angle[vmax], x_off, y_off)
+      #pol = to_rectangle_center(length * v[vmax], length * sqrt(1+pow(sin(2*angle[vmax]),2)), angle[vmax], x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length, angle[vmax], x_off, y_off)
       draw_verts(pol, sub, c[vmax])
  
   return (fig, sub)

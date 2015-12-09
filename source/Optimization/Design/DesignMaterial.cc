@@ -48,7 +48,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   alpha3_(SGPP::base::DataVector(0)),
   alpha4_(SGPP::base::DataVector(0)),
   alpha5_(SGPP::base::DataVector(0)),
-  alpha6_(SGPP::base::DataVector(0))
+  alpha6_(SGPP::base::DataVector(0)),
+  volume_(SGPP::base::DataVector(0))
 #endif
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
@@ -3353,6 +3354,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha5_.resize(N);
     alpha6_.resize(N);
   }
+  volume_.resize(N);
   double leveld;
   double indexd;
   std::vector<unsigned int> level(d, 0);
@@ -3406,7 +3408,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
       file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
            >> alpha5_[j] >> alpha6_[j];
       if (m == 7) {
-        file >> duck;
+        file >> volume_[j];
       }
       if (notation == VOIGT) {
         alpha6_[j] *= 2.0;
@@ -3418,13 +3420,13 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j];
         break;
       case 5:
-        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> duck;
+        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> volume_[j];
         break;
       case 6:
         file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j];
         break;
       case 7:
-        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> duck;
+        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> volume_[j];
         break;
       }
       if (notation == VOIGT) {
@@ -3434,10 +3436,10 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     SGPP::base::GridIndex* gp = grid_->getStorage()->get(i);
     if (grid_->getStorage()->dim() == 3) {
       LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j];
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
     } else {
       LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
-          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j];
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
     }
 
     j++;
@@ -3450,6 +3452,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     alpha2_.resize(grid_->getStorage()->size());
     alpha3_.resize(grid_->getStorage()->size());
     alpha4_.resize(grid_->getStorage()->size());
+    volume_.resize(grid_->getStorage()->size());
   }
 
   // DEBUG
@@ -3534,6 +3537,7 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
   alpha4_.resize(gridStorage->size());
   alpha5_.resize(gridStorage->size());
   alpha6_.resize(gridStorage->size());
+  volume_.resize(gridStorage->size());
 
   // put data values in coefficient vectors
   unsigned int dim1, dim2, dim3, index1, index2, index3, row;
@@ -3566,17 +3570,26 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
       alpha4_[i] = data[row][3];
       alpha5_[i] = data[row][4];
       alpha6_[i] = data[row][5];
+      if (data.GetNumCols() == 7) {
+        volume_[i] = data[row][6];
+      }
     } else {
       if (catalogueSize_.GetSize() == 2) {
         alpha3_[i] = data[row][2];
         alpha4_[i] = data[row][3];
+        if (data.GetNumCols() == 5) {
+          volume_[i] = data[row][4];
+        }
       } else {
         alpha3_[i] = data[row][3];
         alpha4_[i] = data[row][5];
+        if (data.GetNumCols() == 7) {
+          volume_[i] = data[row][6];
+        }
       }
     }
     LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
   }
   // hierarchize data vectors
   HierarchizeSparseGridCoefficients();
@@ -3596,6 +3609,7 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
     alpha5_.resize(gridStorage->size());
     alpha6_.resize(gridStorage->size());
   }
+  volume_.resize(gridStorage->size());
 
   // put data values in coefficient vectors
   SGPP::base::GridIndex* gp;
@@ -3609,24 +3623,33 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
       alpha4_[i] = data[i][3];
       alpha5_[i] = data[i][4];
       alpha6_[i] = data[i][5];
+      if (data.GetNumCols() == 7) {
+        volume_[i] = data[i][6];
+      }
     } else {
       alpha1_[i] = data[i][0];
       alpha2_[i] = data[i][1];
       if (catalogueSize_.GetSize() == 2) {
         alpha3_[i] = data[i][2];
         alpha4_[i] = data[i][3];
+        if (data.GetNumCols() == 5) {
+          volume_[i] = data[i][4];
+        }
       } else {
         alpha3_[i] = data[i][3];
         alpha4_[i] = data[i][5];
+        if (data.GetNumCols() == 7) {
+          volume_[i] = data[i][6];
+        }
       }
     }
     gp = gridStorage->get(i);
     if (gridStorage->dim() == 3) {
       LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
     } else {
       LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
-          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i];
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
     }
   }
   // hierarchize data vectors
@@ -3646,6 +3669,7 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
       hierOp->doHierarchisation(alpha5_);
       hierOp->doHierarchisation(alpha6_);
     }
+    hierOp->doHierarchisation(volume_);
     delete hierOp;
   } else {
     SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 6 : 4));
@@ -3656,6 +3680,9 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
     if (grid_->getStorage()->dim() == 3) {
       alphas.setColumn(4, alpha5_);
       alphas.setColumn(5, alpha6_);
+      alphas.setColumn(6, volume_);
+    } else {
+      alphas.setColumn(4, volume_);
     }
     
     SGPP::optimization::OperationMultipleHierarchisation *hierOp =
@@ -3670,6 +3697,9 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
     if (grid_->getStorage()->dim() == 3) {
       alphas.getColumn(4, alpha5_);
       alphas.getColumn(5, alpha6_);
+      alphas.getColumn(6, volume_);
+    } else {
+      alphas.getColumn(4, volume_);
     }
   }
 }
@@ -3893,8 +3923,44 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
+double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction) {
+
+#ifdef USE_SGPP
+  // Method uses SGPP interpolation
+  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  LOG_DBG2(dm) << p;
+
+  double vol;
+
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      vol = opEval->eval(volume_, point);
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      vol = EvaluateSGPPInterpolation_Deriv(opEval, volume_, point, direction);
+    }
+    delete opEval;
+  } else {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
+      vol = opNaiveEval->eval(volume_, point);
+      delete opNaiveEval;
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
+          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
+      vol = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, volume_, point, direction);
+    }
+  }
+  return vol;
+#endif //USE_SGPP
+  // should never be reached -> exception in constructor is thrown before this point is reached
+  return -1;
+}
+
 double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
-                                                       SGPP::base::DataVector& alpha, SGPP::base::DataVector &point, DesignElement::Type direction) const {
+                                                       SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
   double h = 1./pow(2,level_+1) * 1e-6;
