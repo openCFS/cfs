@@ -16,7 +16,6 @@ SET(CFSDAT_SRCS
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc
-  Utils/AnalyticalFields.cc
 )
 
 # Main CFS++ Dat executable target.

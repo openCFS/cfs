@@ -24,21 +24,21 @@ template<unsigned int t>
 struct CylinderVortex{
 
   CylinderVortex(){
-    pt1.Resize(t);
-    pt2.Resize(t);
-    radius = 0;
-    rpm = 0;
+    this->pt1.Resize(t);
+    this->pt2.Resize(t);
+    this->radius = 0;
+    this->rpm = 0;
   }
 
   CylinderVortex(CF::Vector<Double> p1, CF::Vector<Double> p2, Double rad, Double rotPerMinute){
-      pt1 = p1;
-      pt2 = p2;
-      radius = rad;
-      rpm = rotPerMinute;
+      this->pt1 = p1;
+      this->pt2 = p2;
+      this->radius = rad;
+      this->rpm = rotPerMinute;
   }
 
-  inline void ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point){
-    EXCEPTION("Undefined dimension")
+  void ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point){
+    EXCEPTION("Undefined dimension : " << t)
   }
 
   CF::Vector<Double> pt1;
@@ -49,5 +49,11 @@ struct CylinderVortex{
 
 }
 
+#include "AnalyticalFields.cc"
+//template<>
+//void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point);
+//
+//template<>
+//void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point);
 
 #endif /* SOURCE_CFSDAT_UTILS_ANALYTICALFIELDS_HH_ */
