@@ -1069,6 +1069,7 @@ share/matlab/hdf5tools/test/th5varget.m -text
 share/matlab/hdf5tools/test/th5varget.mat -text
 share/matlab/hdf5tools/test/th5varput.m -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_comp.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_master.xml -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/mat.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/Veraltet/E11.png -text svneol=unset#image/png
@@ -1113,6 +1114,7 @@ share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMicroCell.m
 share/matlab/material_catalogue/+Homogenization/getInterpolationValues.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToDensity.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToMesh.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMeshAndDensity.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToMeshOrDensity.m -text
 share/matlab/material_catalogue/+Homogenization/plotEh.m -text
 share/matlab/material_catalogue/+Homogenization/plotmesh.m -text
