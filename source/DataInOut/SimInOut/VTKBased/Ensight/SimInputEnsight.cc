@@ -257,6 +257,20 @@ void SimInputEnsight::FillResultMap(){
   pressure->entryType = ResultInfo::SCALAR;
 
   //================================================
+  // Time derivative of FluidMechPressure
+  //================================================
+  //Basic CFS definition
+  this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_TIME_DERIV_1].res.reset( new ResultInfo);
+  shared_ptr<ResultInfo> pressureTD1 = this->cfsEnsightResMap_[FLUIDMECH_PRESSURE_TIME_DERIV_1].res;
+  pressureTD1->resultType = FLUIDMECH_PRESSURE_TIME_DERIV_1;
+  pressureTD1->resultName = SolutionTypeEnum.ToString(FLUIDMECH_PRESSURE_TIME_DERIV_1);
+  pressureTD1->dofNames = "";
+  pressureTD1->unit = "Pa/s";
+
+  pressureTD1->definedOn = ResultInfo::NODE;
+  pressureTD1->entryType = ResultInfo::SCALAR;
+
+  //================================================
   // Laplacian of FluidMechPressure
   //================================================
   //Basic CFS definition
@@ -368,9 +382,9 @@ void SimInputEnsight::GetNodeResult( UInt sequenceStep,
 
   UInt numNodeArrays = pointData->GetNumberOfArrays();
   if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-    scalarForVector = false;
-  }else{
     scalarForVector = true;
+  }else{
+    scalarForVector = false;
   }
 
   //get grip of VTK arrays
@@ -435,9 +449,9 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
 
   UInt numNodeArrays = cellData->GetNumberOfArrays();
   if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-    scalarForVector = false;
-  }else{
     scalarForVector = true;
+  }else{
+    scalarForVector = false;
   }
 
   //get grip of VTK arrays

@@ -109,6 +109,7 @@ void RotatingSubstDt::FinishInit(){
         ExtractCylinderVelocities<3>(params_->Get("rotatingDomain")->Get("cylinder"));
       }
     }
+    std::cout << "\t ---> Found " << rotEqns_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
   }
   gradDim_ = resultManager_->GetExtInfo(gradId_)->dofNames.GetSize();
 }
