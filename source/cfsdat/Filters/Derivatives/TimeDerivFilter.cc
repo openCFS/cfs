@@ -91,11 +91,15 @@ bool TimeDerivFilterD1::Run(){
 
     CF::StdVector<UInt> eqnNums; //they should be equal...
     Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
-    Vector<Double>& r1 = resultManager_->GetResultVector<Double>(upRes,eqnNums,1);
+    Vector<Double>& r1 = resultManager_->GetResultVector<Double>(upRes,eqnNums,-2);
     Vector<Double>& r2 = resultManager_->GetResultVector<Double>(upRes,eqnNums,-1);
+    Vector<Double>& r3 = resultManager_->GetResultVector<Double>(upRes,eqnNums,1);
+    Vector<Double>& r4 = resultManager_->GetResultVector<Double>(upRes,eqnNums,2);
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
+
+
     for(UInt i=0;i<last;++i){
-      returnVec[i] = (r1[i]-r2[i])/timeSteps_[*aIter];
+      returnVec[i] = 2*(((r3[i]-r2[i])+r4[i]-r1[i])/(8*timeSteps_[*aIter]));
     }
     resultManager_->ActivateResult(*aIter);
   }
@@ -114,9 +118,11 @@ ResultIdList TimeDerivFilterD1::SetUpstreamResults(){
   for(;aIt!=filterResIds.End();++aIt){
     std::string filterResName = resultManager_->GetExtInfo(*aIt)->resultName;
     std::string upstreamRes = inOutNames_.left.at(filterResName);
-    CF::StdVector<Integer> timeLine(2);
-    timeLine[0] = -1;
-    timeLine[1] = 1;
+    CF::StdVector<Integer> timeLine(4);
+    timeLine[0] = -2;
+    timeLine[1] = -1;
+    timeLine[2] = 1;
+    timeLine[3] = 2;
     uuids::uuid newId = resultManager_->AddResult(upstreamRes,this->filterTag_,timeLine);
     resultManager_->SetTimeLine(newId,(*resultManager_->GetExtInfo(*aIt)->timeLine.get()));
     generated.Push_back(newId);

@@ -189,7 +189,7 @@ void SimInputVTKBased::GetPointIDsByRegion(std::map<std::string, StdVector<UInt>
   numNodes_ = numNodes;
   numRegions_ = numRegions;
   numElems_ = numElems;
-  globElemLocElem_.Reserve(numElems);
+  globElemLocElem_.reserve(numElems);
 
   LOG_DBG(siminputVTK) << "Number of regions in VTK grid: " << numRegions;
   LOG_DBG(siminputVTK) << "Number of nodes in VTK grid: " << numNodes;
@@ -245,7 +245,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
                 con[node] = pointMap[curRegName][locId];
               }
               mi_->SetElemData(elemIdx,newType,curReg,con);
-              globElemLocElem_.Push_back(cellId);
+              globElemLocElem_[elemIdx] = cellId;
               elemIdx++;
             }
             delete[] con;
@@ -261,7 +261,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
             con[k] = pointMap[curRegName][locId];
           }
           mi_->SetElemData(elemIdx,curT,curReg,con);
-          globElemLocElem_.Push_back(cellId);
+          globElemLocElem_[elemIdx] = cellId;
           elemIdx++;
           delete[] con;
         }
@@ -297,7 +297,7 @@ void SimInputVTKBased::ReadElemData(std::map<std::string, StdVector<UInt> >& poi
           con[k] = pointMap[curRegName][locId];
         }
         mi_->SetElemData(elemIdx,curT,curReg,con);
-        globElemLocElem_.Push_back(j);
+        globElemLocElem_[elemIdx] = j;
         elemIdx++;
       }
     }

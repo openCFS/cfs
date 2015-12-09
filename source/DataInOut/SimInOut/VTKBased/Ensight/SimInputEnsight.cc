@@ -57,8 +57,6 @@ SimInputEnsight::~SimInputEnsight(){
 
 }
 
-}
-
 void SimInputEnsight::SetTimeValue(Double val){
 
   vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
@@ -336,6 +334,144 @@ void SimInputEnsight::GetResultEntities( UInt sequenceStep,
   }
 }
 
+template<typename T>
+void SimInputEnsight::GetNodeResult( UInt sequenceStep,
+    UInt stepValue,
+    shared_ptr<BaseResult> result){
+
+  vtkPointData* pointData = NULL;
+  vtkDataSet* ds = NULL;
+  bool scalarForVector;
+  StdVector< vtkDataArray * > CurArrays;
+
+  //obtain ensight reader
+  //vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+
+  SolutionType solT = result->GetResultInfo()->resultType;
+  UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+  UInt numEntities = result->GetEntityList()->GetSize();
+  UInt resVecSize =  numEntities * numDofs;
+
+  Vector<T> & resVec = dynamic_cast<Result<T>& >(*result).GetVector();
+  resVec.Resize( resVecSize );
+  resVec.Init();
+
+  shared_ptr<EntityList> resList = result->GetEntityList();
+  EntityIterator iter = resList->GetIterator();
+
+  //try to obtain region ID from entity list name.
+  RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
+  UInt blockId = this->regionAssoc_[id];
+
+  ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
+  pointData = ds->GetPointData();
+
+  UInt numNodeArrays = pointData->GetNumberOfArrays();
+  if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
+    scalarForVector = false;
+  }else{
+    scalarForVector = true;
+  }
+
+  //get grip of VTK arrays
+  CurArrays.Resize(numNodeArrays);
+  StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
+  for (UInt array=0; array < numNodeArrays; array++,nameIter++){
+    CurArrays[array] = pointData->GetArray(nameIter->c_str());
+  }
+
+  StdVector<T> myValues(numDofs);
+  while(!iter.IsEnd()){
+    //we assume region nodes are sorted continuously
+    if(!scalarForVector){
+      myValues.Init();
+      CurArrays[0]->GetTuple(iter.GetPos(),myValues.GetPointer());
+      for(UInt j=0; j<numDofs; j++) {
+        resVec[iter.GetPos()*numDofs+j] = myValues[j];
+      }
+    }else{
+      T myVal=0;
+      for(UInt j=0; j<numDofs; j++) {
+        CurArrays[j]->GetTuple(iter.GetPos(),&myVal);
+        resVec[iter.GetPos()*numDofs+j] = myVal;
+      }
+    }
+    iter++;
+  }
+}
+
+template<typename T>
+void SimInputEnsight::GetElemResult( UInt sequenceStep,
+    UInt stepValue,
+    shared_ptr<BaseResult> result){
+
+  vtkCellData* cellData = NULL;
+  vtkDataSet* ds = NULL;
+  bool scalarForVector;
+  StdVector< vtkDataArray * > CurArrays;
+
+  //obtain ensight reader
+  //vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
+
+  SolutionType solT = result->GetResultInfo()->resultType;
+  UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+  UInt numEntities = result->GetEntityList()->GetSize();
+  UInt resVecSize =  numEntities * numDofs;
+
+  Result<T>* myResult = dynamic_cast<Result<T>* >(result.get());
+  Vector<T> & resVec = myResult->GetVector();
+  resVec.Resize( resVecSize );
+  resVec.Init();
+
+  shared_ptr<EntityList> resList = result->GetEntityList();
+  EntityIterator iter = resList->GetIterator();
+
+  //try to obtain region ID from entity list name.
+  RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
+  UInt blockId = this->regionAssoc_[id];
+
+  ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
+  cellData = ds->GetCellData();
+
+  UInt numNodeArrays = cellData->GetNumberOfArrays();
+  if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
+    scalarForVector = false;
+  }else{
+    scalarForVector = true;
+  }
+
+  //get grip of VTK arrays
+  CurArrays.Resize(numNodeArrays);
+  StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
+  for (UInt array=0; array < numNodeArrays; array++,nameIter++){
+    CurArrays[array] = cellData->GetArray(nameIter->c_str());
+  }
+
+  //fill index of cell arrays
+  StdVector<T> myValues(numDofs);
+  while(!iter.IsEnd()){
+    const Elem* curE = iter.GetElem();
+    UInt idx =  iter.GetPos();
+    UInt vtkIdx = this->globElemLocElem_[curE->elemNum];
+
+    //we assume region nodes are sorted continuously
+    if(!scalarForVector){
+      myValues.Init();
+      CurArrays[0]->GetTuple(vtkIdx,myValues.GetPointer());
+      for(UInt j=0; j<numDofs; j++) {
+        resVec[idx*numDofs+j] = myValues[j];
+      }
+    }else{
+      T myVal=0;
+      for(UInt j=0; j<numDofs; j++) {
+        CurArrays[j]->GetTuple(vtkIdx,&myVal);
+        resVec[idx*numDofs+j] = myVal;
+      }
+    }
+    iter++;
+  }
+}
+
 void SimInputEnsight::GetResult( UInt sequenceStep,
                              UInt stepValue,
                              shared_ptr<BaseResult> result,
@@ -347,7 +483,7 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
 
   SolutionType solT = result->GetResultInfo()->resultType;
   StdVector<std::string>& actVTKVar = cfsEnsightResMap_[solT].dofNameMap;
-  bool multByCell = cfsEnsightResMap_[solT].multByCellVol;
+  //bool multByCell = cfsEnsightResMap_[solT].multByCellVol;
 
   //activate only the desired quantities
 
@@ -357,7 +493,6 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
   }else{
     this->SetTimeValue(this->timeValues_[stepValue]);
   }
-
 
   reader->ReadAllVariablesOff();
   //disable all arrays and enable only the requested
@@ -373,156 +508,161 @@ void SimInputEnsight::GetResult( UInt sequenceStep,
   reader_->Modified();
   reader_->Update();
 
-  UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
-  UInt numEntities = result->GetEntityList()->GetSize();
-  UInt resVecSize =  numEntities * numDofs;
+
+  //UInt numDofs = result->GetResultInfo()->dofNames.GetSize();
+  //UInt numEntities = result->GetEntityList()->GetSize();
+  //UInt resVecSize =  numEntities * numDofs;
 
 
   if( result->GetEntryType() == BaseMatrix::DOUBLE ) {
-        Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
-        resVec.Resize( resVecSize );
-        resVec.Init();
-  }else{
-        Vector<Complex> & resVec = dynamic_cast<Result<Complex>& >(*result).GetVector();
-        resVec.Resize( resVecSize );
-        resVec.Init();
-  }
-  //flag indicating if vector components are stored in 2 or 3 scalar arrays
-  bool scalarForVector = false;
-
-  UInt resIdx = 0;
-  shared_ptr<EntityList> resList = result->GetEntityList();
-  EntityIterator iter = resList->GetIterator();
-  vtkCellData* cellData = NULL;
-  vtkPointData* pointData = NULL;
-  vtkDataSet* ds = NULL;
-  //vtkDataArray* data = NULL;
-  RegionIdType lastReadRegion = 999999;
-  bool regionUpdate = false;
-  StdVector< vtkDataArray * > CurArrays;
-  while(!iter.IsEnd()){
     if(elemResult){
-      const Elem* curE = iter.GetElem();
-      //obtain block id
-      UInt blockId = this->regionAssoc_[curE->regionId];
-      if(lastReadRegion != curE->regionId){
-        ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
-        cellData = ds->GetCellData();
-        lastReadRegion = curE->regionId;
-        regionUpdate = true;
-      }else{
-        regionUpdate = false;
-      }
-      UInt numCellArrays = cellData->GetNumberOfArrays();
-      Double volume = 1;
-      if(multByCell){
-        if(elemVolumes_.find(curE->elemNum) == elemVolumes_.end()){
-          shared_ptr<ElemShapeMap> esm = mi_->GetElemShapeMap(curE,false);
-          elemVolumes_[curE->elemNum] = esm->CalcVolume();
-        }
-        volume = elemVolumes_[curE->elemNum];
-      }
-
-      if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-        scalarForVector = true;
-      }else{
-        scalarForVector = false;
-      }
-      //UInt lastArray = 999999;
-      if(numCellArrays > 0){
-        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numCellArrays){
-          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
-        }
-        if(regionUpdate){
-          CurArrays.Resize(numCellArrays);
-          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
-          for (UInt array=0; array < numCellArrays; array++,nameIter++){
-            CurArrays[array] = cellData->GetArray(nameIter->c_str());
-          }
-        }
-
-        UInt locIdx = this->globElemLocElem_[curE->elemNum-1];
-        //COPY VALUES
-        //THIS DOES IT FOR VECTOR VALUES AND SCALARS
-
-        if(!scalarForVector){
-          StdVector<double> myValues(numDofs);
-          myValues.Init();
-          CurArrays[0]->GetTuple(locIdx,myValues.GetPointer());
-          for(UInt j=0; j<numDofs; j++) {
-            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myValues[j]*std::abs(volume));
-          }
-        }else{
-          double myVal=0;
-          for(UInt j=0; j<numDofs; j++) {
-            CurArrays[j]->GetTuple(locIdx,&myVal);
-            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myVal*std::abs(volume));
-          }
-
-        }
-
-         //switch(data->GetDataType()){
-         //case VTK_FLOAT:
-         //  EXTRACT_DATA_ARRAY(float)
-         //  break;
-         //case VTK_DOUBLE:
-         //  EXTRACT_DATA_ARRAY(double)
-         //  break;
-         //default:
-         //  EXCEPTION("Unsupported datatype in ensight file. Expected float or double.");
-         //}
-
-      }
+      GetElemResult<Double>(sequenceStep,stepValue,result);
     }else{
-
-      RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
-      //obtain block id
-      UInt blockId = this->regionAssoc_[id];
-      if(lastReadRegion != id){
-        ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
-        pointData = ds->GetPointData();
-        lastReadRegion = id;
-        regionUpdate = true;
-      }else{
-        regionUpdate = false;
-      }
-      UInt numNodeArrays = pointData->GetNumberOfArrays();
-      if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-        scalarForVector = false;
-      }else{
-        scalarForVector = true;
-      }
-      if(numNodeArrays > 0){
-        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numNodeArrays){
-          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
-        }
-        if(regionUpdate){
-          CurArrays.Resize(numNodeArrays);
-          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
-          for (UInt array=0; array < numNodeArrays; array++,nameIter++){
-            CurArrays[array] = pointData->GetArray(nameIter->c_str());
-          }
-        }
-        if(!scalarForVector){
-          StdVector<double> myValues(numDofs);
-          myValues.Init();
-          CurArrays[0]->GetTuple(iter.GetPos(),myValues.GetPointer());
-          for(UInt j=0; j<numDofs; j++) {
-            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myValues[j]);
-          }
-        }else{
-          double myVal=0;
-          for(UInt j=0; j<numDofs; j++) {
-            CurArrays[j]->GetTuple(iter.GetPos(),&myVal);
-            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myVal);
-          }
-
-        }
-      }
+      GetNodeResult<Double>(sequenceStep,stepValue,result);
     }
-    iter++;
-    resIdx++;
+  }else{
+    EXCEPTION("Complex valued results are not supported");
+    //if(elemResult){
+    //  GetElemResult<Complex>(sequenceStep,stepValue,result);
+    //}else{
+    //  GetNodeResult<Complex>(sequenceStep,stepValue,result);
+    //}
   }
+//  //flag indicating if vector components are stored in 2 or 3 scalar arrays
+//  bool scalarForVector = false;
+//
+//  UInt resIdx = 0;
+//  shared_ptr<EntityList> resList = result->GetEntityList();
+//  EntityIterator iter = resList->GetIterator();
+//  vtkCellData* cellData = NULL;
+//  vtkPointData* pointData = NULL;
+//  vtkDataSet* ds = NULL;
+//  //vtkDataArray* data = NULL;
+//  RegionIdType lastReadRegion = 999999;
+//  bool regionUpdate = false;
+//  StdVector< vtkDataArray * > CurArrays;
+//  while(!iter.IsEnd()){
+//    if(elemResult){
+//      const Elem* curE = iter.GetElem();
+//      //obtain block id
+//      UInt blockId = this->regionAssoc_[curE->regionId];
+//      if(lastReadRegion != curE->regionId){
+//        ds = vtkDataSet::SafeDownCast(reader_->GetOutput()->GetBlock(blockId));
+//        cellData = ds->GetCellData();
+//        lastReadRegion = curE->regionId;
+//        regionUpdate = true;
+//      }else{
+//        regionUpdate = false;
+//      }
+//      UInt numCellArrays = cellData->GetNumberOfArrays();
+//      Double volume = 1;
+//      if(multByCell){
+//        if(elemVolumes_.find(curE->elemNum) == elemVolumes_.end()){
+//          shared_ptr<ElemShapeMap> esm = mi_->GetElemShapeMap(curE,false);
+//          elemVolumes_[curE->elemNum] = esm->CalcVolume();
+//        }
+//        volume = elemVolumes_[curE->elemNum];
+//      }
+//
+//      if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
+//        scalarForVector = true;
+//      }else{
+//        scalarForVector = false;
+//      }
+//      //UInt lastArray = 999999;
+//      if(numCellArrays > 0){
+//        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numCellArrays){
+//          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
+//        }
+//        if(regionUpdate){
+//          CurArrays.Resize(numCellArrays);
+//          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
+//          for (UInt array=0; array < numCellArrays; array++,nameIter++){
+//            CurArrays[array] = cellData->GetArray(nameIter->c_str());
+//          }
+//        }
+//
+//        UInt locIdx = this->globElemLocElem_[curE->elemNum-1];
+//        //COPY VALUES
+//        //THIS DOES IT FOR VECTOR VALUES AND SCALARS
+//
+//        if(!scalarForVector){
+//          StdVector<double> myValues(numDofs);
+//          myValues.Init();
+//          CurArrays[0]->GetTuple(locIdx,myValues.GetPointer());
+//          for(UInt j=0; j<numDofs; j++) {
+//            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myValues[j]*std::abs(volume));
+//          }
+//        }else{
+//          double myVal=0;
+//          for(UInt j=0; j<numDofs; j++) {
+//            CurArrays[j]->GetTuple(locIdx,&myVal);
+//            result->GetSingleVector()->SetEntry(locIdx*numDofs+j,myVal*std::abs(volume));
+//          }
+//
+//        }
+//
+//         //switch(data->GetDataType()){
+//         //case VTK_FLOAT:
+//         //  EXTRACT_DATA_ARRAY(float)
+//         //  break;
+//         //case VTK_DOUBLE:
+//         //  EXTRACT_DATA_ARRAY(double)
+//         //  break;
+//         //default:
+//         //  EXCEPTION("Unsupported datatype in ensight file. Expected float or double.");
+//         //}
+//
+//      }
+//    }else{
+//
+//      RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
+//      //obtain block id
+//      UInt blockId = this->regionAssoc_[id];
+//      if(lastReadRegion != id){
+//
+//        lastReadRegion = id;
+//        regionUpdate = true;
+//      }else{
+//        regionUpdate = false;
+//      }
+//      UInt numNodeArrays = pointData->GetNumberOfArrays();
+//      if(numDofs>1 && pointData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
+//        scalarForVector = false;
+//      }else{
+//        scalarForVector = true;
+//      }
+//      if(numNodeArrays > 0){
+//        if(cfsEnsightResMap_[solT].dofNameMap.GetSize() != numNodeArrays){
+//          EXCEPTION("Inconsitent variable definition detected. Check the definition in the XML. ")
+//        }
+//        if(regionUpdate){
+//          CurArrays.Resize(numNodeArrays);
+//          StdVector<std::string>::iterator nameIter = cfsEnsightResMap_[solT].dofNameMap.Begin();
+//          for (UInt array=0; array < numNodeArrays; array++,nameIter++){
+//            CurArrays[array] = pointData->GetArray(nameIter->c_str());
+//          }
+//        }
+//        if(!scalarForVector){
+//          StdVector<double> myValues(numDofs);
+//          myValues.Init();
+//          CurArrays[0]->GetTuple(iter.GetPos(),myValues.GetPointer());
+//          for(UInt j=0; j<numDofs; j++) {
+//            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myValues[j]);
+//          }
+//        }else{
+//          double myVal=0;
+//          for(UInt j=0; j<numDofs; j++) {
+//            CurArrays[j]->GetTuple(iter.GetPos(),&myVal);
+//            result->GetSingleVector()->SetEntry(iter.GetPos()*numDofs+j,myVal);
+//          }
+//
+//        }
+//      }
+//    }
+//    iter++;
+//    resIdx++;
+//  }
 }
 void SimInputEnsight::DisableAllArrays(){
   vtkGenericEnSightReader* reader = dynamic_cast<vtkGenericEnSightReader*>(reader_);
@@ -554,4 +694,15 @@ Double SimInputEnsight::dround(Double a, int ndigits) {
 
   return (truncated_man_base10 + rounded_remainder)*std::pow(10.0,exp_base10) ;
 }
+
+// Explicit template instantiation
+#ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template void SimInputEnsight::GetNodeResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
+  //template void SimInputEnsight::GetNodeResult<Complex>(UInt,UInt,shared_ptr<BaseResult>);
+  template void SimInputEnsight::GetElemResult<Double>(UInt,UInt,shared_ptr<BaseResult>);
+  //template void SimInputEnsight::GetElemResult<Complex>(UInt,UInt,shared_ptr<BaseResult>);
+#endif
+
+}
+
 

@@ -82,6 +82,18 @@ protected:
   virtual void ValidateResultDefinition();
 
 private:
+
+  //! specialization for nodal results
+  template<typename T>
+  void GetNodeResult( UInt sequenceStep,
+      UInt stepValue,
+      shared_ptr<BaseResult> result);
+
+  template<typename T>
+  void GetElemResult( UInt sequenceStep,
+      UInt stepValue,
+      shared_ptr<BaseResult> result);
+
   //! creates a map for CFS<->Ensight results
   virtual void FillResultMap();
 
