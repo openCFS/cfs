@@ -13,8 +13,7 @@
 //================================================================================================
 
 
-#include "AnalyticalFields.hh"
-
+//#include "AnalyticalFields.hh"
 
 namespace CFSDat{
 
@@ -32,10 +31,10 @@ void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::V
   v.Resize(3);
   v.Init();
 
-  dist = pt2 - pt1; // translate so pt1 is origin.  Make vector from
+  dist = this->pt2 - this->pt1; // translate so pt1 is origin.  Make vector from
   lenSq = dist[0]*dist[0]+dist[1]*dist[1]+dist[2]*dist[2];
 
-  pd = point - pt1;
+  pd = point - this->pt1;
 
   dot = pd * dist;
   if( dot > 0.0f && dot < lenSq ){
@@ -48,13 +47,13 @@ void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::V
       pd.CrossProduct(point,v);
       //may be unnecessary
       v.Normalize();
-      v *= -1.0 * ((rpm/60) * 2 * M_PI * sqrt(dsq));
+      v *= -1.0 * ((this->rpm/60) * 2 * M_PI * sqrt(dsq));
     }
   }
 }
 
 template<>
-inline void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point){
+void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point){
 
   //obtain center
   CF::Vector<Double> dist(2);
@@ -135,5 +134,7 @@ inline void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>& v, cons
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template struct CylinderVortex<2>;
   template struct CylinderVortex<3>;
+  //void CylinderVortex<2>::ComputeVortexVelocity(CF::Vector<Double>&, const CF::Vector<Double>&);
+  //void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>&, const CF::Vector<Double>&);
 #endif
 }

@@ -102,6 +102,7 @@ void RotatingSubstDt::FinishInit(){
   //the only thing left to do is the identification
   //of rotating entity numbers if requested
   if(params_->Has("rotatingDomain")){
+    this->rpm_ = params_->Get("rotatingDomain")->Get("rpm")->As<Double>();
     if(params_->Get("rotatingDomain")->Has("cylinder")){
       if(resultManager_->GetExtInfo(gradId_)->ptGrid->GetDim() == 2){
         ExtractCylinderVelocities<2>(params_->Get("rotatingDomain")->Get("cylinder"));
