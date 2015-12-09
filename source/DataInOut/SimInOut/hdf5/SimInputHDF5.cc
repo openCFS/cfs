@@ -698,7 +698,6 @@ namespace CoupledField {
     } else {
       idx.Resize( numEntities );
 
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities ; i++ )
         idx[i] = i;
     }
@@ -708,7 +707,6 @@ namespace CoupledField {
     if( result->GetEntryType() == BaseMatrix::DOUBLE ) {
       Vector<Double> & resVec = dynamic_cast<Result<Double>& >(*result).GetVector();
       resVec.Resize( resVecSize );
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
           resVec[i*numDofs+iDof] = realVals[idx[i]*numDofs+iDof];
@@ -721,7 +719,6 @@ namespace CoupledField {
 
       resVec.Resize( resVecSize );
 
-#pragma omp parallel for
       for( UInt i = 0; i < numEntities; i++ ) {
         for( UInt iDof = 0; iDof < numDofs; iDof++ ) {
           resVec[i*numDofs+iDof] = Complex( realVals[idx[i]*numDofs+iDof],

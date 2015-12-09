@@ -206,7 +206,7 @@ protected:
   std::map< RegionIdType, UInt> regionAssoc_;
 
   //! associate global element number (index) to region local element number (value)
-  StdVector<UInt> globElemLocElem_;
+  boost::unordered_map<UInt,UInt> globElemLocElem_;
 
   //! associate global node number (index) to region local node number (value)
   StdVector<UInt> globNodeLocElem_;
