@@ -153,7 +153,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
     if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod':
 
       s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
-      v = calc_volume(s1, s2)
       print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas

@@ -119,7 +119,7 @@ for i=1:numPoints
     end
 
     showProgress(i,numPoints);
-    if abs(volume-1) >= 1e-14
+    if 1-volume >= 1e-14
         delete( sprintf('%s/inv_tensor_%s.info.xml', cfsworkingdirectory, meshfilename) );
     end
 end

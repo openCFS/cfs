@@ -45,18 +45,19 @@ if nargin < 2
 end
 
 if length(point) ~= 3
+    disp(point)
     throw( MException( 'generateFramedCross:wrongParameterCount', 'point does not contain three parameters.' ));
 end
 
 density = zeros(nx);
 
-s2 = point(1)*nx;
-s3 = point(2)*nx;
-s4 = point(3)*nx;
-
 % For periodic boundaries we generate the structure for a smaller grid
 % first and copy the first row and column later.
 nx = nx - 1;
+
+s2 = point(1)*nx;
+s3 = point(2)*nx;
+s4 = point(3)*nx;
 
 % Frame
 vertBar = round((nx-s2)/2)+1:round((nx+s2)/2);
@@ -70,9 +71,11 @@ for i = 1:nx
     density(i,nx-bar2+1) = 1;
 end
 
+nx = nx + 1;
+
 % Copy first row and column to the opposite boundary -> periodicity!
-density(nx+1,:) = density(1,:);
-density(:,nx+1) = density(:,1);
+density(nx,:) = density(1,:);
+density(:,nx) = density(:,1);
 
 volume = sum(sum(density))/nx^2;
 
