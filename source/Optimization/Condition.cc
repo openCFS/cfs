@@ -441,7 +441,8 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
   {
     if(list[i]->GetType() == STRESS || list[i]->GetType() == STRESS_DENSITY)
     {
-      if(list[i]->DoEvaluateAlways())
+      assert(!Optimization::context->DoMultiSequence());
+      if(list[i]->DoEvaluateAlways(1)) // sequence 1
         blow_up = i;
       else
         if(blow_up != -1)
@@ -454,7 +455,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
   Condition& g = *(list[blow_up]);
   g.SetExcitation(me, me->excitations[0].index);
-
+  assert(!Optimization::context->DoMultiSequence());
   for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
   {
     Condition* tmp = new Condition(g);
@@ -467,32 +468,40 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 
 void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
 {
-  if(!me->IsEnabled() || !Optimization::context->GetDriver()->DoBlochModeEigenfrequency())
-    return;
-
-  // we need to find all eigenvalue constraints. Then extend each by excitation
-
-  StdVector<Condition> ev; // instances as list will be enlarged which involves copying
-  for(unsigned int i = 0; i < list.GetSize(); i++)
-    if(list[i]->GetType() == EIGENFREQUENCY)  {
-      // reset excitation to the first wave vector
-      list[i]->SetExcitation(me, 0);
-      ev.Push_back(*(list[i]));
-    }
-
-  for(unsigned int e = 1; e < me->excitations.GetSize(); e++)
+  // this is a static function
+  for(unsigned int c = 0; me->IsEnabled() && c < Optimization::manager.context.GetSize(); c++)
   {
-    for(unsigned int g = 0; g < ev.GetSize(); g++)
+    Context& ctxt = Optimization::manager.context[c];
+
+    if(ctxt.DoBloch())
     {
-      assert(ev[g].IsExcitationSensitive());
+      // we need to find all eigenvalue constraints. Then extend each by excitation
 
-      Condition* tmp = new Condition(ev[g]);
-      tmp->SetExcitation(me, me->excitations[e].index);
+      // extract all eigenfrequency constraints to ev
+      StdVector<Condition> ev; // instances as list will be enlarged which involves copying
+      for(unsigned int i = 0; i < list.GetSize(); i++)
+        if(list[i]->GetType() == EIGENFREQUENCY)  {
+          // reset excitation to the first wave vector
+          assert(ctxt.sequence == 1); // shall we set 0 in SetExcitation when not first??
+          list[i]->SetExcitation(me, 0);
+          ev.Push_back(*(list[i]));
+        }
 
-      list.Push_back(tmp);
+      assert(ctxt.num_bloch_wave_vectors == ctxt.excitation.GetSize());
+      for(unsigned int e = 1; e < ctxt.excitation.GetSize(); e++)
+      {
+        for(unsigned int g = 0; g < ev.GetSize(); g++)
+        {
+          assert(ev[g].IsExcitationSensitive());
+
+          Condition* tmp = new Condition(ev[g]);
+          tmp->SetExcitation(me, me->excitations[e].index);
+
+          list.Push_back(tmp);
+        }
+      }
     }
   }
-
 }
 
 
@@ -732,7 +741,12 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
   if(me->IsEnabled())
-    in->Get("excitation")->SetValue(DoEvaluateAlways() ? "always" : me->excitations[excite_].GetFullLabel());
+  {
+    if(DoEvaluateAlways(ctxt->sequence))
+      in->Get("excitation")->SetValue(Optimization::context->DoMultiSequence() ? "always within sequence" : "always");
+    else
+      in->Get("excitation")->SetValue(me->excitations[excite_].GetFullLabel());
+  }
 
   // TODO somehow scaling does not work ??
   // if(IsHomogenization() && !objective_scaling_ && !blown_up_) // warn only the first time!

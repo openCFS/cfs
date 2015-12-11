@@ -22,12 +22,11 @@ StateContainer::StateContainer()
 {
 }
 
-StdVector<double> StateContainer::CollectEigenfrequencies(int sequence)
+StdVector<double> StateContainer::CollectEigenfrequencies(Excitation& ex)
 {
-  assert(sequence >= 1);
-  assert(Optimization::manager.context[sequence-1].IsEigenvalue()); // 1-based
+  assert(Optimization::manager.context[ex.sequence-1].IsEigenvalue()); // 1-based
 
-  const StdVector<StateSolution*> states = Search(NULL, sequence);
+  const StdVector<StateSolution*> states = Search(&ex, ex.sequence);
 
   StdVector<double> efs;
   efs.Reserve(states.GetSize()); // shall be the final size ?!
@@ -39,7 +38,7 @@ StdVector<double> StateContainer::CollectEigenfrequencies(int sequence)
   assert(efs.GetSize() == states.GetSize()); // what shall be the scenario?! If one exists just delete the assert
 
   // the current context is not necessarily the eigenvalue context and we typically don't have constraints for each state
-  assert(Optimization::manager.context[sequence-1].num_eigenmodes >= efs.GetSize());
+  assert(Optimization::manager.context[ex.sequence-1].num_eigenmodes >= efs.GetSize());
 
   return efs;
 }

@@ -87,13 +87,14 @@ Function::Function(PtrParamNode pn) {
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
-  this->sequence = pn->Get("sequence")->As<int>();
+  int sequence = pn->Get("sequence")->As<int>();
   if(sequence > (int) Optimization::manager.context.GetSize()) // note 1-based!
     EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
+  this->ctxt = &(Optimization::manager.context[sequence - 1]);
 
   notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
-  bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
+  bool tensor_ok = ReadTensor(ctxt, pn, this->tensor_); // is save and sets default
 
   if ((type_ == HOM_TRACKING || type_ == HOM_FROBENIUS_PRODUCT) && !tensor_ok)
     EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
@@ -233,7 +234,8 @@ Function* Function::Cast(Objective* c, Condition* g) {
   return c != NULL ? static_cast<Function*>(c) : static_cast<Function*>(g);
 }
 
-bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
+bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matrix)
+{
   matrix.Resize(1, 1); // minimal size, as 0,0 is not defined.
 
   // sanity checks
@@ -253,11 +255,8 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
       EXCEPTION("The Voigt 'tensor' for homogenizations needs to be 3x3 or 6x6");
     if (tens->Has("dim2") && dim != tens->Get("dim2")->As<int>())
       EXCEPTION("The 'tensor' for homogenization needs to be symmetric");
-    if ((domain->GetGrid()->GetDim() == 2 && dim != 3)
-        || (domain->GetGrid()->GetDim() == 3 && dim != 6))
-
-      EXCEPTION(
-          "The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
+    if ((domain->GetGrid()->GetDim() == 2 && dim != 3) || (domain->GetGrid()->GetDim() == 3 && dim != 6))
+      EXCEPTION("The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
 
     matrix.Resize(dim, dim);
 
@@ -277,10 +276,9 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     Matrix<double> tmp(6, 6); // always 3D first
-    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod,
-        poisson);
-    MechanicMaterial::ComputeSubTensor(matrix,
-        domain->GetSinglePDE("mechanic")->GetSubTensorType(), tmp);
+    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod, poisson);
+    assert(f_ctxt->stt != NO_TENSOR);
+    MechanicMaterial::ComputeSubTensor(matrix, f_ctxt->stt, tmp);
 
     tensor_read = true;
   }
@@ -408,7 +406,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
     assert(excite_index < 0);
-    excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
+    excite_ = ctxt->excitation.GetSize() - 1; // once only at the last excitation for our context
     break;
 
   // this stuff is to be evaluated at the last base for meta excitations
@@ -424,7 +422,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ORTHOTROPY:
     assert(excite_index < 0);
     if(!me->DoMetaExcitation())
-      excite_ = me->excitations.GetSize() - 1; // standard
+      excite_ = ctxt->excitation.GetSize() - 1; // standard
     else
     {
       if(!pn->Has("excitation"))
@@ -447,7 +445,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case TEMPERATURE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations
+      excite_ = -1; // all excitations within this sequence/ context
     else {
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       excite_sensitive_ = true;
@@ -477,14 +475,17 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 /** Shall/must we evaluate this objective at this excitation?
  * Stress constraints in homogenization are triggered for a single constraint only. */
 bool Function::DoEvaluate(const Excitation* excite) const {
-  if (DoEvaluateAlways())
+  if(DoEvaluateAlways(excite->sequence))
     return true;
 
   return excite->index == excite_;
 }
 
-bool Function::DoEvaluateAlways() const {
-  return excite_ == -1;
+bool Function::DoEvaluateAlways(int context_sequence) const {
+  if(excite_ != -1)
+    return false;
+
+  return ctxt->sequence == context_sequence; // excite_ == -1 is already assured
 }
 
 
@@ -494,7 +495,6 @@ bool Function::IsExcitationSensitive() const {
 
 bool Function::IsAdjointBased() const {
   switch (type_) {
-  case COMPLIANCE: // only in the transient case
   case TRACKING:
   case OUTPUT:
   case CONJUGATE_COMPLIANCE:
@@ -506,6 +506,9 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
     return true;
+
+  case COMPLIANCE: // only in the transient case
+    return false; // FIXME check for transient case here!
 
   default:
     return false;
@@ -3956,12 +3959,14 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
 double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
 {
   Matrix<double> E;
-
-  DesignMaterial::Notation notation = local->func_->notation_;
+  Function* f= local->func_;
+  DesignMaterial::Notation notation = f->notation_;
+  SubTensorType stt = f->ctxt->stt;
+  Elem* elem = dynamic_cast<DesignElement*>(element)->elem;
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
+  DesignElement::Type der = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
-  bool ok = local->space->designMaterial->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
-      dynamic_cast<DesignElement*>(element)->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
+  bool ok = local->space->designMaterial->GetTensor(E, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
   assert(ok);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);

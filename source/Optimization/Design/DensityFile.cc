@@ -320,7 +320,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
     ss.precision(11);
     ss << de->GetDesign(DesignElement::PLAIN) << "\"";
     if(de->HasPhysicalDesign())
-      ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context->pde) << "\"";
+      ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
     ss << "/>";
     block[i] = ss.str();
   }

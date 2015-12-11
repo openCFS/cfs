@@ -167,7 +167,7 @@ public:
 
   /** Helper which collects the eigenfrequencies for a wave_vector. If no Bloch the wave_vector is 0.
    * @param sequence 1-based*/
-  StdVector<double> CollectEigenfrequencies(int sequence);
+  StdVector<double> CollectEigenfrequencies(Excitation& ex);
 
 private:
 

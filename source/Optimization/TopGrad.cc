@@ -87,7 +87,7 @@ TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   c3 = M_PI * (lambda_ + 2.0 * mu_) / ((9.0 * lambda_ + 14.0 * mu_) * mu_);
 
   // transform the subType of the pde (FULL, PLANE_STRAIN etc. -> defined in General/Environment.hh)
-  subtype_ = optimization->context->pde->GetSubTensorType();
+  subtype_ = optimization->context->stt;
   
   // FIXME resize member vectors and matrix according to subtype
 

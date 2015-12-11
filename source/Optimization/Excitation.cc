@@ -668,10 +668,14 @@ Excitation::~Excitation()
       delete forms[i];
 }
 
-void Excitation::Apply(bool switch_context)
+bool Excitation::Apply(bool switch_context)
 {
+  bool switched = false;
   if(switch_context && Optimization::context->sequence != this->sequence)
+  {
     Optimization::manager.SwitchContext(this); // also sets the excitation
+    switched = true;
+  }
   else
     Optimization::context->SetExcitation(this);
 
@@ -686,6 +690,7 @@ void Excitation::Apply(bool switch_context)
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
   // the same holds for the bloch mode analysis
+  return switched;
 }
 
 double Excitation::GetOmega() const
@@ -710,7 +715,7 @@ double Excitation::GetFactor(Function* cost) const
 
 double Excitation::GetWeightedFactor(Function* f) const
 {
-  if(f->DoEvaluateAlways())
+  if(f->DoEvaluateAlways(sequence)) // sequence matches always
    return normalized_weight * GetFactor(f);
   else
     return GetFactor(f);

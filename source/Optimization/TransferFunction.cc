@@ -95,26 +95,33 @@ TransferFunction::TransferFunction(PtrParamNode pn, DesignElement::Type default_
 
 
 
-App::Type TransferFunction::Default(const SinglePDE* pde)
+App::Type TransferFunction::Default(const Context* ctxt)
 {
-  if(pde->GetName() == "electrostatic")    return App::ELEC;
-  if(pde->GetName() == "mechanic")         return App::MECH;
-  if(pde->GetName() == "heatConduction")   return App::LAPLACE;
-  if(pde->GetName() == "acoustic")         return App::LAPLACE;
-  if(pde->GetName() == "LatticeBoltzmann") return App::LBM;
-  throw Exception("invalid");
+  switch(ctxt->ToApp()) // will fail for piezo ?!
+  {
+  case App::MECH:
+    return App::MECH;
+  case App::ELEC:
+    return App::ELEC;
+  case App::HEAT:
+  case App::ACOUSTIC:
+    return App::LAPLACE;
+  case App::LBM:
+    return App::LBM;
+  default:
+    throw Exception("invalid");
+  }
 }
 
 /** see the other Default */
-App::Type TransferFunction::Default(DesignElement::Type type, const SinglePDE* pde)
+App::Type TransferFunction::Default(DesignElement::Type type, const Context* ctxt)
 {
   switch(type)
   {
   case DesignElement::DENSITY:
-  {
-    if(pde)
-      return Default(pde);
-  }
+    if(ctxt)
+      return Default(ctxt);
+
   case DesignElement::EMODUL:
   case DesignElement::EMODULISO:
   case DesignElement::GMODUL:

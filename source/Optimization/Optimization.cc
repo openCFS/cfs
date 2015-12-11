@@ -117,7 +117,7 @@ Optimization::Optimization()
 
   // constraints to be added later -- it is so much easier with the ParamNodes
   log.AddToHeader("iter");
-  if(context->IsHarmonic())
+  if(manager.any().harmonic)
     log.AddToHeader("freq");
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
     log.AddToHeader(objectives.data[i]->GetName());
@@ -836,7 +836,7 @@ double Optimization::CalcObjective()
       excite.cost += ov * f->GetPenalty();
 
       // we ignore the weight if the evaluation happens only once! TODO why not omega*omega? - Fabian
-      double weight = !f->DoEvaluateAlways() ? 1.0 : excite.normalized_weight;
+      double weight = !f->DoEvaluateAlways(excite.sequence) ? 1.0 : excite.normalized_weight;
 
       f->AddValue(ov * weight);
 
@@ -882,7 +882,7 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
 double Optimization::CalcConstraint(Condition* g)
 {
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+  assert((g == NULL && constraints.active.GetSize() == 1 && constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL); // DoEvaluateAlways(): there is only one sequence
 
   if(g == NULL)
     g = constraints.active[0];
@@ -895,9 +895,9 @@ double Optimization::CalcConstraint(Condition* g)
     excite.Apply(); // for stuff like robust
     // in the evaluate once case only the last excitation
     double v = g->DoEvaluate(&excite) ? CalcFunction(excite, g, false) : 0.0;
-    double w = g->DoEvaluateAlways() ? excite.GetWeightedFactor(g) : 1.0;
+    double w = g->DoEvaluateAlways(excite.sequence) ? excite.GetWeightedFactor(g) : 1.0;
     result += v * w;
-    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways() << " w=" << w << " -> " << result;
+    LOG_DBG(opt) << "CC ex=" << e << " eval=" << g->DoEvaluate(&excite) << " v=" << v << " alw=" << g->DoEvaluateAlways(excite.sequence) << " w=" << w << " -> " << result;
   }
 
   g->SetValue(result);
@@ -907,7 +907,7 @@ double Optimization::CalcConstraint(Condition* g)
 void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_out)
 {
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
-  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways()) || g != NULL);
+  assert((g == NULL && constraints.active.GetSize() == 1 && !constraints.active[0]->DoEvaluateAlways(1) && !context->DoMultiSequence()) || g != NULL);
 
   if(g == NULL)
     g = constraints.active[0];
