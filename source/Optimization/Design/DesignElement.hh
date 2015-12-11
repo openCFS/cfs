@@ -35,6 +35,7 @@ class TransferFunction;
 class DesignSpace;
 struct MultiMaterial;
 class ErsatzMaterial;
+class Context;
 struct Elem;
 
 /** This DesignElement package provides information about the direct neighbours for uniform cartesian
@@ -300,7 +301,7 @@ public:
   }
 
   /** Default mapping from the PDE */
-  static Type Default(const SinglePDE* pde);
+  static Type Default(const Context* ctxt);
 
     /** This specifies result details for various ValueSpecifier/Detail combinations:
      * OBJECTIVE/SYMMETRY (check!)
@@ -325,7 +326,7 @@ public:
 
     /** Gives the physical design, which is penalized and filtered if we have density filtering.
      * Therefore there is no access as we are implicit SMART */
-    double GetPhysicalDesign(const SinglePDE* pde = NULL) const;
+    double GetPhysicalDesign(const Context* ctxt = NULL) const;
 
     /** Return whether physical design is reasonable for this DesignElement::Type */
     bool HasPhysicalDesign() const;

@@ -37,8 +37,9 @@ public:
    * For multiple frequencies it does nothing. The actual frequency is chosen by default.
    * @param switch_context perform a context switch if another sequence is active.
    *    This triggers the deletion of the current pdes and single driver and the creation of new ones. So know what you are doing!
-   *    A good reason not to switch the context is when we apply the current robust filter for function evaluation */
-  void Apply(bool switch_context = false);
+   *    A good reason not to switch the context is when we apply the current robust filter for function evaluation
+   * @return true if a context switch happend (what is only possible with switch_context set */
+  bool Apply(bool switch_context = false);
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
   double GetFactor(Function* f) const;

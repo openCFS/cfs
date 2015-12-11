@@ -57,10 +57,10 @@ namespace CoupledField
 
       /** Gives the standard, non-mass App::Type to find the transfer-function. Note that the application for transfer functions
        * does not coincide with pde application due to the laplace stuff */
-      static App::Type Default(const SinglePDE* pde);
+      static App::Type Default(const Context* ctxt);
 
       /** see the other Default */
-      static App::Type Default(DesignElement::Type type, const SinglePDE* = NULL);
+      static App::Type Default(DesignElement::Type type, const Context* = NULL);
 
       App::Type GetApplication() { return application_; }
       

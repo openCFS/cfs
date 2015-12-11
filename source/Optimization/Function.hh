@@ -35,6 +35,7 @@ class Excitation;
 class MultipleExcitation;
 class Objective;
 class ShapeDesign;
+class Context;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -202,8 +203,10 @@ class Function
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;
 
-    /** Evaluate for all excitations if there are multiple? */
-    bool DoEvaluateAlways() const;
+    /** Evaluate for all excitations if there are multiple?
+     * If we would so (excite_ == -1) we do it only for the sequence.
+     * Never true for different sequence*/
+    bool DoEvaluateAlways(int sequence) const;
 
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
@@ -262,10 +265,11 @@ class Function
     int GetIndex() const { return index_; }
 
     /** Read the tensor if it is given, otherwise sets to 1.1
+     * @param f_ctxt we call this during the constructor an therefore cannot use Function::ctxt
      * @param pn might contain a "tensor" child
      * @param matrix where to store the data
      * @return true if the tensor was read */
-    static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
+    static bool ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matrix);
 
     /** @see StressConstraint::GetApplications */
     typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
@@ -659,9 +663,9 @@ class Function
     /** When we optimize output we store here the rhs loads */
     StdVector<LinearFormContext*> output_forms;
 
-    /** the multiple sequence step we belong to. 1-based. 1 for only one pde
+    /** the multiple sequence step we belong to.
      * @see ContextManager */
-    int sequence;
+    Context* ctxt;
 
   protected:
 
@@ -704,7 +708,7 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
+    /** Excitation index for evaluation. -1 for all excitations within this sequence!!. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
 

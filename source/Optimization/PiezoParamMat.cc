@@ -33,7 +33,7 @@ PiezoParamMat::~PiezoParamMat()
 }
 
 
-void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void PiezoParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);

@@ -22,7 +22,7 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SingleP
   this->orgMat  = orgMat;
   this->form    = NULL; // can only be set later
   this->state = OPT;
-  this-> subTensor = pde->GetSubTensorType();
+  this->subTensor = pde->GetSubTensorType();
 }
 
 void CoefFunctionOpt::SetToOptimization()

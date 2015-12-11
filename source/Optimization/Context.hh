@@ -121,6 +121,9 @@ class Context
   /** number of eigenmodes - also in the non-bloch case! */
   unsigned int num_eigenmodes;
 
+  /** the SubTensorType applies only for MechPDE */
+  SubTensorType stt;
+
   /** context specific excitations (at least one).
    * Is a reference to portions of Optimization::MultipleExcitation::excitation and set in MultipleExcitation::FinalizeMultipleExcitation() */
   StdVector<Excitation*> excitation;
@@ -187,7 +190,6 @@ public:
 
   /** gives the context corresponding to the function.
    * Simply used the 1-based sequence attribute of the function */
-  const Context& GetContext(const Function* f) const;
   const Context& GetContext(const Excitation* ex) const;
 
   StdVector<Context> context;

@@ -66,27 +66,29 @@ void SIMP::PostInit()
 {
   ErsatzMaterial::PostInit();
   
+  // FIXME
   if(context->IsComplex()) mechRHS.Init<complex<double> >(design, App::PRESSURE); // in many cases NULL;
                       else mechRHS.Init<double>(design, App::PRESSURE);
 }
 
-void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative, CalcMode calcMode, double ev)
 {
-  if(context->IsComplex())
+  if(ctxt->IsComplex())
   {
-    if(context->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
-      SetElementK<Complex, Complex >(de, tf, app, out, derivative, calcMode, ev);
+    if(ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+      SetElementK<Complex, Complex >(ctxt, de, tf, app, out, derivative, calcMode, ev);
     else
-      SetElementK<Complex, double >(de, tf, app, out, derivative, calcMode, ev);
+      SetElementK<Complex, double >(ctxt, de, tf, app, out, derivative, calcMode, ev);
   }
   else
-    SetElementK<double,double>(de, tf, app, out, derivative, calcMode, ev);
+    SetElementK<double,double>(ctxt, de, tf, app, out, derivative, calcMode, ev);
 }
 
 template <class T1, class T2>
-void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
-  assert(context->mat != NULL);
+  assert(ctxt->mat != NULL);
+  OptimizationMaterial* mat = ctxt->mat;
   Matrix<T1>& out = dynamic_cast<Matrix<T1>& >(*mat_out);
 
   switch(app)
@@ -96,7 +98,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
-    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, false, mm)); // no bimaterial
+    const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, false) : tf->Transform(de, DesignElement::SMART);// not the bimat case
@@ -108,7 +110,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
-      const Matrix<T2>& bimat = dynamic_cast<const Matrix<T2>& >(context->mat->Stiffness(de->elem, true)); // yes, bimaterial
+      const Matrix<T2>& bimat = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, true)); // yes, bimaterial
       // rho^3 * E1 + (1-rho)^3 * E2, in the derivative case 3*rho^2 * E1 - 3*(1-rho)^2 * E2
       k_factor = !derivative ? 1.0 - k_factor : -1.0 *  k_factor;
       Add(out, k_factor, bimat);
@@ -117,17 +119,17 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
       // LOG_DBG3(simp) << "SetElementK: K_bi_org=" <<  bimat.ToString() << " k_factor " << k_factor << " -> " << out.ToString();
     }
 
-    if(context->IsComplex())
+    if(ctxt->IsComplex())
     {
       tf = design->GetTransferFunction(de->GetType(), App::MASS);
-      AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
+      AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, false, calcMode, ev); // no bimaterial
 
       // LOG_DBG3(simp) << "SetElementK: m_factor " << m_factor << " -> " << out.ToString();
 
       if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
       {
         // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
-        AddMassToStiffness(tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
+        AddMassToStiffness(ctxt, tf, de, dynamic_cast<Matrix<complex<double> >& >(out), derivative, true, calcMode, ev); // bimaterial
 
         // LOG_DBG3(simp) << "SetElementK: m_bi_factor " << m_factor << " -> " << out.ToString();
       }
@@ -137,13 +139,13 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
 
   case App::ELEC:
   {
-    Matrix<std::complex<double> >& stiffness = dynamic_cast<ElecMat *>(context->mat)->ElecStiffness(de->elem, false); // no bimaterial
+    Matrix<std::complex<double> >& stiffness = dynamic_cast<ElecMat *>(mat)->ElecStiffness(de->elem, false); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
     T1 k_factor = derivative ? tf->Derivative(de, DesignElement::SMART) : tf->Transform(de, DesignElement::SMART);
 
     // copy from ElecStiffness to out and factor the derivative
-    if (context->IsComplex())
+    if (ctxt->IsComplex())
       Assign(out, dynamic_cast<Matrix<T1>& >(stiffness), k_factor);
     else
       Assign(out, stiffness.GetPart(Global::REAL), k_factor);
@@ -153,10 +155,10 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
 
     if(design->GetRegion(de->elem->regionId)->HasBiMaterial())
     {
-      Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(context->mat)->ElecStiffness(de->elem, true); // yes, bimaterial
+      Matrix<std::complex<double> >& bimat = dynamic_cast<ElecMat *>(mat)->ElecStiffness(de->elem, true); // yes, bimaterial
       // rho^3 * E1 + (1-rho^3) * E2, in the derivative case 3*rho^2 * E1 - 3*rho^2 * E2
       k_factor = derivative ? tf->Derivative(de, DesignElement::SMART, true) : tf->Transform(de, DesignElement::SMART, true);
-      if(context->IsComplex())
+      if(ctxt->IsComplex())
         Add(out, k_factor, dynamic_cast<Matrix<T1>& >(bimat));
       else
         Add(out, k_factor, bimat.GetPart(Global::REAL));
@@ -174,8 +176,8 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, App::Type 
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   // this app is for the PDE
-  App::Type app = context->ToApp();
-  SinglePDE*  pde = context->pde;
+  assert(f->ctxt->sequence == excite.sequence);
+  App::Type app = f->ctxt->ToApp();
 
   if(!derivative)
     return ErsatzMaterial::CalcFunction(excite, f, derivative);
@@ -186,7 +188,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   case Function::STRESS:
   case Function::STRESS_DENSITY:
   {
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true);
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true);
     CalcVonMisesStressGradient(excite, f, tf);
     break;
   }
@@ -199,7 +201,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
     // synthesis of compliant mechanism: As our adjoint PDE
     // c' = l K' u
-    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(pde), TransferFunction::Default(pde), true, true); // excpetion and use_single
+    TransferFunction* tf = design->GetTransferFunction(DesignElement::Default(f->ctxt), TransferFunction::Default(f->ctxt), true, true); // excpetion and use_single
     double weight = excite.GetWeightedFactor(f);
     LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
@@ -216,6 +218,7 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 
 void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferFunction* tf)
 {
+  assert(excite.sequence == f->ctxt->sequence);
 	// see comment in ErsatzMaterial::CalcVonMisesStressVector()! it's tricky stuff :(
   // For the function we pack the stuff in Function::Local, for the gradient we do it here as the computation are too far
   // away from the other local gradient computations.
@@ -235,7 +238,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // 2 * stress^T * M * (rho^p)' * E_0 * B * u
   Vector<double> appendix;
 
-  if(context->IsComplex())
+  if(f->ctxt->IsComplex())
   {
     StressConstraint<complex<double> > sc(&excite, f, this, &forward);
     sc.CalcGlobalizationFactor(alpha);

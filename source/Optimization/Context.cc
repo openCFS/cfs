@@ -30,6 +30,7 @@ Context::Context()
   eigenvalue_ = false;
   bloch_ = false;
   pde = NULL;
+  stt = NO_TENSOR;
 
 }
 
@@ -193,6 +194,7 @@ void Context::SetPDEs()
     if(sp->GetName() == "mechanic") {
       pde = domain->GetSinglePDE("mechanic", true);
       pdes[App::MECH] = pde;
+      stt = pde->GetSubTensorType();
     }
   }
 
@@ -230,6 +232,7 @@ void ContextManager::Init()
     assert(msd != NULL);
     std::map<UInt, BasePDE::AnalysisType> map = msd->GetAnalyisPerStep();
     std::map<unsigned int, PtrParamNode>  pns = msd->paramPerStep;
+
     unsigned int nms = msd->GetNumberOfSequenceSteps();
 
     assert(nms > 1);
@@ -241,7 +244,7 @@ void ContextManager::Init()
     context.Resize(nms);
 
     for(unsigned int i = 0; i < context.GetSize(); i++)
-      context[i].Setup(this, map[i+1], pns[i+1], i+1);
+      context[i].Setup(this, map[i+1], pns[i+1]->Get("analysis")->GetChild(), i+1); // becomes an issue when analysis gets attributes
   }
 
   for(unsigned int i = 0; i < context.GetSize(); i++)
@@ -299,8 +302,3 @@ const Context& ContextManager::GetContext(const Excitation* ex) const
   return context[ex->sequence -1];
 }
 
-
-const Context& ContextManager::GetContext(const Function* f) const
-{
-  return context[f->sequence -1];
-}

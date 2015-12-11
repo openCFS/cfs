@@ -49,14 +49,14 @@ struct EigenvalueState
   EigenvalueState();
 
   /** @param iter to what current_iter shall be set. Sets also sort_tol */
-  void Init(ErsatzMaterial* em, unsigned int modes, int iter);
+  void Init(ErsatzMaterial* em, Excitation& ex, unsigned int modes, int iter);
 
   /** save the state, store current_iter and consider permutation */
   void SaveState();
 
   bool DoSorting() const { return sort_tol > 0.0; }
 
-  /** Helper data for SortEigenvalues(). Initialized in SortEigenvalues(), beforehand we don't have the data. */
+  /** Helper data for SortEigenvalues(). Initialized in SortEigenvalues(), beforehand we don't have the data. The content simply points to the forward states */
   StdVector<StateSolution*> last;
 
   /** Helper for SortEigenvalues() - implements the permutation after mode switching. When sorting is not enabled this is 0,1, ...n */
@@ -130,6 +130,8 @@ public:
 
   Method GetMethod() { return method_; }
 
+  StateContainer& GetForwardStates() { return forward; }
+
   /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
@@ -176,10 +178,12 @@ protected:
 
 
 
+  /** for Virgininies stuff */
   double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
 
+  /** for Virgininies stuff */
   double CalcU1KU2_mapping2(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1);
@@ -195,19 +199,14 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * Also bi-material is nicely considered.
    * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
+  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0)
   {
     throw Exception("not implemented");
   }
 
 
-  /** This is a helper for CalcU1KU2 to determine the "K" which in most cases includes a
-   * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
-   * Also bi-material is nicely considered.
-   * The template stuff is private, as C++ does not allow virtual templates. */
-  virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf,
-      App::Type app, DenseMatrix* out, CalcMode calcMode, bool derivative =
-          true)
+  /** this is for Virginies stuff */
+  virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* out, CalcMode calcMode, bool derivative = true)
   {
     throw Exception("not implemented");
   }
@@ -354,7 +353,7 @@ protected:
    * @param out_grad of derivative it is resized and the gradients are set otherwise it is untouched
    * @param meta the meta excitation index (rotations, robust) or 0 for standard case
    * @return the E^H tensor entry if !derivative or 0 */
-  double CalcHomogenizedTensorEntry(const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
+  double CalcHomogenizedTensorEntry(Context* ctxt, const boost::tuple<int, int, double> entry, bool derivative, StdVector<double>& grad_out, unsigned int meta);
 
   /** Calculates globalized local functions. globalSlope and globalCheckerboard.
    * When g_i is the slope function x_i - x_i+1 -c and g_i+1 = x_1+1 - x_i - c
@@ -406,7 +405,7 @@ protected:
 
   /** This is a helper for SetElementK() which adds for App::MECH in the harmonic case damping and mass
    * @param bimaterial describes only the material, the factor needs to be set as rho^3 or 1-rho^3 already! */
-  void AddMassToStiffness(const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
+  void AddMassToStiffness(Context* ctxt, const TransferFunction* mtf, DesignElement* de, Matrix<std::complex<double> >& K_in_S_out, bool derivative, bool bimaterial, CalcMode mode = STANDARD, double ev = -1.0);
   /** The DesignStructure is required by SIMP for filters and by Condition for slope constraints
    * and checkerboard. They share this element. It can only be created by PostInit(), hence every
    * PostInit() who needs the structure needs to check if it was created before. Deleted by ~EM */
@@ -431,7 +430,7 @@ private:
    * in Bendsoe/Sigmund - Topology Optimization page 124
    * @param u1 the element solution vector
    * @return the product test strain diff * (K or K') * test strain diff  */
-  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, DesignElement* de, bool derivative, Vector<double>& u1,
+  static double CalcHomogenizedElementProduct(ErsatzMaterial* em, Context* ctxt, DesignElement* de, bool derivative, Vector<double>& u1,
       Vector<double>& u2, Matrix<double>& test_strain_matrix_ij, Matrix<double>& test_strain_matrix_kl);
 
   static Complex CalcU1KU2(ErsatzMaterial* obj, DesignElement* de, bool derivative, Vector<Complex> u1_vec, Vector<Complex> u2_vec);
