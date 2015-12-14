@@ -521,7 +521,6 @@ namespace CoupledField {
         numWriteResults_ = lbm->GetNumWriteResults();
 
         numIterations_ = lbm->GetNumIterations();
-        exit(-1);
         break;
       }
     }
@@ -725,8 +724,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     Vector<double> sol;
     algsys_->GetSolutionVal(sol,0,false);
 
-    std::cout << "solution of adjoint system has size: "<< sol.GetSize() << "\n" << sol.ToString(0,',') << std::endl;
-
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
@@ -775,10 +772,8 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         adjMoms[dir] = GetAdjMoments(idx,dir);
       }
 
-      std::cout << "Adjoint solution for element " << idx << ":\n";
-      std::cout << adjMoms.ToString(0,',') << std::endl;
-
-//      exit(-1);
+//      std::cout << "Adjoint solution for element " << idx << ":\n";
+//      std::cout << adjMoms.ToString(0,',') << std::endl;
 
       Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
       Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s

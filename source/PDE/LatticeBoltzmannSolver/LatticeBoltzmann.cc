@@ -432,65 +432,62 @@ void LatticeBoltzmann::InitTransformMatrix()
   invTransformation.Resize(n_q_);
   invTransformation.Init();
 
-//  for (int i = 0; i < n_q_; i++)
-//    invTransformation[i][0] = 2.0;
-//
-//  invTransformation[0][1] = -2.0;
-//  invTransformation[0][2] = 2.0;
-//  invTransformation[1][1] = -0.5;
-//  invTransformation[1][2] = -1.0;
-//  invTransformation[1][3] = 3.0;
-//  invTransformation[1][4] = -3.0;
-//  invTransformation[1][7] = 4.5;
-//  invTransformation[2][1] = -0.5;
-//  invTransformation[2][2] = -1.0;
-//  invTransformation[2][5] = 3.0;
-//  invTransformation[2][6] = -3.0;
-//  invTransformation[2][7] = -4.5;
-//  invTransformation[3][1] = -0.5;
-//  invTransformation[3][2] = -1.0;
-//  invTransformation[3][3] = -3.0;
-//  invTransformation[3][4] = 3.0;
-//  invTransformation[3][7] = 4.5;
-//  invTransformation[4][1] = -0.5;
-//  invTransformation[4][2] = -1.0;
-//  invTransformation[4][5] = -3.0;
-//  invTransformation[4][6] = 3;
-//  invTransformation[4][7] = -4.5;
-//  invTransformation[5][1] = 1.0;
-//  invTransformation[5][2] = 0.5;
-//  invTransformation[5][3] = 3.0;
-//  invTransformation[5][4] = 1.5;
-//  invTransformation[5][5] = 3.0;
-//  invTransformation[5][6] = 1.5;
-//  invTransformation[5][8] = 4.5;
-//  invTransformation[6][1] = 1.0;
-//  invTransformation[6][2] = 0.5;
-//  invTransformation[6][3] = -3.0;
-//  invTransformation[6][4] = -1.5;
-//  invTransformation[6][5] = 3.0;
-//  invTransformation[6][6] = 1.5;
-//  invTransformation[6][8] = -4.5;
-//  invTransformation[7][1] = 1.0;
-//  invTransformation[7][2] = 0.5;
-//  invTransformation[7][3] = -3.0;
-//  invTransformation[7][4] = -1.5;
-//  invTransformation[7][5] = -3.0;
-//  invTransformation[7][6] = -1.5;
-//  invTransformation[7][8] = 4.5;
-//  invTransformation[8][1] = 1.0;
-//  invTransformation[8][2] = 0.5;
-//  invTransformation[8][3] = 3.0;
-//  invTransformation[8][4] = 1.5;
-//  invTransformation[8][5] = -3.0;
-//  invTransformation[8][6] = -1.5;
-//  invTransformation[8][8] = -4.5;
-//
-//  invTransformation /= 18.0;
+  for (int i = 0; i < n_q_; i++)
+    invTransformation[i][0] = 2.0;
 
-  Matrix<double> test = transformation;
-  test.Invert_Lapack();
-  invTransformation = test;
+  invTransformation[0][1] = -2.0;
+  invTransformation[0][2] = 2.0;
+  invTransformation[1][1] = -0.5;
+  invTransformation[1][2] = -1.0;
+  invTransformation[1][3] = 3.0;
+  invTransformation[1][4] = -3.0;
+  invTransformation[1][7] = 4.5;
+  invTransformation[2][1] = -0.5;
+  invTransformation[2][2] = -1.0;
+  invTransformation[2][5] = 3.0;
+  invTransformation[2][6] = -3.0;
+  invTransformation[2][7] = -4.5;
+  invTransformation[3][1] = -0.5;
+  invTransformation[3][2] = -1.0;
+  invTransformation[3][3] = -3.0;
+  invTransformation[3][4] = 3.0;
+  invTransformation[3][7] = 4.5;
+  invTransformation[4][1] = -0.5;
+  invTransformation[4][2] = -1.0;
+  invTransformation[4][5] = -3.0;
+  invTransformation[4][6] = 3;
+  invTransformation[4][7] = -4.5;
+  invTransformation[5][1] = 1.0;
+  invTransformation[5][2] = 0.5;
+  invTransformation[5][3] = 3.0;
+  invTransformation[5][4] = 1.5;
+  invTransformation[5][5] = 3.0;
+  invTransformation[5][6] = 1.5;
+  invTransformation[5][8] = 4.5;
+  invTransformation[6][1] = 1.0;
+  invTransformation[6][2] = 0.5;
+  invTransformation[6][3] = -3.0;
+  invTransformation[6][4] = -1.5;
+  invTransformation[6][5] = 3.0;
+  invTransformation[6][6] = 1.5;
+  invTransformation[6][8] = -4.5;
+  invTransformation[7][1] = 1.0;
+  invTransformation[7][2] = 0.5;
+  invTransformation[7][3] = -3.0;
+  invTransformation[7][4] = -1.5;
+  invTransformation[7][5] = -3.0;
+  invTransformation[7][6] = -1.5;
+  invTransformation[7][8] = 4.5;
+  invTransformation[8][1] = 1.0;
+  invTransformation[8][2] = 0.5;
+  invTransformation[8][3] = 3.0;
+  invTransformation[8][4] = 1.5;
+  invTransformation[8][5] = -3.0;
+  invTransformation[8][6] = -1.5;
+  invTransformation[8][8] = -4.5;
+
+  invTransformation /= 18.0;
+
   adjTransformation.Resize(n_q_);
   invTransformation.Transpose(adjTransformation); // adjoint transformation matrix is tranposed inverse of primal transformation matrix
 
@@ -1102,13 +1099,41 @@ void LatticeBoltzmann::CalcAdjointCollMatrix(int elemId, const Vector<double>& m
     mat[8][8] = 1.0;
   } else
   {
+    Matrix<double> dcorr_dm(n_q_,n_q_);
+    dcorr_dm.Init();
+    double s = scales[elemId];
+    double rho2 = rho * rho;
+
+    dcorr_dm[0][0] = -6.938893904e-18*jx*jy*omega_nu_*(s*s - 1.387778781e-17*s + 1.0)/rho2;
+    dcorr_dm[1][0] = -dcorr_dm[0][0];
+    dcorr_dm[2][0] = 1.387778781e-17*jx*jy*omega_nu_*(s*s - 1.387778781e-17*s + 1.0)/rho2;
+    dcorr_dm[5][0] = dcorr_dm[0][0];
+    dcorr_dm[6][0] = dcorr_dm[2][0];
+    dcorr_dm[7][0] = -dcorr_dm[0][0];
+
+    dcorr_dm[0][3] = -7.703719778e-34*omega_nu_*(1.651319863e16*rho - 9.007199255e15*jy + 1.801439851e16*jy*s + 1.501199876e15*rho*s - 9.007199255e15*jy*s*s)/rho;
+    dcorr_dm[1][3] = 7.703719778e-34*omega_nu_*(4.803839603e16*rho - 9.007199255e15*jy + 1.801439851e16*jy*s + 6.004799503e15*rho*s - 9.007199255e15*jy*s*s)/rho;
+    dcorr_dm[2][3] = -1.540743956e-33*omega_nu_*(9.007199255e15*jy + 1.501199876e16*rho - 1.801439851e16*jy*s + 3.002399752e15*rho*s + 9.007199255e15*jy*s*s)/rho;
+    dcorr_dm[3][3] = -omega_nu_*s;
+    dcorr_dm[5][3] = 7.703719778e-34*omega_nu_*(9.007199255e15*jy - 4.203359652e16*rho - 1.801439851e16*jy*s + 3.602879702e16*rho*s + 9.007199255e15*jy*s*s)/rho;
+    dcorr_dm[6][3] = -1.540743956e-33*omega_nu_*(9.007199255e15*jy - 4.203359652e16*rho - 1.801439851e16*jy*s + 3.602879702e16*rho*s + 9.007199255e15*jy*s*s)/rho;
+    dcorr_dm[7][3] = -7.703719778e-34*omega_nu_*(9.007199255e15*jy*s*s - 1.801439851e16*jy*s + 9.007199255e15*jy - 6.004799503e15*rho)/rho;
+
+    dcorr_dm[0][5] = 7.703719778e-34*omega_nu_*(9.007199255e15*jx + 1.050839913e16*rho - 1.801439851e16*jx*s + 1.501199876e15*rho*s + 9.007199255e15*jx*s*s)/rho;
+    dcorr_dm[1][5] = -3.081487911e-33*omega_nu_*(2.251799814e15*jx + 1.050839913e16*rho - 4.503599627e15*jx*s + 1.501199876e15*rho*s + 2.251799814e15*jx*s*s)/rho;
+    dcorr_dm[2][5] = 3.081487911e-33*omega_nu_*(1.050839913e16*rho - 4.503599627e15*jx + 9.007199255e15*jx*s + 1.501199876e15*rho*s - 4.503599627e15*jx*s*s)/rho;
+    dcorr_dm[5][5] = 6.938893904e-18*omega_nu_*(jx - 2.0*jx*s - 1.441151881e17*rho*s + jx*s*s)/rho;
+    dcorr_dm[6][5] = -1.387778781e-17*jx*omega_nu_*(s - 1.0)*(s - 1.0)/rho;
+    dcorr_dm[7][5] = -6.938893904e-18*jx*omega_nu_*(s - 1.0)*(s - 1.0)/rho;
+
     Matrix<double> tmp1 = identity;
     tmp1.Add(-1.0,d_mEq_d_m);
 //    Matrix<double> tmp2 = identity;
 //    tmp2.Add(-1.0,relax_tmp);
     // S_A = I - S(I - d_mEq/d_m) + d_F1/d_m + (I - S/2) d_F2/d_m
 //    adjCollision[elemId] = identity - relaxation * tmp1 + d_F1_d_m + tmp2 * d_F2_d_m;
-    adjCollision[elemId] = identity - relaxation * tmp1;
+//    adjCollision[elemId] = identity - relaxation * tmp1;
+    adjCollision[elemId] = identity - relaxation * tmp1 + dcorr_dm; // I - S(I-dmEq/dm) + dcorr/dm
 //    std::cout << "identity:\n" << identity.ToString(0,true) << "\n";
 //    std::cout << "relaxation: \n" << relaxation.ToString(0,true) << "\n";
 //    std::cout << "dmEq_dm:\n" << d_mEq_d_m.ToString(0,true) << "\n";
@@ -1352,19 +1377,30 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
           correction.Init();
           double s = 1-scales[index];
           double rho = moments[0];
-          correction[1] = -jx;
-          correction[3] = jx;
-          correction[5] = -jx-jy;
-          correction[6] = jx-jy;
-          correction[7] = jx+jy;
-          correction[8] = -jx+jy;
-          correction *= omega_nu_ * s / 6.0;
-          correction[0] = omega_nu_ * (8.095376221e-18*jy - 8.095376221e-18*jx - 1.156482317e-18*jx*s + 1.156482317e-18*jy*s);
-          correction[2] = omega_nu_ * (1.387778781e-17*jx*s - 1.850371708e-17*jx - jy*s/6.0 + (6.938893904e-18*jx*jy)/rho + (6.938893904e-18*jx*jy*s*s)/rho - (1.387778781e-17*jx*jy*s)/rho);
-          correction[4] =  omega_nu_* (1.387778781e-17*jx - 1.387778781e-17*jx*s + 0.1666666667*jy*s);
-          Vector<double> subtrahend(n_q_);
-          invTransformation.Mult(relaxation * noneq_moments, subtrahend);
-          subtrahend -= correction;
+//          correction[1] = -jx;
+//          correction[3] = jx;
+//          correction[5] = -jx-jy;
+//          correction[6] = jx-jy;
+//          correction[7] = jx+jy;
+//          correction[8] = -jx+jy;
+//          correction *= omega_nu_ * s / 6.0;
+//          correction[0] = omega_nu_ * (jx-jy) * (-8.095376221e-18  - 1.156482317e-18*s);
+//          correction[2] = omega_nu_ * (1.387778781e-17*jx*(s - 1) - jy*s/6.0 + 6.938893904e-18*jx*jy/rho *(1 + s*s - 1.387778781e-17*s) );
+//          correction[4] =  omega_nu_* (1.387778781e-17*jx*(1-s) +jy*s/6.0);
+          correction[0] = -omega_nu_*((jx - jy)*(1.156482317e-18*s + 8.095376221e-18) - 6.938893904e-18*jx*jy*(s*s - 1.387778781e-17*s + 1.0)/rho);
+          correction[1] = omega_nu_*((1.156482317e-18*s + 8.095376221e-18)*4.0*(jx - jy) - 6.938893904e-18*jx*jy*(s*s - 1.387778781e-17*s + 1.0)/rho);
+          correction[2] = -2.0*omega_nu_*((1.156482317e-18*s + 8.095376221e-18)*2.0*(jx - jy) + (6.938893904e-18*jx*jy*(s*s - 1.387778781e-17*s + 1.0))/rho);
+          correction[3] = -jx*omega_nu_*s;
+          correction[4] = 0.0;
+          correction[5] = jx*omega_nu_*2.775557562e-17*(s -1) - 1.0*jy*omega_nu_*s + (6.938893904e-18*jx*jy*omega_nu_*(s*s - 1.387778781e-17*s + 1.0))/rho;
+          correction[6] = 1.925929945e-34*jx*jy*omega_nu_*s/rho - 1.387778781e-17*jx*jy*omega_nu_*(s*s + 1.0)/rho - 5.551115124e-17*jx*omega_nu_*(s - 1.0);
+          correction[7] = -jx*jy*omega_nu_*(6.938893904e-18*s*s - 9.629649724e-35*s + 6.938893904e-18)/rho;
+          correction[8] = 0.0;
+          Vector<double> subtrahend(n_q_), tmp(n_q_);
+          tmp = relaxation * noneq_moments;
+          tmp.Add(-1,correction);
+          invTransformation.Mult(tmp, subtrahend);
+//          subtrahend -= correction;
 //          momentsAfterCollision = moments - (relaxation * noneq_moments); // m* = m - S * (m - m_eq)
 //          collResult.Resize(n_q_);
           collResult = pdfs - subtrahend;
@@ -1387,6 +1423,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
   }
   return;
 }
+
 
 
 void LatticeBoltzmann::Prop_coll_velinlet2D(int cur)
@@ -1495,6 +1532,8 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 
       for (int dir = 0; dir < n_q_; dir++)
         moments[dir] = AMoments(cur,index,dir);
+
+      std::cout << "scalar invariant: " << moments[0] + 2*moments[3]-moments[4] << std::endl;
 
       Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
       Matrix<double> collMatrix = adjCollision[index];

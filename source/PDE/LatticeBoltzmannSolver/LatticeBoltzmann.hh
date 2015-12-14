@@ -134,6 +134,8 @@ namespace CoupledField
       /** return adjoint transformation matrix for conversion of adjoint pdfs into momentum space*/
       inline const Matrix<double>& GetAdjTransformation() {return adjTransformation; }
 
+      inline const Matrix<double>& GetInvTransformation() {return invTransformation; }
+
       inline StdVector<PDFDirectionVector>& GetPDFDirectionVectors() { return microVelDirections; }
       inline StdVector<Direction>& GetinvPDFDirections() { return invPDFDirections; }
 
