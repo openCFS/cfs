@@ -199,7 +199,7 @@ public:
 
   inline void ExtractIntermediateSolution() {
     pdfs = lbm->GetPdfs();
-    adjMoments = lbm->GetAdjPdfs();
+    adjMoments = lbm->GetAdjMoments();
   }
 
   //! Calculate macroscopic velocities
@@ -378,6 +378,9 @@ private:
   /** storage for adjoint particle distribution. This is the simulation result for the function evaluation. */
   StdVector<double> adjMoments;
 
+  /** storage for adjoint particle distribution. This is the result of an adjoint SRT simulation. */
+  StdVector<double> adjPdfs;
+
   /** these are the indices of the inlet elements */
   StdVector<unsigned int> inlet;
 
@@ -413,6 +416,9 @@ private:
   StdVector<LatticeBoltzmann::PDFDirectionVector> microVelDirections_;
   StdVector<LatticeBoltzmannBase::Direction> invPDFDirections_;
 
+  StdVector<Matrix<double> > adjSRTCollision; // adjoint SRT collision matrices
+  StdVector<Vector<double> > d_pdrop_d_f;
+
   /** external lbm */
   std::string executable;
 
@@ -423,12 +429,14 @@ private:
   Iface iface_;
   Enum<Iface> iface;
 
+  /** Use Iface enums for indicating external adjoint solving or internal adjoint SRT LBM simulation */
+  Iface adjSRT_;
+
   /** total time of state problems */
   Timer state_;
 
   /** total time of adjoint solution */
   Timer adjoint_;
-
 };
 
 } // end of namespace

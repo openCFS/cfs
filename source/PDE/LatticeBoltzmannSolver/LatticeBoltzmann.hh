@@ -59,6 +59,8 @@ namespace CoupledField
        * @param info stores current and final info there */
       StdVector<double>* IterateAdjoint(PtrParamNode info);
 
+      StdVector<double>* IterateAdjointSRT(const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
 
@@ -70,7 +72,9 @@ namespace CoupledField
       /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
        *  @return copy of pdfs
        */
-      inline StdVector<double>& GetAdjPdfs() {return adjMoments_[adjCur_];}
+      inline StdVector<double>& GetAdjMoments() {return adjMoments_[adjCur_];}
+
+      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[adjCur_];}
 
       /** Returns overall dissipation calculated with current pdfs */
       inline double GetDissipation()
@@ -173,7 +177,10 @@ namespace CoupledField
               for(int  dir = 0; dir < n_q_; dir++) {
                 if (adjoint)
                 {
-                  res = AMoments(next, elem, dir) - AMoments(cur, elem, dir);
+                  if (srt_)
+                    res = APDF(next, elem, dir) - APDF(cur, elem, dir);
+                  else
+                    res = AMoments(next, elem, dir) - AMoments(cur, elem, dir);
                 }
                 else
                   res = PDF(next, elem, dir) - PDF(cur, elem, dir);
@@ -314,6 +321,26 @@ namespace CoupledField
             return adjMoments_[cur][direction + n_q_ * elem];
           }
 
+          inline double& APDF(int cur, int x, int y, int z, int direction)
+          {
+            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline const double APDF(int cur, int x, int y, int z, int direction) const
+          {
+            return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
+          }
+
+          inline double& APDF(int cur, int elem, int direction)
+          {
+            return adjPdfs_[cur][direction + n_q_ * elem];
+          }
+
+          inline const double APDF(int cur, int elem, int direction) const
+          {
+            return adjPdfs_[cur][direction + n_q_ * elem];
+          }
+
           void CreateOutput(const char * file, int cur);
 
           inline bool PointsToBoundary(int x, int y, int z, int dir)
@@ -400,7 +427,8 @@ namespace CoupledField
 
           StdVector< StdVector<double> > pdfs_;
           StdVector< StdVector<double> > adjMoments_;
-          Vector<double> tmpPdfs_;
+          StdVector< StdVector<double> > adjPdfs_;
+          StdVector<double> tmpPdfs_;
 
           // store moments and equilibrium moments of steady state solution
           // need this for adjoint LBM simulation

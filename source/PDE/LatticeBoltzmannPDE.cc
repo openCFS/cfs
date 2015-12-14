@@ -167,8 +167,10 @@ namespace CoupledField {
 
     iface.SetName("LatticeBoltzmannPDE::Iface");
     iface.Add(INTERNAL, "internal");
-    iface.Add(EXTERNAL, "external_single_file_iface");
+    iface.Add(EXTERNAL, "external");
     iface_ = iface.Parse(pn->Get("LBM/solver")->As<std::string>());
+
+    adjSRT_ = iface.Parse(pn->Get("LBM/SRT/solveAdjoint")->As<std::string>());
 
     InitRegions(pn, grid);
 
@@ -281,6 +283,17 @@ namespace CoupledField {
     pdfs.Resize(n_elems * n_q_);
     adjMoments.Resize(n_elems * n_q_);
     adjMoments.Init(0.0);
+    adjPdfs.Resize(n_elems * n_q_);
+    adjPdfs.Init(0.0);
+
+    // vector storing adjoint SRT collision matrices
+    adjSRTCollision.Resize(n_elems);
+    d_pdrop_d_f.Resize(n_elems);
+    Vector<double> zeros(n_q_);
+    zeros.Init();
+    // Initialize d_pdrop_d_f with zero vectors
+    for (unsigned int elem = 0; elem < n_elems; elem++)
+      d_pdrop_d_f[elem] = zeros;
 
     if(iface_ == INTERNAL) {
       lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_,alpha_max_);
@@ -510,9 +523,6 @@ namespace CoupledField {
         pdfs = *tmp;
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
 
-        std::cout << "CalcPressureDrop(): " << CalcPressureDrop() << " niter: " << lbm->GetNumIterations() << std::endl;
-        std::cout << "GetObjective(): " << GetDissipation() << std::endl;
-
         if (!srt_ && domain_->GetOptimization() != NULL) {
           StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
           adjMoments = *tmpAdj;
@@ -653,6 +663,14 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
         assert(false);
       }
+
+      if (adjSRT_ == INTERNAL) {
+//        Matrix<double> transpose(n_q_,n_q_);
+//        block.Transpose(transpose);
+//        adjSRTCollision[index] = transpose;
+        adjSRTCollision[index] = block;
+      }
+
       // fill transpose of block in col_jacobi
       for(unsigned int k = 0; k < n_q_; k++)
         for(unsigned int l = 0; l< n_q_; l++) {
@@ -689,74 +707,81 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   //  WriteMatrix("Jacobian_col.txt",col_jacobi);
   //  WriteMatrix("Jacobian_old.txt",Jacobi);
   //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
-
-    // use the cfs system matrix to solve the adjoint system
-    StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
-    LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
-    LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
-    LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
-    LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
-    LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
-
-    CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-    assert(crs != NULL);
-
-    crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-    matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
-
-    // time to setup adjoint system before solving
-    double setup_wall = timer.GetWallTime();
-    double setup_cpu = timer.GetCPUTime();
-
-    LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
-    SBM_Vector rhs(BaseMatrix::DOUBLE);
-    rhs.Resize(1);
-    rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
-    rhs.AddToSubVector(b,0);
-
-    LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
-    LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
-
-    algsys_->InitRHS(rhs);
-
-    algsys_->SetupSolver();
-    algsys_->Solve();
-    Vector<double> sol;
-    algsys_->GetSolutionVal(sol,0,false);
-
-    for(unsigned int e = 0; e < f->elements.GetSize(); e++)
-    {
-      DesignElement* de = f->elements[e];
-      unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-      double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-      std::cout << "Adjoint solution for element " << idx << ":\n";
-      for (unsigned int dir = 0; dir < n_q_; dir++) {
-        std::cout << sol[GetPdfIndex(idx,dir)] << " ";
-      }
-      std::cout << std::endl;
-      de->AddGradient(f, val);
-    }
-
-    LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
-
-    timer.Stop();
-    adjoint_.Stop();
     PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
-    adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
-    adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
-    adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
-    adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
-    adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
-    adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
-    adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
-    adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+    // using external LSE solver
+    if (adjSRT_ == EXTERNAL)
+    {
+      // use the cfs system matrix to solve the adjoint system
+      StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
+      LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
+      LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
+      LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
+      LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
+      LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
 
+      CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+      assert(crs != NULL);
 
+      crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+      matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
+
+      // time to setup adjoint system before solving
+      double setup_wall = timer.GetWallTime();
+      double setup_cpu = timer.GetCPUTime();
+
+      LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
+      SBM_Vector rhs(BaseMatrix::DOUBLE);
+      rhs.Resize(1);
+      rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
+      rhs.AddToSubVector(b,0);
+
+      LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
+      LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
+
+      algsys_->InitRHS(rhs);
+
+      algsys_->SetupSolver();
+      algsys_->Solve();
+      Vector<double> sol;
+      algsys_->GetSolutionVal(sol,0,false);
+
+      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+      {
+        DesignElement* de = f->elements[e];
+        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+        double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
+        std::cout << "Adjoint solution for element " << idx << ":\n";
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+        }
+        std::cout << std::endl;
+        de->AddGradient(f, val);
+      }
+
+      timer.Stop();
+      adjoint_.Stop();
+      adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
+      adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
+      adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
+      adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
+      adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+      adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
+      adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
+      adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+    }
+    else
+    {
+      StdVector<double>* tmp = lbm->IterateAdjointSRT(adjSRTCollision,d_pdrop_d_f);
+      adjPdfs = *tmp;
+      std::cout << "Adjoint solution for element 4 :\n";
+      for (unsigned int dir = 0; dir < n_q_; dir++) {
+        std::cout << adjPdfs[GetPdfIndex(4,dir)] << " ";
+      }
+    }
     adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
     adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
     adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
     adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
-
   }
   else // in MRT case, adjoint LBM solver delivers adjoint solution
   {
@@ -1045,7 +1070,6 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
   for (unsigned int i = 0; i < n_q_; i++)
     for (unsigned int j = 0; j < n_q_; j++)
       block[i][j] = dfeqdrho[i];
-
 }
 
 void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight)
@@ -1150,6 +1174,8 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double outletSize_inv = 1.0 / (double) outlet.GetSize();
   double one_third = 1.0 / 3.0;
 
+//  // temporal storage for adjoint SRT
+  Vector<double> d_PD_d_f(n_q_);
   int index;
 
   for (unsigned int i = 0; i < inlet.GetSize(); i++) {
@@ -1159,7 +1185,9 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
+    d_pdrop_d_f[index] = d_PD_d_f;
   }
 
   for (unsigned int i = 0; i < outlet.GetSize(); i++) {
@@ -1169,7 +1197,9 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
       dUY = microVelDirections_[dir].off_y - uy[index];
       dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
+    d_pdrop_d_f[index] = d_PD_d_f;
   }
 
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
