@@ -91,6 +91,12 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   adjMoments_[0].Init(0.0);
   adjMoments_[1].Init(0.0);
 
+  adjPdfs_.Resize(2);
+  adjPdfs_[0].Resize(nNodes_ * n_q_);
+  adjPdfs_[1].Resize(nNodes_ * n_q_);
+  adjPdfs_[0].Init(0.0);
+  adjPdfs_[1].Init(0.0);
+
   // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
   microVelDirections.Resize(n_q_);
   weights.Resize(n_q_);
@@ -298,6 +304,8 @@ void LatticeBoltzmann::InitializePdfs()
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
+      APDF(0, elem, dir) = weights[dir];
+      APDF(1, elem, dir) = weights[dir];
     }
   }
 
@@ -1533,18 +1541,12 @@ void LatticeBoltzmann::AdjointCollision(int cur)
       for (int dir = 0; dir < n_q_; dir++)
         moments[dir] = AMoments(cur,index,dir);
 
-      std::cout << "scalar invariant: " << moments[0] + 2*moments[3]-moments[4] << std::endl;
-
       Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
       Matrix<double> collMatrix = adjCollision[index];
       Matrix<double> collMatrixT(n_q_,n_q_);
       collMatrix.Transpose(collMatrixT);
 //      momentsAfterCollision = d_diss_d_m[index] + collMatrixT * moments;
       momentsAfterCollision = d_pdrop_d_m[index] + collMatrixT * moments;
-
-//      if (index == 4) {
-//        std::cout << "Collision matrix:\n " << collMatrix.ToString(0,true) << std::endl;
-//      }
 
       Vector<double> collResult(n_q_);
       Matrix<double> transpose(n_q_, n_q_);
@@ -1601,10 +1603,17 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 
         tmp[dir] = tmpPdfs_[GetPdfIndex(index,dir)];
       }
-      Vector<double> propResult(n_q_);
-      adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
-      for (int dir = 0; dir < n_q_; dir++)
-        AMoments(next,x,y,z,dir) = propResult[dir];
+
+      if (srt_)
+      {
+        for (int dir = 0; dir < n_q_; dir++)
+          APDF(next,x,y,z,dir) = tmp[dir];
+      } else {
+        Vector<double> propResult(n_q_);
+        adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
+        for (int dir = 0; dir < n_q_; dir++)
+          AMoments(next,x,y,z,dir) = propResult[dir];
+      }
     }
 }
 
@@ -1649,31 +1658,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   LOG_DBG3(lbm) << "\n steady state pdfs: " << pdfs_.ToString(false) << std::endl;
 
-//  std::cout << "\n Steady state pdfs: " << std::endl;
-//  for (int elem = 0; elem < nNodes_; elem++) {
-//    Vector<double> pdfs(n_q_);
-//    std::cout << "elem " << elem << ": ";
-//    for (int dir = 0; dir < n_q_; dir++) {
-//      pdfs[dir] = PDF(cur_,elem,dir);
-//      std::cout << PDF(cur_,elem,dir) << " ";
-//    }
-//    double ux, uy, uz;
-//    double rho = CalcDensity(pdfs);
-//    CalcVelocities(pdfs,ux,uy,uz);
-//    std::cout << " rho=" << rho << " ux=" << ux << " uy=" << uy << " uz=" << uz << std::endl;
-//  }
-
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
     LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
     AdjointCollision(adjCur_);
     AdjointBounceBack(adjCur_);
     AdjointPropagation(adjCur_,adjNext_);
-
-//    std::cout << "Adjoint entry for element 4: ";
-//    for (int dir = 0; dir < n_q_; dir++)
-//      std::cout << AMoments(adjCur_,4,dir) << " ";
-//    std::cout << std::endl;
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1686,22 +1676,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
         plot << it << "\t" << R << "\n";
 
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
-
-//      std::cout << "Adjoint iteration " << it << " residual: " << R << std::endl;
-
-//      std::cout << "\n adjoint moments cur: " << std::endl;
-//      for (int elem = 0; elem < nNodes_; elem++) {
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << adjMoments_[adjCur_][GetPdfIndex(elem,dir)] << " ";
-//        std::cout << std::endl;
-//      }
-//
-//      std::cout << "\n adjoint moments next: " << std::endl;
-//      for (int elem = 0; elem < nNodes_; elem++) {
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << adjMoments_[adjNext_][GetPdfIndex(elem,dir)] << " ";
-//        std::cout << std::endl;
-//      }
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
@@ -1715,15 +1689,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
         count++;
       }
     }
-    //    LOG_DBG3(lbm) << "\n Iteration " << it;
-    //    for (int elem = 0; elem < nNodes_; elem++) {
-    //      LOG_DBG3(lbm) << "element " << elem;
-    //      for(int  dir = 0; dir < n_q_; dir++)
-    //        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
-    //    }
   }
-
-//  std::cout << "adjoint variable:\n" << adjMoments_[adjCur_].ToString(false) << std::endl;
 
   if(R >= 1000)
     EXCEPTION("In adjoint LBM iteration " << it << " residuum " << R << " too large ... abort");
@@ -1743,6 +1709,89 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   node->Get("dissipation")->SetValue(dissipation);
 
   return &(adjMoments_[adjCur_]);
+}
+
+StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
+{
+  tmpPdfs_.Resize(nNodes_ * n_q_);
+  int z = 0;
+
+  int count = numWriteResults_;
+
+  int it = 0;
+  double R = 0.0;
+  bool steady_state = false;
+
+  while(it < maxIter_ && !steady_state && R <= 1000)
+  {
+    /***************** Adjoint SRT collision ***/
+    Vector<double> pdfs(n_q_);
+    for (int x = 0; x < sizeX_ ; x++)
+      for (int y = 0; y < sizeY_; y++)
+      {
+        int index = GetIndex(x,y,z);
+
+        for (int dir = 0; dir < n_q_; dir++)
+          pdfs[dir] = APDF(adjCur_,index,dir);
+
+        // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
+        Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
+        Vector<double> d_pd_d_f = d_pdrop_d_f[index];
+        Vector<double> collResult = d_pd_d_f + (d_coll_d_f * pdfs);
+
+        for (int dir = 0; dir < n_q_; dir++)
+          tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
+
+        if (!rel.Contains(index)) {
+          for (int dir1 = 0; dir1 < n_q_; dir1++) {
+//            for (int dir2 = 0; dir2 < n_q_; dir2++)
+//              if (inlet.Contains(index) || outlet.Contains(index))
+//                assert(d_coll_d_f[dir1][dir2] == 0.0);
+            if (bb.Contains(index))
+              assert(d_pd_d_f[dir1] == 0.0);
+          }
+        }
+      }
+
+//    AdjointBounceBack(adjCur_);
+    AdjointPropagation(adjCur_, adjNext_);
+
+    if((it == 0 || it % 100 == 0))
+    {
+      R = CalcResidual(adjCur_,adjNext_,true);
+      std::cout << "Adjoint SRT simulation step " << it << " res: " << R << std::endl;
+//      if(R <= maxTol_)
+      if (R <= 1e-12)
+        steady_state = true;
+    }
+
+    adjCur_  = (adjCur_  + 1) % 2;
+    adjNext_ = (adjNext_ + 1) % 2;
+
+    it++;
+    if (writeIntermediateResults_) {
+      if (it % writeFrequency_ == 0) {
+        domain->GetDriver()->StoreResults(count,(double) numIterations_ + it);
+        count++;
+      }
+    }
+  }
+
+  tmpPdfs_ = adjPdfs_[adjCur_];
+  AdjointPropagation(adjCur_,adjNext_);
+  adjCur_  = (adjCur_  + 1) % 2;
+  adjNext_ = (adjNext_ + 1) % 2;
+
+  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
+  if(R >= 1000)
+    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
+
+  if(!steady_state)
+    EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
+
+  numWriteResults_ = count;
+
+  return &(adjPdfs_[adjCur_]);
 }
 
 /************************************************** 3D operators *****************************************************/

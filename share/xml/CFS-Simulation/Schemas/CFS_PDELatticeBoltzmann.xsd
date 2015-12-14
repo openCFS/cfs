@@ -97,9 +97,17 @@
                     </xsd:attribute>
                 </xsd:complexType>
               </xsd:element>
-                
+              <xsd:element name="SRT" minOccurs="0" maxOccurs="1">
+                <xsd:complexType>
+                  <xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="required"> 
+                    <xsd:annotation>
+                      <xsd:documentation>Adjoint system can be solved externally via e.g. PARDISO or internally with an adjoint LBM formulation</xsd:documentation>
+                    </xsd:annotation>              
+                  </xsd:attribute>
+                </xsd:complexType>
+              </xsd:element>
             </xsd:all>
-						
+            
             <xsd:attribute name="omega" type="xsd:double" use="optional"> 
               <xsd:annotation> 
                 <xsd:documentation>Tuning parameter for LBM (SRT and MRT). small is more robust, large faster \n 
@@ -277,4 +285,15 @@
       <xsd:enumeration value="mrt" /> 
     </xsd:restriction> 
   </xsd:simpleType>
+  
+  <!-- ******************************************************************* --> 
+  <!-- Definition of relaxation models profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_LBMAdjoint"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="internal"/> 
+      <xsd:enumeration value="external"/> 
+    </xsd:restriction> 
+  </xsd:simpleType>
 </xsd:schema>
+
