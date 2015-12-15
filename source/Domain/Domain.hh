@@ -88,14 +88,21 @@ namespace CoupledField
     //! Create PDE objects
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param infoNode infoNode for adding information
-    void CreatePDEs( UInt sequenceStep, PtrParamNode infoNode );
+    void CreatePDEs(UInt sequenceStep, PtrParamNode infoNode);
     
+    /** Alternative to CreatePDEs for optimization with the MultiSequenceDriver
+     * Up to now only implemented for single pdes, not for coupled ones
+     * @see MultiSequenceDriver::keep_
+     * @see MultiSequenceDriver::keptPDEs_ */
+    void RestorePDEs(StdVector<SinglePDE*>& pdes);
+
     //! Initialize all PDEs which are previously created
     //! \param sequenceStep step index in MultiSequenceSimulation
     void InitPDEs( UInt sequenceStep );
 
-    //! Delete pointer to PDEs and create them new
-    void ResetPDEs();
+    /** reset pdes
+     * @param keep if false the pointers are deleted if true they are to be kept in the multi sequence driver */
+    void ResetPDEs(bool keep);
     
     //! Set the grids and their IDs from external
     
@@ -129,7 +136,7 @@ namespace CoupledField
      * @return the pde or NULL if !throw_exception */
     SinglePDE* GetSinglePDE(const std::string pdename, bool throw_exception = true);
 
-    const StdVector<SinglePDE*> GetSinglePDEs() const { return ptSinglePde_; }
+    StdVector<SinglePDE*> GetSinglePDEs() const { return ptSinglePde_; }
 
     //! Get driver object
     BaseDriver* GetDriver();
@@ -225,7 +232,7 @@ namespace CoupledField
     //! \param sequenceStep step index in MultiSequenceSimulation
     //! \param infoNode infoNode for adding information
     void CreateSinglePDEs( UInt sequenceStep, PtrParamNode infoNode );
-  
+
     //! Initialize direct coupled pde(s)
 
     //! Initialize direct coupled pde(s)

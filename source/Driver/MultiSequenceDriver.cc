@@ -23,12 +23,10 @@ DEFINE_LOG(msDriver, "msDriver")
   // ***************
   //   Constructor
   // ***************
-  MultiSequenceDriver::MultiSequenceDriver( shared_ptr<SimState> state,
-                                            Domain* domain,
-                                            PtrParamNode paramNode, PtrParamNode infoNode
-                                            ) 
-    : BaseDriver(state, domain, paramNode, infoNode) {
-
+  MultiSequenceDriver::MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain,
+                                            PtrParamNode paramNode, PtrParamNode infoNode, bool keep)
+    : BaseDriver(state, domain, paramNode, infoNode)
+  {
     analysis_ = BasePDE::MULTI_SEQUENCE;
     
     sequenceStep_ = 1;
@@ -36,20 +34,25 @@ DEFINE_LOG(msDriver, "msDriver")
     accumulatedTime_ = 0.0;
     actDriver_ = NULL;
     isRestarted_ = false;
+    keep_ = domain->GetParamRoot()->Has("optimization");
   }
-
 
   // **********************
   //   Default destructor
   // **********************
-  MultiSequenceDriver::~MultiSequenceDriver() {
-    
-    // It can happen, that the driver was not delete (e.g. is SolveProblem
-    // was not called)
-    if( actDriver_ ) {
-      delete actDriver_;
-      actDriver_ = NULL;
-    }
+  MultiSequenceDriver::~MultiSequenceDriver()
+  {
+    // the keep_ results in set kept*_ arrays. Handle only the non-actual stuff
+    for(unsigned int i = 0; i < keptDrivers_.GetSize(); i++)
+      if(i != sequenceStep_-1) // the actDriver_ does not need to be keptDrivers_[0]
+        delete keptDrivers_[i]; // includes the driver in actDriver_
+
+    for(unsigned int i = 0; i < keptPDEs_.GetSize(); i++)
+      if(i != sequenceStep_-1) // the currently set pdes are deleteted in ~Domain()
+        for(unsigned int p = 0; p < keptPDEs_[i].GetSize(); p++)
+          delete keptPDEs_[i][p];
+
+    delete actDriver_; // It can happen, that the driver was not deleted (e.g. is SolveProblem was not called)
   }
 
 
@@ -92,12 +95,13 @@ DEFINE_LOG(msDriver, "msDriver")
       // Get solution for next step and delete all PDEs
       if (iStep < numSteps_) {
         // delete PDEs
-        domain_->ResetPDEs();
+        domain_->ResetPDEs(keep_);
       }
 
       // delete analysis types
-      delete actDriver_;
-      actDriver_ = NULL;
+      if(!keep_)
+        delete actDriver_;
+      actDriver_ = NULL; // in the keep_ case we have a copy in keptDrivers_
       
       // after the first run, we do not have a "restarted" simulation anymore
       isRestarted_ = false;
@@ -113,7 +117,7 @@ DEFINE_LOG(msDriver, "msDriver")
 
 
   UInt MultiSequenceDriver::GetActStep( const std::string& pdename ) {
-    assert( actDriver_);
+    assert(actDriver_);
     return actDriver_->GetActStep( pdename );
   }
 
@@ -123,11 +127,17 @@ DEFINE_LOG(msDriver, "msDriver")
   void MultiSequenceDriver::Init(bool restart) 
   {
     LOG_DBG(msDriver) << "Init: restart= " << restart;
+    assert(actDriver_ == NULL && keptDrivers_.IsEmpty()); // make sure call this only once!
     
     isRestarted_ = restart;
 
     // get nodes for all sequencesteps
     ParamNodeList seqNodes = domain_->GetParamRoot()->GetList("sequenceStep");
+
+    if(keep_) {
+      keptDrivers_.Resize(seqNodes.GetSize(), NULL); // important to initialize with zeros!
+      keptPDEs_.Resize(seqNodes.GetSize());
+    }
 
     // Fill vector with step indices and ensure that all occur.
     // One based, compact but arbitrary order
@@ -182,7 +192,7 @@ DEFINE_LOG(msDriver, "msDriver")
   {
     LOG_TRACE(msDriver) << "Calling SetSequenceStep with step " << sequenceStep;
     if(sequenceStep > numSteps_)
-      EXCEPTION( "Can not update to mulstistep " << sequenceStep << " as only " << numSteps_ << " are defined" );
+      EXCEPTION( "Can not update to multistep " << sequenceStep << " as only " << numSteps_ << " are defined" );
 
     SetupStep(sequenceStep);
     sequenceStep_ = sequenceStep;
@@ -191,58 +201,81 @@ DEFINE_LOG(msDriver, "msDriver")
   
   void MultiSequenceDriver::SetupStep(UInt sequenceStep) {
 
-    LOG_TRACE(msDriver) << "SetupStep for MS " << sequenceStep;
+    LOG_TRACE(msDriver) << "SS: SetupStep for MS=" << sequenceStep << " current=" << sequenceStep_ << " driver=" << (actDriver_ != NULL ? actDriver_->GetAnalysisType() : -1);
     // Only setup step once
     if(sequenceStep_ == sequenceStep && actDriver_ !=  NULL)
       return;
-
     
-    if( actDriver_ ) {
+    if(!keep_)
       delete actDriver_;
-      actDriver_ = NULL;
-    }
+    actDriver_ = NULL;
+
     sequenceStep_ = sequenceStep;
+
+    // in the keep_ case we create only once in the non keep_ case we create always
+    bool create_new = !keep_ || keptPDEs_[sequenceStep-1].IsEmpty();
     
     // obtain paramNode and infoNode
     PtrParamNode seqNode = paramPerStep[sequenceStep]->Get("analysis");
     PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
     info->Get("index")->SetValue(sequenceStep);
     
-    
-    // Since per time step only one type of 
-    // analysis is allowed, we simple access
-    // the first entry fo analysisPerStep_
-    if (analysisPerStep_[sequenceStep] == BasePDE::STATIC) {
-      actDriver_ = new StaticDriver( sequenceStep, true, simState_, domain_, seqNode, info );
+    if(create_new)
+    {
+      // Since per sequence step only one type of analysis is allowed, we simple access the first entry of analysisPerStep_
+      if (analysisPerStep_[sequenceStep] == BasePDE::STATIC) {
+        actDriver_ = new StaticDriver(sequenceStep, true, simState_, domain_, seqNode, info);
+      }
+      else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {
+        TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );
+        // pass accumulated time
+        tD->SetAccumulatedTime( accumulatedTime_ );
+        actDriver_ = tD;
+      }
+      else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
+        actDriver_ = new HarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }
+      else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
+        actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
+      }
+
+      LOG_DBG(msDriver) << "SS: created driver of type "  << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType()) << "(adress: " << actDriver_ << ")";
+      if(keep_)
+        keptDrivers_[sequenceStep-1] = actDriver_;
     }
-    else if (analysisPerStep_[sequenceStep] == BasePDE::TRANSIENT) {      
-      TransientDriver * tD = new TransientDriver( sequenceStep,true, simState_, domain_, seqNode, info  );
-      // pass accumulated time
-      tD->SetAccumulatedTime( accumulatedTime_ );
-      actDriver_ = tD;
+    else
+    {
+      actDriver_ = keptDrivers_[sequenceStep-1]; // reuse!
+      LOG_DBG(msDriver) << "SS: reuse existing driver "  << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType()) << " (address: " << actDriver_ << ")";
     }
-    else if (analysisPerStep_[sequenceStep] == BasePDE::HARMONIC) {
-      actDriver_ = new HarmonicDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
-    }
-    else if( analysisPerStep_[sequenceStep] == BasePDE::EIGENFREQUENCY ) {
-      actDriver_ = new EigenFrequencyDriver( sequenceStep, true, simState_, domain_, seqNode, info  );
-    }
-    LOG_DBG(msDriver) << "\tCreated driver of type "  << BasePDE::analysisType.ToString(actDriver_->GetAnalysisType()) << "(adress: " << actDriver_ << ")";
+
+    domain_->SetDriver(actDriver_);
 
     // Initialize all PDEs
-    LOG_DBG(msDriver) << "\tCreating PDEs"; 
-    domain_->CreatePDEs( sequenceStep, info );
+    if(create_new) {
+      LOG_DBG(msDriver) << "SS: creating PDEs.";
+      domain_->CreatePDEs( sequenceStep, info );
+      if(keep_)
+        keptPDEs_[sequenceStep-1] = domain_->GetSinglePDEs();
+    }
+    else {
+      LOG_DBG(msDriver) << "SS: restoring PDEs.";
+      domain_->RestorePDEs(keptPDEs_[sequenceStep-1]);
+    }
 
-    domain_->SetDriver( actDriver_ );
     actDriver_->SetPDE(domain_->GetBasePDE());
 
-    // Initialize driver objects
-    LOG_DBG(msDriver) << "\tInitializing single driver (isRestarted = " << (isRestarted_ ? "true" :"false") << ")";
-    actDriver_->Init(isRestarted_);
+    if(create_new)
+    {
+      // Initialize driver objects
+      LOG_DBG(msDriver) << "\tInitializing single driver (isRestarted = " << (isRestarted_ ? "true" :"false") << ")";
+      actDriver_->Init(isRestarted_);
 
-    //! Initialize Pdes, after having set the memento object
-    LOG_DBG(msDriver) << "\tInitializing PDEs";
-    domain_->InitPDEs( sequenceStep);
+      //! Initialize Pdes, after having set the memento object
+
+      LOG_DBG(msDriver) << "\tInitializing PDEs";
+      domain_->InitPDEs( sequenceStep);
+    }
     
     LOG_TRACE(msDriver) << "Finished SetupStep";
   }
@@ -255,10 +288,10 @@ DEFINE_LOG(msDriver, "msDriver")
     LOG_TRACE(msDriver) << "Reading Restart information...";
     
     // Delete old driver if present
-    if( actDriver_ ) {
-        delete actDriver_;
-        actDriver_ = NULL;
-      }
+    if(!keep_)
+      delete actDriver_;
+
+    actDriver_ = NULL;
     
     // Create input reader from current output reader
     if(!simState_->SetInputReaderToSameOutput())
