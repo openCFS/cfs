@@ -12,6 +12,7 @@ namespace CoupledField
 
   // forward class declaration
   class BasePDE;
+  class SinglePDE;
 
   //! Driver class for multi sequence simulations
 
@@ -26,11 +27,10 @@ namespace CoupledField
   {
   public:
   
-    //! constructor
+    /** @param keep in the optimization case we store the drivers and pdes instead of deleting them for a new sequence step */
     MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain,
-                        PtrParamNode paramNode, PtrParamNode infoNode );
+                        PtrParamNode paramNode, PtrParamNode infoNode, bool keep = false);
 
-    //! destructir
     virtual ~MultiSequenceDriver();
 
     //! Initialization method
@@ -85,8 +85,22 @@ namespace CoupledField
     bool isRestarted_;
     
     //! current singleDriver object
-    SingleDriver * actDriver_;
+    SingleDriver* actDriver_;
   
+    /** shall we keep driver and pdes for optimization?
+     * In that case the sequence step does not delete old stuff and reactivate existing stuff.
+     * Triggered by the existence of an optimization element in xml
+     * @see keptDrivers_  */
+    bool keep_;
+
+    /** For optimization we reuse the driver with keep_ set. */
+    StdVector<SingleDriver*> keptDrivers_;
+
+    /** For optimization we reuse the pdes from Domain with keep_ set.
+     * Coudpled PDEs not yet supported */
+    StdVector<StdVector<SinglePDE*> > keptPDEs_;
+
+
     //! stores for each step the participating pdes as name
     std::map<UInt, StdVector<std::string> > pdesPerStep_;
 

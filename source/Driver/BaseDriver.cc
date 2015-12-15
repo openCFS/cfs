@@ -32,7 +32,6 @@ BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom,
 
 BaseDriver::~BaseDriver()
 {
-  //delete ptdomain_;
 }
 
 
@@ -73,33 +72,28 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
     // Generate driver
     switch( type ) {
       case BasePDE::STATIC:
-
-        ptdriver = new StaticDriver( seqStep, false, state, myDom, 
-                                     seqNode, info );
+        ptdriver = new StaticDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
       case BasePDE::TRANSIENT:
-        ptdriver = new TransientDriver( seqStep, false, state, myDom, 
-                                        seqNode, info );
+        ptdriver = new TransientDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
       case BasePDE::HARMONIC:
-        ptdriver = new HarmonicDriver( seqStep, false, state, myDom, 
-                                       seqNode, info  );
+        ptdriver = new HarmonicDriver( seqStep, false, state, myDom, seqNode, info  );
         break;
 
       case BasePDE::EIGENFREQUENCY:
-        ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom, 
-                                             seqNode, info );
+        ptdriver = new EigenFrequencyDriver( seqStep, false, state, myDom, seqNode, info );
         break;
 
       default:
         EXCEPTION( "Could not create driver" );
     }
 
-    // b) create multiSequence driver
   } else if( numSteps > 1 ) {
-    ptdriver = new MultiSequenceDriver(state, myDom, paramNode, infoNode);
+    bool keep = domain->GetParamRoot()->Has("optimization");
+    ptdriver = new MultiSequenceDriver(state, myDom, paramNode, infoNode, keep);
   } else {
     EXCEPTION( "At least one sequenceStep has to be provided" );
   }

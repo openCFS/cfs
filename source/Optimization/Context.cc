@@ -18,12 +18,15 @@ Context::Context()
   mat = NULL;
   manager_ = NULL;
   sequence = -1;
+  active = false;
   context_idx = -1;
   driver_steps_ = 0;
   analysis = BasePDE::NO_ANALYSIS;
 
   num_harm_freq = 0;
   num_bloch_wave_vectors = 0;
+  num_eigenmodes = 0;
+
 
   complex_ = false;
   harmonic_ = false;
@@ -270,14 +273,13 @@ void ContextManager::SwitchContext(int index)
 {
   if(domain->GetMultiSequenceDriver() != NULL)
   {
-    // remove all drivers, we create a new one
+    // we keep the drivers and pdes of the older context
     for(unsigned int i = 0; i < context.GetSize(); i++)
-      context[i].driver = NULL; // we don't have the ownership
+      context[i].active = false;
 
     // detect if we already have the context. Special care for initial initialization, then no single driver is set yet
     if(domain->GetSingleDriver() == NULL || (int) domain->GetMultiSequenceDriver()->GetActSequenceStep() != index + 1)
       domain->GetMultiSequenceDriver()->SetSequenceStep(index + 1);
-
   }
   else
   {
@@ -288,6 +290,7 @@ void ContextManager::SwitchContext(int index)
 
   Optimization::context = &context[index];
   Optimization::context->Update();
+  Optimization::context->active = true;
 }
 
 void ContextManager::SwitchContext(Excitation* excitation)

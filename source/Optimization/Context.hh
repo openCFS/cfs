@@ -100,6 +100,9 @@ class Context
   /** the corresponding 1-based multi sequence step or -1 of not set yes */
   int sequence;
 
+  /** is this the currently active context? */
+  bool active;
+
   /** the 0-based index within ContextManager::context. Is sequence -1 if set. -1 if not set yet */
   unsigned int context_idx;
 

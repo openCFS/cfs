@@ -314,7 +314,7 @@ void Domain::PostInit(UInt sequenceStep)
     driver->Init(restart);
 
   // check if we have to do optimization. Do it before driver->Init() to construct the CoefFunctionOpt material
-  if (GetParamRoot()->Has("optimization"))
+  if(GetParamRoot()->Has("optimization"))
   {
     Optimization::CreateInstance(); // has an SetOptimization() included
   }
@@ -332,7 +332,6 @@ void Domain::PostInit(UInt sequenceStep)
   // not that the multi sequence driver does not initilize the single pdes yet within Domain::PostInit()
   if(domain->GetMultiSequenceDriver() == NULL)
     driver->Init(restart);
-
 
   // we need driver->Init() first
   if(optimization_ != NULL)
@@ -585,6 +584,19 @@ void Domain::CreatePDEs(UInt sequenceStep, PtrParamNode infoNode)
   CreateIterCoupledPDE(sequenceStep, infoNode);
 }
 
+void Domain::RestorePDEs(StdVector<SinglePDE*>& single)
+{
+  ptSinglePde_ = single;
+  assert(ptSinglePde_.GetSize() == single.GetSize());
+  numSinglePde_ = single.GetSize();
+
+  // restoring direct coupled and iterative coupled not yet implemented
+  isDirectCoupled_.clear();
+  for(unsigned int i = 0; i < single.GetSize(); i++)
+    isDirectCoupled_[single[i]] = false;
+}
+
+
 void Domain::InitPDEs(UInt sequenceStep)
 {
   // in case we have an iterative coupled PDE,
@@ -652,14 +664,13 @@ void Domain::InitPDEs(UInt sequenceStep)
 void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 {
   // default grid
-  Grid * defaultGrid = gridMap_["default"];
+  Grid* defaultGrid = gridMap_["default"];
 
   ParamNodeList pdeNodes = param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)->Get("pdeList")->GetChildren();
 
   ptSinglePde_.Resize(pdeNodes.GetSize());
   ptSinglePde_.Init();
   numSinglePde_ = pdeNodes.GetSize();
-
   
   for (UInt i = 0; i < pdeNodes.GetSize(); i++)
   {
@@ -670,66 +681,54 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
       std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
 
     if (actPdeName == "electrostatic")
-      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "mechanic")
-      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new MechPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "acoustic") {
-        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode,
-                                          simState_, this );
+        ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "acousticMixed")
-        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 //
 //    else if (actPdeName == "smooth")
 //      ptSinglePde_[i] = new SmoothPDE(defaultGrid, actPdeNode);
 //
    else if (actPdeName == "magnetic")
-      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode,
-                                        simState_, this );
+      ptSinglePde_[i] = new MagneticPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "magneticEdge")
-      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode,
-                                       simState_, this );
+      ptSinglePde_[i] = new MagEdgePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     
 //    else if (actPdeName == "magneticScalar")
 //          ptSinglePde_[i] = new MagScalarPDE(defaultGrid, actPdeNode);
 //
 //
     else if (actPdeName == "heatConduction")
-      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode,
-                                    simState_, this );
+      ptSinglePde_[i] = new HeatPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
 
     else if (actPdeName == "fluidMech") {
       std::string formulation = actPdeNode->Get("formulation")->As<std::string>();
 
       if (formulation == "perturbed") {
-        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new PerturbedFlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
       else {
-        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode,
-                                               simState_, this );
+        ptSinglePde_[i] = new FlowPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
       }
     }
     else if (actPdeName == "testPDE") {
-        ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode,
-                                      simState_, this );
+        ptSinglePde_[i] = new TestPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "elecConduction") {
-        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode,
-                                      	  	  simState_, this );
+        ptSinglePde_[i] = new ElecCurrentPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "waterWave") {
-        ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode,
-                                              simState_, this );
+      ptSinglePde_[i] = new WaterWavePDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else if (actPdeName == "LatticeBoltzmann") {
-        ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this );
+        ptSinglePde_[i] = new LatticeBoltzmannPDE(defaultGrid, actPdeNode, infoNode, simState_, this);
     }
     else
     {
@@ -738,7 +737,6 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
 
     // by default, not single pde is directly coupled
     isDirectCoupled_[ptSinglePde_[i]] = false;
-
     
     // Ensure, that at least one PDE is present
     if( numSinglePde_ == 0 ) {
@@ -748,9 +746,7 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     // -> This step has now moved to method InitPDEs
     //ptSinglePde_[i]->Init();
   }
-
-} // end of InitPDE()
-
+}
 
 void Domain::CreateIterCoupledPDE(UInt sequenceStep, PtrParamNode infoNode)
 {
@@ -807,14 +803,11 @@ void Domain::CreateDirectCoupledPDEs(UInt sequenceStep, PtrParamNode infoNode)
   }
 
   // get "couplingList" node (must exist)
-  PtrParamNode couplingNode =
-      param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)
-        ->Get("couplingList");
+  PtrParamNode couplingNode =  param_->GetByVal("sequenceStep", std::string("index"), sequenceStep)->Get("couplingList");
   PtrParamNode directNode = couplingNode->Get("direct", ParamNode::PASS);
   if (!directNode)
     return;
 
-  
   // get nodes of pairwise direct couplings
   ParamNodeList pairNodes = directNode->GetChildren();
 
@@ -1120,26 +1113,27 @@ BaseDriver* Domain::GetDriver()
 // *************
 //   ResetPDEs
 // *************
-void Domain::ResetPDEs()
+void Domain::ResetPDEs(bool keep)
 {
-
+  // keep is for optimization with multiple sequences.
+  // Then the MultiSequenceDriver keeps drivers and pdes instead of deleting then with a new sequence step
   // Delete single pde(s)
-  for (UInt iPDE = 0; iPDE < numSinglePde_; iPDE++)
-  {
-    delete ptSinglePde_[iPDE];
-  }
-  ptSinglePde_.Clear();
+  for(UInt iPDE = 0; iPDE < numSinglePde_; iPDE++)
+    if(!keep)
+      delete ptSinglePde_[iPDE];
+
+  ptSinglePde_.Clear(); // for keep the drivers are alread in MultiSequenceDriver::keptPDEs_
 
   // delete direct coupled pde(s)
-  for (UInt iPDE = 0; iPDE < numDirectCoupledPde_; iPDE++)
-  {
+  for (UInt iPDE = 0; iPDE < numDirectCoupledPde_; iPDE++) {
+    assert(!keep); // not yet implemented
     delete ptDirectCoupledPde_[iPDE];
   }
   ptDirectCoupledPde_.Clear();
 
   // delete iterative coupled pde
-  if (ptIterCoupledPde_ != NULL)
-  {
+  if (ptIterCoupledPde_ != NULL) {
+    assert(!keep); // not yet implemented
     delete ptIterCoupledPde_;
   }
   ptIterCoupledPde_ = NULL;
