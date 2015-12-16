@@ -53,6 +53,7 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->num_trans_  = -1; // to be set later
   this->num_robust_ = -1; // to be set later
   this->sequence_ = 1; // default
+  this->principle_ = 0;
 
   // if disabled, we don't read anything
   if(multiple && pn != NULL)
@@ -102,9 +103,9 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
 
 Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int meta)
 {
-  assert(base <= total_base_);
+  assert(base <= principle_);
 
-  return &excitations[total_base_ * meta + base];
+  return &excitations[principle_ * meta + base];
 }
 
 Excitation* MultipleExcitation::GetExcitation(unsigned int base, const std::string& meta)
@@ -120,9 +121,29 @@ unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function*
   if(!DoMetaExcitation())
     return base;
   else
-    return total_base_ * f->GetExcitation()->meta_index + base;
+    return principle_ * f->GetExcitation()->meta_index + base;
 }
 
+
+unsigned int MultipleExcitation::GetNumberHomogenization() const
+{
+  // when we have only one sequence total_base_ must be the number of strains
+  assert(!(!Optimization::context->DoMultiSequence() && principle_ != 3 && principle_ != 6));
+  if(!DoHomogenization())
+    return 0;
+  else
+    return domain->GetGrid()->GetDim() == 2 ? 3 : 6;
+}
+
+bool MultipleExcitation::IsEnabled(int sequence) const
+{
+  assert(sequence == -1 || (sequence >= 1 && sequence <= (int) Optimization::manager.context.GetSize()));
+
+  if(sequence == -1)
+    return multiple_excitation_;
+  else
+    return multiple_excitation_ && sequence == sequence_;
+}
 
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
 {
@@ -280,7 +301,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
   // initialize data and do simple plausibility check. Note that also 1 is "multiple"
   // only for our sequence. We assume only one multipleExcitations element in xml even for multiple sequence optimzation
-  if(IsEnabled() && sequence_ == ctxt->sequence)
+  if(IsEnabled(ctxt->sequence) && sequence_ == ctxt->sequence)
   {
     // either every single load from bcsAndLoads is an excitation or allow combinations of loads, pressures, regionLoads
     // and trackings in one excitation when specified in multipleExcitation (only non-harmonic) (this is done here)
@@ -326,10 +347,11 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   if(ctxt->IsHarmonic())
     SetHarmonic(ctxt, context_base, num_freq);
 
-  if(!ctxt->IsHarmonic() && IsEnabled() && !ctxt->DoBloch()) // multiple loads case
+  if(!ctxt->IsComplex() && IsEnabled(ctxt->sequence) && !ctxt->DoBloch()) // multiple loads case
     SetLoadCases(ctxt, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
+  assert((int) excitations.GetSize() >= ctxt->sequence); // at least one excitation per sequence
   for(unsigned int i = context_base; i < excitations.GetSize(); i++)
     excitations[i].sequence = ctxt->sequence;
 }
@@ -338,7 +360,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 {
   // ------------------------------
   // The basic excitations are set. Now we multiply it by transformation and rotation
-  total_base_ = excitations.GetSize();
+  principle_ = excitations.GetSize();
 
   if(DoRobust())
     ApplyRobust(opt->GetDesign()); // mutiply by the robust filters
@@ -367,7 +389,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
         ex->label = "s_" + lexical_cast<string>(ctxt.sequence) + "-" + ex->label;
     }
     // set excitation index, calculate the initial normalized_weight and print info.
-    if(IsEnabled() || ctxt.IsHarmonic())
+    if(IsEnabled(ctxt.sequence) || ctxt.IsHarmonic())
     {
       // we need to set the global excitation index!
       unsigned int base = 0;
@@ -431,19 +453,19 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
 void MultipleExcitation::ApplyRobust(DesignSpace* space)
 {
   assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
-  assert(excitations.GetSize() == total_base_); // first robust, then transformation
+  assert(excitations.GetSize() == principle_); // first robust, then transformation
   assert(num_robust_ >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
 
   // multiply excitations
-  assert(excitations.Capacity() >= total_base_ * num_robust_);
-  excitations.Resize(total_base_ * num_robust_);
+  assert(excitations.Capacity() >= principle_ * num_robust_);
+  excitations.Resize(principle_ * num_robust_);
 
   for(int r = 0; r < num_robust_; r++)
   {
-    for(unsigned int b = 0; b < total_base_; b++)
+    for(unsigned int b = 0; b < principle_; b++)
     {
       Excitation& base = excitations[b];
-      Excitation& ex   = excitations[total_base_ * r + b]; // ex == base for the first transform
+      Excitation& ex   = excitations[principle_ * r + b]; // ex == base for the first transform
 
       if(r > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
         ex = base; // default copy constructors are cool
@@ -456,13 +478,13 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
       ex.robust_filter_idx = r;
 
       // only set a label if it was not set already
-      assert(!(ex.label == "" && total_base_ > 1));
-      if(ex.label == "" || total_base_ == 1)
+      assert(!(ex.label == "" && principle_ > 1));
+      if(ex.label == "" || principle_ == 1)
         ex.label = boost::lexical_cast<std::string>(r);
 
       // TODO up to now we do not handle weights for the transformations!
       // If we have total_base_ > 1 we assume the weights were properly set and are copied
-      if(total_base_ == 1)
+      if(principle_ == 1)
         ex.weight = 1.0;
 
       LOG_DBG3(exlog) << "AR: r=" << r << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
@@ -481,13 +503,13 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
   assert(!Optimization::context->DoMultiSequence()); // see ApplyRobust()
 
   // robust comes before transformation!
-  assert((!DoRobust() && excitations.GetSize() == total_base_) || (DoRobust() && excitations.GetSize() == total_base_ * num_robust_));
+  assert((!DoRobust() && excitations.GetSize() == principle_) || (DoRobust() && excitations.GetSize() == principle_ * num_robust_));
   assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
   unsigned int old_base = excitations.GetSize();
 
   // multiply excitations. Robust comes first, the transformation
-  assert(excitations.Capacity() >= total_base_ * GetNumberMeta(true));
-  excitations.Resize(total_base_ * GetNumberMeta(true));
+  assert(excitations.Capacity() >= principle_ * GetNumberMeta(true));
+  excitations.Resize(principle_ * GetNumberMeta(true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
   {
@@ -512,13 +534,13 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
         ex.meta_index = t * GetNumberRobust() + ex.robust_filter_idx;
 
       // only set a label if it was not set already
-      assert(!(ex.label == "" && total_base_ > 1));
-      if(ex.label == "" || total_base_ == 1)
+      assert(!(ex.label == "" && principle_ > 1));
+      if(ex.label == "" || principle_ == 1)
         ex.label = boost::lexical_cast<std::string>(ex.meta_index);
 
       // TODO up to now we do not handle weights for the transformations!
       // If we total_base_ > 1 we assume the weights were properly set and are copied
-      if(total_base_ == 1)
+      if(principle_ == 1)
         ex.weight = 1.0;
 
       LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())

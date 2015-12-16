@@ -83,6 +83,9 @@ class Context
   /** are we within an multi sequence optimization */
   bool DoMultiSequence() const;
 
+  /** Is the current system test strain excited? True for special test case and homogenization */
+  bool IsStrainExcitedSystem() const;
+
   /** Helper that converts from mechPDE to App::MECH and elecPDE to App::ELEC, ...
    * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
    *        we do not want a marker for the pde but the transfer function. Sorry, very messy !! :((
@@ -114,6 +117,9 @@ class Context
 
   /** our analysis type */
   BasePDE::AnalysisType analysis;
+
+  /** Do we do homogenization? */
+  bool homogenization;
 
   /** number of frequencies in harmonic driver case */
   unsigned int num_harm_freq;
@@ -204,10 +210,11 @@ public:
     bool eigenvalue;
     bool harmonic;
     bool complex;
+    bool homogenization;
   };
 
-  /** this read ony struct holds a max norm like summary of all context */
-  const AnyContext& any() const { return any_; };
+  /** freshly generated summary of all contexts. Fast */
+  const AnyContext any() const;
 
 private:
 
@@ -215,8 +222,6 @@ private:
   Excitation* default_excitation_;
 
   bool initialized_;
-
-  AnyContext any_;
 };
 
 } // end of namespace

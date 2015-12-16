@@ -93,17 +93,6 @@ ErsatzMaterial::ErsatzMaterial() :
 
   method_ = method.Parse(pn->Get("method")->As<std::string>());
 
-  homogenization_ = false;
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    if(objectives.data[i]->IsHomogenization()) homogenization_ = true;
-
-  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
-    if(constraints.all[i]->IsHomogenization()) homogenization_ = true;
-
-  optInfoNode->Get(ParamNode::HEADER)->Get("homogenization")->SetValue(homogenization_);
-
-  // homogenizedTensor is set in PostInit()
-
   // region stuff - we might have the attribute region or a list in region but not both or none
   if(!pn->Has("region") && !pn->Has("regions") && (method_ != SHAPE_OPT && method_ != SHAPE_PARAM_MAT))
     throw Exception("give a region as 'ersatzMaterial' attribute or as 'regions' list");
@@ -342,10 +331,28 @@ void ErsatzMaterial::PostInit()
     DensityFile::ReadErsatzMaterial(design);
 
   // plausibility check for homogenization
-  if(homogenization_ && (!me->IsEnabled() || !(me->DoHomogenization())))
-    throw Exception("A homogenization objective/constraint is set but no homogenization test strain excitation");
-  if(me->IsEnabled() && me->DoHomogenization() && !homogenization_)
-    throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
+  assert(manager.context.GetSize() >= 1);
+  assert(manager.IsInitialized());
+
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+    if(objectives.data[i]->IsHomogenization())
+      objectives.data[i]->ctxt->homogenization = true;
+
+  for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
+    if(constraints.all[i]->IsHomogenization())
+      constraints.all[i]->ctxt->homogenization = true;
+
+  optInfoNode->Get(ParamNode::HEADER)->Get("homogenization")->SetValue(manager.any().homogenization);
+
+  for(unsigned int i = 0; i < manager.context.GetSize(); i++)
+  {
+    const Context& c = manager.context[i];
+
+    if(c.homogenization && (!me->IsEnabled(c.sequence) || !(me->DoHomogenization())))
+      throw Exception("A homogenization objective/constraint is set but no homogenization test strain excitation");
+    if(me->IsEnabled(c.sequence) && me->DoHomogenization() && !c.homogenization)
+      throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
+  }
 
   if(design->HasAlphaVariable())
     log.AddToHeader("alpha");
@@ -443,37 +450,43 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
   }
 
-  if(homogenization_)
+  for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
   {
-    for(unsigned int t = 0; t < homogenizedTensor.GetSize(); t++)
+    const Context& c = manager.context[ci];
+
+    if(c.homogenization)
     {
-      PtrParamNode in = iter->Get("homogenizedTensor", ParamNode::APPEND);
+      for(unsigned int t = 0; t < homogenizedTensor.GetSize(); t++)
+      {
+        PtrParamNode in = iter->Get("homogenizedTensor", ParamNode::APPEND);
 
-      if(me->DoMetaExcitation())
-       in->Get("case")->SetValue(me->GetExcitation(0, t)->GetMetaLabel());
+        assert(!(context->DoMultiSequence() && me->DoMetaExcitation())); // check the base_index below!
+        if(me->DoMetaExcitation())
+          in->Get("case")->SetValue(me->GetExcitation(0, t)->GetMetaLabel());
 
-      Matrix<double>& ht = homogenizedTensor[t];
+        Matrix<double>& ht = homogenizedTensor[t];
 
-      in->Get("norm_L2")->SetValue(ht.NormL2());
-      in->Get("trace")->SetValue(ht.Trace());
-      assert(!context->DoMultiSequence());
+        in->Get("norm_L2")->SetValue(ht.NormL2());
+        in->Get("trace")->SetValue(ht.Trace());
 
-      PtrParamNode iso = in->Get("isotropy");
-      StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, context->stt);
-      for(unsigned int p = 0; p < isop.GetSize(); p++)
-        iso->Get(isop[p].first)->SetValue(isop[p].second);
+        PtrParamNode iso = in->Get("isotropy");
+        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, c.stt);
+        for(unsigned int p = 0; p < isop.GetSize(); p++)
+          iso->Get(isop[p].first)->SetValue(isop[p].second);
 
-      PtrParamNode orth = in->Get("orthotropy");
-      // for the orthotropic case we need the design. This might be excitation dependend on the robust case
-      Excitation* ex = me->GetExcitation(0, t);
-      LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
-      StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
-      for(unsigned int p = 0; p < ortho.GetSize(); p++)
-        orth->Get(ortho[p].first)->SetValue(ortho[p].second);
+        PtrParamNode orth = in->Get("orthotropy");
+        // for the orthotropic case we need the design. This might be excitation dependend on the robust case
+        assert(me->DoMetaExcitation() || (c.excitation.GetSize() == 3 || c.excitation.GetSize() == 6)); // no robust!
+        Excitation* ex = me->GetExcitation(c.excitation[0]->index, t);
+        LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
+        StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
+        for(unsigned int p = 0; p < ortho.GetSize(); p++)
+          orth->Get(ortho[p].first)->SetValue(ortho[p].second);
 
-      LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
+        LOG_DBG(em) << "CI t=" << t << " ortho:" << ortho[0].first << "=" << ortho[0].second << " ht=" << ht.ToString();
 
-      in->Get("tensor")->SetValue(ht);
+        in->Get("tensor")->SetValue(ht);
+      }
     }
   }
 
@@ -778,11 +791,11 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
         // u1^T (K' u2 - f') -> calc "- f'"
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
-        assert(!(rtf != NULL && IsStrainExcitedSystem()));
+        assert(!(rtf != NULL && f->ctxt->IsStrainExcitedSystem()));
 
         if(rtf != NULL)
           SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-        if(IsStrainExcitedSystem())
+        if(f->ctxt->IsStrainExcitedSystem())
           SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
         LOG_DBG3(em) << "-f': " << mat_vec.ToString();
@@ -874,7 +887,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 mat_vec = mat * u2_vec;
 
                 if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-                if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+                if(f->ctxt->IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
                 double sp;
                 if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_vec, sp);
@@ -965,7 +978,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                 mat_vec = mat * u2_vec;
 
                 if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-                if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+                if(f->ctxt->IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
                 double sp;
                 if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_vec, sp);
@@ -1013,7 +1026,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
 
                         if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-                        if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+                        if(f->ctxt->IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
                         double sp;
                         if(calcMode == CONJ_QUAD) mat_vec.Inner(u1_nw, sp);// u1 = u2 = u!
@@ -1072,10 +1085,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
                   // u1^T (K' u2 - f') -> calc "- f'"
                   assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
-                  assert(!(rtf != NULL && IsStrainExcitedSystem()));
+                  assert(!(rtf != NULL && f->ctxt->IsStrainExcitedSystem()));
 
                   if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-                  if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+                  if(f->ctxt->IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
                   LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
@@ -1134,7 +1147,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
                     LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
 
                     if(rtf != NULL) SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
-                    if(IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
+                    if(f->ctxt->IsStrainExcitedSystem()) SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
                     LOG_DBG3(em) << "-f': " << mat_vec.ToString();
 
@@ -1175,8 +1188,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // j*omega*pamping*rho'*M - j*2*omega*pamping*rho*rho'*M = j*omega*pamping*rho'(1-2*rho)
     //
     // the eigenvalue derivative is u^T (K' - ev M') u
-    assert(context == ctxt); // fix the assemble problem!
-    Assemble* assemble = ctxt->pde->GetAssemble();
+    Assemble* assemble = ctxt->pde->GetAssemble(); // shall work even if current context != ctxt
 
     double mtv(0.0), mdv(0.0), m_factor(1.0);
 
@@ -1209,7 +1221,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       alpha_k = assemble->GetBiLinForm("LinElastInt", regionId, pde, pde)->EvalSecMatFac();
       // now alpha_m
       alpha_m = assemble->GetBiLinForm("MassInt", regionId, pde, pde)->EvalSecMatFac();
-      assert(omega > 0);
+      assert(alpha_k > 0 && alpha_m > 0&& omega > 0);
       // pamping stuff without omega
       double pamping = design->GetPampingValue(); // 0 if not applicable
       if(!derivative)
@@ -1270,20 +1282,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
   }
 
-  bool ErsatzMaterial::IsStrainExcitedSystem() const
-  {
-    assert(!context->DoMultiSequence());
-    // this shall not be called to often, hence we don't cache
-    if (homogenization_)
-      return true;
-
-    StdVector<LinearFormContext*>& lf = context->pde->GetAssemble()->GetLinForms();
-    // ignore the regions!!
-    for(unsigned int i = 0;i < lf.GetSize();i++)
-      if (lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
-      return true;
-    return false;
-  }
 
   template<class T>
   void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
