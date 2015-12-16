@@ -152,17 +152,17 @@ public:
   inline double CalcVelocityX(unsigned int idx, double density) const
   {
     if (n_q_ == 9)
-      return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
+      return ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW))) / density;
     else
-      return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
+      return ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) +( GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_BE) - GetPdf(idx, Q_TW))) / density;
   }
 
   inline double CalcVelocityY(unsigned int idx, double density) const
   {
     if (n_q_ == 9)
-      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
+      return ((GetPdf(idx, Q_N) - GetPdf(idx, Q_S)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_NW) - GetPdf(idx, Q_SE))) / density;
     else
-      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
+      return ((GetPdf(idx, Q_N) - GetPdf(idx, Q_S)) + (GetPdf(idx, Q_NW) - GetPdf(idx, Q_SE)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_TN) - GetPdf(idx, Q_BS)) + (GetPdf(idx, Q_BN) - GetPdf(idx, Q_TS))) / density;
   }
 
   inline double CalcVelocityZ(unsigned int idx, double density) const
@@ -170,7 +170,7 @@ public:
     if (n_q_ == 9)
       return 0;
     else
-      return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
+      return ((GetPdf(idx, Q_T) - GetPdf(idx, Q_B)) + (GetPdf(idx, Q_TW) - GetPdf(idx, Q_BE)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_TN) - GetPdf(idx, Q_BS)) + (GetPdf(idx, Q_TS) - GetPdf(idx, Q_BN))) / density;
   }
 
   inline double CalcAdjVelocityX(unsigned int idx, double density) const
