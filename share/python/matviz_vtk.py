@@ -347,7 +347,8 @@ def valid_position(pos, coords):
   
 # # for the apod6 part we have check for the holes in nondesign region as they are within the
 # # convex hull of the design :(
-def valid_position_apod6(pos, coords):
+def valid_position_apod6(pos, coords,opt = 0. ):
+  # option opt: change cut out area for validation mesh
   # coordinates of the holes manually, returns False if point is inside a hole
   # mesh is rotated by Ry
   #ay = -0.084636333418591
@@ -412,7 +413,7 @@ def valid_position_apod6(pos, coords):
     return False
   
   # big right triangle
-  tmp = [Ry*numpy.matrix(((33070.), (-353.), (-2563.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33127.), (-353.), (-2508.))).T]
+  tmp = [Ry*numpy.matrix(((33070.), (-353.), (-2563.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33127.+opt), (-353.), (-2508.))).T]
   corners_b = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]                         
   # small right triangle
   tmp = [Ry*numpy.matrix(((33077.), (-353.), (-2513.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33087.), (-353.), (-2504.))).T]
