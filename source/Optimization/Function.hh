@@ -708,7 +708,9 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation. -1 for all excitations within this sequence!!. Most interesting for stress constraints.
+    /** Excitation index for evaluation.
+     * Note that the index is unique over all sequences!
+     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
 

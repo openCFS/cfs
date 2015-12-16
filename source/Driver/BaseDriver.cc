@@ -28,6 +28,7 @@ BaseDriver::BaseDriver( shared_ptr<SimState> simState, Domain* myDom,
 
   param_ = paramNode;
   info_ = infoNode;
+  analysis_ = BasePDE::NO_ANALYSIS;
 }
 
 BaseDriver::~BaseDriver()

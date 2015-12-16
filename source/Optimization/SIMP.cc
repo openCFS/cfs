@@ -176,7 +176,6 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
 double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   // this app is for the PDE
-  assert(f->ctxt->sequence == excite.sequence);
   App::Type app = f->ctxt->ToApp();
 
   if(!derivative)

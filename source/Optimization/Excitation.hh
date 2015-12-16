@@ -145,8 +145,10 @@ public:
   typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
-  /** Do we do multiple excitation at all? */
-  bool IsEnabled() const { return multiple_excitation_; }
+
+  /** Do we do multiple excitation?
+   * @param sequence -1 at all? otherwise for the specified sequence */
+  bool IsEnabled(int sequence = -1) const;
 
   /** To be called prior to PrepareMultipleExcitations() */
   void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
@@ -165,7 +167,7 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   /** The number of homogenization test strains. Important when we do also transform */
-  unsigned int GetNumberHomogenization() const { return DoHomogenization() ? total_base_ : 0; }
+  unsigned int GetNumberHomogenization() const;
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }
@@ -261,8 +263,8 @@ private:
    * in the multi sequence case. E.G. bloch mode as sequence one and homogenization as sequence two */
   int sequence_; // 1-based!!
 
-  /** the base number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
-  unsigned int total_base_;
+  /** the principle number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
+  unsigned int principle_;
 
   /** number of transformations in DesignSpace::transform. This is a meta level*/
   int num_trans_;

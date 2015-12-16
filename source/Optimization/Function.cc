@@ -361,7 +361,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   switch(type_)
   {
-  // this stuff is really to be avaluated only once, even for meta excitations
+  // this stuff is really to be evaluated only once, even for meta excitations or multi sequence
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
@@ -406,7 +406,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
     assert(excite_index < 0);
-    excite_ = ctxt->excitation.GetSize() - 1; // once only at the last excitation for our context
+    excite_ = me->excitations.Last().index; // very last excitation, independent of the context/sequence
+    assert(excite_ == (int) me->excitations.GetSize()-1);
     break;
 
   // this stuff is to be evaluated at the last base for meta excitations
@@ -422,12 +423,12 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ORTHOTROPY:
     assert(excite_index < 0);
     if(!me->DoMetaExcitation())
-      excite_ = ctxt->excitation.GetSize() - 1; // standard
+      excite_ = ctxt->excitation.Last()->index; // with respect to our context
     else
     {
       if(!pn->Has("excitation"))
         throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
-
+      assert(!ctxt->DoMultiSequence());
       excite_ = me->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
     }
     break;
@@ -465,7 +466,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     excite_sensitive_ = true;
     break;
   case MULTI_OBJECTIVE: // only to make the switch complete
-      break;
+    assert(false);
+    break;
   }
 
   sample_excitation_ = excite_ >= 0 ? &me->excitations[excite_] : &me->excitations[0];

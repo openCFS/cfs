@@ -148,8 +148,8 @@
            <!-- <multipleExcitation type="fixed_weights/meta_objective/homogenizationTestStrains"> 
                   <metaObjective type="best_value"/> 
                   <adjustWeights stride="1" max_gain="1e4"/> 
-               </multipleExcitation>
-               one might want to implement many multipleExcitation for each multi sequence step with a unique sequence attribute -->
+               </multipleExcitation> 
+               Extend if your really have ME for more than one sequence-->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:all>
@@ -211,8 +211,7 @@
                 </xsd:attribute>
                 <!-- we might have excitations of excitations. transformation is a possible outer loop -->
                 <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>
-                <!--  for the multi sequence case we may need to assign the sequence (e.g. which one to homogenize).
-                      One might even want to implement as many multipleExcitation as sequences, just do it if you need it :) -->
+                <!--  for the multi sequence case we may need to assign the sequence (e.g. which one to homogenize). -->
                 <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1"/>
               </xsd:complexType>
             </xsd:element>

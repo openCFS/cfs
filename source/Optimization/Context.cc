@@ -6,6 +6,8 @@
 #include "Driver/EigenFrequencyDriver.hh"
 #include "Driver/HarmonicDriver.hh"
 #include "Driver/MultiSequenceDriver.hh"
+#include "Driver/Assemble.hh"
+#include "Forms/LinForms/LinearForm.hh"
 
 using namespace CoupledField;
 
@@ -32,6 +34,7 @@ Context::Context()
   harmonic_ = false;
   eigenvalue_ = false;
   bloch_ = false;
+  homogenization = false; // to be set by the functions and
   pde = NULL;
   stt = NO_TENSOR;
 
@@ -132,6 +135,21 @@ void Context::SetExcitation(Excitation* ex)
   // add check for sequence switch
   this->excitation_ = ex;
 }
+
+bool Context::IsStrainExcitedSystem() const
+{
+  // this shall not be called to often, hence we don't cache
+  if(homogenization)
+    return true;
+
+  StdVector<LinearFormContext*>& lf = pde->GetAssemble()->GetLinForms();
+  // ignore the regions!!
+  for(unsigned int i = 0;i < lf.GetSize();i++)
+    if (lf[i]->GetIntegrator()->GetName() == "AddStrainRHSInt")
+    return true;
+  return false;
+}
+
 
 App::Type Context::ToApp(const SinglePDE* pde)
 {
@@ -250,14 +268,6 @@ void ContextManager::Init()
       context[i].Setup(this, map[i+1], pns[i+1]->Get("analysis")->GetChild(), i+1); // becomes an issue when analysis gets attributes
   }
 
-  for(unsigned int i = 0; i < context.GetSize(); i++)
-  {
-    Context& c = context[i];
-    any_.bloch      = c.DoBloch() ? true : any_.bloch;
-    any_.complex    = c.IsComplex() ? true : any_.complex;
-    any_.harmonic   = c.IsHarmonic() ? true : any_.harmonic;
-    any_.eigenvalue = c.IsEigenvalue() ? true : any_.eigenvalue;
-  }
 
   // SwitchContext(0) is too early for the multi sequence case. It triggers initialization of the pdes which triggers
   // creation of integrator which check for the existence of optimization with is too early as we are still in the
@@ -267,6 +277,25 @@ void ContextManager::Init()
 
   // we have the default excitation to allow ersatz material only without optimization
   this->initialized_ = true;
+}
+
+const ContextManager::AnyContext ContextManager::any() const
+{
+  AnyContext any;
+
+  // because we don't know when harmonic is set we don't cache it
+
+  for(unsigned int i = 0; i < context.GetSize(); i++)
+  {
+    const Context& c = context[i];
+    any.bloch      = c.DoBloch() ? true : any.bloch;
+    any.complex    = c.IsComplex() ? true : any.complex;
+    any.harmonic   = c.IsHarmonic() ? true : any.harmonic;
+    any.eigenvalue = c.IsEigenvalue() ? true : any.eigenvalue;
+    any.harmonic   = c.homogenization ? true : c.homogenization;
+  }
+
+  return any;
 }
 
 void ContextManager::SwitchContext(int index)

@@ -382,9 +382,6 @@ protected:
   // virtual void TimeStepCalculated(UInt timeStep, AdjointParameters* adjParams);
   // virtual void RhsCalculated(AdjointParameters* adjParams);
 
-  /** Is the current system test strain excitated? True for special test case and homogenization */
-  bool IsStrainExcitedSystem() const;
-
   /** Helper that gives the physical material tensor considers bi-material */
   void GetPhysicalMaterial(BiLinForm* form, const DesignElement* de, const TransferFunction* tf, bool derivative, Matrix<double>& out);
 
@@ -516,9 +513,6 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
-
-  /** do we perform homogenization induced by any of the objective or constraints? */
-  bool homogenization_;
 
   /** Init the first time we call SortEigenvalue() when we know the number of ev. */
   EigenvalueState ev_;
