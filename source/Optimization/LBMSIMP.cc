@@ -34,38 +34,67 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   LOG_DBG(lbmsimp) << "CF -> f=" << f->ToString() << " d=" << derivative;
 
   // assume the problem is solved for the current design by DesignChanged()
-
-  switch(f->GetType())
+  if(!derivative)
   {
-    case Function::PRESSURE_DROP:
-    case Function::LBM_DISSIPATION:
-    {
-      if(!derivative)
+    switch(f->GetType())
       {
-        if (lbm->IsSRTModel())
+        case Function::PRESSURE_DROP:
+          assert(lbm->IsSRTModel());
           return lbm->CalcPressureDrop();
-        else
+        case Function::LBM_DISSIPATION:
           return lbm->GetDissipation();
+        default: // return below as we don't implement
+          return SIMP::CalcFunction(excite, f, derivative);
       }
-      else
-      {
-        switch(lbm->GetIface())
-        {
-        case LatticeBoltzmannPDE::EXTERNAL:
-        case LatticeBoltzmannPDE::INTERNAL:
-  //    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
-          lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
-          break;
-        }
-        return 0.0;
-      }
-    }
-    break;
 
-    default: // return below as we don't implement
-      break;
   }
-
-  return SIMP::CalcFunction(excite, f, derivative);
+  else
+  {
+    if(f->GetType() == Function::PRESSURE_DROP || f->GetType() == Function::LBM_DISSIPATION)
+    {
+      assert(lbm->GetIface() != LatticeBoltzmannPDE::EXTERNAL);
+      lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+      return 0.0;
+    }
+    else
+      return SIMP::CalcFunction(excite, f, derivative);
+  }
 }
+
+
+//if(f->GetType()))
+//
+//    switch(f->GetType())
+//  {
+//    case Function::PRESSURE_DROP:
+//    case Function::LBM_DISSIPATION:
+//    {
+//      if(!derivative)
+//      {
+//        if (lbm->IsSRTModel())
+//          return lbm->CalcPressureDrop();
+//        else
+//          return lbm->GetDissipation();
+//      }
+//      else
+//      {
+//        switch(lbm->GetIface())
+//        {
+//        case LatticeBoltzmannPDE::EXTERNAL:
+//        case LatticeBoltzmannPDE::INTERNAL:
+//  //    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
+//          lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
+//          break;
+//        }
+//        return 0.0;
+//      }
+//    }
+//    break;
+//
+//    default: // return below as we don't implement
+//      break;
+//  }
+//
+//  return SIMP::CalcFunction(excite, f, derivative);
+//}
 

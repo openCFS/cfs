@@ -665,10 +665,10 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       }
 
       if (adjSRT_ == INTERNAL) {
-//        Matrix<double> transpose(n_q_,n_q_);
-//        block.Transpose(transpose);
-//        adjSRTCollision[index] = transpose;
-        adjSRTCollision[index] = block;
+        Matrix<double> transpose(n_q_,n_q_);
+        block.Transpose(transpose);
+        adjSRTCollision[index] = transpose;
+//        adjSRTCollision[index] = block;
       }
 
       // fill transpose of block in col_jacobi
@@ -750,11 +750,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         DesignElement* de = f->elements[e];
         unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-        std::cout << "Adjoint solution for element " << idx << ":\n";
-        for (unsigned int dir = 0; dir < n_q_; dir++) {
-          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
-        }
-        std::cout << std::endl;
+//        std::cout << "Adjoint solution for element " << idx << ":\n";
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << std::endl;
         de->AddGradient(f, val);
       }
 
@@ -773,9 +773,24 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     {
       StdVector<double>* tmp = lbm->IterateAdjointSRT(adjSRTCollision,d_pdrop_d_f);
       adjPdfs = *tmp;
-      std::cout << "Adjoint solution for element 4 :\n";
-      for (unsigned int dir = 0; dir < n_q_; dir++) {
-        std::cout << adjPdfs[GetPdfIndex(4,dir)] << " ";
+
+      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+      {
+        DesignElement* de = f->elements[e];
+        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+        Vector<double> sol(n_q_), d_coll_d_s(n_q_);
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          sol[dir] = adjPdfs[GetPdfIndex(idx,dir)];
+          d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
+        }
+        double val = d_coll_d_s * sol;
+//        std::cout << "Adjoint solution for element " << idx << ":\n";
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << "gradient of element " << idx << " is " << val << std::endl;
+//        std::cout << std::endl;
+        de->AddGradient(f, val);
       }
     }
     adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");

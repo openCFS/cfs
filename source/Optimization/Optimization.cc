@@ -1141,7 +1141,6 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       }
     }
   }
-
   if(out) out->flush();
 }
 

@@ -156,12 +156,22 @@ void LatticeBoltzmann::CalcVelocities(const Vector<double>& pdfs, double& ux, do
   double jy = 0;
   double jz = 0;
 
-  for (int  dir = 0; dir < n_q_; dir++) {
-    //store current pdf values in array for better accessing
-    jx += microVelDirections[dir].off_x * pdfs[dir];
-    jy += microVelDirections[dir].off_y * pdfs[dir];
-    jz += microVelDirections[dir].off_z * pdfs[dir];
+  if (n_q_ == 9) {
+    jx = (pdfs[Q_E] - pdfs[Q_W]) + (pdfs[Q_NE] - pdfs[Q_SW]) + (pdfs[Q_SE] - pdfs[Q_NW]);
+    jy = (pdfs[Q_N] - pdfs[Q_S]) + (pdfs[Q_NE] - pdfs[Q_SW]) + (pdfs[Q_NW] - pdfs[Q_SE]);
   }
+  else {
+    jx = (pdfs[Q_E] - pdfs[Q_W]) + (pdfs[Q_NE] - pdfs[Q_SW]) + (pdfs[Q_SE] - pdfs[Q_NW]) + (pdfs[Q_TE] - pdfs[Q_BW]) + (pdfs[Q_BE] - pdfs[Q_TW]);
+    jy = (pdfs[Q_N] - pdfs[Q_S]) + (pdfs[Q_NW] - pdfs[Q_SE]) + (pdfs[Q_NE] - pdfs[Q_SW]) + (pdfs[Q_TN] - pdfs[Q_BS]) + (pdfs[Q_BN] - pdfs[Q_TS]);
+    jz = (pdfs[Q_T] - pdfs[Q_B]) + (pdfs[Q_TW] - pdfs[Q_BE]) + (pdfs[Q_TE] - pdfs[Q_BW]) + (pdfs[Q_TN] - pdfs[Q_BS]) + (pdfs[Q_TS] - pdfs[Q_BN]);
+  }
+
+//  for (int  dir = 0; dir < n_q_; dir++) {
+//    //store current pdf values in array for better accessing
+//    jx += microVelDirections[dir].off_x * pdfs[dir];
+//    jy += microVelDirections[dir].off_y * pdfs[dir];
+//    jz += microVelDirections[dir].off_z * pdfs[dir];
+//  }
 
   ux = jx / density;
   uy = jy / density;
@@ -210,10 +220,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    if (srt_)
-      CreateOutput("srt.pdfs",cur_);
-    else
-      CreateOutput("mrt.pdfs",cur_);
+//    if (srt_)
+//      CreateOutput("srt.pdfs",cur_);
+//    else
+//      CreateOutput("mrt.pdfs",cur_);
     LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
@@ -1722,6 +1732,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
   double R = 0.0;
   bool steady_state = false;
 
+  InitializePdfs();
+
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
     /***************** Adjoint SRT collision ***/
@@ -1737,7 +1749,10 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
         // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
         Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
         Vector<double> d_pd_d_f = d_pdrop_d_f[index];
-        Vector<double> collResult = d_pd_d_f + (d_coll_d_f * pdfs);
+        Vector<double> collResult(n_q_), tmp(n_q_);
+        d_coll_d_f.Mult(pdfs,tmp);
+        for (int dir = 0; dir < n_q_; dir++)
+          collResult[dir] = d_pd_d_f[dir] + tmp[dir];
 
         for (int dir = 0; dir < n_q_; dir++)
           tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
@@ -1747,7 +1762,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
 //            for (int dir2 = 0; dir2 < n_q_; dir2++)
 //              if (inlet.Contains(index) || outlet.Contains(index))
 //                assert(d_coll_d_f[dir1][dir2] == 0.0);
-            if (bb.Contains(index))
+            if (bb.Contains(index) || rel.Contains(index))
               assert(d_pd_d_f[dir1] == 0.0);
           }
         }
@@ -1759,9 +1774,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
     if((it == 0 || it % 100 == 0))
     {
       R = CalcResidual(adjCur_,adjNext_,true);
-      std::cout << "Adjoint SRT simulation step " << it << " res: " << R << std::endl;
-//      if(R <= maxTol_)
-      if (R <= 1e-12)
+      if(R <= maxTol_)
         steady_state = true;
     }
 
@@ -1777,12 +1790,10 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
     }
   }
 
-  tmpPdfs_ = adjPdfs_[adjCur_];
-  AdjointPropagation(adjCur_,adjNext_);
   adjCur_  = (adjCur_  + 1) % 2;
   adjNext_ = (adjNext_ + 1) % 2;
 
-  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
+//  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
   if(R >= 1000)
     EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
 
