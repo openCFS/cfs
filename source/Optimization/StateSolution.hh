@@ -154,8 +154,7 @@ public:
    * @param f the function is NULL for the forward problems, for the adjoints it needs to be given!
    * @param timestep_mode only for transient or eigenvalue problems */
   StateSolution* Get(const Excitation& excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
-  StateSolution* Get(unsigned int ex_idx, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
-
+  StateSolution* Get(const Excitation* excitation, const Function* f = NULL, int timestep_mode = -1, TimeDeriv derivative = NO_DERIVTYPE);
 
   /** Averages the specified states over all excitations.
    * @param sequence 1-based context

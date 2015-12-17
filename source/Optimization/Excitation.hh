@@ -15,7 +15,6 @@
 
 namespace CoupledField
 {
-class Assemble;
 class Function;
 class LinearFormContext;
 class ObjectiveContainer;
@@ -54,11 +53,9 @@ public:
   void ReadTrackings(PtrParamNode ts);
 
   /** read the loads from XML */
-  void ReadLoads(PtrParamNode ls);
+  void ReadLoads(Context* ctxt, PtrParamNode ls);
 
-  void ReadTestStrain(MechPDE::TestStrain ts);
-
-  void ReadTestCharges(const Vector<double>& vec);
+  void ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts);
 
   /** does not label the frequency, load or test strain but the rotation or robust case if present
    * @return "" if not present */
@@ -127,8 +124,6 @@ public:
 
   /** When we do robust, the meta_index is only the robust index when we do no concurrent transformation */
   bool robust;
-
-  Assemble* assemble;
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -191,28 +186,6 @@ public:
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);
 
-  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
-   * @param base e.g. for homogenization the number of the teststrain, typically 0
-   * @param meta e.g. the number of the */
-  Excitation* GetExcitation(unsigned int base, unsigned int meta);
-
-  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
-   * @param base e.g. for homogenization the number of the teststrain, typically 0
-   * @param meta needs to be a number */
-  Excitation* GetExcitation(unsigned int base, const std::string& meta);
-
-  /** The excitation index is not that easy if we have loads/homogenization/frequencies and concurrently robustness and transformations.
-   * The functions have excitations for the later but not necessarily for the first
-   * @param base the "normal" index of test strains, ...
-   * @param f checks for transformation and robustness in the excitation of the function.
-   * @see GetExcitation(unsigned int, Transform*) */
-   unsigned int GetExcitationIndex(unsigned int base, Function* f);
-
-  /** The meta excitation index considers only the meta level (transformation, robustness) not the base level (frequency, wave, test strain)
-   * @return 0 if we have no meta stuff
-   * You may also aks Excitation::meta_index*/
-  // unsigned int GetMetaExcitationIndex(Function* f);
-
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.
    * The \f$w_k^p=const\;\sum w_k = 1\f$ condition is fulfilled here. */
@@ -243,7 +216,7 @@ private:
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
   void ApplyTransformations(DesignSpace* space);
 
-  void SetLoadCases(Context* ctxt, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
+  void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
   void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
 

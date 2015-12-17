@@ -47,9 +47,9 @@ public:
     assert(me->excitations.GetSize() == 1);
     assert(context->GetExcitation() != NULL);
     if(forward_solution)
-      return forward.Get(*(context->GetExcitation()))->elem[App::MECH];
+      return forward.Get(context->GetExcitation())->elem[App::MECH];
     else // adjoint
-      return adjoint.Get(*(context->GetExcitation()))->elem[App::MECH];
+      return adjoint.Get(context->GetExcitation())->elem[App::MECH];
   }
 
   /** called in LevelSet::CalcShapeGradientOnAllElements() */

@@ -19,6 +19,8 @@ Context::Context()
   driver = NULL;
   mat = NULL;
   manager_ = NULL;
+  me_ = NULL;
+  basic_excitations_ = 0;
   sequence = -1;
   active = false;
   context_idx = -1;
@@ -151,6 +153,41 @@ bool Context::IsStrainExcitedSystem() const
 }
 
 
+void Context::SetMultiExcitations(MultipleExcitation* me, unsigned int basic_excitaions)
+{
+  this->me_ = me;
+  this->basic_excitations_ = basic_excitaions;
+
+  assert(excitations.GetSize() >= basic_excitaions);
+  assert(!(me->DoMetaExcitation() && me->GetNumberMeta(true) * basic_excitaions != excitations.GetSize()));
+  assert(!(!me->DoMetaExcitation() && excitations.GetSize() != basic_excitaions));
+}
+
+Excitation* Context::GetExcitation(unsigned int base, unsigned int meta)
+{
+  assert(base <= basic_excitations_);
+
+  return excitations[basic_excitations_ * meta + base];
+}
+
+Excitation* Context::GetExcitation(unsigned int base, const std::string& meta)
+{
+  if(meta.empty() || !isdigit(meta[0]))
+    throw Exception("excitation parameter '" + meta + "' is not a number");
+
+  return GetExcitation(base, boost::lexical_cast<unsigned int>(meta));
+}
+
+Excitation* Context::GetExcitation(unsigned int base, Function* f)
+{
+  assert(f->ctxt == this);
+  assert(base < excitations.GetSize());
+  if(!me_->DoMetaExcitation())
+    return excitations[base];
+  else
+    return excitations[basic_excitations_ * f->GetExcitation()->meta_index + base]; // * and + swapped??
+}
+
 App::Type Context::ToApp(const SinglePDE* pde)
 {
   if(pde->GetName() == "electrostatic") return App::ELEC;
@@ -178,9 +215,6 @@ SinglePDE* Context::ToPDE(App::Type app, bool throw_exception)
 
 void Context::SetPDEs()
 {
-  // re-read pdes. Might change for multiple sequence steps
-  pdes.clear();
-
   const StdVector<SinglePDE*> avail = domain->GetSinglePDEs();
 
   // might be empty for the first call within Optimization constructor. Here we set the design which we need
@@ -213,6 +247,7 @@ void Context::SetPDEs()
 
     // mechanic last to have mechanic in the piezo-case as pde shortcut
     if(sp->GetName() == "mechanic") {
+      assert(!(pde != NULL && domain->GetSinglePDE("mechanic", true) != pde));
       pde = domain->GetSinglePDE("mechanic", true);
       pdes[App::MECH] = pde;
       stt = pde->GetSubTensorType();
@@ -279,6 +314,15 @@ void ContextManager::Init()
   this->initialized_ = true;
 }
 
+ContextManager::AnyContext::AnyContext()
+{
+  this->bloch = false;
+  this->complex = false;
+  this->harmonic = false;
+  this->eigenvalue = false;
+  this->homogenization = false;
+}
+
 const ContextManager::AnyContext ContextManager::any() const
 {
   AnyContext any;
@@ -288,11 +332,11 @@ const ContextManager::AnyContext ContextManager::any() const
   for(unsigned int i = 0; i < context.GetSize(); i++)
   {
     const Context& c = context[i];
-    any.bloch      = c.DoBloch() ? true : any.bloch;
-    any.complex    = c.IsComplex() ? true : any.complex;
-    any.harmonic   = c.IsHarmonic() ? true : any.harmonic;
-    any.eigenvalue = c.IsEigenvalue() ? true : any.eigenvalue;
-    any.harmonic   = c.homogenization ? true : c.homogenization;
+    any.bloch           = c.DoBloch() ? true : any.bloch;
+    any.complex         = c.IsComplex() ? true : any.complex;
+    any.harmonic        = c.IsHarmonic() ? true : any.harmonic;
+    any.eigenvalue      = c.IsEigenvalue() ? true : any.eigenvalue;
+    any.homogenization  = c.homogenization ? true : c.homogenization;
   }
 
   return any;
@@ -329,7 +373,7 @@ void ContextManager::SwitchContext(Excitation* excitation)
   Optimization::context->SetExcitation(excitation);
 }
 
-const Context& ContextManager::GetContext(const Excitation* ex) const
+Context& ContextManager::GetContext(const Excitation* ex)
 {
   return context[ex->sequence -1];
 }

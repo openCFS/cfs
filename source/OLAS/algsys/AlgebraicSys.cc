@@ -2283,12 +2283,12 @@ namespace CoupledField {
                                     const FeFctIdType fctId,
                                     StdVector<Integer>& eqnNrs ) {
 
-    LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
-    LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
-    LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
+    LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
+    LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
+    LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
     
     // Ensure that there are as many equations as vector entries
-    assert( eqnNrs.GetSize() == elemRHS.GetSize());
+    assert(eqnNrs.GetSize() == elemRHS.GetSize());
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> rowBlocks, rowNums;

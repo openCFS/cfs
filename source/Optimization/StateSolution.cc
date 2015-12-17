@@ -45,12 +45,10 @@ StdVector<double> StateContainer::CollectEigenfrequencies(Excitation& ex)
 
 
 
-StateSolution* StateContainer::Get(unsigned int ex_idx, const Function* f, int timestep_mode, TimeDeriv derivative)
+StateSolution* StateContainer::Get(const Excitation* ex, const Function* f, int timestep_mode, TimeDeriv derivative)
 {
-  ErsatzMaterial* em = dynamic_cast<ErsatzMaterial*>(domain->GetOptimization());
-  assert(em != NULL);
-  const Excitation& ex = em->me->excitations[ex_idx];
-  return Get(ex, f, timestep_mode, derivative);
+  assert(ex != NULL);
+  return Get(*ex, f, timestep_mode, derivative);
 }
 
 StateSolution* StateContainer::Get(const Excitation& ex, const Function* f, int timestep_mode, TimeDeriv derivative)
