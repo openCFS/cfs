@@ -92,6 +92,7 @@ Optimization::Optimization()
   this->problemSolvedCounter = 0;
   this->problemWithinIteration = 0;
   this->grid = domain->GetGrid();
+  this->msfem = false;
 
   Optimization::manager.Init(); // there is also an init in DesignSpace
 
@@ -101,11 +102,10 @@ Optimization::Optimization()
   
   // in transient optimization one can specify the initial value as a solution to a static problem and a weight for it (just in tracking)
   firstStepStatic = optParamNode->Has("firstStepStatic");
-  if(firstStepStatic){
+  if(firstStepStatic)
     otherStepWeight = 1.0 - optParamNode->Get("firstStepStatic/weight")->As<Double>();
-  }else{
+  else
     otherStepWeight = 1.0;
-  }
 
   // the tool to solve the optimization problem
   optimizer_ = optimizer.Parse(optParamNode->Get("optimizer/type")->As<string>());
@@ -167,8 +167,12 @@ Optimization::~Optimization()
 
 void Optimization::PostInit()
 {
-  // during Optimization construction there were no pdes, now in PostInit() we need to read them
-  manager.SwitchContext(0);
+  // during Optimization construction there were no pdes (at least for multi sequence), now in PostInit() we need to read them
+  for(unsigned int i = 1; i < manager.context.GetSize(); i++) // 0 is set below
+    manager.SwitchContext(i); // driver and pdes are created once and then stored
+
+  manager.SwitchContext(0); // go back to first which is what we expect.
+
   assert(context->pde != NULL);
 }
 
@@ -860,16 +864,16 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   {
     Objective* cost = objectives.data[obj];
     // the multiple excitation case is a special case - for all other cases this is executed once
-    for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
+    for(unsigned int idx = 0; idx < cost->ctxt->excitations.GetSize(); idx++)
     {
-      Excitation& excite = me->excitations[idx];
+      Excitation* excite = cost->ctxt->excitations[idx];
 
       // some objectives are only to be evaluated for the last excitation
-      if(!cost->DoEvaluate(&excite))
+      if(!cost->DoEvaluate(excite))
         continue;
-      excite.Apply(); // set the correct context
+      excite->Apply(); // set the correct context
 
-      CalcFunction(excite, cost, true);
+      CalcFunction(*excite, cost, true);
     }
   }
 
@@ -912,12 +916,13 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
   if(g == NULL)
     g = constraints.active[0];
 
-  for(unsigned int i = 0; i < me->excitations.GetSize(); i++)
+  for(unsigned int i = 0; i < g->ctxt->excitations.GetSize(); i++)
   {
-    if(g->DoEvaluate(&me->excitations[i]))
+    Excitation* ex = g->ctxt->excitations[i];
+    if(g->DoEvaluate(ex))
     {
-      me->excitations[i].Apply();
-      CalcFunction(me->excitations[i], g, true);
+      ex->Apply();
+      CalcFunction(*ex, g, true);
     }
   }
 
@@ -1095,7 +1100,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       if(out)
         *out << " \t" << value;
       // excitation sensitive constraints are printed in the excitation list if there is one
-      if(!g->IsExcitationSensitive() || me->excitations.GetSize() < 2)
+      if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
       {
         iteration->Get(g->ToString(me))->SetValue(value);
         // don't report for local, they should be almost always feasible for MMA, ...

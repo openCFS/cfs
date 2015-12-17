@@ -487,15 +487,15 @@ void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleEx
           ev.Push_back(*(list[i]));
         }
 
-      assert(ctxt.num_bloch_wave_vectors == ctxt.excitation.GetSize());
-      for(unsigned int e = 1; e < ctxt.excitation.GetSize(); e++)
+      assert(ctxt.num_bloch_wave_vectors == ctxt.excitations.GetSize());
+      for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++)
       {
         for(unsigned int g = 0; g < ev.GetSize(); g++)
         {
           assert(ev[g].IsExcitationSensitive());
 
           Condition* tmp = new Condition(ev[g]);
-          tmp->SetExcitation(me, me->excitations[e].index);
+          tmp->SetExcitation(me, ctxt.excitations[e]->index);
 
           list.Push_back(tmp);
         }

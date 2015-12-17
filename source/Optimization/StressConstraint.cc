@@ -103,8 +103,8 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
   {
     pair<App::Type, App::Type>& app = apps[a];
 
-    all_u1_elem = &(forward->Get(*excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
-    all_u2_elem = &(forward->Get(*excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
+    all_u1_elem = &(forward->Get(excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
+    all_u2_elem = &(forward->Get(excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
 
     // It might be that stress sensitive region is not within the design domain itself
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)

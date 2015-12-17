@@ -53,7 +53,6 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->num_trans_  = -1; // to be set later
   this->num_robust_ = -1; // to be set later
   this->sequence_ = 1; // default
-  this->principle_ = 0;
 
   // if disabled, we don't read anything
   if(multiple && pn != NULL)
@@ -101,34 +100,11 @@ Excitation* MultipleExcitation::GetExcitation(const std::string& label, bool qui
     throw Exception("None of the " + lexical_cast<string>(excitations.GetSize()) + " excitations has a label '" + label + "'");
 }
 
-Excitation* MultipleExcitation::GetExcitation(unsigned int base, unsigned int meta)
-{
-  assert(base <= principle_);
-
-  return &excitations[principle_ * meta + base];
-}
-
-Excitation* MultipleExcitation::GetExcitation(unsigned int base, const std::string& meta)
-{
-  if(meta.empty() || !isdigit(meta[0]))
-    throw Exception("excitation parameter '" + meta + "' is not a number");
-
-  return GetExcitation(base, boost::lexical_cast<unsigned int>(meta));
-}
-
-unsigned int MultipleExcitation::GetExcitationIndex(unsigned int base, Function* f)
-{
-  if(!DoMetaExcitation())
-    return base;
-  else
-    return principle_ * f->GetExcitation()->meta_index + base;
-}
 
 
 unsigned int MultipleExcitation::GetNumberHomogenization() const
 {
   // when we have only one sequence total_base_ must be the number of strains
-  assert(!(!Optimization::context->DoMultiSequence() && principle_ != 3 && principle_ != 6));
   if(!DoHomogenization())
     return 0;
   else
@@ -348,7 +324,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
     SetHarmonic(ctxt, context_base, num_freq);
 
   if(!ctxt->IsComplex() && IsEnabled(ctxt->sequence) && !ctxt->DoBloch()) // multiple loads case
-    SetLoadCases(ctxt, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
+    SetLoadCases(ctxt, context_base, pn_ex, num_loads, opt); // when the loads are given in the optimization section of the xml file
 
   assert(ctxt->sequence >= 1);
   assert((int) excitations.GetSize() >= ctxt->sequence); // at least one excitation per sequence
@@ -358,12 +334,8 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
 void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextManager* manager, bool eval_inital_design)
 {
-  // ------------------------------
-  // The basic excitations are set. Now we multiply it by transformation and rotation
-  principle_ = excitations.GetSize();
-
   if(DoRobust())
-    ApplyRobust(opt->GetDesign()); // mutiply by the robust filters
+    ApplyRobust(opt->GetDesign()); // multiply by the robust filters
 
   if(DoTransform())
     ApplyTransformations(opt->GetDesign()); // multiply the existing transformation
@@ -371,17 +343,27 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
   for(unsigned int c = 0; c < manager->context.GetSize(); c++)
   {
     Context& ctxt = manager->context[c];
+    unsigned int basic_excitations = 0;
 
     // assign context specific excitations
     for(unsigned int e= 0; e < excitations.GetSize(); e++)
-      if(excitations[e].sequence == ctxt.sequence)
-        ctxt.excitation.Push_back(&(excitations[e])); // assume sufficient small number such that we don't have to deal with reserve
+    {
+      Excitation& ex = excitations[e];
+      if(ex.sequence == ctxt.sequence)
+      {
+        ctxt.excitations.Push_back(&ex); // assume sufficient small number such that we don't have to deal with reserve
+        if(ex.meta_index == 0)
+          basic_excitations++; // filter out robust and transformation
+      }
+    }
+    ctxt.SetMultiExcitations(this, basic_excitations);
+
 
     // finally verify that the labels are set
     double weight_sum = 0.0;
-    for(unsigned int i = 0; i < ctxt.excitation.GetSize(); i++)
+    for(unsigned int i = 0; i < ctxt.excitations.GetSize(); i++)
     {
-      Excitation* ex = ctxt.excitation[i];
+      Excitation* ex = ctxt.excitations[i];
       weight_sum += ex->weight;
       if(ex->label == "")
         ex->label = lexical_cast<string>(i);
@@ -394,16 +376,16 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       // we need to set the global excitation index!
       unsigned int base = 0;
       for(unsigned int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
-        base += manager->context[t].excitation.GetSize(); // already set up to this point
+        base += manager->context[t].excitations.GetSize(); // already set up to this point
 
-      for(unsigned int i = 0; i < ctxt.excitation.GetSize(); i++)
+      for(unsigned int i = 0; i < ctxt.excitations.GetSize(); i++)
       {
-        Excitation* ex = ctxt.excitation[i];
+        Excitation* ex = ctxt.excitations[i];
         ex->index = base + i;
         // fixes bug for pressure loads
         if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
           // multiple pressure loads not implemented
-          assert(ctxt.excitation.GetSize() == 1);
+          assert(ctxt.excitations.GetSize() == 1);
           ex->normalized_weight = 1.;
         } else {
           ex->normalized_weight = ex->weight / weight_sum;
@@ -439,7 +421,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
 
     ex.label = MechPDE::testStrain.ToString(ts);
 
-    ex.ReadTestStrain(ts);
+    ex.ReadTestStrain(ctxt, ts);
     // The homogenized tensor can only be evaluated for the last excitation!
     ex.weight = i < cases-1 ? 0.0 : 1.0;
     ++cnt;
@@ -452,20 +434,23 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
 
 void MultipleExcitation::ApplyRobust(DesignSpace* space)
 {
-  assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
-  assert(excitations.GetSize() == principle_); // first robust, then transformation
+  Context* ctxt = Optimization::context;
+
+  assert(!ctxt->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
+  //assert(excitations.GetSize() == principle_); // first robust, then transformation
+  unsigned int principle = excitations.GetSize(); // actually Context::basic_excitations_
   assert(num_robust_ >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
 
   // multiply excitations
-  assert(excitations.Capacity() >= principle_ * num_robust_);
-  excitations.Resize(principle_ * num_robust_);
+  assert(excitations.Capacity() >= principle * num_robust_);
+  excitations.Resize(principle * num_robust_);
 
   for(int r = 0; r < num_robust_; r++)
   {
-    for(unsigned int b = 0; b < principle_; b++)
+    for(unsigned int b = 0; b < principle; b++)
     {
       Excitation& base = excitations[b];
-      Excitation& ex   = excitations[principle_ * r + b]; // ex == base for the first transform
+      Excitation& ex   = excitations[principle * r + b]; // ex == base for the first transform
 
       if(r > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
         ex = base; // default copy constructors are cool
@@ -478,13 +463,13 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
       ex.robust_filter_idx = r;
 
       // only set a label if it was not set already
-      assert(!(ex.label == "" && principle_ > 1));
-      if(ex.label == "" || principle_ == 1)
+      assert(!(ex.label == "" && principle > 1));
+      if(ex.label == "" || principle == 1)
         ex.label = boost::lexical_cast<std::string>(r);
 
       // TODO up to now we do not handle weights for the transformations!
       // If we have total_base_ > 1 we assume the weights were properly set and are copied
-      if(principle_ == 1)
+      if(principle == 1)
         ex.weight = 1.0;
 
       LOG_DBG3(exlog) << "AR: r=" << r << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
@@ -497,19 +482,23 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
 
 void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 {
+  Context* ctxt = Optimization::context;
+  assert(!ctxt->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
+  //assert(excitations.GetSize() == principle_); // first robust, then transformation
+  unsigned int principle = DoRobust() ? excitations.GetSize() / num_robust_ : excitations.GetSize(); // actually Context::basic_excitations_
+
   StdVector<Transform>& trans = space->transform;
 
   assert(num_trans_ == (int) trans.GetSize());
-  assert(!Optimization::context->DoMultiSequence()); // see ApplyRobust()
 
   // robust comes before transformation!
-  assert((!DoRobust() && excitations.GetSize() == principle_) || (DoRobust() && excitations.GetSize() == principle_ * num_robust_));
+  assert((!DoRobust() && excitations.GetSize() == principle) || (DoRobust() && excitations.GetSize() == principle * num_robust_));
   assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
   unsigned int old_base = excitations.GetSize();
 
   // multiply excitations. Robust comes first, the transformation
-  assert(excitations.Capacity() >= principle_ * GetNumberMeta(true));
-  excitations.Resize(principle_ * GetNumberMeta(true));
+  assert(excitations.Capacity() >= principle * GetNumberMeta(true));
+  excitations.Resize(principle * GetNumberMeta(true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
   {
@@ -534,13 +523,13 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
         ex.meta_index = t * GetNumberRobust() + ex.robust_filter_idx;
 
       // only set a label if it was not set already
-      assert(!(ex.label == "" && principle_ > 1));
-      if(ex.label == "" || principle_ == 1)
+      assert(!(ex.label == "" && principle > 1));
+      if(ex.label == "" || principle == 1)
         ex.label = boost::lexical_cast<std::string>(ex.meta_index);
 
       // TODO up to now we do not handle weights for the transformations!
       // If we total_base_ > 1 we assume the weights were properly set and are copied
-      if(principle_ == 1)
+      if(principle == 1)
         ex.weight = 1.0;
 
       LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
@@ -550,12 +539,13 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
   }
 }
 
-void MultipleExcitation::SetLoadCases(Context* ctxt, const ParamNodeList& pn_ex, int num_loads, Optimization* opt)
+void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt)
 {
-  Assemble* ass = domain->GetBasePDE()->GetAssemble();
+  Assemble* ass = ctxt->pde->GetAssemble();
 
-  excitations.Reserve(num_loads * GetNumberMeta(true));
-  excitations.Resize(num_loads);
+  assert((ctxt->sequence == 1 && base == 0) || ((int) base >= ctxt->sequence-1));
+  assert(excitations.Capacity() >= base + num_loads * GetNumberMeta(true));
+  excitations.Resize(base + num_loads);
 
   // when the loads are given in the optimization section of the xml file
   if(pn_ex.GetSize() > 0)
@@ -565,26 +555,28 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, const ParamNodeList& pn_ex,
     unsigned int handle = parser->GetNewHandle();
 
     // don't mix optimization excitations with bcsAndLoads stuff
-    if (ass->GetLinForms().GetSize() > 0)
-      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(
-          "Excitations are given in optimization mulitload. "
-         + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
-        + " loads from the bcsAndLoads section will be deleted.");
+    if (ass->GetLinForms().GetSize() > 0) {
+      std::string msg = "Excitations are given in optimization mulitload. "
+          + boost::lexical_cast<std::string>(ass->GetLinForms().GetSize())
+          + " loads from the bcsAndLoads section will be deleted.";
+      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue(msg);
+    }
 
     ass->GetLinForms().Clear(); // the forms are gone!
 
-    assert(excitations.GetSize() == pn_ex.GetSize());
+    assert(excitations.GetSize() - base == pn_ex.GetSize());
 
-    for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    for(int i = 0; i < num_loads; i++)
     {
       parser->SetExpr(handle, pn_ex[i]->Get("weight")->As<std::string>());
       const double weight = parser->Eval(handle);
-      excitations[i].weight = weight;
+      Excitation& ex = excitations[base + i];
+      ex.weight = weight;
 
       if (pn_ex[i]->Has("trackings"))
-        excitations[i].ReadTrackings(pn_ex[i]->Get("trackings"));
+        ex.ReadTrackings(pn_ex[i]->Get("trackings"));
 
-      excitations[i].ReadLoads(pn_ex[i]); // possibly multiple forms for one excitation has it's own Resize(0)
+      ex.ReadLoads(ctxt, pn_ex[i]); // possibly multiple forms for one excitation has it's own Resize(0)
     }
 
     parser->ReleaseHandle(handle);
@@ -595,18 +587,20 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, const ParamNodeList& pn_ex,
   {
     // a force is a linarForm with integrator NodalForceInt
     StdVector<LinearFormContext*>& forms = ass->GetLinForms(true); // take the memory ownership
+    assert((int) forms.GetSize() == num_loads);
 
-    for(unsigned int i = 0; i < excitations.GetSize(); i++) // via num_loads or num_freq
+    for(int i = 0; i < num_loads; i++) // via num_loads or num_freq
     {
       // don't do anything for multiple excitation enabled with only one load
       if (num_loads > (int) i)
       {
         // static load case
-        excitations[i].forms.Push_back(forms[i]); // one form for one excitation
+        Excitation& ex = excitations[base + i];
+        ex.forms.Push_back(forms[i]); // one form for one excitation
         LOG_DBG(exlog)<< "PME: form " << i << " = " << forms[i]->GetIntegrator()->GetName() << " entities=" << forms[i]->GetEntities()->GetName();
 
         // we do not support to give a weight in the force section of the simulation
-        excitations[i].weight = 1.0;
+        ex.weight = 1.0;
       }
     }
 
@@ -679,7 +673,6 @@ Excitation::Excitation()
   this->weight = 1.0;
   this->normalized_weight = 1.0;
   this->reassemble = false; // normally
-  this->assemble = domain != NULL && domain->GetBasePDE() != NULL ? domain->GetBasePDE()->GetAssemble() : NULL; // not yet ready in Context::Context()
 }
 
 Excitation::~Excitation()
@@ -705,9 +698,11 @@ bool Excitation::Apply(bool switch_context)
 
   if(forms.GetSize() > 0)
   {
-    assemble->GetLinForms() = forms; // let the copy constructor do the stuff
+    Context& ctxt = Optimization::manager.GetContext(this);
+    Assemble* ass = ctxt.pde->GetAssemble();
+    ass->GetLinForms() = forms; // let the copy constructor do the stuff
 
-    assert(assemble->GetLinForms().GetSize() == forms.GetSize());
+    assert(ass->GetLinForms().GetSize() == forms.GetSize());
   }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
@@ -770,27 +765,29 @@ void Excitation::ReadTrackings(PtrParamNode ts){
   */
 }
 
-void Excitation::ReadLoads(PtrParamNode ls)
+void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
 {
   // the original loads need to be cleared before
-  assert(assemble->GetLinForms().GetSize() == 0);
+  Assemble* ass = ctxt->pde->GetAssemble();
+  assert(ass->GetLinForms().GetSize() == 0);
 
   // reads all loads and adds them to Assemble::linForms_
   dynamic_cast<SinglePDE*>(domain->GetBasePDE())->DefineRhsLoadIntegrators(ls);
 
   // own vector with the pointers in assemble and we have to delete the content
-  forms = assemble->GetLinForms(true); // take ownership. copy constructor!
+  forms = ass->GetLinForms(true); // take ownership. copy constructor!
   assert(forms.GetSize() > 0);
 
   // delete the stuff from assemble to prepare for the next ReadLoads()
-  assemble->GetLinForms().Resize(0); // the elements must not be destructed
+  ass->GetLinForms().Resize(0); // the elements must not be destructed
 }
 
-void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
+void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
 {
   // the original loads need to be cleared before
-  forms = assemble->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
-  assert(assemble->GetLinForms().GetSize() == 0);
+  Assemble* ass = ctxt->pde->GetAssemble();
+  forms = ass->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
+  assert(ass->GetLinForms().GetSize() == 0);
 
   MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
 

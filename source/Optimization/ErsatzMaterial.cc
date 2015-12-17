@@ -452,7 +452,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
   {
-    const Context& c = manager.context[ci];
+    Context& c = manager.context[ci];
 
     if(c.homogenization)
     {
@@ -462,7 +462,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
         assert(!(context->DoMultiSequence() && me->DoMetaExcitation())); // check the base_index below!
         if(me->DoMetaExcitation())
-          in->Get("case")->SetValue(me->GetExcitation(0, t)->GetMetaLabel());
+          in->Get("case")->SetValue(c.GetExcitation(0, t)->GetMetaLabel());
 
         Matrix<double>& ht = homogenizedTensor[t];
 
@@ -475,9 +475,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
           iso->Get(isop[p].first)->SetValue(isop[p].second);
 
         PtrParamNode orth = in->Get("orthotropy");
-        // for the orthotropic case we need the design. This might be excitation dependend on the robust case
-        assert(me->DoMetaExcitation() || (c.excitation.GetSize() == 3 || c.excitation.GetSize() == 6)); // no robust!
-        Excitation* ex = me->GetExcitation(c.excitation[0]->index, t);
+        // for the orthotropic case we need the design. This might be excitation dependent on the robust case
+        assert(me->DoMetaExcitation() || (c.excitations.GetSize() == 3 || c.excitations.GetSize() == 6)); // no robust!
+        Excitation* ex = c.GetExcitation(0, t);
         LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
         StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
         for(unsigned int p = 0; p < ortho.GetSize(); p++)
@@ -2723,8 +2723,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       // we need the transformation here to have the proper forward solution when we have multiple meta excitations
       // -> more than one rotation or robust
-      SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, meta)->test_strain);
-      StdVector<SingleVector*>& u1 = forward.Get(me->GetExcitationIndex(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
+      SetTestStrainMatrix(test_strain_matrix_ij, f->ctxt->GetExcitation(ij, meta)->test_strain);
+      StdVector<SingleVector*>& u1 = forward.Get(f->ctxt->GetExcitation(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
       for (unsigned int kl = 0;kl < ex_size;++kl)
       {
         if (ij > kl) // already computed this entry!
@@ -2734,8 +2734,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
           result[ij][kl] = result[kl][ij];
           continue;
         }
-        SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, meta)->test_strain);
-        StdVector<SingleVector*>& u2 = forward.Get(me->GetExcitationIndex(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
+        SetTestStrainMatrix(test_strain_matrix_kl, f->ctxt->GetExcitation(kl, meta)->test_strain);
+        StdVector<SingleVector*>& u2 = forward.Get(f->ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
         // loop over elements. In the gradient case not summed up
 
         for (int e = 0, ne = design->GetNumberOfElements(); e < ne; ++e)
@@ -2773,6 +2773,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   void ErsatzMaterial::CalcHomogenizedTrackingGradient(const Matrix<double>& target, const Matrix<double>& hom, Function* f)
   {
     const double cube_vol = grid->CalcGridVolume();
+    Context* ctxt = f->ctxt;
 
     Matrix<double> diff_tensor;
     diff_tensor = target - hom;
@@ -2793,12 +2794,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
     {
       DesignElement* de = &design->data[e];
-
-
       for (unsigned int ij = 0;ij < ex_size;++ij)
       {
-        SetTestStrainMatrix(test_strain_matrix_ij, me->GetExcitation(ij, meta)->test_strain);
-        StdVector<SingleVector*>& u1 = forward.Get(me->GetExcitationIndex(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
+        SetTestStrainMatrix(test_strain_matrix_ij, ctxt->GetExcitation(ij, meta)->test_strain);
+        StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, f))->elem[App::MECH]; // equal to \chi^{ij}
         Vector<double>& u1_vec = dynamic_cast<Vector<double>&>(*u1[e]);
         for (unsigned int kl = 0;kl < ex_size;++kl)
         {
@@ -2809,8 +2808,8 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
             hom_tensor_deriv[ij][kl] = hom_tensor_deriv[kl][ij];
             continue;
           }
-          SetTestStrainMatrix(test_strain_matrix_kl, me->GetExcitation(kl, meta)->test_strain);
-          StdVector<SingleVector*>& u2 = forward.Get(me->GetExcitationIndex(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
+          SetTestStrainMatrix(test_strain_matrix_kl, ctxt->GetExcitation(kl, meta)->test_strain);
+          StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, f))->elem[App::MECH]; // equal to \chi^{kl}
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
           double p = CalcHomogenizedElementProduct(this, f->ctxt, de, true, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
@@ -2902,28 +2901,28 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   {
     const double cube_vol = grid->CalcGridVolume();
 
-    assert((dim == 2 && ctxt->excitation.GetSize() >= 3) || (dim == 3 && ctxt->excitation.GetSize() >= 6)); // for meta exctiations it is more
+    assert((dim == 2 && ctxt->excitations.GetSize() >= 3) || (dim == 3 && ctxt->excitations.GetSize() >= 6)); // for meta exctiations it is more
     Matrix<double> test_strain_matrix_ij(dim, dim);
     Matrix<double> test_strain_matrix_kl(dim, dim);
     const unsigned int ij = boost::get<0>(entry) - 1;
     const unsigned int kl = boost::get<1>(entry) - 1;
 
-    // the test strain itself shall be independent of the meta exitation
-    assert(me->excitations[ij].test_strain == me->GetExcitation(ij, meta)->test_strain);
-    SetTestStrainMatrix(test_strain_matrix_ij, me->excitations[ij].test_strain);
+    // the test strain itself shall be independent of the meta excitation
+    assert(ctxt->excitations[ij]->test_strain == ctxt->GetExcitation(ij, meta)->test_strain);
+    SetTestStrainMatrix(test_strain_matrix_ij, ctxt->excitations[ij]->test_strain);
 
     // for multiple meta excitations (rotations, robustness) take the corresponding state
-    StdVector<SingleVector*>& u1 = forward.Get(me->GetExcitation(ij, meta)->index)->elem[App::MECH]; // equal to \chi^{ij}
+    StdVector<SingleVector*>& u1 = forward.Get(ctxt->GetExcitation(ij, meta))->elem[App::MECH]; // equal to \chi^{ij}
 
-    SetTestStrainMatrix(test_strain_matrix_kl, me->excitations[kl].test_strain);
-    StdVector<SingleVector*>& u2 = forward.Get(me->GetExcitation(kl, meta)->index)->elem[App::MECH];// equal to \chi^{kl}
+    SetTestStrainMatrix(test_strain_matrix_kl, ctxt->excitations[kl]->test_strain);
+    StdVector<SingleVector*>& u2 = forward.Get(ctxt->GetExcitation(kl, meta))->elem[App::MECH];// equal to \chi^{kl}
 
     double result = 0.0;
 
     if (derivative)
       grad_out.Resize(design->GetNumberOfElements());
 
-    Transform* trans = me->GetExcitation(0, meta)->transform; // the base 0 is absolutely ok as this is the fast exitation index with meta the slow index
+    Transform* trans = ctxt->GetExcitation(0, meta)->transform; // the base 0 is absolutely ok as this is the fast excitation index with meta the slow index
 
     // loop over elements. In the gradient case not summed up
     for (int e = 0, ne = design->GetNumberOfElements();e < ne;++e)
@@ -3427,7 +3426,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
 
       // write back the solution s.th. CommitIteration() makes StoreResults() properly.
-      forward.Get(*excite)->Write(context->pde);
+      forward.Get(excite)->Write(context->pde);
       break;
 
       case Function::OUTPUT:
@@ -3454,7 +3453,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         StorePDESolution(adjoint, *excite, f, -1, true, false, true, NO_DERIVTYPE, "adjoint");
 
         // write back the solution s.th. CommitIteraion() makes StoreResults() properly.
-        forward.Get(*excite)->Write(context->pde);
+        forward.Get(excite)->Write(context->pde);
         break;
       }
 

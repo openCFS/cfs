@@ -334,10 +334,6 @@ namespace CoupledField
          * new system matrix is assembled (here we do not check if there is actually and adjoint computed for the sequence). */
         bool DoSolveAdjointWithState() const;
 
-
-        /** The assemble class for our PDE */
-        Assemble* assemble_;
-
         /** The way the date is stored. Forward/ adjoint/ both and stride. 
          * Set in the <commit> element */
         CommitMode commitMode_;
@@ -374,7 +370,6 @@ namespace CoupledField
 
         /** Here we keep the last iterations design space */
         Vector<double>  last_iteration;
-
 
         /** Do we use MSFEM or not? */
         bool msfem;

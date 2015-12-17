@@ -14,6 +14,7 @@ class SinglePDE;
 class EigenFrequencyDriver;
 class HarmonicDriver;
 class Exctiation;
+class MultipleExcitation;
 class Function;
 class OptimizationMaterial;
 
@@ -56,6 +57,23 @@ class Context
   /** this might trigger SwitchSequence() */
   void SetExcitation(Excitation* ex);
 
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta e.g. the number of the */
+  Excitation* GetExcitation(unsigned int base, unsigned int meta);
+
+  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
+   * @param base e.g. for homogenization the number of the teststrain, typically 0
+   * @param meta needs to be a number */
+  Excitation* GetExcitation(unsigned int base, const std::string& meta);
+
+  /** The excitation is not that easy to find if we have loads/homogenization/frequencies and concurrently robustness and transformations.
+   * The functions have excitations for the later but not necessarily for the first
+   * @param base the "normal" index of test strains, ...
+   * @param f checks for transformation and robustness in the excitation of the function.
+   * @see GetExcitation(unsigned int, Transform*) */
+   Excitation* GetExcitation(unsigned int base, Function* f);
+
   /** might change in the multi sequence case so don't cache! */
   SingleDriver* GetDriver() { return driver; }
 
@@ -85,6 +103,9 @@ class Context
 
   /** Is the current system test strain excited? True for special test case and homogenization */
   bool IsStrainExcitedSystem() const;
+
+  /** Set the multiple excitations specific information. The excitations array is set independently. */
+  void SetMultiExcitations(MultipleExcitation* me, unsigned int basic_excitaions);
 
   /** Helper that converts from mechPDE to App::MECH and elecPDE to App::ELEC, ...
    * @param from heat and acoustic the application for the transfer function is laplace, this is indicated by the flag if
@@ -135,7 +156,7 @@ class Context
 
   /** context specific excitations (at least one).
    * Is a reference to portions of Optimization::MultipleExcitation::excitation and set in MultipleExcitation::FinalizeMultipleExcitation() */
-  StdVector<Excitation*> excitation;
+  StdVector<Excitation*> excitations;
 
   /** The pdes from the current sequence state, don't cache!
    * Note that for multiple sequence optimization the pdes are always newly created and we must not store the pointer!
@@ -167,9 +188,17 @@ private:
   /** we read the driver steps even without driver object to allow PrepareMultipleExcitation() */
   unsigned int driver_steps_;
 
+  /** the currently active excitation */
   Excitation* excitation_;
 
   ContextManager* manager_;
+
+  /** this is the number of basic excitations without meta (robust/ transformation). Hence 3/6 for homogenization.
+   * It cannot be larger than excitations.GetSize() and equals excitations.GetSize() without robust/ transformation */
+  unsigned int basic_excitations_;
+
+  /** Link to MultipleExcitations. Actually we could own our own instance ... */
+  MultipleExcitation* me_;
 };
 
 /** we have only one static instance of the context manager in Optimization::contextManager.
@@ -199,13 +228,15 @@ public:
 
   /** gives the context corresponding to the function.
    * Simply used the 1-based sequence attribute of the function */
-  const Context& GetContext(const Excitation* ex) const;
+  Context& GetContext(const Excitation* ex);
 
   StdVector<Context> context;
 
   /** this is a max norm of all context */
   struct AnyContext
   {
+    AnyContext();
+
     bool bloch;
     bool eigenvalue;
     bool harmonic;
