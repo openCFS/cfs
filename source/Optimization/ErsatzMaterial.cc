@@ -384,11 +384,12 @@ void ErsatzMaterial::StoreResults(double step_val)
   {
     for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
     {
-      assert(!context->DoMultiSequence()); // extend! 
+      Excitation& ex = me->excitations[e];
+      Context& ctxt = manager.GetContext(&ex);
       // in case of eigenvalues we have for each excitation many modes but write only the first one here
       // in that case we need mode number 0 instead of the default -1
-      int mode = context->IsEigenvalue() ? 0 : -1;
-      forward.Get(me->excitations[e], NULL, mode)->Write(context->pde); // forward is function NULL
+      int mode = ctxt.IsEigenvalue() ? 0 : -1;
+      forward.Get(ex, NULL, mode)->Write(ctxt.pde); // forward is function NULL
       // call real implementation in Optimization. sum up in excitation fractions up to smaller 0.5
       Optimization::StoreResults(real_step + (0.5 / me->excitations.GetSize()) * e);
     }
@@ -542,27 +543,27 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     {
       LOG_DBG2(em) << "GOP tensor=" << tensor.ToString();
       assert(ex != NULL);
-      assert(ex->sequence == context->sequence);
+      Context& ctxt = manager.GetContext(ex);
+      assert(ex->sequence == ctxt.sequence);
       ex->Apply(); // we read the design. When we do robust, this must match the filter associated to the tensor
 
       BaseMaterial* bm = NULL;
       // this happens when doing shape optimization with homTracking!
       // we then have no design region and need to skip GetForm
       if(design->GetRegionId() != -1)
-        bm = context->pde->GetMaterialData()[design->GetRegionId()];
+        bm = ctxt.pde->GetMaterialData()[design->GetRegionId()];
       Objective vf(Function::VOLUME, 0.0, Function::PHYSICAL); // physical!
       assert(design->GetRegionIds().GetSize() ==1);
       vf.SetElements(design, design->GetRegionId());
       double vol = CalcVolume(&vf, NULL, false, true);
-      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(tensor, bm, context->stt, vol);
+      StdVector<std::pair<string, double> > ortho = MechanicMaterial::CalcOrthotropeProperties(tensor, bm, ctxt.stt, vol);
       return ortho;
     }
   }
 
   string ErsatzMaterial::GetIterationFrequency()
   {
-    assert(!context->DoMultiSequence());
-    if (!context->IsHarmonic())
+    if (!manager.any().harmonic)
       return "";
 
     // make clear, when doing *real* multiple excitations, that this is no single
@@ -570,11 +571,21 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     if (me->IsEnabled() && me->excitations.GetSize() > 1)
       return "(mult)";
 
-    double frequency = context->GetHarmonicDriver()->GetActFreq();
-    // as we control the fractional digits, we do not use lexical_cast<string>
-    stringstream ss;
-    ss << fixed << std::setprecision(1) << frequency;
-    return ss.str();
+    // search frequency, assume only one context has a frequency
+    for(unsigned int i = 0; i < manager.context.GetSize(); i++)
+    {
+      Context& ctxt = manager.context[i];
+      if(ctxt.IsHarmonic())
+      {
+        double frequency = ctxt.GetHarmonicDriver()->GetActFreq();
+        // as we control the fractional digits, we do not use lexical_cast<string>
+        stringstream ss;
+        ss << fixed << std::setprecision(1) << frequency;
+        return ss.str();
+      }
+    }
+    assert(false); // there shall be a harmonic driver!
+    return "no freq found";
   }
 
   int ErsatzMaterial::GetSpecialResultIndex(App::Type app1, App::Type app2, CalcMode calcMode, Condition* constraint)

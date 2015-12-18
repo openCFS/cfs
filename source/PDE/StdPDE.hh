@@ -46,6 +46,8 @@ namespace CoupledField {
     //! Create the matrices and Solver as well as Preconditioner
     virtual void CreateMatrices_Solver();
     
+    /** call this, e.g. in the case of ProgramOptions::DoEquationMapping() which is cfs -M */
+    void CreateEquationMapFile();
 
     // ======================================================
     // GET/SET METHODS

@@ -434,9 +434,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
 
 void MultipleExcitation::ApplyRobust(DesignSpace* space)
 {
-  Context* ctxt = Optimization::context;
-
-  assert(!ctxt->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
+  assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
   //assert(excitations.GetSize() == principle_); // first robust, then transformation
   unsigned int principle = excitations.GetSize(); // actually Context::basic_excitations_
   assert(num_robust_ >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
@@ -482,8 +480,7 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
 
 void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 {
-  Context* ctxt = Optimization::context;
-  assert(!ctxt->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
+  assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
   //assert(excitations.GetSize() == principle_); // first robust, then transformation
   unsigned int principle = DoRobust() ? excitations.GetSize() / num_robust_ : excitations.GetSize(); // actually Context::basic_excitations_
 
@@ -690,6 +687,8 @@ bool Excitation::Apply(bool switch_context)
   {
     Optimization::manager.SwitchContext(this); // also sets the excitation
     switched = true;
+    assert(Optimization::context->sequence == this->sequence);
+    LOG_DBG(exlog) << "A: switched context to sequence " << sequence;
   }
   else
     Optimization::context->SetExcitation(this);

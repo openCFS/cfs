@@ -1620,7 +1620,7 @@ namespace CoupledField {
                                          const StdVector<Integer>& eqns,
                                          StdVector<UInt>& blockNums,
                                          StdVector<UInt>& indices ) {
-    LOG_DBG(algSys) << "Mapping fctId,eqnNr to blockNum,indices";
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
     
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
