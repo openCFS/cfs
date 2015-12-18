@@ -447,7 +447,7 @@ namespace CoupledField
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType fctId1, fctId2;
 
-    LOG_DBG2(assemble) << "AM_Std: AssembleMatrices_Std() enter";
+    LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
 
     timer_->Start();
 
@@ -569,7 +569,7 @@ namespace CoupledField
 
           BiLinearForm * form = actContext.GetIntegrator();
 
-          LOG_DBG(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
+          LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
 
           try {
 
@@ -1264,6 +1264,7 @@ namespace CoupledField
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
             algsys_->SetElementRHS(elemVec, fctId, eqnVec);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
         }
       } catch (Exception& e) {

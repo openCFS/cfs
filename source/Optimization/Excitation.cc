@@ -429,7 +429,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
     LOG_DBG3(exlog) << "SHTS: i=" << i << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName());
   }
 
-  return excitations.GetSize();
+  return cases;
 }
 
 void MultipleExcitation::ApplyRobust(DesignSpace* space)
@@ -682,6 +682,7 @@ Excitation::~Excitation()
 
 bool Excitation::Apply(bool switch_context)
 {
+  LOG_DBG(exlog) << "A: sc=" << switch_context << " curr_ex=" << Optimization::context->GetExcitation()->index << " new_ex=" << index;
   bool switched = false;
   if(switch_context && Optimization::context->sequence != this->sequence)
   {
@@ -690,8 +691,7 @@ bool Excitation::Apply(bool switch_context)
     assert(Optimization::context->sequence == this->sequence);
     LOG_DBG(exlog) << "A: switched context to sequence " << sequence;
   }
-  else
-    Optimization::context->SetExcitation(this);
+  Optimization::context->SetExcitation(this);
 
   assert(!switch_context || Optimization::context->sequence == sequence);
 

@@ -521,9 +521,6 @@ namespace CoupledField
      PtrParamNode info_;
 
      ErsatzMaterial::Method method_;
-
-     /** Shortcut to Optimization::context */
-     Context* context_;
   };
 
 

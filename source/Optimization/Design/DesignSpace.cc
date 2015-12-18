@@ -60,8 +60,6 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   if(!Optimization::manager.IsInitialized())
     Optimization::manager.Init();
 
-  context_ = Optimization::context;
-
   // for convenience
   regionIds_ = reg_data;
   design_id = 0;
@@ -393,13 +391,18 @@ void DesignSpace::PostInit(int objectives, int constraints)
 {
   if(method_ != ErsatzMaterial::PARAM_MAT && method_ != ErsatzMaterial::SHAPE_PARAM_MAT)
   {
-    // FIXME there might be an multi sequence issue
-    if(context_->GetDriver()->IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
-      TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
-      if(tf == NULL && domain->GetBasePDE()->GetName() != "electrostatic") {
-        // std::cout << domain->GetBasePDE()->GetName() << std::endl;
-        PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
-        in->SetValue("no transfer function 'mass' given for harmonic model");
+    assert(Optimization::manager.IsInitialized());
+    for(unsigned int i = 0; i < Optimization::manager.context.GetSize(); i++)
+    {
+      Context& ctxt = Optimization::manager.context[i];
+      // FIXME there might be an multi sequence issue
+      if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
+        TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
+        if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
+          // std::cout << domain->GetBasePDE()->GetName() << std::endl;
+          PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
+          in->SetValue("no transfer function 'mass' given for harmonic model");
+        }
       }
     }
   }
@@ -692,7 +695,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
   }
 
   LOG_DBG2(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " f=" << factor << " bf=" << bimat_factor;
-  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString();
+  LOG_DBG3(designSpace) << "TAPD el="  << lpm->ptEl->elemNum << " -> " << retMat.ToString(2);
   return true;
 }
 
@@ -771,7 +774,7 @@ double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type
                        << DesignElement::type.ToString(dt) << ": "
                        << TransferFunction::type.ToString(tf->GetType()) << "("
                        << use->GetDesign(DesignElement::PLAIN) << ") = " << transformed
-                       << " ex=" << (domain->GetOptimization() != NULL ? context_->GetExcitation()->index : -1)
+                       << " ex=" << (domain->GetOptimization() != NULL ? Optimization::context->GetExcitation()->index : -1)
                        << " -> * " << result << " = " << (result * transformed);
       result *= transformed;
     }
@@ -942,6 +945,7 @@ TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, A
 DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, DesignElement* fallback, Transform* trans) const
 {
   DesignElement* found = NULL;
+  Context* ctxt = Optimization::context;
 
   if(transform.IsEmpty() && trans == NULL)
     return fallback;
@@ -952,11 +956,10 @@ DesignElement* DesignSpace::ApplyTransformations(const DesignElement* de, Design
   }
   else
   {
-    assert(!(context_->GetExcitation()->transform == NULL && transform.GetSize() > 1));
+    Excitation* excite = ctxt->GetExcitation();
+    assert(!(excite->transform == NULL && transform.GetSize() > 1));
 
-    Excitation* excite = context_->GetExcitation();
-
-    if(context_->GetExcitation()->transform != NULL)
+    if(excite->transform != NULL)
     {
       found = excite->transform->FindSource(de);
       LOG_DBG2(designSpace) << "AT: de=" << de->ToString() << " ce=" << excite->label << " a=" << excite->transform->ToString() << " -> " << DesignElement::ToString(found);
@@ -1510,7 +1513,7 @@ void DesignSpace::FillElementResults(Result<T>& result, ResultDescription& descr
   double none = st == MECH_PSEUDO_DENSITY || st == PHYSICAL_PSEUDO_DENSITY || st == ELEC_PSEUDO_POLARIZATION
       || st == ELEC_PHYSICAL_PSEUDO_DENSITY ? 1.0 : 0.0;
 
-  Excitation* ex = domain->GetOptimization() != NULL ? context_->GetExcitation() : NULL;
+  Excitation* ex = domain->GetOptimization() != NULL ? Optimization::context->GetExcitation() : NULL;
 
   for (it.Begin(); !it.IsEnd(); it++)
   {
@@ -1591,10 +1594,9 @@ DesignSpace::DesignRegion* DesignSpace::GetRegion(RegionIdType id, DesignElement
     }
   }
 
-  if(!throw_exception)
-    return NULL;
-  else
+  if(throw_exception)
     EXCEPTION("cannot find design region");
+  return NULL;
 }
 
 DesignSpace::DesignRegion* DesignSpace::GetRegion(shared_ptr<CoefFunctionOpt>& coef, RegionIdType reg)
