@@ -1256,7 +1256,7 @@
               </xsd:element>
               <xsd:element name="wireCrossSection">
                 <xsd:complexType>
-                  <xsd:attribute name="area" type="DT_PosFloat" use="required"/>
+                  <xsd:attribute name="area" type="xsd:token" use="required"/>
                   <xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/>
                 </xsd:complexType>
               </xsd:element>
