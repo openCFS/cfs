@@ -1189,30 +1189,27 @@ namespace CoupledField
     StdVector<LinearFormContext*>::iterator formsIt;
 
     // iterate over all descriptors
-    for ( formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++ )
+    for(formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++)
     {
       // get integrator
-      LinearFormContext & actContext = **formsIt;
+      LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin )
+      if(actContext.IsNonLin() != nonLin)
         continue;
 
       LinearForm* form = actContext.GetIntegrator();
 
       try
       {
-
         // get entity iterator
-        
         EntityIterator  entIt = actContext.GetEntities()->GetIterator();
         UInt size = actContext.GetEntities()->GetSize();
         
-        if( printProgressBar_) {
-          std::cout << "  - Calculating '" << form->GetName() << "' on '" 
-              << actContext.GetEntities()->GetName() 
-              << " (" << size << " elements)'\n";
-        }
+        if(printProgressBar_)
+          std::cout << "  - Calculating '" << form->GetName() << "' on '" << actContext.GetEntities()->GetName() << " (" << size << " elements)'\n";
+
+        LOG_DBG(assemble) << "ARLF: form=" << form->GetName() << " on " << actContext.GetEntities()->GetName() << " (" << size << ")";
 
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
@@ -1238,18 +1235,13 @@ namespace CoupledField
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
-            algsys_-> SetElementRHS( elemVec,
-                                     fctId, eqnVec );
+            algsys_-> SetElementRHS(elemVec, fctId, eqnVec);
           }
-
         } else {
-
           // That should be STATIC, TRANSIENT or EIGENFREQUENCY
-
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-            
             // make only output if desired
             if( printProgressBar_) {
               ++progress;
@@ -1258,20 +1250,21 @@ namespace CoupledField
             }
 
             // Calculate real valued element vector
-            form->CalcElemVector( elemVec, entIt );
+            form->CalcElemVector(elemVec, entIt);
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
 
             // Map equation numbers
-            actContext.MapEqns( entIt, eqnVec, fctId );
+            actContext.MapEqns(entIt, eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
             
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
-            algsys_-> SetElementRHS( elemVec,
-                                     fctId, eqnVec );
+            algsys_->SetElementRHS(elemVec, fctId, eqnVec);
           }
-
         }
       } catch (Exception& e) {
         RETHROW_EXCEPTION(e, "Could not calculate RHS vector for LinearForm '"

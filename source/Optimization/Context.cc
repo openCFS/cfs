@@ -8,8 +8,13 @@
 #include "Driver/MultiSequenceDriver.hh"
 #include "Driver/Assemble.hh"
 #include "Forms/LinForms/LinearForm.hh"
+#include "DataInOut/Logging/LogConfigurator.hh"
+#include "DataInOut/Logging/log.hpp"
 
 using namespace CoupledField;
+
+DECLARE_LOG(context)
+DEFINE_LOG(context, "context")
 
 Context::Context()
 {

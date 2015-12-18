@@ -94,8 +94,8 @@ public:
   virtual void AddFeFunction( shared_ptr<BaseFeFunction> fct );
 
 
-    //! Dump information to screen
-  virtual void PrintEqnMap();
+  /** @see FeSpace::PrintEqnMap() */
+  virtual void PrintEqnMap(std::ostream* file = NULL);
 
   
   // =====================================================
