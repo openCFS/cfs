@@ -262,8 +262,6 @@ void Context::SetPDEs()
   assert(pdes.size() == avail.GetSize());
 }
 
-
-
 ContextManager::ContextManager()
 {
   this->initialized_ = false;

@@ -217,8 +217,7 @@ DEFINE_LOG(msDriver, "msDriver")
     
     // obtain paramNode and infoNode
     PtrParamNode seqNode = paramPerStep[sequenceStep]->Get("analysis");
-    PtrParamNode info = info_->Get("sequenceStep",ParamNode::APPEND);
-    info->Get("index")->SetValue(sequenceStep);
+    PtrParamNode info = info_->GetByVal("sequenceStep","sequence", sequenceStep);
     
     if(create_new)
     {

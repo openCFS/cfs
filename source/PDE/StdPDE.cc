@@ -275,7 +275,7 @@ namespace CoupledField {
      std::string name =progOpts->GetSimName();
 
      if(domain->GetMultiSequenceDriver() != NULL)
-       name += "_sequece_" + boost::lexical_cast<std::string>(domain->GetMultiSequenceDriver()->GetActSequenceStep());
+       name += "_sequence_" + boost::lexical_cast<std::string>(domain->GetMultiSequenceDriver()->GetActSequenceStep());
 
      if(domain->GetSinglePDEs().GetSize() > 1)
        name += "_" + GetName(); // in case of more than one pde name it

@@ -62,12 +62,9 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
     std::string one = "1";
 
     PtrParamNode seqNode = paramNode->Get("sequenceStep")->Get("analysis");
-    
-    PtrParamNode info = infoNode->Get("sequenceStep",ParamNode::APPEND);
-    
-    infoNode->Get("index")->SetValue(1);
-    analysisString =
-        myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
+    PtrParamNode info = infoNode->GetByVal("sequenceStep","sequence", 1);
+
+    analysisString = myDom->GetParamRoot()->GetByVal(name, idx, one)->Get("analysis")->GetChild()->GetName();
     type = BasePDE::analysisType.Parse(analysisString);
 
     // Generate driver
@@ -94,6 +91,10 @@ BaseDriver* BaseDriver::CreateInstance(shared_ptr<SimState> state, Domain* myDom
 
   } else if( numSteps > 1 ) {
     bool keep = domain->GetParamRoot()->Has("optimization");
+    // serve the entries for the info.xml to have optimization las
+    for(unsigned int i = 0; i < numSteps; i++)
+      infoNode->GetByVal("sequenceStep","sequence", i+1); // 1-based
+
     ptdriver = new MultiSequenceDriver(state, myDom, paramNode, infoNode, keep);
   } else {
     EXCEPTION( "At least one sequenceStep has to be provided" );
