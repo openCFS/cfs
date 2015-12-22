@@ -1068,6 +1068,39 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     // somewhere for the finalization
     fieldCoefs_[COIL_LINKED_FLUX] = psiDens;
 
+
+    // === CORE LOSS DENSITY ===
+    shared_ptr<ResultInfo> cldRes(new ResultInfo());
+    cldRes->resultType = MAG_CORE_LOSS_DENSITY;
+    cldRes->dofNames = "";
+    cldRes->unit = "W/kg";
+    cldRes->definedOn = ResultInfo::ELEMENT;
+    cldRes->entryType = ResultInfo::SCALAR;
+    shared_ptr<CoefFunctionMulti> coreLossDensCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    DefineFieldResult( coreLossDensCoef, cldRes );
+
+
+    // === CORE LOSS ===
+    shared_ptr<ResultInfo> clRes(new ResultInfo());
+    clRes->resultType = MAG_CORE_LOSS;
+    clRes->dofNames = "";
+    clRes->unit = "W";
+    clRes->definedOn = ResultInfo::REGION;
+    clRes->entryType = ResultInfo::SCALAR;
+    //DefineFieldResult( coreLossCoef, clRes );
+    availResults_.insert( clRes );
+    shared_ptr<ResultFunctor> coreLossFunc;
+    shared_ptr<CoefFunctionMulti> coreLossCoef(new CoefFunctionMulti(CoefFunction::SCALAR, 1, 1, isComplex_));
+    if( isComplex_ ){
+      coreLossFunc.reset( new ResultFunctorIntegrate<Complex>(coreLossCoef, feFct, clRes) );
+    } else {
+      coreLossFunc.reset( new ResultFunctorIntegrate<Double>(coreLossCoef, feFct, clRes) );
+    }
+    resultFunctors_[MAG_CORE_LOSS] = coreLossFunc;
+    // it is an integrated result but we need to save the coef function
+    // somewhere for the finalization
+    fieldCoefs_[MAG_CORE_LOSS] = coreLossCoef;
+
   }
 
   void MagEdgePDE::FinalizePostProcResults() {
@@ -1189,6 +1222,41 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           GetCoefFct( MAG_POTENTIAL ), CoefXpr::OP_MULT );
       PtrCoefFct integrand = CoefFunction::Generate( mp_, part, integrandOp );
       psiDotDens->AddRegion( coilRegsIt->first, integrand );
+    }
+
+    // === CORE LOSS DENSITY ===
+    // This is a "density" per kg, not per m^3. That's why we cannot integrate it over
+    // the volume to get the core loss (see below).
+    shared_ptr<CoefFunctionMulti> cldCoef =
+        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS_DENSITY]);
+    BaseMaterial* actMat = NULL;
+    regIt = regions_.Begin();
+    for( ; regIt != regions_.End(); ++regIt ) {
+      RegionIdType actRegion = *regIt;
+      actMat = materials_[actRegion];
+      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
+          GetCoefFct(MAG_FLUX_DENSITY) );
+      cldCoef->AddRegion(actRegion, coreLossFct);
+    }
+
+    // === CORE LOSS ===
+    // The core loss per kg has to be multiplied by the density to get it per m^3.
+    // Then we can integrate over the volume in order to get the core loss.
+    shared_ptr<CoefFunctionMulti> clCoef =
+        dynamic_pointer_cast<CoefFunctionMulti>(fieldCoefs_[MAG_CORE_LOSS]);
+    actMat = NULL;
+    regIt = regions_.Begin();
+    for( ; regIt != regions_.End(); ++regIt ) {
+      RegionIdType actRegion = *regIt;
+      actMat = materials_[actRegion];
+      // core loss density in W/kg
+      PtrCoefFct coreLossFct = actMat->GetScalCoefFncNonLin( CORE_LOSS, Global::REAL,
+          GetCoefFct(MAG_FLUX_DENSITY) );
+      // core loss density in W/m^3, which deserves to be called density
+      PtrCoefFct densFct = actMat->GetScalCoefFnc( DENSITY, Global::REAL );
+      PtrCoefFct coreLossDensCoef = CoefFunction::Generate( mp_, part,
+          CoefXprBinOp( mp_, coreLossFct, densFct, CoefXpr::OP_MULT ));
+      clCoef->AddRegion( actRegion, coreLossDensCoef );
     }
 
   }

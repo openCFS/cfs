@@ -229,8 +229,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
-            //if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
-            if(curr_design_pn->Get("fixed")->As<bool>())
+            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
@@ -1468,7 +1467,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   if(def.excitation >= 0 && domain->GetOptimization() != NULL)
   {
     StdVector<Excitation>& mex = domain->GetOptimization()->GetMultipleExcitation()->excitations;
-    if(def.excitation > (int) mex.GetSize())
+    if(def.excitation >= (int) mex.GetSize())
       EXCEPTION("'result' has too large 'excitation' index " << def.excitation << " for only " << mex.GetSize() << " excitations");
 
     mex[def.excitation].Apply();

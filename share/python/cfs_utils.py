@@ -47,9 +47,9 @@ def xpath(xml, path):
 def has(xml, path):
   res = xml.xpathEval(path)
   if  len(res) == 0:
-   return false
+   return False
   else:
-   return true
+   return True
 
 
   

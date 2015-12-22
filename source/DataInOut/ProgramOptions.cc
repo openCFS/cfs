@@ -1023,7 +1023,11 @@ namespace CoupledField {
         << endl
         << "15.07, Verlorene Soehne" << endl
         << "  The optimization group is finaly back on the FE-space trunk. Not everyone yet, " << endl
-        << "  not all features yet, but the the boys are back in town! :)" << endl;
+        << "  not all features yet, but the the boys are back in town! :)" << endl
+        << endl
+        << "15.11, Back To The Future" << endl
+        << "  Precompiled CFSDEPS are back and eamc080 is a new mirror server for CFSDEPS." << endl
+        << "  Tests now are able to compare info.xml files." << endl;
   }
 
   void ProgramOptions::GetHeaderString(std::ostream & out)

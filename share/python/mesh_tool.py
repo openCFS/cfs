@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 import platform
-if platform.system() == 'Darwin':
-  from PIL import Image
-else:
-  import Image
+from PIL import Image
 import sys, os, copy, numpy, math
 from hdf5_tools import *
 import scipy.interpolate as ip
@@ -1297,6 +1294,13 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
   ny = (int(delta[1] / dy) + 1)*dy_f
   nz = (int(delta[2] / dz) + 1)*dz_f
   
+  #thickness of shell 1mm: tx,... is thickness of non-design shell
+  if dy_f % dy == 0:
+    ty = int(dy_f / dy)
+  else:
+    print 'Error: 1mm skin cannot be visualized exactly. Change cell_size or/and n_f!' 
+    sys.exit(1)
+  
   # offset for function apod6 (valid_position), fixes a bug 
   offset = dx + 1e-6
   if ny == 0 or nz == 0 or nx == 0:
@@ -1305,16 +1309,16 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
   
   for z in range(nz+1):
     # offset for shell in y-direction
-    for y in range(-dy_f, ny + 1 + dy_f):
+    for y in range(-ty, ny + 1 + ty):
       for x in range(nx+1):
         mesh.nodes.append((mi[0] + 0.5 * dx/dx_f + float(x) * dx/dx_f, mi[1] + 0.5 * dy/dy_f +  float(y) * dy/dy_f, mi[2] + 0.5 * dz/dz_f +float(z) * dz/dz_f))
   print 'inserting mesh.nodes done'
-  nny = ny+ 2 * (dy_f) 
+  nny = ny+ 2 * ty 
   array = -1 * numpy.ones((nx,nny,nz))
   res = [dx_f,dy_f,dz_f]
   count = 0
   for k in xrange(0,nz- dz_f + 1,dz_f):
-    for j in xrange(dy_f,ny + 1,dy_f):
+    for j in xrange(ty,ny + 1+ ty - dy_f,dy_f):
       for i in xrange(0,nx-dx_f + 1,dx_f):    
         coord = out[count]
         if simp is None:
@@ -1358,7 +1362,7 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
         ll = (nx + 1) * (nny + 1) * z + (nx + 1) * y + x  # lowerleft
         e.nodes = ((ll + (nx + 1) * (nny + 1), ll + (nx + 1) * (nny + 1) + nx + 1, ll + (nx + 1) * (nny + 1) + nx + 1 + 1, ll + (nx + 1) * (nny + 1) + 1, ll, ll + nx + 1, ll + nx + 1 + 1, ll + 1))        
         
-        if (y >= 0 and y < dy_f) or (y >= ny and y < ny + dy_f/2):
+        if (y < ty) or (y >= ny):
           # calculate center of element
           center = numpy.array([0.0, 0.0, 0.0])
           len_nod = len(e.nodes)
@@ -1493,9 +1497,9 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
       shell = 0
       for j in range(8):
         coord = mesh.nodes[e.nodes[j]]
-        if (coord[1] + 353.034) < 1.9 or abs(coord[1] + 333.034) < 1.9:
+        if abs(coord[1] + 353.034) < 1.1 or abs(coord[1] + 333.034) < 1.1:
           shell += 1
-      if shell > 3:
+      if shell > 4:
         e.region = 'non-design'
       else:
         e.region = 'design'
@@ -1510,9 +1514,9 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
       shell = 0
       for j in range(6):
         coord = mesh.nodes[e.nodes[j]]
-        if (coord[1] + 353.034) < 1.9 or abs(coord[1] + 333.034) < 1.9:
+        if abs(coord[1] + 353.034) < 1.1 or abs(coord[1] + 333.034) < 1.1:
           shell += 1
-      if shell > 2:
+      if shell > 3:
         e.region = 'non-design'
       else:
         e.region = 'design'
@@ -1528,9 +1532,9 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
       shell = 0
       for j in range(len(e.nodes)):
         coord = mesh.nodes[e.nodes[j]]
-        if (coord[1] + 353.034) < 1.9 or abs(coord[1] + 333.034) < 1.9:
+        if abs(coord[1] + 353.034) < 1.1 or abs(coord[1] + 333.034) < 1.1:
           shell += 1
-        if (len(e.nodes) == 6 and shell >= 2) or shell >= 3:
+        if (len(e.nodes) == 6 and shell > 3) or shell > 4:
           e.region = 'non-design'
         else:
           e.region = 'design'
@@ -1551,22 +1555,16 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
     m6 = [32971., -353., -2485.]
     m7 = [33023., -353., -2559.]
     m8 = [33042., -353., -2548.]
-    r1 = 19.5
-    r2 = 16.5
-    r3 = 5.8
+    r1 = 15.5#19.5
+    r2 = 12.5#16.5
+    r3 = 5.5
     force1 = []
     force2 = []
     support = []
     support2 = []
     for i in range(len(all_nodes)):
       coord = all_nodes[i, 1:]
-      if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
-        force1.append(i)
-      elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
-        force2.append(i)
-      elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < r3 ** 2:
-        support2.append(i)
-      elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
+      if (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
         support.append(i)
       elif (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < r3 ** 2:
         support.append(i)
@@ -1576,8 +1574,28 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
         support.append(i)
       elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
         support.append(i)
-        
-    
+    for i in range(len(mesh.elements)):
+      e = mesh.elements[i]
+      f1 = False
+      f2 = False
+      sp2 = False
+      if e.region == "non-design":
+        for j in range(len(e.nodes)):
+          coord = mesh.nodes[e.nodes[j]]
+          if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
+            f1 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
+            f2 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < r3 ** 2:
+            sp2 = True
+        for j in range(len(e.nodes)):
+          coord = mesh.nodes[e.nodes[j]]
+          if f1 == True and abs(coord[1] + 353.) < 1.:
+              force1.append(e.nodes[j])
+          elif f2 == True:
+            force2.append(e.nodes[j])
+          elif sp2 == True:
+            support2.append(e.nodes[j])    
   mesh.bc.append(('force1', force1))
   mesh.bc.append(('force2', force2))
   mesh.bc.append(('support', support))

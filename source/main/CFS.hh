@@ -62,7 +62,7 @@ namespace CoupledField
     PtrParamNode paramNode_;
     
     /** Timer for the whole CFS runtime */
-    boost::shared_ptr<Timer> timer;
+    shared_ptr<Timer> timer;
     
     /** this is our hostname. Empty if it cannot be determined */
     std::string hostname_;
