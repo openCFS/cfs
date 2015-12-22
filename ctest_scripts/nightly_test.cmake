@@ -2,12 +2,38 @@
 # It gets either called from /etc/crontab or through the provisioner scripts
 # for Vagrant VBoxes.
 #
-# To call this script by hand, it is advisable to simulate a crontab
-# environment e.g. in the following way:
+# It runs all tests from hostname -> <site>/generate_test_name_list.cmake 
+# a ctest -R <site>/<test>.ctest runs the single test.
+#
+# To call this script by do:
+#
+# ctest -S linux64_shared_opt_gcc_release.ctest.
+#
+# Simon advises the following way to simulate a crontab  environment e.g. in the following way:
+#
 # env -i HOME=/ PATH=/bin:/usr/bin:/sbin:/usr/sbin \
 #        /opt/pckg/cmake-2.8.9/bin/ctest -S $HOME/Documents/dev/nightly_test.cmake
 #
+# Out of a virtual box: 
+#
 # vagrant ssh -c 'env -i HOME=/Users/simon PATH=/bin:/usr/bin:/sbin:/usr/sbin env && uname -a && /opt/pckg/cmake-2.8.10.2-Linux-i386/bin/cmake --version'
+#
+# To embed this script via crontab:
+#
+#  1  22   *   *   * /usr/bin/ctest -S /path/to/script/script.cmake -V \
+#                                   > /dash/logs/tests.log 2>&1
+#
+#  "1  22   *   *   *"  specifies when to run the scheduled task. The columns correspond to minutes,
+# hours, days, months, day of the week. This gets translated to 10:01 PM every day, every month.
+# List and edit your crontab via crontab -l and crontab -e respectively
+#
+# See https://cfs.mdmt.tuwien.ac.at/trac/wiki/NightlyBuilds for more help
+#
+# For further information concerning CTest and CDash please refer to:
+# http://www.cdash.org/cdash/resources/software.html
+# http://vtk.org/Wiki/CMake_Testing_With_CTest
+# http://vtk.org/Wiki/CMake_Scripting_Of_CTest
+
 
 # We need at least CMake 2.8.9 for this to work
 CMAKE_MINIMUM_REQUIRED(

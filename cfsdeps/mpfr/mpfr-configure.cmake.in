@@ -8,6 +8,7 @@
 # Set global variables, configured from the external build.
 #=============================================================================
 SET(mpfr_source "@mpfr_source@")
+SET(mpfr_install "@mpfr_install@")
 SET(CFS_BINARY_DIR "@CFS_BINARY_DIR@")
 SET(CFS_ARCH_STR "@CFS_ARCH_STR@")
 SET(LIB_SUFFIX "@LIB_SUFFIX@")
@@ -36,10 +37,10 @@ IF(MINGW AND NOT CMAKE_CROSSCOMPILING)
 ENDIF()
 LIST(APPEND CONFIGURE_CMD 
   "./configure"
-  "--prefix=${CFS_BINARY_DIR}"
-  "--bindir=${CFS_BINARY_DIR}/bin/${CFS_ARCH_STR}"
-  "--libdir=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
-  "--includedir=${CFS_BINARY_DIR}/include"
+  "--prefix=${mpfr_install}"
+  "--bindir=${mpfr_install}/bin/${CFS_ARCH_STR}"
+  "--libdir=${mpfr_install}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
+  "--includedir=${mpfr_install}/include"
   "--enable-shared=no"
   "--with-gmp-lib=${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}"
   "--with-gmp-include=${GMP_INCLUDE_DIR}"

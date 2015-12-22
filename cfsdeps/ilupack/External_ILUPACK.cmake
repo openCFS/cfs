@@ -13,41 +13,6 @@ STRING(REPLACE ";" "^" ILUPACK_AMD_LIBRARY "${AMD_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_BLAS_LIBRARY "${BLAS_LIBRARY}")
 STRING(REPLACE ";" "^" ILUPACK_LAPACK_LIBRARY "${LAPACK_LIBRARY}")
 
-#-------------------------------------------------------------------------------
-# Configure target for downloading ILUPACK sources using CMake ExternalData
-# mechanism.
-#-------------------------------------------------------------------------------
-# Add standard remote object stores to user's configuration.
-SET(ExternalData_URL_TEMPLATES
-  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/%(algo)/%(hash)"
-  )
-
-# Set standard local object stores.
-SET(ExternalData_OBJECT_STORES
-  "${CFS_DEPS_CACHE_DIR}/sources/ilupack"
-)
-
-# Give a hint about downloading the source archive to the developer.
-FILE(READ "cfsdeps/ilupack/${ILUPACK_GZ}.md5" ILUPACK_HASH)
-STRING(STRIP ${ILUPACK_HASH} ILUPACK_HASH)
-
-IF(NOT EXISTS "${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}")
-  SET(MSG "Please download the file ")
-  SET(MSG "${MSG}'${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_HASH}'")
-  SET(MSG "${MSG} to '${ExternalData_OBJECT_STORES}/MD5/${ILUPACK_HASH}'.")
-
-  colormsg(HIYELLOW "${MSG}")
-ENDIF()
-
-set(ILUPACK_EXTERNAL_DATA "DATA{cfsdeps/ilupack/${ILUPACK_GZ}}")
-
-# Expand all arguments as a single string to preserve escaped semicolons.
-ExternalData_expand_arguments(ilupack_external_data
-  targetArgs "${ILUPACK_EXTERNAL_DATA}")
-
-# Add a build target to populate the real data.
-ExternalData_Add_Target(ilupack_external_data)
-
 
 #-------------------------------------------------------------------------------
 # Set common CMake arguments
@@ -100,14 +65,29 @@ SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/ilupack/ilupack-patch.cmake.in")
 SET(PFN "${ilupack_prefix}/ilupack-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ilupack_${ILUPACK_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "ilupack_${ILUPACK_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+
+#-------------------------------------------------------------------------------
+# The ilupack source is closed source! It must not be redistributed!!
+# There is a copy at ${CFS_DS_WEBDAV}/ but it has certificate issuses, therefore there
+# is also a mirror by the FAU CFS optimization group.
+# To obfuscate the download,. the filename is replaced by its md5 sum.
+#-------------------------------------------------------------------------------
+SET(MIRRORS 
+  "${CFS_FAU_MIRROR}/sources/ilupack/${ILUPACK_MD5}"
+  "${CFS_DS_WEBDAV}/cfsdeps/sources/ilupack/MD5/${ILUPACK_MD5}")
   
-SET(PREFIX_DIR "${ilupack_prefix}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/ilupack/${ILUPACK_GZ}")
+SET(MD5_SUM ${ILUPACK_MD5})
+
+SET(DLFN "${ilupack_prefix}/ilupack-download.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DLFN}" @ONLY)
+
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "ilupack" "${ILUPACK_VER}")
+  
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${ilupack_prefix}")
 
 SET(ZIPFROMCACHE "${ilupack_prefix}/ilupackzipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -118,7 +98,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # The ilupack external project
 #-------------------------------------------------------------------------------
-IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
@@ -140,15 +120,16 @@ IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project (double real)
   #-------------------------------------------------------------------------------
   ExternalProject_Add(ilupack-double
-    DEPENDS ilupack_external_data lapack metis suitesparse
+    #DEPENDS ilupack_external_data lapack metis suitesparse
+    DEPENDS lapack metis suitesparse
     PREFIX "${ilupack_prefix}"
     SOURCE_DIR "${ilupack_source}"
-    URL ${ILUPACK_PATH}/${ILUPACK_GZ}
+    URL ${LOCAL_FILE}
     URL_MD5 ${ILUPACK_MD5}
     PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
     LIST_SEPARATOR "^"
@@ -156,10 +137,6 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       ${CMAKE_ARGS}
       -DFLOAT_TYPE:STRING=DOUBLE_REAL
   )
-  
-  #-------------------------------------------------------------------------------
-  # If precompiled package does not exist build external project (double complex)
-  #-------------------------------------------------------------------------------
   ExternalProject_Add(ilupack-complex
     DEPENDS ilupack-double
     PREFIX "${ilupack_prefix}"
@@ -171,9 +148,27 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       -DFLOAT_TYPE:STRING=DOUBLE_COMPLEX
   )
   
-  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(ilupack-double cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${ilupack_prefix}
+  )
+  ExternalProject_Add_Step(ilupack-complex cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${ilupack_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
-    # Add custom step to zip a precompiled package to the cache.
+    # Add custom step to zip a precompiled package to the cache. complex seems sufficient
     #-------------------------------------------------------------------------------
     ExternalProject_Add_Step(ilupack-complex cfsdeps_zipToCache
       COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
@@ -182,7 +177,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

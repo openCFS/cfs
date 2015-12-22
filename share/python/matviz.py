@@ -24,7 +24,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
     s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
-    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if args.show == "hom_sheared_cross" else sh1 
+    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_cross" or args.show == "hom_sheared_rot_cross") else sh1 
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -160,6 +160,8 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
         s1,angle,sh1 = read_stiff_angle(f, dim_2D, args)
       else:
         s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
+        v = calc_volume(s1, s2)
+        print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi / 180
@@ -318,7 +320,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'rot', 'stream', 'hom_rect_mod','simp']) 
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'hom_sheared_rot_cross', 'rot', 'stream', 'hom_rect_mod','simp'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)

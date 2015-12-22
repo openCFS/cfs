@@ -13,22 +13,23 @@
 set(SGPP_PREFIX  "${CMAKE_CURRENT_BINARY_DIR}/cfsdeps/sgpp")
 set(SGPP_SOURCE  "${SGPP_PREFIX}/src/sgpp")
 # we use this as temporary install directory to alllow packing for precompiled cfsdeps
-#set(SGPP_INSTALL  "${SGPP_PREFIX}/src/sgpp/${SGPP_BASE}_${SGPP_VER}")
-set(SGPP_INSTALL  "${SGPP_PREFIX}/src/sgpp/${SGPP_BASE}")
+set(SGPP_INSTALL  "${SGPP_SOURCE}/${SGPP_BASE}_${SGPP_VER}")
+#set(SGPP_INSTALL  "${SGPP_SOURCE}/${SGPP_BASE}")
 
 # sgpp is build by configure, therefore no cmake args needed
 
 # no patches are required
 
-# we do not download but assume the file to magically exist there. It is encrypted!
-SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_ZIP}")
+# we do not download but assume the file to magically exist there. The zip is encrypted!
+#SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_ZIP}")
+SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/sgpp/${SGPP_TGZ}")
 # we don't check the md5 here
 
 if(NOT EXISTS "${LOCAL_FILE}")
   message(FATAL_ERROR "Please provide the encypted sgpp source in ${LOCAL_FILE}") 
 endif()
 
-if(NOT CFS_KEY_SGPP)
+if(SGPP_ZIP AND NOT CFS_KEY_SGPP)
   message(FATAL_ERROR "Key for encrypted ${SGPP_ZIP} required in CFS_KEY_SGPP. Set e.g. in your ~/.cfs_platform_defaults.cmake")
 endif()    
 
@@ -39,14 +40,11 @@ SET(PI_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/sgpp/sgpp-post_install.cmake.in")
 SET(PI "${SGPP_PREFIX}/sgpp-post_install.cmake")
 CONFIGURE_FILE("${PI_TEMPL}" "${PI}" @ONLY) 
 
-IF(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "sgpp_${SGPP_VER}_${CFS_ARCH_STR}_${TOOLSET_ID}_${CMAKE_BUILD_TYPE}.zip")
-ELSE(WIN32)
-  SET(PRECOMPILED_PCKG_NAME "sgpp_${SGPP_VER}_${CFS_ARCH_STR}_${FC_ID}_${CMAKE_BUILD_TYPE}.zip")
-ENDIF(WIN32)
-SET(PRECOMPILED_PCKG_FILE "${CFS_DEPS_CACHE_DIR}/precompiled/CFSDEPS/${PRECOMPILED_PCKG_NAME}")
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "sgpp" "${SGPP_VER}")  
   
-SET(PREFIX_DIR "${SGPP_PREFIX}")
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${SGPP_PREFIX}")
 
 SET(ZIPFROMCACHE "${SGPP_PREFIX}/sgpp-zipFromCache.cmake")
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
@@ -57,7 +55,7 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${
 #-------------------------------------------------------------------------------
 # The sgpp external project
 #-------------------------------------------------------------------------------
-IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package exists copy files from cache
   #-------------------------------------------------------------------------------
@@ -70,23 +68,34 @@ IF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+    
+  # BUGFIX: Hardcoded fix for the linker command
+  # When configuring with SGPP, CMake moves the intel libs at the end of the
+  # linker command for cfstoolbin but leaves the group inplace. Hence linking
+  # of cfstoolbin fails.
+  SET(INTEL_LIBS "/opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_core.a")
+  ExternalProject_Add_Step(sgpp fix_link_command
+    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    DEPENDEES install
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
   ExternalProject_Add(sgpp
     PREFIX "${SGPP_PREFIX}"
     SOURCE_DIR "${SGPP_SOURCE}"
-#    BINARY_DIR "${SGPP_SOURCE}/${SGPP_BASE}_${SGPP_VER}"
-    BINARY_DIR "${SGPP_SOURCE}/${SGPP_BASE}"
+    BINARY_DIR "${SGPP_INSTALL}"
+    #BINARY_DIR "${SGPP_SOURCE}/${SGPP_BASE}"
     # don't dowload but simply copy w/o md5 check
     DOWNLOAD_COMMAND ${CMAKE_COMMAND} -E copy ${LOCAL_FILE} ${SGPP_SOURCE}
     # the zip file is encrypted!
-    PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SGPP} ${SGPP_ZIP}
+    #PATCH_COMMAND unzip -q -u -P ${CFS_KEY_SGPP} ${SGPP_ZIP}
+    PATCH_COMMAND tar -xzf ${SGPP_TGZ}
     INSTALL_COMMAND ""
     CONFIGURE_COMMAND ""
     # the libs will be created in lib/sgpp and we manually copy them to lib64/CFS_ARCH_STR
-#    BUILD_COMMAND scons -j 4 -s SG_OPT=yes OMP=yes UMFPACK=yes EIGEN=yes ARMADILLO=yes GMMPP=yes
     BUILD_COMMAND scons -j 4 -s OMP=yes USE_UMFPACK=yes USE_EIGEN=yes USE_ARMADILLO=yes USE_GMMPP=no NO_UNIT_TESTS=yes
   )  
   
@@ -96,9 +105,21 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
   ExternalProject_Add_Step(sgpp post_install
     COMMAND ${CMAKE_COMMAND} -P "${PI}"
     DEPENDEES install
+    DEPENDS "${PI}"
   )
   
-  IF("${CFS_DEPS_TOCACHE}" STREQUAL "ON")
+  # BUGFIX: Hardcoded fix for the linker command
+  # When configuring with SGPP, CMake moves the intel libs at the end of the
+  # linker command for cfstoolbin but leaves the group inplace. Hence linking
+  # of cfstoolbin fails.
+  SET(INTEL_LIBS "/opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_intel_lp64.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_gnu_thread.a /opt/intel/composer_xe_2011_sp1.8.273/mkl/lib/intel64/libmkl_core.a")
+  ExternalProject_Add_Step(sgpp fix_link_command
+    COMMAND sed -i "s@-Wl,--start-group -Wl,--end-group @@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    COMMAND sed -i "s@${INTEL_LIBS}@-Wl,--start-group ${INTEL_LIBS} -Wl,--end-group@" "${CMAKE_CURRENT_BINARY_DIR}/source/cfstool/CMakeFiles/cfstoolbin.dir/link.txt"
+    DEPENDEES install
+  )
+
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
     #-------------------------------------------------------------------------------
     # Add custom step to zip a precompiled package to the cache.
     #-------------------------------------------------------------------------------
@@ -109,7 +130,7 @@ ELSE("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_CACHE}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 # Add project to global list of CFSDEPS, this allows "make sgpp"
 SET(CFSDEPS ${CFSDEPS} sgpp)
@@ -117,18 +138,24 @@ SET(CFSDEPS ${CFSDEPS} sgpp)
 # Determine paths of SGPP libraries.
 SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 # Old SGPP (SGpp)
-#SET(SGPP_LIBRARY "${LD}/libsgppopt.a;${LD}/libumfpack4sgpp.a;${LD}/libsuitesparseconfig4sgpp.a;${LD}/libarmadillo4sgpp.a;${LD}/libsgppbase.a;${LD}/libsgpppde.a;${LD}/libsgppsolver.a" CACHE FILEPATH "SGPP library.")
+#SET(SGPP_LIBRARY
+#  ${LD}/libsgppopt.a;
+#  ${LD}/libumfpack4sgpp.a;
+#  ${LD}/libsuitesparseconfig4sgpp.a;
+#  ${LD}/libarmadillo4sgpp.a;
+#  ${LD}/libsgppbase.a;
+#  ${LD}/libsgpppde.a;
+#  ${LD}/libsgppsolver.a
+#  CACHE FILEPATH "SGPP library."
+#  )
 # New SGPP (sgopt)
 SET(SGPP_LIBRARY 
-  ${LD}/libsgppoptimization.a;
-  ${LD}/libsgppbase.a;
+  ${LD}/libsgppoptimization.so;
+  ${LD}/libsgppbase.so;
   libarmadillo.so;
   ${UMFPACK_LIBRARY};
   ${ARPACK_LIBRARY}
   CACHE FILEPATH "SGPP library."
   )
-
-MESSAGE("----SGPP_LIBRARY----")
-MESSAGE("${SGPP_LIBRARY}")
 
 MARK_AS_ADVANCED(SGPP_LIBRARY)
