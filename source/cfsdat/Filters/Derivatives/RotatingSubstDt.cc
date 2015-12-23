@@ -110,7 +110,7 @@ void RotatingSubstDt::FinishInit(){
         ExtractCylinderVelocities<3>(params_->Get("rotatingDomain")->Get("cylinder"));
       }
     }
-    std::cout << "\t ---> Found " << rotEqns_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
+    std::cout << "\t\t Found " << rotEnts_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
   }
   gradDim_ = resultManager_->GetExtInfo(gradId_)->dofNames.GetSize();
 }
@@ -156,19 +156,26 @@ bool RotatingSubstDt::Run(){
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
     for(UInt i=0;i<last;++i){
-      returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
+      //returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
+      returnVec[i] = 0.0;
     }
 
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
     //now we add the substantial part
     UInt gIdx = 0;
-    for(UInt aEq = 0; aEq <rotEqns_.GetSize();aEq++){
+    EqnMapSimple& mapping = *resultManager_->GetResultAdpter(*aIter)->mapping.get();
+    StdVector<UInt> aEqn(1);
+    for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
+
+      mapping.GetEquation(aEqn,rotEnts_[aEnt],resultManager_->GetExtInfo(*aIter)->definedOn);
+
       //this may be a little hackisch but knowing how eqnationMapSimple works
       //its a little faster
-      for(UInt d =0;d<gradDim_;++d){
-        gIdx = rotEqns_[aEq]*gradDim_+d;
-        returnVec[rotEqns_[aEq]] += rotField_[aEq][d]*gradient[gIdx];
-      }
+      returnVec[aEqn[0]] = rotField_[aEnt][1];
+      //for(UInt d =0;d<gradDim_;++d){
+      //  gIdx = rotEqns_[aEq]*gradDim_+d;
+      //  returnVec[rotEqns_[aEq]] += rotField_[aEq][d]*gradient[gIdx];
+      //}
     }
     //now we loop over the entity equations
     resultManager_->ActivateResult(*aIter);
@@ -193,7 +200,7 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
 
   ResultManager::ConstInfoPtr gradInfo = resultManager_->GetExtInfo(gradId_);
   ResultManager::ConstResPtr gradRes = resultManager_->GetResultAdpter(gradId_);
-  EqnMapSimple& mapping = *resultManager_->GetResultAdpter(timeId_)->mapping.get();
+  EqnMapSimple& mapping = *resultManager_->GetResultAdpter(timeId_,1)->mapping.get();
   StdVector<UInt>& eNums = *gradInfo->entityNumbers.get();
   bool hasExtraction = eNums.GetSize() != 0;
 
@@ -213,7 +220,7 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
         vortexComp.ComputeVortexVelocity(velocity,entCoord);
         if(velocity.NormL2() > 0){
           mapping.GetEquation(entEqn,eNums[aNum],CF::ResultInfo::NODE);
-          rotEqns_.Push_back(entEqn[0]);
+          rotEnts_.Push_back(eNums[aNum]);
           rotField_.Push_back(velocity);
         }
       }
@@ -228,8 +235,8 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
           pGrid->GetNodeCoordinate(entCoord,regNodes[aNum]+1,true);
           vortexComp.ComputeVortexVelocity(velocity,entCoord);
           if(velocity.NormL2() > 0){
-            mapping.GetEquation(entEqn,regNodes[aNum]+1,CF::ResultInfo::NODE);
-            rotEqns_.Push_back(entEqn[0]);
+            mapping.GetEquation(entEqn,regNodes[aNum],CF::ResultInfo::NODE);
+            rotEnts_.Push_back(regNodes[aNum]);
             rotField_.Push_back(velocity);
           }
         }
@@ -242,24 +249,26 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
         vortexComp.ComputeVortexVelocity(velocity,entCoord);
         if(velocity.NormL2() > 0){
           mapping.GetEquation(entEqn,eNums[aNum],CF::ResultInfo::ELEMENT);
-          rotEqns_.Push_back(entEqn[0]);
+          rotEnts_.Push_back(eNums[aNum]);
           rotField_.Push_back(velocity);
         }
       }
     }else{
       std::set<std::string>::iterator regIter = gradInfo->regNames->begin();
       std::set<std::string>::iterator endIter = gradInfo->regNames->end();
-      StdVector<UInt> regCenters;
+      StdVector<Elem*> regElems;
 
       for(; regIter != endIter; ++regIter){
+        std::cout << "\t\t\tComputing rotational velocities for region " << *regIter << std::endl;
         RegionIdType rId = pGrid->GetRegion().Parse(*regIter);
-        regCenters.Resize(pGrid->GetNumElems(rId));
-        for(UInt aNum = 0;aNum<regCenters.GetSize();++aNum){
-          pGrid->GetElemCentroid(entCoord,regCenters[aNum],true);
+        regElems.Resize(pGrid->GetNumElems(rId));
+        pGrid->GetElems(regElems,rId);
+        for(UInt aNum = 0;aNum<regElems.GetSize();++aNum){
+          pGrid->GetElemCentroid(entCoord,regElems[aNum]->elemNum,true);
           vortexComp.ComputeVortexVelocity(velocity,entCoord);
           if(velocity.NormL2() > 0){
-            mapping.GetEquation(entEqn,eNums[aNum],CF::ResultInfo::ELEMENT);
-            rotEqns_.Push_back(entEqn[0]);
+            mapping.GetEquation(entEqn,regElems[aNum]->elemNum,CF::ResultInfo::ELEMENT);
+            rotEnts_.Push_back(regElems[aNum]->elemNum);
             rotField_.Push_back(velocity);
           }
         }

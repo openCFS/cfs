@@ -66,7 +66,7 @@ private:
 
   Double rpm_;
 
-  StdVector<UInt> rotEqns_;
+  StdVector<UInt> rotEnts_;
 
   StdVector< Vector<Double> > rotField_;
 

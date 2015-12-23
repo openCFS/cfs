@@ -24,7 +24,8 @@ void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::V
   //found somewhere but seems ok
   CF::Vector<Double> dist(3);
   CF::Vector<Double> pd(3);
-  Double dot,dsq;
+  CF::Vector<Double> tmp(3);
+  Double dot,dsq,pdLen,scalProj;
   Double radius_sq = radius*radius;
   Double lenSq;
 
@@ -38,16 +39,17 @@ void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::V
 
   dot = pd * dist;
   if( dot > 0.0f && dot < lenSq ){
-    dsq = (pd[0]*pd[0] + pd[1]*pd[1] + pd[2]*pd[2]) - (dot*dot/lenSq);
+    pdLen = (pd[0]*pd[0] + pd[1]*pd[1] + pd[2]*pd[2]);
+    scalProj = dot*dot/lenSq;
+    dsq = pdLen - scalProj;
     if( dsq <= radius_sq ){
       //find way along axis
-      Double onAxis = dot/lenSq;
-      pd = dist * onAxis;
-      //this is the wrong order of vectors
-      pd.CrossProduct(point,v);
+      dist *= scalProj/dot;
+      tmp = pd - dist;
+      dist.CrossProduct(tmp,v);
       //may be unnecessary
       v.Normalize();
-      v *= -1.0 * ((this->rpm/60) * 2 * M_PI * sqrt(dsq));
+      v *=  ((this->rpm/60) * 2 * M_PI * sqrt(dsq));
     }
   }
 }
