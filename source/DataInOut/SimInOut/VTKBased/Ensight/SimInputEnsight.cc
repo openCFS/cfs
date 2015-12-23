@@ -438,7 +438,7 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
   resVec.Init();
 
   shared_ptr<EntityList> resList = result->GetEntityList();
-  EntityIterator iter = resList->GetIterator();
+  ElemList* aEList = dynamic_cast<ElemList*>(resList.get());
 
   //try to obtain region ID from entity list name.
   RegionIdType id = mi_->GetRegion().Parse(resList->GetName());
@@ -449,9 +449,9 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
 
   UInt numNodeArrays = cellData->GetNumberOfArrays();
   if(numDofs>1 && cellData->IsArrayAnAttribute(vtkDataSetAttributes::VECTORS) == -1){
-    scalarForVector = true;
-  }else{
     scalarForVector = false;
+  }else{
+    scalarForVector = true;
   }
 
   //get grip of VTK arrays
@@ -463,9 +463,9 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
 
   //fill index of cell arrays
   StdVector<T> myValues(numDofs);
-  while(!iter.IsEnd()){
-    const Elem* curE = iter.GetElem();
-    UInt idx =  iter.GetPos();
+  for(UInt aElem=0;aElem<numEntities;++aElem){
+    const Elem* curE = aEList->GetElem(aElem);
+    UInt idx =  aElem;
     UInt vtkIdx = this->globElemLocElem_[curE->elemNum];
 
     //we assume region nodes are sorted continuously
@@ -482,7 +482,6 @@ void SimInputEnsight::GetElemResult( UInt sequenceStep,
         resVec[idx*numDofs+j] = myVal;
       }
     }
-    iter++;
   }
 }
 

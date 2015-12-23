@@ -116,6 +116,9 @@ bool CentroidInterpolator::Run(){
     trgGrid_->GetElemNodes(elemNodes,curE->elemNum);
 
     FeH1 * myElem = dynamic_cast<FeH1*>(eShape->GetBaseFE());
+    //we assume scalar shape functions
+    shFnc.Resize(elemNodes.GetSize());
+    shFnc.Init();
     myElem->GetShFnc(shFnc,aStru.localCoords,curE);
     Double curval = 0.0;
     for(UInt aNode =0;aNode < elemNodes.GetSize(); ++aNode){
@@ -172,8 +175,6 @@ void CentroidInterpolator::FinishInit(){
     allSrcElems.insert(allSrcElems.end(),curElems.Begin(),curElems.End());
   }
 
-  std::cout << "\t\t Interpolator is dealing with " << allSrcElems.size() <<
-               " source elements" << std::endl;
 
   std::cout << "\t\t 1/6 Obtaining source element centroids " << std::endl;
   StdVector<shared_ptr<EntityList> > lists;
@@ -184,6 +185,8 @@ void CentroidInterpolator::FinishInit(){
     newList->SetRegion(aReg);
     lists.Push_back(newList);
   }
+  std::cout << "\t\t\t Interpolator is dealing with " << allSrcElems.size() <<
+               " source element centroids" << std::endl;
   //should not be necessary to make it unique
   elemCentroids.Resize(allSrcElems.size());
   locPoints.Resize(allSrcElems.size());
@@ -197,18 +200,21 @@ void CentroidInterpolator::FinishInit(){
 
   std::cout << "\t\t 3/6 Generating interpolation info ..." << std::endl;
   interpolData_.reserve(trgElements.GetSize());
+  UInt foundCounter = 0;
   for(UInt aMatch = 0;aMatch < trgElements.GetSize();++aMatch){
     if(trgElements[aMatch]!= NULL){
       //obtain element volume
       InpolationStruct newStruct;
       shared_ptr<ElemShapeMap> eShape = trgGrid_->GetElemShapeMap(trgElements[aMatch],true);
       newStruct.volume = eShape->CalcVolume();
-      newStruct.localCoords = locPoints.GetPointer()->coord;
+      newStruct.localCoords = locPoints[aMatch].coord;
       newStruct.srcEqn = allSrcElems[aMatch];
       newStruct.tENum = trgElements[aMatch]->elemNum;
       interpolData_.push_back(newStruct);
+      ++foundCounter;
     }
   }
+  std::cout << "\t\t\t Number of interpolation pairs computed: " << foundCounter << std::endl;
   std::cout << "\t\t 4/6 Clear generated temporary data storage ..." << std::endl;
   trgElements.Clear(false);
   elemCentroids.Clear(false);
@@ -222,7 +228,7 @@ void CentroidInterpolator::FinishInit(){
   CF::StdVector<UInt> sEqn;
   for(UInt i=0;i<interpolData_.size();++i){
     upMap->GetEquation(sEqn,interpolData_[i].srcEqn,ExtendedResultInfo::ELEMENT);
-    //save as scalar even for vector types
+    //save, assuming a scalar type
     interpolData_[i].srcEqn = sEqn[0];
   }
 

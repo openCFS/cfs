@@ -1152,7 +1152,7 @@ namespace CoupledField {
   }
 
   void GridCFS::GetElemCentroid(Vector<Double>& center, UInt eNum, bool isupdated){
-    Elem* el = this->orderedElems_[eNum];
+    Elem* el = this->orderedElems_[eNum-1];
     SetElementBarycenters(el->regionId,isupdated);
     center = el->extended->barycenter.data;
   }
