@@ -481,9 +481,9 @@ template<>\
     if (value_.type() == typeid(std::string))
     {
       std::string str = boost::any_cast<std::string>(value_);
-      if (str == "yes" || str == "true" || str == "on")
+      if (str == "yes" || str == "true" || str == "on" || str == "enable")
         retVal = true;
-      if (str == "no" || str == "false" || str == "off")
+      if (str == "no" || str == "false" || str == "off" || str == "disable")
         retVal = false;
     }
     else

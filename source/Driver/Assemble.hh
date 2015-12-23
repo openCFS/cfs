@@ -226,7 +226,6 @@ namespace CoupledField {
     /** when set, the destructor won't delete linForms_ (but Excitation will do it) */
     bool lin_forms_given_;
 
-
     //! Map with flags if FE matrix has to be reassembled
     std::map<FEMatrixType, bool> matReassemble_;
 

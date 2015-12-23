@@ -310,9 +310,9 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
-  if(Optimization::context->IsComplex())
+  if(Optimization::context->IsComplex() && omega_omega_) // reduce output
     info->Get("omega_omega")->SetValue(omega_omega_);
-  // we check for valid ocurence of paramter in the constructor
+  // we check for valid occurrence of parameter in the constructor
   if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
@@ -361,7 +361,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   switch(type_)
   {
-  // this stuff is really to be evaluated only once, even for meta excitations or multi sequence
+  // this stuff is really to be evaluated only once, even for meta excitations or multi sequence, but we stick
+  // to the (default) sequence value
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
@@ -406,8 +407,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
     assert(excite_index < 0);
-    excite_ = me->excitations.Last().index; // very last excitation, independent of the context/sequence
-    assert(excite_ == (int) me->excitations.GetSize()-1);
+    excite_ = ctxt->excitations.Last()->index;
     break;
 
   // this stuff is to be evaluated at the last base for meta excitations
