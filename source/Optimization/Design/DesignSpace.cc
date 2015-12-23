@@ -399,7 +399,6 @@ void DesignSpace::PostInit(int objectives, int constraints)
       if(ctxt.IsComplex() && FindDesign(DesignElement::DENSITY, false) >= 0) {
         TransferFunction* tf = GetTransferFunction(DesignElement::DENSITY, App::MASS, false); // silent
         if(tf == NULL && ctxt.pde->GetName() != "electrostatic") {
-          // std::cout << domain->GetBasePDE()->GetName() << std::endl;
           PtrParamNode in = info_->Get(ParamNode::HEADER)->Get("transferFunctions")->Get(ParamNode::WARNING);
           in->SetValue("no transfer function 'mass' given for harmonic model");
         }

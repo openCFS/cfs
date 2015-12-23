@@ -107,7 +107,6 @@ void Context::Update()
     mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em);
 
     // would be too early in Setup()
-    PtrParamNode infoNode;
     if(domain->GetOptimization() != NULL)
       infoNode = domain->GetOptimization()->optInfoNode->Get(ParamNode::HEADER)->GetByVal("sequence", "step", sequence);
     else

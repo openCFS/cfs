@@ -316,7 +316,7 @@ bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
   LinearForm* form = NULL;
   LinearFormContext* actContext = NULL;
 
-  SinglePDE* mech = domain->GetSinglePDE("mechanic", false);
+  SinglePDE* mech = Optimization::context->ToPDE(App::MECH, false);
   if(mech == NULL) return false; // wrong pde -> extend if you need it!
 
   StdVector<LinearFormContext*>& forms = mech->GetAssemble()->GetLinForms();

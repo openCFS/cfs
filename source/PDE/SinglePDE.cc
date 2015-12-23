@@ -104,8 +104,7 @@ namespace CoupledField {
     // get id for linear system
     std::string systemId = myParam_->Get("systemId")->As<std::string>();
     
-    PtrParamNode ls = myParam_->GetParent()
-        ->GetParent()->Get("linearSystems",ParamNode::INSERT);
+    PtrParamNode ls = myParam_->GetParent()->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
     
   }
@@ -166,6 +165,13 @@ namespace CoupledField {
       delete inputIt->second;
     }
 
+  }
+
+  std::string SinglePDE::ToString() const
+  {
+    std::stringstream ss;
+    ss << pdename_ << " s=" << sequenceStep_ << " at=" << BasePDE::analysisType.ToString(analysistype_);
+    return ss.str();
   }
 
 

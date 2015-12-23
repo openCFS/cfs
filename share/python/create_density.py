@@ -63,11 +63,11 @@ def setNDArrayEntry(data, dim, i, j, k, value):
 
 # make a shpere in data with from center to radius with linear gradient from inner to outer value
 # data is a array from numpy (numpy.ndarray) in 2 or 3 dim
-# center is a Coordinate
 # inner_value is assumed to be smaller outer_value
 # returns the volume
-def make_sphere(dim, center, radius, inner_value, outer_value, order, invert):
+def make_sphere(dim, divider, radius, inner_value, outer_value, order, invert):
   
+  center = Coordinate(0.5, 0.5, 0.5)
   point = Coordinate(0.0, 0.0, 0.0)
   
   data = numpy.ones((divider, divider)) if dim == 2 else numpy.ones((divider, divider, divider))
@@ -101,11 +101,9 @@ def make_sphere(dim, center, radius, inner_value, outer_value, order, invert):
 # find correct radius by bisection
 # vol the desired resulting vol
 # return the data  as numpy.ndarray
-def find_radius(dim, vol, order, invert, lower_val):
+def find_radius(dim, div, vol, order, invert, lower_val):
 
   # set the center coordinates
-  center = Coordinate(0.5, 0.5, 0.5)
-        
   lower = 0.0
   upper = 30 # 1.4
   err = upper
@@ -116,7 +114,7 @@ def find_radius(dim, vol, order, invert, lower_val):
   while iter < 30 and abs(err) > 1e-12:
     mid = 0.5 * (lower + upper)
     
-    data = make_sphere(dim, center, mid, lower_val, 1.0, order, invert)
+    data = make_sphere(dim, div, mid, lower_val, 1.0, order, invert)
     act_vol = data.sum() / float(data.size)
     
     err  = vol - act_vol
@@ -206,8 +204,7 @@ parser.add_argument('--write_mesh', help="optionally create a sparse mesh. For m
 
 args = parser.parse_args()
 
-divider = args.res
-  
+ 
 vol = args.vol  
 if args.ball:
   if args.dim == 2:
@@ -224,14 +221,14 @@ setname = "standard"
 
 if args.cross:
   data = cross(args.dim, vol, args.res, args.lower)
-  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(divider) + ".density.xml"
+  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(args.res) + ".density.xml"
 elif args.hashtag is not None: # also capture 0.0
   assert(args.dim == 2)
   data = hashtag(args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 else:
-  data = find_radius(args.dim, vol, args.order, args.invert, args.lower)
-  filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(divider) + ".density.xml"
+  data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
+  filename = "circular_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + ord  + ("-inv_" if args.invert else "_") + str(args.res) + ".density.xml"
   setname = "order_" + str(args.order) + ("_inv" if args.invert else "")
 
 if args.save:

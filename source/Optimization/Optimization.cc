@@ -662,8 +662,7 @@ bool Optimization::DoSolveAdjointWithState() const
 
 void Optimization::SolveStateProblem(Excitation* excite)
 {
-  SingleDriver* driver = domain->GetSingleDriver();
-  AnalysisID& id = driver->GetAnalysisId();
+  AnalysisID& id = context->driver->GetAnalysisId();
   id.iteration = currentIteration;
 
   assert(excite != NULL);
@@ -676,7 +675,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
   id.adjoint = false;
   
   if(IsTransient() && problemSolvedCounter > 0){ // transient optimization always has a mech pde
-    SinglePDE* mech = domain->GetSinglePDE("mechanic");
+    SinglePDE* mech = context->ToPDE(App::MECH);
     assert(false);
     // FIXME mech->ReReadResults();
     design->AppendOptimizationResults(mech);
@@ -688,17 +687,17 @@ void Optimization::SolveStateProblem(Excitation* excite)
   if(context->IsHarmonic() && excite != NULL)
   {
     LOG_DBG(opt) << "SSP: harmonic step=" << excite->f_link->step << " f=" << excite->f_link->freq;
-    dynamic_cast<HarmonicDriver*>(driver)->ComputeFrequencyStep(excite->f_link->step);
+    context->GetHarmonicDriver()->ComputeFrequencyStep(excite->f_link->step);
   }
   else if(context->DoBloch())
   {
     LOG_DBG(opt) << "SSP: bloch step=" << excite->wave_vector.ToString();
-    dynamic_cast<EigenFrequencyDriver*>(driver)->ComputeBlochWaveVector(excite->index);
+    context->GetEigenFrequencyDriver()->ComputeBlochWaveVector(excite->index);
   }
   else
   {
     assert(!context->DoBloch() || !context->IsHarmonic());
-    driver->SolveProblem();
+    context->driver->SolveProblem();
       // FIXME driver->SolveProblem(IsTransient(), analysis_id, NULL); // static and transient optimization
   }
 

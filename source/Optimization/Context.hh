@@ -168,6 +168,8 @@ class Context
   /** This is simple one SinglePDE from pdes, don't cache! */
   SinglePDE* pde;
 
+  PtrParamNode infoNode;
+
 private:
 
   /** make shortcuts for the currently available PDEs in pdes */

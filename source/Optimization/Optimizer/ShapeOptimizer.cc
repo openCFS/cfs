@@ -93,14 +93,14 @@ void ShapeOptimizer::SolveProblem()
     assert(ptrLS_ != NULL);
   }
 
-  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble, design has changed
+  Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble, design has changed
   optimization->SolveStateProblem();
 
   while(curr_iter <= max_iter && !optimization->DoStopOptimization())
   {
     // in every iteration we need to solve the state problem again
     if(curr_iter > 0){
-      domain->GetBasePDE()->GetAssemble()->SetAllReassemble();
+      Optimization::context->pde->GetAssemble()->SetAllReassemble();
       optimization->SolveStateProblem();
     }
     

@@ -342,7 +342,8 @@ void ErsatzMaterial::PostInit()
     if(constraints.all[i]->IsHomogenization())
       constraints.all[i]->ctxt->homogenization = true;
 
-  optInfoNode->Get(ParamNode::HEADER)->Get("homogenization")->SetValue(manager.any().homogenization);
+  for(unsigned int i = 0; i < manager.context.GetSize(); i++)
+    manager.context[i].infoNode->Get("homogenization")->SetValue(manager.context[i].homogenization);
 
   for(unsigned int i = 0; i < manager.context.GetSize(); i++)
   {

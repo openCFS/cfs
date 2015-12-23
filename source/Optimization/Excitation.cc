@@ -245,7 +245,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   // we assume InitializeMultipleExcitations() to be called
   assert(num_trans_ >= 0 && num_robust_ >= 0);
 
-  Assemble* ass = domain->GetBasePDE()->GetAssemble();
+  Assemble* ass = ctxt->pde->GetAssemble();
 
   // the already existing excitations from prior a context
   unsigned int context_base = excitations.GetSize();
@@ -702,6 +702,8 @@ bool Excitation::Apply(bool switch_context)
     ass->GetLinForms() = forms; // let the copy constructor do the stuff
 
     assert(ass->GetLinForms().GetSize() == forms.GetSize());
+    LOG_DBG(exlog) << "A: set form " << forms[0]->ToString();
+    assert(ctxt.pde->GetAnalysisType() == forms[0]->GetPde()->GetAnalysisType());
   }
   // a frequency cannot really be applied but has to be used as parameter
   // in the driver call
@@ -771,7 +773,8 @@ void Excitation::ReadLoads(Context* ctxt, PtrParamNode ls)
   assert(ass->GetLinForms().GetSize() == 0);
 
   // reads all loads and adds them to Assemble::linForms_
-  dynamic_cast<SinglePDE*>(domain->GetBasePDE())->DefineRhsLoadIntegrators(ls);
+  ctxt->pde->DefineRhsLoadIntegrators(ls);
+
 
   // own vector with the pointers in assemble and we have to delete the content
   forms = ass->GetLinForms(true); // take ownership. copy constructor!
@@ -788,7 +791,8 @@ void Excitation::ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts)
   forms = ass->GetLinForms(true); // take ownership for our destructor which is common for ReadLoads(). copy constructor!
   assert(ass->GetLinForms().GetSize() == 0);
 
-  MechPDE* mech = dynamic_cast<MechPDE*>(domain->GetSinglePDE("mechanic"));
+  MechPDE* mech = dynamic_cast<MechPDE*>(ctxt->ToPDE(App::MECH));
+  assert(mech->GetAnalysisType() == BasePDE::STATIC);
 
   mech->DefineTestStrainIntegrator(ts, &forms);
 

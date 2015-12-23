@@ -915,6 +915,15 @@
                   <!-- every regularization needs to define the type explicitly -->
                    <xsd:element name="filter" minOccurs="1" maxOccurs="unbounded" type="DT_Filter" />
                 </xsd:sequence>
+                <!-- enable checks for periodic B.C. of the pde -->
+	              <xsd:attribute name="periodic" use="optional" default="enable">
+		              <xsd:simpleType>
+			               <xsd:restriction base="xsd:token">
+				               <xsd:enumeration value="enable" />
+				               <xsd:enumeration value="disable" />
+			               </xsd:restriction>
+		              </xsd:simpleType>
+	              </xsd:attribute>
               </xsd:complexType>
            </xsd:element>                 
             

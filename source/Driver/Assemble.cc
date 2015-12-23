@@ -260,19 +260,15 @@ namespace CoupledField
 
   void Assemble::AddLinearForm( LinearFormContext* linContext ) {
 
-   LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString()
-                     << " on " << linContext->GetEntities()->GetName();
+   LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString() << " on " << linContext->GetEntities()->GetName()
+                     << " at=" << BasePDE::analysisType.ToString(analysisType_) << " pde=" << linContext->GetPde()->ToString();
 
-    // assert that Integrator is set
-    assert( linContext->GetIntegrator() != NULL );
+    assert(linContext->GetIntegrator() != NULL);
+    assert(linContext->GetPde() != NULL);
+    assert(linContext->GetEntities() != NULL);
+    assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
 
-    // assert that the pdes are set
-    assert( linContext->GetPde() != NULL );
-
-    // assert that some entites are set
-    assert( linContext->GetEntities() != NULL );
-
-    linForms_.Push_back( linContext );
+    linForms_.Push_back(linContext);
 
   }
 
@@ -1209,7 +1205,9 @@ namespace CoupledField
         if(printProgressBar_)
           std::cout << "  - Calculating '" << form->GetName() << "' on '" << actContext.GetEntities()->GetName() << " (" << size << " elements)'\n";
 
-        LOG_DBG(assemble) << "ARLF: form=" << form->GetName() << " on " << actContext.GetEntities()->GetName() << " (" << size << ")";
+        LOG_DBG(assemble) << "ARLF: form=" << form->GetName() << " on " << actContext.GetEntities()->GetName() << " (" << size << ") at=" << BasePDE::analysisType.ToString(analysisType_);
+        LOG_DBG(assemble) << "ARLF: ac-pde=" << actContext.GetPde()->ToString();
+        assert(analysisType_ == actContext.GetPde()->GetAnalysisType());
 
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
