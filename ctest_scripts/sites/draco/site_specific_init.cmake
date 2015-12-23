@@ -35,15 +35,15 @@ IF(DAYOFWEEK EQUAL 1)
   )
 
   FILE(REMOVE_RECURSE 
-    "${HOME}/Documents/dev/NIGHTLY/CFSDEPSCACHE/precompiled")
+    "${HOME}/Documents/NIGHTLY/CFSDEPSCACHE/precompiled")
 ENDIF()
 
 # ===========================================================================
 #  Clean up last night's local build directory, since we are low on
 #  hdd space.
 # ===========================================================================
-IF(EXISTS "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
-  FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+IF(EXISTS "${HOME}/Documents/NIGHTLY/CFS_BUILD_NIGHTLY")
+  FILE(REMOVE_RECURSE "${HOME}/Documents/NIGHTLY/CFS_BUILD_NIGHTLY")
 ENDIF()
 
 # ===========================================================================
@@ -56,15 +56,16 @@ ENDIF()
 
 # ===========================================================================
 #  Clean trunk test suite.
+#  TODO: AUTOMATICALLY CHECK OUT IF NOT EXISTS
 # ===========================================================================
 SET(CFS_TESTSUITE_TRUNK_DIR 
-  "${HOME}/Documents/dev/NIGHTLY/CFS_TESTSUITE_TRUNK")
+  "${HOME}/Documents/NIGHTLY/CFS_TESTSUITE_TRUNK")
 
 EXECUTE_PROCESS(
   COMMAND svn status
   WORKING_DIRECTORY "${CFS_TESTSUITE_TRUNK_DIR}"
   OUTPUT_VARIABLE SVNST)
-STRING(REPLACE "\n" ";" SVNST ${SVNST})
+STRING(REPLACE "\n" ";" SVNST "${SVNST}")
 
 FOREACH(LINE IN ITEMS ${SVNST})
   IF(LINE MATCHES "\\?       ")
@@ -82,22 +83,11 @@ MESSAGE(
 "
 )
 
-# Remove Testing directory from modelling manual.
-FILE(REMOVE_RECURSE
-  "$ENV{HOME}/Documents/dev/NIGHTLY/MODELLING_MANUAL_NIGHTLY/Testing")
-
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-  ctest_update_trunk_wien.cmake
-  ctest_update_trunk_testsuite_wien.cmake
-
-  # Checkout or update trunk working copies
-  ctest_update_trunkOld_wien.cmake
-  ctest_update_trunkOld_testsuite_wien.cmake
-  ctest_update_cfsdeps_trunkOld_wien.cmake
-
-  # Checkout or update modelling manual working copy
-  ctest_update_modelling_manual.cmake
+#TODO: REENABLE
+  #ctest_update_trunk_wien.cmake
+  #ctest_update_trunk_testsuite_wien.cmake
 )
 
 FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})
@@ -141,5 +131,5 @@ CLEANUP_VBOX_DIRS()
 #  Ubuntu 14.04. Other VBoxes are started depending on DAYOFWEEK in the
 #  script site_specific_finish.cmake.
 # ===========================================================================
-START_VBOXES("SL7")
+START_VBOXES("sl7")
 
