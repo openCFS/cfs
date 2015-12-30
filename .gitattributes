@@ -1847,6 +1847,9 @@ source/OLAS/external/cholmod/CMakeLists.txt -text
 source/OLAS/external/cholmod/CholMod.cc -text
 source/OLAS/external/cholmod/CholMod.hh -text
 source/OLAS/external/cholmod/CholModDummy.cc -text
+source/OLAS/external/feast/CMakeLists.txt -text
+source/OLAS/external/feast/FeastEigenSolver.cc -text
+source/OLAS/external/feast/FeastEigenSolver.hh -text
 source/OLAS/external/ilupack/CMakeLists.txt svneol=native#text/plain
 source/OLAS/external/ilupack/Ilupack.cc -text svneol=unset#text/x-c%2B%2Bsrc
 source/OLAS/external/ilupack/Ilupack.hh -text svneol=unset#text/x-c%2B%2Bhdr
