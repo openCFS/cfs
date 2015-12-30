@@ -351,7 +351,7 @@ void ErsatzMaterial::PostInit()
 
     if(c.homogenization && (!me->IsEnabled(c.sequence) || !(me->DoHomogenization())))
       throw Exception("A homogenization objective/constraint is set but no homogenization test strain excitation");
-    if(me->IsEnabled(c.sequence) && me->DoHomogenization() && !c.homogenization)
+    if(me->IsEnabled(c.sequence) && me->GetSequence() == c.sequence && me->DoHomogenization() && !c.homogenization)
       throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
   }
 
@@ -2498,7 +2498,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       // we need to set the current wave_vector such that SetElementK determines the right stiffness matrices!
       if(f->ctxt->DoBloch())
-        context->GetEigenFrequencyDriver()->SetCurrentWaveVector(excite.index); // no need to reset! FIXME: for multiple sequence the driver might not be the active one!
+        f->ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(excite.GetWaveNumber());
 
       CalcU1KU2(tf, sol->elem[App::MECH], App::MECH, sol->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }

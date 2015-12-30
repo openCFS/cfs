@@ -120,8 +120,6 @@ namespace CoupledField {
     if(!node->Has("bloch"))
       return 0;
 
-    node->Dump();
-
     if(node->Has("bloch/ibz/steps"))
       return node->Get("bloch/ibz/steps")->As<unsigned int>();
 

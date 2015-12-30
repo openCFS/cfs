@@ -11,7 +11,8 @@ namespace CoupledField {
   // =========================================================================
   
   //! Class for interfacing with ARPACK FORTRAN library
-  //class ArpackSolver : public BaseEigenSolver {
+  // Note class ArpackEigenSolver : public BaseEigenSolver
+  // ArpackSolver is the Arpack frontent
   class ArpackSolver {
     
   public:

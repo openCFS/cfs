@@ -64,6 +64,9 @@ public:
   /** the full label is meta label plus base label or it is simply label */
   std::string GetFullLabel() const;
 
+  /** the 0-based wave number is for the first sequence the index */
+  int GetWaveNumber() const;
+
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
@@ -141,9 +144,13 @@ public:
 
   static Enum<Type> type;
 
-  /** Do we do multiple excitation?
+  /** Do we do multiple excitation? Implicitly true for bloch for the matching sequence
    * @param sequence -1 at all? otherwise for the specified sequence */
   bool IsEnabled(int sequence = -1) const;
+
+  /** the sequence the multiple excitation is defined for. Extend for ME for more than one sequence.
+   * For bloch me is defined and enabled implicitly */
+  int GetSequence() const { return sequence_; }
 
   /** To be called prior to PrepareMultipleExcitations() */
   void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);

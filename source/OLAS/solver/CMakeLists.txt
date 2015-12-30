@@ -27,6 +27,9 @@ SET(TARGET_LL
 
 IF(USE_PARDISO)
   SET(TARGET_LL ${TARGET_LL} pardiso-olas)
+  # we use the MKL version which is always there. 
+  # If you have a problem with MKL, you might implement the usage of the academic FEAST 
+  SET(TARGET_LL ${TARGET_LL} feast-olas)
 ENDIF(USE_PARDISO)
 
 IF(USE_SUITESPARSE)
@@ -51,6 +54,5 @@ ENDIF(USE_LIS)
 IF(USE_ARPACK)
   SET(TARGET_LL ${TARGET_LL} arpack-olas)
 ENDIF(USE_ARPACK)
-
 
 TARGET_LINK_LIBRARIES(solver-olas ${TARGET_LL})

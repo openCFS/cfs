@@ -468,30 +468,23 @@ AS_INTEGRAL(Double)
 AS_INTEGRAL(std::string)
 
 // special implementation for bool
-template<>\
- bool ParamNode::As<bool>() const
+template<>
+bool ParamNode::As<bool>() const
 {
-  bool retVal = false;
-  if (value_.type() == typeid(bool))
-  {
+  if(value_.type() == typeid(bool))
     return boost::any_cast<bool>(value_);
-  }
-  else
+
+  if(value_.type() == typeid(std::string))
   {
-    if (value_.type() == typeid(std::string))
-    {
-      std::string str = boost::any_cast<std::string>(value_);
-      if (str == "yes" || str == "true" || str == "on" || str == "enable")
-        retVal = true;
-      if (str == "no" || str == "false" || str == "off" || str == "disable")
-        retVal = false;
-    }
-    else
-    {
-      EXCEPTION("Could not convert node '" << name_ << "' to bool value");
-    }
+    std::string str = boost::any_cast<std::string>(value_);
+    if(str == "yes" || str == "true" || str == "on" || str == "enable")
+      return true;
+    if(str == "no" || str == "false" || str == "off" || str == "disable")
+      return false;
+
+   EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");
   }
-  return retVal;
+  EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
 }
 
 template<typename TYPE>

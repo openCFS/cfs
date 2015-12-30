@@ -53,6 +53,7 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->num_trans_  = -1; // to be set later
   this->num_robust_ = -1; // to be set later
   this->sequence_ = 1; // default
+  this->principle_ = 0;
 
   // if disabled, we don't read anything
   if(multiple && pn != NULL)
@@ -117,8 +118,11 @@ bool MultipleExcitation::IsEnabled(int sequence) const
 
   if(sequence == -1)
     return multiple_excitation_;
-  else
-    return multiple_excitation_ && sequence == sequence_;
+  // for bloch we do not set multiple excitation, it is implicity and we might use ME for homogenization
+  if(Optimization::manager.context[sequence-1].DoBloch())
+    return true;
+
+  return multiple_excitation_ && sequence == sequence_;
 }
 
 void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
@@ -185,7 +189,7 @@ void MultipleExcitation::SetHarmonic(Context* ctxt, unsigned int base, int num_f
   assert(excitations.Capacity() >= base + num_freq);
   excitations.Resize(base + num_freq);
 
-  for (unsigned int i = 0; i < excitations.GetSize(); i++)
+  for (int i = 0; i < num_freq; i++)
   {
     Excitation& ex = excitations[base + i];
     ex.frequency = hd->freqs[i].freq;
@@ -203,10 +207,10 @@ void MultipleExcitation::SetBlochWaves(Context* ctxt, unsigned int base, int num
   assert(excitations.Capacity() >= base + num_wave);
   excitations.Resize(base + num_wave);
 
-  for (unsigned int i = 0; i < excitations.GetSize(); i++)
+  for (int i = 0; i < num_wave; i++)
   {
     Excitation& ex = excitations[base + i];
-    ex.weight = i < excitations.GetSize() - 1 ? 0 : 1; // we assume the slack variable as objective!
+    ex.weight = i < num_wave - 1 ? 0 : 1; // we assume the slack variable as objective!
     ex.wave_vector = wv[i];
     ex.label = "(" + ex.wave_vector.ToString(0, ',') + ")";
   }
@@ -391,7 +395,7 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
           ex->normalized_weight = ex->weight / weight_sum;
         }
 
-        LOG_DBG3(exlog) << "PME: i=" << i << " l=" << ex->label << " w=" << ex->weight << " nw=" << ex->normalized_weight << " ws=" << weight_sum;
+        LOG_DBG2(exlog) << "PME: i=" << i << " l=" << ex->label << " w=" << ex->weight << " nw=" << ex->normalized_weight << " ws=" << weight_sum << " idx=" << ex->index;
       }
       WriteInInfo(ctxt.num_harm_freq, eval_inital_design, weight_sum, opt);
     }
@@ -822,5 +826,12 @@ std::string Excitation::GetFullLabel() const
     return label + "_" + GetMetaLabel();
 }
 
+
+int Excitation::GetWaveNumber() const
+{
+  assert(Optimization::manager.GetContext(this).DoBloch());
+  // the wave number is for the first sequence the excitation index, for higher sequence we need to make it relative
+  return index - Optimization::manager.GetContext(this).excitations[0]->index;
+}
 
 

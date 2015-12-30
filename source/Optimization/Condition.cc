@@ -480,22 +480,31 @@ void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleEx
       // extract all eigenfrequency constraints to ev
       StdVector<Condition> ev; // instances as list will be enlarged which involves copying
       for(unsigned int i = 0; i < list.GetSize(); i++)
+      {
         if(list[i]->GetType() == EIGENFREQUENCY)  {
+          assert(list[i]->ctxt->sequence == ctxt.sequence);
+          assert(ctxt.excitations[0]->index >= 0);
           // reset excitation to the first wave vector
-          assert(ctxt.sequence == 1); // shall we set 0 in SetExcitation when not first??
-          list[i]->SetExcitation(me, 0);
+          list[i]->SetExcitation(me, ctxt.excitations[0]->index);
           ev.Push_back(*(list[i]));
+          LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " ev=" << ev.GetSize() << " ex=" << ctxt.excitations[0]->index << " -> " <<  ev.Last().ToString(me);
         }
+      }
 
       assert(ctxt.num_bloch_wave_vectors == ctxt.excitations.GetSize());
-      for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++)
+      for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++) // start from 1!
       {
+        LOG_DBG2(conditions) << "ABEC: e=" << e << " -> " << ctxt.excitations[e]->index;
+        // note that we traverse ev and not list again!
         for(unsigned int g = 0; g < ev.GetSize(); g++)
         {
           assert(ev[g].IsExcitationSensitive());
+          assert(ev[g].GetExcitation()->index >= 0);
 
           Condition* tmp = new Condition(ev[g]);
           tmp->SetExcitation(me, ctxt.excitations[e]->index);
+          LOG_DBG2(conditions) << "ABEC: e=" << e << " g=" << g << " -> " << tmp->ToString(me);
+          assert(ctxt.excitations[e]->index >= 0);
 
           list.Push_back(tmp);
         }

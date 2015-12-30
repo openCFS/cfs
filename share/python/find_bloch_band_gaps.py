@@ -94,7 +94,7 @@ for w in range(len(org)):
   wv = org[w]
   for ev in range(offset+1, len(wv)):
     if wv[ev] < wv[ev-1]:
-      print 'unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1])                 
+      print '#unsorted eigenfrequency: wave_vector ' + str(w) + ' index ' + (str(ev)) + ' value ' + str(wv[ev]) + ' < ' + str(wv[ev-1])                 
 
 
 segment = org.shape[0]/offset # number of k for G->X = X->M = M -> G
