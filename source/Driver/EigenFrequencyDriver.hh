@@ -53,7 +53,7 @@ class SingleVector;
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
     /** We need to set it for optimization to get the proper stiffness matrices during function gradient evaluation.
-     * Note that this is done after all systems are solved ans stored. */
+     * Note that this is done after all systems are solved and stored. */
     void SetCurrentWaveVector(unsigned int index) { current_wave_vector_ = wave_vectors[index]; }
 
 

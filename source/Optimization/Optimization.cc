@@ -148,7 +148,7 @@ Optimization::Optimization()
   optInfoNode->Get("commit/stride")->SetValue(commitStride);
   
   // write the HALTOPT file, helps to memorize how to write the file
-  optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + ".HALTOPT");
+  optInfoNode->Get("haltopt_file")->SetValue(fs::current_path().string() + "/HALTOPT");
 
   // remove a stop file, if found
   if(fs::exists("HALTOPT"))
@@ -691,8 +691,8 @@ void Optimization::SolveStateProblem(Excitation* excite)
   }
   else if(context->DoBloch())
   {
-    LOG_DBG(opt) << "SSP: bloch step=" << excite->wave_vector.ToString();
-    context->GetEigenFrequencyDriver()->ComputeBlochWaveVector(excite->index);
+    LOG_DBG(opt) << "SSP: bloch step=" << excite->wave_vector.ToString() << " ex=" << excite->index << " wn=" << excite->GetWaveNumber() << " seq=" << context->sequence;
+    context->GetEigenFrequencyDriver()->ComputeBlochWaveVector(excite->GetWaveNumber());
   }
   else
   {

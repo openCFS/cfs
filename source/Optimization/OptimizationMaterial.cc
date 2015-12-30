@@ -38,17 +38,21 @@ DEFINE_LOG(om, "optimizationMaterial")
 Enum<OptimizationMaterial::System> OptimizationMaterial::system;
 
 
-OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space)
+OptimizationMaterial::OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, DesignSpace* space)
 {
   assert((em == NULL && space != NULL) || (em != NULL && (space == NULL || space == em->GetDesign())));
 
+  this->ctxt_ = ctxt;
   this->opt = em;
   this->space = space != NULL ? space : em->GetDesign();
+  this->system_ = NO_SYSTEM;
 
   regionIds = this->space->GetRegionIds();
 
-  needs_mass_ = em->context->IsComplex() || em->IsTransient() || em->context->IsEigenvalue();
-  complex_ =  em->context->IsComplex();
+  assert(em->context == ctxt); // shall hold for initialization but is not really important
+
+  needs_mass_ = ctxt->IsComplex() || em->IsTransient() || ctxt->IsEigenvalue();
+
   transient_ = em->IsTransient();
   structured_ = em != NULL ? em->IsDomainStructured() : false; // we would have a problem with the L-Shape!
 }
@@ -59,27 +63,27 @@ OptimizationMaterial::~OptimizationMaterial()
 
 
 
-OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMaterial* em)
+OptimizationMaterial* OptimizationMaterial::CreateInstance(System sys, ErsatzMaterial* em, Context* ctxt)
 {
   switch(sys)
   {
   case PIEZOCOUPLING:
-    return new PiezoElecMat(em);
+    return new PiezoElecMat(em, ctxt);
 
   case MECH:
-    return new MechMat(em);
+    return new MechMat(em, ctxt);
 
   case ELEC:
-    return new ElecMat(em);
+    return new ElecMat(em, ctxt);
 
   case HEAT:
-    return new HeatMat(em);
+    return new HeatMat(em, ctxt);
 
   case ACOUSTIC:
-    return new AcouMat(em);
+    return new AcouMat(em, ctxt);
 
   case LBM:
-    return new LBMMat(em);
+    return new LBMMat(em, ctxt);
 
   default:
     assert(false);
@@ -111,7 +115,7 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
   assert(entryType != Global::IMAG);
   assert(elem != NULL);
 
-  SinglePDE* pde = Optimization::context->pde;
+  SinglePDE* pde = ctxt_->pde;
   assert(pde != NULL);
 
 
@@ -235,24 +239,24 @@ Matrix<double>& OptimizationMaterial::GeneralStiffness(std::map<RegionIdType, St
 
 bool OptimizationMaterial::ComplexElementMatrix(RegionIdType reg) const
 {
-  if(Optimization::context->DoBloch())
+  if(ctxt_->DoBloch())
     return true;
 
   assert(reg != NO_REGION_ID);
 
   if(opt != NULL)
-    return opt->context->pde->HasComplexMatData(reg);
+    return ctxt_->pde->HasComplexMatData(reg);
 
   assert(false); // why should opt be NULL??
   return false;
 }
 
-MechMat::MechMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+MechMat::MechMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   Init();
 }
 
-MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, space)
+MechMat::MechMat(DesignSpace* space) : OptimizationMaterial(NULL, Optimization::context, space)
 {
   Init();
 }
@@ -273,7 +277,7 @@ void MechMat::Init()
     unsigned int max = space->HasMultiMaterial() ? mm.GetSize() : (bimat ? 2 : 1);
 
     // first the bloch case
-    if(Optimization::context->DoBloch())
+    if(ctxt_->DoBloch())
       current_wave_vector_[reg_id].Resize(max, -1.0);
 
     if(ComplexElementMatrix(reg_id)) {
@@ -289,7 +293,7 @@ void MechMat::Init()
 
     // this check is for Virginie's mapping with a ghost region not being part of the simulation
     // can be removed if we use nodal design elements
-    if(Optimization::context->pde->GetAssemble()->UseRegion(reg_id))
+    if(ctxt_->pde->GetAssemble()->UseRegion(reg_id))
     {
       // the normal and multimaterial case, not the bimaterial case
       for(unsigned int m = 0; m < (space->HasMultiMaterial() ? mm.GetSize() : 1); m++) {
@@ -322,7 +326,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
     direction = DesignElement::NO_MULTIMATERIAL;
 
   // in the bloch case a change of the wave vector requires to calculate new stiffness matrices
-  bool new_wave_vector = Optimization::context->DoBloch() && Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
+  bool new_wave_vector = ctxt_->DoBloch() && ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2() != current_wave_vector_[reg_id][index];
 
   LOG_DBG3(om) << "MS: el=" << elem->elemNum << " bi=" << bimaterial << " mm=" << multimaterial << " d=" << direction << " index=" << index << " es=" << enforce_unstructured << " s=" << structured_ << " nwv=" << new_wave_vector;
 
@@ -337,8 +341,8 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
     else
       GetElementMatrix<double>(K[index], "LinElastInt", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
 
-   if(Optimization::context->DoBloch())
-     current_wave_vector_[reg_id][index] = Optimization::context->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2();
+   if(ctxt_->DoBloch())
+     current_wave_vector_[reg_id][index] = ctxt_->GetEigenFrequencyDriver()->GetCurrentWaveVector().NormL2();
   }
 
   // e.g. structured case
@@ -402,7 +406,7 @@ const Vector<double>& MechMat::MechStrainRHS(const Elem* elem, MechPDE::TestStra
 }
 
 
-AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+AcouMat::AcouMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = ACOUSTIC;
 
@@ -421,7 +425,7 @@ AcouMat::AcouMat(ErsatzMaterial* em) : OptimizationMaterial(em)
       // GetElementMatrix(GetForm(reg_id, "LaplaceInt"), acouStiffness_map[reg_id].second, NULL, bm);
     }
 
-    if(complex_)
+    if(ctxt_->IsComplex())
     {
       assert(false);
       //GetElementMatrix(GetForm(reg_id, "MassInt"), acouMass_map[reg_id].first, NULL, NULL);
@@ -485,8 +489,7 @@ const Matrix<double>& AcouMat::AcouMass(const Elem* elem, bool bimaterial)
 
 
 
-PiezoElecMat::PiezoElecMat(ErsatzMaterial* em) :
-  MechMat(em)
+PiezoElecMat::PiezoElecMat(ErsatzMaterial* em, Context* ctxt) : MechMat(em, ctxt)
 {
   system_ = PIEZOCOUPLING;
 
@@ -540,19 +543,19 @@ const Matrix<double>& PiezoElecMat::CoupledStiffnessTransposed(const DesignEleme
   return GeneralStiffness(coupledStiffnessTransposed_map, de, PIEZO, direction, 1.0, true);
 }
 
-HeatMat::HeatMat(ErsatzMaterial* em) :
-  OptimizationMaterial(em)
+HeatMat::HeatMat(ErsatzMaterial* em, Context* ctxt) :
+  OptimizationMaterial(em, ctxt)
 {
   system_ = HEAT;
   assert(false);
 }
 
 
-ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+ElecMat::ElecMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = ELEC;
 
-  SinglePDE* elec = opt->context->ToPDE(App::ELEC);
+  SinglePDE* elec = ctxt_->ToPDE(App::ELEC);
   assert(elec != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -595,7 +598,7 @@ ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 
 void ElecMat::ReInit()
 {
-  SinglePDE* elec = opt->context->ToPDE(App::ELEC);
+  SinglePDE* elec = ctxt_->ToPDE(App::ELEC);
   assert(elec != NULL);
 
   for(unsigned int r=0; r < regionIds.GetSize(); r++)
@@ -644,7 +647,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, NULL, direction);
       elecStiffness_map[elem->regionId].first.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].first.SetPart(Global::REAL, tmp_mat);
-      if (opt->context->IsComplex()){
+      if (ctxt_->IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, NULL, direction);
         elecStiffness_map[elem->regionId].first.SetPart(Global::IMAG, tmp_mat);
@@ -658,7 +661,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
       // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::REAL), tmp_mat, elem, bm, direction);
       elecStiffness_map[elem->regionId].second.Resize(tmp_mat.GetNumRows(), tmp_mat.GetNumCols());
       elecStiffness_map[elem->regionId].second.SetPart(Global::REAL, tmp_mat);
-      if (opt->context->IsComplex()){
+      if (ctxt_->IsComplex()){
         assert(false);
         // GetElementMatrix(GetForm(elem->regionId, "linGradBDBInt", Global::IMAG), tmp_mat, elem, bm, direction);
         elecStiffness_map[elem->regionId].second.SetPart(Global::IMAG, tmp_mat);
@@ -670,7 +673,7 @@ Matrix<std::complex<double> >& ElecMat::ElecStiffness(const Elem* elem, bool bim
   return !bimaterial ? elecStiffness_map[elem->regionId].first : elecStiffness_map[elem->regionId].second;
 }
 
-LBMMat::LBMMat(ErsatzMaterial* em) : OptimizationMaterial(em)
+LBMMat::LBMMat(ErsatzMaterial* em, Context* ctxt) : OptimizationMaterial(em, ctxt)
 {
   system_ = LBM;
 }

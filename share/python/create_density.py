@@ -61,7 +61,7 @@ def setNDArrayEntry(data, dim, i, j, k, value):
     return
   raise " cannot handle dimension " + str(dim)
 
-# make a shpere in data with from center to radius with linear gradient from inner to outer value
+# make a shpere in data with from center to radius with gradient from inner to outer value
 # data is a array from numpy (numpy.ndarray) in 2 or 3 dim
 # inner_value is assumed to be smaller outer_value
 # returns the volume
@@ -79,21 +79,24 @@ def make_sphere(dim, divider, radius, inner_value, outer_value, order, invert):
         point.toCoordinate(i, j, k, divider)       
         d = center.dist(point)
         if d < radius:
-          # linear: v = (d / radius) * gap + inner_value
-          ratio = 1.0
-          for r in range(1, order+1):
-            ratio = ratio * (d / radius)              
-          v = ratio * gap + inner_value # scale down by outer_value - inner_value and shift
-          old_value = getNDArrayEntry(data, dim, i, j, k)
-          # we make only make smaller otherwise we would destroy multiple spheres stuff
-          if v < old_value:
-            setNDArrayEntry(data, dim, i, j, k, v) 
+          if order == 'binary':
+            setNDArrayEntry(data, dim, i, j, k, inner_value)  
+          else:
+            # linear: v = (d / radius) * gap + inner_value
+            ratio = 1.0
+            for r in range(1, int(order)+1):
+              ratio = ratio * (d / radius)              
+            v = ratio * gap + inner_value # scale down by outer_value - inner_value and shift
+            old_value = getNDArrayEntry(data, dim, i, j, k)
+            # we make only make smaller otherwise we would destroy multiple spheres stuff
+            if v < old_value:
+              setNDArrayEntry(data, dim, i, j, k, v) 
 
   if invert:
    data = outer_value + inner_value - data # don't make a 0 where we had 1  
 
   assert(numpy.amax(data) <= outer_value)
-  assert(numpy.amax(data) >= inner_value)
+  assert(invert or numpy.amax(data) >= inner_value)
 
   return data
 
@@ -189,7 +192,7 @@ parser.add_argument("--res", help="edge discretization of length 1m", type=int, 
 parser.add_argument('--dim', help="square (2) or cube (3)", type=int, default=2)
 parser.add_argument('--lower', help="value for void material. Default 1e-3", type=float, default=1e-3)
 parser.add_argument('--vol', help="volume fraction of full domain or ball only", type=float, default=0.5)
-parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother", type=int, default=6)
+parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother. 'binary' for black and white", default="6")
 parser.add_argument('--invert', help="invert to solid inside", action='store_true')
 parser.add_argument('--cross', help="make a simple cross", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)

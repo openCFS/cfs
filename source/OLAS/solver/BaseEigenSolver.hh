@@ -34,8 +34,7 @@ namespace CoupledField {
     //! contains the following:
     //! - NOEIGENSOLVER
     //! - ARPACK
-    //! - SUBSPACE
-    typedef enum {NOEIGENSOLVER, ARPACK, SUBSPACE} EigenSolverType;    
+    typedef enum {NO_EIGENSOLVER, ARPACK, FEAST} EigenSolverType;
     static Enum<EigenSolverType> eigenSolverType;    
     
   public:

@@ -2835,8 +2835,7 @@ namespace CoupledField {
       //  Check Eigenvalue Solver 
       // -------------------------
       std::string eSolverId = solStrat_->GetEigenSolverId();
-      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", 
-                                               ParamNode::INSERT);
+      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", ParamNode::INSERT);
       ParamNodeList esNodes =  eSolverList->GetChildren();
       PtrParamNode eSolverNode;
       for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
@@ -2863,8 +2862,7 @@ namespace CoupledField {
       // .. if not defined -> LDL / ILDL (depending on symmetry)
       // .. if defined -> Check if solver suites symmetry type of matrix
       std::string solverId = solStrat_->GetSolverId();
-      PtrParamNode solverList = myParam_->Get("solverList", 
-                                              ParamNode::INSERT);
+      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
       ParamNodeList sNodes =  solverList->GetChildren();
       PtrParamNode solverNode;
       for( UInt i = 0; i < sNodes.GetSize(); ++i ) {

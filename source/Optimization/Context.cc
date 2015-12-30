@@ -104,7 +104,7 @@ void Context::Update()
   if(pde != NULL && mat == NULL && em != NULL) // might be
   {
     assert(Optimization::context == this); // we are already set as active -> necessary for OptimizationMaterial
-    mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em);
+    mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em, this);
 
     // would be too early in Setup()
     if(domain->GetOptimization() != NULL)

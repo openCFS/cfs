@@ -49,10 +49,10 @@ public:
   virtual ~OptimizationMaterial();
   
   /** Id of our material class */
-  typedef enum { PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
+  typedef enum { NO_SYSTEM = -1, PIEZOCOUPLING, MECH, ELEC, HEAT, ACOUSTIC, LBM } System;
 
   /** calls the proper constructor */
-  static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em);
+  static OptimizationMaterial* CreateInstance(System sys, ErsatzMaterial* em, Context* ctxt);
 
   /** Here we store the system enum */
   static Enum<System> system;
@@ -76,7 +76,7 @@ protected:
 
   /** @param em for the standard constructor to be used in ErsatzMaterial.
    * @param space  This allows to gain the MassMatrix for pamping where we might have no ErsatzMaterial  */
-  OptimizationMaterial(ErsatzMaterial* em, DesignSpace* space = NULL);
+  OptimizationMaterial(ErsatzMaterial* em, Context* ctxt, DesignSpace* space = NULL);
 
 
   template <class T>
@@ -104,9 +104,11 @@ protected:
 
   DesignSpace* space;
   
+  /** our context, we are assigned to context */
+  Context* ctxt_;
+
   // short cuts
-  bool complex_;
-  bool transient_;
+  bool transient_; // shall become ctxt->transient
   // harmonic, eigenvalue, transient
   bool needs_mass_;
   bool structured_;
@@ -119,7 +121,7 @@ class MechMat : public OptimizationMaterial
 {
 public:
   
-  MechMat(ErsatzMaterial* em);
+  MechMat(ErsatzMaterial* em, Context* ctxt);
   MechMat(DesignSpace* space);
   
   /** Get the ElementStiffness Matrix for this element, this is the region constant version
@@ -183,7 +185,7 @@ private:
 class AcouMat : public OptimizationMaterial
 {
 public:
-  AcouMat(ErsatzMaterial* em);
+  AcouMat(ErsatzMaterial* em, Context* ctxt);
 
   Matrix<double>& AcouStiffness(const Elem* elem, bool bimaterial);
 
@@ -209,7 +211,7 @@ protected:
 class PiezoElecMat : public MechMat
 {
 public:
-  PiezoElecMat(ErsatzMaterial* em);
+  PiezoElecMat(ErsatzMaterial* em, Context* ctxt);
   
   /** Get the elec stiffness matrix $K_{\phi \phi}$ for this element, this is the region constant version.
    * Note, that in piezoelectriciy one usually requires -K_pp, use the the factor -1! 
@@ -251,7 +253,7 @@ class ElecMat : public OptimizationMaterial
 {
 public:
 
-  ElecMat(ErsatzMaterial* em);
+  ElecMat(ErsatzMaterial* em, Context* ctxt);
 
   /** Initialize elecStiffness_map again (needed for BITENSOR objective) */
   void ReInit();
@@ -280,7 +282,7 @@ protected:
 class HeatMat : public OptimizationMaterial
 {
 public:
-  HeatMat(ErsatzMaterial* em);
+  HeatMat(ErsatzMaterial* em, Context* ctxt);
 };
 
 
@@ -288,7 +290,7 @@ public:
 class LBMMat : public OptimizationMaterial
 {
 public:
-  LBMMat(ErsatzMaterial* em);
+  LBMMat(ErsatzMaterial* em, Context* ctxt);
 };
 
 

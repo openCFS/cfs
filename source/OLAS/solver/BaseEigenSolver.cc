@@ -6,9 +6,9 @@ namespace CoupledField {
 
   static EnumTuple eigenSolverTypeTuples[] = 
   {
-    EnumTuple( BaseEigenSolver::NOEIGENSOLVER, "noEigenSolver" ),
+    EnumTuple( BaseEigenSolver::NO_EIGENSOLVER, "noEigenSolver" ),
     EnumTuple( BaseEigenSolver::ARPACK, "arpack" ),
-    EnumTuple( BaseEigenSolver::SUBSPACE, "subspace"),
+    EnumTuple( BaseEigenSolver::FEAST, "feast" ),
   };
 
   Enum<BaseEigenSolver::EigenSolverType> BaseEigenSolver::eigenSolverType = \
