@@ -528,8 +528,8 @@ DesignSpace* Domain::GetDesign(bool throw_exception)
   if(designSpace_ != NULL)
     return designSpace_;
 
-  if(throw_exception)
-    EXCEPTION("no ersatzMaterial set in domain");
+//if(throw_exception)
+  //  EXCEPTION("no ersatzMaterial set in domain");
 
   return NULL;
 }
