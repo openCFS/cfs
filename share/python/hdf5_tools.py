@@ -210,3 +210,58 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     h5_res_reg = h5_res[region] # extraxt region
     res_type = h5_res_reg.keys()[0] # read result type (Nodes or Elements)
     return h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value
+
+
+def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
+    """
+    returns indices of the elements in 'subregion' with respect to the indices in 'region'
+
+    Parameters
+    ----------
+    hdf5_file : hdf5file
+        CFS++ hdf5 data file
+    region : string
+        region name
+    sugregion : string
+        subregion name
+    rtype : string, oprional
+        Either 'Nodes'(default) or 'Elements', defines the region type
+
+    Returns
+    -------
+    out : ndarray
+
+    Example
+    -------
+    Extract data for subregion 'EXCITATION'
+    >>> U = get_result(f,'mechDisplacement','SALMPLE')
+    >>> I = get_subregion_idx(f,'SAMPLE','EXCITATION')
+    >>> U_e = U[I]
+    """
+    from numpy import array, argwhere
+    Is = hdf5_file['Mesh']['Regions'][subregion][rtype].value-1
+    Ir = hdf5_file['Mesh']['Regions'][region][rtype].value-1
+    Isr = array([argwhere(Ir==i)[0][0] for i in Is])
+    return Isr
+
+
+def get_coordinates(hdf5_file,region=None) :
+    """
+    return nodal coordinates, optional for nodes in a certain region
+
+    Parameters
+    ----------
+    hdf5_file : hdf5file
+        CFS++ hdf5 data file
+    region : string, optional
+        region name for a subset of coordinates
+
+    Returns
+    -------
+    out : ndarray
+    """
+    if not region==None :
+        I = hdf5_file['Mesh/Regions/%s'%region]['Nodes'].value - 1
+        return hdf5_file['Mesh/Nodes/Coordinates'].value[I,:]
+    else :
+        return hdf5_file['Mesh/Nodes/Coordinates'].value
