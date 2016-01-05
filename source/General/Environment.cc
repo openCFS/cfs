@@ -293,6 +293,10 @@ namespace CoupledField {
         return "K";
         break;
         
+      case HEAT_MEAN_TEMPERATURE:
+        return "K";
+        break;
+
       case HEAT_TEMPERATURE_D1:
         return "K/s";
         break;
@@ -1284,6 +1288,7 @@ namespace CoupledField {
     
     //heat conduction
     SolutionTypeEnum.Add(HEAT_TEMPERATURE, "heatTemperature");
+    SolutionTypeEnum.Add(HEAT_MEAN_TEMPERATURE, "heatMeanTemperature");
     SolutionTypeEnum.Add(HEAT_TEMPERATURE_D1, "heatTemperatureD1");
     SolutionTypeEnum.Add(HEAT_FLUX_DENSITY, "heatFluxDensity");
     SolutionTypeEnum.Add(HEAT_RHS_LOAD, "heatRhsLoad");

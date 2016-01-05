@@ -194,7 +194,7 @@ namespace CoupledField {
       //  HEAT CONDUCTION
       // =================
       HEAT_TEMPERATURE, HEAT_TEMPERATURE_D1, HEAT_RHS_LOAD, HEAT_SOURCE_DENSITY, HEAT_FLUX_DENSITY,
-      
+      HEAT_MEAN_TEMPERATURE,
       // ===============
       //  FLUIDMECHANIC
       // ===============
