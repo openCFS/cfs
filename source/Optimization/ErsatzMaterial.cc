@@ -1314,7 +1314,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         std::cout << "Isotrope properties: ";
         SubTensorType stt = pde->GetSubTensorType();
         std::cout << " E=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
-        std::cout << " v=" << MechanicMaterial::CalcIsotropicYoungsModulus(hom_tensor, stt);
+        std::cout << " v=" << MechanicMaterial::CalcIsotropicPoissonsRatio(hom_tensor, stt);
         std::cout << " err=" << MechanicMaterial::CalcIsotropyError(hom_tensor, stt) << "\n";
 
         StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(hom_tensor, f->GetExcitation());
