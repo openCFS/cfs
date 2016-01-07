@@ -222,6 +222,15 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="mutualProjection" type="DT_CFSBool" use="optional" default="no">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Used for creating an intersection grid handling periodic boundary conditions.
+          In this case, the master and the slave surfaces don't lie on the same interface. Therefore,
+          there will be no intersection grid found unless they are projected on a common interface.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
   </xsd:complexType>
 
   <!-- ******************************************************************** -->

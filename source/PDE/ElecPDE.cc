@@ -85,6 +85,11 @@ namespace CoupledField {
 
   }
 
+  void ElecPDE::ReadDampingInformation()
+  {
+
+  }
+
   void ElecPDE::DefineIntegrators() {
 
     RegionIdType actRegion;
@@ -174,6 +179,11 @@ namespace CoupledField {
     DefineImpedanceIntegrators();
   }
   
+  void ElecPDE::DefineSurfaceIntegrators()
+  {
+
+  }
+
   void ElecPDE::DefineRhsLoadIntegrators() {
     LOG_TRACE(elecpde) << "Defining rhs load integrators for electrostatic PDE";
 
