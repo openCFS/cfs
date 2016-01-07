@@ -105,6 +105,10 @@ namespace CoupledField
     SurfElem *ptMaster;
     SurfElem *ptSlave;
     shared_ptr<SurfElem> projectedMaster;
+
+    // the plainest, but, obviously, not the most effective way to store the information
+    // about the parallel projection between the master and the slave in case of translational p.b.c.
+    Vector<Double> transVect;
   };
 
 } // end of namespace
