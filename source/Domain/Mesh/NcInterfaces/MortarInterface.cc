@@ -695,6 +695,8 @@ bool MortarInterface::IntersectLines( SurfElem *ifaceElem1,
   if (mutualProjection_) {
     c0 -= translationVector_;
     c1 -= translationVector_;
+    nodenum_c0 = 0;
+    nodenum_c1 = 0;
   }
 
   // Project master nodes onto slave element, if interface is not coplanar
