@@ -610,7 +610,7 @@ def show_rot_cross(coords, s1, s2, angle, direction, nx, scale, color, do_save):
   return (fig, sub)
   
 # @return the image
-def show_sheared_rot_cross(coords, s1, s2, sh1, angle, direction, nx, scale, color, do_save):
+def show_sheared_rot_cross(coords, s1, s2, sh1, rot_angle, direction, nx, scale, color, do_save):
 
   centers, min, max, elem = coords
   
@@ -641,7 +641,7 @@ def show_sheared_rot_cross(coords, s1, s2, sh1, angle, direction, nx, scale, col
     c[1] = str(1.0 - v[1] / max_val) if color == "grayscale" else 'black'
     
     #print 'S=' + str(s1[i,0]) + '/' + str(s2[i,0])  + ' v=' + str(v) + ' c=' + str(c)
-    theta = angle[i]
+    theta = rot_angle[i]
     
     if direction == 'horizontal':
       pol = to_rectangle_center(length * v[0], length, theta, x_off, dim[1] - y_off)
@@ -655,10 +655,10 @@ def show_sheared_rot_cross(coords, s1, s2, sh1, angle, direction, nx, scale, col
       shearingangle = [0,0]
       shearingangle[vmax] = phi
       angle = theta + shearingangle[0] + vmin*numpy.pi/2
-      pol = to_rectangle_center(length * v[vmin], length * sqrt(1+sin(2*angle)^2), angle, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmin], length * sqrt(1+pow(sin(2*angle),2)), angle, x_off, y_off)
       draw_verts(pol, sub, c[vmin])
       angle = theta + shearingangle[1] + vmax*numpy.pi/2
-      pol = to_rectangle_center(length * v[vmax], length * sqrt(1+sin(2*angle)^2), angle, x_off, y_off)
+      pol = to_rectangle_center(length * v[vmax], length * sqrt(1+pow(sin(2*angle),2)), angle, x_off, y_off)
       draw_verts(pol, sub, c[vmax])
  
   return (fig, sub)
