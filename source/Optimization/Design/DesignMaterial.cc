@@ -3335,6 +3335,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   }
 
   // new format
+  unsigned int dim = grid_->getStorage()->dim();
   unsigned int N, d, m;
   file >> N >> d >> m >> word;
   // standard assumptions
@@ -3350,7 +3351,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   alpha2_.resize(N);
   alpha3_.resize(N);
   alpha4_.resize(N);
-  if (grid_->getStorage()->dim() == 3) {
+  if (dim == 3) {
     alpha5_.resize(N);
     alpha6_.resize(N);
   }
@@ -3359,12 +3360,12 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   double indexd;
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
-  SGPP::base::GridIndex grid_point(grid_->getStorage()->dim());
+  SGPP::base::GridIndex grid_point(dim);
   level_ = 0; // we set that to the maximal level of the grid points
   double duck; // dummy
   unsigned int j = 0;
   for (unsigned int i = 0; i < N; i++) {
-    if (grid_->getStorage()->dim() == 3) {
+    if (dim == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
       for (unsigned int idx = 0; idx < 3; idx++) {
         file >> leveld >> indexd;
@@ -3402,7 +3403,7 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     }
     // add grid point
     grid_->getStorage()->insert(grid_point);
-    if (grid_->getStorage()->dim() == 3) {
+    if (dim == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
       // (except for the final value, the volume)
       file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
@@ -3433,20 +3434,19 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
         alpha4_[j] *= 2.0;
       }
     }
-    SGPP::base::GridIndex* gp = grid_->getStorage()->get(i);
-    if (grid_->getStorage()->dim() == 3) {
-      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
-          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
+    if (dim == 3) {
+      LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " " << grid_point.getCoord(2) << " -> "
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " "
+          << alpha5_[j] << " " << alpha6_[j] << " " << volume_[j];
     } else {
-      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
+      LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " -> "
           << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
     }
-
     j++;
   }
   LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
   file.close();
-  if (grid_->getStorage()->dim() == 2) {
+  if (dim == 2) {
     // coefficient vectors were too big, because we skipped grid points
     alpha1_.resize(grid_->getStorage()->size());
     alpha2_.resize(grid_->getStorage()->size());

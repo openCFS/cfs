@@ -40,8 +40,8 @@ A = [1, dim, level, sz(1), zeros(1,2*dim-4); A, zeros(sz(1), 4-2*dim)];
 if ~exist('presets','dir')
     mkdir('presets')
 end
-dlmwrite( sprintf('presets/byCoords/presets%dD_L%d',dim,level), coords, 'delimiter', ',', 'precision', '%f' );
-dlmwrite( sprintf('presets/byLevelAndIndex/presets%dD_L%d',dim,level), A, 'delimiter', ',', 'precision', '%f' );
+dlmwrite( sprintf('presets/byCoords/presets%dD_L%d',dim,level), coords, 'delimiter', ',', 'precision', '%.10f' );
+dlmwrite( sprintf('presets/byLevelAndIndex/presets%dD_L%d',dim,level), A, 'delimiter', ',', 'precision', '%d' );
 
 % Clean up
 clear tmp format status result fid ans A sz
