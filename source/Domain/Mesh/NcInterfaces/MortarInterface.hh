@@ -182,6 +182,7 @@ class MortarInterface : public BaseNcInterface {
     Double tolAbs_;
     Double tolRel_;
     RegionIdType region_;
+    bool mutualProjection_;
 
     //caching for Line intersection
     Vector<Double> c0_Line_, c1_Line_, d0_Line_, d1_Line_, tmp_Line_;
@@ -192,7 +193,7 @@ class MortarInterface : public BaseNcInterface {
     //chache for temporary points in intersect poly
     //this will prevent functioning in case of OMP!!!!!!
     //make threadlocal storage for this to work
-    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_;
+    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_, tPoly_;
     UInt oldPoly1_;
     UInt oldPoly2_;
 
@@ -206,7 +207,19 @@ class MortarInterface : public BaseNcInterface {
 
     std::vector<Grid::ElemElemMatch> intersectionCandiatesIdx_;
 
+    Vector<Double> translationVector_;
+
 #ifdef USE_CGAL
+    //! Calculates the intersection between two polygons using CGAL
+    //! \param p1 (in) first polygon to be intersected
+    //! \param p2 (in) second polygon to be intersected
+    //! \param r (out) resulting polygon
+    bool CutPolysCGAL(StdVector<Vector<Double> > &p1, StdVector<Vector<Double> > &p2,
+                      const bool coPlanarIface, StdVector<Vector<Double> > &r);
+
+    // caching for CutPolysCGAL
+    Matrix<Double> rMat_, rMatTrans_;
+    StdVector< Vector<Double> > p1Rot_, p2Rot_;
 
     void PreComputeIntersectionCandidatesCGAL(const StdVector<SurfElem*>& masterElems,const StdVector<SurfElem*>& slaveElems);
 

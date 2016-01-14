@@ -94,7 +94,6 @@ namespace CoupledField {
     std::map< RegionIdType, PtrCoefFct > regionCoefs_;    
   };
 
-
   //! class for calculation of bilinear forms for non-conforming coupling
   template<class COEF_DATA_TYPE=Double, class B_DATA_TYPE=Double>
   class SurfaceMortarABInt : public ABInt<COEF_DATA_TYPE,B_DATA_TYPE> {

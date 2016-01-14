@@ -12,7 +12,9 @@ SET(CFSDAT_SRCS
   Filters/Derivatives/TimeDerivFilter.cc
   Filters/Derivatives/RotatingSubstDt.cc
   Filters/Interpolators/BaseInterpolationFilter.cc
+  Filters/Interpolators/MeshBasedInterpolator.cc
   Filters/Interpolators/CentroidInterpolator.cc
+  Filters/Interpolators/GridIntersectionFilter.cc
   Utils/EqnNumberingSimple.cc
   Utils/CFSDatProgramOptions.cc
   Utils/ResultManager.cc

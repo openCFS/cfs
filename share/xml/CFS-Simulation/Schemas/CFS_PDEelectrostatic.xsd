@@ -46,8 +46,8 @@
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"
                       > </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
-                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional"
-                      default="no"/>
+                    <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
                   </xsd:complexType>
                 </xsd:element>
               </xsd:sequence>
@@ -102,6 +102,12 @@
                   </xsd:annotation>
                 </xsd:element>
                 <!--<xsd:element name="impedance" type="DT_ElecImpedance" />-->
+
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines Bloch periodic boundary conditions for electric potential</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>

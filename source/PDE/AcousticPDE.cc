@@ -259,15 +259,44 @@ namespace CoupledField{
       //=======================================================================
       // Generate coefficient functions
       //=======================================================================
-
+      PtrCoefFct c0;
       PtrCoefFct dens = materials_[actRegion]->GetScalCoefFnc( DENSITY, Global::REAL );
       PtrCoefFct blk = materials_[actRegion]->GetScalCoefFnc( ACOU_BULK_MODULUS, Global::REAL );
-      
-      // c0 = sqrt(bulk_modulus / density)
-      PtrCoefFct c0 = 
-          CoefFunction::Generate( mp_,  Global::REAL,
+
+      // ====================================================================
+      // check for temperature field, which effects tthe speed of sound
+      // ====================================================================
+      std::string tempId = curRegNode->Get("temperatureId")->As<std::string>();
+      if (tempId != "") {
+        if( dampingList_[actRegion] == PML ) {
+          EXCEPTION("PML not available for temperature dependent domains!");
+        }
+
+        // Get result info object for flow
+        shared_ptr<ResultInfo> tempInfo = GetResultInfo(HEAT_MEAN_TEMPERATURE);
+
+        //Add the region information
+        PtrParamNode tempNode = myParam_->Get("temperatureList")->GetByVal("temperature","name",tempId.c_str());
+
+        // Read coefficient flow coefficient function for this region and add it to flow functor
+        PtrCoefFct regionTemp;
+        std::set<UInt> definedDofs;
+        ReadUserFieldValues( actSDList, tempNode, tempInfo->dofNames, tempInfo->entryType,
+                           isComplex_, regionTemp, definedDofs, updatedGeo_ );
+        meanTemperatureCoef_->AddRegion( actRegion, regionTemp );
+        // gasR=287.058 J/kg K   ... universal gas constant
+        // kappa=1.402, adabatic exponent for air
+        PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
+        c0 = CoefFunction::Generate( mp_,  Global::REAL,
+                         CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, constVal, regionTemp, CoefXpr::OP_MULT),
+                         CoefXpr::OP_SQRT) );
+      }
+      else {
+    	  // c0 = sqrt(bulk_modulus / density)
+    	  c0 = CoefFunction::Generate( mp_,  Global::REAL,
                                   CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
                                   CoefXpr::OP_SQRT) );
+      }
       
       // store coefficient functions
       matCoefs_[ELEM_DENSITY]->AddRegion(actRegion, dens);
@@ -288,10 +317,18 @@ namespace CoupledField{
       }
           
       // build coefficient for mass matrix as (factor / (c0*c0))
-      PtrCoefFct coeffc =
-          CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, dens, blk, CoefXpr::OP_DIV) );
+      PtrCoefFct constValOne = CoefFunction::Generate( mp_, Global::REAL, "1.0");
+      PtrCoefFct coeffa, coeffb;
+      coeffa = CoefFunction::Generate( mp_,  Global::REAL,
+    		                 CoefXprBinOp(mp_, constValOne, c0, CoefXpr::OP_DIV ) );
+      coeffb = CoefFunction::Generate( mp_,  Global::REAL,
+          		                 CoefXprBinOp(mp_, coeffa, coeffa, CoefXpr::OP_MULT ) );
+//                CoefFunction::Generate( mp_, Global::REAL,
+//        		        CoefXprUnaryOp( mp_, CoefXprBinOp(mp_, blk, dens, CoefXpr::OP_DIV),
+//        		        CoefXpr::OP_MULT) );
       PtrCoefFct coeffM =
-                CoefFunction::Generate( mp_, Global::REAL, CoefXprBinOp(mp_, factor, coeffc, CoefXpr::OP_MULT) );
+                CoefFunction::Generate( mp_, Global::REAL,
+                		      CoefXprBinOp(mp_, factor, coeffb, CoefXpr::OP_MULT) );
 
 
       // ====================================================================
@@ -1317,8 +1354,22 @@ namespace CoupledField{
       }
     }
 
+    //create result info for mean flow velocity
     CreateMeanFlowFunction(vecDofNames);
     
+    //create result info for mean temperature field
+    //(mean in the sense of time averaged)
+    shared_ptr<ResultInfo> temperature( new ResultInfo);
+    temperature->resultType = HEAT_MEAN_TEMPERATURE;
+    temperature->dofNames = "";
+    temperature->unit = "K";
+
+    temperature->definedOn = ResultInfo::NODE;
+    temperature->entryType = ResultInfo::SCALAR;
+
+    meanTemperatureCoef_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    DefineFieldResult( meanTemperatureCoef_, temperature );
+
     // ==============================================
     //  Define CoefFunctions for material parameters
     // ==============================================

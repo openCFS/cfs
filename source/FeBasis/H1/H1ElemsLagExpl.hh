@@ -209,6 +209,7 @@ protected:
   //! @copydoc BaseFE::ComputeMonomialCoefficients
   //! Overloaded method for lagrange Elements
   virtual void ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C);
+
 };
 
 //! Lagrangian quadrilateral element
@@ -246,6 +247,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian hexahedral element
@@ -322,6 +324,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian tetrahedron element
@@ -359,6 +362,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 //! Lagrangian pyramid element
@@ -396,6 +400,7 @@ protected:
                                  const LocPoint & surfIntPoint,
                                  LocPoint & volIntPoint,
                                  Vector<Double>& locNormal );
+
 };
 
 // ========================================================================
@@ -452,6 +457,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian quadrilateral element of 1st order (ET_QUAD4)
@@ -494,6 +502,10 @@ protected:
                                  const Vector<Double>& point,
                                  const Elem* ptElem,
                                  UInt comp = 1 );
+
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian hexahedral element of 1st order (ET_HEXA8)
@@ -535,6 +547,9 @@ protected:
                                  const Vector<Double>& point,
                                  const Elem* ptElem,
                                  UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 
@@ -563,6 +578,9 @@ protected:
                           const Elem* ptElem,
                           UInt comp = 1 );
   
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
+
 };
 
 //! Lagrangian tetrahedron element of 1st order (ET_TET4)
@@ -589,6 +607,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 //! Lagrangian pyramid element of 1st order (ET_PYRA5)
@@ -615,6 +636,9 @@ protected:
                           const Vector<Double>& point,
                           const Elem* ptElem,
                           UInt comp = 1 );
+
+  //! @copydoc BaseFE::Triangulate
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect);
 };
 
 // ========================================================================

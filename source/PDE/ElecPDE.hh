@@ -1,8 +1,8 @@
 #ifndef FILE_ELECPDE_NEW
 #define FILE_ELECPDE_NEW
 
-#include "SinglePDE.hh" 
-
+#include "SinglePDE.hh"
+//#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -54,6 +54,9 @@ namespace CoupledField
 
   protected:
 
+    //! read in damping information, see SinglePDE.cc  and SinglePDE.hh
+    void ReadDampingInformation();
+
     //! Initialize NonLinearities
     void InitNonLin();
 
@@ -64,7 +67,7 @@ namespace CoupledField
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    virtual void DefineSurfaceIntegrators(){};
+    void DefineSurfaceIntegrators();
 
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -103,10 +106,15 @@ namespace CoupledField
     std::string subType_;
 
     //! Return linear stiffness integrator for a given region
-    BaseBDBInt * GetStiffIntegrator( BaseMaterial* actSDMat,
-                                     SubTensorType tensorType,
-                                     RegionIdType regionId );
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId);
     
+//    //! Return flux integrator used for Nitsche coupling
+//    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Complex factor,
+//                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA) {return NULL;};
+//
+//    //! Return penalty integrator used for Nitsche coupling
+//    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir) {return NULL;};
+
     // *****************
     //  POSTPROCESSING
     // *****************
@@ -147,7 +155,11 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
+    //! Stores the dielectric permittivity for each region
+    std::map<RegionIdType, PtrCoefFct > regionPermittivity_;
 
+    //! Tensor type
+    SubTensorType tensorType_;
 
   };
 

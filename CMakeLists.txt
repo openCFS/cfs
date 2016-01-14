@@ -1,6 +1,7 @@
 #-----------------------------------------------------------------------------
 # Set the version number of CMake which is required to build CFS++.
 #-----------------------------------------------------------------------------
+
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
 SET(REQ_PATCH_VER 11)
