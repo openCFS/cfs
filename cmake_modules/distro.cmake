@@ -321,35 +321,7 @@ ELSEIF(CFS_DISTRO STREQUAL "FEDORA" OR
     CFS_DISTRO STREQUAL "RHEL" OR
     CFS_DISTRO STREQUAL "CENTOS")
 
-# Allowed distros for cross compiling
 ELSEIF(MINGW)
-   #  MESSAGE("${DIST} ${REV} ${OS}")
-   SET(MINGW_DIST_WRONG TRUE)
-   IF(OS STREQUAL "WINDOWS")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "UBUNTU" AND REV STREQUAL "12.04")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "OPENSUSE")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "CENTOS" OR
-          DIST STREQUAL "ORACLE" OR
-          DIST STREQUAL "SCIENTIFIC" AND
-          REV MATCHES "6\\.")
-     SET(MINGW_DIST_WRONG FALSE)
-   ELSEIF(DIST STREQUAL "FEDORA" AND
-          REV MATCHES "22")
-     SET(MINGW_DIST_WRONG FALSE)
-   ENDIF()
-   IF(MINGW_DIST_WRONG)
-       MESSAGE(FATAL_ERROR
-"
-Cross compiling for Windows 64-bit has been only tested on
-CentOS/Oracle 6, Fedora 22 and Ubuntu 12.04 LTS (cf. Developer's Manual).
-If you know what you are doing, disable this error and fix
-the build for your platform. But don't say, I did not warn you!
-"
-       )
-   ENDIF()
 
 ELSEIF(CFS_DISTRO MATCHES "MSVC")
   # Just to support Microsoft toolchain.
