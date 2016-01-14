@@ -273,7 +273,8 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  IF(0) # GIT_FOUND)
+  # mpolzer: funny, this git stuff is completely disabled
+  IF(0) # GIT_FOUND
     # Clone Git repo for ParaView Superbuild 4.1.
     ExternalProject_Add(pvsb
       DEPENDS ${CFS_PV_DEPENDENCIES}
@@ -288,7 +289,6 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   ELSE()
     # If we do not have the Git executable available, fall back
     # to downloading a zipped archive of the Git repo.
-    MESSAGE("paraview_source ${paraview_source}")
     ExternalProject_Add(pvsb
       DEPENDS ${CFS_PV_DEPENDENCIES}
       PREFIX ${pvsb_prefix}
@@ -318,9 +318,11 @@ ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FIL
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS
 #-------------------------------------------------------------------------------
+# mpolzer changed paraview-superbuild to pvsb, this is just an educated guess,
+# I honestly have no clue what paraview-superbuild was doing here.
 SET(CFSDEPS
   ${CFSDEPS}
-  paraview-superbuild
+  pvsb
 )
 
 
