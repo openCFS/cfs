@@ -2044,7 +2044,9 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   v.Resize(3);
   ez[2] = 1.0;
   n.CrossProduct(ez, v);
-  v.Normalize();
+  //quick fix, if v has zero length, i.e. ez == n we set continue, setting v to zero
+  if(v.NormL2()!=0)
+        v.Normalize();
 
   Double ca = n[2]; // cos(n ^ ez) = n_z/|n| = n_z
   Double sa = sqrt(n[0] * n[0] + n[1] * n[1]); // sin(n ^ ez) = sqrt(n_x^2 + n_y^2)/|n| = sqrt(n_x^2 + n_y^2)
