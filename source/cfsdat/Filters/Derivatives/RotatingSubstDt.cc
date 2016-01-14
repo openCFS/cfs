@@ -149,10 +149,10 @@ bool RotatingSubstDt::Run(){
     CF::StdVector<UInt> eqnNums; //they should be equal...
     Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
 
-    Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
-    Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
-    Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
-    Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
+   // Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
+   // Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
+   // Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
+   // Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
     for(UInt i=0;i<last;++i){
@@ -160,9 +160,9 @@ bool RotatingSubstDt::Run(){
       returnVec[i] = 0.0;
     }
 
-    Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
+    //Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
     //now we add the substantial part
-    UInt gIdx = 0;
+    //UInt gIdx = 0;
     EqnMapSimple& mapping = *resultManager_->GetResultAdpter(*aIter)->mapping.get();
     StdVector<UInt> aEqn(1);
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){

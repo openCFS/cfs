@@ -209,7 +209,8 @@ namespace CoupledField {
                             Vector<Double>& locNormal ) {
     EXCEPTION("Not implemented");
   }
-  
+
+
   // --- Tria 1st order ---
 
   FeH1LagrangeTria1::FeH1LagrangeTria1()  : FeH1LagrangeTria(){
@@ -334,10 +335,22 @@ namespace CoupledField {
             << "have not two nodes in common. Check your .mesh-file.");
     }
   }
-  
+
+
   void FeH1LagrangeTria::
   ComputeMonomialCoefficients(Matrix<Integer>& P, Matrix<Double>& C){
 
+  }
+
+  
+  void FeH1LagrangeTria1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+    //trivial
+    triConnect.Resize(1);
+    triConnect.Init(StdVector<UInt>(3));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 1;
+    triConnect[0][2] = 2;
   }
 
   // --- Quad 1st order ---
@@ -506,6 +519,21 @@ namespace CoupledField {
         }
   }
   
+  void FeH1LagrangeQuad1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    triConnect.Resize(2);
+    triConnect.Init(StdVector<UInt>(3));
+
+    //create two triangles in counterclockwise orientation
+    //diagonal is in both cases third edge
+    triConnect[0][0] = 3;
+    triConnect[0][1] = 0;
+    triConnect[0][2] = 1;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 2;
+    triConnect[1][2] = 3;
+  }
+
   // --- Hex 1st order ---
   FeH1LagrangeHex1::FeH1LagrangeHex1() : FeH1LagrangeHex() {
     feType_ = Elem::ET_HEXA8;
@@ -710,6 +738,36 @@ namespace CoupledField {
       }
    }
   
+  void FeH1LagrangeHex1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    //TODO: check orientation!
+    StdVector< StdVector<UInt> > nodes(5);
+    nodes.Init(StdVector<UInt>(4));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 1;
+    triConnect[0][2] = 3;
+    triConnect[0][3] = 4;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 4;
+    triConnect[1][2] = 5;
+    triConnect[1][3] = 6;
+
+    triConnect[2][0] = 1;
+    triConnect[2][1] = 4;
+    triConnect[2][2] = 6;
+    triConnect[2][3] = 3;
+
+    triConnect[3][0] = 1;
+    triConnect[3][1] = 3;
+    triConnect[3][2] = 6;
+    triConnect[3][3] = 2;
+
+    triConnect[4][0] = 3;
+    triConnect[4][1] = 6;
+    triConnect[4][2] = 7;
+    triConnect[4][3] = 4;
+  }
+
   
   // --- Wedge 1st order ---
   FeH1LagrangeWedge1::FeH1LagrangeWedge1() : FeH1LagrangeWedge() {
@@ -924,6 +982,27 @@ namespace CoupledField {
     } // if
   }
   
+  void FeH1LagrangeWedge1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+    triConnect.Resize(3);
+    triConnect.Init(StdVector<UInt>(4));
+    triConnect[0][0] = 0;
+    triConnect[0][1] = 2;
+    triConnect[0][2] = 1;
+    triConnect[0][3] = 3;
+
+    triConnect[1][0] = 1;
+    triConnect[1][1] = 3;
+    triConnect[1][2] = 5;
+    triConnect[1][3] = 4;
+
+    triConnect[2][0] = 1;
+    triConnect[2][1] = 2;
+    triConnect[2][2] = 5;
+    triConnect[2][3] = 3;
+
+  }
+
   // ========================================================================
   //  Lagrangian Elements of 2nd order
   // ========================================================================
@@ -2075,6 +2154,17 @@ namespace CoupledField {
     	}
     }
 
+    void FeH1LagrangeTet1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+      triConnect.Resize(1);
+      triConnect.Init(StdVector<UInt>(4));
+
+      triConnect[0][0] = 0;
+      triConnect[0][1] = 1;
+      triConnect[0][2] = 2;
+      triConnect[0][3] = 3;
+    }
+
     // --- Pyramid 1st order ---
      FeH1LagrangePyra1::FeH1LagrangePyra1() : FeH1LagrangePyra() {
        feType_ = Elem::ET_PYRA5;
@@ -2432,6 +2522,23 @@ namespace CoupledField {
     				 (1-point[2])+point[2]*(1-point[0]-point[2])*
     				 (1+point[1]-point[2])/((1-point[2])*(1-point[2]));
     	 }
+     }
+
+     void FeH1LagrangePyra1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
+
+       triConnect.Resize(2);
+       triConnect.Init(StdVector<UInt>(4));
+
+       triConnect[0][0] = 0;
+       triConnect[0][1] = 1;
+       triConnect[0][2] = 2;
+       triConnect[0][3] = 4;
+
+       triConnect[1][0] = 0;
+       triConnect[1][1] = 2;
+       triConnect[1][2] = 3;
+       triConnect[1][3] = 4;
+
      }
 
      // --- Pyra 2nd order ---

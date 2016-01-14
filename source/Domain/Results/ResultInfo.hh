@@ -82,6 +82,9 @@ namespace CoupledField {
     /** Helper to set dof names for vector. Sets to x, y (,z) or r, z */
     void SetVectorDOFs(UInt dim, bool is_axi);
 
+    /** If an extended 2D (2.5D) formulation is used, vectors must have 3 components */
+    void SetVectorDOFs(UInt dim, bool is_axi, bool is2p5);
+
     //! Number of degrees of freedoms
     StdVector<std::string> dofNames;
 

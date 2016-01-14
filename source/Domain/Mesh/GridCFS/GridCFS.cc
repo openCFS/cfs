@@ -41,11 +41,7 @@ namespace CoupledField {
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
 
-
-    if(buildExtend)
-      buildExtendedElemInfo_ = true;
-    else
-      buildExtendedElemInfo_ = false;
+    buildExtendedElemInfo_ = buildExtend;
   }
 
 
@@ -535,6 +531,11 @@ namespace CoupledField {
       
       // get number of edges
       UInt numEdges= actShape.numEdges;
+
+      //in case the extended element info is not yet created we do it here
+      if(!actElem.extended){
+        actElem.extended = new ExtendedElementInfo();
+      }
 
       // adapt size of edge number array of element
       actElem.extended->edges.Resize( numEdges );
@@ -2110,9 +2111,11 @@ namespace CoupledField {
     for(; i<nElems; i++, idx++)
     {
       orderedElems_[idx] = new Elem();
+
       if(buildExtendedElemInfo_){
-        orderedElems_[idx]->extended = new ExtendedElementInfo;
+        orderedElems_[idx]->extended = new ExtendedElementInfo();
       }
+
       orderedElems_[idx]->elemNum = idx+1;
     }
 

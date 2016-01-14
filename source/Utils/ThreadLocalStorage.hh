@@ -24,6 +24,24 @@
 
 namespace CoupledField{
 
+//! Interface class for the definition of cloneable Classes
+class CfsCopyable{
+public:
+  CfsCopyable(){
+
+  }
+
+  virtual ~CfsCopyable(){
+
+  }
+
+  //! Method for copying a pointer
+  virtual CfsCopyable* Clone()=0;
+};
+
+
+
+
 //!  Base class for thread-safe containers in CFS.
 /*!
   Basic interface definition. The amount of available slots is
@@ -77,6 +95,55 @@ public:
 protected:
   StdVector<T> tlsContainer_;
 };
+
+
+/*! Thread Local Storage Container
+ *! This class stores and administrates thread local copies of
+ *! the given pointer type. Addressing the access is done via a Mine function
+ *! in future releases, we might consider an Acquire-Release functionality
+ *! ASSUMPTION: T has a default constructor and a clone method
+ */
+template<class T>
+class CfsTLS<T*> : public BaseTLS{
+public:
+  CfsTLS(){
+    tlsContainer_.Resize(numSlots_);
+    for(UInt i=0;i<numSlots_;i++){
+      tlsContainer_[i] = new T();
+    }
+  }
+
+  CfsTLS(const T* serialObjToCopy){
+    tlsContainer_.Resize(numSlots_);
+    for(UInt i=0;i<numSlots_;i++){
+      tlsContainer_[i] = serialObjToCopy->Clone();
+    }
+  }
+
+  ~CfsTLS(){
+    for(UInt i=0;i<numSlots_;i++){
+      if(tlsContainer_[i]){
+        delete tlsContainer_[i];
+      }
+    }
+    tlsContainer_.Clear();
+  }
+
+  T* Mine(Integer tNum = -1){
+#ifdef USE_OPENMP
+    if(tNum>=0){
+      return tlsContainer_[tNum];
+    }else{
+      return tlsContainer_[omp_get_thread_num()];
+    }
+#else
+    return tlsContainer_[0];
+#endif
+  }
+private:
+  StdVector<T*> tlsContainer_;
+};
+
 
 }
 

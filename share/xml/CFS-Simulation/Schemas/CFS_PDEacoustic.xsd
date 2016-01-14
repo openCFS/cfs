@@ -40,6 +40,7 @@
                       > </xsd:attribute>
                     <xsd:attribute name="nonLinId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="flowId" type="xsd:token" use="optional" default=""/>
+                    <xsd:attribute name="temperatureId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     <xsd:attribute name="initialFieldId" type="xsd:token" use="optional" default=""
                     />
@@ -95,6 +96,16 @@
             </xsd:complexType>
           </xsd:element>
 
+          <!-- Type of FlowData (optional) -->
+          <!-- List defining flows -->
+          <xsd:element name="temperatureList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="temperature" type="DT_BcInhomScalar"/>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Initial conditions (optional) -->
           <xsd:element name="initialValues" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
@@ -619,6 +630,7 @@
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="acouRhsLoad"/>
       <xsd:enumeration value="meanFluidMechVelocity"/>
+      <xsd:enumeration value="heatMeanTemperature"/>
     </xsd:restriction>
   </xsd:simpleType>
 

@@ -100,6 +100,11 @@ namespace CoupledField{
     //! not be given in a close form, it is described by a CoefFunctionMulti.
     shared_ptr<CoefFunctionMulti> divMeanFlowCoef_;
 
+    //! This coefficient function describes the temperatur field. As this
+    //! is in general different for each region and will most likely
+    //! not be given in a close form, it is described by a CoefFunctionMulti.
+    shared_ptr<CoefFunctionMulti> meanTemperatureCoef_;
+
     //! store convective bilinear forms
     std::map<RegionIdType, BaseBDBInt*> convectiveInts_;
 

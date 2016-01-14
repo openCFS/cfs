@@ -25,11 +25,34 @@ class BaseInterpolationFilter : public BaseFilter {
 public:
   static FilterPtr GenerateInterpolator(PtrParamNode interpolNode, PtrResultManager resMana);
 
+protected:
+  ///Basic associative structure for mapping weighted values between source and target results
+  struct AssocStruct{
+    //Needs to be as lightweight as possible as it will be created millions of times
+    //designed to perform interpolation in the following steps:
+
+    ///weight value for interpolation
+    Double weight;
+
+    ///target entity number
+    UInt tENum;
+
+    ///source entity number
+    UInt sENum;
+
+    ///Compare two instances according to the source entity number
+    bool operator < (const AssocStruct& str) const
+    {
+        return (sENum < str.sENum);
+    }
+  };
+
+public:
 
   BaseInterpolationFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
     :BaseFilter(numWorkers,config,resMan){
 
-    }
+  }
 
 
   virtual ~BaseInterpolationFilter(){
@@ -40,11 +63,12 @@ public:
 
 protected:
 
-
-
   virtual ResultIdList SetUpstreamResults()=0;
 
   virtual void AdaptFilterResults()=0;
+
+  CF::StdVector<AssocStruct> interpolationData;
+
 
 };
 

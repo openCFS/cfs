@@ -159,8 +159,14 @@ namespace CoupledField
 
   struct ExtendedElementInfo{
 
-    ExtendedElementInfo(){
+    ExtendedElementInfo() : neighborhood(NULL){
+    }
 
+    ~ExtendedElementInfo(){
+      if(neighborhood){
+        delete neighborhood;
+        neighborhood = NULL;
+      }
     }
 
     //! Array with edge numbers
@@ -291,6 +297,29 @@ namespace CoupledField
      * The values are by for the uninitialized case zero, be careful! Check via Grid::RegionData */
     Point barycenter;
 
+  };
+
+
+  //! Intersection element base class
+
+  //! For volume element intersection procedures
+  //! this element stores additionally the element numbers
+  //! of the original intersection pairs
+  struct IntersectionElem : public Elem{
+    IntersectionElem() :
+      eNum1(0), eNum2(0){
+
+    }
+
+    virtual ~IntersectionElem(){
+
+    }
+
+    /// Element number of first original element
+    UInt eNum1;
+
+    /// Element number of second original element
+    UInt eNum2;
   };
 
   
