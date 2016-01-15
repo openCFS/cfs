@@ -138,6 +138,9 @@
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="aeroacoustics"/>
       
+      <!-- Water waves -->
+      <xsd:enumeration value="waterWaves"/>
+      
       <!-- Electrostatic -->
       <xsd:enumeration value="electrostatic"/>
       
@@ -163,9 +166,7 @@
       <!-- Flow -->
       <xsd:enumeration value="flow"/>
       <xsd:enumeration value="CFD"/>
-      <xsd:enumeration value="FluidMechPerturbedPDE"/>
-      <xsd:enumeration value="Endress+Hauser"/>
-      
+      <xsd:enumeration value="FluidMechPerturbedPDE"/>      
       
       <!-- ========================================================== -->
       <!--  Coupling Related Keywords                                 -->
