@@ -239,13 +239,7 @@ cfsdeps/paraview/paraview-srcdir-mingw/VTK/Web/WebGLExporter/vtkWebGLExporter.cx
 cfsdeps/paraview/paraview-srcdir/ParaViewCore/ServerManager/SMApplication/Resources/readers.xml -text
 cfsdeps/paraview/paraview-srcdir/ParaViewCore/VTKExtensions/Core/vtkPVPostFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/Qt/Components/Resources/XML/ColorMaps.xml -text
-cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CGNS/avtCGNSFileFormat.C -text
-cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CMakeLists.txt -text
 cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/visit_readers.xml -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkBiQuadraticQuad.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticQuad.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticTriangle.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Filters/Geometry/vtkDataSetSurfaceFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/CMakeLists.txt -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.cc -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.h -text

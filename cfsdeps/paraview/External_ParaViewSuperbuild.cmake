@@ -28,7 +28,7 @@
 #   ├── Projects
 #   │   ├── hdf5.cmake
 #   │   ├── paraview.cmake
-#   │   ├── paraview.patch.cmake.in
+#   │   ├── paraview.patch.cmake.in (performs the paraview patch)
 #   │   └── zlib.cmake
 #   └── versions.cmake
 #
@@ -43,22 +43,27 @@
 #   (2) A reader for Geomview .off polyhedral surface geometry files, which 
 #       are e.g. produced by CGAL.
 #   (3) Some additional color maps (GiD, Matlab, etc.).
-#   (4) Fixes to the calculation of derivatives on second order quads and
+#   (-) Fixes to the calculation of derivatives on second order quads and
 #       triangles (cf. http://www.vtk.org/Bug/view.php?id=13455).
+#       This bug seems to have been fixed - removing fix.
 #   (5) A reduced list of VisItBridge readers, to make sure our own reader is
 #       the only one, which can read .h5 files. Otherwise the user always has
 #       to choose the correct reader, when opening a file
-#   (6) Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
+#   (-) Some small fixes to the VisItBridge CGNS reader for TRIA6 and PYRA13
 #       element types.
+#       Does not seem to be compatible to vtk-version delivered with 
+#       paraview 4.4.0 - removed. 
 #
 # These additions reside in the following files:
 #
 #   paraview-srcdir/
 #   ├── ParaViewCore
-#   │   └── ServerManager
-#   │       └── SMApplication
-#   │           └── Resources
-#   │               └── readers.xml (1) & (2)
+#   │   ├── ServerManager
+#   │   │   └── SMApplication
+#   │   │        └── Resources
+#   │   │              └── readers.xml (1) & (2)
+#       └── VTKExtensions/Core/vtkPVPostFilter.cxx (?) sets component labels for axisymmetric sim if there are 4 components in the stress results: this is wrong as could also refer to plane stress/strain simulations
+#
 #   ├── Qt
 #   │   └── Components
 #   │       └── Resources
@@ -67,16 +72,8 @@
 #   ├── Utilities
 #   │   └── VisItBridge
 #   │       └── databases (5)
-#   │           ├── CGNS
-#   │           │   └── avtCGNSFileFormat.C (6)
-#   │           ├── CMakeLists.txt
 #   │           └── visit_readers.xml
 #   └── VTK
-#       ├── Common
-#       │   └── DataModel (4)
-#       │       ├── vtkBiQuadraticQuad.cxx
-#       │       ├── vtkQuadraticQuad.cxx
-#       │       └── vtkQuadraticTriangle.cxx
 #       ├── IO 
 #       │   ├── CFSReader (1)
 #       │   │   ├── CMakeLists.txt
@@ -99,6 +96,7 @@
 #       └── ThirdParty
 #           └── hdf5
 #               └── CMakeLists.txt (1)
+#
 #
 # The (super-)build of  ParaView has been tested on machines  running CentOS 6
 # and Ubuntu 12.04 x86_64, on  which the bootstrap_devel_machine.sh script has
@@ -165,6 +163,25 @@ set(pvsb_source  "${pvsb_prefix}/src/pvsb")
 # http://openfoamwiki.net/index.php/Tip_Build_A_Paraview3_Plugin
 #-------------------------------------------------------------------------------
 
+#-------------------------------------------------------------------------------
+# Adapting to a new paraview version
+# ==================================
+# 1. PARAVIEW_SB_VER is set in FindCFSDEPS.cmake
+# 2. possibly the patch (for the superbuild) must adapted:
+#   go to <buliddir>/cfsdeps/pvsb/src/pvsb and check the state of the git repo 
+#   to see what has been changed!
+# 3. in <buliddir> run ccmake and activate PARAVIEW, configure & generate, make
+# 4. possibly the paraview-patch must be adapted:
+#   - go to <builddir>/cfsdeps/pvsb/src/pvsb-build/paraview/src/paraview to see what 
+#   has been changed by the patch
+#   - one can now work on paraview alone: go to the paraview-builddir 
+#       <builddir>/cfsdeps/pvsb/src/pvsb-build/paraview/src/paraview-build
+#     and run cmake .; make to configure and build
+#/
+# log
+#  -remove CGNS fix (6)
+#-------------------------------------------------------------------------------
+
 SET(CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=${pvsb_install}
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
@@ -191,7 +208,7 @@ SET(CMAKE_ARGS
   -DENABLE_freetype:BOOL=OFF
   -DENABLE_libxml2:BOOL=OFF
   # We use the system Qt4 or the one from CFSDEPS, if the system Qt4 is to old.
-  -DENABLE_qt:BOOL=ON
+  -DENABLE_qt4:BOOL=ON
   -DUSE_SYSTEM_qt=ON
   -DQT_QMAKE_EXECUTABLE:FILEPATH=${QT_QMAKE_EXECUTABLE}
   # We use the system Python, to take advantage of its installed packages.
@@ -273,13 +290,13 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  IF(0) # GIT_FOUND)
+  IF(GIT_FOUND)
     # Clone Git repo for ParaView Superbuild 4.1.
     ExternalProject_Add(pvsb
       DEPENDS ${CFS_PV_DEPENDENCIES}
       PREFIX ${pvsb_prefix}
       GIT_REPOSITORY http://paraview.org/ParaViewSuperbuild.git
-      GIT_TAG "5867b1c34b73aee16cc9411007b2d70a4fad73a4"
+      GIT_TAG "v${PARAVIEW_SB_VER}"
       SOURCE_DIR ${pvsb_source}
       PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
       CMAKE_ARGS
