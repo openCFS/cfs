@@ -82,8 +82,8 @@ class TransferFunction;
 
     bool GetPiezoCouplingTensor(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);
 
-    /** returns MSFEM element matrix for a regular grid from material catalogue*/
-    void GetErsatzElementMatrixMSFEM(Matrix<double>& A, DesignElement::Type direction);
+    /** Calculates MSFEM element matrix for a regular grid from material catalogue*/
+    bool GetErsatzElementMatrixMSFEM(Matrix<double>& A,const Elem* elem, DesignElement::Type direction);
 
     /** helper for GetModRedTensor() but also stand alone to output G Matrix from model reduction as special result */
     void GetModRedGTensor(Matrix<double>& G, DesignElement::Type direction, const bool& all_param);

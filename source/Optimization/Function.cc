@@ -883,7 +883,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
     //read interpolation data for volume calculation in 3D
     std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
