@@ -242,6 +242,17 @@ IF(CFS_DISTRO STREQUAL "MACOSX")
     )
 ENDIF(CFS_DISTRO STREQUAL "MACOSX")
 
+IF(DIST_FAMILY STREQUAL "RHEL" AND
+  MAJOR_REV VERSION_LESS "7")
+  SET(PARAVIEW_C_FLAGS ${CFSDEPS_C_FLAGS} "GLX_GLXEXT_LEGACY")
+  SET(PARAVIEW_CXX_FLAGS ${CFSDEPS_CXX_FLAGS} "GLX_GLXEXT_LEGACY")
+  SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_C_FLAGS:STRING=${PARAVIEW_C_FLAGS}
+    -DCMAKE_CXX_FLAGS:STRING=${PARAVIEW_CXX_FLAGS}
+  )
+ENDIF()
+
 IF(CMAKE_TOOLCHAIN_FILE)
   LIST(APPEND CMAKE_ARGS
     -DCMAKE_TOOLCHAIN_FILE:FILEPATH=${CMAKE_TOOLCHAIN_FILE}
@@ -290,8 +301,8 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
-  IF(GIT_FOUND)
-    # Clone Git repo for ParaView Superbuild 4.1.
+  IF(0) #GIT_FOUND)
+    # Clone Git repo for ParaView Superbuild 4.4.0
     ExternalProject_Add(pvsb
       DEPENDS ${CFS_PV_DEPENDENCIES}
       PREFIX ${pvsb_prefix}
