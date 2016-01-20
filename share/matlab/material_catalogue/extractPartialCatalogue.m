@@ -1,5 +1,5 @@
 cataloguefile = 'catalogues/detailed_stats_presets3D_63';
-presetsfile = 'presets/presets3D_L5';
+presetsfile = 'presets/byCoords/presets3D_L5';
 
 fid = fopen(cataloguefile);
 tmp = fscanf(fid,'%dD\t%d');
@@ -14,6 +14,7 @@ points(1,:) = [];
 if min(points(:,1)) < 0
     points = (points+1)/2;
 end
+points = points(:,1:dim);
 
 idx = ismember(fulldata(:,1:dim),points,'rows');
 partialdata = fulldata(idx,:);

@@ -27,16 +27,17 @@ function [Tensor, volume, meshfilename] = getElasticityTensorOfMicroCell(point, 
 
 % Generate sparse mesh
 [meshfile, volume] = meshgenerationfunc(point, cfsworkingdirectory);
+%close;Homogenization.plotmesh(meshfile);
 [meshfilepath, meshfilename, ext] = fileparts(meshfile);
 % For an empty grid Eh equals the all zero tensor.
-if abs(volume) < 1e-14
+if volume < 1e-14
     Tensor = zeros(3,3);
     delete( sprintf('%s/%s.dens', meshfilepath, meshfilename) );
     delete( meshfile );
     return
 end
 % For full material Eh equals the elasticity tensor.
-if abs(volume-1) < 1e-14
+if 1-volume < 1e-14
     Tensor = Efull;
     delete( meshfile );
     return
