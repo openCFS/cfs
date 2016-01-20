@@ -2880,10 +2880,9 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
     case DesignElement::STIFF1:
       direction = 1;
       return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
-
     case DesignElement::STIFF2:
-        direction = 2;
-        return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
+      direction = 2;
+      return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
     case DesignElement::STIFF3:
       direction = 3;
       return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
@@ -2908,7 +2907,16 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   }
   /**svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
-  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+  LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
+
+  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::Interpolation::SGPP) {
+    Vector<double> p;
+    p[0] = stiff1;
+    p[1] = stiff2;
+    p[2] = GetDesign(DesignElement::SHEAR1, local, access, true);
+    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType());
+  }
+
   if (!derivative) {
     if (dim == 2) {
       return svol * (stiff1 + stiff2 - stiff1 * stiff2);

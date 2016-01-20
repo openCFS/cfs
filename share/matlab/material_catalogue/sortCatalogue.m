@@ -32,8 +32,11 @@ level = str2double(tmp(2:end));
 
 points = load(file2);
 points(1,:) = [];
-points = (points + 1)/2;
+if min(points(:,1)) < 0
+    points = (points + 1)/2;
+end
 dataPoints = data(:,1:dim);
+points = points(:,1:dim);
 
 [~,indeces] = ismember(points,dataPoints,'rows');
 idcs = find(indeces == 0);

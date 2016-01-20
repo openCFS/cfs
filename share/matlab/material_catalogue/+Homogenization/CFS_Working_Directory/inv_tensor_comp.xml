@@ -31,10 +31,13 @@
           <region name="mech" />
         </regionList>
         <bcsAndLoads>
-          <periodic master="nodes3" slave="nodes4" quantity="mechDisplacement" dof="x" />
-          <periodic master="nodes3" slave="nodes4" quantity="mechDisplacement" dof="y" />
-          <periodic master="nodes5" slave="nodes6" quantity="mechDisplacement" dof="x" />
-          <periodic master="nodes5" slave="nodes6" quantity="mechDisplacement" dof="y" />
+          <fix name="nodes5">
+            <comp dof="x"/>
+            <comp dof="y"/>
+          </fix>
+          <force name="nodes6">
+            <comp dof="y" value="-1"/>
+          </force>
         </bcsAndLoads>
         <storeResults>
           <nodeResult type="mechDisplacement">
@@ -59,9 +62,7 @@
   </sequenceStep>
   
   <optimization>
-    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
-      <multipleExcitation type="homogenizationTestStrains" />
-    </costFunction>
+    <costFunction type="compliance" task="minimize" />
     <optimizer type="evaluate" maxIterations="1" />
     <ersatzMaterial method="simp" material="mechanic" region="mech">
       <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />

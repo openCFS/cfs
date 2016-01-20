@@ -528,6 +528,7 @@ IF(BUILD_TESTING)
 
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
