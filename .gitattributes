@@ -1359,7 +1359,6 @@ share/xml/CFS-Simulation/Schemas/CFS_FileFormats.xsd -text svneol=unset#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_IntegrationScheme.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_LinearSystem.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_Misc.xsd svneol=native#text/xml
-share/xml/CFS-Simulation/Schemas/CFS_Optimization.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDELatticeBoltzmann.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEacoustic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEacousticMixed.xsd -text
