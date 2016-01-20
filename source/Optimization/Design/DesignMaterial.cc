@@ -3607,7 +3607,7 @@ void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
         }
       }
     }
-    LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+    LOG_DBG3(dm) << "DM:FSGF: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
         << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
   }
   // hierarchize data vectors
@@ -3664,10 +3664,10 @@ void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
     }
     gp = gridStorage->get(i);
     if (gridStorage->dim() == 3) {
-      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+      LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
           << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
     } else {
-      LOG_DBG3(dm) << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
+      LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
           << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
     }
   }
@@ -3691,7 +3691,7 @@ void DesignMaterial::HierarchizeSparseGridCoefficients() {
     hierOp->doHierarchisation(volume_);
     delete hierOp;
   } else {
-    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 6 : 4));
+    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 7 : 5));
     alphas.setColumn(0, alpha1_);
     alphas.setColumn(1, alpha2_);
     alphas.setColumn(2, alpha3_);
