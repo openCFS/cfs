@@ -20,11 +20,6 @@
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
 #include <omp.h>
-const UInt numThreads=omp_get_num_threads();
-#endif
-
-#ifndef USE_OPENMP
-const UInt numThreads=1;
 #endif
 
 namespace CoupledField{
@@ -67,23 +62,41 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
 
   //now loop over each candidate and call for the intersection algorithm
   UInt numCandidates = elemCandidates_.size();
+  std::vector< std::pair<UInt,UInt> > newVec = elemCandidates_;
   StdVector<ElemIntersect::VolCenterInfo> retInfo;
   UInt numIntersects = 0;
-#pragma omp parallel shared(numIntersects)
+  UInt numThreads= 1;
+#ifdef USE_OPENMP
+#pragma omp parallel
+  {
+  numThreads = omp_get_num_threads();
+  }
+
+#endif
+
+  std::cout << "\t\t\t Processing " << numCandidates << " intersection candidates using " <<  numThreads << " threads." << std::endl;
+  INTER locAlgo = this->interAlgo_;
+#pragma omp parallel shared(numIntersects, newVec), firstprivate(locAlgo)
 {
 
-  INTER locAlgo = interAlgo_;
   StdVector<Double> curVols;
   StdVector<Vector<Double> > curCenters;
   StdVector<ElemIntersect::VolCenterInfo> localInfo;
   StdVector<ElemIntersect::VolCenterInfo> elemInfo;
+
   localInfo.Reserve(std::ceil(numCandidates/numThreads));
+  UInt tENum = 0;
+  UInt sENum = 0;
+
+  const Elem* elem1;
+  const Elem* elem2;
 #pragma omp for
   for(UInt aCand = 0; aCand < numCandidates; ++aCand){
     //obtain element pointers from grids
-    const std::pair<UInt,UInt>& candidate = elemCandidates_[aCand];
-    const Elem* elem1 = tGrid_->GetElem(candidate.first);
-    const Elem* elem2 = sGrid_->GetElem(candidate.second);
+    tENum = newVec[aCand].first;
+    sENum = newVec[aCand].second;
+    elem1 = tGrid_->GetElem(tENum);
+    elem2 = sGrid_->GetElem(sENum);
     locAlgo.SetTElem(elem1->elemNum);
     bool isIntersect = locAlgo.Intersect(elem2->elemNum);
     if(isIntersect){

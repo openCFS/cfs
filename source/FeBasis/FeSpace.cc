@@ -14,7 +14,7 @@
 #include "FeSpaceConst.hh"
 
 
-#ifdef OPENMP
+#ifdef _OPENMP
 #include <omp.h>
 #endif
 

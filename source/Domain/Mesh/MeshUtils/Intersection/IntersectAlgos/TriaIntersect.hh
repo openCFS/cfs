@@ -21,6 +21,7 @@
 #include "Utils/StdVector.hh"
 #include "FeBasis/BaseFE.hh"
 #include "CoordTetra.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField{
 
@@ -35,19 +36,33 @@ public:
   //! \copydoc ElemIntersect::TriaIntersect
   TriaIntersect(Grid* trgGrid, Grid* srcGrid)
    : ElemIntersect(trgGrid,srcGrid){
-    tElem_ = NULL;
+    tElemNum_ = 0;
+    sElemNum_ = 0;
   }
 
   //! copy constructor
   TriaIntersect(const TriaIntersect& inter)
    : ElemIntersect(inter){
 
-    tElem_ = inter.tElem_;
+    tElemNum_ = inter.tElemNum_;
     tTets_ = inter.tTets_;
     sElemNum_ = inter.sElemNum_;
     intersectingTets_ = inter.intersectingTets_;
     lastTetIdx_ =  inter.lastTetIdx_;
   }
+
+  //! assignment
+  TriaIntersect & operator=(const TriaIntersect& inter){
+    this->sGrid_ = inter.sGrid_;
+    this->tGrid_ = inter.tGrid_;
+    tElemNum_ = inter.tElemNum_;
+    tTets_ = inter.tTets_;
+    sElemNum_ = inter.sElemNum_;
+    intersectingTets_ = inter.intersectingTets_;
+    lastTetIdx_ =  inter.lastTetIdx_;
+    return *this;
+  }
+
 
   virtual ~TriaIntersect(){
 
@@ -88,11 +103,11 @@ private:
   //!\param(in) baseFName base name of generated files
   void ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName);
 
-  //! pointer to currenty active base element
-  const Elem* tElem_;
-
   //! coordinateTetra corresponding to tElem_
   StdVector<CoordTetra> tTets_;
+
+  //! storage of target element number
+  UInt tElemNum_;
 
   //! storage of source element number
   UInt sElemNum_;
@@ -100,7 +115,7 @@ private:
   //! coordinateTetra from last intersection
   StdVector<CoordTetra> intersectingTets_;
 
-  //! cached triangulated baseFE
+  //! cached, triangulated baseFE
   StdVector< StdVector<UInt> > lastTetIdx_;
 };
 

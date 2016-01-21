@@ -45,6 +45,10 @@ InputFilter::InputFilter(UInt numWorkers, CF::PtrParamNode config, str1::shared_
   std::string gridMode = params_->Get("gridType",ParamNode::EX)->As<std::string>();
   if(gridMode == "fullGrid"){
     ptGrid = new CF::GridCFS(maxDim,dummyXMLNode,infoNode,filterId_);
+  }else if (gridMode == "simpleGrid"){
+    ptGrid = new CF::GridCFS(maxDim,dummyXMLNode,infoNode,filterId_,false);
+  }else{
+    EXCEPTION("The chosen grid mode \'" << gridMode << "\' is not supported.")
   }
 
   inFile_->ReadMesh(ptGrid);

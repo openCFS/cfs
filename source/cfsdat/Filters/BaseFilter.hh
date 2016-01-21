@@ -26,6 +26,7 @@
 #include "cfsdat/Utils/DataStructs.hh"
 #include "cfsdat/Utils/ResultManager.hh"
 #include "cfsdat/Utils/Defines.hh"
+#include "Utils/Timer.hh"
 
 namespace CFSDat{
 
@@ -121,6 +122,37 @@ protected:
       double val, delta;
   };
 
+
+  ///Starts a Timer inside the filter
+  inline boost::uuids::uuid StartTime(){
+    boost::uuids::uuid tId = boost::uuids::random_generator()();
+    this->theTimers[tId].reset(new Timer);
+    this->theTimers[tId]->Start();
+    return tId;
+  }
+
+  ///Stops given Timer and returns the result
+  inline std::string StopTime(boost::uuids::uuid tId){
+    this->theTimers[tId]->Stop();
+    std::stringstream elapsed;
+    const int walltime((int) theTimers[tId]->GetWallTime());
+    if(walltime > 120) {
+      const int wallmin((int) (walltime / 60.0));
+      if(wallmin > 60){
+        elapsed << wallmin/60 << "h";
+      }else{
+        elapsed << wallmin << "min";
+      }
+    }else{
+      elapsed << walltime << "s";
+    }
+    //remove timer from map
+    this->theTimers[tId].reset();
+    theTimers.erase(tId);
+
+    return elapsed.str();
+  }
+
   //=================================================================
   // Result Storage
   //=================================================================
@@ -165,6 +197,9 @@ protected:
   boost::uuids::uuid filterTag_;
 
   str1::shared_ptr<ResultManager> resultManager_;
+
+  /// timer for performance usage
+  std::map<boost::uuids::uuid , CF::shared_ptr<CF::Timer> > theTimers;
 
 
 private:

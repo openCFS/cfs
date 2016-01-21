@@ -130,7 +130,7 @@ vtkPVPostFilter::vtkPVPostFilter()
 
   this->SetNumberOfInputPorts(1);
   this->SetNumberOfOutputPorts(1);
-  this->GetInformation()->Set(vtkAlgorithm::PRESERVES_DATASET(), 1);
+//  this->GetInformation()->Set(vtkAlgorithm::PRESERVES_DATASET(), 1); // ft: breakt with new vtk
 }
 
 //----------------------------------------------------------------------------

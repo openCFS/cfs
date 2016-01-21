@@ -85,9 +85,9 @@ MESSAGE(
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-#TODO: REENABLE
-  #ctest_update_trunk_wien.cmake
-  #ctest_update_trunk_testsuite_wien.cmake
+  #TODO: REENABLE
+  ctest_update_trunk_wien.cmake
+  ctest_update_trunk_testsuite_wien.cmake
 )
 
 FOREACH(SCRIPT IN ITEMS ${UPDATE_SCRIPTS})

@@ -34,9 +34,9 @@ namespace CoupledField{
   // Iterator reporter class, returning the two ids of the CGAL-Boxes,
   // the first being the element number, the second being the node index
   template <class OutputIterator>
-  struct CGAL_ElemPointIdReporter {
+  struct CGAL_ElemElemIdReporter {
     OutputIterator it;
-    CGAL_ElemPointIdReporter(OutputIterator i  )
+    CGAL_ElemElemIdReporter(OutputIterator i  )
     : it(i) {} // store iterator in object
 
     // We write the id-number of box a to the output iterator assuming
@@ -52,8 +52,8 @@ namespace CoupledField{
   };
   // helper function to create the function object
   template <class Iter>
-  CGAL_ElemPointIdReporter<Iter> elemPointIdReporter(Iter it)
-  { return CGAL_ElemPointIdReporter<Iter>(it); }
+  CGAL_ElemElemIdReporter<Iter> elemElemIdReporter(Iter it)
+  { return CGAL_ElemElemIdReporter<Iter>(it); }
 
 
 std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(const StdVector<Elem*>& entList1,
@@ -88,7 +88,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
 
   CGAL::box_intersection_d( boxes1.begin(), boxes1.end(),
                             boxes2.begin(), boxes2.end(),
-                            elemPointIdReporter( std::back_inserter( assocs )));
+                            elemElemIdReporter( std::back_inserter( assocs )));
 
   return assocs;
 }
@@ -123,7 +123,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
 
   CGAL::box_intersection_d( elBoxes.begin(), elBoxes.end(),
                             pointBoxes.begin(), pointBoxes.end(),
-                            elemPointIdReporter( std::back_inserter( assocs )));
+                            elemElemIdReporter( std::back_inserter( assocs )));
 
   return assocs;
 }

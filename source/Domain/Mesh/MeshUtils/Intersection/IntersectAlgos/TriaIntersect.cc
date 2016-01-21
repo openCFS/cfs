@@ -23,9 +23,8 @@ namespace CoupledField{
 
 void TriaIntersect::SetTElem( UInt tNum ){
   const Elem* newTElem = tGrid_->GetElem(tNum);
-  if(tElem_ != newTElem){
-    tElem_ = newTElem;
-    tTets_ = GetTetsFromElem(tElem_, tGrid_);
+  if(tElemNum_ != newTElem->elemNum){
+    tTets_ = GetTetsFromElem(newTElem, tGrid_);
   }
 }
 
@@ -92,7 +91,7 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
 
   Double& volume = infos[0].volume;
   Vector<Double>& center = infos[0].center;
-  infos[0].targetElemNum = tElem_->elemNum;
+  infos[0].targetElemNum = tElemNum_;
   infos[0].sourceElemNum = sElemNum_;
   center.Resize(3);
   center.Init();
@@ -158,10 +157,10 @@ inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem
     genTets.Resize(numTets);
     for(UInt aT = 0;aT<numTets;++aT){
       const StdVector<UInt>& aTetIdx = lastTetIdx_[aT];
-      CoordTetra & aTet = genTets[aT];
+      //CoordTetra & aTet = genTets[aT];
       for(UInt aNode =0;aNode<4;++aNode){
         UInt nodeNum = newTElem->connect[aTetIdx[aNode]];
-        aGrid->GetNodeCoordinate3D( aTet[aNode], nodeNum,true);
+        aGrid->GetNodeCoordinate( genTets[aT][aNode], nodeNum,true);
       }
     }
     return genTets;
