@@ -1,8 +1,6 @@
 <?xml version="1.0"?>
 
-<cfsMaterialDataBase xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://www.cfs++.org ../../XML/CFS-Material/CFS_Material.xsd"
-  xmlns="http://www.cfs++.org">
+<cfsMaterialDataBase xmlns="http://www.cfs++.org">
   <material name="Air">
     <acoustic>
       <!-- Data obtained from : www.wikipedia.de -> "Luft" und "Kompressionsmodul" und "Adiabatenexponent"  
@@ -39,10 +37,9 @@
       </heatConductivity>
     </heatConduction>
     <magnetic>
-      <!-- Data obtained from : "http://www.matweb.com"
-           Reference(s) : "Conductivity: www.matweb.com; Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
+      <!-- Permeability: http://www.ee.surrey.ac.uk/Workshop/advice/coils/mu/#mu0"
            Remarks : "Name: K0.5Na0.5Nb03, air fired" -->
-      <electricConductivity> 1.0000E-10 </electricConductivity>
+      <electricConductivity> 0.0 </electricConductivity>
       <magneticPermeability>
         <linear>
           <isotropic> 1.2566E-06 </isotropic>
@@ -65,13 +62,13 @@
           </real>
         </isotropic>
       </elasticity>
+      <mechanicalDamping>
+        <rayleigh>
+          <lossTangensDelta>0.01</lossTangensDelta>
+          <measuredFreq>1e3</measuredFreq>
+        </rayleigh>        
+      </mechanicalDamping>      
     </mechanical>
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <density> 2700 </density>
-      <compressionModulus> 1.1128E+11 </compressionModulus>
-    </acoustic>
     <heatConduction>
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
@@ -100,9 +97,6 @@
     </magnetic>
   </material>
 
-  
-  
-  
   <material name="Nickel">
     <mechanical>
       <!-- Data obtained from : "http://www.matweb.com"
@@ -117,11 +111,9 @@
           </real>
         </isotropic>
       </elasticity>
-    </mechanical>
+  </mechanical>
      </material>
   
-  
-
   <material name="BariumTitanate">
     <mechanical>
       <!-- Data obtained from : "http://www.efunda.com"
@@ -157,7 +149,7 @@
           0.0000e-003 0.0000e-003 21.3052e+000 0.0000e-003 0.0000e-003 -2.6179e+000 -2.5795e+000
           3.7157e+000 0.0000e-003 0.0000e-003 0.0000e-003
           <!--this is the d - Tensor 
-	  0.000E+00    0.000E+00   0.000E+00   0.000E+00   3.920E-10   0.000E+00
+	         0.000E+00    0.000E+00   0.000E+00   0.000E+00   3.920E-10   0.000E+00
           0.000E+00   0.000E+00   0.000E+00   3.920E-10   0.000E+00   0.000E+00
           -3.450E-11   -3.410E-11   8.560E-11   0.000E+00   0.000E+00   0.000E+00-->
         </real>
@@ -207,26 +199,6 @@
     </piezo>
   </material>
 
-  <material name="Benzene">
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <!-- Remarks : "@ 25 degree c" -->
-      <density> 870 </density>
-      <compressionModulus> 1.4600E+09 </compressionModulus>
-    </acoustic>
-    <electric>
-      <!-- Data obtained from : "http://hyperphysics.phy-astr.gsu.edu/hbase/hframe.html"
-           Reference(s) : "Sears, F. W., Zemansky, M. W., Young, H. D., University Physics, 6th Ed., Addison-Wesley, 1982."
-           Remarks : "@20 degree centigrade" -->
-      <permittivity>
-        <isotropic>
-          <real> 2.022E-11 </real>
-        </isotropic>
-      </permittivity>
-    </electric>
-  </material>
-
   <material name="Copper">
     <mechanical>
       <!-- Data obtained from : "http://www.matweb.com"
@@ -242,12 +214,6 @@
         </isotropic>
       </elasticity>
     </mechanical>
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <density> 8930 </density>
-      <compressionModulus> 2.2414E+11 </compressionModulus>
-    </acoustic>
     <heatConduction>
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "Mechanics of Materials, 1996" -->
@@ -263,6 +229,14 @@
         </linear>
       </heatConductivity>
     </heatConduction>
+    <magnetic>
+      <electricConductivity> 5.8824e+07 </electricConductivity>
+      <magneticPermeability>
+        <linear>
+          <isotropic> 1.2566E-06 </isotropic>
+        </linear>
+      </magneticPermeability>
+    </magnetic>
   </material>
 
   <material name="Glass">
@@ -289,6 +263,14 @@
         </isotropic>
       </permittivity>
     </electric>
+    <magnetic>
+      <electricConductivity> 0.0 </electricConductivity>
+      <magneticPermeability>
+        <linear>
+           <isotropic> 1.2566E-06 </isotropic>
+        </linear>
+      </magneticPermeability>
+    </magnetic>    
   </material>
 
   <material name="Glycerin">
@@ -319,13 +301,6 @@
         </isotropic>
       </elasticity>
     </mechanical>
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) : "Handbook of Chemistry and Physics, 45th Edition" -->
-      <!-- Remarks : "hard drawn" -->
-      <density> 19700 </density>
-      <compressionModulus> 2.0700E+11 </compressionModulus>
-    </acoustic>
     <heatConduction>
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
@@ -341,6 +316,14 @@
         </linear>
       </heatConductivity>
     </heatConduction>
+    <magnetic>
+      <electricConductivity> 0.0 </electricConductivity>
+      <magneticPermeability>
+        <linear>
+          <isotropic> 1.2566E-06 </isotropic>
+        </linear>
+      </magneticPermeability>
+    </magnetic>    
   </material>
 
   <material name="Graphite">
@@ -375,12 +358,6 @@
         </isotropic>
       </elasticity>
     </mechanical>
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) :  -->
-      <density> 7690 </density>
-      <compressionModulus> 2.6769E+11 </compressionModulus>
-    </acoustic>
     <heatConduction>
       <!-- Data obtained from : "http://www.goodfellow.com"
            Reference(s) : "www.goodfellow.com/csp/active/gfMaterials.csp" -->
@@ -415,7 +392,7 @@
       <!-- Data obtained from : "http://www.matweb.com"
            Reference(s) : "www.matweb.com"
            Remarks :  -->
-      <density> 11340 </density>
+      <density> 10200 </density>
       <elasticity>
         <isotropic>
           <real>
@@ -425,12 +402,6 @@
         </isotropic>
       </elasticity>
     </mechanical>
-    <acoustic>
-      <!-- Data obtained from : "http://www.ondacorp.com"
-           Reference(s) :  -->
-      <density> 11200 </density>
-      <compressionModulus> 5.4208E+10 </compressionModulus>
-    </acoustic>
     <heatConduction>
       <!-- Data obtained from : "http://www.memsnet.org"
            Reference(s) : "CRC Materials Science and Engineering Handbook" -->
@@ -445,7 +416,15 @@
            <isotropic>  35.2  </isotropic>
         </linear>
       </heatConductivity>
-     </heatConduction>
+    </heatConduction>
+    <magnetic>
+      <electricConductivity> 4.8544E+06 </electricConductivity>
+      <magneticPermeability>
+        <linear>
+          <isotropic> 1.2566E-06  </isotropic>
+        </linear>
+      </magneticPermeability>
+    </magnetic>
   </material>
 
   <material name="LithiumNiobate">
