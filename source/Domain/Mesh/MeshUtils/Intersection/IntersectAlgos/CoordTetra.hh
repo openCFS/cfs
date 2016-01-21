@@ -59,9 +59,21 @@ struct CoordTetra{
 
   inline CutPlane& GetPlane(UInt i){
     assert(i<4);
-    if(!planesComputed_)
+    if(!planesComputed_){
       ComputeClipPlanes();
+    }
     return clipPlanes_[i];
+  }
+
+  void ReversePoints(){
+    //WARNING THIS RENDERS THE CUT PLANES INVALID
+    clipPlanes_.Clear(true);
+    planesComputed_ = false;
+    Vector<Double> dummy = points[3];
+    points[3] = points[2];
+    points[2] = points[1];
+    points[1] = points[0];
+    points[0] = dummy;
   }
 
   //! standard tolerance for coordinate tetra operations

@@ -44,6 +44,7 @@ public:
 
     tElem_ = inter.tElem_;
     tTets_ = inter.tTets_;
+    sElemNum_ = inter.sElemNum_;
     intersectingTets_ = inter.intersectingTets_;
     lastTetIdx_ =  inter.lastTetIdx_;
   }
@@ -81,11 +82,20 @@ private:
   //!\return vector of Tetrahedrons in coordinate format
   inline StdVector<CoordTetra> GetTetsFromElem(const Elem* newTElem, Grid* aGrid);
 
+  //!exports a list of Tetrahedrons, each as an off file
+  //! given file will be overwritten
+  //!\param(in) tetList List of tetrahedrons
+  //!\param(in) baseFName base name of generated files
+  void ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName);
+
   //! pointer to currenty active base element
   const Elem* tElem_;
 
   //! coordinateTetra corresponding to tElem_
   StdVector<CoordTetra> tTets_;
+
+  //! storage of source element number
+  UInt sElemNum_;
 
   //! coordinateTetra from last intersection
   StdVector<CoordTetra> intersectingTets_;
