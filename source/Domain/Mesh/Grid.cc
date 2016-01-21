@@ -1200,8 +1200,8 @@ namespace CoupledField
       UInt elemNum1 = *a.handle();
       UInt elemNum2 = *b.handle();
       std::pair<UInt, UInt > pair;
-      pair.first = elemNum1;
-      pair.second = elemNum2;
+      pair.first = elemNum2;
+      pair.second = elemNum1;
       *it++ = pair;
     }
   };

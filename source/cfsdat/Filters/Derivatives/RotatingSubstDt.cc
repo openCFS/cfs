@@ -73,6 +73,7 @@ void RotatingSubstDt::AdaptFilterResults(){
       EXCEPTION("No upstream filter provided time information for the result "  << aFiltResName);
     }
 
+
     //TODO: Known bug mesh result is not consitently defined
     //check if everything is a mesh result
    // if(!gradInfo->isMeshResult || !timeInfo->isMeshResult){

@@ -75,9 +75,6 @@ private:
 
   //! geimetric tolerance of algorithms
   Double tol_;
-
-  //! algorithm which performs an element-element intersection
-  INTER interAlgo_;
 };
 
 }

@@ -29,8 +29,7 @@ VolumeGridIntersection<INTER>::VolumeGridIntersection(Grid* target, Grid* source
                                                std::set<std::string> targetRegions, std::set<std::string> sourceRegions,
                                                Double tolerance)
                        :tGrid_(target),sGrid_(source),
-                        tRegs_(targetRegions),sRegs_(sourceRegions), tol_(tolerance),
-                        interAlgo_(INTER(tGrid_,sGrid_)){
+                        tRegs_(targetRegions),sRegs_(sourceRegions), tol_(tolerance){
 
   if(tGrid_->GetDim() != sGrid_->GetDim()){
     //we would need additional implementation e.g. to map a 3D surface region to a 2D Grid.
@@ -62,7 +61,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
 
   //now loop over each candidate and call for the intersection algorithm
   UInt numCandidates = elemCandidates_.size();
-  std::vector< std::pair<UInt,UInt> > newVec = elemCandidates_;
+  //std::vector< std::pair<UInt,UInt> > newVec = elemCandidates_;
   StdVector<ElemIntersect::VolCenterInfo> retInfo;
   UInt numIntersects = 0;
   UInt numThreads= 1;
@@ -75,10 +74,10 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
 #endif
 
   std::cout << "\t\t\t Processing " << numCandidates << " intersection candidates using " <<  numThreads << " threads." << std::endl;
-  INTER locAlgo = this->interAlgo_;
-#pragma omp parallel shared(numIntersects, newVec), firstprivate(locAlgo)
-{
 
+#pragma omp parallel shared(numIntersects)
+{
+  INTER locAlgo(tGrid_,sGrid_);
   StdVector<Double> curVols;
   StdVector<Vector<Double> > curCenters;
   StdVector<ElemIntersect::VolCenterInfo> localInfo;
@@ -93,8 +92,8 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
 #pragma omp for
   for(UInt aCand = 0; aCand < numCandidates; ++aCand){
     //obtain element pointers from grids
-    tENum = newVec[aCand].first;
-    sENum = newVec[aCand].second;
+    tENum = elemCandidates_[aCand].first;
+    sENum = elemCandidates_[aCand].second;
     elem1 = tGrid_->GetElem(tENum);
     elem2 = sGrid_->GetElem(sENum);
     locAlgo.SetTElem(elem1->elemNum);
