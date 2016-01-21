@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <boost/iterator/counting_iterator.hpp>
+
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -4310,7 +4312,12 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     level_ = log2(dim1);
   }
 
-  if (grid_->getStorage()->dim() == 3) {
+#ifdef USE_SGPP
+  bool test = grid_->getStorage()->dim() == 3;
+#else
+  bool test = shearIsDesign_;
+#endif
+  if (test) {
     assert(catalogueSize_.GetSize() == 3);
   }
 
@@ -4342,8 +4349,11 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   // If too many tensor entries are given we extract the needed ones
   if (catalogueSize_.GetSize() == 2 && nCols == 6) {
     // extract the columns for entries E11 E12 E22 E33
-    std::vector<UInt> rows(nRows);
-    std::iota(std::begin(rows), std::end(rows), 0);
+    std::vector<UInt> rows(boost::counting_iterator<int>( 0 ), boost::counting_iterator<int>( nRows ));
+    std::cout << "SARAH:\n";
+    for(unsigned int i=0; i<rows.size(); i++) {
+      std::cout << rows[i];
+    }
     std::vector<UInt> cols(4);
     cols[0] = 0;
     cols[1] = 1;
