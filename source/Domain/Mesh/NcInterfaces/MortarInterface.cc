@@ -2040,13 +2040,13 @@ bool MortarInterface::CutPolysCGAL(StdVector<Vector<Double> > &p1,
   // be used to calculate intersections of the polygons.
   Vector<Double>& ez = c1_;
   Vector<Double>& v = c2_;
-  ez.Resize(3,0.0);
-  v.Resize(3,0.0);
+  ez.Resize(3);
+  v.Resize(3);
   ez[2] = 1.0;
   n.CrossProduct(ez, v);
   //quick fix, if v has zero length, i.e. ez == n we set continue, setting v to zero
   if(v.NormL2()!=0)
-    v.Normalize();
+        v.Normalize();
 
   Double ca = n[2]; // cos(n ^ ez) = n_z/|n| = n_z
   Double sa = sqrt(n[0] * n[0] + n[1] * n[1]); // sin(n ^ ez) = sqrt(n_x^2 + n_y^2)/|n| = sqrt(n_x^2 + n_y^2)

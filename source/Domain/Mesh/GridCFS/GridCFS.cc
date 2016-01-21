@@ -3374,6 +3374,8 @@ namespace CoupledField {
             corrElems.insert(el);
           }
         }
+        //we need to reset the element in case of precached maps
+        esm->SetElem(el,false);
       }
     }    
     // if some elements were successfully reoriented, issue warning

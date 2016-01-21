@@ -239,13 +239,7 @@ cfsdeps/paraview/paraview-srcdir-mingw/VTK/Web/WebGLExporter/vtkWebGLExporter.cx
 cfsdeps/paraview/paraview-srcdir/ParaViewCore/ServerManager/SMApplication/Resources/readers.xml -text
 cfsdeps/paraview/paraview-srcdir/ParaViewCore/VTKExtensions/Core/vtkPVPostFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/Qt/Components/Resources/XML/ColorMaps.xml -text
-cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CGNS/avtCGNSFileFormat.C -text
-cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/CMakeLists.txt -text
 cfsdeps/paraview/paraview-srcdir/Utilities/VisItBridge/databases/visit_readers.xml -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkBiQuadraticQuad.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticQuad.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Common/DataModel/vtkQuadraticTriangle.cxx -text
-cfsdeps/paraview/paraview-srcdir/VTK/Filters/Geometry/vtkDataSetSurfaceFilter.cxx -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/CMakeLists.txt -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.cc -text
 cfsdeps/paraview/paraview-srcdir/VTK/IO/CFSReader/hdf5Common.h -text
@@ -372,6 +366,8 @@ ctest_scripts/shared/CTestConfig.cmake.in -text
 ctest_scripts/shared/provision_nightly_tests_linux.sh -text
 ctest_scripts/shared/test_macros.cmake -text
 ctest_scripts/sites/draco/ctest_update.cmake -text
+ctest_scripts/sites/draco/ctest_update_trunk_testsuite_wien.cmake -text
+ctest_scripts/sites/draco/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/draco/di_log.cmake -text
 ctest_scripts/sites/draco/macros_for_draco.cmake -text
 ctest_scripts/sites/draco/site_specific_finish.cmake -text
@@ -451,6 +447,12 @@ ctest_scripts/sites/precise/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/precise/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/precise/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/precise/site_specific_init.cmake -text
+ctest_scripts/sites/sl7/Vagrantfile -text
+ctest_scripts/sites/sl7/linux64_trunk_gcc_release.ctest -text
+ctest_scripts/sites/sl7/linux64_trunk_gcc_release_deploy.cmake -text
+ctest_scripts/sites/sl7/site_specific_finish.cmake -text
+ctest_scripts/sites/sl7/site_specific_init.cmake -text
+ctest_scripts/sites/sl7/site_specific_vars.cmake -text
 ctest_scripts/sites/sles10/Vagrantfile -text
 ctest_scripts/sites/sles10/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/sles10/linux64_trunk_gcc_release.ctest -text

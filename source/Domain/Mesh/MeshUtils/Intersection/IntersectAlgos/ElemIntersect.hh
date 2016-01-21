@@ -49,6 +49,8 @@ public:
     UInt sourceElemNum;
   };
 
+
+
   //!constructor
   //! \param(in) g1 the base grid. SetTElem function refers to this
   //! \param(in) g2 operating grid element passed to Intersect method refers to this
@@ -64,6 +66,14 @@ public:
 
   //! deep pointer copy
   virtual ElemIntersect* Clone()=0;
+
+
+  //! assignment
+  ElemIntersect & operator=(const ElemIntersect& inter){
+    this->sGrid_ = inter.sGrid_;
+    this->tGrid_ = inter.tGrid_;
+    return *this;
+  }
 
   //! destructor
   virtual ~ElemIntersect(){

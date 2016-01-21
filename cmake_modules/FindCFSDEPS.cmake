@@ -554,9 +554,9 @@ IF(BUILD_PARAVIEW)
   #---------------------------------------------------------------------------
   SET(PARAVIEW_SB_URL "${CFS_DS_SOURCES_DIR}/paraview")
   SET(PARAVIEW_SB_BASE "pvsuperbuild")
-  SET(PARAVIEW_SB_VER "4.1.0")
+  SET(PARAVIEW_SB_VER "4.4.0")
   SET(PARAVIEW_SB_TGZ "${PARAVIEW_SB_BASE}-${PARAVIEW_SB_VER}.tgz")
-  SET(PARAVIEW_SB_MD5 94e49d03e38955c0cb98c1159f417feb)
+  SET(PARAVIEW_SB_MD5 f2c38c4f764f0ca5fdf54accf2e90233)
   INCLUDE("${CFSDEPS_DIR}/paraview/External_ParaViewSuperbuild.cmake")
 ENDIF(BUILD_PARAVIEW)
 

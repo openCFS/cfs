@@ -85,7 +85,10 @@ void GridIntersectionFilter::PrepareInterpolation(){
 
   std::cout << "\t\t 1. Intersecting Grids" << std::endl;
   //TODO: make optional, read from file...
+  boost::uuids::uuid tId = this->StartTime();
   StdVector<ElemIntersect::VolCenterInfo> intersectInfo = intersect.GetVolCenterInfo();
+  std::cout << "\t\t\t Took: " << this->StopTime(tId) << std::endl;
+
   std::cout << "\t\t 2. Creating interpolation matrix" << std::endl;
   CreateCRS(intersectInfo);
   std::cout << "\t\t\t Interpolation matrix is " << InterpolationMatrix->GetNumRows() << "x" << InterpolationMatrix->GetNumCols()

@@ -48,6 +48,13 @@
           </xsd:documentation>
         </xsd:annotation>
       </xsd:enumeration>
+      <xsd:enumeration value="simpleGrid">
+        <xsd:annotation>
+          <xsd:documentation>
+            Will generate a full scale CFS grid which can be used for mesh result export.But no additional element information thus reducing memory consumption at the cost of less flexibility.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:enumeration>
       <!--xsd:enumeration value="justCentroids">
         <xsd:annotation>
           <xsd:documentation>
