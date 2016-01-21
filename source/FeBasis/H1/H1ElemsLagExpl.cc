@@ -740,32 +740,37 @@ namespace CoupledField {
   
   void FeH1LagrangeHex1::Triangulate(StdVector< StdVector<UInt> > & triConnect){
     //TODO: check orientation!
-    StdVector< StdVector<UInt> > nodes(5);
-    nodes.Init(StdVector<UInt>(4));
+    triConnect.Resize(6);
+    triConnect.Init(StdVector<UInt>(4));
     triConnect[0][0] = 0;
-    triConnect[0][1] = 1;
-    triConnect[0][2] = 3;
-    triConnect[0][3] = 4;
+    triConnect[0][1] = 4;
+    triConnect[0][2] = 1;
+    triConnect[0][3] = 2;
 
     triConnect[1][0] = 1;
-    triConnect[1][1] = 4;
-    triConnect[1][2] = 5;
-    triConnect[1][3] = 6;
+    triConnect[1][1] = 5;
+    triConnect[1][2] = 2;
+    triConnect[1][3] = 4;
 
-    triConnect[2][0] = 1;
+    triConnect[2][0] = 0;
     triConnect[2][1] = 4;
-    triConnect[2][2] = 6;
+    triConnect[2][2] = 2;
     triConnect[2][3] = 3;
 
-    triConnect[3][0] = 1;
-    triConnect[3][1] = 3;
-    triConnect[3][2] = 6;
-    triConnect[3][3] = 2;
+    triConnect[3][0] = 2;
+    triConnect[3][1] = 6;
+    triConnect[3][2] = 3;
+    triConnect[3][3] = 4;
 
     triConnect[4][0] = 3;
-    triConnect[4][1] = 6;
-    triConnect[4][2] = 7;
-    triConnect[4][3] = 4;
+    triConnect[4][1] = 7;
+    triConnect[4][2] = 4;
+    triConnect[4][3] = 6;
+
+    triConnect[5][0] = 2;
+    triConnect[5][1] = 6;
+    triConnect[5][2] = 4;
+    triConnect[5][3] = 5;
   }
 
   

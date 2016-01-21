@@ -149,20 +149,20 @@ bool RotatingSubstDt::Run(){
     CF::StdVector<UInt> eqnNums; //they should be equal...
     Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
 
-   // Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
-   // Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
-   // Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
-   // Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
+    Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
+    Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
+    Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
+    Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
     for(UInt i=0;i<last;++i){
-      //returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
-      returnVec[i] = 0.0;
+      returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
+      //returnVec[i] = 0.0;
     }
 
-    //Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
+    Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
     //now we add the substantial part
-    //UInt gIdx = 0;
+    UInt gIdx = 0;
     EqnMapSimple& mapping = *resultManager_->GetResultAdpter(*aIter)->mapping.get();
     StdVector<UInt> aEqn(1);
     for(UInt aEnt = 0; aEnt <rotEnts_.GetSize();aEnt++){
@@ -171,11 +171,11 @@ bool RotatingSubstDt::Run(){
 
       //this may be a little hackisch but knowing how eqnationMapSimple works
       //its a little faster
-      returnVec[aEqn[0]] = rotField_[aEnt][1];
-      //for(UInt d =0;d<gradDim_;++d){
-      //  gIdx = rotEqns_[aEq]*gradDim_+d;
-      //  returnVec[rotEqns_[aEq]] += rotField_[aEq][d]*gradient[gIdx];
-      //}
+      //returnVec[aEqn[0]] = rotField_[aEnt][1];
+      for(UInt d =0;d<gradDim_;++d){
+        gIdx = aEqn[0]*gradDim_+d;
+        returnVec[aEqn[0]] += rotField_[aEnt][d]*gradient[gIdx];
+      }
     }
     //now we loop over the entity equations
     resultManager_->ActivateResult(*aIter);

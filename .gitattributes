@@ -2206,6 +2206,10 @@ source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.cc -text
 source/cfsdat/Filters/Interpolators/BaseInterpolationFilter.hh -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.cc -text
 source/cfsdat/Filters/Interpolators/CentroidInterpolator.hh -text
+source/cfsdat/Filters/Interpolators/GridIntersectionFilter.cc -text
+source/cfsdat/Filters/Interpolators/GridIntersectionFilter.hh -text
+source/cfsdat/Filters/Interpolators/MeshBasedInterpolator.cc -text
+source/cfsdat/Filters/Interpolators/MeshBasedInterpolator.hh -text
 source/cfsdat/Filters/Output/OutputFilter.cc -text
 source/cfsdat/Filters/Output/OutputFilter.hh -text
 source/cfsdat/README -text

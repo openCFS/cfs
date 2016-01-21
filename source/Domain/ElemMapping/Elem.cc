@@ -132,7 +132,6 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
      connect[2] = connect[1];
      connect[1] = connect[0];
      connect[0] = dummy;
-     dummy = connect[3];
      break;
    case ET_HEXA20:
      for (int n1=8; n1<=11; n1++) {

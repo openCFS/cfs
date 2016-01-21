@@ -320,7 +320,7 @@ template<typename T> class ElemStoreSol;
     void ScalarMult( const Complex factor );
 
     //! Calc cross product of two vectors v = this x b
-    void CrossProduct( const Vector<T>& b, Vector<T>& v );
+    void CrossProduct( const Vector<T>& b, Vector<T>& v ) const;
     
     //! Is this vector collinear with another vector?
     bool Collinear( const Vector<T>& vec);

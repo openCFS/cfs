@@ -15,6 +15,7 @@
 #include "VolumeGridIntersection.hh"
 #include "Domain/Mesh/MeshUtils/EntityAssociation.hh"
 #include "Domain/Mesh/Grid.hh"
+#include <fstream>
 
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
@@ -67,7 +68,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   //now loop over each candidate and call for the intersection algorithm
   UInt numCandidates = elemCandidates_.size();
   StdVector<ElemIntersect::VolCenterInfo> retInfo;
-  UInt numIntersects;
+  UInt numIntersects = 0;
 #pragma omp parallel shared(numIntersects)
 {
 
@@ -88,8 +89,14 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
     if(isIntersect){
       elemInfo.Clear(true);
       locAlgo.GetVolumeAndCenters(elemInfo);
-      for(UInt i=0;i<curVols.GetSize(); ++i){
+      for(UInt i=0;i<elemInfo.GetSize(); ++i){
+        //reject very small elements
+        if(elemInfo[i].volume < 1e-25){
+          continue;
+        }
         numIntersects++;
+        elemInfo[i].targetElemNum = elem1->elemNum;
+        elemInfo[i].sourceElemNum = elem2->elemNum;
         localInfo.Push_back(elemInfo[i]);
       }
     }
@@ -101,12 +108,23 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   }
 #pragma omp critical
   {
-    for(UInt aRet =0;localInfo.GetSize(); ++aRet){
+    for(UInt aRet =0;aRet<localInfo.GetSize(); ++aRet){
       retInfo.Push_back(localInfo[aRet]);
     }
   }
 }
- return retInfo;
+  //give overall volume of intersection
+  Double volume = 0;
+  for(UInt aRet =0;aRet<retInfo.GetSize(); ++aRet){
+   volume += retInfo[aRet].volume;
+ }
+  //std::ofstream aStream("centers.csv", std::ios::trunc | std::ios::out);
+  //for(UInt aRet =0;aRet<retInfo.GetSize(); ++aRet){
+  //  aStream << retInfo[aRet].center[0] << "," << retInfo[aRet].center[1] << "," << retInfo[aRet].center[2] << std::endl;
+  //}
+  //aStream.close();
+  std::cout  << "\t\t\tComputed intersection Volume is " << volume << " from " << numIntersects << " intersection elements" << std::endl;
+  return retInfo;
 
 }
 

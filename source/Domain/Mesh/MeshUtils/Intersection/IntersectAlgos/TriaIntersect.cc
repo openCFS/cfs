@@ -17,79 +17,133 @@
 
 #include "TriaIntersect.hh"
 #include "Domain/ElemMapping/Elem.hh"
-
+#include <fstream>
 
 namespace CoupledField{
 
 void TriaIntersect::SetTElem( UInt tNum ){
-  const Elem* newTElem = g1_->GetElem(tNum);
-  if(tElem_->elemNum != newTElem->elemNum){
+  const Elem* newTElem = tGrid_->GetElem(tNum);
+  if(tElem_ != newTElem){
     tElem_ = newTElem;
-    tTets_ = GetTetsFromElem(tElem_, g1_);
+    tTets_ = GetTetsFromElem(tElem_, tGrid_);
   }
 }
 
 bool TriaIntersect::Intersect(UInt sNum){
-  const Elem* elGrid2 = g2_->GetElem(sNum);
+  /*
+   * We intersect here all tetras from triangulation
+   * the key in this method is the cut against the four planes
+   * of each tetrahedron.
+   * we initially cover the current pair of tetras and begin with
+   * cutting the source tetra against the first plane
+   * the rsult of this is used as a new input for the cut against the
+   * next tetra plane. and so on. only the remaining tetras are stored
+   */
+
+  const Elem* elGrid2 = sGrid_->GetElem(sNum);
+  sElemNum_ = sNum;
   //1. Get tetrahedral information
-  StdVector<CoordTetra> srcTets = GetTetsFromElem(elGrid2,g2_);
+  StdVector<CoordTetra> srcTets = GetTetsFromElem(elGrid2,sGrid_);
+
+  //export source and target tetras
+  //ExportTetras(srcTets,"sources");
+  //ExportTetras(tTets_,"targets");
+
   //this is a n^2 approach. Could be less overhead
   UInt numtTets = tTets_.GetSize();
   UInt numSTets = srcTets.GetSize();
   intersectingTets_.Clear(true);
+  StdVector<CoordTetra> currentTets;
+  StdVector<CoordTetra> tmpTets;
   for(UInt trgT = 0;trgT < numtTets; ++trgT){
-    for(UInt aPlane = 0; aPlane < 4; ++aPlane){
-      //now cut each src to cut plane
-      for(UInt srcT = 0; srcT < numSTets ; ++srcT){
-        SplitAndDecompose(trgT, aPlane, srcTets[srcT], intersectingTets_);
+    for(UInt srcT = 0; srcT < numSTets ; ++srcT){
+      currentTets.Resize(1);
+      currentTets[0] = srcTets[srcT];
+
+      tmpTets.Clear(true);
+      for(UInt aPlane = 0; aPlane < 4; ++aPlane){
+        //now cut each src to cut plane
+        for(UInt cutT = 0; cutT < currentTets.GetSize() ; ++cutT){
+          SplitAndDecompose(trgT, aPlane, currentTets[cutT] , tmpTets);
+        }
+        currentTets = tmpTets;
+        tmpTets.Clear(true);
+        //ExportTetras(currentTets,"Intersect");
+      }
+      //store the remaining tets
+      for(UInt cutT = 0; cutT < currentTets.GetSize() ; ++cutT){
+        intersectingTets_.Push_back(currentTets[cutT]);
       }
     }
   }
+  //ExportTetras(intersectingTets_,"Intersect");
+
   return (intersectingTets_.GetSize()!=0);
 }
 
 void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
   UInt numTets = intersectingTets_.GetSize();
-  infos.Resize(numTets);
+  if(numTets == 0){
+    infos.Resize(0);
+    return;
+  }
+  infos.Resize(1);
   Vector<Double> tC(3);
 
-  for(UInt aTet = 0;aTet < numTets; ++aTet){
-    Double& volume = infos[aTet].volume;
-    Vector<Double>& center = infos[aTet].center;
-    center.Resize(3);
-    for(unsigned int tetI=0; tetI < numTets; tetI++) {
-      const CoordTetra& t = intersectingTets_[tetI];
-      // Calculate volume (no check for orientation)
-      //TODO needs better support from vector class!
-      Double a1 = ( (t[1][1] - t[0][1]) * (t[2][2] - t[0][2]) ) - ( (t[1][2] - t[0][2]) * (t[2][1] - t[0][1]) );
-      a1 *= (t[3][0] - t[0][0]);
+  Double& volume = infos[0].volume;
+  Vector<Double>& center = infos[0].center;
+  infos[0].targetElemNum = tElem_->elemNum;
+  infos[0].sourceElemNum = sElemNum_;
+  center.Resize(3);
+  center.Init();
+  volume = 0.0;
+  for(unsigned int tetI=0; tetI < numTets; tetI++) {
+    CoordTetra& t = intersectingTets_[tetI];
+    // Calculate volume
+    //basic formula : volume = ((p1 - p0)\times(p2-p0))\cdot(p3-p0)
+    //in case of degenerated elements, we only try to correct the connectivity
+    //if the volume is smaller than -1e-10 otherwise, the element will be ignored
+    // Question: could we also take the absolute value for now?
+    //TODO needs better support from vector class to improve performance!
+    Double a1 = ( (t[1][1] - t[0][1]) * (t[2][2] - t[0][2]) ) - ( (t[1][2] - t[0][2]) * (t[2][1] - t[0][1]) );
+    a1 *= (t[3][0] - t[0][0]);
 
-      Double a2 = ( (t[1][2] - t[0][2]) * (t[2][0] - t[0][0]) ) - ( (t[1][0] - t[0][0]) * (t[2][2] - t[0][2]) );
-      a2 *= (t[3][1] - t[0][1]);
+    Double a2 = ( (t[1][2] - t[0][2]) * (t[2][0] - t[0][0]) ) - ( (t[1][0] - t[0][0]) * (t[2][2] - t[0][2]) );
+    a2 *= (t[3][1] - t[0][1]);
 
-      Double a3 = ( (t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) ) - ( (t[1][1] - t[0][1]) * (t[2][0] - t[0][0]) );
-      a3 *= (t[3][2] - t[0][2]);
+    Double a3 = ( (t[1][0] - t[0][0]) * (t[2][1] - t[0][1]) ) - ( (t[1][1] - t[0][1]) * (t[2][0] - t[0][0]) );
+    a3 *= (t[3][2] - t[0][2]);
 
-      Double tV = (1.0/6.0) * std::sqrt(a1*a1+a2*a2+a3*a3);
-      //      Vector<Double> sub1 = (t[1] - t[0]);
-      //      Vector<Double> sub2 = (t[2] - t[0]);
-      //      Vector<Double> sub3 = (t[3] - t[0]);
-      //      Vector<Double> cross;
-      //      sub1.CrossProduct(sub2,cross);
-      //      sub1 = cross * sub3;
-      //      Double tV = (1.0/6.0)*sub1.NormL2();
-      // Calculate centroid
-      //tC = (0.25 * (t[0] + t[1] + t[2] + t[3]));
-
-      for(UInt d=0;d<3;++d){
-        tC[d] = 0.25 * (t[0][d] + t[1][d] + t[2][d] + t[3][d]);
-        center[d] += (tV * tC[d]);
-      }
-      volume += tV;
-
+    Double tV = (1.0/6.0) * (a1+a2+a3);
+    //in case the volume is smaller than zero, maybe the tetra was wrongly
+    //created during intersection. for now we ignore it
+    if(tV < -1e-10){
+      t.ReversePoints();
+      tetI--;
+      continue;
+    }else if(tV < 0){
+      continue;
     }
-    center /= (volume + CoordTetra::EPS);
+    //      Vector<Double> sub1 = (t[1] - t[0]);
+    //      Vector<Double> sub2 = (t[2] - t[0]);
+    //      Vector<Double> sub3 = (t[3] - t[0]);
+    //      Vector<Double> cross;
+    //      sub1.CrossProduct(sub2,cross);
+    //      sub1 = cross * sub3;
+    //      Double tV = (1.0/6.0)*sub1.NormL2();
+    // Calculate centroid
+    //tC = (0.25 * (t[0] + t[1] + t[2] + t[3]));
+
+    for(UInt d=0;d<3;++d){
+      tC[d] = 0.25 * (t[0][d] + t[1][d] + t[2][d] + t[3][d]);
+      center[d] += (tV * tC[d]);
+    }
+    volume += tV;
+    //
   }
+  center /= (volume + CoordTetra::EPS);
+
+
 }
 
 inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid){
@@ -106,7 +160,7 @@ inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem
       const StdVector<UInt>& aTetIdx = lastTetIdx_[aT];
       CoordTetra & aTet = genTets[aT];
       for(UInt aNode =0;aNode<4;++aNode){
-        UInt nodeNum = tElem_->connect[aTetIdx[aNode]];
+        UInt nodeNum = newTElem->connect[aTetIdx[aNode]];
         aGrid->GetNodeCoordinate3D( aTet[aNode], nodeNum,true);
       }
     }
@@ -252,6 +306,27 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
       }
     }
   }
+}
+
+void TriaIntersect::ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName){
+  for(UInt i=0;i<tetList.GetSize();++i ){
+    std::stringstream aFil;
+    aFil << baseFName << i << ".off";
+    std::ofstream aStream(aFil.str().c_str(), std::ios::trunc | std::ios::out);
+    aStream << "OFF" << std::endl;
+    aStream << "4 4 6" << std::endl;
+    aStream << tetList[i][0][0] << "\t" << tetList[i][0][1] << "\t" << tetList[i][0][2] << std::endl;
+    aStream << tetList[i][1][0] << "\t" << tetList[i][1][1] << "\t" << tetList[i][1][2] << std::endl;
+    aStream << tetList[i][2][0] << "\t" << tetList[i][2][1] << "\t" << tetList[i][2][2] << std::endl;
+    aStream << tetList[i][3][0] << "\t" << tetList[i][3][1] << "\t" << tetList[i][3][2] << std::endl;
+
+    aStream << "3 0 1 2" << std::endl;
+    aStream << "3 0 1 3" << std::endl;
+    aStream << "3 0 2 3" << std::endl;
+    aStream << "3 1 2 3" << std::endl;
+    aStream.close();
+  }
+
 }
 
 }

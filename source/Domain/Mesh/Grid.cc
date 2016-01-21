@@ -1197,11 +1197,11 @@ namespace CoupledField
     // We write the id-number of box a to the output iterator assuming
     // that box b (the query box) is not interesting in the result.
     void operator()( const HandleBox& a, const HandleBox& b) {
-      UInt elemNum = *a.handle();
-      UInt pointIndex = *b.handle();
+      UInt elemNum1 = *a.handle();
+      UInt elemNum2 = *b.handle();
       std::pair<UInt, UInt > pair;
-      pair.first = pointIndex;
-      pair.second = elemNum;
+      pair.first = elemNum1;
+      pair.second = elemNum2;
       *it++ = pair;
     }
   };

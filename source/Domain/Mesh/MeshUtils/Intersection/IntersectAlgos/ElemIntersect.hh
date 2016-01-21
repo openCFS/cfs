@@ -32,23 +32,34 @@ public:
 
   //! struct fo basic intersection information
   struct VolCenterInfo{
+    VolCenterInfo(){
+      volume = 0.0;
+      targetElemNum = 0;
+      sourceElemNum = 0;
+    }
+    VolCenterInfo(const VolCenterInfo& inter){
+      volume          = inter.volume;
+      center          = inter.center;
+      targetElemNum   = inter.targetElemNum;
+      sourceElemNum   = inter.sourceElemNum;
+    }
     Double volume;
     Vector<Double> center;
-    UInt oElem1;
-    UInt oElem2;
+    UInt targetElemNum;
+    UInt sourceElemNum;
   };
 
   //!constructor
   //! \param(in) g1 the base grid. SetTElem function refers to this
   //! \param(in) g2 operating grid element passed to Intersect method refers to this
-  ElemIntersect(Grid* g1, Grid* g2) : g1_(g1),g2_(g2){
+  ElemIntersect(Grid* targetGrid, Grid* sourceGrid) : tGrid_(targetGrid),sGrid_(sourceGrid){
 
   }
 
   //! copy constructor
   ElemIntersect(const ElemIntersect& inter){
-    g1_ = inter.g1_;
-    g2_ = inter.g2_;
+    tGrid_ = inter.tGrid_;
+    sGrid_ = inter.sGrid_;
   }
 
   //! deep pointer copy
@@ -77,8 +88,8 @@ public:
 
 
 protected:
-  Grid* g1_;
-  Grid* g2_;
+  Grid* tGrid_;
+  Grid* sGrid_;
 };
 
 }
