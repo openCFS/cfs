@@ -24,7 +24,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 = get_element(f, "design_stiff1_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1 
     s2 = get_element(f, "design_stiff2_" + args.hom_access, args.h5_region, args.h5_step) if args.show <> "rot" else numpy.ones((len(centers),1)) * .1
     s3 = numpy.ones((len(centers),1)) * .1 if dim_2D or args.show == "rot" else get_element(f, "design_stiff3_" + args.hom_access, args.h5_region, args.h5_step)
-    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_cross" or args.show == "hom_sheared_rot_cross") else sh1 
+    sh1 = get_element(f, "design_shear1_" + args.hom_access, args.h5_region, args.h5_step) if (args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar") else sh1
   elif args.parametrization == 'trans-iso':
     s1 = get_element(f, "design_emodul-iso_" + args.hom_access, args.h5_region, args.h5_step)
     s2 = get_element(f, "design_emodul_" + args.hom_access, args.h5_region, args.h5_step)
@@ -48,6 +48,10 @@ def read_stiff_angle(hdf_file, dim_2D, args):
     s1 *= 1/m
     s2 *= 1/m
     s3 = numpy.ones((len(centers),1)) * .1 # fix for 3D
+  elif args.parametrization == 'simp':
+    s1 = get_element(f, "physicalPseudoDensity", args.h5_region, args.h5_step)
+    angle = numpy.zeros(((len(s1), 3)))
+    return s1,angle,sh1
   if has_element(hdf_file, "design_density_" + args.hom_access):
     print "args.h5_step:" + str(args.h5_step)
     rho = get_element(f, "design_density_" + args.hom_access, args.h5_region, args.h5_step)
@@ -73,7 +77,7 @@ def read_stiff_angle(hdf_file, dim_2D, args):
         angle[:, 2] = get_element(f, "design_rotAngleZ_" + args.hom_access, args.h5_region, args.h5_step)[:, 0]
     except Exception, e:
       print 'could not read angle, ignore it: ', e
-      
+  
   return s1, s2, s3, angle, sh1 
 
 # # show or write either Image or polydata
@@ -138,7 +142,7 @@ def plot_angle_data(file, angle, data):
 # we extract the main processing such that we can run it within a loop to find the optimal scaling
 # @param force_scale overwrites args.scale
 # @return volume if calculated (e.g. via --save a pixel image) otherwise None
-def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
+def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,nondes_coords = None):
   
   volume = None  # might ne set
   
@@ -150,11 +154,13 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
   if h5_read or dim_2D:
     # either Image or polydata  
     viz = None
-    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_cross" or args.show == "hom_sheared_rot_cross" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod':
-
-      s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
-      v = calc_volume(s1, s2)
-      print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
+    if args.show == "hom_rect" or args.show == "hom_rot_cross" or args.show == "hom_sheared_rot_cross" or args.show == "hom_cross_bar" or args.show == "rot" or args.show == 'stream' or args.show == 'hom_rect_mod' or args.show == 'simp':
+      if args.show == "simp":
+        args.parametrization = 'simp'
+        s1,angle,sh1 = read_stiff_angle(f, dim_2D, args)
+      else:
+        s1, s2, s3, angle, sh1 = read_stiff_angle(f, dim_2D, args)
+        print "Only correct in 2D: volume for regular grid: " + str(calc_volume(s1, s2))
       
       # add angle bias, e.g. by 90 deg to correct thomas
       angle += args.angle_bias * numpy.pi / 180
@@ -163,12 +169,15 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
       if args.angle_factor <> 1.0:
         print 'scale angle by ' + str(args.angle_factor)
         angle *= args.angle_factor  
-      
-      print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
-  
+      if not args.show == "simp":
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + '] s2 in [' + str(numpy.min(s2)) + ':' + str(numpy.max(s2)) + ']'
+      else:
+        print 'unscaled s1 in [' + str(numpy.min(s1)) + ':' + str(numpy.max(s1)) + ']'
   
       # viz is either Image or polydata
-      if dim_2D:
+      if dim_2D and not args.show == 'simp':
+        v = calc_volume(s1, s2)
+        print "Only correct in 2D: volume for regular grid: " + str(v)
         if args.show == "hom_rect": 
           if args.hom_grad == 'none':
             viz = show_frame(coords, s1, s2, args.hom_dir, args.res, args.scale)
@@ -185,8 +194,9 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
             viz = show_rot_cross_grad(coords, s1, s2, angle[:, 0], args.hom_grad, args.hom_dir, args.res, scale, args.save)
         elif args.show == "hom_sheared_rot_cross":
           viz = show_sheared_rot_cross(coords, s1, s2, sh1, angle[:,0], args.hom_dir, args.res, args.scale, args.color, args.save)
-        elif args.show == "hom_sheared_cross":
-          viz = show_sheared_cross(coords, s2, s1, sh1, args.hom_dir, args.res, args.scale, args.color, args.save)
+        elif args.show == "hom_cross_bar":
+          angle = numpy.zeros((len(s1),1))
+          viz = show_cross_bar(coords, s1, s2, sh1, angle, args.hom_dir, args.res, args.scale, args.color, args.save)
         elif args.show == "stream":
             viz = show_streamline(coords, s1, s2, angle[:, 0], args.hom_dir, scale, args.minimal, args.stream_style, args.stream_step, args.hom_samples, args.stream_s2_samples, args.stream_max_traces_per_cell, args.res, args.save <> None, info, args.stream_force)            
         else:
@@ -197,7 +207,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
           s1 = ones((len(s1), 1)) * 0.25
           s2 = ones((len(s1), 1)) * 0.25
           s3 = ones((len(s1), 1)) * 0.25
-        if args.hom_samples:
+        if args.hom_samples or args.cell_size:
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
@@ -205,7 +215,19 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None):
             if args.cell_size:
               tmp = args.cell_size.split(',')
               csize = [float(tmp[0]),float(tmp[1]),float(tmp[2])]
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+              if args.mesh:
+		            # number of fine elements in each direction
+                tmp = args.nf.split(',')
+                n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
+                if args.show == 'simp':
+                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize,args.show)
+                else:
+                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize)
+                write_gid_mesh(me, args.mesh+".mesh")
+                exit()  
+              else:
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+
             else:
               viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
         else:  # no sample
@@ -298,7 +320,7 @@ parser.add_argument("--scale", help="manual scaling factor", default=-1.0, type=
 parser.add_argument("--target_volume", help="find optimal scaling. Makes only sense for streamline", type=float)
 parser.add_argument("--res", help="x-resolution (default 1000)", default=800, type=int)
 parser.add_argument("--sampling", help="sampling rate (default 180", default=180, type=float)
-parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_cross', 'hom_sheared_rot_cross', 'rot', 'stream', 'hom_rect_mod']) 
+parser.add_argument("--show", help="mode within boebbale, hom_rect or streamline", choices=['ortho_norm', 'mono_norm', 'ortho_err', 'hom_rect', 'hom_rot_cross', 'hom_sheared_rot_cross', 'hom_cross_bar', 'rot', 'stream', 'hom_rect_mod','simp'])
 parser.add_argument("--notation", help="mandel | voigt (default 'voigt')", default="voigt")
 parser.add_argument("--symmetries", help="same options as for shows", default="default")
 parser.add_argument("--symmetries_max", help="maximum number of symmetries (default 999)", default=999)
@@ -328,6 +350,9 @@ parser.add_argument("--info", help="creates a xml file of given name with additi
 parser.add_argument("--unstructured", help="number of structured elements per coordinate as list nx,ny,nz", default="")
 parser.add_argument("--nodefile", help="name of the design to node file", default="")
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
+parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
+parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
+
 
 args = parser.parse_args()
 
@@ -401,11 +426,17 @@ else:
     dim_2D = nondes_min[2] == nondes_max[2]
     print 'detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region" 
   centers, min, max, elem_dim, _, _ = centered_elements(f, args.h5_region)
+  if args.mesh:
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design')
   dim_2D = min[2] == max[2]
   print 'detected dimension ' + ('2D' if dim_2D else '3D')  
 # do we have to do 1D optimization? 
 if not args.target_volume:
-  perform(args, h5_read, dim_2D, tensor, centers, aux_code)
+  if args.mesh:
+    nondes_coords = (nondes_centers, nondes_min, nondes_max, nondes_elem_dim)
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code,None,nondes_coords)
+  else:
+    perform(args, h5_read, dim_2D, tensor, centers, aux_code)
 else:
   if args.scale > 0:
     print "Error: don't give --scale and --target_volume concurrently!"

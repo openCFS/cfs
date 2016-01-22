@@ -1,4 +1,4 @@
-function [ file, volume ] = generateFramedCrossExact(point,filepath,nx)
+function [ file, volume ] = generateFramedCrossExact(point,filepath,~)
 % GENERATEFRAMEDCROSS  -  Generates a quadratic frame overlayed with an
 % orthogonal cross, which is rotated by 45 degrees.
 %
@@ -72,7 +72,7 @@ diag23 = [2; 3; s4/2; 0; 0; 1; 1; 1-s4/2; zeros(6,1)];
 rect0 = [3; 4; 0; 1; 1; 0; 0; 0; 1; 1; zeros(4,1)];
 
 % Combine shapes
-gd = [rect11, rect12, rect21, rect22, diag11, diag12, diag13, diag21, diag22, diag23, rect0];
+gd = [rect11, rect12, rect21, rect22, diag11, diag12, diag13, diag21, diag22, diag23];
 
 % Delete empty shapes
 idx = csgchk(gd);
@@ -80,18 +80,9 @@ gd = gd(:,idx==0);
 
 assert(~isempty(gd),'Assertion failed: Geometry is empty.')
 
-% Shape names
-ns = char('R11', 'R12', 'R21', 'R22', 'D11', 'D12', 'D13', 'D21', 'D22', 'D23', 'R00')';
-ns = ns(:,idx==0);
-
-% Set formula
-sf = ns(:,1)';
-for i=2:size(ns,2)-1
-    sf = [sf,'+',ns(:,i)'];
-end
-
 % Get decomposed CSG
-[geom,bt] = decsg(gd,sf,ns);
+[geom,bt] = decsg(gd);
+gd = [gd, rect0];
 [fullgeom,fullbt] = decsg(gd);
 % Remove subdomain boundaries
 geom = csgdel(geom,bt);

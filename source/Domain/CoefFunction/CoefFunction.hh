@@ -240,6 +240,14 @@ public:
         << "CoefFunction object." );
   }
 
+  //! Return real-valued Msfem Element Matrix at integration point
+  virtual void GetMsfemElementMatrix(Matrix<Double>& matrix,
+      const LocPointMapped& lpm) {
+    EXCEPTION( "CoefFunction::GetMsfemElementMatrix<Double> called: This may not happen. "
+        << "Most likely this method is called with a complex-valued "
+        << "CoefFunction object." );
+  }
+
   //! Return real-valued vector at integration point
   virtual void GetVector(Vector<Double>& vec, 
                          const LocPointMapped& lpm ) {
@@ -247,6 +255,7 @@ public:
         << "Most likely this method is called with a complex-valued "
         << "CoefFunction object." );
   }
+
   //! Return real-valued element averaged value
   virtual void GetAvgElemValue(Double & vec, 
                          const Elem* elem) {
