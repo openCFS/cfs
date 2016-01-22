@@ -58,8 +58,6 @@
     </linearSystems>
   </sequenceStep>
   
-  <loadErsatzMaterial file="homogenize_sheared_mesh.dens" set="last"/>
-
   <optimization>
     <costFunction type="homTensor" task="minimize" multiple_excitation="true">
       <multipleExcitation type="homogenizationTestStrains" />
