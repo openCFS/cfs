@@ -119,8 +119,6 @@ namespace CoupledField {
     const StdMatrix* matrixD_;
 
     //! Pointer to complex matrices
-    const StdMatrix *complexStiff_, *complexMass_, *complexDamp_;
-    //! Pointer to complex matrices
     StdMatrix *zStiff_, *zMass_, *zDamp_;
 
     //! Pointer to solver ovbject

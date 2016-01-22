@@ -22,7 +22,12 @@ def continuation(initial, old_beta, beta, mesh, short_problem, executable, show)
   xml = doc.xpathNewContext()
   xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
 
-  replace(xml, "//cfs:filter/cfs:density/@beta", str(beta))
+  # we assume one hit or three for robust
+  res = xml.xpathEval("//cfs:filter/cfs:density/@beta")
+  if len(res) == 0:
+    raise RuntimeError(path + " not found")
+  for data in res:
+    data.setContent(str(beta))
   
   doc.saveFile(beta_problem + ".xml")
   

@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
@@ -59,6 +60,16 @@ namespace CoupledField {
 
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
+  }
+
+  std::string ConvertToFilename(std::string org)
+  {
+    std::string result = org;
+    boost::replace_all(result, ":", "_");
+    boost::replace_all(result, ",", "_");
+    boost::replace_all(result, "(", "");
+    boost::replace_all(result, ")", "");
+    return result;
   }
 
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)

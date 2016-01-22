@@ -2486,7 +2486,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // the modes are not stores via StorePDESolution() but held in the ArpackSolver
       TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::MECH, true);
 
-
       double factor = 1.0 / ( 8.0 * M_PI * M_PI * freq);
       // our eigenvalue
       double ev = std::pow(2.0 * M_PI * freq, 2);

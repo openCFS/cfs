@@ -52,6 +52,9 @@ namespace CoupledField {
   /** boost based SplitStringList() which consideres almost all whitespaces */
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
 
+  /** convert a string such that is becomes a valid filename. Might need extensions */
+  std::string ConvertToFilename(std::string org);
+
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
     return "("+xpr+")";
