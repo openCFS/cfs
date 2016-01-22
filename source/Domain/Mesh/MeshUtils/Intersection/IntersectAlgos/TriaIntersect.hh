@@ -38,6 +38,7 @@ public:
    : ElemIntersect(trgGrid,srcGrid){
     tElemNum_ = 0;
     sElemNum_ = 0;
+    InitElemMap();
   }
 
   //! copy constructor
@@ -49,6 +50,7 @@ public:
     sElemNum_ = inter.sElemNum_;
     intersectingTets_ = inter.intersectingTets_;
     lastTetIdx_ =  inter.lastTetIdx_;
+    InitElemMap();
   }
 
   //! assignment
@@ -60,6 +62,7 @@ public:
     sElemNum_ = inter.sElemNum_;
     intersectingTets_ = inter.intersectingTets_;
     lastTetIdx_ =  inter.lastTetIdx_;
+    InitElemMap();
     return *this;
   }
 
@@ -102,6 +105,13 @@ private:
   //!\param(in) tetList List of tetrahedrons
   //!\param(in) baseFName base name of generated files
   void ExportTetras(StdVector<CoordTetra> tetList,std::string baseFName);
+
+
+  //! initialize reference element map for triangulation
+  void InitElemMap();
+
+  //! map of reference elements for access to triangulation
+  std::map<Elem::FEType, FeH1LagrangeExpl* > refFeMap;
 
   //! coordinateTetra corresponding to tElem_
   StdVector<CoordTetra> tTets_;
