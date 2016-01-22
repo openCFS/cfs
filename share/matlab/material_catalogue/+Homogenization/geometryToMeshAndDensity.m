@@ -1,4 +1,4 @@
-function [ densityfile ] = geometryToMeshAndDensity(geom,meshfile)
+function [ densityfile ] = geometryToMeshAndDensity(geom,meshfile,holemarker)
 % GEOMETRYTOMESH  -  Generates a (sparse) ANSYS mesh file out of a geometry.
 %
 % @param:
@@ -9,6 +9,9 @@ function [ densityfile ] = geometryToMeshAndDensity(geom,meshfile)
 
 if nargin < 2
     meshfile = 'mesh.mesh';
+end
+if nargin < 3
+    holemarker = 2;
 end
 
 % Generate a triangular mesh (Delaunay)
@@ -31,7 +34,7 @@ numNodeBC = numel(left) + numel(right) + numel(bottom) + numel(top);
 
 % Density
 density = ones(1,size(t,2));
-density(t(4,:)==2) = 0; % holes
+density(t(4,:)==holemarker) = 0; % holes
 
 % Write density file
 densityfile = [meshfile(1:end-4),'dens'];
