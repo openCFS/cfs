@@ -2909,7 +2909,7 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
 
-  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::Interpolation::SGPP) {
+  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SGPP) {
     Vector<double> p;
     p[0] = stiff1;
     p[1] = stiff2;
