@@ -103,6 +103,11 @@ public:
   //! @copydoc BaseFE::GetLocalDOFCoordinates
   virtual void GetLocalDOFCoordinates(Matrix<Double> & coordMat);
   
+  //! return index of triangulation
+  virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect){
+    EXCEPTION("Triangulated not available for this element.");
+  }
+
 protected:
 
   //! @copydoc FeNodal::SetFunctionsAtIp

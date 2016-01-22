@@ -130,15 +130,19 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
     shFnc.Init();
     myElem->GetShFnc(shFnc,localPoint,curTE);
 
+    UInt negativeCounter = 0;
     for(UInt aNode = 0; aNode < tElemConnect.GetSize(); aNode++){
       downMap->GetEquation(tNodeEq,tElemConnect[aNode],ResultInfo::NODE);
       Double curval  = shFnc[aNode] * infos[aInfo].volume;
       if(shFnc[aNode] < 0){
-        std::cerr <<"Negative Shape functions indicate interpolation errors!!" << std::endl;
+        negativeCounter++;
       }
       for(UInt aDOF = 0; aDOF < tNodeEq.GetSize(); ++aDOF){
         InterpolationMatrix->AddToMatrixEntry(tNodeEq[aDOF],sElemEq[aDOF],curval);
       }
+    }
+    if(negativeCounter > 0){
+      WARN("Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!");
     }
   }
 }

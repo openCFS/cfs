@@ -156,9 +156,10 @@ bool RotatingSubstDt::Run(){
     Vector<Double>& rP2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,2);
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
+
+    #pragma omp parallel for
     for(UInt i=0;i<last;++i){
       returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
-      //returnVec[i] = 0.0;
     }
 
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);

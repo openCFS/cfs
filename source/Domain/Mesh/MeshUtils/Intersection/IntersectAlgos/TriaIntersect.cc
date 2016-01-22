@@ -17,9 +17,32 @@
 
 #include "TriaIntersect.hh"
 #include "Domain/ElemMapping/Elem.hh"
+#include "FeBasis/H1/H1ElemsLagExpl.hh"
 #include <fstream>
 
 namespace CoupledField{
+
+void TriaIntersect::InitElemMap(){
+  refFeMap[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
+  refFeMap[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
+  refFeMap[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
+  refFeMap[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
+  refFeMap[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
+  refFeMap[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
+  refFeMap[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
+  refFeMap[Elem::ET_TET4]    = new FeH1LagrangeTet1();
+  refFeMap[Elem::ET_TET10]   = new FeH1LagrangeTet2();
+  refFeMap[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
+  refFeMap[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
+  refFeMap[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
+  refFeMap[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
+  refFeMap[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+  refFeMap[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+  refFeMap[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
+  refFeMap[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
+  refFeMap[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
+
+}
 
 void TriaIntersect::SetTElem( UInt tNum ){
   const Elem* newTElem = tGrid_->GetElem(tNum);
@@ -149,9 +172,7 @@ inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem
     StdVector<CoordTetra> genTets;
 
     //now get triangular information
-    shared_ptr<ElemShapeMap> esm = aGrid->GetElemShapeMap(newTElem,true);
-    BaseFE* feElement = esm->GetBaseFE();
-    feElement->Triangulate(lastTetIdx_);
+    refFeMap[newTElem->type]->Triangulate(lastTetIdx_);
     //loop over each Tet
     UInt numTets = lastTetIdx_.GetSize();
     genTets.Resize(numTets);
