@@ -10,8 +10,6 @@ from optimization_tools import *
 from mesh_tool import *
 import argparse
 
-
-
 # there shall be a predefined class somewhere, I just didn't find it
 class Coordinate:
   def __init__(self):
@@ -155,22 +153,50 @@ def cross(dim, vol, res, lower):
   return data
 
 
-
-def hashtag(res, amplitude, thickness, speed, lower):
+def rectangle(dim, vol, res, lower):
+  assert(dim == 2)
   
+  # v = 2*h - h^2 
+  h = 1.0-numpy.sqrt(1-vol) # the other solution is > 1
+  assert(h >= 1/res and h <= 1)
+  s = h * res
+
+  print 'cross bar thickness is ' + str(h * 100) + "% which is makes " + str(int(s)) + " cells"
+
   data = numpy.ones((res, res)) * lower # violate exact volume
+  
+  start = int(res/2. - s/2. + 0.5)
+  end   = int(res/2. + s/2. + 0.5)
+  
+  data[:,start : end   ] = 1
+  data[  start : end, :] = 1
+  
+  return data
+
+
+
+def hashtag(dim, res, amplitude, thickness, speed, lower):
+  
+  data = numpy.ones((res, res)) if dim == 2 else numpy.ones((res,res,res)) 
+  data *= lower # violate exact volume
   
   h = 1.0/res
   
   for x in range(res):
     for y in range(res):
-      # data[x,y] = 1- hashtag_dist(h*x,h*y)
-      if hashtag_dist(h*x,h*y, amplitude, speed) < thickness/2: 
-        data[x,y] = 1
+      if dim == 2:  
+        if hashtag_dist_2d(h*x, h*y, amplitude, speed) < thickness/2: 
+          data[x,y] = 1
+      else:    
+        for z in range(res):
+          if hashtag_dist_3d(h*x, h*y, h*z, amplitude, speed) < thickness/2: 
+            data[x,y, z] = 1
+ 
+
   return data;
 
 ## helper for hashtag. gives for (x,y) the closests distance but only horizontally!
-def hashtag_dist(x, y, amplitude, speed):
+def hashtag_dist_2d(x, y, amplitude, speed):
   #  0.1*sin(2*x*pi+pi/2) + 0.25, 0.25, -0.1*sin(2*x*pi+pi/2) + 0.75, 0.75
   y1 = amplitude * sin(2*speed*pi*x+pi/2) + 0.25
   y2 = -amplitude * sin(2*speed*pi*x+pi/2) + 0.75
@@ -184,8 +210,20 @@ def hashtag_dist(x, y, amplitude, speed):
   x_dist = min(abs(x-x1), abs(x-x2))
   
   return min(y_dist, x_dist)
-  #return y_dist 
-      
+
+def hashtag_dist_3d(x, y, z, amplitude, speed):
+ 
+  # we map the 2d-solution twice on the z-axis to 0.25 and 0.75 within the xy-plane
+  z_dist = min(abs(z-0.25), abs(z-0.75))
+  hash_dist = hashtag_dist_2d(x, y, amplitude, speed)
+  xy_dist = max(z_dist, hash_dist) # max as min would show the two z-planes
+  
+  # we use hashtag_dist_2d and apply it on the yz-plane
+  hash_dist = hashtag_dist_2d(y, z, amplitude, speed)
+  x_dist = min(abs(x-0.25), abs(x-0.75))
+  yz_dist = max(x_dist, hash_dist)
+  
+  return min(xy_dist, yz_dist)
   
 parser = argparse.ArgumentParser()
 parser.add_argument("--res", help="edge discretization of length 1m", type=int, required = True )
@@ -194,7 +232,8 @@ parser.add_argument('--lower', help="value for void material. Default 1e-3", typ
 parser.add_argument('--vol', help="volume fraction of full domain or ball only", type=float, default=0.5)
 parser.add_argument('--order', help="order of generated shperes. Lower numbers are smoother. 'binary' for black and white", default="6")
 parser.add_argument('--invert', help="invert to solid inside", action='store_true')
-parser.add_argument('--cross', help="make a simple cross", action='store_true')
+parser.add_argument('--cross', help="make a simple binary cross", action='store_true')
+parser.add_argument('--rect', help="make a simple binary rectangle inclusion", action='store_true')
 parser.add_argument('--hashtag', help="hashtag # based on sin-amplitude for bloch mode initial designs [0,1]", type=float)
 parser.add_argument('--thickness', help="feature thickness for hashtag", type=float, default=0.1) 
 parser.add_argument('--hashtag_speed', help="number of maximas, only 1,2,4, ... make sense", type=int, default=1)
@@ -204,7 +243,6 @@ parser.add_argument('--save', help="overwrite default filename, when it ends wit
 parser.add_argument('--write_mesh', help="optionally create a sparse mesh. For more options use process_image.py", action='store_true')
 
 # parser.add_argument('--elem_nr', help="for debug purpose only (rotation). Ignore vol, dim, order, invert and give the design the 1-based element number", action='store_true')
-
 args = parser.parse_args()
 
  
@@ -224,10 +262,9 @@ setname = "standard"
 
 if args.cross:
   data = cross(args.dim, vol, args.res, args.lower)
-  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + ("_ball" if args.ball else "") + "_" + str(args.res) + ".density.xml"
+  filename = "cross_" + str(args.dim) + "d-v_" + str(args.vol) + "_" + str(args.res) + ".density.xml"
 elif args.hashtag is not None: # also capture 0.0
-  assert(args.dim == 2)
-  data = hashtag(args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
+  data = hashtag(args.dim, args.res, args.hashtag, args.thickness, args.hashtag_speed, args.lower)
   filename = "hashtag_" + str(args.dim) + "d-amp_" + str(args.hashtag) + "-th_" + str(args.thickness) + "-sp_" + str(args.hashtag_speed) + "_" + str(args.res) + ".density.xml"
 else:
   data = find_radius(args.dim, args.res, vol, args.order, args.invert, args.lower)
@@ -238,15 +275,15 @@ if args.save:
   filename = args.save
 
 if filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.gif') or filename.endswith('.tif'):
- get_image(data).save(filename)
-else:
+  get_image(data).save(filename)
+  print "generated image '" + filename + "'"
+elif not args.write_mesh:
   write_density_file(filename, data, setname)
-
-print "generated file '" + filename + "'" 
+  print "generated density file '" + filename + "'" 
 
 if args.write_mesh:
   mesh = Mesh()  
-  create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin = 1e-3, multi_d=1) # rhomin is irrelevant as we make sparse
+  create_dense_mesh_density(data, mesh, threshold=0.5, scale=1.0, rhomin = 1e-3) # rhomin is irrelevant as we make sparse
   sparse = convert_to_sparse_mesh(mesh)
   mesh_name = filename.replace('.density.xml', '.mesh')
   write_gid_mesh(sparse, mesh_name)

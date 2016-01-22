@@ -33,7 +33,6 @@ def find_inclusion_overlap(args):
 
 
 parser = argparse.ArgumentParser()
-
 parser.add_argument("--res", help="x-discretization of length 1m", type=int, required = True )
 parser.add_argument('--y_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
 parser.add_argument('--z_res', help="y-discretization of bulk2s and bulk3d for quadratic/ cubic elements", type=int, required = False )
@@ -46,7 +45,6 @@ parser.add_argument('--inclusion', help="inclusion for bulk2d and bulk3d", choic
 parser.add_argument('--inclusion_size', help="possible mandatoryy size for inclusion as fraction of x-dimension (.9 is almost full)", type=float)
 parser.add_argument('--inclusion_overlap', help="alternative to inclusion_size for ball. Give fraction of overlapping to boundary", type=float)
 parser.add_argument('--file', help="optional give output file name. ")
-
 
 args = parser.parse_args()
 

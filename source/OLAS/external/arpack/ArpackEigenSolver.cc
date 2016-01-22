@@ -409,7 +409,6 @@ namespace CoupledField {
     assert(!(isBloch_ && isQuadratic_));
 
     unsigned int numEVs = 0;
-
     // case1: generalized real problem
     if(!isQuadratic_ && !isBloch_)
     {
@@ -419,11 +418,14 @@ namespace CoupledField {
       // case1: generalized problem
       Vector<Double> & solConverted = dynamic_cast<Vector<Double>&>(sol);
       solConverted.Resize( numEVs );
-      for (UInt i = 0; i < numEVs; i++ ) {
+      for (UInt i = 0; i < numEVs; i++ )
+      {
         solConverted[i] = arpackSolver_->Eigenvalue(i);
         // if non-negative eigenvalue, convert to eigenfrequency
-        if (solConverted[i] >= 0.0)
+        if (solConverted[i] >= 0.0)  {
+          LOG_DBG(aes) << "CEF: i=" << i << " ev=" << solConverted[i] << " -> f=" << sqrt(solConverted[i])/(8.0*atan(1.0));
           solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
+        }
       }
     }
     // case2: quadratic complex problem
