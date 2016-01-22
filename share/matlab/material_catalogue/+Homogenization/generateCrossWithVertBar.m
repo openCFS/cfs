@@ -32,7 +32,7 @@ function [ file, volume ] = generateCrossWithVertBar(point,filepath,nx)
 %           xxxxxxx      xxxxx        xxx   
 %         xxxxxxx        xxxxx          xxx 
 %       xxxxxxx          xxxxx            xxx
-%      xxxxxx            xxxxx              xxxx
+%      xxxxxx            xxxxx              xxx
 %      xxxx              xxxxx                xx
 % 
 
