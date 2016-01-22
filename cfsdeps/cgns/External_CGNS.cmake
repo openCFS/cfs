@@ -36,40 +36,41 @@ SET(CMAKE_ARGS
   -DZLIB_LIBRARY:FILEPATH=${ZLIB_SHARED_LIBRARY}
   -DCGNS_BUILD_SHARED:BOOL=ON
   -DCGNS_USE_SHARED:BOOL=OFF
-  -DBUILD_CGNSTOOLS:BOOL=ON
+  -DBUILD_CGNSTOOLS:BOOL=OFF
   # We do not want to see warning messages from external projects
   -DCMAKE_C_FLAGS:STRING=${CFLAGS}
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
-Find_Package(TCL)
-Find_Package(X11)
-Find_Package(OpenGL)
-
-IF(TCLTK_FOUND AND
-   TCL_INCLUDE_PATH AND
-   TK_INCLUDE_PATH AND
-   X11_Xmu_FOUND AND
-   X11_Xmu_INCLUDE_PATH AND
-   OPENGL_FOUND AND
-   OPENGLU_FOUND AND
-   OPENGL_INCLUDE_PATH)
-  SET(BUILD_CGNSTOOLS ON)
-ELSE()
+# CGNS-TOOLS are never built.
+#Find_Package(TCL)
+#Find_Package(X11)
+#Find_Package(OpenGL)
+#
+#IF(TCLTK_FOUND AND
+#   TCL_INCLUDE_PATH AND
+#   TK_INCLUDE_PATH AND
+#   X11_Xmu_FOUND AND
+#   X11_Xmu_INCLUDE_PATH AND
+#   OPENGL_FOUND AND
+#   OPENGLU_FOUND AND
+#   OPENGL_INCLUDE_PATH)
+#  SET(BUILD_CGNSTOOLS ON)
+#ELSE()
   #-------------------------------------------------------------------------------
   # Let's only build the CGNS tools on platforms, which provide a TCL 
   # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
   # have not installed them on our nightly test systems.
   #-------------------------------------------------------------------------------
-  SET(BUILD_CGNSTOOLS ON)
-  IF(MINGW)
-    SET(BUILD_CGNSTOOLS OFF)
-  ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
-    IF(CMAKE_CROSSCOMPILING)
-      SET(BUILD_CGNSTOOLS OFF)
-    ENDIF()
-  ENDIF()
-ENDIF()
+ # SET(BUILD_CGNSTOOLS OFF)
+  #IF(MINGW)
+  #  SET(BUILD_CGNSTOOLS OFF)
+  #ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
+  #  IF(CMAKE_CROSSCOMPILING)
+  #    SET(BUILD_CGNSTOOLS OFF)
+  #  ENDIF()
+  #ENDIF()
+#ENDIF()
 
 LIST(APPEND CMAKE_ARGS
   -DBUILD_CGNSTOOLS:BOOL=${BUILD_CGNSTOOLS}
