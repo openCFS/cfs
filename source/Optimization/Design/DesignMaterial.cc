@@ -3944,42 +3944,6 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
-double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction) {
-
-#ifdef USE_SGPP
-  // Method uses SGPP interpolation
-  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
-  LOG_DBG2(dm) << p;
-
-  double vol;
-
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      vol = opEval->eval(volume_, point);
-      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
-    } else {
-      vol = EvaluateSGPPInterpolation_Deriv(opEval, volume_, point, direction);
-    }
-    delete opEval;
-  } else {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
-      vol = opNaiveEval->eval(volume_, point);
-      delete opNaiveEval;
-      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
-    } else {
-      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
-      vol = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, volume_, point, direction);
-    }
-  }
-  return vol;
-#endif //USE_SGPP
-  // should never be reached -> exception in constructor is thrown before this point is reached
-  return -1;
-}
-
 double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
                                                        SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
@@ -4032,6 +3996,47 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
 }
 
 #endif //USE_SGPP
+
+
+double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction) {
+
+  #ifdef USE_SGPP
+  // Method uses SGPP interpolation
+  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  LOG_DBG2(dm) << p;
+
+  double vol;
+
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      vol = opEval->eval(volume_, point);
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      vol = EvaluateSGPPInterpolation_Deriv(opEval, volume_, point, direction);
+    }
+    delete opEval;
+  } else {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
+      vol = opNaiveEval->eval(volume_, point);
+      delete opNaiveEval;
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
+          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
+      vol = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, volume_, point, direction);
+    }
+  }
+  return vol;
+
+#else //USE_SGPP
+  // should never be reached: CalcHomVolume is only called in Function.cc when interpolation method
+  // is set to SGPP which can only occur when CFS is compiled with SGPP
+  return -1;
+
+#endif //USE_SGPP
+}
 
 bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
     const Elem* elem,DesignElement::Type direction) {
@@ -4313,11 +4318,11 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   }
 
 #ifdef USE_SGPP
-  bool test = grid_->getStorage()->dim() == 3;
+  bool assertiontest = grid_->getStorage()->dim() == 3;
 #else
-  bool test = shearIsDesign_;
+  bool assertiontest = shearIsDesign_;
 #endif
-  if (test) {
+  if (assertiontest) {
     assert(catalogueSize_.GetSize() == 3);
   }
 
@@ -4350,10 +4355,6 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   if (catalogueSize_.GetSize() == 2 && nCols == 6) {
     // extract the columns for entries E11 E12 E22 E33
     std::vector<UInt> rows(boost::counting_iterator<int>( 0 ), boost::counting_iterator<int>( nRows ));
-    std::cout << "SARAH:\n";
-    for(unsigned int i=0; i<rows.size(); i++) {
-      std::cout << rows[i];
-    }
     std::vector<UInt> cols(4);
     cols[0] = 0;
     cols[1] = 1;
