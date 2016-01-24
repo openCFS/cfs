@@ -125,6 +125,10 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
     }
   }
 }
+
+  //clear the element candidates as it is an expensive structure
+  elemCandidates_.clear();
+
   //give overall volume of intersection
   Double volume = 0;
   for(UInt aRet =0;aRet<retInfo.GetSize(); ++aRet){
@@ -136,6 +140,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   //}
   //aStream.close();
   std::cout  << "\t\t\tComputed intersection Volume is " << volume << " from " << numIntersects << " intersection elements" << std::endl;
+
   return retInfo;
 
 }

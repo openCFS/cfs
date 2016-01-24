@@ -49,7 +49,6 @@ protected:
 private:
   //! dummy info node untill we get a clean log
   CoupledField::PtrParamNode infoNode_;
-
 };
 
 }
