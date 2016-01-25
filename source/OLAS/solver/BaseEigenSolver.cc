@@ -8,11 +8,8 @@ namespace CoupledField {
   {
     EnumTuple( BaseEigenSolver::NO_EIGENSOLVER, "noEigenSolver" ),
     EnumTuple( BaseEigenSolver::ARPACK, "arpack" ),
-    EnumTuple( BaseEigenSolver::FEAST, "feast" ),
   };
 
   Enum<BaseEigenSolver::EigenSolverType> BaseEigenSolver::eigenSolverType = \
-  Enum<BaseEigenSolver::EigenSolverType>("EigenSolver Types",
-      sizeof(eigenSolverTypeTuples) / sizeof(EnumTuple),
-      eigenSolverTypeTuples); 
+  Enum<BaseEigenSolver::EigenSolverType>("EigenSolver Types",  sizeof(eigenSolverTypeTuples) / sizeof(EnumTuple),   eigenSolverTypeTuples);
 }

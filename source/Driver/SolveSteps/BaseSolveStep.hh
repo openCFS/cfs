@@ -68,18 +68,16 @@ namespace CoupledField
 
     //----------------------- HARMONIC ---------------------------------------
     //! Calculate the Eigenfrequencies of a generalized eigenvalue problem
-    virtual UInt CalcEigenFrequencies( Vector<Double> & frequencies,
-                                       Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift ) {
+    virtual UInt CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds,
+                                       UInt numFreq, double shift, bool sort) {
       EXCEPTION( "Not implemented her!");
       return 0;
     }
 
     /** Calculate the Eigenfrequencies of a quadratic eigenvalue problem
     @param bloch quadratic problem or bloch modes */
-    virtual UInt CalcEigenFrequencies( Vector<Complex> & frequencies,
-                                       Vector<Double> & errBounds,
-                                       UInt numFreq, Double shift, bool bloch) {
+    virtual UInt CalcEigenFrequencies( Vector<Complex>& frequencies, Vector<Double>& errBounds,
+                                       UInt numFreq, double shift, bool sort, bool bloch) {
       EXCEPTION( "Not implemented here!" );
       return 0;
     }

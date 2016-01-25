@@ -715,6 +715,8 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
 {
   Function::ToInfo(in);
 
+  in->Get("name")->SetValue(ToString(me));
+
   if(observation_)
     in->Get("mode")->SetValue("observation");
   in->Get("design")->SetValue(DesignElement::type.ToString(design_));

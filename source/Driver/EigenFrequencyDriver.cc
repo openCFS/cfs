@@ -54,7 +54,7 @@ namespace CoupledField {
     info_ = info_->Get("eigenFrequency");
 
     isBloch_ = DoBloch(param_);
-
+    sort_ = param_->Get("sort")->As<bool>();
   }
 
   EigenFrequencyDriver::~EigenFrequencyDriver()
@@ -303,13 +303,13 @@ namespace CoupledField {
       if(isQuadratic_)
       {
         Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, isBloch_);
+        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_, isBloch_);
         PrintResult();
       }
       else // real generalized
       {
         Vector<Double>& ef = dynamic_cast<Vector<Double>& >(*eigenFreqs);
-        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_);
+        step->CalcEigenFrequencies(ef, errBounds_, numFreq_, freqShift_, sort_);
         PrintResult();
       }
     }
@@ -351,7 +351,7 @@ namespace CoupledField {
     LOG_DBG(efd) << "CBWV wv=" << current_wave_vector_.ToString();
 
     Vector<Complex>& ef = dynamic_cast<Vector<Complex>& >(*eigenFreqs);
-    ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, isBloch_);
+    ptPDE_->GetSolveStep()->CalcEigenFrequencies(ef , errBounds_, numFreq_, freqShift_, sort_, isBloch_);
 
     PrintResult(wave_vector_step);
     // we need to calculate and output results before the displacements are overwritten.

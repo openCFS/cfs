@@ -157,7 +157,7 @@ namespace CoupledField {
     /** @see ExportCRSColumns()
      * @param out resized to num-rows. If tailing_nnz the nnz are added
      * @param base see ExportCRSColumns()
-     * @param tailing_nnz shall nnz be added? E.G. for FEAST Eigenvalue solver */
+     * @param tailing_nnz shall nnz be added? */
     void ExportCRSRows(StdVector<int>& out, int base, bool tailing_nnz) const;
       
 
