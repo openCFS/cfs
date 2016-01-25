@@ -1,0 +1,22 @@
+#=============================================================================
+# Set global variables, configured from the external build.
+#=============================================================================
+SET(CFS_SOURCE_DIR "@CFS_SOURCE_DIR@")
+SET(CFS_CXX_COMPILER_NAME "@CFS_CXX_COMPILER_NAME@")
+SET(MINGW "@MINGW@")
+SET(vtk_source "@vtk_source@")
+
+#=============================================================================
+# Include some convenient macros (e.g. for applying patches).
+#=============================================================================
+INCLUDE("${CFS_SOURCE_DIR}/cmake_modules/CFS_macros.cmake")
+
+#=============================================================================
+# Apply some patches.
+#=============================================================================
+SET(patches
+  "vtk-semicolon.patch"
+  "vtk-ensight.patch"
+)
+
+APPLY_PATCHES("${patches}" "${CFS_SOURCE_DIR}/cfsdeps/vtk")

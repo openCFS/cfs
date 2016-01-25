@@ -292,11 +292,11 @@ namespace CoupledField{
 
         // a) loop over all edges
         // -----------------------
-        UInt numEdges = el.edges.GetSize();
+        UInt numEdges = el.extended->edges.GetSize();
         LOG_DBG3(feSpaceHCurlHi) << "Checking " << numEdges << " edges ";
         const StdVector<bool>& edgeGradients = myFe->GetEdgeGradient();
         for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ){
-          UInt edgeNum = std::abs(el.edges[iEdge]);
+          UInt edgeNum = std::abs(el.extended->edges[iEdge]);
           bool gradient = edgeGradients[iEdge];
 
           // check if edge got already mapped
@@ -322,11 +322,11 @@ namespace CoupledField{
         // b) loop over all faces (only in 3D case )
         // -----------------------------------------
         if( ptGrid_->GetDim() == 3 ) {
-          UInt numFaces = el.faces.GetSize();
+          UInt numFaces = el.extended->faces.GetSize();
           LOG_DBG3(feSpaceHCurlHi) << "Checking " << numFaces << " faces ";
           const StdVector<bool>& faceGradients = myFe->GetFaceGradient();
           for( UInt iFace = 0; iFace < numFaces; ++iFace ){
-            UInt faceNum = el.faces[iFace];
+            UInt faceNum = el.extended->faces[iFace];
             bool gradient = faceGradients[iFace];
 
             // check if face got already mapped
@@ -401,9 +401,9 @@ namespace CoupledField{
      // different order. We will use the maximum rule
      if( applyMaxRule && gradEdges_.size() ) {
        // loop over all edges
-       UInt numEdges = ptEl->edges.GetSize();
+       UInt numEdges = ptEl->extended->edges.GetSize();
        for( UInt iEdge = 0; iEdge < numEdges; ++iEdge ) {
-         UInt edgeNum = std::abs( ptEl->edges[iEdge] );
+         UInt edgeNum = std::abs( ptEl->extended->edges[iEdge] );
          // check if edge got adjusted
          if( gradEdges_.find(edgeNum) != gradEdges_.end() ) {
            LOG_DBG3(feSpaceHCurlHi) << "Setting grad edge " << edgeNum
@@ -416,9 +416,9 @@ namespace CoupledField{
 
      if( applyMaxRule && gradFaces_.size() && ptGrid_->GetDim() == 3  ) {
        // loop over all faces
-       UInt numFaces = ptEl->faces.GetSize();
+       UInt numFaces = ptEl->extended->faces.GetSize();
        for( UInt iFace = 0; iFace < numFaces; ++iFace ) {
-         UInt faceNum = ptEl->faces[iFace];
+         UInt faceNum = ptEl->extended->faces[iFace];
          // check if face got adjusted
          if( gradFaces_.find(faceNum) != gradFaces_.end() ) {
            LOG_DBG3(feSpaceHCurlHi) << "Setting grad face " << faceNum
@@ -491,11 +491,11 @@ namespace CoupledField{
 
     // Collect edge nodes
     {
-      UInt numEdges = ptElem->edges.GetSize();
+      UInt numEdges = ptElem->extended->edges.GetSize();
       if( entType == BaseFE::EDGE || entType == BaseFE::ALL ) {
 
         for( UInt i = 0; i < numEdges; ++i ) {
-          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->edges[i])];
+          StdVector<UInt>& edgeNodes = eNodes[std::abs(ptElem->extended->edges[i])];
           for( UInt j = 0; j < edgeNodes.GetSize(); ++j ) {
             nodes.Push_back(edgeNodes[j]);
           }
@@ -508,11 +508,11 @@ namespace CoupledField{
     if( !onlyLowestOrder_) {
       // Collect face nodes
       {
-        UInt numFaces = ptElem->faces.GetSize();
+        UInt numFaces = ptElem->extended->faces.GetSize();
         if( entType == BaseFE::FACE || entType == BaseFE::ALL ) {
 
           for( UInt i = 0; i < numFaces; ++i ) {
-            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->faces[i])];
+            StdVector<UInt>& faceNodes = fNodes[std::abs(ptElem->extended->faces[i])];
             for( UInt j = 0; j < faceNodes.GetSize(); ++j ) {
               nodes.Push_back(faceNodes[j]);
             }
@@ -882,13 +882,13 @@ namespace CoupledField{
           Integer minDir = minDirs[iDir];
 
           // Loop over all faces of this element orthogonal to "short"-direction
-          for( UInt iFace = 0; iFace < ptEl->faces.GetSize(); ++iFace ) {
+          for( UInt iFace = 0; iFace < ptEl->extended->faces.GetSize(); ++iFace ) {
 
             if( shape.faceLocDirs[iFace][0] != minDir &&
                 shape.faceLocDirs[iFace][1] != minDir ) {
               //            if( shape.faceLocDirs[iFace][0] == minDir ||
               //                shape.faceLocDirs[iFace][1] == minDir ) {
-              elemFaces.insert( ptEl->faces[iFace]);
+              elemFaces.insert( ptEl->extended->faces[iFace]);
             }
           } // loop element faces
         } // loop local directions

@@ -572,7 +572,7 @@ void FeHCurlHiQuad::CalcLocShFnc2( Matrix<Double>& shape,
   // ------------------------
   for( UInt i = 0; i < 4; ++i ) {
 
-    Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
     fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
@@ -713,7 +713,7 @@ void FeHCurlHiHex::CalcLocShFnc( Matrix<Double>& shape, const LocPointMapped& lp
   for( UInt i = 0; i < 12; ++i ) {
 
     UInt order = orderEdge_[i];
-    Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
     fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
@@ -964,7 +964,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
       UInt order = orderEdge_[i];
       UInt index1 = shape_.edgeVertices[i][0]-1;
       UInt index2 = shape_.edgeVertices[i][1]-1;
-      if ( elem->edges[i] < 0 ) {
+      if ( elem->extended->edges[i] < 0 ) {
         std::swap(index1, index2);  // fmax > f1 > f2
       }
 
@@ -1008,7 +1008,7 @@ void FeHCurlHiHex::CalcLocShFnc2( Matrix<Double>& shape, const LocPointMapped& l
         // get unique sorting of the face
         const StdVector<UInt>& unsorted = shape_.faceNodes[iFace];
         StdVector<UInt> ind;
-        Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[iFace]);
+        Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[iFace]);
 
         // calculate face extension parameter which is the sum
         // of all lambdas of one face
@@ -1161,7 +1161,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
   // -------------------------
   for( UInt i = 0; i < 12; ++i) {
     UInt order = orderEdge_[i];
-    Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+    Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
     //fac *= 0.5;
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
@@ -1226,7 +1226,7 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
       //    just have to consider one sign, which is the product of the signs of
       //    both surface directions. This sign is incorporated into the 
       //    xi-variable.
-      if( elem->faceFlags[f].test(2) == false) {
+      if( elem->extended->faceFlags[f].test(2) == false) {
         std::swap(order1, order2);
         std::swap(xi, eta);
       }
@@ -1235,12 +1235,12 @@ void FeHCurlHiHex::CalcLocCurlShFnc( Matrix<Double>& curl, const LocPointMapped&
 //          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
 //        xi *= -1.0;
 //      }
-      if ( (elem->faceFlags[f].test(0) ) && 
-          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
+      if ( (elem->extended->faceFlags[f].test(0) ) &&
+          !(elem->extended->faceFlags[f].test(0) && (elem->extended->faceFlags[f].test(1))) ) {
         xi *= -1.0;
       }
-      if ( (elem->faceFlags[f].test(1)) && 
-          !(elem->faceFlags[f].test(0) && (elem->faceFlags[f].test(1))) ) {
+      if ( (elem->extended->faceFlags[f].test(1)) &&
+          !(elem->extended->faceFlags[f].test(0) && (elem->extended->faceFlags[f].test(1))) ) {
         eta *= -1.0;
       }
       if(print )  {
@@ -1526,7 +1526,7 @@ void FeHCurlHiWedge::CalcLocShFnc2( Matrix<Double>& shape,
     //UInt order = orderEdge_[i];
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
-    if ( elem->edges[i] < 0 ) {
+    if ( elem->extended->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
     }
     
@@ -1542,7 +1542,7 @@ void FeHCurlHiWedge::CalcLocShFnc2( Matrix<Double>& shape,
     //UInt order = orderEdge_[i];
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
-    if ( elem->edges[i] < 0 ) {
+    if ( elem->extended->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
     }
 
@@ -1684,7 +1684,7 @@ void FeHCurlHiTet::CalcLocShFnc2( Matrix<Double>& shape,
     //UInt order = orderEdge_[i];
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
-    if ( elem->edges[i] < 0 ) {
+    if ( elem->extended->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
     }
     
@@ -1825,7 +1825,7 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
     UInt index2 = shape_.edgeVertices[i][1]-1; // j
     UInt index3 = (index2+1)%4;                // k  
     UInt index4 = (index1+3)%4;                // l
-    if ( elem->edges[i] < 0 ) {
+    if ( elem->extended->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
       std::swap(index3, index4);
     }
@@ -1851,7 +1851,7 @@ void FeHCurlHiPyra::CalcLocShFnc2( Matrix<Double>& shape,
 
     UInt index1 = shape_.edgeVertices[i][0]-1;
     UInt index2 = shape_.edgeVertices[i][1]-1;
-    if ( elem->edges[i] < 0 ) {
+    if ( elem->extended->edges[i] < 0 ) {
       std::swap(index1, index2);  // fmax > f1 > f2
     }
 

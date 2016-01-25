@@ -6,6 +6,10 @@ SET(MESH_SRCS
   NcInterfaces/BaseNcInterface.cc
   NcInterfaces/MortarInterface.cc
   GridCFS/GridCFS.cc
+  MeshUtils/EntityAssociation.cc
+  MeshUtils/Intersection/VolumeGridIntersection.cc
+  MeshUtils/Intersection/IntersectAlgos/CoordTetra.cc
+  MeshUtils/Intersection/IntersectAlgos/TriaIntersect.cc
   )
 
 

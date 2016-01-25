@@ -299,7 +299,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
                                const Elem * elem,
                                T_VEC& ret ) {
 
-    Double fac = elem->edges[0] < 0 ? -1.0 : 1.0;
+    Double fac = elem->extended->edges[0] < 0 ? -1.0 : 1.0;
     UInt order = orderEdge_[0];
     ret.Resize(actNumFncs_);
     ret[0] = 0.5 * ( 1.0 - x );
@@ -387,7 +387,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 #ifdef USE_EDGES 
     // 2) Edge shape functions
     for( UInt i = 0; i < 3; ++ i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -416,7 +416,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // obtain nodes of face
       const StdVector<UInt>& unsorted = shape_.faceNodes[0];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[0]);
+      Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[0]);
       // calculate inner shape functions
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
                                       lambda[ind[0]], lambda[ind[1]],
@@ -544,7 +544,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 #ifdef USE_EDGES 
     // 2) Edge shape functions
     for( UInt i = 0; i < 4; ++ i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
       
       // if order of edge is below two, we leave
@@ -575,7 +575,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
       const StdVector<UInt>& unsorted = shape_.faceNodes[0];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[0]);
+      Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[0]);
 
       T_SCAL xi  = sigma[ind[1]] - sigma[ind[0]];
       T_SCAL eta = sigma[ind[3]] - sigma[ind[0]];
@@ -708,7 +708,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // if order of edge is below two, we leave
       if( order == 1 ) continue;
 
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt index1 = shape_.edgeVertices[i][0]-1;
       UInt index2 = shape_.edgeVertices[i][1]-1;
 
@@ -735,7 +735,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
         // get unique sorting of the face
         const StdVector<UInt>& unsorted = shape_.faceNodes[i];
         StdVector<UInt> ind;
-        Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+        Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[i]);
         
 //        const StdVector<UInt> & con = elem->connect;
 
@@ -891,7 +891,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
 
     // a) horizontal edges (triangular edges)
     for( UInt i = 0; i < 6; ++i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -913,7 +913,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     
     // b) vertical edges (quadrilateral related edges)
     for( UInt i = 6; i < 9; ++i ) {
-      Double fac = elem->edges[i] < 0 ? -1.0 : 1.0;
+      Double fac = elem->extended->edges[i] < 0 ? -1.0 : 1.0;
       UInt order = orderEdge_[i];
 
       // if order of edge is below two, we leave
@@ -944,7 +944,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       // obtain nodal permutation, i.e. sort the indices in ascending order
       const StdVector<UInt>& unsorted = shape_.faceNodes[i];
       StdVector<UInt> ind;
-      Face::GetSortedIndices( ind, unsorted, 3, elem->faceFlags[i]);
+      Face::GetSortedIndices( ind, unsorted, 3, elem->extended->faceFlags[i]);
       // take inner shape functions of triangle and
       // extend them via mu-lifting function
       UInt nFct =  TriaInnerLegendre( ret, pos, order, 
@@ -966,7 +966,7 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
       StdVector<UInt> ind;
       
       // obtain nodal permutation, i.e. sort the indices in ascending order
-      Face::GetSortedIndices( ind, unsorted, 4, elem->faceFlags[i]);
+      Face::GetSortedIndices( ind, unsorted, 4, elem->extended->faceFlags[i]);
 
       T_VEC horiz, vert;
       // we have to determine 2 things:
