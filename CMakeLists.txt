@@ -1,6 +1,7 @@
 #-----------------------------------------------------------------------------
 # Set the version number of CMake which is required to build CFS++.
 #-----------------------------------------------------------------------------
+
 SET(REQ_MAJOR_VER 2)
 SET(REQ_MINOR_VER 8)
 SET(REQ_PATCH_VER 11)
@@ -102,7 +103,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Back To The Future")
+SET(CFS_NAME "CA(A)fehaus of the future")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -189,6 +190,9 @@ OPTION(USE_GMV
 OPTION(USE_UNV
   "Use Universal File for simulation output."
   ${USE_UNV_DEFAULT})
+OPTION(USE_ENSIGHT
+  "Support for Ensight Gold file format for input.."
+  ${USE_ENSIGHT_DEFAULT})
 OPTION(USE_SGPP
   "Enable support for sparse grid interpolation."
   ${USE_SGPP_DEFAULT})
@@ -279,6 +283,12 @@ SET(USE_METIS ${USE_METIS_DEFAULT}
 OPTION(USE_FFTW
   "Activate DFT and filtering capabilities of cfstool." 
   ${USE_FFTW_DEFAULT})
+ 
+#-----------------------------------------------------------------------------
+# VTK - Build VTK library 
+#-----------------------------------------------------------------------------
+OPTION(USE_VTK "Enable VTK Library."
+  ${USE_VTK_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # CGNS - CFD General Notation System
@@ -441,6 +451,7 @@ MARK_AS_ADVANCED(USE_FFTW)
 MARK_AS_ADVANCED(USE_UNV)
 MARK_AS_ADVANCED(USE_GMV)
 MARK_AS_ADVANCED(USE_MESH)
+MARK_AS_ADVANCED(USE_VTK)
 MARK_AS_ADVANCED(CMAKE_BUILD_TYPE)
 MARK_AS_ADVANCED(CMAKE_BACKWARDS_COMPATIBILITY)
 MARK_AS_ADVANCED(CMAKE_INSTALL_PREFIX)
@@ -608,6 +619,10 @@ IF(USE_CGAL)
   INCLUDE_DIRECTORIES(${CGAL_INCLUDE_DIR})
 ENDIF(USE_CGAL)
 
+IF(USE_VTK)
+  INCLUDE_DIRECTORIES(${VTK_INCLUDE_DIR})
+ENDIF(USE_VTK)
+
 #-----------------------------------------------------------------------------
 # Make sure the linker can find the CFS base libraries once it is built.
 #-----------------------------------------------------------------------------
@@ -695,6 +710,12 @@ ENDIF(USE_GIDPOST)
 IF(USE_UNV)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/Unverg)
 ENDIF(USE_UNV)
+ 
+IF(USE_ENSIGHT)
+  ADD_SUBDIRECTORY(source/DataInOut/SimInOut/VTKBased/Ensight)
+  SET(USE_VTK ON 
+      CACHE INTERNAL "Enable VTK Ensight reader.")
+ENDIF(USE_ENSIGHT)
 
 IF(USE_ANSYSRST)
   ADD_SUBDIRECTORY(source/DataInOut/SimInOut/AnsysRST)

@@ -25,7 +25,7 @@ namespace CoupledField {
   DEFINE_LOG(gridcfs, "grid.cfs")
 
   GridCFS::GridCFS(UInt dim, PtrParamNode param, PtrParamNode info,
-      const std::string &id) 
+      const std::string &id, bool buildExtend)
   : Grid( param, info ) {
     gridId_ = id;
     isQuadratic_ = false;
@@ -40,6 +40,8 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
+
+    buildExtendedElemInfo_ = buildExtend;
   }
 
 
@@ -416,8 +418,8 @@ namespace CoupledField {
       UInt numFaces = actShape.numFaces;
 
       // adapt size of faces and orientation array of element
-      actElem.faces.Resize( numFaces );
-      actElem.faceFlags.Resize( numFaces );
+      actElem.extended->faces.Resize( numFaces );
+      actElem.extended->faceFlags.Resize( numFaces );
 
       // iterate over all faces of this element
       for( UInt iFace = 0; iFace < numFaces; iFace++ ) {
@@ -460,25 +462,25 @@ namespace CoupledField {
                             << actFaceNum << std::endl;
           faceNums[nodeSet] = actFaceNum;
           actFace.neighbors.Push_back( orderedElems_[iElem]);
-          actElem.faces[iFace] = actFaceNum;
+          actElem.extended->faces[iFace] = actFaceNum;
           faces_.Push_back( actFace );
           actFaceNum++;
         } else {
           UInt faceNum = faceNums[nodeSet];
-          actElem.faces[iFace] = faceNum;
+          actElem.extended->faces[iFace] = faceNum;
           faces_[faceNum-1].neighbors.Push_back( orderedElems_[iElem]);
           LOG_DBG2(gridcfs) << "--> already defined\n";
         }
 
         // Set also orientation flags for face
-        actElem.faceFlags[iFace] = orientation;
+        actElem.extended->faceFlags[iFace] = orientation;
       } // loop over faces
 
       // Print information about connectivity and faces
       LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
       LOG_DBG2(gridcfs) << "===================";
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-      LOG_DBG2(gridcfs) << "Faces: " << actElem.faces.Serialize();
+      LOG_DBG2(gridcfs) << "Faces: " << actElem.extended->faces.Serialize();
 
       LOG_TRACE(gridcfs) << "Finished to map faces\n";
 
@@ -530,8 +532,13 @@ namespace CoupledField {
       // get number of edges
       UInt numEdges= actShape.numEdges;
 
+      //in case the extended element info is not yet created we do it here
+      if(!actElem.extended){
+        actElem.extended = new ExtendedElementInfo();
+      }
+
       // adapt size of edge number array of element
-      actElem.edges.Resize( numEdges );
+      actElem.extended->edges.Resize( numEdges );
 
       // iterate over all edges of this element
       for( UInt iEdge = 0; iEdge < numEdges; iEdge++ ) {
@@ -562,13 +569,13 @@ namespace CoupledField {
           LOG_DBG3(gridcfs) << "with nodes: " << edgeNodes.Serialize() << std::endl;
           edgeNums[nodeSet] = actEdgeNum;
           actEdge.neighbors.Push_back(orderedElems_[iElem]);
-          actElem.edges[iEdge] = actEdgeNum*orientation;
+          actElem.extended->edges[iEdge] = actEdgeNum*orientation;
           edges_.Push_back( actEdge );
           actEdgeNum++;
         } else {
           UInt edgeNum = edgeNums[nodeSet];
           LOG_DBG3(gridcfs) << "Edge was already mapped with number #" << edgeNum << std::endl;
-          actElem.edges[iEdge] = edgeNum*orientation;
+          actElem.extended->edges[iEdge] = edgeNum*orientation;
           edges_[edgeNum-1].neighbors.Push_back(orderedElems_[iElem]);
         }
         
@@ -579,7 +586,7 @@ namespace CoupledField {
       LOG_DBG2(gridcfs) << "Elem Nr. " << actElem.elemNum;
       LOG_DBG2(gridcfs) << "===================";
       LOG_DBG2(gridcfs) << "Connectivity: " << actElem.connect.Serialize();
-      LOG_DBG2(gridcfs) << "Edges: " << actElem.edges.Serialize();
+      LOG_DBG2(gridcfs) << "Edges: " << actElem.extended->edges.Serialize();
 
       LOG_TRACE(gridcfs) << "Finished to map edges\n";
     }
@@ -933,7 +940,7 @@ namespace CoupledField {
         curSurf->regionId = curE->regionId;
         if(curShape.dim == 3){
 
-          Face curFace = faces_[curE->faces[aSub]-1];
+          Face curFace = faces_[curE->extended->faces[aSub]-1];
           //for the connect array we have to extract the connectivity
           // right from the volume element as the normalized node array has no longer the expected
           // ordering vertexNodes-edgeNodes-FaceNodes
@@ -946,8 +953,8 @@ namespace CoupledField {
           for(UInt i=0;i<curShape.faceNodes[aSub].GetSize();++i){
         	  curSurf->connect[i] = curE->connect[fNodes[i]-1];
           }
-          curSurf->faces.Push_back(curE->faces[aSub]);
-          curSurf->faceFlags.Push_back(curE->faceFlags[aSub]);
+          curSurf->extended->faces.Push_back(curE->extended->faces[aSub]);
+          curSurf->extended->faceFlags.Push_back(curE->extended->faceFlags[aSub]);
           //ok we know hat the face vertex array contains the edges of the face
           // in order to obtain the correct ordering of edges we loop over
           //the array and search for each pair of face vertices the correct
@@ -961,16 +968,16 @@ namespace CoupledField {
         	  for(UInt i=0;i<curShape.edgeVertices.GetSize();++i){
         		  if(curShape.edgeVertices[i].Contains(node1) &&
                      curShape.edgeVertices[i].Contains(node2)){
-        			  curSurf->edges.Push_back(curE->edges[i]);
+        			  curSurf->extended->edges.Push_back(curE->extended->edges[i]);
         		  }
         	  }
           }
         }else if(curShape.dim==2){
-          Edge curEdge = edges_[abs(curE->edges[aSub])-1];
-          curSurf->edges.Push_back(abs(curE->edges[aSub]));
+          Edge curEdge = edges_[abs(curE->extended->edges[aSub])-1];
+          curSurf->extended->edges.Push_back(abs(curE->extended->edges[aSub]));
 
 
-          if(curE->edges[aSub]<0){
+          if(curE->extended->edges[aSub]<0){
             //first the corner nodes
             for( Integer i = 1; i >= 0; i-- ) {
               curSurf->connect.Push_back(curE->connect[curShape.edgeVertices[aSub][(UInt)i]-1]);
@@ -988,7 +995,7 @@ namespace CoupledField {
           //now we check for more nodes on the edge
           //and assume the the corners were the first two entries in the edgeNodes array
           UInt numNodes = curShape.edgeNodes[aSub].GetSize();
-          if(curE->edges[aSub]>0){
+          if(curE->extended->edges[aSub]>0){
             for( UInt i = 2; i < numNodes; i++ ) {
               curSurf->connect.Push_back(curE->connect[curShape.edgeNodes[aSub][i]-1]);
               curSurf->localCoords.Push_back(curShape.nodeCoords[curShape.edgeNodes[aSub][i]-1]);
@@ -1032,7 +1039,7 @@ namespace CoupledField {
     LOG_DBG3(gridcfs) << "==================================================" << std::endl;
     for(UInt iElem = 0; iElem < interiorSurfElems.GetSize();++iElem){
       LOG_DBG3(gridcfs) << "Added surfElem # " << interiorSurfElems[iElem]->elemNum;
-      LOG_DBG3(gridcfs) << " with Edge # " << interiorSurfElems[iElem]->edges[0];
+      LOG_DBG3(gridcfs) << " with Edge # " << interiorSurfElems[iElem]->extended->edges[0];
       LOG_DBG3(gridcfs) << " and volElem # " << interiorSurfElems[iElem]->ptVolElems[0]->elemNum;
       LOG_DBG3(gridcfs) << " connect ";
       for(UInt i =0;i<interiorSurfElems[iElem]->connect.GetSize();++i){
@@ -1052,7 +1059,7 @@ namespace CoupledField {
     LOG_DBG3(gridcfs) << "==================================================" << std::endl;
     for(UInt iElem = 0; iElem < exteriorSurfElems.GetSize();++iElem){
       LOG_DBG3(gridcfs) << "Added surfElem # " << exteriorSurfElems[iElem]->elemNum;
-      LOG_DBG3(gridcfs) << " with Edge # " << exteriorSurfElems[iElem]->edges[0];
+      LOG_DBG3(gridcfs) << " with Edge # " << exteriorSurfElems[iElem]->extended->edges[0];
       LOG_DBG3(gridcfs) << " and volElem # " << exteriorSurfElems[iElem]->ptVolElems[0]->elemNum;
       LOG_DBG3(gridcfs) << " connect ";
       for(UInt i =0;i<exteriorSurfElems[iElem]->connect.GetSize();++i){
@@ -1088,9 +1095,9 @@ namespace CoupledField {
         ElemShape curShape = Elem::shapes[curSurf->type];
         if(curShape.dim == 2){
           //so we check for faces
-          FaceToSurfElemMap[abs(curSurf->faces[0])].Push_back(surfIdx);
+          FaceToSurfElemMap[abs(curSurf->extended->faces[0])].Push_back(surfIdx);
         }else if(curShape.dim == 1){
-          EdgeToSurfElemMap[abs(curSurf->edges[0])].Push_back(surfIdx);
+          EdgeToSurfElemMap[abs(curSurf->extended->edges[0])].Push_back(surfIdx);
         }else{
           EXCEPTION("Unsupported dimension");
         }
@@ -1143,6 +1150,19 @@ namespace CoupledField {
       EXCEPTION("The nonconforming case is not implemented for the calculation of surf elem neighbors");
     }
 
+  }
+
+  void GridCFS::GetElemCentroid(Vector<Double>& center, UInt eNum, bool isupdated){
+    Elem* el = this->orderedElems_[eNum-1];
+    if(!el->extended){
+      Point cP;
+      shared_ptr<ElemShapeMap> esm = this->GetElemShapeMap(el,isupdated);
+      esm->CalcBarycenter(cP);
+      center = cP.data;
+    }else{
+      SetElementBarycenters(el->regionId,isupdated);
+      center = el->extended->barycenter.data;
+    }
   }
 
   void GridCFS::
@@ -2098,6 +2118,11 @@ namespace CoupledField {
     for(; i<nElems; i++, idx++)
     {
       orderedElems_[idx] = new Elem();
+
+      if(buildExtendedElemInfo_){
+        orderedElems_[idx]->extended = new ExtendedElementInfo();
+      }
+
       orderedElems_[idx]->elemNum = idx+1;
     }
 
@@ -2274,7 +2299,7 @@ namespace CoupledField {
     // TODO: This is from the legacy code -> replace with ShapeMap concept!
 
     // check if already filled.
-    if(orderedElems_[0]->neighborhood != NULL) return;
+    if(orderedElems_[0]->extended->neighborhood != NULL) return;
 
     // this is expensive but still O(n)
     // for all nodes we store the elements where they participate
@@ -2337,7 +2362,7 @@ namespace CoupledField {
 
       // neighborhood is filled now, copy it to elem
       assert(neighborhood.GetSize() > 0); // assume there is no single element case
-      elem->neighborhood = new StdVector<std::pair<Elem*, int> >(neighborhood);
+      elem->extended->neighborhood = new StdVector<std::pair<Elem*, int> >(neighborhood);
 
       // LOG_DBG2(gridcfs) << "FEN: elem=" << elem->elemNum << " neighbourhood=" << elem->neighborhood->ToString();
     }
@@ -2450,6 +2475,11 @@ namespace CoupledField {
     LOG_TRACE(gridcfs) << "GetElemNumsByName for name " << elemName;
     if ( nameTypeMap_.find(elemName) == nameTypeMap_.end() )
     {
+      std::cerr << "Available Regions: " << std::endl;
+      std::map<std::string, EntityList::DefineType>::iterator eIter = nameTypeMap_.begin();
+      for(;eIter != nameTypeMap_.end(); ++eIter){
+        std::cerr << eIter->first << std::endl;
+      }
       EXCEPTION( "There are no entities with name '" << elemName
                  << "' in the grid");
     }
@@ -2740,6 +2770,9 @@ namespace CoupledField {
       myElem->type = oldElem->type;
       myElem->regionId = oldElem->regionId;
       myElem->connect = oldElem->connect;
+      if(buildExtendedElemInfo_){
+        myElem->extended = new ExtendedElementInfo;
+      }
       surfElems[iEl] = myElem;
 
       // delete old volume element

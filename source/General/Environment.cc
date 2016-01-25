@@ -77,6 +77,7 @@ namespace CoupledField {
         return "m^2/s^2";
         break;
 
+
       case ACOU_POTENTIAL_DERIV_2:
         return "m^2/s^3";
         break;
@@ -233,6 +234,14 @@ namespace CoupledField {
         return "m/s";
         break;
 
+      case FLUIDMECH_VELOCITY_DERIV_1:
+        return "1/s";
+        break;
+
+      case FLUIDMECH_VELOCITY_DERIV_2:
+        return "1/s^2";
+        break;
+
       case MEAN_FLUIDMECH_VELOCITY_NORMAL:
         return "m/s";
         break;
@@ -245,9 +254,27 @@ namespace CoupledField {
         return "Pa";
         break;
 
+      case FLUIDMECH_PRESSURE_DERIV_1:
+        return "Pa/m";
+        break;
+
+      case FLUIDMECH_PRESSURE_DERIV_2:
+        return "Pa/m^2";
+        break;
+
+      case FLUIDMECH_PRESSURE_TIME_DERIV_1:
+        return "Pa/s";
+        break;
+
+      case FLUIDMECH_PRESSURE_TIME_DERIV_2:
+        return "Pa/s^2";
+        break;
+
       case FLUIDMECH_DENSITY:
         return "kg/m^3";
         break;
+
+
 
       case FLUIDMECH_TKE:
         return "J";
@@ -1304,6 +1331,10 @@ namespace CoupledField {
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_1, "fluidMechPressure_deriv1");
     SolutionTypeEnum.Add(FLUIDMECH_VELOCITY_DERIV_2, "fluidMechVelocity_deriv2");
     SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_DERIV_2, "fluidMechPressure_deriv2");
+
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_TIME_DERIV_1, "fluidMechPressure_timeDeriv1");
+    SolutionTypeEnum.Add(FLUIDMECH_PRESSURE_TIME_DERIV_2, "fluidMechPressure_timeDeriv2");
+
     SolutionTypeEnum.Add(FLUIDMECH_FORCE, "fluidMechForce");
     SolutionTypeEnum.Add(FLUIDMECH_DENSITY, "fluidMechDensity");
     SolutionTypeEnum.Add(FLUIDMECH_TKE, "fluidMechTKE");

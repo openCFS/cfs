@@ -129,6 +129,12 @@ namespace CoupledField
       order.Init( GetIsoOrder() );
     }
 
+    //! Returns connect indices for a triangulated simplex
+    //! \return Vector of triangle/tet connectivities relative to the reference element 0-based
+    virtual void Triangulate(StdVector< StdVector<UInt> > & triConnect){
+      Exception("Triangulation not available for the selected element type!");
+    }
+
     //! Compute the coefficient and exponent matrix for an alternate desciption 
     //! of higher order results. I.e. monomial representation.
     //! We assume a test function \f$ \phi_j(\xi,\eta,\zeta)\f$ whihc can be 

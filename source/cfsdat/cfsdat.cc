@@ -14,112 +14,137 @@
 
 //System includes
 #include <iostream>
-
-//boost parameter handling and command line
-#include <boost/program_options/cmdline.hpp>
-#include <boost/program_options/options_description.hpp>
-#include <boost/program_options/parsers.hpp>
-#include <boost/program_options/variables_map.hpp>
-#include <boost/filesystem/operations.hpp>
-#include <boost/filesystem/path.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/exception.hpp>
-#include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <boost/tokenizer.hpp>
-#include <boost/algorithm/string/trim.hpp>
-#include <boost/filesystem/convenience.hpp>
-#include <boost/filesystem/fstream.hpp>
+#include <stdio.h>
 
 
 //CFS includes
 #include <def_cfs_stats.hh>
-
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ProgramOptions.hh"
-#include "DataInOut/SimInput.hh"
-#include "DataInOut/SimOutput.hh"
-
-
-#include "Domain/Mesh/GridCFS/GridCFS.hh"
+#include "DataInOut/ParamHandling/Xerces.hh"
 #include "General/defs.hh"
 #include "General/Environment.hh"
+#include "PDE/BasePDE.hh"
 
-//#include <mpi.h>
-#include <stdio.h>
+//CFSDatIncludes
+#include "cfsdat/Filters/BaseFilter.hh"
+#include "cfsdat/Utils/CFSDatProgramOptions.hh"
+#include "cfsdat/Utils/ResultManager.hh"
+#include "cfsdat/Utils/DataStructs.hh"
+#include "cfsdat/Utils/Defines.hh"
 
-using namespace CoupledField;
-namespace CoupledField
-{
-  class SimInput;
-  class SimOutput;
-}
-//! Global parameter node and info node instance
-PtrParamNode param;
-PtrParamNode info;
+
 
 namespace CFSDat {
 
   namespace po = boost::program_options;
 
   void GenerateParamNode(int argc, char** argv, PtrParamNode param){
-    //lets test with some options
 
-    po::options_description desc("Supported Modes");
-    desc.add_options()
-            ("help,h", "Produce help message")
-            ("version,v", "Print version information");
-
-    po::variables_map vm;
-
-    po::store(po::parse_command_line(argc, argv, desc), vm);
-
-    po::notify(vm);
-
-    //1. check for config files
-    //   - try to validate. But how?
-    //2.
   }
 
 }
 
-int main(int argc, char** argv)
+
+
+int main(int argc, const char** argv)
 {
 
-  //int rank, size;
 
 
-//MPI_Init (&argc, &argv);      /* starts MPI */
-//MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
-//MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
-//printf( "Hello world from process %d of %d\Sn", rank, size );
-//MPI_Finalize();
-return 0;
+  CFSDat::CFSDatProgramOptions * options = new CFSDat::CFSDatProgramOptions(argc,argv);
+  // Write information to command line
+  std::cout << "--- Reading parameter file " << std::endl;
 
-  /*
-  std::string infoFileName;
+  options->ParseData();
+
   SetEnvironmentEnums();
   BasePDE::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
 
-  domain = NULL;
 
-  try
-   {
-     param.reset(new ParamNode( ParamNode::PASS, ParamNode::ELEMENT));
-     CFSDat::GenerateParamNode(argc, argv, param);
+  // this is the new param stuff which replaces the old params - delete this comment finally
+  std::string schema = options->GetSchemaPathStr();
+  schema += "/CFS-Dat/CFS_Dat.xsd";
 
-   } catch(std::exception& ex) {
-     std::cerr << "The following error occured during cfsdat execution:\n\n" << ex.what();
-     if (info != NULL)
-     {
-       info->Get(ParamNode::FAIL)->SetValue(ex.what());
-       info->ToFile(infoFileName);
-     }
-     return -1;
-   }
-   //info->ToFile(infoFileName);
-*/
+  // Initialize our xerces dom parser to handle the cfs xml file
+  Xerces xerces(schema);
+
+  xerces.SetFile(options->GetParamFileStr());
+
+  CoupledField::PtrParamNode configNode = xerces.CreateParamNodeInstance();
+
+  CFSDat::PtrResultManager resMan(new CFSDat::ResultManager());
+
+  PtrParamNode pipelineNode = configNode->Get("pipeline");
+
+  //loop over all elements, create filters
+  ParamNodeList filters = pipelineNode->GetChildren();
+
+  //create filters
+  std::cout << "--- Creating Filters" << std::endl;
+  std::map<std::string,CFSDat::FilterPtr> allFilters;
+  std::set<CFSDat::FilterPtr> outputs;
+  for(UInt i=0;i<filters.GetSize();++i){
+    CFSDat::FilterPtr newFilt = CFSDat::BaseFilter::Generate(filters[i],resMan);
+    if(newFilt){
+      std::cout << "\t---> Adding Filter type \"" << filters[i]->GetName() << "\" with ID \"" << newFilt->GetId() << "\"" << std::endl;
+      allFilters[newFilt->GetId()] = newFilt;
+      if(newFilt->IsOutput()){
+        outputs.insert(newFilt);
+      }
+    }
+  }
+
+  std::cout << "--- Creating filter connections" << std::endl;
+  //create connections
+  std::map<std::string,CFSDat::FilterPtr>::iterator fIter = allFilters.begin();
+  for(;fIter != allFilters.end();++fIter){
+    std::set<std::string>::iterator inIter = fIter->second->GetInputIds().begin();
+    for(;inIter != fIter->second->GetInputIds().end();++inIter){
+      if(*inIter != "none"){
+        std::cout << "\t---> Adding filter \"" << allFilters[*inIter]->GetId() << "\" as source for filter \"" <<  fIter->second->GetId() << "\"" << std::endl;
+        CFSDat::BaseFilter::Connect(allFilters[*inIter],fIter->second);
+      }
+    }
+  }
+
+  std::cout << "--- Initializing filters" << std::endl;
+  //for now we just loop over output filters
+  std::set<CFSDat::FilterPtr>::iterator outIter =  outputs.begin();
+  for(;outIter != outputs.end();++outIter){
+    (*outIter)->InitResults();
+  }
+
+  std::cout << "--- Finalizing filters" << std::endl;
+  resMan->Finalize();
+
+  outIter =  outputs.begin();
+  for(;outIter != outputs.end();++outIter){
+    (*outIter)->FinishInit();
+  }
+
+  //after that no invalid result definition should be remaining
+  std::set<boost::uuids::uuid> list = resMan->GetActiveResults();
+  if(list.size() != 0){
+    CoupledField::Exception("there are still Active results! This may not happen!");
+  }
+
+
+  UInt counter = 1;
+  bool allFinished = true;
+  std::cout << "--- Initiating filter traversal" << std::endl;
+  do{
+    std::cout << "\t---> Traversing outputs: step #" << counter++ << std::endl;
+    allFinished = true;
+    outIter =  outputs.begin();
+    for(;outIter != outputs.end();++outIter){
+      allFinished &= (*outIter)->Run();
+    }
+  } while(!allFinished);
+
+  std::cout << "--- Computation done." << std::endl;
+  delete options;
+
+  return 0;
 }

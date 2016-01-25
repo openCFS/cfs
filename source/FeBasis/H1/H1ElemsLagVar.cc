@@ -94,7 +94,7 @@ namespace CoupledField {
         fncPermutation.Resize(order_-1);
 
         //TODO> safety check if the requested entNumber is valid
-        Integer factor = ptElem->edges[entNumber]; 
+        Integer factor = ptElem->extended->edges[entNumber];
         if(factor < 0 ){
           for ( UInt i = 0; i < order_-1 ; i++ ) {
             fncPermutation[i] = order_-i-2;
@@ -105,18 +105,18 @@ namespace CoupledField {
           }
         }
 
-        LOG_DBG3(H1LagrangeVar) << "Edge # " << ptElem->edges[entNumber] << " of Element #" 
+        LOG_DBG3(H1LagrangeVar) << "Edge # " << ptElem->extended->edges[entNumber] << " of Element #"
                                    << ptElem->elemNum << "Has sign " << factor << " and the permutation \n"
                                    << fncPermutation << std::endl;
 
-      }else if( fctEntityType == FACE && ptElem->faces.GetSize() > 0) {
+      }else if( fctEntityType == FACE && ptElem->extended->faces.GetSize() > 0) {
         fncPermutation.Resize((order_-1) * (order_-1));
         Integer dI,dII;
-        if(ptElem->faceFlags[entNumber].test(0)){
+        if(ptElem->extended->faceFlags[entNumber].test(0)){
           //richtungI = flag(2);
           //richtungII = flag(1);
-          dI = (ptElem->faceFlags[entNumber].test(2))? 0:order_-2;
-          dII = (ptElem->faceFlags[entNumber].test(1))? 0:order_-2;
+          dI = (ptElem->extended->faceFlags[entNumber].test(2))? 0:order_-2;
+          dII = (ptElem->extended->faceFlags[entNumber].test(1))? 0:order_-2;
           for(UInt i = 0; i< order_-1 ; i++){
             for(UInt j = 0; j< order_-1 ; j++){
               Integer numI = dI-(Integer)i;
@@ -127,8 +127,8 @@ namespace CoupledField {
         }else{
           //richtungI = flag(1);
           //richtungII = flag(2);
-          dI = (ptElem->faceFlags[entNumber].test(1))? 0:order_-2;
-          dII = (ptElem->faceFlags[entNumber].test(2))? 0:order_-2;
+          dI = (ptElem->extended->faceFlags[entNumber].test(1))? 0:order_-2;
+          dII = (ptElem->extended->faceFlags[entNumber].test(2))? 0:order_-2;
           for(UInt i = 0; i< order_-1 ; i++){
             for(UInt j = 0; j< order_-1 ; j++){
               Integer numI = dI-(Integer)j;
@@ -137,12 +137,12 @@ namespace CoupledField {
             }
           }
         }
-        LOG_DBG3(H1LagrangeVar) << "Face # " << ptElem->faces[entNumber] << " of Element #" 
-                                << ptElem->elemNum << " Has Bitset " << ptElem->faceFlags[entNumber] << " and the permutation \n"
+        LOG_DBG3(H1LagrangeVar) << "Face # " << ptElem->extended->faces[entNumber] << " of Element #"
+                                << ptElem->elemNum << " Has Bitset " << ptElem->extended->faceFlags[entNumber] << " and the permutation \n"
                                 << fncPermutation << std::endl;
 
         //the following check for interior nodes is also limited to hexas where there are 6 faces
-      }else if( fctEntityType == INTERIOR && ptElem->faces.GetSize() == 6) {
+      }else if( fctEntityType == INTERIOR && ptElem->extended->faces.GetSize() == 6) {
         
         //no need to check for an orientation
         UInt numIFncs = (order_-1)*(order_-1)*(order_-1);

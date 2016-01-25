@@ -91,7 +91,7 @@ namespace CoupledField
 
     StdVector< Vector<Double> > localCoords;
 
-    //warning this may not be freed!!!! just for compatibility with other element types...
+    //for compatibility with other element types...
     StdVector< shared_ptr<NcSurfElem> > neighbors;
   };
 
