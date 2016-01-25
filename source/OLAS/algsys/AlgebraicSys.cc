@@ -537,8 +537,7 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch ) {
+  void AlgebraicSys::SetupEigenSolver(UInt numFreq, Double shift, bool isQuadratic, bool sort, bool bloch) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -570,9 +569,7 @@ namespace CoupledField {
       }
 
       // Setup the quadratic eigenvalue solver
-      eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                           (*sysMat_[MASS])(0,0),
-                           (*sysMat_[DAMPING])(0,0), numFreq, shift );
+      eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), (*sysMat_[DAMPING])(0,0), numFreq, shift, sort);
     } else {
       if( dampPresent == true ) {
         WARN("Although a damping matrix is present, only a generalized "
@@ -582,13 +579,10 @@ namespace CoupledField {
       
       if( massPresent == true ) {
         // Setup the eigenvalue solver for generalized EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             (*sysMat_[MASS])(0,0),
-                             numFreq, shift, bloch);
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), numFreq, shift, sort, bloch);
       } else {
         // Setup the eigenvalue solver for standard EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             numFreq, shift );
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), numFreq, shift, sort);
       }
     }
 

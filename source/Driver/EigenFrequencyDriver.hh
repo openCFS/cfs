@@ -115,6 +115,8 @@ class SingleVector;
     /** perform complex bloch analysis to show band-gaps in the irreducible Brillouin zone */
     bool isBloch_;
     
+    bool sort_;
+
     //! Number of eigenfrequencies to be calculated
     unsigned int numFreq_;
 

@@ -1,5 +1,5 @@
 #include <def_use_arpack.hh>
-#include <def_use_pardiso.hh> // for Feast better check for mkl
+#include <def_use_pardiso.hh>
 
 #include "MatVec/BaseMatrix.hh"
 #include "OLAS/algsys/SolStrategy.hh"
@@ -11,9 +11,6 @@
 #ifdef USE_ARPACK
 #include "OLAS/external/arpack/ArpackEigenSolver.hh"
 #endif
-#include "OLAS/external/feast/FeastEigenSolver.hh"
-
-
 
 namespace CoupledField {
 
@@ -75,14 +72,6 @@ namespace CoupledField {
         retSolver = new ArpackEigenSolver( strat, eSolverXML, solverList, precondList, eigenInfo );
       #else
         EXCEPTION( "compiled without Arpack!" );
-      #endif
-      break;
-
-    case BaseEigenSolver::FEAST:
-      #ifdef USE_PARDISO // assume MKL Pardiso! This is
-        retSolver = new FeastEigenSolver(strat, eSolverXML, solverList, precondList, eigenInfo);
-      #else
-        EXCEPTION( "compiled without Feast which is part of MKL!" );
       #endif
       break;
 
