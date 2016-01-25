@@ -273,33 +273,40 @@ void ElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
 // ========================================================================
 
 LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
-  feMap_[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
-  feMap_[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
-  feMap_[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
-  feMap_[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
-  feMap_[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
-  feMap_[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
-  feMap_[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
-  feMap_[Elem::ET_TET4]    = new FeH1LagrangeTet1();
-  feMap_[Elem::ET_TET10]   = new FeH1LagrangeTet2();
-  feMap_[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
-  feMap_[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
-  feMap_[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
-  feMap_[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
-  feMap_[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
-  feMap_[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
-  feMap_[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
-  feMap_[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
-  feMap_[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
+  //obtain thread local copy this method will only be called once in the program!
+  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
+    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+    tMap[Elem::ET_LINE2]   = new FeH1LagrangeLine1();
+    tMap[Elem::ET_LINE3]   = new FeH1LagrangeLine2();
+    tMap[Elem::ET_TRIA3]   = new FeH1LagrangeTria1();
+    tMap[Elem::ET_TRIA6]   = new FeH1LagrangeTria2();
+    tMap[Elem::ET_QUAD4]   = new FeH1LagrangeQuad1();
+    tMap[Elem::ET_QUAD8]   = new FeH1LagrangeQuad2();
+    tMap[Elem::ET_QUAD9]   = new FeH1LagrangeQuad9();
+    tMap[Elem::ET_TET4]    = new FeH1LagrangeTet1();
+    tMap[Elem::ET_TET10]   = new FeH1LagrangeTet2();
+    tMap[Elem::ET_HEXA8]   = new FeH1LagrangeHex1();
+    tMap[Elem::ET_HEXA20]  = new FeH1LagrangeHex2();
+    tMap[Elem::ET_HEXA27]  = new FeH1LagrangeHex27();
+    tMap[Elem::ET_WEDGE6]  = new FeH1LagrangeWedge1();
+    tMap[Elem::ET_WEDGE15] = new FeH1LagrangeWedge2();
+    tMap[Elem::ET_WEDGE18] = new FeH1LagrangeWedge18();
+    tMap[Elem::ET_PYRA5]   = new FeH1LagrangePyra1();
+    tMap[Elem::ET_PYRA13]  = new FeH1LagrangePyra2();
+    tMap[Elem::ET_PYRA14]  = new FeH1LagrangePyra14();
+  }
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
   // delete reference elements
-  std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = feMap_.begin();
-  for (; it != feMap_.end(); ++it) {
-    delete it->second;
+  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
+    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+    std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = tMap.begin();
+    for (; it != tMap.end(); ++it) {
+      delete it->second;
+    }
+    tMap.clear();
   }
-  feMap_.clear();
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton&
@@ -312,6 +319,8 @@ LagrangeElemShapeMap::LagrangeElemShapeMap(Grid* ptGrid) :
     ElemShapeMap(ptGrid), elems_(LagrangeMapSingleton::getInstance()) {
   type_ = LAGRANGE;
   intScheme_ = ptGrid_->GetIntegrationScheme();
+  ptFe_ = NULL;
+  shape_ = NULL;
 }
 
 LagrangeElemShapeMap::~LagrangeElemShapeMap() {
@@ -1888,13 +1897,14 @@ ptGrid_->GetElemNodesCoord(coords_, ptElem->connect, isUpdated_);
 //      << coords_ << std::endl;
 
 // set reference element
+std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = elems_.feMap_.Mine();
 #ifndef NDEBUG
-if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end()) {
+if( tMap.find(ptElem->type) == tMap.end()) {
   EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type)
       << "' not defined for Lagrangian Shape Map!");
 }
 #endif
-ptFe_ = elems_.feMap_[ptElem->type];
+ptFe_ = tMap[ptElem->type];
 shape_ = &Elem::shapes[ptElem_->type];
 }
 

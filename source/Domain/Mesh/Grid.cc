@@ -49,17 +49,11 @@ namespace CoupledField
     // in addition, add always the NO_REGION to the enum
     region_.Add( NO_REGION_ID, "_NO_REGION_");
 
-    numOMPThreads_ = 1;
+    elemShapeMapOrig_.Resize(NUM_CFS_THREADS);
+    lastShapeElemNumOrig_.Resize(NUM_CFS_THREADS);
 
-#ifdef _OPENMP
-    numOMPThreads_ = omp_get_max_threads();
-#endif
-
-    elemShapeMapOrig_.Resize(numOMPThreads_);
-    lastShapeElemNumOrig_.Resize(numOMPThreads_);
-
-    elemShapeMapUpdated_.Resize(numOMPThreads_);
-    lastShapeElemNumUpdated_.Resize(numOMPThreads_);
+    elemShapeMapUpdated_.Resize(NUM_CFS_THREADS);
+    lastShapeElemNumUpdated_.Resize(NUM_CFS_THREADS);
 
     //elemShapeMapOrig2nd_.Resize(numOMPThreads_);
     //lastShapeElemNumOrig2nd_.Resize(numOMPThreads_);
@@ -68,7 +62,7 @@ namespace CoupledField
     //lastShapeElemNumUpdated2nd_.Resize(numOMPThreads_);
 
     UInt slotsToReserve = 6;
-    for(UInt aT = 0; aT < numOMPThreads_; aT++){
+    for(UInt aT = 0; aT < NUM_CFS_THREADS; aT++){
       lastShapeElemNumOrig_[aT].Reserve(slotsToReserve);
       lastShapeElemNumUpdated_[aT].Reserve(slotsToReserve);
       elemShapeMapOrig_[aT].Reserve(slotsToReserve);
@@ -1065,6 +1059,7 @@ namespace CoupledField
 
     // loop over matches, perform global->local mapping of coordinates
     // and check, if coordinate is really contained in this element
+#pragma omp parallel for num_threads(NUM_CFS_THREADS)
     for( UInt iM = 0; iM < numMatches; ++iM ) {
       std::set<const Elem*>::const_iterator it;
       Vector<Double> locCoord;

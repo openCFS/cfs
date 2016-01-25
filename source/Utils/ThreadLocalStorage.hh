@@ -49,13 +49,13 @@ public:
   Needs to be adapted in the future to have a variable?
 */
 class BaseTLS{
+public:
+  UInt GetNumSlots(){
+    return numSlots_;
+  }
 protected:
   BaseTLS(){
-  #ifdef USE_OPENMP
-     numSlots_ = omp_get_max_threads();
-  #else
-     numSlots_ = 1;
-  #endif
+     numSlots_ = NUM_CFS_THREADS;
   }
   UInt numSlots_;
 };

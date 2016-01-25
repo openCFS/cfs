@@ -7,6 +7,7 @@
 #include "MatVec/Matrix.hh"
 #include "Elem.hh"
 #include "SurfElem.hh"
+#include "Utils/ThreadLocalStorage.hh"
 #include <climits>
 
 
@@ -614,7 +615,7 @@ namespace CoupledField {
       static LagrangeMapSingleton& getInstance();
 
       //! Map containing the reference elements
-      std::map<Elem::FEType, FeH1LagrangeExpl* > feMap_;
+      CfsTLS<std::map<Elem::FEType, FeH1LagrangeExpl* > > feMap_;
     }; 
 
     //! Nodal coordinates

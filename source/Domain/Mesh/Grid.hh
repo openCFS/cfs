@@ -894,9 +894,6 @@ namespace CoupledField
    // =======================================================================
    //@{
 
-   //! Cached values in OMP environment requires number of threads
-   UInt numOMPThreads_;
-
    //! Pointer to element shape map (original grid)
    StdVector< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
 

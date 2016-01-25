@@ -153,6 +153,9 @@ namespace CoupledField
     /** Is cfs invoked with the quite flag to compress console output? */
     virtual bool IsQuiet() const;
 
+    /** Get number of threads for CFS supplied on the command line */
+    virtual UInt GetNumThreads() const;
+
     // =======================================================================
     // AUXILLIARY METHODS FOR OUTPUTTING INFORMATION
     // =======================================================================

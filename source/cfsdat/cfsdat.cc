@@ -19,6 +19,7 @@
 
 //CFS includes
 #include <def_cfs_stats.hh>
+#include <def_use_openmp.hh>
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
 #include "General/defs.hh"
@@ -32,6 +33,9 @@
 #include "cfsdat/Utils/DataStructs.hh"
 #include "cfsdat/Utils/Defines.hh"
 
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
 
 
 namespace CFSDat {
@@ -58,6 +62,11 @@ int main(int argc, const char** argv)
   options->ParseData();
 
   SetEnvironmentEnums();
+#ifdef USE_OPENMP
+  SetNumberOfThreads(omp_get_num_threads());
+#else
+  SetNumberOfThreads(1);
+#endif
   BasePDE::SetEnums();
   EntityList::SetEnums();
   ElemShape::Initialize();
