@@ -67,6 +67,9 @@ namespace CoupledField {
   static const Double NORM_EPS = 1e-6;  // needed e.g. for lower bounds of norms in iteration loops
   static const Double EPS = 1e-12;     // value for absolute precision (needed e.g. for lower bounds of norms in iteration loops)
 
+  //! number of threads for parallel CFS loops
+  extern UInt NUM_CFS_THREADS;
+
   //! specifications of Lapack routines for different types of system matrices in
   //! matrix.solveWithLapack
   //! Z - Complex valued matrix
@@ -494,6 +497,9 @@ namespace CoupledField {
   std::string MapSolTypeToUnit(SolutionType solType);
 
   void SetEnvironmentEnums();
+
+  //! set the global number of threads for all OMP loops within CFS
+  void SetNumberOfThreads(UInt numThreads);
 
 } // end of namespace
 

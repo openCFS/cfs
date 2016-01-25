@@ -95,15 +95,15 @@ INCLUDE("cmake_modules/CFS_macros.cmake")
 #-----------------------------------------------------------------------------
 # CFS version number.  Simply the last modification date
 #-----------------------------------------------------------------------------
-SET(CFS_VERSION_YEAR "15")
-SET(CFS_VERSION_MONTH "11")
+SET(CFS_VERSION_YEAR "16")
+SET(CFS_VERSION_MONTH "1")
 SET(CFS_VERSION
   "${CFS_VERSION_YEAR}.${CFS_VERSION_MONTH}")
 
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "CA(A)fehaus of the future")
+SET(CFS_NAME "Concurrent Monorail")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")

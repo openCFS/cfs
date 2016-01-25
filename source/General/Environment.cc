@@ -1539,12 +1539,20 @@ namespace CoupledField {
     NonLinMethodTypeEnum.Add( NEWTON, "newton" );
   }
 
+
+  void SetNumberOfThreads(UInt numThreads){
+    NUM_CFS_THREADS = numThreads;
+  }
+
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
   Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;
   UInt MAX_NUM_FE_MATRICES;
+  //give default value of 1 for the OMP threads
+  UInt NUM_CFS_THREADS = 1;
 }
+
 
 

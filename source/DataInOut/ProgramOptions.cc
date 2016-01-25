@@ -180,6 +180,9 @@ namespace CoupledField {
       ( "history,H",
         "history of revisions" )
 
+      ( "numThreads,t", po::value<UInt>()->default_value(1),
+        "number of threads used in CFS run. Does not affect solvers. Default 1." )
+
       ( "meshFile,m", po::value<string>(),
         "name of mesh file for the simulation" )
 
@@ -512,6 +515,19 @@ namespace CoupledField {
     return varMap_.count("quiet") > 0;
   }
   
+  UInt ProgramOptions::GetNumThreads() const
+  {
+#ifdef USE_OPENMP
+    if( varMap_.count( "numThreads") != 0 ) {
+      return varMap_["numThreads"].as<UInt>();
+    }else{
+      return 1;
+    }
+#else
+    return 1;
+#endif
+  }
+
   void ProgramOptions::PrintHelp( std::ostream& out )
   {
     out << helpMsg_;

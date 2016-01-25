@@ -127,6 +127,9 @@ CFS::CFS(int argc, const char **argv) :
   // Set global Enums, the rest is set by the classes
   SetGlobalEnums();
 
+  //now set the number of threads from the commandline
+  SetNumberOfThreads(progOpts->GetNumThreads());
+
   // the new xml logging derived from the ParamNode
   infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
       //progOpts->GetSimName() + ".info.xml", "<?xml version=\"1.0\"?>");

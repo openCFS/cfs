@@ -15,6 +15,7 @@
 #include "VolumeGridIntersection.hh"
 #include "Domain/Mesh/MeshUtils/EntityAssociation.hh"
 #include "Domain/Mesh/Grid.hh"
+#include "General/Environment.hh"
 #include <fstream>
 
 #include "def_use_openmp.hh"
@@ -64,18 +65,11 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   //std::vector< std::pair<UInt,UInt> > newVec = elemCandidates_;
   StdVector<ElemIntersect::VolCenterInfo> retInfo;
   UInt numIntersects = 0;
-  UInt numThreads= 1;
-#ifdef USE_OPENMP
-#pragma omp parallel
-  {
-  numThreads = omp_get_num_threads();
-  }
-
-#endif
+  UInt numThreads= NUM_CFS_THREADS;
 
   std::cout << "\t\t\t Processing " << numCandidates << " intersection candidates using " <<  numThreads << " threads." << std::endl;
 
-#pragma omp parallel shared(numIntersects)
+#pragma omp parallel shared(numIntersects) num_threads(numThreads)
 {
   INTER locAlgo(tGrid_,sGrid_);
   StdVector<Double> curVols;

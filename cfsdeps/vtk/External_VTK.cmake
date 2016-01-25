@@ -16,12 +16,14 @@ ELSE(CMAKE_BUILD_TYPE STREQUAL "debug")
   SET(CMAKE_BUILD_TYPE "Release")
 ENDIF(CMAKE_BUILD_TYPE STREQUAL "debug")
 
+SET(VTK_CXX_FLAGS "${CFSDEPS_CXX_FLAGS} -DBOOST_THREAD_USE_LIB")
+
 SET(CMAKE_ARGS
   -DCMAKE_COLOR_MAKEFILE:BOOL=${CMAKE_COLOR_MAKEFILE}
   -DCMAKE_INSTALL_PREFIX:PATH=${vtk_install}
   -DCMAKE_C_COMPILER:FILEPATH=${CMAKE_C_COMPILER}
   -DCMAKE_CXX_COMPILER:FILEPATH=${CMAKE_CXX_COMPILER}
-  -DCMAKE_CXX_FLAGS:STRING=${CGAL_CXX_FLAGS}
+  -DCMAKE_CXX_FLAGS:STRING=${VTK_CXX_FLAGS}
   -DCMAKE_BUILD_TYPE:STRING=${CMAKE_BUILD_TYPE}
   -DCMAKE_RANLIB:FILEPATH=${CMAKE_RANLIB}
 )
@@ -60,9 +62,6 @@ CONFIGURE_FILE(
   @ONLY
   ) 
 
-#-------------------------------------------------------------------------------
-# The CGAL external project
-#-------------------------------------------------------------------------------
 ExternalProject_Add(vtk
   BUILD_COMMAND make -j4
   DEPENDS boost zlib 
@@ -110,7 +109,7 @@ SET(VTK_INCLUDE_DIR "${vtk_install}/include/vtk-${VTK_VERSION}")
 
 
 #-------------------------------------------------------------------------------
-# Determine paths of CGAL libraries.
+# Set linking libraries, the exact order of .a files is of highest importance
 #-------------------------------------------------------------------------------
 SET(LD "${vtk_install}/lib")
 SET(VTK_LIBRARY
