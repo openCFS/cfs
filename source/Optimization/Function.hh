@@ -198,7 +198,8 @@ class Function
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
 
     /** Get at least one excitation which applies to this function. For excite_ == -1 this might be one sample */
-     Excitation* GetExcitation() { return sample_excitation_; }
+    Excitation* GetExcitation() { return sample_excitation_; }
+    const Excitation* GetExcitation() const { return sample_excitation_; }
 
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;

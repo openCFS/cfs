@@ -677,6 +677,9 @@ string Condition::ToString(MultipleExcitation* me) const
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
 
+  if(type_ == EIGENFREQUENCY && GetExcitation() != NULL && GetExcitation()->DoBloch()) // might not be set meantime - e.g. due to early logging
+    os << "_wv_" << GetExcitation()->GetWaveNumber();
+
   return os.str();  
 }
 

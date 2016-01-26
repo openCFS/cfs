@@ -64,6 +64,9 @@ public:
   /** the full label is meta label plus base label or it is simply label */
   std::string GetFullLabel() const;
 
+  /** Is this a Bloch Excitatztion? */
+  bool DoBloch() const;
+
   /** the 0-based wave number is for the first sequence the index */
   int GetWaveNumber() const;
 
