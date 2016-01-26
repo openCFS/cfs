@@ -492,20 +492,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
   }
 
-  // log mode switching only for the functions
-  if(manager.any().eigenvalue && ev_.DoSorting())
-  {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
-    {
-      if(constraints.all[i]->ctxt->IsEigenvalue())
-      {
-        int idx = constraints.all[i]->GetEigenValueID(); // Now traverse in global mode
-        if(idx > 0)
-          iter->Get("mode_" + boost::lexical_cast<std::string>(idx))->SetValue(ev_.permutation[idx-1]+1);
-      }
-    }
-  }
-
   if(densityFile != NULL)
     densityFile->SetAndWriteCurrent(currentIteration - 1); // already written in DesignSpace::ReadDesignFromExtern()
 
@@ -518,19 +504,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
   if(out && design->HasAlphaVariable())
     *out << " \t" << design->GetAlphaVariable();
-
-  if(out && manager.any().eigenvalue && ev_.DoSorting())
-  {
-    for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
-    {
-      if(constraints.all[i]->ctxt->IsEigenvalue())
-      {
-        int idx = constraints.all[i]->GetEigenValueID(); // Now traverse in global mode
-        if(idx > 0)
-          *out << " \t" << (ev_.permutation[idx-1]+1);
-      }
-    }
-  }
 }
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
@@ -2316,156 +2289,13 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
   */
 
-  void ErsatzMaterial::SortEigenvalues()
-  {
-    Assemble* assemble = context->pde->GetAssemble();
-    EigenFrequencyDriver* driver = context->GetEigenFrequencyDriver();
-    Vector<double>& efs = *(dynamic_cast<Vector<double>* >(driver->eigenFreqs));
-
-    LOG_DBG(em) << "SE ev.it=" << ev_.current_iter << " it=" << currentIteration;
-
-    assert(!ev_.last.IsEmpty()); // Init already called
-    if(ev_.current_iter == this->currentIteration) // at least in debug we might be called multiple times, this kills permutation!
-      return;
-
-    assert(ev_.last.GetSize() == efs.GetSize());
-
-    // apply the permutation
-    Vector<double> pefs(efs.GetSize());
-    for(unsigned int i = 0; i < efs.GetSize(); i++)
-      pefs[i] = efs[ev_.permutation[i]];
-
-    // the idea to detect mode switching is the following:
-    // assume at iteration k two modes a_k and b_k with close eigenvalues
-    // if b_(k-1) is closer to a_k than a_(k-1) we presume mode switching
-    //
-    // what we need to do, is to identify clusters of close eigenvalues. Note
-    // that these might have arbitrary multiplicity and also the number of clusters is arbitrary
-    //
-    // It is OK do operate here on the level of eigenvalues and optimize for the scaled frequencies later
-
-    // identify clusters
-    StdVector<StdVector<unsigned int > > cluster; // the content is the index within the efs vector from Arpack
-
-    double close_enough = 1e-3; // relatively ev-distance. Note that the eigenfrequencies are squared
-
-    for(unsigned int s = 0; s < pefs.GetSize(); s++) // slow variable
-    {
-      double sv = pefs[s]; // slow value
-      for(unsigned int f = s+1; f < pefs.GetSize(); f++) // fast variable
-      {
-        if(std::abs((sv-pefs[f])/sv) < close_enough) // relative delta value
-        {
-          // mode s and mode f are close enough. No check if we have a new cluster
-
-          // search within all clusters of we are close to the first pair.
-          // Assume we don't need to check against all pairs in the cluster
-          bool new_cluster = true; // speculative
-          for(unsigned int c = 0; c < cluster.GetSize(); c++)
-          {
-            if(std::abs((sv-pefs[cluster[c].First()])/sv) < close_enough)
-            {
-              // be conservative and do not assume too much structure of the cluster. Check for any mode if it is unique
-              if(!cluster[c].Contains(s))
-                cluster[c].Push_back(s);
-              if(!cluster[c].Contains(f))
-                cluster[c].Push_back(f);
-              assert(cluster[c].IsUnique());
-              new_cluster = false;
-              LOG_DBG(em) << "SEV: iter=" << currentIteration << " identify cluster: s=" << s << " f=" << f << " sv=" << sv << " fv=" << pefs[f] << " extend cluster -> " << cluster[c].ToString();
-            }
-          }
-          if(new_cluster)
-          {
-            cluster.Resize(cluster.GetSize() + 1);
-            cluster.Last().Push_back(s); // add the slow index
-            cluster.Last().Push_back(f); // add the fast index, we always need pairs
-            LOG_DBG(em) << "SEV: iter=" << currentIteration << " identify cluster: s=" << s << " f=" << f << " sv=" << sv << " fv=" << pefs[f] << " new cluster -> " << cluster.Last().ToString();
-          }
-        }
-      }
-    }
-
-    StateSolution current;
-
-    // investigate within each cluster the optimal permutation
-    for(unsigned int c = 0; c < cluster.GetSize(); c++)
-    {
-      // we find within a cluster/ multiplicity for each mode its closest preceding mode.
-      // then the pair is removed from the multiplicity and we continue up to all pairs are removed.
-      // Note that a "pair" here is even likely to be (i,i) with size 1 when we have multiple evs but no mode switching!
-      StdVector<unsigned int>& multiplicity = cluster[c];
-
-      while(multiplicity.GetSize() > 1) // as long as no pair is left which might switch. Consider a multiplicity of 3
-      {
-        for(unsigned int s = 0; s < multiplicity.GetSize(); s++)
-        {
-          assemble->GetAlgSys()->GetEigenMode(ev_.permutation[multiplicity[s]]);
-          current.Read(StateSolution::RAW_VECTOR, context->pde, App::MECH, true);
-          // diff norm to last mode of the same number
-          double same = NormL2(current.GetVector(StateSolution::RAW_VECTOR), ev_.last[multiplicity[s]]->GetVector(StateSolution::RAW_VECTOR));
-
-          // candidate of the best pair
-          double       closest_val = same;
-          unsigned int closest_idx = s;
-
-          for(unsigned int f = s+1; f < multiplicity.GetSize(); f++) // we compare also against our own predecessor above via 'same'
-          {
-            // diff norm to last mode of the other number
-            double other = NormL2(current.GetVector(StateSolution::RAW_VECTOR), ev_.last[multiplicity[f]]->GetVector(StateSolution::RAW_VECTOR));
-
-            // do we find a better pair?
-            if(other < 0.99 * closest_val)
-            {
-              closest_val = other;
-              closest_idx = f;
-            }
-          }
-
-          // mode switching?
-          if(closest_idx != s)
-          {
-            unsigned int civ = multiplicity[closest_idx]; // closest_idx value - we need it when erasing
-
-            unsigned int save                = ev_.permutation[multiplicity[s]];
-            ev_.permutation[multiplicity[s]] = ev_.permutation[civ];
-            ev_.permutation[civ]             = save;
-
-            LOG_DBG(em) << "SEV: iter=" << currentIteration << " mode switch " << multiplicity[s] << " vs. " << civ << " s=" << s << " ci=" << closest_idx << " -> " << ev_.permutation.ToString();
-
-            multiplicity.Erase(s);
-            multiplicity.Erase(multiplicity.Find(civ)); // Erase(s) destroys the structure. If closest_idx was the last idx the first Erase() makes the list too short
-          }
-          else
-          {
-            LOG_DBG(em) << "SEV: iter=" << currentIteration << " no switching of mode " << multiplicity[s] << " s=" << s;
-            multiplicity.Erase(s);
-          }
-          assert(ev_.permutation.IsUnique());
-        }
-      }
-    }
-
-    ev_.SaveState(); // sets ev_.current_iter
-  }
-
-
   double ErsatzMaterial::CalcEigenfrequency(Excitation& excite, Function* f, bool derivative)
   {
-
     // for the bloch mode case this might be complex!
     // the eigenvalues lambda = (2*pi*ef)^2 !!
 
     // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitation idx is the wave number
     StdVector<double> efs = forward.CollectEigenfrequencies(excite);
-
-    // the "constructor" of ev_. We use it always, even if we don't do perturbation. ev_.perturbation is then 1:1
-    if(ev_.last.IsEmpty())
-      ev_.Init(this, excite, efs.GetSize(), -1);
-
-    assert(!ev_.DoSorting()); // does not handle data is StateSolution yet
-    if(ev_.DoSorting())
-      SortEigenvalues();
 
     assert(f->GetEigenValueID() >= 1);
     unsigned int idx = f->GetEigenValueID() - 1; // 0-based
@@ -3680,59 +3510,6 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
     else
       ConstructRealAdjointRHS(excite, f);
   }
-
-EigenvalueState::EigenvalueState()
-{
-  current_iter = -1;
-  opt = NULL;
-  sort_tol = -1.0;
-}
-
-void EigenvalueState::Init(ErsatzMaterial* opt_, Excitation& ex, unsigned int modes, int iter)
-{
-  assert(last.IsEmpty()); // call only once
-  opt = opt_;
-
-  if(opt->optParamNode->Has("eigenvalue/sort"))
-    sort_tol = opt->optParamNode->Get("eigenvalue/sort/tol")->As<double>();
-
-  LOG_DBG(em) << "ES:I eigenvalues=" << opt->optParamNode->Has("eigenvalue") << " tol=" << sort_tol << " modes=" << modes << " iter=" << iter << " ci=" << opt->GetCurrentIteration();
-
-  // the "constructor"
-  last.Resize(modes);
-  permutation.Resize(modes);
-
-  // not that in the multi sequence case the eigenfrequncy driver might already be deleted
-
-  for(unsigned int i = 0; i < modes; i++)
-  {
-    StateSolution* sol = opt_->GetForwardStates().Get(ex, NULL, i);
-    assert(sol->ContainsState());
-    assert(sol->GetVector(StateSolution::RAW_VECTOR)->GetSize() > 0);
-    last[i] = sol;
-    permutation[i] = i; // default is no permutation
-  }
-
-  current_iter = iter;
-}
-
-void EigenvalueState::SaveState()
-{
-  LOG_DBG(em) << "ES:SS ev.ci=" << current_iter << " opt->ci " << opt->GetCurrentIteration();
-  assert(current_iter == 0 || (current_iter != opt->GetCurrentIteration())); // in the init case this is true
-
-  SinglePDE* pde = opt->context->pde;
-
-  // only update if we are really in the next iteration! Note that we might have arbitrary multiplicity
-  for(unsigned int i = 0; i < last.GetSize(); i++) // the number of modes shall be the same!
-  {
-    pde->GetAssemble()->GetAlgSys()->GetEigenMode(permutation[i]);
-    last[i]->Read(StateSolution::RAW_VECTOR, pde, App::MECH, true);
-  }
-
-  current_iter = opt->GetCurrentIteration();
-}
-
 
 // template instantiation stuff
 template double ErsatzMaterial::CalcU1KU2<double>(TransferFunction* tf, StdVector<SingleVector*>& u1,  App::Type app, StdVector<SingleVector*>& u2,

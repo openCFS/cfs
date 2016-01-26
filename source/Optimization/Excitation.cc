@@ -826,6 +826,11 @@ std::string Excitation::GetFullLabel() const
     return label + "_" + GetMetaLabel();
 }
 
+bool Excitation::DoBloch() const
+{
+  return Optimization::manager.GetContext(this).DoBloch();
+}
+
 
 int Excitation::GetWaveNumber() const
 {

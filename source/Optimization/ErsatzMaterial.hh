@@ -43,34 +43,6 @@ class TransferFunction;
 struct SurfElem;
 
 
-/** This is a helper for eigenvalue problems, collecting the required data */
-struct EigenvalueState
-{
-  EigenvalueState();
-
-  /** @param iter to what current_iter shall be set. Sets also sort_tol */
-  void Init(ErsatzMaterial* em, Excitation& ex, unsigned int modes, int iter);
-
-  /** save the state, store current_iter and consider permutation */
-  void SaveState();
-
-  bool DoSorting() const { return sort_tol > 0.0; }
-
-  /** Helper data for SortEigenvalues(). Initialized in SortEigenvalues(), beforehand we don't have the data. The content simply points to the forward states */
-  StdVector<StateSolution*> last;
-
-  /** Helper for SortEigenvalues() - implements the permutation after mode switching. When sorting is not enabled this is 0,1, ...n */
-  StdVector<unsigned int> permutation; // The "constructor" is in SortEigenvalues();
-
-  /** we must not compare multiple times within one iteration, otherwise we would switch back immediately*/
-  int current_iter;
-
-  ErsatzMaterial* opt;
-
-  double sort_tol;
-};
-
-
 /** Base for optimization where the design variable is correlated to finite elements.
  * The classical case is SIMP, where one optimizes for a pseudo density. The sub-classes
  * extend this idea to more complex stuff.
@@ -299,9 +271,6 @@ protected:
   /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
-  /** Helper method that sorts the eigenvalues to handle mode switching by resorting accoring to the mode shape */
-  void SortEigenvalues();
-
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
@@ -513,9 +482,6 @@ private:
    * It shall be cheap enough to calc here twice! */
   template<class T>
   void CalcSurfaceNormalTimesSolution(Vector<T>& olas_prod);
-
-  /** Init the first time we call SortEigenvalue() when we know the number of ev. */
-  EigenvalueState ev_;
 };
 
 } // namespace
