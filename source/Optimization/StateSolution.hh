@@ -168,6 +168,9 @@ public:
    * @param sequence 1-based*/
   StdVector<double> CollectEigenfrequencies(Excitation& ex);
 
+  /** Return all eigenfrequencies of all wave vectors */
+  Matrix<double> CollectBlochEigenfrequencies(Context* ctxt);
+
 private:
 
   /** returns all matching items.

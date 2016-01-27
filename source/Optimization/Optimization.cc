@@ -183,14 +183,14 @@ void Optimization::PostInitSecond()
   {
     Condition* g = constraints.all[i];
     if(!g->IsLocalCondition())
-      log.AddToHeader(g->ToString(me));
+      log.AddToHeader(g->ToString());
     else {
       if(log.localDetail) {
         log.AddToHeader("max_" + g->ToString());
         log.AddToHeader("mean_" + g->ToString());
       }
     }
-    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString(me) << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
+    LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
 
   log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
@@ -259,7 +259,7 @@ void Optimization::PostInitSecond()
 
   baseOptimizer_->PostInit();
 
-  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"), GetMultipleExcitation());
+  constraints.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("constraints"));
 
   unsigned int n = design->GetNumberOfVariables();
   if(log.design)
@@ -1101,7 +1101,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       // excitation sensitive constraints are printed in the excitation list if there is one
       if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
       {
-        iteration->Get(g->ToString(me))->SetValue(value);
+        iteration->Get(g->ToString())->SetValue(value);
         // don't report for local, they should be almost always feasible for MMA, ...
         if(g->GetLocal() != NULL )
           iteration->Get("infeasible_" + g->ToString())->SetValue(g->GetLocal()->infeasible);

@@ -230,7 +230,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
   // we do NOT weight!
 
   for(unsigned int i = 0; i < design->data.GetSize(); i++)
-    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
+    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << design->data[i].elem->elemNum << " org=" << design->data[i].GetPlainGradient(f);
 
   // alpha is from the globalization which is in the form sum max(0, g_i-c)^p and alpha is p*max(0, g_i-c)^(p-1) where g_i is the vonMisesStress
   Vector<double> alpha;
@@ -285,7 +285,7 @@ void SIMP::CalcVonMisesStressGradient(Excitation& excite, Function* f, TransferF
     // case c): idx is already -1
     if(idx != -1)
       de.AddGradient(f, alpha[idx] * appendix[idx]);
-    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString(this->me) << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
+    LOG_DBG2(simp) << "CVMSG: f=" << f->ToString() << " de=" << de.elem->elemNum << " idx=" << idx << " alpha="
                    << (idx != -1 ? alpha[i] : -1.0)  << "* app=" << (idx != -1 ? appendix[i] : -1.0) << " -> " << de.GetPlainGradient(f);
 	}
 }
