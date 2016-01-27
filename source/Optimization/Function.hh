@@ -151,7 +151,7 @@ class Function
      * Check if better use this than type.ToString(GetType()).
      * Is overloaded in Condition
      * @param me is for Condition */
-    virtual std::string ToString(MultipleExcitation* me = NULL) const;
+    virtual std::string ToString() const;
 
     /** for historical reasons there are Condition and Objective pointers used concurrently. This is a
      * little helper. asserts that only of function is set. */
@@ -377,7 +377,7 @@ class Function
         const static int MATERIAL_SIGN;
 
         /** default constructor for StdVector() */
-        Identifier() : sign(NO_SIGN) {}
+        Identifier() : element(NULL), sign(NO_SIGN)  {}
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
@@ -724,7 +724,8 @@ class Function
     /** @see FactorOmegaOmega() */
     bool omega_omega_;
 
-    /** the "ev" parameter for the eigenvalue function. 1-based! */
+    /** the "ev" parameter for the eigenvalue function. 1-based!
+     * @see Condition::bloch_extremal_ */
     int eigenvalue_id_;
 
     /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/

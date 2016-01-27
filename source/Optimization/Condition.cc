@@ -47,7 +47,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   blown_up_ = false;
   index_ = -1; // to be set by ConditionContainer::Read()
   virtual_base_index_ = -1;
-  // fmo_pos_def_minor_ = 0;
+  special_result_idx = -1;
 
   observation_ = pn->Get("mode")->As<string>() == "observation";
 
@@ -94,6 +94,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   if(pn->Has("region") && pn->Get("region")->As<string>() != "all")
     region = domain->GetGrid()->GetRegion().Parse(pn->Get("region")->As<string>());
 
+  bloch_extremal_ = false; // set in the proper case
+
   // value is not mandatory for all almost all constraints. Check for homogenization later
   if(!observation_)
   {
@@ -129,7 +131,13 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       if(pn->Has("value"))
         throw Exception("No value allowed for constraint '" + type.ToString(type_) + "'");
       break; // ok without value
-
+    case EIGENFREQUENCY:
+      if(Optimization::context->DoBloch()) {
+        if(!pn->Has("bloch"))
+           throw Exception("For Bloch optimization constraints '" + type.ToString(type_) + "' require the 'bloch' attribute to be set");
+        bloch_extremal_ = pn->Get("bloch")->As<string>() == "extremal";
+      }
+      break;
     default:
       if(!pn->Has("value"))
         throw Exception("No value given for constraint '" + type.ToString(type_) + "'");
@@ -466,7 +474,7 @@ void Condition::AddExcitationStressConstraints(StdVector<Condition*>& list, Mult
 }
 
 
-void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me)
+void Condition::AddBlochEigenConstraints(StdVector<Condition*>& all_cond, MultipleExcitation* me)
 {
   // this is a static function
   for(unsigned int c = 0; me->IsEnabled() && c < Optimization::manager.context.GetSize(); c++)
@@ -475,38 +483,56 @@ void Condition::AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleEx
 
     if(ctxt.DoBloch())
     {
-      // we need to find all eigenvalue constraints. Then extend each by excitation
+      // we need to find all eigenvalue constraints. Then extend the ones by excitation which are bloch=full
 
-      // extract all eigenfrequency constraints to ev
-      StdVector<Condition> ev; // instances as list will be enlarged which involves copying
-      for(unsigned int i = 0; i < list.GetSize(); i++)
+      // extract all eigenfrequency constraints to become full to full_ev
+      StdVector<Condition> full_ev; // instances as list will be enlarged which involves copying
+      for(unsigned int i = 0; i < all_cond.GetSize(); i++)
       {
-        if(list[i]->GetType() == EIGENFREQUENCY)  {
-          assert(list[i]->ctxt->sequence == ctxt.sequence);
+        if(all_cond[i]->GetType() == EIGENFREQUENCY)
+        {
+          Condition* g = all_cond[i];
+          assert(g->ctxt->sequence == ctxt.sequence);
           assert(ctxt.excitations[0]->index >= 0);
-          // reset excitation to the first wave vector
-          list[i]->SetExcitation(me, ctxt.excitations[0]->index);
-          ev.Push_back(*(list[i]));
-          LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " ev=" << ev.GetSize() << " ex=" << ctxt.excitations[0]->index << " -> " <<  ev.Last().ToString(me);
+
+          // expand the the constraints to all wave vectors?
+          if(g->DoFullBloch())
+          {
+            // reset excitation to the first wave vector
+            g->SetExcitation(me, ctxt.excitations[0]->index);
+            full_ev.Push_back(*g);
+            LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " ev=" << full_ev.GetSize() << " ex=" << ctxt.excitations[0]->index << " -> " <<  full_ev.Last().ToString();
+          }
+          else
+          {
+            // we evaluate the function at the very last wave vector as we have to search for the extremals
+            g->SetExcitation(me, ctxt.excitations.Last()->index);
+            LOG_DBG(conditions) << "ABEC: seq=" << ctxt.sequence << " i=" << i << " g=" << g->ToString();
+          }
+
         }
       }
 
-      assert(ctxt.num_bloch_wave_vectors == ctxt.excitations.GetSize());
-      for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++) // start from 1!
+      // expand only for bloch=full
+      if(!full_ev.IsEmpty())
       {
-        LOG_DBG2(conditions) << "ABEC: e=" << e << " -> " << ctxt.excitations[e]->index;
-        // note that we traverse ev and not list again!
-        for(unsigned int g = 0; g < ev.GetSize(); g++)
+        assert(ctxt.num_bloch_wave_vectors == ctxt.excitations.GetSize());
+        for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++) // start from 1!
         {
-          assert(ev[g].IsExcitationSensitive());
-          assert(ev[g].GetExcitation()->index >= 0);
+          LOG_DBG2(conditions) << "ABEC: e=" << e << " -> " << ctxt.excitations[e]->index;
+          // note that we traverse ev and not list again!
+          for(unsigned int g = 0; g < full_ev.GetSize(); g++)
+          {
+            assert(full_ev[g].IsExcitationSensitive());
+            assert(full_ev[g].GetExcitation()->index >= 0);
 
-          Condition* tmp = new Condition(ev[g]);
-          tmp->SetExcitation(me, ctxt.excitations[e]->index);
-          LOG_DBG2(conditions) << "ABEC: e=" << e << " g=" << g << " -> " << tmp->ToString(me);
-          assert(ctxt.excitations[e]->index >= 0);
+            Condition* tmp = new Condition(full_ev[g]);
+            tmp->SetExcitation(me, ctxt.excitations[e]->index);
+            LOG_DBG2(conditions) << "ABEC: e=" << e << " g=" << g << " -> " << tmp->ToString();
+            assert(ctxt.excitations[e]->index >= 0);
 
-          list.Push_back(tmp);
+            all_cond.Push_back(tmp);
+          }
         }
       }
     }
@@ -645,7 +671,7 @@ bool Condition::IsFeasibilityConstraint() const
 }
 
 
-string Condition::ToString(MultipleExcitation* me) const
+string Condition::ToString() const
 {
   std::ostringstream os;
   
@@ -667,18 +693,24 @@ string Condition::ToString(MultipleExcitation* me) const
     os << "_" << output_forms[0]->GetEntities()->GetName();
 
   // e.g. stresses are extended for every excitation
-  if(me != NULL && me->IsEnabled())  {
+  if(GetExcitation() != NULL && domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
+  {
     if(type_ == STRESS || type_ == STRESS_DENSITY)
-      os << "_" << me->excitations[excite_].GetFullLabel(); // change to excite label
-    else if(me->DoMetaExcitation())
-      os << "_" << me->excitations[excite_].GetMetaLabel();
+      os << "_" << GetExcitation()->GetFullLabel(); // change to excite label
+    else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation())
+      os << "_" << GetExcitation()->GetMetaLabel();
   }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;
 
   if(type_ == EIGENFREQUENCY && GetExcitation() != NULL && GetExcitation()->DoBloch()) // might not be set meantime - e.g. due to early logging
-    os << "_wv_" << GetExcitation()->GetWaveNumber();
+  {
+    if(DoFullBloch())
+      os << "_wv_" << GetExcitation()->GetWaveNumber();
+    else
+      os << "_" << (bound_ == Condition::LOWER_BOUND ? "min" : "max");
+  }
 
   return os.str();  
 }
@@ -714,11 +746,11 @@ string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coo
 }
 
 
-void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
+void Condition::ToInfo(PtrParamNode in)
 {
   Function::ToInfo(in);
 
-  in->Get("name")->SetValue(ToString(me));
+  in->Get("name")->SetValue(ToString());
 
   if(observation_)
     in->Get("mode")->SetValue("observation");
@@ -755,12 +787,15 @@ void Condition::ToInfo(PtrParamNode in, MultipleExcitation* me)
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     in->Get("stress")->SetValue(stressType.ToString(stressType_));
 
-  if(me->IsEnabled())
+  if(type_ == EIGENFREQUENCY && GetExcitation()->DoBloch())
+    in->Get("bloch")->SetValue(bloch_extremal_ ? "extremal" : "full");
+
+  if(domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
   {
     if(DoEvaluateAlways(ctxt->sequence))
       in->Get("excitation")->SetValue(Optimization::context->DoMultiSequence() ? "always within sequence" : "always");
     else
-      in->Get("excitation")->SetValue(me->excitations[excite_].GetFullLabel());
+      in->Get("excitation")->SetValue(GetExcitation()->GetFullLabel());
   }
 
   // TODO somehow scaling does not work ??
@@ -1151,17 +1186,17 @@ void ConditionContainer::PostProc(DesignSpace* space, DesignStructure* structure
   Condition::AddExcitationStressConstraints(observe, me);
 
 
-  // in the bloch mode optimization case we need to multiply the eigenvalue constraints by excitations which are the wave_vectors
+  // in the bloch mode optimization case we either have a constraint for every wave vector or search for the extremals
   Condition::AddBlochEigenConstraints(active, me);
   Condition::AddBlochEigenConstraints(observe, me);
 
   Refresh(); // inform about the news if the slopes created a lot of virtual objectives!
 }
 
-void ConditionContainer::ToInfo(PtrParamNode in, MultipleExcitation* me)
+void ConditionContainer::ToInfo(PtrParamNode in)
 {
   for(unsigned int i = 0; i < all.GetSize(); i++)
-    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND), me);
+    all[i]->ToInfo(in->Get("constraint", ParamNode::APPEND));
 }
 
 

@@ -268,7 +268,9 @@ protected:
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
 
-  /** Standard Eigenfrequency problem. This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output*/
+  /** Standard Eigenfrequency (ev -> ef) problem.
+   * This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output
+   * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.

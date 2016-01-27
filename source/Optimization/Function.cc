@@ -320,6 +320,9 @@ void Function::ToInfo(PtrParamNode info) {
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
 
+  if(type_ == EIGENFREQUENCY)
+    info->Get("ev")->SetValue(eigenvalue_id_);
+
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
 
@@ -329,7 +332,8 @@ void Function::ToInfo(PtrParamNode info) {
     local->ToInfo(info_);
 }
 
-string Function::ToString(MultipleExcitation* me) const {
+string Function::ToString() const
+{
   // optional for oscillation
   if (local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);

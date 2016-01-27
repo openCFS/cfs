@@ -447,7 +447,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         Condition* g = constraints.all[c];
         if(g->IsExcitationSensitive() && g->DoEvaluate(&excite))
-          info->Get(g->ToString(me))->SetValue(g->GetValue());
+          info->Get(g->ToString())->SetValue(g->GetValue());
       }
     }
   }
@@ -2289,20 +2289,41 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
   */
 
-  double ErsatzMaterial::CalcEigenfrequency(Excitation& excite, Function* f, bool derivative)
+  double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, bool derivative)
   {
     // for the bloch mode case this might be complex!
     // the eigenvalues lambda = (2*pi*ef)^2 !!
-
-    // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitation idx is the wave number
-    StdVector<double> efs = forward.CollectEigenfrequencies(excite);
+    Condition* g = dynamic_cast<Condition*>(f); // NULL when f is objective
 
     assert(f->GetEigenValueID() >= 1);
-    unsigned int idx = f->GetEigenValueID() - 1; // 0-based
+    unsigned int mode_idx = f->GetEigenValueID() - 1; // 0-based
 
+    // each mode is encoded in forward as timestep_mode and in the bloch mode case the excitation idx is the wave number
 
-    double freq = efs[idx];
-    LOG_DBG(em) << "CE idx=" << idx << " f=" << freq;;
+    // we have the bloch=full case, then org_excite is exatly the wave number constraint
+    // for bloch=extremal we need to search for the wave number (=excitation) whic is minimal/maximal
+
+    double freq=-1.0;
+    Excitation* ex = NULL;
+    if(f->IsObjective() || g->DoFullBloch())
+    {
+      StdVector<double> efs = forward.CollectEigenfrequencies(org_excite);
+      freq = efs[mode_idx];
+      ex = &org_excite;
+    }
+    else
+    {
+      Context& ctxt = manager.GetContext(&org_excite);
+
+      Matrix<double> mat = forward.CollectBlochEigenfrequencies(&ctxt);
+      assert(g->GetBound() == Condition::LOWER_BOUND || g->GetBound() == Condition::UPPER_BOUND);
+      // when we are lower bounded we search for the minimum. Also set freq
+      g->bloch.col  = SearchMinMax(mat, mode_idx, g->GetBound() == Condition::LOWER_BOUND, &freq);
+      ex = ctxt.excitations[g->bloch.col]; // freq set above
+      LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString(2);
+      LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " col_idx=" << g->bloch.col << " min=" << (g->GetBound() == Condition::LOWER_BOUND) << " f=" << freq;
+    }
+    LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " f=" << freq;
 
     if(derivative)
     {
@@ -2320,14 +2341,14 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       // our eigenvalue
       double ev = std::pow(2.0 * M_PI * freq, 2);
 
-      StateSolution* sol = forward.Get(excite, NULL, idx); // never give a function for forward!
+      StateSolution* sol = forward.Get(*ex, NULL, mode_idx); // never give a function for forward!
       assert(sol->ContainsState());
 
-      LOG_DBG2(em) << "CE idx=" << idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
+      LOG_DBG2(em) << "CE mode_idx=" << mode_idx << " f=" << freq << " sol=" << sol->GetVector(StateSolution::RAW_VECTOR)->ToString();
 
       // we need to set the current wave_vector such that SetElementK determines the right stiffness matrices!
       if(f->ctxt->DoBloch())
-        f->ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(excite.GetWaveNumber());
+        f->ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(ex->GetWaveNumber());
 
       CalcU1KU2(tf, sol->elem[App::MECH], App::MECH, sol->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }
@@ -2549,7 +2570,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
     assert((dim == 2 && ex_size == 3) || (dim == 3 && ex_size == 6));
 
-    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ctxt=" << f->ctxt->GetExcitation()->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
+    LOG_DBG(em) << "CHT f=" << f->ToString() << " ctxt=" << f->ctxt->GetExcitation()->robust_filter_idx << " f=" << f->GetExcitation()->robust_filter_idx;
     assert(f->ctxt->GetExcitation()->robust_filter_idx == f->GetExcitation()->robust_filter_idx);
 
     Matrix<double> test_strain_matrix_ij(dim, dim);
@@ -2589,15 +2610,15 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
           Vector<double>& u1_vec = dynamic_cast<Vector<double>&>(*u1[e]);
           Vector<double>& u2_vec = dynamic_cast<Vector<double>&>(*u2[e]);
           // prepare for calculation
-          LOG_DBG3(em) << "CHT f=" << f->ToString(me) << " ij=" << ij << " kl=" << kl << " e=" << e << " u1=" << u1_vec.ToString();
-          LOG_DBG3(em) << "CHT f=" << f->ToString(me) << " ij=" << ij << " kl=" << kl << " e=" << e << " u2=" << u2_vec.ToString();
+          LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " u1=" << u1_vec.ToString();
+          LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " u2=" << u2_vec.ToString();
 
           // transformed de
           double p = CalcHomogenizedElementProduct(this, f->ctxt, de, false, u1_vec, u2_vec, test_strain_matrix_ij, test_strain_matrix_kl);
 
           assert(p < 1e100);
 
-          LOG_DBG3(em) << "CHT f=" << f->ToString(me) << " ij=" << ij << " kl=" << kl << " e=" << e << " p=" << p;
+          LOG_DBG3(em) << "CHT f=" << f->ToString() << " ij=" << ij << " kl=" << kl << " e=" << e << " p=" << p;
 
 
           result[ij][kl] += p / cube_vol;// normalize for volume
@@ -2605,7 +2626,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       } // end of kl loop
     } // end of ij loop
 
-    LOG_DBG(em) << "CHT f=" << f->ToString(me) << " ex=" << f->GetExcitation()->GetFullLabel() << " mi=" << f->GetExcitation()->meta_index << " -> " << result.ToString();
+    LOG_DBG(em) << "CHT f=" << f->ToString() << " ex=" << f->GetExcitation()->GetFullLabel() << " mi=" << f->GetExcitation()->meta_index << " -> " << result.ToString();
     // save e.g. for CommitIteration()
     homogenizedTensor[f->GetExcitation()->meta_index].Assign(result, 1.0);
     return result;

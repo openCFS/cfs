@@ -217,6 +217,11 @@ namespace CoupledField {
        out[i] += fac * other[i];
   }
 
+  /** Search for the smallest value within a row
+   * @param value set when given
+   * @return the 0-based column index */
+   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val);
+
 
   /** transforms a complex matrix to its complex conjugate */
   void Conj(Matrix<Complex>& mat);

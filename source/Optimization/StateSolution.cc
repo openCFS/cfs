@@ -34,6 +34,8 @@ StdVector<double> StateContainer::CollectEigenfrequencies(Excitation& ex)
   for(unsigned int i = 0; i < states.GetSize(); i++)
     if(states[i]->eigenfreq != -1.0) // for degenerate structures we might have negative eigenvalues!!
       efs.Push_back(states[i]->eigenfreq);
+    else
+      throw Exception("degenerate eigenfrequency for ex=" + ex.GetFullLabel()); // why shall this happen??
 
   assert(efs.GetSize() == states.GetSize()); // what shall be the scenario?! If one exists just delete the assert
 
@@ -41,6 +43,27 @@ StdVector<double> StateContainer::CollectEigenfrequencies(Excitation& ex)
   assert(Optimization::manager.context[ex.sequence-1].num_eigenmodes >= efs.GetSize());
 
   return efs;
+}
+
+Matrix<double> StateContainer::CollectBlochEigenfrequencies(Context* ctxt)
+{
+  assert(ctxt->DoBloch());
+  assert(ctxt->num_eigenmodes >= 1 && ctxt->num_bloch_wave_vectors >= 1);
+
+  Matrix<double> mat(ctxt->num_eigenmodes, ctxt->num_bloch_wave_vectors);
+  mat.Init();
+
+  for(unsigned int e = 0; e < ctxt->excitations.GetSize(); e++)
+  {
+    const Excitation* ex = ctxt->excitations[e];
+    const StdVector<StateSolution*> states = Search(ex, ex->sequence);
+    for(unsigned int i = 0; i < states.GetSize(); i++)
+    {
+      assert(states[i]->eigenfreq != -1); // why is this handled in CollectEigenfrequencies()?
+      mat[i][e] = states[i]->eigenfreq;
+    }
+  }
+  return mat;
 }
 
 

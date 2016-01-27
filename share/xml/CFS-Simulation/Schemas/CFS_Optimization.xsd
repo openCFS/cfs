@@ -280,9 +280,11 @@
 <!--       <xsd:element name="eigenvalue" minOccurs="0" maxOccurs="1"> -->
 <!--         <xsd:complexType> -->
 <!--           <xsd:sequence> -->
-<!--             <xsd:annotation> -->
-<!--               <xsd:documentation>none</xsd:documentation> -->
-<!--             </xsd:annotation> -->
+<!--             <xsd:element name="bloch" minOccurs="0" maxOccurs="1"> -->
+<!--               <xsd:complexType> -->
+<!--                 <xsd:attribute name=""></xsd:attribute> -->
+<!--               </xsd:complexType> -->
+<!--             </xsd:element> -->
 <!--           </xsd:sequence> -->
 <!--         </xsd:complexType> -->
 <!--       </xsd:element>  -->
@@ -483,6 +485,17 @@
           
           <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
           <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+          
+          <!-- only if we do bloch mode eigenvalue optimzation. Shall we have a constraint for every wave vector k or search for the extremal (min, max).
+          No default, we enforca a choice -->
+          <xsd:attribute name="bloch" use="optional">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="full"/>
+                <xsd:enumeration value="extremal"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
           
           <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
           <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />

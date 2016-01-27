@@ -490,7 +490,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   int nnz(0); 
   values.window.Set(start, nnz);
   
-  LOG_DBG(optimizer) << "EGC g=" << g->ToString(NULL) << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
+  LOG_DBG(optimizer) << "EGC g=" << g->ToString() << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
   assert(g->GetSparsityPatternSize() == g->GetSparsityPattern().GetSize());
   nnz = g->GetSparsityPatternSize();
   values.window.Set(start, nnz);
