@@ -2,21 +2,19 @@
 #define FUNCTION_HH_
 
 #include <assert.h>
-#include <stddef.h>
 #include <string>
 #include <utility>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Enum.hh"
-#include "General/defs.hh"
 #include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Design/DesignMaterial.hh"
 #include "Utils/StdVector.hh"
-#include "boost/tuple/tuple.hpp"
+#include "Design/DesignElement.hh"
+#include "Design/DesignMaterial.hh"
+#include "Design/DesignStructure.hh"
 
 namespace CoupledField {
 class ErsatzMaterial;
@@ -64,6 +62,10 @@ class Function
     typedef enum {
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
+      SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+      BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
+
+      // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
@@ -71,8 +73,6 @@ class Function
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
       ENERGY_FLUX,               /*!< Re{j*w*u^T L grad_n u^*} */
-
-      // This is objective and constraint together
       COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
       VOLUME,                    /*!< normalized sum of original design elements */
       PENALIZED_VOLUME,          /*!< normalized sum of design elements penalized by parameter */
@@ -131,7 +131,6 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
       DETERMINANT_MATRIX,         /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
       ROTATIONAL_MATRIX_1,        /*!< first rotational constraint */
       ROTATIONAL_MATRIX_2,         /*!< 2nd rotational constraint */
@@ -281,6 +280,29 @@ class Function
 
     /** for volume to check the notation in the FMO case with tensor_trace design. */
     DesignMaterial::Notation GetNotation() const { return notation_; }
+
+    /** For bloch optimization we usually search for minimal and maximal ev within wave vectors.
+     * This struct collects some data and allows detailed logging (cfs -d) */
+    struct Bloch
+    {
+      Bloch() { col = 0; }
+      /** the col_idx we found the extremal value */
+      unsigned int col;
+    };
+
+    /** for the bandgap function. Could clearly be a general gap between two functions. This could then handle
+     * the old gap function from Michael (volume - penalized volume) */
+    struct BandGap
+    {
+      BandGap() {lower_ev = -1; upper_ev = -1; }
+      int lower_ev;
+      int upper_ev;
+
+      Bloch lower;
+      Bloch upper;
+    };
+
+    BandGap bandgap;
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm

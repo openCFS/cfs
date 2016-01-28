@@ -87,6 +87,18 @@ Function::Function(PtrParamNode pn) {
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
+  if(type_ == BANDGAP) {
+    if(!pn->Has("bandgap"))
+      throw Exception("function 'bandgap' required child element 'bandgap'");
+    bandgap.lower_ev = pn->Get("bandgap/lower_ev")->As<int>();
+    bandgap.upper_ev = pn->Get("bandgap/upper_ev")->As<int>();
+    if(bandgap.lower_ev >= bandgap.upper_ev)
+      throw Exception("within 'bandgap' 'lower_ev' needs to be smaller than 'upper_ev'");
+    if(bandgap.upper_ev - bandgap.lower_ev > 1)
+      preInfo_->Get(ParamNode::WARNING)->SetValue("'bandgap' defines a gap non-adjacent modes");
+  }
+
+
   int sequence = pn->Get("sequence")->As<int>();
   if(sequence > (int) Optimization::manager.context.GetSize()) // note 1-based!
     EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
@@ -99,7 +111,7 @@ Function::Function(PtrParamNode pn) {
   if ((type_ == HOM_TRACKING || type_ == HOM_FROBENIUS_PRODUCT) && !tensor_ok)
     EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
 
-  if (type_ == HOM_TENSOR || type_ == HOM_TRACKING) {
+  if(type_ == HOM_TENSOR || type_ == HOM_TRACKING) {
     // we must not give a value when there is a tensor
     if (type_ == HOM_TENSOR && pn->Has("tensor") && pn->Has("value"))
       throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
@@ -410,6 +422,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case BANDGAP: // similar to bloch=extremal
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -647,6 +660,7 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS_DENSITY:
   case PRESSURE_DROP:
   case EIGENFREQUENCY:
+  case BANDGAP:
     return true;
 
   case VOLUME:

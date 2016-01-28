@@ -1523,26 +1523,30 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
-      assert(false);// shall be handled before
-      break;
+        assert(false);// shall be handled before
+        break;
 
       case Function::SLACK:
         if(!derivative)
           result = design->GetSlackVariable();
         else
           dynamic_cast<AuxDesign*>(design)->AddAuxDerivative(f, 0, 1.0);
-      break;
+        break;
 
       case Function::EIGENFREQUENCY:
-      result = CalcEigenfrequency(excite, f, derivative);
-      break;
+        result = CalcEigenfrequency(excite, f, derivative);
+        break;
+
+      case Function::BANDGAP:
+        result = CalcBandGap(excite, f, derivative);
+        break;
 
       case Function::ISOTROPY:
       case Function::ISO_ORTHOTROPY:
       case Function::ORTHOTROPY:
       case Function::MULTI_OBJECTIVE:
-      assert(false);// no valid function
-      break;
+        assert(false);// no valid function
+        break;
       // no default, gcc warns
     }
     LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
@@ -2353,6 +2357,36 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       CalcU1KU2(tf, sol->elem[App::MECH], App::MECH, sol->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, ev);
     }
     return freq;
+  }
+
+
+  /** is a lot of copy and paste from CalcEigenfrquency :( */
+  double ErsatzMaterial::CalcBandGap(Excitation& gap_excite, Function* f, bool derivative)
+  {
+    Context& ctxt = manager.GetContext(&gap_excite);
+    Matrix<double> mat = forward.CollectBlochEigenfrequencies(&ctxt);
+
+    double lower_freq = 0.0;
+    double upper_freq = 0.0;
+    f->bandgap.lower.col = SearchMinMax(mat, (unsigned int) f->bandgap.lower_ev - 1, false, &lower_freq); // maximum
+    f->bandgap.upper.col = SearchMinMax(mat, (unsigned int) f->bandgap.upper_ev - 1, true, &upper_freq);  // minimum
+
+    if(derivative)
+    {
+      // see CalcEigenfrequency()
+      TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::MECH, true);
+
+      double factor = 1.0 / ( 8.0 * M_PI * M_PI * upper_freq);
+      StateSolution* sol_upper = forward.Get(*ctxt.excitations[f->bandgap.upper.col], NULL, f->bandgap.upper_ev - 1);
+      f->ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(ctxt.excitations[f->bandgap.upper.col]->GetWaveNumber());
+      CalcU1KU2(tf, sol_upper->elem[App::MECH], App::MECH, sol_upper->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, std::pow(2.0 * M_PI * upper_freq, 2));
+
+      factor = -1.0 / ( 8.0 * M_PI * M_PI * lower_freq); // we substract!!
+      StateSolution* sol_lower = forward.Get(*ctxt.excitations[f->bandgap.lower.col], NULL, f->bandgap.lower_ev - 1);
+      f->ctxt->GetEigenFrequencyDriver()->SetCurrentWaveVector(ctxt.excitations[f->bandgap.lower.col]->GetWaveNumber());
+      CalcU1KU2(tf, sol_lower->elem[App::MECH], App::MECH, sol_lower->elem[App::MECH], NULL, factor, EIGENFREQ, f, -1, std::pow(2.0 * M_PI * lower_freq, 2));
+    }
+    return upper_freq - lower_freq;
   }
 
 

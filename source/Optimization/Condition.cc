@@ -69,7 +69,6 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
       this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
     else
       this->boundValue_ = pn->Get("value")->As<double>();
-
   }
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
@@ -152,6 +151,10 @@ void Condition::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzM
 
   if(type_ == DESIGN_TRACKING)
     ReadDesignTrackingPattern(space, structure);
+
+  if(boundValue_ == ALPHA_MINUS_SLACK_VALUE || boundValue_ == ALPHA_PLUS_SLACK_VALUE)
+    if(!space->HasAlphaVariable())
+      throw Exception("design variable 'alpha' is missing.");
 
   // shall not be necessary when we register all pdes!
   //if((type_ == STRESS || type_ == STRESS_DENSITY) && stressType_ != App::MECH)

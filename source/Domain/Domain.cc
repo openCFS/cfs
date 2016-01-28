@@ -678,7 +678,8 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
     std::string actPdeName = pdeNodes[i]->GetName();
     PtrParamNode actPdeNode = pdeNodes[i];
     if( isParentDomain_) 
-      std::cout << "++ Creating PDE '" + actPdeName + "'" << std::endl;
+      std::cout << "++ Creating PDE '" + actPdeName + "' for analysis '"
+                << BasePDE::analysisType.ToString(domain->GetSingleDriver()->GetAnalysisType()) << "'" << std::endl;
 
     if (actPdeName == "electrostatic")
       ptSinglePde_[i] = new ElecPDE(defaultGrid, actPdeNode, infoNode, simState_, this);

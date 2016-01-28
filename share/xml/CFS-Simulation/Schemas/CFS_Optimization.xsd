@@ -126,6 +126,14 @@
               </xsd:complexType>
             </xsd:element>
             
+            <!-- specifies the gap cost function. Band gap maximization based on bloch eigenfrequencies -->
+            <xsd:element name="bandgap" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="lower_ev" type="xsd:positiveInteger" use="required" />
+                <xsd:attribute name="upper_ev" type="xsd:positiveInteger" use="required" />
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="trackings" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -1564,7 +1572,8 @@
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
-
+      <!-- band gap. Requires child element gap -->
+      <xsd:enumeration value="bandgap"/>
     </xsd:restriction>
   </xsd:simpleType>
 
