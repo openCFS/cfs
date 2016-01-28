@@ -152,13 +152,7 @@ namespace CoupledField
         * The vector is empty when we do not do design tracking */
        StdVector<double> pattern;
 
-       /** For bloch optimization we usually search for minimal and maximal ev within wave vectors.
-        * This struct collects some data and allows detailed logging (cfs -d) */
-       struct Bloch
-       {
-         /** the col_idx we found the extremal value */
-         unsigned int col;
-       };
+       /** for bloch eigenvalues which are extremal (searched and not full) */
        Bloch bloch;
 
        static double SLACK_VALUE;

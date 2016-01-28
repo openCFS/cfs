@@ -273,6 +273,10 @@ protected:
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
   double CalcEigenfrequency(Excitation& excite, Function* f, bool derivative);
 
+  /** bandgap is the difference between two eigenfrequency problems in the bloch mode.
+   * It would make sense to have a generic gap function between two independent functions */
+  double CalcBandGap(Excitation& excite, Function* f, bool derivative);
+
   /** This is a helper with the common part for CalcEnergyFlux and the adjoint RHS.
    * Determines the global vector Q*u^* or (Q - Q^T)^T*u^* in the adjoint case.
    * @param f the cost function as we need the ParamNode
