@@ -256,7 +256,7 @@ namespace CoupledField
           void Init(const std::string& log_name, PtrParamNode pn_log);
 
           /** append an item to the fileHeader and adds the index to the label */
-          void AddToHeader(std::string label);
+          void AddToHeader(const std::string& label);
 
           /** The header of the logFile_, to be overwritten if LogFileLine() is overwritten. CommitIteration()
            * writes this string to logFile_ a the first execution.
