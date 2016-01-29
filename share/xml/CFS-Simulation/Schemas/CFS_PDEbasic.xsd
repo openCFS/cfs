@@ -355,6 +355,17 @@
           <!-- External HDF5 file -->
           <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
 
+          <!-- =========================== -->
+          <!--  Scattered data from CSV -->
+          <!-- =========================== -->
+          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Scattered data coming from CSV files.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
           <!-- Same Simulation, other sequenceStep -->
           <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
         </xsd:choice>

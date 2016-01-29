@@ -101,9 +101,9 @@ namespace CoupledField{
   }
   
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData() 
+  void CoefFunctionScatteredData<T,DOFS>::GetQuantityData(bool updateMode)
   {
-    ScatteredDataReader::Read();
+    ScatteredDataReader::Read(updateMode);
 
     if(quantityNode_->Has("bbox")) 
     {
@@ -143,6 +143,7 @@ namespace CoupledField{
       ScatteredDataReader::GetQuantity(qid_, coordinates_, scatteredData_);
     }
   }
+
 
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::DumpData() 
@@ -196,10 +197,13 @@ namespace CoupledField{
   }
 
   template<typename T, UInt DOFS>
-  void CoefFunctionScatteredData<T,DOFS>::Read() 
+  void CoefFunctionScatteredData<T,DOFS>::Read(bool updateMode)
   {
-    GetQuantityData();
+    GetQuantityData(updateMode);
     DumpData();
+
+    if(updateMode)
+      return;
 
     UInt n = scatteredData_.size();
 
@@ -338,10 +342,8 @@ namespace CoupledField{
 
   template<typename T, UInt DOFS>
   void CoefFunctionScatteredData<T,DOFS>::InterpolateVector(Vector<Double> globPoint, Vector<T> & vec){
-    if(!scatteredData_.size())
-    {
-      Read();
-    }
+
+    Read(scatteredData_.size()!=0);
 
     StdVector< Vector<Double> > neighbors;
     StdVector< Double > l2dists;
@@ -503,7 +505,7 @@ namespace CoupledField{
   {
     Double q[3];
 
-    if(DOFS == 2)
+    if(globPoint.GetSize()==2)
     {
       q[0] = globPoint[0];
       q[1] = globPoint[1];
@@ -552,6 +554,9 @@ namespace CoupledField{
 
 
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
+  template class CoefFunctionScatteredData<Double,1>;
+  template class CoefFunctionScatteredData<Complex,1>;
+
   template class CoefFunctionScatteredData<Double,2>;
   template class CoefFunctionScatteredData<Complex,2>;
 

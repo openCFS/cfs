@@ -7,6 +7,7 @@
 #include "def_use_ccmio.hh"
 
 #include "ScatteredDataReaderCSV.hh"
+#include "ScatteredDataReaderCSVT.hh"
 #ifdef USE_CCMIO
 #include "ScatteredDataReaderCCM.hh"
 #endif
@@ -23,7 +24,7 @@ namespace CoupledField
 
   void ScatteredDataReader::CreateReaders(PtrParamNode& scatteredDataNode)
   {
-    // Check wether readers have already been created.
+    // Check whether readers have already been created.
     if(!readers_.empty())
     {
       return;
@@ -85,6 +86,10 @@ namespace CoupledField
 #else
         EXCEPTION("STAR-CCM+ files not supported! Compile with USE_CCMIO=ON.");
 #endif
+      } else if (type == "csvt"){
+        ScatteredDataReaderCSVT* SCRCSV = new ScatteredDataReaderCSVT(scatteredNodes[i]);
+        SCRCSV->SetNumSkipLines(0);
+        reader.reset(SCRCSV);
       } else {
         EXCEPTION("Unknown type '" << type << "' for scattered data file!");
       }
@@ -115,16 +120,18 @@ namespace CoupledField
     readers_[quantities2Readers_[quantity]]->registeredQuantities_.insert(quantity);
   }
 
-  void ScatteredDataReader::Read() 
+  void ScatteredDataReader::Read(bool updateMode)
   {
     std::map<std::string, boost::shared_ptr<ScatteredDataReader> >::iterator it, end;
-
     it = readers_.begin();
     end = readers_.end();
 
+
     for( ; it != end; it++ ) 
     {
-      it->second->ReadData();
+      if(!updateMode || it->second->GetMode() == ScatteredDataReader::TF)
+        it->second->ReadData();
+
     }
   }
 
