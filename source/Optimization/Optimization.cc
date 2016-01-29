@@ -120,7 +120,16 @@ Optimization::Optimization()
   if(manager.any().harmonic)
     log.AddToHeader("freq");
   for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-    log.AddToHeader(objectives.data[i]->GetName());
+  {
+    const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
+    log.AddToHeader(f->GetName());
+    if(f->GetType() == Function::BANDGAP)
+    {
+      log.AddToHeader("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
+      log.AddToHeader("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
+    }
+
+  }
   log.AddToHeader("problems");
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
@@ -1043,7 +1052,16 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       *out << " \t" << GetIterationFrequency();
 
     for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-      *out << " \t" << objectives.data[i]->GetValue();
+    {
+      Function* f = objectives.data[i];
+      *out << " \t" << f->GetValue();
+      if(f->GetType() == Function::BANDGAP)
+      {
+        // we search with the wave vectors for minimun and maximum
+        *out << " \t" << f->bandgap.lower.col;
+        *out << " \t" << f->bandgap.upper.col;
+      }
+    }
 
     *out << " \t" << problemSolvedCounter;
   }
@@ -1060,6 +1078,13 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
   {
     Function* f = objectives.data[i];
     iteration->Get(f->type.ToString(f->GetType()))->SetValue(f->GetValue());
+    if(f->GetType() == Function::BANDGAP)
+    {
+      // we search with the wave vectors for minimun and maximum
+      iteration->Get("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv")->SetValue(f->bandgap.lower.col);
+      iteration->Get("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv")->SetValue(f->bandgap.upper.col);
+    }
+
     if(f->GetLocal() != NULL)
       iteration->Get("infeasible_" + f->type.ToString(f->GetType()))->SetValue(f->GetLocal()->infeasible);
   }
@@ -1222,7 +1247,7 @@ void Optimization::Log::Init(const string& log_name, PtrParamNode pn_log)
    }
  }
 
-void Optimization::Log::AddToHeader(string label)
+void Optimization::Log::AddToHeader(const string& label)
 {
   fileHeader += columns_ == 0 ? "#" : "\t";
 
