@@ -160,6 +160,7 @@ namespace CoupledField {
       SHEPARD, NEAREST_NEIGHBOR
     };
 
+
     enum KNNLibary
     {
       CGAL, FLANN
@@ -220,8 +221,8 @@ namespace CoupledField {
 
     void InterpolateVector(Vector<Double> globPoint, Vector<T> & vec);
 
-    void Read();
-    void GetQuantityData();
+    void Read(bool updateMode);
+    void GetQuantityData(bool updateMode);
     void DumpData();
     
     std::vector< std::vector<double> > coordinates_;
@@ -245,7 +246,8 @@ namespace CoupledField {
     KNNLibary knnLib_;
 
     PtrParamNode quantityNode_;
-    
+
+
 #ifdef USE_CGAL
     boost::shared_ptr<Tree> searchTree_;
 

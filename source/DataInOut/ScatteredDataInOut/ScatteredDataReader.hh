@@ -21,11 +21,22 @@ namespace CoupledField
   class ScatteredDataReader
   {
   public:
+
+      enum TransientMode{
+        TF, STAT
+      };
+
     ScatteredDataReader(PtrParamNode& scatteredDataNode, bool verbose = false) :
       myParamNode_(scatteredDataNode),
-      verbose_(verbose)
+      verbose_(verbose),
+      readerMode_(STAT)
     {};
     virtual ~ScatteredDataReader() {};
+
+
+    TransientMode GetMode(){
+      return readerMode_;
+    }
   
     //! The CreateReaders function generates the different readers.
     static void CreateReaders(PtrParamNode& scatteredDataNode); 
@@ -35,7 +46,7 @@ namespace CoupledField
     static void RegisterQuantity(const std::string& quantity);
 
     //! The static Read function dispatches calls to the different readers.
-    static void Read();
+    static void Read(bool updateMode=false);
 
     //! The  GetQuantity   function  retrieves  the  desired   data  from  the
     //! corresponding reader.
@@ -71,6 +82,10 @@ namespace CoupledField
     //! Map from  quantity id to a  vector containing the actual  data for the
     //! quantity.
     std::map< std::string, std::vector< std::vector<double> > > scatteredDataPerQuantity_;
+
+    //! store mode of reader
+    TransientMode readerMode_;
+
   };
   
 }

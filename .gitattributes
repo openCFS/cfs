@@ -1427,6 +1427,8 @@ source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCCM.hh -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.cc -text
 source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSV.hh -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSVT.cc -text
+source/DataInOut/ScatteredDataInOut/ScatteredDataReaderCSVT.hh -text
 source/DataInOut/SimInOut/AnsysCDB/CMakeLists.txt -text
 source/DataInOut/SimInOut/AnsysCDB/SimInputCDB.cc -text
 source/DataInOut/SimInOut/AnsysCDB/SimInputCDB.hh -text

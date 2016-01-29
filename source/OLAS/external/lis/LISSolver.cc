@@ -252,12 +252,10 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
   }
   
   Integer err = 0;
-  std::cerr << "SOLVING" << std::endl;
   err = lis_solve_kernel(A_, b_, x_, solver_, precond_);
   if(err){
     EXCEPTION("Solver returned error code: " << err << " ...aborting")
   }
-  std::cerr << "DONE" << std::endl;
   //lis_solve(A_, b_, x_, solver_);
   //copy solution
   if(sysmat.GetEntryType() == BaseMatrix::DOUBLE) {

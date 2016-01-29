@@ -140,7 +140,7 @@ SetupFedora() {
 
     yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
-        python-pygments doxygen tcl-devel python-devel git-svn \
+        python-pygments doxygen tcl-devel python-devel python-argparse git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
         patch diffutils zip libXt-devel libXp ncurses-devel \
         mesa-libGL-devel mesa-libGLU-devel libXmu-devel mesa-libglapi || ExitFail
@@ -239,7 +239,7 @@ SetupRHEL() {
     yum $ENABLE_REPO install -y fuse-sshfs subversion gcc gcc-c++ \
                 perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
                 automake autoconf cmake gcc-gfortran ncurses-devel \
-                java-1.6.0-openjdk-devel tk-devel python-pygments doxygen \
+                java-1.6.0-openjdk-devel tk-devel python-pygments python-argparse doxygen \
                 tcl-devel python-devel git-svn patch diffutils zip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
                 glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \

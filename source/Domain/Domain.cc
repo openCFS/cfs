@@ -672,6 +672,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode,
                                           simState_, this );
     }
+//    else if (actPdeName == "acousticSplit") {
+//        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
+//                                          simState_, this );
+//    }
     else if (actPdeName == "acousticMixed")
         ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode,
                                                simState_, this );

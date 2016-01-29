@@ -2589,33 +2589,50 @@ namespace CoupledField {
       
     } else if( valueNode->Has("scatteredData") ) {
       PtrParamNode scatteredDataNode = valueNode->Get("scatteredData");
-      
-      if( dim_ == 2 ) {
+      if(type == ResultInfo::SCALAR){
         if(isComplex)
         {
           coef.reset(
-            new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
-            );
+            new CoefFunctionScatteredData<Complex, 1>(scatteredDataNode) );
         }
         else
         {
           coef.reset(
-            new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+            new CoefFunctionScatteredData<Double, 1>(scatteredDataNode)
             );
         }
-      } else {
-        if(isComplex) 
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
-            );
+      }
+      else if(type == ResultInfo::VECTOR){
+        if( dim_ == 2 ) {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 2>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 2>(scatteredDataNode)
+              );
+          }
+        } else {
+          if(isComplex)
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Complex, 3>(scatteredDataNode)
+              );
+          }
+          else
+          {
+            coef.reset(
+              new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
+              );
+          }
         }
-        else
-        {
-          coef.reset(
-            new CoefFunctionScatteredData<Double, 3>(scatteredDataNode)
-            );
-        } 
+      }
+      else{
+        EXCEPTION("TENSOR not implemented yet!");
       }
     }else{
       // ======================================
