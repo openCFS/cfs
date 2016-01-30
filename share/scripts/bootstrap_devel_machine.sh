@@ -135,10 +135,8 @@ SetupSuse() {
 }
 
 SetupFedora() {
-    # /usr/bin/audit from package audit conflicts with binutils.
-    yum remove audit
 
-    yum install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
+    dnf install subversion gcc gcc-c++ gcc-gfortran automake autoconf cmake \
         perl graphviz texlive-latex tetex-tex4ht \
         python-pygments doxygen tcl-devel python-devel python-argparse git-svn \
         cmake-gui java-1.6.0-openjdk-devel java-1.7.0-openjdk-devel tk-devel \
