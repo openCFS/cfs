@@ -112,8 +112,8 @@ SET(CTEST_INITIAL_CACHE
    USE_IPOPT:BOOL=ON
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
-   DCMAKE_TOOLCHAIN_FILE:FILEPATH=$ENV{HOME}/code/cfs/share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake
-   DMKL_ROOT_DIR:PATH=$ENV{HOME}/mkl_win/composer_xe_2013/
+   CMAKE_TOOLCHAIN_FILE:FILEPATH=$ENV{HOME}/code/cfs/share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake
+   MKL_ROOT_DIR:PATH=$ENV{HOME}/mkl_win/composer_xe_2013/
    BUILDNAME:STRING=${BUILDNAME}")
 
 SET(CTEST_CMAKE_GENERATOR "Unix Makefiles")

@@ -307,8 +307,6 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
   
   
   
-
-
 parser = argparse.ArgumentParser()
 parser.add_argument("input", help="a cfs++ h5 file or a tensor \"[e11, ...]\" with 11/22/33/32/31/21 for 2D and 11/12/22/13/23/... for 3D")
 parser.add_argument("--h5_step", help="step number, too high is last (default '9999')", default=9999, type=int)
@@ -353,6 +351,7 @@ parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=floa
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
 
+# print sys.argv
 
 args = parser.parse_args()
 
