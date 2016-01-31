@@ -383,6 +383,7 @@ ctest_scripts/sites/eamc061/linux64_shared_opt_clang_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_intel_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_mingw_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_no_prec_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_intel_release.ctest -text
 ctest_scripts/sites/eamc061/site_specific_init.cmake -text

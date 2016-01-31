@@ -8,8 +8,8 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/cfs")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/cfs/win_release")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_mingw_release")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -30,38 +30,16 @@ INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
 #-----------------------------------------------------------------------------
 SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 
-#-----------------------------------------------------------------------------
-# Set the following environment variables for the test run. This can be used
-# to specifiy the compilers and that all messages should be output in English
-# language, so that CTest may properly parse them.
-#-----------------------------------------------------------------------------
-#SET(ENV{CC} "/usr/bin/gcc")
-#SET(ENV{CXX} "/usr/bin/g++")
-#SET(ENV{FC} "/usr/bin/gfortran")
+# the compilers are set in the toolchain
 SET(ENV{LC_MESSAGES} "C")
 SET(ENV{LC_ALL} "C")
 SET(ENV{LANG} "C")
 SET(ENV{LANGUAGE} "C")
 
-SET(IDCOMP_TEMPL "${CTEST_SOURCE_DIRECTORY}/share/scripts/identify_compiler.cmake.in")
-SET(COMPILER_ID_FILE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/out.cmake")
-SET(IDENTIFY_COMPILER_SRC "${CTEST_SOURCE_DIRECTORY}/share/scripts/IdentifyCXXCompiler.cpp")
-
-#-----------------------------------------------------------------------------
-# Let's first find out some infos about the system GNU compiler first.
-#-----------------------------------------------------------------------------
-SET(COMPILER "$ENV{CXX}")
-
-SET(ID_CXX "${CTEST_BINARY_DIRECTORY}/share/scripts/identify_cxx.cmake")
-CONFIGURE_FILE("${IDCOMP_TEMPL}" "${ID_CXX}" @ONLY)
 
 # create build/tmp directory
 EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -E make_directory "${CTEST_BINARY_DIRECTORY}/tmp" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}" RESULT_VARIABLE RETVAL)
 
-# read ID_CXX 
-EXECUTE_PROCESS(COMMAND "${CMAKE_COMMAND}" -P "${ID_CXX}" WORKING_DIRECTORY "${CTEST_BINARY_DIRECTORY}/tmp" RESULT_VARIABLE RETVAL)
-
-INCLUDE("${COMPILER_ID_FILE}")
 
 EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
   ARGS
@@ -69,19 +47,18 @@ EXEC_PROGRAM("${CTEST_SOURCE_DIRECTORY}/share/scripts/distro.sh -c"
   RETURN_VALUE RETVAL)
 
 FILE(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
+
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 
-# MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
-# MESSAGE("${DIST} ${REV} ${ARCH}")
-
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "mpolzer ${DIST} ${REV} MINGW GCC 4.9.3 ${BUILDTYPE}")
+# too difficult to get the version for the crosscompiler beforehand. The scripts try 
+# to compile an example which failes. So udate here when you update mxe!!
+SET(BUILDNAME "shared_opt ${DIST} ${REV} MINGW_X86_64 GCC 4.9.3 ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
 LIST(GET CFS_BUILD_HOST_LIST 0 CFS_BUILD_HOST)
 
-#SET(CFS_BUILD_HOST "${CFS_BUILD_HOST}.mdmt")
 set(CTEST_SITE "${CFS_BUILD_HOST}")
 set(CTEST_BUILD_NAME "${BUILDNAME}")
 
@@ -99,12 +76,13 @@ INIT_CACHE(CTEST_INITIAL_CACHE)
 SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
-   CMAKE_TOOLCHAIN_FILE:FILEPATH=$ENV{HOME}/code/cfs/share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake
-   MKL_ROOT_DIR:PATH=$ENV{HOME}/mkl_win/composer_xe_2013/
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/cfs-test
+   CMAKE_TOOLCHAIN_FILE:FILEPATH=${CTEST_SOURCE_DIRECTORY}/share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake
+   MKL_ROOT_DIR:PATH=/opt/pckg/mkl_win/composer_xe_2013
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
+   MATVIZ_TESTS:BOOL=OFF
    CFS_DEPS_PRECOMPILED:BOOL=ON
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/cfsdepscache
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF
@@ -112,6 +90,7 @@ SET(CTEST_INITIAL_CACHE
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
+   USE_PARDISO:BOOL=ON
    USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
    BUILDNAME:STRING=${BUILDNAME}")
