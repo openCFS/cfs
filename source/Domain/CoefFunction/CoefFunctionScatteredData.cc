@@ -479,17 +479,17 @@ namespace CoupledField{
 
       if(DOFS == 2)
       {
-        vectors[i][0] = it->first.vx();
-        vectors[i][1] = it->first.vy();
+        it->first.vx(vectors[i][0]);
+        it->first.vy(vectors[i][1]);
 
         neighbors[i][0] = it->first.x();
         neighbors[i][1] = it->first.y();
       }
       else
       {
-        vectors[i][0] = it->first.vx();
-        vectors[i][1] = it->first.vy();
-        vectors[i][2] = it->first.vz();
+        it->first.vx(vectors[i][0]);
+        it->first.vy(vectors[i][1]);
+        it->first.vz(vectors[i][2]);
 
         neighbors[i][0] = it->first.x();
         neighbors[i][1] = it->first.y();
