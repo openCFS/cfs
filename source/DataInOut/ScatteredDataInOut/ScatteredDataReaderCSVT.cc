@@ -300,11 +300,12 @@ namespace CoupledField
 
         for (UInt i=0; tkIt!=tokens.end(); ++tkIt, i++)
         {
-          if((*tkIt).find('i')){
+          if((*tkIt).find("i")!= std::string::npos){
             Tokenizer tokComplex(*tkIt, boost::escaped_list_separator<char>('\\', 'i', '\"'));
             Tokenizer::iterator tkItComp(tokComplex.begin());
 
             std::string realPart = (*(tkItComp)).substr(0,(*(tkItComp)).size()-1);
+
 
             std::string signImag = (*(tkItComp)).substr((*(tkItComp)).size()-1,(*(tkItComp)).size());
             std::string imagPart = signImag + *(++tkItComp);

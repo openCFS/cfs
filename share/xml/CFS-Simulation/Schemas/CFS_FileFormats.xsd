@@ -736,6 +736,12 @@
       <xsd:extension base="DT_ScatteredQuantityBasic">
         <xsd:sequence>
           <xsd:element name="comp" minOccurs="1" maxOccurs="unbounded">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                For complex numbers each entry in the data file must have the form
+                (a+ib).
+              </xsd:documentation>
+            </xsd:annotation>
             <xsd:complexType>
               <xsd:attribute name="dof" type="xsd:token" use="optional"/>
               <xsd:attribute name="col" type="xsd:nonNegativeInteger" use="required"/>
