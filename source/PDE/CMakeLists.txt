@@ -13,7 +13,6 @@ SET(PDE_SRCS
   SinglePDE.cc
   StdPDE.cc
   AcousticPDE.cc
-  AcousticSplitPDE.cc
   AcousticMixedPDE.cc
   ElecCurrentPDE.cc
   WaterWavePDE.cc

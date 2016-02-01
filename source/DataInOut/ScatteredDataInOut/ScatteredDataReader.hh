@@ -54,6 +54,10 @@ namespace CoupledField
                             std::vector< std::vector<double> >& coordinates,
                             std::vector< std::vector<double> >& scatteredData);
 
+    static void GetQuantity(const std::string& quantity,
+                            std::vector< std::vector<double> >& coordinates,
+                            std::vector< std::vector<Complex> >& scatteredData);
+
 
   protected:
 
@@ -82,9 +86,11 @@ namespace CoupledField
     //! Map from  quantity id to a  vector containing the actual  data for the
     //! quantity.
     std::map< std::string, std::vector< std::vector<double> > > scatteredDataPerQuantity_;
+    std::map< std::string, std::vector< std::vector<double> > > scatteredDataPerQuantityImag_;
 
     //! store mode of reader
     TransientMode readerMode_;
+
 
   };
   

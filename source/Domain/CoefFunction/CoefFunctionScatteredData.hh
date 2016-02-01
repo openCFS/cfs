@@ -226,7 +226,7 @@ namespace CoupledField {
     void DumpData();
     
     std::vector< std::vector<double> > coordinates_;
-    std::vector< std::vector<double> > scatteredData_;
+    std::vector< std::vector<T> > scatteredData_;  // CHANGED
 
     std::string qid_;
           
