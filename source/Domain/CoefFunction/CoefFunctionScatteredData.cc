@@ -1,6 +1,7 @@
 #include <boost/filesystem/fstream.hpp>
 #include "boost/filesystem/operations.hpp"
 #include <boost/tokenizer.hpp>
+#include <boost/tr1/type_traits.hpp>  //TODO
 
 #ifdef __MINGW64__
 #include <intrin.h>
@@ -25,6 +26,8 @@ namespace CoupledField{
   {
     dimType_ = VECTOR;
     dependType_ = CoefFunction::GENERAL;
+
+    isComplex_ =  std::tr1::is_same<T,Complex>::value;
 
     // Obtain id of quantity this CoefFunctionScatteredData should handle.
     qid_ = scatteredDataNode->Get("quantityId")->As<std::string>();
@@ -118,7 +121,7 @@ namespace CoupledField{
       bbox[5] = bboxNode->Get("zmax")->As<Double>();
 
       std::vector< std::vector<double> > coords;
-      std::vector< std::vector<double> > data;
+      std::vector< std::vector<T> > data;  // CHANGED
       ScatteredDataReader::GetQuantity(qid_, coords, data);
 
       UInt n = data.size();

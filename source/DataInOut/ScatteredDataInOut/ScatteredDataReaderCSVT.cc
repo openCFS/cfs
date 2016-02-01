@@ -267,6 +267,7 @@ namespace CoupledField
       UInt line = 0;
       // Variable for doubles values in a single line
       std::vector<double> vec;
+      std::vector<double> vecImag;
       std::vector<double> coord(3);
 
       // Open CSV file
@@ -290,12 +291,31 @@ namespace CoupledField
         {
           vec.resize(std::distance(tokens.begin(), tokens.end()));
         }
+        if(vecImag.empty())
+        {
+          vecImag.resize(std::distance(tokens.begin(), tokens.end()));
+        }
 
         Tokenizer::iterator tkIt(tokens.begin());
 
         for (UInt i=0; tkIt!=tokens.end(); ++tkIt, i++)
         {
-          vec[i] = boost::lexical_cast<Double,std::string>(*tkIt);
+          if((*tkIt).find('i')){
+            Tokenizer tokComplex(*tkIt, boost::escaped_list_separator<char>('\\', 'i', '\"'));
+            Tokenizer::iterator tkItComp(tokComplex.begin());
+
+            std::string realPart = (*(tkItComp)).substr(0,(*(tkItComp)).size()-1);
+
+            std::string signImag = (*(tkItComp)).substr((*(tkItComp)).size()-1,(*(tkItComp)).size());
+            std::string imagPart = signImag + *(++tkItComp);
+
+            vec[i] = boost::lexical_cast<Double,std::string>(realPart);
+            vecImag[i] = boost::lexical_cast<Double,std::string>(imagPart);
+
+          }else{
+            vec[i] = boost::lexical_cast<Double,std::string>(*tkIt);
+            vecImag[i] = 0.0;
+          }
         }
 
         std::map<UInt, UInt>::iterator dofIt, dofEnd;
@@ -310,19 +330,23 @@ namespace CoupledField
           dofIt = qidDof2Column_[*qIt].begin();
           dofEnd = qidDof2Column_[*qIt].end();
           std::vector<double> qdofs(std::distance(dofIt, dofEnd));
+          std::vector<double> qdofsImag(std::distance(dofIt, dofEnd));
 
           if(scatteredDataPerQuantity_.find(*qIt) == scatteredDataPerQuantity_.end()){
             std::vector< std::vector<double> > & ref = scatteredDataPerQuantity_[*qIt];
+            std::vector< std::vector<double> > & refI = scatteredDataPerQuantityImag_[*qIt];
             ref.resize(totLines,std::vector<double>(qdofs.size()));
+            refI.resize(totLines,std::vector<double>(qdofs.size()));
           }
 
           for( ; dofIt != dofEnd; dofIt++ )
           {
             qdofs[dofIt->first] = vec[dofIt->second];
+            qdofsImag[dofIt->first] = vecImag[dofIt->second];
           }
 
-            scatteredDataPerQuantity_[*qIt][line-1] = qdofs;
-
+          scatteredDataPerQuantity_[*qIt][line-1] = qdofs;
+          scatteredDataPerQuantityImag_[*qIt][line-1] = qdofsImag;
 
         }
 
