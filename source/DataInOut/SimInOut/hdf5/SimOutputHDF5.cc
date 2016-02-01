@@ -561,7 +561,7 @@ namespace CoupledField {
 
     LockFile();
     
-    if(externalFiles_)
+    if(externalFiles_ && myInfo_)
     {
       PtrParamNode in = myInfo_->Get("analysis/output/externalFile");
       try {

@@ -143,16 +143,38 @@ HandleBox BoundingBoxAssociate::CreateBoxFromCoord( const Vector<double>& coords
 
 #elif USE_LIBFBI
 
-std::vector< std::pair<UInt, UInt > > TreeAssociate::AssociateEntities(const StdVector<Elem*>& entList1,
-                                                                       const StdVector<Elem*>& entList2){
+std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(const StdVector<Elem*>& entList1,
+                                                                       const StdVector<Elem*>& entList2,
+                                                                       Grid* g1, Grid* g2,
+                                                                       Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
 
   return assocs;
 }
 
-std::vector< std::pair<UInt, UInt > > TreeAssociate::AssociateEntities(const StdVector< Vector<Double> >& points,
-                                                                       const StdVector<Elem*>& elemList ){
+std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(const StdVector< Vector<Double> >& points,
+                                                                       const StdVector<Elem*>& elemList,
+                                                                       Grid* elGrid, Double tolerance){
+  std::vector< std::pair<UInt, UInt > > assocs;
+
+
+  return assocs;
+}
+#else
+std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(const StdVector<Elem*>& entList1,
+                                                                       const StdVector<Elem*>& entList2,
+                                                                       Grid* g1, Grid* g2,
+                                                                       Double tolerance){
+  std::vector< std::pair<UInt, UInt > > assocs;
+
+
+  return assocs;
+}
+
+std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(const StdVector< Vector<Double> >& points,
+                                                                       const StdVector<Elem*>& elemList,
+                                                                       Grid* elGrid, Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
 
