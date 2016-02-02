@@ -353,6 +353,16 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
+          inline bool IsBoundaryElem(int x, int y, int z)
+          {
+            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1;
+          }
+
+          inline bool IsCornerElem(int x, int y, int z)
+          {
+            return  (x == 0 && y == 0) || (x == 0 && y == sizeY_-1) || (x == sizeX_-1 && y == 0) || (x == sizeX_-1 && y == sizeY_-1);
+          }
+
            /** Calculate vector of equilibrium moments based on current pdf array
             * m_eq the return value */
           void CalcEquilMoments(const Vector<double>&  moments,  Vector<double>& m_eq) const;

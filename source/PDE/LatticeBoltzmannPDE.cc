@@ -668,7 +668,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         Matrix<double> transpose(n_q_,n_q_);
         block.Transpose(transpose);
         adjSRTCollision[index] = transpose;
-//        adjSRTCollision[index] = block;
       }
 
       // fill transpose of block in col_jacobi
@@ -750,11 +749,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         DesignElement* de = f->elements[e];
         unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-//        std::cout << "Adjoint solution for element " << idx << ":\n";
-//        for (unsigned int dir = 0; dir < n_q_; dir++) {
-//          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
-//        }
-//        std::cout << std::endl;
+        std::cout << "Adjoint solution for element " << idx << ":\n";
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+        }
+        std::cout << std::endl;
         de->AddGradient(f, val);
       }
 
@@ -784,12 +783,12 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
           d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
         }
         double val = d_coll_d_s * sol;
-//        std::cout << "Adjoint solution for element " << idx << ":\n";
-//        for (unsigned int dir = 0; dir < n_q_; dir++) {
-//          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
-//        }
-//        std::cout << "gradient of element " << idx << " is " << val << std::endl;
-//        std::cout << std::endl;
+        std::cout << "Adjoint solution for element " << idx << ":\n";
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
+        }
+        std::cout << "gradient of element " << idx << " is " << val << std::endl;
+        std::cout << std::endl;
         de->AddGradient(f, val);
       }
     }
@@ -1142,6 +1141,9 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   mapped_matrix<double>::const_iterator1 iter;
   LatticeBoltzmann::PDFDirectionVector transform;
 
+  Matrix<double> test(9*n_x_*n_y_,9*n_x_*n_y_);
+  test.Init();
+
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
       for(x = 0; x < n_x_ ; x++) {
@@ -1158,6 +1160,7 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
+                test(rows1,rows2) = 1.0;
               }
             }
             // case 2
@@ -1165,17 +1168,34 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows1, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows1,it.index2());
+                test(rows1,rows1) = 1.0;
               }
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) += J(rows2,it.index2());
+                test(rows1,rows2) = 1.0;
               }
             }
           }
+
         }
       }
     }
   }
+
+//  std::stringstream ss;
+//  ss.precision(16);
+//  for (unsigned int i = 0; i < 9*n_x_*n_y_; i++) {
+//    for (unsigned int j = 0; j < 9*n_x_*n_y_; j++) {
+//      ss << test(i,j) << " ";
+//    }
+//    ss << std::endl;
+//  }
+//  std::fstream f;
+//  f.open("testMatrixPDE.txt", std::ios::out);
+//  f << ss.str() << std::endl;
+//  f.close();
+//  exit(-1);
 }
 
 Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz)
