@@ -315,7 +315,7 @@ void LatticeBoltzmann::InitializePdfs()
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
       APDF(0, elem, dir) = weights[dir];
-      APDF(1, elem, dir) = weights[dir];
+//      APDF(1, elem, dir) = weights[dir];
     }
   }
 
@@ -1337,13 +1337,6 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
               noneq[dir] = sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir];
             }
           }
-//          if (index == 4) {
-//            std::cout << "SRT noneq PDFS:\n" << (-noneq).ToString(2,' ') << std::endl;
-//            noneq *= -omega_nu_;
-//            std::cout << "SRT pdfs of elem 4:\n" << pdfs.ToString(2,' ') << std::endl;
-//            std::cout << "SRT subtrahend:\n" << noneq.ToString(2,' ') << std::endl;
-//            std::cout << "SRT result for element 4:\n" << res.ToString(2,' ') << std::endl;
-//          }
         }
         else // MRT case
         {
@@ -1425,15 +1418,6 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
 //          invTransformation.Mult(momentsAfterCollision,collResult);
           for (int  dir = 0; dir < n_q_; dir++)
             PDF(next, x, y, z, dir) = collResult[dir];
-
-//          if (index == 4) {
-//            Vector<double> out(n_q_);
-//            invTransformation.Mult(noneq_moments,out);
-//            std::cout << "MRT noneq PDFS:\n" << out.ToString(2,' ') << std::endl;
-//            std::cout << "MRT pdfs of elem 4:\n" << pdfs.ToString(2,' ') << std::endl;
-//            std::cout << "MRT subtrahend:\n" << subtrahend.ToString(2,' ') << std::endl;
-//            std::cout << "MRT result for element 4:\n" << collResult.ToString(2,' ') << std::endl;
-//          }
         }
 
       }
@@ -1568,63 +1552,69 @@ void LatticeBoltzmann::AdjointCollision(int cur)
     }
 }
 
-void LatticeBoltzmann::AdjointBounceBack(int cur)
-{
-  Vector<double> pdfs(n_q_), res(n_q_);
-
-  for(unsigned int  i = 0; i < bb.GetSize(); i++) {
-    int index = bb[i];
-
-    for (int  dir = 0; dir < n_q_; dir++) {
-      pdfs[dir] = tmpPdfs_[GetPdfIndex(index, dir)];
-    }
-    bounceback.Mult(pdfs,res);
-    for (int  dir = 0; dir < n_q_; dir++) {
-      tmpPdfs_[GetPdfIndex(index, dir)] = res[dir];
-    }
-  }
-}
-
 void LatticeBoltzmann::AdjointPropagation(int cur, int next)
 {
   Vector<double> pdfs(n_q_);
 
-  int z = 0;
-  int tmp_x, tmp_y, tmp_z = 0;
+  unsigned int z = 0;
+//  int tmp_x, tmp_y, tmp_z = 0;
+  Matrix<double> test(9*sizeX_*sizeY_,9*sizeX_*sizeY_);
+  test.Init();
   Vector<double> tmp(n_q_);
   for (int x = 0; x < sizeX_; x++)
     for (int y = 0; y < sizeY_; y++)
     {
       // propagation
       for (int  dir = 0; dir < n_q_; dir++) {
-        if (PointsToBoundary(x,y,z,dir)) { // if the neighbor element that I want to access is outside the domain, keep current value
-          tmp_x = x; // here we only set the coordinates
-          tmp_y = y;
-        }
-        // else: standard propagation (get value from neighbor pdf)
-        else {
-//          tmp_x = microVelDirections[dir].off_x + x;
-//          tmp_y = microVelDirections[dir].off_y + y;
-          tmp_x = microVelDirections[dir].off_x + x;
-          tmp_y = microVelDirections[dir].off_y + y;
-        }
+        PDFDirectionVector transform = microVelDirections[dir];
+        // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
+        if (!PointsToBoundary(x,y,z,dir)) {
+          int id1 =  GetIndex(x,y,z);
+          int rows1 = GetPdfIndex(id1,dir);
+          int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
+          int rows2 = GetPdfIndex(id2, dir);
 
-        int index = GetIndex(tmp_x,tmp_y,tmp_z);
-
-        tmp[dir] = tmpPdfs_[GetPdfIndex(index,dir)];
+          // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
+          if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
+              test(rows1,rows2) = 1.0;
+              APDF(next,id1,dir) = tmpPdfs_[rows2];
+          }
+          else { // case 2
+            // for corner elements, only distributions that point inside and to an design element are relevant
+            if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
+              test(rows1,rows1) = 1.0;
+              APDF(next,id1,dir) = tmpPdfs_[rows1];
+            }
+            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
+            APDF(next,id1,dir) += tmpPdfs_[rows2];
+          }
+        }
       }
 
-      if (srt_)
+      if (!srt_)
       {
-        for (int dir = 0; dir < n_q_; dir++)
-          APDF(next,x,y,z,dir) = tmp[dir];
-      } else {
+//        for (int dir = 0; dir < n_q_; dir++)
+//          APDF(next,x,y,z,dir) = tmp[dir];
+//      } else {
         Vector<double> propResult(n_q_);
         adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
         for (int dir = 0; dir < n_q_; dir++)
           AMoments(next,x,y,z,dir) = propResult[dir];
       }
     }
+
+//  std::stringstream ss;
+//  ss.precision(16);
+//  for (int i = 0; i < 9*sizeX_*sizeY_; i++) {
+//    for (int j = 0; j < 9*sizeX_*sizeY_; j++) {
+//      ss << test(i,j) << " ";
+//    }
+//    ss << std::endl;
+//  }
+//  std::fstream f;
+//  f.open("testMatrix.txt", std::ios::out);
+//  f << ss.str() << std::endl;
+//  f.close();
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1672,7 +1662,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   {
     LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
     AdjointCollision(adjCur_);
-    AdjointBounceBack(adjCur_);
+//    AdjointBounceBack(adjCur_);
     AdjointPropagation(adjCur_,adjNext_);
 
     if((it == 0 || it % 100 == 0))
@@ -1752,24 +1742,40 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
         Vector<double> collResult(n_q_), tmp(n_q_);
         d_coll_d_f.Mult(pdfs,tmp);
         for (int dir = 0; dir < n_q_; dir++)
-          collResult[dir] = d_pd_d_f[dir] + tmp[dir];
+          collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
 
         for (int dir = 0; dir < n_q_; dir++)
           tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
 
         if (!rel.Contains(index)) {
           for (int dir1 = 0; dir1 < n_q_; dir1++) {
-//            for (int dir2 = 0; dir2 < n_q_; dir2++)
-//              if (inlet.Contains(index) || outlet.Contains(index))
-//                assert(d_coll_d_f[dir1][dir2] == 0.0);
             if (bb.Contains(index) || rel.Contains(index))
               assert(d_pd_d_f[dir1] == 0.0);
           }
         }
       }
 
-//    AdjointBounceBack(adjCur_);
+    std::cout << "\nIteration " << it << ", collision result" << std::endl;
+    for (int y = 0; y < sizeY_; y++) {
+      for (int x = 0; x < sizeX_; x++) {
+        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
+        for (int dir = 0; dir < n_q_; dir++)
+          std::cout << std::fixed << std::setprecision(7) << tmpPdfs_[GetPdfIndex(GetIndex(x,y,0),dir)] << " ";
+        std::cout << std::endl;
+      }
+    }
+
     AdjointPropagation(adjCur_, adjNext_);
+
+    std::cout << "\nIteration " << it << ", propagation result" << std::endl;
+    for (int y = 0; y < sizeY_; y++) {
+      for (int x = 0; x < sizeX_; x++) {
+        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
+        for (int dir = 0; dir < n_q_; dir++)
+          std::cout << std::fixed << std::setprecision(7) << APDF(adjNext_,x,y,0,dir) << " ";
+        std::cout << std::endl;
+      }
+    }
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1781,7 +1787,11 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
 
+    if (it == 2)
+      exit(-1);
+
     it++;
+
     if (writeIntermediateResults_) {
       if (it % writeFrequency_ == 0) {
         domain->GetDriver()->StoreResults(count,(double) numIterations_ + it);
@@ -1792,6 +1802,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
 
   adjCur_  = (adjCur_  + 1) % 2;
   adjNext_ = (adjNext_ + 1) % 2;
+
+  adjPdfs_[adjNext_].Init(0.0);
 
 //  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
   if(R >= 1000)
@@ -1876,7 +1888,6 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
           else
             PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
-
       }
     }
   }
