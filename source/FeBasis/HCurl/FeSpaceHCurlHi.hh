@@ -4,6 +4,8 @@
 #include "FeBasis/FeSpaceHi.hh"
 #include <boost/array.hpp>
 
+#include "Utils/ThreadLocalStorage.hh"
+
 namespace CoupledField {
 
 // forward class declaration
@@ -101,6 +103,13 @@ protected:
   //! Map for reference elements by region (1st order)
   std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > > refElems1St_;
   
+  // Cached reference elements used during element matrix computation
+  //! Map for reference elements by region
+  std::map< RegionIdType, TLMap<Elem::FEType, FeHCurlHi* > > TL_refElems_;
+
+  //! Map for reference elements by region (1st order)
+  std::map< RegionIdType, TLMap<Elem::FEType, FeHCurlHi* > > TL_refElems1St_;
+
   //! Flag, if only lowest order should be used
   bool onlyLowestOrder_;
   

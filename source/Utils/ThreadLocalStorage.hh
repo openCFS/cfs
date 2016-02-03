@@ -16,6 +16,8 @@
 #define THREADLOCALSTORAGE_HH_
 
 #include "StdVector.hh"
+#include "Domain/ElemMapping/Elem.hh"
+#include <map>
 
 #include "def_use_openmp.hh"
 #ifdef USE_OPENMP
@@ -80,7 +82,7 @@ public:
     tlsContainer_.Clear();
   }
 
-  T& Mine(Integer tNum = -1){
+   T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
     if(tNum>=0){
       return tlsContainer_[tNum];
@@ -129,7 +131,7 @@ public:
     tlsContainer_.Clear();
   }
 
-  T* Mine(Integer tNum = -1){
+   T* Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
     if(tNum>=0){
       return tlsContainer_[tNum];
@@ -144,6 +146,138 @@ private:
   StdVector<T*> tlsContainer_;
 };
 
+template<typename K,typename V>
+class TLMap : public BaseTLS{
+  TLMap(){
+
+  }
+};
+
+template<typename K,typename V>
+class TLMap<K,V*> : public BaseTLS{
+
+public:
+
+  typedef typename std::map<K,V*>::iterator tl_iterator;
+  typedef typename std::map<K,V*>::const_iterator tl_const_iterator;
+
+
+  TLMap() : isCleared_(false){
+#ifdef USE_OPENMP
+    tlsContainer_.Resize(numSlots_);
+#endif
+  }
+
+  TLMap<K,V*>& operator=(const std::map<K,V*>&  serialObjToCopy){
+#ifdef USE_OPENMP
+    tlsContainer_.Resize(numSlots_);
+    for(UInt i=0;i<numSlots_;i++){
+      tl_const_iterator mIter = serialObjToCopy.begin();
+      for(;mIter!=serialObjToCopy.end();++mIter){
+        tlsContainer_[i][mIter->first] = mIter->second->Clone();
+      }
+    }
+#else
+    tl_iterator mIter = serialObjToCopy.begin();
+    for(;mIter!=serialObjToCopy.end();++mIter){
+      dummyContainer_[mIter->first] = mIter->second->Clone();
+    }
+#endif
+    this->isCleared_ = false;
+    return *this;
+  }
+
+  ~TLMap(){
+    assert(isCleared_);
+  }
+
+  V*& operator[](const K& a){
+#ifdef USE_OPENMP
+      return tlsContainer_[omp_get_thread_num()][a];
+#else
+    return dummyContainer_[a];
+#endif
+  }
+
+  bool empty() const {
+#ifdef USE_OPENMP
+      return tlsContainer_[omp_get_thread_num()].empty();
+#else
+    return dummyContainer_.empty();
+#endif
+  }
+
+  inline tl_iterator begin(){
+#ifdef USE_OPENMP
+      return tlsContainer_[omp_get_thread_num()].begin();
+#else
+    return dummyContainer_.begin();
+#endif
+  }
+
+  inline tl_iterator end(){
+#ifdef USE_OPENMP
+      return tlsContainer_[omp_get_thread_num()].end();
+#else
+    return dummyContainer_.end();
+#endif
+  }
+
+  inline tl_iterator find(K key){
+#ifdef USE_OPENMP
+      return tlsContainer_[omp_get_thread_num()].find(key);
+#else
+    return dummyContainer_.find(key);
+#endif
+  }
+
+  void Clear(){
+    //if any thread than the master will clear that,
+    // we will have a problem. Still, in our current setup this
+    //should not happen and if, the master will also be here...
+#ifdef USE_OPENMP
+#pragma omp master
+    {
+    for(UInt i=0;i<numSlots_;i++){
+      tl_iterator mIter = tlsContainer_[i].begin();
+      for(;mIter!=tlsContainer_[i].end();++mIter){
+        if(mIter->second)
+          delete mIter->second;
+      }
+    }
+    tlsContainer_.Clear();
+    isCleared_ = true;
+    }
+#else
+    tl_iterator mIter = dummyContainer_.begin();
+    for(;mIter!=dummyContainer_.end();++mIter){
+      if(mIter->second)
+        delete mIter->second;
+    }
+    dummyContainer_.clear();
+    isCleared_ = true;
+#endif
+  }
+
+  inline std::map<K,V*>& Mine(Integer tNum = -1){
+#ifdef USE_OPENMP
+    if(tNum>=0){
+      return tlsContainer_[tNum];
+    }else{
+      return tlsContainer_[omp_get_thread_num()];
+    }
+#else
+    return dummyContainer_;
+#endif
+  }
+private:
+#ifdef USE_OPENMP
+  StdVector< std::map<K,V*> > tlsContainer_;
+#else
+  std::map<K,V*> dummyContainer_;
+#endif
+  bool isCleared_;
+};
 
 }
 

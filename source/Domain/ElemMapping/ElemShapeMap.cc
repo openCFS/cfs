@@ -299,14 +299,15 @@ LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
 
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
   // delete reference elements
-  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
-    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
-    std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = tMap.begin();
-    for (; it != tMap.end(); ++it) {
-      delete it->second;
-    }
-    tMap.clear();
-  }
+  feMap_.Clear();
+//  for(UInt aT = 0; aT<feMap_.GetNumSlots();++aT){
+//    std::map<Elem::FEType, FeH1LagrangeExpl* >& tMap = feMap_.Mine(aT);
+//    std::map<Elem::FEType, FeH1LagrangeExpl*>::iterator it = tMap.begin();
+//    for (; it != tMap.end(); ++it) {
+//      delete it->second;
+//    }
+//    tMap.clear();
+//  }
 }
 
 LagrangeElemShapeMap::LagrangeMapSingleton&
@@ -1505,12 +1506,12 @@ bool LagrangeElemShapeMap::CalcNormalOutOfVolume(Vector<Double> & normal,
     }
     StdVector<UInt> fVert = shape.faceVertices[locFaceNum];
     //take the first three vertices to span our surface (we will always have at least three vertices
-    Vector<Double> v1,v2,v3;
+    Vector<Double> v1(3),v2(3),v3(3);
     v1 = shape.nodeCoords[fVert[1]-1];
     v2 = shape.nodeCoords[fVert[0]-1];
     v3 = shape.nodeCoords[fVert[2]-1];
-    Vector<Double> c1;
-    Vector<Double> c2;
+    Vector<Double> c1(3);
+    Vector<Double> c2(3);
     c1 = v1 - v2;
     c2 = v1 - v3;
     //compute cross product

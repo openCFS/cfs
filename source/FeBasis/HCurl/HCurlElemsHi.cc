@@ -258,6 +258,16 @@ FeHCurlHi::FeHCurlHi(Elem::FEType feType )
   useInteriorGrad_ = false;
   
 }
+
+FeHCurlHi::FeHCurlHi(const FeHCurlHi & other)
+          : FeHCurl(other), FeHi(other){
+  this->onlyLowestOrder_ = other.onlyLowestOrder_;
+  this->useEdgeGrad_ = other.useEdgeGrad_;
+  this->useFaceGrad_ = other.useFaceGrad_;
+  this->useInteriorGrad_ = other.useInteriorGrad_;
+}
+
+
 FeHCurlHi::~FeHCurlHi() {
 
 }

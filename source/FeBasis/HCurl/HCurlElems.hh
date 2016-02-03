@@ -16,8 +16,16 @@ namespace CoupledField {
     //! Constructor
     FeHCurl();
 
+    //! Copy Constructor
+    FeHCurl(const FeHCurl & other)
+      : BaseFE(other){
+    }
+
     //! Destructor
     virtual ~FeHCurl();
+
+    //! Deep Copy
+    virtual FeHCurl* Clone() = 0;
 
     //! Get (vectorial) shape functions
     

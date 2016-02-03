@@ -18,6 +18,22 @@ DEFINE_LOG(feHi, "feHi")
     isoOrder_ = 0;
     maxOrder_ = 0;
   }
+
+  FeHi::FeHi(const FeHi& other){
+    //tremendous amount of copies...
+    this->myFeType_ = other.myFeType_;
+    this->elemShape_ = Elem::shapes[this->myFeType_];
+    this->updateUnknowns_ = other.updateUnknowns_;
+    this->isoOrder_ = other.isoOrder_;
+    this->maxOrder_ = other.maxOrder_;
+    this->isIsotropic_ = other.isIsotropic_;
+    this->entityFncs_ = other.entityFncs_;
+    this->isoOrder_ = other.isoOrder_;
+    this->anisoOrder_ = other.anisoOrder_;
+    this->orderEdge_ = other.orderEdge_;
+    this->orderFace_ = other.orderFace_;
+    this->orderInner_ = other.orderInner_;
+  }
   
   FeHi::~FeHi() {
     

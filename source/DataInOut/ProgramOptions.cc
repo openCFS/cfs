@@ -1064,7 +1064,8 @@ namespace CoupledField {
           << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
           << " (rev " << CFS_WC_REVISION << ")" << endl
           << " compiled " << __DATE__
-          << " as " << CMAKE_BUILD_TYPE << endl;
+          << " as " << CMAKE_BUILD_TYPE << endl
+          << " CFS++ routines use " << NUM_CFS_THREADS << " threads for this run" << endl;
       out << "============================================================"
           << "==========="
           << endl << endl;

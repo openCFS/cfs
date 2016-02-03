@@ -17,6 +17,9 @@ public:
   //! Constructor
   FeNodal();
 
+  //! Copy constructor
+  FeNodal(const FeNodal & other);
+
   //! Destructor
   virtual ~FeNodal();
   

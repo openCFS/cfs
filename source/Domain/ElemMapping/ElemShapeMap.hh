@@ -7,7 +7,9 @@
 #include "MatVec/Matrix.hh"
 #include "Elem.hh"
 #include "SurfElem.hh"
+
 #include "Utils/ThreadLocalStorage.hh"
+
 #include <climits>
 
 
@@ -22,6 +24,7 @@ namespace CoupledField {
   class BaseFE;
   class CoefFunction;
   class IntScheme;
+
   
   // ==========================================================================
   //  C L A S S   LocPoint
@@ -615,7 +618,7 @@ namespace CoupledField {
       static LagrangeMapSingleton& getInstance();
 
       //! Map containing the reference elements
-      CfsTLS<std::map<Elem::FEType, FeH1LagrangeExpl* > > feMap_;
+      TLMap<Elem::FEType, FeH1LagrangeExpl* > feMap_;
     }; 
 
     //! Nodal coordinates

@@ -31,6 +31,7 @@
 #include "MatVec/Vector.hh"
 #include "Forms/IntScheme.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField
 
@@ -895,16 +896,16 @@ namespace CoupledField
    //@{
 
    //! Pointer to element shape map (original grid)
-   StdVector< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
+   CfsTLS< StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapOrig_;
 
    //! Pointer to element shape map (updated grid)
-   StdVector<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
+   CfsTLS<  StdVector<shared_ptr<ElemShapeMap> > > elemShapeMapUpdated_;
 
    //! Last accessed elements for updated grid
-   StdVector< StdVector<UInt> > lastShapeElemNumUpdated_;
+   CfsTLS< StdVector<UInt> > lastShapeElemNumUpdated_;
 
    //! Last accessed secondary element map for original grid
-   StdVector< StdVector<UInt> > lastShapeElemNumOrig_;
+   CfsTLS< StdVector<UInt> > lastShapeElemNumOrig_;
 
    ////! Pointer to seoncary element shape map (original grid)
    //StdVector< shared_ptr<ElemShapeMap> > elemShapeMapOrig2nd_;

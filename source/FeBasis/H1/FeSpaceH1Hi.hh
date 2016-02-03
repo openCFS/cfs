@@ -3,6 +3,7 @@
 
 #include "FeBasis/FeSpaceHi.hh"
 
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -70,6 +71,9 @@ class FeSpaceH1Hi : public FeSpaceHi {
     //! Map for reference elements by region
     std::map< RegionIdType, std::map<Elem::FEType, FeH1Hi* > > refElems_;
     
+    //! Thread Local cache for reference elements
+    std::map< RegionIdType, TLMap<Elem::FEType, FeH1Hi* > > TL_RefElems_;
+
   private:
 };
 } // end of namespace

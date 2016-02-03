@@ -24,6 +24,12 @@
 #include "Domain/ElemMapping/Elem.hh"
 #include "Domain/ElemMapping/ElemShapeMap.hh"
 #include "Domain/ElemMapping/EntityLists.hh"
+
+#include "def_use_openmp.hh"
+#ifdef USE_OPENMP
+#include <omp.h>
+#endif
+
 namespace CoupledField{
 
 
@@ -197,6 +203,9 @@ public:
 
   //! Constructor
   CoefFunction(){
+    if(!IsSerialRegion()){
+      EXCEPTION("Constructor of CoefFunction is called from parallel region which is not safe.")
+    }
     dimType_ = NO_DIM;
     dependType_ = CONSTANT;
     isAnalytic_ = false;
@@ -505,6 +514,15 @@ protected:
   // ========================
   //@{ \name Helper methods
   
+  //! in case of parallel execution we can ask if we are in parallel
+  inline bool IsSerialRegion(){
+#ifdef USE_OPENMP
+    return (omp_get_num_threads()==1);
+#else
+    return true;
+#endif
+  }
+
   //! Returns true, if expression depends on time / freq
   static bool ExprDependsOnTimeFreq(MathParser* mp, const std::string& expr);
   
