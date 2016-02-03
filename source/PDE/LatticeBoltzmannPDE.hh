@@ -136,23 +136,20 @@ public:
     return density;
   }
 
-  inline double CalcAdjLBMDensity(unsigned int idx) const
-  {
-    double density = 0.0;
-    for(unsigned int h = 0; h < n_q_; h++)
-      density += GetAdjPdf(idx,h);
-
-    return density;
-  }
-
   /** Calculate pressure for given element idx */
   double CalcPressure(unsigned int idx) const;
 
   /** Calculate velocity components for given density and element idx */
   inline double CalcVelocityX(unsigned int idx, double density) const
   {
-    if (n_q_ == 9)
-      return ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW))) / density;
+    if (n_q_ == 9) {
+      double val = ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW))) / density;
+      double term1 = GetPdf(idx, Q_E) - GetPdf(idx, Q_W);
+      double term2 = GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW);
+      double term3 = GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW);
+      double test = term1+term2+term3;
+      return val + test - test;
+    }
     else
       return ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) +( GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_BE) - GetPdf(idx, Q_TW))) / density;
   }
@@ -173,46 +170,15 @@ public:
       return ((GetPdf(idx, Q_T) - GetPdf(idx, Q_B)) + (GetPdf(idx, Q_TW) - GetPdf(idx, Q_BE)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_TN) - GetPdf(idx, Q_BS)) + (GetPdf(idx, Q_TS) - GetPdf(idx, Q_BN))) / density;
   }
 
-  inline double CalcAdjVelocityX(unsigned int idx, double density) const
-  {
-    if (n_q_ == 9)
-      return (GetAdjPdf(idx, Q_E) + GetAdjPdf(idx, Q_NE) + GetAdjPdf(idx, Q_SE) - GetAdjPdf(idx, Q_W) - GetAdjPdf(idx, Q_NW) - GetAdjPdf(idx, Q_SW)) / density;
-    else
-      return (GetAdjPdf(idx, Q_NE) + GetAdjPdf(idx, Q_E) + GetAdjPdf(idx, Q_SE) + GetAdjPdf(idx, Q_TE) + GetAdjPdf(idx, Q_BE) - GetAdjPdf(idx, Q_NW) - GetAdjPdf(idx, Q_W) - GetAdjPdf(idx, Q_SW) - GetAdjPdf(idx, Q_TW) - GetAdjPdf(idx, Q_BW)) / density;
-  }
-
-  inline double CalcAdjVelocityY(unsigned int idx, double density) const
-  {
-    if (n_q_ == 9)
-      return (GetAdjPdf(idx, Q_N)  + GetAdjPdf(idx, Q_NE) + GetAdjPdf(idx, Q_NW) - GetAdjPdf(idx, Q_S) - GetAdjPdf(idx, Q_SW) - GetAdjPdf(idx, Q_SE)) / density;
-    else
-      return (GetAdjPdf(idx, Q_N)  + GetAdjPdf(idx, Q_NW) + GetAdjPdf(idx, Q_NE) + GetAdjPdf(idx, Q_TN) + GetAdjPdf(idx, Q_BN) - GetAdjPdf(idx, Q_S)- GetAdjPdf(idx, Q_SE) - GetAdjPdf(idx, Q_SW)  - GetAdjPdf(idx, Q_TS) - GetAdjPdf(idx, Q_BS)) / density;
-  }
-
-  inline double CalcAdjVelocityZ(unsigned int idx, double density) const
-  {
-    if (n_q_ == 9)
-      return 0;
-    else
-      return (GetAdjPdf(idx, Q_T) + GetAdjPdf(idx, Q_TW) + GetAdjPdf(idx, Q_TE) + GetAdjPdf(idx, Q_TN) + GetAdjPdf(idx, Q_TS) - GetAdjPdf(idx, Q_B) - GetAdjPdf(idx, Q_BW) - GetAdjPdf(idx, Q_BE) - GetAdjPdf(idx, Q_BN) - GetAdjPdf(idx, Q_BS)) / density;
-  }
-
   inline void ExtractIntermediateSolution() {
-    pdfs = lbm->GetPdfs();
-    adjMoments = lbm->GetAdjMoments();
+    pdfs_ = lbm->GetPdfs();
   }
 
   //! Calculate macroscopic velocities
   Vector<Double> CalcVelocities(unsigned int idx);
 
-  //! Calculate adjoint macroscopic velocities
-  Vector<Double> CalcAdjVelocities(unsigned int idx);
-
   // extract probability distributions for output
   Vector<Double> ExtractDistribution(unsigned int idx);
-
-  // extract adjoint probability distributions for output
-  Vector<Double> ExtractAdjointDistribution(unsigned int idx);
 
   Matrix<Double> couplingNodes_;
 
@@ -233,15 +199,11 @@ private:
   void DefinePrimaryResults();
 
   inline double GetPdf(unsigned int idx, int dir) const  {
-    return pdfs[idx * n_q_ + dir];
+    return pdfs_[idx * n_q_ + dir];
   };
 
   inline double& GetPdf(unsigned int idx, int dir) {
-    return pdfs.GetPointer()[idx * n_q_ + dir];
-  };
-
-  inline double GetAdjPdf(unsigned int idx, int dir) const  {
-      return adjMoments[idx * n_q_ + dir];
+    return pdfs_.GetPointer()[idx * n_q_ + dir];
   };
 
   inline double GetAdjMoments(unsigned int idx, int dir) const  {
@@ -327,7 +289,7 @@ private:
   //! Flag indicating whether SRT or MRT LBM model should be used
   bool srt_;
   //! Flag indicating if PDE is assembled for first time
-  bool firstTurn_;
+//  bool firstTurn_;
 
   //! Vector storing factors for adapted pseudo mechanic bulk modulus
   Vector<Double> factor_;
@@ -373,7 +335,7 @@ private:
   StdVector<unsigned int> non_sing;
 
   /** storage for particle distribution. This is the simulation result for the function evaluation. */
-  StdVector<double> pdfs;
+  StdVector<double> pdfs_;
 
   /** storage for adjoint particle distribution. This is the simulation result for the function evaluation. */
   StdVector<double> adjMoments;

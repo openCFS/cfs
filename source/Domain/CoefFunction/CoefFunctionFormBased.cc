@@ -503,14 +503,8 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, co
       case LBM_VELOCITY:
         vec = lbm_->CalcVelocities(idx);
         break;
-      case LBM_VELOCITY_ADJOINT:
-        vec = lbm_->CalcAdjVelocities(idx);
-        break;
       case LBM_PROBABILITY_DISTRIBUTION:
         vec = lbm_->ExtractDistribution(idx);
-        break;
-      case LBM_PROBABILITY_DISTRIBUTION_ADJOINT:
-        vec = lbm_->ExtractAdjointDistribution(idx);
         break;
       default:
         EXCEPTION("LBM optimization has only velocity and distribution function values as vector solution.")

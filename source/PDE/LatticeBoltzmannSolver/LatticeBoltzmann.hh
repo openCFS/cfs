@@ -59,7 +59,7 @@ namespace CoupledField
        * @param info stores current and final info there */
       StdVector<double>* IterateAdjoint(PtrParamNode info);
 
-      StdVector<double>* IterateAdjointSRT(const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
@@ -153,6 +153,8 @@ namespace CoupledField
            * Sets distribution functions to initial value, independently from dimension of problem (no if-statement necessary)
            */
           void InitializePdfs();
+
+          void InitializeAdjPdfs();
 
           /**
            * Calculates x, y and z velocity for element with coordinate (i,j,k)

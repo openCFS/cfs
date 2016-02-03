@@ -220,10 +220,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-//    if (srt_)
-//      CreateOutput("srt.pdfs",cur_);
-//    else
-//      CreateOutput("mrt.pdfs",cur_);
     LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
@@ -260,12 +256,6 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
         count++;
       }
     }
-//    LOG_DBG3(lbm) << "\n Iteration " << it;
-//    for (int elem = 0; elem < nNodes_; elem++) {
-//      LOG_DBG3(lbm) << "element " << elem;
-//      for(int  dir = 0; dir < n_q_; dir++)
-//        LOG_DBG3(lbm) << "dir " << dir << " pdf= " << PDF(next_,elem,dir) << " ";
-//    }
   }
 
   timer.Stop();
@@ -314,25 +304,35 @@ void LatticeBoltzmann::InitializePdfs()
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
-      APDF(0, elem, dir) = weights[dir];
-      APDF(1, elem, dir) = weights[dir];
+//      APDF(0, elem, dir) = weights[dir];
+//      APDF(1, elem, dir) = weights[dir];
     }
   }
 
-  if (!srt_)
-  {
-    for (int elem = 0; elem < nNodes_; elem++) {
-      Vector<double> pdfs(n_q_);
-      Vector<double> moments(n_q_);
-      for (int dir = 0; dir < n_q_; dir++)
-        pdfs[dir] = PDF(0, elem, dir);
-      transformation.Mult(pdfs, moments);
-      for (int dir = 0; dir < n_q_; dir++) {
-        AMoments(0, elem, dir) = moments[dir];
-        AMoments(1, elem, dir) = moments[dir];
+//  if (!srt_)
+//  {
+//    for (int elem = 0; elem < nNodes_; elem++) {
+//      Vector<double> pdfs(n_q_);
+//      Vector<double> moments(n_q_);
+//      for (int dir = 0; dir < n_q_; dir++)
+//        pdfs[dir] = PDF(0, elem, dir);
+//      transformation.Mult(pdfs, moments);
+//      for (int dir = 0; dir < n_q_; dir++) {
+//        AMoments(0, elem, dir) = moments[dir];
+//        AMoments(1, elem, dir) = moments[dir];
+//      }
+//    }
+//  }
+}
+
+void LatticeBoltzmann::InitializeAdjPdfs()
+{
+  for (int elem = 0; elem < nNodes_; elem++) {
+      for (int  dir = 0; dir < n_q_; dir++) {
+        APDF(0, elem, dir) = weights[dir];
+        APDF(1, elem, dir) = weights[dir];
       }
     }
-  }
 }
 
 void LatticeBoltzmann::SetMicroVelocities()
@@ -1717,32 +1717,26 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   return &(adjMoments_[adjCur_]);
 }
 
-StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
+StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
   int z = 0;
-
-  int count = numWriteResults_;
 
   int it = 0;
   double R = 0.0;
   bool steady_state = false;
 
-  InitializePdfs();
+  InitializeAdjPdfs();
+
+  std::ofstream plot;
+  if(plot_)
+    plot.open(std::string(progOpts->GetSimName() + ".adjLbm.dat").c_str());
+
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
     /***************** Adjoint SRT collision ***/
     Vector<double> pdfs(n_q_);
-//    std::cout << "\nIteration " << it << ", initial values" << std::endl;
-//    for (int y = 0; y < sizeY_; y++) {
-//      for (int x = 0; x < sizeX_; x++) {
-//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << std::fixed << std::setprecision(7) << APDF(adjCur_,x,y,0,dir) << " ";
-//        std::cout << std::endl;
-//      }
-//    }
     for (int x = 0; x < sizeX_ ; x++)
       for (int y = 0; y < sizeY_; y++)
       {
@@ -1770,27 +1764,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
         }
       }
 
-//    std::cout << "\nIteration " << it << ", collision result" << std::endl;
-//    for (int y = 0; y < sizeY_; y++) {
-//      for (int x = 0; x < sizeX_; x++) {
-//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << std::fixed << std::setprecision(7) << tmpPdfs_[GetPdfIndex(GetIndex(x,y,0),dir)] << " ";
-//        std::cout << std::endl;
-//      }
-//    }
-
     AdjointPropagation(adjCur_, adjNext_);
-
-//    std::cout << "\nIteration " << it << ", propagation result" << std::endl;
-//    for (int y = 0; y < sizeY_; y++) {
-//      for (int x = 0; x < sizeX_; x++) {
-//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
-//        for (int dir = 0; dir < n_q_; dir++)
-//          std::cout << std::fixed << std::setprecision(7) << APDF(adjNext_,x,y,0,dir) << " ";
-//        std::cout << std::endl;
-//      }
-//    }
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1803,19 +1777,18 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
     adjNext_ = (adjNext_ + 1) % 2;
 
     it++;
-
-    if (writeIntermediateResults_) {
-      if (it % writeFrequency_ == 0) {
-        domain->GetDriver()->StoreResults(count,(double) numIterations_ + it);
-        count++;
-      }
-    }
   }
 
-  adjCur_  = (adjCur_  + 1) % 2;
-  adjNext_ = (adjNext_ + 1) % 2;
+  if(plot_) {
+    plot << it << "\t" << R << "\n";
+    plot.flush();
+  }
 
-  adjPdfs_[adjNext_].Init(0.0);
+  PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
+  node->Get("number")->SetValue(lbmCalls_-1);
+  node->Get("iterations")->SetValue(it);
+  node->Get("residuum")->SetValue(R);
+  node->Get("converged")->SetValue(steady_state);
 
 //  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
   if(R >= 1000)
@@ -1823,8 +1796,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
 
   if(!steady_state)
     EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
-
-  numWriteResults_ = count;
 
   return &(adjPdfs_[adjCur_]);
 }
