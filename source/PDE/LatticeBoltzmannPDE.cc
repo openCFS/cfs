@@ -782,7 +782,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
           sol[dir] = adjPdfs[GetPdfIndex(idx,dir)];
           d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
         }
-        double val = -d_coll_d_s * sol;
+        double val = -d_coll_d_s.Inner(sol);
         de->AddGradient(f, val);
       }
     }

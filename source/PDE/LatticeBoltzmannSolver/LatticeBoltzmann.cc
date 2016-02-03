@@ -122,6 +122,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   adjNext_ = 1;
 
   lbmCalls_ = 0;
+  lbmAdjCalls_ = 0;
 
   SetMicroVelocities();
 
@@ -1785,10 +1786,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   }
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
-  node->Get("number")->SetValue(lbmCalls_);
+  node->Get("number")->SetValue(lbmAdjCalls_);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
   node->Get("converged")->SetValue(steady_state);
+
+  lbmAdjCalls_++;
 
 //  std::cout << "Adjoint SRT simulation reached steady state after " << it << " iterations" << std::endl;
   if(R >= 1000)
