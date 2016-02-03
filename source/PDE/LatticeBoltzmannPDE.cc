@@ -749,11 +749,11 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         DesignElement* de = f->elements[e];
         unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-        std::cout << "Adjoint solution for element " << idx << ":\n";
-        for (unsigned int dir = 0; dir < n_q_; dir++) {
-          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
-        }
-        std::cout << std::endl;
+//        std::cout << "Adjoint solution for element " << idx << ":\n";
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << std::endl;
         de->AddGradient(f, val);
       }
 
@@ -782,13 +782,13 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
           sol[dir] = adjPdfs[GetPdfIndex(idx,dir)];
           d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
         }
-        double val = d_coll_d_s * sol;
-        std::cout << "Adjoint solution for element " << idx << ":\n";
-        for (unsigned int dir = 0; dir < n_q_; dir++) {
-          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
-        }
-        std::cout << "gradient of element " << idx << " is " << val << std::endl;
-        std::cout << std::endl;
+        double val = -d_coll_d_s * sol;
+//        std::cout << "Adjoint solution for element " << idx << ":\n";
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << "gradient of element " << idx << " is " << val << std::endl;
+//        std::cout << std::endl;
         de->AddGradient(f, val);
       }
     }
