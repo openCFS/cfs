@@ -315,7 +315,7 @@ void LatticeBoltzmann::InitializePdfs()
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
       APDF(0, elem, dir) = weights[dir];
-//      APDF(1, elem, dir) = weights[dir];
+      APDF(1, elem, dir) = weights[dir];
     }
   }
 
@@ -1567,30 +1567,36 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
       // propagation
       for (int  dir = 0; dir < n_q_; dir++) {
         PDFDirectionVector transform = microVelDirections[dir];
+        double value = 0.0;
+        int id1 =  GetIndex(x,y,z);
+        int rows1 = GetPdfIndex(id1,dir);
+        int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
+        int rows2 = GetPdfIndex(id2, dir);
         // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
         if (!PointsToBoundary(x,y,z,dir)) {
-          int id1 =  GetIndex(x,y,z);
-          int rows1 = GetPdfIndex(id1,dir);
-          int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
-          int rows2 = GetPdfIndex(id2, dir);
-
           // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
           if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
               test(rows1,rows2) = 1.0;
-              APDF(next,id1,dir) = tmpPdfs_[rows2];
+//              APDF(next,id1,dir) = tmpPdfs_[rows2];
+              value = tmpPdfs_[rows2];
           }
           else { // case 2
             // for corner elements, only distributions that point inside and to an design element are relevant
             if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
               test(rows1,rows1) = 1.0;
-              APDF(next,id1,dir) = tmpPdfs_[rows1];
+//              APDF(next,id1,dir) = tmpPdfs_[rows1];
+              value = tmpPdfs_[rows1];
             }
             test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
             APDF(next,id1,dir) += tmpPdfs_[rows2];
+            value += tmpPdfs_[rows2];
           }
         }
+        APDF(next,id1,dir) = value;
+//        if (GetIndex(x,y,0) == 0) {
+//          std::cout << "dir " << dir <<  " value " << value << std::endl;
+//        }
       }
-
       if (!srt_)
       {
 //        for (int dir = 0; dir < n_q_; dir++)
@@ -1728,6 +1734,15 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
   {
     /***************** Adjoint SRT collision ***/
     Vector<double> pdfs(n_q_);
+//    std::cout << "\nIteration " << it << ", initial values" << std::endl;
+//    for (int y = 0; y < sizeY_; y++) {
+//      for (int x = 0; x < sizeX_; x++) {
+//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << std::fixed << std::setprecision(7) << APDF(adjCur_,x,y,0,dir) << " ";
+//        std::cout << std::endl;
+//      }
+//    }
     for (int x = 0; x < sizeX_ ; x++)
       for (int y = 0; y < sizeY_; y++)
       {
@@ -1755,27 +1770,27 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
         }
       }
 
-    std::cout << "\nIteration " << it << ", collision result" << std::endl;
-    for (int y = 0; y < sizeY_; y++) {
-      for (int x = 0; x < sizeX_; x++) {
-        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
-        for (int dir = 0; dir < n_q_; dir++)
-          std::cout << std::fixed << std::setprecision(7) << tmpPdfs_[GetPdfIndex(GetIndex(x,y,0),dir)] << " ";
-        std::cout << std::endl;
-      }
-    }
+//    std::cout << "\nIteration " << it << ", collision result" << std::endl;
+//    for (int y = 0; y < sizeY_; y++) {
+//      for (int x = 0; x < sizeX_; x++) {
+//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << std::fixed << std::setprecision(7) << tmpPdfs_[GetPdfIndex(GetIndex(x,y,0),dir)] << " ";
+//        std::cout << std::endl;
+//      }
+//    }
 
     AdjointPropagation(adjCur_, adjNext_);
 
-    std::cout << "\nIteration " << it << ", propagation result" << std::endl;
-    for (int y = 0; y < sizeY_; y++) {
-      for (int x = 0; x < sizeX_; x++) {
-        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
-        for (int dir = 0; dir < n_q_; dir++)
-          std::cout << std::fixed << std::setprecision(7) << APDF(adjNext_,x,y,0,dir) << " ";
-        std::cout << std::endl;
-      }
-    }
+//    std::cout << "\nIteration " << it << ", propagation result" << std::endl;
+//    for (int y = 0; y < sizeY_; y++) {
+//      for (int x = 0; x < sizeX_; x++) {
+//        std::cout << "Elem " << GetIndex(x,y,0)+1 << ": ";
+//        for (int dir = 0; dir < n_q_; dir++)
+//          std::cout << std::fixed << std::setprecision(7) << APDF(adjNext_,x,y,0,dir) << " ";
+//        std::cout << std::endl;
+//      }
+//    }
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1786,9 +1801,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(const StdVector<Matrix<do
 
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
-
-    if (it == 2)
-      exit(-1);
 
     it++;
 
