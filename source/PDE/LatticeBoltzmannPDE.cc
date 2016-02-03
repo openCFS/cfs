@@ -770,7 +770,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     }
     else // solving adjoint system with same complexity as LBM simulation
     {
-      StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::HEADER)->Get("LBM"),adjSRTCollision,d_pdrop_d_f);
+      StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjSRTCollision,d_pdrop_d_f);
       adjPdfs = *tmp;
 
       for(unsigned int e = 0; e < f->elements.GetSize(); e++)

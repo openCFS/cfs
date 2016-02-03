@@ -1708,7 +1708,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   timer.Stop();
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
-  node->Get("number")->SetValue(lbmCalls_-1);
+  node->Get("number")->SetValue(lbmCalls_);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
   node->Get("converged")->SetValue(steady_state);
@@ -1785,7 +1785,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   }
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
-  node->Get("number")->SetValue(lbmCalls_-1);
+  node->Get("number")->SetValue(lbmCalls_);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
   node->Get("converged")->SetValue(steady_state);
