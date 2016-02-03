@@ -46,6 +46,12 @@ namespace CoupledField
     //! Constructor (does nothing)
     BaseFE();
 
+    //! Copy constructor (does something)
+    BaseFE(const BaseFE & fe);
+
+    //! declare clone operation
+    virtual BaseFE* Clone()=0;
+
     //! Decstructor
     virtual ~BaseFE();
     

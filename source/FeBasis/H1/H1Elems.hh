@@ -37,6 +37,12 @@ namespace CoupledField {
     //! Constructor
     FeH1();
 
+    //! Copy Constructor
+    FeH1(const FeH1 & other);
+
+    //! Deep Copy
+    virtual FeH1* Clone() = 0;
+
     //! Destructor
     virtual ~FeH1();
 
@@ -172,7 +178,7 @@ namespace CoupledField {
     //@}
   private:
     //! Cached value for local derivative
-    StdVector< Matrix<Double> > locDeriv_;
+    Matrix<Double> locDeriv_;
     
   };
 

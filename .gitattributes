@@ -2192,6 +2192,8 @@ source/Utils/boost-serialization.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/mathParser/CMakeLists.txt svneol=native#text/plain
 source/Utils/mathParser/mathParser.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathParser/mathParser.hh svneol=native#text/x-c%2B%2Bhdr
+source/Utils/mathParser/mathParserOMP.cc -text
+source/Utils/mathParser/mathParserOMP.hh -text
 source/Utils/mathfunctions.cc svneol=native#text/x-c%2B%2Bsrc
 source/Utils/mathfunctions.hh svneol=native#text/x-c%2B%2Bhdr
 source/Utils/tools.cc -text

@@ -6,6 +6,10 @@ FeNodal::FeNodal() {
   
 }
 
+FeNodal::FeNodal(const FeNodal & other){
+  this->supportingPoints_ = other.supportingPoints_;
+}
+
 FeNodal::~FeNodal() {
   
 }

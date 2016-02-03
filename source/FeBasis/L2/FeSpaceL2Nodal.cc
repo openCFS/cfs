@@ -99,7 +99,16 @@ BaseFE* FeSpaceL2Nodal::GetFe( const EntityIterator ent ){
   if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
     EXCEPTION("fespacel2::getfe( const entityiterator): requested fetype which is noch supported by space");
   }
-  BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
+
+#ifdef USE_OPENMP
+    BaseFE * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ent.GetElem()->type];
+    else
+      myFe = refElems_[eRegion][ent.GetElem()->type];
+#else
+    BaseFE * myFe = refElems_[eRegion][ent.GetElem()->type];
+#endif
 
   // No need to set the order here, as this is already done once and for all in the
   // SetMapType() method. For higher order spaces with non-uniform polynomial order, this necessary.
@@ -122,7 +131,16 @@ BaseFE* FeSpaceL2Nodal::GetFe( UInt elemNum ){
   if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
     EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
   }
-  BaseFE * myFe = refElems_[eRegion][ptElem->type];
+
+#ifdef USE_OPENMP
+    BaseFE * myFe;
+    if(isFinalized_ && omp_get_num_threads()>1)
+      myFe = TL_RefElems_[eRegion][ptElem->type];
+    else
+      myFe = refElems_[eRegion][ptElem->type];
+#else
+    BaseFE * myFe = refElems_[eRegion][ptElem->type];
+#endif
 
   return myFe;
 
@@ -193,6 +211,13 @@ void FeSpaceL2Nodal::Finalize(){
 
 
   CheckConsistency();
+#ifdef USE_OPENMP
+    std::map< RegionIdType, std::map<Elem::FEType, FeH1* > >::iterator regIt = refElems_.begin();
+    while(regIt != refElems_.end()){
+      TL_RefElems_[regIt->first] = regIt->second;
+      ++regIt;
+    }
+#endif
   isFinalized_ = true;
 }
 

@@ -14,7 +14,7 @@
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "OLAS/algsys/SolStrategy.hh"
 
-
+#include "def_use_openmp.hh"
 
 /*
  The FeSpace always knows just vertex/nodal, edge, face
@@ -465,6 +465,18 @@ namespace CoupledField{
     MapNodalEqns(1);
     MapNodalEqns(2);
     
+#ifdef USE_OPENMP
+    std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regIt = refElems_.begin();
+    while(regIt != refElems_.end()){
+      TL_refElems_[regIt->first] = regIt->second;
+      ++regIt;
+    }
+    std::map< RegionIdType, std::map<Elem::FEType, FeHCurlHi* > >::iterator regIt1St = refElems1St_.begin();
+    while(regIt1St != refElems1St_.end()){
+      TL_refElems1St_[regIt->first] = regIt1St->second;
+      ++regIt1St;
+    }
+#endif
     isFinalized_ = true;
   }
   
@@ -572,22 +584,29 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ent.GetElem()->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi: requested fetype which is not supported by space");
     }
+#ifdef USE_OPENMP
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+#else
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+#endif
 
     FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
       ApproxOrder order;
       order.SetIsoOrder(0);
-      myFe = refElems1St_[eRegion][ent.GetElem()->type];
+      myFe = refMap1St[ent.GetElem()->type];
       // attention: here we do NOT apply the max/min rule, as we assume constant
       // element order for all elements
       SetElemOrder( ent.GetElem(), myFe, order, false );
     } else {
       // Fetch reference element and set correct order
-      myFe = refElems_[eRegion][ent.GetElem()->type];
+      myFe = refMap[ent.GetElem()->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ent.GetElem(), myFe, it->second, true );
       SetElemGrad( ent.GetElem(), myFe, eRegion, true );
-      myFe = refElems_[eRegion][ent.GetElem()->type];
+      myFe = refMap[ent.GetElem()->type];
     }
 
     // ToDo: Currently hard coded to isotropic order. Here we should generalize the 
@@ -612,21 +631,30 @@ namespace CoupledField{
     if(refElems_[eRegion].find(ptElem->type) == refElems_[eRegion].end()){
       EXCEPTION("FeSpaceHCurlHi::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
+
+#ifdef USE_OPENMP
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = (isFinalized_ && omp_get_num_threads()>1)? TL_refElems_[eRegion].Mine() : refElems1St_[eRegion];
+#else
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap = refElems_[eRegion];
+    std::map<Elem::FEType, FeHCurlHi* >&  refMap1St = refElems1St_[eRegion];
+#endif
+
     FeHCurlHi * myFe = NULL;
     if( onlyLowestOrder_) {
       ApproxOrder order;
       order.SetIsoOrder(0);
-      myFe = refElems1St_[eRegion][ptElem->type];
+      myFe = refMap1St[ptElem->type];
       // attention: here we do NOT apply the max/min rule, as we assume constant
       // element order for all elements
       SetElemOrder( ptElem, myFe, order, false );
     } else {
       // Fetch reference element and set correct order
-      myFe = refElems_[eRegion][ptElem->type];
+      myFe = refMap[ptElem->type];
       std::map<RegionIdType,ApproxOrder>::iterator it = regionOrder_.find(eRegion);
       SetElemOrder( ptElem, myFe, it->second, true );
       SetElemGrad( ptElem, myFe, eRegion, true );
-      myFe = refElems_[eRegion][ptElem->type];
+      myFe = refMap[ptElem->type];
     }
     
     return myFe;
@@ -1064,7 +1092,15 @@ namespace CoupledField{
     if(refElems_[region].find(type) == refElems_[region].end()){
       EXCEPTION("fespaceh1::getfe( const entityiterator): requested fetype which is noch supported by space");
     }
-    ret = refElems_[region][type]; 
+
+#ifdef USE_OPENMP
+    if(isFinalized_ && omp_get_num_threads()>1)
+      ret = TL_refElems_[region][type];
+    else
+      ret = refElems_[region][type];
+#else
+    ret = refElems_[region][type];
+#endif
     return ret;
   }
 

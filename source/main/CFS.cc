@@ -113,9 +113,6 @@ CFS::CFS(int argc, const char **argv) :
   // Parse command line
   progOpts->ParseData();
 
-  // Log program startup
-  progOpts->GetHeaderString( cout );
-  
   // Initialize logging class (read parameters from file if desired)
   std::string confFile = progOpts->GetLogConfFileStr();
   logConf_ = new LogConfigurator(confFile);
@@ -129,6 +126,9 @@ CFS::CFS(int argc, const char **argv) :
 
   //now set the number of threads from the commandline
   SetNumberOfThreads(progOpts->GetNumThreads());
+
+  // Log program startup
+  progOpts->GetHeaderString( cout );
 
   // the new xml logging derived from the ParamNode
   infoNode = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));

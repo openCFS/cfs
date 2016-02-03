@@ -48,6 +48,11 @@ namespace CoupledField {
     CalcAllSupportingPoints(10);
     }
 
+    FeH1LagrangeVar::FeH1LagrangeVar(const FeH1LagrangeVar& other)
+                    : FeH1(other), FeNodal(other){
+      this->order_ = other.order_;
+    }
+
     FeH1LagrangeVar::~FeH1LagrangeVar(){
     }
 
@@ -111,29 +116,24 @@ namespace CoupledField {
 
       }else if( fctEntityType == FACE && ptElem->extended->faces.GetSize() > 0) {
         fncPermutation.Resize((order_-1) * (order_-1));
-        Integer dI,dII;
-        if(ptElem->extended->faceFlags[entNumber].test(0)){
-          //richtungI = flag(2);
-          //richtungII = flag(1);
-          dI = (ptElem->extended->faceFlags[entNumber].test(2))? 0:order_-2;
-          dII = (ptElem->extended->faceFlags[entNumber].test(1))? 0:order_-2;
-          for(UInt i = 0; i< order_-1 ; i++){
-            for(UInt j = 0; j< order_-1 ; j++){
-              Integer numI = dI-(Integer)i;
-              Integer numII = dII-(Integer)j;
-              fncPermutation[(i*(order_-1)) + j] = (abs(numI)*(order_-1)) + abs(numII);
+        Integer xi,eta;
+        UInt k=0;
+
+        //check to count xi or eta backward or forward
+        Integer offsetXi  =  (ptElem->extended->faceFlags[entNumber].test(0))? 0 : order_-2;
+        Integer offsetEta =  (ptElem->extended->faceFlags[entNumber].test(1))? 0 : order_-2;
+        if(ptElem->extended->faceFlags[entNumber].test(2)){
+          //which means xi and eta are unchanged
+          for(eta = 0; eta< (Integer)order_-1 ; eta++){
+            for(xi = 0; xi< (Integer)order_-1 ; xi++){
+              fncPermutation[k++] = abs(offsetEta-eta)*((order_-1))+abs(offsetXi-xi);
             }
           }
         }else{
-          //richtungI = flag(1);
-          //richtungII = flag(2);
-          dI = (ptElem->extended->faceFlags[entNumber].test(1))? 0:order_-2;
-          dII = (ptElem->extended->faceFlags[entNumber].test(2))? 0:order_-2;
-          for(UInt i = 0; i< order_-1 ; i++){
-            for(UInt j = 0; j< order_-1 ; j++){
-              Integer numI = dI-(Integer)j;
-              Integer numII = dII-(Integer)i;
-              fncPermutation[(i*(order_-1)) + j] = (abs(numI)*(order_-1)) + abs(numII);
+          //which means xi and eta are interchanged
+          for(xi = 0; xi< (Integer)order_-1 ; xi++){
+            for(eta = 0; eta< (Integer)order_-1 ; eta++){
+              fncPermutation[k++] = abs(offsetXi-eta)*((order_-1))+abs(offsetEta-xi);
             }
           }
         }
@@ -190,9 +190,9 @@ namespace CoupledField {
       std::map<Integer,LocPoint>::const_iterator pIt = iPoints.begin();
       while(pIt != iPoints.end()){
         const LocPoint& lp = pIt->second;
-        CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
-        CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
-                           NULL, 1);
+      CalcShFnc( shapeFncsAtIp_[lp.number], lp.coord, NULL, 1);
+      CalcLocDerivShFnc( shapeFncDerivsAtIp_[lp.number], lp.coord,
+                         NULL, 1);
         pIt++;
       }
     }
@@ -665,12 +665,12 @@ namespace CoupledField {
       EvaluateDerivLagrangePolynomial( shapeDerivZ, point[2], order_ );
       UInt c = 0;
 
-      deriv[c][0] = shapeDerivX[0]      *  shapeY[0]       * shapeZ[0];
-      deriv[c][1] = shapeX[0]      *  shapeDerivY[0]       * shapeZ[0];
+      deriv[c][0]   = shapeDerivX[0] *  shapeY[0]       * shapeZ[0];
+      deriv[c][1]   = shapeX[0]      *  shapeDerivY[0]  * shapeZ[0];
       deriv[c++][2] = shapeX[0]      *  shapeY[0]       * shapeDerivZ[0];
 
-      deriv[c][0] = shapeDerivX[order_]      *  shapeY[0]       * shapeZ[0];
-      deriv[c][1] = shapeX[order_]      *  shapeDerivY[0]       * shapeZ[0];
+      deriv[c][0]   = shapeDerivX[order_] *  shapeY[0]       * shapeZ[0];
+      deriv[c][1]   = shapeX[order_]      *  shapeDerivY[0]  * shapeZ[0];
       deriv[c++][2] = shapeX[order_]      *  shapeY[0]       * shapeDerivZ[0];
 
       deriv[c][0] = shapeDerivX[order_]      *  shapeY[order_]       * shapeZ[0];

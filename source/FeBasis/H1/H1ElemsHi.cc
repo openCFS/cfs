@@ -44,6 +44,11 @@ DEFINE_LOG(feH1Hi, "feH1Hi")
     // orientation, i.e. numbering of the nodal connectivity
     preComputShFnc_ = false;
   }
+
+  FeH1Hi::FeH1Hi(const FeH1Hi & other)
+         : FeH1(other), FeHi(other){
+    //apparently nothing else to do...
+  }
   
   FeH1Hi::~FeH1Hi() {
   }
