@@ -430,6 +430,7 @@ namespace CoupledField
           int n_q_;
 
           int lbmCalls_; //counts how often solver was called
+          int lbmAdjCalls_; //counts how often adjoint iterator was called
 
           StdVector<double> scales;
 
