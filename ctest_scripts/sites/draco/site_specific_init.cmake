@@ -84,7 +84,9 @@ MESSAGE(
 )
 
 SET(UPDATE_SCRIPTS
-  # Checkout or update FeSpace working copies
+  # Checkout or update trunk working copies
+  #TODO: ENABLE update cfsdeps
+
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
 )
