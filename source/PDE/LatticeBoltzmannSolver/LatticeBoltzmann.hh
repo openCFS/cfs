@@ -384,7 +384,7 @@ namespace CoupledField
 
           void AdjointBounceBack(int cur);
 
-          void AdjointPropagation(int cur, int next);
+          void AdjointPropagation(int next);
 
           /**
            * LBM operators in 3D
