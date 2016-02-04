@@ -1772,17 +1772,16 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
       R = CalcResidual(adjCur_,adjNext_,true);
       if(R <= maxTol_)
         steady_state = true;
+      if(plot_) {
+        plot << it << "\t" << R << "\n";
+        plot.flush();
+      }
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
 
     it++;
-  }
-
-  if(plot_) {
-    plot << it << "\t" << R << "\n";
-    plot.flush();
   }
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
