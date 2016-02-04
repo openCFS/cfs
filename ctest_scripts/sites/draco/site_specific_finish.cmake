@@ -36,7 +36,7 @@ EXECUTE_PROCESS(
 #  Unpack nightly binaries to /opt/pckg/cfs_nightly.
 # ===========================================================================
 
-# Unpack FeSpace binaries
+# Unpack trunk binaries
 IF(NOT EXISTS "${CFS_NIGHTLY_DIR}/trunk_gcc")
   FILE(MAKE_DIRECTORY "${CFS_NIGHTLY_DIR}/trunk_gcc")
 ENDIF()
@@ -46,14 +46,19 @@ ENDIF()
 
 
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_fespace_gcc_release.zip
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/oracle6_linux64_trunk_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
 
 EXECUTE_PROCESS(
-  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+  COMMAND ${CMAKE_COMMAND} -E tar xvf archives/sl7_linux64_trunk_gcc_release.zip
   WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
   RESULT_VARIABLE RETVAL)
+
+#EXECUTE_PROCESS(
+#  COMMAND ${CMAKE_COMMAND} -E copy_directory CFS_BUILD_NIGHTLY fespace_gcc
+#  WORKING_DIRECTORY "${CFS_NIGHTLY_DIR}"
+#  RESULT_VARIABLE RETVAL)
 
 # Move documentation into place
 SET(DOXY_DIR "${CFS_DOCU_DIR}/doxygen")
@@ -262,19 +267,21 @@ FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 #  Since we are low on hdd space, we don't start N boxes at the same time
 #  but we just start one box at a time and then wait for 4h.
 # ===========================================================================
-SET(VBOXES "winxp32")
 
-MATH(EXPR DAY "${DAYOFWEEK} % 3")
-
-IF(DAY EQUAL 0)
-  LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
-ENDIF()
-IF(DAY EQUAL 1)
-  LIST(APPEND VBOXES "oracle5" "fedora18")
-ENDIF()
-IF(DAY EQUAL 2)
-  LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
-ENDIF()
+# TODO: reenable!
+#SET(VBOXES "winxp32")
+#
+#MATH(EXPR DAY "${DAYOFWEEK} % 3")
+#
+#IF(DAY EQUAL 0)
+#  LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
+#ENDIF()
+#IF(DAY EQUAL 1)
+#  LIST(APPEND VBOXES "oracle5" "fedora18")
+#ENDIF()
+#IF(DAY EQUAL 2)
+#  LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
+#ENDIF()
 
 FOREACH(VBOX IN ITEMS ${VBOXES})
   # =========================================================================

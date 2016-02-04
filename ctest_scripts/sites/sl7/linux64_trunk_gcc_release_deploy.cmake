@@ -1,7 +1,7 @@
 #-----------------------------------------------------------------------------
 # Set binary directory
 #-----------------------------------------------------------------------------
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/CFS_BUILD_NIGHTLY")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/CFS_BUILD_NIGHTLY")
 
 INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 

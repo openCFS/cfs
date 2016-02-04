@@ -85,7 +85,6 @@ MESSAGE(
 
 SET(UPDATE_SCRIPTS
   # Checkout or update FeSpace working copies
-  #TODO: REENABLE
   ctest_update_trunk_wien.cmake
   ctest_update_trunk_testsuite_wien.cmake
 )
@@ -132,4 +131,4 @@ CLEANUP_VBOX_DIRS()
 #  script site_specific_finish.cmake.
 # ===========================================================================
 START_VBOXES("sl7")
-
+#START_VBOXES("oracle6")
