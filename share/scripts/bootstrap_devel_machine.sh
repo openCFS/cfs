@@ -223,12 +223,12 @@ SetupRHEL() {
 
     yum makecache || ExitFail
 
-    # cd /opt && \
-    # rm -f org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
-    # wget http://www.svnkit.com/org.tmatesoft.svn_1.3.5.standalone.zip && \
-    # unzip org.tmatesoft.svn_1.3.5.standalone.zip || \
-    # wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.5.standalone.zip && \
-    # unzip org.tmatesoft.svn_1.3.5.standalone.zip || ExitFail
+    cd /opt && \
+    rm -f org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
+    wget http://www.svnkit.com/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || \
+    wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
 
     if [ "$DIST" = "CENTOS" ]; then
 	ENABLE_REPO="--enablerepo=centosplus"
@@ -252,7 +252,7 @@ SetupRHEL() {
     ln -s /usr/$LIB/libXext.so.6.4.0 /usr/$LIB/libXext.so || ExitFail
 
     printf "JAVA_HOME=/usr\n" >> $ENV_CFS
-    printf "PATH=/opt/svnkit-1.3.5.7406:\$PATH\n" >> $ENV_CFS
+    printf "PATH=/opt/svnkit-1.3.8.7406:\$PATH\n" >> $ENV_CFS
     printf "export JAVA_HOME PATH\n" >> $ENV_CFS
 
 }

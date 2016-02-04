@@ -66,9 +66,12 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
   #--------------------------------------------------------------------------ROR
   # Check if Subversion has been found and if it has a high enough version,
   # otherwise download and configure SVNKit.
+  # Also use SVNKit for smaller repo versions, needed for nightly builds on
+  # virtual boxes.
   #---------------------------------------------------------------------------
   IF(NOT Subversion_FOUND OR
-     Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN)
+     Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN OR
+     Subversion_VERSION_SVN VERSION_GREATER Repo_VERSION_SVN)
 
    IF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")
      FILE(DOWNLOAD
@@ -86,7 +89,8 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
 
    FIND_PACKAGE("SVNKit" 1.4)
   ENDIF(NOT Subversion_FOUND OR
-    Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN)
+    Subversion_VERSION_SVN VERSION_LESS Repo_VERSION_SVN OR
+    Subversion_VERSION_SVN VERSION_GREATER Repo_VERSION_SVN)
 
   
   #---------------------------------------------------------------------------

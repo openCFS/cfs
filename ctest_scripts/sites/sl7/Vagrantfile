@@ -45,9 +45,9 @@ Vagrant.configure(2) do |config|
   # argument is a set of non-required options.
   # config.vm.synced_folder "../data", "/vagrant_data"
   config.vm.synced_folder "/opt/pckg", "/opt/pckg" 
-  config.vm.synced_folder "/home/testuser/Documents/dev", "/home/vagrant/Documents/dev" 
-  config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/vagrant/Documents/dev/NIGHTLY"
-  # config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/vagrant/Documents/dev/NIGHTLY" , create: true, owner: "vagrant"
+  #config.vm.synced_folder "/home/testuser/Documents/dev", "/home/vagrant/Documents/dev" 
+  #config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/vagrant/Documents/dev/NIGHTLY"
+  config.vm.synced_folder "/home/testuser/Documents/dev/NIGHTLY", "/home/vagrant/Documents/dev/NIGHTLY" , create: true, owner: "vagrant"
 
   # Provider-specific configuration so you can fine-tune various
   # backing providers for Vagrant. These expose provider-specific options.
