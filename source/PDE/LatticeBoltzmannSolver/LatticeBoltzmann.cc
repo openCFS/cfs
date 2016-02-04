@@ -328,6 +328,7 @@ void LatticeBoltzmann::InitializePdfs()
 
 void LatticeBoltzmann::InitializeAdjPdfs()
 {
+#pragma omp parallel for default(none)
   for (int elem = 0; elem < nNodes_; elem++) {
       for (int  dir = 0; dir < n_q_; dir++) {
         APDF(0, elem, dir) = weights[dir];
@@ -1525,13 +1526,14 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
 void LatticeBoltzmann::AdjointCollision(int cur)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
-  int index;
   int z = 0;
   Vector<double> moments(n_q_);
+
+#pragma omp parallel for default(none) shared(cur,z,moments) collapse(2)
   for (int x = 0; x < sizeX_ ; x++)
     for (int y = 0; y < sizeY_; y++)
     {
-      index = GetIndex(x,y,z);
+      int index = GetIndex(x,y,z);
 
       for (int dir = 0; dir < n_q_; dir++)
         moments[dir] = AMoments(cur,index,dir);
@@ -1553,15 +1555,15 @@ void LatticeBoltzmann::AdjointCollision(int cur)
     }
 }
 
-void LatticeBoltzmann::AdjointPropagation(int cur, int next)
+void LatticeBoltzmann::AdjointPropagation(int next)
 {
   Vector<double> pdfs(n_q_);
 
   unsigned int z = 0;
 //  int tmp_x, tmp_y, tmp_z = 0;
-  Matrix<double> test(9*sizeX_*sizeY_,9*sizeX_*sizeY_);
-  test.Init();
-  Vector<double> tmp(n_q_);
+//  Matrix<double> test(9*sizeX_*sizeY_,9*sizeX_*sizeY_);
+//  test.Init();
+#pragma omp parallel for default(none) shared(next,z) collapse(2)
   for (int x = 0; x < sizeX_; x++)
     for (int y = 0; y < sizeY_; y++)
     {
@@ -1577,55 +1579,36 @@ void LatticeBoltzmann::AdjointPropagation(int cur, int next)
         if (!PointsToBoundary(x,y,z,dir)) {
           // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
           if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-              test(rows1,rows2) = 1.0;
-//              APDF(next,id1,dir) = tmpPdfs_[rows2];
+//              test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
           }
           else { // case 2
             // for corner elements, only distributions that point inside and to an design element are relevant
             if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
-              test(rows1,rows1) = 1.0;
-//              APDF(next,id1,dir) = tmpPdfs_[rows1];
+//              test(rows1,rows1) = 1.0;
               value = tmpPdfs_[rows1];
             }
-            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
+//            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
             APDF(next,id1,dir) += tmpPdfs_[rows2];
             value += tmpPdfs_[rows2];
           }
         }
         APDF(next,id1,dir) = value;
-//        if (GetIndex(x,y,0) == 0) {
-//          std::cout << "dir " << dir <<  " value " << value << std::endl;
-//        }
       }
-      if (!srt_)
-      {
+//      if (!srt_)
+//      {
+//        Vector<double> propResult(n_q_);
+//        adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
 //        for (int dir = 0; dir < n_q_; dir++)
-//          APDF(next,x,y,z,dir) = tmp[dir];
-//      } else {
-        Vector<double> propResult(n_q_);
-        adjTransformation.Mult(tmp,propResult); // transforming propagation result (adjoint distributions) back to moment space
-        for (int dir = 0; dir < n_q_; dir++)
-          AMoments(next,x,y,z,dir) = propResult[dir];
-      }
+//          AMoments(next,x,y,z,dir) = propResult[dir];
+//      }
     }
 
-//  std::stringstream ss;
-//  ss.precision(16);
-//  for (int i = 0; i < 9*sizeX_*sizeY_; i++) {
-//    for (int j = 0; j < 9*sizeX_*sizeY_; j++) {
-//      ss << test(i,j) << " ";
-//    }
-//    ss << std::endl;
-//  }
-//  std::fstream f;
-//  f.open("testMatrix.txt", std::ios::out);
-//  f << ss.str() << std::endl;
-//  f.close();
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 {
+  int it = 0;
   Vector<double> pdfs(n_q_);
   double dissipation = GetDissipation();
 //  std::cout << "Dissipation: " << dissipation << std::endl;
@@ -1655,7 +1638,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
   Timer timer;
   timer.Start();
 
-  int it = 0;
   double R = 0.0;
   bool steady_state = false;
 
@@ -1670,7 +1652,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
     LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
     AdjointCollision(adjCur_);
 //    AdjointBounceBack(adjCur_);
-    AdjointPropagation(adjCur_,adjNext_);
+    AdjointPropagation(adjNext_);
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1683,6 +1665,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
         plot << it << "\t" << R << "\n";
 
       domain->GetInfoRoot()->ToFile(); // is not written when called too often
+//      std::cout << "Adjoint simulation " << it << ": res = " << R << std::endl;
     }
 
     adjCur_  = (adjCur_  + 1) % 2;
@@ -1733,6 +1716,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   if(plot_)
     plot.open(std::string(progOpts->GetSimName() + ".adjLbm.dat").c_str());
 
+  Timer timer;
+  timer.Start();
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
@@ -1765,7 +1750,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
         }
       }
 
-    AdjointPropagation(adjCur_, adjNext_);
+    AdjointPropagation(adjNext_);
 
     if((it == 0 || it % 100 == 0))
     {
@@ -1783,12 +1768,26 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
     it++;
   }
+  timer.Stop();
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
   node->Get("number")->SetValue(lbmAdjCalls_);
   node->Get("iterations")->SetValue(it);
   node->Get("residuum")->SetValue(R);
   node->Get("converged")->SetValue(steady_state);
+
+  double wt = timer.GetWallTime();
+  double performance;
+
+  if (dim_ == 3)
+    performance = (sizeX_ - 1) * (sizeY_ - 1) * (sizeZ_ - 1) * it / wt / 1e6;
+  else
+    performance = (sizeX_ - 1) * (sizeY_ - 1) * it / wt / 1e6;
+
+  node->Get("wall")->SetValue(wt);
+  node->Get("cpu")->SetValue(timer.GetCPUTime());
+  node->Get("MFLUP_s")->SetValue(performance);
+  info->Get("memory")->SetValue(sizeof(double) * nNodes_ * n_q_ * 2.0 / 1024.0 / 1024.0);
 
   lbmAdjCalls_++;
 
