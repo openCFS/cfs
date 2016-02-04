@@ -26,10 +26,6 @@ namespace CoupledField
 	    var = "t";
 	  mp_->SetExpr(mHandleStep_, var);
 
-	//  connReal_ = mp_->AddExpChangeCallBack(
-	//      boost::bind(&ScatteredDataReaderCSVT::ReadData, this ),
-	//      mHandleStep_ );
-
 	  step_  = -1;
   }
   

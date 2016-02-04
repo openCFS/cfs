@@ -54,13 +54,13 @@ namespace CGAL
     double y() const { return vec[ 1 ]; }
     double z() const { return vec[ 2 ]; }
 
-    void vx(double & ret) const { ret = vel[ 0 ]; }
-    void vy(double & ret) const { ret = vel[ 1 ]; }
-    void vz(double & ret) const { ret = vel[ 2 ]; }
+    void vx(double& ret) const { ret = vel[ 0 ]; }
+    void vy(double& ret) const { ret = vel[ 1 ]; }
+    void vz(double& ret) const { ret = vel[ 2 ]; }
 
-    void vx(Complex & ret) const { ret = velZ[ 0 ]; }
-    void vy(Complex & ret) const { ret = velZ[ 1 ]; }
-    void vz(Complex & ret) const { ret = velZ[ 2 ]; }
+    void vx(Complex& ret) const { ret = velZ[ 0 ]; }
+    void vy(Complex& ret) const { ret = velZ[ 1 ]; }
+    void vz(Complex& ret) const { ret = velZ[ 2 ]; }
 
     double& x() { return vec[ 0 ]; }
     double& y() { return vec[ 1 ]; }

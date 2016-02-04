@@ -1332,6 +1332,7 @@ share/xml/CFS-Simulation/Schemas/CFS_PDEmagedge.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmagnetic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEmechanic.xsd svneol=native#text/xml
 share/xml/CFS-Simulation/Schemas/CFS_PDEsmooth.xsd svneol=native#text/xml
+share/xml/CFS-Simulation/Schemas/CFS_PDEsplit.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEtest.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PDEwaterWave.xsd -text
 share/xml/CFS-Simulation/Schemas/CFS_PostProc.xsd -text svneol=unset#text/xml
@@ -1567,6 +1568,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
 source/Domain/CoefFunction/CoefFunctionImpedanceModel.cc -text
 source/Domain/CoefFunction/CoefFunctionImpedanceModel.hh -text
+source/Domain/CoefFunction/CoefFunctionMapping.cc -text
+source/Domain/CoefFunction/CoefFunctionMapping.hh -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.cc -text
 source/Domain/CoefFunction/CoefFunctionMeanFlowConvection.hh -text
 source/Domain/CoefFunction/CoefFunctionMulti.cc -text
@@ -2118,6 +2121,8 @@ source/PDE/AcousticMixedPDE.cc -text
 source/PDE/AcousticMixedPDE.hh -text
 source/PDE/AcousticPDE.cc -text
 source/PDE/AcousticPDE.hh -text
+source/PDE/AcousticSplitPDE.cc -text
+source/PDE/AcousticSplitPDE.hh -text
 source/PDE/BasePDE.cc svneol=native#text/x-c%2B%2Bsrc
 source/PDE/BasePDE.hh svneol=native#text/x-c%2B%2Bhdr
 source/PDE/CMakeLists.txt svneol=native#text/plain

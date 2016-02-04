@@ -205,8 +205,7 @@ namespace CoupledField{
     GetQuantityData(updateMode);
     DumpData();
 
-    if(updateMode)
-      return;
+
 
     UInt n = scatteredData_.size();
 
@@ -215,11 +214,11 @@ namespace CoupledField{
     case CGAL:
 #ifdef USE_CGAL
       {
-      std::list<CGAL::Point> points;
-
+      std::vector<CGAL::Point> points;
+      points.resize(n);
       for(UInt i=0; i<n; i++)
       {
-        points.push_back(CGAL::Point(coordinates_[i][0],
+        points[i] = (CGAL::Point(coordinates_[i][0],
                                coordinates_[i][1],
                                coordinates_[i][2],
                                scatteredData_[i][0] * factor_,
@@ -228,6 +227,8 @@ namespace CoupledField{
       }
 
       searchTree_.reset(new Tree(points.begin(), points.end()));
+      if(updateMode)
+        return;
     }
 #else
       EXCEPTION("CGAL not supported! Compile with USE_CGAL=ON.");
@@ -237,6 +238,8 @@ namespace CoupledField{
     case FLANN:
 #ifdef USE_FLANN
       {
+        if(updateMode)
+          return;
       dataset_.reset(new flann::Matrix<Double>(new Double[n*3], n, 3));
       Double *dPtr = dataset_->ptr();
       for(UInt i=0; i<n; i++)
@@ -447,7 +450,7 @@ namespace CoupledField{
       StdVector< Vector<T> >& vectors)
   {
     CGAL::Point query(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-    if(DOFS == 2)
+    if(globPoint.GetSize() == 2)
     {
       CGAL::Point query2(globPoint[0], globPoint[1], 0.0, 0.0, 0.0, 0.0);
       query = query2;
@@ -474,14 +477,13 @@ namespace CoupledField{
     
     for(UInt i=0 ; it != search.end(); ++it, i++) {
       l2Distances[i] = std::sqrt(it->second);
-      neighbors[i].Resize(DOFS);
-      vectors[i].Resize(DOFS);
+      neighbors[i].Resize(globPoint.GetSize());
+      vectors[i].Resize(globPoint.GetSize());
 
-      if(DOFS == 2)
+      if(globPoint.GetSize() == 2)
       {
         it->first.vx(vectors[i][0]);
         it->first.vy(vectors[i][1]);
-
         neighbors[i][0] = it->first.x();
         neighbors[i][1] = it->first.y();
       }
