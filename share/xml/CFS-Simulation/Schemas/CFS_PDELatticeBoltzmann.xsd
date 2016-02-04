@@ -99,7 +99,7 @@
               </xsd:element>
               <xsd:element name="SRT" minOccurs="0" maxOccurs="1">
                 <xsd:complexType>
-                  <xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="required"> 
+                  <xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="optional" default="external"> 
                     <xsd:annotation>
                       <xsd:documentation>Adjoint system can be solved externally via e.g. PARDISO or internally with an adjoint LBM formulation</xsd:documentation>
                     </xsd:annotation>              

@@ -170,7 +170,8 @@ namespace CoupledField {
     iface.Add(EXTERNAL, "external");
     iface_ = iface.Parse(pn->Get("LBM/solver")->As<std::string>());
 
-    adjSRT_ = iface.Parse(pn->Get("LBM/SRT/solveAdjoint")->As<std::string>());
+    if (srt_)
+      adjSRT_ = iface.Parse(pn->Get("LBM/SRT/solveAdjoint")->As<std::string>());
 
     InitRegions(pn, grid);
 
@@ -1135,8 +1136,8 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   mapped_matrix<double>::const_iterator1 iter;
   LatticeBoltzmann::PDFDirectionVector transform;
 
-  Matrix<double> test(9*n_x_*n_y_,9*n_x_*n_y_);
-  test.Init();
+//  Matrix<double> test(9*n_x_*n_y_,9*n_x_*n_y_);
+//  test.Init();
 
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
@@ -1154,7 +1155,7 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
-                test(rows1,rows2) = 1.0;
+//                test(rows1,rows2) = 1.0;
               }
             }
             // case 2
@@ -1162,12 +1163,12 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows1, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows1,it.index2());
-                test(rows1,rows1) = 1.0;
+//                test(rows1,rows1) = 1.0;
               }
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) += J(rows2,it.index2());
-                test(rows1,rows2) = 1.0;
+//                test(rows1,rows2) = 1.0;
               }
             }
           }
