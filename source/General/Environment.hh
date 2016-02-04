@@ -89,7 +89,7 @@ namespace CoupledField {
   enum DampingType{NONE=0, RAYLEIGH=1, ABCDAMP=2, THERMOVISCOUS=3,
     FRACTIONAL=4, FRACTIONAL_GL=5, FRACTIONAL_BLANK=6,
     FRACTIONAL_GL_INT=7, FRACTIONAL_BLANK_INT=8,
-    PML, DAMPLAYER};
+    PML, DAMPLAYER, MAPPING};
 
   //! Type of nonlinearity for certain pdes
   typedef enum { NO_NONLINEARITY, WESTERVELT, KUZNETSOV, VARIABLE_SOS_CN1,
@@ -157,6 +157,11 @@ namespace CoupledField {
       ACOU_SURFINTENSITY, ACOU_DIV_LH_TENSOR,
       ACOU_PMLAUXVEC, ACOU_PMLAUXSCALAR,
       ACOU_ELEM_SPEED_OF_SOUND, ACOU_IMPEDANCE,
+
+      // ==========
+      //  SPLITTING
+      // ==========
+      SPLIT_SCALAR, SPLIT_VECTOR, SPLIT_RHS_LOAD,
 
       // ==========
       //  WATER WAVES

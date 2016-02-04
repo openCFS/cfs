@@ -18,6 +18,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionTimeFreq.cc
   CoefFunctionSurf.cc
   CoefFunctionPML.cc
+  CoefFunctionMapping.cc
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
   

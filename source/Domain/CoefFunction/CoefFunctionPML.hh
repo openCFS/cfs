@@ -28,7 +28,7 @@ namespace CoupledField{
 class DampFunction{
 
 public:
-  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH } DampingType;
+  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS } DampingType;
   static Enum<DampingType> DampingTypeEnum;
 
   DampFunction(){
@@ -116,7 +116,20 @@ public:
 
 };
 
+class DampFunctionTangens : public DampFunction{
+public:
+  DampFunctionTangens( ) : DampFunction(){
+    constFactor = 2.0/M_PI;
+    functionType = TANGENS;
+  }
 
+  Double ComputeFactor(Double pos, Double thickness){
+    Double value = constFactor*thickness;
+    value *= (1.0/(pos*pos+1.0) );
+    return value;
+  }
+
+};
 
 template<typename T>
 class CoefFunctionPML : public CoefFunction{
@@ -132,19 +145,19 @@ public:
   ~CoefFunctionPML();
 
   //! Return real-valued tensor at integration point
-  void GetTensor(Matrix<Complex>& tensor,
+  virtual void GetTensor(Matrix<Complex>& tensor,
                  const LocPointMapped& lpm );
 
   //! Return real-valued tensor at integration point
-  void GetTensor(Matrix<Double>& tensor,
+  virtual void GetTensor(Matrix<Double>& tensor,
                  const LocPointMapped& lpm );
 
   //! Return real-valued vector at integration point
-  void GetVector(Vector<Complex>& vec,
+  virtual void GetVector(Vector<Complex>& vec,
                  const LocPointMapped& lpm ) ;
 
   //! Return real-valued vector at integration point
-  void GetVector(Vector<Double>& vec,
+  virtual void GetVector(Vector<Double>& vec,
                  const LocPointMapped& lpm ) ;
 
 
@@ -153,11 +166,11 @@ public:
   // seeing that the jacobian is transformed according to the changed
   // derivatives, we pass this function as a scalar function to the bilinearform
   // an transform the jacobian with it....
- void GetScalar(Double& val,
+  virtual void GetScalar(Double& val,
                 const LocPointMapped& lpm ) ;
 
  //! Return cpmplex-valued scalar at integration point
- void GetScalar(Complex& val,
+  virtual void GetScalar(Complex& val,
                 const LocPointMapped& lpm ) ;
 
  //! \copydoc CoefFunction::GetVecSize
@@ -189,7 +202,6 @@ protected:
       omega_ = this->mp_->Eval(mHandle_) * 2 * M_PI;
     }
 
-private:
     void SetPosPML(Matrix<Double> & inner,
                    Matrix<Double> & outer);
 

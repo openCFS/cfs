@@ -166,6 +166,18 @@ namespace CoupledField {
         return "-";
         break;
 
+      case SPLIT_SCALAR:
+        return "m^2/s";
+        break;
+
+      case SPLIT_VECTOR:
+        return "m^2/s";
+        break;
+
+      case SPLIT_RHS_LOAD:
+        return "m^3/s";
+        break;
+
       case ELEC_CHARGE:
         return "C";
         break;
@@ -1271,6 +1283,11 @@ namespace CoupledField {
     SolutionTypeEnum.Add(ACOU_MIXED_MASS_LOAD, "acouMixedMassLoad");
     SolutionTypeEnum.Add(ACOU_MIXED_MOMENTUM_LOAD, "acouMixedMomentumLoad");
     SolutionTypeEnum.Add(ACOU_LAMB_RHS, "acouLambRhs");
+
+    //Splitting
+    SolutionTypeEnum.Add(SPLIT_SCALAR, "splitScalar");
+    SolutionTypeEnum.Add(SPLIT_VECTOR, "splitVector");
+    SolutionTypeEnum.Add(SPLIT_RHS_LOAD, "splitRhsLoad");
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");

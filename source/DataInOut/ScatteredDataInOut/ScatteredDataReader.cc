@@ -183,7 +183,6 @@ namespace CoupledField
         scatteredData[aNode][aDof].imag() = imagParts[aNode][aDof];
       }
     }
-    // complexe werte YUWESOEN TODO    scatteredDataPerQuantityIMAG_[quantity]
 
   }
 }

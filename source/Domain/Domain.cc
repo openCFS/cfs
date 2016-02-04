@@ -40,6 +40,7 @@
 // Single Field PDEs
 #include "PDE/AcousticPDE.hh"
 #include "PDE/AcousticMixedPDE.hh"
+#include "PDE/AcousticSplitPDE.hh"
 #include "PDE/ElecPDE.hh"
 #include "PDE/PerturbedFlowPDE.hh"
 #include "PDE/FlowPDE.hh"
@@ -672,10 +673,10 @@ void Domain::CreateSinglePDEs(UInt sequenceStep, PtrParamNode infoNode)
         ptSinglePde_[i] = new AcousticPDE(defaultGrid, actPdeNode, infoNode,
                                           simState_, this );
     }
-//    else if (actPdeName == "acousticSplit") {
-//        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
-//                                          simState_, this );
-//    }
+    else if (actPdeName == "acousticSplit") {
+        ptSinglePde_[i] = new AcousticSplitPDE(defaultGrid, actPdeNode, infoNode,
+                                          simState_, this );
+    }
     else if (actPdeName == "acousticMixed")
         ptSinglePde_[i] = new AcousticMixedPDE(defaultGrid, actPdeNode, infoNode,
                                                simState_, this );
