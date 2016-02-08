@@ -140,7 +140,6 @@ namespace CoupledField {
   {
     pdename_ = "LatticeBoltzmann";
     pdematerialclass_ = MECHANIC;
-//    firstTurn_ = true;
     nonLin_ = false;
     lbm = NULL;
     numWriteResults_ = 0;
@@ -703,10 +702,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 
     double rhs_setup = timer.GetCPUTime();
 
-    // for debugging
-  //  WriteMatrix("Jacobian_col.txt",col_jacobi);
-  //  WriteMatrix("Jacobian_old.txt",Jacobi);
-  //  WriteMatrix("Jacobian_new.txt",Jacobi_new);
     PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     // using external LSE solver
     if (adjSRT_ == EXTERNAL)
@@ -750,11 +745,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         DesignElement* de = f->elements[e];
         unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-//        std::cout << "Adjoint solution for element " << idx << ":\n";
-//        for (unsigned int dir = 0; dir < n_q_; dir++) {
-//          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
-//        }
-//        std::cout << std::endl;
         de->AddGradient(f, val);
       }
 
@@ -796,7 +786,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   {
     Vector<double> pdfs(n_q_);
     Vector<double> adjMoms(n_q_);
-//    std::cout << "Adjoint variable in PDE: \n" << adjMoments.ToString(false) << std::endl;
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
       DesignElement* de = f->elements[e];
@@ -805,9 +794,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         pdfs[dir] = GetPdf(idx,dir);
         adjMoms[dir] = GetAdjMoments(idx,dir);
       }
-
-//      std::cout << "Adjoint solution for element " << idx << ":\n";
-//      std::cout << adjMoms.ToString(0,',') << std::endl;
 
       Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
       Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s
@@ -847,12 +833,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
 //      for (unsigned int i = 0; i < n_q_; i ++)
 //        d_coll_d_rho[i] = d_F1_d_rho[i] + tmp[i];
 //      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
-//      std::cout << "\nd_F1_d_rho: " << d_F1_d_rho.ToString() << std::endl;
-//      std::cout << "tmp: " << tmp.ToString() << std::endl;
-//      std::cout << "d_F2_d_rho: " << d_F2_d_rho.ToString() << std::endl;
-//      std::cout << "d_coll_d_rho: " << d_coll_d_rho.ToString() << std::endl;
-//      std::cout << "adjoint moms: " << adjMoms.ToString() << std::endl;
-//      std::cout << "term1: " << (jx * jx + jy * jy) / density << " + inner product: " << d_coll_d_rho.Inner(adjMoms) << std::endl;
 //      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
 //      double sens = d_coll_d_rho.Inner(adjMoms);
 //      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
@@ -1177,20 +1157,6 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
       }
     }
   }
-
-//  std::stringstream ss;
-//  ss.precision(16);
-//  for (unsigned int i = 0; i < 9*n_x_*n_y_; i++) {
-//    for (unsigned int j = 0; j < 9*n_x_*n_y_; j++) {
-//      ss << test(i,j) << " ";
-//    }
-//    ss << std::endl;
-//  }
-//  std::fstream f;
-//  f.open("testMatrixPDE.txt", std::ios::out);
-//  f << ss.str() << std::endl;
-//  f.close();
-//  exit(-1);
 }
 
 Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz)
@@ -1204,7 +1170,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double outletSize_inv = 1.0 / (double) outlet.GetSize();
   double one_third = 1.0 / 3.0;
 
-//  // temporal storage for adjoint SRT
+  // temporal storage for adjoint SRT
   Vector<double> d_PD_d_f(n_q_);
   int index;
 
@@ -1540,7 +1506,6 @@ void LatticeBoltzmannPDE::WriteMatrix(const std::string& file, const compressed_
   for (compressed_matrix<double>::const_iterator1 it1 = M.begin1(); it1 != M.end1(); ++it1) {
     for (compressed_matrix<double>::const_iterator2 it2 = it1.begin(); it2 != it1.end(); ++it2) {
             output << it2.index1()+1 << " " << it2.index2()+1 << "        " << *(it2) << std::endl;
-//      output << it2.index1() << " " << it2.index2() << "        " << *(it2) << std::endl;
     }
     output << std::endl;
   }
@@ -1599,12 +1564,6 @@ void LatticeBoltzmannPDE::SetupElements()
       }
     }
   }
-
-//  for (unsigned int e = 0; e < n_elems; e++)
-//  {
-//    std::cout << "Element " << e << " has density " << elements[e] << " and porosity " << 1-elements[e] << std::endl;
-//  }
-
 
   StdVector<std::string> regionNames;
   grd->GetRegionNames(regionNames);
