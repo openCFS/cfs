@@ -3,7 +3,7 @@
 #  might get race conditions otherwise.
 # ===========================================================================
 SET(CFS_TESTSUITE_TRUNK_DIR
-  "${HOME}/Documents/dev/CFS_TESTSUITE_TRUNK")
+  "${HOME}/Documents/CFS_TESTSUITE_TRUNK")
 
 IF(EXISTS "${CFS_TESTSUITE_TRUNK_DIR}")
   FILE(REMOVE_RECURSE "${CFS_TESTSUITE_TRUNK_DIR}")
