@@ -179,8 +179,8 @@ namespace CoupledField
     for(UInt aNode = 0; aNode < imagParts.size();aNode++){
       scatteredData[aNode].resize(imagParts[aNode].size());
       for(UInt aDof=0;aDof< imagParts[aNode].size(); aDof++){
-        scatteredData[aNode][aDof].real() = realParts[aNode][aDof];
-        scatteredData[aNode][aDof].imag() = imagParts[aNode][aDof];
+        scatteredData[aNode][aDof].real(realParts[aNode][aDof]);
+        scatteredData[aNode][aDof].imag(imagParts[aNode][aDof]);
       }
     }
 
