@@ -77,8 +77,7 @@ namespace CoupledField{
     }
   }
 
-  std::map<SolutionType, shared_ptr<FeSpace> >
-  AcousticPDE::CreateFeSpaces( const std::string&  formulation,
+  std::map<SolutionType, shared_ptr<FeSpace> > AcousticPDE::CreateFeSpaces( const std::string&  formulation,
                   PtrParamNode infoNode ){
 
     std::map<SolutionType, shared_ptr<FeSpace> > crSpaces;
