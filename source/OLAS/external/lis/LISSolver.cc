@@ -211,10 +211,13 @@ void LISSolver::Setup(BaseMatrix &sysmat){
     createConfigString(xml_,config);
     err = lis_solver_create(&solver_); CHKERR(err);
     err = lis_solver_set_option(const_cast<char*>(config.c_str()),solver_);CHKERR(err);
+  }else{
+    err = lis_precon_destroy(precond_);CHKERR(err);
   }
   solver_->A = A_;
 
   err = lis_precon_create(solver_, &precond_);
+  firstSetup_ = false;
   CHKERR(err);
   if( err ){
     std::cerr << "There was an error creating the preconditioner. Code: " << err << " ...Going to abort" << std::endl;

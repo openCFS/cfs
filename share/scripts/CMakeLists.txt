@@ -85,6 +85,30 @@ IF(CFSTOOL)
 ENDIF(CFSTOOL)
 
 #-------------------------------------------------------------------------------
+# Custom target for copying cfsdat to ${CFS_BINARY_DIR}/bin
+#-------------------------------------------------------------------------------
+IF(CFSDAT)
+  IF(WIN32)
+    SET(CFSDAT_SCRIPT "cfsdat.bat")
+  ELSE(WIN32)
+    SET(CFSDAT_SCRIPT "cfsdat")
+  ENDIF(WIN32)
+
+  ADD_CUSTOM_TARGET(cfsdat_script ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/${CFSDAT_SCRIPT} ${CFS_BINARY_DIR}/bin
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${CFSDAT_SCRIPT}
+    COMMENT "Copying CFSDat start script \"${CFSDAT_SCRIPT}\" to
+    ${CFS_BINARY_DIR}/bin folder...")
+
+  IF(MINGW)
+    ADD_CUSTOM_TARGET(cfsdat_script_sh ALL
+      COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat ${CFS_BINARY_DIR}/bin
+      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/cfsdat
+      COMMENT "Copying \"cfsdat\" script to ${CFS_BINARY_DIR}/bin folder...")
+  ENDIF()
+ENDIF(CFSDAT)
+
+#-------------------------------------------------------------------------------
 # Custom target for copying h5tool to ${CFS_BINARY_DIR}/bin
 #-------------------------------------------------------------------------------
 IF(WIN32)

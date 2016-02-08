@@ -1268,6 +1268,7 @@ share/scripts/bootstrap_devel_machine_win.cmake -text
 share/scripts/cfs -text
 share/scripts/cfs-debug -text
 share/scripts/cfs.bat -text
+share/scripts/cfsdat -text
 share/scripts/cfstool -text
 share/scripts/cfstool.bat -text
 share/scripts/checkbashisms -text
