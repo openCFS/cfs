@@ -59,10 +59,12 @@ namespace CoupledField {
     unsortedBlocks_ = NULL;
     rowDiagGraph_   = NULL;
     colDiagGraph_   = NULL;
+    setToElemDone_  = false;
 
     // Allocate memory for linked lists
     if ( numNodes_ > 0 ) {
       NEWARRAY( element_, NodeList, numNodes_ );
+      NEWARRAY( setElements_, NodeSet, numNodes_ );
     }
     else {
       element_ = NULL;
@@ -93,6 +95,7 @@ namespace CoupledField {
     colDiagGraph_   = NULL;
 
     amAssembled_ = true;
+    setToElemDone_  = false;
   }
 
 
@@ -123,13 +126,13 @@ namespace CoupledField {
     UInt i, j;
     for ( i = 0; i < vertexList.size(); i++ ) {
       for ( j = 0; j < neighbourList.size(); j++ ) {
-        
-        // Insert edge only if not inserted yet
-        if( std::find(element_[ vertexList[i] ].begin(),
-                      element_[ vertexList[i] ].end(), neighbourList[j] ) 
-        == element_[ vertexList[i] ].end() ) {
-        element_[ vertexList[i] ].push_back( neighbourList[j] );
-      }
+        setElements_[ vertexList[i] ].insert(neighbourList[j]);
+//        // Insert edge only if not inserted yet
+//        if( std::find(element_[ vertexList[i] ].begin(),
+//                      element_[ vertexList[i] ].end(), neighbourList[j] )
+//        == element_[ vertexList[i] ].end() ) {
+//        element_[ vertexList[i] ].push_back( neighbourList[j] );
+//      }
     }
   }
   }
@@ -302,6 +305,7 @@ namespace CoupledField {
                                     bool useExternalOrdering,
                                     StdVector<UInt>* vertexOrder,
                                     StdVector<UInt>* edgeOrder  ) {
+    MapSetToVector();
 
     newOrder_ = reorder;
     assert(vertexOrder != NULL);
@@ -505,6 +509,7 @@ namespace CoupledField {
   // *********************
   void BaseGraph::ConvertToMetisCRS( UInt **rptr, UInt **cidx ) {
 
+    MapSetToVector();
 
     UInt i, j;
 
@@ -615,6 +620,8 @@ namespace CoupledField {
     case BaseOrdering::SLOAN:
       {
 
+        MapSetToVector();
+
         // Generate log message
         LOG_DBG(graph) << " -----------------------------------------------\n"
                << " Sloan Reordering:"
@@ -718,6 +725,8 @@ namespace CoupledField {
 //     }
 #endif
                 
+    MapSetToVector();
+
     // Note: If we have a rectangular matrix, this algorithm would fail,
     // as it relies on the presence of a diagonal element.
     if( numRowsMat_ != numColsMat_ ) {
@@ -812,5 +821,20 @@ namespace CoupledField {
       return sortedBlocks_;
     }
   }
+
+  void BaseGraph::MapSetToVector(){
+    //convert set to vector
+    if(!setToElemDone_){
+  #pragma omp parallel for schedule(dynamic,5) num_threads(NUM_CFS_THREADS)
+      for(UInt i=0;i<numNodes_;i++){
+        element_[i].resize(setElements_[i].size());
+        std::copy(setElements_[i].begin(), setElements_[i].end(), element_[i].begin());
+        setElements_[i].clear();
+      }
+      delete [] ( setElements_ );  setElements_  = NULL;
+      setToElemDone_ = true;
+    }
+  }
+
 
 }
