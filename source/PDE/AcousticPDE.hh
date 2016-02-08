@@ -42,8 +42,7 @@ namespace CoupledField{
   protected:
 
     //! \copydoc SinglePDE::CreateFeSpaces
-    virtual std::map<SolutionType, shared_ptr<FeSpace> >
-    CreateFeSpaces( const std::string&  formulation,
+    virtual std::map<SolutionType, shared_ptr<FeSpace> > CreateFeSpaces( const std::string&  formulation,
                     PtrParamNode infoNode );
 
     //! define all (bilinearform) integrators needed for this pde

@@ -34,7 +34,7 @@ CoefFunctionMapping<T>::CoefFunctionMapping(PtrParamNode pmlDef, PtrCoefFct spee
 }
 
 template<typename T>
-CoefFunctionMapping<T>::~CoefFunctionPML(){
+CoefFunctionMapping<T>::~CoefFunctionMapping(){
 
 }
 
