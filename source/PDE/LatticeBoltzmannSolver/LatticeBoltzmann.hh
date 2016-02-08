@@ -461,7 +461,6 @@ namespace CoupledField
           Matrix<double> adjTransformation;
           // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
           Matrix<double> invM_S;
-          Matrix<double> bounceback;
           // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
           StdVector<double> relax_rates;
 
