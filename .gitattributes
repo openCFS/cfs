@@ -2002,6 +2002,7 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/Excitation.cc -text
