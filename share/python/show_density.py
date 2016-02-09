@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 from optimization_tools import *
-from PIL import Image, ImageDraw, ImageColor
+from PIL import Image
 import sys
 import argparse
 import glob
@@ -96,7 +96,14 @@ parser.add_argument('--grid', help="draw mesh lines", action='store_true')
 parser.add_argument('--orgsize', help="suppress resizing", action='store_true')
 parser.add_argument('--info', help="print some info about the density file and exit", action='store_true')
 parser.add_argument('--set', help="optional label of set, default is the last one")
+parser.add_argument('--tile', help="show periodic repetition of tile x tile patches", type=int)
+
 args = parser.parse_args()
+
+if not args.saveall:
+  if not os.path.exists(args.input):  
+    print "file '" + args.input + "' not found"
+    os.sys.exit()
 
 if args.info:
   ids = read_set_ids(args.input)
@@ -105,7 +112,9 @@ if args.info:
     print "first set: '" + ids[0] + "'"
   if len(ids) > 1:
     print "last set: '" + ids[-1] + "'"
-    
+
+  print_design_info(args.input, 'design', args.set)
+  print_design_info(args.input, 'physical', args.set)
   os.sys.exit()  
 
 if args.saveall:
@@ -117,13 +126,26 @@ if args.saveall:
     base = f[:-12] if f.endswith('.density.xml') else f
     img.save(base + '.png')
 else:
-  if not os.path.exists(args.input):  
-    print "file '" + args.input + "' not found"
-    os.sys.exit()
   img, den = get_image(args.input, args.set, args.design)
   
+  if args.tile:
+      assert(img.size[0] == img.size[1]) # extend if you need  
+      img = img.resize((800/args.tile, 800/args.tile))
+      nx = img.size[0]
+      ny = img.size[1]
+      dat = numpy.array(img) 
+      tiled = numpy.zeros((args.tile * ny, args.tile * nx))
+      for i in range(args.tile):
+        for j in range(args.tile):
+          tiled[i*nx : (i+1)*nx , j*ny : (j+1)*ny] = dat
+          if i > 0:
+            tiled[i*nx,:] = 0
+          if j > 0:  
+            tiled[:,j*nx] = 0  
+      img = Image.fromarray(tiled)
   if args.save:
     print "saving image to file " + args.save
     img.save(args.save)
   else:
-    img.show()
+   img.show()
+              

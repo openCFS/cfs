@@ -228,7 +228,8 @@ private:
 
   void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
-  void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
+  /** call this only for the last context */
+  void WriteInInfo(PtrParamNode in);
 
   void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
 

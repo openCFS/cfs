@@ -131,12 +131,13 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      DETERMINANT_MATRIX,         /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
-      ROTATIONAL_MATRIX_1,        /*!< first rotational constraint */
-      ROTATIONAL_MATRIX_2,         /*!< 2nd rotational constraint */
-      DETERMINANT_MAPPING,         /*!used in greedy-mapping*/
-      TRACE_MAPPING,               /*used in greedy-mapping*/
-      SHAPE_INF                  /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
+      DETERMINANT_MATRIX,        /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
+      ROTATIONAL_MATRIX_1,       /*!< first rotational constraint */
+      ROTATIONAL_MATRIX_2,       /*!< 2nd rotational constraint */
+      DETERMINANT_MAPPING,       /*!< used in greedy-mapping*/
+      TRACE_MAPPING,             /*!< used in greedy-mapping*/
+      SHAPE_INF,                 /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
+      EXPRESSION                 /*!< e.g. value smaller alpha+/-slack to be extended via mathparser when needed */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
@@ -281,15 +282,6 @@ class Function
     /** for volume to check the notation in the FMO case with tensor_trace design. */
     DesignMaterial::Notation GetNotation() const { return notation_; }
 
-    /** For bloch optimization we usually search for minimal and maximal ev within wave vectors.
-     * This struct collects some data and allows detailed logging (cfs -d) */
-    struct Bloch
-    {
-      Bloch() { col = 0; }
-      /** the col_idx we found the extremal value */
-      unsigned int col;
-    };
-
     /** for the bandgap function. Could clearly be a general gap between two functions. This could then handle
      * the old gap function from Michael (volume - penalized volume) */
     struct BandGap
@@ -298,8 +290,8 @@ class Function
       int lower_ev;
       int upper_ev;
 
-      Bloch lower;
-      Bloch upper;
+      EigenInfo lower;
+      EigenInfo upper;
     };
 
     BandGap bandgap;

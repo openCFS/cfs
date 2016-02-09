@@ -5,9 +5,20 @@ import numpy
 import numpy.linalg
 import math
 import os
+import sys
 from lxml import etree
 from PIL import Image
 from cfs_utils import *
+
+# dump some information about a density file
+def print_design_info(filename, attribute, set = None, fill = None):
+  try: 
+    dens = read_density(filename, attribute, set=set, fill=fill)
+    print "for attribute '" + attribute + "' min=" + str(numpy.amin(dens)) + " max=" + str(numpy.amax(dens))
+  except:  
+    print "failed to read '" + attribute + "'"
+    #print  sys.exc_info()
+
 
 
 # # Read an arbitrary density file as NDArray

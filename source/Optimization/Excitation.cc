@@ -125,18 +125,8 @@ bool MultipleExcitation::IsEnabled(int sequence) const
   return multiple_excitation_ && sequence == sequence_;
 }
 
-void MultipleExcitation::WriteInInfo(int num_freq, bool eval_inital_design,  double weight_sum, Optimization* opt)
+void MultipleExcitation::WriteInInfo(PtrParamNode in)
 {
-  PtrParamNode in = opt->optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
-
-  if(!IsEnabled() && num_freq > 1 && !eval_inital_design)
-  {
-    stringstream ss;
-    ss << "Solve only for 1. frequency (" << excitations[0].frequency
-        << "Hz) of " << num_freq << " as multiple excitations are disabled";
-    in->Get(ParamNode::WARNING)->SetValue(ss.str());
-  }
-
   // communicate what we have but also normalize the weights!
   for(unsigned int i = 0; i < excitations.GetSize(); i++)
   {
@@ -344,6 +334,8 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
   if(DoTransform())
     ApplyTransformations(opt->GetDesign()); // multiply the existing transformation
 
+  PtrParamNode in = opt->optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
+
   for(unsigned int c = 0; c < manager->context.GetSize(); c++)
   {
     Context& ctxt = manager->context[c];
@@ -361,7 +353,6 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       }
     }
     ctxt.SetMultiExcitations(this, basic_excitations);
-
 
     // finally verify that the labels are set
     double weight_sum = 0.0;
@@ -381,7 +372,6 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
       unsigned int base = 0;
       for(unsigned int t = 0; t < ctxt.context_idx; t++) // smaller by intention to not count ourselves
         base += manager->context[t].excitations.GetSize(); // already set up to this point
-
       for(unsigned int i = 0; i < ctxt.excitations.GetSize(); i++)
       {
         Excitation* ex = ctxt.excitations[i];
@@ -397,9 +387,18 @@ void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextM
 
         LOG_DBG2(exlog) << "PME: i=" << i << " l=" << ex->label << " w=" << ex->weight << " nw=" << ex->normalized_weight << " ws=" << weight_sum << " idx=" << ex->index;
       }
-      WriteInInfo(ctxt.num_harm_freq, eval_inital_design, weight_sum, opt);
     }
-  }
+
+    if(!IsEnabled() && ctxt.num_harm_freq > 1 && !eval_inital_design)
+    {
+      stringstream ss;
+      ss << "Solve only for 1. frequency (" << excitations[0].frequency
+          << "Hz) of " << ctxt.num_harm_freq << " as multiple excitations are disabled";
+      in->Get(ParamNode::WARNING)->SetValue(ss.str());
+    }
+  } // end ctxt loop
+
+  WriteInInfo(in);
 }
 
 

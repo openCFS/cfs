@@ -138,6 +138,9 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   # from daniel ?! dy = scale/ny
   dy = dx
   
+  mesh.nx = nx
+  mesh.ny = ny
+  
   # input_array can be one of three cases: grayscale imgae (array of ints), color image (array of tuples (r,g,b(,a)), numpy.ndarray
   is_data = isinstance(input_array, numpy.ndarray)
   is_gray = True if color_mode == "L" and not is_data else False
