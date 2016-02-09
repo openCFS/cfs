@@ -357,12 +357,13 @@ namespace CoupledField
 
           inline bool IsBoundaryElem(int x, int y, int z)
           {
-            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1;
+            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1 || z == 0 || z == sizeZ_-1;
           }
 
           inline bool IsCornerElem(int x, int y, int z)
           {
-            return  (x == 0 && y == 0) || (x == 0 && y == sizeY_-1) || (x == sizeX_-1 && y == 0) || (x == sizeX_-1 && y == sizeY_-1);
+            return  (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0)
+                || (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0);
           }
 
            /** Calculate vector of equilibrium moments based on current pdf array
