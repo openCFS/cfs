@@ -1054,6 +1054,15 @@ namespace CoupledField {
       case AUXILIARY:
         out = "auxiliary";
         break;
+      case STIFFNESS_UPDATE:
+        out = "stiffness_update";
+        break;
+      case DAMPING_UPDATE:
+        out = "damping_update";
+        break;
+      case MASS_UPDATE:
+        out = "MASS_update";
+        break;
       default:
         EXCEPTION( "No string value found for the specified value of the "
             << "enumeration datatype FEMatrixTypeType.\n"
@@ -1158,6 +1167,12 @@ namespace CoupledField {
       out = CONVECTION;
     else if ( in == "mass" )
       out = MASS;
+    else if ( in == "mass_update" )
+      out = MASS_UPDATE;
+    else if ( in == "stiffness_update" )
+      out = STIFFNESS_UPDATE;
+    else if ( in == "damping_update" )
+      out = DAMPING_UPDATE;
     else {
       EXCEPTION( "String '" << in << "' cannot be converted to item of "
                  << "'FEMatrixType'!" );
@@ -1538,6 +1553,9 @@ namespace CoupledField {
     feMatrixType.Add( CONVECTION, "convection");
     feMatrixType.Add( MASS, "mass" );
     feMatrixType.Add( AUXILIARY, "auxiliary" );
+    feMatrixType.Add( MASS_UPDATE, "mass_update" );
+    feMatrixType.Add( STIFFNESS_UPDATE, "stiffness_update");
+    feMatrixType.Add( DAMPING_UPDATE, "damping_update" );
 
     // ==== Initialization of ApproxCurveTypes ====
     ApproxCurveTypeEnum.Add( NO_APPROX_TYPE , "No approximation" );

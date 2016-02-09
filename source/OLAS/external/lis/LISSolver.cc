@@ -333,11 +333,11 @@ void LISSolver::createConfigString(PtrParamNode configNode, std::string& output)
   }
 
   output = solStr + " " + precondStr + " " + globStream.str() + " -initx_ones false -initx_zeros false";
-  std::cout << " the config string for LIS was: " << output << std::endl;
-#ifdef _OPENMP
-  std::cout << "max number of threads = " << omp_get_num_procs() << std::endl;
-  std::cout << "number of threads = " << omp_get_max_threads() << std::endl;
-#endif
+  //std::cout << " the config string for LIS was: " << output << std::endl;
+//#ifdef _OPENMP
+  //std::cout << "max number of threads = " << omp_get_num_procs() << std::endl;
+  //std::cout << "number of threads = " << omp_get_max_threads() << std::endl;
+//#endif
   return;
 }
 

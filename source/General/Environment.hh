@@ -383,7 +383,10 @@ namespace CoupledField {
   //! - CONVECTION
   //! - MASS
   //! - AUXILIARY - e.g. for radiation optimization used in SurfaceNormalInt
-  typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY}
+  //! - STIFFNESS_UPDATE - utilized if only some parts needs reassemble
+  //! - DAMPING_UPDATE - utilized if only some parts needs reassemble
+  //! - MASS_UPDATE - utilized if only some parts needs reassemble
+  typedef enum {NOTYPE, SYSTEM = 1, STIFFNESS, DAMPING, CONVECTION, MASS, AUXILIARY, STIFFNESS_UPDATE, DAMPING_UPDATE , MASS_UPDATE}
   FEMatrixType;
   extern Enum<FEMatrixType> feMatrixType;
 

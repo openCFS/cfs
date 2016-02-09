@@ -116,9 +116,12 @@
     <!-- export all present matrices which set up the system matrix: stiffness, mass, damping, aux -->
     <xsd:attribute name="system" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="mass" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="mass_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="stiffness" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="stiffness_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="precond" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="damping" use="optional" default="false" type="xsd:boolean"/>
+    <xsd:attribute name="damping_update" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="auxiliary" use="optional" default="false" type="xsd:boolean"/>
     <xsd:attribute name="rhs" use="optional" default="true" type="xsd:boolean"/>
     <xsd:attribute name="solution" use="optional" default="true" type="xsd:boolean"/>

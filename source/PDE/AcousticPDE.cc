@@ -909,14 +909,21 @@ namespace CoupledField{
         CoefFunction::Generate( mp_, Global::REAL,
                                CoefXprBinOp(mp_, factor, c0, CoefXpr::OP_DIV ) );
         BiLinearForm * abcInt = NULL;
+
+
         if( dim_ == 2 ) {
           abcInt = new BBInt<>(new IdentityOperator<FeH1,2,1>(), coeffDamp, 1.0, updatedGeo_ );
         } else {
           abcInt = new BBInt<>(new IdentityOperator<FeH1,3,1>(), coeffDamp, 1.0, updatedGeo_ );
         }
 
+        FEMatrixType targetMatrix = DAMPING;
+        if(updatedGeo_){
+          targetMatrix = DAMPING_UPDATE;
+        }
+
         abcInt->SetName("abcIntegrator");
-        BiLinFormContext *abcContext = new BiLinFormContext(abcInt, DAMPING );
+        BiLinFormContext *abcContext = new BiLinFormContext(abcInt, targetMatrix );
 
         abcContext->SetEntities( actSDList, actSDList );
         abcContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);
@@ -984,8 +991,13 @@ namespace CoupledField{
           impedInt = new BBInt<Complex>(new IdentityOperator<FeH1,3,1, Complex>(), Z_impMod, 1.0, updatedGeo_ );
         }
 
+        FEMatrixType targetMatrix = DAMPING;
+        if(updatedGeo_){
+          targetMatrix = DAMPING_UPDATE;
+        }
+
         impedInt->SetName("impedIntegrator");
-        BiLinFormContext *impedContext = new BiLinFormContext(impedInt, DAMPING );
+        BiLinFormContext *impedContext = new BiLinFormContext(impedInt, targetMatrix );
 
         impedContext->SetEntities( actSDList, actSDList );
         impedContext->SetFeFunctions( feFunctions_[formulation_] , feFunctions_[formulation_]);

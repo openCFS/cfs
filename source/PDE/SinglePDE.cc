@@ -3617,15 +3617,20 @@ namespace CoupledField {
     SurfaceBiLinFormContext *penalty_u1_v2_Context = NULL;
     SurfaceBiLinFormContext *flux_du1_v2_Context   = NULL;
 
+    FEMatrixType targetMatrix = STIFFNESS;
+    if(isMoving){
+        targetMatrix = STIFFNESS_UPDATE;
+    }
+
     curcpl = BiLinearForm::MASTER_MASTER;
-    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, STIFFNESS, curcpl);
-    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , STIFFNESS, curcpl);
-    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , STIFFNESS, curcpl);
+    penalty_u1_v1_Context = new SurfaceBiLinFormContext(penalty_u1_v1, targetMatrix, curcpl);
+    flux_du1_v1_Context   = new SurfaceBiLinFormContext(flux_du1_v1  , targetMatrix, curcpl);
+    flux_u1_dv1_Context   = new SurfaceBiLinFormContext(flux_u1_dv1  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_SLAVE;
-    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, STIFFNESS, curcpl);
+    penalty_u2_v2_Context = new SurfaceBiLinFormContext(penalty_u2_v2, targetMatrix, curcpl);
     curcpl = BiLinearForm::MASTER_SLAVE;
-    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, STIFFNESS, curcpl);
-    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , STIFFNESS, curcpl);
+    penalty_u1_v2_Context = new SurfaceBiLinFormContext(penalty_u1_v2, targetMatrix, curcpl);
+    flux_du1_v2_Context   = new SurfaceBiLinFormContext(flux_du1_v2  , targetMatrix, curcpl);
     curcpl = BiLinearForm::SLAVE_MASTER;
 
     if (isMoving) {
