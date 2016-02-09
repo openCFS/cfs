@@ -31,7 +31,7 @@ namespace CoupledField{
                                                           PtrParamNode configNode)
                                    :CoefFunctionGrid(ptDomain, configNode){
     eqnMapComplete_ = false;
-    lastStepRead_ = 0;
+    lastStepRead_ = 99999999;
     //Set sequence Step according to XML definition
     this->aSeqStep_ = configNode->Get("sequenceStep")->As<UInt>();
 

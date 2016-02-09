@@ -205,6 +205,7 @@ void CoefFunctionGridNodalDefault<DATA_TYPE>::AddEntityList(shared_ptr<EntityLis
     //read in the first solution
     this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
     this->extDataInfo_->Get("RegionList")->Get("SourceRegion")->Get("name")->SetValue(ent->GetName());
+
   }
 
 template<typename DATA_TYPE>

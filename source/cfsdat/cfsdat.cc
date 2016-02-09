@@ -63,7 +63,7 @@ int main(int argc, const char** argv)
 
   SetEnvironmentEnums();
 #ifdef USE_OPENMP
-  SetNumberOfThreads(omp_get_num_threads());
+  SetNumberOfThreads(omp_get_max_threads());
 #else
   SetNumberOfThreads(1);
 #endif
