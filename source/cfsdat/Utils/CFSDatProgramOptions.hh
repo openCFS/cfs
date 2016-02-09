@@ -39,6 +39,9 @@ public:
   //! and the environment.
   virtual void ParseData();
 
+  /** This gives the head line of CFSDat printed to cout */
+  virtual void GetHeaderString(std::ostream& out);
+
 private:
    // =======================================================================
    // INTERNAL HELPER METHODS

@@ -22,8 +22,10 @@ namespace CFSDat{
 OutputFilter::OutputFilter(UInt numWorkers, CoupledField::PtrParamNode config, str1::shared_ptr<ResultManager> resMan)
              :BaseFilter(numWorkers,config,resMan){
 
-  infoNode_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT ));
-  infoNode_->SetName("cfsDatInfo");
+  infoNode_ = PtrParamNode(new ParamNode(ParamNode::INSERT, ParamNode::ELEMENT , false));
+  std::string name = "cfsDatInfoFilter-";
+  name += this->filterId_;
+  infoNode_->SetName(name.c_str());
 
   outFile_ = CoupledField::DefineInOutFiles::CreateSingleOutputFileObject(this->filterId_,params_->Get("outputFile")->GetChild(),infoNode_,false);
 

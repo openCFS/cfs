@@ -25,6 +25,8 @@
 #include "General/defs.hh"
 #include "General/Environment.hh"
 #include "PDE/BasePDE.hh"
+#include "Utils/Timer.hh"
+
 
 //CFSDatIncludes
 #include "cfsdat/Filters/BaseFilter.hh"
@@ -53,11 +55,7 @@ namespace CFSDat {
 int main(int argc, const char** argv)
 {
 
-
-
   CFSDat::CFSDatProgramOptions * options = new CFSDat::CFSDatProgramOptions(argc,argv);
-  // Write information to command line
-  std::cout << "--- Reading parameter file " << std::endl;
 
   options->ParseData();
 
@@ -71,14 +69,22 @@ int main(int argc, const char** argv)
   EntityList::SetEnums();
   ElemShape::Initialize();
 
+  // Log program startup
+  options->GetHeaderString( std::cout );
 
   // this is the new param stuff which replaces the old params - delete this comment finally
   std::string schema = options->GetSchemaPathStr();
   schema += "/CFS-Dat/CFS_Dat.xsd";
 
+  //start the timer
+  CoupledField::shared_ptr<CoupledField::Timer> datTimer(new CoupledField::Timer);
+  datTimer->Start();
+
   // Initialize our xerces dom parser to handle the cfs xml file
   Xerces xerces(schema);
 
+  // Write information to command line
+  std::cout << "--- Reading parameter file " << std::endl;
   xerces.SetFile(options->GetParamFileStr());
 
   CoupledField::PtrParamNode configNode = xerces.CreateParamNodeInstance();
@@ -152,7 +158,22 @@ int main(int argc, const char** argv)
     }
   } while(!allFinished);
 
-  std::cout << "--- Computation done." << std::endl;
+  datTimer->Stop();
+  std::stringstream elapsed;
+  const int walltime((int) datTimer->GetWallTime());
+  if(walltime > 120) {
+    const int wallmin((int) (walltime / 60.0));
+    if(wallmin > 60){
+      elapsed << wallmin/60 << "h";
+    }else{
+      elapsed << wallmin << "min";
+    }
+  }else{
+    elapsed << walltime << "s";
+  }
+
+  std::cout << std::endl << "---> COMPUTATION DONE. Time elapsed: " << elapsed.str() << std::endl << std::endl;
+
   delete options;
 
   return 0;
