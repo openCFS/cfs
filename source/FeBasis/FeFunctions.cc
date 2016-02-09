@@ -336,6 +336,7 @@ DECLARE_LOG(fefunc)
     // derivative fe function
     if( timeDerivOrder_ == 0 ) {
       coeffs_ = new Vector<T>(feSpace_->GetNumEquations());
+      coeffs_->Init();
     }
 
     /* Check: If boundary conditions are defined on node lists with more than

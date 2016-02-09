@@ -591,8 +591,18 @@ namespace CoupledField
     UInt numNCIs = nciList.GetSize();
     ncInterfaces_.Reserve(numNCIs);
 
+    //loop twice to ensure that moving interfaces get added last
     for ( UInt i=0; i<numNCIs; ++i ) {
-      AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      if(!nciList[i]->Has("rotation") &&
+         !nciList[i]->Has("generalMotion")){
+        AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      }
+    }
+    for ( UInt i=0; i<numNCIs; ++i ) {
+      if(nciList[i]->Has("rotation") ||
+         nciList[i]->Has("generalMotion")){
+        AddNcInterface(shared_ptr<BaseNcInterface>(new MortarInterface(this, nciList[i])));
+      }
     }
   }
 

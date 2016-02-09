@@ -115,7 +115,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
   if(stype == BaseMatrix::SPARSE_SYM ){
     //const SCRS_Matrix<Double>& scrs = dynamic_cast<const SCRS_Matrix<Double>&>(som);
     //ok we need to think about the matrix conversion a smart way would be nice...
-    EXCEPTION("LIS solver cannot yet handle SCRS matrices.");
+    EXCEPTION("LIS solver cannot yet handle SCRS matrices. Please set sparseNonSym as storage type.");
   }else{
     if ( etype == BaseMatrix::DOUBLE ) {
       // non-symmteric real case
@@ -139,6 +139,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       // Create RHS vector only the first time, assuming that dimensions will not change
       if(firstSetup_ ){//|| b_->n != dim){
         err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+        lis_vector_set_all(0.0,b_);
       }
       ownMatrixA_ = false;
     }
@@ -192,6 +193,7 @@ void LISSolver::Setup(BaseMatrix &sysmat){
       err = lis_matrix_assemble(A_); CHKERR(err);
       if(firstSetup_ ){//|| b_->n != dim){
         err = lis_vector_duplicate(A_,&b_); CHKERR(err);
+        lis_vector_set_all(0.0,b_);
       }
       ownMatrixA_ = true;
     }
@@ -235,7 +237,7 @@ void LISSolver::Solve( const BaseMatrix &sysmat,
     for(Integer i=0, n=(Integer)rhs.GetSize(); i<n; i++){
       Double myEnt =0;
       rhs.GetEntry((UInt)i,myEnt);
-    
+
       b_->value[i] = myEnt;
       //lis_vector_set_value(LIS_INS_VALUE,i,myEnt,b_);
     }
