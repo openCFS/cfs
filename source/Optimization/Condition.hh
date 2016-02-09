@@ -153,7 +153,7 @@ namespace CoupledField
        StdVector<double> pattern;
 
        /** for bloch eigenvalues which are extremal (searched and not full) */
-       Bloch bloch;
+       EigenInfo bloch;
 
        static double SLACK_VALUE;
        static double ALPHA_MINUS_SLACK_VALUE;

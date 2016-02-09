@@ -1196,7 +1196,6 @@ share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
-share/python/density-to-png.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
@@ -1232,6 +1231,7 @@ share/python/pcolorSBM.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
+share/python/process_density.py -text
 share/python/process_image.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text

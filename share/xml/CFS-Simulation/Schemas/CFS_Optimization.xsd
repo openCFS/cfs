@@ -396,6 +396,7 @@
                 <xsd:enumeration value="shape_inf"/>
                 <!-- eigenvalue problem scaled for resonance frequency, where number of of the mode is in attribute ev -->
                 <xsd:enumeration value="eigenfrequency"/>
+                <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

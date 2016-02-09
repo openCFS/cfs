@@ -122,7 +122,7 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     case DETERMINANT_MAPPING:
     case TRACE_MAPPING:
     if(!pn->Has("parameter"))
-        throw Exception("parameter (very small value) mandatory for '" + type.ToString(type_) + "'");
+        throw Exception("'parameter' (very small value) mandatory for '" + type.ToString(type_) + "'");
       break;
     case ISOTROPY:
     case ISO_ORTHOTROPY:
@@ -137,6 +137,12 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
         bloch_extremal_ = pn->Get("bloch")->As<string>() == "extremal";
       }
       break;
+    case EXPRESSION:
+      if(!pn->Has("parameter"))
+        throw Exception("'parameter' mandatory for '" + type.ToString(type_) + "' to formulate e.g. 'parameter' larger alpha-slack");
+      // warn about boundValue != alpha +/- slack in ToInfo
+     break;
+
     default:
       if(!pn->Has("value"))
         throw Exception("No value given for constraint '" + type.ToString(type_) + "'");
@@ -792,6 +798,9 @@ void Condition::ToInfo(PtrParamNode in)
 
   if(type_ == EIGENFREQUENCY && GetExcitation()->DoBloch())
     in->Get("bloch")->SetValue(bloch_extremal_ ? "extremal" : "full");
+
+  if(type_ == EXPRESSION && (boundValue_ != ALPHA_MINUS_SLACK_VALUE && boundValue_ != ALPHA_PLUS_SLACK_VALUE))
+   info_->Get(ParamNode::WARNING)->SetValue("be sure to know what condition 'expression' with alpha+/-slack bound means");
 
   if(domain->GetOptimization()->GetMultipleExcitation()->IsEnabled())
   {

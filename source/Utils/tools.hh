@@ -8,6 +8,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+#include "Optimization/EigenInfo.hh"
 
 // C++ is so poor that there even is no really standard for pi - > why not????
 #ifndef M_PI
@@ -219,8 +220,9 @@ namespace CoupledField {
 
   /** Search for the smallest value within a row
    * @param value set when given
+   * @param set the info if given to be used for output
    * @return the 0-based column index */
-   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val);
+   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
 
 
   /** transforms a complex matrix to its complex conjugate */

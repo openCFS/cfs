@@ -115,22 +115,6 @@ Optimization::Optimization()
   objectives.Read(optParamNode->Get("costFunction"));
   objectives.ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("objective"));
 
-  // constraints to be added later -- it is so much easier with the ParamNodes
-  log.AddToHeader("iter");
-  if(manager.any().harmonic)
-    log.AddToHeader("freq");
-  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
-  {
-    const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
-    log.AddToHeader(f->GetName());
-    if(f->GetType() == Function::BANDGAP)
-    {
-      log.AddToHeader("max_ef_" + boost::lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
-      log.AddToHeader("min_ef_" + boost::lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
-    }
-
-  }
-  log.AddToHeader("problems");
 
   // multiple excitations are are toggled via attribute. Only if enabled we read the optional element
   // actually part of costFunction - but we store in Optimization itself!
@@ -187,12 +171,34 @@ void Optimization::PostInit()
 
 void Optimization::PostInitSecond()
 {
+  log.AddToHeader("iter");
+
+  if(manager.any().harmonic)
+    log.AddToHeader("freq");
+
+  for(unsigned int i = 0; i < objectives.data.GetSize(); i++)
+  {
+    const Objective* f = dynamic_cast<Objective*>(objectives.data[i]);
+    log.AddToHeader(f->GetName());
+    if(f->GetType() == Function::BANDGAP) {
+      log.AddToHeader("max_ef_" + lexical_cast<string>(f->bandgap.lower_ev) + "_wv");
+      log.AddToHeader("min_ef_" + lexical_cast<string>(f->bandgap.upper_ev) + "_wv");
+    }
+  }
+  log.AddToHeader("problems");
+
+  if(design->HasAlphaVariable())
+    log.AddToHeader("alpha");
+
   // constraints.ToInfo() is called in PostInitSecond()
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i];
-    if(!g->IsLocalCondition())
+    if(!g->IsLocalCondition())  {
       log.AddToHeader(g->ToString());
+      if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch())
+        log.AddToHeader("ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv");
+    }
     else {
       if(log.localDetail) {
         log.AddToHeader("max_" + g->ToString());
@@ -201,9 +207,7 @@ void Optimization::PostInitSecond()
     }
     LOG_DBG2(opt) << "PIS: i=" << i << " g=" << g->ToString() << " gme=" << g->ToString() << " e=" << g->GetExcitation()->GetFullLabel() << " ei=" << g->GetExcitation()->index;
   }
-
   log.Init(optParamNode->Get("log")->As<string>(), optParamNode->Get("logging", ParamNode::PASS)); // is fail save
-
 
   PtrParamNode opt = optParamNode->Get("optimizer");
 
@@ -366,6 +370,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SLACK, "slack");
   Function::type.Add(Function::BANDGAP, "bandgap");
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
+  Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
 
   Function::access.SetName("Function::Access");
@@ -1064,6 +1069,8 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
     }
 
     *out << " \t" << problemSolvedCounter;
+    if(design->HasAlphaVariable())
+      *out << " \t" << design->GetAlphaVariable();
   }
 
   iteration->Get("number")->SetValue(currentIteration);
@@ -1124,7 +1131,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
         value = value - g->GetBoundValue();
       if(out)
         *out << " \t" << value;
-      // excitation sensitive constraints are printed in the excitation list if there is one
+      // excitation sensitive constraints are printed in the excitation list if there is one (ErsatzMaterial::CommitIteration())
       if(!g->IsExcitationSensitive() || g->ctxt->excitations.GetSize() < 2)
       {
         iteration->Get(g->ToString())->SetValue(value);

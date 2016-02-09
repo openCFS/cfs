@@ -423,6 +423,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case MULTIMATERIAL_SUM:
   case SLACK:
   case BANDGAP: // similar to bloch=extremal
+  case EXPRESSION:
     assert(excite_index < 0);
     excite_ = ctxt->excitations.Last()->index;
     break;
@@ -619,6 +620,7 @@ bool Function::ForDensityFiltering() const {
     case ORTHOTROPIC_TENSOR_TRACE:
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
+    case EXPRESSION:
       return false;
 
     case MULTI_OBJECTIVE:
@@ -704,6 +706,7 @@ bool Function::ForSensitivityFiltering() const {
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case EXPRESSION:
   case SHAPE_INF:
     return false;
 

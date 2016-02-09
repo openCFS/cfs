@@ -333,24 +333,38 @@ namespace CoupledField {
       target[i] = factor * other[i];
   }
 
-  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val)
+  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val, EigenInfo* info)
   {
-    unsigned idx = 0;
-    double m = mat[row][idx];
+    // make sure we have an info to operate on
+    EigenInfo tmp;
+    if(info == NULL)
+      info = &tmp;
 
-    for(unsigned int c = 0, n = mat.GetNumCols(); c < n; c++)
+    info->col = 0;
+    info->max = mat[row][0];
+    info->min = mat[row][0];
+
+    for(unsigned int c = 1, n = mat.GetNumCols(); c < n; c++)
     {
-      if((minimum && mat[row][c] < m) || (!minimum && mat[row][c] > m))
+      double val = mat[row][c];
+      if(val < info->min)
       {
-        idx = c;
-        m = mat[row][c];
+        info->min = val;
+        if(minimum)
+          info->col = c;
+      }
+      if(val > info->max)
+      {
+        info->max = val;
+        if(!minimum)
+          info->col = c;
       }
     }
 
     if(val != NULL)
-      *val = m;
+      *val = minimum ? info->min : info->max;
 
-    return idx;
+    return info->col;
   }
 
   void Conj(Matrix<Complex>& mat)

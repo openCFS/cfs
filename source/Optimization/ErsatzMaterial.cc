@@ -355,9 +355,6 @@ void ErsatzMaterial::PostInit()
       throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
   }
 
-  if(design->HasAlphaVariable())
-    log.AddToHeader("alpha");
-
   if(manager.any().eigenvalue && optParamNode->Has("eigenvalue/sort"))
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
@@ -447,10 +444,39 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         Condition* g = constraints.all[c];
         if(g->IsExcitationSensitive() && g->DoEvaluate(&excite))
+        {
           info->Get(g->ToString())->SetValue(g->GetValue());
+          if(g->GetType() == Function::EIGENFREQUENCY && g->GetExcitation()->DoBloch() && !g->DoFullBloch()) {
+            string label = "ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv";
+            info->Get(label)->SetValue(g->bloch.col);
+          }
+        }
       }
     }
   }
+
+  // in case we do bloch and have eigenvalue with bloch=full (alpha+/-slack formulation) we additionally print here min max frequencies
+  std::map<unsigned int, bool> ev_done; // what we did
+  for(unsigned int c = 0; c < constraints.all.GetSize(); c++)
+  {
+    Condition* g = constraints.all[c];
+
+    if(g->GetExcitation()->DoBloch() && g->GetType() == Condition::EIGENFREQUENCY && g->DoFullBloch())
+    {
+      // we have the ev-constraint for every wave vector as we are full
+      if(!ev_done[g->GetEigenValueID()]) // bool is false by default
+      {
+         const Matrix<double> mat = forward.CollectBlochEigenfrequencies(&(manager.GetContext(g->GetExcitation())));
+         double freq; // see ErsatzMaterial::CalcEigenFrequency()
+         SearchMinMax(mat, (unsigned int) g->GetEigenValueID()-1, g->GetBound() == Condition::LOWER_BOUND, &freq);
+
+         iter->Get(Condition::type.ToString(g->GetType()) + "_" + lexical_cast<string>(g->GetEigenValueID())
+                   + (g->GetBound() == Condition::LOWER_BOUND ? "_min" : "_max"))->SetValue(freq);
+         ev_done[g->GetEigenValueID()] = true;
+      }
+    }
+  }
+
 
   for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
   {
@@ -497,14 +523,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     return iter;
   }
-
-void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
-{
-  Optimization::LogFileLine(out, iteration);
-
-  if(out && design->HasAlphaVariable())
-    *out << " \t" << design->GetAlphaVariable();
-}
 
   StdVector<std::pair<string,double> > ErsatzMaterial::GetOrthotropeProperties(const Matrix<double>& tensor, Excitation* ex)
   {
@@ -1541,6 +1559,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         result = CalcBandGap(excite, f, derivative);
         break;
 
+      case Function::EXPRESSION:
+        result = CalcExpression(g, derivative);
+        break;
+
       case Function::ISOTROPY:
       case Function::ISO_ORTHOTROPY:
       case Function::ORTHOTROPY:
@@ -2293,6 +2315,20 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
   }
   */
 
+
+  double ErsatzMaterial::CalcExpression(Condition* g, bool derivative)
+  {
+    assert(g->GetBound() == Condition::ALPHA_MINUS_SLACK_VALUE || g->GetBound() == Condition::ALPHA_PLUS_SLACK_VALUE);
+
+    // the comparison with alpha and slack  is done in BaseOptimizer(). We give back simply param
+
+    // in the derivative case the slack derivatives are handled in AuxDesign().
+    // The derivatives w.r.t standard design is zero, we simply don't add to the design gradient.
+
+    return g->GetParameter(); // no harm to return on derivative
+   }
+
+
   double ErsatzMaterial::CalcEigenfrequency(Excitation& org_excite, Function* f, bool derivative)
   {
     // for the bloch mode case this might be complex!
@@ -2322,7 +2358,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       Matrix<double> mat = forward.CollectBlochEigenfrequencies(&ctxt);
       assert(g->GetBound() == Condition::LOWER_BOUND || g->GetBound() == Condition::UPPER_BOUND);
       // when we are lower bounded we search for the minimum. Also set freq
-      g->bloch.col  = SearchMinMax(mat, mode_idx, g->GetBound() == Condition::LOWER_BOUND, &freq);
+      SearchMinMax(mat, mode_idx, g->GetBound() == Condition::LOWER_BOUND, &freq, &(g->bloch));
       ex = ctxt.excitations[g->bloch.col]; // freq set above
       LOG_DBG2(em) << "CE: f=" << f->ToString() << " mat=" << mat.ToString(2);
       LOG_DBG(em) << "CE: mode_idx=" << mode_idx << " col_idx=" << g->bloch.col << " min=" << (g->GetBound() == Condition::LOWER_BOUND) << " f=" << freq;

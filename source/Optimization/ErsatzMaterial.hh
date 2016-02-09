@@ -268,6 +268,9 @@ protected:
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
 
+  /** at the moment meant for param <= alpha +/- slack. To be extended by mathparser when required */
+  double CalcExpression(Condition* g, bool derivative);
+
   /** Standard Eigenfrequency (ev -> ef) problem.
    * This problem is better scaled than the eigenvalue problem and it matches eigenfrequency output
    * @param excite the wave vector for the function when bloch=full or the last for bloch=extremal*/
@@ -335,10 +338,6 @@ protected:
    * the global slope is sum max(0, g_i)^2, hence we need NEXT_AND_REVERSE locality
    * @param von_mises_stress set only for f == STRESS for derivative and not derivative */
   double CalcGlobalFunction(Function* f, bool derivative,  const Vector<double>* von_mises_stress = NULL);
-
-  /** Add eigenvalue mode switching output
-   * @see Optimization::LogFileLine() */
-  virtual void LogFileLine(std::ofstream* out, PtrParamNode iteration);
 
   /** Evaluates objective and constraint functiond and gradient.
    * Overloaded in PiezoSIMP for own objectives.
