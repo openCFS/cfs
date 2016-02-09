@@ -58,6 +58,7 @@ bool OutputFilter::Run(){
         ResultManager::ConstResPtr cRes = resultManager_->GetResultAdpter(*rIter);
         StdVector< str1::shared_ptr<BaseResult> > cResVec = resultManager_->GetBaseResultVector(*rIter);
         if(resultManager_->GetExtInfo(*rIter)->dType == ExtendedResultInfo::COMPLEX){
+          EXCEPTION("Complex valued results are not yet supported!")
         }else{
           outFile_->BeginStep(aStepIter_->first,aStepIter_->second);
 
@@ -69,6 +70,11 @@ bool OutputFilter::Run(){
 
             Result<Double>* myResult = dynamic_cast<Result<Double>* >(cResVec[aRe].get());
             Vector<Double> & resVec =  myResult->GetVector();
+
+            if(resVec.ContainsNaN() || resVec.ContainsInf() ){
+              CF::WARN("Detected result with NAN or INF values. Setting this result to zero.")
+              resVec.Init(0.0);
+            }
 
             //obtain region equations
             std::string regName = cResVec[aRe]->GetEntityList()->GetName();

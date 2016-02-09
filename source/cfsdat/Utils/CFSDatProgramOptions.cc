@@ -151,11 +151,12 @@ void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
   }
   else
   {
+
     // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
     out << std::endl
         << "============================================================"
         << "===========" << std::endl;
-    out << " CFS++ Data Processing" << std::endl << std::endl
+    out << " CFS++ Data Processing Tool" << std::endl << std::endl
         << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
         << " (rev " << CFS_WC_REVISION << ")" << std::endl
         << " compiled " << __DATE__
