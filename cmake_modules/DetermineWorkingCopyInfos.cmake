@@ -78,7 +78,7 @@ IF(EXISTS "${CFS_SOURCE_DIR}/.svn")
        "http://www.svnkit.com/org.tmatesoft.svn_1.8.10.standalone.zip"
        "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip")
      
-     execute_process(COMMAND unzip
+     execute_process(COMMAND unzip -qq
        "${CFS_BINARY_DIR}/tmp/org.tmatesoft.svn_1.8.10.standalone.zip"
        WORKING_DIRECTORY "${CFS_BINARY_DIR}")
    ENDIF(NOT EXISTS "${CFS_BINARY_DIR}/svnkit-1.8.10")

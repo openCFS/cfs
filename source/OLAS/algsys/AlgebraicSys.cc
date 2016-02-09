@@ -842,11 +842,20 @@ namespace CoupledField {
       if(els->Get("stiffness")->As<bool>() && sysMat_.find(STIFFNESS) != sysMat_.end() && sysMat_[STIFFNESS] != NULL)
         sysMat_[STIFFNESS]->Export(base + "_stiffness", mat_format);
 
+      if(els->Get("stiffness_update")->As<bool>() && sysMat_.find(STIFFNESS_UPDATE) != sysMat_.end() && sysMat_[STIFFNESS_UPDATE] != NULL)
+        sysMat_[STIFFNESS_UPDATE]->Export(base + "_stiffness_update", mat_format);
+
       if(els->Get("damping")->As<bool>() && sysMat_.find(DAMPING) != sysMat_.end() && sysMat_[DAMPING] != NULL)
         sysMat_[DAMPING]->Export(base + "_damping", mat_format);
 
+      if(els->Get("damping_update")->As<bool>() && sysMat_.find(DAMPING_UPDATE) != sysMat_.end() && sysMat_[DAMPING_UPDATE] != NULL)
+        sysMat_[DAMPING_UPDATE]->Export(base + "_damping_update", mat_format);
+
       if(els->Get("mass")->As<bool>() && sysMat_.find(MASS) != sysMat_.end() && sysMat_[MASS] != NULL)
         sysMat_[MASS]->Export(base + "_mass", mat_format);
+
+      if(els->Get("mass_update")->As<bool>() && sysMat_.find(MASS_UPDATE) != sysMat_.end() && sysMat_[MASS_UPDATE] != NULL)
+        sysMat_[MASS_UPDATE]->Export(base + "_mass_update", mat_format);
 
       if(els->Get("auxiliary")->As<bool>() && sysMat_.find(AUXILIARY) != sysMat_.end() && sysMat_[AUXILIARY] != NULL)
         sysMat_[AUXILIARY]->Export(base + "_aux", mat_format);

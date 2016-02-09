@@ -499,8 +499,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
             // this function a matrix_factor_ list which contains only 0 else
             std::map<FEMatrixType,Double> zero_factors;
             zero_factors[MASS] = 0.0;
+            zero_factors[MASS_UPDATE] = 0.0;
             zero_factors[STIFFNESS] = 0.0;
+            zero_factors[STIFFNESS_UPDATE] = 0.0;
             zero_factors[DAMPING] = 0.0;
+            zero_factors[DAMPING_UPDATE] = 0.0;
 
             algsys_->ConstructEffectiveMatrix(fctId, zero_factors); //matrix_factor_[fctId]);
           }
@@ -647,7 +650,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           }
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
-          algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          algsys_->UpdateRHS(STIFFNESS,solVec_,true); // we also or only need the updated version
+          algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
           solVec_.ScalarMult(-1.0);
         }
 
@@ -718,6 +722,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
           //substract from RHS the term K*sol
           solVec_.ScalarMult(-1.0);
           algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+          algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
           solVec_.ScalarMult(-1.0);
 
           //get RHS vector
@@ -1509,6 +1514,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         //substract from RHS the term K*sol
         solVec_.ScalarMult(-1.0);
         algsys_->UpdateRHS(STIFFNESS,solVec_,true);
+        algsys_->UpdateRHS(STIFFNESS_UPDATE,solVec_,true);
         solVec_.ScalarMult(-1.0);
       }
       else {

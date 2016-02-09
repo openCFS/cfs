@@ -94,6 +94,9 @@ namespace CoupledField
     matReassemble_[STIFFNESS] = true;
     matReassemble_[DAMPING] = true;
     matReassemble_[MASS] = true;
+    matReassemble_[STIFFNESS_UPDATE] = true;
+    matReassemble_[DAMPING_UPDATE] = true;
+    matReassemble_[MASS_UPDATE] = true;
     matReassemble_[AUXILIARY] = true;
 
     // reset also flag for "firstTime"
@@ -1509,11 +1512,23 @@ namespace CoupledField
         derivOrder = 0;
         factor = 1;
         break;
+      case STIFFNESS_UPDATE:
+        derivOrder = 0;
+        factor = 1;
+        break;
       case DAMPING:
         derivOrder = 1;
         factor = omega;
         break;
+      case DAMPING_UPDATE:
+        derivOrder = 1;
+        factor = omega;
+        break;
       case MASS:
+        derivOrder = 2;
+        factor = -omega*omega;
+        break;
+      case MASS_UPDATE:
         derivOrder = 2;
         factor = -omega*omega;
         break;
@@ -1555,10 +1570,20 @@ namespace CoupledField
     case STIFFNESS:
       factor = Complex(1.0, 0.0);
       break;
+    case STIFFNESS_UPDATE:
+      factor = Complex(1.0, 0.0);
+      break;
     case DAMPING:
       factor = Complex(0.0, omega);
       break;
+    case DAMPING_UPDATE:
+      factor = Complex(0.0, omega);
+      break;
     case MASS:
+      // BLOCH CHECK for 1st time derivative order!
+      factor = Complex(-omega*omega, 0.0);
+      break;
+    case MASS_UPDATE:
       // BLOCH CHECK for 1st time derivative order!
       factor = Complex(-omega*omega, 0.0);
       break;
@@ -1585,6 +1610,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = NOTYPE;
       matrixMap_[MASS]      = NOTYPE;
       matrixMap_[AUXILIARY] = NOTYPE;
+      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+      matrixMap_[DAMPING_UPDATE]   = NOTYPE;
+      matrixMap_[MASS_UPDATE]      = NOTYPE;
       break;
 
     case BasePDE::TRANSIENT:
@@ -1593,6 +1621,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
       matrixMap_[AUXILIARY] = AUXILIARY;
+      matrixMap_[STIFFNESS_UPDATE] = STIFFNESS_UPDATE;
+      matrixMap_[DAMPING_UPDATE]   = DAMPING_UPDATE;
+      matrixMap_[MASS_UPDATE]      = MASS_UPDATE;
       break;
 
     case BasePDE::HARMONIC:
@@ -1601,6 +1632,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = SYSTEM;
       matrixMap_[MASS]      = SYSTEM;
       matrixMap_[AUXILIARY] = AUXILIARY; // optimization for radiation needs this
+      matrixMap_[STIFFNESS_UPDATE] = SYSTEM;
+      matrixMap_[DAMPING_UPDATE]   = SYSTEM;
+      matrixMap_[MASS_UPDATE]      = SYSTEM;
       break;
 
     case BasePDE::EIGENFREQUENCY:
@@ -1609,6 +1643,9 @@ namespace CoupledField
       matrixMap_[DAMPING]   = DAMPING;
       matrixMap_[MASS]      = MASS;
       matrixMap_[AUXILIARY] = NOTYPE;
+      matrixMap_[STIFFNESS_UPDATE] = STIFFNESS;
+      matrixMap_[DAMPING_UPDATE]   = DAMPING;
+      matrixMap_[MASS_UPDATE]      = MASS;
       break;
 
     default: 
