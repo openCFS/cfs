@@ -193,7 +193,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   for (int i = 0; i < nNodes_; ++i) {
     scales[i] = 1.0 - elements[i];
 
-    LOG_DBG3(lbm) << "Element " << i << " has density " << elements[i] << " and porosity " << scales[i];
+//    LOG_DBG3(lbm) << "Element " << i << " has density " << elements[i] << " and porosity " << scales[i];
   }
 
   Timer timer;
@@ -208,7 +208,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
+//    LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -649,11 +649,10 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
   inlet.Clear();
   outlet.Clear();
 
-  double porosity;
-
+#pragma omp parallel for default(none) shared(elements)
   for(int elem = 0; elem < nNodes_; elem++)
   {
-    porosity = elements[elem];
+    double porosity = elements[elem];
 
     if (LbmNodeTypeIsFluid(porosity))
       rel.Push_back(elem);
@@ -1452,79 +1451,76 @@ void LatticeBoltzmann::Prop_coll_densoutlet2D(int cur)
 void LatticeBoltzmann::AdjointCollision(int cur)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
-  int z = 0;
-
-  #pragma omp parallel default(none) shared(cur,z)
+  #pragma omp parallel default(none) shared(cur)
   {
     Vector<double> moments(n_q_);
-    #pragma omp for  collapse(2)
-    for (int x = 0; x < sizeX_ ; x++)
+    #pragma omp for collapse(3)
+    for (int z = 0; z < sizeZ_; z++)
       for (int y = 0; y < sizeY_; y++)
-      {
-        int index = GetIndex(x,y,z);
+        for (int x = 0; x < sizeX_; x++)
+        {
+          int index = GetIndex(x,y,z);
 
-        for (int dir = 0; dir < n_q_; dir++)
-          moments[dir] = AMoments(cur,index,dir);
+          for (int dir = 0; dir < n_q_; dir++)
+            moments[dir] = AMoments(cur,index,dir);
 
-        Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
-        Matrix<double> collMatrix = adjCollision[index];
-        Matrix<double> collMatrixT(n_q_,n_q_);
-        collMatrix.Transpose(collMatrixT);
-  //      momentsAfterCollision = d_diss_d_m[index] + collMatrixT * moments;
-        momentsAfterCollision = d_pdrop_d_m[index] + collMatrixT * moments;
+          Vector<double> momentsAfterCollision(n_q_); // result of collision step in moment space including porosity model
+          Matrix<double> collMatrix = adjCollision[index];
+          Matrix<double> collMatrixT(n_q_,n_q_);
+          collMatrix.Transpose(collMatrixT);
+          //      momentsAfterCollision = d_diss_d_m[index] + collMatrixT * moments;
+          momentsAfterCollision = d_pdrop_d_m[index] + collMatrixT * moments;
 
-        Vector<double> collResult(n_q_);
-        Matrix<double> transpose(n_q_, n_q_);
-        transformation.Transpose(transpose); // adjoint backstransformation matrix is tranpose of primal transformation matrix
-        transpose.Mult(momentsAfterCollision, collResult);
+          Vector<double> collResult(n_q_);
+          Matrix<double> transpose(n_q_, n_q_);
+          transformation.Transpose(transpose); // adjoint backstransformation matrix is tranpose of primal transformation matrix
+          transpose.Mult(momentsAfterCollision, collResult);
 
-        for (int dir = 0; dir < n_q_; dir++)
-          tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
-      }
+          for (int dir = 0; dir < n_q_; dir++)
+            tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
+        }
   }
 }
 
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
 //  Vector<double> pdfs(n_q_);
-
-  unsigned int z = 0;
 //  Matrix<double> test(9*sizeX_*sizeY_,9*sizeX_*sizeY_);
 //  test.Init();
-#pragma omp parallel for default(none) shared(next,z) collapse(2)
-  for (int x = 0; x < sizeX_; x++)
+#pragma omp parallel for default(none) shared(next) collapse(3)
+  for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
-    {
-      // propagation
-      for (int  dir = 0; dir < n_q_; dir++) {
-        PDFDirectionVector transform = microVelDirections[dir];
-        double value = 0.0;
-        int id1 =  GetIndex(x,y,z);
-        int rows1 = GetPdfIndex(id1,dir);
-        int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
-        int rows2 = GetPdfIndex(id2, dir);
-        // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
-        if (!PointsToBoundary(x,y,z,dir)) {
-          // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
-          if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-//              test(rows1,rows2) = 1.0;
+      for (int x = 0; x < sizeX_; x++)
+      {
+        // propagation
+        for (int  dir = 0; dir < n_q_; dir++) {
+          PDFDirectionVector transform = microVelDirections[dir];
+          double value = 0.0;
+          int id1 =  GetIndex(x,y,z);
+          int rows1 = GetPdfIndex(id1,dir);
+          int id2 = GetIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z);
+          int rows2 = GetPdfIndex(id2, dir);
+          // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
+          if (!PointsToBoundary(x,y,z,dir)) {
+            // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
+            if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
+              //              test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
-          }
-          else { // case 2
-            // for corner elements, only distributions that point inside and to an design element are relevant
-            if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
-//              test(rows1,rows1) = 1.0;
-              value = tmpPdfs_[rows1];
             }
-//            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
-            APDF(next,id1,dir) += tmpPdfs_[rows2];
-            value += tmpPdfs_[rows2];
+            else { // case 2
+              // for corner elements, only distributions that point inside and to an design element are relevant
+              if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
+                //              test(rows1,rows1) = 1.0;
+                value = tmpPdfs_[rows1];
+              }
+              //            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
+              APDF(next,id1,dir) += tmpPdfs_[rows2];
+              value += tmpPdfs_[rows2];
+            }
           }
+          APDF(next,id1,dir) = value;
         }
-        APDF(next,id1,dir) = value;
       }
-    }
-
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1563,7 +1559,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
+//    LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
     AdjointCollision(adjCur_);
     AdjointPropagation(adjNext_);
 
@@ -1616,7 +1612,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
-  int z = 0;
 
   int it = 0;
   double R = 0.0;
@@ -1635,32 +1630,34 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   {
     /***************** Adjoint SRT collision ***/
     Vector<double> pdfs(n_q_);
-    for (int x = 0; x < sizeX_ ; x++)
+    for (int z = 0; z < sizeZ_; z++)
       for (int y = 0; y < sizeY_; y++)
-      {
-        int index = GetIndex(x,y,z);
+        for (int x = 0; x < sizeX_ ; x++)
+        {
+          int index = GetIndex(x,y,z);
 
-        for (int dir = 0; dir < n_q_; dir++)
-          pdfs[dir] = APDF(adjCur_,index,dir);
+          for (int dir = 0; dir < n_q_; dir++)
+            pdfs[dir] = APDF(adjCur_,index,dir);
 
-        // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
-        Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
-        Vector<double> d_pd_d_f = d_pdrop_d_f[index];
-        Vector<double> collResult(n_q_), tmp(n_q_);
-        d_coll_d_f.Mult(pdfs,tmp);
-        for (int dir = 0; dir < n_q_; dir++)
-          collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
+          // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
+          Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
+          Vector<double> d_pd_d_f = d_pdrop_d_f[index];
+          Vector<double> collResult(n_q_), tmp(n_q_);
+          LOG_DBG3(lbm) << "Elem " << index << "\n" << d_coll_d_f.ToString(0,"\n") << std::endl;
+          d_coll_d_f.Mult(pdfs,tmp);
+          for (int dir = 0; dir < n_q_; dir++)
+            collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
 
-        for (int dir = 0; dir < n_q_; dir++)
-          tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
+          for (int dir = 0; dir < n_q_; dir++)
+            tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
 
-        if (!rel.Contains(index)) {
-          for (int dir1 = 0; dir1 < n_q_; dir1++) {
-            if (bb.Contains(index) || rel.Contains(index))
-              assert(d_pd_d_f[dir1] == 0.0);
+          if (!rel.Contains(index)) {
+            for (int dir1 = 0; dir1 < n_q_; dir1++) {
+              if (bb.Contains(index) || rel.Contains(index))
+                assert(d_pd_d_f[dir1] == 0.0);
+            }
           }
         }
-      }
 
     AdjointPropagation(adjNext_);
 
@@ -1675,8 +1672,35 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
       }
     }
 
+    LOG_DBG3(lbm) << "Adj src";
+    for (int id = 0; id < nNodes_; id++) {
+      LOG_DBG3(lbm) << "Elem " << id << ": ";
+      for (int dir = 0; dir < n_q_; dir++) {
+        LOG_DBG3(lbm) << APDF(adjCur_,id,dir) << " ";
+      }
+    }
+
+    LOG_DBG3(lbm) << "tmp field";
+    for (int id = 0; id < nNodes_; id++) {
+      LOG_DBG3(lbm) << "Elem " << id << ": ";
+      for (int dir = 0; dir < n_q_; dir++) {
+        LOG_DBG3(lbm) << tmpPdfs_[GetPdfIndex(id,dir)] << " ";
+      }
+    }
+
+    LOG_DBG3(lbm) << "Adj dst";
+    for (int id = 0; id < nNodes_; id++) {
+      LOG_DBG3(lbm) << "Elem " << id << ": ";
+      for (int dir = 0; dir < n_q_; dir++) {
+        LOG_DBG3(lbm) << APDF(adjNext_,id,dir) << " ";
+      }
+    }
+
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
+
+//    if (it == 1)
+//      exit(-1);
 
     it++;
   }
@@ -1703,11 +1727,11 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
   lbmAdjCalls_++;
 
-  if(R >= 1000)
-    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
+//  if(R >= 1000)
+//    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
 
-  if(!steady_state)
-    EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
+//  if(!steady_state)
+//    EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
 
   return &(adjPdfs_[adjCur_]);
 }
@@ -1723,71 +1747,70 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
 
   int tmp_x, tmp_y, tmp_z;
 
-#pragma omp parallel default(none)\
-    private(index), \
-    private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z), \
-    shared(next, cur)
-{
-  StdVector<double> pdfs;
-  pdfs.Resize(n_q_);
-  #pragma omp for collapse(3)
-  for (z = 0; z < sizeZ_; ++z) {
-    for (y = 0; y < sizeY_; ++y) {
-      for (x = 0; x < sizeX_; ++x) {
-        index= GetIndex(x,y,z);
+  #pragma omp parallel default(none)\
+      private(index), \
+      private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z), \
+      shared(next, cur)
+  {
+    StdVector<double> pdfs;
+    pdfs.Resize(n_q_);
+    #pragma omp for collapse(3)
+    for (z = 0; z < sizeZ_; ++z) {
+      for (y = 0; y < sizeY_; ++y) {
+        for (x = 0; x < sizeX_; ++x) {
+          index= GetIndex(x,y,z);
 
-        // sum: macroscopic density is sum over all discrete distributions of an element
-        sum = 0;
-        tmp_ux = 0;
-        tmp_uy = 0;
-        tmp_uz = 0;
-        tmp_us = 0;
+          // sum: macroscopic density is sum over all discrete distributions of an element
+          sum = 0;
+          tmp_ux = 0;
+          tmp_uy = 0;
+          tmp_uz = 0;
+          tmp_us = 0;
 
-        for (int  dir = 0; dir < n_q_; dir++) {
-          int invDir = GetInvDirection((Direction)dir);
-          if (PointsToBoundary(x,y,z,invDir)) { // boundary case
-            tmp_x = x;
-            tmp_y = y;
-            tmp_z = z;
+          for (int  dir = 0; dir < n_q_; dir++) {
+            int invDir = GetInvDirection((Direction)dir);
+            if (PointsToBoundary(x,y,z,invDir)) { // boundary case
+              tmp_x = x;
+              tmp_y = y;
+              tmp_z = z;
+            }
+            else { // standard propagation rule
+              tmp_x = microVelDirections[invDir].off_x + x;
+              tmp_y = microVelDirections[invDir].off_y + y;
+              tmp_z = microVelDirections[invDir].off_z + z;
+            }
+
+            //store current pdf values in array for better accessing
+            pdfs[dir] = PDF(cur, tmp_x, tmp_y, tmp_z, dir);
+            sum += pdfs[dir];
+            tmp_ux += microVelDirections[dir].off_x*pdfs[dir];
+            tmp_uy += microVelDirections[dir].off_y*pdfs[dir];
+            tmp_uz += microVelDirections[dir].off_z*pdfs[dir];
           }
-          else { // standard propagation rule
-            tmp_x = microVelDirections[invDir].off_x + x;
-            tmp_y = microVelDirections[invDir].off_y + y;
-            tmp_z = microVelDirections[invDir].off_z + z;
+
+          // macroscopic scaling by design variable
+          scale = scales[index];
+
+          tmp_ux = scale * tmp_ux / sum;
+          tmp_uy = scale * tmp_uy / sum;
+          tmp_uz = scale * tmp_uz / sum;
+          tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
+
+          tmp_ux = 3.0 * tmp_ux;
+          tmp_uy = 3.0 * tmp_uy;
+          tmp_uz = 3.0 * tmp_uz;
+
+          for (int  dir = 0; dir < n_q_; dir++) {
+            tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
+            if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
+              PDF(next, index, dir) = pdfs[dir];
+            else
+              PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
           }
-
-          //store current pdf values in array for better accessing
-          pdfs[dir] = PDF(cur, tmp_x, tmp_y, tmp_z, dir);
-          sum += pdfs[dir];
-          tmp_ux += microVelDirections[dir].off_x*pdfs[dir];
-          tmp_uy += microVelDirections[dir].off_y*pdfs[dir];
-          tmp_uz += microVelDirections[dir].off_z*pdfs[dir];
-        }
-
-        // macroscopic scaling by design variable
-        scale = scales[index];
-
-        tmp_ux = scale * tmp_ux / sum;
-        tmp_uy = scale * tmp_uy / sum;
-        tmp_uz = scale * tmp_uz / sum;
-        tmp_us = 1.5 * (tmp_ux * tmp_ux + tmp_uy * tmp_uy + tmp_uz * tmp_uz);
-
-        tmp_ux = 3.0 * tmp_ux;
-        tmp_uy = 3.0 * tmp_uy;
-        tmp_uz = 3.0 * tmp_uz;
-
-        for (int  dir = 0; dir < n_q_; dir++) {
-          tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
-          if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
-            PDF(next, index, dir) = pdfs[dir];
-          else
-            PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
         }
       }
     }
   }
-}
-  return;
 }
 
 void LatticeBoltzmann::Prop_coll_velinlet3D(int cur)
@@ -1819,7 +1842,7 @@ void LatticeBoltzmann::Prop_coll_velinlet3D(int cur)
     tmp_uy = 3.0 * tmp_uy;
     tmp_uz = 3.0 * tmp_uz;
 
-    LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << " tuz=" << tmp_uz << std::endl;
+//    LOG_DBG3(lbm) << "pcv: i=" << i << " tux=" << tmp_ux << " tuy=" << tmp_uy << " tuz=" << tmp_uz << std::endl;
 
 
     for (int  dir = 0; dir < n_q_; dir++) {
