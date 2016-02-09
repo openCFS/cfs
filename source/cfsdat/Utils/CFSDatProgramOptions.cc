@@ -16,6 +16,7 @@
 #include "CFSDatProgramOptions.hh"
 #include "DataInOut/ColoredConsole.hh"
 #include "Utils/Defines.hh"
+#include <def_cfs_stats.hh>
 #include <exception>
 
 #include <boost/bind.hpp>
@@ -140,6 +141,32 @@ void CFSDatProgramOptions::ParseData(){
     }
 }
 
+void CFSDatProgramOptions::GetHeaderString(std::ostream & out)
+{
+  if(IsQuiet())
+  {
+    out << ">> CFDat '" << CFS_VERSION << " " << CFS_NAME << "'"
+        << " Compiled: '" << __DATE__ << "'"
+        << " Build: '" << CMAKE_BUILD_TYPE << "'" << std::endl;
+  }
+  else
+  {
+    // CFS_VERSION and CFS_NAME are to be set in source/CMakeLists.txt
+    out << std::endl
+        << "============================================================"
+        << "===========" << std::endl;
+    out << " CFS++ Data Processing" << std::endl << std::endl
+        << " v. " << CFS_VERSION << " - '" << CFS_NAME << "'"
+        << " (rev " << CFS_WC_REVISION << ")" << std::endl
+        << " compiled " << __DATE__
+        << " as " << CMAKE_BUILD_TYPE << std::endl
+        << " CFSDat routines use " << CoupledField::NUM_CFS_THREADS << " threads for this run" << std::endl;
+    out << "============================================================"
+        << "==========="
+        << std::endl << std::endl;
+  }
+}
+
 std::string CFSDatProgramOptions::EnvironmentNameMapper(const std::string& var )  {
   std::string ret;
 
@@ -149,6 +176,8 @@ std::string CFSDatProgramOptions::EnvironmentNameMapper(const std::string& var )
 
   return ret;
 }
+
+
 
 
 }
