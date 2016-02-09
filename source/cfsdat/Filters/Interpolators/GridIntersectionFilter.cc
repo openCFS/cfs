@@ -18,6 +18,7 @@
 #include "MatVec/CoordFormat.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "MatVec/CRS_Matrix.hh"
+#include <cmath>
 
 namespace CFSDat{
 
@@ -131,11 +132,16 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
     myElem->GetShFnc(shFnc,localPoint,curTE);
 
     UInt negativeCounter = 0;
+    UInt nanInfCounter = 0;
     for(UInt aNode = 0; aNode < tElemConnect.GetSize(); aNode++){
       downMap->GetEquation(tNodeEq,tElemConnect[aNode],ResultInfo::NODE);
       Double curval  = shFnc[aNode] * infos[aInfo].volume;
       if(shFnc[aNode] < 0){
         negativeCounter++;
+      }
+      if(std::isnan(shFnc[aNode]) || std::isinf(shFnc[aNode])){
+        nanInfCounter++;
+        shFnc[aNode] = 0.0;
       }
       for(UInt aDOF = 0; aDOF < tNodeEq.GetSize(); ++aDOF){
         InterpolationMatrix->AddToMatrixEntry(tNodeEq[aDOF],sElemEq[aDOF],curval);
@@ -143,6 +149,9 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
     }
     if(negativeCounter > 0){
       WARN("Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!");
+    }
+    if(nanInfCounter > 0){
+      WARN("Detected " << nanInfCounter << " nan/inf weights. This indicate errors. Setting those contributions to Zero!");
     }
   }
 }

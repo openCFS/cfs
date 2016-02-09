@@ -150,10 +150,11 @@ int main(int argc, const char** argv)
   bool allFinished = true;
   std::cout << "--- Initiating filter traversal" << std::endl;
   do{
-    std::cout << "\t---> Traversing outputs: step #" << counter++ << std::endl;
+    std::cout << "\t---> Processing output filters for step #" << counter++ << std::endl;
     allFinished = true;
     outIter =  outputs.begin();
     for(;outIter != outputs.end();++outIter){
+      //std::cout << "\t     Filter ID: " << (*outIter)->GetId() << std::endl;
       allFinished &= (*outIter)->Run();
     }
   } while(!allFinished);
