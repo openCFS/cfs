@@ -71,8 +71,8 @@ bool OutputFilter::Run(){
             Result<Double>* myResult = dynamic_cast<Result<Double>* >(cResVec[aRe].get());
             Vector<Double> & resVec =  myResult->GetVector();
 
-            if(resVec.ContainsNaN() || resVec.ContainsInf() ){
-              CF::WARN("Detected result with NAN or INF values. Setting this result to zero.")
+            if( resVec.ContainsNaN() || resVec.ContainsInf() ){
+              WARN("Detected result with NAN or INF values. Setting this result to zero.");
               resVec.Init(0.0);
             }
 

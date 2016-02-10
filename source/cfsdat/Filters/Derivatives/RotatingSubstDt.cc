@@ -111,7 +111,7 @@ void RotatingSubstDt::FinishInit(){
         ExtractCylinderVelocities<3>(params_->Get("rotatingDomain")->Get("cylinder"));
       }
     }
-    std::cout << "\t\t Found " << rotEnts_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
+    std::cout << "\t\tFound " << rotEnts_.GetSize() << " cells/nodes in rotating region" <<   std::endl;
   }
   gradDim_ = resultManager_->GetExtInfo(gradId_)->dofNames.GetSize();
 }
@@ -150,6 +150,8 @@ bool RotatingSubstDt::Run(){
     CF::StdVector<UInt> eqnNums; //they should be equal...
     Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(*aIter,eqnNums);
 
+    returnVec.Init();
+
     Vector<Double>& rM2 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-2);
     Vector<Double>& rM1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,-1);
     Vector<Double>& rP1 = resultManager_->GetResultVector<Double>(timeId_,eqnNums,1);
@@ -157,9 +159,8 @@ bool RotatingSubstDt::Run(){
 
     UInt last = (eqnNums.GetSize() == 0)? returnVec.GetSize() : eqnNums.GetSize();
 
-    #pragma omp parallel for
     for(UInt i=0;i<last;++i){
-      returnVec[i] = 2*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8*dt_));
+      returnVec[i] = 2.0*(((rP1[i]-rM1[i])+rP2[i]-rM2[i])/(8.0*dt_));
     }
 
     Vector<Double>& gradient = resultManager_->GetResultVector<Double>(gradId_,eqnNums);
@@ -261,7 +262,7 @@ void RotatingSubstDt::ExtractCylinderVelocities(CF::PtrParamNode cylNode){
       StdVector<Elem*> regElems;
 
       for(; regIter != endIter; ++regIter){
-        std::cout << "\t\t\tComputing rotational velocities for region " << *regIter << std::endl;
+        std::cout << "\t\tComputing rotational velocities for region " << *regIter << std::endl;
         RegionIdType rId = pGrid->GetRegion().Parse(*regIter);
         regElems.Resize(pGrid->GetNumElems(rId));
         pGrid->GetElems(regElems,rId);

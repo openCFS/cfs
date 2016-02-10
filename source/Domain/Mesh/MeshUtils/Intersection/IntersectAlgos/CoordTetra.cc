@@ -20,10 +20,10 @@
 namespace CoupledField{
 
 void CoordTetra::ComputeClipPlanes(){
-  // Define edge vectors
-  typedef Vector<Double> vec;
-  vec e10(3),e20(3),e30(3),e21(3),e31(3);
 
+  const double myEPS = 1e-30;
+
+  // Define edge vectors
   e10 = points[1] - points[0];
   e20 = points[2] - points[0];
   e30 = points[3] - points[0];
@@ -31,17 +31,16 @@ void CoordTetra::ComputeClipPlanes(){
   e31 = points[3] - points[1];
 
   // Cross-products
-  clipPlanes_.Resize(4);
   e20.CrossProduct(e10,clipPlanes_[0].first);
   e10.CrossProduct(e30,clipPlanes_[1].first);
   e30.CrossProduct(e20,clipPlanes_[2].first);
   e21.CrossProduct(e31,clipPlanes_[3].first);
 
   // Normalize
-  clipPlanes_[0].first /= clipPlanes_[0].first.NormL2() + EPS;
-  clipPlanes_[1].first /= clipPlanes_[1].first.NormL2() + EPS;
-  clipPlanes_[2].first /= clipPlanes_[2].first.NormL2() + EPS;
-  clipPlanes_[3].first /= clipPlanes_[3].first.NormL2() + EPS;
+  clipPlanes_[0].first /= clipPlanes_[0].first.NormL2() + myEPS;
+  clipPlanes_[1].first /= clipPlanes_[1].first.NormL2() + myEPS;
+  clipPlanes_[2].first /= clipPlanes_[2].first.NormL2() + myEPS;
+  clipPlanes_[3].first /= clipPlanes_[3].first.NormL2() + myEPS;
 
   // Compute magnitude of clipping tetrahedron
   tetSize_ = (1.0 / 6.0) * (e10 * clipPlanes_[3].first);
@@ -64,6 +63,3 @@ void CoordTetra::ComputeClipPlanes(){
 
 
 }
-
-
-

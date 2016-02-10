@@ -21,10 +21,9 @@ namespace CFSDat{
 
 template<>
 void CylinderVortex<3>::ComputeVortexVelocity(CF::Vector<Double>& v, const CF::Vector<Double>& point ){
-  //found somewhere but seems ok
-  CF::Vector<Double> dist(3);
-  CF::Vector<Double> pd(3);
-  CF::Vector<Double> tmp(3);
+  dist.Init(0.0);
+  pd.Init(0.0);
+  tmp.Init(0.0);
   Double dot,dsq,pdLen,scalProj;
   Double radius_sq = radius*radius;
   Double lenSq;

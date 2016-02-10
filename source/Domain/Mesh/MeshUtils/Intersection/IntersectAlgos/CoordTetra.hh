@@ -24,27 +24,37 @@ struct CoordTetra{
   //cutplane defined by vector and magnitude
   typedef std::pair<Vector<Double>, Double> CutPlane;
 
-  CoordTetra(){
-    points.Resize(4);
-    for(UInt i=0;i<4;++i){
-      points[i].Resize(3);
-      points[i].Init();
-    }
-    planesComputed_ = false;
-    tetSize_ = 0;
+  CoordTetra() :
+    points(4),
+    clipPlanes_(4),
+    tetSize_(0.0),
+    planesComputed_(false),
+    e10(3),e20(3),e30(3),e21(3),e31(3)
+  {
+
+    points.Init(Vector<Double>(3));
+
   }
 
-  CoordTetra(const CoordTetra & origTet)
+  CoordTetra(const CoordTetra & origTet)  :
+      points(4),
+      clipPlanes_(4),
+      tetSize_(0.0),
+      planesComputed_(false),
+      e10(3),e20(3),e30(3),e21(3),e31(3)
   {
+    points.Init(Vector<Double>(3));
     for(UInt i=0;i<4;++i){
-      points[i] = origTet.points[i];
+      for(UInt d=0;d<3;++d){
+        points[i][d] = origTet.points[i][d];
+      }
     }
     planesComputed_ = false;
     if(origTet.planesComputed_){
       clipPlanes_ = origTet.clipPlanes_;
       planesComputed_ = true;
     }
-    tetSize_ = 0;
+    tetSize_ = origTet.tetSize_;
   }
 
   inline Vector<Double>& operator[](UInt i){
@@ -63,6 +73,16 @@ struct CoordTetra{
       ComputeClipPlanes();
     }
     return clipPlanes_[i];
+  }
+
+  inline void ScaleTet(Double factor){
+    for(UInt i=0;i<4;++i){
+      for(UInt d=0;d<3;++d){
+        points[i][d] *= factor;
+      }
+    }
+    clipPlanes_.Clear(true);
+    planesComputed_ = false;
   }
 
   void ReversePoints(){
@@ -88,10 +108,13 @@ private:
 
   bool planesComputed_;
 
+  //=============================================================
+  // temporary storage
+  //=============================================================
+  Vector<Double> e10,e20,e30,e21,e31;
+
 
 };
 
 }
-
-
 #endif /* SOURCE_DOMAIN_MESH_MESHUTILS_INTERSECTION_INTERSECTALGOS_COORDTETRA_HH_ */

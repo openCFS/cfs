@@ -47,7 +47,7 @@ void TriaIntersect::InitElemMap(){
 void TriaIntersect::SetTElem( UInt tNum ){
   const Elem* newTElem = tGrid_->GetElem(tNum);
   if(tElemNum_ != newTElem->elemNum){
-    tTets_ = GetTetsFromElem(newTElem, tGrid_);
+    GetTetsFromElem(newTElem, tGrid_,tTets_);
   }
 }
 
@@ -62,25 +62,33 @@ bool TriaIntersect::Intersect(UInt sNum){
    * next tetra plane. and so on. only the remaining tetras are stored
    */
 
+  //clear last run but retain storage to avoid realloc
+  lastSrcTets_.Clear(true);
+  intersectingTets_.Clear(true);
+  currentTets.Clear(true);
+  tmpTets.Clear(true);
+
+  //1. Get tetrahedral information
   const Elem* elGrid2 = sGrid_->GetElem(sNum);
   sElemNum_ = sNum;
-  //1. Get tetrahedral information
-  StdVector<CoordTetra> srcTets = GetTetsFromElem(elGrid2,sGrid_);
+  GetTetsFromElem(elGrid2,sGrid_,lastSrcTets_);
+
+  //Scale every tatrahedron
+  ScaleTetras(lastSrcTets_,scaleFac_);
+  ScaleTetras(tTets_,scaleFac_);
 
   //export source and target tetras
-  //ExportTetras(srcTets,"sources");
+  //ExportTetras(lastSrcTets_,"sources");
   //ExportTetras(tTets_,"targets");
 
   //this is a n^2 approach. Could be less overhead
   UInt numtTets = tTets_.GetSize();
-  UInt numSTets = srcTets.GetSize();
-  intersectingTets_.Clear(true);
-  StdVector<CoordTetra> currentTets;
-  StdVector<CoordTetra> tmpTets;
+  UInt numSTets = lastSrcTets_.GetSize();
+
   for(UInt trgT = 0;trgT < numtTets; ++trgT){
     for(UInt srcT = 0; srcT < numSTets ; ++srcT){
       currentTets.Resize(1);
-      currentTets[0] = srcTets[srcT];
+      currentTets[0] = lastSrcTets_[srcT];
 
       tmpTets.Clear(true);
       for(UInt aPlane = 0; aPlane < 4; ++aPlane){
@@ -89,17 +97,21 @@ bool TriaIntersect::Intersect(UInt sNum){
           SplitAndDecompose(trgT, aPlane, currentTets[cutT] , tmpTets);
         }
         currentTets = tmpTets;
-        tmpTets.Clear(true);
-        //ExportTetras(currentTets,"Intersect");
+        tmpTets.Clear(true);      
       }
+      //ExportTetras(currentTets,"Intersect");
       //store the remaining tets
       for(UInt cutT = 0; cutT < currentTets.GetSize() ; ++cutT){
         intersectingTets_.Push_back(currentTets[cutT]);
       }
     }
   }
+  //scale back
+  Double invScale = 1.0/scaleFac_;
+  ScaleTetras(lastSrcTets_,invScale);
+  ScaleTetras(tTets_,invScale);
+  ScaleTetras(intersectingTets_,invScale);
   //ExportTetras(intersectingTets_,"Intersect");
-
   return (intersectingTets_.GetSize()!=0);
 }
 
@@ -111,6 +123,9 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
   }
   infos.Resize(1);
   Vector<Double> tC(3);
+  
+  //scale it
+  ScaleTetras(intersectingTets_,scaleFac_);
 
   Double& volume = infos[0].volume;
   Vector<Double>& center = infos[0].center;
@@ -119,6 +134,7 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
   center.Resize(3);
   center.Init();
   volume = 0.0;
+  UInt reversedCounter = 0;
   for(unsigned int tetI=0; tetI < numTets; tetI++) {
     CoordTetra& t = intersectingTets_[tetI];
     // Calculate volume
@@ -139,13 +155,19 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
     Double tV = (1.0/6.0) * (a1+a2+a3);
     //in case the volume is smaller than zero, maybe the tetra was wrongly
     //created during intersection. for now we ignore it
-    if(tV < -1e-10){
-      t.ReversePoints();
-      tetI--;
+    if(tV < 1e-32){
+      if(reversedCounter < 4){
+        t.ReversePoints();
+        tetI--;
+        reversedCounter++;
+      }else{
+        reversedCounter = 0;
+      }    
       continue;
-    }else if(tV < 0){
+    }else if(tV == 0){
       continue;
     }
+    reversedCounter = 0;
     //      Vector<Double> sub1 = (t[1] - t[0]);
     //      Vector<Double> sub2 = (t[2] - t[0]);
     //      Vector<Double> sub3 = (t[3] - t[0]);
@@ -163,14 +185,19 @@ void TriaIntersect::GetVolumeAndCenters(StdVector<VolCenterInfo>& infos){
     volume += tV;
     //
   }
-  center /= (volume + EPS);
-
+  if(volume>0){
+    center /= (volume);
+  }else{
+    volume = 0;
+  }
+  Double invScale = 1.0/scaleFac_;
+  ScaleTetras(intersectingTets_,invScale);
+  center *= invScale;
+  volume *= invScale*invScale*invScale;
 
 }
 
-inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid){
-    StdVector<CoordTetra> genTets;
-
+inline void TriaIntersect::GetTetsFromElem(const Elem* newTElem, Grid* aGrid, StdVector<CoordTetra> & genTets){
     //now get triangular information
     refFeMap[newTElem->type]->Triangulate(lastTetIdx_);
     //loop over each Tet
@@ -184,7 +211,7 @@ inline StdVector<CoordTetra> TriaIntersect::GetTetsFromElem(const Elem* newTElem
         aGrid->GetNodeCoordinate( genTets[aT][aNode], nodeNum,true);
       }
     }
-    return genTets;
+    return;
   }
 
 void TriaIntersect::GetIntersectionElems(StdVector<IntersectionElem*>& interElems){
@@ -195,9 +222,11 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
                               StdVector<CoordTetra>& genTets){
 
   StdVector<Double> C(4);
-  CoordTetra tmpTetra;
+
   //flags for indicating the halfspace location
-  StdVector<UInt> pos(4), neg(4), zero(4);
+  pos.Init(0);
+  neg.Init(0);
+  zero.Init(0);
   UInt i = 0, nPos = 0, nNeg = 0, nZero = 0;
   // Fetch reference to plane
   CoordTetra::CutPlane& tetPlane = tTets_[tetIdx].GetPlane(planeIdx);
@@ -256,16 +285,16 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
         tetra[pos[0]] = intp[2];
         tetra[pos[1]] = intp[1];
         genTets.Push_back(tetra);
-        tmpTetra[0] = tetra[neg[1]];
-        tmpTetra[1] = intp[3];
-        tmpTetra[2] = intp[2];
-        tmpTetra[3] = intp[1];
-        genTets.Push_back(tmpTetra);
-        tmpTetra[0] = tetra[neg[0]];
-        tmpTetra[1] = intp[0];
-        tmpTetra[2] = intp[1];
-        tmpTetra[3] = intp[2];
-        genTets.Push_back(tmpTetra);
+        tmpTetra_[0] = tetra[neg[1]];
+        tmpTetra_[1] = intp[3];
+        tmpTetra_[2] = intp[2];
+        tmpTetra_[3] = intp[1];
+        genTets.Push_back(tmpTetra_);
+        tmpTetra_[0] = tetra[neg[0]];
+        tmpTetra_[1] = intp[0];
+        tmpTetra_[2] = intp[1];
+        tmpTetra_[3] = intp[2];
+        genTets.Push_back(tmpTetra_);
       } else {
         // ++-0
         for (i = 0; i < nPos; ++i) {
@@ -288,16 +317,16 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
           }
           tetra[pos[0]] = intp[0];
           genTets.Push_back(tetra);
-          tmpTetra[0] = intp[0];
-          tmpTetra[1] = tetra[neg[1]];
-          tmpTetra[2] = tetra[neg[2]];
-          tmpTetra[3] = intp[1];
-          genTets.Push_back(tmpTetra);
-          tmpTetra[0] = tetra[neg[2]];
-          tmpTetra[1] = intp[1];
-          tmpTetra[2] = intp[2];
-          tmpTetra[3] = intp[0];
-          genTets.Push_back(tmpTetra);
+          tmpTetra_[0] = intp[0];
+          tmpTetra_[1] = tetra[neg[1]];
+          tmpTetra_[2] = tetra[neg[2]];
+          tmpTetra_[3] = intp[1];
+          genTets.Push_back(tmpTetra_);
+          tmpTetra_[0] = tetra[neg[2]];
+          tmpTetra_[1] = intp[1];
+          tmpTetra_[2] = intp[2];
+          tmpTetra_[3] = intp[0];
+          genTets.Push_back(tmpTetra_);
         } else {
           if (nNeg == 2){
             // +--0
@@ -309,11 +338,11 @@ inline void TriaIntersect::SplitAndDecompose(UInt tetIdx, UInt planeIdx, CoordTe
             }
             tetra[pos[0]] = intp[0];
             genTets.Push_back(tetra);
-            tmpTetra[0] = intp[1];
-            tmpTetra[1] = tetra[zero[0]];
-            tmpTetra[2] = tetra[neg[1]];
-            tmpTetra[3] = intp[0];
-            genTets.Push_back(tmpTetra);
+            tmpTetra_[0] = intp[1];
+            tmpTetra_[1] = tetra[zero[0]];
+            tmpTetra_[2] = tetra[neg[1]];
+            tmpTetra_[3] = intp[0];
+            genTets.Push_back(tmpTetra_);
           }else {
             // +-00
             invCDiff = (1.0 / (C[pos[0]] - C[neg[0]]));

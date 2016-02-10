@@ -80,6 +80,8 @@ public:
 
   }
 
+  virtual void DumpLastIntersect(){}
+
   //! sets currently active target element
   //! \param(in) tNum new target element number
   virtual void SetTElem(UInt tNum)=0;

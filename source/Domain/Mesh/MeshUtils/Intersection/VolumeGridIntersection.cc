@@ -65,25 +65,29 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   //std::vector< std::pair<UInt,UInt> > newVec = elemCandidates_;
   StdVector<ElemIntersect::VolCenterInfo> retInfo;
   UInt numIntersects = 0;
+  UInt intersectsOutsideElem = 0;
+  UInt intersectsSmall = 0;
   UInt numThreads= NUM_CFS_THREADS;
 
   std::cout << "\t\t\t Processing " << numCandidates << " intersection candidates using " <<  numThreads << " threads." << std::endl;
 
-#pragma omp parallel shared(numIntersects) num_threads(numThreads)
+
+#pragma omp parallel num_threads(numThreads)
 {
   INTER locAlgo(tGrid_,sGrid_);
   StdVector<Double> curVols;
+  Vector<Double> locPoint(tGrid_->GetDim());
   StdVector<Vector<Double> > curCenters;
   StdVector<ElemIntersect::VolCenterInfo> localInfo;
   StdVector<ElemIntersect::VolCenterInfo> elemInfo;
 
-  localInfo.Reserve(std::ceil(numCandidates/numThreads));
+  localInfo.Reserve(2*std::ceil(numCandidates/numThreads));
   UInt tENum = 0;
   UInt sENum = 0;
 
   const Elem* elem1;
   const Elem* elem2;
-#pragma omp for
+#pragma omp for reduction(+ : intersectsOutsideElem , numIntersects , intersectsSmall)  schedule(guided,10)
   for(UInt aCand = 0; aCand < numCandidates; ++aCand){
     //obtain element pointers from grids
     tENum = elemCandidates_[aCand].first;
@@ -97,7 +101,17 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
       locAlgo.GetVolumeAndCenters(elemInfo);
       for(UInt i=0;i<elemInfo.GetSize(); ++i){
         //reject very small elements
-        if(elemInfo[i].volume < 1e-25){
+        if(elemInfo[i].volume < 1e-30){
+          intersectsSmall++;
+          continue;
+        }
+        shared_ptr<ElemShapeMap> esm = tGrid_->GetElemShapeMap(elem1,true,false);
+        esm->Global2Local(locPoint,elemInfo[i].center);
+        if(!esm->CoordIsInsideElem(locPoint,1e-6)){
+          intersectsOutsideElem++;
+          //locAlgo.DumpLastIntersect();
+          //std::cout << locPoint << std::endl;
+          //exit(0);
           continue;
         }
         numIntersects++;
@@ -118,6 +132,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
       retInfo.Push_back(localInfo[aRet]);
     }
   }
+
 }
 
   //clear the element candidates as it is an expensive structure
@@ -133,7 +148,9 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   //  aStream << retInfo[aRet].center[0] << "," << retInfo[aRet].center[1] << "," << retInfo[aRet].center[2] << std::endl;
   //}
   //aStream.close();
-  std::cout  << "\t\t\tComputed intersection Volume is " << volume << " from " << numIntersects << " intersection elements" << std::endl;
+  std::cout << "\t\t\t Rejected " << intersectsOutsideElem << " intesection elements as the computed center is outside the taget element " << std::endl;
+  std::cout << "\t\t\t Rejected " << intersectsSmall << " intesection elements due to very small volume " << std::endl;
+  std::cout << "\t\t\t Computed intersection Volume is " << volume << " from " << numIntersects << " intersection elements" << std::endl;
 
   return retInfo;
 
