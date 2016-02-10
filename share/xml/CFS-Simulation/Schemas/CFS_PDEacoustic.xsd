@@ -167,6 +167,7 @@
           <xsd:simpleType>
             <xsd:restriction base="xsd:token">
               <xsd:enumeration value="acouPressure"/>
+              <xsd:enumeration value="acouPressureSOSatLaplace"/>
               <xsd:enumeration value="acouPotential"/>
             </xsd:restriction>
           </xsd:simpleType>
