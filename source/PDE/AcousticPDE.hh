@@ -84,6 +84,9 @@ namespace CoupledField{
     //! stores if the Acoustic PDE is in potential or pressure form
     SolutionType formulation_;
 
+    //! if true, speed of sound squared ist at Laplace term!
+    bool sosAtLaplace_;
+
     //! Stores Rayleigh damping definition for each region
     std::map<RegionIdType, RaylDampingData > regionRaylDamping_;
     

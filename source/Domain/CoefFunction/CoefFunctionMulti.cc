@@ -31,7 +31,6 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
-
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
     shared_ptr<CoefFunctionConst<Double> > rFct(new CoefFunctionConst<Double>());
     // generate empty coefficient functions

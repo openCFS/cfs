@@ -9,6 +9,7 @@
 #include "Materials/Composite.hh"
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/FeSpace.hh"
+#include "Domain/CoefFunction/CoefFunctionMulti.hh"
 
 namespace CoupledField {
 
@@ -173,6 +174,10 @@ namespace CoupledField {
     /** Shortcut for the DOF names */
     StdVector<std::string>& GetDofNames(SolutionType st) {
       return feFunctions_[st]->GetResultInfo()->dofNames;
+    }
+
+    virtual void FinilizeAfterTimeStep() {
+    	EXCEPTION("FinilizeAfterTimeStep has to be implemented for specific PDE");
     }
 
   protected:
@@ -406,6 +411,9 @@ namespace CoupledField {
     
     //! Map storing the feFunctions of the RHS
     std::map<SolutionType, shared_ptr<BaseFeFunction> > rhsFeFunctions_;
+
+    //! This map stores the hysteresis coefFunctions
+    shared_ptr<CoefFunctionMulti> hysteresisCoefs_;
 
   }; // class StdPDE
 

@@ -39,6 +39,7 @@ public:
      pos(4), neg(4), zero(4){
     tElemNum_ = 0;
     sElemNum_ = 0;
+    scaleFac_ = 1e4;
     InitElemMap();
   }
 
@@ -146,7 +147,7 @@ private:
   StdVector<CoordTetra> intersectingTets_;
 
   //! scale factor for element intersections and volume conputations
-  static const Double scaleFac_ = 1e4;
+  static Double scaleFac_; // = 1e4;
 
   //============================================
   // Caching variables

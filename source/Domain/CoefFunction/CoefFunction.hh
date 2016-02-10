@@ -504,6 +504,11 @@ public:
                                         StdVector<shared_ptr<EntityList> >() ) {
     Exception("GetTensorValuesAtCoords<Complex> not implemented in base class");
   }
+
+  //!
+  virtual void SetPreviousHystVals() {
+	  EXCEPTION("SetPreviousHystVals nit available");
+  }
   //@}
 
   //@}

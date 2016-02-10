@@ -1568,6 +1568,8 @@ source/Domain/CoefFunction/CoefFunctionGridNodalDefault.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalDefault.hh -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.cc -text
 source/Domain/CoefFunction/CoefFunctionGridNodalInterp.hh -text
+source/Domain/CoefFunction/CoefFunctionHyst.cc -text
+source/Domain/CoefFunction/CoefFunctionHyst.hh -text
 source/Domain/CoefFunction/CoefFunctionImpedanceModel.cc -text
 source/Domain/CoefFunction/CoefFunctionImpedanceModel.hh -text
 source/Domain/CoefFunction/CoefFunctionMapping.cc -text

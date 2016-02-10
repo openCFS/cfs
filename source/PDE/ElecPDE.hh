@@ -75,14 +75,17 @@ namespace CoupledField
     //! Define the SolveStep-Driver
     void DefineSolveStep();
 
-    //! Init the time stepping: nothing to do
-    void InitTimeStepping() {;};
+    //! Init the time stepping:
+    void InitTimeStepping();
 
     //! Nothing to do
     void SetTimeStep(const Double dt) {;};
 
     //! Read special boundary conditions
     void ReadSpecialBCs();
+
+    void FinilizeAfterTimeStep();
+
 
     // ======================================================
     // COUPLING SECTION

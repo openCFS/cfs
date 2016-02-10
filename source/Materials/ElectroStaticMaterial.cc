@@ -74,7 +74,6 @@ namespace CoupledField
   void ElectroStaticMaterial::SetScalar( Double param, MaterialType matType, 
 					 Global::ComplexPart dataType ) {
 
-
     //check, if allowed
     if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
       std::string dim = "scalar";
@@ -217,7 +216,6 @@ namespace CoupledField
 
   void ElectroStaticMaterial::GetScalar( Double& param, MaterialType matType, 
                                          Global::ComplexPart dataType ) const {
-
 
     scalarMap::const_iterator pos;
     pos = scalarParams_.find( matType );
