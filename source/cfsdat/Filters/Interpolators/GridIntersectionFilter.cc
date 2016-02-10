@@ -59,7 +59,7 @@ bool GridIntersectionFilter::Run(){
   Vector<Double>& returnVec = resultManager_->GetResultVector<Double>(filterResIds[0],eqnNums);
   Vector<Double>& inVec = resultManager_->GetResultVector<Double>(upResIds[0],eqnNums);
 
-  returnVec.Init();
+  returnVec.Init(0.0);
 
   this->InterpolationMatrix->MultAdd(inVec,returnVec);
 
@@ -106,13 +106,19 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
   //get the equation mapping from the in out results
   str1::shared_ptr<EqnMapSimple> downMap = resultManager_->GetResultAdpter(filterResIds[0])->mapping;
   str1::shared_ptr<EqnMapSimple> upMap   =   resultManager_->GetResultAdpter(upResIds[0])->mapping;
-
+  
+  InterpolationMatrix->Init();
+  UInt negativeCounter = 0;
+  UInt nanInfCounter = 0;
+#pragma omp parallel reduction(+ : negativeCounter , nanInfCounter) num_threads(NUM_CFS_THREADS)
+{
   StdVector<UInt> sElemEq;
   StdVector<UInt> tNodeEq;
   CF::shared_ptr<ElemShapeMap> eShape;
   Vector<Double> localPoint(infos[0].center.GetSize());
   CF::Vector<Double> shFnc;
 
+#pragma omp for
   for(UInt aInfo=0;aInfo<infos.GetSize();++aInfo){
     const UInt& tElem = infos[aInfo].targetElemNum;
     const UInt& sElem = infos[aInfo].sourceElemNum;
@@ -147,11 +153,12 @@ void GridIntersectionFilter::FillInterpolationMatrix(const StdVector<ElemInterse
         InterpolationMatrix->AddToMatrixEntry(tNodeEq[aDOF],sElemEq[aDOF],curval);
       }
     }
+}
     if(negativeCounter > 0){
-      WARN("Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!");
+      std::cerr << "Detected " << negativeCounter << " negative weights. This could indicate errors. Check your results!" << std::endl;
     }
     if(nanInfCounter > 0){
-      WARN("Detected " << nanInfCounter << " nan/inf weights. This indicate errors. Setting those contributions to Zero!");
+      std::cerr << "Detected " << nanInfCounter << " nan/inf weights. This indicate errors. Setting those contributions to Zero!" << std::endl;
     }
   }
 }

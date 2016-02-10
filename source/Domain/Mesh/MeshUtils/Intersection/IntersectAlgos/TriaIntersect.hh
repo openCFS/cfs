@@ -35,7 +35,8 @@ public:
 
   //! \copydoc ElemIntersect::TriaIntersect
   TriaIntersect(Grid* trgGrid, Grid* srcGrid)
-   : ElemIntersect(trgGrid,srcGrid){
+   : ElemIntersect(trgGrid,srcGrid),
+     pos(4), neg(4), zero(4){
     tElemNum_ = 0;
     sElemNum_ = 0;
     InitElemMap();
@@ -43,7 +44,8 @@ public:
 
   //! copy constructor
   TriaIntersect(const TriaIntersect& inter)
-   : ElemIntersect(inter){
+   : ElemIntersect(inter),
+     pos(4), neg(4), zero(4){
 
     tElemNum_ = inter.tElemNum_;
     tTets_ = inter.tTets_;
@@ -71,6 +73,17 @@ public:
 
   }
 
+  virtual void DumpLastIntersect(){
+    StdVector<VolCenterInfo> test;
+    GetVolumeAndCenters(test);
+    ExportTetras(lastSrcTets_,"sources");
+    ExportTetras(tTets_,"targets");
+    ExportTetras(intersectingTets_,"Intersect");
+
+    std::cout << test[0].center << std::endl;
+    std::cout << test[0].volume << std::endl;
+  }
+
   //! deep pointer copy
   virtual TriaIntersect* Clone(){
      return new TriaIntersect(*this);
@@ -95,10 +108,10 @@ private:
                                 StdVector<CoordTetra>& genTets);
 
   //! Triangulates a given element according to the baseFE
-  //!\param(in) newTElem element to be triangulated
-  //!\param(in) aGrid grid pointer for given element
-  //!\return vector of Tetrahedrons in coordinate format
-  inline StdVector<CoordTetra> GetTetsFromElem(const Elem* newTElem, Grid* aGrid);
+  //!\param(in)  newTElem element to be triangulated
+  //!\param(in)  aGrid grid pointer for given element
+  //!\param(out) genTets vector of Tetrahedrons in coordinate format
+  inline void GetTetsFromElem(const Elem* newTElem, Grid* aGrid, StdVector<CoordTetra> & genTets);
 
   //!exports a list of Tetrahedrons, each as an off file
   //! given file will be overwritten
@@ -109,6 +122,13 @@ private:
 
   //! initialize reference element map for triangulation
   void InitElemMap();
+
+  //! scale a list of elements by given factor
+  void ScaleTetras(StdVector<CoordTetra> & tets, Double factor){
+    for(UInt aT=0;aT<tets.GetSize();++aT){
+      tets[aT].ScaleTet(factor);
+    }
+  }
 
   //! map of reference elements for access to triangulation
   std::map<Elem::FEType, FeH1LagrangeExpl* > refFeMap;
@@ -125,8 +145,29 @@ private:
   //! coordinateTetra from last intersection
   StdVector<CoordTetra> intersectingTets_;
 
+  //! scale factor for element intersections and volume conputations
+  static const Double scaleFac_ = 1e4;
+
+  //============================================
+  // Caching variables
+  //============================================
   //! cached, triangulated baseFE
   StdVector< StdVector<UInt> > lastTetIdx_;
+
+  //! cache for triangulated source
+  StdVector<CoordTetra> lastSrcTets_;
+
+  //! Cached for split and decomposed
+  StdVector<UInt> pos, neg, zero;
+
+  //! caching variable for reallocation avoidance
+  CoordTetra tmpTetra_;
+
+  //! caching variable for reallocation avoidance
+  StdVector<CoordTetra> currentTets;
+
+  //! caching variable for reallocation avoidance
+  StdVector<CoordTetra> tmpTets;
 };
 
 }

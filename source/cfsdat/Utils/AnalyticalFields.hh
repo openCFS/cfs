@@ -23,14 +23,18 @@ namespace CFSDat{
 template<unsigned int t>
 struct CylinderVortex{
 
-  CylinderVortex(){
-    this->pt1.Resize(t);
-    this->pt2.Resize(t);
+  CylinderVortex() : 
+    pt1(t),pt2(t),dist(t),pd(t),tmp(t)
+  {
+    this->pt1.Init(0);
+    this->pt2.Init(0);
     this->radius = 0;
     this->rpm = 0;
   }
 
-  CylinderVortex(CF::Vector<Double> p1, CF::Vector<Double> p2, Double rad, Double rotPerMinute){
+  CylinderVortex(CF::Vector<Double> p1, CF::Vector<Double> p2, Double rad, Double rotPerMinute) : 
+  pt1(t),pt2(t),dist(t),pd(t),tmp(t) 
+  {
       this->pt1 = p1;
       this->pt2 = p2;
       this->radius = rad;
@@ -43,6 +47,7 @@ struct CylinderVortex{
 
   CF::Vector<Double> pt1;
   CF::Vector<Double> pt2;
+  CF::Vector<Double> dist,pd,tmp;
   Double         radius;
   Double         rpm;
 };
