@@ -109,7 +109,8 @@ namespace CoupledField {
                         RegionIdType masterVolRegion,
                         RegionIdType slaveVolRegion,
                         bool coplanar,
-                        bool coordUpdate = false);
+                        bool coordUpdate = false,
+                        BiLinearForm::CouplingDirection cplDirection = BiLinearForm::MASTER_SLAVE);
 
     //! Destructor
     ~SurfaceMortarABInt() {};
@@ -122,6 +123,9 @@ namespace CoupledField {
     //! Set finite element space in cases of mixed spaces
     void SetFeSpace( shared_ptr<FeSpace> feSpace1,
                      shared_ptr<FeSpace> feSpace2);
+
+    //! Set coupling direction
+    void SetCoupling(BiLinearForm::CouplingDirection cplDir) { cplDirection_ = cplDir; };
 
   protected:
     
@@ -142,6 +146,9 @@ namespace CoupledField {
     
     //! Is the interface coplanar?
     bool isCoplanar_;
+
+    //! Coupling direction indicates the entities the operators are defined on
+    BiLinearForm::CouplingDirection cplDirection_;
   };
 
 

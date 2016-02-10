@@ -40,14 +40,15 @@ namespace CoupledField {
 
   void ResultInfo::SetVectorDOFs(UInt dim, bool is_axi, bool is2p5)
   {
-    if(dim == 3)
+    if(dim == 3 || is2p5)
       dofNames = "x", "y", "z";
-    if(is2p5)
-      dofNames = "x", "y", "z";
-    if(dim == 2 && !is_axi)
-      dofNames = "x", "y";
-    if(dim == 2 && is_axi)
-      dofNames = "r", "z";
+    else
+    {
+      if(dim == 2 && !is_axi)
+        dofNames = "x", "y";
+      if(dim == 2 && is_axi)
+        dofNames = "r", "z";
+    }
   }
 
   std::string ResultInfo::GetDofName( const UInt dof ) const {

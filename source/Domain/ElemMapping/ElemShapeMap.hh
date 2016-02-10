@@ -336,6 +336,12 @@ namespace CoupledField {
                                            const Elem* volElem,
                                            const SurfElem* edgeFaceElem)=0;
 
+    //! This method calculates a parallel projection of the given point onto the surface element
+    //! with respect to the given direction
+    //! \param direction vector detrmining the direction of the projection
+    //! \param point point to be projected
+    virtual void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point) = 0;
+
 
     //! Calculates corresponding volume point of neighboring surfaces
 
@@ -508,6 +514,9 @@ namespace CoupledField {
                                const LocPoint & lp,
                                const Elem* volElem,
                                const SurfElem* edgeFaceElem);
+
+    //! @copydoc ElemShapeMap::TranslatePointOntoSurface
+    void TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point);
 
     //! @copydoc ElemShapeMap::GetLocalIntPoints4Surface
     void GetLocalIntPoints4Surface( const StdVector<UInt> & surfConnect,

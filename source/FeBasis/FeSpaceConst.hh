@@ -50,7 +50,7 @@ public:
   virtual UInt GetNumFunctions( const EntityIterator ent );
 
   //! Return equation numbers
-  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent ); 
+  virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent );
 
   //! Return equation numbers, does the same as called with 2 arguments
   virtual void GetEqns( StdVector<Integer>& eqns, const EntityIterator ent

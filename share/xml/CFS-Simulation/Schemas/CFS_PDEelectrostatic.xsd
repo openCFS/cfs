@@ -116,7 +116,14 @@
           <xsd:element name="storeResults" type="DT_ElecStoreResults" minOccurs="0" maxOccurs="1"/>
 
         </xsd:sequence>
-        <xsd:attribute name="subType" type="xsd:token" use="optional" default="none"/>
+        <xsd:attribute name="subType" use="optional" default="none">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="none"/>
+              <xsd:enumeration value="2.5d"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

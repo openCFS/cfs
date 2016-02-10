@@ -53,6 +53,7 @@ CoefFunctionPML<T>::CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound
   speedOfSound_ = speedOfSound;
   isVector_ = isVector;
   pmlType_ = DampFunction::NO_TYPE;
+  formulationType_ = CLASSIC;
 
   ReadDataPML(pmlDef,pdeDomains);
 

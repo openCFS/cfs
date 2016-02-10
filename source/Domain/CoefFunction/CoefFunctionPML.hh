@@ -136,13 +136,15 @@ class CoefFunctionPML : public CoefFunction{
 
 public:
 
+  //! Enumeration data type describing formulations of PML
+  typedef enum{ CLASSIC, SHIFTED } PMLFormulType;
 
   CoefFunctionPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
                   shared_ptr<EntityList> EntList,
                   StdVector<RegionIdType> pdeDomains,
                   bool isVector );
 
-  ~CoefFunctionPML();
+  virtual ~CoefFunctionPML();
 
   //! Return real-valued tensor at integration point
   virtual void GetTensor(Matrix<Complex>& tensor,
@@ -213,6 +215,7 @@ protected:
 
     void GetThicknessAtPoint(Double& thickness,Double& position, LocPointMapped lpm,UInt dir);
 
+    PMLFormulType formulationType_;
 
     Matrix<Double> innerMinMaxComp_;
     Matrix<Double> outerMinMaxComp_;

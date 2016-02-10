@@ -83,7 +83,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   tolRel_(1e-4),
   region_(NO_REGION_ID),
   isReset_(false),
-  translationVector_(grid->GetDim())
+  translationVector_()
 {
   name_ = nciNode->Get("name")->As<std::string>();
   elemList_->SetName(name_);
@@ -185,6 +185,7 @@ MortarInterface::MortarInterface(Grid* grid, PtrParamNode nciNode) :
   // the grid intersection procedures
   nciNode->GetValue("mutualProjection", mutualProjection_, ParamNode::PASS);
   if (mutualProjection_) {
+    translationVector_.Resize(ptGrid_->GetDim());
     Matrix<Double> bboxMas, bboxSla;
     ptGrid_->CalcBoundingBoxOfRegion(masterSurfRegion_, bboxMas,
         domain->GetCoordSystem("default"));
@@ -1387,7 +1388,6 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
   StdVector< Vector<Double> > & p1 = p1Poly_;
   StdVector< Vector<Double> > & p2 = p2Poly_;
   StdVector< Vector<Double> > & r = rPoly_;
-  StdVector< Vector<Double> > & t = tPoly_;
 
   r.Clear(true);
 
@@ -1416,10 +1416,9 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
       ptGrid_->GetNodeCoordinate(p1[i], ifElem1->connect[i], isMoving_);
 
     // if the interface is created for p.b.c., tansform the coordinates of the master element
-    t.Resize(p1Size);
     if (mutualProjection_) {
       for (UInt np = 0; np < p1.GetSize(); ++np)
-        t[np] = p1[np] - translationVector_;
+        p1[np] -= translationVector_;
     }
 
     oldPoly1_ = ifElem1->elemNum;
@@ -1457,10 +1456,7 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
 
   bool b;
 #ifdef USE_CGAL
-  if (mutualProjection_)
-    b = CutPolysCGAL(t, p2, isCoplanar_, r);
-  else
-    b = CutPolysCGAL(p1, p2, isCoplanar_, r);
+  b = CutPolysCGAL(p1, p2, isCoplanar_, r);
 #else
   b = CutPolys(p1, p2, isCoplanar_, r);
 #endif
@@ -1489,7 +1485,7 @@ bool MortarInterface::IntersectPolygons( SurfElem *ifElem1, SurfElem *ifElem2,
       Vector<Double> nodeCoord;
       projMaster.reset(new SurfElem());
       // TODO: it was previously ifElem1->type that could have also been ET_TRIA6, ET_QUAD9, etc.
-      // for some reason it works only with the first order elements...
+      // for some reason it worked only with the first order elements...
       projMaster->type = projMasterType;
       projMaster->connect.Resize(p1Size);
       

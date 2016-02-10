@@ -15,6 +15,8 @@
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
+#include "Domain/CoefFunction/CoefFunctionPML.hh"
+#include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
 #include "Driver/Assemble.hh"
@@ -28,11 +30,14 @@
 // new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
+#include "Forms/Operators/SurfaceOperators.hh"
+#include "Forms/Operators/SurfaceNormalFluxDensityOperator.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -96,11 +101,11 @@ namespace CoupledField {
     BaseMaterial * actSDMat = NULL;
     
     // bool upLagrangeForm = true;
-    
+
     //transform the type
     SubTensorType tensorType;
 
-    if ( dim_ == 3 ) {
+    if ( dim_ == 3  || subType_ == "2.5d" ) {
       tensorType = FULL;
     }
     else {
@@ -123,6 +128,9 @@ namespace CoupledField {
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[ELEC_POTENTIAL]->GetFeSpace();
 
+    //flag indicating frequency PML formulation
+    bool harmonicPML = false;
+
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       
       // Set current region and material
@@ -143,12 +151,59 @@ namespace CoupledField {
       PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region","name",regionName.c_str());
       std::string polyId = curRegNode->Get("polyId")->As<std::string>();
       std::string integId = curRegNode->Get("integId")->As<std::string>();
-      mySpace->SetRegionApproximation(actRegion, polyId,integId);
+      mySpace->SetRegionApproximation(actRegion, polyId, integId);
 
+      // Take account for pml in frequency domain
+      // 'coeffPMLScal' is the function used to scale the material tensor. If no PML is defined, it's unity
+      PtrCoefFct coefPMLScal;
+      PtrCoefFct coefPMLVec, speedOfSnd;
+      PtrParamNode pmlNode;
+      std::string pmlFormul;
+      //
       
+      if (dampingList_[actRegion] == PML)
+      {
+        if (analysistype_ == HARMONIC)
+        {
+          harmonicPML = true;
+          std::string dampId;
+          curRegNode->GetValue("dampingId", dampId);
+          pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", dampId.c_str());
+          pmlFormul = pmlNode->Get("formulation")->As<std::string>();
+
+          // speed of sound is set to equal '1.0'
+          speedOfSnd = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+          if (pmlFormul == "classic")
+          {
+            coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+            coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+          }
+          else if (pmlFormul == "shifted")
+          {
+            EXCEPTION("Not implemented");
+          }
+          else
+          {
+            EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
+          }
+        }
+        else
+          EXCEPTION("Not implemented yet");
+      }
+      else
+      {
+        harmonicPML = false;
+      }
       
       // ----- standard real-valued stiffness integrator
-      BaseBDBInt * stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+      BaseBDBInt* stiffInt = NULL;
+      if (harmonicPML)
+        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion, coefPMLVec);
+      else
+        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
+
       stiffInt->SetName("LinElecIntegrator");
       BiLinFormContext * stiffIntDescr =
           new BiLinFormContext(stiffInt, STIFFNESS );
@@ -181,7 +236,304 @@ namespace CoupledField {
   
   void ElecPDE::DefineSurfaceIntegrators()
   {
+    PtrParamNode bcNode = myParam_->Get("bcsAndLoads", ParamNode::PASS);
+    this->ptGrid_->MapEdges();
+    this->ptGrid_->MapFaces();
+    if (!bcNode)
+      return;
 
+    ParamNodeList blochNodesList = bcNode->GetList("blochPeriodic");
+    for (UInt i = 0; i < blochNodesList.GetSize(); i++)
+    {
+      std::string str_value = blochNodesList[i]->Get("factor_value")->As<std::string>();
+      std::string str_phase = blochNodesList[i]->Get("factor_phase")->As<std::string>();
+      std::string formulation = blochNodesList[i]->Get("formulation")->As<std::string>();
+
+      // propagation factor \gamma from xml-file
+      std::string str_real, str_imag;
+      str_real = AmplPhaseToReal(str_value, str_phase, true);
+      str_imag = AmplPhaseToImag(str_value, str_phase, true);
+
+      PtrCoefFct factor = CoefFunction::Generate(mp_, Global::COMPLEX, str_real, str_imag);
+      PtrCoefFct one = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0", "0.0");
+
+      ParamNodeList regionsList = blochNodesList[i]->GetList("region");
+      for (UInt j = 0; j < regionsList.GetSize(); j++)
+      {
+        std::string ncRegionName = regionsList[j]->Get("name")->As<std::string>();
+        shared_ptr<BaseNcInterface> ncIf = ptGrid_->GetNcInterface(ptGrid_->GetNcInterfaceId(ncRegionName));
+        if (!ncIf)
+        {
+          EXCEPTION("No interface with the name '" << ncRegionName << "' found!");
+        }
+        shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
+        assert(mortarIf);
+
+        PtrCoefFct matDataTensorMas, matDataTensorSla;
+        RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
+        RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+
+        matDataTensorMas = regionPermittivity_[volMasterId];
+        matDataTensorSla = regionPermittivity_[volSlaveId];
+
+        // TODO: WHAT THE HELL? IT DOESN'T WORK WITH pz = -1...
+        // To be checked later during the work with piezo-coupling
+        Double pz = 1.0;
+        if (isPiezoCoupled_ == true)
+          pz = 1.0;
+
+        if (formulation == "Nitsche")
+        {
+          std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
+          Double nitscheFactor = lexical_cast<Double>(nitFac);
+          // master & slave penalty integrals
+          BiLinearForm *pnlt_PhiM_PsiM = NULL;
+          BiLinearForm *pnlt_PhiM_PsiS = NULL;
+          BiLinearForm *pnlt_PhiS_PsiM = NULL;
+          BiLinearForm *pnlt_PhiS_PsiS = NULL;
+          // master & slave integrals with normal derivatives
+          BiLinearForm *flux_DPhiM_PsiM = NULL;
+          BiLinearForm *flux_DPhiM_PsiS = NULL;
+          BiLinearForm *flux_PhiM_DPsiM = NULL;
+          BiLinearForm *flux_PhiS_DPsiM = NULL;
+
+          shared_ptr<ElemList> actSDList = ncIf->GetElemList();
+          Double beta;
+          BiLinearForm::CouplingDirection cplDir;
+          PtrCoefFct factorSqr = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, factor, CoefXpr::OP_MULT));
+
+          // obtain a proper scaling for the penalty terms
+          StdVector<Vector<Double> > points(1);
+          Vector<Double> p1(dim_);
+          p1.Init();
+          points[0]= p1;
+
+          if (matDataTensorMas->IsComplex())
+          {
+            Complex tmp(0.0, 0.0);
+            StdVector<Matrix<Complex> > valsM, valsS;
+            matDataTensorMas->GetTensorValuesAtCoords(points, valsM, this->ptGrid_);
+            matDataTensorSla->GetTensorValuesAtCoords(points, valsS, this->ptGrid_);
+            for (UInt k = 0; k < valsM[0].GetNumRows(); k++)
+            {
+              tmp += valsM[0][k][k]*conj(valsM[0][k][k]);
+              tmp += valsS[0][k][k]*conj(valsS[0][k][k]);
+            }
+            beta = sqrt(0.5*tmp.real())*nitscheFactor;
+          }
+          else
+          {
+            Double tmp(0.0);
+            StdVector<Matrix<Double> > valsM, valsS;
+            matDataTensorMas->GetTensorValuesAtCoords(points, valsM, this->ptGrid_);
+            matDataTensorSla->GetTensorValuesAtCoords(points, valsS, this->ptGrid_);
+            for (UInt k = 0; k < valsM[0].GetNumRows(); k++)
+            {
+              tmp += valsM[0][k][k]*valsM[0][k][k];
+              tmp += valsS[0][k][k]*valsS[0][k][k];
+            }
+            beta = sqrt(0.5*tmp)*nitscheFactor;
+          }
+
+          PtrCoefFct coefFuncPMLVec, coefFuncPMLScl;
+          if (dampingList_[volMasterId] == PML)
+          {
+            if (analysistype_ == HARMONIC)
+            {
+              std::string regionName = ptGrid_->GetRegion().ToString(volMasterId);
+              std::string dampId, pmlFormul;
+
+              PtrParamNode curRegNode = myParam_->Get("regionList")->GetByVal("region", "name", regionName.c_str());
+              curRegNode->GetValue("dampingId", dampId);
+              PtrParamNode pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", dampId.c_str());
+
+              // speed of sound is set to equal '1.0'
+              PtrCoefFct speedOfSnd = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+              pmlFormul = pmlNode->Get("formulation")->As<std::string>();
+
+              if (pmlFormul == "classic")
+              {
+                coefFuncPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                                         ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                coefFuncPMLScl.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                                         ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              }
+              else if (pmlFormul == "shifted")
+              {
+                EXCEPTION("Not implemented");
+              }
+              else
+              {
+                EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
+              }
+
+              matDataTensorMas = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, matDataTensorMas, coefFuncPMLScl, CoefXpr::OP_MULT));
+            }
+            else
+              EXCEPTION("Not implemented yet");
+          }
+
+          // define bilinear forms for Nitsche coupling
+          cplDir = BiLinearForm::MASTER_MASTER;
+          pnlt_PhiM_PsiM = GetPenaltyIntegrator(factor, beta*pz, cplDir);
+          flux_DPhiM_PsiM = GetFluxIntegrator(one, coefFuncPMLVec, -1.0*pz, cplDir, true);
+          flux_PhiM_DPsiM = GetFluxIntegrator(factor, coefFuncPMLVec, -1.0*pz, cplDir, false);
+          flux_DPhiM_PsiM->SetBCoefFunctionOpA(matDataTensorMas);
+          flux_PhiM_DPsiM->SetBCoefFunctionOpB(matDataTensorMas);
+
+          cplDir = BiLinearForm::MASTER_SLAVE;
+          pnlt_PhiM_PsiS = GetPenaltyIntegrator(factorSqr, -beta*pz, cplDir);
+          flux_DPhiM_PsiS = GetFluxIntegrator(factor, coefFuncPMLVec, 1.0*pz, cplDir, true);
+          flux_DPhiM_PsiS->SetBCoefFunctionOpA(matDataTensorMas);
+
+          cplDir = BiLinearForm::SLAVE_MASTER;
+          pnlt_PhiS_PsiM = GetPenaltyIntegrator(one, -beta*pz, cplDir);
+          flux_PhiS_DPsiM = GetFluxIntegrator(one, coefFuncPMLVec, 1.0*pz, cplDir, false);
+          flux_PhiS_DPsiM->SetBCoefFunctionOpB(matDataTensorMas);
+
+          cplDir = BiLinearForm::SLAVE_SLAVE;
+          pnlt_PhiS_PsiS = GetPenaltyIntegrator(factor, beta, cplDir);
+
+          // master-master
+          pnlt_PhiM_PsiM->SetName("pnlt_PhiM_PsiM");
+          flux_DPhiM_PsiM->SetName("flux_DPhiM_PsiM");
+          flux_PhiM_DPsiM->SetName("flux_PhiM_DPsiM");
+          //master-slave
+          pnlt_PhiM_PsiS->SetName("pnlt_PhiM_PsiS");
+          flux_DPhiM_PsiS->SetName("flux_DPhiM_PsiS");
+          // slave-master
+          pnlt_PhiS_PsiM->SetName("pnlt_PhiS_PsiM");
+          flux_PhiS_DPsiM->SetName("flux_PhiS_DPsiM");
+          //slave-slave
+          pnlt_PhiS_PsiS->SetName("pnlt_PhiS_PsiS");
+
+          cplDir = BiLinearForm::MASTER_MASTER;
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiM, STIFFNESS, cplDir);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiM_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiM, STIFFNESS, cplDir);
+          SurfaceBiLinFormContext *flux_PhiM_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiM_DPsiM, STIFFNESS, cplDir);
+          cplDir = BiLinearForm::MASTER_SLAVE;
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiS, STIFFNESS, cplDir);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiS, STIFFNESS, cplDir);
+          cplDir = BiLinearForm::SLAVE_MASTER;
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiM, STIFFNESS, cplDir);
+          SurfaceBiLinFormContext *flux_PhiS_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiM, STIFFNESS, cplDir);
+          cplDir = BiLinearForm::SLAVE_SLAVE;
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, cplDir);
+
+          pnlt_PhiM_PsiM_cont->SetEntities(actSDList, actSDList);
+          flux_DPhiM_PsiM_cont->SetEntities(actSDList, actSDList);
+          flux_PhiM_DPsiM_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiM_PsiS_cont->SetEntities(actSDList, actSDList);
+          flux_DPhiM_PsiS_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiS_PsiM_cont->SetEntities(actSDList, actSDList);
+          flux_PhiS_DPsiM_cont->SetEntities(actSDList, actSDList);
+          pnlt_PhiS_PsiS_cont->SetEntities(actSDList, actSDList);
+
+          pnlt_PhiM_PsiM_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          flux_DPhiM_PsiM_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          flux_PhiM_DPsiM_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          pnlt_PhiM_PsiS_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          flux_DPhiM_PsiS_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          pnlt_PhiS_PsiM_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          flux_PhiS_DPsiM_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+          pnlt_PhiS_PsiS_cont->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[ELEC_POTENTIAL]);
+
+          assemble_->AddBiLinearForm(pnlt_PhiM_PsiM_cont);
+          assemble_->AddBiLinearForm(flux_DPhiM_PsiM_cont);
+          assemble_->AddBiLinearForm(flux_PhiM_DPsiM_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiM_PsiS_cont);
+          assemble_->AddBiLinearForm(flux_DPhiM_PsiS_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiS_PsiM_cont);
+          assemble_->AddBiLinearForm(flux_PhiS_DPsiM_cont);
+          assemble_->AddBiLinearForm(pnlt_PhiS_PsiS_cont);
+        } // end nitsche
+        else if (formulation == "Mortar")
+        {
+          shared_ptr<SurfElemList> surfMasterGrid(new SurfElemList(ptGrid_)), surfSlaveGrid(new SurfElemList(ptGrid_));
+          surfMasterGrid->SetRegion(mortarIf->GetMasterSurfRegion());
+          surfSlaveGrid->SetRegion(mortarIf->GetSlaveSurfRegion());
+
+          // --- Set the approximation for Lagrange Multipliers for the current region ---
+          RegionIdType regId = surfSlaveGrid->GetRegion();
+          std::string polyId = regionsList[j]->Get("polyId")->As<std::string>();
+          std::string integId = regionsList[j]->Get("integId")->As<std::string>();
+          feFunctions_[LAGRANGE_MULT]->GetFeSpace()->SetRegionApproximation(regId, polyId, integId);
+
+          BiLinearForm *intOne1 = 0;
+          BiLinearForm *intFactor1 = 0;
+          BiLinearForm *intOne2 = 0;
+          BiLinearForm *intFactor2 = 0;
+
+          if (dim_ == 2)
+          {
+            intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+                                                               new IdentityOperator<FeH1, 2, 1, Complex>(),
+                                                               one, pz,
+                                                               mortarIf->GetSlaveVolRegion(), mortarIf->GetMasterVolRegion(),
+                                                               mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::SLAVE_MASTER);
+            intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), factor, -pz, updatedGeo_);
+            intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(), one, pz, updatedGeo_);
+            intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 1, Complex>(),
+                                                                  new IdentityOperator<FeH1, 2, 1, Complex>(),
+                                                                  factor, -pz,
+                                                                  mortarIf->GetMasterVolRegion(), mortarIf->GetSlaveVolRegion(),
+                                                                  mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::MASTER_SLAVE);
+          }
+          else
+          {
+            intOne1 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+                                                               new IdentityOperator<FeH1, 3, 1, Complex>(),
+                                                               one, pz,
+                                                               mortarIf->GetSlaveVolRegion(), mortarIf->GetMasterVolRegion(),
+                                                               mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::SLAVE_MASTER);
+            intFactor1 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), factor, -pz, updatedGeo_);
+            intOne2 = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(), one, pz, updatedGeo_);
+            intFactor2 = new SurfaceMortarABInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 1, Complex>(),
+                                                                  new IdentityOperator<FeH1, 3, 1, Complex>(),
+                                                                  factor, -pz,
+                                                                  mortarIf->GetMasterVolRegion(), mortarIf->GetSlaveVolRegion(),
+                                                                  mortarIf->IsPlanar(), updatedGeo_, BiLinearForm::MASTER_SLAVE);
+          }
+
+          intOne1->SetName("master1Elec");
+          intFactor1->SetName("slave1Elec");
+          intOne2->SetName("master2Elec");
+          intFactor2->SetName("slave2Elec");
+
+          // (1) weak form of the periodic boundary conditions
+          BiLinFormContext *lagPotContMaster = new BiLinFormContext(intFactor1, STIFFNESS);
+          NcBiLinFormContext *lagPotContSlave = new NcBiLinFormContext(intOne1, STIFFNESS);
+
+          lagPotContMaster->SetEntities(surfSlaveGrid, surfSlaveGrid);
+          lagPotContSlave->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
+          lagPotContMaster->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ELEC_POTENTIAL]);
+          lagPotContSlave->SetFeFunctions(feFunctions_[LAGRANGE_MULT], feFunctions_[ELEC_POTENTIAL]);
+
+          assemble_->AddBiLinearForm(lagPotContMaster);
+          assemble_->AddBiLinearForm(lagPotContSlave);
+
+          // (2) weak form of the boundary integrals of the PDE
+          BiLinFormContext *potLagContMaster = new BiLinFormContext(intOne2, STIFFNESS);
+          NcBiLinFormContext *potLagContSlave = new NcBiLinFormContext(intFactor2, STIFFNESS);
+
+          potLagContMaster->SetEntities(surfSlaveGrid, surfSlaveGrid);
+          potLagContSlave->SetEntities(mortarIf->GetElemList(), mortarIf->GetElemList());
+          potLagContMaster->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[LAGRANGE_MULT]);
+          potLagContSlave->SetFeFunctions(feFunctions_[ELEC_POTENTIAL], feFunctions_[LAGRANGE_MULT]);
+
+          assemble_->AddBiLinearForm(potLagContMaster);
+          assemble_->AddBiLinearForm(potLagContSlave);
+
+          feFunctions_[LAGRANGE_MULT]->AddEntityList(surfSlaveGrid);
+          feFunctions_[ELEC_POTENTIAL]->AddEntityList(surfMasterGrid);
+          feFunctions_[ELEC_POTENTIAL]->AddEntityList(surfSlaveGrid);
+        } // end mortar
+        else
+        {
+          EXCEPTION("Unknown formulation: '" << formulation << "'!");
+        }
+      }
+    }
   }
 
   void ElecPDE::DefineRhsLoadIntegrators() {
@@ -296,12 +648,17 @@ namespace CoupledField {
     // =================================
     LOG_DBG(elecpde) << "Reading prescribed flux density";
     StdVector<std::string> vecDofNames;
-    if(dim_ == 3)
+    if(dim_ == 3 || subType_== "2.5d")
+    {
       vecDofNames = "x", "y", "z";
-    if(dim_ == 2 && !isaxi_)
-      vecDofNames = "x", "y";
-    if(dim_ == 2 && isaxi_)
-      vecDofNames = "r", "z";
+    }
+    else
+    {
+      if(dim_ == 2 && !isaxi_)
+        vecDofNames = "x", "y";
+      if(dim_ == 2 && isaxi_)
+        vecDofNames = "r", "z";
+    }
     ReadRhsExcitation( "fluxDensity", vecDofNames, 
                        ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     std::set<RegionIdType> volRegions (regions_.Begin(), regions_.End() );
@@ -348,7 +705,6 @@ namespace CoupledField {
     } // for
   }
 
-  
   BaseBDBInt * ElecPDE::GetStiffIntegrator( BaseMaterial* actSDMat,
                                             SubTensorType tensorType,
                                             RegionIdType regionId ) {
@@ -368,6 +724,8 @@ namespace CoupledField {
                                    Global::REAL);
     }
     
+    regionPermittivity_[regionId] = curCoef;
+
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
@@ -395,6 +753,93 @@ namespace CoupledField {
     return integ;
   }
   
+  BaseBDBInt* ElecPDE::GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType,
+                                          RegionIdType regionId, PtrCoefFct scalingFactor)
+  {
+    BaseBDBInt* integ = NULL;
+
+    shared_ptr<CoefFunction > curCoef;
+    curCoef = actSDMat->GetTensorCoefFnc(ELEC_PERMITTIVITY, tensorType, Global::COMPLEX);
+    
+    // store coefficient function for later use (e.g. in boundary integrators)
+    regionPermittivity_[regionId] = curCoef;
+
+    // Note; in the piezoelectric case we have to multiply by -1
+    Double factor = 1.0;
+    if (isPiezoCoupled_)
+      factor = -1.0;
+
+    BaseBOperator* bOp = NULL;
+    if (dim_ == 2)
+    {
+      if (subType_ == "2.5d")
+        bOp = new ScaledGradientOperator2p5D<FeH1, 2, Complex>();
+      else
+        bOp = new ScaledGradientOperator<FeH1, 2, Complex>();
+    }
+    else
+      bOp = new ScaledGradientOperator<FeH1, 3, Complex>();
+    bOp->SetCoefFunction(scalingFactor);
+
+    integ = new BDBInt<Complex, Complex>(bOp, curCoef, factor, updatedGeo_);
+
+    return integ;
+  }
+  
+  BiLinearForm* ElecPDE::GetFluxIntegrator(PtrCoefFct scalCoefFunc, PtrCoefFct coefFnc, Complex factor,
+                                           BiLinearForm::CouplingDirection cplDir, bool fluxOpA)
+  {
+    BiLinearForm* integ = NULL;
+    BaseBOperator *fluxOp = NULL, *idOp = NULL;
+
+    // The flux operator will implement either a scaled gradient operator if a non-zero 'coefFnc' has bee passed,
+    // or a gradient operator otherwise
+    if (dim_ == 2)
+    {
+      idOp = new SurfaceIdentityOperator<FeH1, 2, 1>();
+      if (coefFnc)
+        fluxOp = new SurfaceNormalFluxDensityOperator<FeH1, 2, 1, Complex>(subType_, coefFnc);
+      else
+        fluxOp = new SurfaceNormalFluxDensityOperator<FeH1, 2, 1, Double>(subType_);
+    }
+    else
+    {
+      idOp = new SurfaceIdentityOperator<FeH1, 3, 1>();
+      if (coefFnc)
+        fluxOp = new SurfaceNormalFluxDensityOperator<FeH1, 3, 1, Complex>(subType_, coefFnc);
+      else
+        fluxOp = new SurfaceNormalFluxDensityOperator<FeH1, 3, 1, Double>(subType_);
+    }
+
+    // Check whether we have a du/dn*v or a u*dv/dn bilinear form
+    if (fluxOpA)
+      integ = new SurfaceNitscheABInt<Complex, Complex>(fluxOp, idOp, scalCoefFunc, factor, cplDir, updatedGeo_);
+    else
+      integ = new SurfaceNitscheABInt<Complex, Complex>(idOp, fluxOp, scalCoefFunc, factor, cplDir, updatedGeo_);
+
+    return integ;
+  }
+
+  BiLinearForm* ElecPDE::GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir)
+  {
+    BiLinearForm* integ = NULL;
+
+    if (dim_ == 2)
+    {
+      integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+                                                        new SurfaceIdentityOperator<FeH1, 2, 1>(),
+                                                        scalCoefFunc, factor, cplDir, updatedGeo_, false, true);
+    }
+    else
+    {
+      integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+                                                        new SurfaceIdentityOperator<FeH1, 3, 1>(),
+                                                        scalCoefFunc, factor, cplDir, updatedGeo_, false, true);
+    }
+
+    return integ;
+  }
+
   void ElecPDE::DefineImpedanceIntegrators() {
     
     // The definition of the impedances is taken from:
@@ -513,6 +958,27 @@ namespace CoupledField {
     availResults_.insert( rhs );
     DefineFieldResult( rhsFeFunctions_[ELEC_POTENTIAL], rhs );
 
+    // Check if an FE space for Lagrange multiplier has been created.
+    // If any, define results for Lagrange multiplier in case of p.b.c.
+    PtrParamNode lagSpaceNode = infoNode_->Get("feSpaces", ParamNode::PASS)->Get("lagrangeMultiplier", ParamNode::PASS);
+    if (lagSpaceNode)
+    {
+      // <!> This is a hack, because there is no cross points handling
+      hdbcSolNameMap_[LAGRANGE_MULT] = "ground";
+      idbcSolNameMap_[LAGRANGE_MULT] = "potential";
+      //
+      shared_ptr<ResultInfo> lagMultElec(new ResultInfo);
+      lagMultElec->resultType = LAGRANGE_MULT;
+      lagMultElec->dofNames = "";
+      lagMultElec->unit = "C/m^2";
+      lagMultElec->entryType = ResultInfo::SCALAR;
+      lagMultElec->SetFeFunction(feFunctions_[LAGRANGE_MULT]);
+      lagMultElec->definedOn = ResultInfo::NODE;
+      feFunctions_[LAGRANGE_MULT]->SetResultInfo(lagMultElec);
+
+      results_.Push_back(lagMultElec);
+      DefineFieldResult(feFunctions_[LAGRANGE_MULT], lagMultElec);
+    }
   }
   
   void ElecPDE::DefineNcIntegrators() {
@@ -539,11 +1005,12 @@ namespace CoupledField {
   void ElecPDE::DefinePostProcResults() {
 
     shared_ptr<BaseFeFunction> feFct = feFunctions_[ELEC_POTENTIAL];
+    bool is2p5 = (subType_ == "2.5d");
     
     // === ELECTRIC FIELD INTENSITY ===
     shared_ptr<ResultInfo> ef ( new ResultInfo );
     ef->resultType = ELEC_FIELD_INTENSITY;
-    ef->SetVectorDOFs(dim_, isaxi_);
+    ef->SetVectorDOFs(dim_, isaxi_, is2p5);
     ef->unit = "V/m";
     ef->definedOn = ResultInfo::ELEMENT;
     ef->entryType = ResultInfo::VECTOR;
@@ -559,7 +1026,7 @@ namespace CoupledField {
     // === ELECTRIC FLUX DENSITY ===
     shared_ptr<ResultInfo> flux ( new ResultInfo );
     flux->resultType = ELEC_FLUX_DENSITY;
-    flux->SetVectorDOFs(dim_, isaxi_);
+    flux->SetVectorDOFs(dim_, isaxi_, is2p5);
     flux->unit = "C/m^2";
     flux->definedOn = ResultInfo::ELEMENT;
     flux->entryType = ResultInfo::VECTOR;
@@ -655,6 +1122,16 @@ namespace CoupledField {
       crSpaces[ELEC_POTENTIAL] =
         FeSpace::CreateInstance(myParam_,potSpaceNode,FeSpace::H1, ptGrid_);
       crSpaces[ELEC_POTENTIAL]->Init(solStrat_);
+
+      CoupledField::ParamNodeList blochListMortar = myParam_->Get("bcsAndLoads")->GetListByVal("blochPeriodic", "formulation", "Mortar");
+      if (blochListMortar.GetSize())
+      {
+        // Create FE-Space for Lagrange multiplier
+        PtrParamNode lagSpaceNode = infoNode->Get("lagrangeMultiplier");
+        crSpaces[LAGRANGE_MULT] = FeSpace::CreateInstance(myParam_, lagSpaceNode, FeSpace::H1, ptGrid_);
+        crSpaces[LAGRANGE_MULT]->SetLagrSurfSpace();
+        crSpaces[LAGRANGE_MULT]->Init(solStrat_);
+      }
     }else{
       EXCEPTION("The formulation " << formulation << "of electric PDE is not known!");
     }

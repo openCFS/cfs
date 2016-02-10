@@ -450,7 +450,6 @@ public:
     lagrangeSurfSpace_ = true;
   }
 
-
   //! Map a general coefficient function onto a given FeFunction
   
   //! This method can be used to map a general coefficient function
