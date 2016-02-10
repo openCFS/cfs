@@ -169,27 +169,30 @@ namespace CoupledField
           /** Calculates residual as difference between two iteration solutions.
            *  Parameter adjoint indicates whether residual should be calculated for pdfs or adjoint pdfs array.
            */
-          inline double CalcResidual(int cur, int next, bool adjoint)
+          inline double CalcResidual(int cur, int next)
           {
-            double R = 0.0;
-            double res = -1.0;
+            double res = 0.0;
 
             for (int elem = 0; elem < nNodes_; elem++) {
-              //            index = k * m_sizeX * m_sizeY + j * m_sizeX + i;
               for(int  dir = 0; dir < n_q_; dir++) {
-                if (adjoint)
-                {
-                  if (srt_)
-                    res = APDF(next, elem, dir) - APDF(cur, elem, dir);
-                  else
-                    res = AMoments(next, elem, dir) - AMoments(cur, elem, dir);
-                }
-                else
-                  res = PDF(next, elem, dir) - PDF(cur, elem, dir);
-                R += res * res;
+                double tmp = PDF(next, elem, dir) - PDF(cur, elem, dir);
+                res += tmp * tmp;
               }
             }
-            return sqrt(R);
+            return sqrt(res);
+          }
+
+          inline double CalcAdjResidual(int cur, int next)
+          {
+            double res = 0.0;
+            for (unsigned int i = 0; i < rel.GetSize(); i++) {
+              int index = rel[i]; // calc residual only over design nodes
+              for (int dir = 0; dir < n_q_; dir++) {
+                double tmp = APDF(next, index, dir) - APDF(cur, index, dir);
+                res += tmp * tmp;
+              }
+            }
+            return sqrt(res);
           }
 
           /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
@@ -382,8 +385,6 @@ namespace CoupledField
           void Prop_coll_densoutlet2D(int cur);
 
           void AdjointCollision(int cur);
-
-          void AdjointBounceBack(int cur);
 
           void AdjointPropagation(int next);
 

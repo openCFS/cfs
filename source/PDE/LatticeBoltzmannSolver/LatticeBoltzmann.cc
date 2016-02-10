@@ -220,7 +220,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
     if((it == 0 || it % 100 == 0)) // check convergence
     {
-      R = CalcResidual(cur_,next_,false);
+      R = CalcResidual(cur_,next_);
 
       if(R <= maxTol_)
         steady_state = true;
@@ -1485,8 +1485,8 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
 //  Vector<double> pdfs(n_q_);
-//  Matrix<double> test(9*sizeX_*sizeY_,9*sizeX_*sizeY_);
-//  test.Init();
+  Matrix<double> test(n_q_*sizeX_*sizeY_*sizeZ_,n_q_*sizeX_*sizeY_*sizeZ_);
+  test.Init();
 #pragma omp parallel for default(none) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
@@ -1504,23 +1504,40 @@ void LatticeBoltzmann::AdjointPropagation(int next)
           if (!PointsToBoundary(x,y,z,dir)) {
             // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
             if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-              //              test(rows1,rows2) = 1.0;
+              test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
+//              std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id2 << std::endl;
             }
             else { // case 2
+//              if (id1 == 1 && dir == 6) {
+//                std::cout << "neighbour in dir 6 is boundary node?" << IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z) << std::endl;
+//              }
               // for corner elements, only distributions that point inside and to an design element are relevant
-              if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
-                //              test(rows1,rows1) = 1.0;
+//              if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
+                test(rows1,rows1) = 1.0;
                 value = tmpPdfs_[rows1];
-              }
-              //            test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
-              APDF(next,id1,dir) += tmpPdfs_[rows2];
+//                std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id1 << std::endl;
+//              }
+              test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
               value += tmpPdfs_[rows2];
+//              std::cout << "Elem " << id1 << "," << dir << " + gets entry from elem " << id2 << std::endl;
             }
           }
           APDF(next,id1,dir) = value;
         }
       }
+
+//  std::stringstream ss;
+//  for (int i = 0; i < n_q_*sizeX_*sizeY_*sizeZ_; i++) {
+//    for ( int j = 0; j < n_q_*sizeX_*sizeY_*sizeZ_; j++) {
+//      ss << test(i,j) << " ";
+//    }
+//    ss << "\n";
+//  }
+//  std::fstream f;
+//  f.open("testMatrix.txt", std::ios::out);
+//  f << ss.str();
+//  f.close();
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1565,7 +1582,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
     if((it == 0 || it % 100 == 0))
     {
-      R = CalcResidual(adjCur_,adjNext_,true);
+      R = CalcAdjResidual(adjCur_,adjNext_);
 
       if(R <= maxTol_)
         steady_state = true;
@@ -1663,7 +1680,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
     if((it == 0 || it % 100 == 0))
     {
-      R = CalcResidual(adjCur_,adjNext_,true);
+      R = CalcAdjResidual(adjCur_,adjNext_);
       if(R <= maxTol_)
         steady_state = true;
       if(plot_) {
@@ -1672,38 +1689,57 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
       }
     }
 
-    LOG_DBG3(lbm) << "Adj src";
-    for (int id = 0; id < nNodes_; id++) {
-      LOG_DBG3(lbm) << "Elem " << id << ": ";
-      for (int dir = 0; dir < n_q_; dir++) {
-        LOG_DBG3(lbm) << APDF(adjCur_,id,dir) << " ";
-      }
-    }
-
-    LOG_DBG3(lbm) << "tmp field";
-    for (int id = 0; id < nNodes_; id++) {
-      LOG_DBG3(lbm) << "Elem " << id << ": ";
-      for (int dir = 0; dir < n_q_; dir++) {
-        LOG_DBG3(lbm) << tmpPdfs_[GetPdfIndex(id,dir)] << " ";
-      }
-    }
-
-    LOG_DBG3(lbm) << "Adj dst";
-    for (int id = 0; id < nNodes_; id++) {
-      LOG_DBG3(lbm) << "Elem " << id << ": ";
-      for (int dir = 0; dir < n_q_; dir++) {
-        LOG_DBG3(lbm) << APDF(adjNext_,id,dir) << " ";
-      }
-    }
+//    LOG_DBG3(lbm) << "Adj src";
+//    for (int id = 0; id < nNodes_; id++) {
+//      LOG_DBG3(lbm) << "Elem " << id << ": ";
+//      for (int dir = 0; dir < n_q_; dir++) {
+//        LOG_DBG3(lbm) << APDF(adjCur_,id,dir) << " ";
+//      }
+//    }
+//
+//    LOG_DBG3(lbm) << "tmp field";
+//    for (int id = 0; id < nNodes_; id++) {
+//      LOG_DBG3(lbm) << "Elem " << id << ": ";
+//      for (int dir = 0; dir < n_q_; dir++) {
+//        LOG_DBG3(lbm) << tmpPdfs_[GetPdfIndex(id,dir)] << " ";
+//      }
+//    }
+//
+//    LOG_DBG3(lbm) << "Adj dst";
+//    for (int id = 0; id < nNodes_; id++) {
+//      LOG_DBG3(lbm) << "Elem " << id << ": ";
+//      for (int dir = 0; dir < n_q_; dir++) {
+//        LOG_DBG3(lbm) << APDF(adjNext_,id,dir) << " ";
+//      }
+//    }
 
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
 
-//    if (it == 1)
+//    if(it == 0)
 //      exit(-1);
 
     it++;
   }
+
+//  std::cout << "\nAdj src" << std::endl;
+//  for (int id = 0; id < nNodes_; id++) {
+//    std::cout << "Elem " << id << ": ";
+//    for (int dir = 0; dir < n_q_; dir++) {
+//      std::cout << std::fixed << std::setprecision(4) << APDF(adjNext_,id,dir) << " ";
+//    }
+//    std::cout << std::endl;
+//  }
+//
+//  std::cout << "\nAdj dst" << std::endl;
+//  for (int id = 0; id < nNodes_; id++) {
+//    std::cout << "Elem " << id << ": ";
+//    for (int dir = 0; dir < n_q_; dir++) {
+//      std::cout <<  std::fixed << std::setprecision(4) << APDF(adjCur_,id,dir) << " ";
+//    }
+//    std::cout << std::endl;
+//  }
+
   timer.Stop();
 
   PtrParamNode node = info->Get(ParamNode::PROCESS)->Get("adjoint", ParamNode::APPEND); // write out how many lbm iterations until convergence
