@@ -403,14 +403,13 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   void StdSolveStep::SolveStepTrans() {
 
-
-    // do a nonlinear material time step
-    if ( nonLin_ && nonLinMaterial_ ) {
-      StepTransNonLinMaterial();
-    }
-    else if ( isHyst_ ) {
-      StepTransNonLinHysteresis();
-    }
+	if ( isHyst_ ) {
+		StepTransNonLinHysteresis();
+	}
+	//currently not supported
+//	else if ( nonLin_ && nonLinMaterial_ ) {
+//      StepTransNonLinMaterial();
+//    }
     // do a nonlinear time step
     else if (nonLin_){
       if ( nonLinTotalFormulation_ )
@@ -816,9 +815,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
       fncIt->second->GetTimeScheme()->FinishStep();
     }
-    
-
-
   }
 
 
@@ -975,6 +971,167 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   }
 
   
+  void StdSolveStep::StepTransNonLinHysteresis() {
+
+   bool performOneMoreStep;
+   bool isNewton;
+   Double incrementalErr;
+
+   SBM_Vector newSol(BaseMatrix::DOUBLE);
+   SBM_Vector oldSol(BaseMatrix::DOUBLE);
+   SBM_Vector diffSol(BaseMatrix::DOUBLE);
+
+   //get solution of previous time step
+   SBM_Vector  prevSol(BaseMatrix::DOUBLE);
+   prevSol = solVec_;
+   oldSol = solVec_;
+
+   std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt;
+   std::map<FEMatrixType,Integer> matrices = PDE_.GetMatrixDerivativeMap();
+   std::map<FEMatrixType,Integer>::iterator matIt;
+
+   UInt pos = 0;
+   bool updatePredictor = ( PDE_.IsIterCoupled() == false || couplingIter_ == 0 );
+   for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+     fncIt->second->GetTimeScheme()->BeginStep(updatePredictor);
+   }
+
+   //obtain the number of stages
+    UInt numStages = feFunctions_.begin()->second->GetTimeScheme()->GetNumStages();
+    if ( numStages > 1 )
+  	   EXCEPTION("StepTransNonLinHysteresis: just one stage time-stepping allowed");
+
+   for(UInt i=0;i<numStages;i++){
+     //do initialization
+     rhsVec_.Init();
+
+     //we obtain a reference to the stage vectors of the scheme
+     SBM_Vector stageSol;
+     stageSol.Resize(feFunctions_.size());
+     for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+       stageSol.SetSubVector(fncIt->second->GetTimeScheme()->GetStageVector(i),pos);
+       fncIt->second->GetTimeScheme()->InitStage(i,actTime_,PDE_.GetDomain());
+     }
+     stageSol.SetOwnership(false);
+
+     //initialize solution vector for each stage
+     if ( i > 0 )
+       oldSol = stageSol;
+     else{
+       //special case of incremental non-linearity, we set the stage vector to the solution vector
+       stageSol = oldSol;
+     }
+
+     solVec_  = oldSol;
+
+     // setup right hand side
+     Double loadFactor = 1.0;
+     incrementalErr = SetLinRHS(loadFactor);
+
+     // set iteration counter
+     UInt iterationCounter=0;
+
+     do {
+       iterationCounter++;
+
+       // do matrices: Newton is not working for total formulation!!
+       isNewton = false;
+       assemble_->AssembleMatrices(isNewton);
+
+       // set RHS
+       algsys_->InitRHS(RhsLinVal_);
+
+       //now update RHS according to time stepping
+       for(matIt = matrices.begin();matIt != matrices.end();matIt++){
+         if(matIt->second < 0)
+           continue;
+         for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
+           fncIt->second->GetTimeScheme()->ComputeStageRHS(i,matIt->second,stageRHS_.GetPointer(pos));
+         }
+         algsys_->UpdateRHS(matIt->first,stageRHS_,true);
+       }
+
+       //due to incremental material formulation
+       algsys_->UpdateRHS(STIFFNESS,prevSol,true);
+
+       // set system matrix to zero initially, as ConstructEffectiveMatrix only
+       // sums up the contributions
+       matrix_factor_.clear();
+       algsys_->InitMatrix(SYSTEM);
+       for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
+         FeFctIdType fctId = fncIt->second->GetFctId();
+         fncIt->second->GetTimeScheme()
+           ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+         algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
+       }
+
+       PDE_.SetBCs();
+       algsys_->BuildInDirichlet();
+       algsys_->SetupPrecond();
+       algsys_->SetupSolver();
+
+       //always set inhomog. Dirichlet BCs
+       bool setIDBC = true;
+
+       algsys_->Solve(setIDBC);
+       algsys_->GetSolutionVal(newSol, setIDBC );
+
+       // calculate incremental error ========================================
+       diffSol = newSol;
+       diffSol.Add( -1.0, oldSol);
+       Double solIncrL2Norm = diffSol.NormL2();
+       Double solNewL2Norm = newSol.NormL2();
+
+       if (solNewL2Norm > 1)
+         incrementalErr = solIncrL2Norm / solNewL2Norm;
+       else
+         incrementalErr = solIncrL2Norm;
+
+       //just dummy things
+       Double etaLineSearch = 1.0;
+       Double residualErr = incrementalErr;
+
+       // output of norms and data
+       if ( nonLinLogging_ == true ) {
+         WriteNonLinIterToInfoXML(pdename_, 1,iterationCounter, residualErr, incrementalErr, etaLineSearch);
+         // write norm to file
+         logFile_ <<  iterationCounter << "\t"
+             << residualErr << "\t"
+             << incrementalErr << "\t"
+             << etaLineSearch << std::endl;
+       }
+
+       stageSol = newSol;
+       solVec_  = stageSol;
+
+       //store new solution
+       oldSol = newSol;
+
+       // boolean variable, holds condition if another iteration step is necessary
+       performOneMoreStep =
+         (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
+
+       if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+         EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
+                 << "' at iteration '" << iterationCounter
+                 << "'.\n ==> incremental error: " << incrementalErr
+                 << "\n ==> residual error: " << residualErr);
+       }
+
+     } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
+
+   } //stages
+
+   //update stage
+   for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt){
+     fncIt->second->GetTimeScheme()->FinishStep();
+   }
+
+   PDE_.FinilizeAfterTimeStep();
+  }
+
+
+
   void StdSolveStep::StepTransNonLinMaterial() {
 
     REFACTOR;
@@ -1004,7 +1161,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 //      iterationCounter++;
 //
 //      PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "nonLin", iterationCounter);
-//      
+//
 //      // re initialize RHS and system matrix
 //      algsys_->InitRHS();
 //
@@ -1098,165 +1255,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
   }
 
-
-  void StdSolveStep::StepTransNonLinHysteresis() {
-
-    REFACTOR;
-    //    bool performOneMoreStep;
-//
-//    Vector<Double> solInc( numEqns_ );
-//    Vector<Double> actSol( numEqns_ );
-//    Vector<Double> oldSol( numEqns_ );
-//    Vector<Double> prevSol( numEqns_ );
-//    actSol.Init();
-//
-//    // get actual solution
-//    algsys_->GetSolutionVal( actSol );
-//
-//    //solution from previous time step
-//    prevSol = actSol;
-//
-//    // perform predictor step
-//    if ( TS_alg_== NULL ) {
-//      EXCEPTION( "TS_alg has NULL-Pointer, in SolveStepMag::StepTransNonLin" );
-//    }
-//    else {
-//      //compute predictors
-//      TS_alg_->Predictor(actSol);
-//    }
-//
-//    //! account for Dirichlet BCs
-//    PDE_.SetBCs();
-//
-//    // currently just for testing!!
-//    // loop over load factor
-//    Double loadFactor = 0.0;
-//
-//    for ( UInt iload=0; iload<1; iload++ ) {
-//      loadFactor += 1.0;
-//      info->Get("PDE")->Get(pdename_)->Get("load_factor")->SetValue(loadFactor);
-//
-//      // setup right hand side
-//      Double RhsLinL2Norm = SetLinRHS(loadFactor);
-//
-//      // inner forces due to nonlin formulation
-//      assemble_->AssembleNonLinRHS();  
-//
-//      //Update RHS (mass matrix on right hand side)
-//      TS_alg_->UpdateRHS();
-//
-//      // set iteration counter
-//      UInt iterationCounter=0;
-//
-//      do {
-//
-//        iterationCounter++;
-//        oldSol = actSol;
-//
-//        PtrParamNode child_id = BaseDriver::CreateAnalysisIdChild(analysis_id, "load", iload, "nonLin", iterationCounter);
-//
-//        //        RHS is already set up!!
-//        if ( iterationCounter > 0 ) {
-//          // setup linear part of right hand side
-//          algsys_->InitRHS(RhsLinVal_);
-//
-//          // inner forces due to nonlin formulation
-//          assemble_->AssembleNonLinRHS();  
-//
-//          //Update RHS (mass matrix on right hand side)
-//          TS_alg_->UpdateRHS();
-//        }
-//
-//        assemble_->AssembleMatrices();
-//        algsys_->ConstructEffectiveMatrix(matrix_factor_);
-//        algsys_->BuildInDirichlet();
-//
-//        algsys_->SetupPrecond;
-//        algsys_->SetupSolver;
-//        algsys_->Solve;
-//
-//        // new solution is only an increment of the full solution =============
-//        algsys_->GetSolutionVal( solInc );
-//
-//        Double residualL2Norm;
-//        Double etaLineSearch = 1.0;
-//
-//        if ( lineSearch_ == "none" ) {
-//          actSol = solInc;
-//        }
-//        else {
-//          EXCEPTION("Currently lineSreach not supported" );
-//          residualL2Norm = LineSearch(solInc, actSol, etaLineSearch);
-//        }
-//
-//        //store actual solution to the solution-object sol_
-//        PDE_.SaveSolution(actSol.GetPointer(), actSol.GetSize() );
-//
-//        if ( lineSearch_ == "none" ) {
-//          // calculation of error norms
-//          // recalculate RHS with new values to get new residual (f^(k+1))=======
-//          algsys_->InitRHS(RhsLinVal_);
-//
-//          //substract from RHS: intFactro*MASS*acc - intFactor*DAMP*vel
-//          TS_alg_->UpdateRHS(actSol);
-//
-//          // substracte stiff-matrix from RHS
-//          TS_alg_->SubstractStiffnessFromRHS(actSol);
-//
-//          // inner forces due to nonlin formulation
-//          //assemble_->AssembleNonLinRHS( actTime_ );
-//
-//          Vector<Double> actRHS;
-//          algsys_->GetRHSVal( actRHS );
-//
-//          // calculation of residual error: L2Norm of ( f_i^(k+1) - f_a )
-//          residualL2Norm = PDE_.GetRhsL2Norm(actRHS);
-//        }
-//
-//        Double residualErr;
-//        if ( RhsLinL2Norm > 1.0 )
-//          residualErr    = residualL2Norm /  RhsLinL2Norm;
-//        else
-//          residualErr    = residualL2Norm;
-//
-//
-//        residualErr = 0.0;
-//
-//        // calculate incremental error
-//
-//        // compute L2-Norm of error between last incremental solution and
-//        // actual incremental solution
-//        Double solIncrL2Norm=0;
-//        for (UInt i=0; i<actSol.GetSize(); i++)
-//          solIncrL2Norm += (actSol[i]-oldSol[i])*(actSol[i]-oldSol[i]);
-//
-//        solIncrL2Norm = sqrt(solIncrL2Norm);
-//        Double actSolL2Norm = actSol.NormL2();
-//
-//        Double incrementalErr;
-//        if (actSolL2Norm > 1)
-//          incrementalErr = solIncrL2Norm / actSolL2Norm;
-//        else
-//          incrementalErr = solIncrL2Norm;
-//
-//        // --------------------------------------------------------------------
-//        // output of norms and data
-//        // --------------------------------------------------------------------
-//        if ( nonLinLogging_ == true )
-//          WriteNonLinIterToInfoXML(pdename_, iterationCounter, residualErr, incrementalErr, etaLineSearch);
-//
-//        // boolean variable, holds condition if another iteration step
-//        // is necessary
-//        performOneMoreStep =
-//          (incrementalErr > incStopCrit_)||(residualErr > residualStopCrit_);
-//
-//      } while(performOneMoreStep && iterationCounter < nonLinMaxIter_);
-//
-//    } // load step loop
-//
-//    //perform corrector step
-//    TS_alg_->Corrector(actSol);
-  }
 
 
   void StdSolveStep::PostStepTrans( ) {

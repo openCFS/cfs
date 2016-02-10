@@ -540,6 +540,9 @@ namespace CoupledField {
           
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
+
+          if ( nonLinTypes_[nonLinId] == HYSTERESIS )
+        	  isHysteresis_ = true;
         }
       }
 

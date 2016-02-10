@@ -21,7 +21,7 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionMapping.cc
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
-  
+  CoefFunctionHyst.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

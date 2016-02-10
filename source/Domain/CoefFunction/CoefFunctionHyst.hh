@@ -1,0 +1,99 @@
+#ifndef FILE_COEFFUNCTION_HYST_HH
+#define FILE_COEFFUNCTION_HYST_HH
+
+#include <boost/tr1/type_traits.hpp>
+#include "General/Environment.hh"
+#include "CoefFunction.hh"
+#include "Materials/BaseMaterial.hh"
+#include "FeBasis/FeFunctions.hh"
+
+namespace CoupledField {
+
+// forward class declaration
+class ApproxData;
+class BaseBOperator;
+class Grid;
+class FeFunctions;
+
+
+// ============================================================================
+//  Hysteresis
+// ============================================================================
+//! Provide a coefficient for hysteresis modeling
+//! \note This class only works for real-valued scalar data.
+class CoefFunctionHyst : public CoefFunction{
+public:
+
+  //! Constructor
+  CoefFunctionHyst( BaseMaterial* const material,
+                    shared_ptr<ElemList> actSDList,
+                    PtrCoefFct dependency,
+					SubTensorType tensorType,
+					MaterialType matType);
+
+  //! Destructor
+  virtual ~CoefFunctionHyst();
+  
+  //! Initialize with data
+  void Init( BaseMaterial* const material, shared_ptr<ElemList> actSDList);
+  
+  //! \see CoefFunction::GetScalar
+  void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
+
+  //! Return real-valued tensor at integration point
+  void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm );
+
+  //!
+  void SetPreviousHystVals();
+
+  //! \see CoefFunction::ToString
+  std::string ToString() const;
+
+protected:
+  
+  //! compute X and Y value
+  void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y);
+
+  //! Constant initial value of the curve
+  Double coefScalar_;
+  
+  //! hysteresis object
+  Hysteresis * hyst_;
+
+  //! previous Xval in hysteresis
+  Vector<Double> Xprevious_;
+
+  //! previous Yal in hysteresis
+  Vector<Double> Yprevious_;
+
+  //! globale element to local element numbering
+  std::map<UInt, UInt> globalElem2Local_;
+  
+  //! Coefficient function which this one depends one
+  PtrCoefFct dependCoef_;
+
+  //! type of material
+   MaterialType matType_;
+
+  //! type of subtensor
+  SubTensorType tensorType_;
+
+  //! direction to be traken from vector in case of sclalar hystersis
+  Directions dirP_;
+
+  //! initial material tensor
+  Matrix<Double> matTensorStart_;
+
+  //! delta material tensor
+  Matrix<Double> matDeltaTensor_;
+
+  //! list of all elements
+  shared_ptr<ElemList> SDList_;
+
+  //!
+  BaseMaterial* material_;
+};
+
+
+}
+#endif

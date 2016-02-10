@@ -802,7 +802,6 @@ namespace CoupledField {
         // read E saturation of Preisach hysterese model
         if(p->Has("eSat"))
           material->SetScalar(p->Get("eSat")->As<Double>(), X_SATURATION, Global::REAL ); 
- 
         // read P saturation of Preisach hysterese model
         if(p->Has("pSat"))
           material->SetScalar(p->Get("pSat")->As<Double>(), Y_SATURATION, Global::REAL ); 

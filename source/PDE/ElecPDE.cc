@@ -17,8 +17,10 @@
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/Mesh/NcInterfaces/MortarInterface.hh"
+#include "Domain/CoefFunction/CoefFunctionHyst.hh"
 #include "Utils/StdVector.hh"
 #include "Driver/SolveSteps/SolveStepElec.hh"
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/Assemble.hh"
 #include "Utils/ApproxData.hh"
 #include "Utils/SmoothSpline.hh"
@@ -65,7 +67,7 @@ namespace CoupledField {
  
     nonLin_         = false;
     nonLinMaterial_ = false;
-    isAlwaysStatic_ = true;
+//    isAlwaysStatic_ = true;
     isPiezoCoupled_ = false;
     
     //! Always use updated Lagrangian formulation 
@@ -79,15 +81,6 @@ namespace CoupledField {
   void ElecPDE::InitNonLin() {
 
     SinglePDE::InitNonLin();
-
-    //now do PDE specifics
-    std::map<std::string, NonLinType>::iterator it;
-    for ( it=nonLinTypes_.begin() ; it != nonLinTypes_.end(); it++ ) {
-      if ( (*it).second == HYSTERESIS ) {
-        isHysteresis_ = true;
-      }
-    }
-
   }
 
   void ElecPDE::ReadDampingInformation()
@@ -117,6 +110,7 @@ namespace CoupledField {
         tensorType = PLANE_STRAIN;
       }
     }
+
 
     // if the pde is piezo-coupled, the electrostatic entries
     // have to be multiplied with -1
@@ -713,41 +707,53 @@ namespace CoupledField {
     bool isComplex = complexMatData_[regionId];
 
     shared_ptr<CoefFunction > curCoef;
-    if ( isComplex ) {
-      curCoef = 
-        actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
-                                   Global::COMPLEX);
+    //get possible nonlinearities defined in this region
+    StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
+    if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
+    	// create new entity list
+    	shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+    	actSDList->SetRegion( regionId );
+    	PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+    	curCoef.reset(new CoefFunctionHyst( actSDMat, actSDList,
+						                    elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
+    	hysteresisCoefs_->AddRegion( regionId, curCoef);
     }
     else {
-      curCoef = 
-        actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
-                                   Global::REAL);
+
+    	if ( isComplex ) {
+    		curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+                                                  Global::COMPLEX);
+    	}
+    	else {
+    		curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+                                                  Global::REAL);
+    	}
     }
     
-    regionPermittivity_[regionId] = curCoef;
 
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
-      factor = -1.0;
-    
-    if ( isComplex ) {
-      if( dim_ == 2 ) {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
-                                             curCoef, factor, updatedGeo_ );
-      } else {
-        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
-                                             curCoef, factor, updatedGeo_ );
-      }
+    	factor = -1.0;
+
+
+    if ( isComplex && !isHysteresis_) {
+    	if( dim_ == 2 ) {
+    		integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
+    				curCoef, factor, updatedGeo_ );
+    	} else {
+    		integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
+    				curCoef, factor, updatedGeo_ );
+    	}
     }
     else {
-      if( dim_ == 2 ) {
-        integ = new BDBInt<>(new GradientOperator<FeH1,2> (), 
-            curCoef, factor, updatedGeo_ );
-      } else {
-        integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
-            curCoef, factor, updatedGeo_ );
-      }
+    	if( dim_ == 2 ) {
+    		integ = new BDBInt<>(new GradientOperator<FeH1,2> (),
+    				curCoef, factor, updatedGeo_ );
+    	} else {
+    		integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
+    				curCoef, factor, updatedGeo_ );
+    	}
     }
 
     return integ;
@@ -860,7 +866,29 @@ namespace CoupledField {
   }
 
   void ElecPDE::DefineSolveStep() {
-    solveStep_ = new SolveStepElec(*this);
+    solveStep_ = new StdSolveStep(*this);
+  }
+
+  void ElecPDE::InitTimeStepping() {
+	  Double gamma = 1.0;
+	  GLMScheme * scheme = new Trapezoidal(gamma);
+
+	  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0)); //, nlType) );
+	  feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
+  }
+
+  void ElecPDE::FinilizeAfterTimeStep() {
+
+	  //check for hysteresis
+	  if ( isHysteresis_ ) {
+		  //set current values to previous values for hysteresis operator
+		  //needed for the next time step
+		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+			  it->second->SetPreviousHystVals();
+		  }
+	  }
   }
 
   void ElecPDE::ReadSpecialBCs( ) 
@@ -1038,6 +1066,18 @@ namespace CoupledField {
     }
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
+
+    if ( isHysteresis_) {
+	   hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+	   shared_ptr<ResultInfo> elecP ( new ResultInfo );
+	   elecP->resultType = ELEC_POLARIZATION;
+	   elecP->dofNames = "";
+	   elecP->unit = "C/m^2";
+	   elecP->definedOn = ResultInfo::ELEMENT;
+	   elecP->entryType = ResultInfo::SCALAR;
+	   DefineFieldResult( hysteresisCoefs_, elecP );
+	   availResults_.insert( elecP );
+    }
 
     // === ELECTRIC SURFACE CHARGE DENSITY ===
     shared_ptr<ResultInfo> chargeD(new ResultInfo);
