@@ -9,6 +9,7 @@
 
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "SinglePDE.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -82,7 +83,21 @@ namespace CoupledField
     /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D)
      * @param isComplex either from complex material or bloch mode */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex);
+
+    /** Returns a stiffness integrator appropriate to the actual problem (e.g. 3D) with the material tensor scaled by a given factor
+     * @param isComplex either from complex material or bloch mode
+     * @param scalingFactor is a factor the material tensor to be multiplied by */
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
     
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, PtrCoefFct scalingFactor, bool isComplex, bool useICModes);
+
+    //! Return flux integrator used for Nitsche coupling
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Complex factor,
+                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA, bool icModes, bool preStress = false);
+
+    //! Return penalty integrator used for Nitsche coupling
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir);
+
     //! Return strain operator 
     BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);
 
@@ -123,7 +138,10 @@ namespace CoupledField
     
     //! Stores the linear stiffness for each region
     std::map<RegionIdType, PtrCoefFct > regionStiffness_;
-    
+
+    //! Stores the prestressing for each region
+    std::map<RegionIdType, PtrCoefFct > regionPreStress_;
+
     //! Dimension of stresses
     UInt stressDim_;
     

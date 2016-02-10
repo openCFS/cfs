@@ -152,6 +152,8 @@
 
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
+                <!-- Bloch periodic Boundary Conditions applied to full displacement vector -->
+                <xsd:element name="blochPeriodic" type="DT_BcBlochPeriodicFull" form="qualified"/>
               </xsd:choice>
 
             </xsd:complexType>
@@ -184,6 +186,7 @@
               <xsd:enumeration value="planeStress"/>
               <xsd:enumeration value="flatShell"/>
               <xsd:enumeration value="3d"/>
+              <xsd:enumeration value="2.5d"/> <!-- 3d vector dependent on two spacial coordinates -->
               <xsd:enumeration value="axi"/>
             </xsd:restriction>
           </xsd:simpleType>

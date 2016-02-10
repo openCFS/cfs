@@ -193,7 +193,7 @@ class MortarInterface : public BaseNcInterface {
     //chache for temporary points in intersect poly
     //this will prevent functioning in case of OMP!!!!!!
     //make threadlocal storage for this to work
-    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_, tPoly_;
+    StdVector< Vector<Double> > p1Poly_, p2Poly_, rPoly_;
     UInt oldPoly1_;
     UInt oldPoly2_;
 

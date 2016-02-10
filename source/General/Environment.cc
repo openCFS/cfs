@@ -610,7 +610,7 @@ namespace CoupledField {
     else if ( in == "axi" ) {
       out = AXI;
     }
-    else if ( in == "3d" ) {
+    else if ( in == "3d" || in == "2.5d") {
       out = FULL;
     }
     else {

@@ -394,9 +394,10 @@ SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                       RegionIdType masterVolRegion,
                       RegionIdType slaveVolRegion,
                       bool coplanar,
-                      bool coordUpdate)
+                      bool coordUpdate,
+                      BiLinearForm::CouplingDirection cplDirection)
 : ABInt<COEF_DATA_TYPE, B_DATA_TYPE>( aOp, bOp, scalCoef, factor, coordUpdate),
-  isCoplanar_(coplanar)
+  isCoplanar_(coplanar), cplDirection_(cplDirection)
 {
   this->name_ = "SurfaceMortarABInt";
   this->isSymmetric_ = true;
@@ -523,10 +524,21 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
     lpmSlave.Set( ipSlave, esmSlave, this->volRegions_, weights[i] );
 
     // Calculate A-matrix (first differential operator)
-    this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
-
     // Calculate B-matrix (second differential operator)
-    this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+    if (cplDirection_ == BiLinearForm::MASTER_SLAVE)
+    {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmMaster, ptFeMaster );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmSlave, ptFeSlave );
+    }
+    else if (cplDirection_ == BiLinearForm::SLAVE_MASTER)
+    {
+      this->aOperator_->CalcOpMat( this->aMat_, lpmSlave, ptFeSlave );
+      this->bOperator_->CalcOpMat( this->bMat_, lpmMaster, ptFeMaster );
+    }
+    else
+    {
+      EXCEPTION("Cannot calculate operator matrices for the current coupling direction: " + boost::lexical_cast<std::string>(cplDirection_));
+    }
 
     // Calculate scalar factor
     this->coefScalar_->GetScalar(fac, lpmSlave);
@@ -550,14 +562,19 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
 ::SetFeSpace( shared_ptr<FeSpace> feSpace1, shared_ptr<FeSpace> feSpace2 ) {
   shared_ptr<BaseFeFunction> feFunc1 = feSpace1->GetFeFunction().lock(),
                              feFunc2 = feSpace2->GetFeFunction().lock();
-  
-  if ( feFunc1->GetResultInfo()->resultType == LAGRANGE_MULT ) {
+  // IsLagrSurfSpace check is included to be able to work with other kinds of Lagrange multipliers
+  if (feFunc1->GetResultInfo()->resultType == LAGRANGE_MULT)
+  {
     ptFeSpaceLM_ = feFunc1->GetFeSpace();
     ptFeSpaceField_ = feFunc2->GetFeSpace();
-  } else if (feFunc2->GetResultInfo()->resultType == LAGRANGE_MULT) {
+  }
+  else if (feFunc2->GetResultInfo()->resultType == LAGRANGE_MULT)
+  {
     ptFeSpaceLM_ = feFunc2->GetFeSpace();
     ptFeSpaceField_ = feFunc1->GetFeSpace();
-  } else {
+  }
+  else
+  {
     EXCEPTION("FeSpace for Lagrange multiplier is not defined");
   }
   

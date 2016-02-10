@@ -128,22 +128,38 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
 
   // get surface element
   const SurfElem* surfElem = (shapeMap->GetSurfElem());
-  //cast down to mortar element
+  // cast down to mortar element
   const MortarNcSurfElem * mortarElem =
-      dynamic_cast<const MortarNcSurfElem*>(surfElem);
+        dynamic_cast<const MortarNcSurfElem*>(surfElem);
   // if we have not previously selected the correct volume neighbor, we
   // have to do it now
   shared_ptr<ElemShapeMap> esmVol;
 
   const Elem * ptVolElem = NULL;
   const SurfElem * ptSurfElem = NULL;
-  if (useMaster){
-    ptVolElem = mortarElem->ptMaster->ptVolElems[0];
-    ptSurfElem = mortarElem->ptMaster;
+  if(mortarElem){
+      if (useMaster){
+         ptVolElem = mortarElem->ptMaster->ptVolElems[0];
+         ptSurfElem = mortarElem->ptMaster;
+      }else{
+        ptVolElem = mortarElem->ptSlave->ptVolElems[0];
+        ptSurfElem = mortarElem->ptSlave;
+      }
   }else{
-    ptVolElem = mortarElem->ptSlave->ptVolElems[0];
-    ptSurfElem = mortarElem->ptSlave;
+     ptVolElem = surfElem->ptVolElems[0];
+     ptSurfElem = surfElem;
+
+     if(!ptVolElem || !ptSurfElem){
+       Exception("Determination of volume element failed for not-mortar Case.");
+     }
   }
+
+  // kirill:
+  // For periodic boundary conditions, the intersection element may not coincide with the master/slave element.
+  // Therefore, the corresponding volume element will not lie adjacent to it. For this reason
+  // we must do the calculations with respect to the chosen 'ptSurfElem' which is either master or slave
+  // and definitely connected with 'ptVolElem'.
+  shared_ptr<ElemShapeMap> esmSurfElem = shapeMap->GetGrid()->GetElemShapeMap(ptSurfElem, shapeMap->IsUpdated());
 
   lpmVol.reset(new LocPointMapped());
   esmVol =  shapeMap->GetGrid()->GetElemShapeMap(ptVolElem,
@@ -156,6 +172,15 @@ void LocPointMapped::SetMortar(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   Vector<Double> globalPoint;
   Vector<Double> localPoint;
   esm->Local2Global(globalPoint, lp);
+
+  // kirill:
+  // We cannot simply map the global point lying on our surface element to the volume element: in case of mortar element
+  // for p.b.c., the global point can lie out of the volume element. That's why we first map the global point form the NC-element to
+  // the master (or slave) surface element in order to calculate the corresponding local point in the adjacent volume element.
+  // The mapping is performed in accordance with the transformation between the master and the slave surfaces.
+  if (mortarElem->transVect.GetSize())
+    esmSurfElem->TranslatePointOntoSurface(mortarElem->transVect, globalPoint);
+
   esmVol->Global2Local(localPoint, globalPoint);
   lpVol.coord = localPoint;
   lpVol.number = -1;
@@ -395,25 +420,101 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   }
 }
 
+void LagrangeElemShapeMap::TranslatePointOntoSurface(const Vector<Double>& direction, Vector<Double>& point)
+{
+  const ElemShape& shape = *shape_;
+
+  // make sure that we are not trying to project the point onto a volume element
+  if (shape.dim == ptGrid_->GetDim())
+  {
+    EXCEPTION("It is possible to project onto a surface element only.");
+    return;
+  }
+
+  if (ptGrid_->GetDim() == 2)
+  {
+    // TODO: think how to do in 2D
+    // projection onto a segment
+    Vector<Double> p1, p2, norm(2);
+    Double lambda;
+    Local2Global(p1, shape.nodeCoords[0]);
+    Local2Global(p2, shape.nodeCoords[1]);
+    p2 -= p1;
+
+    norm[0] = p2[1];
+    norm[1] = -p2[0];
+    norm.Normalize();
+    p2 = point - p1;
+    lambda = norm.Inner(p2)/norm.Inner(direction);
+    point -= direction*lambda;
+  }
+  else
+  {
+    // projection onto a polygon
+    Vector<Double> p0, p1, p2, norm;
+    Double lambda;
+    Local2Global(p0, shape.nodeCoords[0]);
+    Local2Global(p1, shape.nodeCoords[1]);
+    Local2Global(p2, shape.nodeCoords[2]);
+
+    p1 -= p0;
+    p2 -= p0;
+    p1.CrossProduct(p2, norm);
+    norm.Normalize();
+    p1 = point - p0;
+    lambda = norm.Inner(p1)/norm.Inner(direction);
+    point -= direction*lambda;
+  }
+}
+
 void LagrangeElemShapeMap::Global2LocalBarycentric(Vector<Double>& locPoint,
     const Vector<Double>& globalPoint) {
-  //todo: check if we have 2D element in 3D
 
   const ElemShape & shape = *shape_;
   
   if (ptFe_->FeType() == Elem::ET_TRIA3) {
 
-    Double lamb1 = (coords_[1][1] - coords_[1][2])
-        * (globalPoint[0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (globalPoint[1] - coords_[1][2]);
-    lamb1 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    Double lamb1, lamb2;
 
-    Double lamb2 = (coords_[1][2] - coords_[1][0])
-        * (globalPoint[0] - coords_[0][2])
-        + (coords_[0][0] - coords_[0][2]) * (globalPoint[1] - coords_[1][2]);
-    lamb2 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
-        + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    if (ptGrid_->GetDim() == 3)
+    {
+      // kirill:
+      // form here "http://gamedev.stackexchange.com/questions/23743/whats-the-most-efficient-way-to-find-barycentric-coordinates"
+      // in 3D the global point has to be projected to the element plane
+      Vector<Double> p0, p1, p2, norm;
+      Local2Global(p0, shape.nodeCoords[0]);
+      Local2Global(p1, shape.nodeCoords[1]);
+      Local2Global(p2, shape.nodeCoords[2]);
+
+      p1 -= p0; // vector AB
+      p2 -= p0; // vector AC
+      p0 -= globalPoint; // vector PA
+      p1.CrossProduct(p2, norm);
+      // we calculate the doubled square of the initial triangle ABC
+      Double sqrABC_2 = norm.NormL2();
+      // and the doubled squares of the triangles PBC and PAC, respectively
+      p2.CrossProduct(p0, norm);
+      Double sqrPAC_2 = norm.NormL2();
+      p1.CrossProduct(p0, norm);
+      Double sqrPBC_2 = sqrABC_2 - sqrPAC_2 - norm.NormL2();
+
+      lamb1 = sqrPBC_2/sqrABC_2;
+      lamb2 = sqrPAC_2/sqrABC_2;
+    }
+    else
+    {
+      lamb1 = (coords_[1][1] - coords_[1][2])
+            * (globalPoint[0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (globalPoint[1] - coords_[1][2]);
+      lamb1 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+
+      lamb2 = (coords_[1][2] - coords_[1][0])
+            * (globalPoint[0] - coords_[0][2])
+            + (coords_[0][0] - coords_[0][2]) * (globalPoint[1] - coords_[1][2]);
+      lamb2 /= ((coords_[1][1] - coords_[1][2]) * (coords_[0][0] - coords_[0][2])
+            + (coords_[0][2] - coords_[0][1]) * (coords_[1][0] - coords_[1][2]));
+    }
 
     Double lamb3 = 1 - lamb1 - lamb2;
     locPoint.Resize(2);

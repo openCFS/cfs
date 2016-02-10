@@ -2,7 +2,7 @@
 #define FILE_ELECPDE_NEW
 
 #include "SinglePDE.hh"
-//#include "Forms/BiLinForms/BiLinearForm.hh"
+#include "Forms/BiLinForms/BiLinearForm.hh"
 
 namespace CoupledField
 {
@@ -107,13 +107,16 @@ namespace CoupledField
 
     //! Return linear stiffness integrator for a given region
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId);
+
+    //! Return linear stiffness integrator for a given region with the material tensor scaled by 'scalingFactor'
+    BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId, PtrCoefFct scalingFactor);
     
-//    //! Return flux integrator used for Nitsche coupling
-//    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Complex factor,
-//                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA) {return NULL;};
-//
-//    //! Return penalty integrator used for Nitsche coupling
-//    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir) {return NULL;};
+    //! Return flux integrator used for Nitsche coupling
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFnc, Complex factor,
+                                    BiLinearForm::CouplingDirection cplDir, bool fluxOpA);
+
+    //! Return penalty integrator used for Nitsche coupling
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir);
 
     // *****************
     //  POSTPROCESSING
@@ -159,7 +162,7 @@ namespace CoupledField
     std::map<RegionIdType, PtrCoefFct > regionPermittivity_;
 
     //! Tensor type
-    SubTensorType tensorType_;
+//    SubTensorType tensorType_;
 
   };
 

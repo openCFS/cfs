@@ -508,30 +508,19 @@
   <!-- ******************************************************************* -->
   <!--   Bloch periodic boundary conditions                                -->
   <!-- ******************************************************************* -->
-
-  <!-- Bloch-periodic boundary conditions -->
   <xsd:complexType name="DT_BcBlochPeriodicFull">
-    <xsd:annotation/>    
+    <xsd:annotation>
+      <xsd:documentation>
+        Defines Bloch-periodic boundary conditions with a factor diven by its absolute value and the argument, i.e. phase (IN RADIANS!). 
+        One can also specify the approach the boundary conditions are to be handled: eiter mortar of Nitsche.
+      </xsd:documentation>
+    </xsd:annotation>    
     <xsd:complexContent>
       <xsd:extension base="DT_BCBasic">
         <xsd:sequence>
           <xsd:element name="region" maxOccurs="unbounded">
             <xsd:complexType>
               <xsd:attribute name="name" type="xsd:token" use="required"/>
-              <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche" />
-              <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100" />
-              <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2" />
-              <xsd:attribute name="lagrangeMultType" use="optional" default="standard">
-                <xsd:simpleType>
-                  <xsd:restriction base="xsd:token">
-                    <xsd:enumeration value="standard"/>
-                    <xsd:enumeration value="dualDiscont"/>
-                    <xsd:enumeration value="dualCubic"/>
-                  </xsd:restriction>
-                </xsd:simpleType>
-              </xsd:attribute>
-              <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
-              <xsd:attribute name="movingMortar" type="DT_CFSBool" use="optional" default="no"/>
               <xsd:attribute name="polyId" use="optional" default="default"/>
               <xsd:attribute name="integId" use="optional" default="default"/>
             </xsd:complexType>
@@ -539,6 +528,20 @@
         </xsd:sequence>
         <xsd:attribute default="1.0" name="factor_value" type="xsd:token"/>
         <xsd:attribute default="0.0" name="factor_phase" type="xsd:token"/>
+        <xsd:attribute name="formulation" type="DT_NMGFormulationBasic" use="optional" default="Nitsche" />
+        <xsd:attribute name="nitscheFactor" type="xsd:double" use="optional" default="100" />
+        <xsd:attribute name="nitscheFactorDamping" type="xsd:double" use="optional" default="1e-2" />
+        <xsd:attribute name="lagrangeMultType" use="optional" default="standard">
+          <xsd:simpleType>
+            <xsd:restriction base="xsd:token">
+              <xsd:enumeration value="standard"/>
+              <xsd:enumeration value="dualDiscont"/>
+              <xsd:enumeration value="dualCubic"/>
+            </xsd:restriction>
+          </xsd:simpleType>
+        </xsd:attribute>
+        <xsd:attribute name="crossPointHandling" type="DT_CFSBool" use="optional" default="no"/>
+        <xsd:attribute name="movingMortar" type="DT_CFSBool" use="optional" default="no"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
