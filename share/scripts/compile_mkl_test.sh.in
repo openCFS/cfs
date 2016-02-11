@@ -59,13 +59,13 @@ for MKLROOT in $MKL_ROOT_DIRS; do
     #endif
 
     MKL_INT main() {
-            MKLVersion ver;
-            MKL_Get_Version(&ver);
-            printf(\"\nSET(MKL_MAJOR_VERSION %d)\n\", ver.MajorVersion);
-            printf(\"\nSET(MKL_MINOR_VERSION %d)\n\n\", ver.MinorVersion);
-            MKL_Free_Buffers();
+        MKLVersion ver;
+        MKL_Get_Version(&ver);
+        printf(\"\nSET(MKL_MAJOR_VERSION %d)\n\", ver.MajorVersion);
+        printf(\"\nSET(MKL_MINOR_VERSION %d)\n\n\", ver.MinorVersion);
+        MKL_Free_Buffers();
 
-            exit(0);
+        exit(0);
     }" > $SRC || ExitFail
 
     # Try  to  determine  the  Intel  compiler's lib  dir,  if  available,  by
@@ -82,20 +82,20 @@ for MKLROOT in $MKL_ROOT_DIRS; do
 #    echo $BASEDIRS
 
     for BASEDIR in $BASEDIRS; do
-	LIB="$BASEDIR/libiomp5.a"
+        LIB="$BASEDIR/libiomp5.a"
 
-	if [ -f $LIB ]; then
-#	    echo "Jipi found $LIB"
-	    OMP_LIB_PATH="\"$BASEDIR\""
-	    LIB_PATH="$OMP_LIB_PATH:$LIBPATH"
-	fi
+        if [ -f $LIB ]; then
+#            echo "Jipi found $LIB"
+            OMP_LIB_PATH="\"$BASEDIR\""
+            LIB_PATH="$OMP_LIB_PATH:$LIBPATH"
+        fi
 
-	LIB="$BASEDIR/libguide.a"
+        LIB="$BASEDIR/libguide.a"
 
-	if [ -f $LIB ]; then
-#	    echo "Jipi found $LIB"
-	    LIB_PATH="\"$BASEDIR\":$LIBPATH"
-	fi
+        if [ -f $LIB ]; then
+#            echo "Jipi found $LIB"
+            LIB_PATH="\"$BASEDIR\":$LIBPATH"
+        fi
     done
 #    echo "OMP_LIB_PATH: $OMP_LIB_PATH"
 #    echo "LIB_PATH: $LIB_PATH"
@@ -106,48 +106,48 @@ for MKLROOT in $MKL_ROOT_DIRS; do
 
     # Search for the proper $MKLROOT/examples/solver[c]/makefile.
     if [ -f $MKLROOT/examples/solver/makefile ]; then
-      SOLVERMAKEFILE=$MKLROOT/examples/solver/makefile
+        SOLVERMAKEFILE=$MKLROOT/examples/solver/makefile
     else
-      if [ -f $MKLROOT/examples/solverc/makefile ]; then
-        SOLVERMAKEFILE=$MKLROOT/examples/solverc/makefile
-        echo "SOLVER = dss_sym_c" > solverc.lst
-      else
-        if [ -f $MKLROOT/examples/examples_core.tgz  ]; then
-          tar xzf $MKLROOT/examples/examples_core.tgz
-          SOLVERMAKEFILE=$PWD/solverc/makefile
-          echo "SOLVER = dss_sym_c" > solverc.lst
-        else
-          if [ -f $MKLROOT/examples/examples_core_c.tgz  ]; then
-            tar xzf $MKLROOT/examples/examples_core_c.tgz
-            SOLVERMAKEFILE=$PWD/solverc/makefile
+        if [ -f $MKLROOT/examples/solverc/makefile ]; then
+            SOLVERMAKEFILE=$MKLROOT/examples/solverc/makefile
             echo "SOLVER = dss_sym_c" > solverc.lst
-          else
-            echo "Could not find examples solver make file in $MKLROOT."
-            ExitFail
-          fi  
+        else
+            if [ -f $MKLROOT/examples/examples_core.tgz  ]; then
+                tar xzf $MKLROOT/examples/examples_core.tgz
+                SOLVERMAKEFILE=$PWD/solverc/makefile
+                echo "SOLVER = dss_sym_c" > solverc.lst
+            else
+                if [ -f $MKLROOT/examples/examples_core_c.tgz  ]; then
+                    tar xzf $MKLROOT/examples/examples_core_c.tgz
+                    SOLVERMAKEFILE=$PWD/solverc/makefile
+                    echo "SOLVER = dss_sym_c" > solverc.lst
+                else
+                    echo "Could not find examples solver make file in $MKLROOT."
+                    ExitFail
+                fi  
+            fi
         fi
-      fi
     fi
 
     # Cat  the makefile and  replace some  strings, so  that it  will properly
     # build the test executable.
     if [ "$OMP_LIB_PATH" = "" ]; then
-	cat $SOLVERMAKEFILE | \
-	    sed 's|PWD)|MKLROOT\)/examples/solver|' | \
-	    sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
-	    sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
-	    sed "s|CC = [gi]cc|CC = $CC|" | \
-	    sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
-	    > makefile || ExitFail
+        cat $SOLVERMAKEFILE | \
+            sed 's|PWD)|MKLROOT\)/examples/solver|' | \
+            sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
+            sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
+            sed "s|CC = [gi]cc|CC = $CC|" | \
+            sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
+            > makefile || ExitFail
     else
-	cat $SOLVERMAKEFILE | \
-	    sed 's|PWD)|MKLROOT\)/examples/solver|' | \
-	    sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
-	    sed "s|OMP_LIB = |OMP_LIB = -L$OMP_LIB_PATH |" | \
-	    sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
-	    sed "s|CC = [gi]cc|CC = $CC|" | \
-	    sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
-	    > makefile || ExitFail
+        cat $SOLVERMAKEFILE | \
+            sed 's|PWD)|MKLROOT\)/examples/solver|' | \
+            sed 's|-I\.\./\.\./include|-I$(MKLROOT)/include|' | \
+            sed "s|OMP_LIB = |OMP_LIB = -L$OMP_LIB_PATH |" | \
+            sed "s|[\"]*\$(MKL_PATH)[\"]*:|\"\$(MKL_PATH)\":$LIB_PATH:|" | \
+            sed "s|CC = [gi]cc|CC = $CC|" | \
+            sed "s|COMPILER = [gi]cc|COMPILER = $CC|" \
+            > makefile || ExitFail
     fi
 
     make F=$MKL_COMPILER_ID compiler=$MKL_COMPILER_ID $MKL_ARCH_ID threading=$MKL_THREADING_ID function=dss_sym_c > out.txt 2>&1 || ExitFail
@@ -163,14 +163,14 @@ for MKLROOT in $MKL_ROOT_DIRS; do
     echo "SET(MKL_BLAS_LIB"
     for item in $cmdline; do 
 
-	# If we come  across the first -L or  -Wl,--start-group directives, we
-	# need to start our printout.
+        # If we come  across the first -L or  -Wl,--start-group directives, we
+        # need to start our printout.
         START=$(echo $item | sed 's|\(-L\)\(.*\)|\1|')
         if [ "$START" = "-L" -o "$START" = "-Wl,--start-group" -a "$PRINT" = "0" ]; then
             PRINT=1
         fi
 
-	# If we come across the -o switch printout has to turned off.
+        # If we come across the -o switch printout has to turned off.
         END=$(echo $item | sed 's|\(-o\)\(.*\)|\1|')
         if [ "$END" = "-o" -a "$PRINT" = "1" ]; then
             PRINT=0
@@ -178,34 +178,34 @@ for MKLROOT in $MKL_ROOT_DIRS; do
 
         if [ "$PRINT" = "1" ]; then
             if [ "$(echo $item | grep solver)" = "" ]; then
-		if [ "$(echo $item | grep lapack)" = "" ]; then
-		    for BASEDIR in $BASEDIRS; do
-			ARCH="$BASEDIR/lib$(echo $item | sed 's|-l||').a"
-			if [ -f "$ARCH" ]; then
-			    item="$ARCH"
-			fi
-		    done
-		    
+                if [ "$(echo $item | grep lapack)" = "" ]; then
+                    for BASEDIR in $BASEDIRS; do
+                        ARCH="$BASEDIR/lib$(echo $item | sed 's|-l||').a"
+                        if [ -f "$ARCH" ]; then
+                            item="$ARCH"
+                        fi
+                    done
+
                     # Replace double quotes with nothing, since we properly
-		    # integrate them afterwards.
+                    # integrate them afterwards.
 
                     OUT=$(echo $item | sed 's|"||g')
                     echo "  \"$OUT\"" 
-		else
+                else
                     LAPACKLIB=$(echo $item | sed 's|"||g')
-		fi
+                fi
             else
                 SOLVERLIB=$(echo $item | sed 's|"||g')
             fi
         fi
 
-	# On Mac OS X the libraries are not enclosed in begin and end
+        # On Mac OS X the libraries are not enclosed in begin and end
         # group statements.
         if [ "$PRINT" = "0" ]; then
-	    if [ "$(echo $item | sed 's|\(.*\)\(libmkl_\)\(.*\)|\2|')" = "libmkl_" ]; then
+            if [ "$(echo $item | sed 's|\(.*\)\(libmkl_\)\(.*\)|\2|')" = "libmkl_" ]; then
                 OUT=$(echo $item | sed 's|"||g')
                 echo "  \"$OUT\"" 
-	    fi
+            fi
         fi
     done
     echo "  CACHE FILEPATH \"MKL BLAS.\")"

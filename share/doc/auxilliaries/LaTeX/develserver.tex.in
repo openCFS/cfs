@@ -4,6 +4,9 @@
 % Base directory for public FTP server.
 \def\CFSDSFTP{@CFS_DS_FTP@}
 
+% Base directory for secure FTP server.
+\def\CFSDSSFTP{@CFS_DS_SFTP@}
+
 % Base directory for restricted HTTPS server.
 \def\CFSDSHTTPS{@CFS_DS_HTTPS@}
 

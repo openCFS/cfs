@@ -514,10 +514,9 @@ namespace CFSTool {
         if( output) {
           output->BeginStep( actStepNum, actStepVal );
         }
-        std::cout << "\n\t=============================================\n";
-        std::cout << "\t  Treating step " << actStepNum << ", " << actStepVal
-            << "s / Hz\n";
-        std::cout << "\t=============================================\n";
+        std::cout << "\n\t======================================================\n";
+        std::cout << "\t  Treating step nr " << actStepNum << " val " << actStepVal << " s / Hz/ iteration\n";
+        std::cout << "\t======================================================\n";
 
         // iterate over all results
         for( UInt iRes = 0; iRes < inResults_fut.GetSize(); iRes++) {
@@ -531,7 +530,7 @@ namespace CFSTool {
           input_fut->GetResult( actMsStep, actStepNum, inResults_fut[iRes], isHistory );
           input_ref->GetResult( actMsStep, actStepNum, inResults_ref[iRes], isHistory );
 
-          std::cout << "\n\t-- Comparing result " <<
+          std::cout << "\t-- Comparing result " <<
               inResults_fut[iRes]->GetResultInfo()->resultName << " on " 
               << inResults_fut[iRes]->GetEntityList()->GetName() << " --\n";
 
@@ -1033,7 +1032,7 @@ int main(int argc, char** argv)
     {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)
@@ -1044,7 +1043,7 @@ int main(int argc, char** argv)
     } else if (param_mode == "convert") {
       if (file3 != "")
       {
-        EXCEPTION( "Two many arguments, please only provide two files. (in- and output file)" );
+        EXCEPTION( "Too many arguments, please only provide two files. (in- and output file)" );
       }
       file3 = file2;
       if (num_files != 2)
@@ -1069,10 +1068,8 @@ int main(int argc, char** argv)
                                   true, true, maxDiffResultName );
       Double maxDiff = std::max( maxDiffMesh, maxDiffHist );
       if( maxDiff > tolerance ) {
-        std::cout << "'" << file1 << "' and '" << file2
-                  << "' have maximum difference " << maxDiff
-                  << " at '" << maxDiffResultName << "' which is greater than "
-                  << "the specified tolerance " << tolerance << ".\n";
+        std::cout << "error: maximum difference " << maxDiff << " for '" << maxDiffResultName << "' > " << tolerance
+                  << " for '" << file1 << "' and '" << file2 << std::endl;
         exit(EXIT_FAILURE);
       } else {
         std::cout << "  No differences larger than tolerance found.\n";

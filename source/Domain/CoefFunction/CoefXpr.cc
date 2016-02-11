@@ -1715,7 +1715,7 @@ CoefXprVecScalOp::CoefXprVecScalOp( MathParser * mp,
 CoefXprVecScalOp::CoefXprVecScalOp( MathParser * mp,
                                     PtrCoefFct a, 
                                     const CoefXpr& b, 
-                                    CoefXpr::OpType op ) : CoefXpr(mp_) {
+                                    CoefXpr::OpType op ) : CoefXpr(mp) {
 
   Global::ComplexPart part;
   if( a->IsComplex() || b.IsComplex() ) {

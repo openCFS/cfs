@@ -240,6 +240,11 @@ void DefineInOutFiles::CreateSimInputFiles(PtrParamNode rootNode,
     else if (informat == "gmsh")
     {
 #ifdef USE_GMSH
+      std::cout << "use gmsh is on" << std::endl;
+#else
+      std::cout << "use gmsh is off" << std::endl;
+#endif
+#ifdef USE_GMSH
       if (meshFile == "")
         meshFile = simName + ".msh";
       inFiles[actId] = shared_ptr<SimInput> (

@@ -1,6 +1,5 @@
 # This collects some tool routines for optimization
 
-
 import libxml2
 import numpy
 import numpy.linalg
@@ -36,7 +35,7 @@ def read_density(filename, attribute="design", x=None, y=None, z=None, set=None,
     z = 1
 
   assert(x > 0 and y > 0 and z > 0)  
-
+  
   # density files where not the whole domain is design domain are read and re-written
   # as 1D arrays
   dim = cond(y > 1, cond(z > 1, 3, 2), 1)
@@ -275,7 +274,29 @@ def write_multi_design_file(filename, data, designs, elemnr=None):
   out.write(' </cfsErsatzMaterial>\n')
   out.close()
 
+## reads partial domain within a full array. E.g. if the design domain is circular
+def read_density_as_full_array(filename, attribute='design', fill=0.0, set = None):
+  msh  = read_mesh_info(filename, silent = False)
+  vals = read_density_as_vector(filename, attribute, set)
+  nrs  = read_density_as_vector(filename, 'nr', set)
 
+  assert(msh[2] == 1) # implement 3D if you need it
+  
+  a = numpy.ones(msh[0:2]) * fill  
+  
+  nx = msh[0]
+  ny = msh[1]
+  
+  assert(len(nrs) <= nx * ny)
+  
+  for i in range(len(nrs)):
+    n = int(nrs[i])
+    # assume a lexicographic order
+    y = int(n / ny)
+    x = n % ny
+    a[y, x] = vals[i]
+      
+  return a
 
 # # replaces the element numbers by new element numbers.
 # @param org ndarray of element numbers from read_density(,elemnr=True)

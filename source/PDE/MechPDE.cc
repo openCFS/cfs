@@ -1125,8 +1125,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrCoefFct ts = CoefFunction::Generate(mp_, Global::REAL, strain);
       assert(regionStiffness_[actRegion]->GetDimType() == CoefFunction::TENSOR);
       assert(ts->GetDimType() == CoefFunction::VECTOR);
-      LinearForm* lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
-
+      LinearForm* lin = NULL;
+      if(dim_ == 2)
+        lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+      else       
+        lin = new BDUIntegrator<StrainOperator3D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
       LinearFormContext* ctx = new LinearFormContext(lin);
       ctx->SetEntities(actSDList);
       ctx->SetFeFunction(myFct);
