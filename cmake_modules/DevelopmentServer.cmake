@@ -13,6 +13,11 @@ SET(CFS_DS_HOSTNAME "cfs.mdmt.tuwien.ac.at")
 SET(CFS_DS_FTP "ftp://${CFS_DS_HOSTNAME}")
 
 #-----------------------------------------------------------------------------
+# Base directory for secure FTP server.
+#-----------------------------------------------------------------------------
+SET(CFS_DS_SFTP "sftp://${CFS_DS_HOSTNAME}")
+
+#-----------------------------------------------------------------------------
 # Base directory for restricted HTTPS server.
 #-----------------------------------------------------------------------------
 SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}")
@@ -21,6 +26,11 @@ SET(CFS_DS_HTTPS "https://${CFS_DS_HOSTNAME}")
 # Base directory of WEBDAV server.
 #-----------------------------------------------------------------------------
 SET(CFS_DS_WEBDAV "${CFS_DS_HTTPS}/files")
+
+# ----------------------------------------------------------------------------
+# Alternative mirror from the optimization group - plain http!
+# ----------------------------------------------------------------------------
+SET(CFS_FAU_MIRROR "http://eamc080.eam.uni-erlangen.de/cfsdeps")
 
 #-----------------------------------------------------------------------------
 # Base directory of Subversion server.

@@ -17,7 +17,7 @@ set(openblas_install  "${CFS_BINARY_DIR}")
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
 SET(MIRRORS
-  "http://github.com/xianyi/OpenBLAS/tarball/v0.2.10/${OPENBLAS_GZ}"
+  "http://github.com/xianyi/OpenBLAS/tarball/${OPENBLAS_VER}/${OPENBLAS_GZ}"
   "${OPENBLAS_URL}/${OPENBLAS_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/openblas/${OPENBLAS_GZ}")
@@ -33,35 +33,78 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_download.cmake.in" "${DL
 SET(PFN_TEMPL "${CFS_SOURCE_DIR}/cfsdeps/openblas/openblas-patch.cmake.in")
 SET(PFN "${openblas_prefix}/openblas-patch.cmake")
 CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY) 
+
+PRECOMPILED_ZIP(PRECOMPILED_PCKG_FILE "openblas" "${OPENBLAS_VER}")
   
-#-------------------------------------------------------------------------------
-# The OpenBLAS external project, CFS_LIB_TARGET from the patched Makefile.install
-# NO_SHARED=1 is an openblas option to omit shared libraries. The standard should be with shared
-# but when done via this external project the shared libs are not built?! Therefore NO_SHARED
-# in the install command
-#-------------------------------------------------------------------------------
-ExternalProject_Add(openblas
-  PREFIX "${openblas_prefix}"
-  DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/openblas
-  URL ${LOCAL_FILE}
-  URL_MD5 ${OPENBLAS_MD5}
-  BUILD_IN_SOURCE 1
-  PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} libs netlib
-  INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install NO_SHARED=1 "PREFIX=${openblas_install}" "CFS_LIB_TARGET=${LIBRARY_OUTPUT_PATH}"
-  )
+# This should be either PREFIX_DIR (install manifest is used for zipping)
+# or INSTALL_DIR (install directory will be zipped)
+SET(TMP_DIR "${openblas_prefix}")
+
+SET(ZIPFROMCACHE "${openblas_prefix}/openblas-zipFromCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipFromCache.cmake.in" "${ZIPFROMCACHE}" @ONLY)
+
+SET(ZIPTOCACHE "${openblas_prefix}/openblas-zipToCache.cmake")
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/cmake_modules/cfsdeps_zipToCache.cmake.in" "${ZIPTOCACHE}" @ONLY)
 
 #-------------------------------------------------------------------------------
-# Add custom download step to be able to download from a list of mirrors
-# instead of just a single URL.
+# The OpenBLAS external project.
 #-------------------------------------------------------------------------------
-ExternalProject_Add_Step(openblas cfsdeps_download
-   COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
-   DEPENDERS download
-   DEPENDS "${DLFN}"
-   WORKING_DIRECTORY ${openblas_prefix}
-)
+IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package exists copy files from cache
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(openblas
+    PREFIX "${openblas_prefix}"
+    DOWNLOAD_COMMAND ${CMAKE_COMMAND} -P "${ZIPFROMCACHE}"
+    PATCH_COMMAND ""
+    UPDATE_COMMAND ""
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+  )
+ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+  #-------------------------------------------------------------------------------
+  # If precompiled package does not exist build external project
+  # CFS_LIB_TARGET from the patched Makefile.install
+  # NO_SHARED=1 is an openblas option to omit shared libraries. The standard should be with shared
+  # but when done via this external project the shared libs are not built?! Therefore NO_SHARED
+  # in the install command
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add(openblas
+    PREFIX "${openblas_prefix}"
+    DOWNLOAD_DIR ${CFS_DEPS_CACHE_DIR}/sources/openblas
+    URL ${LOCAL_FILE}
+    URL_MD5 ${OPENBLAS_MD5}
+    BUILD_IN_SOURCE 1
+    PATCH_COMMAND ${CMAKE_COMMAND} -P "${PFN}"
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND  ${CMAKE_MAKE_PROGRAM} libs netlib
+    INSTALL_COMMAND ${CMAKE_MAKE_PROGRAM} install NO_SHARED=1 "PREFIX=${openblas_install}" "CFS_LIB_TARGET=${LIBRARY_OUTPUT_PATH}"
+  )
+  
+  #-------------------------------------------------------------------------------
+  # Add custom download step to be able to download from a list of mirrors
+  # instead of just a single URL.
+  #-------------------------------------------------------------------------------
+  ExternalProject_Add_Step(openblas cfsdeps_download
+    COMMAND ${CMAKE_COMMAND} -P "${DLFN}"
+    DEPENDERS download
+    DEPENDS "${DLFN}"
+    WORKING_DIRECTORY ${openblas_prefix}
+  )
+  
+  IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON")
+    #-------------------------------------------------------------------------------
+    # Add custom step to zip a precompiled package to the cache.
+    #-------------------------------------------------------------------------------
+    ExternalProject_Add_Step(openblas cfsdeps_zipToCache
+      COMMAND ${CMAKE_COMMAND} -P "${ZIPTOCACHE}"
+      DEPENDEES install
+      DEPENDS "${ZIPTOCACHE}"
+      WORKING_DIRECTORY ${CFS_BINARY_DIR}
+    )
+  ENDIF()
+ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

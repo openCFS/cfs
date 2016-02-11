@@ -42,6 +42,11 @@ public:
     GetTensor<Complex>(coefMat, lpm);
   }
 
+  //! \copydoc CoefFunction::GetMsfemElementMatrix
+  void GetMsfemElementMatrix(Matrix<double>& elemMat, const LocPointMapped& lpm) {
+    GetMsfemElementMatrix<double>(elemMat, lpm);
+  }
+
   //! \copydoc CoefFunction::GetScalar
   void GetScalar(double& scal, const LocPointMapped& lpm) {
     GetScalar<double>(scal, lpm);
@@ -104,6 +109,9 @@ protected:
 
   template <class T>
   void GetTensor(Matrix<T>& coefMat, const LocPointMapped& lpm);
+
+  template <class T>
+   void GetMsfemElementMatrix(Matrix<T>& elemMat, const LocPointMapped& lpm);
 
   template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);

@@ -167,7 +167,6 @@ void OptimizationMaterial::GetElementMatrix(Matrix<T>& out, const std::string& i
     coef->SetToMaterialDerivative(direction);
 
   c->GetIntegrator()->CalcElementMatrix(out, it, it);
-
   coef->SetToOptimization(); // removes the shadow material and direction
 }
 
@@ -355,7 +354,7 @@ DenseMatrix& MechMat::MechStiffness(const Elem* elem, bool bimaterial, int multi
     return dynamic_cast<DenseMatrix& >(KC[index]); // no multimaterial is frst material
   }
   else {
-    LOG_DBG3(om) << "MS: el=" << elem->elemNum << " -> " << K[index].ToString();
+    LOG_DBG3(om) << "MS: direction= " << direction << " el=" << elem->elemNum << " -> " << K[index].ToString();
     return dynamic_cast<DenseMatrix& >(K[index]);
   }
 }

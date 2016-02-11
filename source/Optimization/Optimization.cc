@@ -822,6 +822,7 @@ double Optimization::CalcObjective()
   for(unsigned int e = 0; e < me->excitations.GetSize(); e++)
   {
     Excitation& excite = me->excitations[e];
+    excite.Apply(); // sets the corresponding context
     excite.cost = 0.0;
 
     for(unsigned int o = 0; o < objectives.data.GetSize(); o++)
@@ -829,7 +830,8 @@ double Optimization::CalcObjective()
       Objective* f = objectives.data[o];
 
       // some objectives are only to be evaluated for the last excitation
-      if(!f->DoEvaluate(&excite)) continue;
+      if(!f->DoEvaluate(&excite))
+        continue;
 
       //double ov = CalcObjective(excite, f); // this is virtual!
       double ov = CalcFunction(excite, f, false); // this is virtual!
@@ -863,8 +865,11 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
     for(unsigned int idx = 0; idx < me->excitations.GetSize(); idx++)
     {
       Excitation& excite = me->excitations[idx];
+
       // some objectives are only to be evaluated for the last excitation
-      if(!cost->DoEvaluate(&excite)) continue;
+      if(!cost->DoEvaluate(&excite))
+        continue;
+      excite.Apply(); // set the correct context
 
       CalcFunction(excite, cost, true);
     }

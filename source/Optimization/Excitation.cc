@@ -311,10 +311,17 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, bool eval
     {
       Excitation& ex = excitations[i];
       ex.index = i;
-      ex.normalized_weight = ex.weight / weight_sum;
+      // fixes bug for pressure loads
+      if (std::abs(weight_sum) < std::numeric_limits<float>::epsilon()) {
+        // multiple pressure loads not implemented
+        assert(excitations.GetSize() == 1);
+        ex.normalized_weight = 1.;
+      } else {
+        ex.normalized_weight = ex.weight / weight_sum;
+      }
+
       LOG_DBG3(exlog) << "PME: i=" << i << " l=" << excitations[i].label << " w=" << excitations[i].weight << " nw=" << ex.normalized_weight << " ws=" << weight_sum;
     }
-
     WriteInInfo(num_freq, eval_inital_design, weight_sum, opt);
   }
 }
@@ -445,7 +452,7 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
       if(total_base_ == 1)
         ex.weight = 1.0;
 
-      LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+      LOG_DBG3(exlog) << "AT: t=" << t << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.IsEmpty() || ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
                       << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
 
     }
@@ -687,7 +694,7 @@ void Excitation::ReadTestStrain(MechPDE::TestStrain ts)
 
   mech->DefineTestStrainIntegrator(ts, &forms);
 
-  test_strain.Resize(6); // always full dimensions
+  test_strain.Resize(6, 0.0); // always full dimensions
   test_strain[ts] = 1.0;
 }
 

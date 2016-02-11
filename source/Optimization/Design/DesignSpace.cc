@@ -229,7 +229,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
             dr.constant = VARIABLE;
             if(curr_design_pn->Has("constant") && curr_design_pn->Get("constant")->As<bool>())
               dr.constant = design_all ? CONSTANT_ON_ALL_REGIONS : CONSTANT_PER_REGION; // we have a constant design-value on that region
-            if(curr_design_pn->Get("fixed")->As<bool>()) 
+            if(curr_design_pn->Has("fixed") && curr_design_pn->Get("fixed")->As<bool>())
               dr.constant = FIXED; // fixed overwrites all other settings
 
             dr.scale_design = 1.0;
@@ -663,8 +663,21 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  if(designMaterial != NULL) { // easy to extend to piezo and other stuff!
+    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1) {
+      if (this->IsRegular()) {
+        /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
+        double dx = ptCoord_[0][0]-ptCoord_[0][1];
+        double dy = ptCoord_[1][0]-ptCoord_[1][1];
+        elemMatrix *= 0.25*dx*dy;*/
+        //elemMatrix *= 1.;
+      } else {
+        EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
+      }
+      return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+    }
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+  }
 
   double bimat_factor = -1.0;
 
@@ -803,7 +816,13 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
 }
 
 */
-
+bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
+  if(designMaterial != NULL){
+    designMaterial->GetErsatzElementMatrixMSFEM(t, elem, direction);
+    return(true);
+  }
+  return(false);
+}
 
 //bool DesignSpace::GetErsatzMaterialDampingParameterForIntegrator(const Elem* elem, /* FIXME BaseForm* form*, */ double& param)
 //{
@@ -899,6 +918,9 @@ TransferFunction* DesignSpace::GetTransferFunction(const DesignElement* de)
 
 TransferFunction* DesignSpace::GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception, bool use_single)
 {
+  //if(HasNonDensityDesignMaterial())
+  //  return &transfer[0]; // this will always point to an identity transfer function, so CalcU1KU2 in ErsatzMaterial will simply work for parametric material optimization
+
   if(use_single && transfer.GetSize() == 1)
     return &transfer[0];
 
@@ -1445,7 +1467,7 @@ void DesignSpace::ExtractResults(shared_ptr<BaseResult> base_result)
   if(def.excitation >= 0 && domain->GetOptimization() != NULL)
   {
     StdVector<Excitation>& mex = domain->GetOptimization()->GetMultipleExcitation()->excitations;
-    if(def.excitation > (int) mex.GetSize())
+    if(def.excitation >= (int) mex.GetSize())
       EXCEPTION("'result' has too large 'excitation' index " << def.excitation << " for only " << mex.GetSize() << " excitations");
 
     mex[def.excitation].Apply();
@@ -1653,7 +1675,6 @@ void DesignSpace::SetupMultiMaterial(ParamNodeList design_list)
       throw Exception("the 'design' attribute 'material' is only for multimaterial designs");
   }
 }
-
 
 PtrCoefFct DesignSpace::DesignRegion::GetBiMaterial(MaterialClass mc, MaterialType mt)
 {

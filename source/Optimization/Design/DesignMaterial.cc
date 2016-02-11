@@ -3,6 +3,8 @@
 #include <string>
 #include <sstream>
 #include <iomanip>
+#include <boost/iterator/counting_iterator.hpp>
+
 
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
@@ -12,7 +14,6 @@
 #include "Domain/Mesh/Grid.hh"
 #include "General/defs.hh"
 #include "General/Exception.hh"
-#include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/TransferFunction.hh"
@@ -23,13 +24,12 @@
 #include "DataInOut/Logging/log.hpp"
 #include "DataInOut/ParamHandling/ParamTools.hh"
 #include "DataInOut/ParamHandling/Xerces.hh"
-#include "MatVec/Matrix.hh"
 #include "FeBasis/H1/H1Elems.hh"
 #include "FeBasis/H1/H1ElemsLagExpl.hh"
 
 #ifdef USE_SGPP
-  #include "sgpp_base.hpp"
-  #include "sgpp_opt.hpp"
+#include "sgpp_base.hpp"
+#include "sgpp_optimization.hpp"
 #endif
 
 DECLARE_LOG(dm)
@@ -43,6 +43,16 @@ Enum<DesignMaterial::TransIsoType> DesignMaterial::transIsoType;
 Enum<DesignMaterial::Notation> DesignMaterial::notation;
 
 DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System material, StdVector<DesignID>& design, ErsatzMaterial* em)
+#ifdef USE_SGPP
+  :
+  alpha1_(SGPP::base::DataVector(0)),
+  alpha2_(SGPP::base::DataVector(0)),
+  alpha3_(SGPP::base::DataVector(0)),
+  alpha4_(SGPP::base::DataVector(0)),
+  alpha5_(SGPP::base::DataVector(0)),
+  alpha6_(SGPP::base::DataVector(0)),
+  volume_(SGPP::base::DataVector(0))
+#endif
 {
   type_ = type.Parse(pn->Get("type")->As<string>());
 
@@ -111,7 +121,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     std::cout << "Reading files " << std::endl;
 
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     PtrParamNode hr = root->Get("modRed");
     dimension_ = hr->Get("dimension")->As<UInt>();
@@ -148,7 +159,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
   if((type_ == GREEDY_FREE) || (type_ == GREEDY_PARAM) || (type_ == GREEDY_MAPPING))
   {
     std::string file = pn->Get("modRed/file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     PtrParamNode hr = root->Get("modRed");
 
@@ -405,7 +417,8 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     // full C1 interpolation with XML coefficients
     } else if (interpolation_str == "c1") {
       interpolation_ = C1;
-      Xerces xerces(file);
+      Xerces xerces;
+      xerces.SetFile(file);
       PtrParamNode root = xerces.CreateParamNodeInstance();
       Notation notation = root->Get("notation")->As<string>() == "voigt" ? VOIGT : HILL_MANDEL;
       if (dim == 2) {
@@ -468,6 +481,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         int dim3 = root->Get("a/matrix/dim1")->As<int>();
         int dim4 = root->Get("b/matrix/dim1")->As<int>();
         int dim5 = root->Get("c/matrix/dim1")->As<int>();
+
         ParamTools::AsTensor<double>(root->Get("coeff11/matrix/real"), dim1, dim2, hom_rect_coeff11_);
         ParamTools::AsTensor<double>(root->Get("coeff12/matrix/real"), dim1, dim2, hom_rect_coeff12_);
         ParamTools::AsTensor<double>(root->Get("coeff22/matrix/real"), dim1, dim2, hom_rect_coeff22_);
@@ -486,6 +500,16 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
         hom_rect_coeff66_ = hom_rect_coeff66_ * (notation == VOIGT ? 1.0 : 0.5);
         // the tensor is orthotropic
       }
+
+    LOG_DBG3(dm) << "a = " << hom_rect_a_;
+    LOG_DBG3(dm) << "b = " << hom_rect_b_;
+    LOG_DBG3(dm) << "c = " << hom_rect_c_;
+    LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
     } else {
 
 #ifdef USE_SGPP
@@ -501,22 +525,22 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
           if (basis_str == "bspline") {
             // B-splines
             sgpp_basis_ = BSPLINE;
-            grid_ = sg::base::Grid::createBsplineGrid(dimension, bspline_degree_);
+            grid_ = SGPP::base::Grid::createBsplineGrid(dimension, bspline_degree_);
           } else {
             // modified B-splines
             sgpp_basis_ = MODBSPLINE;
-            grid_ = sg::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
+            grid_ = SGPP::base::Grid::createModBsplineGrid(dimension, bspline_degree_);
           }
-          // optional verbosity for initial hierarchisation
-          sg::opt::tools::printer.setVerbosity(2);
+          // optional verbosity for initial hierarchization
+          SGPP::optimization::printer.setVerbosity(2);
         } else if (basis_str == "modlinear") {
           // modified linear basis
           sgpp_basis_ = MODLINEAR;
-          grid_ = sg::base::Grid::createModLinearGrid(dimension);
+          grid_ = SGPP::base::Grid::createModLinearGrid(dimension);
         } else {
           // (un)modified linear basis
           sgpp_basis_ = LINEAR;
-          grid_ = sg::base::Grid::createLinearGrid(dimension);
+          grid_ = SGPP::base::Grid::createLinearGrid(dimension);
         }
         // read coefficients
         InitializeSparseGrid(file.c_str());
@@ -526,17 +550,18 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
       } else if (interpolation_str == "full_bspline") {
         interpolation_ = FULL_BSPLINE;
         bspline_degree_ = hr->Get("bsplineDegree")->As<unsigned int>();
-        Xerces xerces(file);
+        Xerces xerces;
+        xerces.SetFile(file);;
         PtrParamNode root = xerces.CreateParamNodeInstance();
         Notation notation = ((root->Get("notation")->As<string>() == "voigt") ? VOIGT : HILL_MANDEL);
         // read coefficients from XML
         ParamTools::AsMatrix<double>(root->Get("coeff11/matrix"), full_bspline_coeff11_);
         ParamTools::AsMatrix<double>(root->Get("coeff12/matrix"), full_bspline_coeff12_);
-        if (shearIsDesign_) {
+        if (grid_->getStorage()->dim() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff13/matrix"), full_bspline_coeff13_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff22/matrix"), full_bspline_coeff22_);
-        if (shearIsDesign_) {
+        if (grid_->getStorage()->dim() == 3) {
           ParamTools::AsMatrix<double>(root->Get("coeff23/matrix"), full_bspline_coeff23_);
         }
         ParamTools::AsMatrix<double>(root->Get("coeff33/matrix"), full_bspline_coeff33_);
@@ -607,17 +632,39 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
     EXCEPTION("CFS is compiled without SGpp toolbox! Please recompile with SGpp or choose another interpolation method.")
 #endif //USE_SGPP
     }
+  } else if (type_ == MSFEM_C1) {
+    // Read interpolation coefficients of MSFEM element stiffness matrices from material catalogue
+        PtrParamNode hr = pn->Get("MSFEMC1");
+        std::string file = hr->Get("file")->As<std::string>();
+        Xerces xerces;
+        xerces.SetFile(file);
+        PtrParamNode root = xerces.CreateParamNodeInstance();
+        ParamTools::AsMatrix<double>(root->Get("a/matrix"),msfem_a_);
+        ParamTools::AsMatrix<double>(root->Get("b/matrix"),msfem_b_);
+        StdVector<std::string> index;
+        index = "11","12","13","14","15","16","17","18","22","23","24","25",
+            "26","27","28","33","34","35","36","37","38","44","45","46","47","48","55","56","57","58","66","67","68","77","78","88";
+        msfem_coeff_.Resize(36);
+        for (int i = 0;i<36;i++) {
+          std::stringstream ss;
+          ss<<"coeff"<<index[i]<<"/matrix";
+          std::string tmp = ss.str();
+          ParamTools::AsMatrix<double>(root->Get(tmp), msfem_coeff_[i]);
+        }
+        LOG_DBG3(dm) << "a = " << msfem_a_;
+        LOG_DBG3(dm) << "b = " << msfem_b_;
+        LOG_DBG3(dm) << "Size of msfem_coeff = " << msfem_coeff_.GetSize();
+  } else {
+    LOG_DBG3(dm) << "a = " << hom_rect_a_;
+    LOG_DBG3(dm) << "b = " << hom_rect_b_;
+    LOG_DBG3(dm) << "c = " << hom_rect_c_;
+    LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
+    LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
   }
-
-  LOG_DBG3(dm) << "a = " << hom_rect_a_;
-  LOG_DBG3(dm) << "b = " << hom_rect_b_;
-  LOG_DBG3(dm) << "c = " << hom_rect_c_;
-  LOG_DBG3(dm) << "Size of coeff11 = " << hom_rect_coeff11_.GetNumRows() << " x "<< hom_rect_coeff11_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff12 = " << hom_rect_coeff12_.GetNumRows() << " x "<< hom_rect_coeff12_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff13 = " << hom_rect_coeff13_.GetNumRows() << " x "<< hom_rect_coeff13_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff22 = " << hom_rect_coeff22_.GetNumRows() << " x "<< hom_rect_coeff22_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff23 = " << hom_rect_coeff23_.GetNumRows() << " x "<< hom_rect_coeff23_.GetNumCols();
-  LOG_DBG3(dm) << "Size of coeff33 = " << hom_rect_coeff33_.GetNumRows() << " x "<< hom_rect_coeff33_.GetNumCols();
 }
 
 void DesignMaterial::FillHomRectSamples(PtrParamNode homRect, unsigned int idx, const string& a, const string& b)
@@ -971,6 +1018,11 @@ unsigned int DesignMaterial::RequiredParameters(
       return r + 4;
     else
       return r + 6;
+  case MSFEM_C1:
+    if (dim == 2)
+      return r + 3;
+    else
+      return r + 6;
   case D_HOM_RECT:
     return r + 4;
   case DENSITY_TIMES_2D_TENSOR_CONSTANT_TRACE:
@@ -1160,6 +1212,18 @@ bool DesignMaterial::CheckRequiredDesigns(
           && design.Find(DesignElement::STIFF2) >= 0
           && design.Find(DesignElement::SHEAR1) >= 0
           && design.Find(DesignElement::ROTANGLE) >= 0);
+    }
+  case MSFEM_C1:
+    if (dim == 3) {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0
+          && design.Find(DesignElement::STIFF3) >= 0
+          && design.Find(DesignElement::ROTANGLEX) >= 0
+          && design.Find(DesignElement::ROTANGLEY) >= 0);
+    } else {
+      return (design.Find(DesignElement::STIFF1) >= 0
+          && design.Find(DesignElement::STIFF2) >= 0
+        && design.Find(DesignElement::ROTANGLE) >= 0);
     }
   }
   assert(false);
@@ -1810,9 +1874,10 @@ void DesignMaterial::GetElasticFMOTensor(Matrix<double>& E, DesignElement::Type 
 
 void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor, const Elem* elem, DesignElement::Type direction, Notation notation)
 {
-  // only relevant for hom_rect
+  // only relevant for hom_rect and hom_rect_c1
   FeH1LagrangeQuad9 fe;
 
+  // Get design variables
   double a = params_[DesignElement::STIFF1];
   double b = params_[DesignElement::STIFF2];
   double c = params_[DesignElement::SHEAR1];
@@ -1850,8 +1915,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
   case DesignElement::ROTANGLE:
   case DesignElement::ROTANGLEX:
   case DesignElement::ROTANGLEY:
-  case DesignElement::DENSITY: // Treated after switch
-  {
+  case DesignElement::DENSITY:
     if (type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Vector<double> shape;
 
@@ -1865,7 +1929,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-      else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -1873,12 +1937,10 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
 #endif //USE_SGPP
     }
     break;
-  }
   case DesignElement::STIFF1:
   case DesignElement::STIFF2:
   case DesignElement::STIFF3:
   case DesignElement::SHEAR1:
-  {
     if(type_ == HOM_RECT || type_ == D_HOM_RECT) {
       Matrix<double> dummy; // not used -> strange function ?! :(
       Matrix<double>& jac = fe.GetLocDerivShFnc(p, elem);
@@ -1894,7 +1956,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-      else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SGPP) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -1932,10 +1994,9 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
       }
     }
     break;
-  }
   default:
-  ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
-}
+    ZeroTensor(E, subTensor == FULL ? FULL : PLANE);
+  }
   LOG_DBG2(dm)<< "GHRT: E before rotation = " << E.ToString(2);
   if (subTensor == FULL) {
     RotateVoigtTensor(E, direction);
@@ -3164,9 +3225,11 @@ void DesignMaterial::ApplyHomRectTensor(Matrix<double>& E, const Vector<double>&
 void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
     DesignElement::Type direction, SubTensorType subTensor) const {
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
+  // length of the discretized design interval
   int m = hom_rect_a_.GetNumRows();
   int n = hom_rect_b_.GetNumRows();
   int o = hom_rect_c_.GetNumRows();
+  // grid size of the discretized design interval, works only for uniform grids
   double da = hom_rect_a_[1][0] - hom_rect_a_[0][0];
   double db = hom_rect_b_[1][0] - hom_rect_b_[0][0];
   double dc = 0.0;
@@ -3183,31 +3246,24 @@ void DesignMaterial::ApplyHomRectC1Tensor(Matrix<double>& E, Vector<double>& p,
   if (subTensor == FULL) {
     E.Resize(6, 6);
     E.Init(); // for off-diagonal
+    // Calculation of the interpolated tensor values
     if (direction == DesignElement::NO_DERIVATIVE
         || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da,
-          db, dc, j, k, l, m, n, o);
-      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da,
-          db, dc, j, k, l, m, n, o);
-      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da,
-          db, dc, j, k, l, m, n, o);
-      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da,
-          db, dc, j, k, l, m, n, o);
-      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da,
-          db, dc, j, k, l, m, n, o);
-      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da,
-          db, dc, j, k, l, m, n, o);
-      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da,
-          db, dc, j, k, l, m, n, o);
-      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da,
-          db, dc, j, k, l, m, n, o);
-      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da,
-          db, dc, j, k, l, m, n, o);
+      E[1 - 1][1 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff11_, da, db, dc, j, k, l, m, n, o);
+      E[1 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff12_, da, db, dc, j, k, l, m, n, o);
+      E[1 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff13_, da, db, dc, j, k, l, m, n, o);
+      E[2 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff23_, da, db, dc, j, k, l, m, n, o);
+      E[2 - 1][2 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff22_, da, db, dc, j, k, l, m, n, o);
+      E[3 - 1][3 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff33_, da, db, dc, j, k, l, m, n, o);
+      E[4 - 1][4 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff44_, da, db, dc, j, k, l, m, n, o);
+      E[5 - 1][5 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff55_, da, db, dc, j, k, l, m, n, o);
+      E[6 - 1][6 - 1] = EvaluateC1Interpolation_3D(p, hom_rect_coeff66_, da, db, dc, j, k, l, m, n, o);
       E[2 - 1][1 - 1] = E[1 - 1][2 - 1];
       E[3 - 1][1 - 1] = E[1 - 1][3 - 1];
       E[3 - 1][2 - 1] = E[2 - 1][3 - 1];
       LOG_DBG(dm)<<"E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E22= "<< E[1][1]<<" E33= "<<E[2][2]<<" E23= "<<E[1][2]<<" E13= "<<E[0][2]<<" E44= "<<E[3][3]<<" E55= "<<E[4][4]<<" E66= "<<E[5][5];
     } else {
+      // Calculation of the interpolated tensor derivatives
       E[1-1][1-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff11_, da,db,dc,j,k,l,m,n,o,direction);
       E[1-1][2-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff12_, da,db,dc,j,k,l,m,n,o,direction);
       E[1-1][3-1] = EvaluateC1Interpolation_Deriv_3D(p, hom_rect_coeff13_, da,db,dc,j,k,l,m,n,o,direction);
@@ -3284,71 +3340,80 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
   if (word != "sparsegrid") {
     // ==> old format
     file.close();
-    bool dataIsHierarchised;
+    bool dataIsSparse;
     Matrix<double> data;
-    dataIsHierarchised = ReadDetailedStats(filename, data);
+    dataIsSparse = ReadDetailedStats(filename, data);
     // create regular grid
-    sg::base::GridGenerator* gridGen = grid_->createGridGenerator();
+    SGPP::base::GridGenerator* gridGen = grid_->createGridGenerator();
     gridGen->regular(level_);
     delete gridGen;
-    if (dataIsHierarchised) {
-      FillSparseGridWithHierarchisedData(data);
+    if (dataIsSparse) {
+      FillSparseGridWithSparseGridData(data);
     } else {
-      FillSparseGridWithUnhierarchisedData(data);
+      FillSparseGridWithFullGridData(data);
     }
     return;
   }
 
   // new format
+  unsigned int dim = grid_->getStorage()->dim();
   unsigned int N, d, m;
   file >> N >> d >> m >> word;
   // standard assumptions
   assert((d == 2) || (d == 3));
-  assert((m == 4) || (m == 6));
-  // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=6))"
-  assert(!shearIsDesign_ || ((d == 3) && (m == 6)));
-  bool hierarchised = (word == "hierarchised");
+  assert((m == 5) || (m == 6) || (m == 7));
+  // logically equivalent to "(shearIsDesign_) ==> ((d=3) and (m=7))"
+  assert(!shearIsDesign_ || ((d == 3) && ((m == 6) || (m == 7))));
+  bool hierarchized = (word == "hierarchized");
   file >> word;
   Notation notation = ((word == "voigt") ? VOIGT : HILL_MANDEL);
   // initialize coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-  if (shearIsDesign_) {
-    alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
-    alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(N));
+  alpha1_.resize(N);
+  alpha2_.resize(N);
+  alpha3_.resize(N);
+  alpha4_.resize(N);
+  if (dim == 3) {
+    alpha5_.resize(N);
+    alpha6_.resize(N);
   }
+  volume_.resize(N);
+  double leveld;
+  double indexd;
   std::vector<unsigned int> level(d, 0);
   std::vector<unsigned int> index(d, 0);
-  sg::base::GridIndex grid_point(grid_->getStorage()->dim());
+  SGPP::base::GridIndex grid_point(dim);
   level_ = 0; // we set that to the maximal level of the grid points
   double duck; // dummy
   unsigned int j = 0;
   for (unsigned int i = 0; i < N; i++) {
-    if (shearIsDesign_) {
+    if (dim == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
-      file >> level[0] >> level[1] >> level[2];
-      file >> index[0] >> index[1] >> index[2];
-      grid_point.set(0, level[0], index[0]);
-      grid_point.set(1, level[1], index[1]);
-      grid_point.set(2, level[2], index[2]);
+      for (unsigned int idx = 0; idx < 3; idx++) {
+        file >> leveld >> indexd;
+        level[idx] = static_cast<unsigned int>(leveld);
+        index[idx] = static_cast<unsigned int>(indexd);
+        grid_point.set(idx, level[idx], index[idx]);
+      }
       level_ = std::max(level_, std::max(level[0], std::max(level[1], level[2])));
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
       if (d == 2) {
-        file >> level[0] >> level[1];
-        file >> index[0] >> index[1];
+        for (unsigned int idx = 0; idx < 2; idx++) {
+          file >> leveld >> indexd;
+          level[idx] = static_cast<unsigned int>(leveld);
+          index[idx] = static_cast<unsigned int>(indexd);
+          grid_point.set(idx, level[idx], index[idx]);
+        }
       } else {
-        file >> level[0] >> level[1] >> level[2];
-        file >> index[0] >> index[1] >> index[2];
+        for (unsigned int idx = 0; idx < 3; idx++) {
+          file >> leveld >> indexd;
+          level[idx] = static_cast<unsigned int>(leveld);
+          index[idx] = static_cast<unsigned int>(indexd);
+        }
         if (level[2] != 1) {
           // data is 3D, but this data point is not in the relevant z=0.5 plane ==> skip
-          if (m == 4) {
-            // Is there a "non-Ralph" way to do that?
-            file >> duck >> duck >> duck >> duck;
-          } else {
-            file >> duck >> duck >> duck >> duck >> duck >> duck;
+          for (unsigned int j = 0; j < m; j++) {
+            file >> duck;
           }
           continue;
         }
@@ -3359,297 +3424,406 @@ void DesignMaterial::InitializeSparseGrid(const char * filename) {
     }
     // add grid point
     grid_->getStorage()->insert(grid_point);
-    if (shearIsDesign_) {
+    if (dim == 3) {
       // shearing angle should be optimized ==> Read ALL The Data!
-      file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j]
-           >> (*alpha5_)[j] >> (*alpha6_)[j];
+      // (except for the final value, the volume)
+      file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j]
+           >> alpha5_[j] >> alpha6_[j];
+      if (m == 7) {
+        file >> volume_[j];
+      }
       if (notation == VOIGT) {
-        (*alpha6_)[j] *= 2.0;
+        alpha6_[j] *= 2.0;
       }
     } else {
       // shearing angle should not be optimized ==> maybe we have to pick the right data
-      if (m == 4) {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> (*alpha3_)[j] >> (*alpha4_)[j];
-      } else {
-        file >> (*alpha1_)[j] >> (*alpha2_)[j] >> duck >> (*alpha3_)[j] >> duck >> (*alpha4_)[j];
-        LOG_DBG(dm) << (*alpha1_)[j] << (*alpha2_)[j] << (*alpha3_)[j] << (*alpha4_)[j];
+      switch (m) {
+      case 4:
+        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j];
+        break;
+      case 5:
+        file >> alpha1_[j] >> alpha2_[j] >> alpha3_[j] >> alpha4_[j] >> volume_[j];
+        break;
+      case 6:
+        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j];
+        break;
+      case 7:
+        file >> alpha1_[j] >> alpha2_[j] >> duck >> alpha3_[j] >> duck >> alpha4_[j] >> volume_[j];
+        break;
       }
       if (notation == VOIGT) {
-        (*alpha4_)[j] *= 2.0;
+        alpha4_[j] *= 2.0;
       }
+    }
+    if (dim == 3) {
+      LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " " << grid_point.getCoord(2) << " -> "
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " "
+          << alpha5_[j] << " " << alpha6_[j] << " " << volume_[j];
+    } else {
+      LOG_DBG3(dm) << grid_point.getCoord(0) << " " << grid_point.getCoord(1) << " -> "
+          << alpha1_[j] << " " << alpha2_[j] << " " << alpha3_[j] << " " << alpha4_[j] << " " << volume_[j];
     }
     j++;
   }
-  LOG_DBG(dm) << "DM:ISG: level = " << level_ << "\n";
+  LOG_DBG(dm) << "DM::ISG: level = " << level_ << "\n";
   file.close();
-  if (!shearIsDesign_) {
+  if (dim == 2) {
     // coefficient vectors were too big, because we skipped grid points
-    alpha1_->resize(grid_->getStorage()->size());
-    alpha2_->resize(grid_->getStorage()->size());
-    alpha3_->resize(grid_->getStorage()->size());
-    alpha4_->resize(grid_->getStorage()->size());
+    alpha1_.resize(grid_->getStorage()->size());
+    alpha2_.resize(grid_->getStorage()->size());
+    alpha3_.resize(grid_->getStorage()->size());
+    alpha4_.resize(grid_->getStorage()->size());
+    volume_.resize(grid_->getStorage()->size());
   }
-  // hierarchisation if needed
-  if (!hierarchised) {
-    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-      sg::base::OperationHierarchisation *hierOp =
-          sg::op_factory::createOperationHierarchisation(*grid_);
-      hierOp->doHierarchisation(*alpha1_);
-      hierOp->doHierarchisation(*alpha2_);
-      hierOp->doHierarchisation(*alpha3_);
-      hierOp->doHierarchisation(*alpha4_);
-      if (shearIsDesign_) {
-        hierOp->doHierarchisation(*alpha5_);
-        hierOp->doHierarchisation(*alpha6_);
-      }
-      delete hierOp;
-    } else {
-      std::vector<sg::base::DataVector *> alphas;
-      alphas.push_back(alpha1_.get());
-      alphas.push_back(alpha2_.get());
-      alphas.push_back(alpha3_.get());
-      alphas.push_back(alpha4_.get());
-      if (shearIsDesign_) {
-        alphas.push_back(alpha5_.get());
-        alphas.push_back(alpha6_.get());
-      }
-      sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-      hierOp->doHierarchisation(alphas);
-      delete hierOp;
+
+  // DEBUG
+  /*std::cout << "m = " << m << ", d = " << d << ", shearIsDesign_ = " << shearIsDesign_ << "\n";
+  std::cout << "alpha2_before_hierarchization = [";
+  for (size_t i = 0; i < alpha2_.getSize(); i++) {
+    if (i > 0) {
+      std::cout << ", ";
     }
+    std::cout << alpha2_[i];
   }
+  std::cout << "]\n";*/
+
+  // hierarchization if needed
+  if (!hierarchized) {
+    HierarchizeSparseGridCoefficients();
+  }
+
+  // DEBUG
+  /*std::cout << "alpha2_after_hierarchization = [";
+  for (size_t i = 0; i < alpha2_.getSize(); i++) {
+    if (i > 0) {
+      std::cout << ", ";
+    }
+    std::cout << alpha2_[i];
+  }
+  std::cout << "]\n";*/
+
+//  EvaluateFullGrid();
 }
 
-void DesignMaterial::FillSparseGridWithUnhierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
+void DesignMaterial::EvaluateFullGrid() {
+  Matrix<double> E;
+  double stepsize;
+  LocPoint p;
+  p.coord.Resize(3);
+
+  p.coord[2] = .5;
+  stepsize = 1./128;
+
+  std::ofstream file;
+  file.open("gridData.5.txt");
+  file.precision(8);
+  file.flags(std::ios::scientific);
+
+  for (unsigned int ii = 1; ii < 1/stepsize; ii++) {
+    p.coord[0] = ii * stepsize;
+    for (unsigned int jj = 1; jj < 1/stepsize; jj++) {
+      p.coord[1] = jj * stepsize;
+      ApplyHomRectSGPPTensor(E,p.coord,DesignElement::NO_DERIVATIVE,FULL);
+      file << p.coord[0] << "\t" << p.coord[1] << "\t" << p.coord[2] << "\t" << E(0,0) << "\t" << E(0,1) << "\t" << E(0,2) << "\t" << E(1,1) << "\t" << E(1,2) << "\t" << E(2,2) << std::endl;
+    }
+  }
+  file.close();
+
+  p.coord[2] = .125;
+
+  file.open("gridData.125.txt");
+  file.precision(8);
+  file.flags(std::ios::scientific);
+
+  for (unsigned int ii = 1; ii < 1/stepsize; ii++) {
+    p.coord[0] = ii * stepsize;
+    for (unsigned int jj = 1; jj < 1/stepsize; jj++) {
+      p.coord[1] = jj * stepsize;
+      ApplyHomRectSGPPTensor(E,p.coord,DesignElement::NO_DERIVATIVE,FULL);
+      file << p.coord[0] << "\t" << p.coord[1] << "\t" << p.coord[2] << "\t" << E(0,0) << "\t" << E(0,1) << "\t" << E(0,2) << "\t" << E(1,1) << "\t" << E(1,2) << "\t" << E(2,2) << std::endl;
+    }
+  }
+  file.close();
+}
+
+void DesignMaterial::FillSparseGridWithFullGridData(Matrix<double>& data) {
+  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
+  // Catalogue has to be in correct order! High error risk!
+  // Better use new format instead
 
   // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha1_.resize(gridStorage->size());
+  alpha2_.resize(gridStorage->size());
+  alpha3_.resize(gridStorage->size());
+  alpha4_.resize(gridStorage->size());
+  alpha5_.resize(gridStorage->size());
+  alpha6_.resize(gridStorage->size());
+  volume_.resize(gridStorage->size());
 
   // put data values in coefficient vectors
   unsigned int dim1, dim2, dim3, index1, index2, index3, row;
   dim1 = catalogueSize_[0];
   dim2 = catalogueSize_[1];
   dim3 = catalogueSize_[2];
-  sg::base::GridIndex* gp;
+  SGPP::base::GridIndex* gp;
   unsigned int sz = gridStorage->size();
   sz = sz + 1;
   for (unsigned int i=0; i < gridStorage->size(); i++) {
     gp = gridStorage->get(i);
     if (catalogueSize_.GetSize() == 2) {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
+      index1 = gp->getCoord(0)*(dim1);
+      index2 = gp->getCoord(1)*(dim2);
       row = (index1-1)*dim2 + index2 - 1;
     } else {
-      index1 = gp->abs(0)*(dim1);
-      index2 = gp->abs(1)*(dim2);
+      index1 = gp->getCoord(0)*(dim1);
+      index2 = gp->getCoord(1)*(dim2);
       if(shearIsDesign_) {
-        index3 = gp->abs(2)*(dim3+1);
+        index3 = gp->getCoord(2)*(dim3+1);
       } else {
         index3 = .5*(dim3+1);
       }
       row = (index1-1)*dim2*dim3 + (index2-1)*dim3 + index3 - 1;
     }
-    alpha1_->set(i,data[row][0]);
-    alpha2_->set(i,data[row][1]);
-    if (shearIsDesign_) {
-      alpha3_->set(i,data[row][2]);
-      alpha4_->set(i,data[row][3]);
-      alpha5_->set(i,data[row][4]);
-      alpha6_->set(i,data[row][5]);
+    alpha1_[i] = data[row][0];
+    alpha2_[i] = data[row][1];
+    if (grid_->getStorage()->dim() == 3) {
+      alpha3_[i] = data[row][2];
+      alpha4_[i] = data[row][3];
+      alpha5_[i] = data[row][4];
+      alpha6_[i] = data[row][5];
+      if (data.GetNumCols() == 7) {
+        volume_[i] = data[row][6];
+      }
     } else {
       if (catalogueSize_.GetSize() == 2) {
-        alpha3_->set(i,data[row][2]);
-        alpha4_->set(i,data[row][3]);
+        alpha3_[i] = data[row][2];
+        alpha4_[i] = data[row][3];
+        if (data.GetNumCols() == 5) {
+          volume_[i] = data[row][4];
+        }
       } else {
-        alpha3_->set(i,data[row][3]);
-        alpha4_->set(i,data[row][5]);
+        alpha3_[i] = data[row][3];
+        alpha4_[i] = data[row][5];
+        if (data.GetNumCols() == 7) {
+          volume_[i] = data[row][6];
+        }
       }
     }
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
-        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
+    LOG_DBG3(dm) << "DM:FSGF: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+        << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
   }
-  // hierarchise data vectors
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
-    if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
-    }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
-    hierOp->doHierarchisation(alphas);
-    delete hierOp;
-  } else {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
-    hierOp->doHierarchisation(*alpha1_);
-    hierOp->doHierarchisation(*alpha2_);
-    hierOp->doHierarchisation(*alpha3_);
-    hierOp->doHierarchisation(*alpha4_);
-    if (shearIsDesign_) {
-      hierOp->doHierarchisation(*alpha5_);
-      hierOp->doHierarchisation(*alpha6_);
-    }
-    delete hierOp;
-  }
+  // hierarchize data vectors
+  HierarchizeSparseGridCoefficients();
 }
 
-void DesignMaterial::FillSparseGridWithHierarchisedData(Matrix<double>& data) {
-  sg::base::GridStorage* gridStorage = grid_->getStorage();
+void DesignMaterial::FillSparseGridWithSparseGridData(Matrix<double>& data) {
+  SGPP::base::GridStorage* gridStorage = grid_->getStorage();
+  // Catalogue has to be in correct order! High error risk!
+  // Better use new format instead
 
   // create coefficient vectors
-  alpha1_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha2_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha3_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha4_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha5_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
-  alpha6_ = boost::shared_ptr<sg::base::DataVector>(new sg::base::DataVector(gridStorage->size()));
+  alpha1_.resize(gridStorage->size());
+  alpha2_.resize(gridStorage->size());
+  alpha3_.resize(gridStorage->size());
+  alpha4_.resize(gridStorage->size());
+  if (gridStorage->dim() == 3) {
+    alpha5_.resize(gridStorage->size());
+    alpha6_.resize(gridStorage->size());
+  }
+  volume_.resize(gridStorage->size());
 
   // put data values in coefficient vectors
-  sg::base::GridIndex* gp;
+  SGPP::base::GridIndex* gp;
   unsigned int sz = gridStorage->size();
   sz = sz + 1;
   for (unsigned int i=0; i < gridStorage->size(); i++) {
-    if (shearIsDesign_) {
-      alpha1_->set(i,data[i][0]);
-      alpha2_->set(i,data[i][1]);
-      alpha3_->set(i,data[i][2]);
-      alpha4_->set(i,data[i][3]);
-      alpha5_->set(i,data[i][4]);
-      alpha6_->set(i,data[i][5]);
+    if (gridStorage->dim() == 3) {
+      alpha1_[i] = data[i][0];
+      alpha2_[i] = data[i][1];
+      alpha3_[i] = data[i][2];
+      alpha4_[i] = data[i][3];
+      alpha5_[i] = data[i][4];
+      alpha6_[i] = data[i][5];
+      if (data.GetNumCols() == 7) {
+        volume_[i] = data[i][6];
+      }
     } else {
-      alpha1_->set(i,data[i][0]);
-      alpha2_->set(i,data[i][1]);
+      alpha1_[i] = data[i][0];
+      alpha2_[i] = data[i][1];
       if (catalogueSize_.GetSize() == 2) {
-        alpha3_->set(i,data[i][2]);
-        alpha4_->set(i,data[i][3]);
+        alpha3_[i] = data[i][2];
+        alpha4_[i] = data[i][3];
+        if (data.GetNumCols() == 5) {
+          volume_[i] = data[i][4];
+        }
       } else {
-        alpha3_->set(i,data[i][3]);
-        alpha4_->set(i,data[i][5]);
+        alpha3_[i] = data[i][3];
+        alpha4_[i] = data[i][5];
+        if (data.GetNumCols() == 7) {
+          volume_[i] = data[i][6];
+        }
       }
     }
     gp = gridStorage->get(i);
-    LOG_DBG3(dm) << gp->abs(0) << " " << gp->abs(1) << " " << gp->abs(2) << " -> "
-        << alpha1_->get(i) << " " << alpha2_->get(i) << " " << alpha3_->get(i) << " " << alpha4_->get(i);
-  }
-
-  // hierarchise data vectors
-  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
-    sg::base::OperationHierarchisation *hierOp =
-        sg::op_factory::createOperationHierarchisation(*grid_);
-    hierOp->doHierarchisation(*alpha1_);
-    hierOp->doHierarchisation(*alpha2_);
-    hierOp->doHierarchisation(*alpha3_);
-    hierOp->doHierarchisation(*alpha4_);
-    if (shearIsDesign_) {
-      hierOp->doHierarchisation(*alpha5_);
-      hierOp->doHierarchisation(*alpha6_);
+    if (gridStorage->dim() == 3) {
+      LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " " << gp->getCoord(2) << " -> "
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
+    } else {
+      LOG_DBG3(dm) << "DM:FSGS: " << gp->getCoord(0) << " " << gp->getCoord(1) << " -> "
+          << alpha1_[i] << " " << alpha2_[i] << " " << alpha3_[i] << " " << alpha4_[i] << " " << volume_[i];
     }
+  }
+  // hierarchize data vectors
+  HierarchizeSparseGridCoefficients();
+}
+
+void DesignMaterial::HierarchizeSparseGridCoefficients() {
+  std::cout << "++ Hierarchizing data vectors of Sparse Grid\n" << std::flush;
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    SGPP::base::OperationHierarchisation *hierOp =
+        SGPP::op_factory::createOperationHierarchisation(*grid_);
+    hierOp->doHierarchisation(alpha1_);
+    hierOp->doHierarchisation(alpha2_);
+    hierOp->doHierarchisation(alpha3_);
+    hierOp->doHierarchisation(alpha4_);
+    if (grid_->getStorage()->dim() == 3) {
+      hierOp->doHierarchisation(alpha5_);
+      hierOp->doHierarchisation(alpha6_);
+    }
+    hierOp->doHierarchisation(volume_);
     delete hierOp;
   } else {
-    std::vector<sg::base::DataVector *> alphas;
-    alphas.push_back(alpha1_.get());
-    alphas.push_back(alpha2_.get());
-    alphas.push_back(alpha3_.get());
-    alphas.push_back(alpha4_.get());
-    if (shearIsDesign_) {
-      alphas.push_back(alpha5_.get());
-      alphas.push_back(alpha6_.get());
+    SGPP::base::DataMatrix alphas(alpha1_.getSize(), (grid_->getStorage()->dim() == 3 ? 7 : 5));
+    alphas.setColumn(0, alpha1_);
+    alphas.setColumn(1, alpha2_);
+    alphas.setColumn(2, alpha3_);
+    alphas.setColumn(3, alpha4_);
+    if (grid_->getStorage()->dim() == 3) {
+      alphas.setColumn(4, alpha5_);
+      alphas.setColumn(5, alpha6_);
+      alphas.setColumn(6, volume_);
+    } else {
+      alphas.setColumn(4, volume_);
     }
-    sg::opt::OperationMultipleHierarchisation *hierOp =
-        sg::op_factory::createOperationMultipleHierarchisation(*grid_);
+    
+    SGPP::optimization::OperationMultipleHierarchisation *hierOp =
+      SGPP::op_factory::createOperationMultipleHierarchisation(*grid_);
     hierOp->doHierarchisation(alphas);
     delete hierOp;
+    
+    alphas.getColumn(0, alpha1_);
+    alphas.getColumn(1, alpha2_);
+    alphas.getColumn(2, alpha3_);
+    alphas.getColumn(3, alpha4_);
+    if (grid_->getStorage()->dim() == 3) {
+      alphas.getColumn(4, alpha5_);
+      alphas.getColumn(5, alpha6_);
+      alphas.getColumn(6, volume_);
+    } else {
+      alphas.getColumn(4, volume_);
+    }
   }
 }
 
 void DesignMaterial::ApplyHomRectSGPPTensor(Matrix<double>& E, Vector<double>& p,
-     DesignElement::Type direction, SubTensorType subTensor) const {
+     DesignElement::Type direction, SubTensorType subTensor) {
   // Method uses SGPP interpolation
-  sg::base::DataVector point(p.GetSize());
-  for (unsigned int i=0; i < p.GetSize(); i++) {
-    point[i] = p[i];
-  }
-  sg::base::OperationEval* opEval = sg::op_factory::createOperationEval(*grid_);
-  LOG_DBG(dm) << p;
+  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  LOG_DBG2(dm) << p;
 
   E.Resize(3,3);
   E.Init(); // for off-diagonal
-  if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
-    if (!shearIsDesign_) { // no shearing
-      E[1-1][1-1] = opEval->eval(*alpha1_, point);
-      E[1-1][2-1] = opEval->eval(*alpha2_, point);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = opEval->eval(*alpha3_, point);
-      E[3-1][3-1] = opEval->eval(*alpha4_, point);
-    } else { // shearing
-      E[1-1][1-1] = opEval->eval(*alpha1_, point);
-      E[1-1][2-1] = opEval->eval(*alpha2_, point);
-      E[1-1][3-1] = opEval->eval(*alpha3_, point);
-      E[2-1][1-1] = E[1-1][2-1];
-      E[2-1][2-1] = opEval->eval(*alpha4_, point);
-      E[2-1][3-1] = opEval->eval(*alpha5_, point);
-      E[3-1][1-1] = E[1-1][3-1];
-      E[3-1][2-1] = E[2-1][3-1];
-      E[3-1][3-1] = opEval->eval(*alpha6_, point);
-    }
-    LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
-  } else {
-    if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha2_, point, direction);
+        E[1-1][1-1] = opEval->eval(alpha1_, point);
+        E[1-1][2-1] = opEval->eval(alpha2_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha4_, point, direction);
+        E[2-1][2-1] = opEval->eval(alpha3_, point);
+        E[3-1][3-1] = opEval->eval(alpha4_, point);
       } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha3_, point, direction);
+        E[1-1][1-1] = opEval->eval(alpha1_, point);
+        E[1-1][2-1] = opEval->eval(alpha2_, point);
+        E[1-1][3-1] = opEval->eval(alpha3_, point);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha5_, point, direction);
+        E[2-1][2-1] = opEval->eval(alpha4_, point);
+        E[2-1][3-1] = opEval->eval(alpha5_, point);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, *alpha6_, point, direction);
+        E[3-1][3-1] = opEval->eval(alpha6_, point);
       }
+      LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     } else {
-      sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
-          sg::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
       if (!shearIsDesign_) { // no shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha2_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha3_, point, direction);
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha4_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
       } else { // shearing
-        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha1_, point, direction);
-        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha2_, point, direction);
-        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha3_, point, direction);
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha2_, point, direction);
+        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha3_, point, direction);
         E[2-1][1-1] = E[1-1][2-1];
-        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha4_, point, direction);
-        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha5_, point, direction);
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha4_, point, direction);
+        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha5_, point, direction);
         E[3-1][1-1] = E[1-1][3-1];
         E[3-1][2-1] = E[2-1][3-1];
-        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, *alpha6_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv(opEval, alpha6_, point, direction);
+      }
+      LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
+          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
+    }
+    delete opEval;
+  } else {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
+      if (!shearIsDesign_) { // no shearing
+        E[1-1][1-1] = opNaiveEval->eval(alpha1_, point);
+        E[1-1][2-1] = opNaiveEval->eval(alpha2_, point);
+        E[2-1][1-1] = E[1-1][2-1];
+        E[2-1][2-1] = opNaiveEval->eval(alpha3_, point);
+        E[3-1][3-1] = opNaiveEval->eval(alpha4_, point);
+      } else { // shearing
+        E[1-1][1-1] = opNaiveEval->eval(alpha1_, point);
+        E[1-1][2-1] = opNaiveEval->eval(alpha2_, point);
+        E[1-1][3-1] = opNaiveEval->eval(alpha3_, point);
+        E[2-1][1-1] = E[1-1][2-1];
+        E[2-1][2-1] = opNaiveEval->eval(alpha4_, point);
+        E[2-1][3-1] = opNaiveEval->eval(alpha5_, point);
+        E[3-1][1-1] = E[1-1][3-1];
+        E[3-1][2-1] = E[2-1][3-1];
+        E[3-1][3-1] = opNaiveEval->eval(alpha6_, point);
+      }
+      delete opNaiveEval;
+      LOG_DBG(dm)<<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
+    } else {
+      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
+          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
+      if (!shearIsDesign_) { // no shearing
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
+        E[2-1][1-1] = E[1-1][2-1];
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
+      } else { // shearing
+        E[1-1][1-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha1_, point, direction);
+        E[1-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha2_, point, direction);
+        E[1-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha3_, point, direction);
+        E[2-1][1-1] = E[1-1][2-1];
+        E[2-1][2-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha4_, point, direction);
+        E[2-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha5_, point, direction);
+        E[3-1][1-1] = E[1-1][3-1];
+        E[3-1][2-1] = E[2-1][3-1];
+        E[3-1][3-1] = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, alpha6_, point, direction);
       }
       delete opEvalPartDeriv;
+      LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
+          <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
     }
-    LOG_DBG(dm)<<"Derivative "<<((direction == DesignElement::STIFF1)?"1":(direction == DesignElement::STIFF2)?"2":"3")
-        <<" E11= "<<E[0][0]<<" E12= "<<E[0][1]<<" E13= "<<E[0][2]<<" E22= "<< E[1][1]<<" E23= "<<E[1][2]<<" E33= "<<E[2][2];
   }
-  delete opEval;
 }
 
 void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p,
@@ -3658,7 +3832,7 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   E.Init(); // for off-diagonal
   const int margin = (bspline_degree_+1)/2 + 1;
   const double a = static_cast<double>((bspline_degree_+1)/2);
-  sg::base::BsplineBasis<int, int> bspline(bspline_degree_);
+  SGPP::base::BsplineBasis<int, int> bspline(bspline_degree_);
 
   if (!shearIsDesign_) {
     E[1-1][1-1] = 0.0;
@@ -3770,8 +3944,8 @@ void DesignMaterial::ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<dou
   }
 }
 
-double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* opEval,
-  sg::base::DataVector alpha, sg::base::DataVector point, DesignElement::Type direction) const {
+double DesignMaterial::EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval,
+                                                       SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   // Approximates the derivative with finite differences
   unsigned int dimension;
   double h = 1./pow(2,level_+1) * 1e-6;
@@ -3789,8 +3963,8 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* 
     default:
       return 0;
     }
-  sg::base::DataVector pointL = point;
-  sg::base::DataVector pointU = point;
+  SGPP::base::DataVector pointL = point;
+  SGPP::base::DataVector pointU = point;
   pointL[dimension-1] -= h;
   pointU[dimension-1] += h;
 
@@ -3801,8 +3975,8 @@ double DesignMaterial::EvaluateSGPPInterpolation_Deriv(sg::base::OperationEval* 
 }
 
 inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
-  sg::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
-  sg::base::DataVector& alpha, sg::base::DataVector& point, DesignElement::Type direction) const {
+  SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv,
+  SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const {
   unsigned int dimension;
   switch (direction) {
     case DesignElement::STIFF1:
@@ -3822,6 +3996,120 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
 }
 
 #endif //USE_SGPP
+
+
+double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction) {
+
+  #ifdef USE_SGPP
+  // Method uses SGPP interpolation
+  SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
+  LOG_DBG2(dm) << p;
+
+  double vol;
+
+  if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
+    SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      vol = opEval->eval(volume_, point);
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      vol = EvaluateSGPPInterpolation_Deriv(opEval, volume_, point, direction);
+    }
+    delete opEval;
+  } else {
+    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+      SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
+      vol = opNaiveEval->eval(volume_, point);
+      delete opNaiveEval;
+      LOG_DBG(dm) << "DM::CHV: volume= " << vol;
+    } else {
+      SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv =
+          SGPP::op_factory::createOperationNaiveEvalPartialDerivative(*grid_);
+      vol = EvaluateSGPPInterpolation_Deriv_Exact(opEvalPartDeriv, volume_, point, direction);
+    }
+  }
+  return vol;
+
+#else //USE_SGPP
+  // should never be reached: CalcHomVolume is only called in Function.cc when interpolation method
+  // is set to SGPP which can only occur when CFS is compiled with SGPP
+  return -1;
+
+#endif //USE_SGPP
+}
+
+bool DesignMaterial::GetErsatzElementMatrixMSFEM(Matrix<double>& A,
+    const Elem* elem,DesignElement::Type direction) {
+    assert((type_ == MSFEM_C1));
+
+    // collect all parameters
+    if(!CollectMaterialParametersForElement(em_->GetDesign(), elem))
+      throw Exception("no elem data for MSFEM defined");
+
+    // read design variables
+    double a = params_[DesignElement::STIFF1];
+    double b = params_[DesignElement::STIFF2];
+    //double rotAngle = 0.;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  rotAngle = params_[DesignElement::ROTANGLE];
+    //}
+    Vector<double> p(2);
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  p.Resize(3);
+    //}
+    p[0] = a;
+    p[1] = b;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  p[2] = rotAngle;
+    //}
+    // length of the discretized design interval
+    int m = msfem_a_.GetNumRows();
+    int n = msfem_b_.GetNumRows();
+    //int o = -1;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  o = msfem_rot_.GetNumRows();
+    //}
+
+    // grid size of the discretized design interval, works only for uniform material catalogue grids so far
+    double da = msfem_a_[1][0] - msfem_a_[0][0];
+    double db = msfem_b_[1][0] - msfem_b_[0][0];
+    //double drot = 0.;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  drot = msfem_rot_[1][0] - msfem_rot_[0][0];
+    //}
+
+    int j = GetInterpolationIndex(msfem_a_,p[0]);
+    int k = GetInterpolationIndex(msfem_b_,p[1]);
+    //int l = -1;
+    //if (HasParameter(DesignElement::ROTANGLE)) {
+    //  l = GetInterpolationIndex(msfem_rot_,p[2]);
+    //}
+
+    int count = 0;
+    A.Resize(8,8);
+    for (int ii = 0;ii<8;ii++) {
+      for (int jj = ii;jj<8;jj++) {
+        //if (HasParameter(DesignElement::ROTANGLE)) {
+        //  if (direction == DesignElement::NO_DERIVATIVE) {
+        //    A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count],da,db,drot,j,k,l,m,n,o);
+        //  } else {
+        //    A[ii][jj] = EvaluateC1Interpolation_3D(p, msfem_coeff_[count], da,db, drot, j, k, l, m, n, o);
+        //  }
+        //} else {
+          if (direction == BaseDesignElement::NO_DERIVATIVE) {
+            A[ii][jj] = EvaluateC1Interpolation(p, msfem_coeff_[count],da,db,j,k,m,n);
+          } else {
+            A[ii][jj] = EvaluateC1Interpolation_Deriv(p, msfem_coeff_[count], da,db,j,k,m,n,direction);
+          }
+        //}
+        if (ii!=jj) {
+          A[jj][ii] = A[ii][jj];
+        }
+        count++;
+      }
+    }
+    return true;
+}
 
 int DesignMaterial::GetInterpolationIndex(Matrix<double> interval, double& point) const {
   PtrParamNode inf_warn = domain->GetInfoRoot()->Get("optimization/designSpace/header");
@@ -3877,8 +4165,8 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, double & dc,
     int & j, int & k, int & l, int & m, int & n, int & o,
     DesignElement::Type direction) const {
-  double u = (p[0] - hom_rect_a_[j][0]) / (da);
-  double t = (p[1] - hom_rect_b_[k][0]) / (db);
+  double t = (p[0] - hom_rect_a_[j][0]) / (da);
+  double u = (p[1] - hom_rect_b_[k][0]) / (db);
   double v = (p[2] - hom_rect_c_[l][0]) / (dc);
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<" v= "<<v<<" j= "<<j<<" k= "<<k<<" l= "<<l;
   LOG_DBG(dm)<<"p_deriv: ["<<p[0]<<", "<<", "<<p[1]<<", "<<p[2];
@@ -3888,7 +4176,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 0; jj < 4; jj++) {
         for (int kk = 0; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * ii * pow(u, ii - 1) * pow(t, jj) * pow(v, kk);
+              + 16 * kk] * ii * pow(t, ii - 1) * pow(u, jj) * pow(v, kk);
         }
       }
     }
@@ -3899,7 +4187,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 1; jj < 4; jj++) {
         for (int kk = 0; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * jj * pow(u, ii) * pow(t, jj - 1) * pow(v, kk);
+              + 16 * kk] * jj * pow(t, ii) * pow(u, jj - 1) * pow(v, kk);
         }
       }
     }
@@ -3910,7 +4198,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
       for (int jj = 0; jj < 4; jj++) {
         for (int kk = 1; kk < 4; kk++) {
           deriv += coeff[(n - 1) * (o - 1) * j + (o - 1) * k + l][ii + 4 * jj
-              + 16 * kk] * kk * pow(u, ii) * pow(t, jj) * pow(v, kk - 1);
+              + 16 * kk] * kk * pow(t, ii) * pow(u, jj) * pow(v, kk - 1);
         }
       }
     }
@@ -3924,11 +4212,16 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n) const {
   LOG_DBG(dm)<<"p=["<<p[0]<<","<<p[1]<<"]";
-  double u =(p[1]-hom_rect_b_[k][0])/(db);
-  double t=(p[0]-hom_rect_a_[j][0])/(da);
+  double u,t;
+  if (type_ == MSFEM_C1) {
+    t=(p[0]-msfem_a_[j][0])/(da);
+    u =(p[1]-msfem_b_[k][0])/(db);
+  } else {
+    t=(p[0]-hom_rect_a_[j][0])/(da);
+    u =(p[1]-hom_rect_b_[k][0])/(db);
+  }
   LOG_DBG(dm)<<"u = "<<u<<" t= "<<t<<"\n";
-  LOG_DBG(dm)<<"u = "<<u<<" t= "<<t;
-  LOG_DBG(dm)<<"j = "<<j<<" k= "<<k;
+  LOG_DBG(dm)<<"j = "<<j<<" k= "<<k<<"\n";
   double res = 0;
   for (int i = 0;i<4;i++) {
     for (int l=0;l<4;l++) {
@@ -3942,8 +4235,14 @@ double DesignMaterial::EvaluateC1Interpolation(Vector<double>& p,
 double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
     const Matrix<double> & coeff, double & da, double & db, int & j, int & k,
     int & m, int & n, DesignElement::Type direction) const {
-  double u = (p[1] - hom_rect_b_[k][0]) / (db);
-  double t = (p[0] - hom_rect_a_[j][0]) / (da);
+  double u,t;
+  if (type_ == MSFEM_C1) {
+    t = (p[0] - msfem_a_[j][0]) / (da);
+    u = (p[1] - msfem_b_[k][0]) / (db);
+  } else {
+    t = (p[0] - hom_rect_a_[j][0]) / (da);
+    u = (p[1] - hom_rect_b_[k][0]) / (db);
+  }
   LOG_DBG(dm)<<"Deriv: u = "<<u<<" t= "<<t<<"\n";
 
   double deriv = 0;
@@ -3970,7 +4269,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv(Vector<double>& p,
 }
 
 bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& ret) {
-  bool isHierarchised;
+  bool isHierarchized;
   unsigned int dim1, dim2, dim3, nRows, nCols;
 
   // open file
@@ -3993,17 +4292,17 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
   Notation notation = !strVec[3].compare(0,strVec[3].size(),"voigt") ? VOIGT : HILL_MANDEL;
 
   // initialize matrix
-  // if second entry starts with "L", we have hierarchised data
+  // if second entry starts with "L", we have hierarchized data
   if (strVec[1].compare(0,1,"L") == 0) {
-    isHierarchised = true;
+    isHierarchized = true;
     unsigned int catalogueDimension = strVec[0].compare("3D") == 0 ? 3 : 2;
     level_ = boost::lexical_cast<int>(strVec[1].substr(1));
     for (unsigned int i=0; i<catalogueDimension; i++) {
-      catalogueSize_.Push_back(2^level_);
+      catalogueSize_.Push_back(pow(2,level_));
     }
     nRows = boost::lexical_cast<int>(strVec[2]);
   } else {
-    isHierarchised = false;
+    isHierarchized = false;
     dim1 = boost::lexical_cast<int>(strVec[0]);
     dim2 = boost::lexical_cast<int>(strVec[1]);
     dim3 = boost::lexical_cast<int>(strVec[2]);
@@ -4018,17 +4317,25 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     level_ = log2(dim1);
   }
 
-  if (shearIsDesign_) {
+#ifdef USE_SGPP
+  bool assertiontest = grid_->getStorage()->dim() == 3;
+#else
+  bool assertiontest = shearIsDesign_;
+#endif
+  if (assertiontest) {
     assert(catalogueSize_.GetSize() == 3);
   }
 
-  if (catalogueSize_.GetSize() == 2) {
+  if (strVec.GetSize() <= catalogueSize_.GetSize() + 4 + 1) {
+    // only tensor entries E11 E12 E22 E33 (and volume) are given
     nCols = 4;
   } else {
+    // all tensor entries are given
     nCols = 6;
   }
-  ret.Resize(nRows,nCols);
-  ret.Init();
+  Matrix<double> data;
+  data.Resize(nRows,nCols);
+  data.Init();
   LOG_DBG(dm)<<"ReadDetailedStats: nRows = "<<nRows<<", nCols = "<<nCols<<", level = "<<level_;
 
   for (unsigned int i=0; i<nRows; i++) {
@@ -4037,15 +4344,30 @@ bool DesignMaterial::ReadDetailedStats(const char * filename, Matrix<double>& re
     strVec.Clear();
     SplitStringListWhitespace(line, strVec);
     for (unsigned int j=0; j<nCols; j++) {
-      ret[i][j] = boost::lexical_cast<double>(strVec[j+catalogueSize_.GetSize()]);
+      data[i][j] = boost::lexical_cast<double>(strVec[j+catalogueSize_.GetSize()]);
     }
     if (notation == VOIGT) {
-      ret[i][nCols-1] = ret[i][nCols-1] * 2.0;
+      data[i][nCols-1] = data[i][nCols-1] * 2.0;
     }
   }
+
+  // If too many tensor entries are given we extract the needed ones
+  if (catalogueSize_.GetSize() == 2 && nCols == 6) {
+    // extract the columns for entries E11 E12 E22 E33
+    std::vector<UInt> rows(boost::counting_iterator<int>( 0 ), boost::counting_iterator<int>( nRows ));
+    std::vector<UInt> cols(4);
+    cols[0] = 0;
+    cols[1] = 1;
+    cols[2] = 3;
+    cols[3] = 5;
+    data.GetSubMatrixByInd(ret,rows,cols);
+  } else {
+    ret = data;
+  }
+
   LOG_DBG3(dm)<<"Data: \n"<<ret;
 
-  return isHierarchised;
+  return isHierarchized;
 }
 
 void DesignMaterial::GetInterpolatedTensor(Matrix<double>& t,
@@ -4862,6 +5184,9 @@ bool DesignMaterial::GetMechTensor(Matrix<double>& t, SubTensorType subTensor, c
   case D_INTERP_TENSOR_ROT:
     GetInterpolatedTensor(t, subTensor, direction, notation);
     break;
+  case MSFEM_C1:
+    ZeroTensor(t, subTensor);
+    break;
   default: // case default
     throw Exception("DesignMaterial Type not implemented yet");
   }
@@ -5072,6 +5397,7 @@ void DesignMaterial::SetEnums() {
   type.Add(GREEDY_MAPPING, "greedy-mapping");
   type.Add(D_HOM_RECT, "density-times-hom-rect");
   type.Add(HOM_RECT_C1, "hom-rect-C1");
+  type.Add(MSFEM_C1, "msfem-C1");
   type.Add(D_INTERP_TENSOR, "density-times-interpolated-tensor");
   type.Add(D_INTERP_TENSOR_ROT, "density-times-rotated-interpolated-tensor");
   type.Add(REDBAS_MAPPING, "reducedBasis-mapping");

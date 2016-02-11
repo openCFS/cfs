@@ -291,7 +291,7 @@ namespace CoupledField
             return pdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline const double PDF(int cur, int x, int y, int z, int direction) const
+          inline double PDF(int cur, int x, int y, int z, int direction) const
           {
             return pdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
@@ -301,7 +301,7 @@ namespace CoupledField
             return pdfs_[cur][direction + n_q_ * elem];
           }
 
-          inline const double PDF(int cur, int elem, int direction) const
+          inline double PDF(int cur, int elem, int direction) const
           {
             return pdfs_[cur][direction + n_q_ * elem];
           }
@@ -311,7 +311,7 @@ namespace CoupledField
             return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline const double AMoments(int cur, int x, int y, int z, int direction) const
+          inline double AMoments(int cur, int x, int y, int z, int direction) const
           {
             return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
@@ -321,7 +321,7 @@ namespace CoupledField
             return adjMoments_[cur][direction + n_q_ * elem];
           }
 
-          inline const double AMoments(int cur, int elem, int direction) const
+          inline double AMoments(int cur, int elem, int direction) const
           {
             return adjMoments_[cur][direction + n_q_ * elem];
           }
@@ -331,7 +331,7 @@ namespace CoupledField
             return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
 
-          inline const double APDF(int cur, int x, int y, int z, int direction) const
+          inline double APDF(int cur, int x, int y, int z, int direction) const
           {
             return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
           }
@@ -341,7 +341,7 @@ namespace CoupledField
             return adjPdfs_[cur][direction + n_q_ * elem];
           }
 
-          inline const double APDF(int cur, int elem, int direction) const
+          inline double APDF(int cur, int elem, int direction) const
           {
             return adjPdfs_[cur][direction + n_q_ * elem];
           }

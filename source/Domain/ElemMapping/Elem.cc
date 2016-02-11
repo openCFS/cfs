@@ -16,6 +16,12 @@ std::map<Elem::FEType,ElemShape> Elem::shapes;
     neighborhood(NULL)
   {}
 
+  Elem::~Elem() {
+    delete neighborhood; // save to delete NULL
+    neighborhood = NULL;
+  }
+
+
 //
 
   std::string Elem::ToString() const {

@@ -114,6 +114,10 @@ namespace CoupledField {
   /** Compares if two doubles are close to each other */
   inline bool close(Double d1, Double d2) { return std::abs(d1-d2) < 1e-6; }
 
+  /** clang complains about std::abs(c1 - c2) if i* is unsigned int but it would be used for templated Matrix::IsSymmetric()
+   * @param eps not used but there for compatibelity*/
+  inline bool close(int i1, int i2, double eps = 0.0) { return i1 == i2; }
+  inline bool close(unsigned int i1, unsigned int i2, double eps = 0.0) { return i1 == i2; }
 
   /** separate eps version to be faster! */
   inline bool close(Double d1, Double d2, double eps) { return std::abs(d1-d2) < eps; }

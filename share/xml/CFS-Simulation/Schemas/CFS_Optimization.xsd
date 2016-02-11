@@ -1018,6 +1018,23 @@
                             <xsd:attribute name="bsplineDegree" type="xsd:token" default="3" use="optional" />
                           </xsd:complexType>
                         </xsd:element>
+                        
+                        <xsd:element name="MSFEMC1" minOccurs="0" maxOccurs="1">
+                          <xsd:complexType>
+                            <!-- documents in with notation the tensor data is given. Internal storrage is Hill-Mandel -->
+                            <xsd:attribute name="file" default="coeffi_msfem.xml" type="xsd:token" use="optional"/>
+                            <!-- sparse grid interpolation method --> 
+                            <xsd:attribute name="interpolation" use="optional" default="c1"> 
+                              <xsd:simpleType> 
+                                <xsd:restriction base="xsd:token"> 
+                                  <xsd:enumeration value="c1"/>  
+                                </xsd:restriction> 
+                              </xsd:simpleType> 
+                            </xsd:attribute> 
+                          </xsd:complexType>
+                        </xsd:element>
+                        
+                        
                       </xsd:sequence>                
                       <xsd:attribute name="type" use="required">
                         <xsd:simpleType>
@@ -1046,6 +1063,8 @@
                             <xsd:enumeration value="density-times-hom-rect"/>
                             <!--  samples for homogenizes a-b rectangulars for C1-interpolation. -->
                             <xsd:enumeration value="hom-rect-C1"/>
+                            <!--  msfem material catalog for C1-interpolation. -->
+                            <xsd:enumeration value="msfem-C1"/>
                             <!--  model reduction  --> 
                             <xsd:enumeration value="reducedBasis-param"/> 
                             <xsd:enumeration value="reducedBasis-free"/> 
