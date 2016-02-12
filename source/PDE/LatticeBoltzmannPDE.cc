@@ -676,12 +676,17 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
           col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
         }
     }
-
     double d_collision_setup = timer.GetCPUTime();
+
+    // right-hand side
+    Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+    double rhs_setup = timer.GetCPUTime();
+
     PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     // using external LSE solver
     if (adjSRT_ == EXTERNAL)
     {
+
       // the real jacobi combines d_collision with d_propagation
       mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
       d_propagate_d_f(Jacobi,col_jacobi);
@@ -699,11 +704,6 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       DeleteSingularities(Jacobi,Jacobi_new);
 
       double delete_sing_setup = timer.GetCPUTime();
-
-      // right-hand side
-      Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
-
-      double rhs_setup = timer.GetCPUTime();
 
       // use the cfs system matrix to solve the adjoint system
       StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
@@ -739,22 +739,23 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       Vector<double> sol;
       algsys_->GetSolutionVal(sol,0,false);
 
-//      std::cout << "\nAdjoint solution" << std::endl;
-//      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
-      for (unsigned int idx = 0; idx < n_elems; idx++)
+
+      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
       {
-//        DesignElement* de = f->elements[e];
-//        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-//        std::cout << "Elem " << idx << ": ";
+        DesignElement* de = f->elements[e];
+        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
+        de->AddGradient(f, val);
+      }
+
+//      std::cout << "\nAdjoint solution" << std::endl;
+//      for (unsigned int idx = 0; idx < n_elems; idx++) {
+//        std::cout << "Elem " << idx << ": ";
 //        for (unsigned int dir = 0; dir < n_q_; dir++) {
 //          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
 //        }
 //        std::cout << std::endl;
-//        de->AddGradient(f, val);
-      }
-
-        exit(-1);
+//      }
       timer.Stop();
       adjoint_.Stop();
       adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
@@ -771,23 +772,30 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjSRTCollision,d_pdrop_d_f);
       adjPdfs = *tmp;
 
-//      std::cout << "\nAdjoint solution" << std::endl;
       for(unsigned int e = 0; e < f->elements.GetSize(); e++)
       {
         DesignElement* de = f->elements[e];
         unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-//        std::cout << "Elem " << idx << ": ";
         Vector<double> sol(n_q_), d_coll_d_s(n_q_);
         for (unsigned int dir = 0; dir < n_q_; dir++) {
           sol[dir] = adjPdfs[GetPdfIndex(idx,dir)];
           d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
-//          std::cout << sol[dir] << " ";
         }
-//        std::cout << std::endl;
         double val = -d_coll_d_s.Inner(sol);
         de->AddGradient(f, val);
       }
+
+//      std::cout << "\nAdjoint solution from backkward sim" << std::endl;
+//      for (int idx = 0; idx < n_elems; idx++)
+//      {
+//        std::cout << "Elem " << idx << ": ";
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << adjPdfs[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << std::endl;
+//      }
     }
+//    exit(-1);
     adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
     adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
     adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
@@ -1222,12 +1230,12 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 
   Vector<double> rhs(n_elems * n_q_);
 
-  if (adjSRT_ == EXTERNAL) {
+//  if (adjSRT_ == EXTERNAL) {
     mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
     d_propagate_d_f(dFdf,dPD);
     for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
       rhs[i] = dFdf(i,0);
-  }
+//  }
 
   return rhs; // no copy constructor
 }

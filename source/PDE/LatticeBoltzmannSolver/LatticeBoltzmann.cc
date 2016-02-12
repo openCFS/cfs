@@ -316,8 +316,10 @@ void LatticeBoltzmann::InitializeAdjPdfs()
 #pragma omp parallel for default(none)
   for (int elem = 0; elem < nNodes_; elem++) {
       for (int  dir = 0; dir < n_q_; dir++) {
-        APDF(0, elem, dir) = weights[dir];
-        APDF(1, elem, dir) = weights[dir];
+//        APDF(0, elem, dir) = weights[dir];
+//        APDF(1, elem, dir) = weights[dir];
+        APDF(0, elem, dir) = 0;
+        APDF(1, elem, dir) = 0;
       }
     }
 }
