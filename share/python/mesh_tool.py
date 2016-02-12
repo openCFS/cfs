@@ -914,14 +914,18 @@ def create_lbm2d(resolution, case, inclusion, inclusion_size):
     mesh.ne.append(('inlet',range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx) ))
     mesh.ne.append(('outlet',range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx) ))
     mesh.ne.append(('outlet',range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx) ))
-    
   elif case == 'two_inlet_two_outlet': 
     inletLength = 0.15 * ny 
     mesh.ne.append(('inlet',range(int(0.2*nx*ny+eps), int(0.2*nx*ny+eps + inletLength*nx),nx) )) 
     mesh.ne.append(('inlet',range(int(0.8*nx*ny+eps-inletLength*nx), int(0.8*nx*ny+eps),nx) )) 
     mesh.ne.append(('outlet',range(int(0.2*nx*ny+eps + nx-1), int(0.2*nx*ny+eps + inletLength*nx+ nx-1),nx) )) 
-    mesh.ne.append(('outlet',range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx) )) 
-      
+    mesh.ne.append(('outlet',range(int(0.8*nx*ny+eps-inletLength*nx+ nx-1), int(0.8*nx*ny+eps+ nx-1),nx) ))
+  elif case == "pipe":
+    mesh.ne.append(('inlet',range(nx,nx*(ny-1),nx)))   
+    mesh.ne.append(('outlet',range(2*nx-1,nx*ny-1,nx)))  
+  elif case == "diffuser":
+    mesh.ne.append(('inlet',range(nx,nx*(ny-1),nx)))
+    mesh.ne.append(('outlet',range(int(0.3*nx*ny+nx-1),int(0.7*nx*ny+nx-1),nx)))
   return mesh
 
 def create_backstep(x_res, y_res, z_res): 

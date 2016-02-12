@@ -509,7 +509,6 @@ template<class TYPE> void CoefFunctionLBM<TYPE>::GetVector(Vector<TYPE>& vec, co
       default:
         EXCEPTION("LBM optimization has only velocity and distribution function values as vector solution.")
     }
-
 }
 
 template<class TYPE> std::string CoefFunctionLBM<TYPE>::ToString() const
