@@ -1736,7 +1736,7 @@ namespace CoupledField
     assert(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || BasePDE::INVERSESOURCE
     		|| omega == 0.0);
 
-    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC)
+    if(domain->GetDriver()->GetAnalysisType() == BasePDE::HARMONIC || BasePDE::INVERSESOURCE)
       Matrix2Harmonic( harmMat, elemMat, dest, context.GetEntryType(), omega);
     else
       harmMat = elemMat;

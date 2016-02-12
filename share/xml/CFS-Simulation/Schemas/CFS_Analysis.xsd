@@ -205,8 +205,12 @@
   <xsd:complexType name="DT_AnalysisInverseSource">
     <xsd:complexContent>
       <xsd:extension base="DT_AnalysisBasic">
-        <xsd:sequence>
+        <xsd:sequence>          
           <xsd:element name="freq" type="xsd:token" minOccurs="0" maxOccurs="1"/>
+          <xsd:element name="alphaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="betaPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="expPar" type="xsd:token" minOccurs="1" maxOccurs="1"/>
+          <xsd:element name="maxIter" type="xsd:token" minOccurs="1" maxOccurs="1"/>
           <xsd:element name="writeRestart" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
           <xsd:element name="allowPostProc" type="DT_CFSBool" minOccurs="0" maxOccurs="1"/>
         </xsd:sequence>
