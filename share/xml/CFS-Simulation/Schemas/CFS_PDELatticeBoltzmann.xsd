@@ -72,17 +72,77 @@
 					<!-- Configurations for LBM simulation -->
 					<xsd:element name="LBM" minOccurs="1" maxOccurs="1">
 						<xsd:complexType>
-              
+						<xsd:all>
+              <xsd:element name="MRT" minOccurs="0" maxOccurs="1">
+                 <xsd:complexType>
+                    <xsd:attribute name="omega_e" type="xsd:double" use="required"> 
+                      <xsd:annotation>
+                        <xsd:documentation>Relaxation rate for energy entry in moments vector</xsd:documentation>
+                      </xsd:annotation>              
+                    </xsd:attribute>
+                    <xsd:attribute name="omega_epsilon" type="xsd:double" use="required"> 
+                      <xsd:annotation>
+                        <xsd:documentation>Relaxation rate for square energy entry in moments vector</xsd:documentation>
+                      </xsd:annotation>              
+                    </xsd:attribute>
+                    <xsd:attribute name="omega_q" type="xsd:double" use="required"> 
+                      <xsd:annotation>
+                        <xsd:documentation>Relaxation rate for heat flux entry in moments vector</xsd:documentation>
+                      </xsd:annotation>              
+                    </xsd:attribute>
+                    <xsd:attribute name="alpha_max" type="xsd:double" use="required"> 
+                      <xsd:annotation>
+                        <xsd:documentation>This value is related to the RAMP approximation used in the porosity model proposed by Liu et al.(2014), e.g. 800</xsd:documentation>
+                      </xsd:annotation>              
+                    </xsd:attribute>
+                </xsd:complexType>
+              </xsd:element>
+              <xsd:element name="SRT" minOccurs="0" maxOccurs="1">
+                <xsd:complexType>
+                  <xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="optional" default="external"> 
+                    <xsd:annotation>
+                      <xsd:documentation>Adjoint system can be solved externally via e.g. PARDISO or internally with an adjoint LBM formulation</xsd:documentation>
+                    </xsd:annotation>              
+                  </xsd:attribute>
+                </xsd:complexType>
+              </xsd:element>
+            </xsd:all>
+            
             <xsd:attribute name="omega" type="xsd:double" use="optional"> 
               <xsd:annotation> 
-                <xsd:documentation>tuning parameter for LBM. small is more robust, large faster \n 
+                <xsd:documentation>Tuning parameter for LBM (SRT and MRT). small is more robust, large faster \n 
                   If omega and Re are set, u_x inflow is adjusted \n If Re and u_x are set, omega is adjusted \n If omega and u_x are set, Re is printed out in .info.xml file 
                 </xsd:documentation> 
               </xsd:annotation> 
             </xsd:attribute> 
+            
+            <xsd:attribute name="relaxation" use="required">
+              <xsd:annotation>
+               <xsd:documentation>
+                Indicate if single relaxation time (SRT) or multiple relaxation time (MRT) model should be used for solving.\n
+                If SRT is chosen, relaxation parameter 'omega' must be set. \n
+                If MRT is chosen, 5 relaxation parameters must be specified in an 'MRT' element.
+               </xsd:documentation>
+              </xsd:annotation>
+              <xsd:simpleType>
+                <xsd:restriction base="xsd:token">
+                  <xsd:enumeration value="srt">  
+                    <xsd:annotation> 
+                      <xsd:documentation> Use single relaxation time (SRT) model. </xsd:documentation> 
+                    </xsd:annotation> 
+                 </xsd:enumeration> 
+                 <xsd:enumeration value="mrt"> 
+                   <xsd:annotation> 
+                     <xsd:documentation> Use multiple relaxation time (MRT) model. </xsd:documentation>
+                   </xsd:annotation> 
+                  </xsd:enumeration> 
+                </xsd:restriction>
+              </xsd:simpleType>
+            </xsd:attribute>
+             
             <xsd:attribute name="Re" type="xsd:double" use="optional"> 
               <xsd:annotation> 
-                <xsd:documentation>dimensionless characteristic of flow. ratio of inertial forces to viscous forces; at least omega or Re must be specified</xsd:documentation> 
+                <xsd:documentation> Dimensionless characteristic of flow. ratio of inertial forces to viscous forces; at least omega or Re must be specified</xsd:documentation> 
               </xsd:annotation> 
             </xsd:attribute> 
              
@@ -141,7 +201,7 @@
               <xsd:attribute name="lbm" type="xsd:token" use="optional" default="./" >
                 <xsd:annotation>
                   <xsd:documentation>if solver is not 'internal' give here the execuable</xsd:documentation>
-                  </xsd:annotation>
+                </xsd:annotation>
               </xsd:attribute>              
               
               <xsd:attribute name="plot" type="xsd:boolean" use="optional" default="false" >
@@ -149,18 +209,17 @@
                   <xsd:documentation>creates for the internal LBM solver simulation.lbm.dat with residuum over LBM iteration.</xsd:documentation>
                   </xsd:annotation>
               </xsd:attribute>
-						</xsd:complexType>
+              
+            </xsd:complexType>
 					</xsd:element>
 
 					<!-- Desired solution values (optional) -->
-					<xsd:element name="storeResults" minOccurs="0"
-						maxOccurs="1">
+					<xsd:element name="storeResults" minOccurs="0" maxOccurs="1">
 						<xsd:complexType>
 						  <xsd:sequence>
 						  
 							  <!-- Element result definition -->
-				        <xsd:element name="elemResult" minOccurs="0"
-				          maxOccurs="unbounded">
+				        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
 				          <xsd:complexType>
 				            <xsd:complexContent>
 				              <xsd:extension base="DT_ElemResult">
@@ -197,7 +256,9 @@
 	<xsd:simpleType name="DT_ExternLBMElemResult">
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="LBMVelocity"/>
-      <xsd:enumeration value="LBMProbabilityDistribution"/> 
+      <xsd:enumeration value="LBMAdjointVelocity"/>
+      <xsd:enumeration value="LBMProbabilityDistribution"/>
+      <xsd:enumeration value="LBMProbabilityDistributionAdjoint"/> 
       <xsd:enumeration value="LBMDensity"/>
       <xsd:enumeration value="LBMPressure"/>      
       <xsd:enumeration value="mechPseudoDensity"/>
@@ -206,13 +267,33 @@
   </xsd:simpleType>
   
   <!-- ******************************************************************* --> 
-    <!-- Definition of inflow profiles --> 
-    <!-- ******************************************************************* --> 
-    <xsd:simpleType name="DT_ExternLBMInflow"> 
-      <xsd:restriction base="xsd:token"> 
-        <xsd:enumeration value="uniform" /> 
-        <xsd:enumeration value="parabolic" /> 
-      </xsd:restriction> 
-    </xsd:simpleType> 
-
+  <!-- Definition of inflow profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_ExternLBMInflow"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="uniform" /> 
+      <xsd:enumeration value="parabolic" /> 
+    </xsd:restriction> 
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* --> 
+  <!-- Definition of relaxation models profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_LBMRelaxation"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="srt" /> 
+      <xsd:enumeration value="mrt" /> 
+    </xsd:restriction> 
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* --> 
+  <!-- Definition of relaxation models profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_LBMAdjoint"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="internal"/> 
+      <xsd:enumeration value="external"/> 
+    </xsd:restriction> 
+  </xsd:simpleType>
 </xsd:schema>
+
