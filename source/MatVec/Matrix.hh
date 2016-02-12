@@ -82,7 +82,7 @@ namespace CoupledField
     //! Initialize matrix with a given scalar entry.
 
     //! Initializes the matrix with a given scalar entry
-    //! If no entry given, it gets initialized with zeros.
+    //! If no entry given, it gets initialized with zeroes.
     //! \param val (input,opt.) Entry the matrix gets initialized with
     //! \note This method does not change the size of the matrix
     inline void Init()
@@ -565,7 +565,7 @@ namespace CoupledField
     //@{
     
     //! Returns true if \a mat has the same entries as own matrix
-    inline bool operator==( const Matrix<TYPE> & mat ) const;
+    inline bool operator ==( const Matrix<TYPE> & mat ) const;
 
     //! Returns true if \a mat has different entries than own matrix
     inline bool operator!=( const Matrix<TYPE> & mat ) const;
