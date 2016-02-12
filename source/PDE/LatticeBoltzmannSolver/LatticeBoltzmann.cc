@@ -1485,7 +1485,7 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
 //  Vector<double> pdfs(n_q_);
-  Matrix<double> test(n_q_*sizeX_*sizeY_*sizeZ_,n_q_*sizeX_*sizeY_*sizeZ_);
+  Matrix<double> test(n_q_*nNodes_,n_q_*nNodes_);
   test.Init();
 #pragma omp parallel for default(none) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
@@ -1528,14 +1528,14 @@ void LatticeBoltzmann::AdjointPropagation(int next)
       }
 
 //  std::stringstream ss;
-//  for (int i = 0; i < n_q_*sizeX_*sizeY_*sizeZ_; i++) {
-//    for ( int j = 0; j < n_q_*sizeX_*sizeY_*sizeZ_; j++) {
+//  for (int i = 0; i < n_q_*nNodes_; i++) {
+//    for ( int j = 0; j < n_q_*nNodes_; j++) {
 //      ss << test(i,j) << " ";
 //    }
 //    ss << "\n";
 //  }
 //  std::fstream f;
-//  f.open("testMatrix.txt", std::ios::out);
+//  f.open("propOp3d.txt", std::ios::out);
 //  f << ss.str();
 //  f.close();
 }

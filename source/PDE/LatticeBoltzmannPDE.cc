@@ -678,34 +678,33 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     }
 
     double d_collision_setup = timer.GetCPUTime();
-
-    // the real jacobi combines d_collision with d_propagation
-    mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
-    d_propagate_d_f(Jacobi,col_jacobi);
-
-    // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
-    for(unsigned int i=0;i < n_q_ * n_elems; i++)
-      Jacobi(i,i) -= 1.;
-
-    double d_propagation_setup = timer.GetCPUTime();
-
-    //Data for Pardiso solver
-    compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
-
-    // Delete singular rows from the Jacobian
-    DeleteSingularities(Jacobi,Jacobi_new);
-
-    double delete_sing_setup = timer.GetCPUTime();
-
-    // right-hand side
-    Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
-
-    double rhs_setup = timer.GetCPUTime();
-
     PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     // using external LSE solver
     if (adjSRT_ == EXTERNAL)
     {
+      // the real jacobi combines d_collision with d_propagation
+      mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
+      d_propagate_d_f(Jacobi,col_jacobi);
+
+      // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
+      for(unsigned int i=0;i < n_q_ * n_elems; i++)
+        Jacobi(i,i) -= 1.;
+
+      double d_propagation_setup = timer.GetCPUTime();
+
+      //Data for Pardiso solver
+      compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
+
+      // Delete singular rows from the Jacobian
+      DeleteSingularities(Jacobi,Jacobi_new);
+
+      double delete_sing_setup = timer.GetCPUTime();
+
+      // right-hand side
+      Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+
+      double rhs_setup = timer.GetCPUTime();
+
       // use the cfs system matrix to solve the adjoint system
       StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
       LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
@@ -741,19 +740,21 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       algsys_->GetSolutionVal(sol,0,false);
 
       std::cout << "\nAdjoint solution" << std::endl;
-      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+//      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+      for (unsigned int idx = 0; idx < n_elems; idx++)
       {
-        DesignElement* de = f->elements[e];
-        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+//        DesignElement* de = f->elements[e];
+//        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
         std::cout << "Elem " << idx << ": ";
         double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
         for (unsigned int dir = 0; dir < n_q_; dir++) {
           std::cout << sol[GetPdfIndex(idx,dir)] << " ";
         }
         std::cout << std::endl;
-        de->AddGradient(f, val);
+//        de->AddGradient(f, val);
       }
 
+        exit(-1);
       timer.Stop();
       adjoint_.Stop();
       adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
@@ -1126,8 +1127,8 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   mapped_matrix<double>::const_iterator1 iter;
   LatticeBoltzmann::PDFDirectionVector transform;
 
-//  Matrix<double> test(9*n_x_*n_y_,9*n_x_*n_y_);
-//  test.Init();
+  Matrix<double> test(n_q_*n_elems,n_q_*n_elems);
+  test.Init();
 
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
@@ -1145,7 +1146,7 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
-//                test(rows1,rows2) = 1.0;
+                test(rows1,rows2) = 1.0;
               }
             }
             // case 2
@@ -1153,12 +1154,12 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows1, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows1,it.index2());
-//                test(rows1,rows1) = 1.0;
+                test(rows1,rows1) = 1.0;
               }
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) += J(rows2,it.index2());
-//                test(rows1,rows2) = 1.0;
+                test(rows1,rows2) = 1.0;
               }
             }
           }
@@ -1167,6 +1168,17 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
       }
     }
   }
+//  std::stringstream ss;
+//  for (int i = 0; i < n_q_*n_x_*n_y_*n_z_; i++) {
+//    for ( int j = 0; j < n_q_*n_x_*n_y_*n_z_; j++) {
+//      ss << test(i,j) << " ";
+//    }
+//    ss << "\n";
+//  }
+//  std::fstream f;
+//  f.open("propOp3dPDE.txt", std::ios::out);
+//  f << ss.str();
+//  f.close();
 }
 
 Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz)
@@ -1208,13 +1220,14 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
     d_pdrop_d_f[index] = d_PD_d_f;
   }
 
-  mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
-
-  d_propagate_d_f(dFdf,dPD);
-
   Vector<double> rhs(n_elems * n_q_);
-  for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
-    rhs[i] = dFdf(i,0);
+
+  if (adjSRT_ == EXTERNAL) {
+    mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
+    d_propagate_d_f(dFdf,dPD);
+    for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
+      rhs[i] = dFdf(i,0);
+  }
 
   return rhs; // no copy constructor
 }
