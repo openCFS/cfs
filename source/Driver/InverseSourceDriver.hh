@@ -130,6 +130,18 @@ protected:
   //! pointer to loadRHS: measure
   PtrCoefFct rhsMeas_;
 
+  //! regularization parameter 1
+  Double alpha_;
+
+  //! regularization parameter 2
+   Double beta_;
+
+  //! regularization parameter 3
+  Double qExp_;
+
+  //! maximal number of iterations
+  UInt maxIter_;
+
 
 };
 

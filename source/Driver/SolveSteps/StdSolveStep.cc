@@ -1310,6 +1310,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleLinRHS();
 
     //Set special RHS Values
+    std::cout << "Do Apply Loads" << std::endl;
     PDE_.SetRhsValues();
 
     assemble_->AssembleMatrices( );

@@ -388,8 +388,28 @@ public:
 
   //! computes the optimality condition
   virtual void ComputeOptCondition(Double& optAmp, Double& optPhase) {
-	  EXCEPTION("CoefFuncion: CommputeOptCondition not implemented");
+	  EXCEPTION("CoefFuncion::ComputeOptCondition not implemented");
    }
+
+  //! computes the L2 norm of error
+  virtual void ComputeDiff2Meas( Double& error ) {
+	  EXCEPTION("CoefFuncion::ComputeDiff2Meas not implemented");
+  }
+
+  //! computes the L2 norm of error
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp ) {
+ 	  EXCEPTION("CoefFuncion::SetInverseParam not implemented");
+   }
+
+  //! update the source values (amplitude and phase)
+  virtual void UpdateSource(Double& stepLength, bool lineSearch) {
+	  EXCEPTION("CoefFuncion::UpdateSource not implemented");
+  }
+
+  //! computes the L2 norm of error
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared) {
+	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
+  }
 
   // ======================================================================
   //  Helper methods for generating variable names of coefficient function

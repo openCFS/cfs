@@ -56,9 +56,15 @@ namespace CoupledField
     info_->Get(ParamNode::PN_HEADER)->Get("unit")->SetValue("Hz");
     freq_ = param_->Get( "freq")->MathParse<Double>();
 
+    //regularization parameters
+    alpha_ = param_->Get( "alphaPar")->MathParse<Double>();
+    beta_ = param_->Get( "betaPar")->MathParse<Double>();
+    qExp_  = param_->Get( "expPar")->MathParse<Double>();
+    maxIter_  = param_->Get( "maxIter")->MathParse<UInt>();
+
     numFreq_ = 1;
     actFreqStep_ = 0;
-    actFreq_ = 0.0;
+    actFreq_ = 1.0;
     restartStep_ = 0;
     
     isRestarted_ = false;
@@ -233,6 +239,10 @@ namespace CoupledField
 
     }
 
+    //set the regularization parameters
+    rhsMeas_->SetInverseParam(alpha_, beta_, qExp_);
+    rhsSource_->SetInverseParam(alpha_, beta_, qExp_);
+
     analysis_id_ = info_->Get(ParamNode::PN_PROCESS)->Get("step", ParamNode::APPEND);
     analysis_id_->Get("analysis_id")->SetValue(actFreqStep);
     analysis_id_->Get("step")->SetValue(actFreqStep_);
@@ -246,37 +256,175 @@ namespace CoupledField
     ptPDE_->GetSolveStep()->SetActFreq( actFreq_ );
     ptPDE_->GetSolveStep()->SetActStep( actFreqStep_ );
 
-    Double optAmp, optPhase;
-    UInt iter = 0;
-    bool notConverged = true;
+    bool gradMethod = true;
 
-    while ( notConverged && iter < 20 ) {
-    	//compute with RHS being the conjugate difference of computed acoustic pressure
-    	//and measured pressure in the microphone points
+    if ( gradMethod ) {
+    	Double res2, funcVal, stepLength, sigma;
+    	Double optAmp, optPhase;
+    	Double outerErr = 1e-4;
+    	Double innerErr = 1e-4;
+
+    	//solve adj: just for initiallization
     	rhsSource_->SetActive(false);
     	rhsMeas_->SetActive(true);
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
-    	std::cout << "\n INV_MEASURE solved \n" << std::endl;
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-    	rhsSource_->ComputeOptCondition(optAmp, optPhase);
-
-    	if ( optAmp < 1e-10 && optPhase < 1e-10 )
-    		notConverged = false;
-
-    	std::cout << "\n OptCond, Amp: " << optAmp << "   Phase: " << optPhase << std::endl;
 
     	//compute with RHS as the current identified sources
     	rhsMeas_->SetActive(false);
-      	rhsSource_->SetActive(true);
-      	ptPDE_->GetSolveStep()->PreStepHarmonic();
-      	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
-      	ptPDE_->GetSolveStep()->PostStepHarmonic();
-      	std::cout << "\n INV_SOURCE solved \n" << std::endl;
-      	rhsSource_->SetActive(false);
+    	rhsSource_->SetActive(true);
+    	ptPDE_->GetSolveStep()->PreStepHarmonic();
+    	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	ptPDE_->GetSolveStep()->PostStepHarmonic();
+    	//save source data
+    	rhsSource_->UpdateSource( stepLength, false );
 
-    	iter++;
+    	//compute residual
+    	rhsMeas_->ComputeDiff2Meas( res2 );
+
+    	//compute Tikhonov functional
+    	rhsSource_->ComputeTikh(funcVal,res2);
+    	std::cout << "TikhonovVal start: " << funcVal << std::endl;
+
+    	Double kappa = 0.5;
+    	UInt outerIter = 0;
+    	std::cout << "\n Start outer Iter, Starting Res: " << res2 << std::endl;
+    	while ( res2 > outerErr*outerErr &&  outerIter < maxIter_ ) {
+    		//solve adj
+    		rhsSource_->SetActive(false);
+    		rhsMeas_->SetActive(true);
+    		ptPDE_->GetSolveStep()->PreStepHarmonic();
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    		//compute optimality condition and delta values of amplitude and phase
+    		rhsSource_->ComputeOptCondition(optAmp, optPhase);
+
+    		UInt innerIter=0;
+    		Double normGrad2 = optAmp + optPhase;
+    		std::cout << "OuterIter: " << outerIter << "  normGrad2:" << normGrad2 << std::endl;
+
+    		Double funcValNew;
+			std::cout << "\n Start inner Iter " << std::endl;
+    		while ( normGrad2 > innerErr*innerErr && innerIter < maxIter_ *2) {
+    			stepLength = 1.0;
+        		sigma      = 1.0e-4;
+
+    			//make an increment on source data
+    			rhsSource_->UpdateSource( stepLength, true );
+
+    			//compute with RHS as the current identified sources
+    			rhsMeas_->SetActive(false);
+    			rhsSource_->SetActive(true);
+    			ptPDE_->GetSolveStep()->PreStepHarmonic();
+    			ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    			ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    			rhsMeas_->ComputeDiff2Meas( res2 );
+    			std::cout << "InnerIter: " << innerIter << " Res: " << res2 << std::endl;
+    			rhsSource_->ComputeTikh( funcValNew, res2 );
+    			std::cout << "InnerIter: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
+
+    			UInt iterLineSearch = 0;
+    			std::cout << "\n Start line search Iter " << std::endl;
+    			while ( funcValNew > funcVal - sigma*stepLength*normGrad2  && iterLineSearch < 8) {
+    				//update source data
+    				stepLength *= kappa;
+    				rhsSource_->UpdateSource( stepLength, true );
+
+    				//compute with RHS as the current identified sources
+    				rhsMeas_->SetActive(false);
+    				rhsSource_->SetActive(true);
+    				ptPDE_->GetSolveStep()->PreStepHarmonic();
+    				ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    				ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    				rhsMeas_->ComputeDiff2Meas( res2 );
+    				std::cout << "LineSearch,  StepLenghth: " << stepLength
+    						  << " Res: " << res2 << std::endl;
+    				rhsSource_->ComputeTikh(funcValNew,res2);
+    				std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
+    				iterLineSearch++;
+    				std::cout << std::endl;
+    			}
+
+    			//save source data
+    			rhsSource_->UpdateSource( stepLength, false );
+
+    			funcVal = funcValNew;
+
+    			//solve adj
+    			rhsSource_->SetActive(false);
+    			rhsMeas_->SetActive(true);
+    			ptPDE_->GetSolveStep()->PreStepHarmonic();
+    			ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    			ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    			//compute optimality condition and delta values of amplitude and phase
+    			rhsSource_->ComputeOptCondition(optAmp, optPhase);
+    			std::cout << "InnerIter: " << innerIter << "  OptCondAmp: "
+    					   << optAmp << "  OptCondPhase: " << optPhase << std::endl;
+
+    			normGrad2 = optAmp + optPhase;
+    			innerIter++;
+    		}
+
+    		alpha_ *= 0.5;
+    		beta_  *= 0.5;
+    		std::cout << "Try new alpha: " << alpha_ << "  beta: " << beta_ << std::endl;
+    		outerIter++;
+    	}
+
+    	//final computation
+    	rhsMeas_->SetActive(false);
+    	rhsSource_->SetActive(true);
+    	ptPDE_->GetSolveStep()->PreStepHarmonic();
+    	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    	ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    }
+    else {
+    	Double optAmp, optPhase;
+    	UInt iter = 0;
+    	bool notConverged = true;
+
+    	while ( notConverged && iter < maxIter_ ) {
+    		//compute with RHS being the conjugate difference of computed acoustic pressure
+    		//and measured pressure in the microphone points
+    		rhsSource_->SetActive(false);
+    		rhsMeas_->SetActive(true);
+    		ptPDE_->GetSolveStep()->PreStepHarmonic();
+    		//std::cout << "\n SOLVE_MEASURE \n" << std::endl;
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		//std::cout << "\n INV_MEASURE solved \n" << std::endl;
+    		ptPDE_->GetSolveStep()->PostStepHarmonic();
+
+    		rhsSource_->ComputeOptCondition(optAmp, optPhase);
+
+    		if ( optAmp < 1e-10 && optPhase < 1e-10 )
+    			notConverged = false;
+
+    		std::cout << "\n OptCond, Amp: " << optAmp << "   Phase: " << optPhase << std::endl;
+
+    		//compute with RHS as the current identified sources
+    		rhsMeas_->SetActive(false);
+    		rhsSource_->SetActive(true);
+    		ptPDE_->GetSolveStep()->PreStepHarmonic();
+    		//std::cout << "\n SOLVE_SOURCE \n" << std::endl;
+    		ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
+    		ptPDE_->GetSolveStep()->PostStepHarmonic();
+    		//std::cout << "\n INV_SOURCE solved \n" << std::endl;
+
+    		Double error;
+    		rhsMeas_->ComputeDiff2Meas( error);
+    		std::cout << "\n L2 Error: " << error << std::endl;
+
+    		rhsSource_->SetActive(false);
+
+    		iter++;
+    	}
     }
 
 

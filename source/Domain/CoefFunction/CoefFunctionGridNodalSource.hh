@@ -93,6 +93,22 @@ public:
   //! computes the optimality condition
   virtual void ComputeOptCondition(Double& optAmp, Double& optPhase);
 
+  //! update the source values (amplitude and phase)
+  virtual void UpdateSource(Double& stepLength, bool lineSearch);
+
+  //! computes the L2 norm of error
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared);
+
+  //! computes the L2 norm of error
+  virtual void ComputeDiff2Meas( Double& error );
+
+  //! computes the L2 norm of error
+  virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp ) {
+	  alpha_ = alpha;
+	  beta_  = beta;
+	  qExp_  = qExp;
+  }
+
 protected:
 
 
@@ -122,11 +138,23 @@ private:
   //! conatins all  nodes of the source region
   shared_ptr<EntityList> nodeListSource_;
 
-  //!cotains the amplitude of the sources at the nodes
+  //!contains the amplitude of the sources at the nodes
   Vector<Double> sourceAmp_;
 
-  //!cotains the phase of the sources at the nodes
+  //!contains the incremental amplitude of the sources at the nodes
+   Vector<Double> sourceAmpDelta_;
+
+   //!saves amplitude of the sources at the nodes (due to line search)
+   Vector<Double> sourceAmpSave_;
+
+  //!contains the phase of the sources at the nodes
   Vector<Double> sourcePhi_;
+
+  //!contains the incremental phase of the sources at the nodes
+  Vector<Double> sourcePhiDelta_;
+
+  //!saves phase of the sources at the nodes (due to line search)
+  Vector<Double> sourcePhiSave_;
 
   //! regularization parameter 1
   Double alpha_;
@@ -143,7 +171,8 @@ private:
   //! stores the measured data
   Vector<DATA_TYPE> measVec_;
 
-};
+  StdVector<bool> isMeasuredNode_;
+ };
    
 
 }
