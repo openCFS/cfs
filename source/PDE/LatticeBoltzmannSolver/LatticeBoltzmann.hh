@@ -185,10 +185,10 @@ namespace CoupledField
           inline double CalcAdjResidual(int cur, int next)
           {
             double res = 0.0;
-            for (unsigned int i = 0; i < rel.GetSize(); i++) {
-              int index = rel[i]; // calc residual only over design nodes
-              for (int dir = 0; dir < n_q_; dir++) {
-                double tmp = APDF(next, index, dir) - APDF(cur, index, dir);
+
+            for (int elem = 0; elem < nNodes_; elem++) {
+              for(int  dir = 0; dir < n_q_; dir++) {
+                double tmp = APDF(next, elem, dir) - APDF(cur, elem, dir);
                 res += tmp * tmp;
               }
             }
