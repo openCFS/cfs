@@ -241,7 +241,7 @@ SetupRHEL() {
                 tcl-devel python-devel git-svn patch diffutils zip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
                 glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
-                libstdc++-devel.x86_64 libstdc++-devel.i686 || ExitFail
+                libstdc++-devel.x86_64 libstdc++-devel.i686 numpy || ExitFail
            
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
