@@ -263,13 +263,6 @@ namespace CoupledField {
         shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
         assert(mortarIf);
 
-        PtrCoefFct matDataTensorMas, matDataTensorSla;
-        RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
-        RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
-
-        matDataTensorMas = regionPermittivity_[volMasterId];
-        matDataTensorSla = regionPermittivity_[volSlaveId];
-
         // TODO: WHAT THE HELL? IT DOESN'T WORK WITH pz = -1...
         // To be checked later during the work with piezo-coupling
         Double pz = 1.0;
@@ -278,6 +271,15 @@ namespace CoupledField {
 
         if (formulation == "Nitsche")
         {
+          PtrCoefFct matDataTensorMas, matDataTensorSla;
+          RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
+          RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
+
+          matDataTensorMas = regionPermittivity_[volMasterId];
+          matDataTensorSla = regionPermittivity_[volSlaveId];
+          assert(matDataTensorMas);
+          assert(matDataTensorSla);
+
           std::string nitFac = blochNodesList[i]->Get("nitscheFactor")->As<std::string>();
           Double nitscheFactor = lexical_cast<Double>(nitFac);
           // master & slave penalty integrals
@@ -730,6 +732,8 @@ namespace CoupledField {
     	}
     }
     
+    // store coefficient function for later use (e.g. in boundary integrators)
+    regionPermittivity_[regionId] = curCoef;
 
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
