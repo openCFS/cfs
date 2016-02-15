@@ -147,7 +147,7 @@ private:
   StdVector<CoordTetra> intersectingTets_;
 
   //! scale factor for element intersections and volume conputations
-  static Double scaleFac_; // = 1e4;
+  Double scaleFac_; // = 1e4;
 
   //============================================
   // Caching variables
