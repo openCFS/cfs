@@ -21,7 +21,7 @@ CoefFunctionHyst::CoefFunctionHyst( BaseMaterial* const material,
 					MaterialType matType) : CoefFunction() {
 
   // this type of coefficient is nonlinear (i.e. solution dependent)
-  dimType_ = SCALAR;
+  dimType_ = TENSOR;
   dependType_ = SOLUTION;
   isAnalytic_ = false;
   isComplex_  = false;

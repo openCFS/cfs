@@ -49,6 +49,17 @@ public:
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
+  //! Return size of vector in case coefficient function is a vector
+  virtual UInt GetVecSize() const {
+	  return dependCoef_->GetVecSize();
+  }
+
+  //! Return row and columns size of tensor if coefficient function is a tensor
+  virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
+      numRows = matTensorStart_.GetNumRows();
+      numCols = matTensorStart_.GetNumCols();
+  }
+
 protected:
   
   //! compute X and Y value
