@@ -1485,8 +1485,8 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
 //  Vector<double> pdfs(n_q_);
-  Matrix<double> test(n_q_*sizeX_*sizeY_*sizeZ_,n_q_*sizeX_*sizeY_*sizeZ_);
-  test.Init();
+//  Matrix<double> test(n_q_*sizeX_*sizeY_*sizeZ_,n_q_*sizeX_*sizeY_*sizeZ_);
+//  test.Init();
 #pragma omp parallel for default(none) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
@@ -1504,7 +1504,7 @@ void LatticeBoltzmann::AdjointPropagation(int next)
           if (!PointsToBoundary(x,y,z,dir)) {
             // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
             if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-              test(rows1,rows2) = 1.0;
+              //test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
 //              std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id2 << std::endl;
             }
@@ -1514,11 +1514,11 @@ void LatticeBoltzmann::AdjointPropagation(int next)
 //              }
               // for corner elements, only distributions that point inside and to an design element are relevant
 //              if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
-                test(rows1,rows1) = 1.0;
+             //   test(rows1,rows1) = 1.0;
                 value = tmpPdfs_[rows1];
 //                std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id1 << std::endl;
 //              }
-              test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
+            //  test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
               value += tmpPdfs_[rows2];
 //              std::cout << "Elem " << id1 << "," << dir << " + gets entry from elem " << id2 << std::endl;
             }
