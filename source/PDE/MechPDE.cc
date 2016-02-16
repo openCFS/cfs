@@ -525,20 +525,26 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         densCoeffScaled = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, densCoeff, coefPMLScal, CoefXpr::OP_MULT));
         if (dim_ == 2 && subType_ != "2.5d")
           massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 2>(), densCoeffScaled, 1.0, updatedGeo_);
-        if (dim_ == 3)
-          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 2>(), densCoeffScaled, 1.0, updatedGeo_);
+        else
+          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 3>(), densCoeffScaled, 1.0, updatedGeo_);
       }
       else
       {
         // complex mass integrator due to complex bloch stiffness matrix
-        if(dim_== 2 && do_bloch)
-          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
-        if(dim_== 2 && !do_bloch)
-          massInt = new BBInt<>(new IdentityOperator<FeH1,2,2>(), densCoeff, 1.0);
-        if(dim_== 3 && do_bloch)
-          massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
-        if(dim_== 3 && !do_bloch)
-          massInt = new BBInt<>(new IdentityOperator<FeH1,3,3>(), densCoeff, 1.0);
+        if (do_bloch)
+        {
+          if (dim_ == 2 && subType_ != "2.5d")
+            massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 2, 2>(), densCoeff, 1.0);
+          else
+            massInt = new BBInt<Complex, Complex>(new IdentityOperator<FeH1, 3, 3>(), densCoeff, 1.0);
+        }
+        else
+        {
+          if (dim_ == 2 && subType_ != "2.5d")
+            massInt = new BBInt<>(new IdentityOperator<FeH1, 2, 2>(), densCoeff, 1.0);
+          else
+            massInt = new BBInt<>(new IdentityOperator<FeH1, 3, 3>(), densCoeff, 1.0);
+        }
       }
 
       massInt->SetName("MassInt");
@@ -1793,7 +1799,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // Check for subType
     StdVector<std::string> stressDofNames;
 
-    if(subType_ == "3d")
+    if(subType_ == "3d" || subType_ == "2.5d")
       stressDofNames = "xx", "yy", "zz", "yz", "xz", "xy";
     else if(subType_ == "planeStrain")
       stressDofNames = "xx", "yy", "xy";
@@ -1831,7 +1837,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   void MechPDE::DefinePostProcResults() {
     Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
     StdVector<std::string> stressComponents;
-    if( subType_ == "3d" ) {
+    if( subType_ == "3d" || subType_ == "2.5d") {
       stressComponents = "xx", "yy", "zz", "yz", "xz", "xy";
     } else if( subType_ == "planeStrain" ) {
       stressComponents = "xx", "yy", "xy";
