@@ -428,6 +428,7 @@ double Calc3DCrossVolume(double stiff1, double stiff2, double stiff3, bool deriv
 }
 int main(int argc, char * argv[]) {
   int mode;
+  enum Cataloguetype {thomas, daniel} cataloguetype;
   cout<<"Select number of interpolation goal: 3D cross shaped volume 1 or homogenized tensor 2 or debug mode 3"<<endl;
   cin>>mode;
   /*if (argc !=2 ) {
@@ -511,9 +512,19 @@ int main(int argc, char * argv[]) {
     typedef tokenizer<char_separator<char> > tokenizer;
     tokenizer tok(zeile);
     tokenizer::iterator head = tok.begin();
-    int m = atoi((*head).c_str())+1;
-    int n = atoi((*(++head)).c_str())+1;
-    int o = atoi((*(++head)).c_str())+1;
+    int m, n, o;
+    string secondsign = (*head).c_str();
+    if (secondsign.compare(1,1,"D") == 0) {
+      cataloguetype = daniel;
+      m = atoi((*(++head)).c_str());
+      n = m;
+      o = m;
+    } else {
+      cataloguetype = thomas;
+      m = atoi((*head).c_str())+1;
+      n = atoi((*(++head)).c_str())+1;
+      o = atoi((*(++head)).c_str())+1;
+    }
 
     //Read data of the material catalogue into a data structure
     vector<vector<double> > data(m*n*o,vector<double>(12,0.));
@@ -521,7 +532,7 @@ int main(int argc, char * argv[]) {
     int count2 = 0;
     while(!(fin.eof())) {
       getline(fin, zeile, '\n');
-      char_separator<char> sep(" ");
+      char_separator<char> sep(" \t");
       tokenizer tok(zeile,sep);
       count2 = 0;
       for(tokenizer::iterator beg=tok.begin(); beg!=tok.end();++beg){
@@ -536,15 +547,40 @@ int main(int argc, char * argv[]) {
     vector<double> aa(m,0.);
     vector<double> bb(n,0.);
     vector<double> cc(o,0.);
-    for (int i=0;i<m;i++) {
-      aa[i]=(static_cast<double>(i)/static_cast<double>(m-1));
-      bb[i]=(static_cast<double>(i)/static_cast<double>(n-1));
-      cc[i]=(static_cast<double>(i)/static_cast<double>(o-1));
+    double da, db, dc;
+    if (cataloguetype == thomas) {
+      for (int i=0;i<m;i++) {
+        aa[i]=(static_cast<double>(i)/static_cast<double>(m-1));
+        bb[i]=(static_cast<double>(i)/static_cast<double>(n-1));
+        cc[i]=(static_cast<double>(i)/static_cast<double>(o-1));
+      }
+      da = 1./(m);
+      db = 1./(n);
+      dc = 1./(o);
+    } else {
+      vector<vector<double> > paramvectors;
+      for (int j=0; j<3; j++) {
+        vector<double> column;
+        for (int i=0; i<m*n*o; i++) {
+          column.push_back(data[i][j]);
+        }
+        sort(column.begin(),column.end());
+        vector<double>::iterator last = unique(column.begin(), column.end());
+        column.erase(last,column.end());
+        paramvectors.push_back(column);
+      }
+      aa = paramvectors[0];
+      bb = paramvectors[1];
+      cc = paramvectors[2];
+      da = aa[1]-aa[0];
+      db = bb[1]-bb[0];
+      dc = cc[1]-cc[0];
+      for (int i=0; i<m*n*o; i++) {
+        data[i][0] = round((data[i][0]-aa[0])/da);
+        data[i][1] = round((data[i][1]-bb[0])/db);
+        data[i][2] = round((data[i][2]-cc[0])/dc);
+      }
     }
-
-    double da = 1./(m);
-    double db = 1./(n);
-    double dc = 1./(o);
     /*cout<<"vektor: ";
     for (int i=0;i<m;i++) {
       cout<<aa[i]<<" ";
@@ -559,7 +595,7 @@ int main(int argc, char * argv[]) {
     vector<vector<vector <double > > > E(m,vector<vector<double> >(n,vector<double>(o,0.)));
     for (int ll = 0;ll<9;ll++) {
       for (int i=0;i<m*n*o;i++) {
-            E[data[i][0]][data[i][1]][data[i][2]] = data[i][3+ll];
+        E[data[i][0]][data[i][1]][data[i][2]] = data[i][3+ll];
       }
       tricubic_offline(Coeff[ll],aa, bb, cc, E,m, n, o,E_number,da,db,dc);
     }
