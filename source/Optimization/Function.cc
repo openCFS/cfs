@@ -400,6 +400,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case GLOBAL_TENSOR_TRACE:
   case SHAPE_INF:
   case PRESSURE_DROP:
+  case LBM_DISSIPATION:
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
@@ -633,6 +634,7 @@ bool Function::ForSensitivityFiltering() const {
   case STRESS:
   case STRESS_DENSITY:
   case PRESSURE_DROP:
+  case LBM_DISSIPATION:
   case EIGENFREQUENCY:
     return true;
 
@@ -2080,7 +2082,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                 << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
+                 << ( typeid(element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
@@ -2270,7 +2272,7 @@ double Function::Local::Identifier::CalcSlope() const {
 
   double s = this->sign == -1 ? -1.0 : 1.0;
 
-  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
+  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
   << " sign=" << sign << " slope -> " << (s * (mine - other));
   return s * (mine - other);
 }

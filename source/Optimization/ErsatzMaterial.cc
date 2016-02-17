@@ -1505,6 +1505,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
+      case Function::LBM_DISSIPATION:
       assert(false);// shall be handled before
       break;
 
@@ -3074,7 +3075,7 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         res += fv;
         if(fv > 0) local->infeasible++;
         LOG_DBG2(em) << "CGF: !d c=" << f->type.ToString(f->GetType()) << " i=" << i << " de="
-                     << ( typeid(id.element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
+                     << ( typeid(id.element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(id.element)->elem->elemNum : -1 ) << " sign=" << id.sign << " fv=" << fv << " infeasible=" << local->infeasible << " -> " << res;
       }
 
       return res;

@@ -37,14 +37,11 @@
 #include "Driver/BaseDriver.hh"
 #include "Driver/FormsContexts.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
-//new integrator concept
-//#include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/SingleEntryBiLinInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 
 #include "FeBasis/BaseFE.hh"
-//#include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "General/Exception.hh"
 #include "PDE/SinglePDE.hh"
@@ -143,7 +140,6 @@ namespace CoupledField {
   {
     pdename_ = "LatticeBoltzmann";
     pdematerialclass_ = MECHANIC;
-    firstTurn_ = true;
     nonLin_ = false;
     lbm = NULL;
     numWriteResults_ = 0;
@@ -158,6 +154,8 @@ namespace CoupledField {
     maxIter_     = myParam_->Get("LBM/maxIter")->As<unsigned int>();
     convergence_ = myParam_->Get("LBM/convergence")->As<double>();
     writeFrequency_ = myParam_->Get("LBM/writeFrequency")->As<unsigned int>();
+    srt_ = myParam_->Get("LBM/relaxation")->As<std::string>() == "srt";
+
     bool plot    = myParam_->Get("LBM/plot")->As<bool>();
 
     PtrParamNode bcsl = myParam_->Get("bcsAndLoads");
@@ -168,8 +166,11 @@ namespace CoupledField {
 
     iface.SetName("LatticeBoltzmannPDE::Iface");
     iface.Add(INTERNAL, "internal");
-    iface.Add(EXTERNAL, "external_single_file_iface");
+    iface.Add(EXTERNAL, "external");
     iface_ = iface.Parse(pn->Get("LBM/solver")->As<std::string>());
+
+    if (srt_)
+      adjSRT_ = iface.Parse(pn->Get("LBM/SRT/solveAdjoint")->As<std::string>());
 
     InitRegions(pn, grid);
 
@@ -258,7 +259,6 @@ namespace CoupledField {
     }
     else if (myParam_->Has("LBM/Re")) {
       Re_       = myParam_->Get("LBM/Re")->As<double>();
-      omega_ = 1.9;
       if (parabolicInflow_)
         omega_ = 1.0 / ( 3*inlet.GetSize() * sqrt(1.5*1.5*(u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_+ u_max_z_ * u_max_z_)) / Re_ + 0.5);
       else
@@ -267,11 +267,36 @@ namespace CoupledField {
         EXCEPTION("Omega=" << omega_ << " must be smaller 2. Choose different Reynolds number or inlet velocity!");
     }
 
+    // sanity check for MRT relaxation rates
+    if (!srt_)
+    {
+      omega_e_ = myParam_->Get("LBM/MRT/omega_e")->As<double>(); // relaxation rate related to energy
+      omega_eps_ = myParam_->Get("LBM/MRT/omega_epsilon")->As<double>(); // relaxation rate related to squared energy
+      omega_q_ = myParam_->Get("LBM/MRT/omega_q")->As<double>(); // relaxation rate related to heat flux
+      alpha_max_ = myParam_->Get("LBM/MRT/alpha_max")->As<double>(); // parameter used in MRT porosity model
+
+      if (omega_e_ < 0.0 || omega_e_ > 2.0 || omega_eps_ < 0.0 || omega_eps_ > 2.0 || omega_q_ < 0.0 || omega_q_ > 2.0)
+        EXCEPTION("Check relaxation rates for MRT model! Values must be between 0.0 and 2.0!");
+    }
+
     //Initializing storage for PDFs
-    pdfs.Resize(n_elems * n_q_);
+    pdfs_.Resize(n_elems * n_q_);
+    adjMoments.Resize(n_elems * n_q_);
+    adjMoments.Init(0.0);
+    adjPdfs.Resize(n_elems * n_q_);
+    adjPdfs.Init(0.0);
+
+    // vector storing adjoint SRT collision matrices
+    adjSRTCollision.Resize(n_elems);
+    d_pdrop_d_f.Resize(n_elems);
+    Vector<double> zeros(n_q_);
+    zeros.Init();
+    // Initialize d_pdrop_d_f with zero vectors
+    for (unsigned int elem = 0; elem < n_elems; elem++)
+      d_pdrop_d_f[elem] = zeros;
 
     if(iface_ == INTERNAL) {
-      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_);
+      lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_, srt_, omega_e_, omega_eps_, omega_q_,alpha_max_);
     }
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
@@ -376,16 +401,9 @@ namespace CoupledField {
       PtrCoefFct beta = actSDMat->GetScalCoefFnc( DENSITY, Global::REAL );
 
       SingleEntryBiLinInt* stiffInt = NULL;
-//      std::set<RegionIdType> volRegions;
 
-//      if( dim_ == 2 ) {
-    	// surfaceBBInt is the only currently existing integrator that implies an unsymmetric element matrix
-//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,2>(), beta,1.0, volRegions, updatedGeo_ );
       shared_ptr<CoefFunction> coefFunc(new CoefFunctionLBM<Double>(this,feFunc,results_[0]));
       stiffInt = new SingleEntryBiLinInt(n_q_,coefFunc);
-//      } else {
-//        stiffInt = new SurfaceBBInt<>(new GradientOperator<FeH1,3>(), beta,1.0, volRegions, updatedGeo_ );
-//      }
 
       stiffInt->SetName("StiffnessIntegrator");
       LOG_TRACE(lbm_pde) << "Integrator symmetric? " << stiffInt->IsSymmetric();
@@ -397,7 +415,6 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-//      bdbInts_[actRegion] = stiffInt;
     }
   }
 
@@ -431,15 +448,26 @@ namespace CoupledField {
   {
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
-    in->Get("omega")->SetValue(omega_);
+    if (srt_)
+      in->Get("relaxation")->SetValue("SRT");
+    else
+      in->Get("relaxation")->SetValue("MRT");
+    in->Get("omega_nu")->SetValue(omega_);
+    if (!srt_)
+    {
+      in->Get("MRT/omega_e")->SetValue(omega_e_);
+      in->Get("MRT/omega_eps")->SetValue(omega_eps_);
+      in->Get("MRT/omega_q")->SetValue(omega_q_);
+    }
+    in->Get("Re")->SetValue(Re_);
     in->Get("maxIter")->SetValue(maxIter_);
     in->Get("maxWallTime")->SetValue(maxWallTime_);
     in->Get("convergence")->SetValue(convergence_);
     in->Get("iface")->SetValue(iface.ToString(iface_));
-    in->Get("Re")->SetValue(Re_);
     in->Get("u_max_x")->SetValue(u_max_x_);
     in->Get("u_max_y")->SetValue(u_max_y_);
     in->Get("u_max_z")->SetValue(u_max_z_);
+
     // in the constructor we don't have the densities yet
     SetupElements();
 
@@ -486,25 +514,30 @@ namespace CoupledField {
         // We need to perform an additional propagation step as base for the adjoint system setup
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
-        pdfs = *tmp;
+        pdfs_ = *tmp;
         in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
 
-        pdfs = *tmp;
-        lbm->prop_step();
+        pdfs_ = *tmp;
+        lbm->Prop_step();
 
-        pdfs = *tmp;
+        pdfs_ = *tmp;
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
+
+        if (!srt_ && domain_->GetOptimization() != NULL) {
+          StdVector<double>* tmpAdj = lbm->IterateAdjoint(in->Get("LBM"));
+          adjMoments = *tmpAdj;
+        }
 
         numWriteResults_ = lbm->GetNumWriteResults();
 
         numIterations_ = lbm->GetNumIterations();
-
         break;
       }
     }
 
     timer.Stop();
     state_.Stop();
+
     in = infoNode_->Get(ParamNode::SUMMARY)->Get("stateProblem");
     in->Get("original_pressure_drop")->SetValue(CalcPressureDrop());
     in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
@@ -579,154 +612,277 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   timer.Start();
   adjoint_.Start();
 
-  // Initialization of the data structures
-  StdVector<double> ux(n_elems);
-  StdVector<double> uy(n_elems);
-  StdVector<double> uz(n_elems);
-  StdVector<double> dloc(n_elems);
-  StdVector<double> weights(n_q_);
-
-  // setting values in data structures
-  SetupSensitivityAnalysis(ux, uy, uz, dloc, weights);
-
-  // derivative of the residual with respect to design variables
-  Vector<double> dRds(n_q_ * n_elems);
-  dRds.Init(0.0);
-
-  // derivative of the collision operator with respect to p
-  mapped_matrix<double> col_jacobi(n_q_ * n_elems, n_q_ * n_elems);
-
-  StdVector<double> dfeqdux(n_q_);
-  StdVector<double> dfeqduy(n_q_);
-  StdVector<double> dfeqduz(n_q_);
-
-  Matrix<double> block(n_q_,n_q_);
-
-  for(unsigned int index = 0; index < n_elems ; index++)
+  if (srt_)
   {
-    block.InitValue(0.0);
-    // interior
-    if(elements[index] >= 0 && !obstacles.Contains(index))  {
-      // Jacobi matrix of the collision operator with respect to the design variables
-      d_collision_step_d_f(index, block, dfeqdux, dfeqduy, dfeqduz, ux, uy, uz, dloc, weights);
+    // Initialization of the data structures
+    StdVector<double> ux(n_elems);
+    StdVector<double> uy(n_elems);
+    StdVector<double> uz(n_elems);
+    StdVector<double> dloc(n_elems);
+    StdVector<double> weights(n_q_);
 
-      // simple choice of the mapping between p and s
-      DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
-      double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
-      for (unsigned int k = 0; k < n_q_; k++)
-        dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
-    }
-    else if(elements[index] == LBM_NODE_TYPE_BB) {
-      d_bounceback_d_f(block); // bounce-back sensitivities
-    }
-    else if(elements[index] == LBM_NODE_TYPE_INLET) {
-      d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
-    }
-    else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
-      d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
-    }
-    else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
-      assert(false);
-    }
-    // fill transpose of block in col_jacobi
-    for(unsigned int k = 0; k < n_q_; k++)
-      for(unsigned int l = 0; l< n_q_; l++) {
-        col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
+    // setting values in data structures
+    SetupSensitivityAnalysis(ux, uy, uz, dloc, weights);
+
+    // derivative of the residual with respect to design variables
+    Vector<double> dRds(n_q_ * n_elems);
+    dRds.Init(0.0);
+
+    // derivative of the collision operator with respect to p
+    mapped_matrix<double> col_jacobi(n_q_ * n_elems, n_q_ * n_elems);
+
+    StdVector<double> dfeqdux(n_q_);
+    StdVector<double> dfeqduy(n_q_);
+    StdVector<double> dfeqduz(n_q_);
+
+    Matrix<double> block(n_q_,n_q_);
+
+    for(unsigned int index = 0; index < n_elems ; index++)
+    {
+      block.InitValue(0.0);
+      // interior
+      if(elements[index] >= 0 && !obstacles.Contains(index))  {
+        // Jacobi matrix of the collision operator with respect to the design variables
+        d_collision_step_d_f(index, block, dfeqdux, dfeqduy, dfeqduz, ux, uy, uz, dloc, weights);
+
+        // simple choice of the mapping between p and s
+        DesignElement* de = space->Find(idx_to_elem[index], DesignElement::DENSITY);
+        double scale = -1.0 * tf->Derivative(de, DesignElement::SMART);
+        for (unsigned int k = 0; k < n_q_; k++)
+          dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
       }
+      else if(elements[index] == LBM_NODE_TYPE_BB) {
+        d_bounceback_d_f(block); // bounce-back sensitivities
+      }
+      else if(elements[index] == LBM_NODE_TYPE_INLET) {
+        d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
+      }
+      else if(elements[index] == LBM_NODE_TYPE_OUTLET) {
+        d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
+      }
+      else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
+        assert(false);
+      }
+
+      if (adjSRT_ == INTERNAL) {
+        Matrix<double> transpose(n_q_,n_q_);
+        block.Transpose(transpose);
+        adjSRTCollision[index] = transpose;
+      }
+
+      // fill transpose of block in col_jacobi
+      for(unsigned int k = 0; k < n_q_; k++)
+        for(unsigned int l = 0; l< n_q_; l++) {
+          col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
+        }
+    }
+
+    double d_collision_setup = timer.GetCPUTime();
+
+    // the real jacobi combines d_collision with d_propagation
+    mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
+    d_propagate_d_f(Jacobi,col_jacobi);
+
+    // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
+    for(unsigned int i=0;i < n_q_ * n_elems; i++)
+      Jacobi(i,i) -= 1.;
+
+    double d_propagation_setup = timer.GetCPUTime();
+
+    //Data for Pardiso solver
+    compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
+
+    // Delete singular rows from the Jacobian
+    DeleteSingularities(Jacobi,Jacobi_new);
+
+    double delete_sing_setup = timer.GetCPUTime();
+
+    // right-hand side
+    Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
+
+    double rhs_setup = timer.GetCPUTime();
+
+    PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    // using external LSE solver
+    if (adjSRT_ == EXTERNAL)
+    {
+      // use the cfs system matrix to solve the adjoint system
+      StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
+      LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
+      LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
+      LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
+      LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
+      LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
+
+      CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
+      assert(crs != NULL);
+
+      crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
+      matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
+
+      // time to setup adjoint system before solving
+      double setup_wall = timer.GetWallTime();
+      double setup_cpu = timer.GetCPUTime();
+
+      LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
+      SBM_Vector rhs(BaseMatrix::DOUBLE);
+      rhs.Resize(1);
+      rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
+      rhs.AddToSubVector(b,0);
+
+      LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
+      LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
+
+      algsys_->InitRHS(rhs);
+
+      algsys_->SetupSolver();
+      algsys_->Solve();
+      Vector<double> sol;
+      algsys_->GetSolutionVal(sol,0,false);
+
+//      std::cout << "\nAdjoint solution" << std::endl;
+      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+      {
+        DesignElement* de = f->elements[e];
+        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+//        std::cout << "Elem " << idx << ": ";
+        double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
+//        for (unsigned int dir = 0; dir < n_q_; dir++) {
+//          std::cout << sol[GetPdfIndex(idx,dir)] << " ";
+//        }
+//        std::cout << std::endl;
+        de->AddGradient(f, val);
+      }
+
+      timer.Stop();
+      adjoint_.Stop();
+      adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
+      adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
+      adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
+      adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
+      adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+      adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
+      adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
+      adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+    }
+    else // solving adjoint system with same complexity as LBM simulation
+    {
+      StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjSRTCollision,d_pdrop_d_f);
+      adjPdfs = *tmp;
+
+//      std::cout << "\nAdjoint solution" << std::endl;
+      for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+      {
+        DesignElement* de = f->elements[e];
+        unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+//        std::cout << "Elem " << idx << ": ";
+        Vector<double> sol(n_q_), d_coll_d_s(n_q_);
+        for (unsigned int dir = 0; dir < n_q_; dir++) {
+          sol[dir] = adjPdfs[GetPdfIndex(idx,dir)];
+          d_coll_d_s[dir] = dRds[GetPdfIndex(idx,dir)];
+//          std::cout << sol[dir] << " ";
+        }
+//        std::cout << std::endl;
+        double val = -d_coll_d_s.Inner(sol);
+        de->AddGradient(f, val);
+      }
+    }
+    adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
+    adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
+    adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
+    adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
   }
-
-  double d_collision_setup = timer.GetCPUTime();
-
-  // the real jacobi combines d_collision with d_propagation
-  mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
-  d_propagate_d_f(Jacobi,col_jacobi);
-
-  // substract identity matrix from LBM derivatives: dR/dr = d(LBM)/df - 1
-  for(unsigned int i=0;i < n_q_ * n_elems; i++)
-    Jacobi(i,i) -= 1.;
-
-  double d_propagation_setup = timer.GetCPUTime();
-
-  //Data for Pardiso solver
-  compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
-
-  // Delete singular rows from the Jacobian
-  DeleteSingularities(Jacobi,Jacobi_new);
-
-  double delete_sing_setup = timer.GetCPUTime();
-
-  // right-hand side
-  Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
-
-  double rhs_setup = timer.GetCPUTime();
-
-  // for debugging
-//  WriteMatrix("Jacobian_col.txt",col_jacobi);
-//  WriteMatrix("Jacobian_old.txt",Jacobi);
-//  WriteMatrix("Jacobian_new.txt",Jacobi_new);
-
-  // use the cfs system matrix to solve the adjoint system
-  StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
-  LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
-  LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
-  LOG_DBG(lbm_pde) << "SA: mat structure=" << mat->GetStructureType();
-  LOG_DBG(lbm_pde) << "SA: mat storage=" << mat->GetStorageType();
-  LOG_DBG(lbm_pde) << "SA: mat entry type=" << mat->GetEntryType();
-
-  CRS_Matrix<double>* crs = dynamic_cast<CRS_Matrix<double>*>(mat);
-  assert(crs != NULL);
-
-  crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
-  matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
-
-  // time to setup adjoint system before solving
-  double setup_wall = timer.GetWallTime();
-  double setup_cpu = timer.GetCPUTime();
-
-  LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
-  SBM_Vector rhs(BaseMatrix::DOUBLE);
-  rhs.Resize(1);
-  rhs.SetSubVector(GenerateSingleVectorObject(BaseMatrix::DOUBLE,b.GetSize()),0);
-  rhs.AddToSubVector(b,0);
-
-  LOG_TRACE(lbm_pde) << "SA: " << " size of rhs: " << rhs.GetPointer(0)->GetSize();
-  LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
-
-  algsys_->InitRHS(rhs);
-
-  algsys_->SetupSolver();
-  algsys_->Solve();
-  Vector<double> sol;
-  algsys_->GetSolutionVal(sol,0,false);
-
-  for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+  else // in MRT case, adjoint LBM solver delivers adjoint solution
   {
-    DesignElement* de = f->elements[e];
-    unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
-    double val = -1.0 * sol.Inner(dRds, idx * n_q_, (idx + 1) * n_q_);
-    de->AddGradient(f, val);
+    Vector<double> pdfs(n_q_);
+    Vector<double> adjMoms(n_q_);
+    for(unsigned int e = 0; e < f->elements.GetSize(); e++)
+    {
+      DesignElement* de = f->elements[e];
+      unsigned int idx = elem_to_idx[de->elem->elemNum]; // lbm idx
+      for (unsigned int  dir = 0; dir < n_q_; dir++) {
+        pdfs[dir] = GetPdf(idx,dir);
+        adjMoms[dir] = GetAdjMoments(idx,dir);
+      }
+
+      Vector<double> d_F1_d_rho(n_q_); // d_F1_d_s
+      Vector<double> d_F2_d_rho(n_q_); // d_F2_d_s
+      double density = CalcLBMDensity(idx);
+      double ux = CalcVelocityX(idx,density);
+      double uy = CalcVelocityY(idx,density);
+      double jx = ux * density;
+      double jy = uy * density;
+
+      d_F1_d_rho.Init();
+      d_F2_d_rho.Init();
+      d_F1_d_rho[3] = -jx;
+      d_F1_d_rho[4] = jx;
+      d_F1_d_rho[5] = -jy;
+      d_F1_d_rho[6] = jy;
+
+      d_F2_d_rho[1] = -6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[2] = 6.0 / density * (jx * jx + jy * jy);
+      d_F2_d_rho[7] = 2.0 / density * (-jx * jx + jy * jy);
+      d_F2_d_rho[8] = -2.0 * jx * jy / density;
+      //d_coll_d_s = d_F1_d_s + (I - S/2) * d_F2_d_s
+//      Matrix<double> mat(n_q_,n_q_); // I - S/2
+//      mat.Init();
+//      mat[0][0] = 1.0;
+//      mat[1][1] = 1.0 - 0.5 * omega_e_;
+//      mat[2][2] = 1.0 - 0.5 * omega_eps_;
+//      mat[3][3] = 1.0;
+//      mat[4][4] = 1.0 - 0.5 * omega_q_;
+//      mat[5][5] = 1.0;
+//      mat[6][6] = 1.0 - 0.5 * omega_q_;
+//      mat[7][7] = 1.0 - 0.5 * omega_;
+//      mat[8][8] = 1.0 - 0.5 * omega_;
+//
+//      Vector<double> tmp(n_q_);
+//      mat.Mult(d_F2_d_rho,tmp);
+//      Vector<double> d_coll_d_rho(n_q_);
+//      for (unsigned int i = 0; i < n_q_; i ++)
+//        d_coll_d_rho[i] = d_F1_d_rho[i] + tmp[i];
+//      Vector<double> d_coll_d_rho = d_F1_d_rho + tmp;
+//      double sens = (jx * jx + jy * jy) / density + d_coll_d_rho.Inner(adjMoms);
+//      double sens = d_coll_d_rho.Inner(adjMoms);
+//      std::cout << "sens = " << sens << "=(" << jx << "*" << jx << "+" << jy << "*" << jy << ")/" << density << "+" <<  d_coll_d_rho.Inner(adjMoms) << "\n" << std::endl;
+      Vector<double> d_coll_d_s(n_q_), dmEq_ds(n_q_), dm_ds(n_q_);
+      double u2 = ux * ux + uy * uy;
+      double s = 1-elements[idx]; // value of design variable
+      dmEq_ds[0] = 0.0;
+      dmEq_ds[1] = -6*(1-s)*density*u2;
+      dmEq_ds[2] = 6*(1-s)*density*u2;
+      dmEq_ds[3] = -density*ux;
+      dmEq_ds[4] = density*ux;
+      dmEq_ds[5] = -density*uy;
+      dmEq_ds[6] = density*uy;
+      dmEq_ds[7] = -2*(1-s)*density*(ux*ux-uy*uy);
+      dmEq_ds[8] = -2*(1-s)*density*ux*uy;
+
+      dm_ds[0] = 0;
+      dm_ds[1] = 0;
+      dm_ds[2] = 0;
+      dm_ds[3] = -jx;
+      dm_ds[4] = 0;
+      dm_ds[5] = -jy;
+      dm_ds[6] = 0;
+      dm_ds[7] = 0;
+      dm_ds[8] = 0;
+
+      Matrix<double> relaxation(n_q_,n_q_);
+      relaxation.Init();
+      relaxation[1][1] = omega_e_;
+      relaxation[2][2] = omega_eps_;
+      relaxation[4][4] = omega_q_;
+      relaxation[6][6] = omega_q_;
+      relaxation[7][7] = omega_;
+      relaxation[8][8] = omega_;
+//      d_coll_d_s = dm_ds - relaxation * (dm_ds - dmEq_ds);
+      d_coll_d_s = relaxation * dmEq_ds;
+      double sens =  d_coll_d_s.Inner(adjMoms);
+      de->AddGradient(f, sens);
+    }
   }
-
-  LOG_DBG3(lbm_pde) << "SA: Adjoint vector=" << sol.ToString(0,',');
-
-  timer.Stop();
-  adjoint_.Stop();
-  PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
-  adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
-  adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
-  adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
-  adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
-  adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
-  adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
-  adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
-  adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
-
-
-  adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
-  adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
-  adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
-  adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
-
 }
 
 void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
@@ -812,7 +968,7 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
   //LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " pdf=" << StdVector<double>::ToString(9, &pdfs.GetPointer()[index * 9]);
   //partial derivative of f^eq with respect to rho, ux, uy and uz: CORRECT (FDM)
   double us1, us2, us3, dot, norm;
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
 
   //gradient of u_x with respect to f
   StdVector<double> duxdf(n_q_);
@@ -825,28 +981,28 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     us1 = scale * ux[index];
     us2 = scale * uy[index];
     us3 = scale * uz[index];
 
-    dot = transform->off_x * us1 + transform->off_y * us2 + transform->off_z * us3;
+    dot = transform.off_x * us1 + transform.off_y * us2 + transform.off_z * us3;
     norm = us1 * us1 + us2 * us2 + us3 * us3;
 
     dfeqdrho[i] = weight[i] * (1. + 3.*dot + 4.5*dot*dot - 1.5* norm);
-    dfeqdux[i] = weight[i] * dloc[index]*(3. * transform->off_x + 9. * transform->off_x * dot - 3. * us1);
-    dfeqduy[i] = weight[i] * dloc[index]*(3. * transform->off_y + 9. * transform->off_y * dot - 3. * us2);
-    dfeqduz[i] = weight[i] * dloc[index]*(3. * transform->off_z + 9. * transform->off_z * dot - 3. * us3);
+    dfeqdux[i] = weight[i] * dloc[index]*(3. * transform.off_x + 9. * transform.off_x * dot - 3. * us1);
+    dfeqduy[i] = weight[i] * dloc[index]*(3. * transform.off_y + 9. * transform.off_y * dot - 3. * us2);
+    dfeqduz[i] = weight[i] * dloc[index]*(3. * transform.off_z + 9. * transform.off_z * dot - 3. * us3);
 
     LOG_DBG3(lbm_pde) << "d_collision_step_d_f: w = " << weight[i] << " dloc=" << dloc[index] << " dot=" << dot;
 
-    duxdf[i] = scale * invdloc * (-ux[index] + transform->off_x);
-    duydf[i] = scale * invdloc * (-uy[index] + transform->off_y);
-    duzdf[i] = scale * invdloc * (-uz[index] + transform->off_z);
+    duxdf[i] = scale * invdloc * (-ux[index] + transform.off_x);
+    duydf[i] = scale * invdloc * (-uy[index] + transform.off_y);
+    duzdf[i] = scale * invdloc * (-uz[index] + transform.off_z);
     // automatic testing
     if (dim_ == 2) {
       assert(us3 == 0);
-      assert(dot == transform->off_x * us1 + transform->off_y * us2);
+      assert(dot == transform.off_x * us1 + transform.off_y * us2);
       assert(norm == us1 * us1 + us2 * us2);
       assert(dfeqduz[i] == 0);
       assert(duzdf[i] == 0);
@@ -859,16 +1015,16 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
     dfeqdf[dir].Resize(n_q_);
   }
 
-  for (unsigned int j= 0; j < n_q_; j++)
+  for (unsigned int j = 0; j < n_q_; j++)
     for (unsigned int i = 0; i < n_q_; i++)
       dfeqdf[i][j] = dfeqdrho[i] + dfeqdux[i]*duxdf[j] + dfeqduy[i]*duydf[j] + dfeqduz[i] * duzdf[j];
 
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
-  for (unsigned int i=0;i<n_q_;i++)
+  for (unsigned int i = 0; i < n_q_; i++)
   {
-    for (unsigned int j= 0;j<n_q_;j++)
+    for (unsigned int j = 0; j < n_q_; j++)
     {
       block[i][j] = (i == j) * (1 - omega_) + omega_ * dfeqdf[i][j];
     }
@@ -879,7 +1035,7 @@ void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
 {
   // bounce-back sensitivities; gradient is just a permutation matrix
   for (unsigned int dir = 0; dir < n_q_; dir++) {
-    block[dir][(*invPDFDirections_)[dir]] = 1.0;
+    block[dir][invPDFDirections_[dir]] = 1.0;
   }
 }
 
@@ -891,18 +1047,18 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
 
   if (dim_ == 2) assert(u_max_z_ == 0);
 
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     if (!parabolicInflow_) {
-      dot = transform->off_x * u_max_x_ + transform->off_y * u_max_y_ + transform->off_z * u_max_z_;
+      dot = transform.off_x * u_max_x_ + transform.off_y * u_max_y_ + transform.off_z * u_max_z_;
       norm = u_max_x_ * u_max_x_ + u_max_y_ * u_max_y_ + u_max_z_ * u_max_z_;
     }
     else {
       // find index of vector u_in_ for this element
       int id = inlet.Find(index);
-      dot = transform->off_x * u_in_[id][0] + transform->off_y * u_in_[id][1] + transform->off_z * u_in_[id][2];
+      dot = transform.off_x * u_in_[id][0] + transform.off_y * u_in_[id][1] + transform.off_z * u_in_[id][2];
       norm = u_in_[id][0] * u_in_[id][0] + u_in_[id][1] * u_in_[id][1] + u_in_[id][2] * u_in_[id][2]; // only one component is not zero
       LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " i=" << i << " us1=" << u_in_[id][0] << " us2=" << u_in_[id][1] << " us3= " << u_in_[id][2] << " dot=" << dot << " norm=" << norm;
     }
@@ -913,29 +1069,28 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
   for (unsigned int i = 0; i < n_q_; i++)
     for (unsigned int j = 0; j < n_q_; j++)
       block[i][j] = dfeqdrho[i];
-
 }
 
 void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight)
 {
   // gradient of the density outlet boundary condition with respect to the design variables
   StdVector<double> dfeqdux(n_q_), dfeqduy(n_q_), dfeqduz(n_q_);
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
   double scale = 1.; // no design
   double density = 1.0;  // we have no other case
   double us1, us2, us3, dot;
 
   for (unsigned int i = 0; i < n_q_; i++)
   {
-    transform = &(*microVelDirections_)[i];
+    transform = microVelDirections_[i];
     us1 = scale * ux[index];
     us2 = scale * uy[index];
     us3 = scale * uz[index];
 
-    dot = transform->off_x * us1 + transform->off_y * us2 + transform->off_z * us3;
-    dfeqdux[i] = weight[i] * density * (3 * transform->off_x + 9. * transform->off_x * dot - 3 * us1);
-    dfeqduy[i] = weight[i] * density * (3 * transform->off_y + 9. * transform->off_y * dot - 3 * us2);
-    dfeqduz[i] = weight[i] * density * (3 * transform->off_z + 9. * transform->off_z * dot - 3 * us3);
+    dot = transform.off_x * us1 + transform.off_y * us2 + transform.off_z * us3;
+    dfeqdux[i] = weight[i] * density * (3 * transform.off_x + 9. * transform.off_x * dot - 3 * us1);
+    dfeqduy[i] = weight[i] * density * (3 * transform.off_y + 9. * transform.off_y * dot - 3 * us2);
+    dfeqduz[i] = weight[i] * density * (3 * transform.off_z + 9. * transform.off_z * dot - 3 * us3);
   }
   //gradient of u_x/u_y with respect to f
   StdVector<double> duxdf(n_q_), duydf(n_q_), duzdf(n_q_);
@@ -943,10 +1098,10 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
   double invdloc = 1.0 / dloc[index];
 
   for (unsigned int i = 0; i < n_q_ ; i++) {
-    transform = &(*microVelDirections_)[i];
-    duxdf[i] = invdloc * (-ux[index] + transform->off_x);
-    duydf[i] = invdloc * (-uy[index] + transform->off_y);
-    duzdf[i] = invdloc * (-uz[index] + transform->off_z);
+    transform = microVelDirections_[i];
+    duxdf[i] = invdloc * (-ux[index] + transform.off_x);
+    duydf[i] = invdloc * (-uy[index] + transform.off_y);
+    duzdf[i] = invdloc * (-uz[index] + transform.off_z);
   }
   //gradient of u_x with respect to f
   for (unsigned int i = 0; i < n_q_; i++)
@@ -969,24 +1124,28 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   unsigned int x, y, z;
   int rows1,rows2;
   mapped_matrix<double>::const_iterator1 iter;
-  LatticeBoltzmann::PDFDirectionVector* transform;
+  LatticeBoltzmann::PDFDirectionVector transform;
+
+//  Matrix<double> test(9*n_x_*n_y_,9*n_x_*n_y_);
+//  test.Init();
 
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
       for(x = 0; x < n_x_ ; x++) {
         for (unsigned int dir = 0; dir < n_q_; dir++) {
-          transform = &(*microVelDirections_)[dir];
+          transform = microVelDirections_[dir];
 
           // distributions pointing outside the domain don't influence the simulation --> d_propagate/d_f = 0
           if (!PointsToBoundary(x,y,z,dir)) {
             rows1 = GetPdfIndex(x,y,z,dir);
-            rows2 = GetPdfIndex(x + transform->off_x,y + transform->off_y, z + transform->off_z, dir);
+            rows2 = GetPdfIndex(x + transform.off_x,y + transform.off_y, z + transform.off_z, dir);
 
             // case 1; if inverse distribution function of f_* points inside the domain, f_* is tangent to its boundary edge
-            if (!PointsToBoundary(x,y,z,(*invPDFDirections_)[dir])) {
+            if (!PointsToBoundary(x,y,z,(invPDFDirections_)[dir])) {
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
+//                test(rows1,rows2) = 1.0;
               }
             }
             // case 2
@@ -994,13 +1153,16 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows1, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows1,it.index2());
+//                test(rows1,rows1) = 1.0;
               }
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) += J(rows2,it.index2());
+//                test(rows1,rows2) = 1.0;
               }
             }
           }
+
         }
       }
     }
@@ -1018,26 +1180,32 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double outletSize_inv = 1.0 / (double) outlet.GetSize();
   double one_third = 1.0 / 3.0;
 
+  // temporal storage for adjoint SRT
+  Vector<double> d_PD_d_f(n_q_);
   int index;
 
   for (unsigned int i = 0; i < inlet.GetSize(); i++) {
     index = inlet[i];
     for (unsigned int dir = 0; dir < n_q_; dir++) {
-      dUX = (*microVelDirections_)[dir].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
-      dUY = (*microVelDirections_)[dir].off_y - uy[index];
-      dUZ = (*microVelDirections_)[dir].off_z - uz[index];
+      dUX = microVelDirections_[dir].off_x - ux[index]; // inlet velocities are calculated from steady state solution and not the prescribed ones from xml file
+      dUY = microVelDirections_[dir].off_y - uy[index];
+      dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = (one_third + 0.5 * (ux[index] * ux[index] + uy[index] * uy[index]) + uz[index] * uz[index] + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * inletSize_inv;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
+    d_pdrop_d_f[index] = d_PD_d_f;
   }
 
   for (unsigned int i = 0; i < outlet.GetSize(); i++) {
     index = outlet[i];
     for (unsigned int dir = 0; dir < n_q_; dir++) {
-      dUX = (*microVelDirections_)[dir].off_x - ux[index];
-      dUY = (*microVelDirections_)[dir].off_y - uy[index];
-      dUZ = (*microVelDirections_)[dir].off_z - uz[index];
+      dUX = microVelDirections_[dir].off_x - ux[index];
+      dUY = microVelDirections_[dir].off_y - uy[index];
+      dUZ = microVelDirections_[dir].off_z - uz[index];
       dPD(GetPdfIndex(index,dir),0) = -(one_third + 0.5 * (ux[index]*ux[index] + uy[index] * uy[index] + uz[index] * uz[index]) + ux[index] * dUX + uy[index] * dUY + uz[index] * dUZ) * outletSize_inv;
+      d_PD_d_f[dir] = dPD(GetPdfIndex(index,dir),0);
     }
+    d_pdrop_d_f[index] = d_PD_d_f;
   }
 
   mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
@@ -1085,6 +1253,7 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
     in += CalcPressure(inlet[i]);
     LOG_DBG2(lbm_pde) << "CPD: idx=" << inlet[i] << " p=" << CalcPressure(inlet[i]);
   }
+
   double out = 0.0;
   for(unsigned int i = 0; i < outlet.GetSize(); i++) {
     out += CalcPressure(outlet[i]);
@@ -1093,6 +1262,11 @@ double LatticeBoltzmannPDE::CalcPressureDrop()
 
   LOG_DBG2(lbm_pde) << "CPD: dP = " << in / inlet.GetSize() - out / outlet.GetSize();
   return in / inlet.GetSize() - out / outlet.GetSize();
+}
+
+double LatticeBoltzmannPDE::GetDissipation()
+{
+  return lbm->GetDissipation();
 }
 
 Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
@@ -1104,7 +1278,6 @@ Vector<Double> LatticeBoltzmannPDE::ExtractDistribution(unsigned int idx){
   LOG_DBG3(lbm_pde) << "ED: " << " idx=" << idx << " pdfs=" << solVec.ToString(0,',');
   return solVec;
 }
-
 
 // ***********************************************************************
 //   Obtain information on desired output quantities from parameter file
@@ -1304,7 +1477,7 @@ void LatticeBoltzmannPDE::ExportMultipleFiles(const StdVector<double>& elements)
   {
     for(unsigned int y = 0; y < n_y_; y++)
     {
-      // out: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porisity
+      // out: -1 bb, -2 inlet, -3 outlet, 0 ... 1 porosity
       // out: 1 bb1, 2 inlet, 3 outlet, 0 for porosity
       int v = (int) -1.0 * elements[n_x_ * y + x];
       obst << std::max(0, v) << " "; // org porosity would be -1
@@ -1343,7 +1516,6 @@ void LatticeBoltzmannPDE::WriteMatrix(const std::string& file, const compressed_
   for (compressed_matrix<double>::const_iterator1 it1 = M.begin1(); it1 != M.end1(); ++it1) {
     for (compressed_matrix<double>::const_iterator2 it2 = it1.begin(); it2 != it1.end(); ++it2) {
             output << it2.index1()+1 << " " << it2.index2()+1 << "        " << *(it2) << std::endl;
-//      output << it2.index1() << " " << it2.index2() << "        " << *(it2) << std::endl;
     }
     output << std::endl;
   }
@@ -1380,7 +1552,7 @@ void LatticeBoltzmannPDE::SetupElements()
   StdVector<Elem*> boundaries;
   StdVector<Elem*> obst;
   // auxiliary vector
-  // vector initialized with porosity value of inner cells
+  // vector initialized with density value of inner cells
   elements.Resize(n_elems, 0.0);
 
   DesignSpace* space = domain->GetDesign(false);
@@ -1535,7 +1707,7 @@ void LatticeBoltzmannPDE::SetNonSingualrityIndices()
           // distributions which point towards a bounce-back boundary point
 
           for (unsigned int dir = 0; dir < n_q_; dir++) {
-            LatticeBoltzmann::PDFDirectionVector f = (*microVelDirections_)[dir];
+            LatticeBoltzmann::PDFDirectionVector f = microVelDirections_[dir];
             // test, if the node in direction f is not bounce back
             if (!PointsToBoundary(x,y,z,dir) && elements[GetIndex(x+f.off_x, y+f.off_y, z+f.off_z)] != LBM_NODE_TYPE_BB)
             {
