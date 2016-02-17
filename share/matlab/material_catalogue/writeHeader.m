@@ -11,7 +11,7 @@ if any(data(:,1) > 1) % -> point given by level and index
 else
     givenByLevelAndIndex = 0;
     dim = size(data,2)-7;
-    level = size(data,1)^(1/dim);
+    level = round(size(data,1)^(1/dim),12);
     if ~(mod(level,1) == 0)
         level = log( numel(unique(data(:,1)))+1 ) / log(2);
     end

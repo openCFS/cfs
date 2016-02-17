@@ -102,6 +102,7 @@ IF(OPENMP_FOUND)
   IF(USE_OPENMP)
     SET(CFS_C_FLAGS "${OpenMP_C_FLAGS}")
     SET(CFS_CXX_FLAGS "${OpenMP_CXX_FLAGS}")
+
   ENDIF(USE_OPENMP)
 
 ENDIF()
@@ -114,8 +115,8 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
 
   # MESSAGE("We are using the GNU C++ compiler. ${CMAKE_CXX_COMPILER}")
 
-  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1")
-
+  SET(CFS_CXX_FLAGS "-DBOOST_SYSTEM_NO_DEPRECATED=1 ${CFS_CXX_FLAGS}")
+  
   # Obtain major version number of GCC or Clang
   STRING(REPLACE "." ";" CFS_CXX_COMPILER_VER_LIST ${CFS_CXX_COMPILER_VER})
   LIST(GET CFS_CXX_COMPILER_VER_LIST 0 CFS_CXX_COMPILER_MAJOR_VER)
@@ -138,7 +139,7 @@ IF(CFS_CXX_COMPILER_NAME STREQUAL "GCC" OR
       SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -Wno-redeclared-class-member")
     ENDIF()
   ENDIF()
-
+  
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
   #-----------------------------------------------------------------------------
@@ -305,6 +306,9 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   IF(USE_OPENMP)
     SET(CFS_C_FLAGS "-openmp")
     SET(CFS_CXX_FLAGS "-openmp")
+  ELSE(USE_OPENMP)
+    SET(CFS_C_FLAGS "${CFS_C_FLAGS} -diag-disable 3180 ")
+    SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -diag-disable 3180 ")
   ENDIF(USE_OPENMP)
 
   #-----------------------------------------------------------------------------

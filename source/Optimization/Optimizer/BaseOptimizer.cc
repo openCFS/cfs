@@ -252,15 +252,17 @@ void BaseOptimizer::LogFileHeader(Optimization::Log& log)
 
 void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
 {
-  if(out) *out << " \t" << objective->current.value;
+  if(out && optimization->log.gradNorm)
+    *out << " \t" << objective->current.value;
   
   if(optimization->log.gradNorm)
     iteration->Get("max_f_grad")->SetValue(objective->current.value);
 
   if(objective->target != 0.0)
   {
-    if(out) *out << " \t" << objective->scaling.value
-                 << " \t" << objective->opt_scaling.value;
+    if(out)
+      *out << " \t" << objective->scaling.value
+           << " \t" << objective->opt_scaling.value;
 
     iteration->Get("scale")->SetValue(objective->scaling.value);
     iteration->Get("opt_scale")->SetValue(objective->opt_scaling.value);
@@ -281,10 +283,10 @@ void BaseOptimizer::LogFileLine(std::ofstream* out, PtrParamNode iteration)
         mv = std::max(mv, abs(data[i].GetValue(DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g)));
 
       iteration->Get("max_" + g->ToString() + "_grad")->SetValue(mv);
-      if(out) *out << " \t" << mv;
+      if(out)
+        *out << " \t" << mv;
     }
   }
-
 }
 
 
