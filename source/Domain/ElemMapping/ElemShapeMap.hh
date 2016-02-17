@@ -619,9 +619,8 @@ namespace CoupledField {
     { 
     private: 
       LagrangeMapSingleton();   
-      LagrangeMapSingleton(const LagrangeMapSingleton&) {}            
-      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&) {
-        return *this;}
+      LagrangeMapSingleton(const LagrangeMapSingleton&);            
+      LagrangeMapSingleton& operator=(const LagrangeMapSingleton&);
       ~LagrangeMapSingleton();
     public: 
       static LagrangeMapSingleton& getInstance();
