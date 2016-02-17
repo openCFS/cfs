@@ -322,6 +322,14 @@ LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton() {
   }
 }
 
+LagrangeElemShapeMap::LagrangeMapSingleton::LagrangeMapSingleton(const LagrangeMapSingleton&) {
+  return;
+}            
+
+LagrangeElemShapeMap::LagrangeMapSingleton& LagrangeElemShapeMap::LagrangeMapSingleton::operator=(const LagrangeMapSingleton&) {
+  return *this;
+}
+
 LagrangeElemShapeMap::LagrangeMapSingleton::~LagrangeMapSingleton() {
   // delete reference elements
   feMap_.Clear();

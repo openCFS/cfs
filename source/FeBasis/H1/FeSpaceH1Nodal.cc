@@ -211,7 +211,7 @@ namespace CoupledField{
     MapNodalBCs();
     MapNodalEqns(1);
     MapNodalEqns(2);
-
+    
     // TEMPORARY: print information
     //PrintEqnMap();
     CheckConsistency();

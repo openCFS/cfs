@@ -746,12 +746,12 @@
    void PrintSelf(ostream& os, vtkIndent indent);
  
    // Description:
---- Common/Core/vtkAbstractArray.h.orig	2014-01-22 16:55:41.000000000 +0100
-+++ Common/Core/vtkAbstractArray.h	2014-03-04 13:17:38.892202633 +0100
-@@ -59,7 +59,7 @@
- class VTKCOMMONCORE_EXPORT vtkAbstractArray : public vtkObject
- {
+--- Common/Core/vtkAbstractArray.h.orig	2016-02-16 09:29:33.611703134 +0100
++++ Common/Core/vtkAbstractArray.h	2016-02-16 09:30:17.375704306 +0100
+@@ -61,7 +61,7 @@
  public:
+   friend class vtkDataArrayTemplateHelper;
+ 
 -  vtkTypeMacro(vtkAbstractArray,vtkObject);
 +  vtkTypeMacro(vtkAbstractArray,vtkObject)
    void PrintSelf(ostream& os, vtkIndent indent);

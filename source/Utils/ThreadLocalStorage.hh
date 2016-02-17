@@ -162,12 +162,13 @@ public:
   typedef typename std::map<K,V*>::const_iterator tl_const_iterator;
 
 
-  TLMap() : isCleared_(false){
+  TLMap() : isCleared_(true){
 #ifdef USE_OPENMP
     tlsContainer_.Resize(numSlots_);
 #endif
   }
 
+  //! assignment operator to implicitly convert a stl map into the TLS
   TLMap<K,V*>& operator=(const std::map<K,V*>&  serialObjToCopy){
 #ifdef USE_OPENMP
     tlsContainer_.Resize(numSlots_);
@@ -188,12 +189,16 @@ public:
   }
 
   ~TLMap(){
-    assert(isCleared_);
+    if(!isCleared_){
+      WARN("TLMap has not been cleared on call of destructor!");
+      Clear();
+    }
   }
 
   V*& operator[](const K& a){
+   isCleared_ = false;
 #ifdef USE_OPENMP
-      return tlsContainer_[omp_get_thread_num()][a];
+    return tlsContainer_[omp_get_thread_num()][a];
 #else
     return dummyContainer_[a];
 #endif
@@ -201,31 +206,34 @@ public:
 
   bool empty() const {
 #ifdef USE_OPENMP
-      return tlsContainer_[omp_get_thread_num()].empty();
+    return tlsContainer_[omp_get_thread_num()].empty();
 #else
     return dummyContainer_.empty();
 #endif
   }
 
   inline tl_iterator begin(){
+   isCleared_ = false;
 #ifdef USE_OPENMP
-      return tlsContainer_[omp_get_thread_num()].begin();
+    return tlsContainer_[omp_get_thread_num()].begin();
 #else
     return dummyContainer_.begin();
 #endif
   }
 
   inline tl_iterator end(){
+   isCleared_ = false;
 #ifdef USE_OPENMP
-      return tlsContainer_[omp_get_thread_num()].end();
+    return tlsContainer_[omp_get_thread_num()].end();
 #else
     return dummyContainer_.end();
 #endif
   }
 
   inline tl_iterator find(K key){
+   isCleared_ = false;
 #ifdef USE_OPENMP
-      return tlsContainer_[omp_get_thread_num()].find(key);
+    return tlsContainer_[omp_get_thread_num()].find(key);
 #else
     return dummyContainer_.find(key);
 #endif
@@ -260,6 +268,7 @@ public:
   }
 
   inline std::map<K,V*>& Mine(Integer tNum = -1){
+   isCleared_ = false;
 #ifdef USE_OPENMP
     if(tNum>=0){
       return tlsContainer_[tNum];
@@ -276,7 +285,17 @@ private:
 #else
   std::map<K,V*> dummyContainer_;
 #endif
+  //! indicates if the map is supposed to be initialized
   bool isCleared_;
+  //NOTE: Initialize the variable with false on construction
+  //as we store (if any) only NULL pointers. 
+  //A call to the [] operator, 
+  //obtaining any non-const iterator via find,begin,end or a call 
+  //to Mine() will set the variable to true as it would be possible
+  //that memory is allocated. 
+  //A more consistent class behaviour would require a more restrictive 
+  //interface of the class which would require more changes in the 
+  //methods using this class. Currently, this is not what you want to do.
 };
 
 }
