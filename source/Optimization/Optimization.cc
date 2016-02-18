@@ -1071,13 +1071,18 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       CalcConstraint(g);
   }
   constraints.view->Done();
-
+  double max = -1.;
   for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
   {
     Condition* g = constraints.all[i]; // Now traverse in global mode
     if(g->GetType() == Function::SHAPE_INF)
       continue; //TODO: MaxValue does not correctly set indexes in view
 
+    // Calculate the max value of multiple displacement constraints
+    if(g->GetType() == Function::OUTPUT && g->output_multiple_nodes > 0) {
+      max = std::max(max,std::abs(g->GetValue()));
+      std::cout<<"max "<<max<<std::endl;
+    }
     if(g->IsLocalCondition())
     {
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
@@ -1105,6 +1110,9 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       }
     }
   }
+  // max output_constraint value
+  if (out && max > -1.)
+      *out << " \t output_max = " << max;
 
   if(out && log.design){
     StdVector<double> d;

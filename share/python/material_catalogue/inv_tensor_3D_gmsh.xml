@@ -47,9 +47,18 @@
       </mechanic>
     </pdeList>
 
-    <linearSystems>
-      <system name="mechanic"> <solver type="pardiso"/> </system>
-    </linearSystems>    
+ <linearSystems>
+  <system>
+  <solutionStrategy>
+    <standard >
+      <exportLinSys stiffness="true" />
+          </standard>
+         </solutionStrategy >
+         <solverList>
+         <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>   
   </sequenceStep>
  
   <loadErsatzMaterial file="0-0-0.dens.xml" set="last" force_region="mech"/>
@@ -59,31 +68,14 @@
       <stopping queue="100"/>
       <multipleExcitation type="homogenizationTestStrains" />
     </costFunction>
-
-    <!-- constraint type="homTensor" bound="equal" coord="all" log_delta="true" >
-      <tensor dim1="3" dim2="3">
-        <real>
-             15.00   0.05  0.0000
-             0.05  1.00  0.0000
-             0.0000   0.0000  0.01
-        </real>
-      </tensor>      
-    </constraint-->
-    <!--<constraint name="homogenizationTensor" type="equal" coord="21" mode="observation" />-->
-    
-    
-    <constraint type="slope" mode="constraint" value="0.33" bound="upperBound" />
-    <constraint type="volume" mode="observation" physical="true" />
-    <constraint type="greyness" mode="observation"/>
-    <constraint type="greyness" mode="observation" physical="true" />    
-    
+   
     <optimizer type="evaluate" maxIterations="100" >
 <!--      <snopt>
         <option type="integer" name="verify_level" value="3"/>
       </snopt>-->      
     </optimizer>
     <ersatzMaterial method="simp" material="mechanic" region="mech">
-      <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />
+      <design name="density" initial="1.0" lower="1e-9" upper="1" region="mech" />
       <transferFunction type="simp" application="mech" design="density" param="1"/>
       <!-- export/ -->
     </ersatzMaterial>

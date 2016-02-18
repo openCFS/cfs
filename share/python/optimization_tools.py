@@ -239,7 +239,7 @@ def write_density_file(filename, data_inp, setname_inp="set", param=0, elemnr=No
       for j in range(y):
         for i in range(x):    
            val = getNDArrayEntry(data, i, j, k)
-           if elemnr <> None:
+           if elemnr is None:
              nr = int(getNDArrayEntry(elemnr, i, j , k))
             
            # print " i=" + str(i) + " j=" + str(j) + " k=" + str(k) + " idx=" + str(nr)

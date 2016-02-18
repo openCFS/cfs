@@ -2724,7 +2724,7 @@ namespace CoupledField {
       if ( sbmRow <= sbmCol || sbmSymm_ == false ) {
 
         graph = graphManager_->GetGraph( sbmRow, sbmCol );
-
+        //sbmSymm_ = false;
         // Trigger generation of sub-matrix
         if ( sbmRow == sbmCol && sbmSymm_ == true ) {
           // for diagonal blocks we allow a variable

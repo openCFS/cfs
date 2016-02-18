@@ -22,6 +22,7 @@ namespace CoupledField {
     
     colInd_      = NULL;
     rowPtr_      = NULL;
+    diagPtr_     = NULL;
     data_        = NULL;
     patternPool_ = NULL;
     patternID_   = NO_PATTERN_ID;
@@ -44,6 +45,7 @@ namespace CoupledField {
       // Allocate memory for internal arrays
       NEWARRAY( colInd_, UInt, numEntries_ );
       NEWARRAY( rowPtr_, UInt, this->nrows_ + 1 );
+      NEWARRAY( diagPtr_, UInt, this->nrows_ );
       NEWARRAY( data_, T, numEntries_ );
 
       // Copy information
@@ -54,6 +56,7 @@ namespace CoupledField {
 
       for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
         rowPtr_[i] = origMat.rowPtr_[i];
+        diagPtr_[i] = origMat.diagPtr_[i];
       }
     }
 
@@ -88,7 +91,7 @@ namespace CoupledField {
 
   // Specialisation for the RMatrix1 case
   template<>
-  SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) {
+  SCRS_Matrix<double>::SCRS_Matrix( CoordFormat<double> &sparseMat ) : diagPtr_( NULL ){
 
 
     // Set general matrix pattern and dimension info
@@ -177,7 +180,7 @@ namespace CoupledField {
 
     // Destroy auxilliary vector
     delete[] (auxVec);
-
+    NEWARRAY( diagPtr_, UInt, this->nrows_ );
     // Set pattern pool pointer to NULL, since we allocated pattern
     // ourselves
     patternPool_ = NULL;
@@ -187,7 +190,7 @@ namespace CoupledField {
 
   // Specialisation for the CMatrix1 case
   template<>
-  SCRS_Matrix<Complex>::SCRS_Matrix( CoordFormat<Complex> &sparseMat ) {
+  SCRS_Matrix<Complex>::SCRS_Matrix( CoordFormat<Complex> &sparseMat ) : diagPtr_( NULL ) {
 
 
     // Set general matrix pattern and dimension info
@@ -271,7 +274,7 @@ namespace CoupledField {
         pos[ curRow ]++;
       }
     }
-
+    NEWARRAY( diagPtr_, UInt, this->nrows_ );
     // Destroy auxilliary vector
     delete[] (auxVec);
 

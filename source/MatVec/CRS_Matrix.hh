@@ -9,6 +9,8 @@
 #include "Vector.hh"
 #include "CoordFormat.hh"
 #include "PatternPool.hh"
+#include "SCRS_Matrix.hh"
+
 
 namespace CoupledField {
 
@@ -144,6 +146,22 @@ namespace CoupledField {
     //! \note  The constructed matrix is a copy and thus has the same layout
     //!        as the original matrix it is copied from.
     CRS_Matrix( const CRS_Matrix<T> &origMat );
+
+    //! Conversion Constructor from SCRS to CRS
+
+    //! This is a deep copy constructor. It is mainly provided to allow for
+    //! certain sparse arithmetic operations of the SBM_Matrix class.
+    //! \note  The constructed matrix is a copy and thus has the same layout
+    //!        as the original matrix it is copied from.
+    CRS_Matrix( const SCRS_Matrix<T> &origMat );
+
+    //! 2nd Copy Constructor
+
+    //! This is a deep copy constructor. It is mainly provided to allow for
+    //! certain sparse arithmetic operations of the SBM_Matrix class.
+    //! \note  The constructed matrix is a copy and thus has the same layout
+    //!        as the original matrix it is copied from.
+    CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr, UInt* diag_ptr);
 
 #ifdef USE_MULTIGRID
    
