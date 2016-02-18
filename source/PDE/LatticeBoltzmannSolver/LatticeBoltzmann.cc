@@ -199,16 +199,10 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   Timer timer;
   timer.Start();
 
-//  LOG_DBG(lbm) << "bb = " << ToString(bb);
-//  LOG_DBG(lbm) << "inlet = " << ToString(inlet);
-//  LOG_DBG(lbm) << "outlet = " << ToString(outlet);
-//  LOG_DBG(lbm) << "rel = " << ToString(rel);
-
   in->Get("converged")->SetValue("running");
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-//    LOG_DBG3(lbm) << "---------------------------Iteration " << it << "---------------------------------------------------";
     // -- Combined propagation and collision step -------------------------
     (this->*prop_coll_step)(cur_, next_);
     // -- Bounce back step ------------------------------------------------
@@ -299,14 +293,6 @@ void LatticeBoltzmann::InitializeAdjPdfs()
 {
   adjPdfs_[0].Init(0.0);
   adjPdfs_[1].Init(0.0);
-//  for (int elem = 0; elem < nNodes_; elem++) {
-//      for (int  dir = 0; dir < n_q_; dir++) {
-////        APDF(0, elem, dir) = weights[dir];
-////        APDF(1, elem, dir) = weights[dir];
-//        APDF(0, elem, dir) = 0;
-//        APDF(1, elem, dir) = 0;
-//      }
-//    }
 }
 
 void LatticeBoltzmann::SetMicroVelocities()
@@ -407,9 +393,6 @@ void LatticeBoltzmann::InitTransformMatrix()
 
   LOG_DBG3(lbm) << "IT: M=" << transformation.ToString(3,true);
 
-//  std::cout << "---------------Transformation matrix--------------------" << std::endl;
-//  std::cout << transformation.ToString(0,true) << std::endl;
-
   // sanity check
   for (int i = 1; i < n_q_; i++)
   {
@@ -507,10 +490,6 @@ void LatticeBoltzmann::InitTransformMatrix()
       invM_S[i][j] = relax_rates[j] * invTransformation[i][j];
     }
   }
-
-//    std::cout << "---------------M^-1 S--------------------" << std::endl;
-//    std::cout << invM_S.ToString(0,true) << std::endl;
-
 }
 
 void LatticeBoltzmann::SetEnums()
@@ -1470,9 +1449,6 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
-//  Vector<double> pdfs(n_q_);
-//  Matrix<double> test(n_q_*nNodes_,n_q_*nNodes_);
-//  test.Init();
   #pragma omp parallel for default(none) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
@@ -1490,14 +1466,10 @@ void LatticeBoltzmann::AdjointPropagation(int next)
           if (!PointsToBoundary(x,y,z,dir)) {
             // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
             if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-              //              test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
             }
             else { // case 2
-              //                test(rows1,rows1) = 1.0;
               value = tmpPdfs_[rows1];
-              //              }
-              //              test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
               value += tmpPdfs_[rows2];
             }
           }
@@ -1542,7 +1514,6 @@ StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-//    LOG_DBG3(lbm) << "---------------------------Adjoint Iteration " << it << "---------------------------------------------------";
     AdjointCollision(adjCur_);
     AdjointPropagation(adjNext_);
 
@@ -1629,20 +1600,12 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
             Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
             Vector<double> d_pd_d_f = d_pdrop_d_f[index];
             Vector<double> collResult(n_q_), tmp(n_q_);
-//            LOG_DBG3(lbm) << "Elem " << index << "\n" << d_coll_d_f.ToString(0,"\n") << std::endl;
             d_coll_d_f.Mult(pdfs,tmp);
             for (int dir = 0; dir < n_q_; dir++)
               collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
 
             for (int dir = 0; dir < n_q_; dir++)
               tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
-
-            if (!rel.Contains(index)) {
-              for (int dir1 = 0; dir1 < n_q_; dir1++) {
-                if (bb.Contains(index) || rel.Contains(index))
-                  assert(d_pd_d_f[dir1] == 0.0);
-              }
-            }
           }
     }
 
@@ -1686,29 +1649,8 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
     adjCur_  = (adjCur_  + 1) % 2;
     adjNext_ = (adjNext_ + 1) % 2;
 
-//    if(it == 0)
-//      exit(-1);
-
     it++;
   }
-
-//  std::cout << "\nAdj src" << std::endl;
-//  for (int id = 0; id < nNodes_; id++) {
-//    std::cout << "Elem " << id << ": ";
-//    for (int dir = 0; dir < n_q_; dir++) {
-//      std::cout << std::fixed << std::setprecision(4) << APDF(adjNext_,id,dir) << " ";
-//    }
-//    std::cout << std::endl;
-//  }
-//
-//  std::cout << "\nAdj dst" << std::endl;
-//  for (int id = 0; id < nNodes_; id++) {
-//    std::cout << "Elem " << id << ": ";
-//    for (int dir = 0; dir < n_q_; dir++) {
-//      std::cout <<  std::fixed << std::setprecision(4) << APDF(adjCur_,id,dir) << " ";
-//    }
-//    std::cout << std::endl;
-//  }
 
   timer.Stop();
 
@@ -1733,11 +1675,11 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
   lbmAdjCalls_++;
 
-//  if(R >= 1000)
-//    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
+  if(R >= 1000)
+    EXCEPTION("In adjoint SRT iteration " << it << " residuum " << R << " too large ... abort");
 
-//  if(!steady_state)
-//    EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
+  if(!steady_state)
+    EXCEPTION("Adjoint SRT simulation could not converge: iterations: " << it << " residuum: " << R);
 
   return &(adjPdfs_[adjCur_]);
 }

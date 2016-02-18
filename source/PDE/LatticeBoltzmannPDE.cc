@@ -1135,9 +1135,6 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
   mapped_matrix<double>::const_iterator1 iter;
   LatticeBoltzmann::PDFDirectionVector transform;
 
-  Matrix<double> test(n_q_*n_elems,n_q_*n_elems);
-  test.Init();
-
   for(z = 0; z < n_z_ ; z++) {
     for(y = 0; y < n_y_ ; y++) {
       for(x = 0; x < n_x_ ; x++) {
@@ -1154,7 +1151,6 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows2,it.index2());
-                test(rows1,rows2) = 1.0;
               }
             }
             // case 2
@@ -1162,12 +1158,10 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
               iter = J.find1(0, rows1, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) = J(rows1,it.index2());
-                test(rows1,rows1) = 1.0;
               }
               iter = J.find1(0, rows2, 0);
               for(mapped_matrix<double>::const_iterator2 it = iter.begin(); it != iter.end(); ++it) {
                 Jprop(rows1,it.index2()) += J(rows2,it.index2());
-                test(rows1,rows2) = 1.0;
               }
             }
           }
@@ -1176,17 +1170,6 @@ void LatticeBoltzmannPDE::d_propagate_d_f(mapped_matrix<double>& Jprop, const ma
       }
     }
   }
-//  std::stringstream ss;
-//  for (int i = 0; i < n_q_*n_x_*n_y_*n_z_; i++) {
-//    for ( int j = 0; j < n_q_*n_x_*n_y_*n_z_; j++) {
-//      ss << test(i,j) << " ";
-//    }
-//    ss << "\n";
-//  }
-//  std::fstream f;
-//  f.open("propOp3dPDE.txt", std::ios::out);
-//  f << ss.str();
-//  f.close();
 }
 
 Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz)
@@ -1230,12 +1213,10 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
 
   Vector<double> rhs(n_elems * n_q_);
 
-//  if (adjSRT_ == EXTERNAL) {
-    mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
-    d_propagate_d_f(dFdf,dPD);
-    for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
-      rhs[i] = dFdf(i,0);
-//  }
+  mapped_matrix<double> dFdf(n_elems * n_q_, 1, n_elems * n_q_);
+  d_propagate_d_f(dFdf,dPD);
+  for(unsigned int i = 0, n = rhs.GetSize(); i < n; i++)
+    rhs[i] = dFdf(i,0);
 
   return rhs; // no copy constructor
 }
