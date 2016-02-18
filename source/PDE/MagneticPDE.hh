@@ -119,6 +119,8 @@ namespace CoupledField
     //! flag for magn_strict coupling
     bool isMagnetoStrictCoupled_;
 
+    void FinilizeAfterTimeStep();
+
   };
 
 } // end of namespace

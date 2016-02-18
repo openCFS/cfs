@@ -1075,7 +1075,69 @@ namespace CoupledField {
       } // end of nonlinear section
     } // end of magneticPermeability  
 
+    if(mag->Has("hystModel"))
+    {
+      if(mag->Get("hystModel")->Has("preisach"))
+      {
+        PtrParamNode p = mag->Get("hystModel")->Get("preisach");
 
+        // force name
+        material->SetScalar("preisach", HYST_MODEL);
+
+        // read H saturation of Preisach hysterese model
+        if(p->Has("hSat"))
+          material->SetScalar(p->Get("hSat")->As<Double>(), X_SATURATION, Global::REAL );
+        // read M saturation of Preisach hysterese model
+        if(p->Has("mSat"))
+          material->SetScalar(p->Get("mSat")->As<Double>(), Y_SATURATION, Global::REAL );
+
+        // read M saturation of Preisach hysterese model
+        if(p->Has("Mr"))
+          material->SetScalar(p->Get("Mr")->As<Double>(), Y_REMANENCE, Global::REAL );
+
+        // read direction of magnetization
+        if(p->Has("dirM"))
+        {
+          int dir = p->Get("dirM")->As<Integer>();
+          // normally we would have M_DIRECTION but for case of simplicity we just leave P_DIRECTION
+          if(dir == 1) material->SetScalar("X", P_DIRECTION );
+          if(dir == 2) material->SetScalar("Y", P_DIRECTION );
+          if(dir == 3) material->SetScalar("Z", P_DIRECTION );
+
+          if(dir != 1 && dir != 2 && dir != 3)
+            EXCEPTION(dir << " is valid coordinate direction for magnetic preisach "
+                      << " hysteresis model magnetziation");
+        }
+
+        if(p->Has("preisachDim"))
+        {
+          int dim = p->Get("preisachDim")->As<Integer>();
+
+          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+        } else {
+          material->SetScalar("SCALAR", PREISACH_DIM);
+        }
+
+        if(p->Has("rotRes"))
+          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+
+        // read weight dimension of Preisach hysterese model for weights
+        int dim = -1;
+        if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
+
+        // read real permittivity tensor
+        if(p->Has("weights"))
+        {
+          Matrix<Double> preisachWeightTensor(dim,dim);
+          ParamTools::AsTensor<double>(p->Get("weights"), dim, dim, preisachWeightTensor);
+          material->SetTensor( preisachWeightTensor, PREISACH_WEIGHTS, Global::REAL);
+        }
+      }
+    }
+
+/* old
     //read Preisach hysterese model
     if(mag->Has("hystModel"))
     {
@@ -1107,7 +1169,7 @@ namespace CoupledField {
         }
       }
     }
-
+*/
     // read core loss
     if(mag->Has("coreLoss")){
       PtrParamNode clParam = mag->Get("coreLoss");

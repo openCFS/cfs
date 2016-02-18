@@ -24,6 +24,10 @@
 #include "Forms/Operators/DivOperator.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
+#include "Materials/Models/Hysteresis.hh"
+#include "Materials/Models/Preisach.hh"
+#include "Materials/Models/VectorPreisach.hh"
+#include "Domain/CoefFunction/CoefFunctionHyst.hh"
 
 // new postprocessing concept
 #include "Domain/Results/ResultFunctor.hh"
@@ -159,131 +163,200 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       
       //get possible nonlinearities defined in this region
       StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[actRegion];
-      if ( nonLinTypes.GetSize() > 0 ) {
-        if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
-          Exception("Hysteresis nonlinearity is not supported.");
-        }else if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
-          PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
-          PtrCoefFct nuNl =
-              actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
 
-          BaseBDBInt * stiffInt = NULL;
+      // ====================================================================
+      //  NONLINEAR BH RELATION (NON-HYSTERETIC)
+      // ====================================================================
+      if (  nonLinTypes.Find(PERMEABILITY) != -1 ) {
+        PtrCoefFct magFluxCoef = this->GetCoefFct(MAG_FLUX_DENSITY);
+        PtrCoefFct nuNl =
+          actMat->GetScalCoefFncNonLin( MAG_RELUCTIVITY, Global::REAL, magFluxCoef);
+
+        BaseBDBInt * stiffInt = NULL;
+        if( dim_ == 2) {
+        if( isaxi_ ) {
+          // axisymmetric case
+          stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl,factor, updatedGeo_);
+        } else {
+          // plane 2D case
+          stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, factor, updatedGeo_);
+        }
+        } else {
+        // 3D case
+        stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, factor, updatedGeo_);
+
+        }
+        stiffInt->SetName("CurlCurlIntegrator-NL");
+        BiLinFormContext * stiffContext =
+          new BiLinFormContext(stiffInt, STIFFNESS );
+        stiffContext->SetEntities( actSDList, actSDList );
+        stiffContext->SetFeFunctions( myFct, myFct );
+        assemble_->AddBiLinearForm( stiffContext );
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiffInt;
+        // add also material to global, distributed reluctivity coefficient function
+        //reluc_->AddRegion(actRegion, nuNl);
+
+        // ================================================
+        //  Nonlinear Stiffness Integrator (only Newton )
+        // ================================================
+        // Note: currently we set the nonlinear method hard-coded to NEWTON for
+        // testing purpose
+        if( nonLinMethod_ == NEWTON ) {
+          PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
+                                     Global::REAL, magFluxCoef );
+
+          //create stiffness integrator
+          BiLinearForm* stiff2 = NULL;
+          //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
           if( dim_ == 2) {
             if( isaxi_ ) {
-              // axisymmetric case
-              stiffInt = new BBInt<>(new CurlOperatorAxi<Double>(), nuNl,factor, updatedGeo_);
+            // axisymmetric case
+            stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, factor, updatedGeo_);
             } else {
-              // plane 2D case
-              stiffInt = new BBInt<>(new CurlOperator<FeH1,2,Double>(), nuNl, factor, updatedGeo_);
+            // plane 2D case
+            stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, factor, updatedGeo_);
             }
           } else {
             // 3D case
-            stiffInt = new BBInt<>(new CurlOperator<FeH1,3,Double>(), nuNl, factor, updatedGeo_);
+            stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, factor, updatedGeo_);
 
           }
-          stiffInt->SetName("CurlCurlIntegrator-NL");
-          BiLinFormContext * stiffContext =
-              new BiLinFormContext(stiffInt, STIFFNESS );
-          stiffContext->SetEntities( actSDList, actSDList );
-          stiffContext->SetFeFunctions( myFct, myFct );
-          assemble_->AddBiLinearForm( stiffContext );
-          // Important: Add bdb-integrator to global list, as we need them later
-          // for calculation of postprocessing results
-          bdbInts_[actRegion] = stiffInt;
-          // add also material to global, distributed reluctivity coefficient function
-          //reluc_->AddRegion(actRegion, nuNl);
 
-          // ================================================
-          //  Nonlinear Stiffness Integrator (only Newton )
-          // ================================================
-          // Note: currently we set the nonlinear method hard-coded to NEWTON for
-          // testing purpose
-          if( nonLinMethod_ == NEWTON ) {
-            PtrCoefFct nuDeriv = actMat->GetTensorCoefFncNonLin( MAG_RELUCTIVITY_DERIV, tensorType,
-                                                                 Global::REAL, magFluxCoef );
+          stiff2->SetName("CurlCurlIntegrator-NL-Newton");
+          //! mark the bi-linear form to be a Newton part
+          stiff2->SetNewtonBilinearForm();
 
-            //create stiffness integrator
-            BiLinearForm* stiff2 = NULL;
-            //stiff2 = new BDBInt<>(new CurlOperator<FeHCurl,3, Double>(), nuDeriv, 1.0, updatedGeo_) ;
+          BiLinFormContext * stiffContext2 =
+            new BiLinFormContext(stiff2, STIFFNESS );
+          stiffContext2->SetEntities( actSDList, actSDList );
+          stiffContext2->SetFeFunctions( myFct, myFct );
+          assemble_->AddBiLinearForm( stiffContext2 );
+          }
+        } else {
+          // ====================================================================
+          //  HYSTERESIS
+          // ====================================================================
+          shared_ptr<CoefFunction > curCoef;
+
+          if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+            /* for both the delta material method as well as the std fixpoint method we have to know
+             * which regions are affected by hystersis
+             */
+
+            shared_ptr<CoefFunction > curCoef_tmp;
+            // create new entity list
+
+            //see above
+            // shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+            // actSDList->SetRegion( regionId );
+            PtrCoefFct magFieldCoef = this->GetCoefFct(MAG_FIELD_INTENSITY);
+
+            curCoef_tmp.reset(new CoefFunctionHyst( actMat, actSDList,
+                                      magFieldCoef,tensorType,MAG_RELUCTIVITY));
+
+            hysteresisCoefs_->AddRegion( actRegion, curCoef_tmp);
+
+            if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+              /*
+               * here we treat the case: B = mu0*H + mu0*M
+               * however we solve for H, so we need: H = 1/mu_0 B - M
+               * M will be put on the rhs, for stiffness integrator we need just 1/mu0, so we reset curCoef to 1/mu0 = nu0
+               */
+              //std::string mu0 = "1.2566370614e-6";
+              std::string nu0 = "795774.715482";
+              StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+              realVal.Init("0.0");
+              realVal[0] = nu0;
+              if(dim_ == 2){
+                realVal[3] = nu0;
+              } else if(dim_ == 3){
+                realVal[4] = nu0;
+                realVal[8] = nu0;
+              }
+              StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
+              imagVal.Init("0.0");
+
+              curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
+
+              std::cout << "Using FixPoint Hystersis" << std::endl;
+
+              isHysteresisFixPoint_ = true;
+            } else {
+              std::cout << "Using DeltaMaterial Hystersis" << std::endl;
+
+              EXCEPTION("Not yet implemented");
+
+              /* TODO:
+               *
+               * To implement the deltaMaterial model, one has to do (at least) the following:
+               * 1. check how to describe it mathematically. Is it enough to return just deltaNu = deltaH/deltaB = deltaH/(mu0*deltaM + mu0*deltaH)?
+               *    (as opposed to deltaEps = deltaD/deltaE = (deltaP + eps0*deltaE)/deltaE)
+               * 2a. If the idea above is reasonable, CoefFncHyst has to be extended, so that it returns not dY/dX (would be deltaD/deltaE) but dX/dY
+               * 2b. If the idea above is not reasonable, use what you have derived ...
+               * 3. in StdSolveStep, we have to store the old rhs and subtract it, so that we get a correct delta formulation
+               *    note that this is missing in the electrostatic case, too!
+               *
+               */
+
+              curCoef = curCoef_tmp;
+              isHysteresisFixPoint_ = false;
+            }
+          }else{
+            // ====================================================================
+            //  Standard Linear CASE (2D AND 3D)
+            // ====================================================================
+            curCoef =
+                         actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
+                                                  Global::REAL );
+          }
+          BaseBDBInt * stiffInt = NULL;
+
             if( dim_ == 2) {
               if( isaxi_ ) {
                 // axisymmetric case
-                stiff2 = new BDBInt<>(new CurlOperatorAxi<Double>(), nuDeriv, factor, updatedGeo_);
+                stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
               } else {
                 // plane 2D case
-                stiff2 = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), nuDeriv, factor, updatedGeo_);
+                stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
               }
             } else {
               // 3D case
-              stiff2 = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), nuDeriv, factor, updatedGeo_);
-
+              stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
             }
+            stiffInt->SetName("CurlCurlIntegrator");
+            stiffInt->SetFeSpace( mySpace);
+            BiLinFormContext * stiffIntDescr =
+                new BiLinFormContext(stiffInt, STIFFNESS );
+            stiffIntDescr->SetEntities( actSDList, actSDList );
+            stiffIntDescr->SetFeFunctions( myFct, myFct );
 
-            stiff2->SetName("CurlCurlIntegrator-NL-Newton");
-            //! mark the bi-linear form to be a Newton part
-            stiff2->SetNewtonBilinearForm();
+            assemble_->AddBiLinearForm( stiffIntDescr );
 
-            BiLinFormContext * stiffContext2 =
-                new BiLinFormContext(stiff2, STIFFNESS );
-            stiffContext2->SetEntities( actSDList, actSDList );
-            stiffContext2->SetFeFunctions( myFct, myFct );
-            assemble_->AddBiLinearForm( stiffContext2 );
-          }
+            // Important: Add bdb-integrator to global list, as we need them later
+            // for calculation of postprocessing results
+            bdbInts_[actRegion] = stiffInt;
+
+            // add also material to global, distributed reluctivity coefficient function
+            reluc_->AddRegion(actRegion, curCoef);
+
+            // ====================================================================
+            //  3D CASE (additional stiffness integrator)
+            // ====================================================================
+            if( dim_ == 3 ) {
+              BaseBDBInt * divInt =
+                  new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
+              divInt->SetFeSpace( mySpace );
+              divInt->SetName("DivDivIntegrator");
+              BiLinFormContext * divIntDescr =
+                          new BiLinFormContext(divInt, STIFFNESS );
+              divIntDescr->SetEntities( actSDList, actSDList );
+              divIntDescr->SetFeFunctions( myFct, myFct );
+              assemble_->AddBiLinearForm( divIntDescr );
+            }
         }
-      }else{
-        // ====================================================================
-        //  Standard Linear CASE (2D AND 3D)
-        // ====================================================================
 
-          BaseBDBInt * stiffInt = NULL;
-          PtrCoefFct curCoef =
-              actMat->GetTensorCoefFnc( MAG_RELUCTIVITY, tensorType,
-                                       Global::REAL );
-          if( dim_ == 2) {
-            if( isaxi_ ) {
-              // axisymmetric case
-              stiffInt = new BDBInt<>(new CurlOperatorAxi<Double>(), curCoef, factor, updatedGeo_);
-            } else {
-              // plane 2D case
-              stiffInt = new BDBInt<>(new CurlOperator<FeH1,2,Double>(), curCoef,factor, updatedGeo_);
-            }
-          } else {
-            // 3D case
-            stiffInt = new BDBInt<>(new CurlOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
-          }
-          stiffInt->SetName("CurlCurlIntegrator");
-          stiffInt->SetFeSpace( mySpace);
-          BiLinFormContext * stiffIntDescr =
-              new BiLinFormContext(stiffInt, STIFFNESS );
-          stiffIntDescr->SetEntities( actSDList, actSDList );
-          stiffIntDescr->SetFeFunctions( myFct, myFct );
-
-          assemble_->AddBiLinearForm( stiffIntDescr );
-
-          // Important: Add bdb-integrator to global list, as we need them later
-          // for calculation of postprocessing results
-          bdbInts_[actRegion] = stiffInt;
-
-          // add also material to global, distributed reluctivity coefficient function
-          reluc_->AddRegion(actRegion, curCoef);
-
-          // ====================================================================
-          //  3D CASE (additional stiffness integrator)
-          // ====================================================================
-          if( dim_ == 3 ) {
-            BaseBDBInt * divInt =
-                new BDBInt<>(new DivOperator<FeH1,3,Double>(), curCoef, factor, updatedGeo_);
-            divInt->SetFeSpace( mySpace );
-            divInt->SetName("DivDivIntegrator");
-            BiLinFormContext * divIntDescr =
-                        new BiLinFormContext(divInt, STIFFNESS );
-            divIntDescr->SetEntities( actSDList, actSDList );
-            divIntDescr->SetFeFunctions( myFct, myFct );
-            assemble_->AddBiLinearForm( divIntDescr );
-          }
-      }
-        
-        
         // ====================================================================
         //  MASS - MATRIX (all dimensions)
         // ====================================================================
@@ -691,7 +764,74 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 //      assemble_->AddLinearForm( coilContext );
 //
 //    }
-    
+
+    LinearForm * lin = NULL;
+    StdVector<shared_ptr<EntityList> > ent;
+    StdVector<PtrCoefFct > coef;
+    bool coefUpdateGeo = true;
+
+    // =================================
+    //  Magnetization -> from hysteresis (VOLUME)
+    // =================================
+
+    //check for hysteresis
+    if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
+      LOG_DBG(magpde) << "Putting magnetization to rhs";
+
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+
+        // get regionIdType
+        RegionIdType curReg = it->first;
+
+        // get SDList
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( curReg );
+
+        // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
+        bool fullevaluation = false;
+
+        if(isComplex_) {
+          if( dim_ == 2 ) {
+            if(isaxi_){
+           // we need +factor as we put -rotH to the rhs
+              lin = new BUIntegrator<Complex>( new CurlOperatorAxi<Double>(),
+                                           Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+            } else {
+              lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,2,Double>(),
+                                              Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+            }
+          } else {
+            lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,3,Double>(),
+                                            Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
+          }
+        } else  {
+          if( dim_ == 2 ) {
+            if(isaxi_){
+           // we need +factor as we put -rotH to the rhs
+              lin = new BUIntegrator<Complex>( new CurlOperatorAxi<Double>(),
+                                           factor,it->second,  coefUpdateGeo, fullevaluation);
+            } else {
+              lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,2,Double>(),
+                                              factor,it->second,  coefUpdateGeo, fullevaluation);
+            }
+          } else {
+            lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,3,Double>(),
+                                            factor,it->second,  coefUpdateGeo, fullevaluation);
+          }
+        }
+
+        lin->SetName("rhs_magnetization");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( actSDList );
+        ctx->SetFeFunction(feFct);
+        assemble_->AddLinearForm(ctx);
+        // Add entity list will add nothing, if entities were already assigned
+        feFct->AddEntityList(actSDList);
+      }
+    }
+
     // ==================
     //  FLUX DENSITY
     // ==================
@@ -707,10 +847,6 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
       vecComponents = "x", "y";
     }
     
-    LinearForm * lin = NULL;
-    StdVector<shared_ptr<EntityList> > ent;
-    StdVector<PtrCoefFct > coef;
-    bool coefUpdateGeo = true;
     ReadRhsExcitation( "fluxDensity", vecComponents, ResultInfo::VECTOR, isComplex_, 
                        ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
@@ -1433,6 +1569,20 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
   }
   
+  void MagneticPDE::FinilizeAfterTimeStep() {
+
+	  //check for hysteresis
+	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {
+		  //set current values to previous values for hysteresis operator
+		  //needed for the next time step
+		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+		  std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+		  for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+			  it->second->SetPreviousHystVals();
+		  }
+	  }
+  }
+
   
   std::map<SolutionType, shared_ptr<FeSpace> >
    MagneticPDE::CreateFeSpaces(const std::string& formulation, PtrParamNode infoNode) {

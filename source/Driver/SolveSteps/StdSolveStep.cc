@@ -1035,13 +1035,15 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
        iterationCounter++;
 
        // reset rhs
-       RhsLinVal_.Init();
-       algsys_->InitRHS(RhsLinVal_);
+     //  RhsLinVal_.Init();
+     //  algsys_->InitRHS(RhsLinVal_);
 
        if(PDE_.IsHysteresis_Fixpoint() == true){
          incrementalErr = SetLinRHS(loadFactor,true);
+         RhsLinVal_.Init();
+         algsys_->InitRHS(RhsLinVal_);
        } else {
-         incrementalErr = SetLinRHS(loadFactor,false);
+         //incrementalErr = SetLinRHS(loadFactor,false);
        }
 
        // do matrices: Newton is not working for total formulation!!
@@ -1063,7 +1065,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
        if(PDE_.IsHysteresis_Fixpoint() == false){
          //due to incremental material formulation
-         std::cout << "RHS updated with old solution" << std::endl;
+         //std::cout << "RHS updated with old solution" << std::endl;
          algsys_->UpdateRHS(STIFFNESS,prevSol,true);
        }
        // set system matrix to zero initially, as ConstructEffectiveMatrix only
