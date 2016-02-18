@@ -287,41 +287,26 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
 void LatticeBoltzmann::InitializePdfs()
 {
-#pragma omp parallel for default(none)
   for (int elem = 0; elem < nNodes_; elem++) {
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
     }
   }
-
-//  if (!srt_)
-//  {
-//    for (int elem = 0; elem < nNodes_; elem++) {
-//      Vector<double> pdfs(n_q_);
-//      Vector<double> moments(n_q_);
-//      for (int dir = 0; dir < n_q_; dir++)
-//        pdfs[dir] = PDF(0, elem, dir);
-//      transformation.Mult(pdfs, moments);
-//      for (int dir = 0; dir < n_q_; dir++) {
-//        AMoments(0, elem, dir) = moments[dir];
-//        AMoments(1, elem, dir) = moments[dir];
-//      }
-//    }
-//  }
 }
 
 void LatticeBoltzmann::InitializeAdjPdfs()
 {
-#pragma omp parallel for default(none)
-  for (int elem = 0; elem < nNodes_; elem++) {
-      for (int  dir = 0; dir < n_q_; dir++) {
-//        APDF(0, elem, dir) = weights[dir];
-//        APDF(1, elem, dir) = weights[dir];
-        APDF(0, elem, dir) = 0;
-        APDF(1, elem, dir) = 0;
-      }
-    }
+  adjPdfs_[0].Init(0.0);
+  adjPdfs_[1].Init(0.0);
+//  for (int elem = 0; elem < nNodes_; elem++) {
+//      for (int  dir = 0; dir < n_q_; dir++) {
+////        APDF(0, elem, dir) = weights[dir];
+////        APDF(1, elem, dir) = weights[dir];
+//        APDF(0, elem, dir) = 0;
+//        APDF(1, elem, dir) = 0;
+//      }
+//    }
 }
 
 void LatticeBoltzmann::SetMicroVelocities()
@@ -651,7 +636,6 @@ void LatticeBoltzmann::SetupDataStructures(const StdVector<double>& elements)
   inlet.Clear();
   outlet.Clear();
 
-#pragma omp parallel for default(none) shared(elements)
   for(int elem = 0; elem < nNodes_; elem++)
   {
     double porosity = elements[elem];
@@ -1487,9 +1471,9 @@ void LatticeBoltzmann::AdjointCollision(int cur)
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
 //  Vector<double> pdfs(n_q_);
-  Matrix<double> test(n_q_*nNodes_,n_q_*nNodes_);
-  test.Init();
-#pragma omp parallel for default(none) shared(next) collapse(3)
+//  Matrix<double> test(n_q_*nNodes_,n_q_*nNodes_);
+//  test.Init();
+  #pragma omp parallel for default(none) shared(next) collapse(3)
   for (int z = 0; z < sizeZ_; z++)
     for (int y = 0; y < sizeY_; y++)
       for (int x = 0; x < sizeX_; x++)
@@ -1506,40 +1490,20 @@ void LatticeBoltzmann::AdjointPropagation(int next)
           if (!PointsToBoundary(x,y,z,dir)) {
             // case 1: f_* corresponds to an element that is not on the boundary --> f_* influences only its neighbour
             if (!PointsToBoundary(x,y,z,(invPDFDirections)[dir])) {
-              test(rows1,rows2) = 1.0;
+              //              test(rows1,rows2) = 1.0;
               value = tmpPdfs_[rows2];
-//              std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id2 << std::endl;
             }
             else { // case 2
-//              if (id1 == 1 && dir == 6) {
-//                std::cout << "neighbour in dir 6 is boundary node?" << IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z) << std::endl;
-//              }
-              // for corner elements, only distributions that point inside and to an design element are relevant
-//              if (!IsCornerElem(x,y,z) || !IsBoundaryElem(x+transform.off_x,y+transform.off_y,z+transform.off_z)) {
-                test(rows1,rows1) = 1.0;
-                value = tmpPdfs_[rows1];
-//                std::cout << "Elem " << id1 << "," << dir << " gets entry from elem " << id1 << std::endl;
-//              }
-              test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
+              //                test(rows1,rows1) = 1.0;
+              value = tmpPdfs_[rows1];
+              //              }
+              //              test(rows1,rows2) = 1.0; // dependence on neighbor PDFS due to backward propagation in adjoint simulation
               value += tmpPdfs_[rows2];
-//              std::cout << "Elem " << id1 << "," << dir << " + gets entry from elem " << id2 << std::endl;
             }
           }
           APDF(next,id1,dir) = value;
         }
       }
-
-//  std::stringstream ss;
-//  for (int i = 0; i < n_q_*nNodes_; i++) {
-//    for ( int j = 0; j < n_q_*nNodes_; j++) {
-//      ss << test(i,j) << " ";
-//    }
-//    ss << "\n";
-//  }
-//  std::fstream f;
-//  f.open("propOp3d.txt", std::ios::out);
-//  f << ss.str();
-//  f.close();
 }
 
 StdVector<double>* LatticeBoltzmann::IterateAdjoint(PtrParamNode info)
@@ -1647,36 +1611,40 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
-    /***************** Adjoint SRT collision ***/
-    Vector<double> pdfs(n_q_);
-    for (int z = 0; z < sizeZ_; z++)
-      for (int y = 0; y < sizeY_; y++)
-        for (int x = 0; x < sizeX_ ; x++)
-        {
-          int index = GetIndex(x,y,z);
+    #pragma omp parallel default(none) shared(collisionMatrices,d_pdrop_d_f)
+    {
+      /***************** Adjoint SRT collision ***/
+      Vector<double> pdfs(n_q_);
+      #pragma omp for collapse(3)
+      for (int z = 0; z < sizeZ_; z++)
+        for (int y = 0; y < sizeY_; y++)
+          for (int x = 0; x < sizeX_ ; x++)
+          {
+            int index = GetIndex(x,y,z);
 
-          for (int dir = 0; dir < n_q_; dir++)
-            pdfs[dir] = APDF(adjCur_,index,dir);
+            for (int dir = 0; dir < n_q_; dir++)
+              pdfs[dir] = APDF(adjCur_,index,dir);
 
-          // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
-          Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
-          Vector<double> d_pd_d_f = d_pdrop_d_f[index];
-          Vector<double> collResult(n_q_), tmp(n_q_);
-          LOG_DBG3(lbm) << "Elem " << index << "\n" << d_coll_d_f.ToString(0,"\n") << std::endl;
-          d_coll_d_f.Mult(pdfs,tmp);
-          for (int dir = 0; dir < n_q_; dir++)
-            collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
+            // adjoint collision: f* = d_pdrop_d_f + (d_coll_d_f)^T * f
+            Matrix<double> d_coll_d_f = collisionMatrices[index]; // collision matrices are already transposed
+            Vector<double> d_pd_d_f = d_pdrop_d_f[index];
+            Vector<double> collResult(n_q_), tmp(n_q_);
+//            LOG_DBG3(lbm) << "Elem " << index << "\n" << d_coll_d_f.ToString(0,"\n") << std::endl;
+            d_coll_d_f.Mult(pdfs,tmp);
+            for (int dir = 0; dir < n_q_; dir++)
+              collResult[dir] = -d_pd_d_f[dir] + tmp[dir];
 
-          for (int dir = 0; dir < n_q_; dir++)
-            tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
+            for (int dir = 0; dir < n_q_; dir++)
+              tmpPdfs_[GetPdfIndex(index,dir)] = collResult[dir];
 
-          if (!rel.Contains(index)) {
-            for (int dir1 = 0; dir1 < n_q_; dir1++) {
-              if (bb.Contains(index) || rel.Contains(index))
-                assert(d_pd_d_f[dir1] == 0.0);
+            if (!rel.Contains(index)) {
+              for (int dir1 = 0; dir1 < n_q_; dir1++) {
+                if (bb.Contains(index) || rel.Contains(index))
+                  assert(d_pd_d_f[dir1] == 0.0);
+              }
             }
           }
-        }
+    }
 
     AdjointPropagation(adjNext_);
 

@@ -201,9 +201,7 @@ namespace CoupledField
           /** Calculates resistance coefficient \alpha used in porosity model which is expressed by RAMP */
           inline double CalcResistanceCoeff(int elemId)
           {
-//            return alpha_max_ * (1 - scales[elemId]) / (1 + scales[elemId]); //RAMP
             return 1-scales[elemId];
-//            return scales[elemId];
           }
 
           /** Calculates dissipation contribution of given node */
