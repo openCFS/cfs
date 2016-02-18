@@ -97,11 +97,6 @@ public:
   /** implementation of objective function */
   double CalcPressureDrop();
 
- /** Returns dissipation; should be called after solving forward problem */
-  double GetDissipation();
-  //! returns if PDE can compute the quantity
-//  virtual bool HasOutput(SolutionType output);
-
   // returns how often CalcResults() was called. We need this to write out the last simulation step
   inline int GetNumWriteResults() {return numWriteResults_;}
 
@@ -122,8 +117,6 @@ public:
   void create_output(const char * file);
 
   Iface GetIface() const { return iface_; }
-
-  bool IsSRTModel() { return srt_; }
 
   //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
   /** Calculate the LBM Density of an element idx */
@@ -206,10 +199,6 @@ private:
     return pdfs_.GetPointer()[idx * n_q_ + dir];
   };
 
-  inline double GetAdjMoments(unsigned int idx, int dir) const  {
-    return adjMoments[idx * n_q_ + dir];
-  };
-
   inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
   }
@@ -286,8 +275,6 @@ private:
   //! Method of smoothing
   std::string method_;
 
-  //! Flag indicating whether SRT or MRT LBM model should be used
-  bool srt_;
   //! Flag indicating if PDE is assembled for first time
 //  bool firstTurn_;
 
@@ -337,9 +324,6 @@ private:
   /** storage for particle distribution. This is the simulation result for the function evaluation. */
   StdVector<double> pdfs_;
 
-  /** storage for adjoint particle distribution. This is the simulation result for the function evaluation. */
-  StdVector<double> adjMoments;
-
   /** storage for adjoint particle distribution. This is the result of an adjoint SRT simulation. */
   StdVector<double> adjPdfs;
 
@@ -355,8 +339,6 @@ private:
 //  StdVector<unsigned int> obstacle;
 
   double omega_; /** molecular collision frequency */
-  double omega_e_, omega_eps_, omega_q_; // relaxation rates for MRT model
-  double alpha_max_; // parameter used in MRT porosity model
   double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;
   unsigned int maxIter_;

@@ -21,8 +21,8 @@ args = parser.parse_args()
 mesh_name = args.type
 
 # sanity checks
-if args.lbm and args.type <> "lbm":
-  print "error: --lbm only for --type lbm"
+if args.lbm and not (args.type == "lbm2d" or "lbm3d"):
+  print "error: --lbm only for --type lbm2d or lbm3d"
   sys.exit()
   
 if (args.inclusion or args.inclusion_size) and not (args.type == "bulk2d" or "cantilever2d" or "lbm3d"):
