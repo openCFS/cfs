@@ -259,7 +259,8 @@ namespace CoupledField
     bool gradMethod = true;
 
     if ( gradMethod ) {
-    	Double res2, funcVal, stepLength, sigma;
+    	Double res2, funcVal, sigma;
+    	Double stepLength=1.0;
     	Double optAmp, optPhase;
     	Double outerErr = 1e-4;
     	Double innerErr = 1e-4;
@@ -329,6 +330,8 @@ namespace CoupledField
 
     			UInt iterLineSearch = 0;
     			std::cout << "\n Start line search Iter " << std::endl;
+    			stepLength = 1.0;
+    			kappa = 0.5;
     			while ( funcValNew > funcVal - sigma*stepLength*normGrad2  && iterLineSearch < 8) {
     				//update source data
     				stepLength *= kappa;
@@ -342,10 +345,10 @@ namespace CoupledField
     				ptPDE_->GetSolveStep()->PostStepHarmonic();
 
     				rhsMeas_->ComputeDiff2Meas( res2 );
-    				std::cout << "LineSearch,  StepLenghth: " << stepLength
+    				std::cout << "LineSearch: " <<  iterLineSearch << "  StepLenghth: " << stepLength
     						  << " Res: " << res2 << std::endl;
     				rhsSource_->ComputeTikh(funcValNew,res2);
-    				std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
+    				//std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
     				iterLineSearch++;
     				std::cout << std::endl;
     			}

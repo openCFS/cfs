@@ -222,7 +222,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::AddEntityList(shared_ptr<EntityList
     // Create Data structures for easy solution access
     //====================================================                                          
     //in this special class we start with the equation mapping right
-    //after the first call to get entities as this method should not be called twice!
+    //after the first call to get entities as this method should not be called 0.0625 Res: 2twice!
     this->MapEqns();
     //read in the first solution
     this->ReadSolution(this->stepValueMap_.begin()->first,this->solVec_);
@@ -325,6 +325,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  if ( !isDataReadFromFile_ ) {
 			  this->UpdateSolution();
 			  measVec_ = this->solVec_;
+			  std::cout << "Meas vec set!!" << std::endl;
 			  isDataReadFromFile_ = true;
 		  }
 
@@ -338,6 +339,8 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		  EntityIterator entIt = nodeList->GetIterator();
 
 		  Vector<DATA_TYPE> actPDEsol(measNodes_.GetSize());
+		  actPDEsol.Init();
+
 		  UInt k=0;
 		  while( !entIt.IsEnd() ) {
 			  //equation number not needed
@@ -347,6 +350,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
 			  //value
 			  Vector<DATA_TYPE> result;
+			  result.Init();
 			  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
 			  actPDEsol[k] = result[0];
 
@@ -361,7 +365,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 		    	  if ( isMeasuredNode_[i] ) {
 		    		  Complex val = actPDEsol[idx] - measVec_[i];
 		    	  	  this->solVec_[i] = -1.0*std::conj( val );
-		    	  	  std::cout << "RHS-MEASURE: " <<  this->solVec_[i] << std::endl;
+		    	  	  std::cout << "RHS-ADJ: " <<  this->solVec_[i] << std::endl;
 		    	  	  idx++;
 		    	  }
 		      }
@@ -381,10 +385,12 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::MapConservative( shared_ptr<FeSpace
 
 		  //get actual solution of PDE at the nodes of source region
 		  Vector<DATA_TYPE> actPDEsol(nodeListSource_->GetSize());
+		  actPDEsol.Init();
 		  EntityIterator entIt = nodeListSource_->GetIterator();
 		  UInt k=0;
 		  while( !entIt.IsEnd() ) {
 			  Vector<DATA_TYPE> result;
+			  result.Init();
 			  this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
 			  actPDEsol[k] = result[0];
 			  //std::cout << "INVERSE_SOURCE solPrev: " << actPDEsol[k] << std::endl;
@@ -552,6 +558,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeOptCondition(Double& valAmp,
 	UInt k=0;
 	while( !entIt.IsEnd() ) {
 		Vector<DATA_TYPE> result;
+		result.Init();
 		this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
 		actPDEsol[k] = result[0];
 		//std::cout << "INVERSE_SOURCE sol: " << actPDEsol[k] << std::endl;
@@ -606,6 +613,7 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeDiff2Meas(Double& error) {
 	while( !entIt.IsEnd() ) {
 		//value
 		Vector<DATA_TYPE> result;
+		result.Init();
 		this->feFunctions_[ACOU_PRESSURE]->GetEntitySolution( result, entIt );
 		actPDEsol[k] = result[0];
 
@@ -659,10 +667,15 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 template<typename DATA_TYPE>
 void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared ) {
 
-	funcVal = resSquared;
+	Double valAmp = 0;
+	Double valPhi = 0;
 	for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
-		funcVal += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ ) +	beta_*std::pow(std::abs(sourcePhi_[i]), 2);
+		valAmp += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ );
+		valPhi += beta_*std::pow(std::abs(sourcePhi_[i]), 2);
+		//funcVal += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ ) +	beta_*std::pow(std::abs(sourcePhi_[i]), 2);
 	}
+	std::cout << "valL2: " << resSquared << "  valAmP: " <<  valAmp << "  valPhi: " << valPhi << std::endl;
+	funcVal = resSquared + valAmp + valPhi;
 }
 
 
