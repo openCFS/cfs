@@ -61,6 +61,9 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
 	}
 
 	if(dimType_ == SCALAR){
+
+	  std::cout << "Using Scalar Hystersis" << std::endl;
+
     //get direction
     std::string str;
     material->GetScalar(str, P_DIRECTION);
@@ -72,6 +75,8 @@ void CoefFunctionHyst::Init( BaseMaterial* const material,
 
     dim_ = 1;
 	} else if(dimType_ == VECTOR){
+
+	  std::cout << "Using Vector Hystersis" << std::endl;
 
 	  Double rotationalResistance;
 	  material->GetScalar(rotationalResistance, ROT_RESISTANCE, Global::REAL);

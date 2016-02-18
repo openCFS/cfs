@@ -161,9 +161,6 @@ namespace CoupledField
     //! flag for piezo-coupling
     bool isPiezoCoupled_;
 
-    //! flag reporting if hystersis with std fixpoint method is active
-    bool hysteresis_fixpoint_;
-
     //! Stores the dielectric permittivity for each region
     std::map<RegionIdType, PtrCoefFct > regionPermittivity_;
 

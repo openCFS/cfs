@@ -649,8 +649,6 @@ namespace CoupledField {
     if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
 
-      std::cout << "Putting Polarization on RHS" << std::endl;
-
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
       std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
       for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
@@ -814,14 +812,17 @@ namespace CoupledField {
 
         curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
 
+        std::cout << "Using FixPoint Hystersis" << std::endl;
+
         isHysteresisFixPoint_ = true;
       } else {
+
+        std::cout << "Using DeltaMaterial Hystersis" << std::endl;
+
         curCoef = curCoef_tmp;
         isHysteresisFixPoint_ = false;
       }
 
-      std::cout << "curCoef_tmp: " << curCoef_tmp->ToString() << std::endl;
-      std::cout << "curCoef: " << curCoef->ToString() << std::endl;
     }
     else {
 
