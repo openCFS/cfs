@@ -72,41 +72,14 @@
 					<!-- Configurations for LBM simulation -->
 					<xsd:element name="LBM" minOccurs="1" maxOccurs="1">
 						<xsd:complexType>
-						<xsd:all>
-              <xsd:element name="MRT" minOccurs="0" maxOccurs="1">
-                 <xsd:complexType>
-                    <xsd:attribute name="omega_e" type="xsd:double" use="required"> 
-                      <xsd:annotation>
-                        <xsd:documentation>Relaxation rate for energy entry in moments vector</xsd:documentation>
-                      </xsd:annotation>              
-                    </xsd:attribute>
-                    <xsd:attribute name="omega_epsilon" type="xsd:double" use="required"> 
-                      <xsd:annotation>
-                        <xsd:documentation>Relaxation rate for square energy entry in moments vector</xsd:documentation>
-                      </xsd:annotation>              
-                    </xsd:attribute>
-                    <xsd:attribute name="omega_q" type="xsd:double" use="required"> 
-                      <xsd:annotation>
-                        <xsd:documentation>Relaxation rate for heat flux entry in moments vector</xsd:documentation>
-                      </xsd:annotation>              
-                    </xsd:attribute>
-                    <xsd:attribute name="alpha_max" type="xsd:double" use="required"> 
-                      <xsd:annotation>
-                        <xsd:documentation>This value is related to the RAMP approximation used in the porosity model proposed by Liu et al.(2014), e.g. 800</xsd:documentation>
-                      </xsd:annotation>              
-                    </xsd:attribute>
-                </xsd:complexType>
-              </xsd:element>
-              <xsd:element name="SRT" minOccurs="0" maxOccurs="1">
-                <xsd:complexType>
-                  <xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="optional" default="external"> 
-                    <xsd:annotation>
-                      <xsd:documentation>Adjoint system can be solved externally via e.g. PARDISO or internally with an adjoint LBM formulation</xsd:documentation>
-                    </xsd:annotation>              
-                  </xsd:attribute>
-                </xsd:complexType>
-              </xsd:element>
-            </xsd:all>
+
+						<xsd:attribute name="solveAdjoint" type="DT_LBMAdjoint" use="optional" default="external">
+							<xsd:annotation>
+								<xsd:documentation>Adjoint system can be solved externally via e.g.
+									PARDISO or internally with an adjoint LBM formulation
+								</xsd:documentation>
+							</xsd:annotation>
+						</xsd:attribute>
             
             <xsd:attribute name="omega" type="xsd:double" use="optional"> 
               <xsd:annotation> 
@@ -115,30 +88,6 @@
                 </xsd:documentation> 
               </xsd:annotation> 
             </xsd:attribute> 
-            
-            <xsd:attribute name="relaxation" use="required">
-              <xsd:annotation>
-               <xsd:documentation>
-                Indicate if single relaxation time (SRT) or multiple relaxation time (MRT) model should be used for solving.\n
-                If SRT is chosen, relaxation parameter 'omega' must be set. \n
-                If MRT is chosen, 5 relaxation parameters must be specified in an 'MRT' element.
-               </xsd:documentation>
-              </xsd:annotation>
-              <xsd:simpleType>
-                <xsd:restriction base="xsd:token">
-                  <xsd:enumeration value="srt">  
-                    <xsd:annotation> 
-                      <xsd:documentation> Use single relaxation time (SRT) model. </xsd:documentation> 
-                    </xsd:annotation> 
-                 </xsd:enumeration> 
-                 <xsd:enumeration value="mrt"> 
-                   <xsd:annotation> 
-                     <xsd:documentation> Use multiple relaxation time (MRT) model. </xsd:documentation>
-                   </xsd:annotation> 
-                  </xsd:enumeration> 
-                </xsd:restriction>
-              </xsd:simpleType>
-            </xsd:attribute>
              
             <xsd:attribute name="Re" type="xsd:double" use="optional"> 
               <xsd:annotation> 
@@ -273,16 +222,6 @@
     <xsd:restriction base="xsd:token"> 
       <xsd:enumeration value="uniform" /> 
       <xsd:enumeration value="parabolic" /> 
-    </xsd:restriction> 
-  </xsd:simpleType>
-  
-  <!-- ******************************************************************* --> 
-  <!-- Definition of relaxation models profiles --> 
-  <!-- ******************************************************************* --> 
-  <xsd:simpleType name="DT_LBMRelaxation"> 
-    <xsd:restriction base="xsd:token"> 
-      <xsd:enumeration value="srt" /> 
-      <xsd:enumeration value="mrt" /> 
     </xsd:restriction> 
   </xsd:simpleType>
   
