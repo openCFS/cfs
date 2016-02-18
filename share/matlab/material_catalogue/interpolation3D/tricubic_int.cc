@@ -223,7 +223,7 @@ double tricubic_eval(vector<double> a, double x, double y, double z) {
 void write_to_xml(string file, vector<vector<vector<double> > > Coeff, vector<double> aa, vector<double> bb, vector<double> cc) {
   fstream f;
   f.open(file.c_str(), ios::out);
-  f<<"<homRectC1>"<<endl;
+  f<<"<homRectC1 notation=\"voigt\">"<<endl;
   f<<"<a>"<<endl;
   f<<"<matrix dim1=\""<<aa.size()<<"\" dim2=\"1\">"<<endl;
   f<<"<real>"<<endl;
