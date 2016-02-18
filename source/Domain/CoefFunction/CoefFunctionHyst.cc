@@ -298,8 +298,8 @@ void CoefFunctionHyst::ComputeXY( const LocPointMapped& lpm, Double& X, Double& 
 	X = elemSol[dirP_];
 	Y = hyst_->computeValueAndUpdate(X, idx);
 
- // std::cout << "X: " << X << std::endl;
- // std::cout << "Y: " << Y << std::endl;
+  //std::cout << "X: " << X << std::endl;
+  //std::cout << "Y: " << Y << std::endl;
 
 }
 

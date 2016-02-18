@@ -1034,6 +1034,16 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
      do {
        iterationCounter++;
 
+       // reset rhs
+       RhsLinVal_.Init();
+       algsys_->InitRHS(RhsLinVal_);
+
+       if(PDE_.IsHysteresis_Fixpoint() == true){
+         incrementalErr = SetLinRHS(loadFactor,true);
+       } else {
+         incrementalErr = SetLinRHS(loadFactor,false);
+       }
+
        // do matrices: Newton is not working for total formulation!!
        isNewton = false;
        assemble_->AssembleMatrices(isNewton);
@@ -1051,13 +1061,16 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
          algsys_->UpdateRHS(matIt->first,stageRHS_,true);
        }
 
-       //due to incremental material formulation
-       algsys_->UpdateRHS(STIFFNESS,prevSol,true);
-
+       if(PDE_.IsHysteresis_Fixpoint() == false){
+         //due to incremental material formulation
+         std::cout << "RHS updated with old solution" << std::endl;
+         algsys_->UpdateRHS(STIFFNESS,prevSol,true);
+       }
        // set system matrix to zero initially, as ConstructEffectiveMatrix only
        // sums up the contributions
        matrix_factor_.clear();
        algsys_->InitMatrix(SYSTEM);
+
        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
          FeFctIdType fctId = fncIt->second->GetFctId();
          fncIt->second->GetTimeScheme()
@@ -1089,6 +1102,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
        //just dummy things
        Double etaLineSearch = 1.0;
+
+       // Why is residualErr = incrementalErr?
        Double residualErr = incrementalErr;
 
        // output of norms and data
@@ -1304,7 +1319,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     //JUST A HACK!!!!
     //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
-    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = Complex(0.0,actFreq_*2*M_PI);
+    //matrix_factor_Complex_[NO_FCT_ID][DAMPING] = CompSetLinRHSlex(0.0,actFreq_*2*M_PI);
     //matrix_factor_Complex_[NO_FCT_ID][MASS] = Complex(-1.0 * actFreq_*actFreq_*4*M_PI*M_PI,0);
 
     //matrix_factor_Complex_[NO_FCT_ID][STIFFNESS] = Complex(1.0,0);
@@ -1404,20 +1419,27 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   // ======================================================
 
   // sets excitation coil and returns L2Norm of them
-  Double StdSolveStep::SetLinRHS( Double loadFactor)
+  Double StdSolveStep::SetLinRHS( Double loadFactor, bool nonlin)
   {
 
     Double RhsLinL2Norm;
 
 
-    // to incorporate loads
-    assemble_->AssembleLinRHS(); 
+    // to incorporate loads+
+    if(nonlin){
+      assemble_->AssembleNonLinRHS();
+    } else {
+      assemble_->AssembleLinRHS();
+    }
+
     //Set special RHS Values
     PDE_.SetRhsValues();
 
     // Stores rhs vector into extForces and returns that L2-norm
     algsys_->GetRHSVal( RhsLinVal_ );
     RhsLinVal_.ScalarMult(loadFactor);
+
+    //std::cout << "RHS: " << RhsLinVal_.ToString() << std::endl;
 
     RhsLinL2Norm = RhsLinVal_.NormL2();
 

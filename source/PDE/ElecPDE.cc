@@ -646,8 +646,10 @@ namespace CoupledField {
     // =================================
 
     //check for hysteresis
-    if ( isHysteresis_ && hysteresis_fixpoint_ == true ) {
+    if ( isHysteresis_ && isHysteresisFixPoint_ == true ) {
       LOG_DBG(elecpde) << "Putting polarisation to rhs";
+
+      std::cout << "Putting Polarization on RHS" << std::endl;
 
       std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
       std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
@@ -667,19 +669,19 @@ namespace CoupledField {
           if( dim_ == 2 ) {
           // we need -factor as we put +divP to the rhs
           lin = new BUIntegrator<Complex>( new DivOperator<FeH1,2,Complex>(),
-                                           Complex(-factor),it->second,  coefUpdateGeo, fullevaluation);
+                                           Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           } else {
             lin = new BUIntegrator<Complex>( new DivOperator<FeH1,3,Complex>(),
-                                            Complex(-factor),it->second,  coefUpdateGeo, fullevaluation);
+                                            Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           }
         } else  {
           if( dim_ == 2 ) {
           // we need -factor as we put +divP to the rhs
           lin = new BUIntegrator<Double>( new DivOperator<FeH1,2,Double>(),
-                                            (-factor),it->second,  coefUpdateGeo, fullevaluation);
+                                            (-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           } else {
             lin = new BUIntegrator<Double>( new DivOperator<FeH1,3,Double>(),
-                                             (-factor),it->second,  coefUpdateGeo, fullevaluation);
+                                             (-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           }
         }
 
@@ -802,7 +804,7 @@ namespace CoupledField {
         realVal.Init("0.0");
         realVal[0] = eps0;
         if(dim_ == 2){
-          realVal[2] = eps0;
+          realVal[3] = eps0;
         } else if(dim_ == 3){
           realVal[4] = eps0;
           realVal[8] = eps0;
@@ -812,10 +814,10 @@ namespace CoupledField {
 
         curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
 
-        hysteresis_fixpoint_ = true;
+        isHysteresisFixPoint_ = true;
       } else {
         curCoef = curCoef_tmp;
-        hysteresis_fixpoint_ = false;
+        isHysteresisFixPoint_ = false;
       }
 
       std::cout << "curCoef_tmp: " << curCoef_tmp->ToString() << std::endl;
@@ -985,7 +987,7 @@ namespace CoupledField {
   void ElecPDE::FinilizeAfterTimeStep() {
 
 	  //check for hysteresis
-	  if ( isHysteresis_ && hysteresis_fixpoint_ == false ) {
+	  if ( isHysteresis_ && isHysteresisFixPoint_ == false ) {
 		  //set current values to previous values for hysteresis operator
 		  //needed for the next time step
 		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();

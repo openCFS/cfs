@@ -139,7 +139,7 @@ namespace CoupledField
     void SetTimeStep( Double dt );
 
     //! computes linear part of RHS
-    Double SetLinRHS(Double loadFactor);
+    Double SetLinRHS(Double loadFactor,bool nonlin = false);
 
     //! computes ldelta inear part of RHS; in case of sub stepping
     UInt SetDeltaLinRHS();
