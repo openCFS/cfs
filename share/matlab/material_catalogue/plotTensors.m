@@ -1,4 +1,4 @@
-tensoridx = 4;
+tensoridx = 7;
 dimstoplot = [1 3];
 plotwithinterpolatedvalues = 0;
 onlyboundary = 0;
