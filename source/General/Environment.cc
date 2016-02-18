@@ -794,6 +794,8 @@ namespace CoupledField {
       out = GEOMETRIC;
     } else if( in == "hysteresis") {
       out = HYSTERESIS;
+    } else if( in == "hysteresis_fixpoint") {
+      out = HYSTERESIS_FIXPOINT;
     } else if( in == "piezoMicroHF") {
       out = PIEZO_MICRO_HF;
     } else if( in == "permeability") {
@@ -849,6 +851,9 @@ namespace CoupledField {
         break;
       case HYSTERESIS:
         out = "hysteresis";
+        break;
+      case HYSTERESIS_FIXPOINT:
+        out = "hysteresis_fixpoint";
         break;
       case NLELEC_CONDUCTIVITY:
         out = "elecConductivity";
@@ -1535,6 +1540,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( C_JILES, "cJiles" ); 
     MaterialTypeEnum.Add( P_DIRECTION, "Pdirection" ); 
     MaterialTypeEnum.Add( HYST_MODEL, "hystModel" ); 
+    MaterialTypeEnum.Add( PREISACH_DIM, "PreisachDim" );
+    MaterialTypeEnum.Add( ROT_RESISTANCE, "RotResistance" );
     MaterialTypeEnum.Add( NONLIN_COEFFICIENT, "nonLinCoefficient" ); 
     MaterialTypeEnum.Add( NONLIN_DEPENDENCY, "nonLinDependency" );
     MaterialTypeEnum.Add( NONLIN_APPROXIMATION_TYPE, "nonLinApproximationType" );

@@ -1111,6 +1111,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
        performOneMoreStep =
          (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
+      // std::cout << "IncError: " << incrementalErr << std::endl;
+      // std::cout << "ResError: " << residualErr << std::endl;
+
        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
                  << "' at iteration '" << iterationCounter

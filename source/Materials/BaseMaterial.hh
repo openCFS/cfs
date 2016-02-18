@@ -205,7 +205,7 @@ namespace CoupledField {
 
     //! set the symmetry type
     void SetSymmetryType(MaterialType matType, SymmetryType symType) {
-      symmetryType_[matType]=symType; 
+      symmetryType_[matType]=symType;
     };
 
     //! get the symmetry type
@@ -357,8 +357,13 @@ namespace CoupledField {
     //@{ \name Hysteresis Related Information
 
     //Initialize hysteresis
-    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
-                           bool isInverse = false, bool computeInverse = false );
+    //virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+    //                       bool isInverse = false, bool computeInverse = false );
+
+    //Initialize hysteresis
+    // calls either Preisach or VectorPreisach depending on the dimensions
+    virtual void InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
+                           bool isInverse = false, bool computeInverse = false, UInt dim = 1);
 
     //Initialize hysteresis
     virtual void InitVecHyst( UInt numElemSD, shared_ptr<ElemList> actSDList, 
@@ -597,6 +602,15 @@ namespace CoupledField {
 
     Vector<Double> Xprevious_; //! previous Xval in hysteresis
     Vector<Double> Yprevious_; //! previous Yval in hysteresis
+
+    //! for vector version
+    //! note that we do not use the matrices below due to differen sorting at the moment
+    Vector<Double>* XpreviousVEC_;
+    Vector<Double>* YpreviousVEC_;
+
+    // dimension of hystersis: 1 = Preisach, 2,3 = VectorPreisach
+    // independent from SimplePreisach which uses dimVecHyst_
+    UInt dim_;
 
     Matrix<Double> vecXprevious_; //! previous Xval in hysteresis
     Matrix<Double> vecYprevious_; //! previous Yval in hysteresis

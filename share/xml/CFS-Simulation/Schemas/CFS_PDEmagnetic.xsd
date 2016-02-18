@@ -63,7 +63,18 @@
                     <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
+                 <xsd:element name="hysteresis" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+               <xsd:element name="hysteresis_fixpoint" type="DT_ElecNonLinHyst">
+                  <xsd:annotation>
+                    <xsd:documentation>Permeability depends on magnetic flux density; uses simple fixpoint iteration for solution</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
+
             </xsd:complexType>
           </xsd:element>
 
@@ -171,10 +182,10 @@
   <!-- Definition of hysteresis nonlinearity type -->
   <xsd:complexType name="DT_MagNonLinHyst">
     <xsd:complexContent>
-      <xsd:extension base="DT_NonLinBasic"> </xsd:extension>
+      <xsd:extension base="DT_NonLinBasic"> 
+      </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>
-
 
   <!-- ******************************************************************* -->
   <!--   Definition of the magnetic unknown types -->

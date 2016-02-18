@@ -6,6 +6,7 @@
 #include "CoefFunction.hh"
 #include "Materials/BaseMaterial.hh"
 #include "FeBasis/FeFunctions.hh"
+//#include "Materials/Models/Preisach.hh"
 
 namespace CoupledField {
 
@@ -40,6 +41,8 @@ public:
   //! \see CoefFunction::GetScalar
   void GetScalar(Double& coefScalar, const LocPointMapped& lpm );
 
+  void GetVector(Vector<Double>& coefScalar, const LocPointMapped& lpm );
+
   //! Return real-valued tensor at integration point
   void GetTensor(Matrix<Double>& tensor, const LocPointMapped& lpm );
 
@@ -65,6 +68,9 @@ protected:
   //! compute X and Y value
   void ComputeXY( const LocPointMapped& lpm, Double& X, Double& Y);
 
+  //! compute X and Y vector for vector model
+  void ComputeXY_vec( const LocPointMapped& lpm, Vector<Double>& X, Vector<Double>& Y);
+
   //! Constant initial value of the curve
   Double coefScalar_;
   
@@ -76,6 +82,10 @@ protected:
 
   //! previous Yal in hysteresis
   Vector<Double> Yprevious_;
+
+  //! for vector version
+  Vector<Double>* XpreviousVEC_;
+  Vector<Double>* YpreviousVEC_;
 
   //! globale element to local element numbering
   std::map<UInt, UInt> globalElem2Local_;
@@ -103,6 +113,10 @@ protected:
 
   //!
   BaseMaterial* material_;
+
+  //! dim for vector model
+  UInt dim_;
+
 };
 
 

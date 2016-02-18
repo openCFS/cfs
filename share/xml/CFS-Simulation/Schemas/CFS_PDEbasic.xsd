@@ -619,7 +619,6 @@
     </xsd:complexContent>
   </xsd:complexType>
 
-
   <xsd:complexType name="DT_matDependencyBasic">
     <xsd:complexContent>
       <xsd:restriction base="xsd:anyType">

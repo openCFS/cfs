@@ -3,6 +3,7 @@
 
 #include <string>
 #include "General/defs.hh"
+#include "MatVec/Vector.hh"
 #include "General/Exception.hh"
 #include "Utils/tools.hh"
 
@@ -22,6 +23,11 @@ namespace CoupledField {
       return 0.0;
     };
 
+    virtual Vector<Double> computeValue_vec(Vector<Double>& xVal, Integer idxElem) {
+      EXCEPTION( "computeValue not implemented in base-Class" );
+      Vector<Double> Yout;
+      return Yout;
+    };
 
     //!
     virtual Double computeValueAndUpdate(Double xVal, Integer idxElem, 

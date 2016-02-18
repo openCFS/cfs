@@ -824,6 +824,20 @@ namespace CoupledField {
                       << " hysteresis model polarization");
         }
         
+        if(p->Has("preisachDim"))
+        {
+          int dim = p->Get("preisachDim")->As<Integer>();
+
+          if(dim == 1) material->SetScalar("SCALAR", PREISACH_DIM);
+          if(dim == 2) material->SetScalar("VECTOR", PREISACH_DIM);
+          if(dim == 3) material->SetScalar("VECTOR", PREISACH_DIM);
+        } else {
+          material->SetScalar("SCALAR", PREISACH_DIM);
+        }
+
+        if(p->Has("rotRes"))
+          material->SetScalar(p->Get("rotRes")->As<Double>(), ROT_RESISTANCE, Global::REAL);
+
         // read weight dimension of Preisach hysterese model for weights
         int dim = -1;
         if(p->Has("dim")) dim = p->Get("dim")->As<Integer>();
