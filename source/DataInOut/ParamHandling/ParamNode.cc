@@ -203,7 +203,7 @@ PtrParamNode ParamNode::Get(const string& name_raw, ActionType action)
     const int chsize(children_.GetSize());
 
     // check if the last result is close to the currently requested node
-    // This is a harc-coded optimization coming from F. Wein
+    // This is a hard-coded optimization coming from F. Wein
     if (lastresultidx_ > 0 && lastresultidx_ < chsize)
     {
       if (children_[lastresultidx_]->name_ == myName)

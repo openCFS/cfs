@@ -6,6 +6,8 @@ from hdf5_tools import *
 import scipy.interpolate as ip
 from matviz_vtk import *
 from scipy.spatial import Delaunay
+from PyQt4.Qt import left
+from matplotlib.sankey import RIGHT
 
 
 # writes a dense two region mesh
@@ -351,7 +353,9 @@ def write_gid_elements(out, elements, dim):
         out.write(str(e.nodes[n] + 1) + ("\n" if n == nodes_by_type(e.type) - 1 else " "))  # write one based node numbers
 
 
-def write_gid_mesh(mesh, filename):
+def write_gid_mesh(mesh, filename,scale = 1):
+  # Warning: mesh dimensions should be in [m]
+  print "Notification: Make sure that mesh dimensions are in meter [m]!! Otherwise use scale Parameter."
   quad4 = count_elements(mesh.elements, QUAD4)
   hexa8 = count_elements(mesh.elements, HEXA8)
   wedge6 = count_elements(mesh.elements, WEDGE6)
@@ -403,9 +407,9 @@ def write_gid_mesh(mesh, filename):
   out.write('\n[Nodes]\n')
   out.write('#NodeNr x-coord y-coord z-coord\n')
   for i in range(len(mesh.nodes)):  # write one based!
-    out.write(str(i + 1) + "  " + str(mesh.nodes[i][0]) + "  " + str(mesh.nodes[i][1]))
+    out.write(str(i + 1) + "  " + str(mesh.nodes[i][0]/scale) + "  " + str(mesh.nodes[i][1]/scale))
     if dim == 3:
-      out.write("  " + str(mesh.nodes[i][2]) + "\n")
+      out.write("  " + str(mesh.nodes[i][2]/scale) + "\n")
     else:
       out.write("  0.0\n")
 
@@ -413,7 +417,6 @@ def write_gid_mesh(mesh, filename):
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
   out.write('#Node1 Node2 ... NodeNrOfNodes\n')
   write_gid_elements(out, mesh.elements, 1)
-
   
   out.write('\n[2D Elements]\n')
   out.write('#ElemNr  ElemType  NrOfNodes  Level\n')
@@ -1256,7 +1259,7 @@ def create_mesh_from_tetgen(meshfile, region):
   return mesh
 
 
-def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,thres=0.0,csize = None,simp = None):
+def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position,type = "apod6",thres=0.0,csize = None,simp = None):
   print 'WARNING: Currently only used for Apod6 (valid_position_apod6)'
   centers, mi, ma = coords[0:3]  # we cannot use the first region element element dimensions 
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
@@ -1275,9 +1278,10 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
     dx = csize[0]
     dy = csize[1]
     dz = csize[2]
-  # calculate convex hull of non-des_nodes
+  # calculate convex hull of non-design nodes
   hull = Delaunay(nondes_centers)
   print 'calculating convex hull of non-design done'
+  # choose validation for simp result or 2-scale result
   if simp is None:
     ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz)
   else:
@@ -1331,7 +1335,7 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
         if s1 > 0.0 and simp is None:
           # 2scale optimization
           if s1 >= thres or s2 >= thres or s3 >= thres:
-            if not valid_position_apod6(coord, coords,offset):
+            if not valid_position(coord, coords,offset):
               create_cross_3D(array,l,u,void,void,void,void,res)
             else:
               create_cross_3D(array,l,u,s1,s2,s3,void,res)
@@ -1343,7 +1347,7 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
           # simp
           if s1 > 0:
             if s1 >= thres:
-              if not valid_position_apod6(coord, coords,offset):
+              if not valid_position(coord, coords,offset):
                   array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = void * numpy.ones((res[0], res[1], res[2]))
               else:
                   array[l[0]:u[0],l[1]:u[1],l[2]:u[2]] = numpy.ones((res[0], res[1], res[2]))
@@ -1371,7 +1375,7 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
           center *= 1.0 / len_nod
           # test if is in convex hull of non-design nodes
           if in_hull(center, hull):
-            if not valid_position_apod6(center, coords,offset):
+            if not valid_position(center, coords,offset):
               e.region = 'void1'
             else:
               e.region = 'non-design'
@@ -1384,8 +1388,11 @@ def create_validation_apod6_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, 
           number += 1
           e.region = 'design'
         mesh.elements.append(e)
-  # add apod6 boundary conditions to mesh      
-  mesh = add_apod6_boundary_conditions(mesh)
+  if type == "apod6":
+    # add apod6 boundary conditions to mesh      
+    mesh = add_apod6_boundary_conditions(mesh)
+  elif type == "robot":
+    mesh = add_robot_boundary_conditions(mesh)
   print 'mesh has ' + str(number) + "design and non-design elements"
   return mesh
 
@@ -1424,6 +1431,46 @@ def create_cross_3D(array,l,u,s1,s2,s3,void,res):
       for k in range(0, res[2]):
         array[l[0] + i,l[1] + j,l[2] + k] = 1.
         
+def add_robot_boundary_conditions(mesh):
+  # add loads and support to robot arm mesh
+  # support
+  m1 = [-107.44,-54.,0.]
+  m2 = [-147.44,-54.,40.]
+  m3 = [-187.44,-54.,0.]
+  m4 = [-147.44,-54.,-40.]
+  
+  #loads
+  m5 = [213.,0.,0.]
+  m6 = [250.,0.,37.]
+  m7 = [287.,0.,0.]
+  m8 = [250.,0.,-37.]
+  
+  r = 5
+  force1 = []
+  support = []
+  for i in range(len(mesh.nodes)):
+    coord = mesh.nodes[i][:]
+    if abs(coord[1] + 54.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < (r+delta) ** 2:
+      support.append(i)
+    elif abs(coord[1] + 54.) < 1. and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < (r+delta) ** 2:
+      support.append(i)
+    elif abs(coord[1] + 54.) < 1. and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r+delta) ** 2:
+      support.append(i)
+    elif abs(coord[1] + 54.) < 1. and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r+delta) ** 2:
+      support.append(i)
+    elif abs(coord[1] + 0.) < 1. and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r+delta) ** 2:
+      force1.append(i)
+    elif abs(coord[1] + 0.) < 1. and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r+delta) ** 2:
+      force1.append(i)
+    elif abs(coord[1] + 0.) < 1. and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r+delta) ** 2:
+      force1.append(i)
+    elif abs(coord[1] + 0.) < 1. and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r+delta) ** 2:
+      force1.append(i)
+      
+  mesh.bc.append(('force1', force1))
+  mesh.bc.append(('support', support))
+  return mesh
+            
 def add_apod6_boundary_conditions(mesh):
   # add apod6 boundary conditions
   m1 = [33052., -353., -2474.]
@@ -1433,22 +1480,38 @@ def add_apod6_boundary_conditions(mesh):
   m5 = [32978., -353., -2436.]
   m6 = [32971., -353., -2485.]
   m7 = [33023., -353., -2559.]
-  m8 =[33042., -353., -2548.]
+  m8 = [33042., -353., -2548.]
+  m9 = [33004., -353., -2443.]
   r1 = 19.5
   r2 = 16.5
   r3 = 5.8
+  delta = 0.2
   force1 = []
   force2 = []
+  force3 = []
   support = []
   support2 = []
+  support3 = []
   for i in range(len(mesh.nodes)):
     coord = mesh.nodes[i][:]
     if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
       force1.append(i)
     elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
       force2.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < r3 ** 2:
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < r1 ** 2:
+      force3.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3+delta) ** 2:
       support2.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3+delta) ** 2:
+      support3.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3+delta) ** 2:
+      support3.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3+delta) ** 2:
+      support3.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3+delta) ** 2:
+      support3.append(i)
+    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3+delta) ** 2:
+      support3.append(i)
     elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
       support.append(i)
     elif (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < r3 ** 2:
@@ -1462,12 +1525,14 @@ def add_apod6_boundary_conditions(mesh):
           
   mesh.bc.append(('force1', force1))
   mesh.bc.append(('force2', force2))
+  mesh.bc.append(('force3', force3))
   mesh.bc.append(('support', support))
   mesh.bc.append(('support2', support2))
+  mesh.bc.append(('support3', support3))
   return mesh
   
 
-def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [], support = [], support2 = []):
+def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], force2 = [],force3 = [], support = [], support2 = [], support3 =[]):
   # create element and nodes files by hand from optistruct
   if len(all_nodes) == 0:
     # load files from optistruct file
@@ -1555,13 +1620,18 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
     m6 = [32971., -353., -2485.]
     m7 = [33023., -353., -2559.]
     m8 = [33042., -353., -2548.]
+    m9 = [33004., -353., -2443.]
+    
     r1 = 15.5#19.5
     r2 = 12.5#16.5
-    r3 = 5.5
+    r3 = 5.8
+    delta = 0.2
     force1 = []
     force2 = []
+    force3 = []
     support = []
     support2 = []
+    support3 = []
     for i in range(len(all_nodes)):
       coord = all_nodes[i, 1:]
       if (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
@@ -1578,7 +1648,9 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
       e = mesh.elements[i]
       f1 = False
       f2 = False
+      f3 = False
       sp2 = False
+      sp3 = False
       if e.region == "non-design":
         for j in range(len(e.nodes)):
           coord = mesh.nodes[e.nodes[j]]
@@ -1586,34 +1658,55 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
             f1 = True
           elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
             f2 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < r3 ** 2:
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < (r1+ delta) ** 2:
+            f3 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3 + delta) ** 2:
             sp2 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3 + delta) ** 2:
+            sp3 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3 + delta) ** 2:
+            sp3 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3 + delta) ** 2:
+            sp3 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3 + delta) ** 2:
+            sp3 = True
+          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3 + delta) ** 2:
+            sp3 = True
         for j in range(len(e.nodes)):
           coord = mesh.nodes[e.nodes[j]]
           if f1 == True and abs(coord[1] + 353.) < 1.:
               force1.append(e.nodes[j])
           elif f2 == True:
             force2.append(e.nodes[j])
+          elif f3 == True:
+            force3.append(e.nodes[j])
           elif sp2 == True:
             support2.append(e.nodes[j])    
+          elif sp3 == True:
+            support3.append(e.nodes[j])
   mesh.bc.append(('force1', force1))
   mesh.bc.append(('force2', force2))
+  mesh.bc.append(('force3', force3))
   mesh.bc.append(('support', support))
   mesh.bc.append(('support2', support2))
+  mesh.bc.append(('support3', support3))
 
   if len(elements) == 0:
     write_gid_mesh(mesh, meshfile+".mesh")     
   return mesh
 
-def create_mesh_apod6_from_gmsh(meshfile):
+def create_mesh_from_gmsh(meshfile,type):
   # read 3D tetrahedron gmsh mesh
-  inp = open(meshfile).readlines()
+  inp = open(meshfile+".msh").readlines()
   nodes = []
   elem = []
-  force1 = []
-  force2 = []
-  support = []
-  support2 = []
+  if type == "apod6":
+    force1 = []
+    force2 = []
+    force3 = []
+    support = []
+    support2 = []
+    support3 = []
   count = 1
   num_node = 0
   num_elem = 0
@@ -1647,25 +1740,35 @@ def create_mesh_apod6_from_gmsh(meshfile):
       # read 3D wedge elements
       elif int(item[1]) == 6:
         elem.append([int(item[0]),int(item[5]),int(item[6]),int(item[7]),int(item[8]),int(item[9]),int(item[10])])
-      elif int(item[1]) == 15:
+      elif int(item[1]) == 15 and type == "apod6":
         # force1
         if int(item[4]) == 5:
           force1.append(int(item[5])-1)
-        # force1  
+        # force2  
         elif int(item[4]) == 6:
           force2.append(int(item[5])-1)
+        # force3  
+        elif int(item[4]) == 9:
+          force3.append(int(item[5])-1)
         # support  
         elif int(item[4]) == 7:
           support.append(int(item[5])-1)
         elif int(item[4]) == 8:
           support2.append(int(item[5])-1)
+        elif int(item[4]) == 10:
+          support3.append(int(item[5])-1)
     count += 1  
   nodes = numpy.asarray(nodes)
-  mesh = create_mesh_for_apod6(meshfile,nodes,elem)
+  if type == "apod6":
+    mesh = create_mesh_for_apod6(meshfile,nodes,elem)
+  elif type == "aux_cells":
+    mesh = create_mesh_for_aux_cells(meshfile,nodes,elem)
+  else:
+    print "Error: No correct type was selected! options: apod6, aux_cells"
   write_gid_mesh(mesh, meshfile+".mesh") 
   
 def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
-  # force names and support name has to be set manually, default force1, force2, support
+  # force names and support name has to be set manually, default force1, force2, force3, support, support2, support3
   mesh = create_mesh_from_hdf5(hdf5_file, region, bcregions)
   write_gid_mesh(mesh, "test.mesh") 
   out = open(output, "w")
@@ -1695,10 +1798,14 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
       id = 5
     elif bc[0] == 'force2':
       id = 6
+    elif bc[0] == 'force3':
+      id = 9
     elif bc[0] == 'support':
       id = 7
     elif bc[0] == 'support2':
       id = 8
+    elif bc[0] == 'support3':
+      id = 10
     else:
       print 'Warning mesh.bc type not handled!'
     for l in range(len(bc[1])):
@@ -1723,7 +1830,7 @@ def create_gmsh_from_cfs_hdf5(hdf5_file, region, bcregions,output):
 def create_nastran_mesh_from_cfs(meshfile,h5file):
   # manually select cfs hdf5 file
   print 'Set regions and boundary nodes manually, default: design, non-design, force1,force2 and support'
-  mesh = create_mesh_from_hdf5(h5file, ['design','non-design'], ['force1','force2','support','support2'])
+  mesh = create_mesh_from_hdf5(h5file, ['design','non-design'], ['force1','force2','force3','support','support2','support3'])
   out = open(meshfile, "w")
   #design nodes and non-design nodes
   #out2 = open(meshfile + '.design', "w")
@@ -1774,10 +1881,18 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
     # write forces2
   for i in range(len(mesh.bc[1][1])):
     out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])))
+    
+      # write forces3
+  for i in range(len(mesh.bc[2][1])):
+    out.write('FORCE%11d%8d%8d1.0     0.0     %-8f0.0\n'%(2,mesh.bc[2][1][i]+1,0,5000./len(mesh.bc[2][1])))
     #out.write('FORCE   ' + '%-8d%-8d%-8d%-8f'%(2,mesh.bc[1][1][i]+1,0,5000./len(mesh.bc[1][1])) + '%-8f%-8f%-8f'%(0.,1.,0.) + '\n')
 
-  for i in range(len(mesh.bc[2][1])):
-    out.write('SPC%13d%8d  123     \n'%(1,mesh.bc[2][1][i]+1))
+  for i in range(len(mesh.bc[3][1])):
+    out.write('SPC%13d%8d  13     \n'%(1,mesh.bc[3][1][i]+1))
+  for i in range(len(mesh.bc[4][1])):
+    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[4][1][i]+1))
+  for i in range(len(mesh.bc[5][1])):
+    out.write('SPC%13d%8d  2     \n'%(1,mesh.bc[5][1][i]+1))
     #out.write('SPC     ' + '%-8d%-8d%-8d%-8d%-8d%-8f\n'%(1,mesh.bc[2][1][i]+1,1,2,3,0.))
     
   #out.write('PSOLID         1       1\n')          
@@ -1796,15 +1911,17 @@ def create_nastran_mesh_from_cfs(meshfile,h5file):
   
   out.close()  
   
-def create_mesh_apod6_from_optistruct(meshfile):
+def create_mesh_apod6_from_optistruct(meshfile,scale):
   # read 3D optistruct mesh with hexa and wedge elements for apod6 got by M. Muir (12/2015)
   inp = open(meshfile).readlines()
   nodes = []
   elem = []
   force1 = []
   force2 = []
+  force3 = []
   support = []
   support2 = []
+  support3 = []
   design = []
   nondesign = []
   count = 1
@@ -1857,5 +1974,91 @@ def create_mesh_apod6_from_optistruct(meshfile):
     count += 1  
   nodes = numpy.asarray(nodes)
   mesh = create_mesh_for_apod6(meshfile,nodes,elem)
-  write_gid_mesh(mesh, meshfile+".mesh") 
+  write_gid_mesh(mesh, meshfile+".mesh",scale) 
+  
+def create_mesh_for_aux_cells(meshfile, all_nodes = [], elements = []):
+  mesh = Mesh()
+  
+  # insert nodes  
+  for i in range(len(all_nodes)):
+    mesh.nodes.append([all_nodes[i, 1], all_nodes[i, 2], all_nodes[i, 3]])
+  min_diam_x = 1000000. 
+  min_diam_y = 1000000. 
+  min_diam_z = 1000000. 
+  # insert elements
+  for i in range(len(elements)):
+      e = Element()
+      e.nodes = (elements[i][1:])
+      for k in range(len(e.nodes)):
+        e.nodes[k] -= 1
+      count = 0
+      for k in range (len(e.nodes)):
+        if count + 1 == len(e.nodes):
+          min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[0]][0]))
+          min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[0]][1]))
+          min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[0]][2]))
+        else:
+          min_diam_x = min(min_diam_x,abs(mesh.nodes[e.nodes[count]][0] - mesh.nodes[e.nodes[count+1]][0]))
+          min_diam_y = min(min_diam_y,abs(mesh.nodes[e.nodes[count]][1] - mesh.nodes[e.nodes[count+1]][1]))
+          min_diam_z = min(min_diam_z,abs(mesh.nodes[e.nodes[count]][2] - mesh.nodes[e.nodes[count+1]][2]))
+        count += 1
+      print "min_diam = [" + str(min_diam_x) + ", " +  str(min_diam_y) + ", " +  str(min_diam_z)
+      e.density = 1.
+      e.region = 'mech'
+      if len(e.nodes) == 4:
+        e.type = TET4
+      elif len(e.nodes) == 6:
+        e.type = WEDGE6
+      elif len(e.nodes) == 8:
+        e.type = HEXA8
+      mesh.elements.append(e)
+       
+  # define boundary nodes
+  print "min_diam = [" + str(min_diam_x) + ", " +  str(min_diam_y) + ", " +  str(min_diam_z)
+  # calculate extrem values along each coordinate
+  ma_x = -100000.
+  mi_x = 100000.
+  ma_y = -100000.
+  mi_y = 100000.
+  ma_z = -100000.
+  mi_z = 100000.
+  for i in range(len(mesh.nodes)):
+    coord = mesh.nodes[i]
+    ma_x = ma_x if ma_x > coord[0] else coord[0]
+    mi_x = mi_x if mi_x < coord[0] else coord[0]
+    ma_y = ma_y if ma_y > coord[1] else coord[1]
+    mi_y = mi_y if mi_y < coord[1] else coord[1]
+    ma_z = ma_z if ma_z > coord[2] else coord[2]   
+    mi_z = mi_z if mi_z < coord[2] else coord[2]
+
+  delta = 1e-4
+  top = []
+  bottom = []
+  left = []
+  right = []
+  front = []
+  back = []
+  for i in range(len(mesh.nodes)):
+    if abs(mesh.nodes[i][0] - mi_x) < min_diam_x - delta:
+      left.append(i)
+    elif abs(mesh.nodes[i][0] - ma_x) < min_diam_x - delta:
+      right.append(i)
+    elif abs(mesh.nodes[i][1] - mi_y) < min_diam_y - delta:
+      bottom.append(i) 
+    elif abs(mesh.nodes[i][1] - ma_y) < min_diam_y - delta:
+      top.append(i) 
+    elif abs(mesh.nodes[i][2] - mi_z) < min_diam_z - delta:
+      back.append(i)
+    elif abs(mesh.nodes[i][2] - ma_z) < min_diam_z - delta:
+      front.append(i)
+      
+  #add boundary nodes    
+  mesh.bc.append(('top', top))
+  mesh.bc.append(('bottom', bottom))
+  mesh.bc.append(('left', left))
+  mesh.bc.append(('right', right))
+  mesh.bc.append(('front', front))
+  mesh.bc.append(('back', back))
+  
+  return mesh
   

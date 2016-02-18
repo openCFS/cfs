@@ -52,7 +52,7 @@ namespace CoupledField
         * @param pn determines active mode
         * @param constraints stuff is added here if the mode is constraint
         * @param observation stuff is added here in observation mode */
-       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints);
+       static void AddCondition(PtrParamNode pn, StdVector<Condition*>& constraints,UInt i = -1, std::string entName = "");
 
        /** usually for constraints plus globalSlope for objective */
        typedef enum { EQUAL, LOWER_BOUND, UPPER_BOUND } Bound;
@@ -153,6 +153,9 @@ namespace CoupledField
        static double ALPHA_MINUS_SLACK_VALUE;
        static double ALPHA_PLUS_SLACK_VALUE;
 
+       // number of displacement constraints realized by multiple output constraints
+       UInt output_multiple_nodes;
+
     protected:
       /** Reads the coord attribute and sets the coord pair if value is not 'all'
        * @return false if 'all' and the coord pair is not set */
@@ -215,6 +218,9 @@ namespace CoupledField
        * shear moduli */
       static void AddXtropyConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);
 
+      /** Helper for AddCondition().
+       * Adds the number i to name of output nodes, necessary for displacement constraints */
+      static void AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g, UInt i, std::string entName);
 
       /** Helper for AddCondition() */
       static void AddHomogenizationTensorConstraints(PtrParamNode pn, StdVector<Condition*>& list, Condition* g);

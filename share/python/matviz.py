@@ -208,6 +208,12 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           s2 = ones((len(s1), 1)) * 0.25
           s3 = ones((len(s1), 1)) * 0.25
         if args.hom_samples or args.cell_size:
+          if args.type == "apod6":
+            valid_position = valid_position_apod6
+            print 'Apod6 is calculated!' 
+          elif args.type == "robot":
+            valid_position = valid_position_robot
+            print 'Robot is calculated!'
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
@@ -226,10 +232,10 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, args.hom_dir, scale, valid_position, args.thres,csize)
 
             else:
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
+              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, valid_position, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
@@ -352,6 +358,7 @@ parser.add_argument("--nodefile", help="name of the design to node file", defaul
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
+parser.add_argument("--type", help="type of 3D object for 2-scale visualization", default="apod6",choices=['apod6', 'robot'])
 
 
 args = parser.parse_args()

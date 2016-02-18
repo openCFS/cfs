@@ -336,15 +336,16 @@ def valid_bar_position_apod6(coords,center, dim, angle=None):
 
 # # for the robot arm we have check for the two nondesign holes as they are within the
 # # convex hull of the design :(
-def valid_position(pos, coords):
-  mi, ma = coords[1:3]
-  delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
+def valid_position_robot(pos, coords,opt=0):
+  #mi, ma = coords[1:3]
+  #delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
  # if int(delta[0]) == 508 and int(delta[2]) == 126:
+  #if (pos[0] + 147.4) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center -147, 0, 0
   if (pos[0] + 147.4) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center -147, 0, 0
     return False 
   if (pos[0] - 250.0) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center 250, 0, 0
     return False
-  
+  return True
 # # for the apod6 part we have check for the holes in nondesign region as they are within the
 # # convex hull of the design :(
 def valid_position_apod6(pos, coords,opt = 0. ):
@@ -446,8 +447,7 @@ def valid_position_apod6(pos, coords,opt = 0. ):
   return True
 
 # # without rotation and shearing
-def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres=0.0,csize = None):
-  print 'WARNING: Currently only used for Apod6 (valid_position_apod6)'
+def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid_position,thres=0.0,csize = None):
   centers, min, max = coords[0:3]  # we cannot use the first region element element dimensions 
   
   cells = vtk.vtkCellArray()
@@ -479,7 +479,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,thres
     angle = None if angles is None else ip_data[i][3:6]
     # if s1 < 0 point is out of the convex hull
     if s1 > 0.0:
-      if not valid_position_apod6(coord, coords):
+      if not valid_position(coord, coords):
         invalid += 1
         continue
       within += 1

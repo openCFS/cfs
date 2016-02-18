@@ -292,6 +292,7 @@ void ErsatzMaterial::PostInit()
 
       if(output->Has("acoustic"))
         assert(false);
+
         //domain->GetSinglePDE("acoustic")->ReadLoads(output->GetList("acoustic"), f->output_nodes);
 
       // we store the loads in forms of linear forms
@@ -314,7 +315,7 @@ void ErsatzMaterial::PostInit()
 
         f->output_forms.Push_back(ctx);
       }
-
+      LOG_DBG2(em) << "PI: size of output_forms: " <<f->output_forms.GetSize() ;
       if(f->output_forms.GetSize() == 0)
         throw Exception("no output optimization targets given");
       break;
