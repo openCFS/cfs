@@ -28,10 +28,11 @@ namespace CoupledField{
   BDBInt<COEF_DATA_TYPE,B_DATA_TYPE>::
   BDBInt(BaseBOperator* bOp, PtrCoefFct dData, MAT_DATA_TYPE factor, bool coordUpdate )
   : BaseBDBInt(coordUpdate) 
-  {
+    {
       name_ = "BDBInt";
       isSymmetric_ = true;
-      assert(dData->GetDimType() == CoefFunction::TENSOR);
+
+      //assert(dData->GetDimType() == CoefFunction::TENSOR);
 #ifndef NDEBUG
       if(dData->GetDimType() != CoefFunction::TENSOR){
         Exception("BDB integrator expects the coefficient function to be tensorial");

@@ -240,14 +240,19 @@ namespace CoupledField
     }
     beta -= delta;
 
+    // X1 >= X2
+    // -> mit alpha_0 = beta_0 = -1 und gleichem delta -> idx1 >= idx2
+
     Double area = 0.0;
     if ( idx1 >= 0 ) {
       UInt start = std::min(idx1,idx2);
       UInt stop  = std::max(idx1,idx2);
+
+      // why do we iterate over the whole square and not over the triangle?
       for ( UInt i=start; i<=stop; i++ ) {
-	for ( UInt j=start; j<=stop; j++ ) {
-	  area += preisachWeights_[i][j];
-	}
+        for ( UInt j=start; j<=stop; j++ ) {
+          area += preisachWeights_[i][j];
+        }
       }
 
       area *= 0.5*delta*delta;
@@ -257,33 +262,35 @@ namespace CoupledField
       Double diffX2 = X2    - beta;
       Double minusArea;
  
+      //|diffX1| und |diffX2| sollten < delta sein
+
       //check, if we are already on the diagonal!!
       if ( idx1 == idx2 ) {
-	minusArea = (   diffX2 * (delta - 0.5*diffX2) 
-		      + diffX1 * (delta - 0.5*diffX1)
-                      - diffX1*diffX2 
-		     ) * preisachWeights_[idx1][idx2];
+        minusArea = (   diffX2 * (delta - 0.5*diffX2)
+                + diffX1 * (delta - 0.5*diffX1)
+                            - diffX1*diffX2
+               ) * preisachWeights_[idx1][idx2];
       }
       else {
-	minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 ) 
-	  * preisachWeights_[idx1][idx2];
+        minusArea = ( (diffX1+diffX2 )*delta - diffX1*diffX2 )
+          * preisachWeights_[idx1][idx2];
 
-	Integer idx = idx1-1;
-	while ( idx > idx2 ) {
-	  minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
-	  idx--;
-	  //	  std::cout << "minusArea2=" << minusArea << std::endl;
-	}
-	minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
-	  * preisachWeights_[idx][idx2]; 
+        Integer idx = idx1-1;
+        while ( idx > idx2 ) {
+          minusArea += diffX2 * delta * preisachWeights_[idx][idx2];
+          idx--;
+          //	  std::cout << "minusArea2=" << minusArea << std::endl;
+        }
+        minusArea += ( delta*diffX2 - 0.5*diffX2*diffX2 )
+          * preisachWeights_[idx][idx2];
 
-	idx = idx2 + 1;
-	while ( idx < idx1 ) {
-	  minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
-	  idx++;
-	}
-	minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )  
-	  * preisachWeights_[idx1][idx];
+        idx = idx2 + 1;
+        while ( idx < idx1 ) {
+          minusArea += diffX1 * delta * preisachWeights_[idx1][idx];
+          idx++;
+        }
+        minusArea += ( delta*diffX1 - 0.5*diffX1*diffX1 )
+          * preisachWeights_[idx1][idx];
       }
 
       area -= minusArea; 

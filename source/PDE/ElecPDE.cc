@@ -26,6 +26,7 @@
 #include "Utils/SmoothSpline.hh"
 #include "Materials/Models/Hysteresis.hh"
 #include "Materials/Models/Preisach.hh"
+#include "Materials/Models/VectorPreisach.hh"
 #include "FeBasis/H1/FeSpaceH1Nodal.hh"
 #include "FeBasis/FeFunctions.hh"
 
@@ -36,6 +37,7 @@
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/DivOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
@@ -640,6 +642,69 @@ namespace CoupledField {
     } // for
     
     // =================================
+    //  Polarisation -> from hysteresis (VOLUME)
+    // =================================
+
+    //check for hysteresis
+    if ( isHysteresis_ && hysteresis_fixpoint_ == true ) {
+      LOG_DBG(elecpde) << "Putting polarisation to rhs";
+
+      std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
+      std::map<RegionIdType, shared_ptr<CoefFunction> > ::iterator it;
+      for( it = regionCoefs.begin(); it != regionCoefs.end(); it++) {
+
+        // get regionIdType
+        RegionIdType curReg = it->first;
+
+        // get SDList
+        shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+        actSDList->SetRegion( curReg );
+
+        // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
+        bool fullevaluation = false;
+
+        if(isComplex_) {
+          if( dim_ == 2 ) {
+          // we need -factor as we put +divP to the rhs
+          lin = new BUIntegrator<Complex>( new DivOperator<FeH1,2,Complex>(),
+                                           Complex(-factor),it->second,  coefUpdateGeo, fullevaluation);
+          } else {
+            lin = new BUIntegrator<Complex>( new DivOperator<FeH1,3,Complex>(),
+                                            Complex(-factor),it->second,  coefUpdateGeo, fullevaluation);
+          }
+        } else  {
+          if( dim_ == 2 ) {
+          // we need -factor as we put +divP to the rhs
+          lin = new BUIntegrator<Double>( new DivOperator<FeH1,2,Double>(),
+                                            (-factor),it->second,  coefUpdateGeo, fullevaluation);
+          } else {
+            lin = new BUIntegrator<Double>( new DivOperator<FeH1,3,Double>(),
+                                             (-factor),it->second,  coefUpdateGeo, fullevaluation);
+          }
+        }
+
+/*
+        if(isComplex_) {
+          // we need -factor as we put +P to the rhs
+          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                           Complex(-factor), it->second, coefUpdateGeo);
+        } else  {
+          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+                                          -factor, it->second, coefUpdateGeo);
+        }
+*/
+
+        lin->SetName("rhs_polarization");
+        LinearFormContext *ctx = new LinearFormContext( lin );
+        ctx->SetEntities( actSDList );
+        ctx->SetFeFunction(myFct);
+        assemble_->AddLinearForm(ctx);
+        // Add entity list will add nothing, if entities were already assigned
+        //myFct->AddEntityList(actSDList);
+      }
+    }
+
+    // =================================
     //  FLUX DENSITY (VOLUME / SURFACE) 
     // =================================
     LOG_DBG(elecpde) << "Reading prescribed flux density";
@@ -711,14 +776,50 @@ namespace CoupledField {
     shared_ptr<CoefFunction > curCoef;
     //get possible nonlinearities defined in this region
     StdVector<NonLinType> nonLinTypes = regionNonLinTypes_[regionId];
-    if ( nonLinTypes.Find(HYSTERESIS) != -1 ) {
+    if ( nonLinTypes.Find(HYSTERESIS) != -1 || nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+      /* for both the delta material method as well as the std fixpoint method we have to know
+       * which regions are affected by hystersis
+       */
+
+      shared_ptr<CoefFunction > curCoef_tmp;
     	// create new entity list
     	shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
     	actSDList->SetRegion( regionId );
     	PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
-    	curCoef.reset(new CoefFunctionHyst( actSDMat, actSDList,
+
+    	curCoef_tmp.reset(new CoefFunctionHyst( actSDMat, actSDList,
 						                    elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
-    	hysteresisCoefs_->AddRegion( regionId, curCoef);
+
+    	hysteresisCoefs_->AddRegion( regionId, curCoef_tmp);
+
+      if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
+        /*
+         * here we treat the case: D = eps0*E + P
+         * P will be put on the rhs, for stiffness integrator we need just eps0, so we reset curCoef to eps0
+         */
+        std::string eps0 = "8.854187817e-12";
+        StdVector<std::string> realVal = StdVector<std::string>(dim_*dim_);
+        realVal.Init("0.0");
+        realVal[0] = eps0;
+        if(dim_ == 2){
+          realVal[2] = eps0;
+        } else if(dim_ == 3){
+          realVal[4] = eps0;
+          realVal[8] = eps0;
+        }
+        StdVector<std::string> imagVal = StdVector<std::string>(dim_*dim_);
+        imagVal.Init("0.0");
+
+        curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
+
+        hysteresis_fixpoint_ = true;
+      } else {
+        curCoef = curCoef_tmp;
+        hysteresis_fixpoint_ = false;
+      }
+
+      std::cout << "curCoef_tmp: " << curCoef_tmp->ToString() << std::endl;
+      std::cout << "curCoef: " << curCoef->ToString() << std::endl;
     }
     else {
 
@@ -884,7 +985,7 @@ namespace CoupledField {
   void ElecPDE::FinilizeAfterTimeStep() {
 
 	  //check for hysteresis
-	  if ( isHysteresis_ ) {
+	  if ( isHysteresis_ && hysteresis_fixpoint_ == false ) {
 		  //set current values to previous values for hysteresis operator
 		  //needed for the next time step
 		  std::map<RegionIdType,PtrCoefFct > regionCoefs = hysteresisCoefs_->GetRegionCoefs();
@@ -1071,14 +1172,14 @@ namespace CoupledField {
     DefineFieldResult( fluxFunc, flux );
     stiffFormCoefs_.insert(fluxFunc);
 
-    if ( isHysteresis_) {
-	   hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::SCALAR, 1,1,isComplex_));
+    if ( isHysteresis_){
+	   hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
 	   shared_ptr<ResultInfo> elecP ( new ResultInfo );
 	   elecP->resultType = ELEC_POLARIZATION;
-	   elecP->dofNames = "";
+	   elecP->SetVectorDOFs(dim_, isaxi_, is2p5);
 	   elecP->unit = "C/m^2";
 	   elecP->definedOn = ResultInfo::ELEMENT;
-	   elecP->entryType = ResultInfo::SCALAR;
+	   elecP->entryType = ResultInfo::VECTOR;
 	   DefineFieldResult( hysteresisCoefs_, elecP );
 	   availResults_.insert( elecP );
     }
@@ -1095,6 +1196,7 @@ namespace CoupledField {
     // Note: The positive normal direction in this case is defined as the
     //       inward facing one. 
     shared_ptr<CoefFunctionSurf> sChargeDens(new CoefFunctionSurf(true, -1.0, chargeD));
+    DefineFieldResult( sChargeDens, chargeD);
     surfCoefFcts_[sChargeDens] = fluxFunc;
     
     // === TOTAL ELECTRIC CHARGE ===
@@ -1112,6 +1214,7 @@ namespace CoupledField {
     } else {
       chargeFunc.reset(new ResultFunctorIntegrate<Double>(sChargeDens, feFct, charge ) );
     }
+    resultFunctors_[ELEC_CHARGE] = chargeFunc;
 
     // === ELECTRIC ENERGY DENSITY ===
     shared_ptr<ResultInfo> ed ( new ResultInfo );

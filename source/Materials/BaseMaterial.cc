@@ -12,6 +12,7 @@
 #include "MatVec/Matrix.hh"
 
 #include "Materials/Models/Preisach.hh"
+#include "Materials/Models/VectorPreisach.hh"
 #include "Materials/Models/SimplePreisachInv.hh"
 #include "Materials/Models/PiezoMicroModelHF.hh"
 #include "Materials/Models/PiezoMicroModelBK.hh"
@@ -388,6 +389,12 @@ namespace CoupledField
     // 1) Constant-Valued tensors
     BaseMaterial::tensorMap::iterator it = tensorParams_.begin();
     for( ; it != tensorParams_.end(); it++ ) {
+      if(it->second.GetNumCols() > 3 || it->second.GetNumRows() > 3){
+        continue;
+        //this is the case for tensors like the preisach weights which shall be allowed to have more than 3 x 3 entries
+        //furthermore, a rotation of these parameter is not necessary
+      }
+
       RotateTensorByRotationAngles( rotAngle, it->first, persistent );
     }
     
@@ -692,7 +699,7 @@ namespace CoupledField
   
 
   void BaseMaterial::InitHyst( UInt numElemSD, shared_ptr<ElemList> actSDList,
-                               bool isInverse, bool computeHystInverse ) {
+                               bool isInverse, bool computeHystInverse, UInt dim ) {
 
     isHystInverse_      = isInverse;
     computeHystInverse_ = computeHystInverse;
@@ -702,6 +709,8 @@ namespace CoupledField
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
+
+
       isHysteresis_ = true;
 
       Double Xsat, Ysat;
@@ -710,7 +719,19 @@ namespace CoupledField
       Matrix<Double> weights;
       GetTensor(weights,  PREISACH_WEIGHTS, Global::REAL);
       bool isVirgin = true;   
-      hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+
+      if(dim == 1){
+
+        hyst_ = new Preisach(numElemSD, Xsat, Ysat, weights, isVirgin);
+
+      } else if(dim > 1 && dim <= 3){
+
+        Double rotationalResistance = 1.0;
+        //material->GetScalar(rotationalResistance, ROT_RESISTANCE);
+
+        hyst_ = new VectorPreisach(numElemSD, Xsat, Ysat, weights,rotationalResistance,dim, isVirgin);
+      }
+
 
       // set map: global to local element number
       EntityIterator it = actSDList->GetIterator();
@@ -718,17 +739,31 @@ namespace CoupledField
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
 
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+      globalElNr = it.GetElem()->elemNum;
+      globalElem2Local_[globalElNr] = iel;
       }
     }
 
     //allocate memory for previous results, needed for the
     //effective material parameter formulation
-    Xprevious_.Resize(numElemSD);
-    Yprevious_.Resize(numElemSD);
-    Xprevious_.Init();
-    Yprevious_.Init();
+    if(dim == 1){
+      Xprevious_.Resize(numElemSD);
+      Yprevious_.Resize(numElemSD);
+      Xprevious_.Init();
+      Yprevious_.Init();
+    }  else if(dim > 1 && dim <= 3){
+      XpreviousVEC_ = new Vector<Double>[numElemSD];
+      YpreviousVEC_ = new Vector<Double>[numElemSD];
+
+      for(UInt i = 0; i < numElemSD; i++){
+        XpreviousVEC_[i].Resize(dim_);
+        XpreviousVEC_[i].Init();
+
+        YpreviousVEC_[i].Resize(dim_);
+        YpreviousVEC_[i].Init();
+       }
+    }
+
   }
 
 
@@ -741,6 +776,7 @@ namespace CoupledField
       EXCEPTION( "Currently we just support Preisach Hysteresis Model" );
     }
     else {
+      dim_ = dim;
       isHysteresis_ = true;
 
       Double Xsat, Ysat;
@@ -764,8 +800,8 @@ namespace CoupledField
       UInt iel = 0;
       UInt globalElNr;
       for ( it.Begin(); !it.IsEnd(); it++, iel++) {
-	globalElNr = it.GetElem()->elemNum;
-	globalElem2Local_[globalElNr] = iel;
+        globalElNr = it.GetElem()->elemNum;
+        globalElem2Local_[globalElNr] = iel;
       }
     }
 
@@ -789,12 +825,18 @@ namespace CoupledField
 
   Double BaseMaterial::GetScalarHystVal( UInt nrElem ) {
 
+    if(dim_ != 1){
+       EXCEPTION("Only implemented for scalar model");
+     }
     UInt idx = globalElem2Local_[nrElem];
     return hyst_->getValue( idx );
   }
 
 
   Double BaseMaterial::GetScalarHystPrevVal( UInt nrElem ) {
+    if(dim_ != 1){
+       EXCEPTION("Only implemented for scalar model");
+     }
     UInt idx = globalElem2Local_[nrElem];
     return Yprevious_[idx];
   }

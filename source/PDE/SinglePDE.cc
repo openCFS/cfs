@@ -541,7 +541,7 @@ namespace CoupledField {
           //if one nonlinearity is set, then the whole PDE is set to nonlinear
           nonLin_ = true;
 
-          if ( nonLinTypes_[nonLinId] == HYSTERESIS )
+          if ( nonLinTypes_[nonLinId] == HYSTERESIS or nonLinTypes_[nonLinId] == HYSTERESIS_FIXPOINT )
         	  isHysteresis_ = true;
         }
       }
@@ -2828,6 +2828,9 @@ namespace CoupledField {
         regionNodes[i]->GetValue( "name", region );
         regionNodes[i]->GetValue( "material", material );
         regionNodes[i]->GetValue( "coordSysId", refCoordSys );
+
+        std::cout << "name" << region << std::endl;
+        std::cout << "material" << material << std::endl;
 
         // get regionId
         RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
