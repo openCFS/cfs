@@ -161,6 +161,9 @@ namespace CoupledField {
     bool IsHysteresis() 
     { return isHysteresis_;};
 
+    bool IsHysteresis_Fixpoint()
+    { return isHysteresisFixPoint_;};
+
     bool IsIterCoupled() 
     { return isIterCoupled_;};
 
@@ -290,6 +293,7 @@ namespace CoupledField {
     bool nonLinMaterial_;           //!< flag for nonlinear material calculations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
     bool isHysteresis_;     //!< flag for hysteresis
+    bool isHysteresisFixPoint_;
     bool matDepend_;        //!< flag for material dependencies
 
     //! map for each region the type of nonlinearity
