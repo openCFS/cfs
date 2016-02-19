@@ -693,7 +693,7 @@ void Optimization::SolveStateProblem(Excitation* excite)
     SinglePDE* mech = context->ToPDE(App::MECH);
     assert(false);
     // FIXME mech->ReReadResults();
-    design->AppendOptimizationResults(mech);
+    design->AppendOptimizationResults(mech, true);
     assert(false);
     // FIXME mech->GetSolveStep()->ReInit();
   }

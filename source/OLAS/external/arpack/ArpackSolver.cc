@@ -10,7 +10,6 @@
 DECLARE_LOG(as)
 DEFINE_LOG(as, "arpackSolver")
 
-
 namespace CoupledField {
 
   ArpackSolver::ArpackSolver() :

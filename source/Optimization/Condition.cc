@@ -525,7 +525,8 @@ void Condition::AddBlochEigenConstraints(StdVector<Condition*>& all_cond, Multip
       // expand only for bloch=full
       if(!full_ev.IsEmpty())
       {
-        assert(ctxt.num_bloch_wave_vectors == ctxt.excitations.GetSize());
+
+        assert(ctxt.num_bloch_wave_vectors * me->GetNumberRobust(&ctxt, true) == ctxt.excitations.GetSize());
         for(unsigned int e = 1; e < ctxt.excitations.GetSize(); e++) // start from 1!
         {
           LOG_DBG2(conditions) << "ABEC: e=" << e << " -> " << ctxt.excitations[e]->index;
@@ -706,9 +707,8 @@ string Condition::ToString() const
   {
     if(type_ == STRESS || type_ == STRESS_DENSITY)
       os << "_" << GetExcitation()->GetFullLabel(); // change to excite label
-    else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation())
-      os << "_" << GetExcitation()->GetMetaLabel();
-  }
+    else if(domain->GetOptimization()->GetMultipleExcitation()->DoMetaExcitation(GetExcitation()->sequence))
+      os << "_" << GetExcitation()->GetMetaLabel();  }
 
   if(type_ == EIGENFREQUENCY)
     os << "_" << eigenvalue_id_;

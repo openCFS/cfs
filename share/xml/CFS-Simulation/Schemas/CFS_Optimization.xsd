@@ -160,7 +160,7 @@
                Extend if your really have ME for more than one sequence-->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
-                <xsd:all>
+                <xsd:sequence>
                   <xsd:element name="metaObjective" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:attribute name="type" default="best_objective" use="optional">
@@ -207,7 +207,18 @@
                       </xsd:sequence>
                     </xsd:complexType>
                   </xsd:element>
-                </xsd:all>
+                  <!-- when we have multi sequence and we have robust filters we require to set these elements
+                      for every sequence to set robustness for the sequence -->
+                  <xsd:element name="robust" minOccurs="0" maxOccurs="unbounded">
+                     <xsd:complexType>
+                        <!--  the sequence 1,2,... must be unique -->
+                        <xsd:attribute name="sequence" type="xsd:positiveInteger" use="required"/>
+                        <xsd:attribute name="enable" type="xsd:boolean" use="required"/>
+                        <!-- when (and only when) disabled we need to give the filer (excitation_idx) for the physical simulation -->
+                        <xsd:attribute name="filter" type="xsd:nonNegativeInteger" use="optional"/>
+                     </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
                 <xsd:attribute name="type" default="fixed_weights" use="optional">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">

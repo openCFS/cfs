@@ -440,13 +440,13 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
     assert(excite_index < 0);
-    if(!me->DoMetaExcitation())
+    if(!me->DoMetaExcitation(ctxt))
       excite_ = ctxt->excitations.Last()->index; // with respect to our context
     else
     {
       if(!pn->Has("excitation"))
         throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
-      assert(!ctxt->DoMultiSequence());
+      // assert(!ctxt->DoMultiSequence());
       excite_ = ctxt->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
     }
     break;

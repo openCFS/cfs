@@ -163,10 +163,6 @@ ErsatzMaterial::ErsatzMaterial() :
 
   // give the domain this data, s.th. the ersatz material approach is applied
   domain->SetDesign(design);
-
-  // postpone to PostInit
-  // add optimization results to the pde
-  // design->AppendOptimizationResults(pde);
 }
 
 ErsatzMaterial::~ErsatzMaterial()
@@ -205,14 +201,11 @@ void ErsatzMaterial::PostInit()
   me->FinalizeMultipleExcitations(this, &manager, optimizer_ == EVALUATE_INITIAL_DESIGN);
   me->excitations.First().Apply(); // this sets the
 
-  // for transformations we might have more than only one tensor
-  homogenizedTensor.Resize(me->GetNumberMeta(true));
-  for(unsigned int i = 0; i < homogenizedTensor.GetSize(); i++)
-    homogenizedTensor[i].Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
-
   // add optimization results to the pde
-  // FIXME multiple sequence case
-  design->AppendOptimizationResults(context->pde);
+  for(unsigned int c = 0; c < manager.context.GetSize(); c++) {
+    assert(manager.context[c].pdes.size() == 1); // extend!
+    design->AppendOptimizationResults(manager.context[c].pde, !context->DoMultiSequence()); // don't warn in multi-sequence case
+  }
 
   // might be constructed in SIMP::PostInit() or ParamMat::PostInit()
   if(structure_ == NULL)
@@ -355,6 +348,14 @@ void ErsatzMaterial::PostInit()
       throw Exception("No homogenization objective/constraint for homogenization test strain excitation");
   }
 
+  // for transformations we might have more than only one tensor
+  Context* ctxt = manager.GetHomogenization();
+  if(ctxt) {
+    homogenizedTensor.Resize(me->GetNumberMeta(ctxt, true));
+    for(unsigned int i = 0; i < homogenizedTensor.GetSize(); i++)
+      homogenizedTensor[i].Resize(dim == 2 ? 3 : 6, dim == 2 ? 3 : 6);
+  }
+
   if(manager.any().eigenvalue && optParamNode->Has("eigenvalue/sort"))
   {
     for(unsigned int i = 0; i < constraints.all.GetSize(); i++)
@@ -364,6 +365,8 @@ void ErsatzMaterial::PostInit()
         log.AddToHeader("mode_" + boost::lexical_cast<std::string>(idx));
     }
   }
+
+
 
   // make basic logging
   design->ToInfo(optInfoNode->Get(ParamNode::HEADER)->Get("designSpace"), this);
@@ -480,17 +483,17 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   for(unsigned int ci = 0; ci < manager.context.GetSize(); ci++)
   {
-    Context& c = manager.context[ci];
+    Context* ctxt = &(manager.context[ci]);
 
-    if(c.homogenization)
+    if(ctxt->homogenization)
     {
       for(unsigned int t = 0; t < homogenizedTensor.GetSize(); t++)
       {
         PtrParamNode in = iter->Get("homogenizedTensor", ParamNode::APPEND);
 
-        assert(!(context->DoMultiSequence() && me->DoMetaExcitation())); // check the base_index below!
-        if(me->DoMetaExcitation())
-          in->Get("case")->SetValue(c.GetExcitation(0, t)->GetMetaLabel());
+        // assert(!(context->DoMultiSequence() && me->DoMetaExcitation(ctxt))); // check the base_index below!
+        if(me->DoMetaExcitation(ctxt))
+          in->Get("case")->SetValue(ctxt->GetExcitation(0, t)->GetMetaLabel());
 
         Matrix<double>& ht = homogenizedTensor[t];
 
@@ -498,14 +501,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         in->Get("trace")->SetValue(ht.Trace());
 
         PtrParamNode iso = in->Get("isotropy");
-        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, c.stt);
+        StdVector<std::pair<string, double> > isop = MechanicMaterial::CalcIsotropicProperties(ht, ctxt->stt);
         for(unsigned int p = 0; p < isop.GetSize(); p++)
           iso->Get(isop[p].first)->SetValue(isop[p].second);
 
         PtrParamNode orth = in->Get("orthotropy");
         // for the orthotropic case we need the design. This might be excitation dependent on the robust case
-        assert(me->DoMetaExcitation() || (c.excitations.GetSize() == 3 || c.excitations.GetSize() == 6)); // no robust!
-        Excitation* ex = c.GetExcitation(0, t);
+        assert(me->DoMetaExcitation(ctxt) || (ctxt->excitations.GetSize() == 3 || ctxt->excitations.GetSize() == 6)); // no robust!
+        Excitation* ex = ctxt->GetExcitation(0, t);
         LOG_DBG2(em) << "CI hom t=" << t << " ex=" << ex->GetFullLabel() << " ht=" << ht.ToString();
         StdVector<std::pair<string, double> > ortho = GetOrthotropeProperties(ht, ex);
         for(unsigned int p = 0; p < ortho.GetSize(); p++)

@@ -163,8 +163,8 @@ void Context::SetMultiExcitations(MultipleExcitation* me, unsigned int basic_exc
   this->basic_excitations_ = basic_excitaions;
 
   assert(excitations.GetSize() >= basic_excitaions);
-  assert(!(me->DoMetaExcitation() && me->GetNumberMeta(true) * basic_excitaions != excitations.GetSize()));
-  assert(!(!me->DoMetaExcitation() && excitations.GetSize() != basic_excitaions));
+  assert(!(me->DoMetaExcitation(this) && me->GetNumberMeta(this, true) * basic_excitaions != excitations.GetSize()));
+  assert(!(!me->DoMetaExcitation(this) && excitations.GetSize() != basic_excitaions));
 }
 
 Excitation* Context::GetExcitation(unsigned int base, unsigned int meta)
@@ -186,7 +186,7 @@ Excitation* Context::GetExcitation(unsigned int base, Function* f)
 {
   assert(f->ctxt == this);
   assert(base < excitations.GetSize());
-  if(!me_->DoMetaExcitation())
+  if(!me_->DoMetaExcitation(f->ctxt))
     return excitations[base];
   else
     return excitations[basic_excitations_ * f->GetExcitation()->meta_index + base]; // * and + swapped??
@@ -380,3 +380,13 @@ Context& ContextManager::GetContext(const Excitation* ex)
   return context[ex->sequence -1];
 }
 
+Context* ContextManager::GetHomogenization()
+{
+  for(unsigned int i = 0; i < context.GetSize(); i++)
+    if(context[i].homogenization)
+      return &(context[i]);
+
+  // assume we have not more sequences with homogenization
+
+  return NULL;
+}

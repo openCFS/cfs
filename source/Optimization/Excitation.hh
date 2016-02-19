@@ -178,19 +178,23 @@ public:
   bool DoTransform() const { return num_trans_ > 0; }
 
   /** Do we do robust */
-  bool DoRobust() const { return num_robust_ > 1; }
+  bool DoRobust(const Context* ctxt) const;
 
-  /** Do we do real meta excitation? */
-  bool DoMetaExcitation() const { return DoTransform() || DoRobust(); }
+  /** Do we do real meta excitation?
+   * @param ctxt might be null the we check for any */
+  bool DoMetaExcitation(const Context* ctxt) const;
+  bool DoMetaExcitation(int sequence) const;
 
   /** handles transform and robust.
+   * @param ctxt if NULL search max
    * @param minimum_one if false take care as num_robust can be 0 or 1 w/o robust */
-  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
+  unsigned int GetNumberMeta(const Context* ctxt, bool minimum_one = false) const;
 
   /** The number of transformations. Important when we do homogenization */
   unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
 
-  unsigned int GetNumberRobust(bool mininum_one = false) const { return mininum_one ? std::max(num_robust_, 1) : num_robust_; }
+  /** @param ctxt if NULL search for max (is either none or the same number */
+  unsigned int GetNumberRobust(const Context* ctxt, bool mininum_one = false) const;
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
@@ -221,10 +225,10 @@ private:
   int SetHomogenizationTestStrains(unsigned int context_base, Context* ctxt);
 
   /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
-  void ApplyRobust(DesignSpace* space);
+  void ApplyRobust(const Context* ctxt);
 
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
-  void ApplyTransformations(DesignSpace* space);
+  void ApplyTransformations(const Context* ctxt, DesignSpace* space);
 
   void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
@@ -237,6 +241,12 @@ private:
   void SetBlochWaves(Context* ctxt, unsigned int context_base, int num_wave);
 
   int ValidateTransformation(Optimization* opt);
+
+  /** count the current excitations by sequence */
+  unsigned int CountExcitations(const Context* ctxt) const;
+
+  /** return the indices of the matching excitations */
+  StdVector<unsigned int> GetExcitations(const Context* ctxt) const;
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;
@@ -253,8 +263,14 @@ private:
   /** number of transformations in DesignSpace::transform. This is a meta level*/
   int num_trans_;
 
-  /** number of robust filters. This is a meta level. Only > 1 real robust. 0 and 1 is no robust but standard */
-  int num_robust_;
+  /** for every sequence we have an entry. Maps to multipleExcitation/robust in xml */
+  struct Robust
+  {
+    int num_robust = 0; // 0 means disabled
+    int alt_filter = -1; // the filter to use when we are not robust. -1 for no
+  };
+
+  StdVector<Robust> robust_;
 };
 
 
