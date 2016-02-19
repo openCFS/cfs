@@ -346,7 +346,6 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,
             " but not also child " << child2 << " with value " << value2);
 }
 
-
 ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
@@ -988,9 +987,14 @@ void ParamNode::ToFile(const std::string& filename, bool force)
     
     write_timer_->Start();
     
+    bool debug = false;
+    #ifndef NDEBUG
+      debug = true;
+    #endif
+
     // only really write the file if at least a certain amount of time has passed since last write
-    // or if forced
-    if(!force && write_timer_->GetWallTime() < 2.0)
+    // or if forced. Write always in the debug mode
+    if(debug && !force && write_timer_->GetWallTime() < 2.0)
     {
       ++reject_counter_;
       return;

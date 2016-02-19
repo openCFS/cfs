@@ -163,10 +163,11 @@ namespace CoupledField
       };
 */
 
-     /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
+     /**<p>check the optResult_1/2/3/... from the optimization/simp/result elements against
       * element results in the pde and conditionally add it as store results to the pde.</p>
-      * @param pde in the current implementation a MechPDE */
-     void AppendOptimizationResults(SinglePDE* pde);
+      * @param pde where to checke for store results
+      * @param warn shall an warning be printed if the result is not referred in the pde */
+     void AppendOptimizationResults(SinglePDE* pde, bool warn);
 
      /** <p>Copies the relevant data from the design element to the result such that it can be written
       * to the output (e.g. gid). This is called from the CalcResults() methods of the relevant pdes

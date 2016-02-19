@@ -232,6 +232,9 @@ public:
    * Simply used the 1-based sequence attribute of the function */
   Context& GetContext(const Excitation* ex);
 
+  /** returns the homogenization context or NULL if there is none */
+  Context* GetHomogenization();
+
   StdVector<Context> context;
 
   /** this is a max norm of all context */

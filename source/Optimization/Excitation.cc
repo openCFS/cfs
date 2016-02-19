@@ -51,7 +51,6 @@ MultipleExcitation::MultipleExcitation(bool multiple, PtrParamNode pn)
   this->multiple_excitation_ = multiple;
   this->type_ = NO_TYPE; // to be possibly overwritten soon
   this->num_trans_  = -1; // to be set later
-  this->num_robust_ = -1; // to be set later
   this->sequence_ = 1; // default
   this->principle_ = 0;
 
@@ -134,21 +133,23 @@ void MultipleExcitation::WriteInInfo(PtrParamNode in)
 
     PtrParamNode exin = in->Get("excitation", ParamNode::APPEND);
     exin->Get("index")->SetValue(ex.index);
-    exin->Get("label")->SetValue(ex.label);
     exin->Get("meta_idx")->SetValue(ex.meta_index);
     if(Optimization::context->DoMultiSequence())
       exin->Get("sequence")->SetValue(ex.sequence);
     if(ex.transform != NULL)
       exin->Get("transform")->SetValue(ex.transform->ToString(1));
     if(ex.robust)
-      exin->Get("robust_filter_idx")->SetValue(ex.robust_filter_idx);
+      exin->Get("robust_idx")->SetValue(ex.robust_filter_idx);
+
+    exin->Get("label")->SetValue(ex.label);
     if(ex.transform || ex.robust)
       exin->Get("full_label")->SetValue(ex.GetFullLabel());
+
     exin->Get("weight")->SetValue(ex.weight);
     exin->Get("normalized_weight")->SetValue(ex.normalized_weight);
     if(ex.forms.GetSize() == 1)
       exin->Get("load")->SetValue(ex.forms[0]->GetEntities()->GetName());
-    if(DoMetaExcitation())
+    if(DoMetaExcitation(ex.sequence))
       exin->Get("reassemble")->SetValue(ex.reassemble);
 
     if(ex.forms.GetSize() > 1)
@@ -213,7 +214,51 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
 
   // we have no "do_transform" either there is transformation or not
   num_trans_  = opt->GetDesign()->transform.GetSize();
-  num_robust_ = opt->GetDesign()->data[0].simp->filter.GetSize();
+  int num_robust = opt->GetDesign()->data[0].simp->filter.GetSize();
+
+  robust_.Resize(manager->context.GetSize());
+
+  // when robust and multi sequence we need to define what we want in the xml file
+  if(num_robust > 1 && manager->context.GetSize() > 1)
+  {
+    if(!opt->optParamNode->Has("costFunction/multipleExcitation/robust"))
+      throw Exception("when robust filters and multi sequence 'multipleExcitation/robust' elements are mandatory.");
+    ParamNodeList list = opt->optParamNode->Get("costFunction/multipleExcitation")->GetList("robust");
+    if(list.GetSize() != manager->context.GetSize())
+      throw Exception("when robust filters and multi sequence you need a 'robust' in 'multipleExcitation' for every sequence.");
+    int enable_count = 0;
+    for(unsigned int i = 0; i < list.GetSize(); i++)
+    {
+      if(list[i]->Get("sequence")->As<unsigned int>() != i+1)
+        throw Exception("the 'robust' elements in 'multipleExcitation' need ascending 'sequence'");
+      if(list[i]->Get("enable")->As<bool>()) {
+        robust_[i].num_robust = num_robust;
+        enable_count++;
+        if(list[i]->Has("filter"))
+          throw Exception("in 'multipleExcitation/robust' use 'filter' only when not enabled");
+      }
+      else {
+        if(!(list[i]->Has("filter")))
+          throw Exception("in 'multipleExcitation/robust' when not enabled 'filter' is mandatory.");
+        robust_[i].alt_filter = list[i]->Get("filter")->As<int>();
+        if(robust_[i].alt_filter >= num_robust)
+          throw Exception("'filter' value in 'multipleExcitation/robust' too large.");
+      }
+    }
+    if(enable_count == 0)
+      throw Exception("enable at least one sequence in 'multipleExcitation/robust'.");
+  }
+  // if robust and not multi sequence it is easy
+  if(num_robust > 1 && manager->context.GetSize() == 1)
+  {
+    robust_[0].num_robust = num_robust;
+    robust_[0].alt_filter = -1; // does not apply
+    if(opt->optParamNode->Has("costFunction/multipleExcitation/robust"))
+      opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("ignore 'multipleExcitation/robust' as we have only one sequence");
+  }
+  // if not robust or not multi sequence
+  if(num_robust <= 1 && opt->optParamNode->Has("costFunction/multipleExcitation/robust"))
+    opt->optInfoNode->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("ignore 'multipleExcitation/robust' as we have no robust filters");
 
   // We do not want to have a copy of Excitations on excitation.Resize() therefore find an upper bound
   unsigned int upper_bound = 1;
@@ -230,14 +275,15 @@ void MultipleExcitation::InitializeMultipleExcitations(Optimization* opt, Contex
     upper_bound += tmp;
   }
 
-  upper_bound *= std::max(1,num_trans_) * std::max(1,num_robust_);
+  upper_bound *= std::max(1,num_trans_);
+  upper_bound *= GetNumberRobust(NULL, true); // any context, >= 1
   excitations.Reserve(upper_bound);
 }
 
 void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* ctxt)
 {
   // we assume InitializeMultipleExcitations() to be called
-  assert(num_trans_ >= 0 && num_robust_ >= 0);
+  assert(num_trans_ >= 0 && robust_[ctxt->context_idx].num_robust >= 0);
 
   Assemble* ass = ctxt->pde->GetAssemble();
 
@@ -298,7 +344,7 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
   } // end IsEnabled()
   else
   {
-    if(DoRobust())
+    if(DoRobust(ctxt) && Optimization::manager.context.GetSize() == 1)
       throw Exception("robust filters are defined but 'multiple_excitation' is not enabled in 'costFunction");
     if(num_trans_ > 1)
       throw Exception("transformations are defined but 'multiple_excitation' is not enabled in 'costFunction");
@@ -328,11 +374,14 @@ void MultipleExcitation::PrepareMultipleExcitations(Optimization* opt, Context* 
 
 void MultipleExcitation::FinalizeMultipleExcitations(Optimization* opt, ContextManager* manager, bool eval_inital_design)
 {
-  if(DoRobust())
-    ApplyRobust(opt->GetDesign()); // multiply by the robust filters
+  // for bloch stiffness we might have robust only for stiffness
+  for(unsigned int c = 0; c < manager->context.GetSize(); c++)
+    if(DoRobust(&(manager->context[c])))
+      ApplyRobust(&(manager->context[c])); // multiply by the robust filters
 
   if(DoTransform())
-    ApplyTransformations(opt->GetDesign()); // multiply the existing transformation
+    for(unsigned int c = 0; c < manager->context.GetSize(); c++)
+      ApplyTransformations(&(manager->context[c]), opt->GetDesign()); // multiply the existing transformation
 
   PtrParamNode in = opt->optInfoNode->Get(ParamNode::HEADER)->Get("excitations");
 
@@ -408,7 +457,7 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
   unsigned int dim = domain->GetGrid()->GetDim();
 
   int cases = dim == 2 ? 3 : 6;
-  assert(excitations.Capacity() >= base + cases * GetNumberMeta(true)); // so we need no copy constructor in ApplyTransformation()
+  assert(excitations.Capacity() >= base + cases * GetNumberMeta(ctxt, true)); // so we need no copy constructor in ApplyTransformation()
   excitations.Resize(base + cases);
 
   assert((int) MechPDE::X == 0);
@@ -435,23 +484,61 @@ int MultipleExcitation::SetHomogenizationTestStrains(unsigned int base, Context*
   return cases;
 }
 
-void MultipleExcitation::ApplyRobust(DesignSpace* space)
+unsigned int MultipleExcitation::CountExcitations(const Context* ctxt) const
 {
-  assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
-  //assert(excitations.GetSize() == principle_); // first robust, then transformation
+  unsigned int c = 0;
+  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    if(excitations[i].sequence == ctxt->sequence)
+      c++;
+  return c;
+}
+
+StdVector<unsigned int> MultipleExcitation::GetExcitations(const Context* ctxt) const
+{
+  StdVector<unsigned int> res;
+  for(unsigned int i = 0; i < excitations.GetSize(); i++)
+    if(excitations[i].sequence == ctxt->sequence)
+      res.Push_back(i);
+  return res;
+}
+
+
+void MultipleExcitation::ApplyRobust(const Context* ctxt)
+{
+  // we have the case for non multi sequence, then we simply multiply the current excitations
+  // for multi sequence we might have bloch where we don't want to do robust and then robust homogenization
+  // for the later case we need alt_filter for bloch
+
+  // even continue if we have non robust as we might have to set alt_filter (see description above)
+  Robust& robust = robust_[ctxt->context_idx];
+
+  StdVector<unsigned int> org_ex = GetExcitations(ctxt); // the current excitations for this context
+
   unsigned int principle = excitations.GetSize(); // actually Context::basic_excitations_
-  assert(num_robust_ >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
+  unsigned int n_ex_ctxt = org_ex.GetSize();
 
-  // multiply excitations
-  assert(excitations.Capacity() >= principle * num_robust_);
-  excitations.Resize(principle * num_robust_);
+  assert(robust.num_robust >= 1 && excitations.GetSize() >= 1); // num_robust_ might be 0 or 1 if we don't do robust
 
-  for(int r = 0; r < num_robust_; r++)
+  assert(excitations.Capacity() >= (principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust); // the *additional* excitations only!
+  excitations.Resize((principle - n_ex_ctxt) + n_ex_ctxt * robust.num_robust);
+
+  LOG_DBG2(exlog) << "AR: c=" << ctxt->context_idx << " principle=" << principle << " n_ex_ctxt=" << n_ex_ctxt
+                  << " num_robust=" << robust.num_robust << " alt_filter=" << robust.alt_filter;
+
+  // we now loop over excitations where the later part might is uninitialized in the robust case after resize
+  // we start from 0 to get also the existing ones
+  for(int r = 0; r < robust.num_robust; r++)
   {
-    for(unsigned int b = 0; b < principle; b++)
+    // traverse over the original excitations
+    for(unsigned int b = 0; b < org_ex.GetSize(); b++)
     {
-      Excitation& base = excitations[b];
-      Excitation& ex   = excitations[principle * r + b]; // ex == base for the first transform
+      unsigned org_idx = org_ex[b];
+      Excitation& base = excitations[org_ex[b]]; // independent from r the original stuff
+      assert(base.sequence == ctxt->sequence);
+
+      // the new index is org_idx if r==0 or it is in the additional resized excitations space >= principle
+      unsigned int new_idx = r == 0 ? org_idx : principle + (r-1) * n_ex_ctxt + b;
+      Excitation& ex   = excitations[new_idx]; // ex == base for the first transform
 
       if(r > 0) // from the Resize() above only the first block is set. Copy the test strains, loads or frequencies
         ex = base; // default copy constructors are cool
@@ -461,7 +548,11 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
 
       ex.robust = true;
       ex.meta_index = r; // this might be changed when we do transformation
-      ex.robust_filter_idx = r;
+      // for the multi sequence case when not all is robust we have to set alt_filter!!
+      if(robust.num_robust > 1)
+        ex.robust_filter_idx = r;
+      else
+        ex.robust_filter_idx = robust.alt_filter;
 
       // only set a label if it was not set already
       assert(!(ex.label == "" && principle > 1));
@@ -473,32 +564,32 @@ void MultipleExcitation::ApplyRobust(DesignSpace* space)
       if(principle == 1)
         ex.weight = 1.0;
 
-      LOG_DBG3(exlog) << "AR: r=" << r << " b=" << b << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
+      LOG_DBG2(exlog) << "AR: r=" << r << " b=" << b << " org_idx=" << org_idx << " new_idx=" << new_idx << " rfi=" << ex.robust_filter_idx
+                      << " f=" << ex.forms.GetSize() << " i=" << (ex.forms.First()->GetIntegrator() == NULL ? "NULL" : ex.forms.First()->GetIntegrator()->GetName())
                       << " m=" << ex.meta_index << " ra=" << ex.reassemble << " w=" << ex.weight;
-
     }
   }
 }
 
 
-void MultipleExcitation::ApplyTransformations(DesignSpace* space)
+void MultipleExcitation::ApplyTransformations(const Context* ctxt, DesignSpace* space)
 {
-  assert(!Optimization::context->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
+  assert(!ctxt->DoMultiSequence()); // just not implemented. robustness needs to apply within sequence?
   //assert(excitations.GetSize() == principle_); // first robust, then transformation
-  unsigned int principle = DoRobust() ? excitations.GetSize() / num_robust_ : excitations.GetSize(); // actually Context::basic_excitations_
+  unsigned int principle = DoRobust(ctxt) ? excitations.GetSize() / GetNumberRobust(ctxt) : excitations.GetSize(); // actually Context::basic_excitations_
 
   StdVector<Transform>& trans = space->transform;
 
   assert(num_trans_ == (int) trans.GetSize());
 
   // robust comes before transformation!
-  assert((!DoRobust() && excitations.GetSize() == principle) || (DoRobust() && excitations.GetSize() == principle * num_robust_));
+  assert((!DoRobust(ctxt) && excitations.GetSize() == principle) || (DoRobust(ctxt) && excitations.GetSize() == principle * GetNumberRobust(ctxt)));
   assert(num_trans_ >= 1 && excitations.GetSize() >= 1);
   unsigned int old_base = excitations.GetSize();
 
   // multiply excitations. Robust comes first, the transformation
-  assert(excitations.Capacity() >= principle * GetNumberMeta(true));
-  excitations.Resize(principle * GetNumberMeta(true));
+  assert(excitations.Capacity() >= principle * GetNumberMeta(ctxt, true));
+  excitations.Resize(principle * GetNumberMeta(ctxt, true));
 
   for(unsigned int t = 0; t < trans.GetSize(); t++)
   {
@@ -517,10 +608,10 @@ void MultipleExcitation::ApplyTransformations(DesignSpace* space)
 
       ex.transform = tr; // the transformations are block wise 0,0,0,0,1,1,1,1,2,2,2,2,....
       // the meta_index handles robust and transformation
-      if(!DoRobust())
+      if(!DoRobust(ctxt))
         ex.meta_index = t;
       else
-        ex.meta_index = t * GetNumberRobust() + ex.robust_filter_idx;
+        ex.meta_index = t * GetNumberRobust(ctxt) + ex.robust_filter_idx;
 
       // only set a label if it was not set already
       assert(!(ex.label == "" && principle > 1));
@@ -544,7 +635,7 @@ void MultipleExcitation::SetLoadCases(Context* ctxt, unsigned int base, const Pa
   Assemble* ass = ctxt->pde->GetAssemble();
 
   assert((ctxt->sequence == 1 && base == 0) || ((int) base >= ctxt->sequence-1));
-  assert(excitations.Capacity() >= base + num_loads * GetNumberMeta(true));
+  assert(excitations.Capacity() >= base + num_loads * GetNumberMeta(ctxt, true));
   excitations.Resize(base + num_loads);
 
   // when the loads are given in the optimization section of the xml file
@@ -657,7 +748,52 @@ void MultipleExcitation::NormalizeMultipleExcitations(ObjectiveContainer* object
   }
 }
 
+bool MultipleExcitation::DoRobust(const Context* ctxt) const
+{
+   assert(ctxt != NULL);
+   return robust_[ctxt->context_idx].num_robust;
+}
 
+unsigned int MultipleExcitation::GetNumberRobust(const Context* ctxt, bool mininum_one) const
+{
+  if(ctxt != NULL)
+    return mininum_one ? std::max(robust_[ctxt->context_idx].num_robust, 1) : robust_[ctxt->context_idx].num_robust;
+
+  for(unsigned int i = 0; i < robust_.GetSize(); i++)
+    if(robust_[i].num_robust > 1)
+      return robust_[i].num_robust;
+
+  // nothing found
+  return mininum_one ? 1 : 0;
+}
+
+unsigned int MultipleExcitation::GetNumberMeta(const Context* ctxt, bool minimum_one) const
+{
+  return GetNumberTransform(minimum_one) * GetNumberRobust(ctxt, minimum_one); // GNR accepts NULL for ctxt
+}
+
+
+bool MultipleExcitation::DoMetaExcitation(const Context* ctxt) const
+{
+  if(DoTransform())
+    return true;
+
+  if(ctxt != NULL)
+    return DoRobust(ctxt);
+
+  for(unsigned int i = 0; i < robust_.GetSize(); i++)
+    if(robust_[i].num_robust > 1)
+      return true;
+
+  return false;
+}
+
+bool MultipleExcitation::DoMetaExcitation(int sequence) const
+{
+  assert(sequence >= 1);
+  const Context& ctxt = Optimization::manager.context[sequence-1];
+  return DoMetaExcitation(&ctxt);
+}
 
 Excitation::Excitation()
 {

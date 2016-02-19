@@ -491,7 +491,7 @@ void DesignSpace::SetDesignMaterial(PtrParamNode dm, OptimizationMaterial::Syste
   designMaterial = new DesignMaterial(dm, material, design, em);
 }
 
-void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
+void DesignSpace::AppendOptimizationResults(SinglePDE* pde, bool warn)
 {
   // set the result descriptions which identify the solution types
   for(unsigned int i = 0; i < resultDescriptions.GetSize(); i++)
@@ -504,12 +504,8 @@ void DesignSpace::AppendOptimizationResults(SinglePDE* pde)
     pde->DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), opt_res);
     // this compares the result with storeResults in the pde and activates it.
     bool added = pde->CheckStoreResult(opt_res);
-    if(!added)
-    {
-      std::ostringstream os;
-      os << "'optimization defines' '" << SolutionTypeEnum.ToString(rd.solutionType) << "' but no PDE references it in it's 'storeResults'";
-      WARN(os.str().c_str());
-    }
+    if(warn && !added)
+      info_->Get(ParamNode::WARNING)->SetValue("'" + SolutionTypeEnum.ToString(rd.solutionType) + "' defined as 'result' in optimization but not referenced in pde " + pde->GetName());
   }
 }
 
