@@ -2829,9 +2829,6 @@ namespace CoupledField {
         regionNodes[i]->GetValue( "material", material );
         regionNodes[i]->GetValue( "coordSysId", refCoordSys );
 
-        std::cout << "name" << region << std::endl;
-        std::cout << "material" << material << std::endl;
-
         // get regionId
         RegionIdType actRegionId = ptGrid_->GetRegion().Parse( region );
 
