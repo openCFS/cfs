@@ -458,9 +458,9 @@ namespace CoupledField{
       // ====================================================================
       std::string flowId = curRegNode->Get("flowId")->As<std::string>();
       if(flowId != "") {
-        if( dampingList_[actRegion] == PML ) {
-          EXCEPTION("PML not available for flow domains!");
-        }
+//        if( dampingList_[actRegion] == PML ) {
+//          EXCEPTION("PML not available for flow domains!");
+//        }
         //        if ( formulation_ != ACOU_POTENTIAL )
         //            EXCEPTION("Pierce-Equation just possible in velocity potential formulation" );
 
