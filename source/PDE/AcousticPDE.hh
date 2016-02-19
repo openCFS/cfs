@@ -77,7 +77,8 @@ namespace CoupledField{
 
     //! create transient PML integrators
     template<UInt DIM>
-    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id);
+    void DefineTransientPMLInts(shared_ptr<ElemList> eList,std::string id,
+    		                    RegionIdType actRegion, std::string tempId);
 
   private:
 
@@ -112,6 +113,14 @@ namespace CoupledField{
 
     //! convective coefficient function for martial derivatve
     shared_ptr<CoefFunctionFormBased> convectiveCoef_;
+
+    //! compute speed of sound, which may depend on temperature
+    void ComputeSOS(PtrCoefFct& sos, PtrCoefFct dens, PtrCoefFct blk,
+    		        PtrCoefFct regionTemp, std::string tempId);
+
+    //! compute special PML coefficient: c0^2
+    void ComputeSOS_SQR(PtrCoefFct& sosPML, PtrCoefFct dens, PtrCoefFct blk,
+    		            PtrCoefFct regionTemp, std::string tempId);
 
     //! override from Single PDE due to convective operators
     virtual void FinalizePostProcResults();
