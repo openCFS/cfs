@@ -209,7 +209,10 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
         region = h5_res.keys()[0]
     h5_res_reg = h5_res[region] # extraxt region
     res_type = h5_res_reg.keys()[0] # read result type (Nodes or Elements)
-    return h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value
+    if 'Imag' in h5_res_reg[res_type].keys() :
+        return h5_res_reg[res_type]['Real'].value + 1j*h5_res_reg[res_type]['Imag'].value
+    else :
+        return h5_res_reg[res_type]['Real'].value
 
 
 def get_subregion_idx(hdf5_file,region,subregion,rtype='Nodes') :
