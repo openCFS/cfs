@@ -534,10 +534,14 @@ IF(BUILD_TESTING)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables visualization tests for matviz.py
+# Enables testsuite for matviz.py used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS
-  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+
+# The performance tests are meant for the nightly builds. For some strange reasons
+# PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
+OPTION(PERF_TESTS "Add performance tests to the test-cases")
+
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.

@@ -99,12 +99,6 @@ namespace CoupledField {
       return NOPRECOND;
     }
     
-    //! Return timer object for setup of preconditioner
-    shared_ptr<Timer> GetSetupTimer() { return setupTimer_; }
-    
-    //! Return timer object for application of preconditioner
-    shared_ptr<Timer> GetPrecondTimer() { return precondTimer_; }
-
   protected:
 
     //! Before the preconditioner can be applied its setup phase must be
@@ -124,11 +118,6 @@ namespace CoupledField {
     //! to store general information about its performance or setup phase.
     PtrParamNode infoNode_;
 
-    //! Pointer to timer object for setup of preconditioner
-    shared_ptr<Timer> setupTimer_;
-    
-    //! Pointer to timer object for application of preconditioner
-    shared_ptr<Timer> precondTimer_;
   };
 
 

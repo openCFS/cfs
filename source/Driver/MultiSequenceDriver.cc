@@ -85,7 +85,7 @@ DEFINE_LOG(msDriver, "msDriver")
         accumulatedTime_ += tD->GetDuration();
       }
       
-//      // finish sequence step with resulthandler
+//      // finish sequence step with result handler
 //      resHandler->FinishMultiSequenceStep();
 //      simState_->FinishMultiSequenceStep( !abortSimulation_, accumulatedTime_ );
       
@@ -126,7 +126,7 @@ DEFINE_LOG(msDriver, "msDriver")
     
     isRestarted_ = restart;
 
-    // get nodes for all sequencesteps
+    // get nodes for all sequence steps
     ParamNodeList seqNodes = domain_->GetParamRoot()->GetList("sequenceStep");
 
     // 1.) Fill vector with step indices and ensure that all occur
