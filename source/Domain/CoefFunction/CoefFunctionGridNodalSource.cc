@@ -665,17 +665,51 @@ void CoefFunctionGridNodalSource<DATA_TYPE>::UpdateSource( Double& stepLength, b
 
 //! compute Tikhonov function
 template<typename DATA_TYPE>
-void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared ) {
+void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeTikh( Double& funcVal, Double& resSquared,
+		                                                  bool adjustAlpha, bool adjustBeta ) {
 
 	Double valAmp = 0;
 	Double valPhi = 0;
+
+	if ( adjustAlpha )
+		alpha_ = 1.0;
+	if ( adjustBeta )
+		beta_ = 1.0;
+
 	for ( UInt i=0; i<sourceAmp_.GetSize(); i++ ) {
 		valAmp += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ );
 		valPhi += beta_*std::pow(std::abs(sourcePhi_[i]), 2);
 		//funcVal += alpha_*std::pow( std::abs(sourceAmp_[i]), qExp_ ) +	beta_*std::pow(std::abs(sourcePhi_[i]), 2);
 	}
+
+	if ( adjustAlpha ) {
+		alpha_ = resSquared / valAmp *0.1;
+		valAmp *= alpha_;
+		std::cout << "Adjusted alpha: " << alpha_ << std::endl;
+	}
+
+	if ( adjustBeta) {
+		if ( valPhi > 1e-4 )
+			beta_ = resSquared / valPhi *0.1;
+		valPhi *= beta_;
+		std::cout << "Adjusted beta: " << beta_ << std::endl;
+	}
 	std::cout << "valL2: " << resSquared << "  valAmP: " <<  valAmp << "  valPhi: " << valPhi << std::endl;
 	funcVal = resSquared + valAmp + valPhi;
+}
+
+template<typename DATA_TYPE>
+void CoefFunctionGridNodalSource<DATA_TYPE>::ComputeMeasL2squared(Double& valL2 ) {
+
+	Complex val(0,0);
+	for(UInt i=0;i<this->fctSolAssoc_.GetSize();++i) {
+		const std::pair<UInt,UInt> & curP = this->fctSolAssoc_[i];
+		if ( curP.second > 0 ) {
+			if ( isMeasuredNode_[i] )
+				val += measVec_[i] * measVec_[i] ;
+		}
+	}
+	valL2 = std::abs( val );
 }
 
 
