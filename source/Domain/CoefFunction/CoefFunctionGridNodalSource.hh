@@ -97,10 +97,14 @@ public:
   virtual void UpdateSource(Double& stepLength, bool lineSearch);
 
   //! computes the L2 norm of error
-  virtual void ComputeTikh(Double& funcVal, Double& resSquared);
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
+                           bool adjustAlpha, bool adjustBeta);
 
   //! computes the L2 norm of error
   virtual void ComputeDiff2Meas( Double& error );
+
+  //! compute square of L2-norm of measured pressure at mic-positions
+  virtual void ComputeMeasL2squared( Double& vaL2 );
 
   //! computes the L2 norm of error
   virtual void SetInverseParam( Double& alpha, Double& beta, Double& qExp ) {

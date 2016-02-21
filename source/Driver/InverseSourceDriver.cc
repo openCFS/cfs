@@ -58,9 +58,15 @@ namespace CoupledField
 
     //regularization parameters
     alpha_ = param_->Get( "alphaPar")->MathParse<Double>();
+    adjustAlpha_ = param_->Get( "adjustAlpha")->As<bool>();
     beta_ = param_->Get( "betaPar")->MathParse<Double>();
+    adjustBeta_ = param_->Get( "adjustBeta")->As<bool>();
     qExp_  = param_->Get( "expPar")->MathParse<Double>();
-    maxIter_  = param_->Get( "maxIter")->MathParse<UInt>();
+    resStopCritRel_ = param_->Get( "resStopCritRel")->MathParse<UInt>();
+    maxOuterIter_   = param_->Get( "maxIterOuter")->MathParse<UInt>();
+    maxInnerIter_   = param_->Get( "maxIterInner")->MathParse<UInt>();
+    maxNumLineSearch_  = param_->Get( "maxNumLineSearch")->MathParse<UInt>();
+
 
     numFreq_ = 1;
     actFreqStep_ = 0;
@@ -262,8 +268,6 @@ namespace CoupledField
     	Double res2, funcVal, sigma;
     	Double stepLength=1.0;
     	Double optAmp, optPhase;
-    	Double outerErr = 1e-4;
-    	Double innerErr = 1e-4;
 
     	//solve adj: just for initiallization
     	rhsSource_->SetActive(false);
@@ -272,27 +276,30 @@ namespace CoupledField
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
 
-
     	//compute with RHS as the current identified sources
     	rhsMeas_->SetActive(false);
     	rhsSource_->SetActive(true);
     	ptPDE_->GetSolveStep()->PreStepHarmonic();
     	ptPDE_->GetSolveStep()->SolveStepHarmonic(analysis_id_);
     	ptPDE_->GetSolveStep()->PostStepHarmonic();
+
     	//save source data
     	rhsSource_->UpdateSource( stepLength, false );
 
     	//compute residual
     	rhsMeas_->ComputeDiff2Meas( res2 );
 
+    	//compute square of L2-norm of measured pressure at mic-positions
+    	rhsMeas_->ComputeMeasL2squared( measL2squared_ );
+
     	//compute Tikhonov functional
-    	rhsSource_->ComputeTikh(funcVal,res2);
+    	rhsSource_->ComputeTikh(funcVal,res2,false,false);
     	std::cout << "TikhonovVal start: " << funcVal << std::endl;
 
     	Double kappa = 0.5;
     	UInt outerIter = 0;
     	std::cout << "\n Start outer Iter, Starting Res: " << res2 << std::endl;
-    	while ( res2 > outerErr*outerErr &&  outerIter < maxIter_ ) {
+    	while ( (res2 / measL2squared_) > resStopCritRel_  &&  outerIter < maxOuterIter_ ) {
     		//solve adj
     		rhsSource_->SetActive(false);
     		rhsMeas_->SetActive(true);
@@ -308,8 +315,10 @@ namespace CoupledField
     		std::cout << "OuterIter: " << outerIter << "  normGrad2:" << normGrad2 << std::endl;
 
     		Double funcValNew;
+    		Double redNormGrad2 = normGrad2*1.0E-04;
+
 			std::cout << "\n Start inner Iter " << std::endl;
-    		while ( normGrad2 > innerErr*innerErr && innerIter < maxIter_ *2) {
+    		while ( normGrad2 >  redNormGrad2 && innerIter < maxInnerIter_ ) {
     			stepLength = 1.0;
         		sigma      = 1.0e-4;
 
@@ -325,14 +334,19 @@ namespace CoupledField
 
     			rhsMeas_->ComputeDiff2Meas( res2 );
     			std::cout << "InnerIter: " << innerIter << " Res: " << res2 << std::endl;
-    			rhsSource_->ComputeTikh( funcValNew, res2 );
+    			if ( innerIter == 0  && outerIter == 0)
+    				rhsSource_->ComputeTikh( funcValNew, res2, adjustAlpha_, adjustBeta_ );
+    			else
+    				rhsSource_->ComputeTikh( funcValNew, res2, false, false);
+
     			std::cout << "InnerIter: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
 
     			UInt iterLineSearch = 0;
     			std::cout << "\n Start line search Iter " << std::endl;
     			stepLength = 1.0;
     			kappa = 0.5;
-    			while ( funcValNew > funcVal - sigma*stepLength*normGrad2  && iterLineSearch < 8) {
+    			while ( funcValNew > funcVal - sigma*stepLength*normGrad2
+    					&& iterLineSearch < maxNumLineSearch_ ) {
     				//update source data
     				stepLength *= kappa;
     				rhsSource_->UpdateSource( stepLength, true );
@@ -347,11 +361,13 @@ namespace CoupledField
     				rhsMeas_->ComputeDiff2Meas( res2 );
     				std::cout << "LineSearch: " <<  iterLineSearch << "  StepLenghth: " << stepLength
     						  << " Res: " << res2 << std::endl;
-    				rhsSource_->ComputeTikh(funcValNew,res2);
+    				rhsSource_->ComputeTikh(funcValNew,res2,false,false);
     				//std::cout << "LineSearch: " << innerIter << " TikhonovVal: " << funcValNew << std::endl;
     				iterLineSearch++;
     				std::cout << std::endl;
     			}
+
+    			std::cout << "MaxLineSearch: " << iterLineSearch << std::endl;
 
     			//save source data
     			rhsSource_->UpdateSource( stepLength, false );
@@ -374,6 +390,8 @@ namespace CoupledField
     			innerIter++;
     		}
 
+    		std::cout << "MaxInnerIter: " << innerIter << std::endl;
+
     		alpha_ *= 0.5;
     		beta_  *= 0.5;
     		std::cout << "Try new alpha: " << alpha_ << "  beta: " << beta_ << std::endl;
@@ -393,7 +411,7 @@ namespace CoupledField
     	UInt iter = 0;
     	bool notConverged = true;
 
-    	while ( notConverged && iter < maxIter_ ) {
+    	while ( notConverged && iter < maxOuterIter_ ) {
     		//compute with RHS being the conjugate difference of computed acoustic pressure
     		//and measured pressure in the microphone points
     		rhsSource_->SetActive(false);

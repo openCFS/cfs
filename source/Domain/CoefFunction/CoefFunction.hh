@@ -407,8 +407,14 @@ public:
   }
 
   //! computes the L2 norm of error
-  virtual void ComputeTikh(Double& funcVal, Double& resSquared) {
+  virtual void ComputeTikh(Double& funcVal, Double& resSquared,
+                           bool adjustAlpha, bool adjustBeta) {
 	  EXCEPTION("CoefFuncion::ComputeTikh not implemented");
+  }
+
+  //! compute square of L2-norm of measured pressure at mic-positions
+  virtual void ComputeMeasL2squared( Double& vaL2 ) {
+	  EXCEPTION("CoefFuncion::ComputeMeasL2squared not implemented");
   }
 
   // ======================================================================
