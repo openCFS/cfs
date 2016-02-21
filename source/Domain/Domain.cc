@@ -25,7 +25,6 @@
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"

@@ -12,7 +12,7 @@ from scipy.spatial import Delaunay
 # def write_dense_mesh(pixels, size, file, threshold):
 
 # element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
-TRIANGLE3 = 4
+TRIA3 = 4
 QUAD4 = 6
 TET4 = 8
 HEXA8 = 10
@@ -27,7 +27,7 @@ def nodes_by_type(type):
     return 8
   if type == WEDGE6:
     return 6
-  if type == TRIANGLE3:
+  if type == TRIA3:
     return  3
   if type == LINE:
     return 2
@@ -43,7 +43,7 @@ def mesh_type_from_hdf5(type_id):
   if type_id == 11:
     return HEXA8
   if type_id == 4:
-    return TRIANGLE3
+    return TRIA3
   if type_id == 8:
     return TET4
   assert(False)
@@ -357,7 +357,7 @@ def write_gid_mesh(mesh, filename):
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
   tet4 = count_elements(mesh.elements, TET4)
-  tri3 = count_elements(mesh.elements, TRIANGLE3)
+  tri3 = count_elements(mesh.elements, TRIA3)
   num_1d = line
   num_2d = quad4 + tri3
   num_3d = hexa8 + wedge6 + tet4
@@ -513,7 +513,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     for x in range(nx):
       e = Element()
       e.density = 1.0
-      e.type = TRIANGLE3 if type == 'triangle_msfem' else QUAD4
+      e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28. / 30. * nx):
         e.region = 'reinforce'
       # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  

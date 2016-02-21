@@ -16,11 +16,11 @@ namespace CoupledField
   //! Driver class for multi sequence simulations
 
   //! Driver class for multi sequence simulations.
-  //! Multo sequence here means, that either different types
+  //! Multi sequence here means, that either different types
   //! of simulation (static, transient) can be computed one after
   //! another (e.g. prestressed materials with addtitional source
-  //! terms) or that mutliple instances of the same anlysis-type can be
-  //! computed (e.g. pule-echo simulation in transient case)
+  //! terms) or that multiple instances of the same analysis-type can be
+  //! computed (e.g. pulse-echo simulation in transient case)
 
   class MultiSequenceDriver : public BaseDriver
   {
@@ -30,7 +30,7 @@ namespace CoupledField
     MultiSequenceDriver(shared_ptr<SimState> state, Domain* domain,
                         PtrParamNode paramNode, PtrParamNode infoNode );
 
-    //! destructir
+    //! destructor
     virtual ~MultiSequenceDriver();
 
     //! Initialization method
