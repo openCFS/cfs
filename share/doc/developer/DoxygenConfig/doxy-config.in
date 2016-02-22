@@ -627,11 +627,21 @@ INPUT                  = @CMAKE_SOURCE_DIR@/source \
                          @CMAKE_SOURCE_DIR@/source/Materials \
                          @CMAKE_SOURCE_DIR@/source/Materials/Models \
                          @CMAKE_SOURCE_DIR@/source/cfstool \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Derivatives \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Input \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Interpolators \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Filters/Output \
+                         @CMAKE_SOURCE_DIR@/source/cfsdat/Utils \
                          @CMAKE_SOURCE_DIR@/source/MatVec \
                          @CMAKE_SOURCE_DIR@/source/MatVec/exprt \
                          @CMAKE_SOURCE_DIR@/source/Domain \
                          @CMAKE_SOURCE_DIR@/source/Domain/Mesh \
                          @CMAKE_SOURCE_DIR@/source/Domain/Mesh/GridCFS \
+                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils \
+                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils/Intersection \
+                         @CMAKE_SOURCE_DIR@/source/Domain/Mesh/MeshUtils/Intersection/IntersectAlgos \
                          @CMAKE_SOURCE_DIR@/source/Domain/CoefFunction \
                          @CMAKE_SOURCE_DIR@/source/Domain/Results \
                          @CMAKE_SOURCE_DIR@/source/Domain/CoordinateSystems \
