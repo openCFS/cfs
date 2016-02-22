@@ -247,42 +247,22 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
-          inline bool IsBoundaryElem(int x, int y, int z)
-          {
-            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1 || z == 0 || z == sizeZ_-1;
-          }
-
-          inline bool IsCornerElem(int x, int y, int z)
-          {
-            return  (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0)
-                || (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0);
-          }
-
           /**
-           * LBM operators in 2D
+           * LBM operators 2D/3D
            */
           void Prop_coll_step2D(int cur, int next);
 
-          void Prop_coll_velinlet2D(int cur);
+          void Prop_coll_step3D(int cur, int next);
 
-          void Prop_coll_bounce_back2D(int cur);
+          void Prop_coll_velinlet(int cur);
 
-          void Prop_coll_densoutlet2D(int cur);
+          void Prop_coll_bounce_back(int cur);
+
+          void Prop_coll_densoutlet(int cur);
 
           void AdjointCollision(int cur);
 
           void AdjointPropagation(int next);
-
-          /**
-           * LBM operators in 3D
-           */
-          void Prop_coll_step3D(int cur, int next);
-
-          void Prop_coll_velinlet3D(int cur);
-
-          void Prop_coll_bounce_back3D(int cur);
-
-          void Prop_coll_densoutlet3D(int cur);
 
           int dim_;
           int sizeX_;
@@ -342,8 +322,6 @@ namespace CoupledField
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
           void (LatticeBoltzmann::*prop_coll_velinlet)(int);
-          void (LatticeBoltzmann::*prop_coll_bounce_back)(int);
-          void (LatticeBoltzmann::*prop_coll_densoutlet)(int);
 
   }; // end LatticeBoltzmann
 
