@@ -270,7 +270,7 @@ private:
   Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
-  void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
+//  void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
 
   //! Method of smoothing
   std::string method_;

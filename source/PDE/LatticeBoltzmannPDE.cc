@@ -357,10 +357,10 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
     shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
 
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+      actRegion = materials_.begin()->first;
+      actSDMat = materials_.begin()->second;
 
       // create new entity list
       // we use colList in order to be able to use constant FESpace, which is described by only one equation
@@ -397,7 +397,7 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-    }
+//    }
   }
 
   void LatticeBoltzmannPDE::InitCoupling(PDECoupling * coupling)
@@ -430,7 +430,6 @@ namespace CoupledField {
   {
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
-    in->Get("relaxation")->SetValue("SRT");
     in->Get("omega_nu")->SetValue(omega_);
     in->Get("Re")->SetValue(Re_);
     in->Get("maxIter")->SetValue(maxIter_);
@@ -601,10 +600,12 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
   StdVector<double> dfeqduy(n_q_);
   StdVector<double> dfeqduz(n_q_);
 
-  Matrix<double> block(n_q_,n_q_);
+  Matrix<double> block;
 
+  #pragma omp parallel for default(none) private(block) shared(tf,f,space,ux,uy,uz,dloc,weights,dRds,col_jacobi,dfeqdux,dfeqduy,dfeqduz)
   for(unsigned int index = 0; index < n_elems ; index++)
   {
+    block.Resize(n_q_,n_q_);
     block.InitValue(0.0);
     // interior
     if(elements[index] >= 0 && !obstacles.Contains(index))  {
@@ -642,6 +643,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
       }
   }
+
   double d_collision_setup = timer.GetCPUTime();
 
   // right-hand side
@@ -672,6 +674,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     double delete_sing_setup = timer.GetCPUTime();
 
     // use the cfs system matrix to solve the adjoint system
+    algsys_->GetMatrix(SYSTEM)->Dump();
     StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
     LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
     LOG_DBG(lbm_pde) << "SA: size of system's matrix=" << mat->GetNumRows() << " x " << mat->GetNumCols();
@@ -762,25 +765,6 @@ void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, dou
     ia[i] = M.index1_data()[i];
   }
 }
-
-
-//void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
-void LatticeBoltzmannPDE::matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
-{
-  /*
-  //conversion of sparse matrix to compressed row storage format
-  // Create value array and column array
-  for(unsigned int i=0;i<M.filled2();i++) {
-    a[i] = M.value_data()[i];
-    ja[i] = M.index2_data()[i];
-  }
-  // Create row array
-  for(unsigned int i=0;i<M.filled1();i++) {
-    ia[i] = M.index1_data()[i];
-  }
-   */
-}
-
 
 /**
  * This function "deletes" the entries from the Jacobian causing its singularity. This is done by copying the valid values from the old Jacobian M to a new one.
