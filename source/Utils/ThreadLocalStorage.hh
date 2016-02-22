@@ -190,7 +190,6 @@ public:
 
   ~TLMap(){
     if(!isCleared_){
-      WARN("TLMap has not been cleared on call of destructor!");
       Clear();
     }
   }

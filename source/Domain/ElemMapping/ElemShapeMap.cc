@@ -1490,8 +1490,6 @@ void LagrangeElemShapeMap::GetGlobMidPoint(Vector<Double>& midPoint) {
 
 Double LagrangeElemShapeMap::CalcVolume() {
 
-  std::cerr << coords_;
-
   // Get integration points
   StdVector<LocPoint> intPoints;
   StdVector<Double> weights;
