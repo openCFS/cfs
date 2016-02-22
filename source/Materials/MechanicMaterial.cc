@@ -468,7 +468,7 @@ namespace CoupledField
     
     Matrix<Complex> elasticityTensor;
     CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
-    out.Assign(elasticityTensor.GetPart(Global::REAL), 1.0);
+    out = elasticityTensor.GetPart(Global::REAL);
   }
 
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu)
