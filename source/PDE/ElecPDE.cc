@@ -675,10 +675,35 @@ namespace CoupledField {
         // currently we evaluate P only at the midpoint -> fullevaluation inside BUIntegrator has to be false
         bool fullevaluation = false;
 
+        //NOTE: 
+        //If this is red correctly, we assume an integrator of the form - \int_\Omega \varphi \nabla \cdot \vec{P} d\Omega
+        //This cannot be acchieved with the code below as it really defines 
+        // -\int_\Omega \nabla \cdot \varphi \cdot \vec{P} d\Omega which does not make sense.
+        //The operator in BUInt is supposed to work only on the test function.
+        //Two possible ways to come around this:
+        // 1. Integrate by parts and replace DivOperator by GradientOperator for the scalar test
+        //    function, keeping in mind the boundary term.
+        // 2. Modify the coefFunction (Material?) to return the divergence directly and
+        //    set an identity operator on the scalar test function.
+
+        /* for possibility two, a test with the following can be a solution 
+        it->second->SetDerivativeOperation(CoefFunction::VECTOR_DIVERGENCE);
         if(isComplex_) {
           if( dim_ == 2 ) {
           // we need -factor as we put +divP to the rhs
-          lin = new BUIntegrator<Complex>( new DivOperator<FeH1,2,Complex>(),
+            lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                           Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
+         ...... and so on
+
+         But make sure, that the result is as expected. The SetDerivativeOperation is only
+         implemented in some CoefFunctions...
+         */
+
+
+        if(isComplex_) {
+          if( dim_ == 2 ) {
+          // we need -factor as we put +divP to the rhs
+            lin = new BUIntegrator<Complex>( new DivOperator<FeH1,2,Complex>(),
                                            Complex(-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           } else {
             lin = new BUIntegrator<Complex>( new DivOperator<FeH1,3,Complex>(),
@@ -686,8 +711,8 @@ namespace CoupledField {
           }
         } else  {
           if( dim_ == 2 ) {
-          // we need -factor as we put +divP to the rhs
-          lin = new BUIntegrator<Double>( new DivOperator<FeH1,2,Double>(),
+            // we need -factor as we put +divP to the rhs
+            lin = new BUIntegrator<Double>( new DivOperator<FeH1,2,Double>(),
                                             (-1*factor),it->second,  coefUpdateGeo, fullevaluation);
           } else {
             lin = new BUIntegrator<Double>( new DivOperator<FeH1,3,Double>(),

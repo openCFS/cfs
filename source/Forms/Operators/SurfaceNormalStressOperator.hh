@@ -64,6 +64,19 @@ public:
      strainOp_->SetOperator2SurfOperator();
     }
 
+   //! Copy constructor
+   SurfaceNormalStressOperator(const SurfaceNormalStressOperator & other)
+      : BaseBOperator(other){
+     this->name_ = other.name_;
+     this->strainOp_ = other.strainOp_->Clone();
+     strainOp_->SetOperator2SurfOperator();
+   }
+
+   //! \copydoc BaseBOperator::Clone()
+   virtual SurfaceNormalStressOperator * Clone(){
+     return new SurfaceNormalStressOperator(*this);
+   }
+
     SurfaceNormalStressOperator(std::string subType, PtrCoefFct baseOpCoef, bool icModes){
      if( subType == "axi" ) {
        strainOp_ = new StrainOperatorAxi<FeH1,TYPE>(icModes);
@@ -386,6 +399,17 @@ public:
     : SurfaceNormalStressOperator<FE, D, D_DOF, TYPE>(subType, baseOpCoef, false)
   {
     this->name_ = "surfNormPiezoFluxOp";
+  }
+
+  //! copy constructor
+  SurfaceNormalPiezoFluxOperator(const SurfaceNormalPiezoFluxOperator & other)
+     : SurfaceNormalStressOperator<FE, D, D_DOF, TYPE>(other){
+    this->name_ = other.name_;
+  }
+
+  //! \copydoc baseboperator::clone()
+  virtual SurfaceNormalPiezoFluxOperator * Clone(){
+    return new SurfaceNormalPiezoFluxOperator(*this);
   }
 
   virtual ~SurfaceNormalPiezoFluxOperator() { }

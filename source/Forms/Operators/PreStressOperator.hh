@@ -67,6 +67,19 @@ namespace CoupledField{
     :  useICModes_(useICModes) {
       this->name_ = "preStressOp";
     }
+
+    //! Copy constructor
+    PreStressOperator(const PreStressOperator & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual PreStressOperator * Clone(){
+      return new PreStressOperator(*this);
+    }
+
     //! Destructor
     virtual ~PreStressOperator(){
 
@@ -261,6 +274,19 @@ namespace CoupledField{
     :  useICModes_(useICModes) {
       this->name_ = "preStressOp2p5D";
     }
+
+    //! Copy constructor
+    PreStressOperator2p5D(const PreStressOperator2p5D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual PreStressOperator2p5D * Clone(){
+      return new PreStressOperator2p5D(*this);
+    }
+
     //! Destructor
     virtual ~PreStressOperator2p5D(){
 
@@ -489,6 +515,19 @@ namespace CoupledField{
       preStressOp_->SetOperator2SurfOperator();
       useICModes_ = useICModes;
       preStressOp_->SetCoefFunction(baseOpCoef);
+    }
+
+    //! Copy constructor
+    SurfaceNormalPreStressOperator(const SurfaceNormalPreStressOperator & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+      this->preStressOp_ = other.preStressOp_->Clone();
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual SurfaceNormalPreStressOperator * Clone(){
+      return new SurfaceNormalPreStressOperator(*this);
     }
 
     virtual ~SurfaceNormalPreStressOperator() { return; }

@@ -64,6 +64,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperator(const IdentityOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperator * Clone(){
+      return new IdentityOperator(*this);
+    }
+
     virtual ~IdentityOperator(){
       return;
     }
@@ -190,6 +200,16 @@ namespace CoupledField{
         return;
       }
 
+      //! Copy constructor
+      IdentityOperator(const IdentityOperator & other)
+         : BaseBOperator(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual IdentityOperator * Clone(){
+        return new IdentityOperator(*this);
+      }
+
       ~IdentityOperator(){
         return;
       }
@@ -252,6 +272,16 @@ namespace CoupledField{
         return;
       }
 
+      //! Copy constructor
+      ScaledByEdgeIdentityOperator(const ScaledByEdgeIdentityOperator & other)
+         : IdentityOperator<FeHCurl,D,1,TYPE>(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual ScaledByEdgeIdentityOperator * Clone(){
+        return new ScaledByEdgeIdentityOperator(*this);
+      }
+
       virtual ~ScaledByEdgeIdentityOperator(){
         return;
       }
@@ -285,6 +315,16 @@ namespace CoupledField{
     public:
       IdentityOperatorPiola(){
         return;
+      }
+
+      //! Copy constructor
+      IdentityOperatorPiola(const IdentityOperatorPiola & other)
+         : IdentityOperator<FE,D,D_DOF,TYPE>(other){
+      }
+
+      //! \copydoc BaseBOperator::Clone()
+      virtual IdentityOperatorPiola * Clone(){
+        return new IdentityOperatorPiola(*this);
       }
 
       virtual ~IdentityOperatorPiola(){

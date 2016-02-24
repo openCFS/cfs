@@ -12,6 +12,14 @@ KXIntegrator<VEC_DATA_TYPE>::KXIntegrator( BiLinearForm * biLinForm,
 
 }
 
+//! Copy constructor
+template<class VEC_DATA_TYPE >
+KXIntegrator<VEC_DATA_TYPE>::KXIntegrator(const KXIntegrator& right ){
+  this->form_ = right.form_->Clone();
+  this->factor_ = right.factor_;
+  this->feFct_ = right.feFct_;
+}
+
 template<class VEC_DATA_TYPE >
 void KXIntegrator<VEC_DATA_TYPE>::CalcElemVector( Vector<VEC_DATA_TYPE> & elemVec,
                                                   EntityIterator& ent){

@@ -52,6 +52,14 @@ public:
       return;
     }
 
+   SurfaceIdentityOperator(const SurfaceIdentityOperator & other)
+    : BaseBOperator(other){
+   }
+
+   virtual SurfaceIdentityOperator * Clone(){
+     return new SurfaceIdentityOperator(*this);
+   }
+
     virtual ~SurfaceIdentityOperator(){
       return;
     }
@@ -183,6 +191,15 @@ public:
       return;
     }
 
+   SurfaceNormalDerivOperator(const SurfaceNormalDerivOperator & other)
+    : BaseBOperator(other){
+   }
+
+   virtual SurfaceNormalDerivOperator * Clone(){
+     return new SurfaceNormalDerivOperator(*this);
+   }
+
+
     virtual ~SurfaceNormalDerivOperator(){
       return;
     }
@@ -304,6 +321,14 @@ public:
    SurfaceIdentityOperatorScaledBySurface(){
       return;
     }
+
+   SurfaceIdentityOperatorScaledBySurface(const SurfaceIdentityOperatorScaledBySurface & other)
+    : BaseBOperator(other){
+   }
+
+   virtual SurfaceIdentityOperatorScaledBySurface * Clone(){
+     return new SurfaceIdentityOperatorScaledBySurface(*this);
+   }
 
     virtual ~SurfaceIdentityOperatorScaledBySurface(){
       return;

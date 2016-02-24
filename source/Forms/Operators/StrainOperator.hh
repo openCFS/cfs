@@ -42,6 +42,17 @@ namespace CoupledField{
       this->name_ = "StrainOperator2D";
     }
 
+    //! Copy constructor
+    StrainOperator2D(const StrainOperator2D & other)
+       :  BaseBOperator(other),
+          useICModes_(other.useICModes_) {
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator2D * Clone(){
+      return new StrainOperator2D(*this);
+    }
+
     //! Destructor
     virtual ~StrainOperator2D(){
 
@@ -94,7 +105,7 @@ namespace CoupledField{
   protected:
     
     //! Flag, if incompatible modes are used
-    const bool useICModes_;
+    bool useICModes_;
 
   };
 
@@ -217,6 +228,16 @@ namespace CoupledField{
     StrainOperatorAxi( bool useICModes = false )
     :  useICModes_(useICModes) {
       this->name_ = "StrainOperatorAxi";
+    }
+
+    //! Copy constructor
+    StrainOperatorAxi(const StrainOperatorAxi & other)
+       :  BaseBOperator(other), useICModes_(other.useICModes_) {
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperatorAxi * Clone(){
+      return new StrainOperatorAxi(*this);
     }
 
     //! Destructor
@@ -436,6 +457,18 @@ namespace CoupledField{
      this->name_ = "StrainOperator3D";
     }
 
+    //! Copy constructor
+    StrainOperator3D(const StrainOperator3D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator3D * Clone(){
+      return new StrainOperator3D(*this);
+    }
+
     //! Destructor
     ~StrainOperator3D(){
 
@@ -631,6 +664,18 @@ namespace CoupledField{
       this->name_ = "StrainOperator2.5D";
     }
 
+    //! Copy constructor
+    StrainOperator2p5D(const StrainOperator2p5D & other)
+       : BaseBOperator(other),
+         useICModes_(other.useICModes_){
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual StrainOperator2p5D * Clone(){
+      return new StrainOperator2p5D(*this);
+    }
+
     //! Destructor
     ~StrainOperator2p5D(){
 
@@ -801,8 +846,25 @@ namespace CoupledField{
        this->wave_vector_ = NULL; // to be set
      }
 
+     //! Copy constructor
+     StrainOperatorBloch2D(const StrainOperatorBloch2D & other)
+        : StrainOperator2D<FE, Double>(other){
+       this->name_ = other.name_;
+       //deep copy
+       this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       //copy values
+       for(UInt i=0;i<this->wave_vector_->GetSize();i++){
+         (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
+       }
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual StrainOperatorBloch2D * Clone(){
+       return new StrainOperatorBloch2D(*this);
+     }
+
      //! Destructor
-     ~StrainOperatorBloch2D(){ }
+     virtual ~StrainOperatorBloch2D(){ }
 
      /** reference to the always up to date wave vector. Comes from EigenFrequencyDrive::GetCurrentWaveVector() */
      void SetWaveVector(Vector<double>& current_wave_vector) {
@@ -897,6 +959,21 @@ namespace CoupledField{
 
        this->name_ = "StrainOperatorBloch3D";
        this->wave_vector_ = NULL; // to be set
+     }
+
+     //! Copy constructor
+     StrainOperatorBloch3D(const StrainOperatorBloch3D & other)
+        : StrainOperator3D<FE, Double>(other){
+       this->wave_vector_ = new Vector<double>(other.wave_vector_->GetSize());
+       //copy values
+       for(UInt i=0;i<this->wave_vector_->GetSize();i++){
+         (*this->wave_vector_)[i] = (*other.wave_vector_)[i];
+       }
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     StrainOperatorBloch3D * Clone(){
+       return new StrainOperatorBloch3D(*this);
      }
 
      //! Destructor
@@ -1031,6 +1108,17 @@ namespace CoupledField{
      ScaledStrainOperator2D(bool useICModes = false) : StrainOperator2D<FE, TYPE>(useICModes)
      {
        this->name_ = "ScaledStrainOperator2D";
+     }
+
+     //! Copy constructor
+     ScaledStrainOperator2D(const ScaledStrainOperator2D & other)
+        : StrainOperator2D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator2D * Clone(){
+       return new ScaledStrainOperator2D(*this);
      }
 
      //! Destructor
@@ -1300,6 +1388,17 @@ namespace CoupledField{
      ScaledStrainOperator3D(bool useICModes = false) : StrainOperator3D<FE, TYPE>(useICModes)
      {
        this->name_ = "ScaledStrainOperator3D";
+     }
+
+     //! Copy constructor
+     ScaledStrainOperator3D(const ScaledStrainOperator3D & other)
+        : StrainOperator3D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator3D * Clone(){
+       return new ScaledStrainOperator3D(*this);
      }
 
      //! Destructor
@@ -1618,6 +1717,18 @@ namespace CoupledField{
      {
        this->name_ = "ScaledStrainOperator2p5D";
      }
+
+     //! Copy constructor
+     ScaledStrainOperator2p5D(const ScaledStrainOperator2p5D & other)
+        : StrainOperator2p5D<FE, TYPE>(other){
+       this->name_ = other.name_;
+     }
+
+     //! \copydoc BaseBOperator::Clone()
+     virtual ScaledStrainOperator2p5D * Clone(){
+       return new ScaledStrainOperator2p5D(*this);
+     }
+
 
      //! Destructor
      virtual ~ScaledStrainOperator2p5D() { }

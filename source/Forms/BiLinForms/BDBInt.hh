@@ -47,7 +47,15 @@ public:
       BiLinearForm(coordUpate) {
       
     }
-    
+
+  //! Copy constructor
+  BaseBDBInt(const BaseBDBInt& right) :
+    BiLinearForm(right){
+  }
+
+  //! \copydoc BiLinearForm::Clone
+  virtual BaseBDBInt* Clone()=0;
+
   //! Destructor
   virtual ~BaseBDBInt() {
   }
@@ -148,8 +156,23 @@ public:
             PtrCoefFct dData, MAT_DATA_TYPE factor,
             bool coordUpdate = false );
 
-      //! Destructor
-      virtual ~BDBInt();
+    //! Copy constructor
+    BDBInt(const BDBInt& right)
+      : BaseBDBInt(right)
+    {
+      //here we would also need to create a new operator
+      this->bOperator_ = right.bOperator_->Clone();
+      this->factor_ = right.factor_;
+      this->dData_ = right.dData_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual BDBInt* Clone(){
+      return new BDBInt( *this );
+    }
+
+    //! Destructor
+    virtual ~BDBInt();
 
       //! \copydoc BaseBDBInt::GetBOp
       virtual BaseBOperator* GetBOp() {

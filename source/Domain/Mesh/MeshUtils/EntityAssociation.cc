@@ -149,7 +149,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-
+  EXCEPTION("Activate CGAL in cmake to use this feature");
   return assocs;
 }
 
@@ -158,7 +158,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Grid* elGrid, Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-
+  EXCEPTION("Activate CGAL in cmake to use this feature");
   return assocs;
 }
 #else
@@ -168,7 +168,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-
+  EXCEPTION("Activate CGAL in cmake to use this feature");
   return assocs;
 }
 
@@ -177,7 +177,7 @@ std::vector< std::pair<UInt, UInt > > BoundingBoxAssociate::AssociateEntities(co
                                                                        Grid* elGrid, Double tolerance){
   std::vector< std::pair<UInt, UInt > > assocs;
 
-
+  EXCEPTION("Activate CGAL in cmake to use this feature");
   return assocs;
 }
 #endif

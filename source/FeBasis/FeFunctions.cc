@@ -84,8 +84,10 @@ DECLARE_LOG(fefunc)
     std::string entName = list->GetName();
     bool found = false;
     for( UInt i = 0; i < entities_.GetSize(); ++i ) {
-      if( entities_[i]->GetName() == entName )
+      if( entities_[i]->GetName() == entName ){
         found = true;
+        break;
+      }
     }
     if( found ) {
       // nothing to be done

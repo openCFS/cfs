@@ -49,6 +49,14 @@ namespace CoupledField{
       this->name_ = "ConvectiveOperator";
     }
 
+    ConvectiveOperator(const ConvectiveOperator & other)
+     : BaseBOperator(other){
+    }
+
+    virtual ConvectiveOperator * Clone(){
+      return new ConvectiveOperator(*this);
+    }
+
     virtual ~ConvectiveOperator(){
 
     }
@@ -225,7 +233,15 @@ namespace CoupledField{
      public:
 
      ConvectiveOperatorPiola(){
-       this->name_ = "DivOperator";
+       this->name_ = "ConvectiveOperatorPiola";
+     }
+
+     ConvectiveOperatorPiola(const ConvectiveOperatorPiola & other)
+      : ConvectiveOperator<FE,D,D_DOF,TYPE>(other){
+     }
+
+     virtual ConvectiveOperatorPiola * Clone(){
+       return new ConvectiveOperatorPiola(*this);
      }
 
      virtual ~ConvectiveOperatorPiola(){

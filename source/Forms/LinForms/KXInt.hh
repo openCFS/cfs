@@ -25,6 +25,14 @@ namespace CoupledField{
                   VEC_DATA_TYPE factor,
                   shared_ptr<BaseFeFunction> feFct );
 
+    //! Copy constructor
+    KXIntegrator(const KXIntegrator& right );
+
+    //! \copydoc LinearForm::Clone
+    virtual KXIntegrator* Clone(){
+      return new KXIntegrator( *this );
+    }
+
     //! Destructor 
     ~KXIntegrator(){
     }

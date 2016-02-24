@@ -63,6 +63,17 @@ namespace CoupledField{
       return;
     }
 
+
+    //! Copy constructor
+    MultiIdOp(const MultiIdOp & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual MultiIdOp * Clone(){
+      return new MultiIdOp(*this);
+    }
+
     virtual ~MultiIdOp(){
       return;
     }
