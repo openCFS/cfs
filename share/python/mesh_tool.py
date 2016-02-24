@@ -1260,7 +1260,6 @@ def create_mesh_from_tetgen(meshfile, region):
 
 
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position,type = "apod6",thres=0.0,csize = None,simp = None):
-  print 'WARNING: Currently only used for Apod6 (valid_position_apod6)'
   centers, mi, ma = coords[0:3]  # we cannot use the first region element element dimensions 
   nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
   mesh = Mesh()
@@ -1299,31 +1298,44 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   nz = (int(delta[2] / dz) + 1)*dz_f
   
   #thickness of shell 1mm: tx,... is thickness of non-design shell
-  if dy_f % dy == 0:
+  if dy_f % dy == 0 and dx_f % dx == 0 and dz_f % dz == 0:
+    tx = int(dx_f / dx)
     ty = int(dy_f / dy)
+    tz = int(dz_f / dz)
   else:
-    print 'Error: 1mm skin cannot be visualized exactly. Change cell_size or/and n_f!' 
-    sys.exit(1)
+    tx = int(dx_f / dx)
+    ty = int(dy_f / dy)
+    tz = int(dz_f / dz)
+    print 'Warning: Skin cannot be visualized exactly. Change cell_size or/and n_f!' 
+  if type == "apod6":
+    tx = 0
+    tz = 0
+  elif type == "robot":
+    tx *= 3
+    ty *= 3
+    tz *= 3
   
   # offset for function apod6 (valid_position), fixes a bug 
   offset = dx + 1e-6
   if ny == 0 or nz == 0 or nx == 0:
     print 'chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized'
     exit()
-  
-  for z in range(nz+1):
+  print "tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz) 
+  for z in range(-tz,nz+1+tz):
     # offset for shell in y-direction
     for y in range(-ty, ny + 1 + ty):
-      for x in range(nx+1):
+      for x in range(-tx,nx+1+tx):
         mesh.nodes.append((mi[0] + 0.5 * dx/dx_f + float(x) * dx/dx_f, mi[1] + 0.5 * dy/dy_f +  float(y) * dy/dy_f, mi[2] + 0.5 * dz/dz_f +float(z) * dz/dz_f))
   print 'inserting mesh.nodes done'
-  nny = ny+ 2 * ty 
-  array = -1 * numpy.ones((nx,nny,nz))
+  nnx = nx + 2 * tx
+  nny = ny + 2 * ty 
+  nnz = nz + 2 * tz
+  array = -1 * numpy.ones((nnx,nny,nnz))
   res = [dx_f,dy_f,dz_f]
   count = 0
-  for k in xrange(0,nz- dz_f + 1,dz_f):
-    for j in xrange(ty,ny + 1+ ty - dy_f,dy_f):
-      for i in xrange(0,nx-dx_f + 1,dx_f):    
+  for k in xrange(tz,nz-dz_f + 1 + tz,dz_f):
+    for j in xrange(ty,ny-dy_f + 1 + ty,dy_f):
+      for i in xrange(tx,nx -dx_f + 1 + tx,dx_f):    
         coord = out[count]
         if simp is None:
           s1, s2, s3 = ip_data[count][0:3]
@@ -1358,15 +1370,15 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
         count += 1
   print 'calculation of density array done'
   number = 0
-  for z in range(nz):
+  for z in range(nnz):
     for y in range(nny):
-      for x in range(nx):
+      for x in range(nnx):
         e = Element()
         e.type = HEXA8
-        ll = (nx + 1) * (nny + 1) * z + (nx + 1) * y + x  # lowerleft
-        e.nodes = ((ll + (nx + 1) * (nny + 1), ll + (nx + 1) * (nny + 1) + nx + 1, ll + (nx + 1) * (nny + 1) + nx + 1 + 1, ll + (nx + 1) * (nny + 1) + 1, ll, ll + nx + 1, ll + nx + 1 + 1, ll + 1))        
+        ll = (nnx + 1) * (nny + 1) * z + (nnx + 1) * y + x  # lowerleft
+        e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))        
         
-        if (y < ty) or (y >= ny):
+        if (x < tx) or (y < ty) or (z < tz) or (y >= ny) or (x >= nx) or (z >= nz):
           # calculate center of element
           center = numpy.array([0.0, 0.0, 0.0])
           len_nod = len(e.nodes)
@@ -1374,7 +1386,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
             center += mesh.nodes[e.nodes[n]]
           center *= 1.0 / len_nod
           # test if is in convex hull of non-design nodes
-          if in_hull(center, hull):
+          if in_hull(center, hull, dx_f):
             if not valid_position(center, coords,offset):
               e.region = 'void1'
             else:
@@ -1396,7 +1408,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   print 'mesh has ' + str(number) + "design and non-design elements"
   return mesh
 
-def in_hull(p, hull):
+def in_hull(p, hull,to = None):
   # Test if points in `p` are in `hull`
   #`p` should be a `NxK` coordinates of `N` points in `K` dimensions
   #`hull` is either a scipy.spatial.Delaunay object or the `MxK` array of the 
@@ -1405,7 +1417,7 @@ def in_hull(p, hull):
   #from scipy.spatial import Delaunay
   #if not isinstance(hull,Delaunay):
   #  hull = Delaunay(hull)
-  return hull.find_simplex(p)>=0    
+  return hull.find_simplex(p,tol = to)>=0    
 
 def create_cross_3D(array,l,u,s1,s2,s3,void,res):
   # creates 3D cross in array for fine mesh generation; validation of optimal result by FEM
@@ -1448,23 +1460,25 @@ def add_robot_boundary_conditions(mesh):
   r = 5
   force1 = []
   support = []
+  delta = 1.
+  delta_y = 2.9
   for i in range(len(mesh.nodes)):
     coord = mesh.nodes[i][:]
-    if abs(coord[1] + 54.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < (r+delta) ** 2:
+    if abs(coord[1] + 54.) < delta_y and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < (r+delta) ** 2:
       support.append(i)
-    elif abs(coord[1] + 54.) < 1. and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 54.) < delta_y and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < (r+delta) ** 2:
       support.append(i)
-    elif abs(coord[1] + 54.) < 1. and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 54.) < delta_y and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r+delta) ** 2:
       support.append(i)
-    elif abs(coord[1] + 54.) < 1. and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 54.) < delta_y and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r+delta) ** 2:
       support.append(i)
-    elif abs(coord[1] + 0.) < 1. and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 0.) < delta_y and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
-    elif abs(coord[1] + 0.) < 1. and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 0.) < delta_y and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
-    elif abs(coord[1] + 0.) < 1. and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 0.) < delta_y and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
-    elif abs(coord[1] + 0.) < 1. and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r+delta) ** 2:
+    elif abs(coord[1] + 0.) < delta_y and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 >= (r-delta) ** 2 and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r+delta) ** 2:
       force1.append(i)
       
   mesh.bc.append(('force1', force1))
