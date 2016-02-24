@@ -38,6 +38,7 @@ namespace CoupledField{
     virtual std::map<SolutionType, shared_ptr<FeSpace> >
     CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode );
 
+    void ReadDampingInformation(); // TODO wieso in Acoustic pde nicht? vererbung
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 

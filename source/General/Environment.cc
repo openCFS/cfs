@@ -913,6 +913,8 @@ namespace CoupledField {
       out = PML;
     } else if( in == "dampLayer" ) {
       out = DAMPLAYER;
+    } else if( in == "mapping" ) {
+      out = MAPPING;
     } else {
       EXCEPTION( "'" << in << "' cannot be converted into an "
                  << "'DampingType' item!" );
@@ -954,6 +956,9 @@ namespace CoupledField {
         break;
       case DAMPLAYER:
         out = "dampLayer";
+        break;
+      case MAPPING:
+        out = "mapping";
         break;
       default:
         EXCEPTION( "No conversion found for 'DapmingType' " << in );

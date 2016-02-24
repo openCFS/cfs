@@ -101,6 +101,11 @@ namespace CoupledField{
     {
       factor_ = quantityNode_->Get("factor")->As<Double>();
     }
+
+    if(quantityNode_->Has("searchRadius"))
+    {
+      searchRadius_ = quantityNode_->Get("searchRadius")->As<Double>();
+    }
   }
   
   template<typename T, UInt DOFS>
@@ -474,28 +479,71 @@ namespace CoupledField{
     neighbors.Resize(nn);
     l2Distances.Resize(nn);
     vectors.Resize(nn);
-    
+
     for(UInt i=0 ; it != search.end(); ++it, i++) {
       l2Distances[i] = std::sqrt(it->second);
       neighbors[i].Resize(globPoint.GetSize());
       vectors[i].Resize(globPoint.GetSize());
 
-      if(globPoint.GetSize() == 2)
+      if(quantityNode_->Has("searchRadius"))
       {
-        it->first.vx(vectors[i][0]);
-        it->first.vy(vectors[i][1]);
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-      }
-      else
-      {
-        it->first.vx(vectors[i][0]);
-        it->first.vy(vectors[i][1]);
-        it->first.vz(vectors[i][2]);
+        if(l2Distances[i]<searchRadius_){
+          if(globPoint.GetSize() == 2)
+          {
+            it->first.vx(vectors[i][0]);
+            it->first.vy(vectors[i][1]);
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+          }
+          else
+          {
+            it->first.vx(vectors[i][0]);
+            it->first.vy(vectors[i][1]);
+            it->first.vz(vectors[i][2]);
 
-        neighbors[i][0] = it->first.x();
-        neighbors[i][1] = it->first.y();
-        neighbors[i][2] = it->first.z();
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+            neighbors[i][2] = it->first.z();
+          }
+        }else{
+          if(globPoint.GetSize() == 2)
+          {
+            vectors[i][0] = 0.0;
+            vectors[i][1] = 0.0;
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+          }
+          else
+          {
+            vectors[i][0] = 0.0;
+            vectors[i][1] = 0.0;
+            vectors[i][2] = 0.0;
+
+            neighbors[i][0] = it->first.x();
+            neighbors[i][1] = it->first.y();
+            neighbors[i][2] = it->first.z();
+          }
+        }
+      }
+      else{
+        if(globPoint.GetSize() == 2)
+        {
+          it->first.vx(vectors[i][0]);
+          it->first.vy(vectors[i][1]);
+          neighbors[i][0] = it->first.x();
+          neighbors[i][1] = it->first.y();
+        }
+        else
+        {
+          it->first.vx(vectors[i][0]);
+          it->first.vy(vectors[i][1]);
+          it->first.vz(vectors[i][2]);
+
+          neighbors[i][0] = it->first.x();
+          neighbors[i][1] = it->first.y();
+          neighbors[i][2] = it->first.z();
+        }
+
       }
     }
   }
@@ -539,16 +587,44 @@ namespace CoupledField{
       {
         l2Distances[j] = std::sqrt(dists[i][j]);
 
-        UInt idx = indices[i][j];
-        
-        neighbors[j].Resize(DOFS);
-        vectors[j].Resize(DOFS);
-
-        for(UInt d=0; d<DOFS; d++) 
+        if(quantityNode_->Has("searchRadius"))
         {
-          vectors[j][d] = scatteredData_[idx][d] * factor_;
-          neighbors[j][d] = coordinates_[idx][d];
+          if(l2Distances[j]<searchRadius_){
+            UInt idx = indices[i][j];
+
+            neighbors[j].Resize(DOFS);
+            vectors[j].Resize(DOFS);
+
+            for(UInt d=0; d<DOFS; d++)
+            {
+              vectors[j][d] = scatteredData_[idx][d] * factor_;
+              neighbors[j][d] = coordinates_[idx][d];
+            }
+          }else{
+            UInt idx = indices[i][j];
+
+            neighbors[j].Resize(DOFS);
+            vectors[j].Resize(DOFS);
+
+            for(UInt d=0; d<DOFS; d++)
+            {
+              vectors[j][d] = scatteredData_[idx][d] * 0.0;
+              neighbors[j][d] = coordinates_[idx][d];
+            }
+          }
+        }else{
+          UInt idx = indices[i][j];
+
+          neighbors[j].Resize(DOFS);
+          vectors[j].Resize(DOFS);
+
+          for(UInt d=0; d<DOFS; d++)
+          {
+            vectors[j][d] = scatteredData_[idx][d] * factor_;
+            neighbors[j][d] = coordinates_[idx][d];
+          }
         }
+
       }
     }
 

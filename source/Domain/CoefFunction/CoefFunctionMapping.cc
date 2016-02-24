@@ -53,11 +53,11 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
-  Double sos=1.0;
+  //Double sos=1.0;
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+      tensor[i][i] = this->dampFunction_->ComputeFactor(position,locThick) ;
     }else{
       tensor[i][i] = 1.0;
     }
@@ -78,11 +78,13 @@ void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
   vec.Resize(this->dim_,0.0);
   Double locThick=0.0;
   Double position=0.0;
-  Double sos = 1.0;
   for(UInt i=0;i<this->dim_;++i){
+
     this->GetThicknessAtPoint(locThick,position,lpm,i);
+//    std::cout << i << std::endl;
+//    std::cout << locThick << std::endl;
     if(abs(locThick)>0.0){
-      vec[i] = this->dampFunction_->ComputeFactor(position,locThick) * sos;
+      vec[i] = this->dampFunction_->ComputeFactor(position,locThick);
     }else{
       vec[i] = 1.0;
     }
@@ -101,22 +103,22 @@ void CoefFunctionMapping<T>::GetScalar(Double& val,
 
   //computes 1/(pml_x*pml_y*pml_z)
   //right now we ust return 1...
-  EXCEPTION("GETSCALAR IS INVALID");
+  //EXCEPTION("GETSCALAR IS INVALID");
+
   val = 1.0;
   return;
 
-  //UInt gridDim = entities_[0]->GetGrid()->GetDim();
-  //Double locThick=0.0;
-  //Double position=0.0;
-  //val = 1.0;
-  //for(UInt i=0;i<gridDim;++i){
-  //  GetThicknessAtPoint(locThick,position,lpm,i);
-  //  if(abs(locThick)>0.0){
-  //    val *= dampFunction_->ComputeFactor(position,locThick);
-  //  }else{
-  //    val *= 1.0;
-  //  }
-  //}
+  Double locThick=0.0;
+  Double position=0.0;
+  val = 1.0;
+  for(UInt i=0;i<this->dim_;++i){
+    this->GetThicknessAtPoint(locThick,position,lpm,i);
+    if(abs(locThick)>0.0){
+      val *= this->dampFunction_->ComputeFactor(position,locThick);
+    }else{
+      val *= 1.0;
+    }
+  }
 }
 
 
