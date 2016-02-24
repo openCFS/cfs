@@ -771,13 +771,13 @@
   <!--   Definition of Mapping -->
   <!-- ******************************************************************* -->
   
-  <!-- Definition of pml damping type -->
+  <!-- Definition of Mapping damping type -->
   <xsd:complexType name="DT_DampingMapping">
     <xsd:complexContent>
       <xsd:extension base="DT_DampingBasic">
         <xsd:sequence>
           
-          <!-- Reference coordinate system, in which PML damping is defined -->
+          <!-- Reference coordinate system, in which Mapping damping is defined -->
           <xsd:element name="coordSysId" minOccurs="0" maxOccurs="1" type="xsd:token"/>
           
           <!-- Geometric definition of region -->
@@ -795,7 +795,7 @@
             </xsd:complexType>
           </xsd:element>
           
-          <!-- Type of PML -->
+          <!-- Type of Mapping -->
           <xsd:element name="type" minOccurs="0" maxOccurs="1" default="tangens">
             <xsd:annotation>
               <xsd:documentation>can be a constant factor, quadratically increasing, inverse distance increasing or a smooth increasing function</xsd:documentation>
@@ -813,8 +813,6 @@
               <xsd:documentation>Has to be chosen appropriate to remain stable; for inverse distance type choose 1.0</xsd:documentation>
             </xsd:annotation>
           </xsd:element>
-          
-          <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
         
       </xsd:extension>

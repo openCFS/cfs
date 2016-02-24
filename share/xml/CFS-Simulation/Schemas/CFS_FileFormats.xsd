@@ -637,6 +637,13 @@
         </xsd:documentation>
       </xsd:annotation>
     </xsd:attribute>
+    <xsd:attribute name="searchRadius" type="xsd:double" default="1.0">
+      <xsd:annotation>
+        <xsd:documentation xml:lang="en">
+          Search raduis for the neighbors.
+        </xsd:documentation>
+      </xsd:annotation>
+    </xsd:attribute>
     <xsd:attribute name="interpolAlgo" use="optional" default="shepard">
       <xsd:annotation>
         <xsd:documentation xml:lang="en">

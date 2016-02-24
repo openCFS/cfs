@@ -11,6 +11,7 @@
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
+#include "Forms/Operators/IdentityOperator.hh"
 #include "Forms/Operators/IdentityOperatorNormal.hh"
 #include "Forms/Operators/SurfaceOperators.hh"
 
@@ -31,15 +32,15 @@
 #include <def_expl_templ_inst.hh>
 
 #include "Driver/SolveSteps/StdSolveStep.hh"
-#include "Driver/TimeSchemes/TimeSchemeGLM.hh"	/// ADAPT pseudo?
+#include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 
 namespace CoupledField{
 
-  DECLARE_LOG(acousticsplitpde)	/// ADAPT
-   DEFINE_LOG(acousticsplitpde, "pde.acousticsplit") /// ADAPT
+  DECLARE_LOG(acousticsplitpde)
+   DEFINE_LOG(acousticsplitpde, "pde.acousticsplit")
 
 
-  AcousticSplitPDE::AcousticSplitPDE( Grid* aGrid, PtrParamNode paramNode, /// ADAPT
+  AcousticSplitPDE::AcousticSplitPDE( Grid* aGrid, PtrParamNode paramNode,
                             PtrParamNode infoNode,
                             shared_ptr<SimState> simState, Domain* domain)
               : SinglePDE( aGrid, paramNode, infoNode, simState, domain ){
@@ -78,7 +79,60 @@ namespace CoupledField{
     return crSpaces;
   }
   
-  
+  void AcousticSplitPDE::ReadDampingInformation() {
+    std::map<std::string, DampingType> idDampType;
+    std::map<std::string, shared_ptr<RaylDampingData> > idRaylData;
+
+    // try to get dampingList
+    PtrParamNode dampListNode = myParam_->Get( "dampingList", ParamNode::PASS );
+    if( dampListNode ) {
+
+      // get specific damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+
+      for( UInt i = 0; i < dampNodes.GetSize(); i++ ) {
+
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum( dampString, actType );
+
+        // store damping type string
+        idDampType[actId] = actType;
+
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes =
+        myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    //       if( regionNodes.GetSize() > 0 ) {
+    //         Info->PrintF( pdename_, "Damping in following region(s)\n" );
+    //       }
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++) {
+      regionNodes[k]->GetValue( "name", actRegionName );
+      regionNodes[k]->GetValue( "dampingId", actDampingId );
+      if( actDampingId == "" )
+        continue;
+
+      actRegionId = ptGrid_->GetRegion().Parse( actRegionName );
+
+      // Check actDampingId was already registerd
+      if( idDampType.count( actDampingId ) == 0 ) {
+        EXCEPTION( "Damping with id '" << actDampingId
+                   << "' was not defined in 'dampingList'" );
+      }
+
+      dampingList_[actRegionId] = idDampType[actDampingId];
+    }
+  }
 
   void AcousticSplitPDE::DefineIntegrators(){
 
@@ -92,7 +146,6 @@ namespace CoupledField{
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     shared_ptr<FeSpace> mySpace = feFunctions_[formulation_]->GetFeSpace();
 
-    //flag indicating frequency PML formulation
     for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
       actRegion = it->first;
@@ -117,11 +170,13 @@ namespace CoupledField{
       PtrCoefFct val1 = CoefFunction::Generate( mp_, Global::REAL, "1.0");;
 
       // ====================================================================
-      // Take account for pml (frequency domain only)
+      // Take account for mapping
       // ====================================================================
       shared_ptr<CoefFunction> coeffPMLScal, coeffPMLVec;
       bool isMapping = false;
-      if( dampingList_[actRegion] == MAPPING ) {
+      //std::cout << dampingList_[actRegion] << std::endl;
+      //std::cout << MAPPING << std::endl;
+      if( dampingList_[actRegion] == MAPPING ) { // TODO??
         std::string dampId;
         curRegNode->GetValue("dampingId",dampId);
         if(analysistype_ == HARMONIC){
@@ -216,6 +271,11 @@ namespace CoupledField{
     StdVector<PtrCoefFct > coef;
     StdVector<std::string> empty;
 
+    // Get FESpace and FeFunction of electric potential
+    shared_ptr<BaseFeFunction> myFct = feFunctions_[SPLIT_SCALAR];
+    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+    LinearForm * lin = NULL;
+    Double factor = 1.0;
     // =====================================
     //  rhsValues for e.g. for splitting
     // =====================================
@@ -224,7 +284,32 @@ namespace CoupledField{
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       coef[i]->SetConservative(true);
       this->rhsFeFunctions_[formulation_]->AddLoadCoefFunction(coef[i], ent[i]);
-    }
+    } //for
+
+    // ================
+    //  RHS DENSITY TODO einbindung
+    // ================
+    LOG_DBG(acousticsplitpde) << "Reading rhs densities";
+    ReadRhsExcitation( "rhsDensity", empty,
+                       ResultInfo::SCALAR, isComplex_, ent, coef, updatedGeo_ );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      // check type of entitylist
+      if (ent[i]->GetType() == EntityList::NODE_LIST) {
+        EXCEPTION("Rhs density must be defined on elements")
+      }
+      if(isComplex_) {
+        lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
+                                         Complex(factor), coef[i], updatedGeo_);
+      } else  {
+        lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
+            factor, coef[i], updatedGeo_);
+      }
+      lin->SetName("RhsDensityInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    } // for
 
   }
 
@@ -232,7 +317,7 @@ namespace CoupledField{
     solveStep_ = new StdSolveStep(*this);
   }
 
-  void AcousticSplitPDE::DefinePrimaryResults(){	/// ADAPT ?? Formulation
+  void AcousticSplitPDE::DefinePrimaryResults(){
     StdVector<std::string> vecComponents;
     if( dim_ == 3 ) {
       vecComponents = "x", "y", "z";
@@ -264,7 +349,14 @@ namespace CoupledField{
     res1->SetFeFunction(feFunctions_[formulation_]);
     DefineFieldResult( feFunctions_[formulation_], res1 );
     
-
+    // -----------------------------------
+    //  Define xml-names of Dirichlet BCs
+    // -----------------------------------
+    if ( formulation_ ==  SPLIT_SCALAR) {
+      hdbcSolNameMap_[SPLIT_SCALAR] = "homDir";
+    } else {
+      hdbcSolNameMap_[SPLIT_VECTOR] = "homDir";
+    }
     // === SPLIT RHS ===
     shared_ptr<ResultInfo> rhs ( new ResultInfo );
     rhs->resultType = SPLIT_RHS_LOAD;

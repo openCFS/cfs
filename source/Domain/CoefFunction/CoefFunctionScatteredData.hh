@@ -244,6 +244,9 @@ namespace CoupledField {
     // Scale factor for values.
     Double factor_;
 
+    // Search radius for values.
+    Double searchRadius_;
+
     //! Type of interpolation algorithm.
     InterpolationAlgorithm interpolAlgo_;
 

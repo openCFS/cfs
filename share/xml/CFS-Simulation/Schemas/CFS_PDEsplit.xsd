@@ -13,7 +13,7 @@
   <!--   Definition of element for acoustics PDEs -->
   <!-- ******************************************************************* -->
   <xsd:element name="split" type="DT_PDESplit" substitutionGroup="PDEBasic">
-    <xsd:unique name="CS_AcousticRegion">
+    <xsd:unique name="CS_SplitRegion">
       <xsd:selector xpath="cfs:region"/>
       <xsd:field xpath="@name"/>
     </xsd:unique>
@@ -69,8 +69,15 @@
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="1">
             <xsd:complexType>
               <xsd:choice maxOccurs="unbounded">
+                <!-- Dirichlet Boundary Conditions -->
+                <xsd:element name="homDir" type="DT_BcHomScalar"/>
                 <!-- RHS Load Values-->
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
+                <xsd:element name="rhsDensity" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Defines rhs density (LinearForm)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
               </xsd:choice>
             </xsd:complexType>
           </xsd:element>
@@ -127,6 +134,7 @@
     <xsd:restriction base="xsd:token">
       <xsd:enumeration value="splitScalar"/>
       <xsd:enumeration value="splitVector"/>
+      <xsd:enumeration value="splitRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
 

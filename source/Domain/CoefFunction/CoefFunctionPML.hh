@@ -120,12 +120,26 @@ class DampFunctionTangens : public DampFunction{
 public:
   DampFunctionTangens( ) : DampFunction(){
     constFactor = 2.0/M_PI;
+//    constFactor = M_PI/2.0;
     functionType = TANGENS;
   }
 
   Double ComputeFactor(Double pos, Double thickness){
     Double value = constFactor*thickness;
-    value *= (1.0/(pos*pos+1.0) );
+//    std::cout << "NEW" << std::endl;
+//    std::cout << pos/value << std::endl;
+//    std::cout << tan(pos/value) << std::endl;
+    Double post = tan(pos/value);
+    value *= (1.0/(post*post+1.0) );
+//    value = 1.0;
+//    Double value = constFactor/thickness;
+//    value *= (1.0/(pow(cos((M_PI/(2.0*thickness))*pos),2)) );
+//    value = 1.0/value;
+//    std::cout << thickness << std::endl;
+//    std::cout << pos << std::endl;
+//    std::cout << value << std::endl;
+//    std::cout << "OLD" << std::endl;
+
     return value;
   }
 
