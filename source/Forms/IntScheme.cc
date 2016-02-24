@@ -187,8 +187,11 @@ DEFINE_LOG(intscheme, "intScheme")
 
 IntScheme::IntScheme() {
 
+#pragma omp critical (IntegScheme)
+  {
   // Fill integration points up to order 10
   FillInitialIntegPoints(10);
+  }
 }
 
 void IntScheme::DefineIntPoints( Elem::ShapeType shapeType,

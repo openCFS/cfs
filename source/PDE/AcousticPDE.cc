@@ -30,6 +30,7 @@
 #include "Driver/Assemble.hh"
 #include "Domain/CoefFunction/CoefXpr.hh"
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
 #include "Domain/CoefFunction/CoefFunctionMulti.hh"
 #include "Domain/CoefFunction/CoefFunctionPML.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
@@ -1962,7 +1963,10 @@ namespace CoupledField{
 
         // gasR=287.058 J/kg K   ... universal gas constant
         // kappa=1.402, adabatic exponent for air
-        PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
+        //directly use coefFunctionConst...
+        shared_ptr< CoefFunctionConst<Double> > constVal(new CoefFunctionConst<Double>());
+        constVal->SetScalar(402.4553160);
+        //PtrCoefFct constVal = CoefFunction::Generate( mp_, Global::REAL, "402.4553160");
         cSQR = CoefFunction::Generate( mp_,  Global::REAL,
                                      CoefXprBinOp(mp_, constVal, regionTemp, CoefXpr::OP_MULT) );
       }

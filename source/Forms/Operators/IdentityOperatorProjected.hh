@@ -60,6 +60,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorProjected(const IdentityOperatorProjected & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorProjected * Clone(){
+      return new IdentityOperatorProjected(*this);
+    }
+
     virtual ~IdentityOperatorProjected(){
       return;
     }

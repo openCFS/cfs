@@ -22,6 +22,19 @@ namespace CoupledField {
            PtrCoefFct scalCoef, MAT_DATA_TYPE factor,
            bool coordUpdate = false );
 
+    //! Copy Constructor
+    ABInt(const ABInt& right)
+     : BBInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
+      //here we would also need to create a new operator
+      this->aOperator_ = right.aOperator_->Clone();
+      this->solDependent_ = right.solDependent_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual ABInt* Clone(){
+      return new ABInt( *this );
+    }
+
     //! Destructor
     virtual ~ABInt(){
       delete aOperator_;
@@ -79,8 +92,21 @@ namespace CoupledField {
                   const std::set<RegionIdType>& volRegions,
                   bool coordUpdate = false);
 
+    //! Copy constructor
+    SurfaceABInt(const SurfaceABInt& right)
+      : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+      //here we would also need to create a new operator
+      this->volRegions_ = right.volRegions_;
+      this->regionCoefs_ = right.regionCoefs_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual SurfaceABInt* Clone(){
+      return new SurfaceABInt( *this );
+    }
+
     //! Destructor
-    ~SurfaceABInt() {}
+    virtual ~SurfaceABInt() {}
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
@@ -112,8 +138,24 @@ namespace CoupledField {
                         bool coordUpdate = false,
                         BiLinearForm::CouplingDirection cplDirection = BiLinearForm::MASTER_SLAVE);
 
+    //! Copy Constructor
+    SurfaceMortarABInt(const SurfaceMortarABInt& right)
+     : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+      this->ptFeSpaceLM_ = right.ptFeSpaceLM_;
+      this->ptFeSpaceField_ = right.ptFeSpaceField_;
+      this->masterVolRegion_ = right.masterVolRegion_;
+      this->slaveVolRegion_ = right.slaveVolRegion_;
+      this->volRegions_ = right.volRegions_;
+      this->isCoplanar_ = right.isCoplanar_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual SurfaceMortarABInt* Clone(){
+      return new SurfaceMortarABInt( *this );
+    }
+
     //! Destructor
-    ~SurfaceMortarABInt() {};
+    virtual ~SurfaceMortarABInt() {};
 
     //! Compute element matrix associated to AB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
@@ -167,8 +209,21 @@ namespace CoupledField {
                          BiLinearForm::CouplingDirection cplDir,
                          bool coordUpdate = false, bool isSym = false, bool isPenalty=false);
 
+    //! Copy constructor
+    SurfaceNitscheABInt(const SurfaceNitscheABInt& right)
+     : ABInt<COEF_DATA_TYPE,B_DATA_TYPE>(right){
+      this->myDirection_ = right.myDirection_;
+      this->isPenalty_ = right.isPenalty_;
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual SurfaceNitscheABInt* Clone(){
+      return new SurfaceNitscheABInt( *this );
+    }
+
+
     //! Destructor
-    ~SurfaceNitscheABInt() {}
+    virtual ~SurfaceNitscheABInt() {}
 
     //! Compute element matrix associated to BDB form
     void CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,

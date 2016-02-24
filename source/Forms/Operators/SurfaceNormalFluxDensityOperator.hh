@@ -80,6 +80,18 @@ public:
     gradOp_->SetCoefFunction(baseOpCoef);
   }
 
+  //! Copy constructor
+  SurfaceNormalFluxDensityOperator(const SurfaceNormalFluxDensityOperator & other)
+     : BaseBOperator(other){
+    this->name_ = "surfNormFluxOp";
+    this->gradOp_ = other.gradOp_->Clone();
+  }
+
+  //! \copydoc BaseBOperator::Clone()
+  virtual SurfaceNormalFluxDensityOperator * Clone(){
+    return new SurfaceNormalFluxDensityOperator(*this);
+  }
+
   virtual ~SurfaceNormalFluxDensityOperator() { return; }
 
   virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);

@@ -46,15 +46,15 @@ namespace CoupledField{
    CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
                       EntityIterator& ent1,
                       EntityIterator& ent2) {
-     // Extract physical element
-     const Elem* ptElem = ent1.GetElem();
-
+     IntegOrder order;
+     IntScheme::IntegMethod method;
+     StdVector<LocPoint> intPoints;
+     StdVector<Double> weights;
      Matrix<MAT_DATA_TYPE> bMat;
      MAT_DATA_TYPE fac = 0.0;
 
-     // Obtain FE element from feSpace and integration scheme
-     IntegOrder order;
-     IntScheme::IntegMethod method;
+     // Extract physical element
+     const Elem* ptElem = ent1.GetElem();
      BaseFE* ptFe = ptFeSpace1_->GetFe( ent1, method, order );
      const UInt nrFncs = ptFe->GetNumFncs();
 
@@ -62,8 +62,6 @@ namespace CoupledField{
      shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ptElem, this->coordUpdate_ );
 
      // Get integration points
-     StdVector<LocPoint> intPoints;
-     StdVector<Double> weights;
      intScheme_->GetIntPoints( Elem::GetShapeType(ptElem->type), method, order,
                                intPoints, weights );
 

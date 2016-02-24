@@ -25,6 +25,19 @@ namespace CoupledField {
             PtrCoefFct dData, MAT_DATA_TYPE factor,
             bool coordUpdate = false );
 
+    //! Copy COnstructor
+    ADBInt(const ADBInt& right)
+     : BDBInt<COEF_DATA_TYPE, B_DATA_TYPE>(right){
+      //here we would also need to create a new operator
+      this->aOperator_ = right.aOperator_->Clone();
+    }
+
+    //! \copydoc BiLinearForm::Clone
+    virtual ADBInt* Clone(){
+      return new ADBInt( *this );
+    }
+
+
     //! Destructor
     virtual ~ADBInt();
 

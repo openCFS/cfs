@@ -46,6 +46,16 @@ namespace CoupledField{
       return;
     }
 
+    //! Copy constructor
+    IdentityOperatorNormal(const IdentityOperatorNormal & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorNormal * Clone(){
+      return new IdentityOperatorNormal(*this);
+    }
+
     virtual ~IdentityOperatorNormal(){
       return;
     }
@@ -174,6 +184,16 @@ namespace CoupledField{
 
     IdentityOperatorPiolaNormal(){
       return;
+    }
+
+    //! Copy constructor
+    IdentityOperatorPiolaNormal(const IdentityOperatorPiolaNormal & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual IdentityOperatorPiolaNormal * Clone(){
+      return new IdentityOperatorPiolaNormal(*this);
     }
 
     virtual ~IdentityOperatorPiolaNormal(){

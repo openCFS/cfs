@@ -44,6 +44,16 @@ namespace CoupledField{
       this->name_ = "LaplOperator";
     }
 
+    //! Copy constructor
+    LaplOperator(const LaplOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual LaplOperator * Clone(){
+      return new LaplOperator(*this);
+    }
+
     virtual ~LaplOperator(){
 
     }

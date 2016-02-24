@@ -48,6 +48,16 @@ namespace CoupledField{
       this->name_ = "GradientOperator";
     }
 
+    //! Copy constructor
+    GradientOperator(const GradientOperator & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual GradientOperator * Clone(){
+      return new GradientOperator(*this);
+    }
+
     virtual ~GradientOperator(){
 
     }
@@ -204,6 +214,17 @@ namespace CoupledField{
       this->name_ = "GradientOperator2p5D";
     }
 
+
+    //! Copy constructor
+    GradientOperator2p5D(const GradientOperator2p5D & other)
+       : BaseBOperator(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual GradientOperator2p5D * Clone(){
+      return new GradientOperator2p5D(*this);
+    }
+
     virtual ~GradientOperator2p5D() {}
 
     virtual void CalcOpMat(Matrix<Double> & bMat, const LocPointMapped& lp, BaseFE* ptFe);
@@ -346,6 +367,20 @@ namespace CoupledField{
 
     ScaledGradientOperator(){
       this->name_ = "ScaledGradientOperator";
+      coefsI_.Resize(D);
+      coefsR_.Resize(D);
+    }
+
+    //! Copy constructor
+    ScaledGradientOperator(const ScaledGradientOperator & other)
+       : GradientOperator<FE,D,1,TYPE>(other){
+      this->xiDxTmp_ = other.xiDxTmp_;
+      this->rotMat_ = other.rotMat_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledGradientOperator * Clone(){
+      return new ScaledGradientOperator(*this);
     }
 
     virtual ~ScaledGradientOperator(){
@@ -369,7 +404,10 @@ namespace CoupledField{
                                      BaseFE* ptFe );
 
     protected:
-    
+    Matrix<Double> xiDxTmp_, rotMat_;
+    Vector<Double> coefsR_;
+    Vector<Complex> coefsI_;
+    Vector<Double> globPoint_;
   };
 
   template<class FE, UInt D, class TYPE>
@@ -539,6 +577,16 @@ namespace CoupledField{
     ScaledGradientOperator2p5D()
     {
       this->name_ = "ScaledGradientOperator2p5D";
+    }
+
+    //! Copy constructor
+    ScaledGradientOperator2p5D(const ScaledGradientOperator2p5D & other)
+       : GradientOperator2p5D<FE, D, 1, TYPE>(other){
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledGradientOperator2p5D * Clone(){
+      return new ScaledGradientOperator2p5D(*this);
     }
 
     virtual ~ScaledGradientOperator2p5D(){ }

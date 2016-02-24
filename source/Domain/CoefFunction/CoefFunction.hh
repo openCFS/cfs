@@ -507,7 +507,7 @@ public:
 
   //!
   virtual void SetPreviousHystVals() {
-	  EXCEPTION("SetPreviousHystVals nit available");
+	  EXCEPTION("SetPreviousHystVals not available");
   }
   //@}
 

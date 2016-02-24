@@ -23,13 +23,14 @@
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "FeBasis/FeSpace.hh"
 #include "Domain/Domain.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField
 {
   // forward class declaration
   class FeSpace;
 
-class BiLinearForm{
+class BiLinearForm : public CfsCopyable{
     public:
 
     //for NMG integrators
@@ -44,6 +45,37 @@ class BiLinearForm{
         coordUpdate_ = coordUpdate;
         isNewtonBilinearForm_ = false;
       }
+
+      /** This assignment operator is only! designed for use for OMP
+       *  For other purposes, its applicability is highly questionable.
+       *  Furthermore, the default copy constructor is assumed to
+       *  work just fine...
+       *  Funny thing, the usage of this constructor is not threadsafe
+       *  but object creation and access needs to be synchronized anyway
+       *
+       *  In general: operators are assumed to be lightweight, so
+       *  we can affort a copy
+       *  CoefFunctions may be not, so we need to make them thread safe...
+       */
+      BiLinearForm(const BiLinearForm& right){
+        this->coordUpdate_ = right.coordUpdate_;
+        this->isNewtonBilinearForm_ = right.isNewtonBilinearForm_;
+        this->isSymmetric_ = right.isSymmetric_;
+
+        this->name_ = right.name_;
+
+        // we just cpoy the feSpace pointers and need to make sure
+        // not to alter their state...
+        this->ptFeSpace1_ = right.ptFeSpace1_;
+        this->ptFeSpace2_ = right.ptFeSpace2_;
+        this->intScheme_ = right.intScheme_;
+      }
+
+      /** Create a deep copy of the current objects pointer in combination
+       *  with meaningful copy constructors
+       */
+      virtual BiLinearForm* Clone()=0;
+
 
       virtual ~BiLinearForm(){
 

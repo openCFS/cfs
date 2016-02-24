@@ -18,6 +18,10 @@ namespace CoupledField {
 
   }
 
+ SingleEntryInt::SingleEntryInt(const SingleEntryInt& right )
+   : LinearForm(right){
+   this->val_ = right.val_;
+ }
 
   SingleEntryInt::~SingleEntryInt() {
   }
