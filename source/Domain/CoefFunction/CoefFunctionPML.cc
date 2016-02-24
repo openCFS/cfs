@@ -387,10 +387,144 @@ Enum<DampFunction::DampingType> DampFunction::DampingTypeEnum = \
        sizeof(dampTypeTubles) / sizeof(EnumTuple),
        dampTypeTubles);
 
+template<typename T>
+CoefFunctionShiftedPML<T>::CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                                                  StdVector<RegionIdType> pdeDomains, bool isVector)
+  : CoefFunctionPML<T>(pmlDef, speedOfSound, EntList, pdeDomains, isVector)
+{
+  std::string scalingCoefStr, shiftCoefStr;
+  Double scalingPow = 0.0, shiftPow = 0.0;
+
+  PtrParamNode scalingNode = pmlDef->Get("scalingCoef", ParamNode::PASS);
+  if (scalingNode)
+  {
+    scalingNode->GetValue("value", scalingCoefStr);
+    scalingNode->GetValue("power", scalingPow);
+    scalingFunc_.reset(new DampFunctionPolyDirect(scalingPow));
+    scalingCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, scalingCoefStr);
+  }
+
+  PtrParamNode shiftNode = pmlDef->Get("frqShiftCoef", ParamNode::PASS);
+  if (shiftNode)
+  {
+    shiftNode->GetValue("value", shiftCoefStr);
+    shiftNode->GetValue("power", shiftPow);
+    shiftFunc_.reset(new DampFunctionPolyInverse(shiftPow));
+    shiftCoef_ = CoefFunction::Generate(this->mp_, Global::REAL, shiftCoefStr);
+  }
+
+  this->formulationType_ = CoefFunctionPML<T>::SHIFTED;
+}
+
+template<typename T>
+CoefFunctionShiftedPML<T>::~CoefFunctionShiftedPML() { }
+
+template<typename T>
+void CoefFunctionShiftedPML<T>::GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm)
+{
+  // this is diagonal tensor with the coefficients 1/s
+
+  tensor.Resize(this->dim_, this->dim_);
+  tensor.Init();
+  Vector<Complex> vector;
+  GetVector(vector, lpm);
+
+  for (UInt i = 0; i < this->dim_; ++i)
+  {
+    tensor[i][i] = vector[i];
+  }
+}
+
+template<typename T>
+void CoefFunctionShiftedPML<T>::GetVector(Vector<Complex>& vector, const LocPointMapped& lpm)
+{
+  // vector of the form { 1/sx, 1/sy, 1/sz }
+
+  vector.Resize(this->dim_);
+  vector.Init();
+  Double locThick = 0.0;
+  Double position = 0.0;
+  Complex dummy(1.0, 0.0);
+
+  // s = kappa + sigma/(alpha + i*w) =
+  //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
+  Double sos, alpha, kappa, sigma, frac;
+  this->speedOfSound_->GetScalar(sos, lpm);
+
+  Double kappa0 = 0.0, alpha0 = 0.0;
+  scalingCoef_->GetScalar(kappa0, lpm);
+  shiftCoef_->GetScalar(alpha0, lpm);
+  // These two values are to be used as coefficients in scaling and frequency shifting functions:
+  // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
+  scalingFunc_->DampFactor = kappa0;
+  shiftFunc_->DampFactor = alpha0;;
+
+  for (UInt i = 0; i < this->dim_; ++i)
+  {
+    this->GetThicknessAtPoint(locThick, position, lpm, i);
+    if (abs(locThick) > 0.0)
+    {
+      sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+      kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
+      alpha = shiftFunc_->ComputeFactor(position, locThick);
+      frac = sigma/(alpha*alpha + this->omega_*this->omega_);
+      Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
+      vector[i] = dummy/fac;
+    }
+    else
+    {
+      vector[i] = dummy;
+    }
+  }
+}
+
+template<typename T>
+void CoefFunctionShiftedPML<T>::GetScalar(Complex& scalar, const LocPointMapped& lpm)
+{
+  // computes sx*sy*sz
+
+  Double locThick = 0.0;
+  Double position = 0.0;
+  Complex dummy(1.0, 0.0);
+  scalar = dummy;
+
+  // s = kappa + sigma/(alpha + i*w) =
+  //   = kappa + alpha*sigma/(alpha^2 + w^2) - i*w*sigma/(alpha^2 + w^2) = kappa + alpha*frac - i*w*frac
+  Double sos, alpha, kappa, sigma, frac;
+  this->speedOfSound_->GetScalar(sos, lpm);
+
+  Double kappa0 = 0.0, alpha0 = 0.0;
+  scalingCoef_->GetScalar(kappa0, lpm);
+  shiftCoef_->GetScalar(alpha0, lpm);
+  // These two values are to be used as coefficients in scaling and frequency shifting functions:
+  // kappa(x) = 1 + kappa0*Fk(x); alpha(x) = alpha0*Fa(x)
+  scalingFunc_->DampFactor = kappa0;
+  shiftFunc_->DampFactor = alpha0;
+
+  for (UInt i = 0; i < this->dim_; ++i)
+  {
+    this->GetThicknessAtPoint(locThick, position, lpm, i);
+    if (abs(locThick) > 0.0)
+    {
+      sigma = sos*this->dampFunction_->ComputeFactor(position, locThick);
+      kappa = 1.0 + scalingFunc_->ComputeFactor(position, locThick);
+      alpha = shiftFunc_->ComputeFactor(position, locThick);
+      frac = sigma/(alpha*alpha + this->omega_*this->omega_);
+      Complex fac(kappa + alpha*frac, -1.0*this->omega_*frac);
+      scalar *= fac;
+    }
+    else
+    {
+      scalar *= dummy;
+    }
+  }
+}
 
 // Explicit template instantiation
 #ifdef EXPLICIT_TEMPLATE_INSTANTIATION
   template class CoefFunctionPML<Double>;
   template class CoefFunctionPML<Complex>;
+  template class CoefFunctionShiftedPML<Double>;
+  template class CoefFunctionShiftedPML<Complex>;
 #endif
 }

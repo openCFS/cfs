@@ -383,13 +383,16 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
             if (pmlFormul == "classic")
             {
               coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
               coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                               ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
             }
             else if (pmlFormul == "shifted")
             {
-              EXCEPTION("Not implemented");
+              coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                               ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
             }
             else
             {
@@ -413,6 +416,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         if (harmonicPML)
         {
           stiffInt =  GetStiffIntegrator(actSDMat, actRegion, true, coefPMLScal);
+          stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
         }
         else
         {
@@ -738,12 +742,14 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
           shared_ptr<MortarInterface> mortarIf = boost::dynamic_pointer_cast<MortarInterface>(ncIf);
           assert(mortarIf);
 
-          PtrCoefFct matDataTensorMas, matDataTensorSla;
+          PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
           RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
           RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
 
           matDataTensorMas = regionStiffness_[volMasterId];
           matDataTensorSla = regionStiffness_[volSlaveId];
+          assert(matDataTensorMas);
+          assert(matDataTensorSla);
 
           if (formulation == "Nitsche")
           {
@@ -822,46 +828,48 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                 if (pmlFormul == "classic")
                 {
                   coefFuncPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                           ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
                   coefFuncPMLScl.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                           ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
                 }
                 else if (pmlFormul == "shifted")
                 {
-//                  coefFuncPMLVec.reset(new CoefFunctionFrShiftPML<Complex>(pmlNode, speedOfSnd,
-//                                           ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
-//                  coefFuncPMLScl.reset(new CoefFunctionFrShiftPML<Complex>(pmlNode, speedOfSnd,
-//                                           ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                  coefFuncPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                  coefFuncPMLScl.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                       ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
                 }
                 else
                 {
                   EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
                 }
 
-                matDataTensorMas = CoefFunction::Generate(mp_, Global::COMPLEX,
-                                                          CoefXprTensScalOp(mp_, matDataTensorMas, coefFuncPMLScl, CoefXpr::OP_MULT));
+                matData = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                                 CoefXprTensScalOp(mp_, matDataTensorMas, coefFuncPMLScl, CoefXpr::OP_MULT));
               }
               else
-                EXCEPTION("Not implemented yet");
+                EXCEPTION("The analysis type '" << this->analysistype_ << "' is not supported!");
             }
+            else
+              matData = matDataTensorMas;
 
             // define bilinear forms for Nitsche coupling
             cplDir = BiLinearForm::MASTER_MASTER;
             pnlt_uM_vM = GetPenaltyIntegrator(factor, beta, cplDir);
             flux_DuM_vM = GetFluxIntegrator(one, coefFuncPMLVec, -1.0, cplDir, true, icModes);
             flux_uM_DvM = GetFluxIntegrator(factor, coefFuncPMLVec, -1.0, cplDir, false, icModes);
-            flux_DuM_vM->SetBCoefFunctionOpA(matDataTensorMas);
-            flux_uM_DvM->SetBCoefFunctionOpB(matDataTensorMas);
+            flux_DuM_vM->SetBCoefFunctionOpA(matData);
+            flux_uM_DvM->SetBCoefFunctionOpB(matData);
 
             cplDir = BiLinearForm::MASTER_SLAVE;
             pnlt_uM_vS = GetPenaltyIntegrator(factorSqr, -beta, cplDir);
             flux_DuM_vS = GetFluxIntegrator(factor, coefFuncPMLVec, 1.0, cplDir, true, icModes);
-            flux_DuM_vS->SetBCoefFunctionOpA(matDataTensorMas);
+            flux_DuM_vS->SetBCoefFunctionOpA(matData);
 
             cplDir = BiLinearForm::SLAVE_MASTER;
             pnlt_uS_vM = GetPenaltyIntegrator(one, -beta, cplDir);
             flux_uS_DvM = GetFluxIntegrator(one, coefFuncPMLVec, 1.0, cplDir, false, icModes);
-            flux_uS_DvM->SetBCoefFunctionOpB(matDataTensorMas);
+            flux_uS_DvM->SetBCoefFunctionOpB(matData);
 
             cplDir = BiLinearForm::SLAVE_SLAVE;
             pnlt_uS_vS = GetPenaltyIntegrator(factor, beta, cplDir);
@@ -1575,8 +1583,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   {
     BaseBDBInt* integ = NULL;
     BaseBOperator* bOp = NULL;
-    // Get region name
-    std::string regionName = ptGrid_->GetRegion().ToString(regionId);
 
     // ------------------------
     //  Obtain linear material
@@ -1586,6 +1592,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
     // store coefficient function for later use (e.g. in boundary integrators)
     regionStiffness_[regionId] = curCoef;
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
 
     // ----------------------------------------
     //  Determine correct stiffness integrator 
@@ -1597,10 +1604,9 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     else if (subType_ == "3d")
       bOp = new ScaledStrainOperator3D<FeH1, Complex>();
     else
-      EXCEPTION("Scaled strain operator is not implemented for the subtype" << subType_);
+      EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
     
-    bOp->SetCoefFunction(scalingFactor);
-    integ = new BDBInt<Complex, Complex>(bOp, curCoef, 1.0, updatedGeo_);
+    integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
 
     return integ;
   }
@@ -1696,83 +1702,71 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                                            BiLinearForm::CouplingDirection cplDir, bool fluxOpA, bool icModes, bool preStress)
   {
     BiLinearForm* integ = NULL;
+    BaseBOperator *fluxOp = NULL, *idOp = NULL;
 
-    if (preStress)
-      if (fluxOpA)
+    // The flux operator will implement either a scaled differential operator if a non-zero 'coefFnc' has bee passed,
+    // or a normal differential operator otherwise. The differential operator can be either 'SurfaceNormalStress' or
+    // 'SurfaceNormalPreStress', depending on the flag 'preStress'
+    if (dim_ == 3)
+    {
+      idOp = new SurfaceIdentityOperator<FeH1, 3, 3>();
+      if (coefFuncPMLVec)
       {
-        if (dim_ == 2)
-        {
-          if (subType_ == "2.5d")
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalPreStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-          else
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalPreStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-
-        }
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes);
         else
-          integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalPreStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                            new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                                                            scalCoefFucn, factor, cplDir, updatedGeo_);
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes);
       }
       else
       {
-        if (dim_ == 2)
-        {
-          if (subType_ == "2.5d")
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                                                              new SurfaceNormalPreStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-          else
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                                                              new SurfaceNormalPreStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-        }
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 3, 3, Double>(subType_, icModes);
         else
-          integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                                                            new SurfaceNormalPreStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                            scalCoefFucn, factor, cplDir, updatedGeo_);
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 3, 3, Double>(subType_, icModes);
       }
+    }
+    else if (dim_ == 2 && subType_ == "2.5d")
+    {
+      idOp = new SurfaceIdentityOperator<FeH1, 2, 3>();
+      if (coefFuncPMLVec)
+      {
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes);
+        else
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes);
+      }
+      else
+      {
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 2, 3, Double>(subType_, icModes);
+        else
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 2, 3, Double>(subType_, icModes);
+      }
+    }
     else
-      if (fluxOpA)
+    {
+      idOp = new SurfaceIdentityOperator<FeH1, 2, 2>();
+      if (coefFuncPMLVec)
       {
-        if (dim_ == 2)
-        {
-          if (subType_ == "2.5d")
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-          else
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-
-        }
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes);
         else
-          integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceNormalStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                            new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                                                            scalCoefFucn, factor, cplDir, updatedGeo_);
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes);
       }
       else
       {
-        if (dim_ == 2)
-        {
-          if (subType_ == "2.5d")
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 3>(),
-                                                              new SurfaceNormalStressOperator<FeH1, 2, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-          else
-            integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 2>(),
-                                                              new SurfaceNormalStressOperator<FeH1, 2, 2, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                              scalCoefFucn, factor, cplDir, updatedGeo_);
-        }
+        if (preStress)
+          fluxOp = new SurfaceNormalPreStressOperator<FeH1, 2, 2, Double>(subType_, icModes);
         else
-          integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 3, 3>(),
-                                                            new SurfaceNormalStressOperator<FeH1, 3, 3, Complex>(subType_, coefFuncPMLVec, icModes),
-                                                            scalCoefFucn, factor, cplDir, updatedGeo_);
+          fluxOp = new SurfaceNormalStressOperator<FeH1, 2, 2, Double>(subType_, icModes);
       }
+    }
+
+    // Check whether we have a du/dn*v or a u*dv/dn bilinear form
+    if (fluxOpA)
+      integ = new SurfaceNitscheABInt<Complex, Complex>(fluxOp, idOp, scalCoefFucn, factor, cplDir, updatedGeo_);
+    else
+      integ = new SurfaceNitscheABInt<Complex, Complex>(idOp, fluxOp, scalCoefFucn, factor, cplDir, updatedGeo_);
 
     return integ;
   }
