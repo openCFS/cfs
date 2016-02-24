@@ -172,13 +172,16 @@ namespace CoupledField {
           if (pmlFormul == "classic")
           {
             coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                              ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
             coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                             ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
           }
           else if (pmlFormul == "shifted")
           {
-            EXCEPTION("Not implemented");
+            coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                              ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+            coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                             ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
           }
           else
           {
@@ -196,7 +199,10 @@ namespace CoupledField {
       // ----- standard real-valued stiffness integrator
       BaseBDBInt* stiffInt = NULL;
       if (harmonicPML)
-        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion, coefPMLVec);
+      {
+        stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion, coefPMLScal);
+        stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
+      }
       else
         stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);
 
@@ -273,7 +279,7 @@ namespace CoupledField {
 
         if (formulation == "Nitsche")
         {
-          PtrCoefFct matDataTensorMas, matDataTensorSla;
+          PtrCoefFct matDataTensorMas, matDataTensorSla, matData;
           RegionIdType volMasterId = mortarIf->GetMasterVolRegion();
           RegionIdType volSlaveId = mortarIf->GetSlaveVolRegion();
 
@@ -352,42 +358,48 @@ namespace CoupledField {
               if (pmlFormul == "classic")
               {
                 coefFuncPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                         ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
                 coefFuncPMLScl.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
-                                         ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
               }
               else if (pmlFormul == "shifted")
               {
-                EXCEPTION("Not implemented");
+                coefFuncPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+                coefFuncPMLScl.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                     ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
               }
               else
               {
                 EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
               }
 
-              matDataTensorMas = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, matDataTensorMas, coefFuncPMLScl, CoefXpr::OP_MULT));
+              matData = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                               CoefXprTensScalOp(mp_, matDataTensorMas, coefFuncPMLScl, CoefXpr::OP_MULT));
             }
             else
-              EXCEPTION("Not implemented yet");
+              EXCEPTION("The analysis type '" << this->analysistype_ << "' is not supported!");
           }
+          else
+            matData = matDataTensorMas;
 
           // define bilinear forms for Nitsche coupling
           cplDir = BiLinearForm::MASTER_MASTER;
           pnlt_PhiM_PsiM = GetPenaltyIntegrator(factor, beta*pz, cplDir);
           flux_DPhiM_PsiM = GetFluxIntegrator(one, coefFuncPMLVec, -1.0*pz, cplDir, true);
           flux_PhiM_DPsiM = GetFluxIntegrator(factor, coefFuncPMLVec, -1.0*pz, cplDir, false);
-          flux_DPhiM_PsiM->SetBCoefFunctionOpA(matDataTensorMas);
-          flux_PhiM_DPsiM->SetBCoefFunctionOpB(matDataTensorMas);
+          flux_DPhiM_PsiM->SetBCoefFunctionOpA(matData);
+          flux_PhiM_DPsiM->SetBCoefFunctionOpB(matData);
 
           cplDir = BiLinearForm::MASTER_SLAVE;
           pnlt_PhiM_PsiS = GetPenaltyIntegrator(factorSqr, -beta*pz, cplDir);
           flux_DPhiM_PsiS = GetFluxIntegrator(factor, coefFuncPMLVec, 1.0*pz, cplDir, true);
-          flux_DPhiM_PsiS->SetBCoefFunctionOpA(matDataTensorMas);
+          flux_DPhiM_PsiS->SetBCoefFunctionOpA(matData);
 
           cplDir = BiLinearForm::SLAVE_MASTER;
           pnlt_PhiS_PsiM = GetPenaltyIntegrator(one, -beta*pz, cplDir);
           flux_PhiS_DPsiM = GetFluxIntegrator(one, coefFuncPMLVec, 1.0*pz, cplDir, false);
-          flux_PhiS_DPsiM->SetBCoefFunctionOpB(matDataTensorMas);
+          flux_PhiS_DPsiM->SetBCoefFunctionOpB(matData);
 
           cplDir = BiLinearForm::SLAVE_SLAVE;
           pnlt_PhiS_PsiS = GetPenaltyIntegrator(factor, beta, cplDir);
@@ -877,6 +889,7 @@ namespace CoupledField {
     
     // store coefficient function for later use (e.g. in boundary integrators)
     regionPermittivity_[regionId] = curCoef;
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, curCoef, scalingFactor, CoefXpr::OP_MULT_TENSOR));
 
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
@@ -893,9 +906,8 @@ namespace CoupledField {
     }
     else
       bOp = new ScaledGradientOperator<FeH1, 3, Complex>();
-    bOp->SetCoefFunction(scalingFactor);
 
-    integ = new BDBInt<Complex, Complex>(bOp, curCoef, factor, updatedGeo_);
+    integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, factor, updatedGeo_);
 
     return integ;
   }

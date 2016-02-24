@@ -1103,7 +1103,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(DIM_D_MAT, numFncs * DIM_SPACE);
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
      bMat.Init();
 
      UInt iFunc = 0;
@@ -1139,7 +1139,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT);
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT);
      bMat.Init();
 
      UInt iFunc = 0;
@@ -1161,7 +1161,7 @@ namespace CoupledField{
    void ScaledStrainOperator2D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1192,7 +1192,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(DIM_D_MAT, numFncs * DIM_SPACE);
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
      bMat.Init();
 
      UInt iFunc = 0;
@@ -1214,7 +1214,7 @@ namespace CoupledField{
    void ScaledStrainOperator2D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1245,7 +1245,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT);
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT);
      bMat.Init();
 
      UInt iFunc = 0;
@@ -1454,7 +1454,7 @@ namespace CoupledField{
    void ScaledStrainOperator3D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1522,7 +1522,7 @@ namespace CoupledField{
    void ScaledStrainOperator3D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1553,7 +1553,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT );
      bMat.Init();
 
      UInt iFunc = 0;
@@ -1774,7 +1774,7 @@ namespace CoupledField{
    void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1843,7 +1843,7 @@ namespace CoupledField{
    void ScaledStrainOperator2p5D<FE,TYPE>::CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
    {
      assert(this->coef_ != NULL);
-     Vector<Double> coefs;
+     Vector<Complex> coefs;
      this->coef_->GetVector(coefs, lp);
 
      // Get derivatives of local shape functions with respect to global
@@ -1874,7 +1874,7 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs * DIM_SPACE , DIM_D_MAT );
+     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT );
      bMat.Init();
 
      // commented entries are zeros in 2.5D case

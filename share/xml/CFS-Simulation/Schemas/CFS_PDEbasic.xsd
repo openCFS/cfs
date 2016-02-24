@@ -712,6 +712,12 @@
   <!-- ******************************************************************* -->
   <!--   Definition of PML damping -->
   <!-- ******************************************************************* -->
+  <xsd:simpleType name="DT_PMLFormulation">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="classic"/>
+      <xsd:enumeration value="shifted"/>
+    </xsd:restriction>
+  </xsd:simpleType>
 
   <!-- Definition of pml damping type -->
   <xsd:complexType name="DT_DampingPML">
@@ -759,9 +765,40 @@
             </xsd:annotation>
           </xsd:element>
 
+          <!-- Stretching factor for CFS-PML -->
+          <xsd:element name="scalingCoef" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                A coefficient in the scaling term of the CFS-PML metric. Namely, the coefficient k0:
+                s(x, w) = k(x) + sigma(x)/( alpha(x) + i*w ); k(x) = 1 + k0*Fk(x)
+                If k0 = 0, then there's no scaling in wavelength.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="value" type="xsd:token" default="0" use="optional"/>
+              <xsd:attribute name="power" type="xsd:token" default="0" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+          
+          <!-- Frequency shift for CFS-PML -->
+          <xsd:element name="frqShiftCoef" minOccurs="0" maxOccurs="1">
+            <xsd:annotation>
+              <xsd:documentation>
+                A coefficient in the frequency shift term of the CFS-PML metric. Namely, the coefficient alpha0:
+                s(x, w) = k(x) + sigma(x)/( alpha(x) + i*w ); alpha(x) = alpha0*Fa(x)
+                If alpha0 = 0, then there's no frequency shift.
+              </xsd:documentation>
+            </xsd:annotation>
+            <xsd:complexType>
+              <xsd:attribute name="value" type="xsd:token" default="0" use="optional"/>
+              <xsd:attribute name="power" type="xsd:token" default="0" use="optional"/>
+            </xsd:complexType>
+          </xsd:element>
+
           <!--xsd:element name="aPML"  type="DT_CFSBool" minOccurs="0" maxOccurs="1" default="no"/-->
         </xsd:sequence>
 
+        <xsd:attribute name="formulation" type="DT_PMLFormulation" default="classic" use="optional"/>
       </xsd:extension>
     </xsd:complexContent>
   </xsd:complexType>

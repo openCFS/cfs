@@ -28,7 +28,7 @@ namespace CoupledField{
 class DampFunction{
 
 public:
-  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS } DampingType;
+  typedef enum{ NO_TYPE, CONSTANT, INVERSE_DIST, QUADRATIC, SMOOTH, TANGENS, POLY_DIRECT, POLY_INVERSE } DampingType;
   static Enum<DampingType> DampingTypeEnum;
 
   DampFunction(){
@@ -145,6 +145,46 @@ public:
 
 };
 
+class DampFunctionPolyDirect : public DampFunction
+{
+private:
+  UInt power_;
+
+public:
+  DampFunctionPolyDirect(UInt power) : DampFunction()
+  {
+    power_ = power;
+    constFactor = -0.5*(power_ + 1)*log(ReflectionCoefficient);
+    functionType = POLY_DIRECT;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness)
+  {
+    Double value = pow(pos/thickness, power_);
+    return DampFactor*value;
+  }
+};
+
+class DampFunctionPolyInverse : public DampFunction
+{
+private:
+  UInt power_;
+
+public:
+  DampFunctionPolyInverse(UInt power) : DampFunction()
+  {
+    power_ = power;
+    constFactor = -0.5*(power_ + 1)*log(ReflectionCoefficient);
+    functionType = POLY_INVERSE;
+  }
+
+  Double ComputeFactor(Double pos, Double thickness)
+  {
+    Double value = pow(1.0 - pos/thickness, power_);
+    return DampFactor*value;
+  }
+};
+
 template<typename T>
 class CoefFunctionPML : public CoefFunction{
 
@@ -259,6 +299,39 @@ protected:
     //! flag, if PML coefficient functions describes the vector 
     bool isVector_;
 
+};
+
+template<typename T>
+class CoefFunctionShiftedPML : public CoefFunctionPML<T>
+{
+
+public:
+
+  CoefFunctionShiftedPML(PtrParamNode pmlDef, PtrCoefFct speedOfSound, shared_ptr<EntityList> EntList,
+                         StdVector<RegionIdType> pdeDomains, bool isVector);
+
+  virtual ~CoefFunctionShiftedPML();
+
+  //! \copydoc CoeffFunctionPML::GetTensor
+  virtual void GetTensor(Matrix<Complex>& tensor, const LocPointMapped& lpm);
+
+  //! \copydoc CoeffFunctionPML::GetVector
+  virtual void GetVector(Vector<Complex>& vector, const LocPointMapped& lpm);
+
+  //! \copydoc CoeffFunctionPML::GetScalar
+  virtual void GetScalar(Complex& scalar, const LocPointMapped& lpm);
+
+  using CoefFunctionPML<T>::GetTensor;
+
+  using CoefFunctionPML<T>::GetVector;
+
+  using CoefFunctionPML<T>::GetScalar;
+
+protected:
+
+  PtrCoefFct scalingCoef_, shiftCoef_;
+
+  shared_ptr<DampFunction> scalingFunc_, shiftFunc_;
 };
 
 }
