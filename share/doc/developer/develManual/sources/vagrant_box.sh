@@ -1,7 +1,8 @@
-CFSDSFTP=@CFS_DS_FTP@
-BASE_BOX=$CFSDSFTP/boxes/oracle6.box
+CFSDSHOSTNAME=@CFS_DS_HOSTNAME@
+BASE_BOX=oracle6.box
 
 mkdir oracle6 && cd oracle6    # Create temp directory
+echo "get boxes/$BASE_BOX" | sftp ftpUser@$CFSDSHOSTNAME
 vagrant init oracle6 $BASE_BOX # Create Vagrantfile
 vagrant up                     # Import, start & provision
 vagrant ssh                    # Login to VBox

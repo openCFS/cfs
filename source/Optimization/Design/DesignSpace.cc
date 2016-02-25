@@ -668,8 +668,21 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Matrix<T
 
 
   // check if we shall perform param-mat -> construct the tensor by ourselves instead of multiplying it with the mat tensor
-  if(designMaterial != NULL) // easy to extend to piezo and other stuff!
+  if(designMaterial != NULL) { // easy to extend to piezo and other stuff!
+    if (this->getDesignMaterialType() == designMaterial->MSFEM_C1) {
+      if (this->IsRegular()) {
+        /*domain->GetGrid()->GetElemNodesCoord(ptCoord_,elem->connect,false);
+        double dx = ptCoord_[0][0]-ptCoord_[0][1];
+        double dy = ptCoord_[1][0]-ptCoord_[1][1];
+        elemMatrix *= 0.25*dx*dy;*/
+        //elemMatrix *= 1.;
+      } else {
+        EXCEPTION("MSFEM Element matrix only valid for REGULAR grids.");
+      }
+      return designMaterial->GetErsatzElementMatrixMSFEM(dynamic_cast <Matrix<Double > &> (retMat),lpm->ptEl,coef->GetMaterialDerivative());
+    }
     return designMaterial->GetMechTensor(retMat, coef->subTensor, lpm->ptEl, coef->GetMaterialDerivative(), DesignMaterial::VOIGT);
+  }
 
   double bimat_factor = -1.0;
 
@@ -809,9 +822,8 @@ bool DesignSpace::GetErsatzMaterialDamping(double& alpha, double& beta, const El
 
 */
 bool DesignSpace::GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction){
-  // collect all parameters
   if(designMaterial != NULL){
-    designMaterial->GetErsatzElementMatrixMSFEM(t, direction);
+    designMaterial->GetErsatzElementMatrixMSFEM(t, elem, direction);
     return(true);
   }
   return(false);

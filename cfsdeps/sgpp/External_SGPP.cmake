@@ -150,10 +150,6 @@ SET(LD "${CFS_BINARY_DIR}/${LIB_SUFFIX}/${CFS_ARCH_STR}")
 #  )
 # New SGPP (sgopt)
 SET(SGPP_LIBRARY 
-#  ${LD}/libsgppoptimization.so;
-#  ${LD}/libsgppoptimization.so;
-#  ${LD}/libsgppoptimization.so;
-#  ${LD}/libsgppoptimization.so;
   ${LD}/libsgppoptimization.so;
   ${LD}/libsgppbase.so;
   libarmadillo.so;

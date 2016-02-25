@@ -87,7 +87,7 @@ SET(ENV{LC_MESSAGES} "en_EN")
 SET(ENV{LANG} C)
 
 #-----------------------------------------------------------------------------
-# Include some utility macros (for building ext. libs, etc...) 
+# Include some utility macros (for building ext. libs, etc...)
 #-----------------------------------------------------------------------------
 INCLUDE("cmake_modules/CFS_macros.cmake")
 
@@ -102,7 +102,7 @@ SET(CFS_VERSION
 #-----------------------------------------------------------------------------
 # Version Name. Every major release gets a label/name
 #-----------------------------------------------------------------------------
-SET(CFS_NAME "Verlorene Soehne")
+SET(CFS_NAME "Back To The Future")
 
 colormsg(HIBLUE
   "Configuration for CFS++ ${CFS_VERSION}: ${CFS_NAME} starting")
@@ -139,7 +139,7 @@ IF(WIN32 AND NOT CMAKE_CROSSCOMPILING)
 
 ELSEIF(UNIX OR MINGW)
   EXECUTE_PROCESS(
-    COMMAND id -u -nr 
+    COMMAND id -u -nr
     WORKING_DIRECTORY "."
     OUTPUT_VARIABLE CFS_BUILD_USER
     )
@@ -165,7 +165,7 @@ OPTION(CFS_DEPS_PRECOMPILED
 # Switch on/off usage of custom-built Python
 #-----------------------------------------------------------------------------
 OPTION(USE_PYTHON
-  "Build our own Python for CFS++." 
+  "Build our own Python for CFS++."
   ${USE_PYTHON_DEFAULT})
 
 #-----------------------------------------------------------------------------
@@ -262,7 +262,7 @@ IF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
   SET(CFS_BLAS_LAPACK "MKL" CACHE STRING
     "BLAS/LAPACK implementation. May be one of OPENBLAS, MKL, NETLIB"
     FORCE)
-  # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")   
+  # MESSAGE("With USE_PARDISO and CFS_PARDISO=MKL we enforce CFS_BLAS_LAPACK=MKL")
 ENDIF(USE_PARDISO AND CFS_PARDISO STREQUAL "MKL")
 
 #-----------------------------------------------------------------------------
@@ -528,15 +528,20 @@ IF(BUILD_TESTING)
 
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables visualization tests for matviz.py
+# Enables testsuite for matviz.py used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS
-  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+
+# The performance tests are meant for the nightly builds. For some strange reasons
+# PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
+OPTION(PERF_TESTS "Add performance tests to the test-cases")
+
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.

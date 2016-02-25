@@ -59,7 +59,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
       STRING(REPLACE "=" ";" line "${line}")
       LIST(GET line 1 line)
       STRING(REPLACE ${DIRSEP} ";" GFORTRAN_SEARCH_DIRS "${line}")
-      # MESSAGE(FATAL_ERROR "GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
+     # MESSAGE(FATAL_ERROR "GFORTRAN_SEARCH_DIRS ${GFORTRAN_SEARCH_DIRS}")
     ENDIF()
   endforeach()
 
@@ -85,7 +85,7 @@ IF(CFS_FORTRAN_COMPILER_NAME STREQUAL "GNU" OR UNIX)
   # Let's find the shared version of the gfortran runtime lib.
   #---------------------------------------------------------------------------
   FIND_LIBRARY(GFORTRAN_LIBRARY
-    NAMES gfortran
+    NAMES gfortran 
     PATHS ${GFORTRAN_SEARCH_DIRS}
     NO_DEFAULT_PATH
     NO_CMAKE_ENVIRONMENT_PATH
@@ -250,6 +250,19 @@ IF(CMAKE_CROSSCOMPILING)
     SET(FortranCInterface_EXE
         "${CFS_BINARY_DIR}/CMakeFiles/FortranCInterface/FortranCInterface.exe"
     )
+    
+    FIND_LIBRARY(QUADMATH_LIBRARY
+      NAMES quadmath
+      PATHS ${GFORTRAN_SEARCH_DIRS}
+      NO_DEFAULT_PATH
+      NO_CMAKE_ENVIRONMENT_PATH
+      NO_CMAKE_PATH
+      NO_SYSTEM_ENVIRONMENT_PATH
+      NO_CMAKE_SYSTEM_PATH 
+    )
+    
+    LIST(APPEND GFORTRAN_LIBRARY "${QUADMATH_LIBRARY}")
+
   ENDIF()
 ENDIF()
 

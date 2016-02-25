@@ -171,6 +171,9 @@ void StateContainer::WriteAverage(SinglePDE* pde, int sequence, const Function* 
 {
   StdVector<StateSolution*> states = Search(NULL, sequence, f);
 
+  if(states.GetSize() == 0)
+    return; // shall be only LBM?
+
   if(states.GetSize() == 1)
     states[0]->Write(pde);
   else

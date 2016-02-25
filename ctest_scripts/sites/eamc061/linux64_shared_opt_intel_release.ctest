@@ -11,12 +11,6 @@
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
 SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_intel_release")
 
-#-----------------------------------------------------------------------------
-# Specify that we want to do an experimental build without updating the CFS++
-# working copy. I.e. we leave away the ExperimentalUpdate step between
-# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
-# done by simon on mac before the the test scripts on rom get executed.
-#-----------------------------------------------------------------------------
 SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
 
 #-----------------------------------------------------------------------------
@@ -102,6 +96,7 @@ SET(CTEST_INITIAL_CACHE
    TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
    CFS_DEPS_PRECOMPILED:BOOL=ON 
    CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   PERF_TESTS:BOOL=ON
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF

@@ -97,9 +97,6 @@ public:
   /** implementation of objective function */
   double CalcPressureDrop();
 
-  //! returns if PDE can compute the quantity
-//  virtual bool HasOutput(SolutionType output);
-
   // returns how often CalcResults() was called. We need this to write out the last simulation step
   inline int GetNumWriteResults() {return numWriteResults_;}
 
@@ -138,18 +135,24 @@ public:
   /** Calculate velocity components for given density and element idx */
   inline double CalcVelocityX(unsigned int idx, double density) const
   {
-    if (n_q_ == 9)
-      return (GetPdf(idx, Q_E) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_SE) - GetPdf(idx, Q_W) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_SW)) / density;
+    if (n_q_ == 9) {
+      double val = ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW))) / density;
+      double term1 = GetPdf(idx, Q_E) - GetPdf(idx, Q_W);
+      double term2 = GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW);
+      double term3 = GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW);
+      double test = term1+term2+term3;
+      return val + test - test;
+    }
     else
-      return (GetPdf(idx, Q_NE) + GetPdf(idx, Q_E) + GetPdf(idx, Q_SE) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_BE) - GetPdf(idx, Q_NW) - GetPdf(idx, Q_W) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_TW) - GetPdf(idx, Q_BW)) / density;
+      return ((GetPdf(idx, Q_E) - GetPdf(idx, Q_W)) +( GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_SE) - GetPdf(idx, Q_NW)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_BE) - GetPdf(idx, Q_TW))) / density;
   }
 
   inline double CalcVelocityY(unsigned int idx, double density) const
   {
     if (n_q_ == 9)
-      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NE) + GetPdf(idx, Q_NW) - GetPdf(idx, Q_S) - GetPdf(idx, Q_SW) - GetPdf(idx, Q_SE)) / density;
+      return ((GetPdf(idx, Q_N) - GetPdf(idx, Q_S)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_NW) - GetPdf(idx, Q_SE))) / density;
     else
-      return (GetPdf(idx, Q_N)  + GetPdf(idx, Q_NW) + GetPdf(idx, Q_NE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_BN) - GetPdf(idx, Q_S)- GetPdf(idx, Q_SE) - GetPdf(idx, Q_SW)  - GetPdf(idx, Q_TS) - GetPdf(idx, Q_BS)) / density;
+      return ((GetPdf(idx, Q_N) - GetPdf(idx, Q_S)) + (GetPdf(idx, Q_NW) - GetPdf(idx, Q_SE)) + (GetPdf(idx, Q_NE) - GetPdf(idx, Q_SW)) + (GetPdf(idx, Q_TN) - GetPdf(idx, Q_BS)) + (GetPdf(idx, Q_BN) - GetPdf(idx, Q_TS))) / density;
   }
 
   inline double CalcVelocityZ(unsigned int idx, double density) const
@@ -157,10 +160,12 @@ public:
     if (n_q_ == 9)
       return 0;
     else
-      return (GetPdf(idx, Q_T) + GetPdf(idx, Q_TW) + GetPdf(idx, Q_TE) + GetPdf(idx, Q_TN) + GetPdf(idx, Q_TS) - GetPdf(idx, Q_B) - GetPdf(idx, Q_BW) - GetPdf(idx, Q_BE) - GetPdf(idx, Q_BN) - GetPdf(idx, Q_BS)) / density;
+      return ((GetPdf(idx, Q_T) - GetPdf(idx, Q_B)) + (GetPdf(idx, Q_TW) - GetPdf(idx, Q_BE)) + (GetPdf(idx, Q_TE) - GetPdf(idx, Q_BW)) + (GetPdf(idx, Q_TN) - GetPdf(idx, Q_BS)) + (GetPdf(idx, Q_TS) - GetPdf(idx, Q_BN))) / density;
   }
 
-  inline void ExtractIntermediateSolution() {pdfs = lbm->GetPdfs();}
+  inline void ExtractIntermediateSolution() {
+    pdfs_ = lbm->GetPdfs();
+  }
 
   //! Calculate macroscopic velocities
   Vector<Double> CalcVelocities(unsigned int idx);
@@ -187,11 +192,11 @@ private:
   void DefinePrimaryResults();
 
   inline double GetPdf(unsigned int idx, int dir) const  {
-    return pdfs[idx * n_q_ + dir];
+    return pdfs_[idx * n_q_ + dir];
   };
 
   inline double& GetPdf(unsigned int idx, int dir) {
-    return pdfs.GetPointer()[idx * n_q_ + dir];
+    return pdfs_.GetPointer()[idx * n_q_ + dir];
   };
 
   inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
@@ -217,7 +222,7 @@ private:
 
   inline bool PointsToBoundary(unsigned int x, unsigned int y, unsigned int z, unsigned int dir)
   {
-    LatticeBoltzmann::PDFDirectionVector tmp = (*microVelDirections_)[dir];
+    LatticeBoltzmann::PDFDirectionVector tmp = microVelDirections_[dir];
     int tmp_x = x + tmp.off_x;
     int tmp_y = y + tmp.off_y;
     int tmp_z = z + tmp.off_z;
@@ -271,7 +276,7 @@ private:
   std::string method_;
 
   //! Flag indicating if PDE is assembled for first time
-  bool firstTurn_;
+//  bool firstTurn_;
 
   //! Vector storing factors for adapted pseudo mechanic bulk modulus
   Vector<Double> factor_;
@@ -309,15 +314,18 @@ private:
   // stores how many iterations were necessary to solve one flow problem with LBM
   unsigned int numIterations_;
 
-  /** the complete structure, special elements (negative) and densities */
+  /** the complete structure, special elements (negative) and porosities */
   StdVector<double> elements;
 
   /** This are the indices of the later Jacobian matrix entries which are non-singular.
    * @see SetNonSingualrityIndices() */
   StdVector<unsigned int> non_sing;
 
-  /** storage for for particle distribution. This is the simulation result for the function evaluation. */
-  StdVector<double> pdfs;
+  /** storage for particle distribution. This is the simulation result for the function evaluation. */
+  StdVector<double> pdfs_;
+
+  /** storage for adjoint particle distribution. This is the result of an adjoint SRT simulation. */
+  StdVector<double> adjPdfs;
 
   /** these are the indices of the inlet elements */
   StdVector<unsigned int> inlet;
@@ -349,8 +357,11 @@ private:
   // inlet velocities for parabolic inflow profile
   StdVector< StdVector<double> > u_in_;
 
-  StdVector<LatticeBoltzmann::PDFDirectionVector>* microVelDirections_;
-  StdVector<LatticeBoltzmannBase::Direction>* invPDFDirections_;
+  StdVector<LatticeBoltzmann::PDFDirectionVector> microVelDirections_;
+  StdVector<LatticeBoltzmannBase::Direction> invPDFDirections_;
+
+  StdVector<Matrix<double> > adjSRTCollision; // adjoint SRT collision matrices
+  StdVector<Vector<double> > d_pdrop_d_f;
 
   /** external lbm */
   std::string executable;
@@ -362,12 +373,14 @@ private:
   Iface iface_;
   Enum<Iface> iface;
 
+  /** Use Iface enums for indicating external adjoint solving or internal adjoint SRT LBM simulation */
+  Iface adjSRT_;
+
   /** total time of state problems */
   Timer state_;
 
   /** total time of adjoint solution */
   Timer adjoint_;
-
 };
 
 } // end of namespace

@@ -75,27 +75,18 @@ IF (DOXYGEN)
     ${DOXY_CONFIG}
     @ONLY )
 
-  SET(DOXY_CONFIG_NEW_IN "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/doxy-config-new.in")
-  SET(DOXY_CONFIG_NEW "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/doxy-config-new")
-  # MESSAGE(STATUS "Configuring ${DOXY_CONFIG_NEW_IN} --> ${DOXY_CONFIG_NEW}")
-  CONFIGURE_FILE(${DOXY_CONFIG_NEW_IN}
-    ${DOXY_CONFIG_NEW}
-    @ONLY )
-
   CONFIGURE_FILE(
     "${CMAKE_CURRENT_SOURCE_DIR}/doc-doxygen.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
     @ONLY )
 
   ADD_CUSTOM_TARGET(doc-doxygen
-                    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
-		    DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
-		    )
+    ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake"
+	DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/doc-doxygen.cmake" )
 
 
   ADD_CUSTOM_TARGET(doc-devel
-                    DEPENDS doc-develmanual doc-doxygen
-		    )
+    DEPENDS doc-develmanual doc-doxygen)
 
   # create a windows help .chm file using hhc.exe
   # HTMLHelp DLL must be in path!

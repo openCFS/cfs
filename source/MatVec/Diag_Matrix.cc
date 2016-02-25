@@ -3,7 +3,6 @@
 
 
 #include "Diag_Matrix.hh"
-#include "Utils/Timer.hh"
 
 #include "opdefs.hh"
 
