@@ -52,9 +52,11 @@ CONFIGURE_FILE("${PFN_TEMPL}" "${PFN}" @ONLY)
 # Also set name of local file in CFS_DEPS_CACHE_DIR and MD5_SUM which will be
 # used to configure the download CMake file for the library.
 #-------------------------------------------------------------------------------
+# the github stuff doesn't work as the archhives are called "3.2.0.tar.gz" instead of "arpack-ng-3.2.0.tar.gz" :(
+# "https://github.com/opencollab/arpack-ng/archive/${ARPACK_VER}.tar.gz"
 SET(MIRRORS
-  "http://ftp.rrze.uni-erlangen.de/macports/distfiles/arpack/${ARPACK_GZ}"
-  "http://forge.scilab.org/index.php/p/arpack-ng/downloads/get/${ARPACK_GZ}"
+  "http://ftp.uni-erlangen.de/macports/distfiles/arpack/${ARPACK_GZ}"
+  "${CFS_FAU_MIRROR}/sources/arpack/${ARPACK_GZ}"
   "${ARPACK_URL}/${ARPACK_GZ}"
 )
 SET(LOCAL_FILE "${CFS_DEPS_CACHE_DIR}/sources/arpack/${ARPACK_GZ}")
@@ -91,7 +93,7 @@ IF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}"
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
   )
-ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ELSE()
   #-------------------------------------------------------------------------------
   # If precompiled package does not exist build external project
   #-------------------------------------------------------------------------------
@@ -125,7 +127,7 @@ ELSE("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE
       WORKING_DIRECTORY ${CFS_BINARY_DIR}
     )
   ENDIF()
-ENDIF("${CFS_DEPS_PRECOMPILED}" STREQUAL "ON" AND EXISTS "${PRECOMPILED_PCKG_FILE}")
+ENDIF()
 
 #-------------------------------------------------------------------------------
 # Add project to global list of CFSDEPS

@@ -658,8 +658,7 @@ namespace CoupledField {
     out << "USE_ARPACK:            "
         << fg_blue  << "YES" << fg_reset << endl;
     out << "ARPACK_VERSION:        "
-        << fg_blue  << ARPACK_VERSION_NUMBER << " "
-        << ARPACK_VERSION_DATE << fg_reset << endl;
+        << fg_blue  << ARPACK_VERSION_NUMBER << fg_reset << endl;
 #else
     out << "USE_ARPACK:            "
         << fg_blue  << "NO" << fg_reset << endl;

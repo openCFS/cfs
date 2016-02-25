@@ -403,7 +403,9 @@ namespace CoupledField {
       
       // pass regions of primary function also RHS one
       StdVector< shared_ptr<EntityList> > support =  actFct->GetEntityList();
+      LOG_DBG(singlepde) << "IS3: support=" << support.GetSize();
       for( UInt i = 0; i < support.GetSize(); ++i ) {
+        LOG_DBG3(singlepde) << "IS3: support[" << i << "]=" << support[i]->GetName() << " size=" << support[i]->GetSize();
         rhsFeFunctions_[fncIt->first]->AddEntityList( support[i] );
       }
 
