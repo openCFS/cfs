@@ -594,59 +594,6 @@ protected:
 };
 
 // --------------------------------------------------------------------------
-//  TENSOR-VECTOR COEFFICIENT EXPRESSIONS WITH TWO ARGUMENTS (BINARY)
-// --------------------------------------------------------------------------
-
-//! Binary operation between tensor and vector coefficients
-
-//! This class wraps up binary expressions, which take as a first argument
-//! a tensor-valued CoefFunction and as second argument a vector valued CoefFunction.
-//!
-//! The only operation allowed is CoefXpr::OP_MULT.
-class CoefXprTensVecOp : public CoefXpr {
-public:
-  //! Constructor
-  CoefXprTensVecOp( MathParser * mp, PtrCoefFct a, PtrCoefFct b, CoefXpr::OpType op );
-
-  //! Constructor for coefficient function, string
-  //CoefXprTensVecOp( MathParser * mp, PtrCoefFct a, const std::string& b, CoefXpr::OpType op );
-
-  //! Constructor for string and coefficient function
-  //CoefXprTensVecOp( MathParser * mp, PtrCoefFct a, const CoefXpr& b, CoefXpr::OpType op );
-
-  //! Get scalar expression
-  void GetScalarXpr( std::string& real, std::string& imag ) const {
-    EXCEPTION( "Tensor-Vector-Operation provides no scalar results");
-  }
-
-  //! Get vector expression
-  void GetVectorXpr( StdVector<std::string>& real, StdVector<std::string>& imag ) const;
-
-  //! Get tensor expression
-  void GetTensorXpr( UInt& numRows, UInt& numCols, StdVector<std::string>& real, StdVector<std::string>& imag ) const {
-    EXCEPTION( "Tensor-Vector-Operation provides no tensor results");;
-  }
-
-  //! \copydoc CoefXpr::GetArgs
-  void GetArgs( std::map<std::string, PtrCoefFct >& vars ) const;
-
-  //! Get operand type
-  CoefXpr::OpType GetOpType() const {
-    return op_;
-  }
-
-protected:
-  //! Private initialization
-  void Init( PtrCoefFct a, PtrCoefFct b, CoefXpr::OpType op );
-
-  PtrCoefFct a_; //! Coefficient function A
-  PtrCoefFct b_; //! Coefficient function B
-  std::string aName_;//! Variable name of the first argument
-  std::string bName_;//! Variable name of the second argument
-  CoefXpr::OpType op_;//! Operator
-};
-
-// --------------------------------------------------------------------------
 //  TENSOR REPRESENTATION (MECHANIC MATERIAL)
 // --------------------------------------------------------------------------
 //! Models the sub-tensor representation of mechanical stiffness

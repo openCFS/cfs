@@ -39,7 +39,6 @@ namespace CoupledField
     isAllowed_.insert( COEFF_STRAIN_IRREVERSIBLE );
     isAllowed_.insert( MECH_EMODULUS );
     isAllowed_.insert( MECH_KMODULUS );
-    isAllowed_.insert( MECH_GMODULUS );
     isAllowed_.insert( MECH_EMODULUS_X );
     isAllowed_.insert( MECH_EMODULUS_Y );
     isAllowed_.insert( MECH_EMODULUS_Z );
@@ -52,9 +51,9 @@ namespace CoupledField
     isAllowed_.insert( MECH_GMODULUS_XY );
     isAllowed_.insert( MECH_LAME_LAMBDA );
     isAllowed_.insert( MECH_LAME_MU );
-    isAllowed_.insert( MECH_RELAXATION_TENSORS );
-    isAllowed_.insert( MECH_RELAXATION_TIMES );
-    isAllowed_.insert( MECH_VISCO_STIFFNESS_TENSOR );
+    isAllowed_.insert( MECH_VISCOALPHA_VECTOR );
+    isAllowed_.insert( MECH_VISCOK_VECTOR );
+    isAllowed_.insert( MECH_VISCOG_VECTOR );
     isAllowed_.insert( MECH_TEC );
     isAllowed_.insert( MECH_TEC1 );
     isAllowed_.insert( MECH_TEC2 );
@@ -76,12 +75,6 @@ namespace CoupledField
     isAllowed_.insert( NONLIN_DEPENDENCY );
     isAllowed_.insert( NONLIN_APPROXIMATION_TYPE );
     isAllowed_.insert( NONLIN_DATA_NAME );
-    
-    // register callback mechanism if expression changes
-    mHandle_ = mp_->GetNewHandle(true);
-    conn_ = mp_->AddExpChangeCallBack(
-        boost::bind(&MechanicMaterial::RecomputeComplexViscoTensor, this ),
-        mHandle_ );    
 
   }
 
@@ -288,17 +281,7 @@ namespace CoupledField
       }
     }
   }
-
-  void MechanicMaterial::SetCoefFctList( MaterialType matType, CoefFctList coefList) {
-    if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
-       matTypeNotAllowed( matType, "coefList" );
-     }
-    else
-      {
-        tensorCoefLists_[matType] = coefList;
-      }
-  }
-
+ 
   void MechanicMaterial::GetScalar( Integer& param, MaterialType matType)  const {
 
 
@@ -349,7 +332,7 @@ namespace CoupledField
 
     if ( pos == scalarParams_.end() ) {
       std::string dim = "tensor";
-//      matTypeNotInDataBase( matType, dim );
+      matTypeNotInDataBase( matType, dim );
     }
     else {
       Complex val = pos->second;
@@ -422,34 +405,7 @@ namespace CoupledField
       }
     }
   }
-  
-  void MechanicMaterial::GetTensor( Matrix<Double>& param, MaterialType matType, UInt index) const {
-    // search for mat param
-    
-    tensorListMap::const_iterator pos;
-    pos = tensorListParams_.find( matType );
-    if ( pos == tensorListParams_.end() ) 
-      {
-        std::string dim = "tensor";
-        matTypeNotInDataBase( matType, dim );
-      }
-    else 
-      {  
-        tensorList tList;
-        tList = pos->second;
-        tensorList::const_iterator posi;
-        posi = tList.find(index);
-        if ( posi == tList.end() ) 
-          {
-            EXCEPTION( "Index not found" );
-          }
-        else
-          {
-            param = posi->second;
-          }
-      }
-    //param = tensorListParams_[matType][index];
-  }
+
 
   PtrCoefFct MechanicMaterial::GetSubTensorCoefFnc( MaterialType matType, 
                                                     SubTensorType tensorType,
@@ -466,24 +422,16 @@ namespace CoupledField
     }
     return mFunct;
   }
-
-  MechanicMaterial::CoefFctList MechanicMaterial::GetCoefFctList( MaterialType matType ) {
-    MechanicMaterial::CoefFctList ret;
-    if( tensorCoefLists_.find(matType) !=  tensorCoefLists_.end() ) {
-      ret = tensorCoefLists_[matType];
-    } else {
-      EXCEPTION( "Material tensor not found" );
-    }
-    return ret;
-  }
-
+  
   void MechanicMaterial::GetTensor( Matrix<Complex>& param, 
-                                    MaterialType matType, 
-                                    Global::ComplexPart dataType,
-                                    SubTensorType subTensor ) const {   
+				    MaterialType matType, 
+				    Global::ComplexPart dataType,
+				    SubTensorType subTensor ) const {	
+    
 
     tensorMap::const_iterator pos;
     pos = tensorParams_.find( matType );
+
     if ( pos == tensorParams_.end() ) {
       std::string dim = "scalar";
       matTypeNotInDataBase( matType, dim );
@@ -491,34 +439,23 @@ namespace CoupledField
     else {
       Matrix<Complex> matTensor;
       if ( subTensor == FULL ) {
-       matTensor = pos->second;
+	matTensor = pos->second;
       }
       else {
-       ComputeSubTensor(matTensor, matType, subTensor);
+	ComputeSubTensor(matTensor, matType, subTensor);
       }
+
       if ( dataType == Global::REAL || dataType == Global::IMAG) {
-       Matrix<Double> help;
-       help = matTensor.GetPart( dataType );
-       param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
+	Matrix<Double> help; 
+	help = matTensor.GetPart( dataType );
+	param.Resize( matTensor.GetNumRows(), matTensor.GetNumCols() );
         param.Init();
-       param.SetPart( dataType, help );
+	param.SetPart( dataType, help );
       }
       else if ( dataType == Global::COMPLEX ) {
-       param = matTensor;
+	param = matTensor;
       }
     }
-  }
-  
-  void MechanicMaterial::RecomputeComplexViscoTensor()
-  {
-    Vector<Double> Ts;
-    this->GetVector(Ts,MECH_RELAXATION_TIMES,Global::REAL);
-    for (UInt i=0; i<Ts.GetSize(); i++) 
-      {
-        Double omega2 = 0;
-        std::cout<<omega2;
-        //Ts[i]*Ts[i]*omega2/(Ts[i]*Ts[i]-1.0)
-      }
   }
   
   void MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poi)
@@ -530,7 +467,15 @@ namespace CoupledField
     Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
     
     Matrix<Complex> elasticityTensor;
-    CalcIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
+    out = elasticityTensor.GetPart(Global::REAL);
+  }
+
+  void MechanicMaterial::CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu)
+  { 
+    Matrix<Complex> elasticityTensor;
+    CalcComplexIsotropicStiffnessTensor(elasticityTensor, static_cast<Complex>(lambda), static_cast<Complex>(mu));
+    
     out = elasticityTensor.GetPart(Global::REAL);
   }
 
@@ -603,7 +548,7 @@ namespace CoupledField
 
   
 
-  void MechanicMaterial::CalcIsotropicStiffnessTensor(Matrix<Complex>& out, Complex LameLambda, Complex LameMu)
+  void MechanicMaterial::CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex LameLambda, Complex LameMu)
   {
     out.Resize(6);
     out.Init();
@@ -613,6 +558,9 @@ namespace CoupledField
     
     out[0][1] = LameLambda;
     out[1][0] = LameLambda;
+    
+    out[2][2] = LameMu;
+
     out[0][2] = LameLambda;
     out[1][2] = LameLambda;
     out[2][0] = LameLambda;
@@ -624,30 +572,6 @@ namespace CoupledField
     out[5][5] = LameMu;
   }
   
-  void MechanicMaterial::CalcIsotropicStiffnessTensor(Matrix<Double>& out, Double LameLambda, Double LameMu)
-  {
-    Matrix<Complex> elasticityTensor;
-    CalcIsotropicStiffnessTensor(elasticityTensor, static_cast<Complex>(LameLambda), static_cast<Complex>(LameMu));
-    out = elasticityTensor.GetPart(Global::REAL);
-  }
-  
-//  void MechanicMaterial::Enu2Lame(Complex& LameLambda, Complex& LameMu, Complex E, Complex nu);
-//  {
-//    LameLambda = (nu*E)/((Complex(1.0,0) + nu)*(Complex(1.0,0)  - Complex(2.0,0)*nu));
-//    LameMu = (E)/(Complex(2.0,0)*(Complex(1.0)+nu));
-//  }
-  
-  void MechanicMaterial::Enu2Lame(Double& LameLambda, Double& LameMu, Double E, Double nu)
-  {
-    LameLambda = (nu*E)/((1.0 + nu)*(1.0  - 2.0*nu));
-    LameMu = (E)/(2.0*(1.0+nu));
-  }
-
-  void MechanicMaterial::GK2Lame(Double& LameLambda, Double& LameMu, Double G, Double K)
-  {
-    LameLambda = K - 2.0*G/3.0;
-    LameMu = G;
-  } 
 
   void MechanicMaterial::ComputeSubTensor(Matrix<Complex>& matMatrix, MaterialType matType, SubTensorType subTensor) const
   {
@@ -722,7 +646,7 @@ namespace CoupledField
     }
   }
  
-  
+
   void MechanicMaterial::ComputeFullStiffTensor() {
 
       Matrix<Complex> elasticityTensor;
@@ -753,55 +677,20 @@ namespace CoupledField
       // ====================================================================
       
       // get complex valued values
-      Complex E, nu, G, K, LameLambda, LameMu;
-       
-      // try to read each parameter and save which were present
-      bool flagE = false;
-      bool flagNu = false;
-      bool flagG = false;
-      bool flagK = false;
-      try {
-          GetScalar( E, MECH_EMODULUS, Global::COMPLEX );
-          flagE = true;
-      }
-      catch (Exception& ex ) {}
-      try {
-          GetScalar( nu, MECH_POISSON, Global::COMPLEX );
-          flagNu = true;
-      }
-      catch (Exception& ex ) {}
-      try {
-          GetScalar( G, MECH_GMODULUS, Global::COMPLEX );
-          flagG = true;
-      }
-      catch (Exception& ex ) {}
-      try {
-          GetScalar( K, MECH_KMODULUS, Global::COMPLEX );
-          flagK = true;
-      }
-      catch (Exception& ex ) {}
-      
-      // compute remaining parameters from present ones
-      if (flagE==true&&flagNu==true){
-          LameLambda = (nu*E)/
-              ((Complex(1.0,0) + nu)*
-                  (Complex(1.0,0)  - Complex(2.0,0)*nu));
-          LameMu = (E)/(Complex(2.0,0)*(Complex(1.0)+nu));
-          K = E/
-              ( Complex(3.0,0) * ( Complex(1.0,0) - Complex(2.0,0)*nu));
-          G = LameMu;
-      }
-      else if (flagG==true&&flagK==true){
-          LameLambda = K - Complex(2.0,0)*G/Complex(3.0,0);
-          LameMu = G;
-          E = Complex(9.0,0)*K*G/(Complex(3.0,0)*K+G);
-      }
-      
-      // compute stiffness tensor
-      CalcIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
+      Complex EModul, poisson;
+
+      GetScalar( EModul, MECH_EMODULUS, Global::COMPLEX ); 
+      GetScalar( poisson, MECH_POISSON, Global::COMPLEX );
+      Complex LameLambda = (poisson*EModul)/
+          ((Complex(1.0,0) + poisson)*
+              (Complex(1.0,0)  - Complex(2.0,0)*poisson));
+      Complex LameMu = (EModul)/(Complex(2.0,0)*(Complex(1.0)+poisson));
+      Complex KModul = EModul/
+              ( Complex(3.0,0) * ( Complex(1.0,0) - Complex(2.0,0)*poisson));
+
+      CalcComplexIsotropicStiffnessTensor(elasticityTensor, LameLambda, LameMu);
       SetTensor( elasticityTensor, MECH_STIFFNESS_TENSOR, Global::COMPLEX );
-      SetScalar(K, MECH_KMODULUS, Global::COMPLEX);
-      SetScalar(G, MECH_GMODULUS, Global::COMPLEX);
+      SetScalar(KModul, MECH_KMODULUS, Global::COMPLEX);
       SetScalar(LameLambda, MECH_LAME_LAMBDA, Global::COMPLEX);
       SetScalar(LameMu, MECH_LAME_MU, Global::COMPLEX);
 

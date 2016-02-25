@@ -39,16 +39,6 @@
               <xsd:sequence>
                 <xsd:element name="region" minOccurs="1" maxOccurs="unbounded">
                   <xsd:complexType>
-                    <xsd:sequence>
-                      <xsd:element minOccurs="0" name="linearElasticity">
-                        <xsd:complexType/>
-                      </xsd:element>
-                      <xsd:element minOccurs="0" name="linearViscoelasticity">
-                        <xsd:complexType>
-                          <xsd:attribute name="nonLin" type="xsd:boolean"/>
-                        </xsd:complexType>
-                      </xsd:element>
-                    </xsd:sequence>
                     <xsd:attribute name="polyId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="integId" type="xsd:string" use="optional" default="default"/>
                     <xsd:attribute name="name" type="xsd:token" use="required"/>
@@ -158,7 +148,7 @@
                 <xsd:element name="preStress" type="DT_MechPreStress"/>
 
                 <!-- the test strain is for mathematical homogenization. -->
-                <xsd:element name="testStrain" type="DT_MechTestStrain"/>
+                <xsd:element name="testStrain"    type="DT_MechTestStrain"/>
 
                 <xsd:element name="periodic" type="DT_BcPeriodic"/>
                 <xsd:element name="absorbingBCs" type="DT_AbsorbingBC"/>
@@ -171,7 +161,7 @@
             <!-- Experimental: Side constraints on BCs -->
             <xsd:unique name="CS_MechanicBCs">
               <xsd:selector
-                xpath="cfs:dirichletHom | cfs:dirichletInhom | cfs:dirichletFileInhom | cfs:neumannInhom"/>
+                xpath="cfs:dirichletHom|cfs:dirichletInhom|cfs:dirichletFileInhom|cfs:neumannInhom"/>
               <xsd:field xpath="@name"/>
               <xsd:field xpath="@dof"/>
             </xsd:unique>
@@ -179,6 +169,7 @@
 
           <!-- Desired solution values (optional) -->
           <xsd:element name="storeResults" type="DT_MechStoreResults" minOccurs="0" maxOccurs="1"/>
+
         </xsd:sequence>
 
         <xsd:attribute name="timeStepAlpha" use="optional" default="0.0" type="xsd:double">
@@ -186,7 +177,7 @@
             <xsd:documentation>Allows to use and define alpha-time stepping method (HHT); extension of Newmark; here you define the alpha-value!</xsd:documentation>
           </xsd:annotation>
         </xsd:attribute>
-
+        
         <!-- Subtype of PDE -->
         <xsd:attribute name="subType" use="optional" default="planeStrain">
           <xsd:simpleType>
@@ -440,9 +431,9 @@
       <xsd:enumeration value="mechRhsLoad"/>
       <xsd:enumeration value="lagrangeMultiplier"/>
       <xsd:enumeration value="mechShape"/>
-      <xsd:enumeration value="optResult_1"/>
-      <xsd:enumeration value="optResult_2"/>
-      <xsd:enumeration value="optResult_3"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
@@ -462,8 +453,6 @@
       <xsd:enumeration value="mechThermalStrain"/>
       <xsd:enumeration value="mechStress"/>
       <xsd:enumeration value="mechThermalStress"/>
-      <xsd:enumeration value="mechViscoStress"/>
-      <xsd:enumeration value="mechViscoStrain"/>
 
       <xsd:enumeration value="mechStructIntensity"/>
       <xsd:enumeration value="vonMisesStress"/>
@@ -472,14 +461,14 @@
       <xsd:enumeration value="mechDeformEnergyDensity"/>
       <xsd:enumeration value="mechTotalEnergyDensity"/>
       <xsd:enumeration value="mechNormalStructIntensity"/>
-
+      
       <!-- dyadic hermitian product of the strain vectors -->
       <xsd:enumeration value="mechDyadicStrain"/>
-
+      
       <!-- scalar product of the displacement vectors. Or the squared displacement norm -->
       <xsd:enumeration value="mechQuadDisplacement"/>
-
-      <!-- non-physical design variable for simp topology optimization -->
+      
+      <!-- non-physical design variable for simp topology optimization --> 
       <xsd:enumeration value="mechPseudoDensity"/>
       <!-- physical application of design variable in the simulation -->
       <xsd:enumeration value="physicalPseudoDensity"/>
@@ -489,9 +478,9 @@
       <xsd:enumeration value="mechTensor"/>
       <!-- the local tensor in Hill Mandel notation -->
       <xsd:enumeration value="mechTensorHillMandel"/>
-      <xsd:enumeration value="optResult_1"/>
-      <xsd:enumeration value="optResult_2"/>
-      <xsd:enumeration value="optResult_3"/>
+      <xsd:enumeration value="optResult_1"/>      
+      <xsd:enumeration value="optResult_2"/>      
+      <xsd:enumeration value="optResult_3"/>                  
       <xsd:enumeration value="optResult_4"/>
       <xsd:enumeration value="optResult_5"/>
       <xsd:enumeration value="optResult_6"/>
@@ -500,8 +489,8 @@
       <xsd:enumeration value="optResult_9"/>
       <xsd:enumeration value="optResult_10"/>
       <xsd:enumeration value="optResult_11"/>
-      <xsd:enumeration value="optResult_12"/>
-
+      <xsd:enumeration value="optResult_12"/>      
+      
     </xsd:restriction>
   </xsd:simpleType>
 
@@ -526,7 +515,7 @@
       <xsd:enumeration value="mechTotalEnergy"/>
       <xsd:enumeration value="mechDyadicStrainSum"/>
       <xsd:enumeration value="mechQuadDisplacementSum"/>
-      <xsd:enumeration value="homogenizedTensor"/>
+      <xsd:enumeration value="homogenizedTensor"/>      
     </xsd:restriction>
   </xsd:simpleType>
 

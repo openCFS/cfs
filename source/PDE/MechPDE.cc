@@ -16,9 +16,6 @@
 #include "DataInOut/SimInOut/hdf5/SimInputHDF5.hh"
 #include "DataInOut/SimInOut/hdf5/SimOutputHDF5.hh"
 
-// material
-#include "Materials/MechanicMaterial.hh"
-
 // include elements
 #include "FeBasis/FeFunctions.hh"
 #include "FeBasis/H1/H1Elems.hh"
@@ -28,8 +25,6 @@
 #include "Forms/BiLinForms/BBInt.hh"
 #include "Forms/BiLinForms/ABInt.hh"
 #include "Forms/BiLinForms/ICModesInt.hh"
-#include "Forms/BiLinForms/ADBInt.hh"
-#include "Forms/LinForms/LinearForm.hh"
 #include "Forms/LinForms/SingleEntryInt.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/BDUInt.hh"
@@ -53,8 +48,6 @@
 #include "Domain/CoefFunction/CoefFunctionCompound.hh"
 #include "Domain/CoefFunction/CoefFunctionSurf.hh"
 #include "Domain/CoefFunction/CoefFunctionOpt.hh"
-#include "Domain/CoefFunction/CoefFunctionConvolution.hh"
-#include "Domain/CoefFunction/CoefFunctionVisco.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TimeSchemes/TimeSchemeGLM.hh"
 #include "Driver/EigenFrequencyDriver.hh"
@@ -370,134 +363,89 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       PtrParamNode pmlNode;
       std::string pmlFormul;
       
-      // decide which material model should be used
-      StdVector<MaterialModel> matModels(0);
-      if ( curRegNode->Has("linearElasticity") )
+      // ====================================================================
+      //  Standard Linear Stiffness
+      // ====================================================================
+      if( !nonLin_ )
+      {
+        if (dampingList_[actRegion] == PML)
         {
-          matModels.Insert(0,MECH_LINEAR_ELASTIC);
-        }
-      if ( curRegNode->Has("linearViscoelasticity") )
-        {
-          matModels.Insert(0,MECH_LINEAR_VISCOELASTIC);
-          if ( curRegNode->HasByVal("linearViscoelasticity","nonLin","true") ) {
-              nonLin_ = true;
-          }
-        }
-      if (matModels.IsEmpty())
-        {
-          std::cout<< "nothing set - assuming linearElastic";
-          matModels.Insert(0,MECH_LINEAR_ELASTIC);
-        }
-      // iterate over selected material models and build appropriate integrators
-      for(UInt i=0; i<matModels.GetSize(); i++)
-        {
-          MaterialModel matModel = matModels[i];
-          if (matModel == MECH_LINEAR_ELASTIC)
-            {
-              // ====================================================================
-              //  Standard Linear Stiffness
-              // ====================================================================
-              // either complex material or bloch mode with complex B-matrices
-              bool complex = do_bloch | complexMatData_[actRegion];
-              // in the optimization case the coef fucntion will be CoefFunctionOpt
-              // determine analysis type and material type
-              BaseBDBInt* stiffInt =  GetStiffIntegrator( actSDMat, actRegion, complex );
-              stiffInt->SetName("LinElastInt");
-              stiffInt->SetFeSpace( mySpace);
-              BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
-              stiffIntDescr->SetEntities( actSDList, actSDList );
-              stiffIntDescr->SetFeFunctions( myFct, myFct );
-              //check for damping // this should be independent of the material model
-              if ( dampingList_[actRegion] == RAYLEIGH ) {
-                RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
-                stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
-              }
-              assemble_->AddBiLinearForm( stiffIntDescr );
-              // Important: Add bdb-integrator to global list, as we need them later
-              // for calculation of postprocessing results
-              bdbInts_[actRegion] = stiffInt;
-              // elastic stress
-              //namedInts_[MECH_ELASTIC_STRESS][actRegion] = viscoInt;
-            }
-          if (matModel == MECH_LINEAR_VISCOELASTIC)
-            {
-              MechanicMaterial * actSDMechMat = dynamic_cast<MechanicMaterial * >(actSDMat);
-              if ( analysistype_ == HARMONIC )
-                {
-                  // strain operator
-                  BaseBOperator* bOp = GetStrainOperator(true, false);
-                  // coef function
-                  shared_ptr<CoefFunction> curCoef;
-                  curCoef = actSDMechMat->GetTensorCoefFnc(MECH_VISCO_STIFFNESS_TENSOR,tensorType_,Global::COMPLEX); // check of tensor type!
-                  //std::cout<<"G = \n";
-                  //std::cout<<curCoef->ToString()<<"\n";
-                  // integrator
-                  BaseBDBInt* viscoInt = NULL;
-                  viscoInt = new BDBInt<Complex>(bOp, curCoef, 1.0);
-                  viscoInt->SetName("harmonicViscoStiffInt");
-                  viscoInt->SetFeSpace( mySpace);
-                  // bilinear form
-                  BiLinFormContext * viscoIntDescr = new BiLinFormContext(viscoInt, STIFFNESS );
-                  viscoIntDescr->SetEntities( actSDList, actSDList );
-                  viscoIntDescr->SetFeFunctions( myFct, myFct );
-                  // add to assemble
-                  assemble_->AddBiLinearForm( viscoIntDescr );
-                  // add to namedInts to allow for postprocessing results
-                  namedInts_[MECH_VISCO_STRESS][actRegion] = viscoInt; // each region can only have one BDB integrator for postprocessing?
-                  namedInts_[MECH_VISCO_STRAIN][actRegion] = viscoInt;
-                }
-              else if ( analysistype_ == TRANSIENT )
-                {
-                  // strain operator defined for elastic material only
-                  LinearForm * visco = NULL;
-                  PtrCoefFct vCoef;
-                  // create new node list
-                  shared_ptr<NodeList> actNodeList( new NodeList(ptGrid_ ) );
-                  actNodeList->SetNodesOfRegion( actRegion);
-                  if (dim_==3)
-                    {
-                      // relaxation times
-                      Vector<Double> rTimes;
-                      actSDMat->GetVector(rTimes,MECH_RELAXATION_TIMES,Global::REAL);
-                      // relaxation tensors
-                      StdVector<PtrCoefFct> rTensors = actSDMechMat->GetCoefFctList(MECH_RELAXATION_TENSORS);
+          if (analysistype_ == HARMONIC)
+          {
+            harmonicPML = true;
+            std::string dampId;
+            curRegNode->GetValue("dampingId", dampId);
+            pmlNode = myParam_->Get("dampingList")->GetByVal("pml", "id", dampId.c_str());
+            pmlFormul = pmlNode->Get("formulation")->As<std::string>();
 
-                      StdVector<PtrCoefFct> Cs; // relaxation tensors
-                      StdVector<PtrCoefFct> ps; // visco Prony terms
-                      for (UInt i=0; i<rTimes.GetSize(); i++) // loop over Prony terms
-                        {
-                          PtrCoefFct convCoef;
-                          convCoef.reset( new CoefFunctionConvolution(rTimes[i],actSDList, mySpace, GetStrainOperator(false, false) ) );
-                          Cs.Push_back( rTensors[i] );
-                          ps.Push_back( convCoef );
-                          // unfortunately this doed not work ... so we have to use CoefFunctionVisco instead
-                          //vCoef = CoefFunction::Generate( mp_, Global::REAL, CoefXprTensVecOp(mp_,rTens,convCoef,CoefXpr::OP_MULT) );
-                        }
-                      vCoef.reset( new CoefFunctionVisco(Cs,ps) );
-                      visco = new BUIntegrator<Double> ( GetStrainOperator(false, false), -1.0, vCoef, false);
-                      visco->SetName("transientViscoInt");
-                      if (nonLin_) {
-                          visco->SetSolDependent();
-                      }
-                      visco->SetFeSpace(mySpace);
-                      LinearFormContext *ctx = new LinearFormContext( visco );
-                      ctx->SetFeFunction(myFct);
-                      ctx->SetEntities(actSDList);
-                      assemble_->AddLinearForm(ctx);
-                      //namedInts_[MECH_VISCO_STRESS][actRegion] = visco;
-                      myFct->AddEntityList(actSDList);
-                    }
-                  else
-                    {
-                      EXCEPTION("Viscoelastic material only implemented in 3d");
-                    }
-                }
-              else
-                {
-                  EXCEPTION("Viscoelastic material not implemented in this analysis");
-                }
+            // speed of sound is set to equal '1.0'
+            speedOfSnd = CoefFunction::Generate(mp_, Global::REAL, "1.0");
+            if (pmlFormul == "classic")
+            {
+              coefPMLScal.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              coefPMLVec.reset(new CoefFunctionPML<Complex>(pmlNode, speedOfSnd,
+                               ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
             }
+            else if (pmlFormul == "shifted")
+            {
+              coefPMLScal.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                                ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, false));
+              coefPMLVec.reset(new CoefFunctionShiftedPML<Complex>(pmlNode, speedOfSnd,
+                               ptGrid_->GetEntityList(EntityList::ELEM_LIST, regionName), regions_, true));
+            }
+            else
+            {
+              EXCEPTION("Unknown PML-formulation '" << pmlFormul << "'");
+            }
+          }
+          else
+            EXCEPTION("Not implemented yet");
         }
+        else
+        {
+          harmonicPML = false;
+        }
+
+        // complex material or bloch mode with complex B-matrices
+        bool complex = do_bloch | complexMatData_[actRegion];
+        BaseBDBInt* stiffInt;
+
+        // We use a stiffness integrator that implements the scaled strain operator if a PML domain is considered.
+        // Otherwise, we proceed with the normal stiffness integrator.
+        if (harmonicPML)
+        {
+          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, true, coefPMLScal);
+          stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
+        }
+        else
+        {
+          // in the optimization case the coef fucntion will be CoefFunctionOpt
+          stiffInt =  GetStiffIntegrator(actSDMat, actRegion, complex);
+        }
+
+        stiffInt->SetName("LinElastInt");
+        stiffInt->SetFeSpace( mySpace);
+        
+        BiLinFormContext * stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
+        
+        stiffIntDescr->SetEntities( actSDList, actSDList );
+        stiffIntDescr->SetFeFunctions( myFct, myFct );
+        
+        //check for damping
+        if ( dampingList_[actRegion] == RAYLEIGH ) {
+          RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+          stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
+        }
+        
+        assemble_->AddBiLinearForm( stiffIntDescr );
+        
+        // Important: Add bdb-integrator to global list, as we need them later
+        // for calculation of postprocessing results
+        bdbInts_[actRegion] = stiffInt;
+        
+      }
+      
 
       PtrParamNode preStressNode;
       PtrParamNode bcNode = this->myParam_->Get("bcsAndLoads");
@@ -1531,11 +1479,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         for(unsigned int i = 0; i < tsl.GetSize(); i++)
           DefineTestStrainIntegrator(testStrain.Parse(tsl[i]->Get("strain")->As<std::string>()));
       }
-
-      // =================
-      //  VISCOELASTICITY
-      // =================
-
   }
 
   void MechPDE::DefineTestStrainIntegrator(const TestStrain test, StdVector<LinearFormContext*>* linForms)
@@ -1591,8 +1534,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::COMPLEX);
     else
       curCoef = actSDMat->GetTensorCoefFnc(MECH_STIFFNESS_TENSOR, tensorType_, Global::REAL);
-    //std::cout << "C = \n";
-    //std::cout << curCoef->ToString(); // diagonistic output : stiffness tensor in info xml is zero!
+    
     // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
     if(domain->GetDesign(false) != NULL)
     {
@@ -1839,10 +1781,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
   // TIME STEPPING SECTION
   // ======================================================
   void MechPDE::InitTimeStepping()  {
-    Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
-    GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
-    TimeSchemeGLM::NonLinType nlType = (nonLin_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
-    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0, nlType) );
+	Double alpha = this->myParam_->Get("timeStepAlpha")->As<Double>();
+	GLMScheme * scheme1 = new Newmark(0.5,0.25,alpha);
+
+    shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme1, 0) );
     feFunctions_[MECH_DISPLACEMENT]->SetTimeScheme(myScheme);
   }
 
@@ -1970,20 +1912,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     DefineFieldResult( stressCoef, stress );
     stiffFormCoefs_.insert(sigmaFunc);
 
-    // === VISCOELASTIC STRESS ===
-    shared_ptr<ResultInfo> visco_stress(new ResultInfo);
-    visco_stress->resultType = MECH_VISCO_STRESS;
-    visco_stress->dofNames = stressComponents;
-    visco_stress->unit =  "N/m^2";
-    visco_stress->entryType = ResultInfo::TENSOR;
-    visco_stress->definedOn = ResultInfo::ELEMENT;
-
-    shared_ptr<CoefFunctionFormBased> sigmaViscoFunc;
-    sigmaViscoFunc.reset(new CoefFunctionFlux<Complex>(feFct, visco_stress));
-    DefineFieldResult( sigmaViscoFunc, visco_stress ); // creates functor
-    // add to named form coefs
-    namedFormCoefs_[MECH_VISCO_STRESS] = sigmaViscoFunc;
-
     // === THERMOMECHANICAL STRESS ===
     if ( isThermalStrain )  {
       shared_ptr<ResultInfo> stress(new ResultInfo);
@@ -2059,6 +1987,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       DefineFieldResult( strainFunc, strain );
     }
     stiffFormCoefs_.insert(strainFunc);
+
     if ( isThermalStrain )  {
       shared_ptr<ResultInfo> thermalStrain(new ResultInfo);
       thermalStrain->resultType = MECH_THERMAL_STRAIN;
@@ -2068,18 +1997,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       thermalStrain->definedOn = ResultInfo::ELEMENT;
       DefineFieldResult( thermalStrain_, thermalStrain );
     }
-
-    // === MECHANIC VISCOUS STRAIN ===
-    shared_ptr<ResultInfo> visco_strain(new ResultInfo);
-    visco_strain->resultType = MECH_VISCO_STRAIN;
-    visco_strain->dofNames = stressComponents;
-    visco_strain->unit =  "";
-    visco_strain->entryType = ResultInfo::TENSOR;
-    visco_strain->definedOn = ResultInfo::ELEMENT;
-    shared_ptr<CoefFunctionFormBased> viscoStrainFunc;
-    viscoStrainFunc.reset(new CoefFunctionBOp<Complex>(feFct, strain));
-    DefineFieldResult( viscoStrainFunc, visco_strain );
-    namedFormCoefs_[MECH_VISCO_STRAIN] = viscoStrainFunc;
 
     PtrCoefFct intensFct;
     shared_ptr<CoefFunctionFormBased> kedFunc;
