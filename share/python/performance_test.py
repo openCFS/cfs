@@ -49,7 +49,7 @@ def extract_timers(xml, gap = False):
     for t in res[1:]: # skip first
       wall -= t.wall # hope we stay non-negative :)
       cpu -= t.cpu
-    res.append(Timer('gap', wall, cpu))
+    res.append(Timer('nom_measured', wall, cpu))
 
   return res
 
