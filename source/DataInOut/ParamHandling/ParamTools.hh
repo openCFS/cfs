@@ -117,7 +117,45 @@ namespace CoupledField
       }
     } 
 
-  }; 
+    //! read the elements of a symmetric tensor A of dimension n x n which should be given in the order
+    //   A_11 A_12 ... A_1n A_22 A_23 ... A_2n ... A_nn
+    static void AsStringSymmetricTensorElements(PtrParamNode node, UInt dim, StdVector<std::string>& ret )
+        {
+          StdVector<std::string> elems;
+          SplitStringList(node->As<std::string>(), elems, ' ' );
+          UInt N = elems.GetSize();
+          // check number of elements
+          if ( N != dim*(1+dim)/2) {
+              EXCEPTION("Wrong number of elements for '"<<dim<<"x"<<dim<<"' tensor. "<<
+                        " should be "<<dim*(1+dim)/2<< " elements but "<<N<<" elements given!");
+          }
+          // allocate
+          ret.Resize(dim*dim);
+          // be careful and wrap every entry element in braces
+          for( UInt i = 0; i < N; ++i ) {
+            elems[i] = Bracket( elems[i] );
+          }
+          // build the symmetric tensor
+          for (UInt i=0; i<dim; i++)
+            {
+              for (UInt j=0; j<dim; j++)
+                {
+                  //std::cout<<" "<<(i+1)<<","<<(j+1)<<" = ";
+                  std::string val;
+                  if (j>=i) // upper half
+                    {
+                      val = elems[i*dim+j-i*(i+1)/2];
+                    }
+                  else
+                    { // j=i and i=j, set from upper half
+                      val = ret[j*dim+i];
+                    }
+                  ret[i*dim+j] = val;
+                  //std::cout<<val<<"\n";
+                }
+            }
+        }
+  };
 
 } // end of namespace
 

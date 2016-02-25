@@ -2,6 +2,9 @@
 #include "XMLMaterialHandler.hh"
 
 #include "Domain/CoefFunction/CoefFunction.hh"
+#include "Domain/CoefFunction/CoefFunctionConst.hh"
+#include "Domain/CoefFunction/CoefFunctionCompound.hh"
+#include "Domain/CoefFunction/CoefXpr.hh"
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "DataInOut/ParamHandling/ParamTools.hh"
@@ -98,8 +101,8 @@ namespace CoupledField {
     }
     else if ( matClass == MECHANIC ) {
       material = new MechanicMaterial(mp, cs);
-      ReadMechanic( material, pn );
-    }    
+      ReadMechanic( dynamic_cast<MechanicMaterial *>(material), pn );
+    }
     else if ( matClass == FLUID ) {\
       material = new AcousticMaterial(mp, cs);
       ReadAcoustic( material, pn );
@@ -274,12 +277,9 @@ namespace CoupledField {
 //**********************************************************************
 //*************  READ MECHANICS ****************************************
 //**********************************************************************
-  void XMLMaterialHandler::ReadMechanic(BaseMaterial *material, PtrParamNode mech) 
+  void XMLMaterialHandler::ReadMechanic(MechanicMaterial *material, PtrParamNode mech)
   {
-    bool     flagEModulReal=false;
-    bool     flagPoissonReal=false;
-    // bool     flagEModulImag=false;
-    // bool     flagPoissonImag=false;
+    bool     flagIsotropic=false;
 
     bool     flagEModulXReal=false;
     bool     flagEModulYReal=false;
@@ -293,6 +293,8 @@ namespace CoupledField {
 
     bool     flagElastTensorReal=false;
     // bool     flagElastTensorImag=false;
+    
+    //bool     flagVisco=false;
 
     
 
@@ -334,46 +336,31 @@ namespace CoupledField {
  
       // check values for isotropic      
       if(elast->Has("isotropic"))
-      {
-        // read the real part
-        if(elast->Get("isotropic")->Has("real"))
         {
-          PtrParamNode real = elast->Get("isotropic")->Get("real");
-
-          // read real elasticity modulus
-          if(real->Has("elasticityModulus"))
-          {
-            material->SetScalar(real->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::REAL ); 
-            flagEModulReal = true;
-          }
-          
-          // read real Poisson number
-          if(real->Has("poissonNumber"))
-          {
-            material->SetScalar(real->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::REAL ); 
-            flagPoissonReal = true;
-          }
-        }
-        // read the imaginary part
-        if(elast->Get("isotropic")->Has("imag"))
-        {
-          PtrParamNode imag = elast->Get("isotropic")->Get("imag");
-          
-          //read imaginary elasticity modulus
-          if(imag->Has("elasticityModulus"))
-          {
-            material->SetScalar(imag->Get("elasticityModulus")->As<std::string>(), MECH_EMODULUS, Global::IMAG ); 
-            // flagEModulImag = true;
-          }
-
-          // read imaginary Poisson number
-          if(imag->Has("poissonNumber"))
-          {
-            material->SetScalar(imag->Get("poissonNumber")->As<std::string>(), MECH_POISSON, Global::IMAG ); 
-            // flagPoissonImag = true;
-          }
-        }
-      } // end of isotropic
+          PtrParamNode iso = elast->Get("isotropic");
+          StdVector<std::string> vRe(36), vIm(36);
+          shared_ptr< CoefFunction > C;
+          if ( iso->Has("real") ) // read the real part
+            {
+              vRe = ReadMechanicIsotropic(iso->Get("real"));
+            }
+          else // set zeros for real part
+            {
+              for (UInt j=0; j<36; j++) vRe[j] = "0.0";
+            }
+          if ( iso->Has("imag") ) // read the imaginary part
+            {
+              vIm = ReadMechanicIsotropic(iso->Get("imag"));
+              C = CoefFunction::Generate(mp_, Global::IMAG,6,6,vRe,vIm);
+            }
+          else
+            {
+              C = CoefFunction::Generate(mp_, Global::REAL,6,6,vRe);
+            }
+          material->SetCoefFct(MECH_STIFFNESS_TENSOR,C);
+          material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ISOTROPIC);
+          flagIsotropic = true; // this should not bee needed !
+        } // end of isotropic
 
       // Note, in revision 7565 there were some details in the code now deleted 
       if(elast->Has("transversalIsotropic"))
@@ -447,14 +434,11 @@ namespace CoupledField {
       }  // orthotropic      
     } // end of elasticity
 
-
-    if (flagEModulReal==true && 
-        flagPoissonReal==true && 
+    if (flagIsotropic==true && 
         flagElastTensorReal==false) {
          material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ISOTROPIC);
     }
-    else if (flagEModulReal==false && 
-             flagPoissonReal==false && 
+    else if (flagIsotropic==false && 
              flagElastTensorReal==true) {
                //stiffness tensor is already set
     }
@@ -469,14 +453,13 @@ namespace CoupledField {
              flagShearModulXYReal==true) {
                material->SetSymmetryType(MECH_STIFFNESS_TENSOR,BaseMaterial::ORTHOTROPIC);
     }
-    else if (flagEModulReal==true && 
-             flagPoissonReal==true && 
+    else if (flagIsotropic==true && 
              flagElastTensorReal==true) {
       EXCEPTION( "mechanical stiffness tensor is over determined.\n"
                  << " You specified the tensor as well as E-Modul "
                  << "and Poisson number" );
     }
-    else if (flagEModulReal==false && 
+    else if (flagIsotropic==false && 
              flagEModulXReal==false && 
              flagElastTensorReal==false) {
       EXCEPTION ("mechanical stiffness must be specified somehow." );
@@ -484,37 +467,118 @@ namespace CoupledField {
     else {
       EXCEPTION( "mechanical stiffness tensor can not be computed." );
     }
-
+    /**
     //read viscoelastic parameters
     if(mech->Has("viscoelasticity")) {
     	PtrParamNode visco = mech->Get("viscoelasticity");
     	if(visco->Has("isotropic")) {
-    		PtrParamNode tens = visco->Get("isotropic");
-    		UInt dim2;
-    		if ( tens->Has("dim2") )
-    			dim2 = tens->Get("dim2")->As<Integer>();
-    		else
-    			EXCEPTION("Viscoelasticity parameters: dim2 has to be specified");
-
-    		Matrix<Double> realMat(3,dim2);
-    	    realMat.Init();
-    	    PtrCoefFct viscoelastCoef;
-    	    //read real viscoelastic coefficients
-    	    if ( tens->Has("real") ) {
-    	    	ParamTools::AsTensor( tens->Get("real"), 3, dim2, realMat );
-    	    }
-    	    Vector<Double> dummy(dim2);
-    	    for (UInt i=0; i<dim2; i++)
-    	    	dummy[i] = realMat[0][i];
-    	    material->SetVector( dummy, MECH_VISCOALPHA_VECTOR, Global::REAL);
-    	    for (UInt i=0; i<dim2; i++)
-    	    	dummy[i] = realMat[1][i];
-    	    material->SetVector( dummy, MECH_VISCOK_VECTOR, Global::REAL);
-    	    for (UInt i=0; i<dim2; i++)
-    	    	dummy[i] = realMat[2][i];
-    	    material->SetVector( dummy, MECH_VISCOG_VECTOR, Global::REAL);
+    		PtrParamNode iso = visco->Get("isotropic");
+    		ParamNodeList pronyList = iso->GetChildren();
+    		UInt Nprony = pronyList.GetSize();
+    		Vector<Double> Ts(Nprony),Ks(Nprony),Gs(Nprony);
+    		for (UInt i=0; i<Nprony; i++)
+    		  {
+    		  Ts[i] = pronyList[i]->Get("relaxationTime")->As<Double>();
+    		  PtrParamNode relaxationModulus=pronyList[i]->Get("relaxationModulus");
+    		  Ks[i] = relaxationModulus->Get("compressionModulus")->As<Double>();
+    		  Gs[i] = relaxationModulus->Get("shearModulus")->As<Double>();
+    		  }
+    		material->SetVector( Ts, MECH_VISCOT_VECTOR, Global::REAL);
+    		material->SetVector( Ks, MECH_VISCOK_VECTOR, Global::REAL);
+    		material->SetVector( Gs, MECH_VISCOG_VECTOR, Global::REAL);
+    		material->SetSymmetryType(MECH_RELAXATION_TENSORS,BaseMaterial::ISOTROPIC);
     	}
     }
+    **/
+    if(mech->Has("viscoelasticity"))
+      {
+        PtrParamNode visco = mech->Get("viscoelasticity");
+
+        // coef function for mech visco stiffness tensor
+        PtrCoefFct viscoCoef;
+
+        // strings
+        const std::string omega = "2*pi*f";
+        const std::string omega2 = "4*pi*pi*f*f";
+
+        // read the prony terms
+        ParamNodeList pronyList = visco->GetChildren();
+        UInt Nprony = pronyList.GetSize();
+        Vector<Double> Ts(Nprony);
+        StdVector<PtrCoefFct> relaxationTensors(Nprony);
+        for (UInt i=0; i<Nprony; i++)
+          {
+            // relaxation time
+            Ts[i] = pronyList[i]->Get("relaxationTime")->As<Double>();
+            Double tau2 = Ts[i]*Ts[i]; // tau^2
+            // coef function for real pre factor
+            std::stringstream pReStSt;
+            pReStSt << "("<<tau2<<"*"<<omega2<<")/("<<tau2<<"*"<<omega2<<"+1)";
+            std::stringstream pImStSt;
+            pImStSt << "("<<Ts[i]<<"*"<<omega<<")/("<<tau2<<"*"<<omega2<<"+1)";
+
+            // relaxation tensors
+            PtrParamNode rTensor = pronyList[i]->Get("relaxationTensor");
+            // just hack it in quickly - should be changed to a more general formulation
+
+            StdVector<std::string> vRelax(36); // vector of elements of the relaxation tensor
+            vRelax.Init("0.0");
+            if (rTensor->Has("isotropic"))
+              {
+                PtrParamNode iso = rTensor->Get("isotropic");
+                if (iso->Has("real"))
+                  {
+                    vRelax = ReadMechanicIsotropic(iso->Get("real"));
+                  }
+                if (iso->Has("imag"))
+                  {
+                    EXCEPTION( "Relaxation tensor must only have real values!" );
+                  }
+              }
+            else if (rTensor->HasByVal("symmetricTensor", "dim1", "6"))
+              {
+                PtrParamNode tens = rTensor->GetByVal("symmetricTensor", std::string("dim1"), "6");
+                PtrCoefFct elastCoef;
+                //read real elasticity tensor
+                if(tens->Has("real"))
+                  {
+                    ParamTools::AsStringSymmetricTensorElements( tens->Get("real"), 6, vRelax );
+                  }
+                if(tens->Has("imag"))
+                  {
+                    EXCEPTION( "Relaxation tensor must only have real values!" );
+                  }
+              }
+            else
+              {
+                EXCEPTION( "Only isotropic or symmetricTensor implemented!" );
+              }
+            // make coefficient function for relaxation tensor
+            shared_ptr< CoefFunction > Ci = CoefFunction::Generate(mp_,Global::REAL,6,6,vRelax);
+            relaxationTensors[i] = Ci;
+            //std::cout<<"Ci = " << Ci->ToString()<<"\n";
+
+            // compute complex valued relaxation tensor for harmonic case (could be done by mechanic material)
+            shared_ptr< CoefFunction > pre = CoefFunction::Generate( mp_, Global::IMAG,pReStSt.str(),pImStSt.str());
+
+            //std::cout<<"pre = " << pre->ToString()<<"\n";
+
+            shared_ptr< CoefFunction > res = CoefFunction::Generate( mp_, Global::IMAG, CoefXprTensScalOp(mp_,Ci,pre,CoefXpr::OP_MULT) );
+            if (i==0) // set
+              {
+                viscoCoef = res;
+              }
+            else // add up
+              {
+                shared_ptr< CoefFunction > sum = CoefFunction::Generate( mp_, Global::COMPLEX,
+                                                                         CoefXprBinOp(mp_, viscoCoef, res, CoefXpr::OP_ADD) );
+                viscoCoef = sum;
+              }
+          }
+        material->SetVector( Ts, MECH_RELAXATION_TIMES, Global::REAL );
+        material->SetCoefFctList( MECH_RELAXATION_TENSORS, relaxationTensors );
+        material->SetCoefFct( MECH_VISCO_STIFFNESS_TENSOR, viscoCoef );
+      }
 
     // elasticityCoefficient of type <elasticityCoefficient nonlinear="function">
     if(mech->HasByVal("elasticityCoefficient", "nonlinear", "function"))
@@ -523,7 +587,7 @@ namespace CoupledField {
                                 std::string("nonlinear"),
                                 "function");
       if(ec->Has("entry")) 
-        material->SetScalar(ec->Get("entry")->As<Integer>(), NONLIN_COEFFICIENT);
+        material->SetScalar(ec->Get("entry")->As<Double>(), NONLIN_COEFFICIENT);
 
      if(ec->Has("dependency"))
        material->SetScalar(ec->Get("dependency")->As<std::string>(), NONLIN_DEPENDENCY );
@@ -647,6 +711,113 @@ namespace CoupledField {
     }
   }
 
+  void XMLMaterialHandler::ReadMechanicIsotropic(BaseMaterial *material, PtrParamNode node, Global::ComplexPart dataType)
+    {
+    // read as strings and add formulas if lame parameters are not given directly
+    if(node->Has("elasticityModulus") && node->Has("poissonsNumber"))
+      {
+        std::string E =  node->Get("elasticityModulus")->As<std::string>();
+        std::string nu = node->Get("poissonsNumber")->As<std::string>();
+        std::stringstream sLameMu,sLameLambda;
+        sLameMu << E << "/(2.0*(1+"<<nu<<"))";
+        sLameLambda << nu<<"*"<<E<<"/((1.0 + "<<nu<<")*(1.0  - 2.0*"<<nu<<"))";
+        material->SetScalar(sLameMu.str(),MECH_LAME_MU,dataType);
+        material->SetScalar(sLameLambda.str(),MECH_LAME_LAMBDA,dataType);
+      }
+    else if (node->Has("compressionModulus") && node->Has("shearModulus"))
+      {
+        std::string K = node->Get("compressionModulus")->As<std::string>();
+        std::string G = node->Get("shearModulus")->As<std::string>();
+        std::stringstream sLameLambda;
+        sLameLambda <<"("<< K << "- 2.0*"<< G << "/3.0 )";
+        material->SetScalar(G,MECH_LAME_MU,dataType);
+        material->SetScalar(sLameLambda.str(),MECH_LAME_LAMBDA,dataType);
+      }
+    else if (node->Has("lameParameterMu") && node->Has("lameParameterLambda"))
+      {
+        material->SetScalar( node->Get("lameParameterMu")->As<std::string>(), MECH_LAME_MU, dataType);
+        material->SetScalar( node->Get("lameParameterLambda")->As<std::string>(), MECH_LAME_LAMBDA, dataType);
+      }
+    else
+      {
+        EXCEPTION ("Specify E+nu, K+B, or lambda+mu!" );
+      }
+    }
+
+  StdVector<std::string> XMLMaterialHandler::ReadMechanicIsotropic(PtrParamNode node)
+  {
+    StdVector<std::string> ret(36);
+    for (UInt j=0; j<36; j++) ret[j] = "0.0"; // Initialise with zeros
+    std::string mu,lambda; // Lame parameters
+    // read as strings and add formulas if lame parameters are not given directly
+    if(node->Has("elasticityModulus") && node->Has("poissonNumber"))
+      {
+        std::string E =  node->Get("elasticityModulus")->As<std::string>();
+        std::string nu = node->Get("poissonNumber")->As<std::string>();
+        std::stringstream sLameMu,sLameLambda;
+        sLameMu << E << "/(2.0*(1+"<<nu<<"))";
+        sLameLambda << nu<<"*"<<E<<"/((1.0 + "<<nu<<")*(1.0  - 2.0*"<<nu<<"))";
+        mu = sLameMu.str();
+        lambda = sLameLambda.str();
+      }
+    else if (node->Has("compressionModulus") && node->Has("shearModulus"))
+      {
+        std::string K = node->Get("compressionModulus")->As<std::string>();
+        std::string G = node->Get("shearModulus")->As<std::string>();
+        std::stringstream sLameLambda;
+        sLameLambda << K << "- 2.0*"<< G << "/3.0";
+        mu = K;
+        lambda = sLameLambda.str();
+      }
+    else if (node->Has("lameParameterMu") && node->Has("lameParameterLambda"))
+      {
+        mu = node->Get("lameParameterMu")->As<std::string>();
+        lambda = node->Get("lameParameterLambda")->As<std::string>();
+      }
+    else
+      {
+        StdVector<std::string> params;
+        params.Push_back("compressionModulus");
+        params.Push_back("shearModulus");
+        params.Push_back("lameParameterMu");
+        params.Push_back("lameParameterLambda");
+        params.Push_back("elasticityModulus");
+        params.Push_back("poissonNumber");
+        for (UInt i=0; i<params.GetSize();i++)
+          {
+            std::cout<<params[i];
+            if (node->Has(params[i]) ) std::cout<<" defined\n";
+            else std::cout<<" NOT defined\n";
+          }
+        EXCEPTION ("Specify E+nu, K+B, or lambda+mu!" );
+      }
+    // build vector of components
+    /* what goes where?
+i/   1  2  3  4  5  6
+  j _________________
+  1| 0  1  2  3  4  5
+  2| 6  7  8  9 10 11
+  3|12 13 14 15 16 17
+  4|18 19 20 21 22 23
+  5|24 25 26 27 28 29
+  6|30 31 32 33 34 35  -> vector index
+     */
+    // set upper half
+    ret[0] = lambda + " + 2.0*(" + mu +")" ; // (i,j) = 1,1
+    ret[1] = lambda; // 1,2
+    ret[2] = lambda; // 1,3
+    ret[7] = lambda + " + 2.0*(" + mu +")" ; // 2,2
+    ret[8] = lambda; // 2,3
+    ret[14] = lambda + " + 2.0*(" + mu +")" ; // 3,3
+    ret[21] = mu; // 4,4
+    ret[28] = mu; // 5,5
+    ret[35] = mu; // 6,6
+    //set symmetry
+    ret[6] = ret[1]; // 2,1
+    ret[12] = ret[2]; // 3,1
+    ret[13] = ret[8]; // 3,2
+    return ret;
+  }
 
 //**********************************************************************
 //*************  READ ACOUSTICS ****************************************

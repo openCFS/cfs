@@ -446,6 +446,14 @@ namespace CoupledField {
         return "N/m^2";
         break;
 
+      case MECH_VISCO_STRESS:
+        return "F/L^2"; // output units depend on input units (which may not be SI)
+        break;
+
+      case MECH_VISCO_STRAIN:
+        return "";
+        break;
+
       case MECH_THERMAL_STRESS:
         return "N/m^2";
         break;
@@ -1239,6 +1247,8 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MECH_DYADIC_STRAIN_SUM, "mechDyadicStrainSum");
     SolutionTypeEnum.Add(MECH_QUAD_DISP, "mechQuadDisplacement");
     SolutionTypeEnum.Add(MECH_QUAD_DISP_SUM, "mechQuadDisplacementSum");
+    SolutionTypeEnum.Add(MECH_VISCO_STRESS, "mechViscoStress");
+    SolutionTypeEnum.Add(MECH_VISCO_STRAIN, "mechViscoStrain");
 
 
     SolutionTypeEnum.Add(MECH_PSEUDO_DENSITY, "mechPseudoDensity");
@@ -1482,9 +1492,8 @@ namespace CoupledField {
     MaterialTypeEnum.Add( MECH_TEC_VECTOR, "Mechanic_TEC_Vector" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORPLANE, "Mechanic_TEC_VectorPlane" );
     MaterialTypeEnum.Add( MECH_TEC_VECTORAXI, "Mechanic_TEC_VectorAxi" );
-    MaterialTypeEnum.Add( MECH_VISCOALPHA_VECTOR, "Mechanic_ViscoAlpha_Vec" );
-    MaterialTypeEnum.Add( MECH_VISCOG_VECTOR, "Mechanic_ViscoG_Vec" );
-    MaterialTypeEnum.Add( MECH_VISCOK_VECTOR, "Mechanic_ViscoK_Vec" );
+    MaterialTypeEnum.Add( MECH_RELAXATION_TIMES, "Mechanic_ViscoT_Vec" );
+    MaterialTypeEnum.Add( MECH_RELAXATION_TENSORS, "Mechanic_Relaxation_Tensors" );
 
 
     MaterialTypeEnum.Add( MECH_STIFFTENSOR_TEC_VECTOR, "Mechanic_StiffTEC_Vector" );
@@ -1558,6 +1567,10 @@ namespace CoupledField {
     MaterialTypeEnum.Add( TEST_BETA, "Test_BETA" );
     MaterialTypeEnum.Add( CORE_LOSS, "coreLossPerMass" );
 
+    // ==== Initialization of Material Models ====
+    MaterialModelEnum.Add( MECH_LINEAR_ELASTIC, "linearElasticity" );
+    MaterialModelEnum.Add( MECH_LINEAR_VISCOELASTIC, "linearViscoElasticity" );
+
     // ==== Initialization of Matrix Types ====
     feMatrixType.Add( NOTYPE, "none" );
     feMatrixType.Add( SYSTEM, "system" );
@@ -1594,6 +1607,7 @@ namespace CoupledField {
 
   Enum<SolutionType> SolutionTypeEnum;
   Enum<MaterialType> MaterialTypeEnum;
+  Enum<MaterialModel> MaterialModelEnum;
   Enum<ApproxCurveType> ApproxCurveTypeEnum;
   Enum<NonLinMethodType> NonLinMethodTypeEnum;
   Enum<FEMatrixType> feMatrixType;
