@@ -10,6 +10,7 @@
 DECLARE_LOG(as)
 DEFINE_LOG(as, "arpackSolver")
 
+
 namespace CoupledField {
 
   ArpackSolver::ArpackSolver() :
@@ -184,7 +185,7 @@ namespace CoupledField {
     bool bloch = boost::is_complex<TYPE>::value;
 
     bool converged = false;
-    int  ido = 0;
+    int ido = 0; // necessary initial value for first aupd() call
     int info = 0;
 
     // temp vector to store B*x
