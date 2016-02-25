@@ -6,6 +6,7 @@
 #include "Utils/tools.hh"
 #include "MatVec/Matrix.hh"
 #include "boost/lexical_cast.hpp"
+#include "boost/algorithm/string.hpp"
 
 namespace CoupledField
 {
@@ -62,14 +63,15 @@ namespace CoupledField
                    << strVec.GetSize() << " entries and should be " << dim1 
                    << " x " << dim2);
       }
-
       for ( UInt i = 0; i < dim1; i++ ) {
         for ( UInt j = 0; j < dim2; j++ ) {
+          boost::algorithm::trim(strVec[i*dim2+j]);
           ret[i][j]= boost::lexical_cast<TYPE>(strVec[i*dim2+j]);
+
         }
       }
     }
-    
+
     template <class TYPE>
     static void AsMatrix(PtrParamNode node, Matrix<TYPE>& ret)
     {

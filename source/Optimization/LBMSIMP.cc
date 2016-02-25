@@ -34,32 +34,26 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   LOG_DBG(lbmsimp) << "CF -> f=" << f->ToString() << " d=" << derivative;
 
   // assume the problem is solved for the current design by DesignChanged()
-
-  switch(f->GetType())
+  if(!derivative)
   {
-  case Function::PRESSURE_DROP:
-  {
-    if(!derivative)
-      return lbm->CalcPressureDrop();
-    else
-    {
-      switch(lbm->GetIface())
+    switch(f->GetType())
       {
-      case LatticeBoltzmannPDE::EXTERNAL:
-      case LatticeBoltzmannPDE::INTERNAL:
-//    	std::cout << "size of f->elements:" <<  f->elements.GetSize() << std::endl;
-        lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
-        break;
+        case Function::PRESSURE_DROP:
+          return lbm->CalcPressureDrop();
+        default: // return below as we don't implement
+          return SIMP::CalcFunction(excite, f, derivative);
       }
+
+  }
+  else
+  {
+    if(f->GetType() == Function::PRESSURE_DROP)
+    {
+      assert(lbm->GetIface() != LatticeBoltzmannPDE::EXTERNAL);
+      lbm->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
       return 0.0;
     }
+    else
+      return SIMP::CalcFunction(excite, f, derivative);
   }
-  break;
-
-  default: // return below as we don't implement
-    break;
-  }
-
-  return SIMP::CalcFunction(excite, f, derivative);
 }
-

@@ -25,7 +25,6 @@
 #include "DataInOut/SimInput.hh"
 #include "DataInOut/ParamHandling/MaterialHandler.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
-#include "DataInOut/ParamHandling/Xerces.hh"
 #include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/SimInput.hh"
 #include "General/Exception.hh"
@@ -536,8 +535,8 @@ DesignSpace* Domain::GetDesign(bool throw_exception)
   if(designSpace_ != NULL)
     return designSpace_;
 
-  if(throw_exception)
-    EXCEPTION("no ersatzMaterial set in domain");
+//if(throw_exception)
+  //  EXCEPTION("no ersatzMaterial set in domain");
 
   return NULL;
 }

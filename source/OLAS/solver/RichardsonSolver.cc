@@ -2,7 +2,6 @@
 
 #include "OLAS/precond/BasePrecond.hh"
 #include "OLAS/solver/RichardsonSolver.hh"
-#include "Utils/Timer.hh"
 
 namespace CoupledField {
 
@@ -79,9 +78,7 @@ namespace CoupledField {
 #endif
 
     // Compute preconditioned residual
-    ptPrecond_->GetPrecondTimer()->Start();
     ptPrecond_->Apply( sysmat, *r_, *w_ );
-    ptPrecond_->GetPrecondTimer()->Stop();
 
 
     // TEST: Due to the use of the penalty method we currently
@@ -123,9 +120,7 @@ namespace CoupledField {
       sysmat.CompRes( *r_, sol, rhs );
 
       // Compute w = P^-1*r by applying preconditioner
-      ptPrecond_->GetPrecondTimer()->Start();
       ptPrecond_->Apply( sysmat, *r_, *w_ );
-      ptPrecond_->GetPrecondTimer()->Stop();
 
       norm_old = norm_new;
 

@@ -913,7 +913,8 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   if (pn != NULL && pn->Has("lattice_vol_coeff_file")) {
     //read interpolation data for volume calculation in 3D
     std::string file = pn->Get("lattice_vol_coeff_file")->As<std::string>();
-    Xerces xerces(file);
+    Xerces xerces;
+    xerces.SetFile(file);
     PtrParamNode root = xerces.CreateParamNodeInstance();
     int dim1 = root->Get("volcoeff/matrix/dim1")->As<int>();
     int dim2 = root->Get("volcoeff/matrix/dim2")->As<int>();
@@ -2109,7 +2110,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
   assert((f == NULL && g != NULL) || (f != NULL && g == NULL));
 
   LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
-                 << ( typeid(element) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
+                 << ( typeid(element) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(element)->elem->elemNum : -1 ) << " sign=" << sign;
 
   // are we global? then we don't do anything if the globalization function gives zero
   // this applies the gradient of the globalization function (max(0, fv)^2)
@@ -2299,7 +2300,7 @@ double Function::Local::Identifier::CalcSlope() const {
 
   double s = this->sign == -1 ? -1.0 : 1.0;
 
-  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
+  LOG_DBG3(func)<< "L:I:CS de=" << element->GetIndex() << " other=" << (typeid(neighbor[0]) == typeid(DesignElement*) ? (int)dynamic_cast<DesignElement*>(neighbor[0])->elem->elemNum : -1 )
   << " sign=" << sign << " slope -> " << (s * (mine - other));
   return s * (mine - other);
 }
@@ -2909,10 +2910,9 @@ double Function::Local::Identifier::CalcLatticeVolume3D(const Local* local, Desi
     case DesignElement::STIFF1:
       direction = 1;
       return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
-
     case DesignElement::STIFF2:
-        direction = 2;
-        return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
+      direction = 2;
+      return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
     case DesignElement::STIFF3:
       direction = 3;
       return Interpolate_Volume3D(p, local->vol_a_, local->vol_b_, local->vol_c_, local->vol_coeff_, direction);
@@ -2937,7 +2937,16 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   }
   /**svol is a scaling factor for unstructured, nonregular grids. */
   double svol = regular ? 1.0 : de->CalcVolume();
-  LOG_DBG2(func)<<"Element volume =  "<<de->CalcVolume();
+  LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
+
+  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SGPP) {
+    Vector<double> p;
+    p[0] = stiff1;
+    p[1] = stiff2;
+    p[2] = GetDesign(DesignElement::SHEAR1, local, access, true);
+    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType());
+  }
+
   if (!derivative) {
     if (dim == 2) {
       return svol * (stiff1 + stiff2 - stiff1 * stiff2);

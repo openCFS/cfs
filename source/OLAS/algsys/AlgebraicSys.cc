@@ -490,9 +490,6 @@ namespace CoupledField {
           "AlgebraicSys::CreateLinSys() first!" );
     }
     
-    // start setup timer of preconditioner
-    precond_->GetSetupTimer()->Start();
-    
     // if we have just one SBM matrix block, use directly
     // the specialized methods for StdMatrices
     if( onlyOneMatrixBlock_ ) {
@@ -500,10 +497,6 @@ namespace CoupledField {
     } else {
       precond_->Setup( *(effMat_));
     }
-    
-    // stop setup timer of preconditioner
-    precond_->GetSetupTimer()->Stop();
-
   }
 
   void AlgebraicSys::SetupSolver() {

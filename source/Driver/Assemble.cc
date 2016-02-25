@@ -29,6 +29,9 @@
 #include "Forms/Operators/BaseBOperator.hh"
 #include "Forms/LinForms/LinearForm.hh"
 
+#include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/DesignSpace.hh"
+
 namespace CoupledField
 {
   // declare logging stream

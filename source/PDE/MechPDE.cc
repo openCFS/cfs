@@ -1126,7 +1126,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         lin = new BDUIntegrator<StrainOperator3D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
       else
         lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
-
       LinearFormContext* ctx = new LinearFormContext(lin);
       ctx->SetEntities(actSDList);
       ctx->SetFeFunction(myFct);

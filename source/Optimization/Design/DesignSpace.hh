@@ -116,7 +116,7 @@ namespace CoupledField
      
      /** Calculates the corresponding ErsatzElementMatrix for the given element
       * @param t holds the resulting Element Matrix
-      * @param elem Element
+      * @param elem Elem pointer
       * @param direction if !=DEFAULT calculate derivative of Element matrix instead of element matrix
       * @returns whether the given element is subject to optimization and the element matrix therefore could be retrieved */
      bool GetErsatzElementMatrix(Matrix<double>& t, const Elem* elem, DesignElement::Type direction);

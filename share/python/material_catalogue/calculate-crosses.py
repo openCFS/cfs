@@ -546,7 +546,7 @@ if dim == 2:
           problem = str(x)+ "-" +str(y) 
                     
         if args.shape == "frame_modified":
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p,True) 
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, True) 
         else:
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, False)
         # filtering of the data
@@ -672,7 +672,7 @@ elif dim == 3:
           densfilename = str(x_tmp) + "-" + str(y_tmp) + "-" + str(z_tmp) + "_" + str(1./steps_p) + ".dens.xml"
           problem = str(x_tmp)+ "-" +str(y_tmp)  + "-" + str(z_tmp) + "_" + str(1./steps_p)
         else:
-          densfilename = str(x) + "-" + str(y) + ".dens.xml"
+          densfilename = str(x) + "-" + str(y) +"-" + str(z) + ".dens.xml"
           problem = str(x)+ "-" +str(y) + "-" + str(z) 
           
         array = void * np.ones((minres, minres, minres))

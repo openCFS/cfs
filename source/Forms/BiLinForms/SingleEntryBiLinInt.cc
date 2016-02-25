@@ -17,6 +17,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
     }
     val_ = val;
 
+    isSymmetric_ = false;
   }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
@@ -36,6 +37,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val,
   if( val_->GetDependency() == CoefFunction::GENERAL) {
     EXCEPTION("SingleEntryInt only works with constant coefficients");
   }
+  isSymmetric_ = false;
 }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real, 
@@ -59,6 +61,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, const std::string& real,
    if( val_->GetDependency() == CoefFunction::GENERAL) {
      EXCEPTION("SingleEntryInt only works with constant coefficients");
    }
+   isSymmetric_ = false;
 }
 
 
