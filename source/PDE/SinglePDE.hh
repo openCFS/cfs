@@ -474,9 +474,6 @@ namespace CoupledField
     //! This is performed in the method  SinglePde::FinalizePostProcResults().
     std::map<shared_ptr<CoefFunctionSurf>, PtrCoefFct > surfCoefFcts_;
 
-    //! Store integrators and coef functions for posprocessing results
-    std::map<SolutionType, std::map<RegionIdType, BaseBDBInt*> > namedInts_;
-    std::map<SolutionType, shared_ptr<CoefFunctionFormBased> > namedFormCoefs_; // necessary because fieldCoefs_ is of type PtrCoefFunc
     
     //! Map containing the input states and the related domains
     std::map<shared_ptr<SimState>, Domain* > inputs_;

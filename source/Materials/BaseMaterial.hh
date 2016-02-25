@@ -79,8 +79,6 @@ namespace CoupledField {
     
     //@{ \name public typedefs
     typedef std::map<MaterialType, Matrix<Complex> > tensorMap;
-    typedef std::map<UInt, Matrix<Double> > tensorList; // list of real valued tensors
-    typedef std::map<MaterialType, tensorList > tensorListMap; 
     typedef std::map<MaterialType, Vector<Complex> > vectorMap;
     typedef std::map<MaterialType, Complex > scalarMap;
     typedef std::map<MaterialType, std::string > stringMap;
@@ -269,12 +267,6 @@ namespace CoupledField {
     {
       EXCEPTION("not implemented");
     }
-    
-    //! set an element of a tensor list (real)
-    virtual void SetTensor(const Matrix<Double>& param, MaterialType matType, UInt index)
-    {
-      EXCEPTION("not implemented");
-    }  
     
     //! Set a nonlinear isotropic approximation
     virtual void SetNonLinMatIso( MaterialType matType, MatDescriptorNl& data );
@@ -553,9 +545,6 @@ namespace CoupledField {
 
     //! map, which knows about the original tensorial material parameters before being rotated
     tensorMap tensorParamsOrig_;
-    
-    //! map which knows about the actual tensor lists (e.g. list of relaxation tensors)
-    tensorListMap tensorListParams_;
 
     //! map storing the isotropic nonlinear material parameters
     nonLinIsoMap nonlinIsoParams_;

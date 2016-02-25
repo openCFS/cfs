@@ -18,9 +18,6 @@ namespace CoupledField {
 
   public:
 
-    typedef StdVector<PtrCoefFct> CoefFctList; // list of coefFunctions
-    typedef std::map<MaterialType, CoefFctList> CoefListMap; // map for lists of CoefFunctions like needed for relaxation tensors
-
     //! Default constructor
     MechanicMaterial(MathParser* mp,
                      CoordSystem * defaultCoosy);
@@ -31,16 +28,16 @@ namespace CoupledField {
     //! Trigger finalization of mataterial (calculation of rotated matrices)
     void Finalize();
 
-    //! re-set the Re/Im part of a scalar material parameter
+    //! set a scalar real material parameter
     void SetScalar( Double param, MaterialType matType, 
-		    Global::ComplexPart dataType = Global::REAL);
+		    Global::ComplexPart dataType );
 
     //! set a scalar complex material parameter
     void SetScalar( Complex param, MaterialType matType, 
-		    Global::ComplexPart dataType = Global::REAL );
+		    Global::ComplexPart dataType );
     
     //! set a scalar parameter in string representation (gets later parsed by MathParser
-    void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType = Global::REAL );
+    void SetScalar(const std::string& param, MaterialType matType, Global::ComplexPart dataType );
 
     //! set a real vector
     virtual void SetVector(const Vector<Double>& param, MaterialType matType,
@@ -53,9 +50,6 @@ namespace CoupledField {
     //! set a complex material tensor
     void SetTensor(const Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType );
-    
-    //! set the element of a coefFunctionList
-    void SetCoefFctList(MaterialType matType, CoefFctList coefList);
 
      //! get a scalar integer material parameter
     void GetScalar( Integer& param, 
@@ -82,20 +76,11 @@ namespace CoupledField {
     void GetTensor( Matrix<Complex>& param, MaterialType matType,
 		    Global::ComplexPart dataType,
 		    SubTensorType = FULL ) const;
-    
-    //! get an element from a real valued tensor list
-    void GetTensor( Matrix<Double>& param, MaterialType matType, UInt index) const; 
 
     //! Return a specific sub-tensor
     virtual PtrCoefFct GetSubTensorCoefFnc( MaterialType matType, 
                                             SubTensorType tensorType,
                                             bool transposed );
-    
-    //! Return a list of coef functions
-    CoefFctList GetCoefFctList( MaterialType matType);
-
-    //! compute the complex valued stiffness tensor
-    void RecomputeComplexViscoTensor();
     
     /** Computes the error to an isotropic elasticity tensor.
      * Assume isotropy and calculate E and v, construct E(E,v) and return ||E(E,v) - tensor||_1 */
@@ -116,18 +101,12 @@ namespace CoupledField {
     /** static helper function to calculate real stiffness tensor from elasticity modulus and Poisson's ratio (3D) */
     static void CalcIsotropicStiffnessTensorFromEAndPoisson(Matrix<Double>& out, Double emod, Double poisson);
     
+    /** static helper function to calculate real stiffness tensor from lame parameters (3D) */
+    static void CalcIsotropicStiffnessTensorFromLame(Matrix<Double>& out, Double lambda, Double mu);
+    
     /** static helper function to calculate complex stiffness tensor from lame parameters */
-    static void CalcIsotropicStiffnessTensor(Matrix<Complex>& out, Complex lambda, Complex mu);
+    static void CalcComplexIsotropicStiffnessTensor(Matrix<Complex>& out, Complex lambda, Complex mu);
 
-    /** static helper function to calculate real stiffness tensor from lame parameters (real valued version)*/
-    static void CalcIsotropicStiffnessTensor(Matrix<Double>& out, Double lambda, Double mu);
-    
-    /** static helper function to calculate Lame parameters from Young's Modulus and Poisson's ratio*/
-    static void Enu2Lame(Double& LameLambda, Double& LameMu, Double E, Double nu);
-    
-    /** static helper function to calculate Lame parameters from Bulk and Shear modulus*/
-    static void GK2Lame(Double& LameLambda, Double& LameMu, Double G, Double K);
-    
     /** Computes from a given tensor the sub-type */
     template<class T>
     static void ComputeSubTensor(Matrix<T>& matMatrix, SubTensorType subTensor, const Matrix<T>& input);
@@ -139,10 +118,7 @@ namespace CoupledField {
     /** Calculates orthotrope material properties and gives them with a readable string.
      * @return first a description with underliner, then the value */
     static StdVector<std::pair<std::string, double> > CalcOrthotropeProperties(const Matrix<double>& tensor, BaseMaterial* mat, SubTensorType stt, double vol);
-    
-    /** */
-    
-    
+
   private:
 
     /** Calculates orthotrope Youngs moduli.
@@ -167,16 +143,7 @@ namespace CoupledField {
 
     //! Computae vector for thermal expansion
     void ComputeFullThermalExpanionVector();
-    
-    //! Connection to math parser instance 
-    boost::signals2::connection conn_;
-    
-    //! Handle for expression
-    MathParser::HandleType mHandle_;
 
-  protected:
-    //! map for lists of CoefFunctions like needed for relaxation tensors
-    CoefListMap tensorCoefLists_;
   };
 
 } // end of namespace

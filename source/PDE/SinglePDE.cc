@@ -1111,25 +1111,6 @@ namespace CoupledField {
         }
       }
     }
-    // 1a) Associate all named coeffunctions and result functors
-    //    with the bilinearform
-    {
-      std::map<SolutionType, std::map<RegionIdType, BaseBDBInt*> >::iterator namedIt = namedInts_.begin();
-      for(; namedIt != namedInts_.end(); ++namedIt ) // loop over named Integrators
-        {
-          SolutionType solType = namedIt->first;
-          shared_ptr<ResultFunctor> resFunct = resultFunctors_.find(solType)->second;
-          shared_ptr<CoefFunctionFormBased> coefFun = namedFormCoefs_.find(solType)->second;
-          std::map<RegionIdType, BaseBDBInt*> nMap = namedIt->second;
-          std::map<RegionIdType, BaseBDBInt*>::iterator regionIt = nMap.begin();
-          for (; regionIt != nMap.end(); regionIt++ ) // iterate over regions
-            {
-              RegionIdType region = regionIt->first;
-              coefFun->AddIntegrator(regionIt->second,region);
-              resFunct->AddIntegrator(regionIt->second,region);
-            }
-        }
-    }
 
     // 2) Associate all mass related coeffunctions and result functors
     //    with the bilinearform

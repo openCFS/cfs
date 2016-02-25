@@ -6,7 +6,6 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionFormBased.cc
   CoefFunctionCompound.cc
   CoefFunctionConst.cc
-  CoefFunctionConvolution.cc
   CoefFunctionExpression.cc
   CoefFunctionGrid.cc
   CoefFunctionGridNodal.cc
@@ -23,7 +22,6 @@ SET(COEFFUNCTION_SRCS
   CoefFunctionScatteredData.cc
   CoefFunctionStabParams.cc
   CoefFunctionHyst.cc
-  CoefFunctionVisco.cc
 )
 #
 ADD_LIBRARY(coeffunction STATIC ${COEFFUNCTION_SRCS})

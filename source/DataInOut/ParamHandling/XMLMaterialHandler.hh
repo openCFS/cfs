@@ -47,11 +47,7 @@ namespace CoupledField {
 
     //! Reads mechanical material.
     //! \param material Material object to be filled with data
-    void ReadMechanic(MechanicMaterial *material, PtrParamNode pn);
-    
-    void ReadMechanicIsotropic(BaseMaterial *material, PtrParamNode pn, Global::ComplexPart dataType);
-    //! Read mechanic elasticity definition and return a 36-valued string-vector containing the elements of the linear stiffness tensor.
-    StdVector<std::string> ReadMechanicIsotropic(PtrParamNode node);
+    void ReadMechanic(BaseMaterial *material, PtrParamNode pn);
 
     //! Reads acoustic material.
     //! \param material Material object to be filled with data
