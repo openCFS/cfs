@@ -354,19 +354,20 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
       // run over all parts
       std::map<RegionIdType,shared_ptr<Coil::Part> >::iterator partIt;
       partIt = actCoil.parts_.begin();
-      if( actCoil.sourceType_ == Coil::CURRENT ) {
+      if(( actCoil.sourceType_ == Coil::CURRENT )||
+          (actCoil.sourceType_ == Coil::EXTERNAL )) {
 
         /*
-        ============================================
-         1) CURRENT driven coils
+        =====================================================
+         1) CURRENT driven coils OR EXTERNAL current density
 
          Ref: M. Kaltenbacher, Numer. Sim. of. Mech.
               Sens. and Act., 2nd edition, p. 131ff
-        ============================================
+        =====================================================
         */
 
-        for( partIt = actCoil.parts_.begin(); 
-            partIt != actCoil.parts_.end(); 
+        for( partIt = actCoil.parts_.begin();
+            partIt != actCoil.parts_.end();
             partIt++ ) {
           Coil::Part & actPart = *(partIt->second);
           RegionIdType actRegion = partIt->first;
@@ -374,13 +375,18 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           actSDList->SetRegion( actRegion );
 
           // generate source current vector
-          CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
+          PtrCoefFct jFct;
+          if( actCoil.sourceType_ == Coil::CURRENT ){
+            CoefXprVecScalOp iVec = CoefXprVecScalOp(mp_, actPart.jUnitVec, actCoil.srcVal_,
                                                    CoefXpr::OP_MULT);
-          PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
+            PtrCoefFct iFct = CoefFunction::Generate(mp_, part, iVec);
 
-          CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect), 
+            CoefXprVecScalOp jVec = CoefXprVecScalOp(mp_, iFct, boost::lexical_cast<std::string>(actPart.wireCrossSect),
                                                    CoefXpr::OP_DIV);
-          PtrCoefFct jFct = CoefFunction::Generate(mp_, part, jVec);
+            jFct = CoefFunction::Generate(mp_, part, jVec);
+          } else {
+            jFct = coilPartsExtJ_[partIt->second];
+          }
           coilCurrentDens_[actRegion] = jFct;
           LinearForm* curInt;
           if( isComplex_ ) {
@@ -442,9 +448,8 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
           // it looks simple: J = I/Gamma_c, where Gamma_c is the coil cross section
           // 1) but the FeSpaceConst does not have elements and the CoefFunction asks
           //    for elements in order to evaluate its expression (FeFunction::GetScalar)
-          // 2) the automatic calculation of the cross section of the coil
-          //    must be implemented because we need the number of turns or the coil cross
-          //    section (only the winding cross section is not enough!)
+          // 2) we need the number of turns or the coil cross section (only the winding
+          //    cross section is not enough!)
           // with these 2 points resolved, the code could look like:
           /*CoefXprVecScalOp testOp = CoefXprVecScalOp( mp_, actPart.jUnitVec,
           GetCoefFct( COIL_CURRENT ), CoefXpr::OP_MULT );
@@ -676,9 +681,9 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
     ParamNodeList coilNodes = coilNode->GetChildren();
 
     // Trigger reading in of definitions
+    Global::ComplexPart cplx = isComplex_ ? Global::COMPLEX : Global::REAL;
     if( coilNodes.GetSize() > 0 ) {
       for( UInt i = 0; i < coilNodes.GetSize(); i++ ) {
-        Global::ComplexPart part = isComplex_ ? Global::COMPLEX : Global::REAL;
         
         // get coil and id
         std::string coilId = coilNodes[i]->Get("id")->As<std::string>();
@@ -690,13 +695,56 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
 
         // Create new coil
         shared_ptr<Coil> actCoil( new Coil( coilNodes[i], coilInfoNode, 
-                                            ptGrid_, mp_, part) );
+                                            ptGrid_, mp_, cplx ) );
         coils_[coilId] = actCoil;
 
         // Associate mapping of coil parts with regions
         std::map<RegionIdType, shared_ptr<Coil::Part> >::const_iterator it;
         for( it = actCoil->parts_.begin(); it != actCoil->parts_.end(); it++ ) {
           coilRegions_[it->first] = actCoil;
+        }
+      }
+
+      // Insert the current densities which are defined externally (simulation or sequence step).
+      // This is done here because it is impossible for the coil to use a PDE pointer.
+      // We have to distinguish between external current density direction and external source.
+      // External source includes the direction, but not vice versa. Therefore, the external source
+      // must be stored per part anyway, although it counts for the whole coil. Additionally, the
+      // parts need the regions and coef functions.
+      std::map<Coil::IdType, shared_ptr<Coil> >::iterator coilIt;
+      for( coilIt = coils_.begin(); coilIt != coils_.end(); ++coilIt ){
+        std::map<shared_ptr<Coil::Part>, PtrParamNode >::iterator extPartIt;
+        for( extPartIt = coilIt->second->partsExtJDir_.begin();
+            extPartIt != coilIt->second->partsExtJDir_.end(); ++extPartIt ){
+          PtrParamNode extNode = extPartIt->second;
+          shared_ptr<CoefFunctionMulti> unitCurrDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+              isComplex_));
+          shared_ptr<CoefFunctionMulti> currDens(new CoefFunctionMulti(CoefFunction::VECTOR,dim_,1,
+                        isComplex_));
+          for( UInt k_reg = 0; k_reg < extPartIt->first->regions.GetSize(); ++k_reg ){
+            std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
+            shared_ptr<EntityList> elems;
+            elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
+            PtrCoefFct regCurrDens;
+            StdVector<std::string> vecComponents;
+            vecComponents = "x", "y", "z";
+            std::set<UInt> definedDofs;
+            ReadUserFieldValues(elems,extNode,vecComponents,
+                ResultInfo::VECTOR,isComplex_,regCurrDens,
+                definedDofs,updatedGeo_);
+            CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
+            PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
+            CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
+            PtrCoefFct unitDir = CoefFunction::Generate( mp_, cplx, unitOp );
+            unitCurrDens->AddRegion(extPartIt->first->regions[k_reg],unitDir);
+            if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
+              currDens->AddRegion(extPartIt->first->regions[k_reg],regCurrDens);
+            }
+          }
+          extPartIt->first->jUnitVec = unitCurrDens;
+          if( coilIt->second->sourceType_ == Coil::EXTERNAL ){
+            coilPartsExtJ_[extPartIt->first] = currDens;
+          }
         }
       }
 
