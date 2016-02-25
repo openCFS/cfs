@@ -45,7 +45,7 @@ ILU0Precond<T>::~ILU0Precond() {
 
 
 // =================================
-//   Application of Preconditioner
+//   App::Type of Preconditioner
 // =================================
 template <typename T>
 void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,

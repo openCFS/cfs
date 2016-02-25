@@ -530,8 +530,7 @@ namespace CoupledField {
     solver_->GetSetupTimer()->Stop();
   }
 
-  void AlgebraicSys::SetupEigenSolver( UInt numFreq, Double shift,
-                                       bool isQuadratic, bool bloch ) {
+  void AlgebraicSys::SetupEigenSolver(UInt numFreq, Double shift, bool isQuadratic, bool sort, bool bloch) {
     
     LOG_TRACE(algSys) << "Setup of eigenvalue solver";
     // check, if system was already created
@@ -563,9 +562,7 @@ namespace CoupledField {
       }
 
       // Setup the quadratic eigenvalue solver
-      eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                           (*sysMat_[MASS])(0,0),
-                           (*sysMat_[DAMPING])(0,0), numFreq, shift );
+      eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), (*sysMat_[DAMPING])(0,0), numFreq, shift, sort);
     } else {
       if( dampPresent == true ) {
         WARN("Although a damping matrix is present, only a generalized "
@@ -575,13 +572,10 @@ namespace CoupledField {
       
       if( massPresent == true ) {
         // Setup the eigenvalue solver for generalized EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             (*sysMat_[MASS])(0,0),
-                             numFreq, shift, bloch);
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), (*sysMat_[MASS])(0,0), numFreq, shift, sort, bloch);
       } else {
         // Setup the eigenvalue solver for standard EV problem
-        eigenSolver_->Setup( (*sysMat_[STIFFNESS])(0,0), 
-                             numFreq, shift );
+        eigenSolver_->Setup((*sysMat_[STIFFNESS])(0,0), numFreq, shift, sort);
       }
     }
 
@@ -1613,7 +1607,7 @@ namespace CoupledField {
                                          const StdVector<Integer>& eqns,
                                          StdVector<UInt>& blockNums,
                                          StdVector<UInt>& indices ) {
-    LOG_DBG(algSys) << "Mapping fctId,eqnNr to blockNum,indices";
+    LOG_DBG(algSys) << "MFIETI Mapping fctId,eqnNr to blockNum,indices";
     
     blockNums.Resize(eqns.GetSize());
     indices.Resize(eqns.GetSize());
@@ -2276,12 +2270,12 @@ namespace CoupledField {
                                     const FeFctIdType fctId,
                                     StdVector<Integer>& eqnNrs ) {
 
-    LOG_DBG(algSys) << "Setting element RHS for fctId ("<< fctId << ")";
-    LOG_DBG2(algSys) << "EqnVec: " << eqnNrs.ToString();
-    LOG_DBG3(algSys) << "vector is:\n " << elemRHS.ToString();
+    LOG_DBG(algSys) << "SER: Setting element RHS for fctId ("<< fctId << ")";
+    LOG_DBG2(algSys) << "SER: EqnVec: " << eqnNrs.ToString();
+    LOG_DBG3(algSys) << "SER: vector is:\n " << elemRHS.ToString();
     
     // Ensure that there are as many equations as vector entries
-    assert( eqnNrs.GetSize() == elemRHS.GetSize());
+    assert(eqnNrs.GetSize() == elemRHS.GetSize());
     
     // Re-map entries from (fctId,eqnNr) -> (blockNum,index)
     StdVector<UInt> rowBlocks, rowNums;
@@ -2828,8 +2822,7 @@ namespace CoupledField {
       //  Check Eigenvalue Solver 
       // -------------------------
       std::string eSolverId = solStrat_->GetEigenSolverId();
-      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", 
-                                               ParamNode::INSERT);
+      PtrParamNode eSolverList = myParam_->Get("eigenSolverList", ParamNode::INSERT);
       ParamNodeList esNodes =  eSolverList->GetChildren();
       PtrParamNode eSolverNode;
       for( UInt i = 0; i < esNodes.GetSize(); ++i ) {
@@ -2856,8 +2849,7 @@ namespace CoupledField {
       // .. if not defined -> LDL / ILDL (depending on symmetry)
       // .. if defined -> Check if solver suites symmetry type of matrix
       std::string solverId = solStrat_->GetSolverId();
-      PtrParamNode solverList = myParam_->Get("solverList", 
-                                              ParamNode::INSERT);
+      PtrParamNode solverList = myParam_->Get("solverList", ParamNode::INSERT);
       ParamNodeList sNodes =  solverList->GetChildren();
       PtrParamNode solverNode;
       for( UInt i = 0; i < sNodes.GetSize(); ++i ) {

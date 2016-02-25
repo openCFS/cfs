@@ -33,34 +33,35 @@ PiezoParamMat::~PiezoParamMat()
 }
 
 
-void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
+void PiezoParamMat::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode, double ev)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);
   assert(calcMode == STANDARD);
 
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache!
 
   DesignElement::Type dt = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
   switch(app)
   {
-  case MECH:
-    out = dynamic_cast<const Matrix<double>& >(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+  case App::MECH:
+    out = dynamic_cast<const Matrix<double>& >(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
-  case ELEC:
-    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
+  case App::ELEC:
+    out = pem->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
-  case PIEZO_COUPLING:
+  case App::PIEZO_COUPLING:
     // out needs to be defined
     assert(out.GetNumCols() != out.GetNumRows());
 
     if(out.GetNumCols() > out.GetNumRows())
-      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
+      out = pem->CoupledStiffnessTransposed(de, dt);
     else
-      out = piezo_mat_->CoupledStiffness(de, dt);
+      out = pem->CoupledStiffness(de, dt);
     break;
 
   default:
@@ -71,11 +72,12 @@ void PiezoParamMat::SetElementK(DesignElement* de, const TransferFunction* tf, A
   LOG_DBG2(ppm) << "PiezoSIMP::SetElementK elem: " << de->elem->elemNum << " app: " << application.ToString(app) << " d=" << derivative << " dt=" << dt;
 }
 
-void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
+void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative)
 {
   // we assume to have no interpolation
   assert(tf->GetType() == TransferFunction::IDENTITY);
   assert(calcMode == STANDARD);
+  PiezoElecMat* pem = dynamic_cast<PiezoElecMat*>(context->mat); // don't cache outside the function because of multiple seqeuence issues
 
   Matrix<double>& out = dynamic_cast<Matrix<double>& >(*mat_out);
 
@@ -83,22 +85,22 @@ void PiezoParamMat::SetElementKMapping(DesignElement* de, BaseDesignElement::Typ
 
   switch(app)
   {
-  case MECH:
-    out = dynamic_cast<Matrix<double> &>(piezo_mat_->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
+  case App::MECH:
+    out = dynamic_cast<Matrix<double> &>(pem->MechStiffness(de->elem, false, de->multimaterial != NULL ? de->multimaterial->index : -1, dt));
     break;
 
-  case ELEC:
-    out = piezo_mat_->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
+  case App::ELEC:
+    out = pem->ElecStiffnessNeg(de, dt); // we need the -K_pp matrix
     break;
 
-  case PIEZO_COUPLING:
+  case App::PIEZO_COUPLING:
     // out needs to be defined
     assert(out.GetNumCols() != out.GetNumRows());
 
     if(out.GetNumCols() > out.GetNumRows())
-      out = piezo_mat_->CoupledStiffnessTransposed(de, dt);
+      out = pem->CoupledStiffnessTransposed(de, dt);
     else
-      out = piezo_mat_->CoupledStiffness(de, dt);
+      out = pem->CoupledStiffness(de, dt);
     break;
 
   default:

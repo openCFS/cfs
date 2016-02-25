@@ -222,22 +222,22 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(TIMEOUT 60)                         
 
   IF(EXISTS ${LOCAL_FILE})
-#    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
+    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
 
     FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
     STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
 
-#    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
-#    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
 
     STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
 
     IF(NOT MD5_EQUAL)
       FILE(REMOVE ${LOCAL_FILE})
       SET(PERFORM_DOWNLOAD 1)   
-#      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
+      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
     ELSE()                                                          
-#      MESSAGE("MD5 sums match! Very fine!")
+      MESSAGE("MD5 sums match! Very fine!")
       SET(DOWNLOAD_OKAY 1)
     ENDIF()
   ELSE()
@@ -363,14 +363,18 @@ MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   # with gfortran both variables have the same value (e.g. 5.2.0) 
   # use our own variable  
   IF(DEFINED CMAKE_Fortran_COMPILER_VERSION)
+    #MESSGAGE("we think we have CMAKE_Fortran_COMPILER_VERSION")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
+    #MESSAGE("we have no CMAKE_Fortran_COMPILER_VERSION")
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
   ENDIF()
   # MESSAGE("CMAKE_Fortran_COMPILER_VERSION = ${CMAKE_Fortran_COMPILER_VERSION}")
   # MESSAGE("FC_VERSION = ${FC_VERSION}")
   # MESSAGE("Fortran_COMPILER_VERSION = ${Fortran_COMPILER_VERSION}")
  
+
+  #MESSAGE("PZ: Fortran_COMPILER_VERSION=${Fortran_COMPILER_VERSION}") 
 
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
@@ -398,7 +402,7 @@ ENDMACRO()
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
-MACRO(DUMP)
+MACRO(DUMP_VARIABLES)
   get_cmake_property(_variableNames VARIABLES)
   foreach (_variableName ${_variableNames})
     message("${_variableName}=${${_variableName}}")

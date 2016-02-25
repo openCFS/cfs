@@ -81,8 +81,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     // Get problem geometry and PDE subtype
     myParam_->GetValue("subType", subType_ );
 
-    std::string probGeo;
-    domain_->GetParamRoot()->Get("domain")->GetValue("geometryType", probGeo );
+    std::string probGeo = domain_->GetParamRoot()->Get("domain")->Get("geometryType")->As<std::string>();
 
     // Set number of degrees of freedom and
     // ensure that subtype fits to problem geometry
@@ -113,16 +112,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       stressDim_ = 3;
       dofNames_ = "x", "y";
     }
-    else {
-      EXCEPTION( "Subtype '" <<  subType_ << "' of PDE '"
-                 <<  pdename_ <<  "' does not fit to problem  geometry '"
-                 << probGeo << "'"; );
-    }
+    else
+      EXCEPTION("Subtype '" <<  subType_ << "' of PDE '" <<  pdename_ <<  "' does not fit to problem  geometry '" << probGeo << "'");
     
     // Sanity check: 3D can only be computed if 3D elements are present/
-    if( subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0 ) {
+    if(subType_ == "3d" && ptGrid_->GetNumElemOfDim(3) == 0)
       EXCEPTION("Can not calculate 3D mechanics without 3D elements in the grid!");
-    }
 
     // thermal stress coefFunction
     thermalStress_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, stressDim_, 1, isComplex_, true));
@@ -1112,6 +1107,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     StdVector<PtrCoefFct> strain(dim_ == 2 ? 3 : 6);
     strain.Init(zero);
     strain[dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test] = one; // xy goes to the third element (z) for 2D
+    LOG_DBG(mechpde) << "DTSI: idx=" << (dim_ == 2 && test == MechPDE::XY ? MechPDE::Z : test) << " -> one";
 
     std::map<RegionIdType, BaseMaterial*>::iterator it;
     for(it = materials_.begin(); it != materials_.end(); it++)
@@ -1126,10 +1122,10 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       assert(regionStiffness_[actRegion]->GetDimType() == CoefFunction::TENSOR);
       assert(ts->GetDimType() == CoefFunction::VECTOR);
       LinearForm* lin = NULL;
-      if(dim_ == 2)
-        lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
-      else       
+      if(dim_ == 3)
         lin = new BDUIntegrator<StrainOperator3D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
+      else
+        lin = new BDUIntegrator<StrainOperator2D<FeH1,double>, double>(1.0, ts, regionStiffness_[actRegion], false); // no updateGeo
       LinearFormContext* ctx = new LinearFormContext(lin);
       ctx->SetEntities(actSDList);
       ctx->SetFeFunction(myFct);

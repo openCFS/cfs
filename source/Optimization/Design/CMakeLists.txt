@@ -12,12 +12,12 @@ SET(DESIGN_SRCS
 ADD_LIBRARY(design STATIC ${DESIGN_SRCS})
 
 SET(TARGET_LL
+  optimization
   cfsgeneral
   datainout
   domain
   logging
   matvec
-  optimization
   optimizer
   paramh
   pde
