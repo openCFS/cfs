@@ -42,6 +42,14 @@ SET(CMAKE_ARGS
   -DCMAKE_CXX_FLAGS:STRING=${CFLAGS}
 )
 
+#intel compiler has problems with emty rpath commands
+IF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
+SET(CMAKE_ARGS
+    ${CMAKE_ARGS}
+    -DCMAKE_SKIP_RPATH:BOOL=TRUE
+   )
+ENDIF()
+
 Find_Package(TCL)
 Find_Package(X11)
 Find_Package(OpenGL)

@@ -9,6 +9,8 @@
 #include <memory>
 #include <boost/filesystem.hpp>
 
+#include "def_use_openmp.hh"
+
 #include "General/Environment.hh"
 #include "General/Exception.hh"
 #include "Domain/Mesh/Grid.hh"
@@ -20,6 +22,10 @@
 #include "Domain/CoordinateSystems/TrivialCartesianCoordSystem.hh"
 #include "Domain/CoordinateSystems/DefaultCoordSystem.hh"
 #include "Domain/Results/BaseResults.hh"
+
+#ifdef USE_OPENMP
+#include "Utils/mathParser/mathParserOMP.hh"
+#endif
 #include "Utils/mathParser/mathParser.hh"
 
 #include "DataInOut/SimInput.hh"
@@ -90,8 +96,12 @@ Domain::Domain(
   isParentDomain_ = output;
 
   // Create new MathParser
+#ifdef USE_OPENMP
+  mathParser_ = new MathParserOMP();
+#else
   mathParser_ = new MathParser();
-  
+#endif
+
   // assign pointers
   gridInputs_ = gridInputs;
   simState_ = simState;
@@ -401,6 +411,7 @@ Domain::~Domain()
     delete mathParser_;
     mathParser_ = NULL;
   }
+
   // the optimization is optional. Important, before ersatzMaterial!
   if (optimization_ != NULL) {
     delete optimization_;

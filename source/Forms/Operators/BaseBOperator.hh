@@ -20,7 +20,7 @@ public:
   BaseBOperator(const BaseBOperator & other){
     this->name_ = other.name_;
     this->coef_ = other.coef_;
-    this->isSurfOpt_ = other.coef_;
+    this->isSurfOpt_ = other.isSurfOpt_;
   }
 
   virtual BaseBOperator * Clone() = 0;

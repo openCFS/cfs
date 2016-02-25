@@ -19,87 +19,74 @@ namespace CoupledField{
 
 MathParserOMP::MathParserOMP(){
 
-  //check if constructor is called from serial code
-  if(omp_get_num_threads() == 1){
-    //assume, constructor is called from
-    //serial part of code and set isShaerd to true
-    isShared_=true;
-    //obtain maximum number of threads
-    //(maybe useful to define cfs variables for that)
-    numThreads_ = NUM_CFS_THREADS;
+  if(omp_get_num_threads()>1){
+    EXCEPTION("MathParserOMP created from parallel region. This may not happen. Use standard Mathparser!")
+  }
 
-    threadHandles_[GLOB_HANDLER].Resize(numThreads_);
-    threadHandles_[GLOB_HANDLER][0] = GLOB_HANDLER;
-    for(UInt aT=1;aT<numThreads_;aT++){
-       threadHandles_[GLOB_HANDLER][aT] = MathParser::GetNewHandle(false);
-    }
-
-  }else if(omp_get_num_threads()>1){
-    EXCEPTION("MathParserOMP created from parallel region. This may not happen.")
-  }else{
-    isShared_ = false;
-    numThreads_ = 1;
-    threadHandles_[GLOB_HANDLER].Resize(numThreads_);
-    threadHandles_[GLOB_HANDLER][0] = GLOB_HANDLER;
+  //assume, constructor is called from
+  //serial part of code and set isShaerd to true
+  isShared_=true;
+  threadHandles_[GLOB_HANDLER].Mine(0) = GLOB_HANDLER;
+  for(UInt aT=1;aT<threadHandles_[GLOB_HANDLER].GetNumSlots();aT++){
+    threadHandles_[GLOB_HANDLER].Mine(aT) = MathParser::GetNewHandle(false);
   }
 }
 
 MathParserOMP::~MathParserOMP(){
-
 }
 
 MathParser::HandleType MathParserOMP::GetNewHandle( bool setDefaults ){
-  MathParser::HandleType masterHandle = MathParser::GetNewHandle(setDefaults);
-
-  if(omp_get_num_threads() != 1){
+  if(omp_get_num_threads()>1){
     EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
   }
-
-  UInt aThread = omp_get_thread_num();
+  MathParser::HandleType masterHandle = MathParser::GetNewHandle(setDefaults);
+  //assign thread 0 the first handle
+  threadHandles_[masterHandle].Mine(0) = masterHandle;
 
   //now we create the corresponding slave handles
-  threadHandles_[masterHandle].Resize(numThreads_);
-  threadHandles_[masterHandle][aThread] = masterHandle;
-  for(UInt aT=0;aT<numThreads_;aT++){
-    if(aT!=aThread)
-      threadHandles_[masterHandle][aT] = MathParser::GetNewHandle(setDefaults);
+  for(UInt aT=1;aT<threadHandles_[masterHandle].GetNumSlots();aT++){
+    threadHandles_[masterHandle].Mine(aT) = MathParser::GetNewHandle(setDefaults);
   }
 
   return masterHandle;
 }
 
 void MathParserOMP::ReleaseHandle( HandleType handle ){
-  for(UInt aT=0;aT<numThreads_;aT++){
-    MathParser::ReleaseHandle(threadHandles_[handle][aT]);
+  if(omp_get_num_threads()>1){
+    EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
   }
-  threadHandles_[handle].Clear(true);
+
+  //here we need to clear each mathParser handle
+  for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
+    MathParser::ReleaseHandle(threadHandles_[handle].Mine(aT));
+  }
 }
 
 void MathParserOMP::SetExpr( HandleType handle, const std::string &expr ){
-  for(UInt aT=0;aT<numThreads_;aT++){
-    MathParser::SetExpr(threadHandles_[handle][aT],expr);
+  if(omp_get_num_threads()>1){
+    EXCEPTION("MathParserOMP::GetNewHandle called from parallel region. Not safe!");
+  }
+
+  for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
+    MathParser::SetExpr(threadHandles_[handle].Mine(aT),expr);
   }
 }
 
 Double MathParserOMP::Eval( HandleType handle ){
-  UInt aThread = omp_get_thread_num();
-  return MathParser::Eval(threadHandles_[handle][aThread]);
+  return MathParser::Eval(threadHandles_[handle].Mine());
 }
 
 void MathParserOMP::EvalVector( HandleType handle, Vector<Double>& vec ){
-  UInt aThread = omp_get_thread_num();
-  MathParser::EvalVector(threadHandles_[handle][aThread],vec);
+  MathParser::EvalVector(threadHandles_[handle].Mine(),vec);
 }
 
 void MathParserOMP::EvalDivVector( HandleType handle, Double& divergence ){
-  UInt aThread = omp_get_thread_num();
-  MathParser::EvalDivVector(threadHandles_[handle][aThread],divergence);
+  MathParser::EvalDivVector(threadHandles_[handle].Mine(),divergence);
 }
 
 void MathParserOMP::EvalMatrix( HandleType handle, Matrix<Double>& matrix,
              UInt numRows, UInt numCols ){
-  UInt aThread = omp_get_thread_num();
-  MathParser::EvalMatrix(threadHandles_[handle][aThread],matrix,numRows,numCols);
+  MathParser::EvalMatrix(threadHandles_[handle].Mine(),matrix,numRows,numCols);
 }
 
 void MathParserOMP::Dump( std::ostream& os ){
@@ -113,14 +100,13 @@ void MathParserOMP::SetValue( HandleType handle,
            const std::string &varName,
            Double val ){
   if(omp_get_num_threads() == 1){
-    //assume call from serial region
-    for(UInt aT=0;aT<numThreads_;aT++){
-      MathParser::SetValue(threadHandles_[handle][aT],varName,val);
+    //assume call from serial region and we set all!
+    for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
+      MathParser::SetValue(threadHandles_[handle].Mine(aT),varName,val);
     }
   }else{
     //assume from parallel region
-    UInt aThread = omp_get_thread_num();
-    MathParser::SetValue(threadHandles_[handle][aThread],varName,val);
+    MathParser::SetValue(threadHandles_[handle].Mine(),varName,val);
   }
 }
 
@@ -129,13 +115,12 @@ void MathParserOMP::RegisterExternalVar( HandleType handle,
                       Double * ptVar ){
   if(omp_get_num_threads() == 1){
     //assume call from serial region
-    for(UInt aT=0;aT<numThreads_;aT++){
-      MathParser::RegisterExternalVar(threadHandles_[handle][aT],varName,ptVar);
+    for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
+      MathParser::RegisterExternalVar(threadHandles_[handle].Mine(aT),varName,ptVar);
     }
   }else{
     //assume from parallel region
-    UInt aThread = omp_get_thread_num();
-    MathParser::RegisterExternalVar(threadHandles_[handle][aThread],varName,ptVar);
+    MathParser::RegisterExternalVar(threadHandles_[handle].Mine(),varName,ptVar);
   }
 }
 
@@ -144,13 +129,12 @@ void MathParserOMP::SetCoordinates( HandleType handle,
                          const Vector<Double> &globCoord ){
   if(omp_get_num_threads() == 1){
     //assume call from serial region
-    for(UInt aT=0;aT<numThreads_;aT++){
-      MathParser::SetCoordinates(threadHandles_[handle][aT],coosy,globCoord);
+    for(UInt aT=0;aT<threadHandles_[handle].GetNumSlots();aT++){
+      MathParser::SetCoordinates(threadHandles_[handle].Mine(aT),coosy,globCoord);
     }
   }else{
     //assume from parallel region
-    UInt aThread = omp_get_thread_num();
-    MathParser::SetCoordinates(threadHandles_[handle][aThread],coosy,globCoord);
+    MathParser::SetCoordinates(threadHandles_[handle].Mine(),coosy,globCoord);
   }
 }
 
@@ -162,7 +146,7 @@ MathParserOMP::AddExpChangeCallBack( const MathParserSignal::slot_function_type
   if(omp_get_num_threads() != 1)
     EXCEPTION("Trying to add mathParser callback from parallel region. Not Supported!");
 
-  return MathParser::AddExpChangeCallBack(subscriber,threadHandles_[handle][0]);
+  return MathParser::AddExpChangeCallBack(subscriber,threadHandles_[handle].Mine());
 
 }
 
