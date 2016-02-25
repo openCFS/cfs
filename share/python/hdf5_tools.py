@@ -203,10 +203,11 @@ def get_result(hdf5_file,result,region=None,step='last',multistep=1) :
     h5_ms = hdf5_file['Results/Mesh/MultiStep_%i'%multistep] # extract multistep
     h5_s = h5_ms['Step_%i'%step] # extract step
     h5_res = h5_s[result] # extract result
-    if region==None and len(h5_res.keys())>1 :
-        raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step))
-    else :
-        region = h5_res.keys()[0]
+    if region==None :
+	if len(h5_res.keys())>1 :
+		raise Exception("No region specified but more than one region present for result '"+result+"'in '"+hdf5_file.filename+"', MultiStep_%i, Step_%i"%(multistep,step)+" Available regions: "+", ".join(h5_res.keys()))
+        else :
+            region = h5_res.keys()[0]
     h5_res_reg = h5_res[region] # extraxt region
     res_type = h5_res_reg.keys()[0] # read result type (Nodes or Elements)
     if 'Imag' in h5_res_reg[res_type].keys() :
