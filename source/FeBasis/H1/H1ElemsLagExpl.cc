@@ -1209,22 +1209,26 @@ namespace CoupledField {
                                      UInt comp ) {
     StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     shape.Resize( 8 );
+    shape.Init();
+    //intermediate Storage for important terms
+    Double xProd = 0.0;
+    Double yProd = 0.0;
     // From:
     // Zienkiewicz, The Finite Element Method.-  Vol 1, 5th ed., page 174
     
-    // corner nodesf
+    // corner nodes
     for( UInt i = 0; i < 4; i++ ) {
-      shape[i] = 0.25 * ( 1 + coords[i][0] * point[0] ) 
-                      * ( 1 + coords[i][1] * point[1] )
-                      * ( coords[i][0] * point[0] + coords[i][1] * point[1] - 1 );
+      xProd = coords[i][0] * point[0];
+      yProd = coords[i][1] * point[1];
+      shape[i] = 0.25 * ( 1.0 + xProd ) * ( 1.0 + yProd ) * ( xProd + yProd - 1.0 );
     }
     
     // mid-side nodes
     for( UInt i = 4; i < 8; i = i + 2 ) {
-      shape[i]   = 0.5 * ( 1 - point[0] * point[0] )
-                       * ( 1 + coords[i][1] * point[1] );
-      shape[i+1] = 0.5 * (1 - point[1] * point[1] )
-                       * (1 + coords[i+1][0] * point[0] );
+      shape[i]   = 0.5 * ( 1.0 - point[0] * point[0] )
+                       * ( 1.0 + coords[i][1] * point[1] );
+      shape[i+1] = 0.5 * (1.0 - point[1] * point[1] )
+                       * (1.0 + coords[i+1][0] * point[0] );
     }
   }
   
@@ -1234,26 +1238,25 @@ namespace CoupledField {
                                              UInt comp ) {
     StdVector<Vector<Double> >& coords = shape_.nodeCoords;
     deriv.Resize( 8, 2 );
+    deriv.Init();
+    Double xProd = 0.0;
+    Double yProd = 0.0;
     
     // corner nodes
     for( UInt i = 0; i < 4; i++ ) {
-      deriv[i][0] = 0.25 * coords[i][0]  
-                         * ( 1 + coords[i][1] * point[1] )
-                         * ( 2 * coords[i][0] * point[0] 
-                               + coords[i][1] * point[1] );
-      deriv[i][1] = 0.25 * coords[i][1]
-                         * ( 1 + coords[i][0] * point[0] )
-                         * ( 2 * coords[i][1] * point[1] 
-                               + coords[i][0] * point[0] );
+      xProd = coords[i][0] * point[0];
+      yProd = coords[i][1] * point[1];
+      deriv[i][0] = 0.25 * coords[i][0] * ( 1.0 + yProd ) * ( 2.0 * xProd + yProd );
+      deriv[i][1] = 0.25 * coords[i][1] * ( 1.0 + xProd ) * ( 2.0 * yProd + xProd );
     }
       
     // mid-side nodes
     for( UInt i = 4; i < 8; i = i + 2 ) {
-      deriv[i][0] = - point[0] * ( 1 + coords[i][1] * point[1] );
-      deriv[i][1] =  0.5 * coords[i][1] * ( 1 - point[0] * point[0] );
+      deriv[i][0] = - point[0] * ( 1.0 + coords[i][1] * point[1] );
+      deriv[i][1] =  0.5 * coords[i][1] * ( 1.0 - point[0] * point[0] );
       
-      deriv[i+1][0] = 0.5 * coords[i+1][0] * ( 1 - point[1] * point[1] );
-      deriv[i+1][1] = - point[1] * ( 1 + coords[i+1][0] * point[0] );
+      deriv[i+1][0] = 0.5 * coords[i+1][0] * ( 1.0 - point[1] * point[1] );
+      deriv[i+1][1] = - point[1] * ( 1.0 + coords[i+1][0] * point[0] );
     }
   }
   

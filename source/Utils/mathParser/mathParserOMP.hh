@@ -16,17 +16,31 @@
 #define MATHPARSEROMP_HH_
 
 #include "mathParser.hh"
+#include "Utils/ThreadLocalStorage.hh"
 #include <omp.h>
 
 namespace CoupledField{
 
 
+/* This path of making the Mathparser calls more thread safe is
+ * chosen because it influences the rest of the code only insignificantly
+ * on the downside, we end up with a somehow fragile implementation.
+ * Basically the functionality of the standard parser is used and
+ * only functions which might be called from parallel regions are
+ * overwritten. Each thread gets its own handle but on the outside of
+ * this class we only give one handle from thread 0. On call we map
+ * internally to the real thread-local handle.
+ * For future developments we might want to rethink the concept
+ * and take the effort of altering every parser call in CFS
+ */
+//! Thread safe wrapper class for MathParser
 class MathParserOMP : public MathParser{
 
 public:
+  //! constructor
   MathParserOMP();
 
-  ~MathParserOMP();
+  virtual ~MathParserOMP();
 
   virtual HandleType GetNewHandle( bool setDefaults = false);
 
@@ -63,9 +77,7 @@ public:
                             HandleType handle );
 private:
 
-  std::map<HandleType, StdVector<HandleType> > threadHandles_;
-
-  UInt numThreads_;
+  std::map<HandleType, CfsTLS<HandleType> > threadHandles_;
 
   bool isShared_;
 

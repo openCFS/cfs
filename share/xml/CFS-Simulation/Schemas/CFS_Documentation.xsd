@@ -134,6 +134,7 @@
       
       <!-- Acoustic -->
       <xsd:enumeration value="acoustic"/>
+      <xsd:enumeration value="temperature"/>
       <xsd:enumeration value="abc"/>
       <xsd:enumeration value="pml"/>
       <xsd:enumeration value="aeroacoustics"/>
