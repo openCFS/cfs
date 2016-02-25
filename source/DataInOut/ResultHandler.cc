@@ -115,7 +115,7 @@ namespace CoupledField {
         if( outFiles_.find( newDest[i] ) == outFiles_.end() )
           EXCEPTION( "Output writer '" << newDest[i] << "' was not registered yet!" );
 
-        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName;
+        LOG_DBG(resHandler) << "Registering output '" << newDest[i] << "' with result '" << actDof.resultName << "'";
 
         actContext->outputIds.Push_back( newDest[i] );
         

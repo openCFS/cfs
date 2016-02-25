@@ -1561,6 +1561,8 @@ source/Domain/CoefFunction/CoefFunctionCompound.cc -text
 source/Domain/CoefFunction/CoefFunctionCompound.hh -text
 source/Domain/CoefFunction/CoefFunctionConst.cc -text
 source/Domain/CoefFunction/CoefFunctionConst.hh -text
+source/Domain/CoefFunction/CoefFunctionConvolution.cc -text
+source/Domain/CoefFunction/CoefFunctionConvolution.hh -text
 source/Domain/CoefFunction/CoefFunctionExpression.cc -text
 source/Domain/CoefFunction/CoefFunctionExpression.hh -text
 source/Domain/CoefFunction/CoefFunctionFormBased.cc svneol=native#text/x-c%2B%2Bsrc
@@ -1595,6 +1597,8 @@ source/Domain/CoefFunction/CoefFunctionSurf.cc -text
 source/Domain/CoefFunction/CoefFunctionSurf.hh -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.cc -text
 source/Domain/CoefFunction/CoefFunctionTimeFreq.hh -text
+source/Domain/CoefFunction/CoefFunctionVisco.cc -text
+source/Domain/CoefFunction/CoefFunctionVisco.hh -text
 source/Domain/CoefFunction/CoefXpr.cc -text
 source/Domain/CoefFunction/CoefXpr.hh -text
 source/Domain/CoordinateSystems/CMakeLists.txt -text

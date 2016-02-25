@@ -632,6 +632,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         if ( lineSearch_ != "none" || iterationCounter == 1) {
           // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
+          assemble_->AssembleNonLinRHS();
 
           // setup the matrices
           isNewton = false;
@@ -657,6 +658,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         //now assemble the Newton bilinear forms
         isNewton = true;
         assemble_->AssembleMatrices(isNewton);
+
+        // update rhs
+        assemble_->AssembleNonLinRHS();
 
         matrix_factor_.clear();
         
@@ -706,6 +710,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
+          assemble_->AssembleNonLinRHS();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){

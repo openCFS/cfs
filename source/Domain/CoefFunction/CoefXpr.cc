@@ -216,7 +216,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
       dim = CoefFunction::VECTOR;
     }
     // case: tensor - scalar
-    else if( a->GetDimType() == CoefFunction::TENSOR &&  
+    else if( a->GetDimType() == CoefFunction::TENSOR &&
             b->GetDimType() == CoefFunction::SCALAR ) {
       dim = CoefFunction::TENSOR;
     }
@@ -227,7 +227,7 @@ CoefFunction::CoefDimType CoefXpr::GetDimType( PtrCoefFct a,
     } else {
       EXCEPTION( "Can not apply a function on arguments of type "
           << CoefFunction::CoefDimType_.ToString(a->GetDimType())
-          << " and " << CoefFunction::CoefDimType_.ToString(a->GetDimType()) );
+          << " and " << CoefFunction::CoefDimType_.ToString(b->GetDimType()) );
     }
     
   }
@@ -1634,8 +1634,8 @@ void CoefXprBinOp::GetTensorXpr( UInt& numRows, UInt& numCols,
     }else{
       EXCEPTION("Dyadic multiplication not available for complex valued vectors.")
     }
-  }else {
-
+  }
+  else {
     EXCEPTION("Arguments must be both of tensor type.")
   }
 }
@@ -1919,6 +1919,126 @@ void CoefXprTensScalOp::GetTensorXpr( UInt& numRows, UInt& numCols,
 
 void CoefXprTensScalOp::
 GetArgs( std::map<std::string, PtrCoefFct >& vars ) const {
+  vars[aName_] = a_;
+  vars[bName_] = b_;
+}
+
+// ==========================================================================
+//  TENSOR x VECTOR
+// ==========================================================================
+void CoefXprTensVecOp::Init( PtrCoefFct a, PtrCoefFct b, CoefXpr::OpType op ) {
+
+  // check dimensionality
+  if( a->GetDimType() != CoefFunction::TENSOR ) {
+    EXCEPTION( "First argument must be of type TENSOR" );
+  }
+
+  if( b->GetDimType() != CoefFunction::VECTOR ) {
+    EXCEPTION( "Second argument must be of type VECTOR" );
+  }
+
+  if( GetNumOperands(op) != 2  ) {
+    EXCEPTION( "Operand must have exactly 2 operands" );
+  }
+
+  UInt ai,aj;
+  a->GetTensorSize(ai,aj);
+  UInt bi = b->GetVecSize();
+  if (aj != bi) {
+      EXCEPTION( "Size must be compatible" )
+  }
+
+  dimType_ = CoefFunction::VECTOR;
+  isAnalytical_ = a->IsAnalytic() && b->IsAnalytic();
+  dependType_ = std::max(a->GetDependency(), b->GetDependency());
+
+  // check for distinct coordinate systems
+  CoordSystem* aCoord = a->GetCoordinateSystem();
+  CoordSystem* bCoord = b->GetCoordinateSystem();
+  if( aCoord != NULL || bCoord != NULL) {
+    if (aCoord != NULL && bCoord == NULL) {
+      coordSys_ = aCoord;
+    } else if (aCoord == NULL && bCoord != NULL) {
+      coordSys_ = bCoord;
+    } else if (aCoord == bCoord) {
+      coordSys_ = aCoord;
+    } else {
+      EXCEPTION("Case of two distinct coordinate systemw within "\
+                "one expression is not tested yet");
+    }
+  }
+  isComplex_ = a->IsComplex() || b->IsComplex();
+  a_ = a;
+  b_ = b;
+  aName_ = CoefXpr::GetUniqueVarName();
+  bName_ = CoefXpr::GetUniqueVarName();
+  op_ = op;
+}
+
+CoefXprTensVecOp::CoefXprTensVecOp( MathParser * mp, PtrCoefFct a, PtrCoefFct b, CoefXpr::OpType op ) : CoefXpr(mp) {
+  Init( a, b, op );
+}
+
+void CoefXprTensVecOp::GetVectorXpr( StdVector<std::string>& real, StdVector<std::string>& imag ) const {
+
+  StdVector<std::string> aR, aI;
+  StdVector<std::string> bR, bI;
+
+  UInt numRows, numCols; // size of a
+
+  if( isAnalytical_) {
+    CoefFunctionAnalytic & coefA =
+        dynamic_cast<CoefFunctionAnalytic&>(*a_);
+    CoefFunctionAnalytic & coefB =
+        dynamic_cast<CoefFunctionAnalytic&>(*b_);
+    coefA.GetStrTensor( numRows, numCols, aR, aI );
+    coefB.GetStrVector( bR, bI );
+  } else {
+    CoefFunction::GenTensorCompNames(aR, aI, aName_, a_);
+    CoefFunction::GenVecCompNames(bR, bI, bName_, b_);
+    a_->GetTensorSize(numRows, numCols);
+  }
+  // output size
+  real.Resize( numRows );
+  imag.Resize( numRows );
+
+  if( !isComplex_ )
+    {
+      for( UInt i = 0; i < numRows; ++ i )
+        {
+          std::string sum;
+          CoefXpr::ApplyBinaryFunc(sum,aR[0],bR[0],CoefXpr::OP_MULT);
+          for (UInt j = 1; j < numCols; ++ j)
+            {
+              CoefXpr::ApplyTernaryFunc( sum, sum, aR[j], bR[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
+              //std::string prod;
+              //CoefXpr::ApplyBinaryFunc( prod, Bracket(aR[j]), Bracket(bR[j]), CoefXpr::OP_MULT );
+              //CoefXpr::ApplyBinaryFunc( sum, sum, prod, CoefXpr::OP_ADD );
+            }
+          real[i] = sum;
+          imag[i] = "0.0";
+        }
+    }
+  else
+    {
+      for( UInt i = 0; i < numRows; ++ i )
+        {
+          std::string sumR = "";
+          std::string sumI = "";
+          for (UInt j = 0; j < numCols; ++ j)
+            {
+              CoefXpr::ApplyTernaryFunc( sumR, sumI, sumR, aR[j], bR[j], sumI, aI[j], bI[j], CoefXpr::OP_ADD, CoefXpr::OP_MULT);
+              //std::string prodR, prodI;
+              //CoefXpr::ApplyBinaryFunc( prodR, prodI, Bracket(aR[j]), Bracket(bR[j]),Bracket(aI[j]), Bracket(bI[j]), CoefXpr::OP_MULT );
+              //CoefXpr::ApplyBinaryFunc( sumR, sumI, sumR, prodR, sumI, prodI, CoefXpr::OP_ADD );
+            }
+          real[i] = sumR;
+          imag[i] = sumI;
+        }
+    }
+}
+
+void CoefXprTensVecOp::GetArgs( std::map<std::string, PtrCoefFct >& vars ) const {
   vars[aName_] = a_;
   vars[bName_] = b_;
 }
