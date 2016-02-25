@@ -78,12 +78,13 @@ namespace CoupledField {
     zMass_  = NULL;
     zDamp_  = NULL;
   }
-  void ArpackEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift)
+  void ArpackEigenSolver::Setup(const BaseMatrix & mat, UInt numFreq, Double freqShift, bool sort)
   {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = false;
     isBloch_ = false;
+    sort_ = false;
 
     // NOTE: Hard coded as true!!!
     shiftAndInvert_ = true;
@@ -155,12 +156,13 @@ namespace CoupledField {
   }
   
   
-  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat, UInt numFreq, Double freqShift, bool bloch)
+  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
     isGeneralized_ = true;
     isBloch_ = bloch;
+    sort_ = sort;
 
     // Copy matrix references and determine size of system
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
@@ -168,10 +170,8 @@ namespace CoupledField {
       EXCEPTION( WRONG_CAST_MSG );
     }
 
-    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be hermitian and standard
-    // complex solvers assume just symmetric for symmetric matrices.
-    if(bloch && matrixA_->GetStorageType() != BaseMatrix::SPARSE_NONSYM) // ignore skyline - who needs it?!
-      throw Exception("Bloch EVA needs non-symmetric system matrices. Use solver directLU or matrix storage='sparseNonSym'");
+    // bloch works only for non-symmetric matrices as the stiffness matrix needs to be Hermitian.
+    // At least Pardiso can be used with <pardiso> <hermitean>yes</hermitean> </pardiso>
 
     matrixB_ = & dynamic_cast<const StdMatrix&>(massMat);
     if ( matrixB_ == NULL ) {
@@ -272,15 +272,14 @@ namespace CoupledField {
   }
 
 
-  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat,
-                                const  BaseMatrix & massMat,
-                                const  BaseMatrix & dampMat,
-                                UInt numFreq, Double freqShift ) {
+  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat,  const  BaseMatrix & dampMat,
+                                UInt numFreq, double freqShift, bool sort) {
 
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = true;
     isGeneralized_ = true;
     isBloch_ = false;
+    sort_ = false;
 
     // Copy matrix references and convert them to StdMatrices
     matrixA_ = & dynamic_cast<const StdMatrix&>(stiffMat);
@@ -406,26 +405,58 @@ namespace CoupledField {
 
   }
 
+  void ArpackEigenSolver::SetupIndex(unsigned int numev)
+  {
+    // to be called after within each CalcEigenFrequencies()
+    idx_.Resize(numev);
+
+    if(sort_)
+    {
+      // we sort with a std::pair<||ev||, org_idx>
+      std::vector<ev_idx> org;
+      for(unsigned int i = 0; i < numev; i++)
+      {
+        double v = isBloch_ || isQuadratic_ ? std::abs(arpackSolver_->CmplxEigenvalue(i)) : arpackSolver_->Eigenvalue(i);
+        org.push_back(std::make_pair(v, i));
+      }
+
+      std::sort(org.begin(), org.end(), ArpackEigenSolver::comperator);
+
+      for(unsigned int i = 0; i < numev; i++)
+      {
+        LOG_DBG2(aes) << "SI: i=" << i << " (" << org[i].first << ", " << org[i].second << ")";
+        idx_[i] = org[i].second;
+      }
+    }
+    else
+      for(unsigned int i = 0; i < numev; i++)
+        idx_[i] = i;
+  }
+
   void ArpackEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
     assert(!(isBloch_ && isQuadratic_));
 
     unsigned int numEVs = 0;
-
     // case1: generalized real problem
     if(!isQuadratic_ && !isBloch_)
     {
       // Find the eigenvalues and calculate the eigenvectors
       numEVs = arpackSolver_->FindEigenvalues<Double>();
 
+      SetupIndex(numEVs); // setup idx_
+
       // case1: generalized problem
       Vector<Double> & solConverted = dynamic_cast<Vector<Double>&>(sol);
       solConverted.Resize( numEVs );
-      for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i] = arpackSolver_->Eigenvalue(i);
+      for (UInt i = 0; i < numEVs; i++ )
+      {
+        solConverted[i] = arpackSolver_->Eigenvalue(idx_[i]);
         // if non-negative eigenvalue, convert to eigenfrequency
-        if (solConverted[i] >= 0.0)
+        if (solConverted[i] >= 0.0)  {
+          LOG_DBG(aes) << "CEF: i=" << i << " ev=" << solConverted[i] << " -> f=" << sqrt(solConverted[i])/(8.0*atan(1.0));
           solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
+        }
       }
     }
     // case2: quadratic complex problem
@@ -437,10 +468,12 @@ namespace CoupledField {
       else
         numEVs = arpackSolver_->FindEigenvalues<Complex>();
 
+      SetupIndex(numEVs);
+
       Vector<Complex> & solConverted = dynamic_cast<Vector<Complex>&>(sol);
       solConverted.Resize( numEVs );
       for (UInt i = 0; i < numEVs; i++ ) {
-        solConverted[i] = arpackSolver_->CmplxEigenvalue(i);
+        solConverted[i] = arpackSolver_->CmplxEigenvalue(idx_[i]);
         if(isBloch_ && solConverted[i].real() >= 0.0)
           solConverted[i] = sqrt(solConverted[i])/(8.0*atan(1.0));
       }
@@ -457,7 +490,7 @@ namespace CoupledField {
     Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
     errVec.Resize( numEVs );
     for (UInt i = 0; i < numEVs; i++ ) {
-        errVec[i] = arpackSolver_->Tolerance(i);
+        errVec[i] = arpackSolver_->Tolerance(idx_[i]);
     }
   }
 
@@ -544,6 +577,8 @@ namespace CoupledField {
 
     //Find the eigenvalues and calculate the eigenvectors
     UInt numEVs = arpackSolver_->FindEigenvalues<Double>();
+    SetupIndex(numEVs);
+
     if( numEVs == 0) {
       EXCEPTION( "No convergence in search for eigenvalues");
     }
@@ -551,28 +586,27 @@ namespace CoupledField {
     evs.Resize( numEVs );
     err.Resize( numEVs );
     for (UInt i = 0; i < numEVs; i++ ) {
-      evs[i] = arpackSolver_->Eigenvalue(i);
-      err[i] = arpackSolver_->Tolerance(i);
+      evs[i] = arpackSolver_->Eigenvalue(idx_[i]);
+      err[i] = arpackSolver_->Tolerance(idx_[i]);
     }
 
     condNumber = evs[evs.GetSize()-1] / evs[0];
   }
 
-  void ArpackEigenSolver::GetEigenMode( UInt modeNr, Vector<Complex> & mode ) {
-
+  void ArpackEigenSolver::GetEigenMode(UInt modeNr, Vector<Complex> & mode)
+  {
     UInt size = matrixA_->GetNumRows();
     mode.Resize( size );
     mode.Init();
 
-    for ( UInt i = 0; i < size; i++ ) {
-        mode[i] = Complex((arpackSolver_->GetEigenvector( modeNr ))[i],0);
-    }
+    for(UInt i = 0; i < size; i++)
+      mode[i] = Complex((arpackSolver_->GetEigenvector(idx_[modeNr]))[i],0);
 
     // BLOCH better? mode.Fill(arpackSolver_->GetEigenvector(modeNr), matrixA_->GetNumRows());
 
   }
 
-  void ArpackEigenSolver::GetComplexEigenMode( UInt modeNr, Vector<Complex>& mode)
+  void ArpackEigenSolver::GetComplexEigenMode(UInt modeNr, Vector<Complex>& mode)
   {
     // in bloch mode case the same as GetEigenMode,
     // in quadratic case the modes have internally double size and we want the upper half
@@ -580,8 +614,8 @@ namespace CoupledField {
     UInt size = matrixA_->GetNumRows();
 
     if(isQuadratic_)
-      mode.Fill(arpackSolver_->GetComplexEigenvector(modeNr) + size, size);
+      mode.Fill(arpackSolver_->GetComplexEigenvector(idx_[modeNr]) + size, size);
     else
-      mode.Fill(arpackSolver_->GetComplexEigenvector(modeNr), size);
+      mode.Fill(arpackSolver_->GetComplexEigenvector(idx_[modeNr]), size);
   }
 }

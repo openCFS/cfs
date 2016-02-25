@@ -34,8 +34,7 @@ namespace CoupledField {
     //! contains the following:
     //! - NOEIGENSOLVER
     //! - ARPACK
-    //! - SUBSPACE
-    typedef enum {NOEIGENSOLVER, ARPACK, SUBSPACE} EigenSolverType;    
+    typedef enum {NO_EIGENSOLVER, ARPACK} EigenSolverType;
     static Enum<EigenSolverType> eigenSolverType;    
     
   public:
@@ -54,7 +53,8 @@ namespace CoupledField {
         numFreq_(0),
         freqShift_(0.0),
         isQuadratic_(false),
-        isBloch_(false)
+        isBloch_(false),
+        sort_(false)
     {
     }
     
@@ -75,10 +75,9 @@ namespace CoupledField {
     //! \param mat Reference to matrix
     //! \param numFreq Number of eigenvalues/frequencies to be calculated
     //! \param freqShift Frequency shift applied to the system
-    //! \param shiftMode Flag indicating if shift-and-invert mode of solver
-    //!        is used
-    virtual void Setup( const BaseMatrix & mat,
-                        UInt numFreq, Double freqShift ) = 0;
+    //! \param shiftMode Flag indicating if shift-and-invert mode of solver is used
+    //! \param sort
+    virtual void Setup(const BaseMatrix & mat,  UInt numFreq, double freqShift, bool sort) = 0;
     
     //! Setup routine for a generalized eigenvalue problem
     
@@ -90,9 +89,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    virtual void Setup( const BaseMatrix & stiffMat,
-                        const BaseMatrix & massMat,
-                        UInt numFreq, Double freqShift, bool bloch) = 0;
+    virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat,
+                        UInt numFreq, double freqShift, bool sort, bool bloch) = 0;
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -105,10 +103,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    virtual void Setup( const BaseMatrix & stiffMat,
-                        const BaseMatrix & massMat,
-                        const BaseMatrix & dampMat,
-                        UInt numFreq, Double freqShift ) = 0;
+    virtual void Setup( const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
+                        UInt numFreq, double freqShift, bool sort) = 0;
 
     /** Solve the linear generalized eigenvalue problem.
      *  This method triggers the calculation of the eigenvalue problem.
@@ -177,6 +173,9 @@ namespace CoupledField {
 
     //! Flag indication if a complex generalized bloch mode EV problem is solved
     bool isBloch_;
+
+    /** shall we sort the evs` */
+    bool sort_;
   };
   
 }

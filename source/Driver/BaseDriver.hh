@@ -87,6 +87,8 @@ namespace CoupledField
     virtual bool IsComplex() = 0;
 
     PtrParamNode GetInfo() { return info_; }
+
+    PtrParamNode GetParam() { return param_; }
   protected:
     
     //! type of analysis

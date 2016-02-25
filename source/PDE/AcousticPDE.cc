@@ -274,7 +274,7 @@ namespace CoupledField{
       matCoefs_[ACOU_ELEM_SPEED_OF_SOUND]->AddRegion( actRegion, c0);
 
       // if pde couples with mechanic, we have to multiply the density by -1
-      PtrCoefFct factor;
+      PtrCoefFct factor; // in the simple case just 1.0
       if ( isMechCoupled_ == true && formulation_ != ACOU_PRESSURE ) {
         // Important: In case of a general / quadratic EV problem, we must
         // ensure to have a "positive definite" matrix, i.e. we are not allowed
@@ -334,33 +334,28 @@ namespace CoupledField{
       BaseBDBInt * stiffInt = NULL;
       if( dim_ == 2 ) {
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(),
-                                        coeffPMLfactor, 1.0, updatedGeo_ );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,2,Complex>(), coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 
-                                       1.0, updatedGeo_ );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,2>(), factor, 1.0, updatedGeo_ );
         }
       }
-      else{
+      else{ // 3D case
         if(harmonicPML){
-          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(),
-                                        coeffPMLfactor, 1.0, updatedGeo_ );
+          stiffInt = new BBInt<Complex>(new ScaledGradientOperator<FeH1,3,Complex>(), coeffPMLfactor, 1.0, updatedGeo_ );
           stiffInt->SetBCoefFunctionOpB(coeffPMLVec);
         }else{
-          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor,
-                                       1.0, updatedGeo_ );
+          stiffInt = new BBInt<Double>(new GradientOperator<FeH1,3>(), factor, 1.0, updatedGeo_ );
         }
       }
       
       stiffInt->SetName("LaplaceIntegrator");
 
-      BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
 
       //check for damping
       if ( dampingList_[actRegion] == RAYLEIGH ) {
-        RaylDampingData & actDamp = (regionRaylDamping_[actRegion]);
+        RaylDampingData& actDamp = (regionRaylDamping_[actRegion]);
         stiffIntDescr->SetSecDestMat(DAMPING, actDamp.beta );
       }
 

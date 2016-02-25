@@ -11,7 +11,8 @@ namespace CoupledField {
   // =========================================================================
   
   //! Class for interfacing with ARPACK FORTRAN library
-  //class ArpackSolver : public BaseEigenSolver {
+  // Note class ArpackEigenSolver : public BaseEigenSolver
+  // ArpackSolver is the Arpack frontent
   class ArpackSolver {
     
   public:
@@ -63,6 +64,7 @@ namespace CoupledField {
     UInt FindQuadEigenvalues();
 
     //! This method returns the n-th converged eigenvalue
+    //! This is always the original sorting from arpack. It becomes sorted in ArpackEigenSolver.
     //! \param n Number of requested converged eigenvalue
     //! \return Calculated eigenvalue
     Double Eigenvalue(UInt n);

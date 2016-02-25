@@ -591,6 +591,7 @@ share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
+share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
@@ -1223,7 +1224,6 @@ share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
-share/python/density-to-png.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
@@ -1303,6 +1303,7 @@ share/python/performance_test.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
+share/python/process_density.py -text
 share/python/process_image.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
@@ -2074,6 +2075,7 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/Excitation.cc -text

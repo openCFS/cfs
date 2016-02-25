@@ -52,7 +52,7 @@ namespace CoupledField {
 
 
   // =================================
-  //   Application of Preconditioner
+  //   App::Type of Preconditioner
   // =================================
   template <typename T>
   void ILUTP_Precond<T>::Apply( const CRS_Matrix<T> &sysMat,

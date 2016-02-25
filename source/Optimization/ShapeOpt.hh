@@ -31,10 +31,10 @@ template <class TYPE> class Vector;
 
     /** Calculate part of the derivative u1 dK/dShape u2 of compliance and tracking w.r.t. shape.
      * This is done using the isoparametric approach as described in Haslinger and Diss of Bastian Schmidt */
-    void CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff = NULL);
+    void CalcMinusU1dKU2(StateContainer& forward, StateContainer& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff = NULL);
     
     /** Calculate part of the derivative u dF/dShape of compliance and tracking w.r.t. shape. This part is only implemented for pressure. */
-    void CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constraint, double w = 1.0);
+    void CalcUdF(StateContainer& adjoint, Objective* f, Condition* constraint, double w = 1.0);
 
     /** Overwritten version of ErsatzMaterial::CalcCompliance */
     virtual double CalcCompliance(Excitation& excite, Objective* f, Condition* constraint, bool derivative);
@@ -57,7 +57,7 @@ template <class TYPE> class Vector;
      * @param read_rhs is only interesting for the forward problem
      * @param save_sol set this in the adjoint problem -> see Solution::Read()
      * @param comment is just to LOG_DBG */
-    virtual void StorePDESolution(StateSolutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment);
+    virtual void StorePDESolution(StateContainer& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment);
 
     /** Subtract the current Testdisplacement from a given vector, needed by CalcHomogenizedTensor 
      * @param idx index of the excitation 

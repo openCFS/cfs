@@ -38,7 +38,7 @@ namespace CoupledField
 {
 
 template<typename T>
-StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateSolutions* forward) :
+StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMaterial* em, StateContainer* forward) :
     elemList(domain->GetGrid())
 {
   assert(f->GetType() == Function::STRESS || f->GetType() == Function::STRESS_DENSITY);
@@ -58,12 +58,12 @@ StressConstraint<T>::StressConstraint(Excitation* excite, Function* f, ErsatzMat
 
   // global initializations
   assert(true);
-  // FIXME M = dynamic_cast<MechPDE*>(em->ToPDE(Optimization::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
+  // FIXME M = dynamic_cast<MechPDE*>(em->ToPDE(App::MECH))->GetVonMisesMatrix(domain->GetGrid()->GetDim());
 
   if(f->region != ALL_REGIONS && !space->Contains(f->region))
-    tf = TransferFunction(Optimization::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
+    tf = TransferFunction(App::NO_APP, TransferFunction::FULL, 0.0, f->GetDesignType());
   else
-    tf = *(space->GetTransferFunction(DesignElement::DENSITY, Optimization::STRESS)); // for qp = rho^3/rho^2.8 use SIMP with 0.2
+    tf = *(space->GetTransferFunction(DesignElement::DENSITY, App::STRESS, true)); // for qp = rho^3/rho^2.8 use SIMP with 0.2
 
 
   LOG_DBG2(sc) << "SC: tf=" << tf.ToString() << " M=" << M.ToString();
@@ -97,14 +97,14 @@ void StressConstraint<T>::CalcStresses(Mode mode, int res_idx, Vector<double>& o
 
   double fm = mode == STRESS ? 1.0 : 2.0;
 
-  StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
+  StdVector<pair<App::Type, App::Type> > apps = GetApplications();
 
   for(unsigned int a = 0; a < apps.GetSize(); a++)
   {
-    pair<Optimization::Application, Optimization::Application>& app = apps[a];
+    pair<App::Type, App::Type>& app = apps[a];
 
-    all_u1_elem = &(forward->Get(*excite)->elem[app.first == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
-    all_u2_elem = &(forward->Get(*excite)->elem[app.second == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]); // for the adjoint rhs we need no app2 solution
+    all_u1_elem = &(forward->Get(excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
+    all_u2_elem = &(forward->Get(excite)->elem[app.second == App::MECH ? App::MECH : App::ELEC]); // for the adjoint rhs we need no app2 solution
 
     // It might be that stress sensitive region is not within the design domain itself
     for(unsigned int e = 0, en = f->elements.GetSize(); e < en; e++)
@@ -168,7 +168,7 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
   // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=piezo and app2=mech
   // -1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=piezo and app2=piezo
   // +1*alpha*(E1*B1*u1^*)^T*M*E2*B2 with app1=mech and app2=piezo
-  // app2 determines the pde. The elastic case is simply MECH, MECH
+  // app2 determines the pde. The elastic case is simply App::MECH, App::MECH
 
 
   // evaluate in the piezo case 4 times. Better nice code!
@@ -183,17 +183,17 @@ void StressConstraint<T>::CalcAdjointRHS(Vector<T>& out)
 
   out.Resize(forward->Get(*excite)->GetVector(Solution::RAW_VECTOR)->GetSize(), T());
 
-  StdVector<pair<Optimization::Application, Optimization::Application> > apps = GetApplications();
+  StdVector<pair<App::Type, App::Type> > apps = GetApplications();
 
   for(unsigned int a = 0; a < apps.GetSize(); a++)
   {
-    pair<Optimization::Application, Optimization::Application>& app = apps[a];
+    pair<App::Type, App::Type>& app = apps[a];
 
     // the second app determines u or phi.
-    unsigned int dof = app.second ==  Optimization::MECH ? domain->GetGrid()->GetDim() : 1;
-    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second == Optimization::PIEZO_COUPLING ? Optimization::ELEC : Optimization::MECH)->GetEqnMap();
+    unsigned int dof = app.second ==  App::MECH ? domain->GetGrid()->GetDim() : 1;
+    shared_ptr<EqnMap> eqnMap = em->ToPDE(app.second == App::PIEZO_COUPLING ? App::ELEC : App::MECH)->GetEqnMap();
 
-    all_u1_elem = &(forward->Get(*excite)->elem[app.first == Optimization::MECH ? Optimization::MECH : Optimization::ELEC]);
+    all_u1_elem = &(forward->Get(*excite)->elem[app.first == App::MECH ? App::MECH : App::ELEC]);
     all_u2_elem = all_u1_elem; // for the adjoint rhs we need no app2 solution
 
     // It might be that stress sensitive region is not within the design domain itself
@@ -287,12 +287,12 @@ void StressConstraint<T>::CalcGlobalizationFactor(Vector<double>& out)
 }
 
 template<typename T>
-void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Application app1, Optimization::Application app2, Mode mode)
+void StressConstraint<T>::SetupElement(DesignElement* de, App::Type app1, App::Type app2, Mode mode)
 {
   assert(false);
   /* FIXME
-  form1 = em->GetForm(de->elem->regionId, app1, Optimization::NO_APP, true);
-  form2 = em->GetForm(de->elem->regionId, app2, Optimization::NO_APP, true);
+  form1 = em->GetForm(de->elem->regionId, app1, App::NO_APP, true);
+  form2 = em->GetForm(de->elem->regionId, app2, App::NO_APP, true);
 
   BaseMaterial* bimat1 = space->GetBiMaterial(de->elem->regionId, app1, false);
   BaseMaterial* bimat2 = space->GetBiMaterial(de->elem->regionId, app2, false);
@@ -312,7 +312,7 @@ void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Applicat
 
   // apply our own physical densities!
   form1->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat1, E1);
-  if(app1 == Optimization::PIEZO_COUPLING)
+  if(app1 == App::PIEZO_COUPLING)
   {
     tmp = E1;
     tmp.Transpose(E1);
@@ -324,7 +324,7 @@ void StressConstraint<T>::SetupElement(DesignElement* de, Optimization::Applicat
   else
     form2->GetScaledMaterial(tf.Transform(de, DesignElement::SMART), false, bimat2, E2);
 
-  if(app2 == Optimization::PIEZO_COUPLING)
+  if(app2 == App::PIEZO_COUPLING)
   {
     tmp = E2;
     tmp.Transpose(E2);
@@ -368,12 +368,12 @@ void StressConstraint<T>::SetupIntPoint(Elem* elem, unsigned int ip, Mode mode)
 }
 
 template<typename T>
-StdVector<pair<Optimization::Application, Optimization::Application> >  StressConstraint<T>::GetApplications()
+StdVector<pair<App::Type, App::Type> >  StressConstraint<T>::GetApplications()
 {
-  StdVector<pair<Optimization::Application, Optimization::Application> > result;
+  StdVector<pair<App::Type, App::Type> > result;
 
   if(f->GetStressType() == Function::MECH)
-   result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
+   result.Push_back(std::make_pair(App::MECH, App::MECH));
   else
   {
     assert(false);
@@ -381,21 +381,21 @@ StdVector<pair<Optimization::Application, Optimization::Application> >  StressCo
     // one of three piezo case - is the stress constraint defined on a piezo region ?!
     RegionIdType reg = f->elements[0]->elem->regionId;
 
-    BaseForm* form = em->GetForm(reg, Optimization::MECH, Optimization::ELEC, false);
+    BaseForm* form = em->GetForm(reg, App::MECH, App::ELEC, false);
     if(form == NULL)
       throw Exception("piezoelectric stress constraint not defined on a piezoelectric region");
 */
     switch(f->GetStressType())
     {
     case Function::ONLY_COUPLING: // special case only
-      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::PIEZO_COUPLING));
+      result.Push_back(std::make_pair(App::PIEZO_COUPLING, App::PIEZO_COUPLING));
       break;
 
     case Function::PIEZO: // standard piezo case
-      result.Push_back(std::make_pair(Optimization::MECH, Optimization::MECH));
-      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::MECH));
-      result.Push_back(std::make_pair(Optimization::PIEZO_COUPLING, Optimization::PIEZO_COUPLING));
-      result.Push_back(std::make_pair(Optimization::MECH, Optimization::PIEZO_COUPLING));
+      result.Push_back(std::make_pair(App::MECH, App::MECH));
+      result.Push_back(std::make_pair(App::PIEZO_COUPLING, App::MECH));
+      result.Push_back(std::make_pair(App::PIEZO_COUPLING, App::PIEZO_COUPLING));
+      result.Push_back(std::make_pair(App::MECH, App::PIEZO_COUPLING));
       break;
 
     default:
