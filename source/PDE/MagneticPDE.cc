@@ -963,7 +963,7 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
 
         // Create new coil
         shared_ptr<Coil> actCoil( new Coil( coilNodes[i], coilInfoNode, 
-                                            ptGrid_, mp_, part) );
+                                            ptGrid_, mp_, part ) );
         coils_[coilId] = actCoil;
 
         // Associate mapping of coil parts with regions

@@ -1283,6 +1283,34 @@
   <!--   Definition of syntax for specifying coils -->
   <!-- ******************************************************************* -->
 
+  <!-- data type for specifying external inputs, similar to DT_BcInhomScalar -->
+  <xsd:complexType name="DT_ExtCurrentDens">
+        <xsd:choice>
+          <!-- Read Data from external Grids -->
+          <xsd:element name="grid" minOccurs="0" maxOccurs="1" type="DT_BaseGridData"/>
+
+          <!-- Obtain data from iterative coupling -->
+          <xsd:element name="coupling" minOccurs="0" maxOccurs="1" type="DT_IterCplData"/>
+
+          <!-- External HDF5 file -->
+          <xsd:element name="externalSimulation" maxOccurs="1" type="DT_ExternalSimulation"/>
+
+          <!-- =========================== -->
+          <!--  Scattered data from CSV -->
+          <!-- =========================== -->
+          <xsd:element name="scatteredData" maxOccurs="1" type="DT_ScatteredData">
+            <xsd:annotation>
+              <xsd:documentation xml:lang="en">
+                Scattered data coming from CSV files.
+              </xsd:documentation>
+            </xsd:annotation>
+          </xsd:element>
+          
+          <!-- Same Simulation, other sequenceStep -->
+          <xsd:element name="sequenceStep" maxOccurs="1" type="DT_SequenceStep"/>
+        </xsd:choice>
+  </xsd:complexType>
+
   <!-- Data type for basic coil -->
   <xsd:complexType name="DT_MagCoil">
     <xsd:sequence>
@@ -1294,6 +1322,14 @@
               <xsd:restriction base="xsd:token">
                 <xsd:enumeration value="current"/>
                 <xsd:enumeration value="voltage"/>
+                <xsd:enumeration value="external">
+                  <xsd:annotation>
+                    <xsd:documentation xml:lang="en">
+                      Not only the direction of the current density is specified from external data, but the total current density.
+                      Requires the use of external data in the direction of the part(s).
+                    </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:enumeration>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -1323,8 +1359,6 @@
             <!--Specify current direction -->
             <xsd:element name="direction" minOccurs="1" maxOccurs="1">
               <xsd:complexType>
-                <!-- 2 Possibilities: Either analytical (value+coordinate system)
-                     or by given input/output surface(s) -->
                 <xsd:choice>
                   <!-- a) analytic current direction -->
                   <xsd:element name="analytic">
@@ -1374,10 +1408,13 @@
                       </xsd:sequence>
                     </xsd:complexType>
                   </xsd:element>
+
+                  <!-- c) external -->
+                  <xsd:element name="external" minOccurs="0" maxOccurs="1" type="DT_ExtCurrentDens"/>
                 </xsd:choice>
                 <xsd:attribute name="orientation" default="1" type="DT_DirFlag" use="optional"/>
-                <xsd:attribute name="uniformCurrentDensity" default="yes" type="DT_CFSBool"
-                  use="optional"/>
+                <!--xsd:attribute name="uniformCurrentDensity" default="yes" type="DT_CFSBool"
+                  use="optional"/-->
               </xsd:complexType>
             </xsd:element>
 
@@ -1390,13 +1427,13 @@
               <xsd:element name="windingTurns">
                 <xsd:complexType>
                   <xsd:attribute name="number" type="xsd:positiveInteger" use="required"/>
-                  <xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/>
+                  <!--xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/-->
                 </xsd:complexType>
               </xsd:element>
               <xsd:element name="wireCrossSection">
                 <xsd:complexType>
                   <xsd:attribute name="area" type="xsd:token" use="required"/>
-                  <xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/>
+                  <!--xsd:attribute name="fillFactor" type="DT_PosFloat" default="1.0"/-->
                 </xsd:complexType>
               </xsd:element>
             </xsd:choice>
