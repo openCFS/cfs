@@ -199,8 +199,13 @@ private:
     return pdfs_.GetPointer()[idx * n_q_ + dir];
   };
 
-  inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
+  inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
+  }
+
+  /** Perform position of matrix element in linearized matrix*/
+  inline unsigned int GetMatrixElemId(unsigned int row, unsigned int col, unsigned int ncols) {
+    return row * ncols + col;
   }
 
   inline void GetCoordinates(unsigned int index, unsigned int& x, unsigned int& y, unsigned int&z) const{
@@ -260,7 +265,7 @@ private:
 
   void d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, StdVector<double>& dfeqduz, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& uz, const StdVector<double>& dcol, const StdVector<double>& weight);
 
-  void d_bounceback_d_f(Matrix<double>& block);
+  void d_bounceback_d_f(int index, Matrix<double>& block);
   void d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight);
   void d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight);
 
@@ -361,7 +366,8 @@ private:
   StdVector<LatticeBoltzmannBase::Direction> invPDFDirections_;
 
   StdVector<Matrix<double> > adjSRTCollision; // adjoint SRT collision matrices
-  StdVector<Vector<double> > d_pdrop_d_f;
+  StdVector<StdVector<double> > adjCollisions;
+  StdVector<StdVector<double> > d_pdrop_d_f;
 
   /** external lbm */
   std::string executable;

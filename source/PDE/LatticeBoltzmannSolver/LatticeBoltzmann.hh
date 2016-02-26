@@ -57,7 +57,8 @@ namespace CoupledField
 
       /** Performs all the adjoint LBM iterations until a steady-state with a given tolerance is reached.
        * @param info stores current and final info there */
-      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+//      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
@@ -103,8 +104,8 @@ namespace CoupledField
            */
           double CalcDensity(const Vector<double>& pdfs);
 
-          /** Calculates residual as difference between two iteration solutions.
-           *  Parameter adjoint indicates whether residual should be calculated for pdfs or adjoint pdfs array.
+          /**
+           * Calculates residual as difference between two iteration solutions.
            */
           inline double CalcResidual(int cur, int next)
           {
@@ -132,6 +133,11 @@ namespace CoupledField
             return sqrt(res);
           }
 
+          /** Perform position of matrix element in linearized matrix*/
+          inline unsigned int GetMatrixElemId(unsigned int row, unsigned int col, unsigned int ncols) {
+            return row * ncols + col;
+          }
+
           /** set enumerations for directions and boundaries*/
           void SetEnums();
 
@@ -156,6 +162,9 @@ namespace CoupledField
 
           /** debug information */
           std::string ToString(const StdVector<StdVector<int> >& data);
+
+          /** Performs matrix-vector multiplication of a linearized array with a vector */
+          void MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res);
 
 
           inline bool LbmNodeTypeIsFluid(double value)
@@ -316,8 +325,7 @@ namespace CoupledField
           StdVector<int> bb;
           StdVector<int> rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
-          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
-          StdVector<Vector<double> > d_pdrop_d_m;
+//          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
