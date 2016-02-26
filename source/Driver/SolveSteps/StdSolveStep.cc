@@ -402,8 +402,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
 
   void StdSolveStep::SolveStepTrans() {
-
-	if ( isHyst_ ) {
+	if ( isHyst_ ) {//&& PDE_.IsHysteresis_Fixpoint() == false ) {
 		StepTransNonLinHysteresis();
 	}
 	//currently not supported
@@ -411,9 +410,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 //      StepTransNonLinMaterial();
 //    }
     // do a nonlinear time step
-    else if (nonLin_){
-      if ( nonLinTotalFormulation_ )
+    else if (nonLin_ ){//|| PDE_.IsHysteresis_Fixpoint() == true){
+      if ( nonLinTotalFormulation_ ){ //|| PDE_.IsHysteresis_Fixpoint() == true){
+        //std::cout << "TOTAL" << std::endl;
         StepTransNonLinTotal();
+      }
       else
         StepTransNonLin();
     }
@@ -630,6 +631,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         iterationCounter++;
 
         if ( lineSearch_ != "none" || iterationCounter == 1) {
+
           // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
 
@@ -639,7 +641,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
-            //std::cout << "Matrix: " << matIt->first << std::endl;
+
             if(matIt->second < 0)
               continue;
             for(pos = 0,fncIt = feFunctions_.begin();fncIt != feFunctions_.end();++fncIt,++pos){
@@ -706,6 +708,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
           // set linear part of RHS
           algsys_->InitRHS(RhsLinVal_);
+          //assemble_->AssembleNonLinRHS();
 
           //now update RHS according to time stepping
           for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -819,7 +822,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
 
   void StdSolveStep::StepTransNonLinTotal() {
-    std::cout << "In Step Total" << std::endl;
+
     bool performOneMoreStep;
     bool isNewton;
     Double incrementalErr;
@@ -884,6 +887,11 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
         // set RHS
         algsys_->InitRHS(RhsLinVal_);
+
+        /*
+         * set nonlinrhs via assmble and not via setlinrhs(...,true)
+         */
+        assemble_->AssembleNonLinRHS();
 
         //now update RHS according to time stepping
         for(matIt = matrices.begin();matIt != matrices.end();matIt++){
@@ -1026,6 +1034,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
      // setup right hand side
      Double loadFactor = 1.0;
+
      incrementalErr = SetLinRHS(loadFactor);
 
      // set iteration counter
@@ -1037,14 +1046,27 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
        // reset rhs
      //  RhsLinVal_.Init();
      //  algsys_->InitRHS(RhsLinVal_);
-
-       if(PDE_.IsHysteresis_Fixpoint() == true){
-         incrementalErr = SetLinRHS(loadFactor,true);
-         RhsLinVal_.Init();
-         algsys_->InitRHS(RhsLinVal_);
-       } else {
-         //incrementalErr = SetLinRHS(loadFactor,false);
-       }
+//
+//       if(PDE_.IsHysteresis_Fixpoint() == true){
+//
+//         // nach dem löschen muss er eigentlich sowohl die linearen als auch die nichtlinearen teile nochmals hinzufügen
+//         // die unterscheidung zwischen linear und nichtlinear ist also obsolet
+//
+//         RhsLinVal_.Init();
+//         algsys_->InitRHS(RhsLinVal_);
+//
+//         //incrementalErr = SetLinRHS(loadFactor,true);
+//         /*
+//          * Fixpoint iteration used to work, however, P was just postprocessed upon E
+//          * as we RhsLinVal_.Init() followed by SetLinRHS( ,true) we just had nonlinear terms on the rhs
+//          * although P depends on E it was not marked as solDependent and such we solved div(eps0*E) = 0
+//          * this worked of course
+//          * Doing a real updating on the rhs will however not work
+//          */
+//         //incrementalErr = SetLinRHS(loadFactor,false);
+//       } else {
+//         //incrementalErr = SetLinRHS(loadFactor,false);
+//       }
 
        // do matrices: Newton is not working for total formulation!!
        isNewton = false;
@@ -1075,8 +1097,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
        for(fncIt = feFunctions_.begin();fncIt != feFunctions_.end();fncIt++){
          FeFctIdType fctId = fncIt->second->GetFctId();
-         fncIt->second->GetTimeScheme()
-           ->AddMatFactors(i,matrices,matrix_factor_[fctId]);
+         fncIt->second->GetTimeScheme()->AddMatFactors(i,matrices,matrix_factor_[fctId]);
          algsys_->ConstructEffectiveMatrix(fctId, matrix_factor_[fctId]);
        }
 
@@ -1102,6 +1123,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
        else
          incrementalErr = solIncrL2Norm;
 
+       //std::cout << "rel error: " << incrementalErr << std::endl;
+       //std::cout << "abs error: " << solIncrL2Norm << std::endl;
+
        //just dummy things
        Double etaLineSearch = 1.0;
 
@@ -1118,11 +1142,16 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
              << etaLineSearch << std::endl;
        }
 
+       //use relaxated form
        stageSol = newSol;
+       //Double relaxfac = 0.1;
+       //stageSol.Add( -relaxfac, newSol);
+       //stageSol.Add( relaxfac, oldSol);
+       //stageSol = newSol;
        solVec_  = stageSol;
 
        //store new solution
-       oldSol = newSol;
+       oldSol = stageSol; //newSol;
 
        // boolean variable, holds condition if another iteration step is necessary
        performOneMoreStep =
@@ -1426,7 +1455,6 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     Double RhsLinL2Norm;
 
-
     // to incorporate loads+
     if(nonlin){
       assemble_->AssembleNonLinRHS();
@@ -1439,6 +1467,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     // Stores rhs vector into extForces and returns that L2-norm
     algsys_->GetRHSVal( RhsLinVal_ );
+
     RhsLinVal_.ScalarMult(loadFactor);
 
     //std::cout << "RHS: " << RhsLinVal_.ToString() << std::endl;
@@ -1516,6 +1545,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       
       // set RHS: linear part
       algsys_->InitRHS(RhsLinVal_ );
+      // and nonlinpart if any
+      assemble_->AssembleNonLinRHS();
 
       // setup the matrices
       bool isNewton = false;

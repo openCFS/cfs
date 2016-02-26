@@ -1198,9 +1198,9 @@ namespace CoupledField
       LinearFormContext & actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin )
+      if( actContext.IsNonLin() != nonLin ){
         continue;
-
+      }
       LinearForm* form = actContext.GetIntegrator();
 
       try
@@ -1262,6 +1262,8 @@ namespace CoupledField
 
             // Calculate real valued element vector
             form->CalcElemVector( elemVec, entIt );
+
+            //std::cout << "elemVector: " << elemVec << std::endl;
 
             // Map equation numbers
             actContext.MapEqns( entIt, eqnVec, fctId );

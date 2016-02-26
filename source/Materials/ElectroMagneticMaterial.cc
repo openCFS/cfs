@@ -40,6 +40,7 @@ namespace CoupledField
     isAllowed_.insert( PREISACH_WEIGHTS );
     isAllowed_.insert( X_SATURATION );
     isAllowed_.insert( Y_SATURATION );
+    isAllowed_.insert( Y_REMANENCE );
     isAllowed_.insert( A_JILES );
     isAllowed_.insert( ALPHA_JILES );
     isAllowed_.insert( K_JILES );
@@ -63,14 +64,20 @@ namespace CoupledField
 
   void ElectroMagneticMaterial::SetScalar(const std::string& param, MaterialType matType) {
 
-
-    if ( matType == HYST_MODEL ) {
+    if ( matType == HYST_MODEL || matType == P_DIRECTION ) {
       stringParams_[matType] = param;
       isSet_.insert( matType );
     }
     else {
-      std::string dim = "string";
-      matTypeNotAllowed( matType, dim );
+
+      if (  isAllowed_.find( matType ) == isAllowed_.end() ) {
+        std::string dim = "scalar";
+        matTypeNotAllowed( matType, dim );
+      }
+      else {
+        isSet_.insert( matType );
+      }
+      stringParams_[matType] = param;
     }
   }
 

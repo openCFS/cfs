@@ -196,7 +196,7 @@ namespace CoupledField {
       COIL_INDUCTANCE, COIL_INDUCED_VOLTAGE, COIL_CURRENT, COIL_LINKED_FLUX, COIL_CURRENT_DERIV1,
       
       // -- material related results --
-      MAG_ELEM_PERMEABILITY,
+      MAG_ELEM_PERMEABILITY, MAG_MAGNETIZATION,
       
       // =================
       //  HEAT CONDUCTION

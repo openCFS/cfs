@@ -796,6 +796,10 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           if( dim_ == 2 ) {
             if(isaxi_){
            // we need +factor as we put -rotH to the rhs
+           // note: use BDUIntegrator, even though we have no material (dMat = Identity)
+              //lin = new BDUIntegrator<CurlOperatorAxi<Double>, Complex>(Complex(factor),
+                    //                                                         coef[i], reluc_, coefUpdateGeo);
+
               lin = new BUIntegrator<Complex>( new CurlOperatorAxi<Double>(),
                                            Complex(factor),it->second,  coefUpdateGeo, fullevaluation);
             } else {
@@ -810,17 +814,19 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
           if( dim_ == 2 ) {
             if(isaxi_){
            // we need +factor as we put -rotH to the rhs
-              lin = new BUIntegrator<Complex>( new CurlOperatorAxi<Double>(),
+              lin = new BUIntegrator<Double>( new CurlOperatorAxi<Double>(),
                                            factor,it->second,  coefUpdateGeo, fullevaluation);
             } else {
-              lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,2,Double>(),
+              lin = new BUIntegrator<Double>( new CurlOperator<FeH1,2,Double>(),
                                               factor,it->second,  coefUpdateGeo, fullevaluation);
             }
           } else {
-            lin = new BUIntegrator<Complex>( new CurlOperator<FeH1,3,Double>(),
+            lin = new BUIntegrator<Double>( new CurlOperator<FeH1,3,Double>(),
                                             factor,it->second,  coefUpdateGeo, fullevaluation);
           }
         }
+
+        std::cout << "type of lin: " << typeid(lin).name() << std::endl;
 
         lin->SetName("rhs_magnetization");
         LinearFormContext *ctx = new LinearFormContext( lin );
@@ -1162,6 +1168,18 @@ MagneticPDE::MagneticPDE(Grid * aptgrid, PtrParamNode paramNode,
     }
     DefineFieldResult( magIntensFunc, magIntens );
     stiffFormCoefs_.insert(magIntensFunc);
+
+    if ( isHysteresis_){
+     hysteresisCoefs_.reset(new CoefFunctionMulti(CoefFunction::VECTOR, dim_,1,isComplex_));
+     shared_ptr<ResultInfo> magM ( new ResultInfo );
+     magM->resultType = MAG_MAGNETIZATION;
+     magM->SetVectorDOFs(dim_, isaxi_);
+     magM->unit = "A/m";
+     magM->definedOn = ResultInfo::ELEMENT;
+     magM->entryType = ResultInfo::VECTOR;
+     DefineFieldResult( hysteresisCoefs_, magM );
+     availResults_.insert( magM );
+    }
 
     // for both BdBKernel and EnergyResultFunctor, we need to apply the -1 factor
     // to get right sign in the results (even though the energy results are not really usable in the coupled case as they neglect the influnce of the coupled pde)

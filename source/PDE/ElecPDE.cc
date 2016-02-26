@@ -720,18 +720,8 @@ namespace CoupledField {
           }
         }
 
-/*
-        if(isComplex_) {
-          // we need -factor as we put +P to the rhs
-          lin = new BUIntegrator<Complex>( new IdentityOperator<FeH1>(),
-                                           Complex(-factor), it->second, coefUpdateGeo);
-        } else  {
-          lin = new BUIntegrator<Double>( new IdentityOperator<FeH1>(),
-                                          -factor, it->second, coefUpdateGeo);
-        }
-*/
-
         lin->SetName("rhs_polarization");
+        lin->SetSolDependent();
         LinearFormContext *ctx = new LinearFormContext( lin );
         ctx->SetEntities( actSDList );
         ctx->SetFeFunction(myFct);
@@ -850,6 +840,7 @@ namespace CoupledField {
         curCoef = CoefFunction::Generate(mp_, Global::REAL, dim_, dim_, realVal, imagVal);
 
         std::cout << "Using FixPoint Hystersis" << std::endl;
+        std::cout << "Attention: FixPoint Hysteresis just applies Preisach to given field. Hysteresis does not influence the result! " << std::endl;
 
         isHysteresisFixPoint_ = true;
       } else {
@@ -1018,7 +1009,8 @@ namespace CoupledField {
 	  Double gamma = 1.0;
 	  GLMScheme * scheme = new Trapezoidal(gamma);
 
-	  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0)); //, nlType) );
+	  //TimeSchemeGLM::NonLinType nlType = (nonLin_ || isHysteresisFixPoint_)? TimeSchemeGLM::INCREMENTAL : TimeSchemeGLM::NONE;
+	  shared_ptr<BaseTimeScheme> myScheme(new TimeSchemeGLM(scheme, 0) );
 	  feFunctions_[ELEC_POTENTIAL]->SetTimeScheme(myScheme);
   }
 
