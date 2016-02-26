@@ -301,6 +301,7 @@
       <xsd:enumeration value="magEddyPowerDensity"/>
       <xsd:enumeration value="magEnergyDensity"/>
       <xsd:enumeration value="magCoreLossDensity"/>
+      <xsd:enumeration value="magMagnetization"/>
     </xsd:restriction>
   </xsd:simpleType>
 

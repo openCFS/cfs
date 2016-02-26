@@ -49,6 +49,9 @@ public:
   //!
   void SetPreviousHystVals();
 
+  //! Create for the vector case deltaMat from dX and dY
+  void CreateDeltaMatrix(Vector<Double>& dX,Vector<Double>& dY, Matrix<Double>& deltaMat);
+
   //! \see CoefFunction::ToString
   std::string ToString() const;
 
@@ -116,6 +119,15 @@ protected:
 
   //! dim for vector model
   UInt dim_;
+
+  //! this one is to distinguish between scalar and vector preisach
+  //! do not confuse this with dimType_!
+  CoefDimType methodType_;
+
+  Double xSat_;
+  Double ySat_;
+  Double rotRes_;
+  Double rev_mat_fac_;
 
 };
 

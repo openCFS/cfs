@@ -191,6 +191,12 @@ namespace CoupledField
     if ( overwrite ) {
       actLength = stringLength;
 
+      std::cout << "Print out entries of min/max list" << std::endl;
+      for ( UInt i=0; i<actLength; i++ ) {
+        std::cout << "index " << i << ": " << stringEl[i] << std::endl;
+      }
+      std::cout << "#############" << std::endl;
+
       //compute preisach-sum
       preisachSum_[idx] =  everettPixel(-stringEl[0],stringEl[0]);
       for ( UInt i=0; i<actLength-1; i++ ) {
@@ -199,6 +205,7 @@ namespace CoupledField
       newY = preisachSum_[idx]; 
     }
     else {
+
       newY = everettPixel(-helpStringEl[0], helpStringEl[0]);
       for ( UInt i=0; i<stringLength-1; i++ ) {
         newY +=  2.0*everettPixel(helpStringEl[i],helpStringEl[i+1]);
@@ -218,6 +225,7 @@ namespace CoupledField
     UInt M = preisachWeights_.GetNumRows();
     Double delta = 2.0 / ( (Double) M );
 
+    std::cout << "delta: " << delta << std::endl;
     //compute index for X1 (alpha)
     Integer idx1 = -1;
     Double alpha = -1.0;
@@ -243,6 +251,9 @@ namespace CoupledField
     // X1 >= X2
     // -> mit alpha_0 = beta_0 = -1 und gleichem delta -> idx1 >= idx2
 
+    std::cout << "idx1: " << idx1 << std::endl;
+    std::cout << "idx2: " << idx2 << std::endl;
+
     Double area = 0.0;
     if ( idx1 >= 0 ) {
       UInt start = std::min(idx1,idx2);
@@ -262,7 +273,14 @@ namespace CoupledField
       Double diffX2 = X2    - beta;
       Double minusArea;
  
-      //|diffX1| und |diffX2| sollten < delta sein
+      /*
+       * The idea behind the minusArea is to handle input variation which are smaller than delta
+       * Assume for example a min/max list with differences between mins and maxs < delta
+       * In that case, the same preisach element would flip from +1 to -1 and the single steps would cancel
+       * out in the sum. By reducing the weighting areas accordingly, we can also treat input lists of the described form
+       * as now the summed up terms are weighted with different areas!
+       * Commit out the section below and you will see, that it does not work anymore!
+       */
 
       //check, if we are already on the diagonal!!
       if ( idx1 == idx2 ) {
@@ -293,7 +311,7 @@ namespace CoupledField
           * preisachWeights_[idx1][idx];
       }
 
-      area -= minusArea; 
+      area -= minusArea;
     }
 
     //sgn-function

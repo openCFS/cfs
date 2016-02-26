@@ -29,6 +29,7 @@ CoefFunctionMulti::~CoefFunctionMulti() {
 }
 
 void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
+
   // check, if this is the first entry
   if( regionCoefs_.size() == 0 ) {
     shared_ptr<CoefFunctionConst<Complex> > cFct(new CoefFunctionConst<Complex>());
@@ -65,6 +66,7 @@ void CoefFunctionMulti::AddRegion( RegionIdType region, PtrCoefFct coef ) {
 
   } else {
     PtrCoefFct first = regionCoefs_.begin()->second;
+
     if( coef->GetDimType() != dimType_ ) {
       EXCEPTION( "The dimensionality of the coefficient functions "
           << "is not the same");

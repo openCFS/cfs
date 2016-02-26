@@ -395,6 +395,9 @@ namespace CoupledField {
       case MAG_ELEM_PERMEABILITY:
         return "Vs/Am";
 
+      case MAG_MAGNETIZATION:
+        return "A/m";
+
       case MAG_EDDY_POWER:
       case MAG_CORE_LOSS:
         return "W";
@@ -1347,6 +1350,7 @@ namespace CoupledField {
     SolutionTypeEnum.Add(MAG_EDDY_POWER, "magEddyPower");
     SolutionTypeEnum.Add(MAG_EDDY_CURRENT, "magEddyCurrent");
     SolutionTypeEnum.Add(MAG_ELEM_PERMEABILITY, "magElemPermeability");
+    SolutionTypeEnum.Add(MAG_MAGNETIZATION, "magMagnetization");
 
     // magnetic - coil results
     SolutionTypeEnum.Add(COIL_CURRENT, "coilCurrent");
