@@ -28,7 +28,7 @@ EXECUTE_PROCESS(
 # Arpack-ng has not up to date version header (NG-3.5.0). Create one to be
 # returned by cfs --version (programOptions.cc)
 #=============================================================================
-SET(ARPACK_VER_FILE "// see arpack-patch.cmake.in\n#define ARPACK_VERSION_NUMBER \"@ARPACK_VER@\"")
+SET(ARPACK_VER_FILE "// see arpack-patch.cmake.in\n#define ARPACK_VERSION_NUMBER \"@ARPACK_VER@\"\n")
 FILE(WRITE "SRC/arpack_version.h" "${ARPACK_VER_FILE}")
 
 #=============================================================================
