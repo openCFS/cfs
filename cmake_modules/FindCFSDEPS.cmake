@@ -355,11 +355,11 @@ INCLUDE("${CFSDEPS_DIR}/muparser/External_muParser.cmake")
 #-------------------------------------------------------------------------------
 SET(XERCES_URL "${CFS_DS_SOURCES_DIR}/xerces")
 SET(XERCES_BASE "xerces")
-SET(XERCES_VER "3.1.2")
+SET(XERCES_VER "3.1.3")
 SET(XERCES_GZ "${XERCES_BASE}-c-${XERCES_VER}.tar.gz")
 # SET(XERCES_MD5 "6a8ec45d83c8cfb1584c5a5345cb51ae")
-SET(XERCES_MD5 "9eb1048939e88d6a7232c67569b23985")
-  
+SET(XERCES_MD5 "70320ab0e3269e47d978a6ca0c0e1e2d") 
+ 
 INCLUDE("${CFSDEPS_DIR}/xerces/External_Xerces-C.cmake")
 
 #-----------------------------------------------------------------------------
