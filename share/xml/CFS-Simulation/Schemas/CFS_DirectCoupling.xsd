@@ -164,6 +164,7 @@
                         use="optional" default=""/>
                       <xsd:attribute name="name" type="xsd:token" use="required"/>
                       <xsd:attribute name="complexMaterial" type="DT_CFSBool" use="optional" default="no"/>
+                      <xsd:attribute name="dampingId" type="xsd:token" use="optional" default=""/>
                     </xsd:complexType>
                   </xsd:element>            
                 </xsd:sequence>

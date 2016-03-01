@@ -87,7 +87,56 @@ namespace CoupledField {
 
   void ElecPDE::ReadDampingInformation()
   {
+    std::map<std::string, DampingType> idDampType;
 
+    // try to get dampingList
+    PtrParamNode dampListNode = myParam_->Get("dampingList", ParamNode::PASS);
+    if (dampListNode)
+    {
+      // get specific damping nodes
+      ParamNodeList dampNodes = dampListNode->GetChildren();
+
+      for (UInt i = 0; i < dampNodes.GetSize(); i++)
+      {
+        std::string dampString = dampNodes[i]->GetName();
+        std::string actId = dampNodes[i]->Get("id")->As<std::string>();
+
+        // determine type of damping
+        DampingType actType;
+        String2Enum(dampString, actType);
+        // store damping type string
+        idDampType[actId] = actType;
+      }
+    }
+
+    // Run over all region and set entry in "regionNonLinId"
+    ParamNodeList regionNodes = myParam_->Get("regionList")->GetChildren();
+
+    RegionIdType actRegionId;
+    std::string actRegionName, actDampingId;
+
+    for (UInt k = 0; k < regionNodes.GetSize(); k++)
+    {
+      regionNodes[k]->GetValue("name", actRegionName);
+      regionNodes[k]->GetValue("dampingId", actDampingId);
+      if (actDampingId == "")
+        continue;
+
+      actRegionId = ptGrid_->GetRegion().Parse(actRegionName);
+
+      // Check actDampingId was already registerd
+      if (idDampType.count(actDampingId) == 0)
+      {
+        EXCEPTION("Damping with id '" << actDampingId << "' was not defined in 'dampingList'");
+      }
+
+      dampingList_[actRegionId] = idDampType[actDampingId];
+    }
+
+    // Check, if all entries are identical
+    for (UInt i = 1; i < dampingList_.size(); i++)
+      if (dampingList_[regions_[i - 1]] != dampingList_[regions_[i]])
+        break;
   }
 
   void ElecPDE::DefineIntegrators() {
@@ -257,7 +306,7 @@ namespace CoupledField {
       str_imag = AmplPhaseToImag(str_value, str_phase, true);
 
       PtrCoefFct factor = CoefFunction::Generate(mp_, Global::COMPLEX, str_real, str_imag);
-      PtrCoefFct one = CoefFunction::Generate(mp_, Global::COMPLEX, "1.0", "0.0");
+      PtrCoefFct one = CoefFunction::Generate(mp_, Global::REAL, "1.0", "0.0");
 
       ParamNodeList regionsList = blochNodesList[i]->GetList("region");
       for (UInt j = 0; j < regionsList.GetSize(); j++)
@@ -303,7 +352,6 @@ namespace CoupledField {
 
           shared_ptr<ElemList> actSDList = ncIf->GetElemList();
           Double beta;
-          BiLinearForm::CouplingDirection cplDir;
           PtrCoefFct factorSqr = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprBinOp(mp_, factor, factor, CoefXpr::OP_MULT));
 
           // obtain a proper scaling for the penalty terms
@@ -384,25 +432,32 @@ namespace CoupledField {
             matData = matDataTensorMas;
 
           // define bilinear forms for Nitsche coupling
-          cplDir = BiLinearForm::MASTER_MASTER;
-          pnlt_PhiM_PsiM = GetPenaltyIntegrator(factor, beta*pz, cplDir);
-          flux_DPhiM_PsiM = GetFluxIntegrator(one, coefFuncPMLVec, -1.0*pz, cplDir, true);
-          flux_PhiM_DPsiM = GetFluxIntegrator(factor, coefFuncPMLVec, -1.0*pz, cplDir, false);
+          // penalty integrators
+          pnlt_PhiM_PsiM = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::MASTER_MASTER);
+          pnlt_PhiM_PsiS = GetPenaltyIntegrator<Complex>(factorSqr, -beta, BiLinearForm::MASTER_SLAVE);
+          pnlt_PhiS_PsiM = GetPenaltyIntegrator<Double>(one, -beta, BiLinearForm::SLAVE_MASTER);
+          pnlt_PhiS_PsiS = GetPenaltyIntegrator<Complex>(factor, beta, BiLinearForm::SLAVE_SLAVE);
+          // flux integrators
+          if (matData->IsComplex())
+          {
+            flux_DPhiM_PsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, true);
+            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, false);
+            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::MASTER_SLAVE, true);
+            flux_PhiS_DPsiM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SLAVE_MASTER, false);
+          }
+          else
+          {
+            flux_DPhiM_PsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, true);
+            flux_PhiM_DPsiM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0*pz, BiLinearForm::MASTER_MASTER, false);
+            flux_DPhiM_PsiS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0*pz, BiLinearForm::MASTER_SLAVE, true);
+            flux_PhiS_DPsiM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0*pz, BiLinearForm::SLAVE_MASTER, false);
+          }
+
+          // pass material data to the flux operators
           flux_DPhiM_PsiM->SetBCoefFunctionOpA(matData);
           flux_PhiM_DPsiM->SetBCoefFunctionOpB(matData);
-
-          cplDir = BiLinearForm::MASTER_SLAVE;
-          pnlt_PhiM_PsiS = GetPenaltyIntegrator(factorSqr, -beta*pz, cplDir);
-          flux_DPhiM_PsiS = GetFluxIntegrator(factor, coefFuncPMLVec, 1.0*pz, cplDir, true);
           flux_DPhiM_PsiS->SetBCoefFunctionOpA(matData);
-
-          cplDir = BiLinearForm::SLAVE_MASTER;
-          pnlt_PhiS_PsiM = GetPenaltyIntegrator(one, -beta*pz, cplDir);
-          flux_PhiS_DPsiM = GetFluxIntegrator(one, coefFuncPMLVec, 1.0*pz, cplDir, false);
           flux_PhiS_DPsiM->SetBCoefFunctionOpB(matData);
-
-          cplDir = BiLinearForm::SLAVE_SLAVE;
-          pnlt_PhiS_PsiS = GetPenaltyIntegrator(factor, beta, cplDir);
 
           // master-master
           pnlt_PhiM_PsiM->SetName("pnlt_PhiM_PsiM");
@@ -417,18 +472,18 @@ namespace CoupledField {
           //slave-slave
           pnlt_PhiS_PsiS->SetName("pnlt_PhiS_PsiS");
 
-          cplDir = BiLinearForm::MASTER_MASTER;
-          SurfaceBiLinFormContext *pnlt_PhiM_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiM, STIFFNESS, cplDir);
-          SurfaceBiLinFormContext *flux_DPhiM_PsiM_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiM, STIFFNESS, cplDir);
-          SurfaceBiLinFormContext *flux_PhiM_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiM_DPsiM, STIFFNESS, cplDir);
-          cplDir = BiLinearForm::MASTER_SLAVE;
-          SurfaceBiLinFormContext *pnlt_PhiM_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiS, STIFFNESS, cplDir);
-          SurfaceBiLinFormContext *flux_DPhiM_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiS, STIFFNESS, cplDir);
-          cplDir = BiLinearForm::SLAVE_MASTER;
-          SurfaceBiLinFormContext *pnlt_PhiS_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiM, STIFFNESS, cplDir);
-          SurfaceBiLinFormContext *flux_PhiS_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiM, STIFFNESS, cplDir);
-          cplDir = BiLinearForm::SLAVE_SLAVE;
-          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, cplDir);
+          // BiLinearForm::MASTER_MASTER
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiM_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
+          SurfaceBiLinFormContext *flux_PhiM_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiM_DPsiM, STIFFNESS, BiLinearForm::MASTER_MASTER);
+          // BiLinearForm::MASTER_SLAVE
+          SurfaceBiLinFormContext *pnlt_PhiM_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiM_PsiS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+          SurfaceBiLinFormContext *flux_DPhiM_PsiS_cont = new SurfaceBiLinFormContext(flux_DPhiM_PsiS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+          // BiLinearForm::SLAVE_MASTER
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiM_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
+          SurfaceBiLinFormContext *flux_PhiS_DPsiM_cont = new SurfaceBiLinFormContext(flux_PhiS_DPsiM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
+          // BiLinearForm::SLAVE_SLAVE
+          SurfaceBiLinFormContext *pnlt_PhiS_PsiS_cont = new SurfaceBiLinFormContext(pnlt_PhiS_PsiS, STIFFNESS, BiLinearForm::SLAVE_SLAVE);
 
           pnlt_PhiM_PsiM_cont->SetEntities(actSDList, actSDList);
           flux_DPhiM_PsiM_cont->SetEntities(actSDList, actSDList);
@@ -809,15 +864,15 @@ namespace CoupledField {
        */
 
       shared_ptr<CoefFunction > curCoef_tmp;
-    	// create new entity list
-    	shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
-    	actSDList->SetRegion( regionId );
-    	PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
+      // create new entity list
+      shared_ptr<ElemList> actSDList( new ElemList(ptGrid_ ) );
+      actSDList->SetRegion( regionId );
+      PtrCoefFct elecFieldCoef = this->GetCoefFct(ELEC_FIELD_INTENSITY);
 
-    	curCoef_tmp.reset(new CoefFunctionHyst( actSDMat, actSDList,
-						                    elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
+      curCoef_tmp.reset(new CoefFunctionHyst( actSDMat, actSDList,
+                                elecFieldCoef,tensorType,ELEC_PERMITTIVITY));
 
-    	hysteresisCoefs_->AddRegion( regionId, curCoef_tmp);
+      hysteresisCoefs_->AddRegion( regionId, curCoef_tmp);
 
       if ( nonLinTypes.Find(HYSTERESIS_FIXPOINT) != -1 ){
         /*
@@ -854,14 +909,14 @@ namespace CoupledField {
     }
     else {
 
-    	if ( isComplex ) {
-    		curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+      if ( isComplex ) {
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                                   Global::COMPLEX);
-    	}
-    	else {
-    		curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
+      }
+      else {
+        curCoef = actSDMat->GetTensorCoefFnc( ELEC_PERMITTIVITY,tensorType,
                                                   Global::REAL);
-    	}
+      }
     }
     
     // store coefficient function for later use (e.g. in boundary integrators)
@@ -870,26 +925,32 @@ namespace CoupledField {
     // Note; in the piezoelectric case we have to multiply by -1
     Double factor = 1.0;
     if ( isPiezoCoupled_ )
-    	factor = -1.0;
+      factor = -1.0;
 
 
     if ( isComplex && !isHysteresis_) {
-    	if( dim_ == 2 ) {
-    		integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
-    				curCoef, factor, updatedGeo_ );
-    	} else {
-    		integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
-    				curCoef, factor, updatedGeo_ );
-    	}
+      if( dim_ == 2 ) {
+        if (subType_ == "2.5d")
+          integ = new BDBInt<Complex, Complex>(new GradientOperator2p5D<FeH1, 2, 1, Complex>(), curCoef, factor, updatedGeo_);
+        else
+          integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,2,1,Complex>(),
+              curCoef, factor, updatedGeo_ );
+      } else {
+        integ = new BDBInt<Complex,Complex >(new GradientOperator<FeH1,3,1,Complex>(),
+            curCoef, factor, updatedGeo_ );
+      }
     }
     else {
-    	if( dim_ == 2 ) {
-    		integ = new BDBInt<>(new GradientOperator<FeH1,2> (),
-    				curCoef, factor, updatedGeo_ );
-    	} else {
-    		integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
-    				curCoef, factor, updatedGeo_ );
-    	}
+      if( dim_ == 2 ) {
+        if (subType_ == "2.5d")
+          integ = new BDBInt<>(new GradientOperator2p5D<FeH1>(), curCoef, factor, updatedGeo_);
+        else
+          integ = new BDBInt<>(new GradientOperator<FeH1,2> (),
+              curCoef, factor, updatedGeo_ );
+      } else {
+        integ = new BDBInt<>(new GradientOperator<FeH1,3>(),
+            curCoef, factor, updatedGeo_ );
+      }
     }
 
     return integ;
@@ -928,7 +989,8 @@ namespace CoupledField {
     return integ;
   }
   
-  BiLinearForm* ElecPDE::GetFluxIntegrator(PtrCoefFct scalCoefFunc, PtrCoefFct coefFnc, Complex factor,
+  template<typename DATA_TYPE>
+  BiLinearForm* ElecPDE::GetFluxIntegrator(PtrCoefFct scalCoefFunc, PtrCoefFct coefFnc, Double factor,
                                            BiLinearForm::CouplingDirection cplDir, bool fluxOpA)
   {
     BiLinearForm* integ = NULL;
@@ -955,26 +1017,27 @@ namespace CoupledField {
 
     // Check whether we have a du/dn*v or a u*dv/dn bilinear form
     if (fluxOpA)
-      integ = new SurfaceNitscheABInt<Complex, Complex>(fluxOp, idOp, scalCoefFunc, factor, cplDir, updatedGeo_);
+      integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(fluxOp, idOp, scalCoefFunc, factor, cplDir, updatedGeo_);
     else
-      integ = new SurfaceNitscheABInt<Complex, Complex>(idOp, fluxOp, scalCoefFunc, factor, cplDir, updatedGeo_);
+      integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(idOp, fluxOp, scalCoefFunc, factor, cplDir, updatedGeo_);
 
     return integ;
   }
 
-  BiLinearForm* ElecPDE::GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir)
+  template<typename DATA_TYPE>
+  BiLinearForm* ElecPDE::GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Double factor, BiLinearForm::CouplingDirection cplDir)
   {
     BiLinearForm* integ = NULL;
 
     if (dim_ == 2)
     {
-      integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
+      integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(new SurfaceIdentityOperator<FeH1, 2, 1>(),
                                                         new SurfaceIdentityOperator<FeH1, 2, 1>(),
                                                         scalCoefFunc, factor, cplDir, updatedGeo_, false, true);
     }
     else
     {
-      integ = new SurfaceNitscheABInt<Complex, Complex>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
+      integ = new SurfaceNitscheABInt<DATA_TYPE, DATA_TYPE>(new SurfaceIdentityOperator<FeH1, 3, 1>(),
                                                         new SurfaceIdentityOperator<FeH1, 3, 1>(),
                                                         scalCoefFunc, factor, cplDir, updatedGeo_, false, true);
     }
@@ -1316,4 +1379,9 @@ namespace CoupledField {
     }
     return crSpaces;
   }
+
+  template BiLinearForm* ElecPDE::GetPenaltyIntegrator<Double>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
+  template BiLinearForm* ElecPDE::GetPenaltyIntegrator<Complex>(PtrCoefFct, Double, BiLinearForm::CouplingDirection);
+  template BiLinearForm* ElecPDE::GetFluxIntegrator<Double>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool);
+  template BiLinearForm* ElecPDE::GetFluxIntegrator<Complex>(PtrCoefFct, PtrCoefFct, Double, BiLinearForm::CouplingDirection, bool);
 }

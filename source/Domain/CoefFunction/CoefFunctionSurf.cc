@@ -145,7 +145,10 @@ void CoefFunctionSurf::GetScalar(Double& coefScalar,
   if( mapNormal_ ) {
     Vector<Double> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    coefScalar = coefVec * surfLpm.normal;
+    if (coefVec.GetSize() == surfLpm.normal.GetSize())
+      coefScalar = coefVec * surfLpm.normal;
+    else // this happens in 2.5D case where 'coefVec' and 'normal' have 3 and 2 components, respectively
+      coefScalar = coefVec[0]*surfLpm.normal[0] + coefVec[1]*surfLpm.normal[1];
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }
@@ -163,7 +166,10 @@ void CoefFunctionSurf::GetScalar(Complex& coefScalar,
   if( mapNormal_ ) {
     Vector<Complex> coefVec;
     coefs_[region]->GetVector(coefVec, *surfLpm.lpmVol );
-    coefScalar = coefVec * surfLpm.normal;
+    if (coefVec.GetSize() == surfLpm.normal.GetSize())
+      coefScalar = coefVec * surfLpm.normal;
+    else // this happens in 2.5D case where 'coefVec' and 'normal' have 3 and 2 components, respectively
+      coefScalar = coefVec[0]*surfLpm.normal[0] + coefVec[1]*surfLpm.normal[1];
   } else {
     coefs_[region]->GetScalar(coefScalar, *surfLpm.lpmVol );
   }

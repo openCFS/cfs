@@ -115,11 +115,13 @@ namespace CoupledField
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, SubTensorType tensorType, RegionIdType regionId, PtrCoefFct scalingFactor);
     
     //! Return flux integrator used for Nitsche coupling
-    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFnc, Complex factor,
+    template<typename DATA_TYPE>
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
                                     BiLinearForm::CouplingDirection cplDir, bool fluxOpA);
 
     //! Return penalty integrator used for Nitsche coupling
-    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir);
+    template<typename DATA_TYPE>
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Double factor, BiLinearForm::CouplingDirection cplDir);
 
     // *****************
     //  POSTPROCESSING

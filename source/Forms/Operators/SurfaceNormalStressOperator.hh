@@ -79,15 +79,16 @@ public:
 
     SurfaceNormalStressOperator(std::string subType, PtrCoefFct baseOpCoef, bool icModes){
      if( subType == "axi" ) {
+       //TODO: there's no scaled strain operator for 'axi' subtype
        strainOp_ = new StrainOperatorAxi<FeH1,TYPE>(icModes);
      } else if( subType == "planeStrain" ) {
-       strainOp_ = new StrainOperator2D<FeH1,TYPE>(icModes);
+       strainOp_ = new ScaledStrainOperator2D<FeH1,TYPE>(icModes);
      } else if( subType == "planeStress" ) {
-       strainOp_ = new StrainOperator2D<FeH1,TYPE>(icModes);
+       strainOp_ = new ScaledStrainOperator2D<FeH1,TYPE>(icModes);
      } else if( subType == "3d") {
-       strainOp_ = new StrainOperator3D<FeH1,TYPE>(icModes);
+       strainOp_ = new ScaledStrainOperator3D<FeH1,TYPE>(icModes);
      } else if ( subType == "2.5d") {
-       strainOp_ = new StrainOperator2p5D<FeH1,TYPE>(icModes);
+       strainOp_ = new ScaledStrainOperator2p5D<FeH1,TYPE>(icModes);
      }else {
        EXCEPTION( "Subtype '" << subType << "' in SurfaceNormalStressOperator" );
      }
@@ -422,8 +423,6 @@ public:
   //available
   using BaseBOperator::CalcOpMat;
 
-  using BaseBOperator::CalcOpMatTransposed;
-
 protected:
 
   //! computes the normal operator
@@ -511,7 +510,7 @@ void SurfaceNormalPiezoFluxOperator<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Mat
   FE* fe = (static_cast<FE*>(ptFe));
   this->strainOp_->CalcOpMatTransposed(strainMat, lp, fe);
 
-  bMat = strainMat * matTensor;
+  bMat = strainMat*matTensor;
 
   // get normal opertaor
   Matrix<Double> normalOp;

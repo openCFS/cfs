@@ -315,19 +315,14 @@ public:
   {
     this->name_ = "surfNormPiezoStrainOp";
 
-    if( subType == "axi" ) {
+    if (subType == "axi")
       dimNorm_ = 4;
-    } else if( subType == "planeStrain" ) {
+    else if (subType == "planeStrain" || subType == "planeStress")
       dimNorm_ = 3;
-    } else if( subType == "planeStress" ) {
-      dimNorm_ = 3;
-    } else if( subType == "3d") {
+    else if (subType == "3d" || subType == "2.5d")
       dimNorm_ = 6;
-    } else if ( subType == "2.5d") {
-      dimNorm_ = 6;
-    }else {
-      EXCEPTION( "Subtype '" << subType << "' in SurfaceNormalStressOperator" );
-    }
+    else
+      EXCEPTION("Subtype '" << subType << "' in SurfaceNormalStressOperator");
   }
 
   SurfaceNormalPiezoStrainOperator(std::string subType, PtrCoefFct baseOpCoef)
@@ -335,19 +330,14 @@ public:
   {
     this->name_ = "surfNormPiezoStrainOp";
 
-    if( subType == "axi" ) {
+    if (subType == "axi")
       dimNorm_ = 4;
-    } else if( subType == "planeStrain" ) {
+    else if (subType == "planeStrain" || subType == "planeStress")
       dimNorm_ = 3;
-    } else if( subType == "planeStress" ) {
-      dimNorm_ = 3;
-    } else if( subType == "3d") {
+    else if (subType == "3d" || subType == "2.5d")
       dimNorm_ = 6;
-    } else if ( subType == "2.5d") {
-      dimNorm_ = 6;
-    }else {
-      EXCEPTION( "Subtype '" << subType << "' in SurfaceNormalStressOperator" );
-    }
+    else
+      EXCEPTION("Subtype '" << subType << "' in SurfaceNormalStressOperator");
   }
 
   virtual ~SurfaceNormalPiezoStrainOperator() { return; }
@@ -359,8 +349,6 @@ public:
   //avoid reimplementation of complex operator by making the base class function
   //available
   using BaseBOperator::CalcOpMat;
-
-  using BaseBOperator::CalcOpMatTransposed;
 
 protected:
 
