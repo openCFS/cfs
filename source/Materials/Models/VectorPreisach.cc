@@ -702,7 +702,7 @@ namespace CoupledField
     UInt idAlpha = (UInt) ((alpha+1.0)/delta_);
     UInt idBeta = (UInt) ((beta+1.0)/delta_);
     bool isMinCur; // is current input smaller than old one?
-    bool isMinHelp; // is inserted helper value a min?
+    bool isMinHelp = false; // is inserted helper value a min?
     Double xPar; // the cut version of xParUncut
 
     /*

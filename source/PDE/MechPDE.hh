@@ -92,11 +92,13 @@ namespace CoupledField
     BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, PtrCoefFct scalingFactor, bool isComplex, bool useICModes);
 
     //! Return flux integrator used for Nitsche coupling
-    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Complex factor,
+    template<typename DATA_TYPE>
+    BiLinearForm* GetFluxIntegrator(PtrCoefFct scalCoefFucn, PtrCoefFct coefFuncPMLVec, Double factor,
                                     BiLinearForm::CouplingDirection cplDir, bool fluxOpA, bool icModes, bool preStress = false);
 
     //! Return penalty integrator used for Nitsche coupling
-    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Complex factor, BiLinearForm::CouplingDirection cplDir);
+    template<typename DATA_TYPE>
+    BiLinearForm* GetPenaltyIntegrator(PtrCoefFct scalCoefFunc, Double factor, BiLinearForm::CouplingDirection cplDir);
 
     //! Return strain operator 
     BaseBOperator* GetStrainOperator( bool isComplex, bool icModes);

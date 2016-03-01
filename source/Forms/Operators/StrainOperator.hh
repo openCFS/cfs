@@ -752,6 +752,7 @@ namespace CoupledField{
 
     const UInt numFncs = xiDx.GetNumRows();
     // Set correct size of matrix B and initialize with zeros
+    // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
     bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
     bMat.Init();
 
@@ -808,6 +809,7 @@ namespace CoupledField{
 
     const UInt numFncs = xiDx.GetNumRows();
     // Set correct size of matrix B and initialise with zeros
+    // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
     bMat.Resize(numFncs*DIM_DOF , DIM_D_MAT);
     bMat.Init();
 
@@ -1800,35 +1802,36 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(DIM_D_MAT, numFncs*DIM_SPACE);
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
      bMat.Init();
 
      // commented entries are zeros in 2.5D case
      UInt iFunc = 0;
      UInt pos = 0;
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
        bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
        bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
 
 
      //for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
      //  bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
        bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
        bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
        bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
@@ -1853,27 +1856,28 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT);
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(numFncs*DIM_DOF, DIM_D_MAT);
      bMat.Init();
 
      // commented entries are zeros in 2.5D case
      UInt iFunc = 0;
      UInt pos = 0;
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
      //  bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
      //  bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
      }
 
-     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];
@@ -1916,34 +1920,35 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
-     bMat.Resize(DIM_D_MAT, numFncs * DIM_SPACE);
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
      bMat.Init();
 
      // commented entries are zeros in 2.5D case
      UInt iFunc = 0;
      UInt pos = 0;
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
        bMat[0][pos+0] = xiDx[iFunc][0]*coefs[0];
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
        bMat[1][pos+1] = xiDx[iFunc][1]*coefs[1];
 
      //for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
      //  bMat[2][pos+2] = xiDx[iFunc][2]*coefs[2];
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[3][pos+1] = xiDx[iFunc][2]*coefs[2];
        bMat[3][pos+2] = xiDx[iFunc][1]*coefs[1];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[4][pos+0] = xiDx[iFunc][2]*coefs[2];
        bMat[4][pos+2] = xiDx[iFunc][0]*coefs[0];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[5][pos+0] = xiDx[iFunc][1]*coefs[1];
        bMat[5][pos+1] = xiDx[iFunc][0]*coefs[0];
@@ -1985,27 +1990,28 @@ namespace CoupledField{
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
-     bMat.Resize(numFncs*DIM_SPACE , DIM_D_MAT );
+     // In 2.5D case DIM_DOF = 3 is to be used instead of conventional DIM_SPACE = 2
+     bMat.Resize(numFncs*DIM_DOF, DIM_D_MAT);
      bMat.Init();
 
      // commented entries are zeros in 2.5D case
      UInt iFunc = 0;
      UInt pos = 0;
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[pos+0][0] = xiDx[iFunc][0]*coefs[0];
      //  bMat[pos+0][4] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+0][5] = xiDx[iFunc][1]*coefs[1];
      }
 
-     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for (iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
        bMat[pos+1][1] = xiDx[iFunc][1]*coefs[1];
      //  bMat[pos+1][3] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+1][5] = xiDx[iFunc][0]*coefs[0];
      }
 
-     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_SPACE)
+     for(iFunc = 0, pos = 0; iFunc < numFncs; iFunc++, pos+=DIM_DOF)
      {
      //  bMat[pos+2][2] = xiDx[iFunc][2]*coefs[2];
        bMat[pos+2][3] = xiDx[iFunc][1]*coefs[1];

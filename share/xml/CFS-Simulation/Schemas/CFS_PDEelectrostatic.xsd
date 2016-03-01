@@ -79,6 +79,21 @@
             </xsd:complexType>
           </xsd:element>
           
+          
+          <!-- List defining damping types -->
+          <xsd:element name="dampingList" minOccurs="0" maxOccurs="1">
+            <xsd:complexType>
+              <xsd:choice maxOccurs="unbounded">
+                <xsd:element name="pml" type="DT_DampingPML">
+                  <xsd:annotation>
+                    <xsd:documentation>Perefectly Matched Layer (PML); just working in frequency domain! The only application of PML in electrostatics 
+                    that seems to be reasonable is within piezo coupling</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+              </xsd:choice>
+            </xsd:complexType>
+          </xsd:element>
+          
           <!-- Boundary Conditions & Loads (optional) -->
           <xsd:element name="bcsAndLoads" minOccurs="0" maxOccurs="unbounded">
             <xsd:complexType>
