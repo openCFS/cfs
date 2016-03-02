@@ -89,7 +89,16 @@ namespace CoupledField
      * @param scalingFactor is a factor the material tensor to be multiplied by */
     BaseBDBInt* GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
     
-    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, PtrCoefFct scalingFactor, bool isComplex, bool useICModes);
+    /** Returns an integrator for prestressing
+     * @param preStressFct is a tensor coefficient function for prestressing
+     * @param isComplex either from complex material or bloch mode */
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex);
+
+    /** Returns an integrator for prestressing
+     * @param preStressFct is a tensor coefficient function for prestressing
+     * @param isComplex either from complex material or bloch mode
+     * @param scalingFactor is a factor the prestressing tensor to be multiplied by */
+    BaseBDBInt* GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor);
 
     //! Return flux integrator used for Nitsche coupling
     template<typename DATA_TYPE>

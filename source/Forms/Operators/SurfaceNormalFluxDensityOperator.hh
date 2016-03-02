@@ -85,6 +85,7 @@ public:
      : BaseBOperator(other){
     this->name_ = "surfNormFluxOp";
     this->gradOp_ = other.gradOp_->Clone();
+    this->gradOp_->SetOperator2SurfOperator();
   }
 
   //! \copydoc BaseBOperator::Clone()
@@ -340,15 +341,22 @@ public:
       EXCEPTION("Subtype '" << subType << "' in SurfaceNormalStressOperator");
   }
 
+  //! Copy constructor
+  SurfaceNormalPiezoStrainOperator(const SurfaceNormalPiezoStrainOperator & other)
+     : SurfaceNormalFluxDensityOperator<FE, D, D_DOF, TYPE>(other) {
+    this->name_ = other.name_;
+  }
+
+  //! \copydoc BaseBOperator::Clone()
+  virtual SurfaceNormalPiezoStrainOperator * Clone(){
+    return new SurfaceNormalPiezoStrainOperator(*this);
+  }
+
   virtual ~SurfaceNormalPiezoStrainOperator() { return; }
 
   virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
 
   virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
-
-  //avoid reimplementation of complex operator by making the base class function
-  //available
-  using BaseBOperator::CalcOpMat;
 
 protected:
 
