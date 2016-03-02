@@ -416,7 +416,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
         if (harmonicPML)
         {
           stiffInt =  GetStiffIntegrator(actSDMat, actRegion, harmonicPML, coefPMLScal);
-          stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
+          stiffInt->SetBCoefFunctionOpA(coefPMLVec);
         }
         else
         {
@@ -454,49 +454,25 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
 
       if( preStressNode ){
+        ParamNodeList pbcList = bcNode->GetList("blochPeriodic");
+        // complex prestressing can be due to: complex material; bloch mode with complex B-matrices; PML; periodic BC
+        bool complexPre = do_bloch || harmonicPML || (pbcList.GetSize() > 0);
 
-        // either complex material or bloch mode with complex B-matrices
-        bool complexPre = (do_bloch  );
-
-        PtrCoefFct preStressFct = CreatePreStressFct(complexPre,preStressNode);
+        PtrCoefFct preStressFct = CreatePreStressFct(complexPre, preStressNode);
+        regionPreStress_[actRegion] = preStressFct;
 
         if(do_bloch || subType_ == "axi"){
           EXCEPTION("Prestressing is not available for Block periodic or axi-symmetric computations");
         }
+
         BaseBDBInt *preStressInt = NULL;
-        if(dim_==2){
-          if( regionSoftening_[actRegion] == "icModesTW") {
-            if(complexPre){
-              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,2,Complex>(true),
-                                                     new PreStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
-            }else{
-              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,2,Double>(true),
-                                                    new PreStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
-            }
-          }else{
-            if(complexPre){
-              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
-            }else{
-              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,2>(false),preStressFct,1.0);
-            }
-          }
-        }else{
-          if( regionSoftening_[actRegion] == "icModesTW") {
-            if(complexPre){
-              preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,3,Complex>(true),
-                                                     new PreStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
-            }else{
-              preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,3,Double>(true),
-                                                    new PreStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
-            }
-          }else{
-            if(complexPre){
-              preStressInt = new BDBInt<Complex>(new PreStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
-            }else{
-              preStressInt = new BDBInt<Double>(new PreStressOperator<FeH1,3>(false),preStressFct,1.0);
-            }
-          }
+        if (harmonicPML)
+        {
+          preStressInt = GetPreStressIntegrator(preStressFct, actRegion, harmonicPML, coefPMLScal);
+          preStressInt->SetBCoefFunctionOpA(coefPMLVec);
         }
+        else
+          preStressInt = GetPreStressIntegrator(preStressFct, actRegion, complexPre);
 
         preStressInt->SetName("PreStressInt");
         preStressInt->SetFeSpace( mySpace );
@@ -851,7 +827,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
             }
             else
               matData = matDataTensorMas;
-            //TODO: check for coefFuncPMLVec here instead of GetFluxInt, so as to be able to fix template parameters
 
             // define bilinear forms for Nitsche coupling
             // penalty integrators
@@ -941,64 +916,67 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
                                                           ptGrid_->GetRegion().ToString(volMasterId), ParamNode::PASS);
             if (preStressNode)
             {
-//              PtrCoefFct preStressMas = regionPreStress_[volMasterId];
-//              if (coefFuncPMLScl)
-//              {
-//                preStressMas = CoefFunction::Generate(mp_, Global::COMPLEX,
-//                                                      CoefXprTensScalOp(mp_, regionPreStress_[volMasterId], coefFuncPMLScl, CoefXpr::OP_MULT));
-//              }
-//
-//              // master & slave integrals with normal derivatives
-//              BiLinearForm *preStrFlux_DuM_vM = NULL;
-//              BiLinearForm *preStrFlux_DuM_vS = NULL;
-//              BiLinearForm *preStrFlux_uM_DvM = NULL;
-//              BiLinearForm *preStrFlux_uS_DvM = NULL;
-//
-//              // define bilinear forms for Nitsche coupling
-//              cplDir = BiLinearForm::MASTER_MASTER;
-//              preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, cplDir, true, icModes, true);
-//              preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, cplDir, false, icModes, true);
-//              preStrFlux_DuM_vM->SetBCoefFunctionOpA(preStressMas);
-//              preStrFlux_uM_DvM->SetBCoefFunctionOpB(preStressMas);
-//
-//              cplDir = BiLinearForm::MASTER_SLAVE;
-//              preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, cplDir, true, icModes, true);
-//              preStrFlux_DuM_vS->SetBCoefFunctionOpA(preStressMas);
-//
-//              cplDir = BiLinearForm::SLAVE_MASTER;
-//              preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, cplDir, false, icModes, true);
-//              preStrFlux_uS_DvM->SetBCoefFunctionOpB(preStressMas);
-//
-//              // master-master
-//              preStrFlux_DuM_vM->SetName("preStrFlux_DuM_vM");
-//              preStrFlux_uM_DvM->SetName("preStrFlux_uM_DvM");
-//              //master-slave
-//              preStrFlux_DuM_vS->SetName("preStrFlux_DuM_vS");
-//              // slave-master
-//              preStrFlux_uS_DvM->SetName("preStrFlux_uS_DvM");
-//
-//              cplDir = BiLinearForm::MASTER_MASTER;
-//              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, cplDir);
-//              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, cplDir);
-//              cplDir = BiLinearForm::MASTER_SLAVE;
-//              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, cplDir);
-//              cplDir = BiLinearForm::SLAVE_MASTER;
-//              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, cplDir);
-//
-//              preStrFlux_DuM_vM_cont->SetEntities(actSDList, actSDList);
-//              preStrFlux_uM_DvM_cont->SetEntities(actSDList, actSDList);
-//              preStrFlux_DuM_vS_cont->SetEntities(actSDList, actSDList);
-//              preStrFlux_uS_DvM_cont->SetEntities(actSDList, actSDList);
-//
-//              preStrFlux_DuM_vM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
-//              preStrFlux_uM_DvM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
-//              preStrFlux_DuM_vS_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
-//              preStrFlux_uS_DvM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
-//
-//              assemble_->AddBiLinearForm(preStrFlux_DuM_vM_cont);
-//              assemble_->AddBiLinearForm(preStrFlux_uM_DvM_cont);
-//              assemble_->AddBiLinearForm(preStrFlux_DuM_vS_cont);
-//              assemble_->AddBiLinearForm(preStrFlux_uS_DvM_cont);
+              PtrCoefFct preStressFct = regionPreStress_[volMasterId];
+              if (coefFuncPMLScl)
+              {
+                preStressFct = CoefFunction::Generate(mp_, Global::COMPLEX,
+                                                      CoefXprTensScalOp(mp_, regionPreStress_[volMasterId], coefFuncPMLScl, CoefXpr::OP_MULT));
+              }
+
+              // master & slave integrals with normal derivatives
+              BiLinearForm *preStrFlux_DuM_vM = NULL;
+              BiLinearForm *preStrFlux_DuM_vS = NULL;
+              BiLinearForm *preStrFlux_uM_DvM = NULL;
+              BiLinearForm *preStrFlux_uS_DvM = NULL;
+
+              // define bilinear forms for Nitsche coupling
+              if (preStressFct->IsComplex())
+              {
+                preStrFlux_DuM_vM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Complex>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+              }
+              else
+              {
+                preStrFlux_DuM_vM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, true, icModes, true);
+                preStrFlux_uM_DvM = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, -1.0, BiLinearForm::MASTER_MASTER, false, icModes, true);
+                preStrFlux_DuM_vS = GetFluxIntegrator<Complex>(factor, coefFuncPMLVec, 1.0, BiLinearForm::MASTER_SLAVE, true, icModes, true);
+                preStrFlux_uS_DvM = GetFluxIntegrator<Double>(one, coefFuncPMLVec, 1.0, BiLinearForm::SLAVE_MASTER, false, icModes, true);
+              }
+
+              preStrFlux_DuM_vM->SetBCoefFunctionOpA(preStressFct);
+              preStrFlux_uM_DvM->SetBCoefFunctionOpB(preStressFct);
+              preStrFlux_DuM_vS->SetBCoefFunctionOpA(preStressFct);
+              preStrFlux_uS_DvM->SetBCoefFunctionOpB(preStressFct);
+
+              // master-master
+              preStrFlux_DuM_vM->SetName("preStrFlux_DuM_vM");
+              preStrFlux_uM_DvM->SetName("preStrFlux_uM_DvM");
+              //master-slave
+              preStrFlux_DuM_vS->SetName("preStrFlux_DuM_vS");
+              // slave-master
+              preStrFlux_uS_DvM->SetName("preStrFlux_uS_DvM");
+
+              SurfaceBiLinFormContext *preStrFlux_DuM_vM_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vM, STIFFNESS, BiLinearForm::MASTER_MASTER);
+              SurfaceBiLinFormContext *preStrFlux_uM_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uM_DvM, STIFFNESS, BiLinearForm::MASTER_MASTER);
+              SurfaceBiLinFormContext *preStrFlux_DuM_vS_cont = new SurfaceBiLinFormContext(preStrFlux_DuM_vS, STIFFNESS, BiLinearForm::MASTER_SLAVE);
+              SurfaceBiLinFormContext *preStrFlux_uS_DvM_cont = new SurfaceBiLinFormContext(preStrFlux_uS_DvM, STIFFNESS, BiLinearForm::SLAVE_MASTER);
+
+              preStrFlux_DuM_vM_cont->SetEntities(actSDList, actSDList);
+              preStrFlux_uM_DvM_cont->SetEntities(actSDList, actSDList);
+              preStrFlux_DuM_vS_cont->SetEntities(actSDList, actSDList);
+              preStrFlux_uS_DvM_cont->SetEntities(actSDList, actSDList);
+
+              preStrFlux_DuM_vM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+              preStrFlux_uM_DvM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+              preStrFlux_DuM_vS_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+              preStrFlux_uS_DvM_cont->SetFeFunctions(feFunctions_[MECH_DISPLACEMENT], feFunctions_[MECH_DISPLACEMENT]);
+
+              assemble_->AddBiLinearForm(preStrFlux_DuM_vM_cont);
+              assemble_->AddBiLinearForm(preStrFlux_uM_DvM_cont);
+              assemble_->AddBiLinearForm(preStrFlux_DuM_vS_cont);
+              assemble_->AddBiLinearForm(preStrFlux_uS_DvM_cont);
             }
           } // end nitsche
           else if (formulation == "Mortar")
@@ -1613,12 +1591,103 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     else
       EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
     
-    integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
+    if (regionSoftening_[regionId] == "icModesTW")
+    {
+      BaseBOperator* gOp = bOp->Clone();
+      integ = new ICModesInt<Complex>(bOp, gOp, curCoefScl, 1.0);
+    }
+    else
+      integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
 
     return integ;
   }
 
-  
+  BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex)
+  {
+    BaseBDBInt *preStressInt = NULL;
+    if(dim_==2 && subType_ != "2.5d"){
+      if( regionSoftening_[regionId] == "icModesTW") {
+        if(isComplex){
+          preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,2,Complex>(true),
+                                                 new PreStressOperator<FeH1,2,Complex>(true),preStressFct,1.0);
+        }else{
+          preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,2,Double>(true),
+                                                new PreStressOperator<FeH1,2,Double>(true),preStressFct,1.0);
+        }
+      }else{
+        if(isComplex){
+          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator<FeH1,2,Complex>(false),preStressFct,1.0);
+        }else{
+          preStressInt = new BDBInt<Double, Double>(new PreStressOperator<FeH1,2,Double>(false),preStressFct,1.0);
+        }
+      }
+    }else if (dim_==2 && subType_ == "2.5d"){
+      if( regionSoftening_[regionId] == "icModesTW") {
+        if(isComplex){
+          preStressInt = new ICModesInt<Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(true),
+                                                 new PreStressOperator2p5D<FeH1,2,3,Complex>(true),preStressFct,1.0);
+        }else{
+          preStressInt = new ICModesInt<Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(true),
+                                                new PreStressOperator2p5D<FeH1,2,3,Double>(true),preStressFct,1.0);
+        }
+      }else{
+        if(isComplex){
+          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator2p5D<FeH1,2,3,Complex>(false),preStressFct,1.0);
+        }else{
+          preStressInt = new BDBInt<Double, Double>(new PreStressOperator2p5D<FeH1,2,3,Double>(false),preStressFct,1.0);
+        }
+      }
+    }else{
+      if( regionSoftening_[regionId] == "icModesTW") {
+        if(isComplex){
+          preStressInt = new ICModesInt<Complex>(new PreStressOperator<FeH1,3,Complex>(true),
+                                                 new PreStressOperator<FeH1,3,Complex>(true),preStressFct,1.0);
+        }else{
+          preStressInt = new ICModesInt<Double>(new PreStressOperator<FeH1,3,Double>(true),
+                                                new PreStressOperator<FeH1,3,Double>(true),preStressFct,1.0);
+        }
+      }else{
+        if(isComplex){
+          preStressInt = new BDBInt<Complex, Complex>(new PreStressOperator<FeH1,3,Complex>(false),preStressFct,1.0);
+        }else{
+          preStressInt = new BDBInt<Double, Double>(new PreStressOperator<FeH1,3,Double>(false),preStressFct,1.0);
+        }
+      }
+    }
+
+    return preStressInt;
+  }
+
+  BaseBDBInt* MechPDE::GetPreStressIntegrator(PtrCoefFct preStressFct, RegionIdType regionId, bool isComplex, PtrCoefFct scalingFactor)
+  {
+    BaseBDBInt* integ = NULL;
+    BaseBOperator* bOp = NULL;
+
+    PtrCoefFct curCoefScl = CoefFunction::Generate(mp_, Global::COMPLEX, CoefXprTensScalOp(mp_, preStressFct,
+                                                   scalingFactor, CoefXpr::OP_MULT_TENSOR));
+
+    // ----------------------------------------
+    //  Determine correct prestress integrator
+    // ----------------------------------------
+    if ((subType_ == "planeStrain") || (subType_ == "planeStress"))
+      bOp = new ScaledPreStressOperator<FeH1, 2, Complex>();
+    else if (subType_ == "2.5d")
+      bOp = new ScaledPreStressOperator2p5D<FeH1, 2, 3, Complex>();
+    else if (subType_ == "3d")
+      bOp = new ScaledPreStressOperator<FeH1, 3, Complex>();
+    else
+      EXCEPTION("Scaled strain operator is not implemented for the subtype: " << subType_);
+
+    if (regionSoftening_[regionId] == "icModesTW")
+    {
+      BaseBOperator* gOp = bOp->Clone();
+      integ = new ICModesInt<Complex>(bOp, gOp, curCoefScl, 1.0);
+    }
+    else
+      integ = new BDBInt<Complex, Complex>(bOp, curCoefScl, 1.0, updatedGeo_);
+
+    return integ;
+  }
 
   BaseBOperator* MechPDE::GetStrainOperator(bool isComplex, bool icModes)
   {
@@ -2356,6 +2425,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
   //Helper
   void MakeBigPreStressVector(StdVector<std::string>& bigVec, StdVector<std::string> smallVec, UInt dim){
+    // this is in accordance with Voigt notation
     if(dim ==2){
       bigVec.Resize(16);
       bigVec.Init("0.0");
@@ -2372,15 +2442,15 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       bigVec.Init("0.0");
       for(UInt i=0;i<3;i++){
         bigVec[i*30+0] = smallVec[0];
-        bigVec[i*30+1] = smallVec[3];
-        bigVec[i*30+2] = smallVec[5];
+        bigVec[i*30+1] = smallVec[5];
+        bigVec[i*30+2] = smallVec[4];
 
-        bigVec[i*30+9] = smallVec[3];
+        bigVec[i*30+9] = smallVec[5];
         bigVec[i*30+10] = smallVec[1];
-        bigVec[i*30+11] = smallVec[4];
+        bigVec[i*30+11] = smallVec[3];
 
-        bigVec[i*30+18] = smallVec[5];
-        bigVec[i*30+19] = smallVec[4];
+        bigVec[i*30+18] = smallVec[4];
+        bigVec[i*30+19] = smallVec[3];
         bigVec[i*30+20] = smallVec[2];
       }
     }
@@ -2390,6 +2460,12 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     PtrParamNode preNode = stressNode->Get("prescribedLHS",ParamNode::PASS);
     PtrParamNode compNode = stressNode->Get("computeLHS",ParamNode::PASS);
     PtrCoefFct coef;
+
+    UInt dimPre = dim_;
+    // in 2.5D case the dimension of the prestress vector is the same as that in 3D, i.e. = 3
+    if (subType_ == "2.5d")
+      dimPre = 3;
+
     if(preNode){
       //TODO: This does not support coordinate systems. If this is needed,
       // one possibility would be to create a stress tensor coeffunction first, apply coordinate systems and then blow it up
@@ -2412,29 +2488,29 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       }
 
       //some consistency checks
-      if(dim_==2 && preVecR.GetSize() != 3){
+      if(dimPre == 2 && preVecR.GetSize() != 3){
         Exception("For a 2D simulation, we expect 3 values for real preStress tensor in Voigt notation.");
       }
-      if(dim_==3 && preVecR.GetSize() != 6){
-        Exception("For a 3D simulation, we expect 6 values for real preStress tensor in Voigt notation.");
+      if(dimPre == 3 && preVecR.GetSize() != 6){
+        Exception("For a 2.5D or a 3D simulation, we expect 6 values for real preStress tensor in Voigt notation.");
       }
 
       //first we create the big tensor for real values
       StdVector<std::string> bigVecR;
       StdVector<std::string> bigVecI;
-      MakeBigPreStressVector(bigVecR,preVecR,dim_);
+      MakeBigPreStressVector(bigVecR,preVecR,dimPre);
 
       if(isComplex){
         //create just an empty tensor
         preVecI.Resize(preVecR.GetSize());
         preVecI.Init("0.0");
-        MakeBigPreStressVector(bigVecI,preVecI,dim_);
+        MakeBigPreStressVector(bigVecI,preVecI,dimPre);
       }
 
       if(isComplex){
-        coef =  CoefFunction::Generate(mp_,Global::COMPLEX,dim_*dim_,dim_*dim_,bigVecR,bigVecI);
+        coef =  CoefFunction::Generate(mp_,Global::COMPLEX,dimPre*dimPre,dimPre*dimPre,bigVecR,bigVecI);
       }else{
-        coef =  CoefFunction::Generate(mp_,Global::REAL,dim_*dim_,dim_*dim_,bigVecR);
+        coef =  CoefFunction::Generate(mp_,Global::REAL,dimPre*dimPre,dimPre*dimPre,bigVecR);
       }
       return coef;
     }else if(compNode){
@@ -2461,7 +2537,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       StdVector<std::string> bigVecR;
       StdVector<std::string> bigVecI;
 
-      if(dim_ == 2){
+      if(dimPre == 2){
         const std::string vecR[] = { "a_0_R" , "a_1_R" , "a_2_R" };
         preVecR.Import(vecR,3);
         MakeBigPreStressVector(bigVecR,preVecR,2);
@@ -2484,11 +2560,11 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
       if(bigVecI.GetSize()>0){
         coef.reset(new CoefFunctionCompound<Complex>(mp_));
         CoefFunctionCompound<Complex>*  stressTens = dynamic_cast< CoefFunctionCompound<Complex>* > (coef.get());
-        stressTens->SetTensor(bigVecR,bigVecI,dim_*dim_,dim_*dim_,var);
+        stressTens->SetTensor(bigVecR,bigVecI,dimPre*dimPre,dimPre*dimPre,var);
       }else{
         coef.reset(new CoefFunctionCompound<Double>(mp_));
         CoefFunctionCompound<Double>*  stressTens = dynamic_cast< CoefFunctionCompound<Double>* > (coef.get());
-        stressTens->SetTensor(bigVecR,dim_*dim_,dim_*dim_,var);
+        stressTens->SetTensor(bigVecR,dimPre*dimPre,dimPre*dimPre,var);
       }
       return coef;
     }else{

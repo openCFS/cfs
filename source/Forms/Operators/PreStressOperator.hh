@@ -95,15 +95,15 @@ namespace CoupledField{
                                      const LocPointMapped& lp,
                                      BaseFE* ptFe );
 
-    //! Calculate operator matrix
-    virtual void CalcOpMat(Matrix<Complex> & bMat,
-                           const LocPointMapped& lp,
-                           BaseFE* ptFe );
-
-    //! Calculate transposed operator matrix
-    virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                     const LocPointMapped& lp,
-                                     BaseFE* ptFe );
+//    //! Calculate operator matrix
+//    virtual void CalcOpMat(Matrix<Complex> & bMat,
+//                           const LocPointMapped& lp,
+//                           BaseFE* ptFe );
+//
+//    //! Calculate transposed operator matrix
+//    virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
+//                                     const LocPointMapped& lp,
+//                                     BaseFE* ptFe );
 
     using BaseBOperator::CalcOpMat;
 
@@ -138,7 +138,7 @@ namespace CoupledField{
       return DIM_D_MAT;
     }
     //@}
-  private:
+  protected:
 
     bool useICModes_;
 
@@ -189,60 +189,24 @@ namespace CoupledField{
     tmpMat.Transpose(bMat);
   }
 
-  template<class FE, UInt D, class TYPE>
-  void PreStressOperator<FE,D,TYPE>::CalcOpMat(Matrix<Complex> & bMat,
-                                               const LocPointMapped& lp,
-                                               BaseFE* ptFe ){
-    if (coef_ == NULL)
-    {
-      BaseBOperator::CalcOpMat(bMat, lp, ptFe);
-    }
-    else
-    {
-      // Get derivatives of local shape functions with respect to global
-      // coords (format: nrNodes x spaceDim)
-      Matrix<Double> xiDx;
-      FE *fe = (static_cast<FE*>(ptFe));
-      if( useICModes_ ) {
-        if ( isSurfOpt_ )
-          fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-        else
-          fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-
-      } else {
-        if ( isSurfOpt_ )
-          fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-        else
-          fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
-      }
-      Vector<TYPE> coeffs;
-      coef_->GetVector(coeffs, lp);
-
-      const UInt numFncs = xiDx.GetNumRows();
-      // Set correct size of matrix B and initialize with zeros
-      bMat.Resize( DIM_D_MAT, numFncs * DIM_DOF );
-      bMat.Init();
-
-      UInt iFunc = 0;
-      for( iFunc = 0; iFunc < numFncs; iFunc++ ) {
-        for(UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++ ) {
-          for(UInt iDim2 = 0; iDim2 < DIM_DOF; iDim2++ ) {
-            bMat[iDim1*DIM_DOF+iDim2][iFunc*DIM_DOF+iDim1] = xiDx[iFunc][iDim2]*coeffs[iDim2];
-          }
-        }
-      }
-    }
-  }
-
-  template<class FE, UInt D, class TYPE>
-  void PreStressOperator<FE,D,TYPE>::CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                                 const LocPointMapped& lp,
-                                                 BaseFE* ptFe ){
-    Matrix<Complex> tmpMat;
-    this->CalcOpMat(tmpMat,lp,ptFe);
-    tmpMat.Transpose(bMat);
-  }
-
+  //! Calculate the operator for the computation of prestressing in 2.5D case
+  //!    / N_1x  0    0   N_2x   0   ...\
+  //! b =| N_1y  0    0   N_2y   0   ...|
+  //!    |  0    0    0    0     0   ...|
+  //!    |  0   N_1x  0    0    N_2x ...|
+  //!    |  0   N_1y  0    0    N_2y ...|
+  //!    |  0    0    0    0     0   ...|
+  //!    |  0    0   N_1x  0     0   ...|
+  //!    |  0    0   N_1y  0     0   ...|
+  //!    \  0    0    0    0     0   .../
+  //!  here N_1x denotes the x-derivative of the first
+  //!  shape function at a given local point
+  //!  this operator is only valid for vectorial unknowns
+  //!  Valid for cartesian coordinate systems. Not sure about Axi...
+  //! \tparam FE Type of Finite Element used
+  //! \tparam D     Dimension of the problem space
+  //! \tparam D_DOF Dimension of the unknown
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
   template<class FE, UInt D = 2, UInt D_DOF = 3, class TYPE = Double>
   class PreStressOperator2p5D : public BaseBOperator{
 
@@ -302,16 +266,6 @@ namespace CoupledField{
                                      const LocPointMapped& lp,
                                      BaseFE* ptFe );
 
-    //! Calculate operator matrix
-    virtual void CalcOpMat(Matrix<Complex> & bMat,
-                           const LocPointMapped& lp,
-                           BaseFE* ptFe );
-
-    //! Calculate transposed operator matrix
-    virtual void CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                     const LocPointMapped& lp,
-                                     BaseFE* ptFe );
-
     using BaseBOperator::CalcOpMat;
 
     using BaseBOperator::CalcOpMatTransposed;
@@ -345,7 +299,7 @@ namespace CoupledField{
       return DIM_D_MAT;
     }
     //@}
-  private:
+  protected:
 
     bool useICModes_;
 
@@ -396,62 +350,350 @@ namespace CoupledField{
     tmpMat.Transpose(bMat);
   }
 
-  template<class FE, UInt D, UInt D_DOF, class TYPE>
-  void PreStressOperator2p5D<FE,D,D_DOF,TYPE>::CalcOpMat(Matrix<Complex> & bMat,
-                                               const LocPointMapped& lp,
-                                               BaseFE* ptFe ){
-    if (coef_ == NULL)
+  //! Calculate a scaled operator for the computation of prestressing
+  //!    / sx*N_1x     0       0   sx*N_2x     0   ...\
+  //! b =| sy*N_1y     0       0   sy*N_2y     0   ...|
+  //!    | sz*N_1z     0       0   sz*N_2z     0   ...|
+  //!    |     0   sx*N_1x     0      0    sx*N_2x ...|
+  //!    |     0   sy*N_1y     0      0    sy*N_2y ...|
+  //!    |     0   sz*N_1z     0      0    sz*N_2z ...|
+  //!    |     0       0   sx*N_1x    0        0   ...|
+  //!    |     0       0   sy*N_1y    0        0   ...|
+  //!    \     0       0   sz*N_1z    0        0   .../
+  //!  here N_1x denotes the x-derivative of the first
+  //!  shape function at a given local point
+  //!  this operator is only valid for vectorial unknowns
+  //!  Valid for cartesian coordinate systems. Not sure about Axi...
+  //! \tparam FE Type of Finite Element used
+  //! \tparam D     Dimension of the problem space and unknown
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
+  template<class FE, UInt D, class TYPE>
+  class ScaledPreStressOperator : public PreStressOperator<FE, D, TYPE>
+  {
+
+  public:
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
+
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = D; // m=1 (Skalar), m=2,3 Vektor
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D; // n=2,3
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = D*D;
+
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    ScaledPreStressOperator(bool useICModes = false) : PreStressOperator<FE, D, TYPE>(useICModes)
     {
-      BaseBOperator::CalcOpMat(bMat, lp, ptFe);
+      this->name_ = "ScaledPreStressOp";
+    }
+
+    //! Copy constructor
+    ScaledPreStressOperator(const ScaledPreStressOperator & other) : PreStressOperator<FE, D, TYPE>(other)
+    {
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledPreStressOperator * Clone(){
+      return new ScaledPreStressOperator(*this);
+    }
+
+    //! Destructor
+    virtual ~ScaledPreStressOperator() { }
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+  };
+
+  template<class FE, UInt D, class TYPE>
+  void ScaledPreStressOperator<FE,D,TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    assert(this->coef_ != NULL);
+    Vector<Double> coefs;
+    this->coef_->GetVector(coefs, lp);
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if (this->useICModes_)
+      if (this->isSurfOpt_)
+        fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    else
+      if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    for (iFunc = 0; iFunc < numFncs; iFunc++)
+    {
+      for (UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++)
+      {
+        for (UInt iDim2 = 0; iDim2 < DIM_DOF; iDim2++)
+          bMat[iDim1*DIM_DOF + iDim2][iFunc*DIM_DOF + iDim1] = xiDx[iFunc][iDim2]*coefs[iDim2];
+      }
+    }
+  }
+
+  template<class FE, UInt D, class TYPE>
+  void ScaledPreStressOperator<FE,D,TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    assert(this->coef_ != NULL);
+    Vector<Complex> coefs;
+    this->coef_->GetVector(coefs, lp);
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx, xiDxTmp, rotMat;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if (this->coef_->GetCoordinateSystem())
+    {
+      if (this->useICModes_)
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+      else
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+      // If coordinate system is set at the coefficient function, rotate B-matrix
+      Vector<Double> globPoint;
+      lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp*rotMat;
     }
     else
     {
-      // Get derivatives of local shape functions with respect to global
-      // coords (format: nrNodes x spaceDim)
-      Matrix<Double> xiDx;
-      FE *fe = (static_cast<FE*>(ptFe));
-      if( useICModes_ ) {
-        if ( isSurfOpt_ )
-          fe->GetGlobDerivShFncICModes(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
+      if (this->useICModes_)
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
         else
-          fe->GetGlobDerivShFncICModes( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+          fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+      else
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
 
-      } else {
-        if ( isSurfOpt_ )
-          fe->GetGlobDerivShFnc(  xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem() , 1 );
-        else
-          fe->GetGlobDerivShFnc( xiDx, lp, lp.shapeMap->GetElem() , 1 );
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    for (iFunc = 0; iFunc < numFncs; iFunc++)
+    {
+      for (UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++)
+      {
+        for (UInt iDim2 = 0; iDim2 < DIM_DOF; iDim2++)
+          bMat[iDim1*DIM_DOF + iDim2][iFunc*DIM_DOF + iDim1] = xiDx[iFunc][iDim2]*coefs[iDim2];
       }
-      Vector<TYPE> coeffs;
-      coef_->GetVector(coeffs, lp);
+    }
+  }
 
-      const UInt numFncs = xiDx.GetNumRows();
-      // Set correct size of matrix B and initialize with zeros
-      bMat.Resize( DIM_D_MAT, numFncs * DIM_DOF );
-      bMat.Init();
+  //! Calculate a scaled operator for the computation of prestressing in 2.5D case
+  //!    / sx*N_1x     0       0   sx*N_2x     0   ...\
+  //! b =| sy*N_1y     0       0   sy*N_2y     0   ...|
+  //!    |     0       0       0      0        0   ...|
+  //!    |     0   sx*N_1x     0      0    sx*N_2x ...|
+  //!    |     0   sy*N_1y     0      0    sy*N_2y ...|
+  //!    |     0       0       0      0        0   ...|
+  //!    |     0       0   sx*N_1x    0        0   ...|
+  //!    |     0       0   sy*N_1y    0        0   ...|
+  //!    \     0       0       0      0        0   .../
+  //!  here N_1x denotes the x-derivative of the first
+  //!  shape function at a given local point
+  //!  this operator is only valid for vectorial unknowns
+  //!  Valid for cartesian coordinate systems. Not sure about Axi...
+  //! \tparam FE Type of Finite Element used
+  //! \tparam D     Dimension of the problem space
+  //! \tparam D_DOF Dimension of the unknown
+  //! \tparam TYPE Data type (DOUBLE, COMPLEX)
+  template<class FE, UInt D = 2, UInt D_DOF = 3, class TYPE = Double>
+  class ScaledPreStressOperator2p5D : public PreStressOperator2p5D<FE, D, D_DOF, TYPE>
+  {
+  public:
+    // ------------------
+    //  STATIC CONSTANTS
+    // ------------------
+    //@{
+    //! \name Static constants
 
-      UInt iFunc = 0;
-      for( iFunc = 0; iFunc < numFncs; iFunc++ ) {
-        for(UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++ ) {
-          for(UInt iDim2 = 0; iDim2 < DIM_SPACE; iDim2++ ) {
-            bMat[iDim1*DIM_DOF+iDim2][iFunc*DIM_DOF+iDim1] = xiDx[iFunc][iDim2]*coeffs[iDim2];
-          }
-        }
+    //! Order of differentiation
+    static const UInt ORDER_DIFF = 1;
+
+    //! Number of components of the problem (scalar, vector)
+    static const UInt DIM_DOF = D_DOF; // m=1 (Skalar), m=2,3 Vektor
+
+    //! Dimension of the underlying domain / space
+    static const UInt DIM_SPACE = D; // n=2,3
+
+    //! Dimension of the finite element
+    static const UInt DIM_ELEM = D; // Dimension von Referenzelement
+
+    //! Dimension of the related material
+    static const UInt DIM_D_MAT = D_DOF*D_DOF;
+
+    //! Constructor
+    //! \param useIcModes Use incompatible modes shape functions
+    ScaledPreStressOperator2p5D(bool useICModes = false)
+        : PreStressOperator2p5D<FE, D, D_DOF, TYPE>(useICModes)
+    {
+      this->name_ = "ScaledPreStressOp2p5D";
+    }
+
+    //! Copy constructor
+    ScaledPreStressOperator2p5D(const ScaledPreStressOperator2p5D& other)
+        : PreStressOperator2p5D<FE, D, D_DOF, TYPE>(other)
+    {
+      this->name_ = other.name_;
+    }
+
+    //! \copydoc BaseBOperator::Clone()
+    virtual ScaledPreStressOperator2p5D * Clone(){
+      return new ScaledPreStressOperator2p5D(*this);
+    }
+
+    //! Destructor
+    virtual ~ScaledPreStressOperator2p5D() { }
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+    //! Calculate operator matrix
+    virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
+
+  };
+
+  template<class FE, UInt D, UInt D_DOF, class TYPE>
+  void ScaledPreStressOperator2p5D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    assert(this->coef_ != NULL);
+    Vector<Double> coefs;
+    this->coef_->GetVector(coefs, lp);
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if (this->useICModes_)
+      if (this->isSurfOpt_)
+        fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    else
+      if (this->isSurfOpt_)
+        fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+      else
+        fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    for (iFunc = 0; iFunc < numFncs; iFunc++)
+    {
+      for (UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++)
+      {
+        for (UInt iDim2 = 0; iDim2 < DIM_SPACE; iDim2++)
+          bMat[iDim1*DIM_DOF + iDim2][iFunc*DIM_DOF + iDim1] = xiDx[iFunc][iDim2]*coefs[iDim2];
       }
     }
   }
 
   template<class FE, UInt D, UInt D_DOF, class TYPE>
-  void PreStressOperator2p5D<FE, D, D_DOF, TYPE>::CalcOpMatTransposed(Matrix<Complex> & bMat,
-                                                 const LocPointMapped& lp,
-                                                 BaseFE* ptFe ){
-    Matrix<Complex> tmpMat;
-    this->CalcOpMat(tmpMat,lp,ptFe);
-    tmpMat.Transpose(bMat);
+  void ScaledPreStressOperator2p5D<FE, D, D_DOF, TYPE>::CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe)
+  {
+    assert(this->coef_ != NULL);
+    Vector<Complex> coefs;
+    this->coef_->GetVector(coefs, lp);
+
+    // Get derivatives of local shape functions with respect to global
+    // coords (format: nrNodes x spaceDim)
+    Matrix<Double> xiDx, xiDxTmp, rotMat;
+    FE *fe = (static_cast<FE*>(ptFe));
+    if (this->coef_->GetCoordinateSystem())
+    {
+      if (this->useICModes_)
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+      else
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+
+      // If coordinate system is set at the coefficient function, rotate B-matrix
+      Vector<Double> globPoint;
+      lp.shapeMap->Local2Global(globPoint, lp.lp.coord);
+      this->coef_->GetCoordinateSystem()->GetGlobRotationMatrix(rotMat, globPoint);
+      xiDx = xiDxTmp*rotMat;
+    }
+    else
+    {
+      if (this->useICModes_)
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
+      else
+        if (this->isSurfOpt_)
+          fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+        else
+          fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+    }
+
+    const UInt numFncs = xiDx.GetNumRows();
+    // Set correct size of matrix B and initialize with zeros
+    bMat.Resize(DIM_D_MAT, numFncs*DIM_DOF);
+    bMat.Init();
+
+    UInt iFunc = 0;
+    for (iFunc = 0; iFunc < numFncs; iFunc++)
+    {
+      for (UInt iDim1 = 0; iDim1 < DIM_DOF; iDim1++)
+      {
+        for (UInt iDim2 = 0; iDim2 < DIM_SPACE; iDim2++)
+          bMat[iDim1*DIM_DOF + iDim2][iFunc*DIM_DOF + iDim1] = xiDx[iFunc][iDim2]*coefs[iDim2];
+      }
+    }
   }
 
 
-  template<class FE, UInt D = 1, UInt D_DOF = 1, class TYPE = Double>
+  template<class FE, UInt D, UInt D_DOF, class TYPE = Double>
   class SurfaceNormalPreStressOperator : public BaseBOperator
   {
   public:
@@ -483,9 +725,9 @@ namespace CoupledField{
       if(subType != "axi" )
       {
         if (subType == "2.5d")
-          preStressOp_ = new PreStressOperator2p5D<FeH1, D, D_DOF, TYPE>();
+          preStressOp_ = new PreStressOperator2p5D<FeH1, D, D_DOF, TYPE>(useICModes);
         else
-          preStressOp_ = new PreStressOperator<FeH1, D, TYPE>();
+          preStressOp_ = new PreStressOperator<FeH1, D, TYPE>(useICModes);
       }
       else
       {
@@ -494,7 +736,6 @@ namespace CoupledField{
 
       this->name_ = "surfNormPreStressOp";
       preStressOp_->SetOperator2SurfOperator();
-      useICModes_ = useICModes;
     }
 
     SurfaceNormalPreStressOperator(std::string subType, PtrCoefFct baseOpCoef, bool useICModes = false)
@@ -502,9 +743,9 @@ namespace CoupledField{
       if(subType != "axi" )
       {
         if (subType == "2.5d")
-          preStressOp_ = new PreStressOperator2p5D<FeH1, D, D_DOF, TYPE>();
+          preStressOp_ = new ScaledPreStressOperator2p5D<FeH1, D, D_DOF, TYPE>(useICModes);
         else
-          preStressOp_ = new PreStressOperator<FeH1, D, TYPE>();
+          preStressOp_ = new ScaledPreStressOperator<FeH1, D, TYPE>(useICModes);
       }
       else
       {
@@ -513,16 +754,15 @@ namespace CoupledField{
 
       this->name_ = "surfNormPreStressOp";
       preStressOp_->SetOperator2SurfOperator();
-      useICModes_ = useICModes;
       preStressOp_->SetCoefFunction(baseOpCoef);
     }
 
     //! Copy constructor
     SurfaceNormalPreStressOperator(const SurfaceNormalPreStressOperator & other)
-       : BaseBOperator(other),
-         useICModes_(other.useICModes_){
+       : BaseBOperator(other) {
       this->name_ = other.name_;
       this->preStressOp_ = other.preStressOp_->Clone();
+      this->preStressOp_->SetOperator2SurfOperator();
     }
 
     //! \copydoc BaseBOperator::Clone()
@@ -539,12 +779,6 @@ namespace CoupledField{
     virtual void CalcOpMat(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
 
     virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
-
-    //avoid reimplementation of complex operator by making the base class function
-    //available
-    using BaseBOperator::CalcOpMat;
-
-    using BaseBOperator::CalcOpMatTransposed;
 
     // ===============
     //  QUERY METHODS
@@ -623,14 +857,14 @@ namespace CoupledField{
       normalOp.Init();
 
       Vector<Complex> coeffs;
-      PtrCoefFct gradOpCoef = preStressOp_->GetCoefFunction();
-      if (gradOpCoef == NULL)
+      PtrCoefFct preStrOpCoef = preStressOp_->GetCoefFunction();
+      if (preStrOpCoef == NULL)
       {
         coeffs.Resize(3, Complex(1.0, 0.0));
       }
       else
       {
-        gradOpCoef->GetVector(coeffs, lp);
+        preStrOpCoef->GetVector(coeffs, lp);
       }
 
       if (DIM_SPACE == 2)
@@ -661,8 +895,6 @@ namespace CoupledField{
     //! prestressing operator
     BaseBOperator* preStressOp_;
 
-    //! Flag, if incompatible modes are used
-    bool useICModes_;
   };
 
   template<class FE, UInt D, UInt D_DOF, class TYPE>

@@ -250,7 +250,7 @@ namespace CoupledField {
       if (harmonicPML)
       {
         stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion, coefPMLScal);
-        stiffInt->GetBOp()->SetCoefFunction(coefPMLVec);
+        stiffInt->SetBCoefFunctionOpA(coefPMLVec);
       }
       else
         stiffInt = GetStiffIntegrator(actSDMat, tensorType, actRegion);

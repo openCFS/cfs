@@ -112,12 +112,6 @@ public:
 
     virtual void CalcOpMatTransposed(Matrix<Complex> & bMat, const LocPointMapped& lp, BaseFE* ptFe);
 
-    //avoid reimplementation of complex operator by making the base class function
-    //available
-    using BaseBOperator::CalcOpMat;
-
-    using BaseBOperator::CalcOpMatTransposed;
-
     // ===============
     //  QUERY METHODS
     // ===============
@@ -418,10 +412,6 @@ public:
   virtual void CalcOpMatTransposed(Matrix<Double>& bMat, const LocPointMapped& lp, BaseFE* ptFe );
 
   virtual void CalcOpMatTransposed(Matrix<Complex>& bMat, const LocPointMapped& lp, BaseFE* ptFe);
-
-  //avoid reimplementation of complex operator by making the base class function
-  //available
-  using BaseBOperator::CalcOpMat;
 
 protected:
 

@@ -1186,10 +1186,16 @@ namespace CoupledField{
      // coords (format: nrNodes x spaceDim)
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
-     if (this->isSurfOpt_)
-       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
      else
-       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
@@ -1222,10 +1228,16 @@ namespace CoupledField{
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
      // query const variable, should be pretty much optimized away
-     if (this->isSurfOpt_)
-       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
      else
-       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
@@ -1261,10 +1273,16 @@ namespace CoupledField{
 
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1274,10 +1292,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
@@ -1314,10 +1338,16 @@ namespace CoupledField{
      // query const variable, should be pretty much optimized away
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1327,10 +1357,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
@@ -1517,10 +1553,16 @@ namespace CoupledField{
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
      // query const variable, should be pretty much optimized away
-     if (this->isSurfOpt_)
-       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
      else
-       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
@@ -1565,10 +1607,16 @@ namespace CoupledField{
 
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1578,10 +1626,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
@@ -1633,10 +1687,16 @@ namespace CoupledField{
      // query const variable, should be pretty much optimized away
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1646,10 +1706,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
@@ -1795,10 +1861,16 @@ namespace CoupledField{
      // coords (format: nrNodes x spaceDim)
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
-     if (this->isSurfOpt_)
-       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
      else
-       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialize with zeros
@@ -1849,10 +1921,16 @@ namespace CoupledField{
      Matrix<Double> xiDx;
      FE *fe = (static_cast<FE*>(ptFe));
      // query const variable, should be pretty much optimized away
-     if (this->isSurfOpt_)
-       fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+     if (this->useICModes_)
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
      else
-       fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+       if (this->isSurfOpt_)
+         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       else
+         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
 
      const UInt numFncs = xiDx.GetNumRows();
      // Set correct size of matrix B and initialise with zeros
@@ -1899,10 +1977,16 @@ namespace CoupledField{
 
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1912,10 +1996,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
@@ -1969,10 +2059,16 @@ namespace CoupledField{
      // query const variable, should be pretty much optimized away
      if (this->coef_->GetCoordinateSystem())
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDxTmp, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDxTmp, lp, lp.shapeMap->GetElem(), 1);
 
        // If coordinate system is set at the coefficient function, rotate B-matrix
        Vector<Double> globPoint;
@@ -1982,10 +2078,16 @@ namespace CoupledField{
      }
      else
      {
-       if (this->isSurfOpt_)
-         fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+       if (this->useICModes_)
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFncICModes(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFncICModes(xiDx, lp, lp.shapeMap->GetElem(), 1);
        else
-         fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
+         if (this->isSurfOpt_)
+           fe->GetGlobDerivShFnc(xiDx, *lp.lpmVol, lp.lpmVol->shapeMap->GetElem(), 1);
+         else
+           fe->GetGlobDerivShFnc(xiDx, lp, lp.shapeMap->GetElem(), 1);
      }
 
      const UInt numFncs = xiDx.GetNumRows();
