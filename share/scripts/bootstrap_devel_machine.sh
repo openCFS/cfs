@@ -170,15 +170,18 @@ SetupRHEL() {
 	cd /etc/yum.repos.d && \
 	    rm -f graphviz-rhel.repo || ExitFail 
 	wget http://www.graphviz.org/graphviz-rhel.repo || ExitFail
+
+	rpm --import http://ftp.scientificlinux.org/linux/scientific/5x/x86_64/RPM-GPG-KEYs/RPM-GPG-KEY-cern
+	wget -O /etc/yum.repos.d/slc6-devtoolset.repo http://linuxsoft.cern.ch/cern/devtoolset/slc6-devtoolset.repo
 	
-	YC=atrpms.repo
-	echo "[atrpms]" > $YC && \
-	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
-	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
-	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
-	    echo "gpgcheck=1" >> $YC || ExitFail
-	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
-	
+# 	YC=atrpms.repo
+# 	echo "[atrpms]" > $YC && \
+# 	    echo "name=Redhat Enterprise Linux RHEL\$releasever - \$basearch - ATrpms" >> $YC && \
+# 	    echo "baseurl=http://dl.atrpms.net/el${RHEL_REL}-\$basearch/atrpms/stable/" >> $YC && \
+# 	    echo "gpgkey=http://ATrpms.net/RPM-GPG-KEY.atrpms" >> $YC && \
+# 	    echo "gpgcheck=1" >> $YC || ExitFail
+# 	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
+
 	YC=epel.repo
 	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
 	echo "[epel]" > $YC && \
@@ -223,12 +226,12 @@ SetupRHEL() {
 
     yum makecache || ExitFail
 
-    cd /opt && \
-    rm -f org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
-    wget http://www.svnkit.com/org.tmatesoft.svn_1.3.8.standalone.zip && \
-    unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || \
-    wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.8.standalone.zip && \
-    unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
+    # cd /opt && \
+    # rm -f org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
+    # wget http://www.svnkit.com/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    # unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || \
+    # wget https://atomictech-svn-mng.googlecode.com/files/org.tmatesoft.svn_1.3.8.standalone.zip && \
+    # unzip -o org.tmatesoft.svn_1.3.8.standalone.zip || ExitFail
 
     if [ "$DIST" = "CENTOS" ]; then
 	ENABLE_REPO="--enablerepo=centosplus"
@@ -238,11 +241,19 @@ SetupRHEL() {
                 perl graphviz.$(uname -m) tetex-latex tetex-tex4ht \
                 automake autoconf cmake gcc-gfortran ncurses-devel \
                 java-1.6.0-openjdk-devel tk-devel python-pygments python-argparse doxygen \
-                tcl-devel python-devel git-svn patch diffutils zip \
+                tcl-devel python-devel git-svn patch diffutils zip unzip \
                 libXt-devel libXp mesa-libGLU-devel libXmu-devel make \
                 glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
                 libstdc++-devel.x86_64 libstdc++-devel.i686 numpy || ExitFail
-           
+
+    # CENTOS6 hast gcc 4.8 not supported
+    if [[ "$DIST" = "CENTOS" ]] && [[ "$RHEL_REL" -lt  7 ]]; then
+        yum install -y devtoolset-2 || ExitFail
+        # echo "source /opt/rh/devtoolset-2/enable" >> ~/.bashrc
+        # source ~/.bashrc
+    fi
+
+
     if [ "$ARCH" = "X86_64" ]; then
 	LIB="lib64"
     else
