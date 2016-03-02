@@ -346,6 +346,7 @@ def valid_position_robot(pos, coords,opt=0):
   if (pos[0] - 250.0) ** 2 + pos[2] ** 2 < 30.0 ** 2:  # center 250, 0, 0
     return False
   return True
+
 # # for the apod6 part we have check for the holes in nondesign region as they are within the
 # # convex hull of the design :(
 def valid_position_apod6(pos, coords,opt = 0. ):
@@ -355,37 +356,37 @@ def valid_position_apod6(pos, coords,opt = 0. ):
   #ay = -0.084636333418591
   ay = 0.
   Ry = numpy.matrix(((math.cos(ay), 0., math.sin(ay)), (0., 1., 0.), (-math.sin(ay), 0., math.cos(ay))))
-  tmp = Ry*numpy.matrix(((33052.), (-353.), (-2474.))).T
+  tmp = Ry*numpy.matrix(((33.052), (-0.353), (-2.474))).T
   m1 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33046.), (-353.), (-2518.))).T
+  tmp = Ry*numpy.matrix(((33.046), (-0.353), (-2.518))).T
   m2 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33131.), (-353.), (-2449.))).T
+  tmp = Ry*numpy.matrix(((33.131), (-0.353), (-2.449))).T
   m3 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33124.), (-353.), (-2498.))).T
+  tmp = Ry*numpy.matrix(((33.124), (-0.353), (-2.498))).T
   m4 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((32978.), (-353.), (-2436.))).T
+  tmp = Ry*numpy.matrix(((32.978), (-0.353), (-2.436))).T
   m5 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((32971.), (-353.), (-2485.))).T
+  tmp = Ry*numpy.matrix(((32.971), (-0.353), (-2.485))).T
   m6 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33023.), (-353.), (-2559.))).T
+  tmp = Ry*numpy.matrix(((33.023), (-0.353), (-2.559))).T
   m7 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33004.), (-353.), (-2443.))).T
+  tmp = Ry*numpy.matrix(((33.004), (-0.353), (-2.443))).T
   m8 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33096.), (-353.), (-2450.))).T
+  tmp = Ry*numpy.matrix(((33.096), (-0.353), (-2.450))).T
   m9 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33004.), (-353.), (-2468.))).T
+  tmp = Ry*numpy.matrix(((33.004), (-0.353), (-2.468))).T
   m10 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33066.), (-353.), (-2495.))).T
+  tmp = Ry*numpy.matrix(((33.066), (-0.353), (-2.495))).T
   m11 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33096.), (-353.), (-2475.))).T
+  tmp = Ry*numpy.matrix(((33.096), (-0.353), (-2.475))).T
   m12 = [tmp[0][0],tmp[1][0],tmp[2][0]]
-  tmp = Ry*numpy.matrix(((33042.), (-353.), (-2548.))).T
+  tmp = Ry*numpy.matrix(((33.042), (-0.353), (-2.548))).T
   m13 = [tmp[0][0],tmp[1][0],tmp[2][0]]
   
-  r1 = 15.8
-  r2 = 12.8
-  r3 = 5.7
-  r4 = 2.8
+  r1 = 0.0158
+  r2 = 0.0128
+  r3 = 0.0057
+  r4 = 0.0028
   if (pos[0] - m1[0]) ** 2 + (pos[2] - m1[2]) ** 2 < r1 ** 2:
     return False 
   elif (pos[0] - m2[0]) ** 2 + (pos[2] - m2[2]) ** 2 < r2 ** 2:
@@ -414,31 +415,31 @@ def valid_position_apod6(pos, coords,opt = 0. ):
     return False
   
   # big right triangle
-  tmp = [Ry*numpy.matrix(((33070.), (-353.), (-2563.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33127.+opt), (-353.), (-2508.))).T]
+  tmp = [Ry*numpy.matrix(((33.070), (-0.353), (-2.563))).T, Ry*numpy.matrix(((33.078),(-0.353),(-2.503))).T, Ry*numpy.matrix(((33.127+opt), (-0.353), (-2.508))).T]
   corners_b = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]                         
   # small right triangle
-  tmp = [Ry*numpy.matrix(((33077.), (-353.), (-2513.))).T, Ry*numpy.matrix(((33078.),(-353.),(-2503.))).T, Ry*numpy.matrix(((33087.), (-353.), (-2504.))).T]
+  tmp = [Ry*numpy.matrix(((33.077), (-0.353), (-2.513))).T, Ry*numpy.matrix(((33.078),(-0.353),(-2.503))).T, Ry*numpy.matrix(((33.087), (-0.353), (-2.504))).T]
   corners_s = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
   #corners_s = [[33077., -2513.], [33078.,-2503.], [33087., -2504.]]
   # small circle
-  tmp = Ry*numpy.matrix(((33087.), (-353.),(-2515.))).T
+  tmp = Ry*numpy.matrix(((33.087), (-0.353),(-2.515))).T
   mid_s = [tmp[0][0],tmp[2][0]]
-  r_s = 10.
+  r_s = 0.010
   if point_in_triangle([pos[0],pos[2]], corners_b[0],corners_b[1],corners_b[2]):
     if (test_point_outside_circle(mid_s,r_s, [pos[0],pos[2]])) and point_in_triangle([pos[0],pos[2]], corners_s[0],corners_s[1],corners_s[2]):
       return True
     else:
       return False
    # big left triangle
-  tmp = [Ry*numpy.matrix(((32964.),(-353.), (-2494.))).T, Ry*numpy.matrix(((33018.),(-353.),(-2500.))).T, Ry*numpy.matrix(((33010.),(-353.), (-2559.))).T]
+  tmp = [Ry*numpy.matrix(((32.964),(-0.353), (-2.494))).T, Ry*numpy.matrix(((33.018),(-0.353),(-2.500))).T, Ry*numpy.matrix(((33.010),(-0.353), (-2.559))).T]
   corners_b = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
   # small right triangle
-  tmp = [Ry*numpy.matrix(((33008.),(-353.), (-2498.))).T, Ry*numpy.matrix(((33018.),(-353.),(-2500.))).T, Ry*numpy.matrix(((33017.), (-353.), (-2509.))).T]
+  tmp = [Ry*numpy.matrix(((33.008),(-0.353), (-2.498))).T, Ry*numpy.matrix(((33.018),(-0.353),(-2.500))).T, Ry*numpy.matrix(((33.017), (-0.353), (-2.509))).T]
   corners_s = [[tmp[0][0][0], tmp[0][2][0]], [tmp[1][0][0], tmp[1][2][0]], [tmp[2][0][0], tmp[2][2][0]]]
   # small circle
-  tmp = Ry*numpy.matrix(((33007.),(-353.),(-2508.))).T
+  tmp = Ry*numpy.matrix(((33.007),(-0.353),(-2.508))).T
   mid_s = [tmp[0][0],tmp[2][0]]
-  r_s = 10.
+  r_s = 0.010
   if point_in_triangle([pos[0],pos[2]], corners_b[0],corners_b[1],corners_b[2]):
     if (test_point_outside_circle(mid_s,r_s, [pos[0],pos[2]])) and point_in_triangle([pos[0],pos[2]], corners_s[0],corners_s[1],corners_s[2]):
       return True
@@ -581,7 +582,9 @@ def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
   scale_x = delta[0]/(nx*dx)
   scale_y = delta[1]/(ny*dy)
   scale_z = delta[2]/(nz*dz)
- 
+  
+  print "delta: " + str(delta)
+  print "dx,dy,dz: " + str(dx) + ", "+ str(dy) + ", " + str(dz) 
   if ny == 0 or nz == 0 or nx == 0:
     print 'chose a higher hom_samples such that also the smallest side gets discretized'
     exit()
