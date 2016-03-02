@@ -131,5 +131,4 @@ CLEANUP_VBOX_DIRS()
 #  Ubuntu 14.04. Other VBoxes are started depending on DAYOFWEEK in the
 #  script site_specific_finish.cmake.
 # ===========================================================================
-START_VBOXES("sl7")
-
+START_VBOXES("sl7,centos6")

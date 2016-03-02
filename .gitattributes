@@ -365,6 +365,9 @@ ctest_scripts/nightly_test.cmake -text
 ctest_scripts/shared/CTestConfig.cmake.in -text
 ctest_scripts/shared/provision_nightly_tests_linux.sh -text
 ctest_scripts/shared/test_macros.cmake -text
+ctest_scripts/sites/centos6/Vagrantfile -text
+ctest_scripts/sites/centos6/linux64_trunk_gcc_release.ctest -text
+ctest_scripts/sites/centos6/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/draco/ctest_update.cmake -text
 ctest_scripts/sites/draco/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/draco/ctest_update_trunk_wien.cmake -text
