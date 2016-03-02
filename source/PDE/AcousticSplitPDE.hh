@@ -1,11 +1,11 @@
-#ifndef ACOUSTICSPLITPDE_HH /// ADAPT
-#define ACOUSTICSPLITPDE_HH /// ADAPT
+#ifndef ACOUSTICSPLITPDE_HH
+#define ACOUSTICSPLITPDE_HH
 
 #include "SinglePDE.hh"
 
 namespace CoupledField{
 
-  // forward class declaration	/// ADAPT ??
+  // forward class declaration
   class BaseResult;
   class ResultHandler;
   class LinearFormContext;
@@ -14,22 +14,22 @@ namespace CoupledField{
   class ResultFunctor;
   class CoefFunctionMulti;
 
-  class AcousticSplitPDE : public SinglePDE{ /// ADAPT
+  class AcousticSplitPDE : public SinglePDE{
 
   public:
     //!  Constructor.
     /*!
       \param aGrid pointer to grid
     */
-    AcousticSplitPDE( Grid* aGrid, PtrParamNode paramNode,	/// ADAPT
+    AcousticSplitPDE( Grid* aGrid, PtrParamNode paramNode,
                  PtrParamNode infoNode,
                  shared_ptr<SimState> simState, Domain* domain );
 
-    virtual ~AcousticSplitPDE(){}; /// ADAPT
+    virtual ~AcousticSplitPDE(){};
 
 
     //! Return acoustic formulation. Can either be pressure or potential.
-    SolutionType GetFormulation() const { return formulation_; }   /// ADAPT# scalarPotential
+    SolutionType GetFormulation() const { return formulation_; }
 
 
   protected:
@@ -39,6 +39,7 @@ namespace CoupledField{
     CreateFeSpaces( const std::string&  formulation, PtrParamNode infoNode );
 
     void ReadDampingInformation(); // TODO wieso in Acoustic pde nicht? vererbung
+
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
 
@@ -46,7 +47,7 @@ namespace CoupledField{
     void DefineNcIntegrators();
 
     //! define surface integrators needed for this pde
-    void DefineSurfaceIntegrators( );	/// ADAPT
+    void DefineSurfaceIntegrators( );
     
     //! Define all RHS linearforms for load / excitation 
     void DefineRhsLoadIntegrators();
@@ -60,14 +61,8 @@ namespace CoupledField{
     //! Define available postprocessing results
     void DefinePostProcResults();
 
-    
     //! Init the time stepping
     void InitTimeStepping();
-
-
-    //! create transient Mapping integrators
-    template<UInt DIM>	/// ADAPT# mapping
-    void DefineTransientMapping(shared_ptr<ElemList> eList,std::string id);
 
   private:
 
@@ -75,7 +70,7 @@ namespace CoupledField{
     SolutionType formulation_;
 
     //! override from Single PDE due to convective operators
-    virtual void FinalizePostProcResults();
+    //virtual void FinalizePostProcResults();
 
   };
 

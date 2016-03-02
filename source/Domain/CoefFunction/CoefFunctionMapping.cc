@@ -24,11 +24,11 @@
 namespace CoupledField{
 
 template<typename T>
-CoefFunctionMapping<T>::CoefFunctionMapping(PtrParamNode pmlDef, PtrCoefFct speedOfSound,
+CoefFunctionMapping<T>::CoefFunctionMapping(PtrParamNode mapDef, PtrCoefFct speedOfSound,
                                     shared_ptr<EntityList> EntList,
                                     StdVector<RegionIdType> pdeDomains,
                                     bool isVector):
-  CoefFunctionPML<T>(pmlDef, speedOfSound,EntList,
+  CoefFunctionPML<T>(mapDef, speedOfSound,EntList,
                   pdeDomains,isVector){
 
 }
@@ -53,7 +53,6 @@ void CoefFunctionMapping<T>::GetTensor(Matrix<Double>& tensor,
   tensor.Init();
   Double locThick=0.0;
   Double position=0.0;
-  //Double sos=1.0;
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
@@ -73,16 +72,12 @@ void CoefFunctionMapping<T>::GetVector(Vector<Complex>& vec,
 template<typename T>
 void CoefFunctionMapping<T>::GetVector(Vector<Double>& vec,
                               const LocPointMapped& lpm ){
-
   //first loop over every entry and determine the factor
   vec.Resize(this->dim_,0.0);
   Double locThick=0.0;
   Double position=0.0;
   for(UInt i=0;i<this->dim_;++i){
-
     this->GetThicknessAtPoint(locThick,position,lpm,i);
-//    std::cout << i << std::endl;
-//    std::cout << locThick << std::endl;
     if(abs(locThick)>0.0){
       vec[i] = this->dampFunction_->ComputeFactor(position,locThick);
     }else{
@@ -100,21 +95,14 @@ void CoefFunctionMapping<T>::GetScalar(Complex& val,
 template<typename T>
 void CoefFunctionMapping<T>::GetScalar(Double& val,
                               const LocPointMapped& lpm ){
-
-  //computes 1/(pml_x*pml_y*pml_z)
-  //right now we ust return 1...
-  //EXCEPTION("GETSCALAR IS INVALID");
-
-  val = 1.0;
-  return;
-
+  //computes 1/(map_x*map_y*map_z)
   Double locThick=0.0;
   Double position=0.0;
   val = 1.0;
   for(UInt i=0;i<this->dim_;++i){
     this->GetThicknessAtPoint(locThick,position,lpm,i);
     if(abs(locThick)>0.0){
-      val *= this->dampFunction_->ComputeFactor(position,locThick);
+      val /= this->dampFunction_->ComputeFactor(position,locThick);
     }else{
       val *= 1.0;
     }

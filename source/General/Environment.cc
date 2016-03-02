@@ -178,6 +178,18 @@ namespace CoupledField {
         return "m^3/s";
         break;
 
+      case SPLIT_SCALAR_VELOCITY:
+        return "m/s";
+        break;
+
+      case SPLIT_VECTOR_VELOCITY:
+        return "m/s";
+        break;
+
+      case SPLIT_POT_ENERGY:
+        return "Ws";
+        break;
+
       case ELEC_CHARGE:
         return "C";
         break;
@@ -1317,6 +1329,9 @@ namespace CoupledField {
     SolutionTypeEnum.Add(SPLIT_SCALAR, "splitScalar");
     SolutionTypeEnum.Add(SPLIT_VECTOR, "splitVector");
     SolutionTypeEnum.Add(SPLIT_RHS_LOAD, "splitRhsLoad");
+    SolutionTypeEnum.Add(SPLIT_SCALAR_VELOCITY, "splitScalVel");
+    SolutionTypeEnum.Add(SPLIT_VECTOR_VELOCITY, "splitVectVel");
+    SolutionTypeEnum.Add(SPLIT_POT_ENERGY, "splitPotEnergy");
 
     //water waves
     SolutionTypeEnum.Add(WATER_PRESSURE, "waterPressure");

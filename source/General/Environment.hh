@@ -161,7 +161,8 @@ namespace CoupledField {
       // ==========
       //  SPLITTING
       // ==========
-      SPLIT_SCALAR, SPLIT_VECTOR, SPLIT_RHS_LOAD,
+      SPLIT_SCALAR, SPLIT_VECTOR, SPLIT_RHS_LOAD, SPLIT_SCALAR_VELOCITY, SPLIT_VECTOR_VELOCITY,
+      SPLIT_POT_ENERGY,
 
       // ==========
       //  WATER WAVES

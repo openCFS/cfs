@@ -71,6 +71,11 @@
               <xsd:choice maxOccurs="unbounded">
                 <!-- Dirichlet Boundary Conditions -->
                 <xsd:element name="homDir" type="DT_BcHomScalar"/>
+                <xsd:element name="inhomDir" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Sets potential to value (inhomog. Dirichlet b.c.)</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
                 <!-- RHS Load Values-->
                 <xsd:element name="rhsValues" type="DT_BcInhomScalar" minOccurs="0" maxOccurs="1"/>
                 <xsd:element name="rhsDensity" type="DT_BcInhomScalar">
@@ -137,6 +142,22 @@
       <xsd:enumeration value="splitRhsLoad"/>
     </xsd:restriction>
   </xsd:simpleType>
+  
+  
+  <!-- Definition of element result types of split PDE -->
+  <xsd:simpleType name="DT_SplitElemResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="splitScalVel"/>
+      <xsd:enumeration value="splitVectVel"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+  
+  <!-- Definition of region result types of split PDE -->
+  <xsd:simpleType name="DT_SplitRegionResult">
+    <xsd:restriction base="xsd:token">
+      <xsd:enumeration value="splitPotEnergy"/>
+    </xsd:restriction>
+    </xsd:simpleType>
 
 
   <!-- Global type for specifying desired split output quantities -->
@@ -150,6 +171,28 @@
             <xsd:complexContent>
               <xsd:extension base="DT_NodeResult">
                 <xsd:attribute name="type" type="DT_SplitNodeResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Element result definition -->
+        <xsd:element name="elemResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_ElemResult">
+                <xsd:attribute name="type" type="DT_SplitElemResult" use="required"/>
+              </xsd:extension>
+            </xsd:complexContent>
+          </xsd:complexType>
+        </xsd:element>
+        
+        <!-- Region result definition -->
+        <xsd:element name="regionResult" minOccurs="0" maxOccurs="unbounded">
+          <xsd:complexType>
+            <xsd:complexContent>
+              <xsd:extension base="DT_RegionResult">
+                <xsd:attribute name="type" type="DT_SplitRegionResult"/>
               </xsd:extension>
             </xsd:complexContent>
           </xsd:complexType>

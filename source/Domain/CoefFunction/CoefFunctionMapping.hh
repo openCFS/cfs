@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     CoefFunctionMApping.hh
+ *       \file     CoefFunctionMapping.hh
  *       \brief    <Description>
  *
  *       \date     Mar 12, 2016
@@ -39,14 +39,12 @@ public:
   //! Return real-valued tensor at integration point
   void GetTensor(Matrix<Double>& tensor,
                  const LocPointMapped& lpm );
-
   void GetTensor(Matrix<Complex>& tensor,
                  const LocPointMapped& lpm );
 
   //! Return real-valued vector at integration point
   void GetVector(Vector<Double>& vec,
                  const LocPointMapped& lpm ) ;
-
   void GetVector(Vector<Complex>& vec,
                  const LocPointMapped& lpm ) ;
 
@@ -57,7 +55,6 @@ public:
   // an transform the jacobian with it....
  void GetScalar(Double& val,
                 const LocPointMapped& lpm ) ;
-
  void GetScalar(Complex& val,
                 const LocPointMapped& lpm ) ;
 
