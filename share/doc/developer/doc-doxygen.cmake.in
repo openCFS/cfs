@@ -29,10 +29,6 @@ CONFIGURE_FILE(
   "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/footer.html"
   @ONLY )
 
-EXECUTE_PROCESS(
-  COMMAND "${DOXYGEN_EXECUTABLE}" "${DOXY_CONFIG}"
-  )
-
 # ============================================================================
 # Build new Documentation
 # ============================================================================
@@ -51,6 +47,11 @@ CONFIGURE_FILE(
   "${CMAKE_CURRENT_SOURCE_DIR}/DoxygenConfig/latexHeader.tex"
   "${CMAKE_CURRENT_BINARY_DIR}/DoxygenConfig/latexHeader.tex"
   @ONLY )
+
+
+EXECUTE_PROCESS(
+  COMMAND "${DOXYGEN_EXECUTABLE}" "${DOXY_CONFIG}"
+  )
 
 FILE(MAKE_DIRECTORY "${DOXY_HTML_DIR}/images")
 
