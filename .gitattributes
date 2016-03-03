@@ -591,13 +591,10 @@ share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/footerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/headerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/latexHeader.tex -text
 share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
