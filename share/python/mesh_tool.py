@@ -1279,7 +1279,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
     dz = csize[2]
   # calculate convex hull of non-design and design nodes
   hull = Delaunay(nondes_centers)
-  hull_des = Delaunay(centers)
+  if type == "robot":
+    hull_des = Delaunay(centers)
   print 'calculating convex hull of non-design done'
   # choose validation for simp result or 2-scale result
   if simp is None:
@@ -1329,6 +1330,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   array = -1. * numpy.ones((nnx,nny,nnz))
   res = [dx_f,dy_f,dz_f]
   count = 0
+  hole = -2. if type == "robot" else void
   for k in xrange(tz,nz-dz_f + 1 + tz,dz_f):
     for j in xrange(ty,ny-dy_f + 1 + ty,dy_f):
       for i in xrange(tx,nx -dx_f + 1 + tx,dx_f):    
@@ -1346,11 +1348,11 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
             if not valid_position(coord, coords,offset):
               create_cross_3D(array,l,u,void,void,void,void,res)
             else:
-              create_cross_3D(array,l,u,s1,s2,s3,-2.,res)
+              create_cross_3D(array,l,u,s1,s2,s3,hole,res)
           else:
-              create_cross_3D(array,l,u,void,void,void,-2.,res)
+              create_cross_3D(array,l,u,void,void,void,hole,res)
         elif simp is None:
-          create_cross_3D(array,l,u,void,void,void,-2.,res)
+          create_cross_3D(array,l,u,void,void,void,hole,res)
         else:
           # simp
           if s1 > 0:
@@ -1373,8 +1375,8 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
         e.type = HEXA8
         ll = (nnx + 1) * (nny + 1) * z + (nnx + 1) * y + x  # lowerleft
         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))        
-        
-        if True:#(x < tx) or (y < ty) or (z < tz) or (y >= ny) or (x >= nx) or (z >= nz):
+        condition = True if type == "robot" else (x < tx) or (y < ty) or (z < tz) or (y >= ny) or (x >= nx) or (z >= nz)
+        if condition:
           # calculate center of element
           center = numpy.array([0.0, 0.0, 0.0])
           len_nod = len(e.nodes)
@@ -1385,16 +1387,25 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           if in_hull(center, hull):
             if not valid_position(center, coords,offset):
               e.region = 'void1'
-            elif array[x,y,z] > 0.9:
+            elif type == "robot" and array[x,y,z] > 0.9:
               number += 1
 	      e.region = 'design'
-            elif not in_hull(center, hull_des):
+            elif type == "robot" and not in_hull(center, hull_des):
 	      e.region = 'non-design'
 	      number += 1.
             else:
-              e.region = 'void3'
+              if type == "robot":
+                e.region = 'void3'
+	      else:
+		e.region = "non-design"
+		number += 1
           else:
             e.region = 'void2'
+        elif array[x,y,z] <= void:
+          e.region = 'void3'
+        else:
+          number += 1
+          e.region = 'design'  
         mesh.elements.append(e)
   if type == "apod6":
     # add apod6 boundary conditions to mesh      
