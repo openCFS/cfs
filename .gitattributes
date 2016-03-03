@@ -395,6 +395,7 @@ ctest_scripts/sites/eamc067/linux64_mpolzer_mingw_release.ctest -text
 ctest_scripts/sites/eamc067/site_specific_init.cmake -text
 ctest_scripts/sites/eamc080/generate_test_name_list.cmake -text
 ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_debug.ctest -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_doc_doxygen.ctest -text
 ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_release.ctest -text
 ctest_scripts/sites/eamc080/site_specific_init.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
