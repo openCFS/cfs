@@ -182,14 +182,26 @@ SetupRHEL() {
 # 	    echo "gpgcheck=1" >> $YC || ExitFail
 # 	rpm --import http://ATrpms.net/RPM-GPG-KEY.atrpms
 
-	YC=epel.repo
-	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
-	echo "[epel]" > $YC && \
-	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
-	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
-	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
-	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
+    if [ "$DIST" = "CENTOS" ]; then
+        case "${RHEL_REL}" in
+           5) wget http://download.fedoraproject.org/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm
+              rpm -ivh epel-release-5-4.noarch.rpm
+              ;;
+           6) wget http://download.fedoraproject.org/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+              rpm -ivh epel-release-6-8.noarch.rpm
+              ;;
+           *) echo "RHEL release ${RHEL_REL} is not supported!"
+              ;;	
+        esac
+    fi
+#	YC=epel.repo
+#	EPEL_MIRROR="http://ftp.uni-bayreuth.de/linux/fedora-epel"
+#	echo "[epel]" > $YC && \
+#	    echo "name=EPEL RHEL\$releasever - \$basearch" >> $YC && \
+#	    echo "baseurl=${EPEL_MIRROR}/${RHEL_REL}/\$basearch" >> $YC || ExitFail
+#	rm -f RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+#	wget ${EPEL_MIRROR}/RPM-GPG-KEY-EPEL-${RHEL_REL} || ExitFail
+#	rpm --import RPM-GPG-KEY-EPEL-${RHEL_REL}
 	
 	ARCH=$(uname -m | sed 's/i[0-9]86/i386/') || ExitFail
 	BASE=http://pkgs.repoforge.org/rpmforge-release
