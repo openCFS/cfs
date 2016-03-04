@@ -304,12 +304,19 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   # Check for a parallel compiler
   #-----------------------------------------------------------------------------
   IF(USE_OPENMP)
-    SET(CFS_C_FLAGS "-openmp")
-    SET(CFS_CXX_FLAGS "-openmp")
+    SET(CFS_C_FLAGS "-openmp ${CFS_C_FLAGS}")
+    SET(CFS_CXX_FLAGS "-openmp ${CFS_CXX_FLAGS}")
   ELSE(USE_OPENMP)
     SET(CFS_C_FLAGS "${CFS_C_FLAGS} -diag-disable 3180 ")
     SET(CFS_CXX_FLAGS "${CFS_CXX_FLAGS} -diag-disable 3180 ")
   ENDIF(USE_OPENMP)
+  
+  #-----------------------------------------------------------------------------
+  # Check for optimization report option
+  #-----------------------------------------------------------------------------
+  IF(INTEL_OPT_REPORT)
+    SET(CFS_CXX_FLAGS "-qopt-report=2 ${CFS_CXX_FLAGS}") # level 2 reporting
+  ENDIF(INTEL_OPT_REPORT)
 
   #-----------------------------------------------------------------------------
   # Determine compiler/linker flags according to build type
@@ -334,7 +341,7 @@ ELSEIF(CFS_CXX_COMPILER_NAME STREQUAL "ICC")
   ENDIF(DEBUG)
 
   IF(PROFILING)
-    SET(PROF_FLAGS "-pg")
+    SET(CFS_PROF_FLAGS "-p -g")
   ENDIF(PROFILING)
   #---------------------------------------------------------------------------
   # Disable warnings about hidden overriden functions of base classes,

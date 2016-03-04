@@ -39,7 +39,7 @@ Enum<LatticeBoltzmann::Direction>         LatticeBoltzmann::directions;
 LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency)
 {
   assert(dim == 2 || dim == 3);
-  // n_q_: number of discrete directions in this model, e.g. 19 for D3Q19
+  // n_q_: number of discrete directions in this model, e.g. n_q_ for D3Qn_q_
   if (dim == 2) {
     assert(sizeZ == 1);
     n_q_ = 9;
@@ -80,7 +80,7 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   adjPdfs_[0].Init(0.0);
   adjPdfs_[1].Init(0.0);
 
-  // microVelDirections stores information about the 19 microscopic velocities/directions of D3Q19 model
+  // microVelDirections stores information about the n_q_ microscopic velocities/directions of D3Qn_q_ model
   microVelDirections.Resize(n_q_);
   weights.Resize(n_q_);
 
@@ -111,6 +111,12 @@ LatticeBoltzmann::LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, dou
   {
     prop_coll_step = &LatticeBoltzmann::Prop_coll_step3D;
   }
+  adjCollTimer_.reset(new Timer("adjColl",true));
+  adjPropTimer_.reset(new Timer("adjProp",true));
+
+  PtrParamNode LBMInfo = domain->GetInfoRoot()->Get(ParamNode::SUMMARY)->Get("LBMSolver", ParamNode::INSERT);
+  LBMInfo->Get("timer", ParamNode::APPEND)->SetValue(adjCollTimer_);
+  LBMInfo->Get("timer", ParamNode::APPEND)->SetValue(adjPropTimer_);
 }
 
 LatticeBoltzmann::~LatticeBoltzmann()
@@ -234,6 +240,8 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   else
     performance = (sizeX_ - 1) * (sizeY_ - 1) * it / wt / 1e6;
 
+//  std::cout << "performance: " << (sizeX_ - 1) << "*" << (sizeY_ - 1) << "*" << (sizeZ_ - 1) << "*" << it << "/" << wt << "/1e6" << "=" << performance << std::endl;
+
   node->Get("wall")->SetValue(wt);
   node->Get("cpu")->SetValue(timer.GetCPUTime());
   node->Get("MFLUP_s")->SetValue(performance);
@@ -297,7 +305,7 @@ void LatticeBoltzmann::SetMicroVelocities()
 
 void LatticeBoltzmann::SetEnums()
 {
-  directions.SetName("Q19 directions");
+  directions.SetName("Qn_q_ directions");
   directions.Add(Q_0,"C");
   directions.Add(Q_E,"E");
   directions.Add(Q_N,"N");
@@ -453,18 +461,6 @@ std::string LatticeBoltzmann::ToString(const StdVector<StdVector<int> >& data)
   return ss.str();
 }
 
-void LatticeBoltzmann::MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res)
-{
-  res.Resize(n_q_);
-  res.Init();
-
-  for (int row = 0; row < n_q_; row++) {
-    for (int col = 0; col < n_q_; col++) {
-      res[row] += mat[GetMatrixElemId(row,col,n_q_)] * vec[col];
-    }
-  }
-}
-
 void LatticeBoltzmann::CreateOutput(const char * file, int cur)
 {
   // for debug purposes
@@ -598,8 +594,7 @@ void LatticeBoltzmann::Prop_coll_velinlet(int cur)
 {
   #pragma omp parallel default(none) shared(cur)
   {
-    Vector<double> pdfs;
-    pdfs.Resize(n_q_);
+    Vector<double> pdfs(n_q_);
     #pragma omp for
     for(unsigned int  i = 0; i < inlet.GetSize(); i++) {
       int index = inlet[i];
@@ -632,6 +627,7 @@ void LatticeBoltzmann::Prop_coll_velinlet(int cur)
     }
   }
 }
+
 //
 // Performs a bounce back step.
 //
@@ -639,8 +635,7 @@ void LatticeBoltzmann::Prop_coll_bounce_back(int cur)
 {
   #pragma omp parallel default(none) shared(cur)
   {
-    Vector<double> pdfs;
-    pdfs.Resize(n_q_);
+    Vector<double> pdfs(n_q_);
     #pragma omp for
     for(unsigned int  i = 0; i < bb.GetSize(); i++) {
       int index = bb[i];
@@ -691,6 +686,7 @@ void LatticeBoltzmann::Prop_coll_densoutlet(int cur)
   }
 }
 
+
 /************************************************** adjoint 2D operators *****************************************************/
 void LatticeBoltzmann::AdjointPropagation(int next)
 {
@@ -700,7 +696,7 @@ void LatticeBoltzmann::AdjointPropagation(int next)
     for (int y = 0; y < sizeY_; y++)
       for (int x = 0; x < sizeX_; x++)
       {
-        // propagation
+        // adjoint propagation
         for (int  dir = 0; dir < n_q_; dir++) {
           transform = microVelDirections[dir];
           double value = 0.0;
@@ -715,8 +711,8 @@ void LatticeBoltzmann::AdjointPropagation(int next)
               value = tmpPdfs_[rows2];
             }
             else { // case 2
-              value = tmpPdfs_[rows1];
-              value += tmpPdfs_[rows2];
+              value = tmpPdfs_[rows1] + tmpPdfs_[rows2];
+//              value += tmpPdfs_[rows2];
             }
           }
           APDF(next,id1,dir) = value;
@@ -724,7 +720,6 @@ void LatticeBoltzmann::AdjointPropagation(int next)
       }
 }
 
-//StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f)
 StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f)
 {
   tmpPdfs_.Resize(nNodes_ * n_q_);
@@ -744,12 +739,13 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
   StdVector<double> pdfs, tmp;
   while(it < maxIter_ && !steady_state && R <= 1000)
   {
+    adjCollTimer_->Start();
     #pragma omp parallel default(none) private(pdfs,tmp) shared(collisionMatrices,d_pdrop_d_f)
     {
       pdfs.Resize(n_q_);
       tmp.Resize(n_q_);
       /***************** Adjoint SRT collision ***/
-      #pragma omp for
+      #pragma omp for schedule(static)
       for (int index = 0; index < nNodes_; index++)
       {
         for (int dir = 0; dir < n_q_; dir++)
@@ -761,12 +757,17 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 //        d_coll_d_f.Mult(pdfs,tmp);
         MultLinMatrixVector(collisionMatrices[index],pdfs,tmp);
 
-        for (int dir = 0; dir < n_q_; dir++)
+        for (int dir = 0; dir < n_q_; dir++) {
           tmpPdfs_[GetPdfIndex(index,dir)] = -d_pdrop_d_f[index][dir] + tmp[dir];
+        }
       }
     }
 
+    adjCollTimer_->Stop();
+
+    adjPropTimer_->Start();
     AdjointPropagation(adjNext_);
+    adjPropTimer_->Stop();
 
     if((it == 0 || it % 100 == 0))
     {
@@ -828,15 +829,14 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
 
   int tmp_x, tmp_y, tmp_z;
   StdVector<double> pdfs;
-  const int numPDFs = 19;
 
   #pragma omp parallel default(none)\
       private(index), \
       private(tmp_ux, tmp_uy, tmp_uz, tmp_us, scale, sum, tmp, x, y, z, tmp_x, tmp_y, tmp_z, pdfs), \
       shared(next, cur)
   {
-    pdfs.Resize(numPDFs);
-    #pragma omp for collapse(3)
+    pdfs.Resize(n_q_);
+    #pragma omp for schedule(static)//collapse(3)
     for (z = 0; z < sizeZ_; ++z) {
       for (y = 0; y < sizeY_; ++y) {
         for (x = 0; x < sizeX_; ++x) {
@@ -849,7 +849,7 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
           tmp_uz = 0;
           tmp_us = 0;
 
-          for (int  dir = 0; dir < numPDFs; dir++) {
+          for (int  dir = 0; dir < n_q_; dir++) {
             int invDir = GetInvDirection((Direction)dir);
             if (PointsToBoundary(x,y,z,invDir)) { // boundary case
               tmp_x = x;
@@ -882,12 +882,13 @@ void LatticeBoltzmann::Prop_coll_step3D(int cur, int next)
           tmp_uy = 3.0 * tmp_uy;
           tmp_uz = 3.0 * tmp_uz;
 
-          for (int  dir = 0; dir < numPDFs; dir++) {
+          for (int  dir = 0; dir < n_q_; dir++) {
             tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy + microVelDirections[dir].off_z * tmp_uz;
             if (x == 0 || y == 0 || x == sizeX_ - 1 || y == sizeY_ - 1 || z == 0 || z == sizeZ_ - 1)
               PDF(next, index, dir) = pdfs[dir];
-            else
-              PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ((sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us)) - pdfs[dir]);
+            else {
+              PDF(next, index, dir) = pdfs[dir] + omega_nu_ * ( sum * weights[dir]  * (1.0 + tmp + 0.5 * tmp * tmp - tmp_us) - pdfs[dir]);
+            }
           }
         }
       }
