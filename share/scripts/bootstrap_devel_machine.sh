@@ -258,11 +258,11 @@ SetupRHEL() {
                 glibc-devel.x86_64 glibc-devel.i686 util-linux-ng util-linux \
                 libstdc++-devel.x86_64 libstdc++-devel.i686 numpy || ExitFail
 
-    # CENTOS6 hast gcc 4.8 not supported
     if [[ "$DIST" = "CENTOS" ]] && [[ "$RHEL_REL" -lt  7 ]]; then
+        # CENTOS6 does not support gcc 4.8 . dectoolset-2 provides gcc in /opt/rh/devtoolset-2
+        # which can be used directly or can be sourced with "source /opt/rh/devtoolset-2/enable"
         yum install -y devtoolset-2 || ExitFail
-        # echo "source /opt/rh/devtoolset-2/enable" >> ~/.bashrc
-        # source ~/.bashrc
+        yum install -y libxml2 || ExitFail
     fi
 
 
