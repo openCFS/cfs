@@ -1120,7 +1120,8 @@
           </xsd:element>-->
           <xsd:element name="tolerance" type="DT_PosFloat" minOccurs="0"/>
           <xsd:element name="maxIt" type="xsd:nonNegativeInteger" minOccurs="0"/>
-          <xsd:element name="numVec" type="xsd:nonNegativeInteger" minOccurs="0"/>
+          <!-- The arnoldi vectors are at least n+1 and typcally 2*n. Chose a Factor from 1.1 ... 2 or larger -->
+          <xsd:element name="arnoldiFactor" type="xsd:float" minOccurs="0"/>
           <xsd:element name="logging" type="xsd:boolean" minOccurs="0"/>
           <xsd:element name="which" minOccurs="0">
             <xsd:simpleType>

@@ -13,22 +13,32 @@ DEFINE_LOG(as, "arpackSolver")
 
 namespace CoupledField {
 
-  ArpackSolver::ArpackSolver() :
+  ArpackSolver::ArpackSolver(PtrParamNode xml) :
     eigenValues_(NULL),
     eigenVectors_(NULL)
   {
-
     shiftAndInvert_ = true;
     freqShift_ = 0.0;
-    tolerance_ = 1.e-8;
-    maxIterations_ = 5000;
-    numArnoldiVec_ = 0;
-    interface_ = NULL;
+    tolerance_ = xml->Has("tolerance") ? xml->Get("tolerance")->As<double>() : 1.e-8;
+    maxIterations_ = xml->Has("maxIt") ? xml->Get("maxIt")->As<unsigned int>() : 5000;
+    arnoldiFactor_ = xml->Has("arnoldiFactor") ? xml->Get("arnoldiFactor")->As<double>() : 2.0;
+    numArnoldiVec_ = 0; // set later, based on arnoldiFactor_
     // cast to char* or receive compiler warning
-    which_ = (char*) "LM";
+    xml_which_ = xml->Has("which") ? xml->Get("which")->As<std::string>() : "";
+
+    // overwritten via ArpackEigenSolver ?? why the hell largest magnitude??
+    which_ = xml_which_.empty() ? (char*) "LM" : const_cast<char*>(xml_which_.c_str());
+
     type_ = (char*) "G";
     size_ = 0;
     numFreq_ = 0;
+    interface_ = NULL;
+
+    logging_ = xml->Has("logging") ? xml->Get("logging")->As<bool>() : false;
+    if(logging_)
+      DebugOn();
+    else
+      DebugOff();
 
     counter_calll_aupd = 0;
     counter_solve_OP_x = 0;
@@ -50,6 +60,8 @@ namespace CoupledField {
 
       size_ = size;
 
+      std::cout << "which='" << which << "' \n";
+
       // new reference to matrix interface
       interface_ = matInterface;
     
@@ -61,7 +73,7 @@ namespace CoupledField {
       type_ = type;
 
       // set default value for Arnoldi vectors
-      numArnoldiVec_ = numFreq_ * 2;
+      numArnoldiVec_ = std::max(numFreq_ + 1, int(numFreq_ * arnoldiFactor_));
       
       // check, if number of Arnoldi vectors is larger than
       // size of system
@@ -138,43 +150,18 @@ namespace CoupledField {
 
   }
 
-  void ArpackSolver::SetTolerance(Double tol) {
-      //! set ARPACK convergence tolerance in case of user specified value
-      tolerance_ = tol;
-  }
 
-  void ArpackSolver::SetIterations(Integer maxIt) {
-      //! set ARPACK maximum number of iterations in case of user specified value
-      maxIterations_ = maxIt;
-  }
-
-  void ArpackSolver::SetNumVectors(Integer numVec) {
-      //! set ARPACK number of Arnoldi vectors in case of user specified value
-      numArnoldiVec_ = numVec;
-  }
-
-  UInt ArpackSolver::GetNev( ) {
-      return numFreq_;
-  }
-
-  char* ArpackSolver::GetWhich( ) {
-      return which_;
-  }
-
-  Double ArpackSolver::GetShift( ) {
-      return freqShift_;
-  }
-
-  Double ArpackSolver::GetTol( ) {
-      return tolerance_;
-  }
-
-  UInt ArpackSolver::GetMaxit( ) {
-      return maxIterations_;
-  }
-
-  UInt ArpackSolver::GetNcv( ) {
-      return numArnoldiVec_;
+  void ArpackSolver::ToInfo(PtrParamNode info)
+  {
+    info->Get("frequencies")->SetValue(numFreq_);
+    info->Get("type")->SetValue(which_);
+    info->Get("shift")->SetValue(freqShift_);
+    info->Get("shiftAndInvert")->SetValue(shiftAndInvert_);
+    info->Get("tol")->SetValue(tolerance_);
+    info->Get("maxIter")->SetValue(maxIterations_);
+    info->Get("arnoldiVectors")->SetValue(numArnoldiVec_);
+    info->Get("scaling")->SetValue(interface_->GetDiagScaling());
+    info->Get("logging")->SetValue(logging_);
   }
 
   template <class TYPE>

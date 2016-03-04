@@ -43,13 +43,8 @@ cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
 cfsdeps/arpack/RiceBSD.txt -text
-cfsdeps/arpack/arpack-2.1-redhat.patch -text
-cfsdeps/arpack/arpack-arscnd-2.patch -text
-cfsdeps/arpack/arpack-arscnd-3.patch -text
-cfsdeps/arpack/arpack-gfortran-etime-intrinsic.patch -text
 cfsdeps/arpack/arpack-ifort-cpu_time.patch -text
 cfsdeps/arpack/arpack-patch.cmake.in -text
-cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
 cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
@@ -587,7 +582,6 @@ share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
