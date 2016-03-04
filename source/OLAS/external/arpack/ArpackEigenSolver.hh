@@ -144,12 +144,8 @@ namespace CoupledField {
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
     
-    //! Flag for use of logging
-    bool logging_;
-
     //! Character string for 'which' setting of  arpack
-    char * which_;
-
+    char* which_;
 
     /** this is the permutation matrix which allows sorting. Always used
      * and in the non-sorting case set to 0,1,2, ... */
