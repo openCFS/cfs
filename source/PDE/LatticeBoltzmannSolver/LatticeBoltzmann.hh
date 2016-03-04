@@ -27,7 +27,7 @@ namespace CoupledField
   {
     public:
         // In 2D: 9 microscopic directions
-        // In 3D: 19 microscopic directions
+        // In 3D: n_q_ microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
           Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
@@ -59,6 +59,8 @@ namespace CoupledField
        * @param info stores current and final info there */
 //      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
       StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
+
+      StdVector<double>* IterateAdjointSRT3D(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
@@ -164,7 +166,19 @@ namespace CoupledField
           std::string ToString(const StdVector<StdVector<int> >& data);
 
           /** Performs matrix-vector multiplication of a linearized array with a vector */
-          void MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res);
+          inline void MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res)
+          {
+            res.Resize(n_q_);
+            res.Init();
+
+            for (int row = 0; row < n_q_; row++) {
+              double val = 0.0;
+              for (int col = 0; col < n_q_; col++) {
+                val += mat[GetMatrixElemId(row,col,n_q_)] * vec[col];
+              }
+              res[row] = val;
+            }
+          }
 
 
           inline bool LbmNodeTypeIsFluid(double value)
@@ -268,6 +282,7 @@ namespace CoupledField
           void Prop_coll_bounce_back(int cur);
 
           void Prop_coll_densoutlet(int cur);
+//          void Prop_coll_densoutlet3D(int cur);
 
           void AdjointCollision(int cur);
 
@@ -297,7 +312,7 @@ namespace CoupledField
           // how many iterations until steady-state convergence
           int numIterations_;
 
-          // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+          // number of microscopic velocities in LBM model, e.g. 9 for D2Qn_q_ or n_q_ for D3Qn_q_
           int n_q_;
 
           int lbmCalls_; //counts how often solver was called
@@ -313,7 +328,7 @@ namespace CoupledField
           StdVector< StdVector<double> > adjPdfs_;
           StdVector<double> tmpPdfs_;
 
-          // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
+          // stores microscopic velocities (directions) of D3Qn_q_ model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;
           // lookup table to get inverse directions of the pdfs
           StdVector<Direction> invPDFDirections;
@@ -330,6 +345,9 @@ namespace CoupledField
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
           void (LatticeBoltzmann::*prop_coll_velinlet)(int);
+
+          shared_ptr<Timer> adjCollTimer_;
+          shared_ptr<Timer> adjPropTimer_;
 
   }; // end LatticeBoltzmann
 

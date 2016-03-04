@@ -304,7 +304,7 @@ private:
    * @see elem_to_idx */
   StdVector<int> idx_to_elem;
 
-  /** number of discrete velocities: 9 for D2Q9 or 19 for D3Q19 */
+  /** number of discrete velocities: 9 for D2Q9 or n_q_ for D3Q19 */
   unsigned int n_q_;
 
   /** extents of computational grid */
@@ -338,7 +338,11 @@ private:
   /** these are the indices of the outlet elements */
   StdVector<unsigned int> outlet;
 
+  StdVector<int> bb;  // indices of bounce back nodes
+  StdVector<int> rel; // indices of the fluid m_nodes
+
   StdVector<unsigned int> obstacles;
+
 
 //  /** these are the indices of the elements og the region 'inclusion'*/
 //  StdVector<unsigned int> obstacle;
@@ -386,7 +390,16 @@ private:
   Timer state_;
 
   /** total time of adjoint solution */
-  Timer adjoint_;
+  shared_ptr<Timer> forwardSim_;
+  shared_ptr<Timer> backwardSim_;
+  shared_ptr<Timer> setupAdjoint_;
+  shared_ptr<Timer> setupPardiso_;
+  shared_ptr<Timer> solveLSE_;
+  shared_ptr<Timer> dProp_;
+  shared_ptr<Timer> dPressDrop_;
+  shared_ptr<Timer> dColl_;
+  shared_ptr<Timer> rhsSetup_;
+  shared_ptr<Timer> delSing_;
 };
 
 } // end of namespace

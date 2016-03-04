@@ -538,6 +538,11 @@ ENDIF(BUILD_TESTING)
 #-----------------------------------------------------------------------------
 OPTION(MATVIZ_TESTS
   "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+  
+#-----------------------------------------------------------------------------
+# Switch on/off usage of intel optimization report
+#-----------------------------------------------------------------------------
+OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.
