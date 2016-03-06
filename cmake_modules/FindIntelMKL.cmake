@@ -232,6 +232,7 @@ SET (MKL_POSSIBLE_PATHS
   /opt/intel/mkl/10.0.5.025
   /opt/intel/mkl/9.1.023
   /opt/intel/mkl/9.1.021
+  /opt/intel/composer_xe_2015.2.164/mkl
   # Paths on Woody
   /apps/intel/ComposerXE/mkl
   /apps/intel/ComposerXE/composerxe-2011.4.191/mkl
