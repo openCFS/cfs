@@ -262,7 +262,7 @@ SetupRHEL() {
         # CENTOS6 does not support gcc 4.8 . dectoolset-2 provides gcc in /opt/rh/devtoolset-2
         # which can be used directly or can be sourced with "source /opt/rh/devtoolset-2/enable"
         yum install -y devtoolset-2 || ExitFail
-        yum install -y libxml2 || ExitFail
+        yum install -y libxml2-python || ExitFail
     fi
 
 
