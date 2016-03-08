@@ -170,6 +170,7 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
   SetupDataStructures(elements);
 
   assert((int) elements.GetSize() == nNodes_);
+  #pragma ivdep
   for (int i = 0; i < nNodes_; ++i) {
     scales[i] = 1.0 - elements[i];
 
@@ -263,8 +264,9 @@ StdVector<double>* LatticeBoltzmann::Iterate(const StdVector<double>& elements, 
 
 void LatticeBoltzmann::InitializePdfs()
 {
-#pragma omp parallel for collapse(2)
+#pragma omp parallel for
   for (int elem = 0; elem < nNodes_; elem++) {
+    #pragma ivdep
     for (int  dir = 0; dir < n_q_; dir++) {
       PDF(0, elem, dir) = weights[dir];
       PDF(1, elem, dir) = weights[dir];
@@ -486,7 +488,7 @@ void LatticeBoltzmann::Prop_step()
   for (int z = 0; z < sizeZ_; ++z) {
     for (int y = 0; y < sizeY_ ; ++y) {
       for (int x = 0; x < sizeX_ ; ++x) {
-
+        #pragma ivdep
         for (int  dir = 0; dir < n_q_; dir++) {
           int invDir = GetInvDirection((Direction)dir);
           if (PointsToBoundary(x,y,z,invDir)) { // if the neighbor element that I want to access is outside the domain, keep current value
@@ -573,6 +575,7 @@ void LatticeBoltzmann::Prop_coll_step2D(int cur, int next)
         tmp_uy = 3.0 * tmp_uy;
 
         // propagation and collision in one step
+        #pragma ivdep
         for (int  dir = 0; dir < n_q_; dir++)
         {
           tmp = microVelDirections[dir].off_x * tmp_ux + microVelDirections[dir].off_y * tmp_uy ;
@@ -748,6 +751,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
       #pragma omp for schedule(static)
       for (int index = 0; index < nNodes_; index++)
       {
+        #pragma ivdep
         for (int dir = 0; dir < n_q_; dir++)
           pdfs[dir] = APDF(adjCur_,index,dir);
 
@@ -757,6 +761,7 @@ StdVector<double>* LatticeBoltzmann::IterateAdjointSRT(PtrParamNode info,const S
 //        d_coll_d_f.Mult(pdfs,tmp);
         MultLinMatrixVector(collisionMatrices[index],pdfs,tmp);
 
+        #pragma ivdep
         for (int dir = 0; dir < n_q_; dir++) {
           tmpPdfs_[GetPdfIndex(index,dir)] = -d_pdrop_d_f[index][dir] + tmp[dir];
         }

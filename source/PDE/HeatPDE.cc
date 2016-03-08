@@ -39,6 +39,7 @@
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
 #include "Forms/Operators/IdentityOperator.hh"
+#include "Forms/LinForms/SingleEntryInt.hh"
 
 //new postprocessing concept
 #include "Domain/CoefFunction/CoefXpr.hh"
@@ -697,6 +698,35 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     } // for
+
+    // ========================
+    //  HEAT SOURCE(nodal)
+    // ========================
+    LOG_DBG(heatcondpde) << "Reading heat source values";
+
+    ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    for( UInt i = 0; i < ent.GetSize(); ++i ) {
+      if (ent[i]->GetType() != EntityList::NODE_LIST) {
+        EXCEPTION("Heat source must be defined on nodes!")
+      }
+
+      UInt numNodes = ent[i]->GetSize();
+      // If more than one node is defined, we divide the total heat source temperature by the number
+      // of nodes to ensure that the total temperature is applied, independent of the
+      // number of nodes
+      if( numNodes > 1 ) {
+        Global::ComplexPart part = Global::REAL;
+        coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i],
+            boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
+      }
+
+      lin = new SingleEntryInt(coef[i]);
+      lin->SetName("NodalHeatInt");
+      LinearFormContext *ctx = new LinearFormContext( lin );
+      ctx->SetEntities( ent[i] );
+      ctx->SetFeFunction(myFct);
+      assemble_->AddLinearForm(ctx);
+    }
 }
 
 
