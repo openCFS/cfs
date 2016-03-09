@@ -15,6 +15,7 @@
 #include "Domain/CoefFunction/CoefFunction.hh"
 #include "Domain/CoefFunction/CoefFunctionApprox.hh"
 #include "Domain/CoefFunction/CoefFunctionFormBased.hh"
+#include "Domain/CoefFunction/CoefFunctionOpt.hh"
 #include "Utils/StdVector.hh"
 
 #include "Driver/Assemble.hh"
@@ -190,8 +191,7 @@ void HeatPDE::DefineIntegrators() {
       // informs material that approx./interpol. for heat conductivity is needed
       //BaseBOperator * bOp = new IdentityOperator<FeH1>();
       PtrCoefFct heatCoef = this->GetCoefFct(HEAT_TEMPERATURE);
-      PtrCoefFct condNL = 
-          actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
+      PtrCoefFct condNL = actSDMat->GetScalCoefFncNonLin( HEAT_CONDUCTIVITY, Global::REAL, heatCoef);
                                       
       // create stiffness integrator
       BaseBDBInt* stiffInt = NULL;
@@ -204,8 +204,7 @@ void HeatPDE::DefineIntegrators() {
       }
       stiffInt->SetName("StiffnessIntegrator-NL");
 
-      BiLinFormContext * stiffContext =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      BiLinFormContext* stiffContext = new BiLinFormContext(stiffInt, STIFFNESS );
       stiffContext->SetEntities( actSDList, actSDList );
       stiffContext->SetFeFunctions( feFunc, feFunc );
 
@@ -226,9 +225,14 @@ void HeatPDE::DefineIntegrators() {
     }
     else {
       // --- linear real-valued stiffness integrator ---
-      shared_ptr<CoefFunction > curCoef = 
-        actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType,
-                                    Global::REAL );
+      shared_ptr<CoefFunction > curCoef = actSDMat->GetTensorCoefFnc( HEAT_CONDUCTIVITY_TENSOR, tensorType, Global::REAL );
+
+      // when we do optimization we wrap the original CoefFunction. Don't check for region to handle dim-1 pressure on dim elements
+      if(domain->GetDesign(false) != NULL)
+      {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), curCoef, this); // takes double and complex
+        curCoef.reset(tmpFnc);
+      }
 
       BaseBDBInt* stiffInt = NULL;
       if( dim_ == 2 ) {
@@ -236,10 +240,13 @@ void HeatPDE::DefineIntegrators() {
       } else {
         stiffInt = new BDBInt<>(new GradientOperator<FeH1,3>(), curCoef,1.0, updatedGeo_ );
       }
-      stiffInt->SetName("StiffnessIntegrator");
+      stiffInt->SetName("HeatConductivity");
       
-      BiLinFormContext * stiffIntDescr =
-        new BiLinFormContext(stiffInt, STIFFNESS );
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->GetDesign(false) != NULL)
+        dynamic_pointer_cast<CoefFunctionOpt>(curCoef)->SetForm(stiffInt);
+
+      BiLinFormContext* stiffIntDescr = new BiLinFormContext(stiffInt, STIFFNESS );
           
       //stiffIntDescr->SetPtPdes(this, this);
       stiffIntDescr->SetEntities( actSDList, actSDList );
@@ -675,8 +682,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     // =====================
     LOG_DBG(heatcondpde) << "Reading heat source density";
     
-    ReadRhsExcitation( "heatSourceDensity", dofNames, 
-                       ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // check type of entitylist
       if (ent[i]->GetType() == EntityList::NODE_LIST) {
@@ -686,11 +692,9 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       it.Begin();
       
       if(isComplex_) {
-        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(),
-                                          Complex(1.0), coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coef[i], coefUpdateGeo);
       } else  {
-        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(),
-                                         1.0, coef[i], coefUpdateGeo);
+        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coef[i], coefUpdateGeo);
       }
       lin->SetName("HeatSourceDensityInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
@@ -825,6 +829,26 @@ void HeatPDE::DefinePostProcResults() {
   }
   DefineFieldResult( fluxFunc, flux );
   stiffFormCoefs_.insert(fluxFunc);
+
+  // optimization results are provided in DesignSpace::ExtractResults()
+  // copied from MechPDE
+  // === MECH_PSEUDO_DENISTY ===
+  shared_ptr<ResultInfo> mpd(new ResultInfo);
+  mpd->resultType = MECH_PSEUDO_DENSITY;
+  mpd->entryType = ResultInfo::SCALAR;
+  mpd->definedOn = ResultInfo::ELEMENT;
+  mpd->dofNames = "";
+  mpd->fromOptimization = true;
+  DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), mpd); // the fe-function is only a dummy
+
+  // === PHYSICAL_PSEUDO_DENISTY ===
+  shared_ptr<ResultInfo> ppd(new ResultInfo);
+  ppd->resultType = PHYSICAL_PSEUDO_DENSITY;
+  ppd->entryType = ResultInfo::SCALAR;
+  ppd->definedOn = ResultInfo::ELEMENT;
+  ppd->dofNames = "";
+  ppd->fromOptimization = true;
+  DefineFieldResult(shared_ptr<FeFunction<double> >(new FeFunction<double>(NULL)), ppd);
 }
 
 } // end of namespace CoupledField

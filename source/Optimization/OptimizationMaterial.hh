@@ -29,7 +29,7 @@ class BiLinFormContext;
 class DesignSpace;
 class ElecPDE;
 class ErsatzMaterial;
-class HeatCondPDE;
+class HeatPDE;
 class LinearForm;
 class LatticeBoltzmannPDE;
 class CoefFunctionOpt;
@@ -306,7 +306,7 @@ public:
 protected:
   SinglePDE* GetPDE();
 
-  HeatCondPDE* heat;
+  HeatPDE* heat;
 };
 
 
