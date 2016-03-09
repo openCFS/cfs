@@ -1143,7 +1143,6 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
 
   BaseBDBInt* MechPDE::GetStiffIntegrator(BaseMaterial* actSDMat, RegionIdType regionId, bool isComplex)
   {
-
     // Get region name
     std::string regionName = ptGrid_->GetRegion().ToString( regionId );
 
@@ -1646,6 +1645,7 @@ MechPDE::MechPDE(Grid * aptgrid, PtrParamNode paramNode,PtrParamNode infoNode,
     stiffFormCoefs_.insert(dedFunc);
 
     // === MECHANIC DEFORMATION ENERGY ===
+    // 1/2 <u,Ku>
     shared_ptr<ResultInfo> defEnergy(new ResultInfo);
     defEnergy->resultType = MECH_DEFORM_ENERGY;
     defEnergy->dofNames = "";

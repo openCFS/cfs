@@ -562,8 +562,7 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
   OptimizationMaterial(em)
 {
   system_ = HEAT;
-  assert(false);
-  heat = NULL; // FIXME dynamic_cast<HeatCondPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
+  heat = dynamic_cast<HeatPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
   assert(heat != NULL);
 }
 

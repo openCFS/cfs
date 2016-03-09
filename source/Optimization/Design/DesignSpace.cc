@@ -66,6 +66,7 @@ DesignSpace::DesignSpace(StdVector<RegionIdType>& reg_data, PtrParamNode pn, Ers
   applicationForm.Add(Optimization::MECH, "LinElastInt");
   // We follow for the stress, strain calculation the transfer functions of mech
   applicationForm.Add(Optimization::MECH, "MechStressStrain", false);
+  applicationForm.Add(Optimization::HEAT, "HeatConductivity", false);
   applicationForm.Add(Optimization::MECH, "PiezoStressStrain", false);
   applicationForm.Add(Optimization::PIEZO_COUPLING, "linPiezoCoupling");
   applicationForm.Add(Optimization::CHARGE_DENSITY, "LinNeumannInt");
