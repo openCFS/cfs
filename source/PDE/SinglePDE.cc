@@ -2479,6 +2479,12 @@ namespace CoupledField {
           
           sequenceStep = esNode->Get("index")->As<UInt>();
           // create new simState from current hdf file
+          if( !simState_->GetOutputWriter() ){
+            // Sometimes the writer is not yet set if using initial values and external data.
+            // Therefore the SimState is instructed to create it now.
+            shared_ptr<SimOutputHDF5> writer;
+            simState_->SetOutputHdf5Writer( writer );
+          }
           std::string fileName = simState_->GetOutputWriter()->GetFileName().string();
           // create new param and info node (without logging to console) for the
           // newly created Domain object
