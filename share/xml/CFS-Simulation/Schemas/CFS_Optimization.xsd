@@ -1427,6 +1427,7 @@
           <xsd:enumeration value="chargeDensity"/>                    
           <xsd:enumeration value="stress"/>
           <xsd:enumeration value="lbm"/>
+          <xsd:enumeration value="heat"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
