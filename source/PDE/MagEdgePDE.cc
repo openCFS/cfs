@@ -725,13 +725,14 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
             std::string regName = ptGrid_->regionData[extPartIt->first->regions[k_reg]].name;
             shared_ptr<EntityList> elems;
             elems = ptGrid_->GetEntityList( EntityList::ELEM_LIST, regName );
-            PtrCoefFct regCurrDens;
+            PtrCoefFct regCurrDens; // ReadUserFieldValues assigns a value to this
             StdVector<std::string> vecComponents;
             vecComponents = "x", "y", "z";
-            std::set<UInt> definedDofs;
+            std::set<UInt> definedDofs; // ReadUserFieldValues assigns a value to this
+            bool updateGeo; // ReadUserFieldValues assigns a value to this
             ReadUserFieldValues(elems,extNode,vecComponents,
                 ResultInfo::VECTOR,isComplex_,regCurrDens,
-                definedDofs,updatedGeo_);
+                definedDofs,updateGeo);
             CoefXprUnaryOp dirAbsOp = CoefXprUnaryOp( mp_, regCurrDens, CoefXpr::OP_NORM );
             PtrCoefFct dirAbs = CoefFunction::Generate( mp_, cplx, dirAbsOp );
             CoefXprVecScalOp unitOp = CoefXprVecScalOp( mp_, regCurrDens, dirAbs, CoefXpr::OP_DIV );
