@@ -352,7 +352,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
             (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
         
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
                   << "' in step no '" << iLevel+1 
                   << "' at iteration '" << iterationCounter 
@@ -780,7 +780,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
                   << "' in step no '" << PDE_.GetSolveStep()->GetActStep()
                   << "' at iteration '" << iterationCounter 
@@ -960,7 +960,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
         performOneMoreStep =
           (incrementalErr > incStopCrit_) || (residualErr > residualStopCrit_);
 
-        if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+        if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
           EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_ 
                   << "' at iteration '" << iterationCounter 
                   << "'.\n ==> incremental error: " << incrementalErr
@@ -1160,7 +1160,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
       // std::cout << "IncError: " << incrementalErr << std::endl;
       // std::cout << "ResError: " << residualErr << std::endl;
 
-       if (performOneMoreStep && iterationCounter == nonLinMaxIter_) {
+       if (performOneMoreStep && iterationCounter == nonLinMaxIter_ && abortOnMaxIter_) {
          EXCEPTION("NON CONVERGENCE error in PDE '" << pdename_
                  << "' at iteration '" << iterationCounter
                  << "'.\n ==> incremental error: " << incrementalErr
@@ -1797,6 +1797,9 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
       // maximal number of NL-iterations
       nonLinNode->GetValue( "maxNumIters", nonLinMaxIter_, ParamNode::PASS );
+
+      // abort if max number of iterations is reached?
+      nonLinNode->GetValue("abortOnMaxNumIters",abortOnMaxIter_,ParamNode::INSERT);
 
       LOG_TRACE(stdsolvestep) << "Nonlinear convergence criteria were read:";
       LOG_DBG3(stdsolvestep) << "\tincremental Stopping Criterion: " << incStopCrit_;
