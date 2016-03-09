@@ -141,7 +141,10 @@
       
       <!-- Water waves -->
       <xsd:enumeration value="waterWaves"/>
-      
+
+      <!-- electric conduction -->
+      <xsd:enumeration value="electricConduction"/>
+
       <!-- Electrostatic -->
       <xsd:enumeration value="electrostatic"/>
       

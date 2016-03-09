@@ -233,15 +233,16 @@ namespace CoupledField
     bool isHyst_;           //!< flag for hystersis modeling
     Double incStopCrit_;       //!< stopping criterion for incremental error
     Double residualStopCrit_;  //!< stopping criterion for residual error
-	Double minValidValue_;     //! stopping if any value in the region exceeds value
-	Double maxValidValue_;     //! stopping if any value in the region exceeds value
-	SolutionType solutionLimit_; //! solution type for which a limit is set
-	RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
+    Double minValidValue_;     //! stopping if any value in the region exceeds value
+    Double maxValidValue_;     //! stopping if any value in the region exceeds value
+    SolutionType solutionLimit_; //! solution type for which a limit is set
+    RegionIdType solutionLimitReg_; //! region in which to check the min/max values for non convergence
 
     UInt nonLinMaxIter_;    //!< maximal number of NL-iterations
     std::string nonLinMethod_; //!< method for handling the non-linearity
     bool nonLinLogging_;    //!< log progress of non-linear iterations
     bool nonLinTotalFormulation_;   //!< flag for total or incremental NL formulation
+    bool abortOnMaxIter_; //!< flag for aborting simulation if maximum number of iterations is hit
 
     //! map for each region the type of nonlinearity
     std::map<RegionIdType, StdVector<NonLinType> > regionNonLinTypes_;
