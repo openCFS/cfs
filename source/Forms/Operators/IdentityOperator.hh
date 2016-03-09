@@ -265,8 +265,8 @@ namespace CoupledField{
   
   //! This integrator gets gets used e.g. for the mass integrator within the
   //! magneticEdge PDE.
-  template<UInt D, class TYPE>
-  class ScaledByEdgeIdentityOperator : public IdentityOperator<FeHCurl,D,1,TYPE>{
+  template<class FE, UInt D, class TYPE>
+  class ScaledByEdgeIdentityOperator : public IdentityOperator<FE,D,1,TYPE>{
     public:
       ScaledByEdgeIdentityOperator(){
         return;
@@ -274,7 +274,7 @@ namespace CoupledField{
 
       //! Copy constructor
       ScaledByEdgeIdentityOperator(const ScaledByEdgeIdentityOperator & other)
-         : IdentityOperator<FeHCurl,D,1,TYPE>(other){
+         : IdentityOperator<FE,D,1,TYPE>(other){
       }
 
       //! \copydoc BaseBOperator::Clone()
@@ -288,7 +288,7 @@ namespace CoupledField{
 
       virtual void CalcOpMat(Matrix<Double> & bMat,
                              const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
+        IdentityOperator<FE,D,1,TYPE>::CalcOpMat(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);
@@ -297,7 +297,7 @@ namespace CoupledField{
 
       virtual void CalcOpMatTransposed(Matrix<Double> & bMat,
                                        const LocPointMapped& lp, BaseFE* ptFe ){
-        IdentityOperator<FeHCurl,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
+        IdentityOperator<FE,D,1,TYPE>::CalcOpMatTransposed(bMat,lp,ptFe);
         //scale By Edge
         Double minE,maxE;
         lp.shapeMap->GetMaxMinEdgeLength(maxE,minE);

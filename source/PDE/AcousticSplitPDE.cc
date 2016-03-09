@@ -215,6 +215,42 @@ namespace CoupledField{
       // Important: Add bdb-integrator to global list, as we need them later
       // for calculation of postprocessing results
       bdbInts_[actRegion] = stiffInt;
+
+      // initially, check for regularization factor
+      Double regularizationFactor = 1e-6;
+      // ============================
+      // Standard Mass Regularization Matrix
+      // ============================
+      bool regulize = true;
+      if ( regulize ) {
+        // do not use gradients for non-conductive regions (for regularization
+        // only the lowest order mass term is used)
+        //useGrad = false;
+
+        Matrix<Double> reluc;
+        // add region to set of "regularized" regions
+        regularizedRegions_.insert(actRegion);
+      }
+
+      BaseBDBInt *massInt;
+
+      BiLinFormContext * massContext;
+      if ( regulize) {
+        // we have to guarantee, that we add some mass to curl-curl integrator.
+        // Additionally, the integrator gets scaled by the edge size for a uniform
+        // conditioning
+        massInt = new BBInt<>(new ScaledByEdgeIdentityOperator<FeH1,3,Double>(),
+            val1,regularizationFactor);
+        massInt->SetName("MassIntegrator");
+        massContext =  new BiLinFormContext(massInt, STIFFNESS );
+
+        massContext->SetEntities( actSDList, actSDList );
+        massContext->SetFeFunctions(feFunctions_[formulation_],feFunctions_[formulation_]);
+        massInt->SetFeSpace( feFunctions_[formulation_]->GetFeSpace());
+
+        assemble_->AddBiLinearForm( massContext );
+      }
+
       }
     }
 
