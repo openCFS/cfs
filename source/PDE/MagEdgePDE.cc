@@ -314,7 +314,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // we have to guarantee, that we add some mass to curl-curl integrator.
         // Additionally, the integrator gets scaled by the edge size for a uniform
         // conditioning
-        massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<3,Double>(),
+        massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
                                       coeff,1.0);
         massInt->SetName("MassIntegrator");
         massContext =  new BiLinFormContext(massInt, STIFFNESS );
@@ -322,7 +322,7 @@ DEFINE_LOG(magEdgePde, "magEdgePde")
         // here we add the "normal" mass integrator, which gets not scaled by the 
         // edge size
         if( scaleByEdgeSize ) {
-          massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<3,Double>(),
+          massInt = new BBIntMassEdge<>(new ScaledByEdgeIdentityOperator<FeHCurl,3,Double>(),
                                         coeff,1.0, updatedGeo_);
           massContext = new BiLinFormContext(massInt, STIFFNESS );
         } else {

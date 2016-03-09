@@ -42,6 +42,11 @@ namespace CoupledField{
 
     //! define all (bilinearform) integrators needed for this pde
     void DefineIntegrators();
+    //! This set contains all regions, which have no physical conductivity,
+    //! but only a non-zero one due to regularization. This must be considered
+    //! when calculating eddy currents, which would be "unphysical" in these
+    //! regions.
+    std::set<RegionIdType> regularizedRegions_;
 
     //! Defines the integrators needed for ncInterfaces
     void DefineNcIntegrators();
