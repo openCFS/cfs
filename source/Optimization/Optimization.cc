@@ -372,6 +372,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::SHAPE_INF, "shape_inf");
   Function::type.Add(Function::EXPRESSION, "expression");
   Function::type.Add(Function::PRESSURE_DROP, "pressureDrop");
+  Function::type.Add(Function::HEAT_ENEGRY, "heatEnergy");
 
   Function::access.SetName("Function::Access");
   Function::access.Add(Function::PLAIN, "plain");

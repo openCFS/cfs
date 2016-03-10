@@ -252,6 +252,8 @@ protected:
       bool derivative);
   /** Calculates the objective only, no derivative */
   double CalcGlobalDynamicCompliance(Excitation& excite, Function* f);
+  /** Calculates heat energy as an equivalence to compliance in lin elasticity */
+  virtual double CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative);
   /** Calculates <l,u> or <conj(u) L, u> where l/L is adjoint[idx]->rhs */
   template<class T> double CalcOutput(Excitation& excite, Function* f);
   /** Handles the Tracking constraint/objective. Has a objective, objective derivative, 

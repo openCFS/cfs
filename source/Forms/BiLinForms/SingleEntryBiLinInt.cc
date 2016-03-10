@@ -17,7 +17,7 @@ SingleEntryBiLinInt::SingleEntryBiLinInt( UInt numDofs, PtrCoefFct& val )
     }
     val_ = val;
 
-    isSymmetric_ = false;
+    isSymmetric_ = false; // from technical point of view: should be symmetric as a matrix with only one element can be considered symmteric
   }
 
 SingleEntryBiLinInt::SingleEntryBiLinInt(  UInt numDofs, const std::string& val, 
