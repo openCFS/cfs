@@ -3,7 +3,7 @@
 
 #include "MatVec/StdMatrix.hh"
 #include "MatVec/generatematvec.hh"
-
+#include "Utils/Timer.hh"
 #include "Domain/Domain.hh"
 #include "Driver/BaseDriver.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
@@ -45,17 +45,6 @@ namespace CoupledField {
     
     isGeneralized_ = false;
     shiftAndInvert_ = false;
-    logging_ = false;
-
-    // Check trace settings
-    arpackSolver_->DebugOff();
-    if(xml_->Has("logging") ) {
-      xml_->GetValue("logging", logging_);
-      if (logging_) {
-        arpackSolver_->DebugOn();
-        logging_ = true;
-      }
-    }
   }
 
   ArpackEigenSolver::~ArpackEigenSolver() {
@@ -105,7 +94,7 @@ namespace CoupledField {
     interface_ = new ArpackMatInterface( matrixA_, shiftAndInvert_, freqShift_ );
 
     // Create solver class
-    arpackSolver_ = new ArpackSolver();
+    arpackSolver_ = new ArpackSolver(xml_);
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
@@ -115,36 +104,17 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_, isBloch_);
-
-    // Set additional parameters for tolerance, number of Arnoldi vectors and
-    // number of iterations
-    Double tol = -1.0;
-    xml_->GetValue("tolerance", tol, ParamNode::INSERT );
-    Integer maxIt = -1;
-    
-    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT );
-    Integer numVec = -1;
-    
-    xml_->GetValue("numVec", numVec, ParamNode::INSERT );
-
-    if (tol > 0.0)
-      arpackSolver_->SetTolerance(tol);
-    if (maxIt > 0)
-      arpackSolver_->SetIterations(maxIt);
-    if (numVec > 0)
-      arpackSolver_->SetNumVectors(numVec);
+    arpackSolver_->Setup(interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_, isBloch_);
 
     // Create solver
-    solver_ = GenerateSolverObject( *matrixA_, solStrat_,
-                                    solverList_, eigenInfo_ );
+    solver_ = GenerateSolverObject( *matrixA_, solStrat_, solverList_, info_ );
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, info_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -156,7 +126,7 @@ namespace CoupledField {
   }
   
   
-  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
+  void ArpackEigenSolver::Setup(const BaseMatrix& stiffMat, const BaseMatrix& massMat, UInt numFreq, Double freqShift, bool sort, bool bloch)
   {
     // Set flag for indicating a non-quadratic problem
     isQuadratic_ = false;
@@ -195,7 +165,7 @@ namespace CoupledField {
 
     // Create solver class, it might already exist in the bloch mode case
     if(arpackSolver_  == NULL)
-      arpackSolver_ = new ArpackSolver();
+      arpackSolver_ = new ArpackSolver(xml_);
 
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "LM";
@@ -211,28 +181,10 @@ namespace CoupledField {
     arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "G",
     		              shiftAndInvert_, isBloch_);
 
-    // Set additional parameters for tolerance, number of Arnoldi vectors and
-    // number of iterations
-    Double tol = -1.0;
-    xml_->GetValue("tolerance", tol, ParamNode::INSERT);
-    
-    Integer maxIt = -1;
-    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT);
-    
-    Integer numVec = -1;
-    xml_->GetValue("numVec", numVec, ParamNode::INSERT);
-
-    if (tol > 0.0)
-        arpackSolver_->SetTolerance(tol);
-    if (maxIt > 0)
-        arpackSolver_->SetIterations(maxIt);
-    if (numVec > 0)
-        arpackSolver_->SetNumVectors(numVec);
-
     // Create solver - for every bloch wave vector :( Make sure it will be deleted!
     if(solver_ != NULL)
       delete solver_;
-    solver_ = GenerateSolverObject( *matrixB_, solStrat_,  solverList_, eigenInfo_);
+    solver_ = GenerateSolverObject( *matrixB_, solStrat_,  solverList_, info_);
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX )
@@ -240,7 +192,7 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
       // Create preconditioner
       if(precond_ == NULL)
-        precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_);
+        precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, info_);
     }
     else
     {
@@ -256,23 +208,16 @@ namespace CoupledField {
 
   void ArpackEigenSolver::ToInfo()
   {
-    PtrParamNode setup = eigenInfo_->Get(ParamNode::HEADER);
+    PtrParamNode setup = info_->Get(ParamNode::HEADER);
+    arpackSolver_->ToInfo(setup);
 
-    setup->Get("frequencies")->SetValue(arpackSolver_->GetNev());
-    setup->Get("type")->SetValue(arpackSolver_->GetWhich());
-    setup->Get("shift")->SetValue(arpackSolver_->GetShift());
-    setup->Get("shiftAndInvert")->SetValue(shiftAndInvert_);
-    setup->Get("tol")->SetValue(arpackSolver_->GetTol());
-    setup->Get("maxIter")->SetValue(arpackSolver_->GetMaxit());
-    setup->Get("arnoldiVectors")->SetValue(arpackSolver_->GetNcv());
-    setup->Get("scaling")->SetValue(interface_->GetDiagScaling());
     setup->Get("generalized")->SetValue(isGeneralized_);
     setup->Get("quadratic")->SetValue(isQuadratic_);
     setup->Get("bloch")->SetValue(isBloch_);
   }
 
 
-  void ArpackEigenSolver::Setup(const  BaseMatrix & stiffMat, const  BaseMatrix & massMat,  const  BaseMatrix & dampMat,
+  void ArpackEigenSolver::Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
                                 UInt numFreq, double freqShift, bool sort) {
 
     // Set flag for indicating a non-quadratic problem
@@ -342,7 +287,7 @@ namespace CoupledField {
     interface_ = new ArpackMatInterface( zStiff_, zMass_, zDamp_, shiftAndInvert_, freqShift_ );
 
     // Create solver class
-    arpackSolver_ = new ArpackSolver();
+    arpackSolver_ = new ArpackSolver(xml_);
     
     // Check 'which'-settings regarding the type of eigenvalues searched for
     std::string whichString = "SI";
@@ -351,26 +296,7 @@ namespace CoupledField {
     strncpy(which_, whichString.c_str(), whichString.size()+1 );
 
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
-    arpackSolver_->
-        QuadSetup( interface_, size, numFreq_, freqShift_, which_ , shiftAndInvert_);
-
-    // Set additional parameters for tolerance, number of Arnoldi vectors and
-    // number of iterations
-    Double tol = -1.0;
-    xml_->GetValue("tolerance", tol, ParamNode::INSERT);
-    
-    Integer maxIt = -1;
-    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT);
-    
-    Integer numVec = -1;
-    xml_->GetValue("numVec", numVec, ParamNode::INSERT);
-
-    if (tol > 0.0)
-        arpackSolver_->SetTolerance(tol);
-    if (maxIt > 0)
-        arpackSolver_->SetIterations(maxIt);
-    if (numVec > 0)
-        arpackSolver_->SetNumVectors(numVec);
+    arpackSolver_->QuadSetup( interface_, size, numFreq_, freqShift_, which_ , shiftAndInvert_);
 
     // Set additional scaling parameter for matrix interface
     Double scaleFac = 1.0;
@@ -384,8 +310,7 @@ namespace CoupledField {
     std::cout << std::endl;
 
     // Create solver
-    solver_ = GenerateSolverObject( *zStiff_, solStrat_, 
-                                    solverList_, eigenInfo_ );
+    solver_ = GenerateSolverObject(*zStiff_, solStrat_, solverList_, info_);
 
 
     // Perform check, if matrix is std or sbm
@@ -393,7 +318,7 @@ namespace CoupledField {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixB_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat, solStrat_->GetPrecondId(), precondList_, info_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
@@ -435,6 +360,9 @@ namespace CoupledField {
 
   void ArpackEigenSolver::CalcEigenFrequencies(BaseVector &sol, BaseVector &err)
   {
+    shared_ptr<Timer> timer = info_->Get("arpack/timer")->AsTimer();
+    timer->Start();
+
     assert(!(isBloch_ && isQuadratic_));
 
     unsigned int numEVs = 0;
@@ -479,12 +407,12 @@ namespace CoupledField {
       }
     }
 
-    PtrParamNode in = this->eigenInfo_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+    PtrParamNode in = this->info_->Get("arpack", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
     in->Get("analysis_id")->SetValue(domain->GetDriver()->GetAnalysisId().ToString());
-    in->Get("calls/total")->SetValue(arpackSolver_->counter_calll_aupd);
-    in->Get("calls/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
-    in->Get("calls/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
-    in->Get("calls/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
+    in->Get("rci/solve_x")->SetValue(arpackSolver_->counter_solve_OP_x);
+    in->Get("rci/solve_B_x")->SetValue(arpackSolver_->counter_solve_OP_B_x);
+    in->Get("rci/matvec_B_x")->SetValue(arpackSolver_->counter_B_x);
+    in->Get("rci/total")->SetValue(arpackSolver_->counter_calll_aupd);
 
     // Save error norms
     Vector<Double> & errVec = dynamic_cast<Vector<Double>&>(err);
@@ -492,6 +420,8 @@ namespace CoupledField {
     for (UInt i = 0; i < numEVs; i++ ) {
         errVec[i] = arpackSolver_->Tolerance(idx_[i]);
     }
+
+    timer->Stop();
   }
 
   void ArpackEigenSolver::CalcConditionNumber(const BaseMatrix& mat, Double& condNumber, Vector<Double>& evs, Vector<Double>& err )
@@ -514,19 +444,8 @@ namespace CoupledField {
     interface_ = new ArpackMatInterface( matrixA_, shiftAndInvert_, freqShift_ );
 
     // Create solver class
-    arpackSolver_ = new ArpackSolver();
+    arpackSolver_ = new ArpackSolver(xml_);
 
-    // Set additional parameters for tolerance, number of Arnoldi vectors and
-    // number of iterations
-    Double tol = -1.0;
-    xml_->GetValue("tolerance", tol, ParamNode::INSERT);
-
-    Integer maxIt = -1;
-    xml_->GetValue("maxIt", maxIt, ParamNode::INSERT);
-
-    Integer numVec = -1;
-    xml_->GetValue("numVec", numVec, ParamNode::INSERT);
-    
     // set mode: we look at both ends of the spectrum for eigenvalues
     std::string whichString = "BE";
     which_ = new char[whichString.size()+1];
@@ -539,35 +458,15 @@ namespace CoupledField {
     // Create the solver dependent on the problem type ( regular / shiftAndInvert )
     arpackSolver_->Setup( interface_, size, numFreq_, freqShift_, which_ , (char*) "I", shiftAndInvert_, false);
 
-
-    if (tol > 0.0)
-      arpackSolver_->SetTolerance(tol);
-    if (maxIt > 0)
-      arpackSolver_->SetIterations(maxIt);
-    if (numVec > 0)
-      arpackSolver_->SetNumVectors(numVec);
-
-
-    // Check trace settings
-    arpackSolver_->DebugOff();
-    if( xml_->Has("logging") ) {
-      xml_->GetValue("logging", logging_);
-      if (logging_) {
-        arpackSolver_->DebugOn();
-        logging_ = true;
-      }
-    }
-    
     // Create standard solver
-    solver_ = GenerateSolverObject( *matrixA_, solStrat_, 
-                                    solverList_, eigenInfo_ );
+    solver_ = GenerateSolverObject(*matrixA_, solStrat_, solverList_, info_);
 
     // Perform check, if matrix is std or sbm
     if ( matrixA_->GetStructureType() == BaseMatrix::SPARSE_MATRIX ) {
       const StdMatrix & mat = dynamic_cast< const StdMatrix &>( *matrixA_ );
 
       // Create preconditioner
-      precond_ = GenerateStdPrecondObject( mat,  solStrat_->GetPrecondId(), precondList_, eigenInfo_ );
+      precond_ = GenerateStdPrecondObject( mat,  solStrat_->GetPrecondId(), precondList_, info_ );
     } else {
       EXCEPTION( "No preconditioner available for SBM-matrices!" );
     }
