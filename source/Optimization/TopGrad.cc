@@ -87,7 +87,7 @@ TopGrad::TopGrad(Optimization* opt, PtrParamNode pn, const bool ls) :
   c3 = M_PI * (lambda_ + 2.0 * mu_) / ((9.0 * lambda_ + 14.0 * mu_) * mu_);
 
   // transform the subType of the pde (FULL, PLANE_STRAIN etc. -> defined in General/Environment.hh)
-  subtype_ = optimization->pde->GetSubTensorType();
+  subtype_ = optimization->context->stt;
   
   // FIXME resize member vectors and matrix according to subtype
 
@@ -125,7 +125,7 @@ void TopGrad::SolveProblemCommon(const unsigned int iter)
   // in higher iterations we only update the remaining elements
   if(iter == 1)
   {
-    CalcTopGrads(subtype_, Optimization::MECH);
+    CalcTopGrads(subtype_, App::MECH);
 
     // sort the topgrads
     std::sort(topGrads.begin(), topGrads.end(), CompareElementValues());
@@ -280,7 +280,7 @@ void TopGrad::SolvePoissonProblem(const unsigned int curr_iter)
   
   cout << "Pol = " << pol.ToString() << endl;
   
-  CalcTopGrads(PLANE_STRAIN, Optimization::HEAT);
+  CalcTopGrads(PLANE_STRAIN, App::HEAT);
 }
 
 double TopGrad::CalcTopGradOnElement() const
@@ -384,7 +384,7 @@ double TopGrad::CalcPoissonTopGradOnElement(const unsigned int e) const
   return -partElemMat; // FIXME sign??
 }
 
-void TopGrad::CalcTopGrads(SubTensorType sub, Optimization::Application app)
+void TopGrad::CalcTopGrads(SubTensorType sub, App::Type app)
 {
   for(unsigned int e = 0; e < numelems_; ++e)
   {
@@ -394,10 +394,10 @@ void TopGrad::CalcTopGrads(SubTensorType sub, Optimization::Application app)
     double tg(0.0);
     switch(app)
     {
-    case Optimization::MECH:
+    case App::MECH:
       tg = CalcTopGradOnElement();
       break;
-    case Optimization::HEAT:
+    case App::HEAT:
       tg = CalcPoissonTopGradOnElement(e);
       break;
     default:

@@ -549,6 +549,8 @@ template<typename T> class ElemStoreSol;
       return data_;
     }
 
+    /** Check if the vector contains the specific value. A way to assert() that is is completely set */
+    bool Contains(const T val) const;
 
     /** Check if the vector contains NAN. To be used by asserts() */
     bool ContainsNaN() const;

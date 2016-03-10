@@ -173,8 +173,9 @@ namespace CoupledField {
     //! \param shift Frequency shift applied to the system
     //! \param quadratic Flag indicating if a quadratic eigenvalue problem
     //!        (true) or a generalized problem (false) is to be solved
+    //! \param sort shall the evs be sorted?
     //! \param bloch mode problems are complex but not quadratic
-    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool bloch);
+    void SetupEigenSolver(UInt numFreq, Double shift, bool quadratic, bool sort, bool bloch);
 
 
     //! Solve the linear system.

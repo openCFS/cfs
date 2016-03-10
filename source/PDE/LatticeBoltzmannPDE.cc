@@ -1456,7 +1456,7 @@ void LatticeBoltzmannPDE::SetupElements()
       {
         const Elem* elem = elems[e];
         int idx = space->Find(elem, true);
-        double val = space->GetErsatzMaterialFactor(idx, Optimization::LBM);
+        double val = space->GetErsatzMaterialFactor(idx, App::LBM);
         // the ordering of the design elements and the LBM elements might be different as it is defined for LBM
         // and might be arbitrary in the mesh which defines the ordering in the optimization design
         elements[elem_to_idx[elem->elemNum]] = val;

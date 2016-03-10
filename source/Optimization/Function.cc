@@ -81,19 +81,37 @@ Function::Function(PtrParamNode pn) {
   this->parameter_ = pn->Has("parameter") ? pn->Get("parameter")->As<double>() : 0.0;
 
   this->omega_omega_ = pn->Has("factor") ? pn->Get("factor/omega_omega")->As<bool>() : false;
-  if (!complex_ && omega_omega_)
-    throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
+  // FIXME
+  //if (!complex_ && omega_omega_)
+  //  throw Exception("It makes no sense to set costFunction/factor/omega_omega in static optimization");
 
   this->eigenvalue_id_ = pn->Has("ev") ? pn->Get("ev")->As<unsigned int>() : 0;
 
+  if(type_ == BANDGAP) {
+    if(!pn->Has("bandgap"))
+      throw Exception("function 'bandgap' required child element 'bandgap'");
+    bandgap.lower_ev = pn->Get("bandgap/lower_ev")->As<int>();
+    bandgap.upper_ev = pn->Get("bandgap/upper_ev")->As<int>();
+    if(bandgap.lower_ev >= bandgap.upper_ev)
+      throw Exception("within 'bandgap' 'lower_ev' needs to be smaller than 'upper_ev'");
+    if(bandgap.upper_ev - bandgap.lower_ev > 1)
+      preInfo_->Get(ParamNode::WARNING)->SetValue("'bandgap' defines a gap non-adjacent modes");
+  }
+
+
+  int sequence = pn->Get("sequence")->As<int>();
+  if(sequence > (int) Optimization::manager.context.GetSize()) // note 1-based!
+    EXCEPTION("too high sequence number " << sequence << " for function " << type.ToString(type_));
+  this->ctxt = &(Optimization::manager.context[sequence - 1]);
+
   notation_ = pn->Has("notation") ? DesignMaterial::notation.Parse(pn->Get("notation")->As<string>()) : DesignMaterial::VOIGT;
 
-  bool tensor_ok = ReadTensor(pn, this->tensor_); // is save and sets default
+  bool tensor_ok = ReadTensor(ctxt, pn, this->tensor_); // is save and sets default
 
   if ((type_ == HOM_TRACKING || type_ == HOM_FROBENIUS_PRODUCT) && !tensor_ok)
     EXCEPTION("A 'tensor' element is mandatory  for 'homTracking'");
 
-  if (type_ == HOM_TENSOR || type_ == HOM_TRACKING) {
+  if(type_ == HOM_TENSOR || type_ == HOM_TRACKING) {
     // we must not give a value when there is a tensor
     if (type_ == HOM_TENSOR && pn->Has("tensor") && pn->Has("value"))
       throw Exception("a value must not be given when a tensor is used in a homogenization constraint");
@@ -201,7 +219,6 @@ Function::~Function()
 }
 
 void Function::Init() {
-  this->complex_ = domain->GetDriver()->IsComplex();
   this->design_ = DesignElement::DEFAULT; // overwritten eventually from xml
   this->region = ALL_REGIONS;  // overwritten eventually in Condition
 
@@ -229,7 +246,8 @@ Function* Function::Cast(Objective* c, Condition* g) {
   return c != NULL ? static_cast<Function*>(c) : static_cast<Function*>(g);
 }
 
-bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
+bool Function::ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matrix)
+{
   matrix.Resize(1, 1); // minimal size, as 0,0 is not defined.
 
   // sanity checks
@@ -249,11 +267,8 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
       EXCEPTION("The Voigt 'tensor' for homogenizations needs to be 3x3 or 6x6");
     if (tens->Has("dim2") && dim != tens->Get("dim2")->As<int>())
       EXCEPTION("The 'tensor' for homogenization needs to be symmetric");
-    if ((domain->GetGrid()->GetDim() == 2 && dim != 3)
-        || (domain->GetGrid()->GetDim() == 3 && dim != 6))
-
-      EXCEPTION(
-          "The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
+    if ((domain->GetGrid()->GetDim() == 2 && dim != 3) || (domain->GetGrid()->GetDim() == 3 && dim != 6))
+      EXCEPTION("The 'tensor' for homogenization needs to be 3x3 for 2D and 6x6 for 3D");
 
     matrix.Resize(dim, dim);
 
@@ -273,10 +288,9 @@ bool Function::ReadTensor(PtrParamNode pn, Matrix<double>& matrix) {
     double poisson = tens->Get("real")->Get("poissonNumber")->As<double>();
 
     Matrix<double> tmp(6, 6); // always 3D first
-    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod,
-        poisson);
-    MechanicMaterial::ComputeSubTensor(matrix,
-        domain->GetSinglePDE("mechanic")->GetSubTensorType(), tmp);
+    MechanicMaterial::CalcIsotropicStiffnessTensorFromEAndPoisson(tmp, emod, poisson);
+    assert(f_ctxt->stt != NO_TENSOR);
+    MechanicMaterial::ComputeSubTensor(matrix, f_ctxt->stt, tmp);
 
     tensor_read = true;
   }
@@ -308,15 +322,18 @@ void Function::ToInfo(PtrParamNode info) {
   info_->SetValue(preInfo_, false); // don't do tricks with name
 
   info->Get("type")->SetValue(type.ToString(type_));
-  if(complex_)
+  if(Optimization::context->IsComplex() && omega_omega_) // reduce output
     info->Get("omega_omega")->SetValue(omega_omega_);
-  // we check for valid ocurence of paramter in the constructor
+  // we check for valid occurrence of parameter in the constructor
   if(pn->Has("parameter") || IsLocal(type_))
     info->Get("parameter")->SetValue(parameter_);
 
   // We might have non-standard stresses
   if(type_ == STRESS || type_ == STRESS_DENSITY)
     info->Get("stress")->SetValue(stressType.ToString(stressType_));
+
+  if(type_ == EIGENFREQUENCY)
+    info->Get("ev")->SetValue(eigenvalue_id_);
 
   if(IsObjective() || !(dynamic_cast<Condition*>(this)->IsObservation()))
     info->Get("linear")->SetValue(linear_);
@@ -327,7 +344,8 @@ void Function::ToInfo(PtrParamNode info) {
     local->ToInfo(info_);
 }
 
-string Function::ToString(MultipleExcitation* me) const {
+string Function::ToString() const
+{
   // optional for oscillation
   if (local != NULL && local->GetPhase() != Local::BOTH)
     return Local::phase.ToString(local->GetPhase()) + "_" + type.ToString(type_);
@@ -359,7 +377,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 
   switch(type_)
   {
-  // this stuff is really to be avaluated only once, even for meta excitations
+  // this stuff is really to be evaluated only once, even for meta excitations or multi sequence, but we stick
+  // to the (default) sequence value
   case VOLUME:
   case PENALIZED_VOLUME:
   case GAP:
@@ -404,8 +423,10 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case BANDGAP: // similar to bloch=extremal
+  case EXPRESSION:
     assert(excite_index < 0);
-    excite_ = me->excitations.GetSize() - 1; // once only at the last excitation
+    excite_ = ctxt->excitations.Last()->index;
     break;
 
   // this stuff is to be evaluated at the last base for meta excitations
@@ -420,14 +441,14 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case ISO_ORTHOTROPY:
   case ORTHOTROPY:
     assert(excite_index < 0);
-    if(!me->DoMetaExcitation())
-      excite_ = me->excitations.GetSize() - 1; // standard
+    if(!me->DoMetaExcitation(ctxt))
+      excite_ = ctxt->excitations.Last()->index; // with respect to our context
     else
     {
       if(!pn->Has("excitation"))
         throw Exception("doing homogenization with meta excitations the excitation parameters is mandatory for " + ToString());
-
-      excite_ = me->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
+      // assert(!ctxt->DoMultiSequence());
+      excite_ = ctxt->GetExcitation(me->GetNumberHomogenization()-1, pn->Get("excitation")->As<string>())->index; // -1 to access the last
     }
     break;
 
@@ -444,7 +465,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case TEMPERATURE:
     assert(excite_index < 0);
     if (!pn->Has("excitation") || pn->Get("excitation")->As<string>() == "all")
-      excite_ = -1; // all excitations
+      excite_ = -1; // all excitations within this sequence/ context
     else {
       excite_ = me->GetExcitation(pn->Get("excitation")->As<string>())->index;
       excite_sensitive_ = true;
@@ -464,7 +485,8 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
     excite_sensitive_ = true;
     break;
   case MULTI_OBJECTIVE: // only to make the switch complete
-      break;
+    assert(false);
+    break;
   }
 
   sample_excitation_ = excite_ >= 0 ? &me->excitations[excite_] : &me->excitations[0];
@@ -474,14 +496,17 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
 /** Shall/must we evaluate this objective at this excitation?
  * Stress constraints in homogenization are triggered for a single constraint only. */
 bool Function::DoEvaluate(const Excitation* excite) const {
-  if (DoEvaluateAlways())
+  if(DoEvaluateAlways(excite->sequence))
     return true;
 
   return excite->index == excite_;
 }
 
-bool Function::DoEvaluateAlways() const {
-  return excite_ == -1;
+bool Function::DoEvaluateAlways(int context_sequence) const {
+  if(excite_ != -1)
+    return false;
+
+  return ctxt->sequence == context_sequence; // excite_ == -1 is already assured
 }
 
 
@@ -491,7 +516,6 @@ bool Function::IsExcitationSensitive() const {
 
 bool Function::IsAdjointBased() const {
   switch (type_) {
-  case COMPLIANCE: // only in the transient case
   case TRACKING:
   case OUTPUT:
   case CONJUGATE_COMPLIANCE:
@@ -503,6 +527,9 @@ bool Function::IsAdjointBased() const {
   case STRESS:
   case STRESS_DENSITY:
     return true;
+
+  case COMPLIANCE: // only in the transient case
+    return false; // FIXME check for transient case here!
 
   default:
     return false;
@@ -594,6 +621,7 @@ bool Function::ForDensityFiltering() const {
     case ORTHOTROPIC_TENSOR_TRACE:
 //    case GLOBAL_TWO_SCALE_VOL:
     case TWO_SCALE_VOL:
+    case EXPRESSION:
       return false;
 
     case MULTI_OBJECTIVE:
@@ -636,6 +664,7 @@ bool Function::ForSensitivityFiltering() const {
   case PRESSURE_DROP:
   case HEAT_ENEGRY:
   case EIGENFREQUENCY:
+  case BANDGAP:
     return true;
 
   case VOLUME:
@@ -679,6 +708,7 @@ bool Function::ForSensitivityFiltering() const {
   case DESIGN_BOUND:
   case MULTIMATERIAL_SUM:
   case SLACK:
+  case EXPRESSION:
   case SHAPE_INF:
     return false;
 
@@ -792,8 +822,8 @@ void Function::CalcHessian(StdVector<double>& out, double factor) {
   return;
 }
 
-void Function::PostProc(DesignSpace* space, DesignStructure* structure,
-    ErsatzMaterial* em) {
+void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
+{
   // pre-init step
   switch (type_) {
   case SLOPE:
@@ -3963,12 +3993,14 @@ double Function::Local::Identifier::CalcMultiMaterialSum(int neigh_idx, const Lo
 double Function::Local::Identifier::CalcTensorTrace(int neigh_idx, const Local* local, bool derivative) const
 {
   Matrix<double> E;
-
-  DesignMaterial::Notation notation = local->func_->notation_;
+  Function* f= local->func_;
+  DesignMaterial::Notation notation = f->notation_;
+  SubTensorType stt = f->ctxt->stt;
+  Elem* elem = dynamic_cast<DesignElement*>(element)->elem;
   const DesignElement* de = dynamic_cast<const DesignElement*>(GetElement(neigh_idx));
+  DesignElement::Type der = derivative ? de->GetType() : DesignElement::NO_DERIVATIVE;
 
-  bool ok = local->space->designMaterial->GetTensor(E, local->func_->GetDesignType(), domain->GetSinglePDE("mechanic")->GetSubTensorType(),
-      dynamic_cast<DesignElement*>(element)->elem, derivative ? de->GetType() : DesignElement::NO_DERIVATIVE, notation); // the sub-tensor-type DOES matter)
+  bool ok = local->space->designMaterial->GetTensor(E, f->GetDesignType(), stt, elem, der, notation); // the sub-tensor-type DOES matter)
   assert(ok);
   assert((local->func_->GetDesignType() == DesignElement::DIELEC_TRACE && E.GetNumRows() == 2) || (local->func_->GetDesignType() != DesignElement::DIELEC_TRACE && (E.GetNumRows() == 3 || E.GetNumRows() == 6)));
   LOG_DBG3(func) << "L::I::CTT e_num=" << element->GetIndex() << " dt=" << de->type.ToString(local->func_->GetDesignType()) << " E=" << E.ToString(0, false);

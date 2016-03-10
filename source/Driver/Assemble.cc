@@ -263,19 +263,15 @@ namespace CoupledField
 
   void Assemble::AddLinearForm( LinearFormContext* linContext ) {
 
-   LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString()
-                     << " on " << linContext->GetEntities()->GetName();
+   LOG_DBG(assemble) << "AddLinearForm: " << linContext->ToString() << " on " << linContext->GetEntities()->GetName()
+                     << " at=" << BasePDE::analysisType.ToString(analysisType_) << " pde=" << linContext->GetPde()->ToString();
 
-    // assert that Integrator is set
-    assert( linContext->GetIntegrator() != NULL );
+    assert(linContext->GetIntegrator() != NULL);
+    assert(linContext->GetPde() != NULL);
+    assert(linContext->GetEntities() != NULL);
+    assert(linContext->GetPde()->GetAnalysisType() == analysisType_);
 
-    // assert that the pdes are set
-    assert( linContext->GetPde() != NULL );
-
-    // assert that some entites are set
-    assert( linContext->GetEntities() != NULL );
-
-    linForms_.Push_back( linContext );
+    linForms_.Push_back(linContext);
 
   }
 
@@ -450,7 +446,7 @@ namespace CoupledField
     StdVector<Integer> eqnVec1, eqnVec2;
     FeFctIdType fctId1, fctId2;
 
-    LOG_DBG2(assemble) << "AM_Std: AssembleMatrices_Std() enter";
+    LOG_DBG(assemble) << "AM_Std: AssembleMatrices_Std() enter sequence=" << domain->GetDriver()->GetActSequenceStep();
 
     timer_->Start();
 
@@ -572,7 +568,7 @@ namespace CoupledField
 
           BiLinearForm * form = actContext.GetIntegrator();
 
-          LOG_DBG(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
+          LOG_DBG2(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
 
           try {
 
@@ -1191,31 +1187,32 @@ namespace CoupledField
     FeFctIdType fctId;
     StdVector<LinearFormContext*>::iterator formsIt;
 
+    timer_->Start();
+
     // iterate over all descriptors
-    for ( formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++ )
+    for(formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++)
     {
       // get integrator
-      LinearFormContext & actContext = **formsIt;
+      LinearFormContext& actContext = **formsIt;
 
       // Check, if lin/non-lin type of Context matches parameter nonLin
-      if( actContext.IsNonLin() != nonLin )
+      if(actContext.IsNonLin() != nonLin)
         continue;
 
       LinearForm* form = actContext.GetIntegrator();
 
       try
       {
-
         // get entity iterator
-        
         EntityIterator  entIt = actContext.GetEntities()->GetIterator();
         UInt size = actContext.GetEntities()->GetSize();
         
-        if( printProgressBar_) {
-          std::cout << "  - Calculating '" << form->GetName() << "' on '" 
-              << actContext.GetEntities()->GetName() 
-              << " (" << size << " elements)'\n";
-        }
+        if(printProgressBar_)
+          std::cout << "  - Calculating '" << form->GetName() << "' on '" << actContext.GetEntities()->GetName() << " (" << size << " elements)'\n";
+
+        LOG_DBG(assemble) << "ARLF: form=" << form->GetName() << " on " << actContext.GetEntities()->GetName() << " (" << size << ") at=" << BasePDE::analysisType.ToString(analysisType_);
+        LOG_DBG(assemble) << "ARLF: ac-pde=" << actContext.GetPde()->ToString();
+        assert(analysisType_ == actContext.GetPde()->GetAnalysisType());
 
         std::stringstream progStream;
         boost::progress_display progress( size, progStream );
@@ -1241,18 +1238,13 @@ namespace CoupledField
 
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
 
-            algsys_-> SetElementRHS( elemVec,
-                                     fctId, eqnVec );
+            algsys_-> SetElementRHS(elemVec, fctId, eqnVec);
           }
-
         } else {
-
           // That should be STATIC, TRANSIENT or EIGENFREQUENCY
-
           Vector<Double> elemVec;
           // iterate over all entities
           for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-            
             // make only output if desired
             if( printProgressBar_) {
               ++progress;
@@ -1261,20 +1253,22 @@ namespace CoupledField
             }
 
             // Calculate real valued element vector
-            form->CalcElemVector( elemVec, entIt );
+            form->CalcElemVector(elemVec, entIt);
+            LOG_DBG3(assemble) << "ARLF: ent=" << entIt.GetPos() << "/" << entIt.GetSize() << " elemVec=" << elemVec.ToString();
 
             // Map equation numbers
-            actContext.MapEqns( entIt, eqnVec, fctId );
+            actContext.MapEqns(entIt, eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " map eqnVec=" << eqnVec.ToString();
             
             // Perform remapping
             ReMapEquations(eqnVec, fctId);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " remap eqnVec=" << eqnVec.ToString();
             
             assert(!elemVec.ContainsNaN() && !elemVec.ContainsInf());
             // Pass element vector to algebraic system
-            algsys_-> SetElementRHS( elemVec,
-                                     fctId, eqnVec );
+            algsys_->SetElementRHS(elemVec, fctId, eqnVec);
+            LOG_DBG3(assemble) << "ARLF: fctId=" << fctId << " elemVec=" << elemVec.ToString() << " eqnVec=" << eqnVec.ToString();
           }
-
         }
       } catch (Exception& e) {
         RETHROW_EXCEPTION(e, "Could not calculate RHS vector for LinearForm '"
@@ -1282,6 +1276,7 @@ namespace CoupledField
                           << actContext.GetEntities()->GetName() << "'" );
       }
     }
+    timer_->Stop();
   }
 
   void Assemble::ToInfo(PtrParamNode in)

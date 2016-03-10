@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <boost/tokenizer.hpp>
 #include <boost/algorithm/string/classification.hpp>
+#include <boost/algorithm/string/replace.hpp>
 
 #include "tools.hh"
 #include "MatVec/Matrix.hh"
@@ -59,6 +60,16 @@ namespace CoupledField {
 
     strVec.Push_back( std::string( list, lastDelim, i-lastDelim ));
 
+  }
+
+  std::string ConvertToFilename(std::string org)
+  {
+    std::string result = org;
+    boost::replace_all(result, ":", "_");
+    boost::replace_all(result, ",", "_");
+    boost::replace_all(result, "(", "");
+    boost::replace_all(result, ")", "");
+    return result;
   }
 
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec)
@@ -320,6 +331,40 @@ namespace CoupledField {
     target.Resize(n);
     for(UInt i = 0; i < n; i++)
       target[i] = factor * other[i];
+  }
+
+  unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val, EigenInfo* info)
+  {
+    // make sure we have an info to operate on
+    EigenInfo tmp;
+    if(info == NULL)
+      info = &tmp;
+
+    info->col = 0;
+    info->max = mat[row][0];
+    info->min = mat[row][0];
+
+    for(unsigned int c = 1, n = mat.GetNumCols(); c < n; c++)
+    {
+      double val = mat[row][c];
+      if(val < info->min)
+      {
+        info->min = val;
+        if(minimum)
+          info->col = c;
+      }
+      if(val > info->max)
+      {
+        info->max = val;
+        if(!minimum)
+          info->col = c;
+      }
+    }
+
+    if(val != NULL)
+      *val = minimum ? info->min : info->max;
+
+    return info->col;
   }
 
   void Conj(Matrix<Complex>& mat)

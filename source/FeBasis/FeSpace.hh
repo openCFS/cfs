@@ -433,8 +433,9 @@ public:
   //! Map equations i.e. intialize object
   virtual void Finalize() = 0;
 
-  //! Dump information of the equation map to the console
-  virtual void PrintEqnMap();
+  /** Dump information of the equation map to the console
+   * @param file if NULL std::cout is used, otherwise give an fil ostream */
+  virtual void PrintEqnMap(std::ostream* file = NULL);
   
   //! Update the FeSpace in case of a multistep solution strategy
   

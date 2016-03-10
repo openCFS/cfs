@@ -54,6 +54,7 @@
 #include <zlib.h>
 
 #include <H5public.h>
+#include <H5Ppublic.h>
 
 #ifdef USE_METIS
 #include <defs.h> 
@@ -195,8 +196,8 @@ namespace CoupledField {
       ( "restart,r",
         "read restart file of previous simulation run" )
 
-      ( "forceSegFault,f",
-        "force a segmentation fault at exceptions")
+      ( "detailed,d",
+        "detailed output to info.xml")
 
       ( "printGrid,g",
         "read grid from input and write it to output file" )
@@ -204,14 +205,17 @@ namespace CoupledField {
       ( "exportGrid,G",
         "export the grid to the info.xml file, best with -g")
 
+      ( "equationMap,M",
+        "create a .map file with details about the equation mapping")
+
       ( "writeSkeleton,w",
         "write skeleton of XML file for subsequent simulation" )
 
       ( "logConfFile,l", po::value<string>(),
         "name of configuration file for logging streams" )
 
-      ( "detailed,d",
-        "detailed output to info.xml")
+      ( "forceSegFault,f",
+        "force a segmentation fault at exceptions")
 
       ( "quiet,q",
         "more compressed console output (env CFS_QUIET)")
@@ -485,11 +489,15 @@ namespace CoupledField {
     return varMap_.count("exportGrid") > 0;
   }
 
+  bool ProgramOptions::DoEquationMapping() const
+  {
+    return varMap_.count("equationMap") > 0;
+  }
+
   bool ProgramOptions::GetRestart() const
   {
     return (varMap_.count( "restart") > 0);
   }
-
 
   bool ProgramOptions::GetWriteSkeleton() const
   {
@@ -650,8 +658,7 @@ namespace CoupledField {
     out << "USE_ARPACK:            "
         << fg_blue  << "YES" << fg_reset << endl;
     out << "ARPACK_VERSION:        "
-        << fg_blue  << ARPACK_VERSION_NUMBER << " "
-        << ARPACK_VERSION_DATE << fg_reset << endl;
+        << fg_blue  << ARPACK_VERSION_NUMBER << fg_reset << endl;
 #else
     out << "USE_ARPACK:            "
         << fg_blue  << "NO" << fg_reset << endl;
