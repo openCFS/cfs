@@ -49,7 +49,7 @@ namespace CoupledField {
         xml_(eSolverXML),
         solverList_(solverList),
         precondList_(precondList),
-        eigenInfo_(eigenInfo),
+        info_(eigenInfo),
         numFreq_(0),
         freqShift_(0.0),
         isQuadratic_(false),
@@ -160,7 +160,7 @@ namespace CoupledField {
     
     //! This is a pointer to a report object in which the solver will store
     //! general information about the solution of a linear system.
-    PtrParamNode eigenInfo_;
+    PtrParamNode info_;
     
     //! Number of frequencies to be calculated
     UInt numFreq_;

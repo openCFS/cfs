@@ -486,10 +486,20 @@ bool ParamNode::As<bool>() const
   EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
 }
 
+boost::shared_ptr<Timer> ParamNode::AsTimer()
+{
+  if(value_.empty())
+    value_ = boost::shared_ptr<Timer>(new Timer());
+
+  if(value_.type() != typeid(boost::shared_ptr<Timer>))
+    EXCEPTION("param node " << name_ << " cannot be returned as timer");
+
+  return boost::any_cast<boost::shared_ptr<Timer> >(value_);
+}
+
 template<typename TYPE>
 const TYPE& ParamNode::AsConst() const
 {
-
   // first, try to directly use any_cast<Integer>
   try
   {
@@ -815,7 +825,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if (value_.type() == typeid(boost::shared_ptr<Timer>))
+  if(value_.type() == typeid(boost::shared_ptr<Timer>))
   {
     boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
@@ -823,7 +833,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
     return;
   }
 
-  if (value_.type() == typeid(StdVector<std::string>))
+  if(value_.type() == typeid(StdVector<std::string>))
   {
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
