@@ -99,14 +99,19 @@ def print_timer(timers):
   meta = len(timers) if type(timers[0]) == list else 0
      
   max_label = max([len(t.label) for t in timer]) + 1 # add 1 for * in sub case  
-  print 'TIMER'.ljust(max_label) + ': WALL \t (CPU)'
+  print 'TIMER'.ljust(max_label) + ': ____ WALL____ ~ _____ (CPU) _____'
+ 
+  total_wall = max(timer[0].wall, 1)
+  total_cpu  = max(timer[0].cpu, 1e-3) 
  
   for e in range(len(timer)):
      t = timer[e] 
      l = t.label + ('*' if t.sub else '')
-     line = l.ljust(max_label) + ': ' + str(t.wall) + '\t (' + str(t.cpu) + ')'
+     line = l.ljust(max_label) + ': {:4d}'.format(int(t.wall)) + ' [{:.1%}'.format(t.wall/total_wall).rjust(8) + '] ~ ({:7.5}'.format(t.cpu) + ')' + '[{:.1%}'.format(t.cpu/total_cpu).rjust(8) + ']' 
+     
+     
      for m in range(meta):
-       line += (' \t | ' if m == 0 else ' \t : ') + str(timers[m][e].wall) + '\t (' + str(timers[m][e].cpu) + ')'
+       line += (' \t | ' if m == 0 else ' \t : ') + str(int(timers[m][e].wall)) + '\t (' + str(timers[m][e].cpu) + ')'
      print line
         
 parser = argparse.ArgumentParser(description='with --analyse timer information from an info.xml is extracted.')
