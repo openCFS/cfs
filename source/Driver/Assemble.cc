@@ -1187,6 +1187,8 @@ namespace CoupledField
     FeFctIdType fctId;
     StdVector<LinearFormContext*>::iterator formsIt;
 
+    timer_->Start();
+
     // iterate over all descriptors
     for(formsIt = linForms_.Begin(); formsIt != linForms_.End(); formsIt++)
     {
@@ -1274,6 +1276,7 @@ namespace CoupledField
                           << actContext.GetEntities()->GetName() << "'" );
       }
     }
+    timer_->Stop();
   }
 
   void Assemble::ToInfo(PtrParamNode in)

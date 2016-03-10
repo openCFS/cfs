@@ -244,6 +244,10 @@ namespace CoupledField
     template<typename TYPE>
     TYPE As() const;
 
+    /** This is a special case where the timer is created if it does not already exist.
+     * Therefore no constness */
+    boost::shared_ptr<Timer> AsTimer();
+
     /** @return the integer if this is convertible
     * @throws an exception if the value is not set or not convertible */
     template<typename TYPE>

@@ -1820,77 +1820,77 @@ void LagrangeElemShapeMap::GetExtensionLocalDir(Vector<Double>& extension) {
 }
 
 void LagrangeElemShapeMap::CalcJ(Matrix<Double>& jac, const LocPoint& lp) {
-jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
-jac *= depth_; // explicitly include depth_ of setup
+  jac = coords_ * ptFe_->GetLocDerivShFnc( lp, ptElem_);
+  jac *= depth_; // explicitly include depth_ of setup
 }
 
 Double LagrangeElemShapeMap::CalcJDet(Matrix<Double>& jac, const LocPoint& lp) {
 
-deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
-jac = coords_ * deriv_;
-jac *= depth_; // explicitly include depth_ of setup
+  deriv_ = ptFe_->GetLocDerivShFnc( lp, ptElem_);
+  jac = coords_ * deriv_;
+  jac *= depth_; // explicitly include depth_ of setup
 
-Double jacDet = 0.0;
-// redundant code, but necessary at some points
-if (jac.GetNumCols() == jac.GetNumRows()) {
-  jac.Determinant(jacDet);
-} else if (jac.GetNumRows() == 3) {
-  // 2D elements in 3D
-  Vector<Double> normal;
-  normal.Resize(3);
-  normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
-  normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
-  normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
-  jacDet = sqrt(
-      normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+  Double jacDet = 0.0;
+  // redundant code, but necessary at some points
+  if (jac.GetNumCols() == jac.GetNumRows()) {
+    jac.Determinant(jacDet);
+  } else if (jac.GetNumRows() == 3) {
+    // 2D elements in 3D
+    Vector<Double> normal;
+    normal.Resize(3);
+    normal[0] = jac[1][0] * jac[2][1] - jac[2][0] * jac[1][1];
+    normal[1] = jac[2][0] * jac[0][1] - jac[0][0] * jac[2][1];
+    normal[2] = jac[0][0] * jac[1][1] - jac[1][0] * jac[0][1];
+    jacDet = sqrt(
+        normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
 
-} else if (jac.GetNumRows() == 2) {
-  // 1D elements in 2D
-  //see kaltenbacher, p.23, eq.(2.122)
-  jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
-}
+  } else if (jac.GetNumRows() == 2) {
+    // 1D elements in 2D
+    //see kaltenbacher, p.23, eq.(2.122)
+    jacDet = sqrt(jac[0][0] * jac[0][0] + jac[1][0] * jac[1][0]);
+  }
 
-// Adjust "volume" of Jacobian in case of axi-symmetry
-Vector<Double> globPoint;
-if (IsAxi()) {
-  Local2Global(globPoint, lp);
-  jacDet *= 2 * M_PI * globPoint[0];
-}
+  // Adjust "volume" of Jacobian in case of axi-symmetry
+  Vector<Double> globPoint;
+  if (IsAxi()) {
+    Local2Global(globPoint, lp);
+    jacDet *= 2 * M_PI * globPoint[0];
+  }
 
 
-return jacDet;
+  return jacDet;
 }
 
 BaseFE* LagrangeElemShapeMap::GetBaseFE() {
-return ptFe_;
+  return ptFe_;
 }
 
 void LagrangeElemShapeMap::SetElem(const Elem* ptElem, bool isUpdated) {
 
-ElemShapeMap::SetElem(ptElem, isUpdated);
-//  ptElem_ = ptElem;
-//  isUpdated_ = isUpdated;
-//  isAxi_ = ptGrid_->IsAxi();
-//  
-// call setElem at base class
+  ElemShapeMap::SetElem(ptElem, isUpdated);
+  //  ptElem_ = ptElem;
+  //  isUpdated_ = isUpdated;
+  //  isAxi_ = ptGrid_->IsAxi();
+  //
+  // call setElem at base class
 
-// get coordinates from grid
-ptGrid_->GetElemNodesCoord(coords_, ptElem->connect, isUpdated_);
-//  std::cerr << "**** Coordinates for element " << ptElem->elemNum
-//      << " with connect " << ptElem->connect.ToString() 
-//      
-//      << "(" << (isUpdated ? "updated)" : "original)") << std::endl
-//      << coords_ << std::endl;
+  // get coordinates from grid
+  ptGrid_->GetElemNodesCoord(coords_, ptElem->connect, isUpdated_);
+  //  std::cerr << "**** Coordinates for element " << ptElem->elemNum
+  //      << " with connect " << ptElem->connect.ToString()
+  //
+  //      << "(" << (isUpdated ? "updated)" : "original)") << std::endl
+  //      << coords_ << std::endl;
 
-// set reference element
+  // set reference element
 #ifndef NDEBUG
-if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end()) {
-  EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type)
-      << "' not defined for Lagrangian Shape Map!");
-}
+  if( elems_.feMap_.find(ptElem->type) == elems_.feMap_.end()) {
+    EXCEPTION("Element of type '" << Elem::feType.ToString(ptElem->type)
+        << "' not defined for Lagrangian Shape Map!");
+  }
 #endif
-ptFe_ = elems_.feMap_[ptElem->type];
-shape_ = &Elem::shapes[ptElem_->type];
+  ptFe_ = elems_.feMap_[ptElem->type];
+  shape_ = &Elem::shapes[ptElem_->type];
 }
 
 } // namespace CoupledField
