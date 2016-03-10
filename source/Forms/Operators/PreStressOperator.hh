@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 // ================================================================================================
 /*!
- *       \file     preStressOperator.hh
+ *       \file     PreStressOperator.hh
  *       \brief    Definition of the derivative operator used
  *                 for mechanical prestressing.
  *
