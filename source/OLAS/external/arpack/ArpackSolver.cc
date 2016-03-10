@@ -60,8 +60,6 @@ namespace CoupledField {
 
       size_ = size;
 
-      std::cout << "which='" << which << "' \n";
-
       // new reference to matrix interface
       interface_ = matInterface;
     

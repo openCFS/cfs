@@ -357,18 +357,11 @@ OPTION(USE_FLANN
   "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
   ${USE_FLANN_DEFAULT})
 
-OPTION(DEBUG "Build debug version of the code."
-  ${DEBUG_DEFAULT})
-OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."
-  ${PROFILING_DEFAULT})
-OPTION(COVERAGE "Turn on code coverage output."
-  ${COVERAGE_DEFAULT})
-
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
-  ${CFSTOOL_DEFAULT})
-  
-OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
-  ${CFSDAT_DEFAULT})
+OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
+OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
+OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
+OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?

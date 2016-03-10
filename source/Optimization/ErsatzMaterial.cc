@@ -59,6 +59,7 @@
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
+#include "Utils/Timer.hh"
 
 namespace CoupledField {
 class BaseMaterial;
@@ -1377,6 +1378,9 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
   double ErsatzMaterial::CalcFunction(Excitation& excite, Function* f, bool derivative)
   {
+    shared_ptr<Timer> timer = optInfoNode->Get("eval/timer")->AsTimer();
+    timer->Start();
+
     assert(f != NULL);
     // for legacy reasions there is also the difference between Objective and Condition, to be replaced once
     Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
@@ -1574,6 +1578,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         break;
       // no default, gcc warns
     }
+    timer->Stop();
     LOG_DBG2(em) << "CalcFunction " << f->ToString() << " cost=" << f->IsObjective() << " -> " << (derivative ? "derivative" : lexical_cast<std::string>(result));
     return result;
   }
