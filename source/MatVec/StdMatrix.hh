@@ -148,7 +148,17 @@ namespace CoupledField {
 
     //@}
 
+    /** Helper to export the columns for a Compressed row Storage (CRS -> wikipedia).
+     * Alternatively use e.g. SCRS_Matrix::GetColPointer()
+     * @param out will be resized to nnz. Int because this is standard for Fortran?! Size
+     * @param base is either 0 or 1. 0 keeps this 0-based structure, 1 makes it 1-based */
+    void ExportCRSColumns(StdVector<int>& out, int base) const;
 
+    /** @see ExportCRSColumns()
+     * @param out resized to num-rows. If tailing_nnz the nnz are added
+     * @param base see ExportCRSColumns()
+     * @param tailing_nnz shall nnz be added? */
+    void ExportCRSRows(StdVector<int>& out, int base, bool tailing_nnz) const;
       
 
     // ========================================================================

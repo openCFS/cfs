@@ -48,19 +48,19 @@ public:
   ~DesignDependentRHS();
 
   /** This is kind of constructor. The return value/status is reflected in valid.
-   * @param app is either PRESSURE or CHARGE_DENSITY
+   * @param app is either PRESSURE or App::CHARGE_DENSITY
    * @return true if the linear form was found and the variables are init. */
   template <class T>
-  bool Init(DesignSpace* design, Optimization::Application app);
+  bool Init(DesignSpace* design, App::Type app);
 
   /** In this mode the test strain is kept.
    * @param app needs to be STRESS
    * @param test_strain taken from the excitation by MechPDE::testStrain.Parse(excitation.label) */
   template <class T>
-  bool Init(Optimization::Application app, std::string excite_label);
+  bool Init(App::Type app, std::string excite_label);
 
   /** kind of inhom Neumbann. From Init() */
-  Optimization::Application app;
+  App::Type app;
 
   /** bool are we set? */
   bool valid;
@@ -117,7 +117,7 @@ protected:
    * derivative. It also includes mechanical damping and mass matrix via AddMassToStiffness().
    * The templated stuff is private, as C++ does not allow virtual templates.
    * @param tf for heat and acoustic we canot uniquely identify the transfer function by app therefore give it. */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
   /** the mechanical element rhs, complex or real */
   DesignDependentRHS mechRHS;
@@ -128,7 +128,7 @@ private:
    * T1 is the out matrix type
    * T2 is the element matrix type */
   template <class T1, class T2>
-  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
+  void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
 };
 

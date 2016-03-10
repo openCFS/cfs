@@ -15,8 +15,8 @@ class Objective;
 DECLARE_LOG(aux_des)
 DEFINE_LOG(aux_des, "auxDesign")
 
-AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, Context* context, unsigned int naux)
-  : DesignSpace(regions, pn, method, context)
+AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, unsigned int naux)
+  : DesignSpace(regions, pn, method)
 {
   alsomatopt_ = true; // can be different in ShapeDesign
   scaling_ = 1.0;

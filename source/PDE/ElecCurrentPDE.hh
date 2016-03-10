@@ -1,6 +1,6 @@
 // ================================================================================================
 /*!
- *       \file     ElecCurrent.hh
+ *       \file     ElecCurrentPDE.hh
  *       \brief    This PDE models electric current conduction with the
  *                 scalar electric potential
  *

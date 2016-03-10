@@ -4,7 +4,7 @@
 // kate: auto-brackets on; mixedindent off; indent-mode cstyle;
 //================================================================================================
 /*!
- *       \file     coefFunctionExpression.hh
+ *       \file     CoefFunctionExpression.hh
  *       \brief    {This coefficient function handles coefficients based on math parser
  *                 expressions. Therefore, the set Matrix/scalar/vector function expect
  *                 a string rather then a Double or Complex}

@@ -22,7 +22,6 @@ class SingleVector;
                            shared_ptr<SimState> state,
                            Domain* domain,
                            PtrParamNode paramNode, PtrParamNode infoNode );
-    
     //! Destructor 
     ~EigenFrequencyDriver();
 
@@ -54,13 +53,18 @@ class SingleVector;
     Vector<double>& GetCurrentWaveVector() { assert(current_wave_vector_.GetSize() > 0); return current_wave_vector_; }
 
     /** We need to set it for optimization to get the proper stiffness matrices during function gradient evaluation.
-     * Note that this is done after all systems are solved ans stored. */
+     * Note that this is done after all systems are solved and stored. */
     void SetCurrentWaveVector(unsigned int index) { current_wave_vector_ = wave_vectors[index]; }
 
 
     /** Return the number of eigenfrequencies to be calculated. Not the number of wave_vectors!!
      * @see BaseDriver::GetNumSteps() */
     unsigned int GetNumSteps() { return numFreq_; }
+
+    static unsigned int GetNumModes(PtrParamNode node);
+
+    /** Helper for ContextManager in multi sequence optimzation */
+    static unsigned int GetNumBlochWave(PtrParamNode node);
 
     /** @see BaseDriver::StoreResults()
      * stepNum and step_val are ignored!! */
@@ -78,6 +82,9 @@ class SingleVector;
 
     /** create header for .bloch.dat file. For cfs -d the iteration is added to the filename */
     void SetupBlochPlot();
+
+    /** for multi sequence optimization we need some information before driver instantiation */
+    static bool DoBloch(PtrParamNode node) { return node->Has("bloch"); }
 
     /** the resent calculated eigenvalues. Might be complex, @see GetFrequency(). Corresponds with errBounds_ */
     SingleVector* eigenFreqs;
@@ -108,6 +115,8 @@ class SingleVector;
     /** perform complex bloch analysis to show band-gaps in the irreducible Brillouin zone */
     bool isBloch_;
     
+    bool sort_;
+
     //! Number of eigenfrequencies to be calculated
     unsigned int numFreq_;
 

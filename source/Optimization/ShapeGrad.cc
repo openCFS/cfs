@@ -25,7 +25,7 @@ namespace CoupledField
 DECLARE_LOG(shapeGrad)
 DEFINE_LOG(shapeGrad, "shapeGrad")
 
-ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
+ShapeGrad::ShapeGrad() : ErsatzMaterial()
 {
   PtrParamNode pncf = domain->GetParamRoot()->Get("optimization")->Get("costFunction");
   if(pncf->Has("multipleExcitation"))
@@ -36,18 +36,20 @@ ShapeGrad::ShapeGrad() : ErsatzMaterial(), mech_mat_(NULL)
 
 void ShapeGrad::GetMaterialParameters(double &lambda, double &mu) const
 {
-  if(pde->GetName() != "mechanic") return;
+  if(context->pde->GetName() != "mechanic")
+    return;
+
   // TODO: extend for multi-region-optimization if necessary
   assert(false);
-  const BaseMaterial* material = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
-  material->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
-  material->GetScalar(mu, MECH_LAME_MU, Global::REAL);
+  const BaseMaterial* bm = NULL; // FIXME = pde->getPDEMaterialData()[design->GetRegionIds()[0]];
+  bm->GetScalar(lambda, MECH_LAME_LAMBDA, Global::REAL);
+  bm->GetScalar(mu, MECH_LAME_MU, Global::REAL);
   LOG_DBG3(shapeGrad) << "lame parameters:  lambda = " << lambda << ", mu = " << mu;
 }
 
 void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &vecadjoint, 
                                     const unsigned int e, const SubTensorType type,
-                                    Application app)
+                                    App::Type app)
 { 
   assert(false);
   /* FIXME
@@ -74,7 +76,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
 
   switch(app)
   {
-  case MECH:
+  case App::MECH:
     {
       // set element solution to matrix
       // use forward as adjoint because it is selfadjoint anyway (and make sign mistake!)
@@ -95,7 +97,7 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
       strain->CalcStrainVec(vecadjoint, 1, it);
     }
     break;
-  case HEAT:
+  case App::HEAT:
     node_store_sol->GetElemSolution(vecforward, it, 0);
     node_store_sol->GetElemSolution(vecadjoint, it, 0);
     break;
@@ -111,7 +113,8 @@ void ShapeGrad::GetElementSolution(Vector<double> &vecforward, Vector<double> &v
 
 linElastInt* ShapeGrad::getBDBForm()
 {
-  if(pde->GetName() != "mechanic") return NULL;
+  if(context->pde->GetName() != "mechanic")
+    return NULL;
   assert(false);
   return NULL; // FIXME dynamic_cast<linElastInt*>(GetForm(design->GetRegionIds()[0], pde, pde, "LinElastInt"));
 }
@@ -121,9 +124,8 @@ void ShapeGrad::PostInit()
 {
   ErsatzMaterial::PostInit();
 
-  if(pde->GetName() != "mechanic") return;
-  mech_mat_ = dynamic_cast<MechMat*>(material); // just created in PostInit()
-  assert(material != NULL);
+  if(context->pde->GetName() != "mechanic")
+    return;
 }
 
 } //namespace

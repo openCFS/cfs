@@ -244,6 +244,10 @@ namespace CoupledField
     template<typename TYPE>
     TYPE As() const;
 
+    /** This is a special case where the timer is created if it does not already exist.
+     * Therefore no constness */
+    boost::shared_ptr<Timer> AsTimer();
+
     /** @return the integer if this is convertible
     * @throws an exception if the value is not set or not convertible */
     template<typename TYPE>
@@ -354,7 +358,9 @@ namespace CoupledField
     /** Print Param / INfo node to file 
      * Note: This is just a temporary solution, until we move the serialization of the 
      * ParamNode to the WriteInfo class  */
-    void ToFile( const std::string& name = std::string(), bool force = false);
+    void ToFile(const std::string& name = std::string(), bool force = false);
+
+    void ToFile(bool force) { ToFile(std::string(), force); }
 
     /** This is a recursive Dump of the tree to std::cout
     * @param level start with 0, is used for ident */
