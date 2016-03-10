@@ -1503,6 +1503,10 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       case Function::TEMPERATURE:
       break;// FIXMEHEAT
 
+      case Function::HEAT_ENEGRY:
+      result = CalcHeatEnergy(excite, c, g, derivative);
+      break;
+
       case Function::ELEC_ENERGY:
       case Function::PRESSURE_DROP:
       assert(false);// shall be handled before
@@ -1948,6 +1952,30 @@ void ErsatzMaterial::LogFileLine(std::ofstream* out, PtrParamNode iteration)
       }
     }
     return result;
+  }
+
+  double ErsatzMaterial::CalcHeatEnergy(Excitation& excite, Objective* f, Condition* g, bool derivative)
+  {
+    assert(f != NULL || g != NULL);
+    assert(f == NULL || g == NULL);
+    Function* func = Function::GetFunction(f, g);
+
+    double res = 0.0;
+
+    if(derivative)
+    {
+      TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , HEAT, true);
+      double factor = excite.GetWeightedFactor(func);
+      CalcU1KU2(tf, forward.Get(excite)->elem[HEAT], HEAT, forward.Get(excite)->elem[HEAT], NULL, -factor, STANDARD, func);
+    }
+    else {
+    unsigned int ts = 0;// assume static
+    Vector<double>& u = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RAW_VECTOR);
+    Vector<double>& rhs = forward.Get(excite, NULL, ts)->GetRealVector(StateSolution::RHS_VECTOR);
+    u.Inner(rhs,res);
+    res *= excite.GetFactor(func);
+    }
+    return res;
   }
 
   template<class T>
