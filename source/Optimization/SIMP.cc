@@ -104,6 +104,7 @@ void SIMP::SetElementK(DesignElement* de, const TransferFunction* tf, Applicatio
   switch(app)
   {
   case MECH:
+  case HEAT:
   case ACOUSTIC:
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;

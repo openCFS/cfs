@@ -1556,6 +1556,8 @@
       <xsd:enumeration value="stressDensity"/>
       <!-- Pressure drop for the external LBM solver -->
       <xsd:enumeration value="pressureDrop"/>
+      <!-- Heat energy for heat pde -->
+      <xsd:enumeration value="heatEnergy"/>
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>

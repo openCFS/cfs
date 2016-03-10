@@ -564,15 +564,53 @@ HeatMat::HeatMat(ErsatzMaterial* em) :
   system_ = HEAT;
   heat = dynamic_cast<HeatPDE*>(opt != NULL ? opt->ToPDE(Optimization::HEAT) : domain->GetSinglePDE("heatConduction"));
   assert(heat != NULL);
+
+  for(unsigned int r=0; r < regionIds.GetSize(); r++)
+  {
+    RegionIdType reg_id = regionIds[r];
+    Elem* elem = dynamic_cast<GridCFS*>(domain->GetGrid())->SearchFistRegionElement(reg_id);
+
+    // assume standard material
+    unsigned int max = 1;
+
+    heatStiffness_map[reg_id].Resize(max);
+    if(needs_mass_)
+      EXCEPTION("Heat mass matrix not implemented yet!");
+
+    if(this->opt->GetAssemble()->UseRegion(reg_id))
+    {
+      for(unsigned int m = 0; m < 1; m++) {
+        HeatStiffness(elem, false, m, DesignElement::NO_DERIVATIVE, true); // no bimaterial and enforce_unstructured
+//          HeatMass(elem, false, m, DesignElement::NO_DERIVATIVE, true);
+      }
+    }
+  }
 }
 
 SinglePDE* HeatMat::GetPDE() {
-  assert(false);
-  return NULL;
-  // FIXME return dynamic_cast<SinglePDE*>(heat);
+ return dynamic_cast<SinglePDE*>(heat);
 }
 
+DenseMatrix& HeatMat::HeatStiffness(const Elem* elem, bool bimaterial, int multimaterial, DesignElement::Type direction, bool enforce_unstructured)
+{
+  // from MechMat:MechStiffness
+  RegionIdType reg_id = elem->regionId;
 
+  // assume we just jave standard material
+  unsigned int index = 0;
+
+  StdVector<Matrix<double> >&  K =  heatStiffness_map[reg_id];
+
+  // we need to get the data on request
+  if(enforce_unstructured || !structured_ || direction != DesignElement::NO_DERIVATIVE)
+  {
+      GetElementMatrix<double>(K[index], "HeatConductivity", elem, bimaterial, direction); // in the bimaterial case the standard (upper) material
+  }
+
+  // e.g. structured case
+  LOG_DBG3(om) << "HS: direction= " << direction << " el=" << elem->elemNum << " -> " << K[index].ToString();
+  return dynamic_cast<DenseMatrix& >(K[index]);
+}
 
 ElecMat::ElecMat(ErsatzMaterial* em) : OptimizationMaterial(em)
 {

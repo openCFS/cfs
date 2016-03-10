@@ -88,6 +88,7 @@ class Function
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
+      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
