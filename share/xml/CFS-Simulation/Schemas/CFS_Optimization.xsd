@@ -1473,6 +1473,7 @@
           <xsd:enumeration value="chargeDensity"/>                    
           <xsd:enumeration value="stress"/>
           <xsd:enumeration value="lbm"/>
+          <xsd:enumeration value="heat"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1556,6 +1557,7 @@
       <xsd:enumeration value="rotAngleX"/>
       <xsd:enumeration value="rotAngleY"/>
       <xsd:enumeration value="rotAngleZ"/>
+<!--       <xsd:enumeration value="heat_dummy"/> -->
       <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
@@ -1600,6 +1602,8 @@
       <xsd:enumeration value="stressDensity"/>
       <!-- Pressure drop for the external LBM solver -->
       <xsd:enumeration value="pressureDrop"/>
+      <!-- Heat energy for heat pde -->
+      <xsd:enumeration value="heatEnergy"/>
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>

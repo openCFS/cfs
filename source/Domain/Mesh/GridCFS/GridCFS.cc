@@ -56,7 +56,6 @@ namespace CoupledField {
     orderedElems_.Clear();
   }
 
-
   void GridCFS::CreateUserDefinedNodesElems() {
 
     // if no param object is present, just leave
@@ -77,7 +76,7 @@ namespace CoupledField {
         listNode = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
         isNode = true;
       } else {
-        // iterate over nodes
+        // iterate over elements
         listNode = param_->Get("domain")->Get("elemList", ParamNode::PASS);
         isNode = false;
       }
@@ -89,6 +88,17 @@ namespace CoupledField {
 
           // fetch name of nodes to be selected
           nodes[i]->GetValue("name", name);
+
+          //check if named nodes are defined by specifying a region
+          if (nodes[i]->Has("allNodesInRegion")) {
+            std::string regName;
+            nodes[i]->Get("allNodesInRegion")->GetValue("regName",regName);
+            RegionIdType regId = region_.Parse(regName);
+
+            StdVector<UInt> nodesInRegion;
+            GetNodesByRegion(nodesInRegion,regId);
+            AddNamedNodes(name,nodesInRegion);
+          }
 
           // check if node is defined by point coord
           PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
@@ -1145,9 +1155,7 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::
-  CreateGridInformation( ResultHandler* ptRes,
-                         std::map<std::string, CoordSystem*>& coordSysMap ) {
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes,std::map<std::string, CoordSystem*>& coordSysMap ) {
     
     // This method crates a "dummy" multisequence step, in
     // which some grid-information results are created:

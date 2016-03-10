@@ -138,6 +138,17 @@ namespace CoupledField {
       shared_ptr<SimState> simState,
       Domain* domain ) : SinglePDE( grid, pn, infoNode,simState, domain )
   {
+    forwardSim_.reset(new Timer("forwardSim"));
+    backwardSim_.reset(new Timer("backwardSim"));
+    setupAdjoint_.reset(new Timer("setupAdjoint"));
+    setupPardiso_.reset(new Timer("setupPardiso"));
+    solveLSE_.reset(new Timer("solveLSE"));
+    dProp_.reset(new Timer("dprop",true));
+    dColl_.reset(new Timer("dcoll",true));
+    rhsSetup_.reset(new Timer("rhsSetup",true));
+    delSing_ .reset(new Timer("delSing",true));
+    dPressDrop_.reset(new Timer("dPressureDrop",true));
+
     pdename_ = "LatticeBoltzmann";
     pdematerialclass_ = MECHANIC;
     nonLin_ = false;
@@ -210,8 +221,8 @@ namespace CoupledField {
       parabolicInflow_ = false;
 
     if (myParam_->Has("LBM/omega") && myParam_->Has("LBM/Re")) { // if Re and omega are given, adjust u_max_x
-      omega_       = myParam_->Get("LBM/omega")->As<double>();
-      Re_       = myParam_->Get("LBM/Re")->As<double>();
+      omega_ = myParam_->Get("LBM/omega")->As<double>();
+      Re_  = myParam_->Get("LBM/Re")->As<double>();
 
       u_max_x_ = Re_*(1/omega_ - 0.5) / (3.0 * inlet.GetSize());
       if (u_max_x_ / sqrt(3.0) > 0.2) {
@@ -271,11 +282,14 @@ namespace CoupledField {
     // vector storing adjoint SRT collision matrices
     adjSRTCollision.Resize(n_elems);
     d_pdrop_d_f.Resize(n_elems);
-    Vector<double> zeros(n_q_);
+    adjCollisions.Resize(n_elems);
+    StdVector<double> zeros(n_q_);
     zeros.Init();
     // Initialize d_pdrop_d_f with zero vectors
-    for (unsigned int elem = 0; elem < n_elems; elem++)
+    for (unsigned int elem = 0; elem < n_elems; elem++) {
       d_pdrop_d_f[elem] = zeros;
+      adjCollisions[elem].Resize(n_q_*n_q_);
+    }
 
     if(iface_ == INTERNAL) {
       lbm = new LatticeBoltzmann(dim_, n_x_, n_y_, n_z_, u_max_x_, u_max_y_, u_max_z_, u_in_, omega_, maxIter_, convergence_, plot, writeFrequency_);
@@ -283,6 +297,15 @@ namespace CoupledField {
 
     microVelDirections_ = lbm->GetPDFDirectionVectors();
     invPDFDirections_ = lbm->GetinvPDFDirections();
+
+//    PtrParamNode sensAnalysis = infoNode_->Get(ParamNode::SUMMARY)->Get("sensitvityAnalysis", ParamNode::INSERT);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(backwardSim_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(setupAdjoint_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(setupPardiso_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(solveLSE_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(propSetup_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(rhsSetup_);
+//    sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(delSing_);
   }
 
   LatticeBoltzmannPDE::~LatticeBoltzmannPDE()
@@ -344,7 +367,7 @@ namespace CoupledField {
 
   void LatticeBoltzmannPDE::DefineIntegrators()
   {
-    // code taken from testPDE
+    ////////////////////// code taken from testPDE
 
     // help variables for parameter checking
     RegionIdType actRegion;
@@ -357,10 +380,10 @@ namespace CoupledField {
     shared_ptr<BaseFeFunction> feFunc = feFunctions_[TEST_DOF];
     shared_ptr<FeSpace> mySpace = feFunc->GetFeSpace();
 
-    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
+//    for ( it = materials_.begin(); it != materials_.end(); it++ ) {
       // Set current region and material
-      actRegion = it->first;
-      actSDMat = it->second;
+      actRegion = materials_.begin()->first;
+      actSDMat = materials_.begin()->second;
 
       // create new entity list
       // we use colList in order to be able to use constant FESpace, which is described by only one equation
@@ -397,7 +420,18 @@ namespace CoupledField {
       stiffInt->SetFeSpace( mySpace );
 
       assemble_->AddBiLinearForm( stiffIntDescr );
-    }
+//    }
+      PtrParamNode sensAnalysis = infoNode_->Get(ParamNode::SUMMARY)->Get("sensitvityAnalysis", ParamNode::INSERT);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(forwardSim_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(backwardSim_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(setupAdjoint_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(setupPardiso_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(solveLSE_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(dProp_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(dColl_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(dPressDrop_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(rhsSetup_);
+      sensAnalysis->Get("timer", ParamNode::APPEND)->SetValue(delSing_);
   }
 
   void LatticeBoltzmannPDE::InitCoupling(PDECoupling * coupling)
@@ -430,7 +464,6 @@ namespace CoupledField {
   {
     // infoNode_ is not set yet in the constructor
     PtrParamNode in = infoNode_->Get(ParamNode::HEADER)->Get("LBM");
-    in->Get("relaxation")->SetValue("SRT");
     in->Get("omega_nu")->SetValue(omega_);
     in->Get("Re")->SetValue(Re_);
     in->Get("maxIter")->SetValue(maxIter_);
@@ -485,6 +518,7 @@ namespace CoupledField {
 
         // this data is the final simulation but it lacks an additional propagation step for the adjoint calculation
         // We need to perform an additional propagation step as base for the adjoint system setup
+        forwardSim_->Start();
         StdVector<double>* tmp = lbm->Iterate(elements, in->Get("LBM"));
 
         pdfs_ = *tmp;
@@ -495,6 +529,7 @@ namespace CoupledField {
 
         pdfs_ = *tmp;
         in->Get("prop_step_pressure_drop")->SetValue(CalcPressureDrop());
+        forwardSim_->Stop();
 
         numWriteResults_ = lbm->GetNumWriteResults();
 
@@ -575,10 +610,8 @@ namespace CoupledField {
 void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f, DesignSpace* space)
 {
   // needs to be called after Solve() !!
-
-  Timer timer;
-  timer.Start();
-  adjoint_.Start();
+  setupAdjoint_->Start();
+  dColl_->Start();
 
   // Initialization of the data structures
   StdVector<double> ux(n_elems);
@@ -618,7 +651,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         dRds[GetPdfIndex(index,k)] = omega_ * (dfeqdux[k] * scale * ux[index] + dfeqduy[k] * scale * uy[index] + dfeqduz[k] * scale * uz[index]);
     }
     else if(elements[index] == LBM_NODE_TYPE_BB) {
-      d_bounceback_d_f(block); // bounce-back sensitivities
+      d_bounceback_d_f(index,block); // bounce-back sensitivities
     }
     else if(elements[index] == LBM_NODE_TYPE_INLET) {
       d_inflow_d_f(index,block, weights); // derivative at inlet with respect to f
@@ -627,13 +660,7 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       d_outflow_d_f(index, block, ux, uy, uz, dloc, weights); // derivative at outlet with respect to f
     }
     else if (elements[index] != LBM_NODE_TYPE_OBSTACLE){
-      assert(false);
-    }
-
-    if (adjSRT_ == INTERNAL) {
-      Matrix<double> transpose(n_q_,n_q_);
-      block.Transpose(transpose);
-      adjSRTCollision[index] = transpose;
+      //      assert(false);
     }
 
     // fill transpose of block in col_jacobi
@@ -642,17 +669,19 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
         col_jacobi(GetPdfIndex(index,k),GetPdfIndex(index,l)) = block[l][k];
       }
   }
-  double d_collision_setup = timer.GetCPUTime();
+
+  dColl_->Stop();
+  dPressDrop_->Start();
 
   // right-hand side
   Vector<Double> b = d_pressuredrop_d_f(ux, uy, uz);
-  double rhs_setup = timer.GetCPUTime();
 
-  PtrParamNode adjoint = infoNode_->Get(ParamNode::PROCESS)->Get("adjoint", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT);
+  dPressDrop_->Stop();
 
   // using external LSE solver
   if (adjSRT_ == EXTERNAL)
   {
+    dProp_->Start();
     // the real jacobi combines d_collision with d_propagation
     mapped_matrix<double> Jacobi(n_q_ * n_elems , n_q_ * n_elems);
     d_propagate_d_f(Jacobi,col_jacobi);
@@ -661,16 +690,19 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     for(unsigned int i=0;i < n_q_ * n_elems; i++)
       Jacobi(i,i) -= 1.;
 
-    double d_propagation_setup = timer.GetCPUTime();
+    dProp_->Stop();
 
+    delSing_->Start();
     //Data for Pardiso solver
     compressed_matrix<double> Jacobi_new(n_elems * n_q_, n_elems * n_q_, Jacobi.nnz());
 
     // Delete singular rows from the Jacobian
     DeleteSingularities(Jacobi,Jacobi_new);
 
-    double delete_sing_setup = timer.GetCPUTime();
+    delSing_->Stop();
+    setupAdjoint_->Stop();
 
+    setupPardiso_->Start();
     // use the cfs system matrix to solve the adjoint system
     StdMatrix* mat = algsys_->GetMatrix(SYSTEM)->GetPointer(0,0);
     LOG_DBG(lbm_pde) << "SA: " << mat->ToString(',','\n');
@@ -685,9 +717,9 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     crs->SetSize(n_elems * n_q_, n_elems * n_q_, Jacobi_new.nnz());
     matrix_sparse_to_crs(Jacobi_new, crs->GetDataPointer(), crs->GetRowPointer(), crs->GetColPointer());
 
-    // time to setup adjoint system before solving
-    double setup_wall = timer.GetWallTime();
-    double setup_cpu = timer.GetCPUTime();
+//    // time to setup adjoint system before solving
+//    double setup_wall = timer.GetWallTime();
+//    double setup_cpu = timer.GetCPUTime();
 
     LOG_DBG(lbm_pde) << "SA: d_pressuredrop_d_f=" << b.ToString(0,',');
     SBM_Vector rhs(BaseMatrix::DOUBLE);
@@ -699,12 +731,14 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
     LOG_DBG3(lbm_pde) << "SA: " << " rhs=" << rhs.GetPointer(0)->ToString(0,',');
 
     algsys_->InitRHS(rhs);
-
     algsys_->SetupSolver();
+    setupPardiso_->Stop();
+
+    solveLSE_->Start();
     algsys_->Solve();
     Vector<double> sol;
     algsys_->GetSolutionVal(sol,0,false);
-
+    solveLSE_->Stop();
 
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
@@ -714,21 +748,23 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       de->AddGradient(f, val);
     }
 
-    timer.Stop();
-    adjoint_.Stop();
-    adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
-    adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
-    adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
-    adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
-    adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
-    adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
-    adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
-    adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
+//    adjoint->Get("timer/cpu")->SetValue(timer.GetCPUTime());
+//    adjoint->Get("timer/wall")->SetValue(timer.GetWallTime());
+//    adjoint->Get("setupTimer/cpu")->SetValue(setup_cpu);
+//    adjoint->Get("setupTimer/wall")->SetValue(setup_wall);
+//    adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+//    adjoint->Get("setupTimer/d_prop")->SetValue(d_propagation_setup - d_collision_setup);
+//    adjoint->Get("setupTimer/del_sing")->SetValue(rhs_setup - delete_sing_setup);
+//    adjoint->Get("setupTimer/rhs")->SetValue(delete_sing_setup - d_propagation_setup);
   }
   else // solving adjoint system with same complexity as LBM simulation
   {
-    StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjSRTCollision,d_pdrop_d_f);
+    setupAdjoint_->Stop();
+    backwardSim_->Start();
+//    StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjSRTCollision,d_pdrop_d_f);
+    StdVector<double>* tmp = lbm->IterateAdjointSRT(infoNode_->Get(ParamNode::PROCESS)->Get("stateProblem/LBM/adjoint"),adjCollisions,d_pdrop_d_f);
     adjPdfs = *tmp;
+    backwardSim_->Stop();
 
     for(unsigned int e = 0; e < f->elements.GetSize(); e++)
     {
@@ -742,11 +778,17 @@ void LatticeBoltzmannPDE::SensitivityAnalysis(TransferFunction* tf, Function* f,
       double val = -d_coll_d_s.Inner(sol);
       de->AddGradient(f, val);
     }
+//    adjoint->Get("iterative/timer/cpu")->SetValue(timer.GetCPUTime());
+//    adjoint->Get("iterative/timer/wall")->SetValue(timer.GetWallTime());
+//    adjoint->Get("setupTimer/d_coll")->SetValue(d_collision_setup);
+
   }
-  adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
-  adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
-  adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
-  adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
+//  timer.Stop();
+//  adjoint_.Stop();
+//  adjoint = infoNode_->Get(ParamNode::SUMMARY)->Get("adjoint");
+//  adjoint->Get("totalTimer/cpu")->SetValue(adjoint_.GetCPUTime());
+//  adjoint->Get("totalTimer/wall")->SetValue(adjoint_.GetWallTime());
+//  adjoint->Get("totalTimer/calls")->SetValue(adjoint_.GetCalls());
 }
 
 void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
@@ -762,25 +804,6 @@ void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, dou
     ia[i] = M.index1_data()[i];
   }
 }
-
-
-//void LatticeBoltzmannPDE::matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
-void LatticeBoltzmannPDE::matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja)
-{
-  /*
-  //conversion of sparse matrix to compressed row storage format
-  // Create value array and column array
-  for(unsigned int i=0;i<M.filled2();i++) {
-    a[i] = M.value_data()[i];
-    ja[i] = M.index2_data()[i];
-  }
-  // Create row array
-  for(unsigned int i=0;i<M.filled1();i++) {
-    ia[i] = M.index1_data()[i];
-  }
-   */
-}
-
 
 /**
  * This function "deletes" the entries from the Jacobian causing its singularity. This is done by copying the valid values from the old Jacobian M to a new one.
@@ -885,21 +908,27 @@ void LatticeBoltzmannPDE::d_collision_step_d_f(unsigned int index, Matrix<double
 
   LOG_DBG3(lbm_pde) << "d_collision_step_d_f: index = " << index << " dfeqdux=" << dfeqdux.ToString() ;
 
+  StdVector<double>& collMatrix = adjCollisions[index]; // storage that we hand over to LBM solver for adjoint simulation
+
   //partial derivative of collision operator with respect to f: CORRECT (FDM)
   for (unsigned int i = 0; i < n_q_; i++)
   {
     for (unsigned int j = 0; j < n_q_; j++)
     {
       block[i][j] = (i == j) * (1 - omega_) + omega_ * dfeqdf[i][j];
+      collMatrix[GetMatrixElemId(j,i,n_q_)] = block[i][j]; // transposing included
     }
   }
 }
 
-void LatticeBoltzmannPDE::d_bounceback_d_f(Matrix<double>& block)
+void LatticeBoltzmannPDE::d_bounceback_d_f(int index, Matrix<double>& block)
 {
+  StdVector<double>& adjBB = adjCollisions[index];
+  adjBB.Init();
   // bounce-back sensitivities; gradient is just a permutation matrix
   for (unsigned int dir = 0; dir < n_q_; dir++) {
     block[dir][invPDFDirections_[dir]] = 1.0;
+    adjBB[GetMatrixElemId(invPDFDirections_[dir],dir,n_q_)] = 1.0;
   }
 }
 
@@ -930,9 +959,13 @@ void LatticeBoltzmannPDE::d_inflow_d_f(int index, Matrix<double>& block, StdVect
   }
    LOG_DBG3(lbm_pde) << "d_inflow_d_f index=" << index << " dfeqdrho=" << StdVector<double>::ToString(9, &dfeqdrho[0]);
 
+  StdVector<double>& adjInlet = adjCollisions[index];
+
   for (unsigned int i = 0; i < n_q_; i++)
-    for (unsigned int j = 0; j < n_q_; j++)
+    for (unsigned int j = 0; j < n_q_; j++) {
       block[i][j] = dfeqdrho[i];
+      adjInlet[GetMatrixElemId(j,i,n_q_)] = dfeqdrho[i];
+    }
 }
 
 void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight)
@@ -967,10 +1000,14 @@ void LatticeBoltzmannPDE::d_outflow_d_f(int index, Matrix<double>& block, StdVec
     duydf[i] = invdloc * (-uy[index] + transform.off_y);
     duzdf[i] = invdloc * (-uz[index] + transform.off_z);
   }
+
+  StdVector<double>& adjOutlet = adjCollisions[index];
   //gradient of u_x with respect to f
   for (unsigned int i = 0; i < n_q_; i++)
-    for (unsigned int j = 0;j < n_q_; j++)
+    for (unsigned int j = 0;j < n_q_; j++) {
       block[i][j] = dfeqdux[i] * duxdf[j] + dfeqduy[i] * duydf[j] + dfeqduz[i] * duzdf[j];
+      adjOutlet[GetMatrixElemId(j,i,n_q_)] = block[i][j];
+    }
 
 }
 
@@ -1039,7 +1076,7 @@ Vector<double> LatticeBoltzmannPDE::d_pressuredrop_d_f(StdVector<double>& ux, St
   double one_third = 1.0 / 3.0;
 
   // temporal storage for adjoint SRT
-  Vector<double> d_PD_d_f(n_q_);
+  StdVector<double> d_PD_d_f(n_q_);
   int index;
 
   for (unsigned int i = 0; i < inlet.GetSize(); i++) {
@@ -1259,7 +1296,7 @@ void LatticeBoltzmannPDE::ReadProbabilityDistribution(const std::string& filenam
         if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8)))
           EXCEPTION("error reading nine values in line " << (i+1) << " of file " << filename);
       }
-      else if (n_q_ == 19){
+      else if (n_q_ == n_q_){
         if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8) >> GetPdf(i,9)
             >> GetPdf(i,10) >> GetPdf(i,11) >> GetPdf(i,12) >> GetPdf(i,13) >> GetPdf(i,14) >> GetPdf(i,15) >> GetPdf(i,16) >> GetPdf(i,17) >> GetPdf(i,18)))
           EXCEPTION("error reading nineteen values in line " << (i+1) << " of file " << filename);
@@ -1423,6 +1460,7 @@ void LatticeBoltzmannPDE::SetupElements()
         // the ordering of the design elements and the LBM elements might be different as it is defined for LBM
         // and might be arbitrary in the mesh which defines the ordering in the optimization design
         elements[elem_to_idx[elem->elemNum]] = val;
+        rel.Push_back(elem_to_idx[elem->elemNum]); // storing id of nodes associated with design elements;
       }
     }
   }
@@ -1448,8 +1486,11 @@ void LatticeBoltzmannPDE::SetupElements()
   grd->GetElems(boundaries,boundId);
   grd->GetElems(elems,innerId);
 
-  for (unsigned int i = 0; i < boundaries.GetSize(); ++i)
+  for (unsigned int i = 0; i < boundaries.GetSize(); ++i) {
     elements[boundaries[i]->elemNum - 1] = -1.0;
+    if (!inlet.Contains(boundaries[i]->elemNum - 1) && !outlet.Contains(boundaries[i]->elemNum - 1))
+      bb.Push_back(boundaries[i]->elemNum - 1); // if boundary node is neither inlet nor outlet node, then it's a bounce back node
+  }
   // if there are obstacles in the domain
   if (inclusionId != -1) {
     grd->GetElems(obst,inclusionId);

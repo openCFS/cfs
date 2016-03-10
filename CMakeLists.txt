@@ -530,6 +530,11 @@ ENDIF(BUILD_TESTING)
 # Enables testsuite for matviz.py used be the optimization group
 #-----------------------------------------------------------------------------
 OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+  
+#-----------------------------------------------------------------------------
+# Switch on/off usage of intel optimization report
+#-----------------------------------------------------------------------------
+OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
 
 # The performance tests are meant for the nightly builds. For some strange reasons
 # PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
