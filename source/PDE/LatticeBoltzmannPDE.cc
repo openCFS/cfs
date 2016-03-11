@@ -1296,7 +1296,7 @@ void LatticeBoltzmannPDE::ReadProbabilityDistribution(const std::string& filenam
         if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8)))
           EXCEPTION("error reading nine values in line " << (i+1) << " of file " << filename);
       }
-      else if (n_q_ == n_q_){
+      else if (n_q_ == 19){
         if(!(ss >>  GetPdf(i,0) >>  GetPdf(i,1) >>  GetPdf(i,2) >>  GetPdf(i,3) >>  GetPdf(i,4) >>  GetPdf(i,5) >>  GetPdf(i,6) >>  GetPdf(i,7) >>  GetPdf(i,8) >> GetPdf(i,9)
             >> GetPdf(i,10) >> GetPdf(i,11) >> GetPdf(i,12) >> GetPdf(i,13) >> GetPdf(i,14) >> GetPdf(i,15) >> GetPdf(i,16) >> GetPdf(i,17) >> GetPdf(i,18)))
           EXCEPTION("error reading nineteen values in line " << (i+1) << " of file " << filename);
