@@ -6,7 +6,6 @@ from hdf5_tools import *
 import scipy.interpolate as ip
 from matviz_vtk import *
 from scipy.spatial import Delaunay
-from show_density import nx
 
 
 # writes a dense two region mesh
