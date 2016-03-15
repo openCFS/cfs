@@ -435,7 +435,7 @@ else:
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) <> 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'nondesign', False, 'load', 'support')
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
     print 'Reading elements from H5-file done '
     dim_2D = nondes_min[2] == nondes_max[2]
     print 'detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region" 

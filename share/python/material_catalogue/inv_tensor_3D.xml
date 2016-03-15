@@ -1,20 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <cfsSimulation xmlns="http://www.cfs++.org">
   
-
-
-<fileFormats>
+  <fileFormats>
     <output>
-      <gid directory="." />
-      <hdf5 directory="." />
+      <hdf5 />
+      <info/>
     </output>
-    <materialData file="mat.xml" format="xml"/>
+    <materialData file="mat.xml" format="xml" />
   </fileFormats>
 
-  <domain geometryType="3d">
-    <regionList> <region name="mech" material="99lines"/> </regionList>
-    <!-- nodeList>
-      <nodes name="center"> <coord x="0.0" y="0.0"/> </nodes>
-   </nodeList -->
+<domain geometryType="3d">
+    <regionList>
+     <region name="mech" material="Ti6Al4V"/> 
+    </regionList>
   </domain>
 
   <sequenceStep>
@@ -46,17 +44,19 @@
         </storeResults>
       </mechanic>
     </pdeList>
-
     <linearSystems>
-      <system name="mechanic"> <solver type="pardiso"/> </system>
-    </linearSystems>    
-  </sequenceStep>
+      <system>
+        <solverList>
+          <pardiso/>
+        </solverList>
+      </system>
+    </linearSystems>
+</sequenceStep>
  
   <loadErsatzMaterial file="0-0-0.dens.xml" set="last" force_region="mech"/>
   
-  <optimization log="[problem]">
-    <costFunction type="youngsModulus" task="minimize" multiple_excitation="true">
-      <stopping queue="100"/>
+  <optimization>
+    <costFunction type="homTensor" task="minimize" multiple_excitation="true">
       <multipleExcitation type="homogenizationTestStrains" />
     </costFunction>
 
@@ -72,20 +72,13 @@
     <!--<constraint name="homogenizationTensor" type="equal" coord="21" mode="observation" />-->
     
     
-    <constraint type="slope" mode="constraint" value="0.33" bound="upperBound" />
-    <constraint type="volume" mode="observation" physical="true" />
-    <constraint type="greyness" mode="observation"/>
-    <constraint type="greyness" mode="observation" physical="true" />    
-    
-    <optimizer type="evaluate" maxIterations="100" >
-<!--      <snopt>
-        <option type="integer" name="verify_level" value="3"/>
-      </snopt>-->      
-    </optimizer>
-    <ersatzMaterial method="simp" material="mechanic" region="mech">
-      <design name="density" initial="1.0" lower="0.000001" upper="1" region="mech" />
-      <transferFunction type="simp" application="mech" design="density" param="1"/>
-      <!-- export/ -->
+       <optimizer type="evaluate" maxIterations="1"/>
+    <ersatzMaterial method="simp" material="mechanic">
+      <regions>
+        <region name="mech"/>
+      </regions>
+      <design name="density" initial="1" lower="1e-9" upper="1" region="mech"/>
+      <transferFunction type="identity" application="mech" design="density"/> 
     </ersatzMaterial>
   </optimization> 	  
 
