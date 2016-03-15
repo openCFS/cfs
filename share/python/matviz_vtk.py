@@ -209,12 +209,20 @@ def create_point_vector_centered_bar(center, dim, angle=None):
     n = [float(cx + r[0]), float(cy + r[1]), float(cz + r[2])]
     points.append(n)  # 0 ... 7
   return points
-# helper for create_frame
-# @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
-# @param points vtk.vtkPoints() where the points are added
-# @param dim list of length, width, height
-# @param angle list of angle_x, angle_y, angle_z or None
+
 def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None):
+  # helper for create_frame
+  # @param cells  vtk.vtkCellArray() where cells are added via InsertNextCell
+  # @param points vtk.vtkPoints() where the points are added
+  # @param dim list of length, width, height
+  # 
+  # @param cells, points: cells and points array with all current VTK elements
+  # @param center: center of current cell
+  # @param dim: (length, width, height) of the current cell
+  
+  #optional parameters: @param  not_drawn (faces which are not drawn)
+  #                     @param angle list of angle_x, angle_y, angle_z or None
+  
   base = points.GetNumberOfPoints()
   # calculate corner points of quad and add them to global points list
   point_vec = create_point_vector_centered_bar(center, dim, angle)
@@ -224,6 +232,7 @@ def create_centered_bar(cells, points, center, dim, angle=None,not_drawn = None)
   # Create a cell array to store the quad in
   # quads = vtk.vtkCellArray()
   
+  # cell is created out of different VTK quads
   # Create a quad on the four points
   if not_drawn is None or not_drawn[0] != 'front' or not_drawn[1] != 'front':
     # front face
@@ -448,15 +457,28 @@ def valid_position_apod6(pos, coords,opt = 0. ):
   return True
 
 # # without rotation and shearing
-def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid_position,thres=0.0,csize = None):
-  centers, min, max = coords[0:3]  # we cannot use the first region element element dimensions 
+def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, scale,valid_position,thres=0.0,csize = None):
+  # coords, s1, s2, s3, angles: element center coordinates and design values s1,s2,s3,angle per finite element
+  # ip_nx: number of uniform cells in x-direction, can be replaced by csize (size of cell in each direction)
+  # grad: type of interpolation ('linear', 'nearest')
+  # scale: parameter for scaling the cell size if necessary
+  # valid_position: returns false if point inside the convex hull of the part, should be excluded, otherwise true.
+  #                 Needs to be implemented for every mechanical part, currently available for robot and apod6.
+  #                 If part is not implemented valid_position is None and no cells inside the convex hull are removed from the structure
+  # thres: threshold value for design variables s1/s2/s3. The cell is not visualized if s1,s2,s3 <= thres
+  # csize: size of one cell, e.g. [8,8,8]
   
+  # point coordinates from h5 file
+  centers, min, max = coords[0:3] 
+  
+  # create vtk cells and points
   cells = vtk.vtkCellArray()
   points = vtk.vtkPoints()
 
   if scale <= 0:
     scale = 1.0
   
+  # set size dx/dy/dz of one cell
   if csize is None:
     dx = (max[0] - min[0]) / ip_nx
     dy = dx
@@ -465,32 +487,41 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid
     dx = csize[0]
     dy = csize[1]
     dz = csize[2]
-  vol = calc_cross_elem_vol_3D(s1,s2,s3) 
+    
+  # calculate 3d volume of the structure
+  vol = calc_cross_elem_vol_3D(s1,s2,s3)
+  
+  # calculate interpolated values of the design variables s1,s2,s3 for a uniform 3d grid 
   ip_data, ip_near, out, ndim,scale_ = get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angles)
 
   #scales the lattice cells to fit in the design domain exactly
   #scale = scale_max 
   
+  # counters for visualized or non-visualized cells inside the convex hull of the part
   within = 0
   invalid = 0
   real_volume = 0.
   for i in range(len(out)):
     coord = out[i]
+    # get interpolated design variables on uniform grid
     s1, s2, s3 = ip_data[i][0:3]
     angle = None if angles is None else ip_data[i][3:6]
-    # if s1 < 0 point is out of the convex hull
+    # if s1 < 0 point is out of the convex hull of the part
     if s1 > 0.0:
-      if not valid_position(coord, coords):
+      if not valid_position is None and not valid_position(coord, coords):
         invalid += 1
         continue
       within += 1
       if s1 >= thres or s2 >= thres or s3 >= thres:
+        # draw each bar of 3D cross for s1 > s2,s3
         if s1 >= s2 and s1 >= s3:
-          if s1 >= thres:#valid_bar_position_apod6(points,coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle):      
+          if s1 >= thres:#valid_bar_position_apod6(points,coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle):
+            # draw thickest bar first      
             create_centered_bar(cells, points, coord, (scale * scale_[0] * dx, scale * s1 * dx, scale * s1 * dx), angle,['right','left'])
             real_volume += scale * scale_[0] * dx * scale * s1 * dx * scale * s1 * dx
           coord_offset = [0.,scale* dx * s1 * 0.5 + scale * 0.25 * (scale_[1] * dy - dx * s1),0.]
           dy_offset = scale * 0.5 * (scale_[1]*dy-s1*dx)
+          #add two parts of s2-bar, two parts are necessary that it doesn't intersect the s1-bar
           if s2 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle):
             create_centered_bar(cells, points, coord + coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy* dy_offset* scale * s2 * dy
@@ -500,12 +531,14 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid
           
           coord_offset = [0.,0.,scale * dx * s1 * 0.5 + scale * 0.25 * (scale_[2] * dz - dx * s1)]
           dz_offset = scale * 0.5 * (scale_[2]*dz-s1*dx)
+          #add two parts of s3-bar, two parts are necessary that it doesn't intersect the s1-bar
           if s3 >= thres:#valid_bar_position_apod6(points,coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
             create_centered_bar(cells, points, coord + coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
           if s3 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
             create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
+        # draw each bar of 3D cross for s2 > s1,s3
         elif s2 >= s1 and s2 >= s3:
           if s2 >= thres:#valid_bar_position_apod6(points,coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle):
             create_centered_bar(cells, points, coord, (scale * s2 * dy, scale * scale_[1]* dy, scale * s2 * dy), angle,['top','bottom'])
@@ -526,6 +559,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid
           if s3 >= thres:#valid_bar_position_apod6(points,coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle):
             create_centered_bar(cells, points, coord - coord_offset, (scale * s3 * dz, scale * s3 * dz,dz_offset), angle,['front','back'])
             real_volume += scale * s3 * dz * scale * s3 * dz * dz_offset
+        # draw each bar of 3D cross for s3 > s1,s2
         elif s3 >= s1 and s3 >= s2:  
           if s3 >= thres:#valid_bar_position_apod6(points,coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle):
             create_centered_bar(cells, points, coord, (scale * s3 * dz, scale * s3 * dz, scale * scale_[2] * dz), angle,['front','back'])
@@ -547,12 +581,6 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid
             create_centered_bar(cells, points, coord - coord_offset, (scale * s2 * dy, dy_offset, scale * s2 * dy), angle,['top','bottom'])
             real_volume += scale * s2 * dy * dy_offset * scale * s2 * dy
 
-        #if dir == 'horizontal' or dir == 'all':
-        #  create_centered_bar(cells, points, coord, (scale * dx, scale * s1 * dx, scale * s1 * dx), angle)
-        #if dir == 'vertical' or dir == 'all':
-        #  create_centered_bar(cells, points, coord, (scale * s2 * dx, scale * dx, scale * s2 * dx), angle)
-        #if dir == 'sagittal' or dir == 'all':
-        #  create_centered_bar(cells, points, coord, (scale * s3 * dx, scale * s3 * dx, scale * dx), angle)
   real_volume /= within * dx * dy * dz
   print 'volume of 3D Two-scale result = ' + str(vol)
   print 'real volume of 3D lattice = ' + str(real_volume)  
@@ -570,7 +598,7 @@ def create_3d_frame_ip(coords, s1, s2, s3, angles, ip_nx, grad, dir, scale,valid
 # this is copy & paste from matviz_2d but extended to 3D
 # @param nx_ip number of interpolations within x
 def get_interpolation(coords, grad, s1, s2, s3, dx,dy,dz, angle=None):
-  # we make our own elem
+  # we make our own regular element grid
   centers, mi, ma = coords[0:3]  # skip elem
  
   delta = (abs(ma[0] - mi[0]), abs(ma[1] - mi[1]), abs(ma[2] - mi[2]))
