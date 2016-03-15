@@ -26,19 +26,14 @@ public:
 
   ~LBMSIMP();
 
+  void SolveLBMState(Excitation* ev_only_excite = NULL);
+
 protected:
 
   /** overloads SIMP::CalcFunction()
    * @see ErsatzMaterial::CalcFunction */
-  double CalcFunction(Excitation& excite, Function* f, bool derivative);
+  virtual double CalcFunction(Excitation& excite, Function* f, bool derivative);
 
-  /** overwrite. We have no FE and don't store the results, all done by LatticeBoltzmannPDE. */
-  void SolveStateProblem(Excitation* ev_only_excite = NULL);
-
-private:
-
-  /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  LatticeBoltzmannPDE* lbm;
 };
 
 } // end of namespace

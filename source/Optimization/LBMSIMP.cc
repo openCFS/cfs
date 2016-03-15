@@ -10,7 +10,7 @@ DEFINE_LOG(lbmsimp, "lbmsimp")
 
 LBMSIMP::LBMSIMP()
 {
-	lbm = NULL;
+
 }
 
 LBMSIMP::~LBMSIMP()
@@ -18,10 +18,12 @@ LBMSIMP::~LBMSIMP()
 
 }
 
-void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
+void LBMSIMP::SolveLBMState(Excitation* ev_only_excite)
 {
   assert(context->pde != NULL);
-  lbm = dynamic_cast<LatticeBoltzmannPDE*>(context->pde);
+  std::cout << "num pdes: " << context->pdes.size() << std::endl;
+  std::cout << context->pdes[App::LBM]->GetName() << std::endl;
+  LatticeBoltzmannPDE* lbm = dynamic_cast<LatticeBoltzmannPDE*>(context->pde);
   assert(lbm != NULL);
   LOG_DBG(lbmsimp) << "SSP -> solve";
   lbm->Solve();
@@ -32,6 +34,7 @@ void LBMSIMP::SolveStateProblem(Excitation* ev_only_excite)
 double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
 {
   LOG_DBG(lbmsimp) << "CF -> f=" << f->ToString() << " d=" << derivative;
+  LatticeBoltzmannPDE* lbm = dynamic_cast<LatticeBoltzmannPDE*>(context->pde);
 
   // assume the problem is solved for the current design by DesignChanged()
   if(!derivative)
@@ -47,6 +50,7 @@ double LBMSIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
   }
   else
   {
+    std::cout << "function: " << Function::type.ToString(f->GetType()) << std::endl;
     if(f->GetType() == Function::PRESSURE_DROP)
     {
       assert(lbm->GetIface() != LatticeBoltzmannPDE::EXTERNAL);
