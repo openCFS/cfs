@@ -1260,8 +1260,8 @@ def create_mesh_from_tetgen(meshfile, region):
 
 
 def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, scale,d_f,valid_position,type = "apod6",thres=0.0,csize = None,simp = None):
-  centers, mi, ma = coords[0:3]  # we cannot use the first region element element dimensions 
-  nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign nodes
+  centers, mi, ma = coords[0:3]  # design elements
+  nondes_centers, nondes_min, nondes_max = nondes_coords[0:3]  # nondesign elements
   mesh = Mesh()
   # number of cells in one-direction per coarse cell (for validation)
   dx_f,dy_f,dz_f = d_f
@@ -1298,11 +1298,14 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   nx = (int(delta[0] / dx) + 1)*dx_f
   ny = (int(delta[1] / dy) + 1)*dy_f
   nz = (int(delta[2] / dz) + 1)*dz_f
-  
+
+  print "nx,ny,nz = " + str(nx) + ", " + str(ny) + ", " + str(nz)
+  print "des: ma,mi = " + str(ma) + " " + str(mi) 
+  print "nondes: ma,mi = " + str(nondes_max) + " " + str(nondes_min) 
   #thickness of shell 1mm: tx,... is thickness of non-design shell
   if type == "apod6":
     tx = 0
-    ty = int(dy_f / (dy*1000))
+    ty = int(dy_f / (dy*1000))+1
     tz = 0
   elif type == "robot":
     tx = int(dx_f / dx)
@@ -1317,12 +1320,12 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   if ny == 0 or nz == 0 or nx == 0:
     print 'chose a higher hom_samples or smaller cell_size such that also the smallest side gets discretized'
     exit()
-  print "tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz) 
+  print "tx, ty, tz = " + str(tx) + ", " + str(ty) + ", " + str(tz)
+  # add nodes including offset for shell 
   for z in range(-tz,nz+1+tz):
-    # offset for shell in y-direction
     for y in range(-ty, ny + 1 + ty):
       for x in range(-tx,nx+1+tx):
-        mesh.nodes.append((mi[0] + 0.5 * dx/dx_f + float(x) * dx/dx_f, mi[1] + 0.5 * dy/dy_f +  float(y) * dy/dy_f, mi[2] + 0.5 * dz/dz_f +float(z) * dz/dz_f))
+        mesh.nodes.append((mi[0] + float(x) * dx/dx_f, mi[1] +  float(y) * dy/dy_f, mi[2] +float(z) * dz/dz_f))
   print 'inserting mesh.nodes done'
   nnx = nx + 2 * tx
   nny = ny + 2 * ty 
@@ -1352,7 +1355,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
           else:
               create_cross_3D(array,l,u,void,void,void,hole,res)
         elif simp is None:
-          create_cross_3D(array,l,u,void,void,void,hole,res)
+          create_cross_3D(array,l,u,-1.,-1.,-1.,hole,res)#void,void,void,hole,res)
         else:
           # simp
           if s1 > 0:
@@ -1375,37 +1378,59 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
         e.type = HEXA8
         ll = (nnx + 1) * (nny + 1) * z + (nnx + 1) * y + x  # lowerleft
         e.nodes = ((ll + (nnx + 1) * (nny + 1), ll + (nnx + 1) * (nny + 1) + nnx + 1, ll + (nnx + 1) * (nny + 1) + nnx + 1 + 1, ll + (nnx + 1) * (nny + 1) + 1, ll, ll + nnx + 1, ll + nnx + 1 + 1, ll + 1))        
-        condition = True if type == "robot" else (x < tx) or (y < ty) or (z < tz) or (y >= ny) or (x >= nx) or (z >= nz)
-        if condition:
-          # calculate center of element
-          center = numpy.array([0.0, 0.0, 0.0])
-          len_nod = len(e.nodes)
-          for n in range(len_nod):
-            center += mesh.nodes[e.nodes[n]]
-          center *= 1.0 / len_nod
+        condition = True #if type == "robot" else ((x < tx) or (y < ty) or (z < tz) or (x >= nx+tx) or (y >= ny+ty) or (z >= nz+tz))
+        count = 0
+        for i in range(len(e.nodes)):
+	  node = mesh.nodes[e.nodes[i]]
+          # test if element is above or below design region, bounds are given by non-design region
+          if (node[1] >= -0.33403 - ((0.5*dy)/dy_f) and node[1] < -0.33303 + ((0.5*dy)/dy_f)) or (node[1] <= -0.35203 + ((0.5*dy)/dy_f) and node[1] > -0.35303 - ((0.5*dy)/dy_f)):
+	    count +=1
+        # calculate center of element
+        center = numpy.array([0.0, 0.0, 0.0])
+        len_nod = len(e.nodes)
+        for n in range(len_nod):
+          center += mesh.nodes[e.nodes[n]]
+        center *= 1.0 / len_nod
+        if count >= 5:
           # test if is in convex hull of non-design nodes
           if in_hull(center, hull):
             if not valid_position(center, coords,offset):
               e.region = 'void1'
-            elif type == "robot" and array[x,y,z] > 0.9:
-              number += 1
-	      e.region = 'design'
-            elif type == "robot" and not in_hull(center, hull_des):
-	      e.region = 'non-design'
-	      number += 1.
+            #elif type == "robot" and array[x,y,z] > 0.9:
             else:
-              if type == "robot":
-                e.region = 'void3'
-	      else:
-		e.region = "non-design"
-		number += 1
+		e.region = 'non-design'
+ 	        number += 1
+            #elif type == "robot" and not in_hull(center, hull_des):
+	    #  e.region = 'non-design'
+	    #  number += 1.
+            #else:
+            #  if type == "robot":
+            #    e.region = 'void3'
+	    #  else:
+		#e.region = "non-design"
+		#number += 1
           else:
             e.region = 'void2'
-        elif array[x,y,z] <= void:
-          e.region = 'void3'
         else:
-          number += 1
-          e.region = 'design'  
+          # test if is in convex hull of non-design nodes
+          if in_hull(center, hull):
+	    if not valid_position(center, coords,offset):
+              e.region = 'void1'
+            #elif type == "robot" and array[x,y,z] > 0.9:
+            elif array[x,y,z] > 0.9:
+              number += 1
+              e.region = 'design'
+            elif array[x,y,z] <= void + 1e-5:
+              e.region = 'void3'
+	    else:
+	      e.region = "void5"
+          else:
+	    e.region = "void4"
+        #elif array[x,y,z] <= void:
+        #  e.region = 'void3'
+        #else:
+        #  number += 1
+        #  e.region = 'design'  
         mesh.elements.append(e)
   if type == "apod6":
     # add apod6 boundary conditions to mesh      
@@ -1494,44 +1519,46 @@ def add_robot_boundary_conditions(mesh):
             
 def add_apod6_boundary_conditions(mesh):
   # add apod6 boundary conditions
-  m1 = [33052., -353., -2474.]
-  m2 = [33046., -353., -2518.]
-  m3 = [33131., -353., -2449.]
-  m4 = [33124., -353., -2498.]
-  m5 = [32978., -353., -2436.]
-  m6 = [32971., -353., -2485.]
-  m7 = [33023., -353., -2559.]
-  m8 = [33042., -353., -2548.]
-  m9 = [33004., -353., -2443.]
-  r1 = 19.5
-  r2 = 16.5
-  r3 = 5.8
-  delta = 0.2
+  m1 = [33.052, -0.353, -2.474]
+  m2 = [33.046, -0.353, -2.518]
+  m3 = [33.131, -0.353, -2.449]
+  m4 = [33.124, -0.353, -2.498]
+  m5 = [32.978, -0.353, -2.436]
+  m6 = [32.971, -0.353, -2.485]
+  m7 = [33.023, -0.353, -2.559]
+  m8 = [33.042, -0.353, -2.548]
+  m9 = [33.004, -0.353, -2.443]
+  r1 = 0.0195
+  r2 = 0.0165
+  r3 = 0.0058
+  delta = 0.0002
   force1 = []
   force2 = []
   force3 = []
   support = []
   support2 = []
   support3 = []
+  upper_bound = -0.35303
+  dy = 0.0009
   for i in range(len(mesh.nodes)):
     coord = mesh.nodes[i][:]
-    if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
+    if abs(coord[1] - upper_bound) < dy and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
       force1.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
       force2.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < r1 ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < r1 ** 2:
       force3.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) <  dy  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3+delta) ** 2:
       support2.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3+delta) ** 2:
       support3.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3+delta) ** 2:
       support3.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3+delta) ** 2:
       support3.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3+delta) ** 2:
       support3.append(i)
-    elif abs(coord[1] + 353.) < 1.  and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3+delta) ** 2:
+    elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3+delta) ** 2:
       support3.append(i)
     elif (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < r3 ** 2:
       support.append(i)
@@ -1665,6 +1692,8 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
         support.append(i)
       elif (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < r3 ** 2:
         support.append(i)
+    upper_bound = -353.03
+    dy = 0.9
     for i in range(len(mesh.elements)):
       e = mesh.elements[i]
       f1 = False
@@ -1675,27 +1704,27 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
       if e.region == "non-design":
         for j in range(len(e.nodes)):
           coord = mesh.nodes[e.nodes[j]]
-          if abs(coord[1] + 353.) < 1. and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
+          if abs(coord[1] - upper_bound) < dy and (coord[0] - m1[0]) ** 2 + (coord[2] - m1[2]) ** 2 < r1 ** 2:
             f1 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m2[0]) ** 2 + (coord[2] - m2[2]) ** 2 < r2 ** 2:
             f2 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < (r1+ delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m9[0]) ** 2 + (coord[2] - m9[2]) ** 2 < (r1+ delta) ** 2:
             f3 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy and (coord[0] - m8[0]) ** 2 + (coord[2] - m8[2]) ** 2 < (r3 + delta) ** 2:
             sp2 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m3[0]) ** 2 + (coord[2] - m3[2]) ** 2 < (r3 + delta) ** 2:
             sp3 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m4[0]) ** 2 + (coord[2] - m4[2]) ** 2 < (r3 + delta) ** 2:
             sp3 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m5[0]) ** 2 + (coord[2] - m5[2]) ** 2 < (r3 + delta) ** 2:
             sp3 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy  and (coord[0] - m6[0]) ** 2 + (coord[2] - m6[2]) ** 2 < (r3 + delta) ** 2:
             sp3 = True
-          elif abs(coord[1] + 353.) < 1.  and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3 + delta) ** 2:
+          elif abs(coord[1] - upper_bound) < dy and (coord[0] - m7[0]) ** 2 + (coord[2] - m7[2]) ** 2 < (r3 + delta) ** 2:
             sp3 = True
         for j in range(len(e.nodes)):
           coord = mesh.nodes[e.nodes[j]]
-          if f1 == True and abs(coord[1] + 353.) < 1.:
+          if f1 == True and abs(coord[1] - upper_bound) < dy:
               force1.append(e.nodes[j])
           elif f2 == True:
             force2.append(e.nodes[j])
