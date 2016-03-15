@@ -44,7 +44,6 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
-#include "Optimization/LBMSIMP.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -56,6 +55,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
@@ -399,7 +399,7 @@ void ErsatzMaterial::StoreResults(double step_val)
   }
 
   if(cm == FORWARD || cm == BOTH) {
-    assert(!context->DoMultiSequence()); // extend!
+//    assert(!context->DoMultiSequence()); // extend!
     forward.WriteAverage(context->pde, context->sequence); // func = NULL
     Optimization::StoreResults(step_val);
   }
@@ -1552,8 +1552,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
 
       case Function::ELEC_ENERGY:
-      case Function::PRESSURE_DROP:
         assert(false);// shall be handled before
+        break;
+
+      case Function::PRESSURE_DROP:
+        if (!derivative)
+          result = context->GetLatticeBoltzmannPDE()->CalcPressureDrop();
+        else
+          context->GetLatticeBoltzmannPDE()->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
         break;
 
       case Function::SLACK:
@@ -3155,8 +3161,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       if(context->DoBloch() && (e == 0 || switched)) // handle no multiple sequence case and multiple sequence case with bloch not first
         context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
-      if(context->DoLBM())
-        dynamic_cast<LBMSIMP*>(this)->SolveLBMState();
+      if(context->DoLBM()) {
+        LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
+        assert(lbmPde != NULL);
+        lbmPde->Solve();
+      }
       else
         Optimization::SolveStateProblem(&excite); // this is true for all problem types
 

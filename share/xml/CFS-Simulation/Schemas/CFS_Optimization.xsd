@@ -938,6 +938,19 @@
               </xsd:complexType>
             </xsd:element>
             
+            <xsd:element name="materials" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="material" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="type" use="required" type="xsd:token"/>
+                      <xsd:attribute name="sequence" use="required" type="xsd:nonNegativeInteger"/>
+                    </xsd:complexType>              
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="filters" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>

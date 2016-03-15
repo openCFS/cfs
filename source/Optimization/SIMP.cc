@@ -34,6 +34,7 @@
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/StdVector.hh"
 #include "Utils/mathParser/mathParser.hh"
 #include "Utils/tools.hh"
@@ -99,7 +100,6 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
-    std::cout << "system: " << OptimizationMaterial::system.ToString(mat->GetSystem()) << std::endl;
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)
@@ -206,6 +206,14 @@ double SIMP::CalcFunction(Excitation& excite, Function* f, bool derivative)
     double weight = excite.GetWeightedFactor(f);
     LOG_DBG(simp) << "CalcFunction(idx=" << excite.index << ") norm_weight= " <<  excite.normalized_weight  << " factor=" << excite.GetFactor(f) << " weight=" << weight;
     CalcU1KU2(tf, adjoint.Get(excite, f)->elem[app], app, forward.Get(excite)->elem[app], NULL, weight, STANDARD, f);
+    break;
+  }
+
+  case Function::PRESSURE_DROP:
+  {
+    LatticeBoltzmannPDE* lbmPde = context->GetLatticeBoltzmannPDE();
+    assert(lbmPde != NULL);
+    lbmPde->SensitivityAnalysis(design->GetTransferFunction(f->elements[0]), f, design);
     break;
   }
 
