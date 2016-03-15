@@ -17,6 +17,7 @@ class Exctiation;
 class MultipleExcitation;
 class Function;
 class OptimizationMaterial;
+class LatticeBoltzmannPDE;
 
 struct App
 {
@@ -96,6 +97,8 @@ class Context
   bool DoBloch() const { return bloch_; }
 
   inline bool DoLBM() const {return (ToApp() == App::LBM);}
+
+  LatticeBoltzmannPDE* GetLatticeBoltzmannPDE();
 
   /** the driver steps: 1 for static, numFreq for harmonic and wave numbers for bloch */
   unsigned int GetDriverSteps() const { assert(driver_steps_ > 0); return driver_steps_; }

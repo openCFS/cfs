@@ -10,6 +10,7 @@
 #include "Forms/LinForms/LinearForm.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+#include "PDE/LatticeBoltzmannPDE.hh"
 
 using namespace CoupledField;
 
@@ -104,7 +105,15 @@ void Context::Update()
   if(pde != NULL && mat == NULL && em != NULL) // might be
   {
     assert(Optimization::context == this); // we are already set as active -> necessary for OptimizationMaterial
-    mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em, this);
+    if(em->pn->Has("materials")) {
+      ParamNodeList list = em->pn->Get("materials")->GetListByVal("material", "sequence", this->sequence);
+      if(list.IsEmpty())
+        EXCEPTION("'materials' is given but does not contain 'material' for sequence " << sequence);
+      assert(list.GetSize() == 1);
+      mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(list[0]->Get("type")->As<std::string>()), em, this);
+    }
+    else
+      mat = OptimizationMaterial::CreateInstance(OptimizationMaterial::system.Parse(em->pn->Get("material")->As<std::string>()), em, this);
 
     // would be too early in Setup()
     if(domain->GetOptimization() != NULL)
@@ -128,6 +137,11 @@ EigenFrequencyDriver* Context::GetEigenFrequencyDriver()
 HarmonicDriver* Context::GetHarmonicDriver()
 {
   return dynamic_cast<HarmonicDriver*>(driver);
+}
+
+LatticeBoltzmannPDE* Context::GetLatticeBoltzmannPDE()
+{
+  return dynamic_cast<LatticeBoltzmannPDE*>(pde);
 }
 
 
