@@ -91,19 +91,61 @@
       <xsd:element name="anisotropic" type="DT_AnisotrNonLinMagnPermeability"/>
     </xsd:choice>
   </xsd:complexType>
-  
+
+  <!-- restriction to the available approximation types -->
+  <xsd:simpleType name="DT_NonLinMagApproxType">
+    <xsd:restriction base="xsd:string">
+      <xsd:enumeration value="smoothSplines"/>
+      <xsd:enumeration value="analytic"/>
+    </xsd:restriction>
+  </xsd:simpleType>
+
   <!-- ******************************************************************* -->
   <!--   Definition of isotropic non linear magnetic permeability-->
   <!-- ******************************************************************* -->
   <xsd:complexType name="DT_IsotrNonLinMagnPermeability">
     <xsd:sequence>
-      <xsd:element name="dependency" type="xsd:string"/>
-      <xsd:element name="approxType" type="xsd:string"/>
-      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
-      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
-      <xsd:element name="dataName" type="xsd:string"/>
-      <xsd:element name="nuExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="nuDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
+      <!--xsd:element name="dependency" type="xsd:string"/--><!-- this one is never used in cfs -->
+      <xsd:element name="approxType" type="DT_NonLinMagApproxType"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. It represents the weighting between smoothing and accuracy.
+            In the standard optimization problem for smoothing splines, it corresponds to the standard deviation of the input.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. If the field is higher than the specified value, an
+            exponential function is used for extrapolation, such that the reluctivity approaches the vacuum reluctivity.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="dataName" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. File name of the data to be approximated.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="nuExpr" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the analytic approxType. It is a string interpreted by the math parser, where "B_R" represents
+            the Euclidean norm of the flux density. Basically, any function depending on B can be specified.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="nuDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the analytic approxType. It is a string interpreted by the math parser, where "B_R" represents
+            the Euclidean norm of the flux density. It represents the first derivative of nuExpr with respect to B.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
     </xsd:sequence>
   </xsd:complexType>
   
@@ -118,15 +160,48 @@
   
   <xsd:complexType name="DT_AnisotropicNonLinBHCurves">
     <xsd:sequence>
-      <xsd:element name="angle"        type="DT_NonNegFloat"/>
-      <xsd:element name="dependency"   type="xsd:string"/>
-      <xsd:element name="approxType"   type="xsd:string"/>
-      <xsd:element name="measAccuracy" type="DT_NonNegFloat"/>
-      <xsd:element name="maxApproxVal" type="DT_NonNegFloat"/>
-      <xsd:element name="dataName"     type="xsd:string"/>
-      <xsd:element name="nuExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="nuDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1"/>
-      <xsd:element name="zScaling"     type="DT_NonNegFloat"/>
+      <xsd:element name="angle" type="DT_NonNegFloat"/>
+      <xsd:element name="approxType" type="DT_NonLinMagApproxType"/>
+      <xsd:element name="measAccuracy" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. It represents the weighting between smoothing and accuracy.
+            In the standard optimization problem for smoothing splines, it corresponds to the standard deviation of the input.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="maxApproxVal" type="DT_NonNegFloat" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. If the field is higher than the specified value, an
+            exponential function is used for extrapolation, such that the reluctivity approaches the vacuum reluctivity.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="dataName" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the smoothSplines approxType. File name of the data to be approximated.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="nuExpr" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the analytic approxType. It is a string interpreted by the math parser, where "B_R" represents
+            the Euclidean norm of the flux density. Basically, any function depending on B can be specified.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="nuDerivExpr" type="xsd:string" minOccurs="0" maxOccurs="1">
+        <xsd:annotation>
+          <xsd:documentation xml:lang="en">
+            This value is only necessary for the analytic approxType. It is a string interpreted by the math parser, where "B_R" represents
+            the Euclidean norm of the flux density. It represents the first derivative of nuExpr with respect to B.
+          </xsd:documentation>
+        </xsd:annotation>
+      </xsd:element>
+      <xsd:element name="zScaling" type="DT_NonNegFloat"/>
     </xsd:sequence>
   </xsd:complexType>  
   
