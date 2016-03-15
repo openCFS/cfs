@@ -587,15 +587,12 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
+    case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
       break;
       
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
-      break;
-      
-    case OptimizationMaterial::LBM:
-      opt = new LBMSIMP();
       break;
 
     default:

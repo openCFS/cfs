@@ -99,6 +99,7 @@ void SIMP::SetElementK(Context* ctxt, DesignElement* de, const TransferFunction*
   {
     int mm = de->multimaterial != NULL ? de->multimaterial->index : -1;
 
+    std::cout << "system: " << OptimizationMaterial::system.ToString(mat->GetSystem()) << std::endl;
     const Matrix<T2>& stiffness = dynamic_cast<const Matrix<T2>& >(mat->Stiffness(de->elem, false, mm)); // no bimaterial
 
     // Find the transfer function for K (e.g. DENSITY, App::MECH)

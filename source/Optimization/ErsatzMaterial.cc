@@ -44,6 +44,7 @@
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Excitation.hh"
 #include "Optimization/Function.hh"
+#include "Optimization/LBMSIMP.hh"
 #include "Optimization/Objective.hh"
 #include "Optimization/Optimization.hh"
 #include "Optimization/OptimizationMaterial.hh"
@@ -3154,10 +3155,12 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       if(context->DoBloch() && (e == 0 || switched)) // handle no multiple sequence case and multiple sequence case with bloch not first
         context->GetEigenFrequencyDriver()->SetupBlochPlot(); // the plot is written for each iteration and contains all modes for all wave numbers
 
-      // this is true for all problem types
-      Optimization::SolveStateProblem(&excite);
+      if(context->DoLBM())
+        dynamic_cast<LBMSIMP*>(this)->SolveLBMState();
+      else
+        Optimization::SolveStateProblem(&excite); // this is true for all problem types
 
-      if(!IsTransient()) // transient solutions are read per timestep
+      if(!context->DoLBM() && !IsTransient()) // transient solutions are read per timestep
       {
         // in the eigenvalue case we store the modes separately, similar to timesteps
         if(!context->IsEigenvalue())
