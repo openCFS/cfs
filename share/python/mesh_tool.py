@@ -1330,7 +1330,7 @@ def create_validation_mesh(coords,nondes_coords, s1, s2, s3, ip_nx, grad, dir, s
   nnx = nx + 2 * tx
   nny = ny + 2 * ty 
   nnz = nz + 2 * tz
-  array = -1. * numpy.ones((nnx,nny,nnz))
+  array = -1 * numpy.ones((nnx,nny,nnz))
   res = [dx_f,dy_f,dz_f]
   count = 0
   hole = -2. if type == "robot" else void
@@ -1531,7 +1531,7 @@ def add_apod6_boundary_conditions(mesh):
   r1 = 0.0195
   r2 = 0.0165
   r3 = 0.0058
-  delta = 0.0002
+  delta = 0.0012
   force1 = []
   force2 = []
   force3 = []
@@ -1726,13 +1726,13 @@ def create_mesh_for_apod6(meshfile, all_nodes = [], elements = [], force1 = [], 
           coord = mesh.nodes[e.nodes[j]]
           if f1 == True and abs(coord[1] - upper_bound) < dy:
               force1.append(e.nodes[j])
-          elif f2 == True:
+          elif f2 == True and abs(coord[1] - upper_bound) < dy:
             force2.append(e.nodes[j])
-          elif f3 == True:
+          elif f3 == True and abs(coord[1] - upper_bound) < dy:
             force3.append(e.nodes[j])
-          elif sp2 == True:
+          elif sp2 == True and abs(coord[1] - upper_bound) < dy:
             support2.append(e.nodes[j])    
-          elif sp3 == True:
+          elif sp3 == True and abs(coord[1] - upper_bound) < dy:
             support3.append(e.nodes[j])
   mesh.bc.append(('force1', force1))
   mesh.bc.append(('force2', force2))
