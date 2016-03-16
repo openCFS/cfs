@@ -708,7 +708,9 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     // ========================
     LOG_DBG(heatcondpde) << "Reading heat source values";
 
-    ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+    coefUpdateGeo = false;
+
+    ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // assume that we have elem list due to specification of a region instead of named nodes in xml file
       if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
@@ -716,9 +718,6 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       }
 
       UInt numNodes = ent[i]->GetSize();
-      // If more than one node is defined, we divide the total heat source temperature by the number
-      // of nodes to ensure that the total temperature is applied, independent of the
-      // number of nodes
       if( numNodes > 1 ) {
         Global::ComplexPart part = Global::REAL;
         coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
