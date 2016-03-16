@@ -5,7 +5,7 @@ freecores=1
 ncores=$(nproc)
 ncores=$((ncores-freecores))
 
-if (( "$ncores" < "0" )); then
+if [ "$ncores" -lt "0" ]; then
   echo "Too much free cores requested. Please lower number of cores to be left free."
   exit
 fi
