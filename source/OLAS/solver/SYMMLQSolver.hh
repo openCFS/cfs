@@ -90,7 +90,7 @@ namespace CoupledField {
   //!       <td>This parameter is used to control the verbosity of the method.
   //!           If it is set to 'yes', then information on the SYMMLQ
   //!           convergence, like e.g. the norm of the residual per iteration
-  //!           step will be logged to the standard %OLAS report stream (*cla).
+  //!           step will be logged to the standard %OLAS report stream (*cla) ---removed logging---.
   //!       </td>
   //!     </tr>
   //!   </table>
@@ -357,26 +357,6 @@ namespace CoupledField {
     //! by the Solve() method. This is the actual implementation of Setup()
     //! for this class. The public Setup() falls back on this.
     void PrivateSetup( const BaseMatrix &sysMat );
-
-    //! Auxilliary routine for logging convergence info
-
-    //! This routine will log the Euclidean norm of the residual of the
-    //! current approximation and the relative residual to the standard
-    //! %OLAS report stream (*cla).
-    //! \param rk        norm of residual of new approximate,
-    //!                  i.e. \f$\|r^{(k)}\|_2\f$
-    //! \param r0        norm of residual of initial guess,
-    //!                  i.e. \f$\|r^{(0)}\|_2\f$
-    //! \param arf       average reduction factor, i.e.
-    //!                  \f$\|r^{(k)}\|_2/\|r^{(k-1)}\|_2\f$
-    //! \param step      global number of iteration step
-    //! \param firstCall on first call we also write a header
-    //!
-    //! Note that in the documentation of the parameters the iteration index
-    //! does refer to the local iteration index of the inner loop, not to the
-    //! number of the global iteration step.
-    void LogConvergence( Double rk, Double r0, Double arf, UInt step,
-			 bool firstCall = false );
 
   };
 

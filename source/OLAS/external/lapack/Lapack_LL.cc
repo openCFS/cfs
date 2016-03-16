@@ -48,18 +48,6 @@ namespace CoupledField {
   // ********************************
   void Lapack_LL::Setup( BaseMatrix &sysMat) {
 
-
-    // Are we expected to be verbose?
-    bool logging = false;
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " --------------------------------------\n"
-      << " LAPACK_LL: Starting factorisation of a "
-      << sysMat.GetNumRows() << " x " << sysMat.GetNumCols()
-      << " matrix" << std::endl;
-    }
-    
     StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
     // Check that we have the correct matrix type
@@ -89,12 +77,6 @@ namespace CoupledField {
 
     // now we have a (new) factorisation
     amFactorised_ = true;
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " LAPACK_LL: Finished factorisation\n"
-      << " --------------------------------------" << std::endl;
-    }
   }
 
 
@@ -105,9 +87,6 @@ namespace CoupledField {
 
 
     UInt i, k;
-
-    // Are we expected to be verbose?
-    bool logging = false;
 
     // Initialise parameters for DPBTRF
     char lp_uplo = 'L';
@@ -185,15 +164,6 @@ namespace CoupledField {
       // Determine number of entries in band matrix
       facMatEntries_ = ( bwGlobal + 1 ) * lp_n;
 
-      // Report to logfile
-      if ( logging == true ) {
-        (*cla) << "    Bandwidth = " << bwGlobal << "\n"
-        << "    Sparse matrix has " << scrsMat.GetNnz()
-        << " non-zero entries\n"
-        << "    Banded matrix has " << facMatEntries_ << " real entries"
-        << std::endl;
-      }
-
       // Memory allocation for band matrix: We only perform a
       // re-allocation, if the new size requirements are larger
       // than the old ones
@@ -264,9 +234,6 @@ namespace CoupledField {
 
 
     UInt i, k;
-
-    // Are we expected to be verbose?
-    bool logging = false;
 
     // Initialise parameters for ZPBTRF
     char lp_uplo = 'L';
@@ -344,16 +311,6 @@ namespace CoupledField {
       // Determine number of entries in band matrix
       UInt facMatEntries_ = ( bwGlobal + 1 ) * lp_n;
 
-      // Report to logfile
-      if ( logging == true ) {
-        (*cla) << "    Bandwidth = " << bwGlobal << "\n"
-        << "    Sparse matrix has " << scrsMat.GetNnz()
-        << " non-zero entries\n"
-        << "    Banded matrix has " << facMatEntries_
-        << " complex entries"
-        << std::endl;
-      }
-
       // Memory allocation for band matrix: We only perform a
       // re-allocation, if the new size requirements are larger
       // than the old ones (real and imag part count separately)
@@ -424,18 +381,6 @@ namespace CoupledField {
   // ***********************
   void Lapack_LL::Solve( const BaseMatrix &sysMat, const BaseVector &rhs, BaseVector &sol) {
 
-
-    // Are we expected to be verbose?
-    bool logging = false;
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " --------------------------------------\n"
-      << " LAPACK_LL: Computing solution of linear system"
-      << " with " << sysMat.GetNumRows() << " unknowns"
-      << std::endl;
-    }
-
     // Complain, if no factorisation is available
     // or the two indicators disagree
     if ( (facmat_+1) == NULL || amFactorised_ == false ) {
@@ -478,11 +423,6 @@ namespace CoupledField {
 
     default:
       EXCEPTION("Matrix entry type is neither real nor complex!");
-    }
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " --------------------------------------" << std::endl;
     }
   }
 

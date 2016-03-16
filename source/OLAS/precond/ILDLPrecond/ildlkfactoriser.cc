@@ -117,10 +117,6 @@ namespace CoupledField {
     // =================
     //  Report start-up
     // =================
-    if ( this->logging_ ) {
-      (*cla) << " + Using ILDL(k) variant with k = " << level_ << "\n\n"
-	     << " Phase: Combined ANALYSE + FACTORISE" << std::endl;
-    }
 
 #ifdef DEBUG_ILDLKFACTORISER
     (*debug) << " ILDLKFACTORISER:\n Phase: ANALYSE + FACTORISE\n k = "
@@ -244,11 +240,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    if ( this->logging_ == true ) {
-      (*cla) << '\n';
-    }
-    (*cla) << " Factorisation done:\n" << " 0%" << std::flush;
-
 
     // ============
     //  Main Loop
@@ -279,7 +270,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
       // Insert row k of A into linked list, but omit the diagonal entry,
@@ -720,12 +710,6 @@ namespace CoupledField {
     //   Clean-up
     // ============
 
-    // Finish logging to las-file
-    if ( percentDone < 100 ) {
-      (*cla) << " .. 100%";
-    }
-    (*cla) << std::endl;
-
     delete[] scanList_   ;
     delete[] activeList_ ;
     delete[] listIDX_    ; 
@@ -825,14 +809,6 @@ namespace CoupledField {
     // Represent profile as floating point number
     Double profileFP = profile + (double) std::numeric_limits<unsigned int>::max() * profileMult;
 
-    // Report
-    if ( this->logging_ ) {
-      (*cla) << " Pattern analysis\n"
-             << " + Matrix has a bandwidth of bw = " << bw
-             << "\n + Full factor (L + D) would contain " << profileFP
-             << " entries (at most)" << std::endl;
-    }
-
     // ======================================================
     //  Compute estimation for memory requirements of factor
     // ======================================================
@@ -851,12 +827,6 @@ namespace CoupledField {
 
     // Check that we are not larger than profile
     memSize = memSize > profileFP ? profileFP : memSize;
-
-    // Report
-    if ( this->logging_ ) {
-      (*cla) << " + Estimate of no. of entries in L: "
-             << (UInt) memSize << std::endl;
-    }
 
     // That's it
     return (UInt)memSize;

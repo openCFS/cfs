@@ -1374,12 +1374,6 @@ namespace CoupledField {
         EXCEPTION( "Congratulations! You have found a missing case "
                  << "implementation!" );
       }
-
-      // Report to standard report file
-      (*cla) << " CRS_Matrix: Changed sub-format from '"
-             << Enum2String( oldLayout )
-             << "' to '"
-             << Enum2String( currentLayout_ ) << "'" << std::endl;
     }
   }
 
