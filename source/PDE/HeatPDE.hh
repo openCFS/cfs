@@ -72,6 +72,8 @@ namespace CoupledField {
     //! Init the time stepping
     void InitTimeStepping();
     
+    SolutionType GetNativeSolutionType() const { return HEAT_TEMPERATURE; }
+
 
   private:
 

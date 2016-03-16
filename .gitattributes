@@ -43,13 +43,8 @@ cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
 cfsdeps/arpack/RiceBSD.txt -text
-cfsdeps/arpack/arpack-2.1-redhat.patch -text
-cfsdeps/arpack/arpack-arscnd-2.patch -text
-cfsdeps/arpack/arpack-arscnd-3.patch -text
-cfsdeps/arpack/arpack-gfortran-etime-intrinsic.patch -text
 cfsdeps/arpack/arpack-ifort-cpu_time.patch -text
 cfsdeps/arpack/arpack-patch.cmake.in -text
-cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
 cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
@@ -393,6 +388,11 @@ ctest_scripts/sites/eamc067/linux64_mpolzer_gcc_release.ctest -text
 ctest_scripts/sites/eamc067/linux64_mpolzer_mingw_debug.ctest -text
 ctest_scripts/sites/eamc067/linux64_mpolzer_mingw_release.ctest -text
 ctest_scripts/sites/eamc067/site_specific_init.cmake -text
+ctest_scripts/sites/eamc080/generate_test_name_list.cmake -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_debug.ctest -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_doc_doxygen.ctest -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_release.ctest -text
+ctest_scripts/sites/eamc080/site_specific_init.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_debug.ctest -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_release.ctest -text
@@ -587,13 +587,10 @@ share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/footerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/headerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/latexHeader.tex -text
 share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
@@ -1220,7 +1217,6 @@ share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
-share/python/density-to-png.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
@@ -1296,9 +1292,11 @@ share/python/nas-tool-voidmesh.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
+share/python/performance_test.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
+share/python/process_density.py -text
 share/python/process_image.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
@@ -2070,6 +2068,7 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/Excitation.cc -text

@@ -308,7 +308,7 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = true;
     
     // tell assemble, the design has changed
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble();    
+    optimization->context->pde->GetAssemble()->SetAllReassemble();
 
     // does a lot of work.
     optimization->SolveStateProblem();
@@ -492,7 +492,7 @@ int BaseOptimizer::EvalGradConstraint(Condition* g, int start, bool cfs_scale, b
   int nnz(0); 
   values.window.Set(start, nnz);
   
-  LOG_DBG(optimizer) << "EGC g=" << g->ToString(NULL) << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
+  LOG_DBG(optimizer) << "EGC g=" << g->ToString() << " start=" << start << " nnz=" << g->GetSparsityPattern().GetSize();
   assert(g->GetSparsityPatternSize() == g->GetSparsityPattern().GetSize());
   nnz = g->GetSparsityPatternSize();
   values.window.Set(start, nnz);

@@ -11,14 +11,16 @@ namespace CoupledField {
   // =========================================================================
   
   //! Class for interfacing with ARPACK FORTRAN library
-  //class ArpackSolver : public BaseEigenSolver {
+  // Note class ArpackEigenSolver : public BaseEigenSolver
+  // ArpackSolver is the Arpack frontent
   class ArpackSolver {
     
   public:
     
     //! Default Constructor
-    ArpackSolver();
     
+    ArpackSolver(PtrParamNode xml);
+
     //! Default Destructor
     virtual ~ArpackSolver();
 
@@ -31,9 +33,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( ArpackMatInterface *apInterface, 
-                UInt size, UInt numFreq, Double freqShift, char* which, 
-                char* type, bool shiftMode, bool bloch );
+    void Setup(ArpackMatInterface *apInterface, UInt size, UInt numFreq, Double freqShift, char* which,
+                char* type, bool shiftMode, bool bloch);
 
     //! Setup routine for various initialization tasks.
     //! \param stiffMat Reference to stiffness matrix
@@ -63,6 +64,7 @@ namespace CoupledField {
     UInt FindQuadEigenvalues();
 
     //! This method returns the n-th converged eigenvalue
+    //! This is always the original sorting from arpack. It becomes sorted in ArpackEigenSolver.
     //! \param n Number of requested converged eigenvalue
     //! \return Calculated eigenvalue
     Double Eigenvalue(UInt n);
@@ -89,26 +91,7 @@ namespace CoupledField {
     //! Method to switch arpack debug information on
     void DebugOn();
 
-    //! Method to set user specified tolerance
-    void SetTolerance(Double tol);
-    //! Method to set user specified number of iterations
-    void SetIterations(Integer maxIt);
-    //! Method to set user specified number of Arnoldi vectors
-    void SetNumVectors(Integer numVec);
-
-    //! Report access functions to parameters 
-    //! number of wanted eigenvalues
-    UInt GetNev();
-    //! arpack 'which' setting for eigenvalue calculation
-    char* GetWhich();
-    //! tolerance setting
-    Double GetShift();
-    //! tolerance setting
-    Double GetTol();
-    //! number of iterations allowed
-    UInt GetMaxit();
-    //! number of Arnoldi vectors
-    UInt GetNcv();
+    void ToInfo(PtrParamNode info);
 
     /** counters for statistics */
     int counter_calll_aupd;
@@ -146,6 +129,9 @@ namespace CoupledField {
     //! Character string for 'which' setting of  arpack
     char* which_;
     
+    /** here we store the std::string with which from xml if given */
+    std::string xml_which_;
+
     //! Character string denoting generalized or standard eigenvalue problem
     char* type_;
 
@@ -164,8 +150,13 @@ namespace CoupledField {
     //! Number of Arnoldi vectors
     int numArnoldiVec_;
 
+    /** Facor of Arnolid vectors w.r.t number of frequencies (usually 1.1 ... 2) */
+    double arnoldiFactor_;
+
     //! Size of equation system
     int size_;
+
+    bool logging_;
 
     //! stores the calculated eigenvalues (real or complex)
     SingleVector* eigenValues_;

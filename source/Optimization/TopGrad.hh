@@ -119,8 +119,7 @@ public:
   double CalcPoissonTopGradOnElement(const unsigned int e) const;
   
   /** helper function; walks over all elements, calcs the topgrad and adds to topGrads vector */
-  void CalcTopGrads(SubTensorType sub = PLANE_STRAIN,
-                    Optimization::Application app = Optimization::MECH);
+  void CalcTopGrads(SubTensorType sub = PLANE_STRAIN, App::Type app = App::MECH);
   
   inline double getMaxVolumeToRemove() const { return max_volume_to_remove_; }
 

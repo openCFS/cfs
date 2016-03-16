@@ -97,11 +97,6 @@ public:
   /** implementation of objective function */
   double CalcPressureDrop();
 
- /** Returns dissipation; should be called after solving forward problem */
-  double GetDissipation();
-  //! returns if PDE can compute the quantity
-//  virtual bool HasOutput(SolutionType output);
-
   // returns how often CalcResults() was called. We need this to write out the last simulation step
   inline int GetNumWriteResults() {return numWriteResults_;}
 
@@ -122,8 +117,6 @@ public:
   void create_output(const char * file);
 
   Iface GetIface() const { return iface_; }
-
-  bool IsSRTModel() { return srt_; }
 
   //////////////////////////////////////////////////////// functions calculating results from PDFs //////////////////////////////////////////////
   /** Calculate the LBM Density of an element idx */
@@ -206,12 +199,13 @@ private:
     return pdfs_.GetPointer()[idx * n_q_ + dir];
   };
 
-  inline double GetAdjMoments(unsigned int idx, int dir) const  {
-    return adjMoments[idx * n_q_ + dir];
-  };
-
-  inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z ) const {
+  inline unsigned int GetIndex(unsigned int x, unsigned int y, unsigned int z) const {
     return z * n_x_ * n_y_ + y * n_x_ + x;
+  }
+
+  /** Perform position of matrix element in linearized matrix*/
+  inline unsigned int GetMatrixElemId(unsigned int row, unsigned int col, unsigned int ncols) {
+    return row * ncols + col;
   }
 
   inline void GetCoordinates(unsigned int index, unsigned int& x, unsigned int& y, unsigned int&z) const{
@@ -271,7 +265,7 @@ private:
 
   void d_collision_step_d_f(unsigned int index, Matrix<double>& block, StdVector<double>& dfeqdux, StdVector<double>& dfeqduy, StdVector<double>& dfeqduz, const StdVector<double>& ux, const StdVector<double>& uy, const StdVector<double>& uz, const StdVector<double>& dcol, const StdVector<double>& weight);
 
-  void d_bounceback_d_f(Matrix<double>& block);
+  void d_bounceback_d_f(int index, Matrix<double>& block);
   void d_inflow_d_f(int index, Matrix<double>& block, StdVector<double>& weight);
   void d_outflow_d_f(int index, Matrix<double>& block, StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz, StdVector<double>& dloc, StdVector<double>& weight);
 
@@ -281,13 +275,11 @@ private:
   Vector<double> d_pressuredrop_d_f(StdVector<double>& ux, StdVector<double>& uy, StdVector<double>& uz);
 
   void matrix_sparse_to_crs(compressed_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
-  void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
+//  void matrix_sparse_to_crs(mapped_matrix<double>& M, double* a, unsigned int* ia, unsigned int* ja);
 
   //! Method of smoothing
   std::string method_;
 
-  //! Flag indicating whether SRT or MRT LBM model should be used
-  bool srt_;
   //! Flag indicating if PDE is assembled for first time
 //  bool firstTurn_;
 
@@ -312,7 +304,7 @@ private:
    * @see elem_to_idx */
   StdVector<int> idx_to_elem;
 
-  /** number of discrete velocities: 9 for D2Q9 or 19 for D3Q19 */
+  /** number of discrete velocities: 9 for D2Q9 or n_q_ for D3Q19 */
   unsigned int n_q_;
 
   /** extents of computational grid */
@@ -337,9 +329,6 @@ private:
   /** storage for particle distribution. This is the simulation result for the function evaluation. */
   StdVector<double> pdfs_;
 
-  /** storage for adjoint particle distribution. This is the simulation result for the function evaluation. */
-  StdVector<double> adjMoments;
-
   /** storage for adjoint particle distribution. This is the result of an adjoint SRT simulation. */
   StdVector<double> adjPdfs;
 
@@ -349,14 +338,16 @@ private:
   /** these are the indices of the outlet elements */
   StdVector<unsigned int> outlet;
 
+  StdVector<int> bb;  // indices of bounce back nodes
+  StdVector<int> rel; // indices of the fluid m_nodes
+
   StdVector<unsigned int> obstacles;
+
 
 //  /** these are the indices of the elements og the region 'inclusion'*/
 //  StdVector<unsigned int> obstacle;
 
   double omega_; /** molecular collision frequency */
-  double omega_e_, omega_eps_, omega_q_; // relaxation rates for MRT model
-  double alpha_max_; // parameter used in MRT porosity model
   double Re_; /** Reynold's number of flow problem */
   double maxWallTime_;
   unsigned int maxIter_;
@@ -379,7 +370,8 @@ private:
   StdVector<LatticeBoltzmannBase::Direction> invPDFDirections_;
 
   StdVector<Matrix<double> > adjSRTCollision; // adjoint SRT collision matrices
-  StdVector<Vector<double> > d_pdrop_d_f;
+  StdVector<StdVector<double> > adjCollisions;
+  StdVector<StdVector<double> > d_pdrop_d_f;
 
   /** external lbm */
   std::string executable;
@@ -398,7 +390,16 @@ private:
   Timer state_;
 
   /** total time of adjoint solution */
-  Timer adjoint_;
+  shared_ptr<Timer> forwardSim_;
+  shared_ptr<Timer> backwardSim_;
+  shared_ptr<Timer> setupAdjoint_;
+  shared_ptr<Timer> setupPardiso_;
+  shared_ptr<Timer> solveLSE_;
+  shared_ptr<Timer> dProp_;
+  shared_ptr<Timer> dPressDrop_;
+  shared_ptr<Timer> dColl_;
+  shared_ptr<Timer> rhsSetup_;
+  shared_ptr<Timer> delSing_;
 };
 
 } // end of namespace

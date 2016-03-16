@@ -124,9 +124,10 @@ void GradientCheck::SolveProblem()
   std::cout << "relative error -> max=" << max << " L2=" << l2 << std::endl;
 }
 
-double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
-    double f_x, PtrParamNode in)
+double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de, double f_x, PtrParamNode in)
 {
+  Assemble* ass = Optimization::context->pde->GetAssemble();
+
   double f_x1 = 0.0, f_x2 = 0.0, fd = 0.0;
   // in first order we always perform a forward fifference quotient
   // if we are to close to the max value we step back.
@@ -175,7 +176,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 1 || x_dir_1 == 1)
   {
     de->SetDesign(x_eval_1);
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
+    ass->SetAllReassemble(); // tell assemble design has changed
     optimization->SolveStateProblem();
     optimization->SolveAdjointProblems();
     f_x1 = optimization->CalcObjective();
@@ -186,7 +187,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
   if (order == 2 && x_dir_2 == 1)
   {
     de->SetDesign(x_eval_2);
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
+    ass->SetAllReassemble(); // tell assemble design has changed
     optimization->SolveStateProblem(); // expensive
     optimization->SolveAdjointProblems();
     f_x2 = optimization->CalcObjective();
@@ -194,7 +195,7 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
 
   // reset design
   de->SetDesign(x_org);
-  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble design has changed    
+  ass->SetAllReassemble(); // tell assemble design has changed
 
   if (order == 1)
   {
@@ -223,16 +224,16 @@ double GradientCheck::PerformFiniteDifferenceEval(DesignElement* de,
       == -1 ? "first" : "second");
 
   LOG_DBG3(optimizer)
-<<  "PFDE: elem=" << de->elem->elemNum << " x_org=" << x_org
-  << " order=" << order << " x_eval_1=" << x_eval_1 << " x_dir_1=" << x_dir_1 << " f_x1=" << f_x1
-  << " x_eval_2=" << x_eval_2 << " x_dir_2=" << x_dir_2 << " f_x2=" << f_x2
-  << " fd=" << fd << " f_grad=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
+    <<  "PFDE: elem=" << de->elem->elemNum << " x_org=" << x_org
+    << " order=" << order << " x_eval_1=" << x_eval_1 << " x_dir_1=" << x_dir_1 << " f_x1=" << f_x1
+    << " x_eval_2=" << x_eval_2 << " x_dir_2=" << x_dir_2 << " f_x2=" << f_x2
+    << " fd=" << fd << " f_grad=" << de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN);
 
   // eventually store value
   if(finite_diff_result_index_ != -1)
-  de->specialResult[finite_diff_result_index_] = fd;
+    de->specialResult[finite_diff_result_index_] = fd;
   if(error_result_index_ != -1)
-  de->specialResult[error_result_index_] = (fd - de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN)) / fd;
+    de->specialResult[error_result_index_] = (fd - de->GetValue(DesignElement::COST_GRADIENT, DesignElement::PLAIN)) / fd;
 
   return fd;
 }

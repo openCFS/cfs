@@ -13,7 +13,7 @@ The original code from Markus can be found at
 svn+ssh://eamc080.eam.uni-erlangen.de/home/svn_repo/repository/catalyst/OptiLBM/src
 
 An generalization and extension to 3D of the SRT model was added.
-The MRT model was added in correspondance to the descriptions made in the paper of Geng Liu et al. (2014)
+Also, the possibility to compute the adjoint variables via LBM backward simulation in correspondence to the descriptions made in the paper of Geng Liu et al. (2014)
 */
 
 namespace CoupledField
@@ -27,7 +27,7 @@ namespace CoupledField
   {
     public:
         // In 2D: 9 microscopic directions
-        // In 3D: 19 microscopic directions
+        // In 3D: n_q_ microscopic directions
         typedef enum {Q_0=0, Q_E=1, Q_N=2, Q_W=3, Q_S=4, Q_NE=5, Q_NW=6, Q_SW=7, Q_SE=8,          // 2D
           Q_T = 9, Q_B = 10, Q_TN = 11, Q_BS = 12, Q_TS = 13, Q_BN = 14,                          // 3D
           Q_TE = 15, Q_BW = 16, Q_TW = 17, Q_BE = 18} Direction;                                  // 3D
@@ -45,7 +45,7 @@ namespace CoupledField
         PDFDirectionVector(): off_x(1),off_y(0), off_z(0){}
       };
 
-      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency, bool srt, double omega_e, double omega_eps, double omega_q, double alpha_max);
+      LatticeBoltzmann(int dim, int sizeX, int sizeY, int sizeZ, double ux, double uy, double uz, StdVector< StdVector<double> > uin, double omega, int maxIterations, double maxTolerance, bool plot, int writeFrequency);
 
       ~LatticeBoltzmann();
 
@@ -57,9 +57,10 @@ namespace CoupledField
 
       /** Performs all the adjoint LBM iterations until a steady-state with a given tolerance is reached.
        * @param info stores current and final info there */
-      StdVector<double>* IterateAdjoint(PtrParamNode info);
+//      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
 
-      StdVector<double>* IterateAdjointSRT(PtrParamNode info,const StdVector<Matrix<double> >& collisionMatrices, const StdVector<Vector<double> >& d_pdrop_d_f);
+      StdVector<double>* IterateAdjointSRT3D(PtrParamNode info,const StdVector<StdVector<double> >& collisionMatrices, const StdVector<StdVector<double> >& d_pdrop_d_f);
 
       /*** performs a single propagation step on the current array. Called only by LatticeBoltzmannPDE to prepare for the adjoint calculation */
       void Prop_step();
@@ -68,62 +69,6 @@ namespace CoupledField
        *  @return copy of pdfs
        */
       inline StdVector<double>& GetPdfs() {return pdfs_[cur_];}
-
-      /** Returns a copy of current pdf array for calculations of macroscopic values in LatticeBoltzmannPDE during the Iterate() function
-       *  @return copy of pdfs
-       */
-      inline StdVector<double>& GetAdjMoments() {return adjMoments_[adjCur_];}
-
-      inline StdVector<double>& GetAdjPdfs() {return adjPdfs_[adjCur_];}
-
-      /** Returns overall dissipation calculated with current pdfs */
-      inline double GetDissipation()
-      {
-//        Vector<double> pdfs(n_q_);
-//        double dissipation = 0.0;
-//        for (int elem = 0; elem < nNodes_; elem++) {
-//          if (!rel.Contains(elem)) // only sum up local dissipation at design nodes
-//            continue;
-//          for (int dir = 0; dir < n_q_; dir++)
-//            pdfs[dir] = PDF(cur_,elem,dir);
-//
-//          Vector<double> moms(n_q_);
-//          transformation.Mult(pdfs,moms);
-//          Vector<double> eqMoms;
-//          CalcEquilMoments(moms,eqMoms);
-//
-//          Vector<double> f1,f2;
-//          CalcDarcyForce(moms,elem,f1,f2);
-//          dissipation += CalcDissipation(moms,eqMoms,f1[3],f1[5]);
-//        }
-//        return dissipation;
-        double in = 0.0;
-        double out = 0.0;
-        for (unsigned int i = 0; i < inlet.GetSize(); i++) {
-          int index = inlet[i];
-          Vector<double> pdfs(n_q_);
-          for (int dir = 0; dir < n_q_; dir++)
-            pdfs[dir] = PDF(cur_,index,dir);
-          double rho = CalcDensity(pdfs);
-          double ux, uy, uz;
-          CalcVelocities(pdfs,ux,uy,uz);
-          assert(uz == 0.0);
-          in += rho / 3.0 + 0.5 * rho * (ux * ux + uy * uy);
-        }
-
-        for (unsigned int i = 0; i < outlet.GetSize(); i++) {
-          int index = outlet[i];
-          Vector<double> pdfs(n_q_);
-          for (int dir = 0; dir < n_q_; dir++)
-            pdfs[dir] = PDF(cur_,index,dir);
-          double rho = 1.0; // enforced density
-          double ux, uy, uz;
-          CalcVelocities(pdfs,ux,uy,uz);
-          assert(uz == 0.0);
-          out += rho / 3.0 + 0.5 * rho * (ux * ux + uy * uy);
-        }
-        return in / inlet.GetSize() - out / outlet.GetSize();
-      }
 
       /**
        * returns number of simulations results we have already written out. We need this to know which number the StoreResults() for the converged solution in staticDriver gets
@@ -134,11 +79,6 @@ namespace CoupledField
        * @return Number of iterations until steady-state convergence
        */
       inline int GetNumIterations() {return numIterations_; }
-
-      /** return adjoint transformation matrix for conversion of adjoint pdfs into momentum space*/
-      inline const Matrix<double>& GetAdjTransformation() {return adjTransformation; }
-
-      inline const Matrix<double>& GetInvTransformation() {return invTransformation; }
 
       inline StdVector<PDFDirectionVector>& GetPDFDirectionVectors() { return microVelDirections; }
       inline StdVector<Direction>& GetinvPDFDirections() { return invPDFDirections; }
@@ -166,8 +106,8 @@ namespace CoupledField
            */
           double CalcDensity(const Vector<double>& pdfs);
 
-          /** Calculates residual as difference between two iteration solutions.
-           *  Parameter adjoint indicates whether residual should be calculated for pdfs or adjoint pdfs array.
+          /**
+           * Calculates residual as difference between two iteration solutions.
            */
           inline double CalcResidual(int cur, int next)
           {
@@ -185,37 +125,20 @@ namespace CoupledField
           inline double CalcAdjResidual(int cur, int next)
           {
             double res = 0.0;
-            for (unsigned int i = 0; i < rel.GetSize(); i++) {
-              int index = rel[i]; // calc residual only over design nodes
-              for (int dir = 0; dir < n_q_; dir++) {
-                double tmp = APDF(next, index, dir) - APDF(cur, index, dir);
+
+            for (int elem = 0; elem < nNodes_; elem++) {
+              for(int  dir = 0; dir < n_q_; dir++) {
+                double tmp = APDF(next, elem, dir) - APDF(cur, elem, dir);
                 res += tmp * tmp;
               }
             }
             return sqrt(res);
           }
 
-          /** Calculates the two Darcy force vectors at given node in accordance to te proposed porosity model of Geng Liu et al. (2014)*/
-          void CalcDarcyForce(const Vector<double>& moments, int elemId, Vector<double>& f1, Vector<double>& f2);
-
-          /** Calculates resistance coefficient \alpha used in porosity model which is expressed by RAMP */
-          inline double CalcResistanceCoeff(int elemId)
-          {
-//            return alpha_max_ * (1 - scales[elemId]) / (1 + scales[elemId]); //RAMP
-            return 1-scales[elemId];
-//            return scales[elemId];
+          /** Perform position of matrix element in linearized matrix*/
+          inline unsigned int GetMatrixElemId(unsigned int row, unsigned int col, unsigned int ncols) {
+            return row * ncols + col;
           }
-
-          /** Calculates dissipation contribution of given node */
-          double CalcDissipation(const Vector<double>& moments, const Vector<double>& eqMoments, double fx, double fy);
-
-          /** Calculates adjoint collision matrix after solving of primal fluid field */
-          void CalcAdjointCollMatrix(int elemId, const Vector<double>& moments);
-
-          /** Calculates sensitivity of dissipation (objective function) with respect to LBM moments */
-          void d_diss_d_moments(int elemId, const Vector<double>& moments);
-
-          void d_pdrop_d_moments(int elemId, const Vector<double>& moments);
 
           /** set enumerations for directions and boundaries*/
           void SetEnums();
@@ -229,12 +152,6 @@ namespace CoupledField
           /** Set basis vectors of DmQn model */
           void SetMicroVelocities();
 
-          /**
-           * Initialize transformation matrix M for momentum space and corresponding relaxation rates matrix S
-           * M ist orthogonal.
-           */
-          void InitTransformMatrix();
-
           /** get inverse direction of D2Q9 direction */
           // depends on numbering of directions
           inline int GetInvDirection(Direction dir)
@@ -247,6 +164,21 @@ namespace CoupledField
 
           /** debug information */
           std::string ToString(const StdVector<StdVector<int> >& data);
+
+          /** Performs matrix-vector multiplication of a linearized array with a vector */
+          inline void MultLinMatrixVector(const StdVector<double>& mat, const StdVector<double>& vec, StdVector<double>& res)
+          {
+            res.Resize(n_q_);
+            res.Init();
+
+            for (int row = 0; row < n_q_; row++) {
+              double val = 0.0;
+              for (int col = 0; col < n_q_; col++) {
+                val += mat[GetMatrixElemId(row,col,n_q_)] * vec[col];
+              }
+              res[row] = val;
+            }
+          }
 
 
           inline bool LbmNodeTypeIsFluid(double value)
@@ -306,26 +238,6 @@ namespace CoupledField
             return pdfs_[cur][direction + n_q_ * elem];
           }
 
-          inline double& AMoments(int cur, int x, int y, int z, int direction)
-          {
-            return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
-          }
-
-          inline double AMoments(int cur, int x, int y, int z, int direction) const
-          {
-            return adjMoments_[cur][direction + n_q_ * GetIndex(x, y, z)];
-          }
-
-          inline double& AMoments(int cur, int elem, int direction)
-          {
-            return adjMoments_[cur][direction + n_q_ * elem];
-          }
-
-          inline double AMoments(int cur, int elem, int direction) const
-          {
-            return adjMoments_[cur][direction + n_q_ * elem];
-          }
-
           inline double& APDF(int cur, int x, int y, int z, int direction)
           {
             return adjPdfs_[cur][direction + n_q_ * GetIndex(x, y, z)];
@@ -358,46 +270,23 @@ namespace CoupledField
             return tmp_x < 0 || tmp_x >= sizeX_ || tmp_y < 0 || tmp_y >= sizeY_ || tmp_z < 0 || tmp_z >= sizeZ_;
           }
 
-          inline bool IsBoundaryElem(int x, int y, int z)
-          {
-            return x == 0 || y == 0 || x == sizeX_-1 || y == sizeY_-1 || z == 0 || z == sizeZ_-1;
-          }
-
-          inline bool IsCornerElem(int x, int y, int z)
-          {
-            return  (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0)
-                || (x == 0 && y == 0 && z == 0) || (x == 0 && y == sizeY_-1 && z == 0) || (x == sizeX_-1 && y == 0 && z == 0) || (x == sizeX_-1 && y == sizeY_-1 && z == 0);
-          }
-
-           /** Calculate vector of equilibrium moments based on current pdf array
-            * m_eq the return value */
-          void CalcEquilMoments(const Vector<double>&  moments,  Vector<double>& m_eq) const;
-
           /**
-           * LBM operators in 2D
+           * LBM operators 2D/3D
            */
           void Prop_coll_step2D(int cur, int next);
 
-          void Prop_coll_velinlet2D(int cur);
+          void Prop_coll_step3D(int cur, int next);
 
-          void Prop_coll_bounce_back2D(int cur);
+          void Prop_coll_velinlet(int cur);
 
-          void Prop_coll_densoutlet2D(int cur);
+          void Prop_coll_bounce_back(int cur);
+
+          void Prop_coll_densoutlet(int cur);
+//          void Prop_coll_densoutlet3D(int cur);
 
           void AdjointCollision(int cur);
 
           void AdjointPropagation(int next);
-
-          /**
-           * LBM operators in 3D
-           */
-          void Prop_coll_step3D(int cur, int next);
-
-          void Prop_coll_velinlet3D(int cur);
-
-          void Prop_coll_bounce_back3D(int cur);
-
-          void Prop_coll_densoutlet3D(int cur);
 
           int dim_;
           int sizeX_;
@@ -422,13 +311,8 @@ namespace CoupledField
           int numWriteResults_;
           // how many iterations until steady-state convergence
           int numIterations_;
-          // indicates whether SRT or MRT model should be used
-          bool srt_;
-          // additional relaxation rates for MRT model
-          double omega_e_, omega_eps_, omega_q_;
-          double alpha_max_; // parameter used in porosity model of MRT simulation
 
-          // number of microscopic velocities in LBM model, e.g. 9 for D2Q19 or 19 for D3Q19
+          // number of microscopic velocities in LBM model, e.g. 9 for D2Qn_q_ or n_q_ for D3Qn_q_
           int n_q_;
 
           int lbmCalls_; //counts how often solver was called
@@ -441,45 +325,29 @@ namespace CoupledField
           StdVector< StdVector<double> > u_in; // inflow x-velocities in case of parabolic profile
 
           StdVector< StdVector<double> > pdfs_;
-          StdVector< StdVector<double> > adjMoments_;
           StdVector< StdVector<double> > adjPdfs_;
           StdVector<double> tmpPdfs_;
 
-          // store moments and equilibrium moments of steady state solution
-          // need this for adjoint LBM simulation
-//          StdVector<double> moments_;
-//          StdVector<double> eqMoments_;
-
-          // stores microscopic velocities (directions) of D3Q19 model: e.g. for Q_N: e_N = (0,1,0)
+          // stores microscopic velocities (directions) of D3Qn_q_ model: e.g. for Q_N: e_N = (0,1,0)
           StdVector<PDFDirectionVector> microVelDirections;
           // lookup table to get inverse directions of the pdfs
           StdVector<Direction> invPDFDirections;
           int cur_, adjCur_;
           int next_, adjNext_;
 
-          // Transformation matrix M for momentum space
-          Matrix<double> transformation;
-          Matrix<double> invTransformation;
-          Matrix<double> adjTransformation;
-          // Store multiplication of backtransformation M^-1 with relaxation rates matrix S
-          Matrix<double> invM_S;
-          // Relaxation rates matrix S is diagonal, thus we only store the diagonal entries
-          StdVector<double> relax_rates;
-
           StdVector<int> inlet;
           StdVector<int> outlet;
           StdVector<int> bb;
           StdVector<int> rel; // indices of the fluid m_nodes
           StdVector<int > obst; // indices of obstacle nodes
-          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
-          StdVector<Vector<double> > d_diss_d_m; // partial derivatives of dissipation function w.r.t moments
-          StdVector<Vector<double> > d_pdrop_d_m;
+//          StdVector<Matrix<double> > adjCollision; // adjoint collision matrices
 
           // function pointers to LBM operators (propagation, collision); use these to avoid many if-statements to distinguish 2D from 3D case
           void (LatticeBoltzmann::*prop_coll_step)(int, int);
           void (LatticeBoltzmann::*prop_coll_velinlet)(int);
-          void (LatticeBoltzmann::*prop_coll_bounce_back)(int);
-          void (LatticeBoltzmann::*prop_coll_densoutlet)(int);
+
+          shared_ptr<Timer> adjCollTimer_;
+          shared_ptr<Timer> adjPropTimer_;
 
   }; // end LatticeBoltzmann
 

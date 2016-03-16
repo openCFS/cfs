@@ -279,6 +279,12 @@ protected:
   //! Support of the CoefFunction. Only needed for grid/solution results
   StdVector<shared_ptr<EntityList> > entities_;
   
+  /** to speed up AddEntityList() for periodic B.C. we use this structure.
+   * This is meant for pairs of two node numbers. The first is the key for the map, the second
+   * for the list. The list will be short and we insert only if not already contained.
+   * A list has less overhead than a set and does not copy as an array. A C++11 forward_list would be more efficient*/
+  std::map<unsigned int, std::list<unsigned int> > two_node_entries_cache_;
+
   //! Homogeneous Dirichlet BCs
   HdBcList hdBcs_;
   

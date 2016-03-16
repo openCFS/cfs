@@ -72,7 +72,6 @@
 					<!-- Configurations for LBM simulation -->
 					<xsd:element name="LBM" minOccurs="1" maxOccurs="1">
 						<xsd:complexType>
-              
             <xsd:attribute name="omega" type="xsd:double" use="optional"> 
               <xsd:annotation> 
                 <xsd:documentation>tuning parameter for LBM. small is more robust, large faster \n 
@@ -206,13 +205,22 @@
   </xsd:simpleType>
   
   <!-- ******************************************************************* --> 
-    <!-- Definition of inflow profiles --> 
-    <!-- ******************************************************************* --> 
-    <xsd:simpleType name="DT_ExternLBMInflow"> 
-      <xsd:restriction base="xsd:token"> 
-        <xsd:enumeration value="uniform" /> 
-        <xsd:enumeration value="parabolic" /> 
-      </xsd:restriction> 
-    </xsd:simpleType> 
-
+  <!-- Definition of inflow profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_ExternLBMInflow"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="uniform" /> 
+      <xsd:enumeration value="parabolic" /> 
+    </xsd:restriction> 
+  </xsd:simpleType>
+  
+  <!-- ******************************************************************* --> 
+  <!-- Definition of relaxation models profiles --> 
+  <!-- ******************************************************************* --> 
+  <xsd:simpleType name="DT_LBMAdjoint"> 
+    <xsd:restriction base="xsd:token"> 
+      <xsd:enumeration value="internal"/> 
+      <xsd:enumeration value="external"/> 
+    </xsd:restriction> 
+  </xsd:simpleType>
 </xsd:schema>

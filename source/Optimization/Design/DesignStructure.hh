@@ -44,7 +44,7 @@ public:
   void SetFilter(PtrParamNode pn, PtrParamNode info);
 
   /** Do we have periodic BC. */
-  bool IsPeriodic() const { return periodic; }
+  bool IsPeriodic() const { return periodic_; }
 
   /** This is the relevant service function for VicinityElement::Init() -> check IsPeriodic().
    *  if elem has nodes in the constraintMapping, neighbors is extended by all neighbors of
@@ -152,7 +152,7 @@ private:
   double value;
 
   /** do we have periodic boundary conditions? */
-  bool periodic;
+  bool periodic_;
 
   /** is the grid regular? */
   bool regular;

@@ -16,7 +16,7 @@ class Timer
  public:
   /** 'running' is initially false.
        A Timer needs to be explicitly started vi Start() or ResetStart() */
-  Timer();
+  Timer(const std::string& name = "", bool sub = false);
 
   /** Start or resume a timer.
     If it is already running, let it continue running. */
@@ -27,6 +27,10 @@ class Timer
 
   /** Stop the timer, ca be restarted via Start */
   void Stop();
+
+  void SetLabel(const std::string& name) {
+    label_ = name;
+  }
 
   /** The number of Start() calls since construction or the last ResetStart()+1.
    * ElapseTime() / GetCalls() is the average runtime. */
@@ -67,6 +71,8 @@ class Timer
   time_t  start_time;
   double sum_time;
   clock_t sum_clock;
+  std::string label_;
+  bool sub_;
 
 }; // class timer
 

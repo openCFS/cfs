@@ -125,7 +125,6 @@ namespace CoupledField
     //! Define a field result
     void DefineFieldResult( PtrCoefFct coef, shared_ptr<ResultInfo> res );
 
-
     //! Obtain coefficient function of given type
     PtrCoefFct GetCoefFct( SolutionType solType );
     
@@ -182,6 +181,10 @@ namespace CoupledField
      * @param input for multiple load optimization we point to the multipleExcitation excitiation definition. Default is from bscAndLoads() */
     virtual void DefineRhsLoadIntegrators(PtrParamNode input) { }
     virtual void DefineRhsLoadIntegrators() { DefineRhsLoadIntegrators(PtrParamNode()); } // Only where we do optimization we use the parameter
+
+    /** identify this pde for logging debug purpose */
+    std::string ToString() const;
+
   protected:
 
     //! Constructor

@@ -10,11 +10,11 @@
 #include "MatVec/Vector.hh"
 #include "PDE/MechPDE.hh"
 #include "Utils/StdVector.hh"
+#include "Optimization/Context.hh"
 
 
 namespace CoupledField
 {
-class Assemble;
 class Function;
 class LinearFormContext;
 class ObjectiveContainer;
@@ -33,8 +33,12 @@ public:
   ~Excitation();
 
   /** This method makes the current load active.
-   * For multiple frequencies it does nothing. The actual frequency is chosen by default.  */
-  void Apply();
+   * For multiple frequencies it does nothing. The actual frequency is chosen by default.
+   * @param switch_context perform a context switch if another sequence is active.
+   *    This triggers the deletion of the current pdes and single driver and the creation of new ones. So know what you are doing!
+   *    A good reason not to switch the context is when we apply the current robust filter for function evaluation
+   * @return true if a context switch happend (what is only possible with switch_context set */
+  bool Apply(bool switch_context = false);
 
   /** Find the fixed factor, does ignore weighting and does not apply it. */
   double GetFactor(Function* f) const;
@@ -49,11 +53,9 @@ public:
   void ReadTrackings(PtrParamNode ts);
 
   /** read the loads from XML */
-  void ReadLoads(PtrParamNode ls);
+  void ReadLoads(Context* ctxt, PtrParamNode ls);
 
-  void ReadTestStrain(MechPDE::TestStrain ts);
-
-  void ReadTestCharges(const Vector<double>& vec);
+  void ReadTestStrain(Context* ctxt, MechPDE::TestStrain ts);
 
   /** does not label the frequency, load or test strain but the rotation or robust case if present
    * @return "" if not present */
@@ -62,11 +64,20 @@ public:
   /** the full label is meta label plus base label or it is simply label */
   std::string GetFullLabel() const;
 
+  /** Is this a Bloch Excitatztion? */
+  bool DoBloch() const;
+
+  /** the 0-based wave number is for the first sequence the index */
+  int GetWaveNumber() const;
+
   /** the index of this excitation in the excitations array. If -1 something went wrong */
   int index;
 
   /** the meta index */
   int meta_index;
+
+  /** the corresponding sequence step. 1-base. @see ContextManager */
+  int sequence;
 
   /** For several loads, we need to store the form context with the entities but also the dof and the value!
    * When no excitations are given in the optimization part the bcsAndLoads are used.
@@ -119,8 +130,6 @@ public:
 
   /** When we do robust, the meta_index is only the robust index when we do no concurrent transformation */
   bool robust;
-
-  Assemble* assemble;
 };
 
 /** This struct stores the multiple excitation Information. It contains the
@@ -137,12 +146,25 @@ public:
   typedef enum { NO_TYPE, FIXED_WEIGHT, META_OBJECTIVE, HOMOGENIZATION_TEST_STRAINS} Type;
 
   static Enum<Type> type;
-  /** Do we do multiple excitation at all? */
-  bool IsEnabled() const { return multiple_excitation_; }
+
+  /** Do we do multiple excitation? Implicitly true for bloch for the matching sequence
+   * @param sequence -1 at all? otherwise for the specified sequence */
+  bool IsEnabled(int sequence = -1) const;
+
+  /** the sequence the multiple excitation is defined for. Extend for ME for more than one sequence.
+   * For bloch me is defined and enabled implicitly */
+  int GetSequence() const { return sequence_; }
+
+  /** To be called prior to PrepareMultipleExcitations() */
+  void InitializeMultipleExcitations(Optimization* opt, ContextManager* manager);
 
   /** Handle multiple excitations (loads/frquencies). By definition the size is almost 1, even
-   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC. */
-  void PrepareMultipleExcitations(Optimization* opt, bool eval_inital_design);
+   * if there is no load (e.g. static piezo with inhomgeneous Dirichlet BC.
+   * @param ctxt an own version of Context to setup a multi sequence system */
+  void PrepareMultipleExcitations(Optimization* opt, Context* ctxt);
+
+  /** To be called after PrepareMultipleExcitations() */
+  void FinalizeMultipleExcitations(Optimization* opt, ContextManager* manager, bool eval_inital_design);
 
   /** Do we do adjust weights */
   bool DoAdjustWeights() const { return type_ == META_OBJECTIVE; }
@@ -150,53 +172,33 @@ public:
   bool DoHomogenization() const { return type_ == HOMOGENIZATION_TEST_STRAINS; }
 
   /** The number of homogenization test strains. Important when we do also transform */
-  unsigned int GetNumberHomogenization() const { return DoHomogenization() ? total_base_ : 0; }
-
-  bool DoBloch() const { return domain->GetDriver()->DoBlochModeEigenfrequency(); }
+  unsigned int GetNumberHomogenization() const;
 
   /** apply excitation specific transformation (rotation) */
   bool DoTransform() const { return num_trans_ > 0; }
 
   /** Do we do robust */
-  bool DoRobust() const { return num_robust_ > 1; }
+  bool DoRobust(const Context* ctxt) const;
 
-  /** Do we do real meta excitation? */
-  bool DoMetaExcitation() const { return DoTransform() || DoRobust(); }
+  /** Do we do real meta excitation?
+   * @param ctxt might be null the we check for any */
+  bool DoMetaExcitation(const Context* ctxt) const;
+  bool DoMetaExcitation(int sequence) const;
 
   /** handles transform and robust.
+   * @param ctxt if NULL search max
    * @param minimum_one if false take care as num_robust can be 0 or 1 w/o robust */
-  unsigned int GetNumberMeta(bool minimum_one = false) const { return GetNumberTransform(minimum_one) * GetNumberRobust(minimum_one); }
+  unsigned int GetNumberMeta(const Context* ctxt, bool minimum_one = false) const;
 
   /** The number of transformations. Important when we do homogenization */
   unsigned int GetNumberTransform(bool mininum_one = false) const { return mininum_one ? std::max(num_trans_, 1) : num_trans_; }
 
-  unsigned int GetNumberRobust(bool mininum_one = false) const { return mininum_one ? std::max(num_robust_, 1) : num_robust_; }
+  /** @param ctxt if NULL search for max (is either none or the same number */
+  unsigned int GetNumberRobust(const Context* ctxt, bool mininum_one = false) const;
 
   /** Search for the excitation label.
    * @param quiet if true NULL is returned when the label is not found instead of an exception */
   Excitation* GetExcitation(const std::string& label, bool quiet = false);
-
-  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
-   * @param base e.g. for homogenization the number of the teststrain, typically 0
-   * @param meta e.g. the number of the */
-  Excitation* GetExcitation(unsigned int base, unsigned int meta);
-
-  /** Gets the excitation based on the meta level. This allows to traverse the meta labels easily
-   * @param base e.g. for homogenization the number of the teststrain, typically 0
-   * @param meta needs to be a number */
-  Excitation* GetExcitation(unsigned int base, const std::string& meta);
-
-  /** The excitation index is not that easy if we have loads/homogenization/frequencies and concurrently robustness and transformations.
-   * The functions have excitations for the later but not necessarily for the first
-   * @param base the "normal" index of test strains, ...
-   * @param f checks for transformation and robustness in the excitation of the function.
-   * @see GetExcitation(unsigned int, Transform*) */
-   unsigned int GetExcitationIndex(unsigned int base, Function* f);
-
-  /** The meta excitation index considers only the meta level (transformation, robustness) not the base level (frequency, wave, test strain)
-   * @return 0 if we have no meta stuff
-   * You may also aks Excitation::meta_index*/
-  // unsigned int GetMetaExcitationIndex(Function* f);
 
   /** For doing adjust weights when doing multiple excitation with meta objective, this method
    * does the job. It requires the cost entries in excitations to be set.
@@ -218,38 +220,57 @@ public:
 
 private:
 
-  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains */
-  int SetHomogenizationTestStrains();
+  /** Helper for PrepareMultipleExcitations(). Excitations are set with hard coded test strains
+   * @param context_base the size of excitations intially for the current context (0 in single or first sequence case) */
+  int SetHomogenizationTestStrains(unsigned int context_base, Context* ctxt);
 
   /** Helper which sets up the robust filters based on any exciting excitations (e.g. test strains), which are wrapped and multiplied */
-  void ApplyRobust(DesignSpace* space);
+  void ApplyRobust(const Context* ctxt);
 
   /** Helper which sets up the transformation based on any exciting excitations (e.g. test strains) including robust!!!, which are wrapped and multiplied */
-  void ApplyTransformations(DesignSpace* space);
+  void ApplyTransformations(const Context* ctxt, DesignSpace* space);
 
-  void SetLoadCases(const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
+  void SetLoadCases(Context* ctxt, unsigned int context_base, const ParamNodeList& pn_ex, int num_loads, Optimization* opt);
 
-  void WriteInInfo(int num_freq, bool eval_inital_design, double weight_sum,  Optimization* opt);
+  /** call this only for the last context */
+  void WriteInInfo(PtrParamNode in);
 
-  void SetHarmonic(int num_freq);
+  void SetHarmonic(Context* ctxt, unsigned int context_base, int num_freq);
 
-  void SetBlochWaves(int num_wave);
+  /** @see SetHomogenizationTestStrains() */
+  void SetBlochWaves(Context* ctxt, unsigned int context_base, int num_wave);
 
   int ValidateTransformation(Optimization* opt);
+
+  /** count the current excitations by sequence */
+  unsigned int CountExcitations(const Context* ctxt) const;
+
+  /** return the indices of the matching excitations */
+  StdVector<unsigned int> GetExcitations(const Context* ctxt) const;
 
   /** do we do multiple excitation at all? */
   bool multiple_excitation_;
 
   Type type_;
 
-  /** the base number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
-  unsigned int total_base_;
+  /** the optional sequence attribute for multi sequence optimization. Note we assume only one multiExcitation xml element for a single sequence
+   * in the multi sequence case. E.G. bloch mode as sequence one and homogenization as sequence two */
+  int sequence_; // 1-based!!
+
+  /** the principle number of excitations (loads, test strains, frequencies) to be multiplied by transformations and robustness */
+  unsigned int principle_;
 
   /** number of transformations in DesignSpace::transform. This is a meta level*/
   int num_trans_;
 
-  /** number of robust filters. This is a meta level. Only > 1 real robust. 0 and 1 is no robust but standard */
-  int num_robust_;
+  /** for every sequence we have an entry. Maps to multipleExcitation/robust in xml */
+  struct Robust
+  {
+    int num_robust = 0; // 0 means disabled
+    int alt_filter = -1; // the filter to use when we are not robust. -1 for no
+  };
+
+  StdVector<Robust> robust_;
 };
 
 
