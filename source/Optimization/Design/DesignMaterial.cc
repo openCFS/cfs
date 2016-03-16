@@ -70,6 +70,9 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 
   em_ = em;
 
+  // initialize, maybe overwritten later
+  interpolation_ = DesignMaterial::NOTYPE;
+
   // collect all designs here, to check whether all are given
   unsigned int r = RequiredParameters(material);
   StdVector<DesignElement::Type> d;
@@ -515,7 +518,7 @@ DesignMaterial::DesignMaterial(PtrParamNode pn, OptimizationMaterial::System mat
 #ifdef USE_SGPP
       // sparse grid interpolation
       if (interpolation_str == "sgpp") {
-        interpolation_ = SGPP;
+        interpolation_ = SG;
         unsigned int dimension = (shearIsDesign_ ? 3 : 2);
         std::string basis_str = hr->Get("sgppBasis")->As<std::string>();
         // sparse grid basis to be used
@@ -1928,7 +1931,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-        else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SG) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -1955,7 +1958,7 @@ void DesignMaterial::GetHomRectTensor(Matrix<double>& E, SubTensorType subTensor
         ApplyHomRectC1Tensor(E,p.coord,direction,subTensor);
       }
 #ifdef USE_SGPP
-        else if (interpolation_ == SGPP) {
+        else if (interpolation_ == SG) {
         ApplyHomRectSGPPTensor(E,p.coord,direction,subTensor);
       } else if (interpolation_ == FULL_BSPLINE) {
         ApplyHomRectFullBsplineTensor(E,p.coord,direction,subTensor);
@@ -3997,9 +4000,9 @@ inline double DesignMaterial::EvaluateSGPPInterpolation_Deriv_Exact(
 #endif //USE_SGPP
 
 
-double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction) {
+double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative) {
 
-  #ifdef USE_SGPP
+#ifdef USE_SGPP
   // Method uses SGPP interpolation
   SGPP::base::DataVector point(p.GetPointer(), p.GetSize());
   LOG_DBG2(dm) << p;
@@ -4008,7 +4011,7 @@ double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type dire
 
   if ((sgpp_basis_ == LINEAR) || (sgpp_basis_ == MODLINEAR)) {
     SGPP::base::OperationEval* opEval = SGPP::op_factory::createOperationEval(*grid_);
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (!derivative) {
       vol = opEval->eval(volume_, point);
       LOG_DBG(dm) << "DM::CHV: volume= " << vol;
     } else {
@@ -4016,7 +4019,7 @@ double DesignMaterial::CalcHomVolume(Vector<double>& p, DesignElement::Type dire
     }
     delete opEval;
   } else {
-    if (direction == DesignElement::NO_DERIVATIVE || direction == DesignElement::ROTANGLE || direction == DesignElement::ROTANGLEX || direction == DesignElement::ROTANGLEY) {
+    if (!derivative) {
       SGPP::base::OperationNaiveEval* opNaiveEval = SGPP::op_factory::createOperationNaiveEval(*grid_);
       vol = opNaiveEval->eval(volume_, point);
       delete opNaiveEval;
@@ -4192,7 +4195,7 @@ double DesignMaterial::EvaluateC1Interpolation_Deriv_3D(Vector<double>& p,
     }
     deriv /= db;
   }
-  if (direction == DesignElement::STIFF3) {
+  if (direction == DesignElement::STIFF3 || direction == DesignElement::SHEAR1) {
     for (int ii = 0; ii < 4; ii++) {
       for (int jj = 0; jj < 4; jj++) {
         for (int kk = 1; kk < 4; kk++) {

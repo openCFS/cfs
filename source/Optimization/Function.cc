@@ -2941,12 +2941,12 @@ double Function::Local::Identifier::CalcTwoScaleVolume(const Local* local, Desig
   double svol = regular ? 1.0 : de->CalcVolume();
   LOG_DBG2(func) << "Element volume =  " << de->CalcVolume();
 
-  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SGPP) {
-    Vector<double> p;
+  if (local->space->designMaterial->GetInterpolationMethod() == DesignMaterial::SG) {
+    Vector<double> p(3);
     p[0] = stiff1;
     p[1] = stiff2;
     p[2] = GetDesign(DesignElement::SHEAR1, local, access, true);
-    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType());
+    return svol * local->space->designMaterial->CalcHomVolume(p, GetElement(neigh_idx)->GetType(), derivative);
   }
 
   if (!derivative) {

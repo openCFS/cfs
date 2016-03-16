@@ -1,11 +1,12 @@
 dim  = 2;
-npoints = 2^7-1; % 2^n-1
+n = 3;
+mini = .01;
+maxi = .99;
+
+npoints = 2^n-1;
 sz = [ npoints^dim, dim ];
 
-% npoints = 6;
-% sz = [ 6^2, dim ];
-
-fprintf('number of grid points:  %d, 4096\n', sz(1));
+fprintf('number of grid points:  %d\n', sz(1));
 
 pointsPerDim = 1:npoints;
 
@@ -20,7 +21,7 @@ elseif dim == 2
     points = [x,y];
 end
 
-points = points/(npoints+1);
+points = points/(npoints+1)*(maxi-mini)+mini;
 
 % Write coordinates
 if sz(2) > 3

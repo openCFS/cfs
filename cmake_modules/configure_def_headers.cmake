@@ -117,6 +117,9 @@ CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_ccmio.hh.in"
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_openmp.hh.in"
   "${CFS_BINARY_DIR}/include/def_use_openmp.hh")
 
+CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_use_sgpp.hh.in"
+  "${CFS_BINARY_DIR}/include/def_use_sgpp.hh")
+
 CONFIGURE_FILE("${CFS_SOURCE_DIR}/include/def_xmlschema.hh.in"
   "${CFS_BINARY_DIR}/include/def_xmlschema.hh"
   @ONLY )
