@@ -39,49 +39,6 @@ namespace CoupledField {
       sizeof(solverTypeTuples) / sizeof(EnumTuple),
       solverTypeTuples); 
 
-  
-  // *******************
-  //   Log Convergence
-  // *******************
-  void BaseIterativeSolver::LogConvergence( Double rk, UInt step,
-                                            bool firstCall ) {
-
-    static double lastNorm = 0;
-
-
-    // Write header
-    if ( firstCall == true ) {
-      std::string tmp = solverType.ToString( GetSolverType() );
-
-      (*cla) << "\n "
-      << tmp
-      << ": Starting iterations\n\n"
-             << "# iter \t resid.norm \trel.res.norm\treduction\n"
-             << "#------\t------------\t------------\t---------\n"
-             << std::scientific << "  " << step << "\t" << rk << std::endl;
-      lastNorm = rk;
-
-      // Test that scalFac_ was initialised
-      if ( scalFac_ < 0.0 ) {
-        EXCEPTION( "Class attribute scalFac_ was not properly initialised!"
-            << " scalFac_ = " << scalFac_
-            << ".\n Did you call ComputeThreshold?" );
-      }
-    }
-
-    // Write results for current iteration step
-    else {
-      (*cla) << std::scientific << "  "
-             << step << "\t"
-             << rk << "\t"
-             << rk/scalFac_ << "\t"
-             << std::fixed << rk/lastNorm << std::endl;
-      cla->unsetf( std::ios::fixed );
-      lastNorm = rk;
-    }
-  }
-
-
   // ********************
   //   ComputeThreshold
   // ********************
@@ -112,11 +69,6 @@ namespace CoupledField {
     if ( beVerbose == true ) {
       std::string tmp;
       Enum2String( stopCrit, tmp );
-
-      (*cla) << "\n Checking stopping rule:\n"
-             << " ----------------------\n"
-             << " User specified '" << tmp << "'\n"
-             << std::scientific << " User supplied epsilon = " << eps << '\n';
     }
 
     switch( stopCrit ) {
@@ -135,32 +87,16 @@ namespace CoupledField {
     case RELNORM_RHS:
 
       if ( usingPenalty_ ) {
-        (*cla) << " --> Detected Penalty Formulation\n"
-        << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
-        << std::endl;
         scalFac_ = resNorm;
 
         stopRuleNode->Get("type")->SetValue("relNormRes0");
-        if ( beVerbose == true ) {
-          (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
-        }
+        if ( beVerbose == true ) { } // removed logging
       }
       else {
         scalFac_ = rhs.NormL2();
         if ( scalFac_ == 0 ) {
-          (*cla) << " --> Norm of right-hand side is zero\n"
-          << " --> Changing from RELNORM_RHS to RELNORM_RES0\n"
-          << std::endl;
           scalFac_ = resNorm;
         stopRuleNode->Get("type")->SetValue("relNormRes0");
-          if ( beVerbose == true ) {
-            (*cla) << " Using || r_0 ||_2 = " << scalFac_ << " for scaling\n";
-          }
-        }
-        else {
-          if ( beVerbose == true ) {
-            (*cla) << " Using || b ||_2 = " << scalFac_ << " for scaling\n";
-          }
         }
       }
       break;
@@ -170,26 +106,13 @@ namespace CoupledField {
       // tested this. So we can simply go ahead
     case RELNORM_RES0:
       scalFac_ = resNorm;
-      if ( beVerbose == true ) {
-        (*cla) << " Using || r_0 ||_2 = " << scalFac_ << '\n';
-      }
       break;
 
     default:
       EXCEPTION( "No valid stopping criterion supplied" );
-
     }
-
     // Now finally we can compute the threshold
-    Double threshold = eps * scalFac_;
-
-    // Report threshold to log file, if required
-    if ( beVerbose == true ) {
-      (*cla) << " Stopping test uses tau = " << threshold << std::endl;
-    }
-
-    // That's all
-    return threshold;
+    return eps * scalFac_;
   }
   
   BaseSolver::~BaseSolver()
