@@ -530,6 +530,7 @@ include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_scpip.hh.in -text
+include/def_use_sgpp.hh.in -text
 include/def_use_snopt.hh.in -text
 include/def_use_suitesparse.hh.in -text
 include/def_use_superlu.hh.in -text
@@ -1132,6 +1133,7 @@ share/matlab/material_catalogue/callMatlab.sh -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_31 -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5 -text
 share/matlab/material_catalogue/createPresetsFullGrid.m -text
+share/matlab/material_catalogue/createPresetsFullGrid_bndry.m -text
 share/matlab/material_catalogue/createPresetsSparseGrid.m -text
 share/matlab/material_catalogue/extractPartialCatalogue.m -text
 share/matlab/material_catalogue/generateCatalogueParallel.sh -text
