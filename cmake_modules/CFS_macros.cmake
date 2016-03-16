@@ -247,9 +247,9 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   IF(PERFORM_DOWNLOAD)
     FOREACH(URL IN ITEMS ${MIRROR_LIST})
       MESSAGE("downloading...
-     src='${URL}'
-     dst='${LOCAL_FILE}'
-     timeout=${TIMEOUT}")
+        src='${URL}'
+        dst='${LOCAL_FILE}'
+        timeout=${TIMEOUT}")
 
       FILE(DOWNLOAD
         ${URL}
