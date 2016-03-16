@@ -1,5 +1,6 @@
 #include "Driver/AnalysisID.hh"
 #include "DataInOut/ProgramOptions.hh"
+#include "Utils/tools.hh"
 
 namespace CoupledField
 {
@@ -38,7 +39,7 @@ std::string AnalysisID::ToString(bool filename) const
     ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "adjoint";
 
   if(excite != "")
-    ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "excite" << assign << excite;
+    ss << (ss.rdbuf()->in_avail() ? "_" : "")  << "excite" << assign << (filename ? ConvertToFilename(excite) : excite);
 
   return ss.str();
 }

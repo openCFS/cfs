@@ -338,9 +338,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
         settings->numBadCoarsenings <  numBadCoarsenings ||  
         Topology_->GetSizeh()       == SizeH                ) {
         // If logging is switched on, write some information to
-        // the (*cla) stream. If profiling is switched on, write
-        // additionally the profiling result. Note that profiling
-        // implicitly switches on the logging.
+        // the (*cla) stream.
         if( logging_ ) {
             if( settings->minSystemSize > SizeH ) {
                 (*cla)
@@ -421,7 +419,7 @@ bool HierarchyLevel<T>::Setup( Settings* const settings,
     Transfer_->GalerkinProduct( &coarseMatrix, *SysMatrix_ );
 #endif
 
-    // some logging and profiling
+    // some logging
     if( logging_ ) {
         (*cla) << " AMG: finished setup on level ["<<GetLevelID()<<"]:\n"
                << LOGLINE;

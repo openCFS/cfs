@@ -9,7 +9,7 @@
   #include "General/Exception.hh"
   #include "Optimization/Optimizer/SCPIPBase.hh"
   #include "Optimization/Optimizer/scpip30.hh"
-
+  #include "DataInOut/ProgramOptions.hh"
   using namespace CoupledField;
 
   DECLARE_LOG(scpip_base)
@@ -608,13 +608,15 @@ void SCPIPBase::AllocateDynamic()
 {
   if((int) spiw.GetSize() != info[6-1])
   {
-    std::cout << "SCPIP: request to change spiwdim from " << spiw.GetSize() << " to " << info[6-1] << std::endl;
+    if(progOpts->DoDetailedInfo())
+     std::cout << "SCPIP: request to change spiwdim from " << spiw.GetSize() << " to " << info[6-1] << std::endl;
     spiw.Resize(2*info[6-1], 0); // X
     spiw.Resize(info[6-1], 0);
   }
   if((int) spdw.GetSize() != info[7-1])
   {
-    std::cout << "SCPIP: request to change spdwdim from " << spdw.GetSize() << " to " << info[7-1] << std::endl;
+    if(progOpts->DoDetailedInfo())
+      std::cout << "SCPIP: request to change spdwdim from " << spdw.GetSize() << " to " << info[7-1] << std::endl;
     spdw.Resize(info[7-1], 0.0);
     if(info[7-1] > 1e6)
     {

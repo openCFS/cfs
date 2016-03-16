@@ -24,7 +24,7 @@ namespace CoupledField {
   //! The notion ILU(0) indicates that no fill-in
   //! is allowed in the factorisation. Thus the matrices \f$A\f$ and \f$L+U\f$
   //! will have the same sparsity pattern.
-  //! Application of the ILU preconditioner means computation of
+  //! App::Type of the ILU preconditioner means computation of
   //! \f$M^{-1}r=z\f$. This is achieved by solving \f$Mz=r\f$ for \f$z\f$.
   //! The latter can simply be performed by a pair of backward/forward
   //! substitutions using the approximate factors \f$L\f$ and \f$U\f$.
@@ -54,7 +54,7 @@ namespace CoupledField {
 
     //! Apply ILU preconditioner
     
-    //! Application of the ILU preconditioner means computation of
+    //! App::Type of the ILU preconditioner means computation of
     //! \f$M^{-1}r=z\f$. This is achieved by solving \f$Mz=r\f$ for \f$z\f$.
     //! The latter can simply be done by performing a pair of backward/forward
     //! substitution using the approximate factors \f$L\f$ and \f$U\f$.

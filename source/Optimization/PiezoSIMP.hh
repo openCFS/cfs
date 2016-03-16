@@ -43,8 +43,8 @@ protected:
   {
     if(f->GetType() == Objective::ELEC_ENERGY)
     {
-      if(complex_) ConstructAdjointRHS<std::complex<double> >(excite, f);
-              else ConstructAdjointRHS<double>(excite, f);
+      if(context->IsComplex()) ConstructAdjointRHS<std::complex<double> >(excite, f);
+                         else ConstructAdjointRHS<double>(excite, f);
     }
     else
     {
@@ -53,26 +53,19 @@ protected:
   }
   
   
-  /** This is our part for CalcU1KU2() -> This set the matrix derivatives form ELEC and
-   * PIEZO_COUPLING ( + transposed) */
-  virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
+  /** This is our part for CalcU1KU2() -> This set the matrix derivatives form App::ELEC and
+   * App::PIEZO_COUPLING ( + transposed) */
+  virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0)
   {
-    if(complex_)
-      SetElementK<std::complex<double>, double >(de, tf, app, out, derivative, calcMode, ev);
+    if(ctxt->IsComplex())
+      SetElementK<std::complex<double>, double >(ctxt, de, tf, app, out, derivative, calcMode, ev);
     else
-      SetElementK<double, double>(de, tf, app, out, derivative, calcMode, ev);
+      SetElementK<double, double>(ctxt, de, tf, app, out, derivative, calcMode, ev);
   }
-
-  /** is a cast of the ErsatzMaterial::material attribute. Set in PostInit() */
-  PiezoElecMat* piezo_mat_;
-
-  /** shortcut to our pde, is also in ErsatzMaterial::pdes */
-  ElecPDE* elec;
-
 private:
 
   template <class T1, class T2>
-  void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
+  void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode calcMode = STANDARD, double ev = -1.0);
 
 
   /** Calculate the electrix enegy p^T K_pp p resp. p^T K_pp p^* */

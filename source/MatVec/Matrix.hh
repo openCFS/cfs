@@ -139,7 +139,7 @@ namespace CoupledField
     bool IsSymmetric() const;
 
     /** symmetry check with eps sensitivity. */
-    inline bool IsSymmetric(double eps) const;
+    bool IsSymmetric(double eps) const;
 
     /** check if the matrix is a Hermitian matrix. In the non complex case symmetry is checked.
      * @param eps if true use close() to compare the values by an eps  */

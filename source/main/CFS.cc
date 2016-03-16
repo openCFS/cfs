@@ -314,7 +314,6 @@ void CFS::SolveProblem()
 }
 
 
-
 void CFS::WriteXMLSkeleton()
 {
   // This block is used for writing a skeleton XML-File to make life easier

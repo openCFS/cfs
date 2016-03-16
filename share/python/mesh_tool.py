@@ -12,7 +12,7 @@ from scipy.spatial import Delaunay
 # def write_dense_mesh(pixels, size, file, threshold):
 
 # element types as in gid (simInputMESH.cc -> AnsysType2ElemType)
-TRIANGLE3 = 4
+TRIA3 = 4
 QUAD4 = 6
 TET4 = 8
 HEXA8 = 10
@@ -27,7 +27,7 @@ def nodes_by_type(type):
     return 8
   if type == WEDGE6:
     return 6
-  if type == TRIANGLE3:
+  if type == TRIA3:
     return  3
   if type == LINE:
     return 2
@@ -43,7 +43,7 @@ def mesh_type_from_hdf5(type_id):
   if type_id == 11:
     return HEXA8
   if type_id == 4:
-    return TRIANGLE3
+    return TRIA3
   if type_id == 8:
     return TET4
   assert(False)
@@ -124,13 +124,17 @@ def create_dense_mesh_img(input_img, mesh, threshold, scale, rhomin, shearAngle,
 def create_dense_mesh_density(numpy_array, mesh, threshold, scale, rhomin, multi_d=1):
   # handle different types of numpy_array, further description in create_dense_mesh
   # only one design variable
-  if multi_d == 1:
-    nx, ny = numpy_array.shape
-  # multiple design variables
+  if multi_d == 1 and len(numpy_array.shape) == 3: 
+    nx, ny, nz = numpy_array.shape   
+    create_3d_mesh('bulk3d', x_res = numpy_array.shape[0], data = numpy_array, threshold = threshold, ext_mesh = mesh)
   else:
-    #m,n are dummy variables
-    nx, ny, m, n = numpy_array.shape
-  create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=multi_d, shearAngle=0.0)
+    if multi_d == 1:
+      nx, ny = numpy_array.shape
+    # multiple design variables
+    else:
+      #m,n are dummy variables
+      nx, ny, m, n = numpy_array.shape
+    create_dense_mesh(numpy_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=multi_d, shearAngle=0.0)
   
 def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi_design=1, shearAngle=0, type=1, color_mode="random"):
   # convert angle to rad and check for feasibility
@@ -141,6 +145,9 @@ def create_dense_mesh(input_array, nx, ny, mesh, threshold, scale, rhomin, multi
   dx = scale / nx / math.cos(angle)
   # from daniel ?! dy = scale/ny
   dy = dx
+  
+  mesh.nx = nx
+  mesh.ny = ny
   
   # input_array can be one of three cases: grayscale imgae (array of ints), color image (array of tuples (r,g,b(,a)), numpy.ndarray
   is_data = isinstance(input_array, numpy.ndarray)
@@ -357,7 +364,7 @@ def write_gid_mesh(mesh, filename):
   wedge6 = count_elements(mesh.elements, WEDGE6)
   line = count_elements(mesh.elements, LINE)
   tet4 = count_elements(mesh.elements, TET4)
-  tri3 = count_elements(mesh.elements, TRIANGLE3)
+  tri3 = count_elements(mesh.elements, TRIA3)
   num_1d = line
   num_2d = quad4 + tri3
   num_3d = hexa8 + wedge6 + tet4
@@ -513,7 +520,7 @@ def create_2d_mesh(type, x_res, y_res, width, opt_height = None, inclusion = Non
     for x in range(nx):
       e = Element()
       e.density = 1.0
-      e.type = TRIANGLE3 if type == 'triangle_msfem' else QUAD4
+      e.type = TRIA3 if type == 'triangle_msfem' else QUAD4
       if type == 'cantilever2d_reinforced' and float(x) >= (28. / 30. * nx):
         e.region = 'reinforce'
       # strange: assure that x is meant to be 2.0 and y is meant to be 1.0 ?!  
@@ -723,38 +730,38 @@ def create_regular3d_mesh(type, resolution):
         mesh.elements.append(e)  
   return mesh
 
-## creates a mesh of predefined geometry
-def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
+## creates a mesh of predefined geometry# inclusion is optional  
+# data and threshold for sparse mesh from create_density. data is a numpy.array in 3D! 
+# @param ext_mesh if given use it 
+# @return a mesh, either ext_mesh or a newly created 
+def create_3d_mesh(type, x_res, y_res = None, z_res = None, inclusion = None, inclusion_size = None, data = None, threshold = None, ext_mesh = None): 
   assert(type == "bulk3d" or type == "cantilever3d")
+
+  nx = x_res  
    
-  if (type == "bulk3d"): 
-      nx = x_res 
+  if type == "bulk3d": 
       ny = y_res if y_res <> None else x_res 
       nz = z_res if z_res <> None else x_res 
-       
       width = 1.0 
-      dx = width / nx 
-       
       height = float(ny)/nx 
-      dy = height / ny 
-       
       depth = float(nz)/nx 
-      dz = depth / nz 
-  elif (type == "cantilever3d"): 
-    nx = x_res 
+  else: 
     ny = int(nx * (2./3.)) 
     nz = int(nx * (2./3.)) 
-     
     width = 3.0 
     height = 2.0 
     depth = 2.0 
      
-    dx = width / nx 
-    dy = height / ny 
-    dz = depth / nz 
+  dx = width / nx 
+  dy = height / ny 
+  dz = depth / nz 
 
-  mesh = Mesh(nx, ny, nz)
-
+  assert(data is None or (len(data.shape) == 3 and data.shape[0] == nx and data.shape[1] == ny and data.shape[2] == nz)) 
+  assert(data is None or threshold is not None) # theshold is mandatory when data is set 
+  assert(not (data is None and threshold is not None)) # set threshold only when data is not set 
+      
+  mesh = Mesh(nx, ny, nz) if ext_mesh is None else ext_mesh
+  
   nnx = nx + 1
   nny = ny + 1
   nnz = nz + 1
@@ -798,7 +805,7 @@ def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
     for y in range(ny):
       for x in range(nx):
         e = Element()
-        e.density = 1.0
+        e.density = 1.0 if data is None else data[x,y,z]
         e.type = HEXA8
         if inclusion == 'rect' and x >= nnx/2 * (1 - inclusion_size) and x < nnx/2 * (1 + inclusion_size)\
                   and y >= nny/2 * (1 - inclusion_size) and y < nny/2 * (1 + inclusion_size) \
@@ -806,10 +813,10 @@ def create_3d_mesh(type, x_res, y_res, z_res, inclusion, inclusion_size):
                        e.region = 'inner' 
                        second += 1   
         elif inclusion == 'ball' and numpy.sqrt((x-nnx/2)**2 + (y-nny/2)**2 + (z-nnz/2)**2) <= nnx*inclusion_size: 
-            e.region = 'inner' 
+            e.region = 'inner' if not threshold or e.density > threshold else 'void'  
             second += 1     
         else: 
-            e.region = 'mech' 
+            e.region = 'mech' if not threshold or e.density > threshold else 'void' 
    
             # assign nodes 
             # ll = (nx+1)*y*(nx+1) * z + (nx+1) * y + x  # lowerleftfront 

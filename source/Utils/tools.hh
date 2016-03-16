@@ -8,6 +8,7 @@
 #include <boost/lexical_cast.hpp>
 
 #include "General/Environment.hh"
+#include "Optimization/EigenInfo.hh"
 
 // C++ is so poor that there even is no really standard for pi - > why not????
 #ifndef M_PI
@@ -51,6 +52,9 @@ namespace CoupledField {
   
   /** boost based SplitStringList() which consideres almost all whitespaces */
   void SplitStringListWhitespace(const std::string &s, StdVector<std::string> &strVec);
+
+  /** convert a string such that is becomes a valid filename. Might need extensions */
+  std::string ConvertToFilename(std::string org);
 
   //! Wrap string in braces
   inline std::string Bracket( const std::string& xpr ) {
@@ -213,6 +217,12 @@ namespace CoupledField {
    for(unsigned int i = 0, rn = out.GetSize(); i < rn; i++)
        out[i] += fac * other[i];
   }
+
+  /** Search for the smallest value within a row
+   * @param value set when given
+   * @param set the info if given to be used for output
+   * @return the 0-based column index */
+   unsigned int SearchMinMax(const Matrix<double>& mat, unsigned int row, bool minimum, double* val = NULL, EigenInfo* info = NULL);
 
 
   /** transforms a complex matrix to its complex conjugate */
