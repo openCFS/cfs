@@ -15,12 +15,19 @@ class Objective;
 DECLARE_LOG(aux_des)
 DEFINE_LOG(aux_des, "auxDesign")
 
-AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, unsigned int naux)
+AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, int naux)
   : DesignSpace(regions, pn, method)
 {
   alsomatopt_ = true; // can be different in ShapeDesign
   scaling_ = 1.0;
 
+  if(naux == -1) { // check automatically
+    naux = 0;
+    if(pn->HasByVal("design", "name", "slack"))
+      naux = 1;
+    if(pn->HasByVal("design", "name", "alpha"))
+      naux = 2;
+  }
   assert(naux == 0 || naux == 1 || naux == 2);
   if(naux == 1 || naux == 2)
   {

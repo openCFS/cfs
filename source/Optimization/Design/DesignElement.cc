@@ -16,6 +16,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
@@ -46,6 +47,7 @@ Enum<BaseDesignElement::Type>       BaseDesignElement::type;
 Enum<DesignElement::ValueSpecifier> DesignElement::valueSpecifier;
 Enum<DesignElement::Access>         DesignElement::access;
 Enum<DesignElement::Detail>         DesignElement::detail;
+Enum<ShapeMapDesign::Type>          ShapeMapDesign::type;
 
 // is a static attribute
 DesignSpace* DesignElement::space_(NULL);
@@ -304,8 +306,18 @@ std::string BaseDesignElement::ToString(const StdVector<BaseDesignElement*>& vec
   return ss.str();
 }
 
+/** Bastian's shape optimization */
 ShapeDesignElement::ShapeDesignElement(unsigned int index) : BaseDesignElement() {
   index_ = index;
+}
+
+/* Parametric shape optimization */
+ShapeParamElement::ShapeParamElement(Type type, unsigned int index) : BaseDesignElement(type)
+{
+  index_ = index;
+  dof = -1;
+  coord.Resize(domain->GetGrid()->GetDim(), -1.0);
+  idx.Resize(domain->GetGrid()->GetDim(), -1);
 }
 
 /** The default constructor for StdVector and ghost elements*/
@@ -713,6 +725,10 @@ void DesignElement::SetEnums()
   Filter::density.Add(Filter::VOID_HEAVISIDE, "void_heaviside");
   Filter::density.Add(Filter::TANH, "tanh");
 
+  ShapeMapDesign::type.SetName("ShapeMapDesign::Type");
+  ShapeMapDesign::type.Add(ShapeMapDesign::NODE, "node");
+  ShapeMapDesign::type.Add(ShapeMapDesign::PROFILE, "profile");
+
   type.SetName("BaseDesignElement::Type");
   type.Add(NO_TYPE, "no_type");
   type.Add(NO_MULTIMATERIAL, "no_multimaterial");
@@ -783,6 +799,8 @@ void DesignElement::SetEnums()
   type.Add(LOWER_EIG_BOUND, "lowerEigenBound");
   type.Add(MULTIMATERIAL, "multimaterial");
   type.Add(INTERPOLATION, "interpolation");
+  type.Add(NODE, "node");
+  type.Add(PROFILE, "profile");
   type.Add(ALL_DESIGNS, "allDesigns");
 
   access.SetName("DesignElement::Access");
@@ -848,6 +866,7 @@ void DesignElement::SetEnums()
   detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
   detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
   detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
+
 
 }
 

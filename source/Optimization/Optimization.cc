@@ -39,6 +39,7 @@
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
 #include "Optimization/ShapeOpt.hh"
+#include "Optimization/ShapeMapping.hh"
 #include "Optimization/Transform.hh"
 #include "PDE/SinglePDE.hh"
 #include "PDE/BasePDE.hh"
@@ -439,6 +440,7 @@ void Optimization::SetEnums()
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_GRAD, "shapeGrad");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_OPT, "shapeOpt");
   ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_PARAM_MAT, "shapeParamMat");
+  ErsatzMaterial::method.Add(ErsatzMaterial::SHAPE_MAP, "shapeMap");
   
   ErsatzMaterial::commitMode.SetName("ErsatzMaterial::CommitMode");
   ErsatzMaterial::commitMode.Add(ErsatzMaterial::FORWARD, "forward");
@@ -615,10 +617,11 @@ Optimization* Optimization::CreateInstance()
     opt = new ShapeOpt();
     break;
   case ErsatzMaterial::SHAPE_GRAD:
-  {
     opt = new ShapeGrad();
     break;
-  }
+  case ErsatzMaterial::SHAPE_MAP:
+    opt = new ShapeMapping();
+    break;
   default: throw Exception("Optimization not implemented");
   }
   

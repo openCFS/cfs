@@ -474,8 +474,12 @@ namespace CoupledField {
     //! Destructor
     ~LagrangeElemShapeMap();
 
-    //! @copydoc ElemShapeMap::SetElem
+    /** @copydoc ElemShapeMap::SetElem
+     * this sets coords_ */
     virtual void SetElem( const Elem* ptElem, bool isUpdated = false );
+
+    /** take some info from the element but use the given coordinates, not the one from elem */
+    void SetElem(const Elem* elem, const Matrix<double>& coords);
 
     // ---------------------------------------------------
     //   Coordinate Mapping

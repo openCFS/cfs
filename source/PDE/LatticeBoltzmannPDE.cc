@@ -49,6 +49,7 @@
 #include "Optimization/Design/DesignSpace.hh"
 #include "Optimization/TransferFunction.hh"
 #include "Optimization/Design/DesignElement.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Objective.hh"
 #include "MatVec/Vector.hh"
 #include "MatVec/StdMatrix.hh"
@@ -171,7 +172,7 @@ namespace CoupledField {
     InitRegions(pn, grid);
 
     // for 2D n_z_=1
-    StdVector<UInt> n = grid->GetBoundaries(boundary_reg_);
+    StdVector<unsigned int> n = ShapeMapDesign::SetupLexicographicMesh(grid, boundary_reg_, elem_to_idx, idx_to_elem);
     n_x_ = n[0];
     n_y_ = n[1];
     n_z_ = n[2];
@@ -186,8 +187,6 @@ namespace CoupledField {
       n_q_ = 19;
       dim_ = 3;
     }
-
-    SetupElementMapping(grid);
 
     StdVector<Elem*> tmp;
     grid->GetElemsByName(tmp,"inlet");

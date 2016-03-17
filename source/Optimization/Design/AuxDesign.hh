@@ -24,7 +24,8 @@ class AuxDesign : public DesignSpace
 {
   public:
 
-    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, unsigned int naux = 0);
+    /** @param naux 1 for slack, 2 for slack and alpha, -1 to identify automatically by pn */
+    AuxDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, int naux = -1);
 
     virtual ~AuxDesign() { } ;
 

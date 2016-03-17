@@ -49,7 +49,7 @@ template <class TYPE> class Matrix;
      * @param coordMat returns the derivative of the CornerCoords 
      * @param connect nodes of the element we want the derivative of 
      * @param parameter index to the shape parameter we calculate the derivative with respect to */
-    bool GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter);
+    bool GetElemNodesCoordDerivative(Matrix<Double>& coordMat, const StdVector<UInt>& connect, const int parameter);
 
     /** return whether also material optimization (SIMP, ParamOpt, ...?) is done */
     bool AlsoMatOpt() const {

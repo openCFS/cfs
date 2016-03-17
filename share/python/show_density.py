@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-
 from optimization_tools import *
-from PIL import Image
+from PIL import Image, ImageDraw
 import sys
 import argparse
 import glob
