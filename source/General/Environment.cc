@@ -366,11 +366,11 @@ namespace CoupledField {
 
       case MAG_FLUX_DENSITY:
       case MAG_NORMAL_FLUX_DENSITY:
-      case COIL_LINKED_FLUX:
         return "Vs/m^2";
         break;
 
       case MAG_FLUX:
+      case COIL_LINKED_FLUX:
         return "Vs";
         break;
 
