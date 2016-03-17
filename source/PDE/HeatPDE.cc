@@ -717,11 +717,11 @@ void HeatPDE::DefineRhsLoadIntegrators() {
         EXCEPTION("Heat source must be defined on nodes!")
       }
 
-      UInt numNodes = ent[i]->GetSize();
-      if( numNodes > 1 ) {
-        Global::ComplexPart part = Global::REAL;
-        coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
-      }
+//      UInt numNodes = ent[i]->GetSize();
+//      if( numNodes > 1 ) {
+//        Global::ComplexPart part = Global::REAL;
+//        coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
+//      }
 
       lin = new SingleEntryInt(coef[i]);
       lin->SetName("NodalHeatInt");
