@@ -279,6 +279,10 @@ template<typename T> class ElemStoreSol;
     /** diff norm */
     double NormL2(const Vector<T>& other) const;
 
+    T Sum() const;
+
+    T Avg() const;
+
     /** Calculates the max-norm (of the real part) */ 
     Double NormMax() const; 
 

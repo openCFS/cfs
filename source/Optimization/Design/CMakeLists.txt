@@ -4,6 +4,7 @@ SET(DESIGN_SRCS
   DesignStructure.cc
   DensityFile.cc
   AuxDesign.cc
+  ShapeMapDesign.cc
   ShapeDesign.cc
   DesignMaterial.cc
   Filter.cc

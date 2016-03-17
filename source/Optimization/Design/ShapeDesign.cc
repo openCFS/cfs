@@ -168,7 +168,7 @@ bool ShapeDesign::IsElemDependentAtAll(const StdVector<UInt>& connect){
   return(false);
 }
 
-bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double> & coordMat, const StdVector<UInt> & connect, const int parameter){
+bool ShapeDesign::GetElemNodesCoordDerivative(Matrix<Double>& coordMat, const StdVector<UInt>& connect, const int parameter){
   bool allIsZero = true;
   coordMat.Resize(dim_, connect.GetSize());
   for (UInt k=0; k < connect.GetSize(); k++) {

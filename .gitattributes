@@ -2068,6 +2068,8 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/Design/ShapeMapDesign.cc -text
+source/Optimization/Design/ShapeMapDesign.hh -text
 source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
@@ -2129,6 +2131,8 @@ source/Optimization/SIMP.cc svneol=native#text/plain
 source/Optimization/SIMP.hh svneol=native#text/plain
 source/Optimization/ShapeGrad.cc -text
 source/Optimization/ShapeGrad.hh -text
+source/Optimization/ShapeMapping.cc -text
+source/Optimization/ShapeMapping.hh -text
 source/Optimization/ShapeOpt.cc -text
 source/Optimization/ShapeOpt.hh -text
 source/Optimization/StateSolution.cc -text

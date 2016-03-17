@@ -1138,7 +1138,7 @@
                   </xsd:element>
                 </xsd:sequence>
               </xsd:complexType>              
-            </xsd:element>
+            </xsd:element> <!-- end of paramMat -->
             
             <xsd:element name="shapeOpt" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
@@ -1166,8 +1166,48 @@
                 <xsd:selector xpath="cfs:shapeParam"/>
                 <xsd:field xpath="@param"/>
               </xsd:unique>
-            </xsd:element>
+            </xsd:element> <!-- end of shapeOpt -->
 
+            <!-- parametric shape optimization mapped to density -->
+            <xsd:element name="shapeMap" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                   <xsd:element name="shapeParam" minOccurs="1" maxOccurs="unbounded">
+                      <xsd:complexType>
+                        <!-- which type of shapeParam do we have? node or profile? -->
+                        <xsd:attribute name="type" use="required">
+                          <xsd:simpleType>
+                            <xsd:restriction base="xsd:token">
+                              <!-- move the node in dof direction. the design is multiplied by the other directions.
+                                   e.g. dof=x then there are variables generated for each y (in 2d). For 2D has you need
+                                   two xml declarations for dof=x  plus two for dof=y -->
+                              <xsd:enumeration value="node"/>
+                              <!-- each node variable needs a profile but one profile xml element is enough for all nodes. -->
+                              <xsd:enumeration value="profile"/>
+                            </xsd:restriction>
+                          </xsd:simpleType>
+                        </xsd:attribute>
+                        <!-- only for node  -->
+                        <xsd:attribute name="dof" use="optional">
+                          <xsd:simpleType>
+                            <xsd:restriction base="xsd:token">
+                              <xsd:enumeration value="x"/>
+                              <xsd:enumeration value="y"/>
+                            </xsd:restriction>  
+                          </xsd:simpleType>
+                        </xsd:attribute>
+                        <!-- lower, uppde and initial go together or fixed -->
+                        <xsd:attribute name="initial" type="xsd:float" use="optional"/>
+                        <xsd:attribute name="lower" type="xsd:float" use="optional"/>
+                        <xsd:attribute name="upper" type="xsd:float" use="optional"/>
+                        <!-- alternative to  lower, uppde and initial -->
+                        <xsd:attribute name="fixed" type="xsd:float" use="optional"/>
+                      </xsd:complexType>
+                   </xsd:element>
+                </xsd:sequence>
+                <xsd:attribute name="beta" type="xsd:float" use="required"/>
+              </xsd:complexType>
+            </xsd:element>
             
             <!-- Optional parameters for the design space -->
             <xsd:element name="designSpace" minOccurs="0" maxOccurs="1">
@@ -1347,6 +1387,8 @@
                 <xsd:enumeration value="shapeGrad"/>
                 <xsd:enumeration value="shapeOpt"/>
                 <xsd:enumeration value="shapeParamMat"/>
+                <!--  parametric shape is mapped to density -->
+                <xsd:enumeration value="shapeMap"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>         

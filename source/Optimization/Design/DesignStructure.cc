@@ -189,8 +189,7 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     return;
 
   // the initialization was separated!
-  boost::shared_ptr<Timer> timer(new Timer()); 
-  in->Get("timer")->SetValue(timer);
+  shared_ptr<Timer> timer = in->Get("timer")->AsTimer();
   timer->Start();
 
   double avg_radius = 0;

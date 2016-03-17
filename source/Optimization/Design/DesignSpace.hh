@@ -441,6 +441,9 @@ namespace CoupledField
       * a different design */
      int design_id;
 
+     /** This is the design space info node */
+     PtrParamNode info_;
+
   private:
 
      /** Helper for the constructor.
@@ -518,8 +521,6 @@ namespace CoupledField
      /** Here we save the constructing param nodes to allow to create a clone for the projection method */
      PtrParamNode pn_;
 
-     /** This is the design space info node */
-     PtrParamNode info_;
 
      ErsatzMaterial::Method method_;
   };
