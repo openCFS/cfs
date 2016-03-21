@@ -119,6 +119,13 @@
                 </xsd:element>
                 
                 <!-- heat specific boundary conditions -->
+                <xsd:element name="designDependentHeatSource" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Creates heat sources at interfaces betweens void and solid </xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <!-- heat specific boundary conditions -->
                 <xsd:element name="heatSourceDensity" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines volume heat</xsd:documentation>
