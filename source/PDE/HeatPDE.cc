@@ -710,7 +710,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 
     coefUpdateGeo = false;
 
-    ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
+    ReadRhsExcitation( "designDepHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // assume that we have elem list due to specification of a region instead of named nodes in xml file
       if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
@@ -720,15 +720,17 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       UInt numNodes = ent[i]->GetSize();
       if( numNodes > 1 ) {
         Global::ComplexPart part = Global::REAL;
-        coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
-        if(domain->GetDesign(false) != NULL) { // if we are in optimization, multiply
+        if(domain->GetDesign(false) != NULL) { // if we are in optimization, take care of design dependent load
           CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
           coef[i].reset(tmpFnc);
         }
+        else
+          EXCEPTION("Design dependent load only implemented for optimization case!");
       }
 
       lin = new SingleEntryInt(coef[i]);
-      lin->SetName("NodalHeatInt");
+      lin->SetSolDependent();
+      lin->SetName("designDepHeatSourceInt");
       LinearFormContext *ctx = new LinearFormContext( lin );
       ctx->SetEntities( ent[i] );
       ctx->SetFeFunction(myFct);

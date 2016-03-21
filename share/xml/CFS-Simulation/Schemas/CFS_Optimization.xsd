@@ -410,6 +410,8 @@
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
                 <!-- heat energy -->
                 <xsd:enumeration value="heatEnergy"/>
+                <!-- pressure drop of fluidic system -->
+                <xsd:enumeration value="pressureDrop"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
