@@ -155,7 +155,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     PDE_.SetBCs();
 
-    // store rhs vector back to PDE
+    // store rhs vector back to algsys
     algsys_->GetRHSVal(rhsVec_);
 
     // Only if the matrices have changed (e.g. due to updated lagrangian
