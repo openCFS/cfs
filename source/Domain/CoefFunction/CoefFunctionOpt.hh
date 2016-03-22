@@ -84,6 +84,10 @@ public:
     return form;
   }
 
+  inline void SetDesignDependentLoad() { designDepLoad_ = true;}
+
+  inline bool HasDesignDependentLoad() { return designDepLoad_;}
+
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();
 
@@ -116,6 +120,9 @@ protected:
   template <class T>
   void GetScalar(T& scal, const LocPointMapped& lpm);
 
+  template <class T>
+  void GetVector(Vector<T>& scal, const LocPointMapped& lpm);
+
   /** This is the DesignSpace we use -> could be also requested from domain */
   DesignSpace* design;
 
@@ -130,6 +137,9 @@ protected:
 
   /** the current tensor derivative, only for state == DIRECTION */
   DesignElement::Type direction;
+
+  /** Used for design dependent load/ right hand side*/
+  bool designDepLoad_;
 };
 
 }
