@@ -751,11 +751,39 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
   return true;
 }
 
+/** Performs the optimization for scalar material as for the mass
+ * @return true if it is a design  variable and retScal is set */
+template <class T>
+bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
+{
+  // we cannot check for the region here, if form is a linear form (e.g.
+  // pressure) but the design variable comes from elements one dimension higher
+  int idx = Find(lpm->ptEl->elemNum, false);
+  if(idx == -1)
+    return false;
+
+  double bimat_factor = -1.0;
+
+  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+
+  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
+  coef->orgMat->GetVector(retVec, *lpm);
+  if (coef->HasDesignDependentLoad())
+    retVec *= 4.0 * factor * (1.0 - factor);
+  else
+    retVec *= factor;
+
+  LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " f=" << factor;
+
+  return true;
+}
+
 
 double DesignSpace::GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial)
 {
   // now do the trick, that the piezo coupling factor might be a product of the
   // density transfer function and the polarization transfer function
+
   double result = 1.0;
   // go over all design elements we have (one for design only, with polarization
   // it is two
