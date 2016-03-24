@@ -6,6 +6,8 @@
 #include <string>
 #include <cmath>
 
+#include <typeinfo>
+
 #include "HeatPDE.hh"
 
 #include "General/defs.hh"
@@ -36,6 +38,7 @@
 //new integrator concept
 #include "Forms/BiLinForms/BDBInt.hh"
 #include "Forms/BiLinForms/BBInt.hh"
+#include "Forms/BiLinForms/BiLinWrappedLinForm.hh"
 #include "Forms/LinForms/BUInt.hh"
 #include "Forms/LinForms/KXInt.hh"
 #include "Forms/Operators/GradientOperator.hh"
@@ -735,6 +738,7 @@ void HeatPDE::DefineRhsLoadIntegrators() {
     // ========================
     LOG_DBG(heatcondpde) << "Reading heat source values (design dependent)";
 
+//    ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
     for( UInt i = 0; i < ent.GetSize(); ++i ) {
       // assume that we have elem list due to specification of a region instead of named nodes in xml file
@@ -742,19 +746,29 @@ void HeatPDE::DefineRhsLoadIntegrators() {
         EXCEPTION("Design dependent heat source must be defined on nodes!")
       }
 
-      UInt numNodes = ent[i]->GetSize();
-      if( numNodes > 1 ) {
-        if(domain->GetDesign(false) != NULL) { // if we are in optimization, take care of design dependent load
-          CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
-          coef[i].reset(tmpFnc);
-        }
+      if(domain->GetDesign(false) != NULL)
+      {
+        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
+        coef[i].reset(tmpFnc);
       }
 
-      lin = new BUIntegrator<double> ( new IdentityOperator<FeH1,2,2>(), 1.0, coef[i], coefUpdateGeo);
-      lin->SetSolDependent();
-      lin->SetName("designDepHeatSourceInt");
+//      lin = new BUIntegrator<double> ( new IdentityOperator<FeH1,2,2>(), 1.0, coef[i], coefUpdateGeo);
+//      lin->SetSolDependent();
+      lin = new SingleEntryInt(coef[i]);
+      lin->SetName("HeatConductivity");
+
+      BiLinWrappedLinForm* linWrapped = new BiLinWrappedLinForm(lin,false); // have to wrapp lin form since CoefFunctionOpt expects a bilinform
+//      BiLinFormContext* ctx = new BiLinFormContext(linWrapped, AUXILIARY);
+
+      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+      if(domain->GetDesign(false) != NULL)
+        dynamic_pointer_cast<CoefFunctionOpt>(coef[i])->SetForm(linWrapped);
+
       LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities( ent[i] );
+//      ctx->SetEntities( ent[i], ent[i] );
+//      ctx->SetFeFunctions(myFct, myFct);
+//      assemble_->AddBiLinearForm(ctx);
+      ctx->SetEntities(ent[i]);
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
     }
