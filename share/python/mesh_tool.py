@@ -1145,12 +1145,24 @@ def create_lbm3d(x_res, y_res, z_res, case, inclusion, inclusion_size):
   for z in range(0, nnz): 
     for x in range(0, nnx): 
       side[1].append((z*nny)*nnx+x) 
- 
+      
   side = (("top", [])) 
   mesh.bc.append(side) 
   for z in range(0, nnz): 
     for x in range(0, nnx): 
-      side[1].append((z*nny+ny)*nnx+x) 
+      side[1].append((z*nny+ny)*nnx+x)
+      
+  side = (("heat_bottom", []))
+  mesh.bc.append(side)
+  for z in range(1, nnz-1):
+    for x in range(1,nnx-1):
+      side[1].append((z*nny+1)*nnx+x) 
+  
+  side = (("heat_top", []))
+  mesh.bc.append(side)
+  for z in range(1, nnz-1):
+    for x in range(1,nnx-1):
+      side[1].append((z*nny+ny-1)*nnx+x)
  
    
    
