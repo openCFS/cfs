@@ -107,6 +107,11 @@ public:
   /** this is the optimization->ersatzMaterial XML element */
   PtrParamNode pn;
 
+  inline const DesignStructure& GetDesignStructure(){
+    assert(structure_ != NULL);
+    return *structure_;
+  }
+
 protected:
   
   /** When "commit" is set, we write "forward"/"adjoint" or "both_cases" */

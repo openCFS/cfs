@@ -57,6 +57,11 @@ public:
     GetScalar<Complex>(scal, lpm);
   }
 
+  //! \copydoc CoefFunction::GetVector
+  void GetVector(Vector<Double>& vec, const LocPointMapped& lpm) {
+    GetVector<double>(vec, lpm);
+  }
+
 
   //! \copydoc CoefFunction::GetTensorSize
   virtual void GetTensorSize( UInt& numRows, UInt& numCols ) const {
@@ -87,6 +92,8 @@ public:
   inline void SetDesignDependentLoad() { designDepLoad_ = true;}
 
   inline bool HasDesignDependentLoad() { return designDepLoad_;}
+
+  std::string ToString() const{ return "CoefFunctionOpt";};
 
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
   void SetToOptimization();

@@ -752,7 +752,7 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 }
 
 /** Performs the optimization for scalar material as for the mass
- * @return true if it is a design  variable and retScal is set */
+ * @return true if it is a design  variable and retVec is set */
 template <class T>
 bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
 {
@@ -762,9 +762,16 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
   if(idx == -1)
     return false;
 
-  double bimat_factor = -1.0;
-
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
+
+//  DesignElement designElem = data[Find(lpm->ptEl,true)];
+  DesignStructure* desStruct = new DesignStructure(this,regionIds_);
+  StdVector<Elem*> elems;
+  desStruct->FindElemsToNode(lpm->lp.number,elems);
+  Elem* dummy = elems[0];
+  std::cout << dummy->elemNum << std::endl;
+  for (unsigned int i = 0; i < elems.GetSize(); i++)
+    std::cout << "node " << lpm->lp.number << " corresponds to elem " << elems[i]->elemNum << std::endl;
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetVector(retVec, *lpm);
@@ -1806,6 +1813,7 @@ template void DesignSpace::FillNodeResults<complex<double> >(Result<complex<doub
 template void DesignSpace::FillElementResults<double>(Result<double>& result, ResultDescription& descr);
 template void DesignSpace::FillElementResults<complex<double> >(Result<complex<double> >& result, ResultDescription& descr);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Matrix<double>& retMat, const LocPointMapped* lpm);
+template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, Vector<double>& retVEc, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, Matrix<complex<double> >& retMat, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<double>(shared_ptr<CoefFunctionOpt> coef, double& retScal, const LocPointMapped* lpm);
 template bool DesignSpace::ApplyPhysicalDesign<complex<double> >(shared_ptr<CoefFunctionOpt> coef, complex<double>& retScal, const LocPointMapped* lpm);
