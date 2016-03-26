@@ -116,7 +116,7 @@
                 <!-- Special Boundary Conditions -->
                 <xsd:element name="freeSurfaceCondition" type="DT_AbsorbingBC">
                   <xsd:annotation>
-                    <xsd:documentation>Substitutes dp/dn by -(1/g)d²p/dt²</xsd:documentation>
+			  <xsd:documentation>Substitutes dp/dn by -(1/g)d^2p/dt^2</xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 <xsd:element name="pml4FreeSurfaceCondition" type="DT_WWPMLsurface">
