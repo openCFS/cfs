@@ -43,6 +43,7 @@ class BiLinearForm{
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
         isNewtonBilinearForm_ = false;
+        isSymmetric_ = false;
       }
 
       virtual ~BiLinearForm(){
