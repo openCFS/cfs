@@ -30,7 +30,8 @@ namespace CoupledField {
       elemVec.Resize(1);
       val_->GetScalar(elemVec[0], lpm);
     } else  if( val_->GetDimType() == CoefFunction::VECTOR) {
-        if (val_->GetDependency() == CoefFunction::GENERAL) { // if we have design dependent loads
+
+      if (val_->GetDependency() == CoefFunction::GENERAL) { // if we have design dependent loads
           assert(ent1.GetType() == EntityList::NODE_LIST);
           elemVec.Resize(ent1.GetSize()); // resize to number of nodes
 
@@ -38,15 +39,10 @@ namespace CoupledField {
           lp.number = ent1.GetNode();
           Vector<double> coords(3);
           lp.coord = coords;
-//          Elem* elem;
           shared_ptr<ElemShapeMap> esm = ent1.GetGrid()->GetElemShapeMap( ent1.GetGrid()->GetElem(1), this->coordUpdate_ );
           lpm.Set(lp, esm,1.0);
-//          std::cout << "ent1.GetSize(): " << ent1.GetSize() << std::endl;
-//          std::cout << "size of elemVec: " << elemVec.GetSize() << std::endl;
-//          std::cout << "ent1.GetNode(): " << ent1.GetNode() << std::endl;
-//          std::cout << "type of ent1: " << EntityList::listType.ToString(ent1.GetType()) << std::endl;
-//          std::cout << "ent1 idString: " << ent1.GetIdString() << std::endl;
         }
+
         val_->GetVector(elemVec, lpm);
     } else {
       EXCEPTION( "SingleEntryInt only works for SCALAR and VECTOR" );

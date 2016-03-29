@@ -756,28 +756,28 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 template <class T>
 bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
 {
-  // we cannot check for the region here, if form is a linear form (e.g.
-  // pressure) but the design variable comes from elements one dimension higher
-  int idx = Find(lpm->ptEl->elemNum, false);
-  if(idx == -1)
-    return false;
-
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
 //  DesignElement designElem = data[Find(lpm->ptEl,true)];
 //  DesignStructure* desStruct = new DesignStructure(this,regionIds_);
   assert(Optimization::context->pde != NULL);
   assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
+  coef->SetDesignDependentLoad();
   StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
 
-  double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetVector(retVec, *lpm);
-  if (coef->HasDesignDependentLoad())
-    retVec *= 4.0 * factor * (1.0 - factor);
-  else
-    retVec *= factor;
 
-  LOG_DBG3(designSpace) << "APD el="  << lpm->ptEl->elemNum << " f=" << factor;
+  for (unsigned int index = 0; index < elems.GetSize(); index++) {
+    double factor = GetErsatzMaterialFactor(elems[index]->elemNum-1, app, false); // Not the bimat case
+    if (coef->HasDesignDependentLoad())
+      retVec[0] *= 4.0 * factor * (1.0 - factor);
+    else
+      retVec[0] *= factor;
+    LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
+    std::cout << "APD el="  << elems[index]->elemNum << " f=" << factor << " source=" << 4.0 * factor * (1.0 - factor) << std::endl;
+  }
+
+  retVec[0] /= elems.GetSize();
 
   return true;
 }
