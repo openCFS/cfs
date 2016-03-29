@@ -353,6 +353,7 @@ cmake_modules/cfsdeps_zipFromCache.cmake.in -text
 cmake_modules/cfsdeps_zipToCache.cmake.in -text
 cmake_modules/compiler.cmake -text
 cmake_modules/configure_def_headers.cmake -text
+cmake_modules/create_binary_archive.cmake -text
 cmake_modules/distro.cmake -text
 cmake_modules/platform_defaults.cmake -text
 cmake_modules/platform_defaults_lse.cmake -text
