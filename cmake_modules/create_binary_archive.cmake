@@ -13,6 +13,12 @@ else(CTEST_BINARY_DIRECTORY)
   exec_program("${CTEST_BINARY_DIRECTORY}/share/scripts/distro.sh -c" OUTPUT_VARIABLE DISTRO_OUT)
   file(WRITE "${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake" "${DISTRO_OUT}")
   include("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
+  message("${DIST_FAMILY}, ${DIST}, ${MAJOR_REV}, ${REV}")
+  if(DIST_FAMILY STREQUAL "")# its probably ubuntu ...
+    set(DIST_FAMILY ${DIST})
+  endif(MAJOR_REV STREQUAL "")# its probably ubuntu ...
+    set(MAJOR_REV ${REV})
+  endif()
   set(ARCHIVE_NAME "CFS_${DIST_FAMILY}_${MAJOR_REV}_${ARCH}")
   set(ARCHIVE_PATH "${CTEST_BINARY_DIRECTORY}/${ARCHIVE_NAME}.tgz")
 endif(CTEST_BINARY_DIRECTORY)
