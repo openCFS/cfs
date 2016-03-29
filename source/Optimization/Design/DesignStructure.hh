@@ -76,12 +76,6 @@ public:
 
   static std::string ToString(const StdVector<Filter::NeighbourElement>& data);
 
-  /** Finds all elements that contains given node */
-  inline void FindElemsToNode(int nodeId, StdVector<Elem*>& elemIds)
-  {
-    elemIds = nodeToAllElems[nodeId];
-  }
-
 private:
 
   /** The common Constructor, does much less than Initialize() */
@@ -129,9 +123,6 @@ private:
   /** set vector nodeToElem for periodic only */
   void SetNodeElemMapping();
 
-  /** Instead of finding any neighbor elements for all nodes as in SetNodeElemMapping(), find all elem neighbors of all nodes*/
-  void SetAllElemsToNodes();
-
   /** append all new stuff */
   void AppendNeighbors(const StdVector<std::pair<Elem*, int> >& source,
                        StdVector<std::pair<Elem*, int> >& out);
@@ -166,9 +157,6 @@ private:
   /** is the grid regular? */
   bool regular;
 
-  /** do we need connectivity between nodes and ALL their neighbor elems? (currently used to define design dependent loads)*/
-  bool nodesToAllNextElems;
-
   /** The filtered design (for multiple designs only) */
   DesignElement::Type design;
 
@@ -182,10 +170,6 @@ private:
   /** maps from the node number to one possible element.
    * Only Required for periodic and set by SetNodeElemMapping() */
   StdVector<Elem*> nodeToElem;
-
-  /** maps from the node number to all possible elements.
-   * Only Required for nodal design dependent load */
-  StdVector<StdVector<Elem*> > nodeToAllElems;
 
   /** Little helper to be reused in ExtendPeriodicNeighborhood() */
   StdVector<unsigned int> constraintNodes_;
