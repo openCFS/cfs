@@ -809,7 +809,6 @@ void HeatPDE::DefinePrimaryResults() {
   // === TEMPERATURE ===
   shared_ptr<ResultInfo> res1( new ResultInfo);
   res1->resultType = HEAT_TEMPERATURE;
-    
   res1->dofNames = "";
   res1->unit = "K";
   res1->definedOn = ResultInfo::NODE;
@@ -831,7 +830,8 @@ void HeatPDE::DefinePrimaryResults() {
   rhs->resultType = HEAT_RHS_LOAD;
   rhs->dofNames = "";
   rhs->unit = "?";
-  rhs->definedOn = results_[0]->definedOn;
+//  rhs->definedOn = results_[0]->definedOn;
+  rhs->definedOn = ResultInfo::NODE;
   rhs->entryType = ResultInfo::SCALAR;
   availResults_.insert( rhs );
   rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
