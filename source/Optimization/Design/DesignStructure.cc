@@ -45,10 +45,6 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
   this->em = NULL;
   this->grid = domain->GetGrid();
   SinglePDE* singPde = domain->GetSinglePDE("heatConduction");
-  if (singPde != NULL  && singPde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
-    nodesToAllNextElems = true;
-  else
-    nodesToAllNextElems = false;
   Constructor();
 }
 
@@ -59,11 +55,6 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->em = em;
   this->grid = domain->GetGrid();
 
-  SinglePDE* singPde = domain->GetSinglePDE("heatConduction");
-  if (singPde != NULL  && singPde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
-    nodesToAllNextElems = true;
-  else
-    nodesToAllNextElems = false;
   Constructor();
 }
 
@@ -81,9 +72,6 @@ void DesignStructure::Constructor()
   filter_space_ = NO_FILTER;
 
   value  = -1.0;
-
-  if (nodesToAllNextElems)
-    SetAllElemsToNodes();
 }
 
 
@@ -688,42 +676,6 @@ void DesignStructure::SetNodeElemMapping()
     }
   }
 }
-
-void DesignStructure::SetAllElemsToNodes()
-{
-  assert(nodesToAllNextElems);
-  nodeToAllElems.Resize(grid->GetNumNodes() + 1); // 1-based
-
-  int maxNeighbors;
-  // a node can have 4 (2D) or 8 (3D) neighbor elems at most
-  if (domain->GetGrid()->GetDim() == 2)
-    maxNeighbors = 4;
-  else
-    maxNeighbors = 8;
-
-  for (int n = 0, nNodes = nodeToAllElems.GetSize(); n < nNodes; n++)
-    nodeToAllElems[n].Resize(maxNeighbors);
-
-  StdVector<DesignElement>& data = space->data;
-  // traverse all elements
-  for(unsigned int e = 0, en = data.GetSize(); e < en; e++)
-  {
-    // we process all elements, as I don't see a cheap way to check
-    // if the node has a periodic boundary node
-    Elem* elem = data[e].elem;
-    for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++)
-    {
-      nodeToAllElems[elem->connect[n]].Push_back(elem); // we are interested in all neighbor elements.
-      std::cout << "nodeToAllElems[" << elem->connect[n] << "].push_back(" << elem->elemNum << std::endl;
-      std::cout << "SNEM: add elem " << elem->elemNum << " for node " << elem->connect[n] << std::endl;
-      std::cout << nodeToAllElems[1][0]->ToString() << std::endl;
-    }
-  }
-
-  for (unsigned int i = 0; i < nodeToAllElems[1].GetSize(); i++ )
-    std::cout << nodeToAllElems[1][i]->elemNum << std::endl;
-}
-
 
 bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVector<std::pair<Elem*, int> >& neighbors)
 {

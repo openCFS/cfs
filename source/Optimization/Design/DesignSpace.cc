@@ -765,13 +765,10 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
 //  DesignElement designElem = data[Find(lpm->ptEl,true)];
-  DesignStructure* desStruct = new DesignStructure(this,regionIds_);
-  StdVector<Elem*> elems;
-  desStruct->FindElemsToNode(lpm->lp.number,elems);
-  Elem* dummy = elems[0];
-  std::cout << dummy->elemNum << std::endl;
-  for (unsigned int i = 0; i < elems.GetSize(); i++)
-    std::cout << "node " << lpm->lp.number << " corresponds to elem " << elems[i]->elemNum << std::endl;
+//  DesignStructure* desStruct = new DesignStructure(this,regionIds_);
+  assert(Optimization::context->pde != NULL);
+  assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
+  StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
 
   double factor = GetErsatzMaterialFactor(idx, app, false); // Not the bimat case
   coef->orgMat->GetVector(retVec, *lpm);
