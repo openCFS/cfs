@@ -758,8 +758,6 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 {
   App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
 
-//  DesignElement designElem = data[Find(lpm->ptEl,true)];
-//  DesignStructure* desStruct = new DesignStructure(this,regionIds_);
   assert(Optimization::context->pde != NULL);
   assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
   coef->SetDesignDependentLoad();
@@ -767,17 +765,20 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T
 
   coef->orgMat->GetVector(retVec, *lpm);
 
+  double tmp = 0;
   for (unsigned int index = 0; index < elems.GetSize(); index++) {
     double factor = GetErsatzMaterialFactor(elems[index]->elemNum-1, app, false); // Not the bimat case
-    if (coef->HasDesignDependentLoad())
-      retVec[0] *= 4.0 * factor * (1.0 - factor);
-    else
-      retVec[0] *= factor;
+//    if (coef->HasDesignDependentLoad()) {
+      tmp += factor;
+//    }
+//    else
+//      retVec[0] *= factor;
     LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
-    std::cout << "APD el="  << elems[index]->elemNum << " f=" << factor << " source=" << 4.0 * factor * (1.0 - factor) << std::endl;
   }
 
-  retVec[0] /= elems.GetSize();
+  tmp /= (double) elems.GetSize();
+
+  retVec[0] *=  4 *  tmp * (1.0 - tmp);
 
   return true;
 }

@@ -750,24 +750,20 @@ void HeatPDE::DefineRhsLoadIntegrators() {
       {
         CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
         coef[i].reset(tmpFnc);
+//        coef[i]->SetConservative(true);
+//        rhsFeFunctions_[HEAT_TEMPERATURE]->AddLoadCoefFunction(coef[i],ent[i]);
       }
 
-//      lin = new BUIntegrator<double> ( new IdentityOperator<FeH1,2,2>(), 1.0, coef[i], coefUpdateGeo);
-//      lin->SetSolDependent();
       lin = new SingleEntryInt(coef[i]);
       lin->SetName("HeatConductivity");
 
       BiLinWrappedLinForm* linWrapped = new BiLinWrappedLinForm(lin,false); // have to wrapp lin form since CoefFunctionOpt expects a bilinform
-//      BiLinFormContext* ctx = new BiLinFormContext(linWrapped, AUXILIARY);
 
       // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
       if(domain->GetDesign(false) != NULL)
         dynamic_pointer_cast<CoefFunctionOpt>(coef[i])->SetForm(linWrapped);
 
       LinearFormContext *ctx = new LinearFormContext( lin );
-//      ctx->SetEntities( ent[i], ent[i] );
-//      ctx->SetFeFunctions(myFct, myFct);
-//      assemble_->AddBiLinearForm(ctx);
       ctx->SetEntities(ent[i]);
       ctx->SetFeFunction(myFct);
       assemble_->AddLinearForm(ctx);
@@ -826,16 +822,16 @@ void HeatPDE::DefinePrimaryResults() {
   idbcSolNameMap_[HEAT_TEMPERATURE] = "temperature";
   
   // === TEMPERATURE RHS ===
-  shared_ptr<ResultInfo> rhs ( new ResultInfo );
-  rhs->resultType = HEAT_RHS_LOAD;
-  rhs->dofNames = "";
-  rhs->unit = "?";
-//  rhs->definedOn = results_[0]->definedOn;
-  rhs->definedOn = ResultInfo::NODE;
-  rhs->entryType = ResultInfo::SCALAR;
-  availResults_.insert( rhs );
-  rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
-  DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
+//  shared_ptr<ResultInfo> rhs ( new ResultInfo );
+//  rhs->resultType = HEAT_RHS_LOAD;
+//  rhs->dofNames = "";
+//  rhs->unit = "?";
+////  rhs->definedOn = results_[0]->definedOn;
+//  rhs->definedOn = ResultInfo::NODE;
+//  rhs->entryType = ResultInfo::SCALAR;
+//  availResults_.insert( rhs );
+//  rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
+//  DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
 
 }
 
@@ -855,6 +851,16 @@ void HeatPDE::DefinePostProcResults() {
     DefineTimeDerivResult( HEAT_TEMPERATURE_D1, 1, HEAT_TEMPERATURE );
   }
   
+  // === TEMPERATURE RHS ===
+  shared_ptr<ResultInfo> rhs ( new ResultInfo );
+  rhs->resultType = HEAT_RHS_LOAD;
+  rhs->dofNames = "";
+  rhs->unit = "K";
+  rhs->definedOn = ResultInfo::NODE;
+  rhs->entryType = ResultInfo::SCALAR;
+  rhsFeFunctions_[HEAT_TEMPERATURE]->SetResultInfo(rhs);
+  DefineFieldResult( rhsFeFunctions_[HEAT_TEMPERATURE], rhs );
+
   // === HEAT FLUX DENSITY ===
   shared_ptr<ResultInfo> flux ( new ResultInfo );
   flux->resultType = HEAT_FLUX_DENSITY;
