@@ -373,6 +373,7 @@ ctest_scripts/sites/draco/ctest_update.cmake -text
 ctest_scripts/sites/draco/ctest_update_trunk_testsuite_wien.cmake -text
 ctest_scripts/sites/draco/ctest_update_trunk_wien.cmake -text
 ctest_scripts/sites/draco/di_log.cmake -text
+ctest_scripts/sites/draco/linux64_trunk_gcc_doc_doxygen.ctest -text
 ctest_scripts/sites/draco/macros_for_draco.cmake -text
 ctest_scripts/sites/draco/site_specific_finish.cmake -text
 ctest_scripts/sites/draco/site_specific_init.cmake -text
