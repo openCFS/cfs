@@ -138,8 +138,12 @@ EXECUTE_PROCESS(
 # ENDFOREACH()
  
 MESSAGE("Submitting documentation to development server...")
-FILE(COPY "${CTEST_BINARY_DIRECTORY}/share/doc/developer/html/"
-  DESTINATION "${CFS_DS_HOSTNAME}:/srv/www/docu/doxygen")
+EXECUTE_PROCESS(
+  COMMAND scp -i /home/testuser/.ssh/id_rsa -r "${CTEST_BINARY_DIRECTORY}/share/doc/developer/html/"
+          #"${CFS_TESTUSER}@cfs.mdmt.tuwien.ac.at:/srv/www/docu/doxygen"
+          "testuser@cfs.mdmt.tuwien.ac.at:/srv/www/docu/doxygen"
+  RESULT_VARIABLE RETVAL
+)
 
 # file(GLOB CFS_DOCU_FILES
 #   RELATIVE "${CFS_DOCU_DIR}"

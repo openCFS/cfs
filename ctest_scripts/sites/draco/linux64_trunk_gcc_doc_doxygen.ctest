@@ -33,7 +33,7 @@
 # Set source and binary directories on rom
 #-----------------------------------------------------------------------------
 SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_TRUNK_NIGHTLY")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLS")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
 
 #-----------------------------------------------------------------------------
 # Specify that we want to do an experimental build without updating the CFS++
@@ -106,7 +106,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${CXX_ID} ${CXX_VERSION} ${CXX_GCC_VERSION}")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
-SET(BUILDTYPE "RELEASE")
+SET(BUILDTYPE "DOXYGENDOCU")
 SET(BUILDNAME "Trunk ${DIST} ${REV} ${ARCH} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
@@ -161,7 +161,4 @@ message("  Build")
 ctest_build(BUILD "${CTEST_BINARY_DIRECTORY}" TARGET "doc-doxygen" RETURN_VALUE res)
 message("  Submit")
 ctest_submit(RETURN_VALUE res)
-message("  Copy to web server")
-FILE(COPY "${CTEST_BINARY_DIRECTORY}/share/doc/developer/html/"
-  DESTINATION "${CFS_DS_HOSTNAME}:/srv/www/docu/doxygen")
 message("  All done")
