@@ -68,9 +68,6 @@ namespace CoupledField
 
   private:
 
-    //! pointer to a class for reading input data
-    SimInput* simInput_;
-
     //! pointer to MaterialHandler
     MaterialHandler * ptMaterialHandler_;
     
