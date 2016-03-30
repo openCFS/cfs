@@ -457,6 +457,7 @@ ctest_scripts/sites/precise/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/precise/linux64_trunk_gcc_release_deploy.cmake -text
 ctest_scripts/sites/precise/site_specific_init.cmake -text
 ctest_scripts/sites/sl7/Vagrantfile -text
+ctest_scripts/sites/sl7/generate_test_name_list.cmake -text
 ctest_scripts/sites/sl7/linux64_trunk_gcc_debug.ctest -text
 ctest_scripts/sites/sl7/linux64_trunk_gcc_release.ctest -text
 ctest_scripts/sites/sl7/linux64_trunk_gcc_release_deploy.cmake -text
