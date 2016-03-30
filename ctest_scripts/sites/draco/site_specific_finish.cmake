@@ -136,8 +136,11 @@ EXECUTE_PROCESS(
 #       "${CFS_DOCU_DIR}"
 #   )
 # ENDFOREACH()
-# 
-# MESSAGE("Submitting documentation to development server...")
+ 
+MESSAGE("Submitting documentation to development server...")
+FILE(COPY "${CTEST_BINARY_DIRECTORY}/share/doc/developer/html/"
+  DESTINATION "${CFS_DS_HOSTNAME}:/srv/www/docu/doxygen")
+
 # file(GLOB CFS_DOCU_FILES
 #   RELATIVE "${CFS_DOCU_DIR}"
 #   "${CFS_DOCU_DIR}/*.pdf"
@@ -279,32 +282,32 @@ FILE(REMOVE_RECURSE "${CFS_NIGHTLY_DIR}/CFS_BUILD_NIGHTLY")
 #   COMMAND ${CMAKE_COMMAND} -E copy_directory CFSDEPSCACHE /opt/pckg/CFSDEPSCACHE
 #   WORKING_DIRECTORY "${HOME}/Documents/dev/NIGHTLY"
 #   RESULT_VARIABLE RETVAL)
+
+ 
+# ===========================================================================
+#  Clean up local nightly build directory
+# ===========================================================================
+FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
+
+# ===========================================================================
+#  Start Virtual Boxes. After 7:30 we start the other VBoxes depending on 
+#  DAYOFWEEK. The Windows XP 32-bit box should be started every day.
+#  Since we are low on hdd space, we don't start N boxes at the same time
+#  but we just start one box at a time and then wait for 4h.
+# ===========================================================================
+# SET(VBOXES "winxp32")
 # 
+# MATH(EXPR DAY "${DAYOFWEEK} % 3")
 # 
-# # ===========================================================================
-# #  Clean up local nightly build directory
-# # ===========================================================================
-# FILE(REMOVE_RECURSE "${HOME}/Documents/dev/NIGHTLY/CFS_BUILD_NIGHTLY")
-# 
-# # ===========================================================================
-# #  Start Virtual Boxes. After 7:30 we start the other VBoxes depending on 
-# #  DAYOFWEEK. The Windows XP 32-bit box should be started every day.
-# #  Since we are low on hdd space, we don't start N boxes at the same time
-# #  but we just start one box at a time and then wait for 4h.
-# # ===========================================================================
-# # SET(VBOXES "winxp32")
-# # 
-# # MATH(EXPR DAY "${DAYOFWEEK} % 3")
-# # 
-# # IF(DAY EQUAL 0)
-# #   LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
-# # ENDIF()
-# # IF(DAY EQUAL 1)
-# #   LIST(APPEND VBOXES "oracle5" "fedora18")
-# # ENDIF()
-# # IF(DAY EQUAL 2)
-# #   LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
-# # ENDIF()
+# IF(DAY EQUAL 0)
+#   LIST(APPEND VBOXES "sles10" "sles11" "opensuse123")
+# ENDIF()
+# IF(DAY EQUAL 1)
+#   LIST(APPEND VBOXES "oracle5" "fedora18")
+# ENDIF()
+# IF(DAY EQUAL 2)
+#   LIST(APPEND VBOXES "trusty" "lucid" "lmde2013" "hardy")
+# ENDIF()
 
 FOREACH(VBOX IN ITEMS ${VBOXES})
   # =========================================================================
