@@ -8,27 +8,13 @@
 #-----------------------------------------------------------------------------
 # Set source and binary directories on the machine
 #-----------------------------------------------------------------------------
-SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/shared")
-SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/shared_opt_clang_release")
-
-#-----------------------------------------------------------------------------
-# Specify that we want to do an experimental build without updating the CFS++
-# working copy. I.e. we leave away the ExperimentalUpdate step between
-# ExperimentalStart and ExperimentalConfigure. The Subversion update gets
-# done by simon on mac before the the test scripts on rom get executed.
-#-----------------------------------------------------------------------------
-SET(CTEST_COMMAND  "\"${CTEST_EXECUTABLE_NAME}\"")
+SET(CTEST_SOURCE_DIRECTORY "$ENV{HOME}/code/trunk")
+SET(CTEST_BINARY_DIRECTORY "$ENV{HOME}/code/trunk_clang_release")
 
 #-----------------------------------------------------------------------------
 # Include macros for CFS++ specific testing (e.g. default initial cache, etc)
 #-----------------------------------------------------------------------------
 INCLUDE("${CTEST_SOURCE_DIRECTORY}/ctest_scripts/shared/test_macros.cmake")
-
-#-----------------------------------------------------------------------------
-# Use CMake (cmake) executable corresponding to CTest executable used to run
-# this script.
-#-----------------------------------------------------------------------------
-SET(CTEST_CMAKE_COMMAND  "\"${CMAKE_EXECUTABLE_NAME}\"")
 
 #-----------------------------------------------------------------------------
 # Set the following environment variables for the test run. This can be used
@@ -75,7 +61,7 @@ INCLUDE("${CTEST_BINARY_DIRECTORY}/CMakeFiles/distro_out.cmake")
 # MESSAGE("${DIST} ${REV} ${ARCH}")
 
 SET(BUILDTYPE "RELEASE")
-SET(BUILDNAME "shared_opt ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
+SET(BUILDNAME "trunk ${DIST} ${REV} ${CXX_ID} ${CXX_VERSION} ${BUILDTYPE}")
 
 SITE_NAME(CFS_BUILD_HOST)
 STRING(REPLACE "." ";" CFS_BUILD_HOST_LIST "${CFS_BUILD_HOST}")
@@ -99,19 +85,21 @@ SET(CTEST_INITIAL_CACHE
   "${CTEST_INITIAL_CACHE}
    DEBUG:BOOL=OFF
    CMAKE_BUILD_TYPE:STRING=${BUILDTYPE}
-   TESTSUITE_DIR:STRING=$ENV{HOME}/code/shared_cfs-test
-   CFS_DEPS_PRECOMPILED:BOOL=ON
-   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/shared_cfsdepscache
+   TESTSUITE_DIR:STRING=$ENV{HOME}/code/trunk_cfs-test
+   CFS_DEPS_PRECOMPILED:BOOL=ON 
+   CFS_DEPS_CACHE_DIR:PATH=$ENV{HOME}/code/trunk_cfsdepscache
    USE_PARDISO:BOOL=ON
    USE_CGAL:BOOL=OFF
    USE_CGNS:BOOL=OFF
    USE_CCMIO:BOOL=OFF
-   USE_FLANN:BOOL=OFF
+   USE_FLANN:BOOL=ON
    USE_SNOPT:BOOL=ON
    USE_SCPIP:BOOL=ON
    USE_IPOPT:BOOL=ON
-   USE_OPENMP:BOOL=ON
    USE_ILUPACK:BOOL=ON
+   USE_LIS:BOOL=ON
+   USE_LIBFBI:BOOL=ON
+   USE_OPENMP:BOOL=ON
    MKL_ROOT_DIR:PATH=/opt/intel/compilers_and_libraries/linux/mkl
    BUILDNAME:STRING=${BUILDNAME}")
 

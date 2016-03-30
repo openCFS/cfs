@@ -69,7 +69,7 @@ ELSE()
   # interpreter. There are certainly TCL interpreters on Windows and Mac, but we
   # have not installed them on our nightly test systems.
   #-------------------------------------------------------------------------------
-  SET(BUILD_CGNSTOOLS ON)
+  SET(BUILD_CGNSTOOLS OFF)
   IF(MINGW)
     SET(BUILD_CGNSTOOLS OFF)
   ELSEIF(CFS_DISTRO STREQUAL "MACOSX")
