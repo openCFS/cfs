@@ -1186,7 +1186,7 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
   unsigned int n = n0;
   const unsigned int nd = design.GetSize();
 
-  f->GetExcitation()->Apply(); // this take the proper gradient for robustness and transformation
+  f->GetExcitation()->Apply(); // this takes the proper gradient for robustness and transformation
 
   for(unsigned int des = 0; des < nd; des++)
   {
@@ -1201,7 +1201,6 @@ void DesignSpace::WriteDenseGradientToExtern(StdVector<double>& out, DesignEleme
       {
         for(unsigned int s = cur_reg.base; s < u; s++)
         {
-          //const DesignElement* de = ApplyTransformations(&data[s], true);
           LOG_DBG3(designSpace) << "DS:WDGtE: non-constant region r=" << r << " rid=" << cur_reg.regionId << " out[" << n << "] = design[" << s << "]=" << data[s].GetValue(vs, access, f);
           assert(out.InWindow(n));
           out[n++] = data[s].GetValue(vs, access, f) * scaling;

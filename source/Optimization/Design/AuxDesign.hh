@@ -31,7 +31,7 @@ class AuxDesign : public DesignSpace
 
     /** only for slack variable
      * @see DesignSpace::PostInit() */
-    void PostInit(int objectives, int constraints);
+    virtual void PostInit(int objectives, int constraints);
 
     /** @see DesignSpace::ReadDesignFromExtern() */
     virtual int ReadDesignFromExtern(const double* space_in);
@@ -44,7 +44,7 @@ class AuxDesign : public DesignSpace
 
     /** write gradient out to the vector, appending with shape gradient
      * Sparse and dense! */
-    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const;
+    virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
 
     /** write the aux gradient part */
     void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
@@ -80,7 +80,7 @@ class AuxDesign : public DesignSpace
     void ToInfo(PtrParamNode in, ErsatzMaterial* em);
 
     /** @see DesignSpace::GetDesignElement() */
-    BaseDesignElement* GetDesignElement(unsigned int idx);
+    virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
     /** design element with only Aux idx */
     BaseDesignElement* GetAuxDesignElement(unsigned int idx);

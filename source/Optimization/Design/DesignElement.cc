@@ -206,14 +206,6 @@ BaseDesignElement::BaseDesignElement(Type t) {
 }
 
 
-void BaseDesignElement::PostInit(int objectives, int constraints)
-{
-  // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
-  costGradient.Resize(objectives, 0.0);
-  constraintGradient.Resize(constraints, 0.0);
-}
-
-
 /** Get the gradient values for either objective or constraint */
 double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
 {
@@ -222,17 +214,19 @@ double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* 
   if(g != NULL) return constraintGradient[g->GetIndex()];
   if(c != NULL) return costGradient[c->GetIndex()];
 
-  return SumObjectiveGradient();
+  assert(false);
+  return -1.0; // don't return SumObjectiveGradient() as get PlainGradient goes by index.
 }
 
 /** Get the gradient values for either objective or constraint */
 double BaseDesignElement::GetPlainGradient(const Function* f) const
 {
+  assert(f != NULL); // Call SumObjectiveGradient() if you don't want to specify!
+
   assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
   assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
 
-  return GetPlainGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
-                           f->IsObjective() ? NULL : static_cast<const Condition*>(f));
+  return f->IsObjective() ? costGradient[f->GetIndex()] : constraintGradient[f->GetIndex()];
 }
 
 
@@ -252,11 +246,13 @@ void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, doub
 
 void BaseDesignElement::AddGradient(const Function* f, double value)
 {
-  assert(!f->IsObjective() || (f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL));
-  assert( f->IsObjective() || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL));
+  assert(( f->IsObjective() && dynamic_cast<const Objective*>(f) != NULL)
+      || (!f->IsObjective() && dynamic_cast<const Condition*>(f) != NULL) );
 
-  AddGradient(f->IsObjective() ? static_cast<const Objective*>(f) : NULL,
-              f->IsObjective() ? NULL : static_cast<const Condition*>(f), value);
+  if(f->IsObjective())
+    costGradient[f->GetIndex()] += value * static_cast<const Objective*>(f)->GetPenalty();
+  else
+    constraintGradient[f->GetIndex()] += value;
 }
 
 void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
@@ -279,7 +275,7 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
   }
 }
 
-double BaseDesignElement::SumObjectiveGradient() const
+inline double BaseDesignElement::SumObjectiveGradient() const
 {
   double result = 0.0;
   for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
@@ -489,7 +485,8 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       || rd.value == PENALIZED_STRESS
       || rd.value == DESIGN_TRACKING
       || rd.value == PROJECTION
-      || rd.value == TRANSFO_MATRIX)
+      || rd.value == TRANSFO_MATRIX
+      || rd.value == SHAPE_MAP_GRAD)
   {
     if(dofs != 1) throw Exception("special results is only defined for scalar values");
     // note, that on EACH_FORWARD/ADJOINT we need excitation based results
@@ -827,6 +824,7 @@ void DesignElement::SetEnums()
   valueSpecifier.Add(TOPGRAD_VALUE, "topGradValue");
   valueSpecifier.Add(SHAPEGRAD_VALUE, "shapeGradValue");
   valueSpecifier.Add(SHAPEGRAD_NODE_VALUE, "shapeGradNodeValue");
+  valueSpecifier.Add(SHAPE_MAP_GRAD, "shapeMapGrad");
   valueSpecifier.Add(LEVEL_SET_GRAD_XP, "levelSetGradXP");
   valueSpecifier.Add(LEVEL_SET_GRAD_XN, "levelSetGradXN");
   valueSpecifier.Add(LEVEL_SET_GRAD_YP, "levelSetGradYP");
@@ -866,8 +864,8 @@ void DesignElement::SetEnums()
   detail.Add(TRANSFO_MATRIX12, "transfoMatrix12");
   detail.Add(TRANSFO_MATRIX21, "transfoMatrix21");
   detail.Add(TRANSFO_MATRIX22, "transfoMatrix22");
-
-
+  detail.Add(SM_NODE, "node");
+  detail.Add(SM_PROFILE, "profile");
 }
 
 
