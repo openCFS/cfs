@@ -204,7 +204,7 @@ namespace CoupledField
 
      /** Similar but more general as WriteDesignToExtern().
       * @param out if it has a window writes to the window of the vector! */
-     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true) const
+     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true)
      {
        if(f == NULL || f->HasDenseJacobian())
          WriteDenseGradientToExtern(out, vs, access, f, scaling); // is virtual!

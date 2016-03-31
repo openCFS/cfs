@@ -5,6 +5,7 @@
  *      Author: fwein
  */
 #include "Optimization/Design/ShapeMapDesign.hh"
+#include "Optimization/Excitation.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
 
@@ -15,10 +16,11 @@ DEFINE_LOG(SMD, "shapeMapDesign")
 
 
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
-: AuxDesign(regionIds, pn, method), order_(10)
+: AuxDesign(regionIds, pn, method), order_(3)
 {
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
+  this->alsomatopt_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
 
   if(order_ <= 3)
     info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("low integration order for shape map");
@@ -28,6 +30,153 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   LOG_DBG(SMD) << "SMP rho_desig=" << data.GetSize();
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
 }
+
+int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
+{
+  int old_design = design_id;
+
+  // write aux design variables (slack and alpha if any) first
+  assert(alsomatopt_ == false); // we do shape map
+  assert(DesignSpace::GetNumberOfVariables() > 0); // we need this variables but they are hidden!
+  AuxDesign::ReadDesignFromExtern(space_in); // note the asserts above!
+
+  // design_id might be changed above in AuxDesign::ReadDesignFromExtern()
+  bool new_design = old_design != design_id;
+
+  unsigned int offset = aux_design_.GetSize();
+
+  for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
+  {
+    double v = space_in[offset + i] * scaling_;
+    if(!new_design && v != shape_param_[i].GetDesign())
+      new_design = true;
+
+    shape_param_[i].SetDesign(v);
+    LOG_DBG(SMD) << "RDFE: i=" << i << "-> " << v;
+  }
+  if(new_design && design_id <= old_design)
+    design_id++; // if new design and not already changed by AuxDesign
+
+  // the design are shape parameters, map them not to rho
+  MapShapeToDensity();
+
+  return design_id;
+}
+
+bool ShapeMapDesign::CompareDesign(const double* space_in)
+{
+  if(!AuxDesign::CompareDesign(space_in))
+    return false;
+
+  unsigned int offset = aux_design_.GetSize();
+
+  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  {
+    double v = space_in[offset + i] * scaling_;
+    if(v != shape_param_[i].GetDesign())
+      return false;
+  }
+
+  return true;
+}
+
+int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
+{
+  AuxDesign::WriteDesignToExtern(space_out, scale);
+
+  double rscaling = scale ? 1.0 / scaling_ : 1.0;
+  unsigned int offset = aux_design_.GetSize();
+
+  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  {
+    space_out[offset + i] = shape_param_[i].GetDesign() * rscaling;
+    LOG_DBG(SMD) << "WDTE: out[" << i << "]=" << space_out[offset +i];
+  }
+  return design_id;
+}
+
+void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
+{
+  LOG_DBG(SMD) << "WGTE: ad=" << aux_design_.GetSize() << " sp=" << shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+
+  assert(design_id == mapped_design_); // our mapping is the current one and we can use the information for the gradient
+  if(f->IsObjective() && design_id != mapped_obj_gradient_)
+    MapShapeGradient(true); // needs to run for the first function and processes for all functions
+  if(!f->IsObjective() && design_id != mapped_constr_gradient_)
+    MapShapeGradient(false); // shall be done smarter !
+
+  assert((f->IsObjective() && design_id == mapped_obj_gradient_) || (!f->IsObjective() && design_id == mapped_constr_gradient_));
+
+  assert(f != NULL);
+  assert(opt_->objectives.data.GetSize() == 1); // implement multi objective and be careful!
+  assert(!(vs == DesignElement::COST_GRADIENT && !f->IsObjective()));
+  assert(vs == DesignElement::COST_GRADIENT || vs == DesignElement::CONSTRAINT_GRADIENT);
+  assert(!opt_->GetMultipleExcitation()->DoMetaExcitation(f->ctxt)); // robustness and transformation don't make sense for shape map. In DesignSpace we do f->GetExcitation()->Apply()
+  assert(design.GetSize() == 1); // only pseudo density, nothing else implemented yet
+  assert(regions.GetSize() == 1); // needs to be as design shall be 1
+
+  assert(out.window.Initialized());
+  // out contains the Jacobian for a possibly many functions. Snopt combies cost function (first) and then the constraints derivatives
+  // Here we assume that out has a window set where to write to for the given function.
+
+  // cheat window to write the aux variables (slack and alpha)
+  StdVector<double>::Window org_window = out.window;
+  out.window.Set(out.window.GetStart(), aux_design_.GetSize());
+  AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
+  out.window = org_window;
+
+  if(f->HasDenseJacobian())
+  {
+    unsigned int n0 = out.window.GetStart() + aux_design_.GetSize(); // to grow up to the total number of design variables
+
+    for(unsigned int s = 0, n = shape_param_.GetSize(); s < n ; s++)
+    {
+      assert(out.InWindow(n0 + s));
+      out[n0 + s] = shape_param_[s].GetPlainGradient(f) * scaling;
+    }
+  }
+  else
+  {
+   assert(false); // not yet implemented
+  }
+}
+
+void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
+{
+  AuxDesign::Reset(vs, design);
+
+  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+    shape_param_[i].Reset(vs);
+}
+
+void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
+{
+  AuxDesign::WriteBoundsToExtern(x_l, x_u);
+
+  unsigned int offset = aux_design_.GetSize();
+
+  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  {
+    x_l[offset + i] = shape_param_[i].GetLowerBound() / scaling_;
+    x_u[offset + i] = shape_param_[i].GetUpperBound() / scaling_;
+    LOG_DBG3(SMD) << "WBTE: l[" << (offset + i) << "]=" << x_l[offset + i] << " u[" << (offset + i) << "]=" << x_u[offset + i];
+  }
+}
+
+inline unsigned int ShapeMapDesign::GetNumberOfVariables() const
+{
+  return aux_design_.GetSize() + shape_param_.GetSize();
+}
+
+
+inline BaseDesignElement* ShapeMapDesign::GetDesignElement(unsigned int idx)
+{
+  if(idx < aux_design_.GetSize())
+    return AuxDesign::GetDesignElement(idx);
+  else
+    return &shape_param_[idx - aux_design_.GetSize()];
+}
+
 
 StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
 {
@@ -99,9 +248,12 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
    // setup map_
    map_.Resize(data.GetSize());
-   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)  {
+   for(unsigned int i = 0, n = map_.GetSize(); i < n; i++)
+   {
      map_[i].rho = &(data[Find(idx_to_elem[i])]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      map_[i].param.Reserve(2 * shape_.GetSize()); // each design node connects to two density elements
+     map_[i].ip_param_idx.Resize(order_ * order_);
+     map_[i].ip_param_idx.Init(-1);
    }
 
    for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
@@ -138,56 +290,201 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  void ShapeMapDesign::MapShapeToDensity()
  {
+   LOG_DBG(SMD) << "MSTD: di=" << design_id;
    Grid* grid = domain->GetGrid();
-   // here we store the value for each integration point.
-   Vector<double> v(order_ * order_);
+   // within the element coordinates we perform the integration
    Matrix<double> coords;
+   // this are shapes we need to integrated. If too far away we dont't need them if all then the 0....n/2 with n size of item.para.GetSize()
+   StdVector<unsigned int> shapes;
 
-   for(unsigned int r = 0, n = data.GetSize(); r < n; r++)
+   assert(data.GetSize() == map_.GetSize());
+   for(unsigned int r = 0, n = map_.GetSize(); r < n; r++)
    {
-     v.Init(0.0); // reset such we can do max
-     const Item& item = map_[r];
+     Item& item = map_[r];
      DesignElement* de = item.rho;
-     grid->GetElemNodesCoord(coords, de->elem->connect, false); // no
-     //LOG_DBG3(SMD) << "MS2D: r=" << r << " coord=" << coords.ToString(2, false);
+     grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
+     // the index we store for the gradient. We gather the information when computing rho and save computing all the tanh again
+     item.ip_param_idx.Init(-1);
+
+     // reduce integration by identifying the structures close enough to zero. One could save more tanh if also the close to one are skipped.
+     shapes.Clear(true); // keep capacity
      assert(item.param.GetSize() % 2 == 0); // we expect to have pairs
      for(unsigned int s = 0; s < item.param.GetSize(); s+=2)
+       if(ApproxMaxRho(item.param[s], item.param[s+1], coords) > 1e-10)
+         shapes.Push_back(s);
+
+     double rho = 0.0; // sum up over all ips (if shapes is large enough :))
+     double max_ip_rho = 0.0;
+
+     // it makes sense to traverse first the ip and then the variables
+     for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
      {
-       ShapeParamElement* s1 = item.param[s];
-       ShapeParamElement* s2 = item.param[s+1];
-       assert(dim_ == 2);
-       assert(s1->dof == s2->dof);
-       // element position
-       double start = s1->dof == 0 ? coords[0][0] : coords[1][0];
-       double end   = s1->dof == 0 ? coords[0][1] : coords[1][3];
-       // the parameters
-       double a1 = s1->GetDesign();
-       double a2 = s2->GetDesign();
-
-       LOG_DBG3(SMD) << "MS2D: r=" << r << " s=" << s << " a=" << a1 << "..." << a2 << " dof=" << s1->dof << " var=" << (1-s1->dof) << " start=" << start << " end=" << end;
-
-       for(unsigned int c = 0; c < order_; c++)
+       for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
        {
-         for(unsigned int p = 0; p < order_; p++)
+         for(unsigned int si = 0; si < shapes.GetSize(); si++)
          {
-           double xy = start +  c/(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
-           double a  = a1 + p/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
-           double val = tanh(xy, a, 0.05);
-           // v represents a matrix but the view depends on the dof. With dof==0, the fast variable shall be x for col_major
-           unsigned int idx = s1->dof == 0 ? p * order_  + c : c * order_ + p;
-           v[idx] = std::max(v[idx], val);
-           LOG_DBG3(SMD) << "MS2D: -> c=" << c << " p=" << p << " idx=" << idx << " xy=" << xy << " a=" << a << " v=" << val << " -> " << v[idx];
+           double t = Eval(item.param[shapes[si]], item.param[shapes[si]+1], coords, ip_x, ip_y, false);
+           if(t > max_ip_rho) {
+             max_ip_rho = t;
+             item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
+           }
          }
-       }
+         rho += max_ip_rho;
+       } // end ip_y
+     } // end ip_x
 
-       assert(v.Avg() >= 0 && v.Avg() <= 1);
-       de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * v.Avg()); // we assume 0 <= v <= 1
-       LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue();
-       // Matrix<double> m;
-       // m.Assign(v, order_, order_, true);
-       // LOG_DBG3(SMD) << m.ToString();
-      }
-   }
+     de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_ * order_))); // we assume 0 <= v <= 1
+     assert(de->GetPlainDesignValue() <= de->GetUpperBound() + 1e-10);
+     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue() << " pi=" << item.ip_param_idx.ToString();
+     // Matrix<double> m;
+     // m.Assign(v, order_, order_, true);
+     // LOG_DBG3(SMD) << m.ToString();
+   } // end loop over density elements
+
+   mapped_design_ = design_id;
+ }
+
+ void ShapeMapDesign::MapShapeGradient(bool obj)
+ {
+   assert(mapped_design_ == design_id); // the map_::Item stuff needs to be up to date
+   LOG_DBG(SMD) << "MSG: obj=" << obj << " di=" << design_id << " md=" << mapped_design_ << " mog=" << mapped_obj_gradient_ << " mcg=" << mapped_constr_gradient_;
+   // fixme! We do the double job of dtanh_da for obj and for constraints. However if we do it common
+   // Optimization::EvalObjectiveConstraints() triggers MapShapeGradient() via WriteGradientToExtern() but rho::constraintGrad might not be set yet
+   // the mapping goes shape->rho(->state), e.g. to compliance
+   // from DesignSpace and ErsatzMaterial we have d_function/d_rho.
+   // By chain rule we get d_function/d_shape by summing up for each shape_var the corresponding d_function/d_rho.
+   // Note that we do this based on each integration point! It counts for each ip the shape_var which has larges rho(ip).
+   // This was set in MapShapeToDensity() to Item::ip_param_id
+   // ip_param_id is -1 if rho indicates zero gradient d_mapping/d_shape
+
+   // shall we store max_grad for output? -1 if not
+   int res_idx_da = GetSpecialResultIndex(DesignElement::DENSITY, DesignElement::SHAPE_MAP_GRAD, DesignElement::SM_NODE);
+
+   Grid* grid = domain->GetGrid();
+   // within the element coordinates we perform the integration
+   Matrix<double> coords;
+   for(unsigned int r = 0, n = map_.GetSize(); r < n; r++) // traverse all rho design elements
+   {
+     Item& item = map_[r];
+     DesignElement* de = item.rho;
+     grid->GetElemNodesCoord(coords, de->elem->connect, false); // no deformed mesh
+     double log_da = 0.0;
+
+     // either all ip_param_idx are -1 or none
+     if(item.ip_param_idx[0] > -1)
+     {
+       for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
+       {
+         for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
+         {
+           unsigned int ip_idx    = ip_y*order_+ip_x;
+           int shape_idx = item.ip_param_idx[ip_idx];
+           assert(shape_idx >= 0); // all -1 or none
+           assert(shape_idx % 2 == 0); // shall be even
+           // select the dominant shape parameter which lead to max rho for this ip
+           ShapeParamElement* s1 = item.param[shape_idx];
+           ShapeParamElement* s2 = item.param[shape_idx+1];
+
+           double da = Eval(s1, s2, coords, ip_x, ip_y, true); // dtanh_da
+           // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
+           double da_norm = 0.5 * da / (order_ * order_);
+           log_da += da_norm;
+
+           LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
+                         << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
+                         << " s2=" << s2->GetIndex() << " da=" << da << " da_norm=" << da_norm;
+
+           assert(opt_ != NULL);
+           assert(opt_->objectives.data.GetSize() == s1->costGradient.GetSize());
+           if(obj)
+           {
+             for(unsigned int c = 0; c < opt_->objectives.data.GetSize(); c++)
+             {
+               const Objective* f = opt_->objectives.data[c];
+               LOG_DBG3(SMD) << "MSG: c=" << f->GetName() << " s1=" << s1->GetIndex() << " rho_grad=" << de->costGradient[c]
+                             << " old =" << s1->costGradient[c] << " -> " << s1->costGradient[c] * (1.0 + f->GetPenalty() * de->costGradient[c] * da_norm);
+               LOG_DBG3(SMD) << "MSG: c=" << f->GetName() << " s2=" << s2->GetIndex() << " rho_grad=" << de->costGradient[c]
+                             << " old =" << s2->costGradient[c] << " -> " << s2->costGradient[c] * (1.0 + f->GetPenalty() * de->costGradient[c] * da_norm);
+               s1->AddGradient(opt_->objectives.data[c], de->costGradient[c] * da_norm);
+               s2->AddGradient(opt_->objectives.data[c], de->costGradient[c] * da_norm);
+             }
+           }
+           else
+           {
+             assert(opt_->constraints.active.GetSize() == s1->constraintGradient.GetSize());
+             for(unsigned int g = 0; g < opt_->constraints.active.GetSize(); g++)
+             {
+               assert(!opt_->constraints.active[g]->IsLocalCondition()); // FIXME local functions!!
+               const Condition* gf = opt_->constraints.active[g];
+               LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s1=" << s1->GetIndex() << " rho_grad=" << de->constraintGradient[g]
+                             << " old=" << s1->constraintGradient[g] << " -> " << s1->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
+               LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s2=" << s2->GetIndex() << " rho_grad=" << de->constraintGradient[g]
+                             << " old=" << s2->constraintGradient[g] << " -> " << s2->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
+               s1->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
+               s2->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
+             }
+           }
+         } // end ip_y
+       } // end ip_x
+       // normalize by integration points.
+     }
+     else
+     {
+       LOG_DBG2(SMD) << "MSG: obj=" << obj << " el=" << de->elem->elemNum << " item.ip_param_idx[0]=" << item.ip_param_idx[0] << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da;
+       // when one ip_param_idx is -1, all are -1.
+       // the reason is, that all are -1 if ApproxMaxRho() to small for all shapes. Otherwise at least one shape has the ips
+       assert(item.ip_param_idx.Sum() == -1 * (int) (order_*order_));
+     }
+     LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da;
+     if(res_idx_da >= 0)
+       de->specialResult[res_idx_da] = log_da;
+
+   } // end loop over density elements
+
+   if(obj)
+     mapped_obj_gradient_ = design_id;
+   else
+     mapped_constr_gradient_ = design_id;
+ }
+
+ inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad) const
+ {
+   assert(dim_ == 2);
+   assert(s1->dof == s2->dof);
+   // we assume the elements to be oriented ccw starting lower left
+   assert(coords.GetNumRows() == 2); // dim == 2
+   assert(coords.GetNumCols() == 4); // dim == 4 nodes
+   assert(close(coords[0][0], coords[0][3])); // x-pos: lower left and upper left
+   assert(close(coords[0][1], coords[0][2])); // x-pos: lower right and upper right
+   assert(coords[0][0] < coords[0][1]);       // x-pos: lower left is smaller than lower right
+   assert(close(coords[1][0], coords[1][1])); // y-pos: lower left and lower right
+   assert(close(coords[1][2], coords[1][3])); // y-pos: upper right and upper left
+   assert(coords[1][1] < coords[1][2]);       // y-pos: lower right smaller upper right
+
+   int dof = s1->dof;
+   // element position
+   double start = dof == 0 ? coords[0][0] : coords[1][0];
+   double end   = dof == 0 ? coords[0][1] : coords[1][3];
+   // the parameters
+   double a1 = s1->GetDesign();
+   double a2 = s2->GetDesign();
+
+   double xy = start + (dof == 0 ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
+   double a  = a1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
+   double val = grad ? d_tanh_da(xy, a, 0.05) : tanh(xy, a, 0.05);
+   LOG_DBG3(SMD) << "E: s1=" << s1->GetIndex() << " s2=" << s2->GetIndex() << " dof=" << dof << " start=" << start << " end=" << end  << " a=" << a1 << "..." << a2
+                 << " ip_x=" << ip_x << " ip_y=" << ip_y << " xy=" << xy << " a=" << a << " grad:" << grad << " -> " << val;
+   return val;
+ }
+
+ inline double ShapeMapDesign::ApproxMaxRho(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
+ {
+   assert(dim_ == 2);
+   double max        = Eval(s1, s2, coords, 0, 0, false); // false=no derivative
+   max = std::max(max, Eval(s1, s2, coords, 0, 1, false));
+   max = std::max(max, Eval(s1, s2, coords, 1, 0, false));
+   max = std::max(max, Eval(s1, s2, coords, 1, 1, false));
+   return max;
  }
 
 
@@ -197,6 +494,20 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      return 1.0 - 1/(std::exp(2*beta_*(x-a+w))+1);
   else
     return 1/(std::exp(2*beta_*(x-a-w))+1);
+ }
+
+ inline double ShapeMapDesign::d_tanh_da(double x, double a, double w) const
+ {
+   //if x <= a
+   //  f = -1* (exp(2*beta*(x-a+d)) + 1)^-2 *2*beta*exp(2*beta*(x-a+d));
+   //else
+   ///  f = (exp(2*beta*(x-a-d))+1)^-2 *2*beta*exp(2*beta*(x-a-d));
+   // end
+
+   if(x <= a)
+     return -1./((std::exp(2*beta_*(x-a+w))+1) * (std::exp(2*beta_*(x-a+w))+1)) * 2*beta_*std::exp(2*beta_*(x-a+w));
+  else
+    return 1/((std::exp(2*beta_*(x-a-w))+1) * (std::exp(2*beta_*(x-a-w))+1)) * 2*beta_*std::exp(2*beta_*(x-a-w)) ;
  }
 
  void ShapeMapDesign::DumpMap()
@@ -256,7 +567,19 @@ void ShapeMapDesign::CreateShapeVariable(ShapeParam& param, int free)
     spe.idx[0] = free;
   }
 
+  // PostInit() sets arrays for objective and constraint gradients
+
   LOG_DBG2(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetDesign() << " coord=" << spe.coord.ToString();
+}
+
+void ShapeMapDesign::PostInit(int objectives, int constraints)
+{
+  AuxDesign::PostInit(objectives, constraints);
+  for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
+    shape_param_[i].PostInit(objectives, constraints);
+
+  if(domain->GetOptimization() != NULL)
+    opt_ = domain->GetOptimization();
 }
 
 StdVector<ShapeMapDesign::ShapeParam> ShapeMapDesign::FindShape(Type type, int dof)

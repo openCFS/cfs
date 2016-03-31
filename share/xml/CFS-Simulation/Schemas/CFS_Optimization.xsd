@@ -1314,6 +1314,8 @@
                       <xsd:enumeration value="designTracking"/>
                      <!-- This is the gradient matrix -->
                       <xsd:enumeration value="transfoMatrix"/>
+                      <!--  for shape mapping the max of dtanh_da for a rho element -->
+                      <xsd:enumeration value="shapeMapGrad"/>
                       <!-- has details! -->
                       <xsd:enumeration value="constraintGradient"/>
                       <xsd:enumeration value="weight"/>
@@ -1573,6 +1575,9 @@
       <xsd:enumeration value="piezo_22"/>
       <xsd:enumeration value="piezo_23"/>
       <xsd:enumeration value="rotAngle"/>
+      <!-- for shape map -->
+      <xsd:enumeration value="node"/>
+      <xsd:enumeration value="profile"/>
       <!-- Model reduction design variables -->
       <xsd:enumeration value="rotAngle2"/>
       <xsd:enumeration value="stiff1"/>
@@ -1848,12 +1853,14 @@
       <xsd:enumeration value="globalMole"/>
       <xsd:enumeration value="globalJump"/>
       <xsd:enumeration value="stress"/>
-      
-            <!-- Value of the G matrix -->
+      <!-- Value of the G matrix -->
       <xsd:enumeration value="transfoMatrix11"/>
       <xsd:enumeration value="transfoMatrix12"/>
       <xsd:enumeration value="transfoMatrix21"/>
       <xsd:enumeration value="transfoMatrix22"/>
+      <!-- Shape mapping -->
+      <xsd:enumeration value="node"/>
+      <xsd:enumeration value="profile"/>
     </xsd:restriction>
   </xsd:simpleType>
 

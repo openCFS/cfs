@@ -147,7 +147,9 @@ public:
     DESIGN_TRACKING, /* (rho-rho^*)^2 but without 1/N */
     PROJECTION, /* local value from projection || nu(rho_i) - H_eta_beta(rho_i) ||^2 */
     LEVEL_SET_GRAD_XP, LEVEL_SET_GRAD_XN, LEVEL_SET_GRAD_YP, LEVEL_SET_GRAD_YN, LEVEL_SET_GRAD_ZP, LEVEL_SET_GRAD_ZN,
-    TRANSFO_MATRIX } ValueSpecifier;
+    TRANSFO_MATRIX,
+    SHAPE_MAP_GRAD /* the sum of all dtanh_da over all ip for a rho element for shape mapping */
+  } ValueSpecifier;
 
     /** The type of this design element, influences the Get*Bound() methods.
      * By definition the design elements are stored in the ordering of the type!!
@@ -221,7 +223,13 @@ public:
   void SetUpperBound(const double v) { upper_ = v; }
 
   /** adjusts length of the gradient vectors possibly not known during creation */
-  void PostInit(int objectives, int constraints);
+  void PostInit(int objectives, int constraints)
+  {
+    // resize and init with 0.0 so constraint, which only act on one design variable, do not have to set all others explicitly to zero
+    costGradient.Resize(objectives, 0.0);
+    constraintGradient.Resize(constraints, 0.0);
+  }
+
 
   /** helper for LOG output */
   static std::string ToString(const StdVector<BaseDesignElement*>& vec, bool print_type = false);
@@ -234,6 +242,10 @@ public:
    * <p>Therefore this vector has to be initialized on runtime</p> */
   StdVector<double> constraintGradient;
 
+  /** For multiple objective functions. It already includes penalty! Don't access directly with the excpetion of ShapeMapDesign!
+   * @see constraintGradient */
+  StdVector<double> costGradient;
+
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
@@ -242,9 +254,6 @@ protected:
   /** Sums up the costGradient values (they include penalty) */
   double SumObjectiveGradient() const;
 
-  /** For multiple objective functions. It already includes penalty!
-   * @see constraintGradient */
-  StdVector<double> costGradient;
 
   /** The lower bound of this design variable. Redundant but faster than look it up */
   double lower_;
@@ -286,7 +295,6 @@ public:
   /** the coord in terms of index within the regular space. Again -1 for the dof setting.
    * Note this is for node and we have one node mor than elements in one direction.*/
   StdVector<int> idx;
-
 };
 
 
@@ -341,7 +349,10 @@ public:
       GLOBAL_SLOPE, GLOBAL_CHECKERBOARD, STRESS,
       /*!< only for the projection function. This is the element wise fake filter part */
       PROJECTION_FILTER,
-      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22 } Detail;
+      TRANSFO_MATRIX11, TRANSFO_MATRIX12,TRANSFO_MATRIX21,TRANSFO_MATRIX22,
+      SM_NODE, /*!< for shape map */
+      SM_PROFILE  /*!< for shape map */
+    } Detail;
 
     /** Gets the design element
      * @param access if plain the rho value if SMART and filtering is enabled the filtered value */
@@ -367,7 +378,7 @@ public:
 
     /** internal helper to get the value by type
      * @param g for sp = CONSTRAINT_GRADIENT only */
-    double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
+    virtual double GetPlainValue(ValueSpecifier valueSpecifier, Condition* g = NULL) const;
 
     /** This is only for the Heaviside Filter!! as is so often called there that it makes a real difference! */
     double GetPlainDesignValue() const { return design; }

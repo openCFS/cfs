@@ -2272,7 +2272,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       unsigned int n = vol_nodes[i];
       if (se_nodes.Contains(n))
-      common_nodes.Push_back(n);
+        common_nodes.Push_back(n);
     }
     LOG_DBG3(em) << "FCN se=" << se->elemNum << " vol=" << vol->elemNum << " common=" << common_nodes.ToString();
   }

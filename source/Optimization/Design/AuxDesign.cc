@@ -71,7 +71,7 @@ void AuxDesign::PostInit(int objectives, int constraints)
   }
 
   // extend full_data
-  unsigned int offset = DesignSpace::GetNumberOfVariables();
+  unsigned int offset = DesignSpace::GetNumberOfVariables(); // check for alsomatopt_ ???
   full_data.Resize(offset + aux_design_.GetSize());
   for(unsigned int i = 0; i < aux_design_.GetSize(); i++)
     full_data[offset + i] = &(aux_design_[i]);
@@ -106,10 +106,10 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
   if(alsomatopt_)
     DesignSpace::ReadDesignFromExtern(space_in);
 
-  unsigned int offset = DesignSpace::GetNumberOfVariables(); // the size of the simp space - might be != data.GetSize()
+  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0; // the size of the simp space - might be != data.GetSize()
   assert((alsomatopt_ && (offset <= elements * design.GetSize())) || (!alsomatopt_ && offset == 0));
 
-  // might be set above
+  // design_id might be changed above in DesignSpace::ReadDesignFromExtern()
   bool new_design = old_design != design_id;
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
@@ -121,17 +121,18 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
     aux_design_[i].SetDesign(v);
     LOG_DBG(aux_des) << "ReadDesignFromExtern: shapeparams_[i]=" << v;
   }
-  if(new_design && design_id <= old_design) design_id++; // if new design and not already changed by DesignSpace
-  return(design_id);
+  if(new_design && design_id <= old_design) 
+    design_id++; // if new design and not already changed by DesignSpace
+  return design_id;
 }
 
 
 bool AuxDesign::CompareDesign(const double* space_in)
 {
-  if(!DesignSpace::CompareDesign(space_in))
+  if(alsomatopt_ && !DesignSpace::CompareDesign(space_in))
     return false;
 
-  unsigned int offset = DesignSpace::GetNumberOfVariables();
+  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
@@ -149,7 +150,7 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
     DesignSpace::WriteDesignToExtern(space_out, scale);
 
   double rscaling = scale ? 1.0 / scaling_ : 1.0;
-  unsigned int offset = DesignSpace::GetNumberOfVariables();
+  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
@@ -159,7 +160,7 @@ int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
   return design_id;
 }
 
-void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling) const
+void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
@@ -167,7 +168,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   if(alsomatopt_ && ( f == NULL || f->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
   {
     // the number of DesignSpace variables is complicated because of constant region.
-    unsigned int data_size = DesignSpace::GetNumberOfVariables(); // is virtual
+    unsigned int data_size = DesignSpace::GetNumberOfVariables(); 
 
     // we call DesignSpace::WriteDenseGradientToExtern() for the ersatz material part.
 
@@ -197,12 +198,12 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
   // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
   // a single designBound value with 0 from aux_design_.
-  if(write_aux) {
-    if(f == NULL || f->HasDenseJacobian()) {
+  if(write_aux) 
+  {
+    if(f == NULL || f->HasDenseJacobian()) 
       WriteAuxGradientToExtern(out, f, scaling);
-    }else{
+    else
       WriteSparseAuxGradientToExtern(out, f, scaling);
-    }
   }
 }
 
@@ -287,8 +288,7 @@ void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
   if(alsomatopt_)
     DesignSpace::WriteBoundsToExtern(x_l, x_u);
 
-  unsigned int offset = DesignSpace::GetNumberOfVariables();
-  assert(offset + aux_design_.GetSize() == GetNumberOfVariables());
+  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
