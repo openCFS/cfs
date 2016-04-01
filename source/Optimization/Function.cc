@@ -1160,8 +1160,7 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
   int dim = domain->GetGrid()->GetDim();
   bool prev = locality_ == PREV_NEXT_AND_REVERSE || locality_ == PREV_NEXT;
   bool next = true; // always
-  bool two_signs = locality_ == NEXT_AND_REVERSE
-      || locality_ == PREV_NEXT_AND_REVERSE;
+  bool two_signs = locality_ == NEXT_AND_REVERSE || locality_ == PREV_NEXT_AND_REVERSE;
 
    //assert((ph == BOTH && two_signs) || (!two_signs && ph != BOTH));
   // assume ph is set correctly and Phase is in sync with the signs
@@ -1173,11 +1172,11 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
   // traverse all elements and check for full neighborhood
-  for (int e = 0, ss = func_->elements.GetSize(); e < ss; ++e) {
+  for (int e = 0, ss = func_->elements.GetSize(); e < ss; ++e)
+  {
     DesignElement* de = func_->elements[e];
-    if (de->GetType()
-        == ((func_->design_ == DesignElement::DEFAULT) ?
-            DesignElement::DENSITY : func_->design_)) {
+    if (de->GetType()== ((func_->design_ == DesignElement::DEFAULT) ? DesignElement::DENSITY : func_->design_))
+    {
       VicinityElement* ve = de->vicinity;
 
       for(int a = 0; a < dim; a++)
@@ -1197,11 +1196,8 @@ void Function::Local::SetupVirtualElementMap(Phase ph) {
 
           virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_1));
           if (two_signs)
-            virtual_elem_map.Push_back(
-                Identifier(de, prev_de, next_de, sign_2));
-
+            virtual_elem_map.Push_back(Identifier(de, prev_de, next_de, sign_2));
         }
-
       }
     }
   }
@@ -1293,9 +1289,7 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
   // mole has always BOTH and DEG_45_STAR.
   // oscillation w/o BOTH needs to be DEG_45_STAR
   Function::Type ft = func_->type_;
-  assert(
-      ft == OSCILLATION || ft == GLOBAL_OSCILLATION || ft == MOLE
-          || ft == GLOBAL_MOLE);
+  assert(ft == OSCILLATION || ft == GLOBAL_OSCILLATION || ft == MOLE || ft == GLOBAL_MOLE);
   assert(locality_ == DEG_45_STAR || locality_ == DEG_45_STAR_AND_REVERSE);
   assert((ph != BOTH && locality_ == DEG_45_STAR) || ph == BOTH);
   assert(structure_ != NULL);
@@ -1303,22 +1297,22 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
 
   // mole has NO_SIGN and no reverse
   // oscillation has either the given phase or when BOTH we have to add -1 and 1 as signs
-  int sign_1 = (ft == MOLE || ft == GLOBAL_MOLE) ? Identifier::NO_SIGN :
-               ph == BOTH ? Identifier::VOID_SIGN : ph;
+  int sign_1 = (ft == MOLE || ft == GLOBAL_MOLE) ? Identifier::NO_SIGN : ph == BOTH ? Identifier::VOID_SIGN : ph;
   // sign_2 is relevant for DEG_45_STAR_AND_REVERSE only
   int sign_2 = Identifier::MATERIAL_SIGN; // the only possibility: oscillation with BOTH and REVERSE
   // the *and* reverse mode? and is to be read as plus
   bool two_signs = locality_ == DEG_45_STAR_AND_REVERSE;
 
-  LOG_DBG(func)<< "SSLEM: phase=" << phase.ToString(ph) << " ft=" << func_->ToString()
-  << " locality=" << locality.ToString(locality_) << " s1=" << sign_1 << " s2=" << sign_2;
+  LOG_DBG(func) << "SSLEM: phase=" << phase.ToString(ph) << " ft=" << func_->ToString()
+                << " locality=" << locality.ToString(locality_) << " s1=" << sign_1 << " s2=" << sign_2;
 
   element_dimension_ = (dim == 2 ? 4 : 13) * (two_signs ? 1 : 2); // see paper
   virtual_elem_map.Reserve(element_dimension_ * space->GetNumberOfElements());
 
   space->AssertOneDesignOnly(); // can be extended we use the design from the condition
   int elems = space->GetNumberOfElements();
-  for (int e = 0, ss = elems; e < ss; ++e) {
+  for (int e = 0, ss = elems; e < ss; ++e)
+  {
     DesignElement* de = &(space->data[e]);
 
     // do we have a full neighborhood? All or none
@@ -1326,14 +1320,12 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
 
     // we only need to check orthogonal
     assert(VicinityElement::X_P == 0);
-    for (int dir = VicinityElement::X_P;
-        dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N);
-        dir++) {
+    for (int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir++)
+    {
       int a = VicinityElement::ToMainAxis((VicinityElement::Neighbour) dir);
       unsigned int n = struc->orthogonal[a];
       assert(n > 0);
-      if (!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir,
-          n))
+      if (!VicinityElement::HasNeighbor(de, (VicinityElement::Neighbour) dir, n))
         full = false;
     }
 
@@ -1342,9 +1334,8 @@ void Function::Local::SetupStarLocalityElementMap(Phase ph) {
     // orthogonal first
     StdVector<BaseDesignElement*> buddies;
 
-    for (int dir = VicinityElement::X_P;
-        dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir +=
-            2) {
+    for (int dir = VicinityElement::X_P; dir <= (dim == 2 ? VicinityElement::Y_N : VicinityElement::Z_N); dir += 2)
+    {
       VicinityElement::Neighbour pos = (VicinityElement::Neighbour) dir;
       VicinityElement::Neighbour neg = (VicinityElement::Neighbour) (dir + 1);
       unsigned int a = VicinityElement::ToMainAxis(pos);
