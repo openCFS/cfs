@@ -248,7 +248,13 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bo
       }
     }
     else
-      out[base + i] = aux_design_[i].GetPlainGradient(NULL, g) * s;
+    {
+      if(g != NULL)
+        out[base + i] = aux_design_[i].GetPlainGradient(g) * s;
+      else
+        out[base + i] = aux_design_[i].SumObjectiveGradient() * s;
+    }
+
     LOG_DBG3(aux_des) << "WAGTE: g=" << (g == NULL ? "null" : g->ToString()) << " out[" << base+i << "]=" << out[base+i]
                       << " slack case=" << (HasSlackVariable() && g != NULL && g->HasSlackBound());
   }
@@ -271,7 +277,7 @@ void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<double>& out, Function*
   for(unsigned int i = 0; i < sparsity.GetSize(); i++)
   {
     assert(out.InWindow(base + i));
-    out[base + i] = aux_design_[sparsity[i]-nonaux_size].GetPlainGradient(NULL, g) * s;
+    out[base + i] = aux_design_[sparsity[i]-nonaux_size].GetPlainGradient(g) * s;
   }  
 }
 
