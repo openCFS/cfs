@@ -18,6 +18,7 @@
 #include "Optimization/Design/DensityFile.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/ErsatzMaterial.hh"
 #include "Optimization/Function.hh"
@@ -39,7 +40,7 @@ DensityFile::DensityFile(DesignSpace* designSpace,
                             ParamNodeList& tfs,
                             PtrParamNode regulize_pn)
 {
-  this->ersatzMaterial_ = designSpace;
+  this->space_ = designSpace;
   this->last_set_iter = -2;
 
   name_ = export_pn->Get("file")->As<string>();
@@ -263,11 +264,11 @@ PtrParamNode DensityFile::Create(ParamNodeList& des, ParamNodeList& tfs, PtrPara
    // write header
    PtrParamNode in_ = in->Get("header");
 
-   LOG_TRACE(density) << "Create: regular=" << this->ersatzMaterial_->IsRegular();
+   LOG_TRACE(density) << "Create: regular=" << this->space_->IsRegular();
 
-   if(this->ersatzMaterial_->IsRegular())
+   if(this->space_->IsRegular())
    {
-     DesignElement& de = ersatzMaterial_->data[0];
+     DesignElement& de = space_->data[0];
      StdVector<double> edges;
      domain->GetGrid()->GetElemShapeMap(de.elem, false)->GetEdgeLength(edges);
 
@@ -306,11 +307,17 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
 
   // we use the fast (dirty) bulk block to be (measurable) faster
   StdVector<std::string>& block = in->GetFastBulkBlock();
-  block.Resize(ersatzMaterial_->data.GetSize());
 
-  for(unsigned int i = 0, n = ersatzMaterial_->data.GetSize(); i < n; ++i)
+  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space_);
+  // for shape ma we also want to export DesignSpace::data even if this are no design variables
+  unsigned int size = space_->data.GetSize();
+  if(smd != NULL)
+    size += smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters();
+  block.Resize(size);
+
+  for(unsigned int i = 0, n = space_->data.GetSize(); i < n; ++i)
   {
-    DesignElement* de = &ersatzMaterial_->data[i];
+    DesignElement* de = &space_->data[i];
     std::stringstream ss;
     ss << "<element nr=\"" << de->elem->elemNum;
     ss << "\" type=\"" << DesignElement::type.ToString(de->GetType());
@@ -323,6 +330,21 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       ss << " physical=\"" << de->GetPhysicalDesign(Optimization::context) << "\"";
     ss << "/>";
     block[i] = ss.str();
+  }
+
+  if(smd != NULL)
+  {
+    // skip the aux variables slack and alpha -> they are written to the info.xml
+    for(unsigned int i = smd->GetNumberOfAuxParameters(), n = smd->GetNumberOfVariables(); i < n; i++)
+    {
+      ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetDesignElement(i));
+      std::stringstream ss;
+      ss << "<shapeParamElement nr=\"" << spe->GetIndex();
+      ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");
+      ss << "\" design=\"" << spe->GetDesign();
+      ss << "\"/>";
+      block[space_->data.GetSize() + i] = ss.str();
+    }
   }
 
   // do we need to write?

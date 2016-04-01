@@ -178,6 +178,15 @@ inline BaseDesignElement* ShapeMapDesign::GetDesignElement(unsigned int idx)
     return &shape_param_[idx - aux_design_.GetSize()];
 }
 
+void ShapeMapDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
+{
+  AuxDesign::ToInfo(in, em);
+  PtrParamNode base_ = in->Get("designVariables");
+
+  for(unsigned int i = 0; i < shape_.GetSize(); i++)
+    shape_[i].ToInfo(base_->Get("shapeParam", ParamNode::APPEND));
+}
+
 
 StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const RegionIdType design_reg, StdVector<int>& elem_to_idx, StdVector<int>& idx_to_elem)
 {
@@ -215,7 +224,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    assert(!list.IsEmpty());
    shape_.Resize(list.GetSize());
    for(unsigned int i = 0; i < list.GetSize(); i++)
-     shape_[i].Init(list[i]); // empty constructor due to StdVector/(
+     shape_[i].Init(list[i], i); // empty constructor due to StdVector/(
 
    // check rhos which should be already be set in DesignSpace::data
    assert(GetRegionIds().GetSize() == 1); // more is not implemented yet
@@ -235,17 +244,25 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    // setup shape_param_
    assert(n[0] == n[1]); // up to now
    assert(n[2] == 1); // 2D
-   StdVector<ShapeParam> shape_x = FindShape(NODE, 0);
-   StdVector<ShapeParam> shape_y = FindShape(NODE, 1);
+   StdVector<ShapeParam*> shape_x = FindShape(NODE, 0);
+   StdVector<ShapeParam*> shape_y = FindShape(NODE, 1);
 
    shape_param_.Reserve((nx_+1) * shape_x.GetSize()+ (ny_+1) * shape_y.GetSize()); // one node more than elements
    assert(shape_param_.Capacity() > 0);
    for(unsigned int s = 0; s < shape_x.GetSize(); s++)
+   {
+     shape_x[s]->start_param = shape_param_.GetSize();
      for(unsigned int y = 0; y < ny_+1; y++)
        CreateShapeVariable(shape_x[s], y);
+     shape_x[s]->end_param = shape_param_.GetSize();
+   }
    for(unsigned int s = 0; s < shape_y.GetSize(); s++)
+   {
+     shape_y[s]->start_param = shape_param_.GetSize();
      for(unsigned int x = 0; x < nx_+1; x++)
        CreateShapeVariable(shape_y[s], x);
+     shape_y[s]->end_param = shape_param_.GetSize();
+   }
 
    // setup map_
    map_.Resize(data.GetSize());
@@ -530,9 +547,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
     }
  }
 
-void ShapeMapDesign::CreateShapeVariable(ShapeParam& param, int free)
+void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free)
 {
-  assert(param.type == NODE);
+  assert(param->type == NODE);
   // note that free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1
 
   // this is one example of a shape param with dof=x, value= 4 and free 0...5 (y)
@@ -558,10 +575,10 @@ void ShapeMapDesign::CreateShapeVariable(ShapeParam& param, int free)
   // add element to shape_param_
   shape_param_.Push_back(ShapeParamElement(BaseDesignElement::NODE, shape_param_.GetSize()));
   ShapeParamElement& spe = shape_param_.Last();
-  spe.SetLowerBound(param.lower);
-  spe.SetUpperBound(param.upper);
-  spe.SetDesign(param.value);
-  spe.dof = param.dof;
+  spe.SetLowerBound(param->lower);
+  spe.SetUpperBound(param->upper);
+  spe.SetDesign(param->value);
+  spe.dof = param->dof;
   if(spe.dof == 0) {
     spe.coord[1] = (double) free / ny_; // free is max ny_
     spe.idx[1] = free;
@@ -586,18 +603,19 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
     opt_ = domain->GetOptimization();
 }
 
-StdVector<ShapeMapDesign::ShapeParam> ShapeMapDesign::FindShape(Type type, int dof)
+StdVector<ShapeMapDesign::ShapeParam*> ShapeMapDesign::FindShape(Type type, int dof)
 {
-   StdVector<ShapeParam> res;
+   StdVector<ShapeParam*> res;
    for(unsigned int i = 0; i < shape_.GetSize(); i++)
      if(shape_[i].type == type && shape_[i].dof == dof)
-       res.Push_back(shape_[i]);
+       res.Push_back(&shape_[i]);
    return res;
  }
 
- void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn)
+ void ShapeMapDesign::ShapeParam::Init(PtrParamNode pn, unsigned int idx_)
  {
    type = ShapeMapDesign::type.Parse(pn->Get("type")->As<std::string>());
+   idx = (int) idx_;
    if(type == NODE)
    {
      if(!pn->Has("dof"))
@@ -633,6 +651,17 @@ StdVector<ShapeMapDesign::ShapeParam> ShapeMapDesign::FindShape(Type type, int d
    }
    if(!pn->Has("initial") && !pn->Has("fixed"))
      throw Exception("shapeParam needs to have either 'initial' or 'fixed'");
+}
+
+void ShapeMapDesign::ShapeParam::ToInfo(PtrParamNode in)
+{
+  in->Get("idx")->SetValue(idx);
+  in->Get("type")->SetValue(ShapeMapDesign::type.ToString(type));
+  in->Get("dof")->SetValue(dof == 0 ? "x" : "y");
+  in->Get("lower")->SetValue(lower);
+  in->Get("upper")->SetValue(upper);
+  assert(start_param >= 0 && end_param > 0);
+  in->Get("variables")->SetValue(end_param - start_param);
 }
 
 

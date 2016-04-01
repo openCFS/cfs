@@ -59,7 +59,7 @@ public:
   bool finally_only_;
   
   /** we don't own this data, therefore we also don't delete it! */
-  DesignSpace* ersatzMaterial_;
+  DesignSpace* space_;
 
   /** our filename */
   std::string name_;

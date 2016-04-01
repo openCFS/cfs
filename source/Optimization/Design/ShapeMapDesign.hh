@@ -46,6 +46,8 @@ public:
 
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
+  virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+
   /** this maps the mesh to a regular lexicographic design representation. For the moment is assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
   @param design_reg extend to vector if necessary!
@@ -60,15 +62,20 @@ public:
   struct ShapeParam
   {
     ShapeParam() { type = NODE; }; // default constructor for StdVector()
-    void Init(PtrParamNode pn);
+    void Init(PtrParamNode pn, unsigned int idx);
+    void ToInfo(PtrParamNode pn);
 
     Type type; // NODE or PROFILE
-    int nr = -1;
+    int idx = -1;
     int dof = -1; // x =0, y = 1, z = 2,
     double lower = -1.0;
     double upper = -1.0;
     double value = -1.0; // initial or fixed
     bool fixed = false;
+
+    /** this stores the reference to shape_param_ */
+    int start_param = -1;
+    int end_param = -1;
   };
 
 protected:
@@ -92,11 +99,11 @@ protected:
 
 
   /** Search in shape_ */
-  StdVector<ShapeParam> FindShape(Type type, int dof);
+  StdVector<ShapeParam*> FindShape(Type type, int dof);
 
   /** helper to fill shape_param_
    * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1*/
-  void CreateShapeVariable(ShapeParam& param, int free);
+  void CreateShapeVariable(const ShapeParam* param, int free);
 
   /** helper for debugging */
   void DumpMap();
