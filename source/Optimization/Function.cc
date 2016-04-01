@@ -2288,7 +2288,7 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->GetIndex() << " sign=" << sign << " n=" << n
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv
-                   << " stored_gv=" << de->GetPlainGradient(f, g)
+                   << " stored_gv=" << de->GetPlainGradient(funct)
                    << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
   }
 }

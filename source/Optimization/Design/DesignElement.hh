@@ -192,11 +192,12 @@ public:
   /** returns the type */
   virtual std::string ToString() const;
 
-  /** Get the gradient values for either objective or constraint.
-   * if neither f nor g is given the objective gradient sum is returned */
-  double GetPlainGradient(const Objective* c, const Condition* g) const;
-
+  /** for f = objective gives the value by index. For multiple objective use SumCostGradient() */
   double GetPlainGradient(const Function* f) const;
+
+  /** return from the function. for multi objective use SumCostGradient() */
+  double GetPlainGradient(const Objective* c) const;
+  double GetPlainGradient(const Condition* g) const;
 
   /** Sum app the old value (get and set together) */
   void AddGradient(const Objective* c, const Condition* g, double value);
@@ -246,14 +247,13 @@ public:
    * @see constraintGradient */
   StdVector<double> costGradient;
 
+  /** Sums up the costGradient values (they include penalty) */
+  double SumObjectiveGradient() const;
+
 protected:
 
   /** The scalar value. Public access only via getter to handle filtering. */
   double design;
-
-  /** Sums up the costGradient values (they include penalty) */
-  double SumObjectiveGradient() const;
-
 
   /** The lower bound of this design variable. Redundant but faster than look it up */
   double lower_;

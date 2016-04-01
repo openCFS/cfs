@@ -953,7 +953,7 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
     int base = design->FindDesign(g->GetDesignType());
     int n    = design->GetNumberOfElements();
     for(int i = n * base; i < n * (base + 1); i++) // TODO add access!
-      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(NULL, g);
+      design->data[i].specialResult[g->special_result_idx] = design->data[i].GetPlainGradient(g);
   }
 }
 

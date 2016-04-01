@@ -16,12 +16,13 @@ DEFINE_LOG(SMD, "shapeMapDesign")
 
 
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
-: AuxDesign(regionIds, pn, method), order_(3)
+: AuxDesign(regionIds, pn, method), order_(10) // order 2 is technical minimum but too poor for practial use
 {
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->alsomatopt_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
 
+  assert(order_ >= 2); // too poor for technical use. 10 is nice
   if(order_ <= 3)
     info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("low integration order for shape map");
 
@@ -313,18 +314,20 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
        if(ApproxMaxRho(item.param[s], item.param[s+1], coords) > 1e-10)
          shapes.Push_back(s);
 
+     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " shape=" << shapes.ToString();
+
      double rho = 0.0; // sum up over all ips (if shapes is large enough :))
-     double max_ip_rho = 0.0;
 
      // it makes sense to traverse first the ip and then the variables
      for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
      {
        for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
        {
+         double max_ip_rho = 0.0; // we need 0.0 for a valid final rho if t is too small everywhere but we need to overwrite the default idx -1!
          for(unsigned int si = 0; si < shapes.GetSize(); si++)
          {
            double t = Eval(item.param[shapes[si]], item.param[shapes[si]+1], coords, ip_x, ip_y, false);
-           if(t > max_ip_rho) {
+           if(t >= max_ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
              max_ip_rho = t;
              item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
            }
@@ -335,7 +338,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_ * order_))); // we assume 0 <= v <= 1
      assert(de->GetPlainDesignValue() <= de->GetUpperBound() + 1e-10);
-     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue() << " pi=" << item.ip_param_idx.ToString();
+     assert(de->GetPlainDesignValue() >= de->GetLowerBound() - 1e-10);
+     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue(); // << " pi=" << item.ip_param_idx.ToString();
      // Matrix<double> m;
      // m.Assign(v, order_, order_, true);
      // LOG_DBG3(SMD) << m.ToString();
@@ -480,10 +484,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
  inline double ShapeMapDesign::ApproxMaxRho(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
  {
    assert(dim_ == 2);
-   double max        = Eval(s1, s2, coords, 0, 0, false); // false=no derivative
-   max = std::max(max, Eval(s1, s2, coords, 0, 1, false));
-   max = std::max(max, Eval(s1, s2, coords, 1, 0, false));
-   max = std::max(max, Eval(s1, s2, coords, 1, 1, false));
+   double max        = Eval(s1, s2, coords, 0,               0, false); // false=no derivative
+   max = std::max(max, Eval(s1, s2, coords, 0,        order_-1, false));
+   max = std::max(max, Eval(s1, s2, coords, order_-1,        0, false));
+   max = std::max(max, Eval(s1, s2, coords, order_-1, order_-1, false));
    return max;
  }
 

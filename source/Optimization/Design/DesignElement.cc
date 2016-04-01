@@ -207,18 +207,6 @@ BaseDesignElement::BaseDesignElement(Type t) {
 
 
 /** Get the gradient values for either objective or constraint */
-double BaseDesignElement::GetPlainGradient(const Objective* c, const Condition* g) const
-{
-  assert(c == NULL || g == NULL);
-
-  if(g != NULL) return constraintGradient[g->GetIndex()];
-  if(c != NULL) return costGradient[c->GetIndex()];
-
-  assert(false);
-  return -1.0; // don't return SumObjectiveGradient() as get PlainGradient goes by index.
-}
-
-/** Get the gradient values for either objective or constraint */
 double BaseDesignElement::GetPlainGradient(const Function* f) const
 {
   assert(f != NULL); // Call SumObjectiveGradient() if you don't want to specify!
@@ -229,6 +217,15 @@ double BaseDesignElement::GetPlainGradient(const Function* f) const
   return f->IsObjective() ? costGradient[f->GetIndex()] : constraintGradient[f->GetIndex()];
 }
 
+double BaseDesignElement::GetPlainGradient(const Objective* c) const
+{
+  return costGradient[c->GetIndex()];
+}
+
+double BaseDesignElement::GetPlainGradient(const Condition* g) const
+{
+  return constraintGradient[g->GetIndex()];
+}
 
 /** Sum app the old value (get and set together) */
 void BaseDesignElement::AddGradient(const Objective* f, const Condition* g, double value)
@@ -275,7 +272,7 @@ void BaseDesignElement::Reset(ValueSpecifier vs, Function*  f)
   }
 }
 
-inline double BaseDesignElement::SumObjectiveGradient() const
+double BaseDesignElement::SumObjectiveGradient() const
 {
   double result = 0.0;
   for(unsigned int i = 0, s = costGradient.GetSize(); i < s; ++i)
