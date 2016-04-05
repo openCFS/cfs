@@ -11,7 +11,6 @@ namespace CoupledField
   // Forward class declarations
   struct Elem;
   struct SurfElem;
-  
 
   //! Implementation of a simple, one level grid.
 

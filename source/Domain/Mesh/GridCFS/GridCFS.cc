@@ -1381,15 +1381,21 @@ namespace CoupledField {
         i < numSurfaces; i++) {
 
       // get elements
-      ent = GetEntityList( EntityList::SURF_ELEM_LIST, 
-                           region_.ToString(surfRegionIds_[i]) );
+      std::string surfRegName = region_.ToString(surfRegionIds_[i]);
+      ent = GetEntityList( EntityList::SURF_ELEM_LIST, surfRegName);
 
-      // create result objects
-      sol = shared_ptr<BaseResult> (new Result<Double>());
-      sol->SetEntityList(ent);
-      sol->SetResultInfo(surfNormal);
-      ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
-      surfResultList.Push_back(sol);
+      // check whether the surface region doesn't belong to an NC-interface:
+      // we have to make sure that the elements of the former have adjacent volume elements
+      // required for the calculation of surface normals
+      if (nciNameMap_.find(surfRegName) == nciNameMap_.end())
+      {
+        // create result objects
+        sol = shared_ptr<BaseResult> (new Result<Double>());
+        sol->SetEntityList(ent);
+        sol->SetResultInfo(surfNormal);
+        ptRes->RegisterResult( sol,fnc,0, 0,1,1,outDest,"",true,false);
+        surfResultList.Push_back(sol);
+      }
       
       if ( dim_ == 3 ) {
         sol = shared_ptr<BaseResult> (new Result<Double>());
