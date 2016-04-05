@@ -34,7 +34,7 @@ public:
                   StdVector<RegionIdType> pdeDomains,
                   bool isVector );
 
-  ~CoefFunctionMapping();
+  virtual ~CoefFunctionMapping();
 
   //! Return real-valued tensor at integration point
   void GetTensor(Matrix<Double>& tensor,

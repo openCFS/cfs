@@ -322,9 +322,9 @@ namespace CoupledField {
 
         // TODO: WHAT THE HELL? IT DOESN'T WORK WITH pz = -1...
         // To be checked later during the work with piezo-coupling
-        Double pz = 1.0;
-        if (isPiezoCoupled_ == true)
-          pz = 1.0;
+        Double pz = 8.85e-12;
+//        if (isPiezoCoupled_ == true)
+//          pz = 1.0;
 
         if (formulation == "Nitsche")
         {
