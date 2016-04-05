@@ -89,10 +89,6 @@ public:
     return form;
   }
 
-  inline void SetDesignDependentLoad() { designDepLoad_ = true;}
-
-  inline bool HasDesignDependentLoad() { return designDepLoad_;}
-
   std::string ToString() const{ return "CoefFunctionOpt";};
 
   /** enable optimization, which means that the design space is asked for the the proper material. state -> OPT */
@@ -144,9 +140,6 @@ protected:
 
   /** the current tensor derivative, only for state == DIRECTION */
   DesignElement::Type direction;
-
-  /** Used for design dependent load/ right hand side*/
-  bool designDepLoad_;
 };
 
 }

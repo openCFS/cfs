@@ -733,9 +733,10 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   template<class T>
   double ErsatzMaterial::CalcU1KU2(TransferFunction* tf, StdVector<SingleVector*>& u1, App::Type app, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs, double factor, CalcMode calcMode, Function* f, int res_idx, double ev)
   {
-    LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
-                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
+//    LOG_DBG2(em) << "CalcU1KU2: tf=" << (tf ? tf->ToString() : "NULL") << " app=" << application.ToString(app) << "(" << app << ")"
+//                 << " #u1=" << u1.GetSize() << " #u2=" << u2.GetSize() << " calcMode=" << calcMode << " factor=" << factor << " rhs=" << (rhs == NULL && rhs->vec == NULL ? "NULL" : rhs->ToString(1)) << " ev=" << ev;
     // This solves <l,K'*u-f'> or <u1, K' * u2 - f'> for all elements and adds it up to the element gradients
+    // Note to perform "<f',u>" from <f',u> + <l,K'*u-f'> manually
     assert(u1.GetSize() != 0);
     assert(u1.GetSize() == u2.GetSize());
     assert(f != NULL); // for context or relax
@@ -792,8 +793,8 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         SetElementK(f->ctxt, de, tf, app, dynamic_cast<DenseMatrix*>(&mat), true, calcMode, ev); // derivative = true
         LOG_DBG3(em) << "mat: " << mat.ToString();
 
-        // We generally solve u1^T (K' u2 - f') as u1^T (K' u2 - f')
-        // u1^T (K' u2 - f') -> calc K' u2"
+        // We generally solve u1^T (K' u2 - f')
+        // u1^T (K' u2 - f') -> calc "K' u2"
         mat_vec = mat * u2_vec;
         LOG_DBG3(em) << "mat * u2: " << mat_vec.ToString();
 
@@ -801,8 +802,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         assert(!(calcMode == CONJ_QUAD && rtf != NULL));// no sensitive rhs here!
         assert(!(rtf != NULL && f->ctxt->IsStrainExcitedSystem()));
 
-        if(rtf != NULL)
-          SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+        if(rtf != NULL) {
+          if (rhs->isInterfaceDriven_)
+            SubstractInterfaceDrivenGradRHS(de, mat_vec);
+          else
+            SubtractGradSurfaceRHS(de, rtf, rhs, mat_vec);
+        }
+
         if(f->ctxt->IsStrainExcitedSystem())
           SubtractGradStrainRHS(de, tf, rhs, mat_vec);
 
@@ -1290,6 +1296,44 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // LOG_DBG3(em) << "SGSR: de=" << de->elem->elemNum << "     ->=" << in_out.ToString();
   }
 
+  template<class T>
+  void ErsatzMaterial::CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out)
+  {
+     StdVector<unsigned int>& nodes = de->elem->connect;
+     out.Resize(nodes.GetSize());
+
+     // for each node we have f' = 1-2*(sum rho of node)
+
+     for(unsigned int n = 0; n < nodes.GetSize(); n++)
+     {
+       unsigned int node = nodes[n];
+       // search for the elements of node
+       StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(node);
+       // traverse the elements
+       double sum = 0.0;
+       int found = 0;
+       for(unsigned int e = 0; e < elems.GetSize(); e++)
+       {
+         int design_index = design->Find(elems[e],false);
+         if(design_index >= 0)
+         {
+           double factor = design->data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter in DesignSpace::ApplyPhysialDesign(Vector)
+           sum += factor;
+           found++;
+         }
+       }
+       assert(found > 0);
+       out[n] =  4.0 / (double) found * (1.0 - 2.0 * (sum / (double) found));
+     }
+  }
+
+  template<class T>
+  void ErsatzMaterial::SubstractInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& in_out)
+  {
+      Vector<T> gradRHS;
+      CalcInterfaceDrivenGradRHS(de, gradRHS);
+      in_out -= gradRHS;
+  }
 
   template<class T>
   void ErsatzMaterial::SubtractGradSurfaceRHS(DesignElement* de, TransferFunction* tf, DesignDependentRHS* ref, Vector<T>& in_out)
@@ -2031,13 +2075,28 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , App::HEAT, true);
       double factor = excite.GetWeightedFactor(func);
-      CalcU1KU2(tf, forward.Get(excite)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], NULL, -factor, STANDARD, func);
+      //TODO: if design dependent
+      DesignDependentRHS* rhs = new DesignDependentRHS();
+      rhs->Init<double>(design,App::HEAT);
+      // f'^Tu de->AddGradient(f, this_value);
+      StdVector<SingleVector*> stateSol = forward.Get(excite)->elem[App::HEAT];
+      for (unsigned int id = 0; id < design->data.GetSize(); id++) {
+        Vector<double> gradRHS;
+        DesignElement* de = &design->data[id];
+        CalcInterfaceDrivenGradRHS(de,gradRHS);
+        double val = gradRHS.Inner(*stateSol[id]);
+        de->AddGradient(func,val);
+      }
+      CalcU1KU2(tf, forward.Get(excite)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, -factor, STANDARD, func);
+      for (unsigned int id = 0; id < design->data.GetSize(); id++) {
+        DesignElement* de = &design->data[id];
+      }
     }
     else {
-    Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-    Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
-    u.Inner(rhs,res);
-    res *= excite.GetFactor(func);
+      Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+      Vector<double>& rhs = forward.Get(excite, NULL)->GetRealVector(StateSolution::RHS_VECTOR);
+      u.Inner(rhs,res);
+      res *= excite.GetFactor(func);
     }
     return res;
   }

@@ -68,6 +68,8 @@ HeatPDE::HeatPDE(Grid * aptgrid, PtrParamNode paramNode,
   
   //! Always use updated Lagrangian formulation 
   updatedGeo_        = true;
+
+  interfaceDrivenHeatSource_ = false;
 }
 
 
@@ -619,14 +621,14 @@ void HeatPDE::DefineRhsLoadIntegrators() {
   
   LOG_TRACE(heatcondpde) << "Defining rhs load integrators for thermal PDE";
 
-    // Get FESpace and FeFunction of electric potential
-    shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
-    shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
+  // Get FESpace and FeFunction of electric potential
+  shared_ptr<BaseFeFunction> myFct = feFunctions_[HEAT_TEMPERATURE];
+  shared_ptr<FeSpace> mySpace = myFct->GetFeSpace();
 
-    StdVector<shared_ptr<EntityList> > ent;
-    StdVector<PtrCoefFct > coef;
-    LinearForm * lin = NULL;
-    StdVector<std::string> dofNames;
+  StdVector<shared_ptr<EntityList> > ent;
+  StdVector<PtrCoefFct > coef;
+  LinearForm * lin = NULL;
+  StdVector<std::string> dofNames;
 
     
     // @Manfred: Is there an equivalent to total charge (= nodal values)
@@ -678,96 +680,97 @@ void HeatPDE::DefineRhsLoadIntegrators() {
 //      }
 //    } // for
 
-    bool coefUpdateGeo = true;
-    // =====================
-    //  HEAT SOURCE DENSITY
-    // =====================
-    LOG_DBG(heatcondpde) << "Reading heat source density";
-    
-    ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
-    for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // check type of entitylist
-      if (ent[i]->GetType() == EntityList::NODE_LIST) {
-        EXCEPTION("Heat source density must be defined on elements")
-      }
-      EntityIterator it = ent[i]->GetIterator();
-      it.Begin();
-      
-      if(isComplex_) {
-        lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coef[i], coefUpdateGeo);
-      } else  {
-        lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coef[i], coefUpdateGeo);
-      }
-      lin->SetName("HeatSourceDensityInt");
-      LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities( ent[i] );
-      ctx->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctx);
-    } // for
+  bool coefUpdateGeo = true;
+  // =====================
+  //  HEAT SOURCE DENSITY
+  // =====================
+  LOG_DBG(heatcondpde) << "Reading heat source density";
 
-    // ========================
-    //  HEAT SOURCE(nodal)
-    // ========================
-    LOG_DBG(heatcondpde) << "Reading heat source values";
+  ReadRhsExcitation( "heatSourceDensity", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo );
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // check type of entitylist
+    if (ent[i]->GetType() == EntityList::NODE_LIST) {
+      EXCEPTION("Heat source density must be defined on elements")
+    }
+    EntityIterator it = ent[i]->GetIterator();
+    it.Begin();
 
-    coefUpdateGeo = false;
+    if(isComplex_) {
+      lin = new BUIntegrator<Complex> ( new IdentityOperator<FeH1>(), Complex(1.0), coef[i], coefUpdateGeo);
+    } else  {
+      lin = new BUIntegrator<Double> ( new IdentityOperator<FeH1>(), 1.0, coef[i], coefUpdateGeo);
+    }
+    lin->SetName("HeatSourceDensityInt");
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities( ent[i] );
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+  } // for
 
-    ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
-    for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // assume that we have elem list due to specification of a region instead of named nodes in xml file
-      if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
-        EXCEPTION("Heat source must be defined on nodes!")
-      }
+  // ========================
+  //  HEAT SOURCE(nodal)
+  // ========================
+  LOG_DBG(heatcondpde) << "Reading heat source values";
 
-      UInt numNodes = ent[i]->GetSize();
-      if( numNodes > 1 ) {
-        Global::ComplexPart part = Global::REAL;
-        coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
-      }
+  coefUpdateGeo = false;
 
-      lin = new SingleEntryInt(coef[i]);
-      lin->SetName("NodalHeatInt");
-      LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities( ent[i] );
-      ctx->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctx);
+  ReadRhsExcitation( "heatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // assume that we have elem list due to specification of a region instead of named nodes in xml file
+    if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
+      EXCEPTION("Heat source must be defined on nodes!")
     }
 
-    // ========================
-    //  DESIGN DEPENDENT HEAT SOURCE
-    // ========================
-    LOG_DBG(heatcondpde) << "Reading heat source values (design dependent)";
-
-//    ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
-    ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
-    for( UInt i = 0; i < ent.GetSize(); ++i ) {
-      // assume that we have elem list due to specification of a region instead of named nodes in xml file
-      if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
-        EXCEPTION("Design dependent heat source must be defined on nodes!")
-      }
-
-      if(domain->GetDesign(false) != NULL)
-      {
-        CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
-        coef[i].reset(tmpFnc);
-//        coef[i]->SetConservative(true);
-//        rhsFeFunctions_[HEAT_TEMPERATURE]->AddLoadCoefFunction(coef[i],ent[i]);
-      }
-
-      lin = new SingleEntryInt(coef[i]);
-      lin->SetName("HeatConductivity");
-
-      BiLinWrappedLinForm* linWrapped = new BiLinWrappedLinForm(lin,false); // have to wrapp lin form since CoefFunctionOpt expects a bilinform
-
-      // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
-      if(domain->GetDesign(false) != NULL)
-        dynamic_pointer_cast<CoefFunctionOpt>(coef[i])->SetForm(linWrapped);
-
-      LinearFormContext *ctx = new LinearFormContext( lin );
-      ctx->SetEntities(ent[i]);
-      ctx->SetFeFunction(myFct);
-      assemble_->AddLinearForm(ctx);
+    UInt numNodes = ent[i]->GetSize();
+    if( numNodes > 1 ) {
+      Global::ComplexPart part = Global::REAL;
+      coef[i] = CoefFunction::Generate(mp_, part, CoefXprVecScalOp(mp_, coef[i], boost::lexical_cast<std::string>(numNodes), CoefXpr::OP_DIV) );
     }
+
+    lin = new SingleEntryInt(coef[i]);
+    lin->SetName("NodalHeatInt");
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities( ent[i] );
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+  }
+
+  // ========================
+  //  DESIGN DEPENDENT HEAT SOURCE
+  // ========================
+  LOG_DBG(heatcondpde) << "Reading heat source values (design dependent)";
+
+  ReadRhsExcitation( "designDependentHeatSource", dofNames, ResultInfo::VECTOR, isComplex_, ent, coef, coefUpdateGeo);
+  if (GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"))
+    interfaceDrivenHeatSource_ = true;
+  for( UInt i = 0; i < ent.GetSize(); ++i ) {
+    // assume that we have elem list due to specification of a region instead of named nodes in xml file
+    if (ent[i]->GetType() != EntityList::NODE_LIST && ent[i]->GetType() != EntityList::ELEM_LIST) {
+      EXCEPTION("Design dependent heat source must be defined on nodes!")
+    }
+
+    if(domain->GetDesign(false) != NULL)
+    {
+      CoefFunctionOpt* tmpFnc = new CoefFunctionOpt(domain->GetDesign(), coef[i], this); // takes double and complex
+      coef[i].reset(tmpFnc);
+      //        coef[i]->SetConservative(true);
+      //        rhsFeFunctions_[HEAT_TEMPERATURE]->AddLoadCoefFunction(coef[i],ent[i]);
+    }
+
+    lin = new SingleEntryInt(coef[i]);
+    lin->SetName("DesignDepHeatInt");
+
+//    BiLinWrappedLinForm* linWrapped = new BiLinWrappedLinForm(lin,false); // have to wrapp lin form since CoefFunctionOpt expects a bilinform
+
+    // the integrator has a coef function but for the optimization case the opt coef needs to know also the integrator
+//    if(domain->GetDesign(false) != NULL)
+//      dynamic_pointer_cast<CoefFunctionOpt>(coef[i])->SetForm(linWrapped);
+
+    LinearFormContext *ctx = new LinearFormContext( lin );
+    ctx->SetEntities(ent[i]);
+    ctx->SetFeFunction(myFct);
+    assemble_->AddLinearForm(ctx);
+  }
 }
 
 

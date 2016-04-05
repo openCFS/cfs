@@ -44,7 +44,6 @@ DesignStructure::DesignStructure(DesignSpace* space, StdVector<RegionIdType>& re
   this->regions = regions;
   this->em = NULL;
   this->grid = domain->GetGrid();
-  SinglePDE* singPde = domain->GetSinglePDE("heatConduction");
   Constructor();
 }
 
