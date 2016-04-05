@@ -46,12 +46,6 @@ class AuxDesign : public DesignSpace
      * Sparse and dense! */
     virtual void WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling = true);
 
-    /** write the aux gradient part */
-    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
-    
-    /** sparse version of WriteAuxGradientToExtern */
-    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
-
     /** same as in DesignSpace, setting elements to zero, but also aux elements */
     virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
 
@@ -87,7 +81,24 @@ class AuxDesign : public DesignSpace
 
   protected:
 
-    bool alsomatopt_;
+    /** write the aux gradient part */
+    void WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
+
+    /** sparse version of WriteAuxGradientToExtern */
+    void WriteSparseAuxGradientToExtern(StdVector<double>& out, Function* f, bool scale = true) const;
+
+    /** compute the offset of aux design. It depends on exoprt_fe_design_, DesignSpace::data and */
+    unsigned int AuxDesignOffset() const;
+
+    /** is DesignSpace::data seen from an external optimizer?
+     * This covers WriteDesignToExtern(), CompareDesign(), ...
+     * If not we either do shape optimization or we do shape mapping where we actually use DesignSpace::data but do not export it */
+    bool exoprt_fe_design_;
+
+    /** are the aux parameters located last? Only for non shape opt but with standard simp and shape mapping. false does not mean first
+     * but can be intermediate.
+      @see AuxDesignOffset() */
+    bool tailing_aux_design_;
 
     StdVector<BaseDesignElement> aux_design_;
 

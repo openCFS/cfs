@@ -1160,7 +1160,7 @@ void DesignSpace::WriteSparseGradientToExtern(StdVector<double>& out, DesignElem
   assert((regions[0].GetSize() == 1) || (f->GetType() != Function::DESIGN_TRACKING));
   assert(f != NULL); // only constraints can have sparse Jacobians
   
-  unsigned int data_size = DesignSpace::GetNumberOfVariables();
+  unsigned int data_size = DesignSpace::GetNumberOfVariables(); // do not take aux variables
 
   StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
 
@@ -1233,20 +1233,22 @@ void DesignSpace::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type de
   unsigned int end   = design == DesignElement::DEFAULT || DesignElement::MECH_TRACE ? data.GetSize() : start + elements;
   LOG_DBG3(designSpace) << "Reset: vs=" << DesignElement::valueSpecifier.ToString(vs) << " design="
                         << DesignElement::type.ToString(design) << " from " << start << " to " << end;
-  for(unsigned int i = start; i < end; i++)
+
+  // speed up by repeating loops
+  switch(vs)
   {
-    DesignElement& de = data[i];
-    switch(vs)
-    {
-      case DesignElement::DESIGN:
-           de.SetDesign(0.0);
-           break;
-      case DesignElement::CONSTRAINT_GRADIENT:
-      case DesignElement::COST_GRADIENT:
-           de.Reset(vs);
-           break;
-      default: throw Exception("value specifier not handled");
-    }
+  case DesignElement::DESIGN:
+    for(unsigned int i = start; i < end; i++)
+      data[i].SetDesign(0.0);
+    break;
+  case DesignElement::CONSTRAINT_GRADIENT:
+  case DesignElement::COST_GRADIENT:
+    for(unsigned int i = start; i < end; i++)
+      data[i].Reset(vs);
+    break;
+  default:
+    if(end-start > 0)
+      throw Exception("value specifier not handled");
   }
 }
 

@@ -8,13 +8,20 @@
 #define OPTIMIZATION_DESIGN_SHAPEMAPDESIGN_HH_
 
 #include "Optimization/Design/AuxDesign.hh"
+#include "Optimization/Function.hh"
+
 
 namespace CoupledField
 {
 
 class Optimization;
 
-/** Holds the data for ShapeMapping. The map from the parameterized shape to the pseudo densities. */
+/** Holds the data for ShapeMapping. The map from the parameterized shape to the pseudo densities.
+ * With respect to external design ordering ShapeMapDesign::shape_param_ takes the role of DesignSpace::data
+ * and is before AuxDesign::aux_design_.
+ * "Internally" however DesignSpace::data is used for the mapping from  ShapeMapDesign::shape_param_ to DesignSpace::data
+ * via MadShapeToDensity()
+ * Also standard SIMP gradients are computed and stored in DesignSpace::data and added on shape_param_ via MapShapeGradient().*/
 class ShapeMapDesign : public AuxDesign
 {
 public:
@@ -30,7 +37,7 @@ public:
   /** overwrites DesignSpace::CompareDesign() */
   virtual bool CompareDesign(const double* space_in);
 
-  /** writes design to the vector, prepending with shape variables */
+  /** writes design to the vector, beginning with shape variables (shape_param_) and then aux_design_ */
   virtual int WriteDesignToExtern(double* space_out, bool scaling = true) const;
 
   /** write gradient out to the vector, appending with shape gradient
@@ -44,9 +51,21 @@ public:
 
   virtual unsigned int GetNumberOfVariables() const;
 
+  virtual int GetNumberOfShapeMappingVariables() const { return shape_param_.GetSize(); }
+
+  /** In case DesignSpace::FindDesign() searches for NODE and PROFILE.
+   * @return either DesignSpace::FindDesign() or the index within shape_ */
+  virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+
   virtual BaseDesignElement* GetDesignElement(unsigned int idx);
 
   virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
+
+  /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
+   * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
+   * @param locality just given to assert() it is PREV_AND_NEXT
+   * @param phase just given to assert() it is BOTH  */
+  void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
 
   /** this maps the mesh to a regular lexicographic design representation. For the moment is assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
@@ -57,6 +76,9 @@ public:
   typedef enum { NODE, PROFILE } Type;
 
   static Enum<Type> type;
+
+  /** convert from ShapeMapDesign::NODE to DesignElement::NODE and the same for PROFILE */
+  BaseDesignElement::Type Convert(Type type) const;
 
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam

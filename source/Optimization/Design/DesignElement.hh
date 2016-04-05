@@ -177,6 +177,10 @@ public:
    * @param test ege. DIELEC_11, ... */
   static bool IsCompatible(Type super, Type test);
 
+  /** checks if the type is a shape mapping type. Then there is a counterpart with the same name in ShapeMapDesign::Type
+   * @see ShapeMapDesign::Convert() */
+  static bool IsShapeMapType(Type type) { return type == NODE || type == PROFILE; }
+
   /** Allows to set the design element. */
   void SetDesign(double value) { this->design = value; }
 
@@ -285,6 +289,10 @@ public:
   ShapeParamElement(Type type = NO_TYPE, unsigned int index = std::numeric_limits<unsigned int>::max());
 
   virtual ~ShapeParamElement() {};
+
+  /** at the moment we don't have filter for shape mapping but the slope constraints are implemented using GetDesign(SMART).
+   * So just ignore it! */
+  virtual double GetDesign(BaseDesignElement::Access access) const { return design; }
 
   /** for node which dof BaseDesignElement::value is for. value correspond to the missing entry in coord and idx*/
   int dof;

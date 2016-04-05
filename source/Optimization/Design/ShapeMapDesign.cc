@@ -20,7 +20,8 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
 {
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
-  this->alsomatopt_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
+  this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
+  this->tailing_aux_design_ = true; // we want shape_param_ to take the role of DesignSpace::data
 
   assert(order_ >= 2); // too poor for technical use. 10 is nice
   if(order_ <= 3)
@@ -36,63 +37,60 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
-  // write aux design variables (slack and alpha if any) first
-  assert(alsomatopt_ == false); // we do shape map
+  // write aux design variables (slack and alpha if any) last
+  assert(exoprt_fe_design_ == false); // we do shape map
   assert(DesignSpace::GetNumberOfVariables() > 0); // we need this variables but they are hidden!
-  AuxDesign::ReadDesignFromExtern(space_in); // note the asserts above!
 
-  // design_id might be changed above in AuxDesign::ReadDesignFromExtern()
-  bool new_design = old_design != design_id;
-
-  unsigned int offset = aux_design_.GetSize();
+  bool new_design = false;
 
   for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
   {
-    double v = space_in[offset + i] * scaling_;
-    if(!new_design && v != shape_param_[i].GetDesign())
+    double v = space_in[i] * scaling_;
+    if(!new_design && v != shape_param_[i].GetDesign(BaseDesignElement::PLAIN))
       new_design = true;
 
     shape_param_[i].SetDesign(v);
     LOG_DBG(SMD) << "RDFE: i=" << i << "-> " << v;
   }
+
+  // append aux design, might also change design_id
+  AuxDesign::ReadDesignFromExtern(space_in); // note the asserts above!
+
   if(new_design && design_id <= old_design)
     design_id++; // if new design and not already changed by AuxDesign
 
-  // the design are shape parameters, map them not to rho
-  MapShapeToDensity();
+  // the design are shape parameters, map them to rho
+  if(mapped_design_ != design_id)
+    MapShapeToDensity();
 
   return design_id;
 }
 
 bool ShapeMapDesign::CompareDesign(const double* space_in)
 {
-  if(!AuxDesign::CompareDesign(space_in))
-    return false;
-
-  unsigned int offset = aux_design_.GetSize();
-
   for(unsigned int i=0; i < shape_param_.GetSize(); i++)
   {
-    double v = space_in[offset + i] * scaling_;
-    if(v != shape_param_[i].GetDesign())
+    double v = space_in[i] * scaling_;
+    if(v != shape_param_[i].GetDesign(BaseDesignElement::PLAIN))
       return false;
   }
 
-  return true;
+  // no change here, let aux_design decide
+  return AuxDesign::CompareDesign(space_in);
 }
 
 int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
-  AuxDesign::WriteDesignToExtern(space_out, scale);
-
   double rscaling = scale ? 1.0 / scaling_ : 1.0;
-  unsigned int offset = aux_design_.GetSize();
 
   for(unsigned int i=0; i < shape_param_.GetSize(); i++)
   {
-    space_out[offset + i] = shape_param_[i].GetDesign() * rscaling;
-    LOG_DBG(SMD) << "WDTE: out[" << i << "]=" << space_out[offset +i];
+    space_out[i] = shape_param_[i].GetDesign(BaseDesignElement::PLAIN) * rscaling;
+    LOG_DBG(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
   }
+
+  AuxDesign::WriteDesignToExtern(space_out, scale);
+
   return design_id;
 }
 
@@ -119,49 +117,53 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
   assert(out.window.Initialized());
   // out contains the Jacobian for a possibly many functions. Snopt combies cost function (first) and then the constraints derivatives
   // Here we assume that out has a window set where to write to for the given function.
-
-  // cheat window to write the aux variables (slack and alpha)
-  StdVector<double>::Window org_window = out.window;
-  out.window.Set(out.window.GetStart(), aux_design_.GetSize());
-  AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
-  out.window = org_window;
-
   if(f->HasDenseJacobian())
   {
-    unsigned int n0 = out.window.GetStart() + aux_design_.GetSize(); // to grow up to the total number of design variables
-
     for(unsigned int s = 0, n = shape_param_.GetSize(); s < n ; s++)
     {
-      assert(out.InWindow(n0 + s));
-      out[n0 + s] = shape_param_[s].GetPlainGradient(f) * scaling;
+      assert(out.InWindow(s));
+      out[s] = shape_param_[s].GetPlainGradient(f) * scaling;
     }
+    // add slack stuff. No need to cheat window size
+    AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
   }
   else
   {
-   assert(false); // not yet implemented
+    assert(f->GetDesignType() == BaseDesignElement::NODE); // extend for PROFILE
+    StdVector<unsigned int>& sparsity = f->GetSparsityPattern();
+    assert(out.window.GetSize() == sparsity.GetSize());
+    unsigned int base = out.window.GetStart();
+    for(unsigned int i = 0; i < sparsity.GetSize(); i++)
+    {
+      unsigned int s = sparsity[i];
+      assert(s < shape_param_.GetSize());
+      assert(out.InWindow(base + i));
+      double scale = scaling ? scaling_ : 1.0;
+      assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
+      out[base + i] = shape_param_[s].GetPlainGradient(f) * scale;
+    }
   }
 }
 
 void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
-  AuxDesign::Reset(vs, design);
-
+  assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::NODE); // extend to check for profile
   for(unsigned int i=0; i < shape_param_.GetSize(); i++)
     shape_param_[i].Reset(vs);
+
+  AuxDesign::Reset(vs, design);
 }
 
 void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
-  AuxDesign::WriteBoundsToExtern(x_l, x_u);
-
-  unsigned int offset = aux_design_.GetSize();
-
   for(unsigned int i=0; i < shape_param_.GetSize(); i++)
   {
-    x_l[offset + i] = shape_param_[i].GetLowerBound() / scaling_;
-    x_u[offset + i] = shape_param_[i].GetUpperBound() / scaling_;
-    LOG_DBG3(SMD) << "WBTE: l[" << (offset + i) << "]=" << x_l[offset + i] << " u[" << (offset + i) << "]=" << x_u[offset + i];
+    x_l[i] = shape_param_[i].GetLowerBound() / scaling_;
+    x_u[i] = shape_param_[i].GetUpperBound() / scaling_;
+    LOG_DBG3(SMD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
   }
+
+  AuxDesign::WriteBoundsToExtern(x_l, x_u);
 }
 
 inline unsigned int ShapeMapDesign::GetNumberOfVariables() const
@@ -172,10 +174,83 @@ inline unsigned int ShapeMapDesign::GetNumberOfVariables() const
 
 inline BaseDesignElement* ShapeMapDesign::GetDesignElement(unsigned int idx)
 {
-  if(idx < aux_design_.GetSize())
-    return AuxDesign::GetDesignElement(idx);
+  if(idx < shape_param_.GetSize())
+    return &shape_param_[idx];
   else
-    return &shape_param_[idx - aux_design_.GetSize()];
+    return AuxDesign::GetDesignElement(idx); // handles its offset properly
+}
+
+int ShapeMapDesign::FindDesign(DesignElement::Type dt, bool throw_exception) const
+{
+  // check for DENSITY, ...
+  int idx = DesignSpace::FindDesign(dt, false);
+  if(idx >= 0)
+    return idx;
+
+  assert(dt == DesignElement::NODE || dt == DesignElement::PROFILE);
+
+  for(unsigned int i = 0; i < shape_.GetSize(); i++)
+    if(Convert(shape_[i].type) == dt)
+      return i;
+
+  if(throw_exception)
+    EXCEPTION("Design " << DesignElement::type.ToString(dt) << " no FEM based and no shape mapping design.");
+  return -1;
+}
+
+inline BaseDesignElement::Type ShapeMapDesign::Convert(Type type) const
+{
+  switch(type)
+  {
+  case NODE:
+    return BaseDesignElement::NODE;
+  case PROFILE:
+    return BaseDesignElement::PROFILE;
+  }
+  assert(false);
+  return BaseDesignElement::NO_TYPE;
+}
+
+
+void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality, Function::Local::Phase ph)
+{
+  assert(f != NULL);
+  assert(f->IsLocal(f->GetType()));
+  // note that we are called by the Function::Local() constructor, therefore Function::GetLocal() cannot work!
+  assert(f->GetLocal() == NULL);
+
+  // a lot copy&paste from Function::SetupVirtualElementMap()
+  bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
+  // next is always true!
+  bool two_signs = locality == Function::Local::NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT_AND_REVERSE;
+
+  int sign_1 = ph != Function::Local::BOTH ? (int) ph : two_signs ? 1 : Function::Local::Identifier::NO_SIGN;
+  int sign_2 = ph != Function::Local::BOTH ? (int) ph : -1;
+
+  // we don't set Function::Local::element_dimension_, it would be 2 (dim==1 * two signs)
+  // we wont't use the full space as the individual shape_ are not connected
+  vem.Reserve(shape_param_.GetSize() * (two_signs ? 2 : 1));
+
+  // traverse shape_ to have proper start and end
+  for(unsigned int s = 0; s < shape_.GetSize(); s++)
+  {
+    const ShapeParam& param = shape_[s];
+    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
+
+    // skip the last element as we want only 'full' elements with next
+    for(int e = param.start_param + (prev ? 1 : 0); e < param.end_param -1; e++)
+    {
+      BaseDesignElement& bde = shape_param_[e];
+      assert(f->GetDesignType() == bde.GetType());
+
+      BaseDesignElement* prev_de = prev ? &shape_param_[e-1] : NULL;
+      BaseDesignElement* next_de = &shape_param_[e+1];
+
+      vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_1));
+      if(two_signs)
+        vem.Push_back(Function::Local::Identifier(&bde, prev_de, next_de, sign_2));
+    }
+  }
 }
 
 void ShapeMapDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
@@ -432,19 +507,21 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            }
            else
            {
-             assert(opt_->constraints.active.GetSize() == s1->constraintGradient.GetSize());
              for(unsigned int g = 0; g < opt_->constraints.active.GetSize(); g++)
              {
-               assert(!opt_->constraints.active[g]->IsLocalCondition()); // FIXME local functions!!
-               const Condition* gf = opt_->constraints.active[g];
-               LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s1=" << s1->GetIndex() << " rho_grad=" << de->constraintGradient[g]
-                             << " old=" << s1->constraintGradient[g] << " -> " << s1->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
-               LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s2=" << s2->GetIndex() << " rho_grad=" << de->constraintGradient[g]
-                             << " old=" << s2->constraintGradient[g] << " -> " << s2->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
-               s1->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
-               s2->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
-             }
-           }
+               Condition* gf = opt_->constraints.active[g];
+               if(!gf->IsLocalCondition()) // local functions (slope) are independent form the mapping
+               {
+                 LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s1=" << s1->GetIndex() << " rho_grad=" << de->constraintGradient[g]
+                               << " old=" << s1->constraintGradient[g] << " -> " << s1->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
+                 LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s2=" << s2->GetIndex() << " rho_grad=" << de->constraintGradient[g]
+                               << " old=" << s2->constraintGradient[g] << " -> " << s2->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
+                 s1->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
+                 s2->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
+               } // non local case
+               assert(!gf->IsLocalCondition() || (gf->GetType() == Function::SLOPE)); // check for other functions
+             } // gradient function loop
+           } // cost and gradient switch
          } // end ip_y
        } // end ip_x
        // normalize by integration points.
@@ -487,8 +564,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    double start = dof == 0 ? coords[0][0] : coords[1][0];
    double end   = dof == 0 ? coords[0][1] : coords[1][3];
    // the parameters
-   double a1 = s1->GetDesign();
-   double a2 = s2->GetDesign();
+   double a1 = s1->GetDesign(BaseDesignElement::PLAIN);
+   double a2 = s2->GetDesign(BaseDesignElement::PLAIN);
 
    double xy = start + (dof == 0 ? ip_x : ip_y) /(order_-1.) * (end-start); // for dof=0 (x) xy is x and might be far away from a
    double a  = a1 + (dof == 0 ? ip_y : ip_x)/(order_-1.) * (a2-a1);         // for dof=1 (c) a is y and with a1=a2 we have the same value for a
@@ -590,12 +667,21 @@ void ShapeMapDesign::CreateShapeVariable(const ShapeParam* param, int free)
 
   // PostInit() sets arrays for objective and constraint gradients
 
-  LOG_DBG2(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetDesign() << " coord=" << spe.coord.ToString();
+  LOG_DBG2(SMD) << "CSV el=" << (shape_param_.GetSize() - 1) << " dof=" << spe.dof << " free=" << free << " d=" << spe.GetDesign(BaseDesignElement::PLAIN) << " coord=" << spe.coord.ToString();
 }
 
 void ShapeMapDesign::PostInit(int objectives, int constraints)
 {
+  // full_data is only used for internal optimizers to have a consecutive design array
+  full_data.Clear(false); // release memory
+  full_data.Reserve(GetNumberOfVariables()); // shape param + aux
+  full_data.Resize(shape_param_.GetSize()); // was set in DesignSpace and will be released
+  for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
+    full_data[i] = &(shape_param_[i]);
+
+  // ass aux_design to full_data
   AuxDesign::PostInit(objectives, constraints);
+
   for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
     shape_param_[i].PostInit(objectives, constraints);
 

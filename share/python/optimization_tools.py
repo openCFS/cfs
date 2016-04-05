@@ -202,8 +202,8 @@ def read_density_as_vector(filename, attribute="design", set=None):
   tree = etree.parse(filename, etree.XMLParser(remove_comments=True))
   
   root = tree.getroot()
-  query = '//set[last()]' if set is None else '//set[@id="' + set + '"]'
-  sett = root.xpath(query)[0]
+  query = '//set[last()]/element' if set is None else '//set[@id="' + set + '"]/element'
+  sett = root.xpath(query)
   
   # print "check for attribute " + attribute
   counter = 0

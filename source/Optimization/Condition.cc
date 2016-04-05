@@ -862,16 +862,21 @@ StdVector<unsigned int>& LocalCondition::GetSparsityPattern()
   std::list<unsigned int> indices;
   for(int i = -1 ; i < (int) id.neighbor.GetSize(); i++)
   {
-    DesignElement* de = dynamic_cast<DesignElement*>(id.GetElement(i));
-    assert(de != NULL);
+    BaseDesignElement* bde = id.GetElement(i);
+    assert(bde != NULL);
     // int other_idx = local->space->Find(de); // needs to be fast!
-    int other_idx = de->GetIndex();
+    int other_idx = bde->GetIndex();
     indices.push_back(other_idx);
-    if(this->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+
+    if(this->ForDensityFiltering())
     {
-      const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
-      for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
-        indices.push_back(neighborhood[j].neighbour->GetIndex());
+      DesignElement* de = dynamic_cast<DesignElement*>(bde);
+      if(de != NULL && !de->simp->filter.IsEmpty())
+      {
+        const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[de->simp->DetermineFilterIndexNonInlined()].neighborhood;
+        for(unsigned int j = 0, n = neighborhood.GetSize(); j < n; j++)
+          indices.push_back(neighborhood[j].neighbour->GetIndex());
+      }
     }
   }
 

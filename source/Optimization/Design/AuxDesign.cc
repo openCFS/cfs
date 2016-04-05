@@ -18,7 +18,8 @@ DEFINE_LOG(aux_des, "auxDesign")
 AuxDesign::AuxDesign(StdVector<RegionIdType>& regions,  PtrParamNode pn, ErsatzMaterial::Method method, int naux)
   : DesignSpace(regions, pn, method)
 {
-  alsomatopt_ = true; // can be different in ShapeDesign
+  exoprt_fe_design_ = true; // can be different in ShapeDesign
+  tailing_aux_design_ = true; // set false for shape optimization
   scaling_ = 1.0;
 
   if(naux == -1) { // check automatically
@@ -71,7 +72,7 @@ void AuxDesign::PostInit(int objectives, int constraints)
   }
 
   // extend full_data
-  unsigned int offset = DesignSpace::GetNumberOfVariables(); // check for alsomatopt_ ???
+  unsigned int offset = AuxDesignOffset();
   full_data.Resize(offset + aux_design_.GetSize());
   for(unsigned int i = 0; i < aux_design_.GetSize(); i++)
     full_data[offset + i] = &(aux_design_[i]);
@@ -103,11 +104,11 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
 {
   int old_design = design_id;
 
-  if(alsomatopt_)
+  if(exoprt_fe_design_)
     DesignSpace::ReadDesignFromExtern(space_in);
 
-  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0; // the size of the simp space - might be != data.GetSize()
-  assert((alsomatopt_ && (offset <= elements * design.GetSize())) || (!alsomatopt_ && offset == 0));
+  unsigned int offset = AuxDesignOffset(); // the size of the simp space - might be != data.GetSize()
+  assert((exoprt_fe_design_ && (offset <= elements * design.GetSize())) || !exoprt_fe_design_);
 
   // design_id might be changed above in DesignSpace::ReadDesignFromExtern()
   bool new_design = old_design != design_id;
@@ -126,13 +127,23 @@ int AuxDesign::ReadDesignFromExtern(const double* space_in)
   return design_id;
 }
 
+inline unsigned int AuxDesign::AuxDesignOffset() const
+{
+  if(exoprt_fe_design_)
+    return DesignSpace::GetNumberOfVariables();
+  // no exoprt_fe_design_ is shape optimization of shape mapping
+  if(tailing_aux_design_)
+    return GetNumberOfVariables() - aux_design_.GetSize(); // GetNumberOfVariables is virtual and covers in shape map design also aux_design_
+  // we are first
+  return 0;
+}
 
 bool AuxDesign::CompareDesign(const double* space_in)
 {
-  if(alsomatopt_ && !DesignSpace::CompareDesign(space_in))
+  if(exoprt_fe_design_ && !DesignSpace::CompareDesign(space_in))
     return false;
 
-  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
+  unsigned int offset = AuxDesignOffset();
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
@@ -146,11 +157,11 @@ bool AuxDesign::CompareDesign(const double* space_in)
 
 int AuxDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
-  if(alsomatopt_)
+  if(exoprt_fe_design_)
     DesignSpace::WriteDesignToExtern(space_out, scale);
 
   double rscaling = scale ? 1.0 / scaling_ : 1.0;
-  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
+  unsigned int offset = AuxDesignOffset();
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
@@ -165,7 +176,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
   LOG_DBG(aux_des) << "WGTE: ad=" << aux_design_.GetSize() << " DS:GNOV=" << DesignSpace::GetNumberOfVariables() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
 
   bool write_aux = true;
-  if(alsomatopt_ && ( f == NULL || f->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
+  if(exoprt_fe_design_ && ( f == NULL || f->GetType() != Function::SHAPE_INF) ) // SHAPE_INF, does have a sparse gradient, but no components of it are in the designspace, only in auxspace
   {
     // the number of DesignSpace variables is complicated because of constant region.
     unsigned int data_size = DesignSpace::GetNumberOfVariables(); 
@@ -195,7 +206,7 @@ void AuxDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::Val
       out.window = org_window;
   }
 
-  // makes use of the window within out even  if only a part of the window is used in the alsomatopt_ case
+  // makes use of the window within out even  if only a part of the window is used in the exoprt_fe_design_ case
   // check if there is something to write. E.g. for FeasPP out.size is the size sparsity size, don't overwrite
   // a single designBound value with 0 from aux_design_.
   if(write_aux) 
@@ -212,6 +223,7 @@ void AuxDesign::WriteAuxGradientToExtern(StdVector<double>& out, Function* f, bo
 {
   Condition* g = dynamic_cast<Condition*>(f);
 
+  assert(tailing_aux_design_); // otherwise the stuff below would fail ?!
   unsigned int base = out.window.GetStart()  + out.window.GetSize() - aux_design_.GetSize();
 
   LOG_DBG(aux_des) << "WAGTE: g=" << (f == NULL ? "null" : f->ToString()) << " ows=" << out.window.GetStart()
@@ -269,7 +281,7 @@ void AuxDesign::WriteSparseAuxGradientToExtern(StdVector<double>& out, Function*
 
   StdVector<unsigned int>& sparsity = g->GetSparsityPattern();
 
-  unsigned int nonaux_size = DesignSpace::GetNumberOfVariables(); // is virtual
+  unsigned int nonaux_size = DesignSpace::GetNumberOfVariables(); // do not take the virtual call
 
   assert(out.window.GetSize() == sparsity.GetSize());
   unsigned int base = out.window.GetStart();
@@ -291,10 +303,10 @@ void AuxDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type desi
 
 void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
-  if(alsomatopt_)
+  if(exoprt_fe_design_)
     DesignSpace::WriteBoundsToExtern(x_l, x_u);
 
-  unsigned int offset = alsomatopt_ ? DesignSpace::GetNumberOfVariables() : 0;
+  unsigned int offset = AuxDesignOffset();
 
   for(unsigned int i=0; i < aux_design_.GetSize(); i++)
   {
@@ -306,7 +318,7 @@ void AuxDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 
 unsigned int AuxDesign::GetNumberOfVariables() const
 {
-  if(alsomatopt_){
+  if(exoprt_fe_design_){
     return(aux_design_.GetSize() + DesignSpace::GetNumberOfVariables());
   }else{
     return(aux_design_.GetSize());
@@ -331,14 +343,13 @@ BaseDesignElement* AuxDesign::GetAuxDesignElement(unsigned int idx){
  return(&aux_design_[idx]);
 }
 
-inline
-BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
+inline BaseDesignElement* AuxDesign::GetDesignElement(unsigned int idx)
 {
   // FIXME: data.GetSize() != DesignSpace::GetNumberOfVariables()
-  if(alsomatopt_ && idx < data.GetSize())
+  if(exoprt_fe_design_ && idx < data.GetSize())
     return DesignSpace::GetDesignElement(idx);
   else
-    return &aux_design_[idx - (alsomatopt_ ? data.GetSize() : 0)];
+    return &aux_design_[idx - AuxDesignOffset()];
 }
 
 
