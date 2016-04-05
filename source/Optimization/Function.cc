@@ -24,6 +24,7 @@
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
 #include "Optimization/Design/DesignSpace.hh"
+#include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Design/DesignStructure.hh"
 #include "Optimization/Design/ShapeDesign.hh"
 #include "Optimization/ErsatzMaterial.hh"
@@ -822,6 +823,14 @@ void Function::CalcHessian(StdVector<double>& out, double factor) {
 
 void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMaterial* em)
 {
+  if(BaseDesignElement::IsShapeMapType(design_))
+  {
+    if(space->GetNumberOfShapeMappingVariables() == 0)
+      EXCEPTION("Function " << ToString() << " has shape mapping design type " << BaseDesignElement::type.ToString(design_) << " but 'ersatzMaterial@method' is not 'shapeMap'");
+    if(!IsLocal(type_))
+      EXCEPTION("Shape mapping design type " << BaseDesignElement::type.ToString(design_) << " for non-local function " << ToString());
+  }
+
   // pre-init step
   switch (type_) {
   case SLOPE:
@@ -1131,12 +1140,17 @@ Function::Local::Local(Function* func, DesignSpace* space) {
    // if(!pn)
    // throw Exception("sub element 'local' with neighborhood information mandatory for '" + fname + "'");
    //    structure_ = new NeighborhoodStructure(this, pn);
-       SetupVirtualStarLocalElementMap(func);
-       break;
-
+   SetupVirtualStarLocalElementMap(func);
+   break;
 
   default:
-    SetupVirtualElementMap(phase_);
+    if(BaseDesignElement::IsShapeMapType(func->GetDesignType()))
+    {
+      assert(space->GetNumberOfShapeMappingVariables() > 0);
+      dynamic_cast<ShapeMapDesign*>(space)->SetupVirtualShapeElementMap(func, virtual_elem_map, locality_, phase_);
+    }
+    else
+      SetupVirtualElementMap(phase_);
     break;
   }
 
@@ -2235,7 +2249,8 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv;
 
     // post process the globalized functions. The perimeter is not globalized in that sense
-    if (local->IsGlobalized()) {
+    if (local->IsGlobalized())
+    {
       // actually the normalization is already in grad_glob_fv if power != 1.0!
       double factor = 1.0;
       if (local->DoNormalizeGlobal() && local->power_ == 1.0) {
@@ -2252,34 +2267,40 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
                      << " bound! grad_glob_gv=" << grad_glob_fv << " factor=" << factor << " new gv=" << gv;
     }
 
-    DesignElement* de = dynamic_cast<DesignElement*>(GetElement(n));
+    BaseDesignElement* bde = GetElement(n);
+    assert(bde != NULL);
+
 
     // the perimeter is not globalized by sum max(g-g*, 0)^p but it is not local!
     if(!local->IsGlobalized() && ft != PERIMETER)
     {
       // reset the constraint data. Note, as we are local, there are no side effects by elements
-      de->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-      if(g->ForDensityFiltering() && !de->simp->filter.IsEmpty())
+      bde->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+      if(g->ForDensityFiltering())
       {
-        unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
-        const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[fix].neighborhood;
-        // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
-        for(unsigned int j = 0, nj = neighborhood.GetSize(); j < nj; j++)
+        DesignElement* de = dynamic_cast<DesignElement*>(bde);
+        if(de != NULL && !de->simp->filter.IsEmpty())
         {
-          DesignElement* de2 =  neighborhood[j].neighbour;
-          de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
-          for(unsigned int k = 0, nk = de2->simp->filter[fix].neighborhood.GetSize(); k < nk; k++)
-            de2->simp->filter[fix].neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster than calling Reset()
+          unsigned int fix = de->simp->DetermineFilterIndexNonInlined();
+          const StdVector<Filter::NeighbourElement> neighborhood = de->simp->filter[fix].neighborhood;
+          // for constraints using filtered design variables also reset the constraint data in the filter neighborhood
+          for(unsigned int j = 0, nj = neighborhood.GetSize(); j < nj; j++)
+          {
+            DesignElement* de2 =  neighborhood[j].neighbour;
+            de2->Reset(DesignElement::CONSTRAINT_GRADIENT, g);
+            for(unsigned int k = 0, nk = de2->simp->filter[fix].neighborhood.GetSize(); k < nk; k++)
+              de2->simp->filter[fix].neighborhood[k].neighbour->constraintGradient[g->GetIndex()] = 0.0;  // This is much faster than calling Reset()
+          }
         }
       }
     }
 
 
-    de->AddGradient(f, g, gv);
+    bde->AddGradient(f, g, gv);
     LOG_DBG2(func) << "L:I:EvalGrad: f=" << funct->type.ToString(funct->type_) << " de="
                    << element->GetIndex() << " sign=" << sign << " n=" << n
                    << " curr=" << GetElement(n)->GetIndex() << " gv=" << gv
-                   << " stored_gv=" << de->GetPlainGradient(funct)
+                   << " stored_gv=" << bde->GetPlainGradient(funct)
                    << " current_position: " << (g != NULL ? ((LocalCondition*) g)->GetCurrentPosition()+1 : -1); //somehow only seems to work for constraints
   }
 }

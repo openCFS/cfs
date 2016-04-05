@@ -341,7 +341,7 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");
-      ss << "\" design=\"" << spe->GetDesign();
+      ss << "\" design=\"" << spe->GetDesign(BaseDesignElement::PLAIN);
       ss << "\"/>";
       block[space_->data.GetSize() + i] = ss.str();
     }

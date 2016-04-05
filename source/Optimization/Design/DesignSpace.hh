@@ -232,9 +232,10 @@ namespace CoupledField
      /** throws also in release mode an exception if there is more than one design */
      void AssertOneDesignOnly();
 
-     /** Service method to find our index in the design vector
-      * @return -1 if not throw_exception and not found */
-     int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
+     /** Service method to find our index in the design vector.
+      * @return -1 if not throw_exception and not found
+      * @see double context for ShapeMapDesign::FindDesign()! */
+     virtual int FindDesign(DesignElement::Type dt, bool throw_exception = true) const;
 
      /** gives a design element by idx. Handles als AuxDesign */
      virtual BaseDesignElement* GetDesignElement(unsigned int idx);
@@ -269,6 +270,9 @@ namespace CoupledField
      /** this is the number of Aux/Shape variables */
      virtual int GetNumberOfAuxParameters() const { return 0; }
      
+     /** this is the number of shape mapping param variables. > 0 means we do shape mapping */
+     virtual int GetNumberOfShapeMappingVariables() const { return 0; }
+
      /** Get Pamping value (e.g. Sigmund; Morpology; 2007)
       * Extend to regions if necessary!
       * @return 0 if not set. */
@@ -283,7 +287,7 @@ namespace CoupledField
       * @see totalElements_*/
      StdVector<DesignElement> data;
 
-     /** This is the total set of design variables, including aux designs.
+     /** This is the total set of design variables, including aux designs. Only used for own optimizers like FeasPP
       * @see the difference to totalElements_ */
      StdVector<BaseDesignElement*> full_data;
 

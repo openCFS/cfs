@@ -53,7 +53,7 @@ template <class TYPE> class Matrix;
 
     /** return whether also material optimization (SIMP, ParamOpt, ...?) is done */
     bool AlsoMatOpt() const {
-      return(alsomatopt_);
+      return(exoprt_fe_design_);
     }
     
     /** storage type for shape constraints 

@@ -652,7 +652,7 @@ class Function
     Local* GetLocal() { return local; }
 
     /** The design type is by default DEFAULT :) */
-    DesignElement::Type GetDesignType() const {return design_; }
+    BaseDesignElement::Type GetDesignType() const {return design_; }
 
     /** This are the elements the Function is defined on. Either references to the
      * elements within the design space to to dummy elements if the region is not within the design (stress)
@@ -700,9 +700,8 @@ class Function
 
     /** matrices for polynomial coefficients and discretization steps of the interpolation for volume calculation in 3D with cross shaped base cells*/
 
-
     /** This is DEFAULT (= applies always) if not defined */
-    DesignElement::Type design_;
+    BaseDesignElement::Type design_;
 
     /** The actual kind of cost function. */
     Type type_;
