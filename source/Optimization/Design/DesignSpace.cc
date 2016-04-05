@@ -756,29 +756,33 @@ bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retSc
 template <class T>
 bool DesignSpace::ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm)
 {
-  App::Type app = (App::Type) applicationForm.Parse(coef->GetForm()->GetName());
-
   assert(Optimization::context->pde != NULL);
   assert(Optimization::context->pde->GetParamNode()->Has("bcsAndLoads/designDependentHeatSource"));
-  coef->SetDesignDependentLoad();
   StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(lpm->lp.number);
 
   coef->orgMat->GetVector(retVec, *lpm);
 
   double tmp = 0;
-  for (unsigned int index = 0; index < elems.GetSize(); index++) {
-    double factor = GetErsatzMaterialFactor(elems[index]->elemNum-1, app, false); // Not the bimat case
-//    if (coef->HasDesignDependentLoad()) {
+  int found = 0;
+  for (unsigned int index = 0; index < elems.GetSize(); index++)
+  {
+    int design_index = Find(elems[index],false);
+    if(design_index >= 0)
+    {
+      double factor = data[design_index].GetDesign(DesignElement::PLAIN); // we do not filter but check for transfer function!!!
       tmp += factor;
-//    }
-//    else
-//      retVec[0] *= factor;
-    LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
+      found++;
+      LOG_DBG3(designSpace) << "APD el="  << elems[index]->elemNum << " f=" << factor;
+    }
   }
 
-  tmp /= (double) elems.GetSize();
+  if(found == 0)
+    return false;
 
-  retVec[0] *=  4 *  tmp * (1.0 - tmp);
+
+  tmp /= (double) found;
+
+  retVec[0] *=  4.0 *  tmp * (1.0 - tmp);
 
   return true;
 }

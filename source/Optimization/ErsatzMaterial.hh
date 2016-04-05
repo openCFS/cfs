@@ -419,6 +419,13 @@ private:
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
 
+  /** for design dependent interface driven excitation f=4*rho*(1-rho) as for heat .... calculate element based f'
+   * @param de for this element we compute "out"
+   * @param out gets size of nodes of de elem and contains d_f/d_de */
+  template<class T> void CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out);
+
+  template<class T> void SubstractInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& in_out);
+
   /** Handles sensitive RHS, e.g. when we have sensitive Neuman boundary condition (elect surface charge).
    * SurfaceRef is  given to CalcU1KU2 and this method does from \f$<l,K'u-f'>\f$ the \f$-f'\f$ part.
    * It checks if any nodes of the design element are part of the surface and

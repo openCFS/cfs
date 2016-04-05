@@ -307,6 +307,7 @@ DesignDependentRHS::DesignDependentRHS()
   vec         = NULL;
   elem        = NULL;
   test_strain = MechPDE::NOT_SET;
+  isInterfaceDriven_ = false;
 }
 
 DesignDependentRHS::~DesignDependentRHS()
@@ -318,7 +319,14 @@ DesignDependentRHS::~DesignDependentRHS()
 template <class T>
 bool DesignDependentRHS::Init(DesignSpace* design, App::Type app)
 {
-  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE);
+  assert(app == App::CHARGE_DENSITY || app == App::PRESSURE || app == App::HEAT);
+
+  if (app == App::HEAT) {
+    valid = true;
+    isInterfaceDriven_ = true;
+    return true;
+  }
+
   std::string name = app == App::CHARGE_DENSITY ? "LinNeumannInt" : "PressureLinForm";
 
 
