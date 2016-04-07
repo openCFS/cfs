@@ -226,9 +226,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    (*cla) << " CroutLU Factorisation (rows/cols) done:\n"
-           << " 0%" << std::flush;
-
 
     // *************************
     //   Extra things for ILUK
@@ -291,7 +288,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
 
@@ -665,12 +661,6 @@ namespace CoupledField {
        }
 
     }
-
-
-    // This is required for adding a final line-break to
-    // the progress report in the .las file
-    (*cla) << std::endl;
-
 
     // *******************************************
     //   Prepare L/U for forward/backward solves

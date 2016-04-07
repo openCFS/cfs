@@ -409,6 +409,10 @@
                 <!-- eigenvalue problem scaled for resonance frequency, where number of of the mode is in attribute ev -->
                 <xsd:enumeration value="eigenfrequency"/>
                 <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
+                <!-- heat energy -->
+                <xsd:enumeration value="heatEnergy"/>
+                <!-- pressure drop of fluidic system -->
+                <xsd:enumeration value="pressureDrop"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -931,6 +935,19 @@
                   <xsd:element name="region" minOccurs="0" maxOccurs="unbounded">
                     <xsd:complexType>
                       <xsd:attribute name="name" use="required" type="xsd:token"/>
+                    </xsd:complexType>              
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
+            <xsd:element name="materials" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="material" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="type" use="required" type="xsd:token"/>
+                      <xsd:attribute name="sequence" use="required" type="xsd:nonNegativeInteger"/>
                     </xsd:complexType>              
                   </xsd:element>
                 </xsd:sequence>

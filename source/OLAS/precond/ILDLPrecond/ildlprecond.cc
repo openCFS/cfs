@@ -126,16 +126,6 @@ namespace CoupledField {
       }
     }
 
-    // Logging
-    if ( logging_ ) {
-      (*cla) << " -------------------------------------------------------"
-      << "-----------------------\n"
-      << " ILDLPRECOND::SETUP\n + Factorisation of a "
-      << scrsMat.GetNumRows() << " x " << scrsMat.GetNumCols()
-      << " matrix (nnz = " << scrsMat.GetNnz() << ")"
-      << std::endl;
-    }
-
     // Let factoriser compute the factorisation
     factoriser_->Factorise( scrsMat, dataD_, rptrU_, cidxU_, dataU_, true );
     amFactorised_ = true;
@@ -157,23 +147,6 @@ namespace CoupledField {
       this->xml_->GetValue("savePatternOnly", pattern, ParamNode::INSERT);
       this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
       ExportFactorisation( saveFacFile.c_str(), pattern );
-    }
-    
-    // finish log report
-    if ( logging_ ) {
-
-      (*cla) << "\n Change of fill-pattern:"
-      << "\n + nnz in upper triangle of A: "
-      << (scrsMat.GetNnz()+this->sysMatDim_) / 2
-      << "\n + nnz in F = D + L^T:         "
-      << rptrU_[this->sysMatDim_-1] + this->sysMatDim_ << " = "
-      << this->sysMatDim_ << " + " << rptrU_[this->sysMatDim_-1]
-                                             << "\n Memory requirements:"
-                                             << "\n + array size (dataU):         " << cidxU_.size()
-                                             << "\n + array capacity (dataU):     " << cidxU_.capacity()
-                                             << '\n';
-      (*cla) << " -------------------------------------------------------"
-      << "-----------------------\n" << std::endl;
     }
   }
 
@@ -197,23 +170,8 @@ namespace CoupledField {
     const Vector<T>& myR = dynamic_cast<const Vector<T>&>(r);
     Vector<T>& myZ = dynamic_cast<Vector<T>&>(z);
 
-    // Logging
-    if ( logging_ ) {
-      (*cla) << " -------------------------------------------------------"
-      << "-----------------------\n"
-      << " ILDLPRECOND::APPLY: Solving linear system with "
-      << stdMat.GetNumCols() << " unknowns" << std::endl;
-    }
-
     this->SolveLDLSystem( &(cidxU_[0]), &(rptrU_[0]), &(dataU_[0]),
         &(dataD_[0]), myZ, myR, this->sysMatDim_ );
-
-    // Logging
-    if ( logging_ ) {
-      (*cla) << " -------------------------------------------------------"
-      << "-----------------------\n"
-      << std::endl;
-    }
   }
 
 

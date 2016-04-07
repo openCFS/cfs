@@ -40,6 +40,8 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
+    mapNodeToElems_.Resize(GetNumNodes()+1);
+    mappedNodeToElems_ = false;
   }
 
 
@@ -2696,6 +2698,30 @@ namespace CoupledField {
       return false;
     }
 
+  }
+
+  void GridCFS::SetNodesToElemsMap()
+  {
+    if (mappedNodeToElems_)
+      return;
+
+    mapNodeToElems_.Resize(GetNumNodes()+1);
+    int maxNeighbors = dim_ == 2 ? 4 : 8;
+    for (int n = 0, nNodes = mapNodeToElems_.GetSize(); n < nNodes; n++) {
+      mapNodeToElems_[n].Reserve(maxNeighbors);
+    }
+    // traverse all elements
+    for(unsigned int e = 0; e < numElems_; e++)
+    {
+      Elem* elem = orderedElems_[e];
+      // add this elem to every node that it is connected with
+      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++) {
+        if (!mapNodeToElems_[elem->connect[n]].Contains(elem))
+        mapNodeToElems_[elem->connect[n]].Push_back(elem);
+      }
+    }
+
+    mappedNodeToElems_ = true;
   }
 
   // =======================================================================

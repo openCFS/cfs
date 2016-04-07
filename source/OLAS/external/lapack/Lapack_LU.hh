@@ -64,7 +64,7 @@ namespace CoupledField {
   //!       <td align="center">true</td>
   //!       <td>If this is 'true' then the Solve method of the Lapack_LU class
   //!           will be verbose and write some information on the solution
-  //!           process to the standard logfile (*cla).</td>
+  //!           process to the standard logfile (*cla)<b>(removed!)</b>.</td>
   //!     </tr>
   //!   </table>
   //! </center>
