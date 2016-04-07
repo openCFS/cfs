@@ -1,8 +1,8 @@
-tensoridx = 4;
-dimstoplot = [1 2];
+tensoridx = 7;
+dimstoplot = [1 3];
 plotwithinterpolatedvalues = 0;
 onlyboundary = 0;
-cataloguefile = 'catalogues/detailed_stats_presets3D_127';
+cataloguefile = 'catalogues/detailed_stats_presets3D_65_bndry';
 % cataloguefile2 = 'catalogues/detailed_stats_presets3D_L9';
 % intfile = 'interpolatedValues_128';
 
@@ -17,7 +17,7 @@ Rows = [
 % 1.0
 ];
 
-Rows = (1:10:127)'/128;
+Rows = linspace(0.01,0.99,9)';
 
 % Rows = [
 % 1/np 1/np
@@ -84,8 +84,8 @@ if ~exist('data','var')
         fseek(fid,0,-1);
         tmp = textscan(fid,'%dD\tL%d\t%d');
     end
-    dim = tmp{1};
-    nPoints = tmp{3};
+    dim = double(tmp{1});
+    nPoints = double(tmp{3});
     fclose(fid);
     data = dlmread(cataloguefile,'\t',1,0);
 else
@@ -117,7 +117,7 @@ end
 figure
 for i = index
     % Take hyperplane
-    [ism,idx] = ismember(data(:,idcs),Rows(i,:),'rows');
+    [ism,idx] = ismembertol(data(:,idcs),Rows(i,:),1e-10,'ByRows',true);
     B = data(logical(idx),:);
     if exist('cataloguefile2','var')
         data3 = data2(data2(:,idcs)==Rows(i,:),:);
@@ -136,6 +136,9 @@ for i = index
         boundaryidcs = abs(prod) < eps;
         B = B(boundaryidcs,:);
     end
+    
+    assert(~isempty(B),sprintf('No points to plot. Choose other row values.'))
+        
     
     % Remove full material
 %     B = B( abs(B(:,tensoridx+4) - fullmaterial(tensoridx+4)) > 1e-10,:);
