@@ -17,7 +17,7 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SingleP
   isComplex_ = false;
   supportDerivative_ = false;
   dimType_ = orgMat->GetDimType();
-
+  this->direction = DesignElement::NO_DERIVATIVE;
   this->design  = design;
   this->orgMat  = orgMat;
   this->form    = NULL; // can only be set later

@@ -180,10 +180,11 @@ ENDIF(MINGW)
 #-------------------------------------------------------------------------------
 # Get informations about the distro / Windows version in CMake format.
 #-------------------------------------------------------------------------------
-EXEC_PROGRAM("${DISTRO_SCRIPT}"
-  ARGS -c
+EXECUTE_PROCESS(
+  COMMAND "${DISTRO_SCRIPT}" -c
   OUTPUT_VARIABLE CFS_DISTRO_TEST
-  RETURN_VALUE RETVAL)
+  RESULT_VARIABLE RETVAL
+  )
 
 EXECUTE_PROCESS(
   COMMAND "${CMAKE_COMMAND}" -E make_directory "${CFS_BINARY_DIR}/tmp"

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -487,7 +488,7 @@
           default="nodeCmpToSurfRegions">
           <xsd:annotation>
             <xsd:documentation xml:lang="en">
-              ANSYS Workbench  Mechanical (Tools  -&gt; Write Input  File) and
+              ANSYS Workbench  Mechanical (Tools ; Write Input  File) and
               Finite  Element Modeler  (Write APDL  Solver File)  write named  
               selections of surfaces  as node  components. Therefore,  the CDB  reader
               reconstructs  surface  elements from  node  components and adds them as
