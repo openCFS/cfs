@@ -55,6 +55,7 @@
 #include "PDE/StdPDE.hh"
 #include "PDE/BasePDE.hh"
 #include "PDE/MechPDE.hh"
+#include "PDE/HeatPDE.hh"
 #include "PDE/LatticeBoltzmannPDE.hh"
 #include "Utils/Point.hh"
 #include "Utils/StdVector.hh"
@@ -2076,21 +2077,24 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , App::HEAT, true);
       double factor = excite.GetWeightedFactor(func);
       //TODO: if design dependent
-      DesignDependentRHS* rhs = new DesignDependentRHS();
-      rhs->Init<double>(design,App::HEAT);
-      // f'^Tu de->AddGradient(f, this_value);
-      StdVector<SingleVector*> stateSol = forward.Get(excite)->elem[App::HEAT];
-      for (unsigned int id = 0; id < design->data.GetSize(); id++) {
-        Vector<double> gradRHS;
-        DesignElement* de = &design->data[id];
-        CalcInterfaceDrivenGradRHS(de,gradRHS);
-        double val = gradRHS.Inner(*stateSol[id]);
-        de->AddGradient(func,val);
+      HeatPDE* heat = dynamic_cast<HeatPDE*>(domain->GetSinglePDEs()[0]);
+      assert(heat != NULL);
+      DesignDependentRHS* rhs = NULL;
+      if (heat->HasInterfaceDrivenRHS())
+      {
+        rhs = new DesignDependentRHS();
+        rhs->Init<double>(design,App::HEAT);
+        // f'^Tu de->AddGradient(f, this_value);
+        StdVector<SingleVector*> stateSol = forward.Get(excite)->elem[App::HEAT];
+        for (unsigned int id = 0; id < design->data.GetSize(); id++) {
+          Vector<double> gradRHS;
+          DesignElement* de = &design->data[id];
+          CalcInterfaceDrivenGradRHS(de,gradRHS);
+          double val = gradRHS.Inner(*stateSol[id]);
+          de->AddGradient(func,val);
+        }
       }
       CalcU1KU2(tf, forward.Get(excite)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, -factor, STANDARD, func);
-      for (unsigned int id = 0; id < design->data.GetSize(); id++) {
-        DesignElement* de = &design->data[id];
-      }
     }
     else {
       Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
