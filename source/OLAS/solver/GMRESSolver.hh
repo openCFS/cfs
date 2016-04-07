@@ -121,7 +121,7 @@ namespace CoupledField {
   //!           If it is set to 'yes', then information on the GMRES
   //!           convergence, like e.g. the norm of the residual per iteration
   //!           step will be logged to the standard %OLAS report stream
-  //!           (*cla).
+  //!           (*cla) ---removed logging---.
   //!       </td>
   //!     </tr>
   //!   </table>

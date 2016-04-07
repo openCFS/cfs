@@ -34,7 +34,6 @@
 #include "Optimization/Optimizer/ShapeOptimizer.hh"
 #include "Optimization/ParamMat.hh"
 #include "Optimization/PiezoSIMP.hh"
-#include "Optimization/LBMSIMP.hh"
 #include "Optimization/PiezoParamMat.hh"
 #include "Optimization/SIMP.hh"
 #include "Optimization/ShapeGrad.hh"
@@ -587,15 +586,12 @@ Optimization* Optimization::CreateInstance()
     case OptimizationMaterial::ACOUSTIC:
     case OptimizationMaterial::HEAT:
     case OptimizationMaterial::ELEC:
+    case OptimizationMaterial::LBM:
       opt = new SIMP(); // generally single PDE!
       break;
       
     case OptimizationMaterial::PIEZOCOUPLING:
       opt = new PiezoSIMP();
-      break;
-      
-    case OptimizationMaterial::LBM:
-      opt = new LBMSIMP();
       break;
 
     default:
@@ -669,7 +665,7 @@ void Optimization::SolveProblem()
 
 bool Optimization::DoSolveAdjointWithState() const
 {
-  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1))
+  if(context->DoMultiSequence() || (context->IsComplex() && me->excitations.GetSize() > 1) || context->DoLBM())
     return true;
   else
     return false;

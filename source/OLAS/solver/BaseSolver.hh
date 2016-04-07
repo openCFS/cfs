@@ -166,19 +166,6 @@ namespace CoupledField {
 
     //! Auxilliary routine for logging convergence info
 
-    //! This routine will log the Euclidean norm of the residual of the
-    //! current approximation and the relative residual to the standard
-    //! %OLAS report stream (*cla). Relative residual here means
-    //! \f$\|r\|_2/\|b\|_2\f$, where \f$b\f$ is the right hand side of
-    //! the linear system or the residual of the initial guess, if the right
-    //! hand side is zero. If the solver allows for left-preconditioning,
-    //! then the residual might be the preconditioned residual.
-    //! \param rk        norm of residual of the current approximate,
-    //!                  i.e. \f$\|r^{(k)}\|_2\f$
-    //! \param step      number \f$k\f$ of current iteration step1
-    //! \param firstCall on first call we also write a header
-    void LogConvergence( Double rk, UInt step, bool firstCall = false );
-
     //! Compute threshold for stopping criterion
 
     //! This method will compute the threshold for the stopping criterion.
