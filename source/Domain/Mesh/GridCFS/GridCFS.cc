@@ -884,8 +884,17 @@ namespace CoupledField {
     orderedElems_.Trim();
 
     // print information to file - checks for exportGrid
-    if(info_ ) {
-       ToInfo(info_->Get(ParamNode::HEADER)->Get("domain")); 
+    if(domain && info_) // we have no domain in the cfstoolbin case
+    {
+      ToInfo(info_->Get(ParamNode::HEADER)->Get("domain"));
+
+      StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+      if(!reg.IsEmpty()) {
+        MathParser* mp = domain->GetMathParser();
+        mp->SetValue(MathParser::GLOB_HANDLER, "nx", reg[0]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "ny", reg[1]);
+        mp->SetValue(MathParser::GLOB_HANDLER, "nz", reg[2]);
+      }
     }
   }
   
@@ -1145,10 +1154,8 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::
-  CreateGridInformation( ResultHandler* ptRes,
-                         std::map<std::string, CoordSystem*>& coordSysMap ) {
-    
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes, std::map<std::string, CoordSystem*>& coordSysMap )
+  {
     // This method crates a "dummy" multisequence step, in
     // which some grid-information results are created:
     // - Local directions (xi,eta,zeta) of elements
@@ -2378,6 +2385,28 @@ namespace CoupledField {
   }
 
 
+  StdVector<unsigned int> GridCFS::CalcRegulardGridDiscretization()
+  {
+    StdVector<unsigned int> grid;
+
+    if(IsGridRegular())
+    {
+      grid.Resize(3, 0);
+
+      StdVector<double> edges;
+
+      GetElemShapeMap(orderedElems_[0], false)->GetEdgeLength(edges);
+
+      Matrix<double> m = CalcGridBoundingBox();
+
+      grid[0] = (m[0][1]-m[0][0]) / edges[0];
+      grid[1] = (m[1][1]-m[1][0]) / edges[1];
+      grid[2] = GetDim() == 3 ? (m[2][1]-m[2][0]) / edges[2] : 1;
+    }
+
+    return grid;
+  }
+
 
   void GridCFS::GetVolElems( StdVector<Elem*> & elems,
                              const RegionIdType regionId ) {
@@ -2875,6 +2904,13 @@ namespace CoupledField {
     in->Get("dimensions")->SetValue(GetDim()); 
     in->Get("elements")->SetValue(GetNumElems()); 
     in->Get("nodes")->SetValue(GetNumNodes()); 
+
+    StdVector<unsigned int> reg = CalcRegulardGridDiscretization();
+    if(!reg.IsEmpty()) {
+      in->Get("nx")->SetValue(reg[0]);
+      in->Get("ny")->SetValue(reg[1]);
+      in->Get("nz")->SetValue(reg[2]);
+    }
 
     PtrParamNode list = in->Get("regions"); 
     for(unsigned int i = 0; i < regionData.GetSize(); i++ )

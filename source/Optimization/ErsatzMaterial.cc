@@ -89,6 +89,7 @@ ErsatzMaterial::ErsatzMaterial() :
   volume_fraction_ = 0.0;
   structure_ = NULL;
   densityFile = NULL;
+  bitensor_ = false;
 
   pn = domain->GetParamRoot()->Get("optimization/ersatzMaterial");
 

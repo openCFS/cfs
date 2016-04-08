@@ -596,7 +596,7 @@ extern "C" {
 
 
     // write out additional information in info xml file
-    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", ParamNode::APPEND); // write information for every pardiso call
+    PtrParamNode node = infoNode_->Get(ParamNode::PROCESS)->Get("call", progOpts->DoDetailedInfo() ? ParamNode::APPEND : ParamNode::INSERT); // write information for every pardiso call
     node->Get("number")->SetValue(tNumfact_.GetCalls());
 
 
@@ -607,8 +607,7 @@ extern "C" {
 
       tSymfact_.ResetStart();
       // log report
-      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation)"
-                               << " ... ";
+      LOG_TRACE(pardisoSolver) << " Performing analyse phase (symbolic factorisation) ... ";
 
       // only analyse
       int phase = 11;

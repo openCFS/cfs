@@ -60,6 +60,8 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
   this->boundValue_ = -1.0;
   if(pn->Has("value"))
   {
+
+
     string v = pn->Get("value")->As<string>();
     if(v == "slack")
       this->boundValue_ = SLACK_VALUE;
@@ -68,8 +70,26 @@ Condition::Condition(PtrParamNode pn) : Function(pn)
     else if (v == "alpha-slack")
       this->boundValue_ = ALPHA_MINUS_SLACK_VALUE;
     else
-      this->boundValue_ = pn->Get("value")->As<double>();
+    {
+      // interpret the value as expression to allow "1/nx". Does not evaluate each function evaluation
+      // for this the handle needs to be stored in the function and care must be taken for optimizer interface and
+      // local function performance
+      try
+      {
+        MathParser* mp = domain->GetMathParser();
+        MathParser::HandleType handle = mp->GetNewHandle();
+
+        mp->SetExpr(handle, pn->Get("value")->As<string>());
+        this->boundValue_ = mp->Eval(handle);
+        mp->ReleaseHandle(handle);
+      }
+      catch(const Exception& e)
+      {
+        throw Exception("failed to parse bound value for condition " + ToString(), e);
+      }
+    }
   }
+
   // special handling of scaling
   objective_scaling_ = pn->Get("scaling")->As<string>() == "objective";
   manual_scaling_value = objective_scaling_ ? -1.0 : pn->Get("scaling")->As<double>();
