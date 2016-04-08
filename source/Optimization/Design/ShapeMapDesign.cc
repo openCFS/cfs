@@ -483,7 +483,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
            double da = Eval(s1, s2, coords, ip_x, ip_y, true); // dtanh_da
            // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-           double da_norm = 0.5 * da / (order_ * order_);
+           double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
            log_da += da_norm;
 
            LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
@@ -588,6 +588,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::tanh(double x, double a, double w) const
  {
+   // plot 1-1/(exp(2*beta*(x-a+w)) + 1), 1/(exp(2*beta*(x-a-w)) + 1)
    if(x <= a)
      return 1.0 - 1/(std::exp(2*beta_*(x-a+w))+1);
   else
@@ -596,6 +597,9 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::d_tanh_da(double x, double a, double w) const
  {
+   // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
+   //
+   // matlab:
    //if x <= a
    //  f = -1* (exp(2*beta*(x-a+d)) + 1)^-2 *2*beta*exp(2*beta*(x-a+d));
    //else

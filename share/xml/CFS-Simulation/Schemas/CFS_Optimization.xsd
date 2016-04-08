@@ -416,8 +416,8 @@
           <!-- A constraint value is either 'slack' or a scalar. Allowed only when constraint and no tensor homogenization tensor is given -->
           <xsd:attribute name="value" use="optional" >
             <xsd:simpleType>
-              <!-- either 'slack' or a float -->
-              <xsd:union memberTypes="slack_bounds xsd:float"></xsd:union>
+              <!-- either 'slack' or a float or a math parser expression, hence everything-->
+              <xsd:union memberTypes="slack_bounds xsd:float xsd:token"></xsd:union>
             </xsd:simpleType>
           </xsd:attribute>
           
