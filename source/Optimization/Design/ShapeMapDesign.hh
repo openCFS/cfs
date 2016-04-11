@@ -83,11 +83,11 @@ public:
   /** store what we read from xml. Will be multiplied to BaseDesignElement in shape_param_ */
   struct ShapeParam
   {
-    ShapeParam() { type = NODE; }; // default constructor for StdVector()
+    // note that we would need a default constructor for StdVector
     void Init(PtrParamNode pn, unsigned int idx);
     void ToInfo(PtrParamNode pn);
 
-    Type type; // NODE or PROFILE
+    Type type = NODE; // NODE or PROFILE will also be set in Init
     int idx = -1;
     int dof = -1; // x =0, y = 1, z = 2,
     double lower = -1.0;
@@ -112,13 +112,14 @@ protected:
   void MapShapeToDensity();
 
   /** Takes the density gradients and sums it up on the shape variables using map_. To be called within WriteGradientToExtern().
+   * All the tanh stuff is repeatedly calculated for each function. However WriteGradientToExtern(f) is not called after all simp function gradients are set,
+   * therefore we cannot cache it.
    * Uses Item::ip_param_idx within map_ set by MapShapeToDensity()
-   * @param obj true for cost functions false for gradients. Sets mapped_obj_gradient_ or mapped_constr_gradient_ */
-  void MapShapeGradient(bool obj);
+   * @param f the function we add the stuff to the gradient. */
+  void MapShapeGradient(const Function* f);
 
   /** Index of rho in DesignSpace::data() by element coordinate */
   unsigned int DensityIdx(int x, int y) const { return nx_ * y + x; }
-
 
   /** Search in shape_ */
   StdVector<ShapeParam*> FindShape(Type type, int dof);
@@ -130,11 +131,13 @@ protected:
   /** helper for debugging */
   void DumpMap();
 
-
   /** Evaluate the function at the given integration point. The integration mapping is cartesian oriented
+   * @oaram s1 and s2 are both nodes! Eval finds the profiles by itself!
    * @param coords of the density design element
-   * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side */
-  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool derivative) const;
+   * @param ip_x in range of order_. 0 for the left side of the element within s1/s2, )order_-1) for the right side
+   * @param grad_a false for tanh, true for d_tanh_da
+   * @param grad_w false for tanh, true for d_tanh_dw. */
+  double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
   /** Aprroximate the maximal rho for the extremal integration points. Note that one can also save by returning the minimal rho
    * for completely within the structure */
@@ -143,25 +146,57 @@ protected:
   /** tanh performs the smoothing from the mapping
    * @param x is the coordinte (x or y)
    * @param a the shape variable (center of object)
-   * @param w half of the thickness of the shape */
+   * @param w half of the thickness/profile of the shape */
   double tanh(double x, double a, double w) const;
 
   /** derivative of tanh w.r.t. a */
   double d_tanh_da(double x, double a, double w) const;
 
-  /** This are our shape parameters which are blown up to shape_param_ */
+  /** derivative of tanh w.r.t. w which is the half profile */
+  double d_tanh_dw(double x, double a, double w) const;
+
+  /** small helper */
+  ShapeParam& GetProfile(const ShapeParam& node) { return shape_[node.idx + num_node_shapes_]; }
+
+  const ShapeParamElement* GetProfile(const ShapeParamElement* node) const { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
+  ShapeParamElement* GetProfile(const ShapeParamElement* node) { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
+
+  /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_)*/
+  unsigned int GetFirstVarIdx(const Function* f) const;
+
+  /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
+  unsigned int GetEndVarIdx(const Function* f) const;
+
+  /** similar to GetFirstVarIdx() but for shape_ instead of shape_param_ */
+  unsigned int GetFirstShapeIdx(const Function* f) const;
+
+  unsigned int GetEndShapeIdx(const Function* f) const;
+
+
+
+  /** This are our shape parameters which are blown up to shape_param_.
+   * First node then profile, therefore always even size */
   StdVector<ShapeParam> shape_;
+
+  /** helper for shape_: number of node which is also the first index of the first profile. equals shape_.GetSize() / 2.
+   * This is NOT the size within shape_param_! */
+  int num_node_shapes_ = -1;
 
   /** This are the shape parameters, defined in ersatzMaterial/shapeMap/shapeParam */
   StdVector<ShapeParamElement> shape_param_;
+
+  /** helper for shape_param_: number of nodes within shape_param_ which is  shape_param_.GetSize() / 2 */
+  int num_node_shape_params_ = -1;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
   {
     /** our Design Element */
     DesignElement* rho;
-    /** the variable version of shape_ in the same order*/
-    StdVector<ShapeParamElement*> param;
+    /** the node variables the mapping is based on.
+     * ShapeParamElement is connected to ShapeParam in shape_ (same order).
+     * nodes are sufficient as the profile is  */
+    StdVector<ShapeParamElement*> nodes;
 
     /** for each integration point order_*order_ (x the fastest variable) the index within param for the largest density from tanh.
      * -1 if this value is too small and the gradient shall be 0.
@@ -174,11 +209,6 @@ protected:
 
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
-
-  /** this is the design_id for last MapShapeGradient() run for objective gradient evaluation.
-   * We do double work but are on the save side as the the rho gradients might not be evaluated yet. */
-  int mapped_obj_gradient_ = -1;
-  int mapped_constr_gradient_ = -1;
 
   double beta_;
 

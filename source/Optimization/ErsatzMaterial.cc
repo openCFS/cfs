@@ -1849,7 +1849,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       double vol = (regular ? 1.0 : de->CalcVolume())/total_vol;
       sum += vol * val;
       if(derivative)
-      de->AddGradient(f, vol);
+        de->AddGradient(f, vol);
 
       LOG_DBG2(em) << "CTV de=" << de->elem->elemNum << " val=" << val << " vol=" << vol << " -> " << vol*val;
     }
