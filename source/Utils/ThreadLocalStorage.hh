@@ -51,7 +51,7 @@ public:
 */
 class BaseTLS{
 public:
-  UInt GetNumSlots(){
+  inline UInt GetNumSlots() const{
     return numSlots_;
   }
 protected:
@@ -74,23 +74,31 @@ public:
   }
 
   CfsTLS(const T& serialObjToCopy){
-    tlsContainer_.Resize(numSlots_,serialObjToCopy);
+    Set(serialObjToCopy);
   }
 
   ~CfsTLS(){
     tlsContainer_.Clear();
   }
 
-   T& Mine(Integer tNum = -1){
+   inline T& Mine(Integer tNum = -1){
 #ifdef USE_OPENMP
-    if(tNum>=0){
-      return tlsContainer_[tNum];
-    }else{
-      return tlsContainer_[omp_get_thread_num()];
-    }
+    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
 #endif
+  }
+
+   inline const T& ConstMine(Integer tNum = -1) const{
+#ifdef USE_OPENMP
+    return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
+#else
+    return tlsContainer_[0];
+#endif
+  }
+
+  void Set(const T& serialObjToCopy){
+    tlsContainer_.Resize(numSlots_,serialObjToCopy);
   }
 
 protected:
@@ -110,7 +118,7 @@ public:
   CfsTLS(){
     tlsContainer_.Resize(numSlots_);
     for(UInt i=0;i<numSlots_;i++){
-      tlsContainer_[i] = new T();
+      tlsContainer_[i] = NULL;
     }
   }
 
@@ -130,13 +138,21 @@ public:
     tlsContainer_.Clear();
   }
 
-   T* Mine(Integer tNum = -1){
-#ifdef USE_OPENMP
-    if(tNum>=0){
-      return tlsContainer_[tNum];
-    }else{
-      return tlsContainer_[omp_get_thread_num()];
+  void Set(const T* serialObjToCopy){
+    for(UInt i=0;i<numSlots_;i++){
+      if(tlsContainer_[i]){
+        delete tlsContainer_[i];
+      }
     }
+    tlsContainer_.Resize(numSlots_);
+    for(UInt i=0;i<numSlots_;i++){
+      tlsContainer_[i] = serialObjToCopy->Clone();
+    }
+  }
+
+   inline T*& Mine(Integer tNum = -1){
+#ifdef USE_OPENMP
+     return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return tlsContainer_[0];
 #endif
@@ -164,7 +180,7 @@ public:
 #endif
   }
 
-  V& operator[](const K& a){
+  inline V& operator[](const K& a){
    isCleared_ = false;
 #ifdef USE_OPENMP
     return tlsContainer_[omp_get_thread_num()][a];
@@ -176,11 +192,7 @@ public:
   inline std::map<K,V>& Mine(Integer tNum = -1){
    isCleared_ = false;
 #ifdef USE_OPENMP
-    if(tNum>=0){
-      return tlsContainer_[tNum];
-    }else{
-      return tlsContainer_[omp_get_thread_num()];
-    }
+   return (tNum>=0)? tlsContainer_[tNum] : tlsContainer_[omp_get_thread_num()];
 #else
     return dummyContainer_;
 #endif

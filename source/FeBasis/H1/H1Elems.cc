@@ -28,6 +28,7 @@ namespace CoupledField {
       }
     }
     this->locDeriv_ = other.locDeriv_;
+    this->locDeriv_.Init();
   }
 
 

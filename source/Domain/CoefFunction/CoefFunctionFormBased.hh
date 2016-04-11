@@ -50,7 +50,7 @@ public:
 protected:
   
   //! Store bilinearform for each region
-  std::map<RegionIdType, BaseBDBInt* > forms_;
+  CfsTLS< std::map<RegionIdType, BaseBDBInt* > > forms_;
   
 };
 
@@ -116,23 +116,23 @@ public:
   
 protected:
 
-  //! Differential operator for each region
+  //! Differential operator for each region (not thread relevant)
   std::map<RegionIdType, BaseBOperator* > bOps_;
  
   //! FeFunction containing the coefficients
   shared_ptr<FeFunction<TYPE> > feFct_;
 
-  //! Result info object of result to be calculated
+  //! Result info object of result to be calculated (not thread relevant)
   shared_ptr<ResultInfo> res_;
   
-  //! Point to FeSpace
+  //! Point to FeSpace (not thread relevant)
   shared_ptr<FeSpace> feSpace_;
   
-  //! Solution of element
-  Vector<TYPE> elemSol_;
+  //! Solution of element (thread relevant)
+  CfsTLS< Vector<TYPE> > elemSol_;
   
   //! Operator matrix
-  Matrix<TYPE> bMat_;
+  CfsTLS< Matrix<TYPE> > bMat_;
   
   //! Additional factor
   TYPE factor_;
@@ -202,7 +202,7 @@ protected:
   shared_ptr<ResultInfo> res_;
   
   //! Solution of element
-  Vector<TYPE> elemSol;
+  CfsTLS< Vector<TYPE> > elemSol_;
 
   //! Additional factor
   TYPE factor_;
@@ -259,13 +259,13 @@ protected:
   shared_ptr<ResultInfo> res_;
   
   //! Kernel of element matrix
-  Matrix<TYPE> kernel_;
+  CfsTLS< Matrix<TYPE> > kernel_;
   
   //! Kernel of element matrix (always real-valued)
-  Matrix<Double> kernelR_;
+  CfsTLS< Matrix<Double> > kernelR_;
   
   //! Solution of element
-  Vector<TYPE> elemSol_;
+  CfsTLS< Vector<TYPE> > elemSol_;
 
   //! Additional factor
   TYPE factor_;
@@ -298,7 +298,7 @@ protected:
   shared_ptr<FeFunction<TYPE> > feFct_;
 
   //! Solution of element
-  Vector<TYPE> elemSol_;
+  CfsTLS< Vector<TYPE> > elemSol_;
 };
 
 
@@ -324,7 +324,7 @@ protected:
   shared_ptr<FeFunction<TYPE> > feFct_;
 
   //! Solution of element
-  Vector<TYPE> elemSol_;
+  CfsTLS< Vector<TYPE> > elemSol_;
 
 };
 

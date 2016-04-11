@@ -1704,7 +1704,7 @@ namespace CoupledField {
 
   void GridCFS::AddNodes(const UInt numNodes)
   {
-#pragma omp critical
+#pragma omp critical (GridCFS)
 {
     coords_.Resize(this->numNodes_ + numNodes);
     for( UInt i = 0; i < coords_.GetSize(); ++i ) {
@@ -3110,7 +3110,7 @@ namespace CoupledField {
 
     if(coord.GetSize() != 3)
       EXCEPTION("Node to be added has wrong dimension!");
-#pragma omp critical
+#pragma omp critical (GridCFS)
 {
     coords_.Push_back(coord);
     inode = ++numNodes_;
@@ -3128,7 +3128,7 @@ namespace CoupledField {
   {
     if(!isInitialized_)
       EXCEPTION("Cannot add nodes to uninitialized grid!");
-#pragma omp critical
+#pragma omp critical (GridCFS)
 {
     UInt i, n;
 

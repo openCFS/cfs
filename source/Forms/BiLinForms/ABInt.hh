@@ -147,6 +147,7 @@ namespace CoupledField {
       this->slaveVolRegion_ = right.slaveVolRegion_;
       this->volRegions_ = right.volRegions_;
       this->isCoplanar_ = right.isCoplanar_;
+      this->cplDirection_ = right.cplDirection_;
     }
 
     //! \copydoc BiLinearForm::Clone

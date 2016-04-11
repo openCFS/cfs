@@ -45,7 +45,7 @@ void ABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
 
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -140,7 +140,7 @@ void SurfaceABInt<COEF_DATA_TYPE, B_DATA_TYPE>
   const Elem* ptElem1 = ent1.GetElem();
   const Elem* ptElem2 = ent2.GetElem();
 
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -256,7 +256,7 @@ void SurfaceNitscheABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                                         : mSe2->ptSlave->ptVolElems[0] ;
 
   Matrix<MAT_DATA_TYPE> aMat, bMat;
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order1, order2;
@@ -435,7 +435,7 @@ void SurfaceMortarABInt<COEF_DATA_TYPE, B_DATA_TYPE>
                      << "\n\tslave parent #" << ptSurfSlave->elemNum;
   LOG_DBG2(mortarInt) << "\tconnectivity: " << ptMortarElem->connect.ToString();
   
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   BaseFE* ptFeMaster = this->ptFeSpaceField_->GetFe(ptSurfMaster->elemNum);

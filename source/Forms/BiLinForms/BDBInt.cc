@@ -58,7 +58,7 @@ namespace CoupledField{
     // Extract physical element
     const Elem* ptElem = ent1.GetElem();
 
-    MAT_DATA_TYPE fac = 0.0;
+    MAT_DATA_TYPE fac(0.0);
 
     // Obtain FE element from feSpace and integration scheme
     IntegOrder order;
@@ -95,9 +95,10 @@ namespace CoupledField{
 
       // LOG_DBG3(bdbint) << "CEM e1=" << ptElem->elemNum << " i=" << i << " bMat=" << bMat_.ToString();
 
+
       // Calculate D-Mat
       dData_->GetTensor(dMat_,lp);
-
+      
       fac = MAT_DATA_TYPE(lp.jacDet * weights[i]);
 
       dbMat_.Resize(dMat_.GetNumRows(),nrFncs * bOperator_->GetDimDof());

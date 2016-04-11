@@ -764,7 +764,7 @@ DECLARE_LOG(fefunc)
                                          const Elem* elem ) {
     LOG_DBG(fefunc) << PREFIX << "GetElemSolution()";
     StdVector<Integer> eqns;
-    Vector<T> & vals = *coeffs_;
+    const Vector<T> & vals = *coeffs_;
     feSpace_->GetElemEqns(eqns, elem);
     elemSol.Resize(eqns.GetSize());
     for(UInt i= 0 ; i< eqns.GetSize(); i++){

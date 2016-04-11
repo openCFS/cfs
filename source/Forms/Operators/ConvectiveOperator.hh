@@ -120,7 +120,7 @@ namespace CoupledField{
                                          BaseFE* ptFe ){
 
     //obtain external field
-	Vector<Double> myVec;
+    Vector<Double> myVec;
     this->coef_->GetVector(myVec,lp);
 
     //std::cout << "Velocity at IP" << std::endl << myVec << std::endl;

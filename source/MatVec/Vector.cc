@@ -106,7 +106,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for
+//#pragma omp parallel for
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += idvec[i];
   }
@@ -122,7 +122,7 @@ namespace CoupledField {
     const Vector<T>& idvec1 = dynamic_cast<const Vector<T>&>(vec1);
     const Vector<T>& idvec2 = dynamic_cast<const Vector<T>&>(vec2);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] = a * idvec1[i] + b * idvec2[i];	
   }
@@ -157,7 +157,7 @@ namespace CoupledField {
   {
     const Vector<T>& idvec = dynamic_cast<const Vector<T>&>(vec);
 
-#pragma omp parallel for 
+//#pragma omp parallel for 
     for(unsigned int i = 0; i < size_; ++i)
       data_[i] += a * idvec[i];
   }
