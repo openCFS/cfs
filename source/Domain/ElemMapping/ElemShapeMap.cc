@@ -49,7 +49,7 @@ void LocPointMapped::Set(const LocPoint& lp, shared_ptr<ElemShapeMap> esm,
   this->isSurface = false;
 
   // Calculate Jacobian, its inverse as well as determinant for local point
-  esm->CalcJ(jac, lp);
+  esm->CalcJ(this->jac, lp);
 
   // The inversion can only be performed in case we have a quadratic Jacobian
   // i.e. the dimension of the element is the dimension of the grid
@@ -391,7 +391,7 @@ void LagrangeElemShapeMap::Global2Local(Vector<Double>& locPoint,
   Elem::FEType curType = ptFe_->FeType();
   switch (curType) {
   case Elem::ET_LINE3:
-    WARN("Using Global2LocalLine2 for ET_LINE3!");
+    //WARN("Using Global2LocalLine2 for ET_LINE3!");
   case Elem::ET_LINE2:
     Global2LocalLine2(locPoint, globalPoint);
     break;

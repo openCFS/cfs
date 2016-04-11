@@ -126,7 +126,7 @@ StdVector<ElemIntersect::VolCenterInfo> VolumeGridIntersection<INTER>::GetVolCen
   {
   retInfo.Reserve(numIntersects);
   }
-#pragma omp critical
+#pragma omp critical (VolumeGridIntersection)
   {
     for(UInt aRet =0;aRet<localInfo.GetSize(); ++aRet){
       retInfo.Push_back(localInfo[aRet]);

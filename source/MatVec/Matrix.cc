@@ -598,8 +598,8 @@ namespace CoupledField
     if (size_row_ == 0 || size_col_ == 0) 
       EXCEPTION("undefined Matrix");
 #endif
-
-    for(UInt k = 0, s = size_row_ * size_col_; k < s; ++k)
+    UInt size = size_row_ * size_col_;
+    for(UInt k = 0, s = size; k < s; ++k)
       data_[0][k] *= x;
 
     return *this;
@@ -1339,6 +1339,7 @@ namespace CoupledField
 #endif
 
     TYPE det;
+    TYPE invDet;
     switch (size_row_)
       {
       case 1: 
@@ -1364,20 +1365,20 @@ namespace CoupledField
         //for(UInt i=0; i<3; i++)
         //  for(UInt j=0; j<3; j++)
         //    inv[j][i] = Adjunct(i,j);      
-
-        // === New, explicit version (from Wikipedia) ===
-        inv[0][0] = data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1];
-        inv[0][1] = data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2];
-        inv[0][2] = data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1];
-        inv[1][0] = data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2];
-        inv[1][1] = data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0];
-        inv[1][2] = data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2];
-        inv[2][0] = data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0];
-        inv[2][1] = data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1];
-        inv[2][2] = data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0];
-
         this->Determinant(det);
-        inv *= 1/det;      
+        invDet = 1.0 / det;
+        // === New, explicit version (from Wikipedia) ===
+        inv[2][2] = (data_[0][0] * data_[1][1] - data_[0][1] * data_[1][0])*invDet;
+        inv[0][2] = (data_[0][1] * data_[1][2] - data_[0][2] * data_[1][1])*invDet;
+        inv[1][2] = (data_[0][2] * data_[1][0] - data_[0][0] * data_[1][2])*invDet;
+
+        inv[2][0] = (data_[1][0] * data_[2][1] - data_[1][1] * data_[2][0])*invDet;
+        inv[0][0] = (data_[1][1] * data_[2][2] - data_[1][2] * data_[2][1])*invDet;
+        inv[1][0] = (data_[1][2] * data_[2][0] - data_[1][0] * data_[2][2])*invDet;
+
+        inv[2][1] = (data_[0][1] * data_[2][0] - data_[0][0] * data_[2][1])*invDet;
+        inv[1][1] = (data_[0][0] * data_[2][2] - data_[0][2] * data_[2][0])*invDet;
+        inv[0][1] = (data_[0][2] * data_[2][1] - data_[0][1] * data_[2][2])*invDet;
         break;
       
       default: 

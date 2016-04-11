@@ -471,6 +471,9 @@ namespace CoupledField {
     //! Increment iterator
     EntityIterator& operator++(int);
     
+    //! Increment iterator by fixed value
+    EntityIterator& operator+=(int val);
+
     //! Return current element
     const Elem* GetElem() const;
     

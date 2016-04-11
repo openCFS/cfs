@@ -236,6 +236,7 @@ namespace CoupledField {
   void MathParser::RegisterExternalVar(  HandleType handle,
                                          const std::string& varName,
                                          Double * ptVar ) {
+
     // Get parser related to handle
     mu::Parser & myParser  =  GetParser( handle );
     /// register function with related parser object

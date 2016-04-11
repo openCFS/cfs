@@ -445,10 +445,7 @@ namespace CoupledField
   }
   
   void Assemble::AssembleMatrices_Std(bool isNewtonPart) {
-    Matrix<Double> elemMatrix;
-    Matrix<Complex> elemMatrixC;
-    StdVector<Integer> eqnVec1, eqnVec2;
-    FeFctIdType fctId1, fctId2;
+
 
     LOG_DBG2(assemble) << "AM_Std: AssembleMatrices_Std() enter";
 
@@ -522,6 +519,34 @@ namespace CoupledField
         }
       }
 
+
+#ifdef USE_OPENMP
+#pragma omp parallel num_threads(NUM_CFS_THREADS)
+    {
+
+
+      UInt numT = NUM_CFS_THREADS;
+      UInt aThread = omp_get_thread_num();
+      StdVector<BiLinearForm *> biLinForms(forms.GetSize());
+
+      UInt chunksize = std::floor(size/numT);
+      UInt start = chunksize * aThread;
+      UInt end = (aThread==numT-1)? size : (chunksize * (aThread+1));
+
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+        //copy bilinear forms
+        biLinForms[iForm] = forms[iForm]->GetIntegrator()->Clone();
+      }
+     #pragma omp critical
+         {
+             std::cout << "Thread #" << omp_get_thread_num() << " computing entites from " << start << " to " << end << " for " << end-start << " entities" << std::endl;
+         }
+#else
+      UInt start = 0;
+      UInt end = size;
+#endif
+
+
       // Loop over all entities
       EntityIterator it1 = firstEntities.GetIterator();
       EntityIterator it2 = secondEntities.GetIterator();
@@ -529,8 +554,20 @@ namespace CoupledField
 
       it1.Begin();
       it2.Begin();
+      //take account for const space
+      if( firstEntities.GetSize() != 1 ) {
+        it1+=start;
+      }
+      if( secondEntities.GetSize() != 1 ) {
+        it2+=start;
+      }
 
-      for( UInt i = 0; i < size; ++i  ) {
+
+      Matrix<Double> elemMatrix;
+      Matrix<Complex> elemMatrixC;
+      StdVector<Integer> eqnVec1, eqnVec2;
+      FeFctIdType fctId1, fctId2;
+      for( UInt i = start; i < end; ++i  ) {
 
         LOG_DBG2(assemble) << "\telems are " << it1.GetIdString() << " and " << it2.GetIdString();
 
@@ -569,8 +606,11 @@ namespace CoupledField
           }
           // Update flag
           matrixUpdated_ = true;
-
+#ifdef USE_OPENMP
+          BiLinearForm * form = biLinForms[iForm];
+#else
           BiLinearForm * form = actContext.GetIntegrator();
+#endif
 
           LOG_DBG(assemble) << "AM_Std: bilinform " << form->GetName() << " context=" << actContext.ToString() << " complex=" << form->IsComplex();
 
@@ -681,6 +721,14 @@ namespace CoupledField
         }
 
       } // loop over entities
+#ifdef USE_OPENMP
+      for( UInt iForm = 0; iForm < forms.GetSize(); ++iForm ) {
+        //delete copied bilinear forms
+        delete biLinForms[iForm];
+      }
+    }//OMP END
+#endif
+
     }// loop over entitylist pairs
     // Change flag
     isFirstTime_ = false;

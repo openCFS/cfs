@@ -5,6 +5,7 @@
 #include "SCRS_Matrix.hh"
 #include "opdefs.hh"
 #include "Matrix.hh"
+#include "Utils/SyncAccess.hh"
 
 // Implementation of methods for the symmetric compressed row storage SCRS
 // matrix class
@@ -460,6 +461,10 @@ namespace CoupledField {
         colInd_[i] = srcColInd[i];
       }
       
+      for ( UInt i = 0; i < (UInt)numEntries_; i++ ) {
+        data_[i] = T(0.0);
+      }
+
       for ( UInt i = 0; i < (UInt)this->nrows_ + 1; i++ ) {
         rowPtr_[i] = srcRowPtr[i];
       }
@@ -801,7 +806,7 @@ namespace CoupledField {
         }else if(colInd_[k] < j){
           l = k+1;
         }else{
-          data_[k] += v;
+          SyncAccess<SYNC_DATA>::AddTo(data_[k],v);
           found = true;
           break;
         }
@@ -917,7 +922,7 @@ namespace CoupledField {
       }else if(colInd_[k] < col){
         l = k+1;
       }else{
-        data_[k] = v;
+        SyncAccess<SYNC_DATA>::Set(data_[k],v);
         found = true;
         break;
       }

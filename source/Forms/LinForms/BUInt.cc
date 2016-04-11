@@ -84,7 +84,7 @@ BUIntegrator(BaseBOperator * bOp,
      StdVector<LocPoint> intPoints;
      StdVector<Double> weights;
      UInt nrFncs = 0;
-     VEC_DATA_TYPE fac;
+     VEC_DATA_TYPE fac(0.0);
 
      // Obtain FE element from feSpace and integration scheme
      IntegOrder order;

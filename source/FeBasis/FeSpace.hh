@@ -666,13 +666,13 @@ protected:
   // ====================================================================
   //@{
   //! Last accessed element number (only for element access)
-  StdVector<UInt> lastElemNum_;
+  CfsTLS<UInt> lastElemNum_;
 
   //! Last accessed equations numbers
-  StdVector< StdVector<Integer> > lastEqns_;
+  CfsTLS< StdVector<Integer> > lastEqns_;
 
   //! Temporary vector for equation numbers
-  StdVector< StdVector<UInt> > eqnNodes_;
+  CfsTLS< StdVector<UInt> > eqnNodes_;
 
   //@}
 

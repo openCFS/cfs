@@ -28,7 +28,7 @@ CalcElementMatrix( Matrix<MAT_DATA_TYPE>& elemMat,
   // Extract physical element
   const Elem* ptElem = ent1.GetElem();
   
-  MAT_DATA_TYPE fac = 0.0;
+  MAT_DATA_TYPE fac(0.0);
 
   // Obtain FE element from feSpace and integration scheme
   IntegOrder order;

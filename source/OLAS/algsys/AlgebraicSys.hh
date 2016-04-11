@@ -10,6 +10,7 @@
 #include "DataInOut/ParamHandling/ParamNode.hh"
 #include "General/Exception.hh"
 #include "OLAS/graph/GraphManager.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -1128,17 +1129,17 @@ namespace CoupledField {
 
   //@{ \name Cached vectors / matrices for fast access
   //! Index vectors for element matrix assembly
-  StdVector<UInt>* rowIndList1_;
-  StdVector<UInt>* rowList1_;
-  StdVector<UInt>* rowIndList2_;
-  StdVector<UInt>* rowList2_;
-  StdVector<UInt>* colIndList1_;
-  StdVector<UInt>* colList1_;
-  StdVector<UInt>* colIndList2_;
-  StdVector<UInt>* colList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowIndList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowIndList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > rowList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > colIndList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > colList1_;
+  CfsTLS<StdVector< StdVector<UInt> > > colIndList2_;
+  CfsTLS<StdVector< StdVector<UInt> > > colList2_;
 
   //! Index vector for element position
-  StdVector<UInt> rowBlocks_, colBlocks_, rowNums_, colNums_;
+  CfsTLS<StdVector<UInt> > rowBlocks_, colBlocks_, rowNums_, colNums_;
   //@}
   
   };

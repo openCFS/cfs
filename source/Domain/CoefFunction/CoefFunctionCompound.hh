@@ -8,6 +8,7 @@
 
 #include "CoefFunction.hh"
 #include "Utils/mathParser/mathParser.hh"
+#include "Utils/ThreadLocalStorage.hh"
 
 namespace CoupledField {
 
@@ -144,13 +145,13 @@ protected:
   std::map<std::string, CoefDimType > coefDimTypes_;
   
   //! Map variable names to scalar valued variables
-  std::map<std::string, Double> scalVars_;
+  TLMap<std::string, Double> scalVars_;
 
   //! Map variable names to vector valued variables
-  std::map<std::string, Vector<Double> > vecVars_;
+  TLMap<std::string, Vector<Double> > vecVars_;
 
   //! Map variable names to tensor valued variables
-  std::map<std::string, Matrix<Double> > tensorVars_;
+  TLMap<std::string, Matrix<Double> > tensorVars_;
 };
 
 // ===========================================================================
@@ -240,23 +241,27 @@ protected:
   //! Map variable names to dimensionality types
   std::map<std::string, CoefDimType > coefDimTypes_;
   
+  //=================================================
+  // Make this thread safe as we relate to the address
+  //=================================================
+
   //! Map variable names to scalar valued variables (real part)
-  std::map<std::string, Double> scalVarsReal_;
+  TLMap<std::string, Double> scalVarsReal_;
   
   //! Map variable names to scalar valued variables (imag part)
-  std::map<std::string, Double> scalVarsImag_;
+  TLMap<std::string, Double> scalVarsImag_;
 
   //! Map variable names to vector valued variables (real part)
-  std::map<std::string, Vector<Double> > vecVarsReal_;
+  TLMap<std::string, Vector<Double> > vecVarsReal_;
   
   //! Map variable names to vector valued variables (imag part)
-  std::map<std::string, Vector<Double> > vecVarsImag_;
+  TLMap<std::string, Vector<Double> > vecVarsImag_;
 
   //! Map variable names to tensor valued variables (real part)
-  std::map<std::string, Matrix<Double> > tensorVarsReal_;
+  TLMap<std::string, Matrix<Double> > tensorVarsReal_;
   
   //! Map variable names to tensor valued variables (imag part )
-  std::map<std::string, Matrix<Double> > tensorVarsImag_;
+  TLMap<std::string, Matrix<Double> > tensorVarsImag_;
 };
 
 
