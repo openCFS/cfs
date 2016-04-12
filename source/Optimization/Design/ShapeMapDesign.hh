@@ -161,18 +161,20 @@ protected:
   const ShapeParamElement* GetProfile(const ShapeParamElement* node) const { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
   ShapeParamElement* GetProfile(const ShapeParamElement* node) { return &shape_param_[node->GetIndex() + num_node_shape_params_]; }
 
-  /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_)*/
-  unsigned int GetFirstVarIdx(const Function* f) const;
+  /** do we use a fixed profile? Then opt_shape_param_ smaller shape_param_ */
+  bool IsProfileFixed() const;
+
+  /** small helper which gives the start index of the element based on type (default, node or profile) (shape_param_ or opt_shape_param_)
+   * @param opt if false is based on shappe_param_ if true is based on opt_shape_param_ which is the same if we have no fixed profile */
+  unsigned int GetFirstVarIdx(const Function* f, bool opt) const;
 
   /** small helper which gives the  index *after* the element based on type (node or profile) shape_param_) */
-  unsigned int GetEndVarIdx(const Function* f) const;
+  unsigned int GetEndVarIdx(const Function* f, bool opt) const;
 
   /** similar to GetFirstVarIdx() but for shape_ instead of shape_param_ */
-  unsigned int GetFirstShapeIdx(const Function* f) const;
+  unsigned int GetFirstShapeIdx(const Function* f, bool opt) const;
 
-  unsigned int GetEndShapeIdx(const Function* f) const;
-
-
+  unsigned int GetEndShapeIdx(const Function* f, bool opt) const;
 
   /** This are our shape parameters which are blown up to shape_param_.
    * First node then profile, therefore always even size */
@@ -182,11 +184,15 @@ protected:
    * This is NOT the size within shape_param_! */
   int num_node_shapes_ = -1;
 
-  /** This are the shape parameters, defined in ersatzMaterial/shapeMap/shapeParam */
+  /** This are the shape parameters, defined in ersatzMaterial/shapeMap. This includes fixed elements which are not object
+   * to optimization (scpip cannot handle lower bound == upper bound). See opt_shape_param_ */
   StdVector<ShapeParamElement> shape_param_;
 
   /** helper for shape_param_: number of nodes within shape_param_ which is  shape_param_.GetSize() / 2 */
   int num_node_shape_params_ = -1;
+
+  /** This are the external shape param variables which means shape_param_ w/o fixed */
+  StdVector<ShapeParamElement*> opt_shape_param_;
 
   /** to conveniently handle the mapping shape param to design */
   struct Item
