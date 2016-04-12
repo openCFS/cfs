@@ -1192,15 +1192,15 @@
                      <xsd:annotation>
                        <xsd:documentation>The profile gives the with (feature size) of the shape elemen. Technically the half profile
                        will be assigned for both sides of the featue. You might want to extend it for dof or closer assign it to node.
-                       At the moment the profile applies to all nodes. It is mandatory to give</xsd:documentation>
+                       At the moment the profile applies to all nodes. Profile is mandatory.</xsd:documentation>
                      </xsd:annotation>
                      <xsd:complexType>
                         <!-- lower, uppde and initial go together or fixed -->
-                        <xsd:attribute name="initial" type="xsd:float" use="required"/>
-                        <xsd:attribute name="lower" type="xsd:float" use="required"/>
-                        <xsd:attribute name="upper" type="xsd:float" use="required"/>
+                        <xsd:attribute name="initial" type="xsd:float" use="optional"/>
+                        <xsd:attribute name="lower" type="xsd:float" use="optional"/>
+                        <xsd:attribute name="upper" type="xsd:float" use="optional"/>
                         <!-- alternative to  lower, uppde and initial when it is implemented to not have a design variable-->
-<!--                         <xsd:attribute name="fixed" type="xsd:float" use="optional"/> -->
+                        <xsd:attribute name="fixed" type="xsd:float" use="optional"/>
                      </xsd:complexType>
                    </xsd:element>
                 </xsd:sequence>

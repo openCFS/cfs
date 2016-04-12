@@ -21,13 +21,19 @@ ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode 
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
-  this->tailing_aux_design_ = true; // we want shape_param_ to take the role of DesignSpace::data
+  this->tailing_aux_design_ = true; // we want shape_param_ or better opt_shape_param_ to take the role of DesignSpace::data
 
   assert(order_ >= 2); // too poor for technical use. 10 is nice
   if(order_ <= 3)
     info_->Get(ParamNode::HEADER)->Get(ParamNode::WARNING)->SetValue("low integration order for shape map");
 
+  // set shape_, shape_param_ and map_
   SetupShapeDesign(pn->Get("shapeMap"));
+  // copy the non-fixed stuff opt_shape_param_
+  opt_shape_param_.Reserve(IsProfileFixed() ? num_node_shape_params_ : shape_param_.GetSize());
+  for(unsigned int s = 0; s < shape_.GetSize(); s++)
+    for(unsigned int p = shape_[s].start_param, n = shape_[s].end_param; !shape_[s].fixed && p < n; p++)
+      opt_shape_param_.Push_back(&shape_param_[p]); // when we have fixed nodes we shall handle the index!!
 
   LOG_DBG(SMD) << "SMP rho_desig=" << data.GetSize();
   LOG_DBG(SMD) << "regions: " << regionIds.ToString();
@@ -43,13 +49,13 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 
   bool new_design = false;
 
-  for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
   {
     double v = space_in[i] * scaling_;
-    if(!new_design && v != shape_param_[i].GetDesign(BaseDesignElement::PLAIN))
+    if(!new_design && v != opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN))
       new_design = true;
 
-    shape_param_[i].SetDesign(v);
+    opt_shape_param_[i]->SetDesign(v);
     LOG_DBG(SMD) << "RDFE: i=" << i << "-> " << v;
   }
 
@@ -68,10 +74,10 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
 
 bool ShapeMapDesign::CompareDesign(const double* space_in)
 {
-  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
     double v = space_in[i] * scaling_;
-    if(v != shape_param_[i].GetDesign(BaseDesignElement::PLAIN))
+    if(v != opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN))
       return false;
   }
 
@@ -83,9 +89,9 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 {
   double rscaling = scale ? 1.0 / scaling_ : 1.0;
 
-  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
-    space_out[i] = shape_param_[i].GetDesign(BaseDesignElement::PLAIN) * rscaling;
+    space_out[i] = opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN) * rscaling;
     LOG_DBG(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
   }
 
@@ -96,11 +102,12 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
 
 void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG(SMD) << "WGTE: ad=" << aux_design_.GetSize() << " sp=" << shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
-  // we cannot cache easily for mapped_constr_gradient_ as we would need it for each funciton.
+  LOG_DBG(SMD) << "WGTE: ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+  // we cannot cache easily for mapped_constr_gradient_ as we would need it for each function.
   // MapShapeGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
-  MapShapeGradient(f); // see comment above for what is necessary to cache the stuff
+  if(f->IsObjective() || !Function::IsLocal(f->GetType())) // don't map local functions
+    MapShapeGradient(f); // see comment above for what is necessary to cache the stuff
 
   assert(f != NULL);
   assert(opt_->objectives.data.GetSize() == 1); // implement multi objective and be careful!
@@ -112,15 +119,15 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 
   assert(out.window.Initialized());
   unsigned int base = out.window.GetStart();
-  // out contains the Jacobian for a possibly many functions. Snopt combies cost function (first) and then the constraints derivatives
+  // out contains the Jacobian for a possibly many functions. Snopt combines cost function (first) and then the constraints derivatives
   // Here we assume that out has a window set where to write to for the given function.
   if(f->HasDenseJacobian())
   {
-    assert(GetEndVarIdx(f) - GetFirstVarIdx(f) + aux_design_.GetSize() == out.window.GetSize());
-    for(unsigned int s = GetFirstVarIdx(f), n = GetEndVarIdx(f); s < n ; s++) // for node (from 0) and profile (later) or default for both
+    assert(GetEndVarIdx(f,true) - GetFirstVarIdx(f,true) + aux_design_.GetSize() == out.window.GetSize());
+    for(unsigned int s = GetFirstVarIdx(f,true), n = GetEndVarIdx(f,true); s < n ; s++) // for node (from 0) and profile (later) or default for both
     {
       assert(out.InWindow(base + s));
-      out[base + s] = shape_param_[s].GetPlainGradient(f) * scaling;
+      out[base + s] = opt_shape_param_[s]->GetPlainGradient(f) * scaling;
       LOG_DBG2(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
@@ -134,11 +141,11 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     for(unsigned int i = 0; i < sparsity.GetSize(); i++)
     {
       unsigned int s = sparsity[i];
-      assert(s < shape_param_.GetSize());
+      assert(s < opt_shape_param_.GetSize());
       assert(out.InWindow(base + i));
       double scale = scaling ? scaling_ : 1.0;
       assert(vs == BaseDesignElement::CONSTRAINT_GRADIENT);
-      out[base + i] = shape_param_[s].GetPlainGradient(f) * scale;
+      out[base + i] = opt_shape_param_[s]->GetPlainGradient(f) * scale;
     }
   }
 }
@@ -146,18 +153,18 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
 void ShapeMapDesign::Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design)
 {
   assert(design == BaseDesignElement::DEFAULT || design == BaseDesignElement::NODE); // extend to check for profile
-  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
-    shape_param_[i].Reset(vs);
+  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
+    opt_shape_param_[i]->Reset(vs);
 
   AuxDesign::Reset(vs, design);
 }
 
 void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 {
-  for(unsigned int i=0; i < shape_param_.GetSize(); i++)
+  for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
-    x_l[i] = shape_param_[i].GetLowerBound() / scaling_;
-    x_u[i] = shape_param_[i].GetUpperBound() / scaling_;
+    x_l[i] = opt_shape_param_[i]->GetLowerBound() / scaling_;
+    x_u[i] = opt_shape_param_[i]->GetUpperBound() / scaling_;
     LOG_DBG3(SMD) << "WBTE: l[" << i << "]=" << x_l[i] << " u[" << i << "]=" << x_u[i];
   }
 
@@ -166,14 +173,14 @@ void ShapeMapDesign::WriteBoundsToExtern(double* x_l, double* x_u) const
 
 inline unsigned int ShapeMapDesign::GetNumberOfVariables() const
 {
-  return aux_design_.GetSize() + shape_param_.GetSize();
+  return aux_design_.GetSize() + opt_shape_param_.GetSize();
 }
 
 
 inline BaseDesignElement* ShapeMapDesign::GetDesignElement(unsigned int idx)
 {
-  if(idx < shape_param_.GetSize())
-    return &shape_param_[idx];
+  if(idx < opt_shape_param_.GetSize())
+    return opt_shape_param_[idx];
   else
     return AuxDesign::GetDesignElement(idx); // handles its offset properly
 }
@@ -209,27 +216,33 @@ inline BaseDesignElement::Type ShapeMapDesign::Convert(Type type) const
   return BaseDesignElement::NO_TYPE;
 }
 
+inline bool ShapeMapDesign::IsProfileFixed() const
+{
+  // assume all nodes are concurrently fixed?!
+  return shape_[num_node_shapes_].fixed;
+}
 
-unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f) const
+unsigned int ShapeMapDesign::GetFirstVarIdx(const Function* f, bool opt) const
 {
   assert(num_node_shape_params_ > 0);
   if(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::NODE)
     return 0;
   assert(f->GetDesignType() == BaseDesignElement::PROFILE);
-  return num_node_shape_params_;
+  assert(!IsProfileFixed()); // don't call if fixed
+  return num_node_shape_params_; // assume no fixed node
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
-unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f) const
+unsigned int ShapeMapDesign::GetEndVarIdx(const Function* f, bool opt) const
 {
   assert(2 * num_node_shape_params_ == (int) shape_param_.GetSize()); // end of profile
   if(f->GetDesignType() == BaseDesignElement::NODE)
-    return num_node_shape_params_;
+    return num_node_shape_params_; // assume no fixed node
   assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::PROFILE);
-  return shape_param_.GetSize();
+  return opt ? opt_shape_param_.GetSize() : shape_param_.GetSize();
 }
 
-unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f) const
+unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f, bool opt) const
 {
   assert(num_node_shapes_ == (int) shape_.GetSize() / 2);
   if(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::NODE)
@@ -239,16 +252,16 @@ unsigned int ShapeMapDesign::GetFirstShapeIdx(const Function* f) const
 }
 
 /** small helper which gives the  index *after* the element based on type (node or profile) so*/
-unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f) const
+unsigned int ShapeMapDesign::GetEndShapeIdx(const Function* f, bool opt) const
 {
   assert(2 * num_node_shapes_ == (int) shape_.GetSize()); // end of profile
   if(f->GetDesignType() == BaseDesignElement::NODE)
     return num_node_shapes_;
   assert(f->GetDesignType() == BaseDesignElement::DEFAULT || f->GetDesignType() == BaseDesignElement::PROFILE);
-  return shape_.GetSize();
+  assert(shape_[shape_.GetSize() / 2].type == PROFILE);
+  assert(!shape_[shape_.GetSize() / 2].fixed);
+  return opt && IsProfileFixed() ? shape_.GetSize() / 2 : shape_.GetSize();
 }
-
-
 
 void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality, Function::Local::Phase ph)
 {
@@ -256,6 +269,10 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   assert(f->IsLocal(f->GetType()));
   // note that we are called by the Function::Local() constructor, therefore Function::GetLocal() cannot work!
   assert(f->GetLocal() == NULL);
+
+  // we assume fixed only for profile
+  if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
+    throw Exception("cannot have local constraint of shape map design 'profile' when this design is fixed.");
 
   // a lot copy&paste from Function::SetupVirtualElementMap()
   bool prev = locality == Function::Local::PREV_NEXT_AND_REVERSE || locality == Function::Local::PREV_NEXT;
@@ -270,10 +287,11 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   vem.Reserve(num_node_shape_params_ * (two_signs ? 2 : 1)); // separately for node and profile but both of same size
 
   // traverse shape_ to have proper start and end. check for node or profile
-  for(unsigned int s = GetFirstShapeIdx(f), n = GetEndShapeIdx(f); s < n; s++)
+  for(unsigned int s = GetFirstShapeIdx(f,true), n = GetEndShapeIdx(f,true); s < n; s++)
   {
     const ShapeParam& param = shape_[s];
     assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
+    assert(!param.fixed);
 
     // skip the last element as we want only 'full' elements with next
     for(int e = param.start_param + (prev ? 1 : 0); e < param.end_param -1; e++)
@@ -382,14 +400,14 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    for(int n = 0; n < num_node_shapes_; n++)
    {
      ShapeParam& node = shape_[n];
-     ShapeParam& profile = shape_[num_node_shapes_ + n];
-     assert(node.type == NODE && profile.type == PROFILE);
-     profile.start_param = shape_param_.GetSize();
+     ShapeParam& prof = shape_[num_node_shapes_ + n];
+     assert(node.type == NODE && prof.type == PROFILE);
+     prof.start_param = shape_param_.GetSize();
      for(int e = 0; e < node.end_param - node.start_param; e++)
-       CreateShapeVariable(&profile, e);
-     profile.end_param = shape_param_.GetSize();
-     assert(profile.end_param - profile.start_param == node.end_param - node.start_param);
-     assert(profile.start_param - num_node_shape_params_ == node.start_param);
+       CreateShapeVariable(&prof, e);
+     prof.end_param = shape_param_.GetSize();
+     assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
+     assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
 
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
@@ -495,8 +513,8 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  void ShapeMapDesign::MapShapeGradient(const Function* f)
  {
-   LOG_DBG(SMD) << "MSG: obj=" << obj << " di=" << design_id << " md=" << mapped_design_;
-   assert(!(!f->IsObjective() && dynamic_cast<Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
+   assert(design_id == mapped_design_); // we need the Item setting from MapShapeDesign for the current design!
+   assert(!(!f->IsObjective() && dynamic_cast<const Condition*>(f)->IsLocalCondition())); // it makes no sense for a local condition!!
 
    // fixme! We do the job of dtanh_da for each function! However if we do it common
    // Optimization::EvalObjectiveConstraints() triggers MapShapeGradient() via WriteGradientToExtern() but rho::constraintGrad might not be set yet
@@ -544,63 +562,34 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
            double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
            log_da += da_norm;
 
-           ShapeParamElement* w1 = GetProfile(s1);
-           ShapeParamElement* w2 = GetProfile(s2);
-           double dw = Eval(s1, s2, coords, ip_x, ip_y, false, true); // dtanh_dw
-           // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-           double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
-           log_dw += dw_norm;
-
-           LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
-                         << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
-                         << " s2=" << s2->GetIndex() << " da=" << da << " da_norm=" << da_norm << " dw=" << dw << " dw_norm=" << dw_norm;
-
            assert(opt_ != NULL);
            assert(opt_->objectives.data.GetSize() == s1->costGradient.GetSize());
-           if(obj)
+           s1->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+           s2->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+
+           if(!IsProfileFixed())
            {
-             for(unsigned int c = 0; c < opt_->objectives.data.GetSize(); c++)
-             {
-               const Objective* f = opt_->objectives.data[c];
-               LOG_DBG3(SMD) << "MSG: c=" << f->GetName() << " s1=" << s1->GetIndex() << " rho_grad=" << de->costGradient[c]
-                             << " old =" << s1->costGradient[c] << " -> " << s1->costGradient[c] * (1.0 + f->GetPenalty() * de->costGradient[c] * da_norm);
-               LOG_DBG3(SMD) << "MSG: c=" << f->GetName() << " s2=" << s2->GetIndex() << " rho_grad=" << de->costGradient[c]
-                             << " old =" << s2->costGradient[c] << " -> " << s2->costGradient[c] * (1.0 + f->GetPenalty() * de->costGradient[c] * da_norm);
-               s1->AddGradient(opt_->objectives.data[c], de->costGradient[c] * da_norm);
-               s2->AddGradient(opt_->objectives.data[c], de->costGradient[c] * da_norm);
+             ShapeParamElement* w1 = GetProfile(s1);
+             ShapeParamElement* w2 = GetProfile(s2);
+             double dw = Eval(s1, s2, coords, ip_x, ip_y, false, true); // dtanh_dw
+             // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
+             double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
+             log_dw += dw_norm;
 
-               w1->AddGradient(opt_->objectives.data[c], de->costGradient[c] * dw_norm);
-               w2->AddGradient(opt_->objectives.data[c], de->costGradient[c] * dw_norm);
-
-             }
+             w1->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+             w2->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
            }
-           else
-           {
-             for(unsigned int g = 0; g < opt_->constraints.active.GetSize(); g++)
-             {
-               Condition* gf = opt_->constraints.active[g];
-               if(!gf->IsLocalCondition()) // local functions (slope) are independent form the mapping
-               {
-                 LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s1=" << s1->GetIndex() << " rho_grad=" << de->constraintGradient[g]
-                               << " old=" << s1->constraintGradient[g] << " -> " << s1->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm);
-                 LOG_DBG3(SMD) << "MSG: g=" << gf->ToString() << " s2=" << s2->GetIndex() << " rho_grad=" << de->constraintGradient[g]
-                               << " old=" << s2->constraintGradient[g] << " -> " << s2->constraintGradient[g] * (1.0 + de->constraintGradient[g] * da_norm) << " idx=" << gf->GetIndex();
-                 s1->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
-                 s2->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * da_norm);
+           //LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
+           //    << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
+           //    << " s2=" << s2->GetIndex() << " da=" << da << " da_norm=" << da_norm << " dw=" << dw << " dw_norm=" << dw_norm;
 
-                 w1->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * dw_norm);
-                 w2->AddGradient(opt_->constraints.active[g], de->constraintGradient[g] * dw_norm);
-               } // non local case
-               assert(!gf->IsLocalCondition() || (gf->GetType() == Function::SLOPE)); // check for other functions
-             } // gradient function loop
-           } // cost and gradient switch
          } // end ip_y
        } // end ip_x
        // normalize by integration points.
      }
      else
      {
-       LOG_DBG2(SMD) << "MSG: obj=" << obj << " el=" << de->elem->elemNum << " item.ip_param_idx[0]=" << item.ip_param_idx[0] << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da;
+       LOG_DBG2(SMD) << "MSG: f=" << f->ToString() << " el=" << de->elem->elemNum << " item.ip_param_idx[0]=" << item.ip_param_idx[0] << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da;
        // when one ip_param_idx is -1, all are -1.
        // the reason is, that all are -1 if ApproxMaxRho() to small for all shapes. Otherwise at least one shape has the ips
        assert(item.ip_param_idx.Sum() == -1 * (int) (order_*order_));
@@ -611,10 +600,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if(res_idx_dw >= 0)
        de->specialResult[res_idx_dw] = log_dw;
    } // end loop over density elements
-   if(obj)
-     mapped_obj_gradient_ = design_id;
-   else
-     mapped_constr_gradient_ = design_id;
  }
 
  inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const
@@ -772,15 +757,15 @@ void ShapeMapDesign::PostInit(int objectives, int constraints)
   // full_data is only used for internal optimizers to have a consecutive design array
   full_data.Clear(false); // release memory
   full_data.Reserve(GetNumberOfVariables()); // shape param + aux
-  full_data.Resize(shape_param_.GetSize()); // was set in DesignSpace and will be released
-  for(unsigned int i = 0; i < shape_param_.GetSize(); i++)
-    full_data[i] = &(shape_param_[i]);
+  full_data.Resize(opt_shape_param_.GetSize()); // was set in DesignSpace and will be released
+  for(unsigned int i = 0; i < opt_shape_param_.GetSize(); i++)
+    full_data[i] = opt_shape_param_[i];
 
-  // ass aux_design to full_data
+  // add aux_design to full_data
   AuxDesign::PostInit(objectives, constraints);
 
-  for(unsigned int i = 0, n = shape_param_.GetSize(); i < n; i++)
-    shape_param_[i].PostInit(objectives, constraints);
+  for(unsigned int i = 0, n = opt_shape_param_.GetSize(); i < n; i++)
+    opt_shape_param_[i]->PostInit(objectives, constraints);
 
   if(domain->GetOptimization() != NULL)
     opt_ = domain->GetOptimization();
