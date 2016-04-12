@@ -53,6 +53,7 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->regions = em->GetDesign()->GetRegionIds();
   this->em = em;
   this->grid = domain->GetGrid();
+
   Constructor();
 }
 
@@ -70,7 +71,6 @@ void DesignStructure::Constructor()
   filter_space_ = NO_FILTER;
 
   value  = -1.0;
-
 }
 
 
@@ -79,7 +79,7 @@ void DesignStructure::Initialize()
   // save to be called multiple times. Has all neighbors and the number of common nodes
   grid->FindElementNeighorhood();
 
-  // we will need the barycenters in FindNeibhborhood()
+  // we will need the barycenters in FindNeighborhood()
   for(unsigned int i = 0; i < regions.GetSize(); i++)
     grid->SetElementBarycenters(regions[i], false); // no updated coordinates
   // Handle also the off-design barycenters
@@ -675,7 +675,6 @@ void DesignStructure::SetNodeElemMapping()
     }
   }
 }
-
 
 bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVector<std::pair<Elem*, int> >& neighbors)
 {

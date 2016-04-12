@@ -83,6 +83,9 @@ public:
   /** give debug information#
    * @param level 0 is full detail, >0 less detail */
   std::string ToString(int level=0);
+
+  bool isInterfaceDriven_;
+
 };
 
 

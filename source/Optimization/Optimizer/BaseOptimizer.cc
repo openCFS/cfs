@@ -308,7 +308,8 @@ double BaseOptimizer::EvalObjective(int n, const double* x, bool cfs_scale)
     need_eval = true;
     
     // tell assemble, the design has changed
-    optimization->context->pde->GetAssemble()->SetAllReassemble();
+    for(unsigned int c = 0; c < optimization->manager.context.GetSize(); c++)
+      optimization->manager.context[c].pde->GetAssemble()->SetAllReassemble();
 
     // does a lot of work.
     optimization->SolveStateProblem();

@@ -201,14 +201,6 @@ namespace CoupledField {
     // Compute norm of residual of preconditioned system
     rho = q0_->NormL2();
 
-    // Be verbose
-    (*cla) << "\n MINRESSolver:\n"
-           << "\n Norm of rhs              = " << rhs.NormL2()
-	   << "\n Norm of precond rhs      = " << rhsNorm
-	   << "\n Norm of residual         = " << pV_->NormL2()
-	   << "\n Norm of precond residual = " << rho
-	   << std::endl;
-
     // Determine first base and update vector
     q0_->ScalarDiv( rho );
 
@@ -232,16 +224,6 @@ namespace CoupledField {
     xml_->GetValue("tol", threshold, ParamNode::INSERT);
     
     threshold *= rhsNorm;
-
-
-    // ----------------------
-    //   Initialise logging
-    // ----------------------
-    bool logging = false;
-    if ( logging == true ) {
-      LogConvergence( rho, 0, true );
-    }
-
 
     // ------------------------------
     //   Main loop of the algorithm
@@ -352,20 +334,12 @@ namespace CoupledField {
       		     << " Predicted res.norm = " << Abs(aux) << '\n'
 		           << " Actual res.norm = " << rho);
         }
-	else {
-	  loop = false;
-	}
+        else {
+          loop = false;
+        }
       }
-
-      // Log convergence
-      if ( logging == true ) {
-	LogConvergence( Abs(aux), k );
-      }
-
-
       // Increase loop counter
       k++;
-
     }
 
     // Compute real residual of preconditioned system

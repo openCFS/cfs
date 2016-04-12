@@ -16,10 +16,6 @@ namespace CoupledField {
   template <typename T>
   IDBC_HandlerPenalty<T>::IDBC_HandlerPenalty( StdVector<UInt> numIDBC ) {
 
-    // Log some information
-    (*cla) << "\n IDBC_HandlerPenalty: Administrating "
-           << numIDBC << " inhom. Dirichlet BCs.\n\n";
-
     // Initialise penalty term
     penaltyTerm_ = 0.0;
 
@@ -97,14 +93,6 @@ namespace CoupledField {
         }
       }
     }
-
-    // Be verbose
-    (*cla) << "\n IDBC_HandlerPenalty:\n"
-           << " -> Adapted system matrix\n"
-           << " -> Penalty term = "
-           << std::scientific << penaltyTerm_ << '\n'
-           << std::endl;
-    cla->unsetf( std::ios::scientific );
   }
 
 

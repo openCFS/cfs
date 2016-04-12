@@ -5,6 +5,8 @@
 
 #include <xercesc/util/PlatformUtils.hpp>
 #include <xercesc/util/TransService.hpp>
+#include <xercesc/validators/datatype/InvalidDatatypeValueException.hpp>
+
 #include <boost/filesystem/operations.hpp>
 #include <boost/algorithm/string.hpp>
 
@@ -102,31 +104,22 @@ namespace CoupledField
 
     // Attach our own error handler to the parser
     parser_->setErrorHandler(new EventHandler(this));
-
     
     try
     {
       // Parse and validate the XML file / buffer. This will generate the 
       // DOM tree. Catch all exceptions that the parser could not pass to 
       // our errorhandler.
-      
+
       // Distinguish if we have to parse a file or the memory buffer
-      if( this->file_ != "" ) {
-        // ============
-        //  Parse File
-        // ============ 
-       parser_->parse(file_.c_str());
-      } else {
-        // =====================
-        //  Parse Memory String
-        // =====================
-        parser_->parse(*buf_);
-      }
+      if( this->file_ != "" )
+        parser_->parse(file_.c_str()); // Parse File
+      else
+        parser_->parse(*buf_); // Parse Memory String
     }
     catch(const XMLException &event)
     {
-        EXCEPTION("Error parsing '" << file_ << "' -> '"
-                  << event.getMessage() << "'");
+        EXCEPTION("Error parsing '" << file_ << "' -> '" << event.getMessage() << "'");
     }
     catch(const DOMException &event )
     {
@@ -148,8 +141,7 @@ namespace CoupledField
 
     // some final checking, cannot imagine a problem here
     if(children->getLength() != 1)
-        EXCEPTION("document root has " << children->getLength()
-                  << " children, expected 1");
+        EXCEPTION("document root has " << children->getLength() << " children, expected 1");
 
     if(children->item(0)->getNodeType() != DOMNode::ELEMENT_NODE)
         EXCEPTION("root node type is " <<  children->item(0)->getNodeType());
@@ -160,11 +152,8 @@ namespace CoupledField
 
   Xerces::~Xerces()
   {
-
     if(parser_ != NULL && parser_->getErrorHandler() != NULL)
-    {
       delete parser_->getErrorHandler();
-    }
 
     if(parser_ != NULL)
     {
@@ -179,7 +168,6 @@ namespace CoupledField
     }
     // Shutdown platform dependend utilities
     XMLPlatformUtils::Terminate();
-
   }
 
 
@@ -397,7 +385,9 @@ namespace CoupledField
 
   void Xerces::EventHandler::fatalError(const SAXParseException &event)
   {
-     error(event);
+    std::cout << "Xerces::EventHandler::fatalError\n";
+    std::cout.flush();
+    error(event);
   }
 
   void Xerces::EventHandler::resetErrors()
