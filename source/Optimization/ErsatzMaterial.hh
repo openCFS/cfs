@@ -269,8 +269,20 @@ protected:
    * @param constraint if set calculate as given constraint, if null calculate as objective
    * @param solveproblem solve the tracking problem, e.g. shapeopt does solve the same problem already
    * @return invalid in derivative case*/
-  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g,
-      bool derivative);
+  virtual double CalcTracking(Excitation& excite, Objective* f, Condition* g, bool derivative);
+
+  /** Handles tracking constraint/objective for given temperature at interfaces between solid and void
+   *  @param excite The used excitation
+   *  @param f objectiv
+   *  @param g condition
+   *  @param derivative flag for calculating derivative
+   *  @param refVal the reference value that we want to track
+   *  @param adjoint Are we calculating adjoint rhs?
+   *  @param adjointRHS If adjoint RHS should be calculated, this is the output
+   *  @return sum over all tracked values at interface nodes
+   */
+  virtual void CalcTempTrackingAtInterface(Excitation& excite, Objective* f, Condition* g, double refVal, Vector<double>& res, bool adjoint=false);
+
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
   double CalcEnergyFlux(Excitation& excite, Objective* f);
