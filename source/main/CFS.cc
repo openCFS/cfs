@@ -414,8 +414,5 @@ void CFS::SetupIO(PtrParamNode rootNode )
   // if requested give the problem file -> one can see the defaults then
   if(progOpts->DoDetailedInfo())
     infoNode->Get(ParamNode::HEADER)->Get("cfsSimulation")->SetValue(paramNode_);
-  
-  // Open file for status reports by OLAS
-  fileHandler.OpenFile( DefineInOutFiles::OLAS_FILE );
 }
 

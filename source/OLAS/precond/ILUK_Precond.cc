@@ -102,16 +102,6 @@ namespace CoupledField {
           << ", but needs to be square" );
     }
 
-    // Report parameters to standard log stream
-    if ( logging_ == true ) {
-      (*cla) << " -----------------------------------------------\n"
-	     << " ILUK_Precond: Performing an ILU( " << maxLevel_
-	     << " ) factorisation\n of a "
-	     << this->sysMatDim_ << " x " << this->sysMatDim_
-	     << " matrix (nnz = " << sysMat.GetNnz() << ")"
-	     << std::endl;
-    }
-
     // Try to figure out an approximate factor for memory
     // pre-allocation
     if ( maxLevel_ <= 3 ) {
@@ -131,16 +121,6 @@ namespace CoupledField {
       this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
       this->ExportILUFactorisation( saveFacFile.c_str() );
-      if ( logging_ == true ) {
-	(*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
-	       << std::endl;
-      }
-    }
-
-    // Close log section
-    if ( logging_ == true ) {
-      (*cla) << " -----------------------------------------------"
-	     << std::endl;
     }
 
   }

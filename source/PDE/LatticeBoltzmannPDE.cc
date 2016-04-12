@@ -206,6 +206,11 @@ namespace CoupledField {
     for(unsigned int i = 0; i < inlet.GetSize(); ++i)
       inlet[i] = elem_to_idx[tmp[i]->elemNum];
 
+    // divide inlet velocity over number of inlet elements
+    u_max_x_ /= inlet.GetSize();
+    u_max_y_ /= inlet.GetSize();
+    u_max_z_ /= inlet.GetSize();
+
     grid->GetElemsByName(tmp,"outlet");
     outlet.Resize(tmp.GetSize());
     for(unsigned int i = 0; i < outlet.GetSize(); ++i)

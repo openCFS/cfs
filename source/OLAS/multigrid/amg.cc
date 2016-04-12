@@ -120,7 +120,6 @@ void AMGSolver<T>::Cycle( const Vector<T>& rhs,
 
     typename HierarchyLevel<T>::Settings settings( Parameters_ );
 
-    if( logging_ ) (*cla)<<LOGLINE<<" AMG: starting cycle\n";
     // We need this dirty cast to a non-constant HierarchyLevel,
     // since the cycle will change the HierarchyLevel's temporary
     // vectors.
@@ -129,9 +128,6 @@ void AMGSolver<T>::Cycle( const Vector<T>& rhs,
                          settings.numPreSmoothings,
                          settings.numPostSmoothings,
                          settings.CycleParameter );
-
-    if( logging_ )  (*cla) <<" AMG: finished cycle\n";
-    if( logging_ )  (*cla) << LOGLINE;
 }
 
 /**********************************************************/

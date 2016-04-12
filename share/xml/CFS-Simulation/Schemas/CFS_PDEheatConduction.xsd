@@ -1,4 +1,4 @@
-
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org" xmlns:cfs="http://www.cfs++.org" elementFormDefault="qualified">
 
@@ -115,6 +115,13 @@
                 <xsd:element name="heatSource" type="DT_BcInhomScalar">
                   <xsd:annotation>
                     <xsd:documentation>Defines nodal heat</xsd:documentation>
+                  </xsd:annotation>
+                </xsd:element>
+                
+                <!-- heat specific boundary conditions -->
+                <xsd:element name="designDependentHeatSource" type="DT_BcInhomScalar">
+                  <xsd:annotation>
+                    <xsd:documentation>Creates heat sources at interfaces betweens void and solid </xsd:documentation>
                   </xsd:annotation>
                 </xsd:element>
                 
