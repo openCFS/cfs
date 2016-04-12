@@ -325,7 +325,7 @@
             <xsd:element name="tensor" type="DT_MechElastTensor" minOccurs="0" maxOccurs="1"/>
             <!-- the tensor can optionally be specified by emod and poisson ratio -->
             <xsd:element name="isotropic" type="DT_MechElastIsotropic" minOccurs="0" maxOccurs="1"/>
-            <!-- only for the output constroaint which is an displacement constraint -->
+            <!-- only for the output constraint which is an displacement constraint -->
             <xsd:element name="output" type="DT_output" minOccurs="0" maxOccurs="1"/>
           </xsd:all>
           <!-- mandatory to give the name -->
@@ -413,6 +413,8 @@
                 <xsd:enumeration value="heatEnergy"/>
                 <!-- pressure drop of fluidic system -->
                 <xsd:enumeration value="pressureDrop"/>
+                <!-- tracking heat temperature at interfaces -->
+                <xsd:enumeration value="tempTrackingAtInterface"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>

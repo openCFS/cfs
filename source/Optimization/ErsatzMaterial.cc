@@ -1456,6 +1456,14 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       result = CalcTracking(excite, c, g, derivative);
       break;
 
+      case Condition::TEMP_TRACKING_AT_INTERFACE:
+      {
+        Vector<double> res;
+        CalcTempTrackingAtInterface(excite, c, g, g->GetBoundValue(),res);
+        result = res[0];
+        break;
+      }
+
       case Function::GREYNESS:
       assert(c == NULL);
       result = CalcGreyness(g, derivative);
@@ -2085,7 +2093,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         rhs = new DesignDependentRHS();
         rhs->Init<double>(design,App::HEAT);
         // f'^Tu de->AddGradient(f, this_value);
-        StdVector<SingleVector*> stateSol = forward.Get(excite)->elem[App::HEAT];
+        StdVector<SingleVector*>& stateSol = forward.Get(excite)->elem[App::HEAT];
         for (unsigned int id = 0; id < design->data.GetSize(); id++) {
           Vector<double> gradRHS;
           DesignElement* de = &design->data[id];
@@ -2530,11 +2538,64 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return upper_freq - lower_freq;
   }
 
+  void ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, double refVal, Vector<double>& res, bool adjoint)
+  {
+    Function* f = Function::Cast(c, g);
+    App::Type app = Context::ToApp(f->ctxt->pde);
+    assert(app == App::HEAT);
+    Context& context = *(f->ctxt);
+    Assemble& assemble = *(context.pde->GetAssemble());
+    unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
+
+    Vector<double> rhs;
+    FeFctIdType feFctId = context.pde->GetFeFunction(context.pde->GetNativeSolutionType())->GetFctId();
+    assemble.GetAlgSys()->GetRHSVal(rhs, feFctId);
+
+    StdVector<LinearFormContext*> linForms = assemble.GetLinForms();
+    StdVector<LinearFormContext*>::iterator formsIt;
+
+    StdVector<double> nodeDensities; // 4 * rho * (1-rho) * loadValue
+    nodeDensities.Reserve(nNodes);
+
+    // iterate over all descriptors
+    for(formsIt = linForms.Begin(); formsIt != linForms.End(); formsIt++)
+    {
+      // get integrator
+      LinearFormContext& actContext = **formsIt;
+
+      LinearForm* form = actContext.GetIntegrator();
+
+      Vector<double> elemVec;
+      // get entity iterator
+      EntityIterator  entIt = actContext.GetEntities()->GetIterator();
+      // iterate over all entities
+      for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+        // Calculate real valued element vector
+        form->CalcElemVector(elemVec, entIt);
+        nodeDensities.Push_back(elemVec[0]);
+      }
+    }
+
+    Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+    assert(u.GetSize() == nNodes);
+
+    if (adjoint) {
+      res.Resize(nNodes);
+      for (unsigned int n = 0; n < nNodes; n++) {
+        res[n] = - 2.0 * nodeDensities[n] * (u[n] - refVal);
+      }
+      return;
+    }
+
+    res.Resize(1);
+    res[0] = 0.0;
+    for (unsigned int n = 0; n < nNodes; n++)
+      res[0] += nodeDensities[n] * (u[n] - refVal) * (u[n] - refVal);
+  }
+
 
   double ErsatzMaterial::CalcTracking(Excitation& excite, Objective* c, Condition* g, bool derivative)
   {
-    assert(false);
-    return -1.0;
     /* FIXME
     Function* f = Function::Cast(c, g);
     UInt timesteps = context->GetDriver()->GetNumSteps();
@@ -2611,6 +2672,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       return 0.5 * val;
     }
     */
+    return -1;
   }
 
   double ErsatzMaterial::CalcPoissonsRatioAndYoungsModulus(Function* f, bool derivative)
@@ -3479,6 +3541,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::ELEC_ENERGY:
       case Function::ENERGY_FLUX:
       case Function::STRESS:
+      case Function::TEMP_TRACKING_AT_INTERFACE: // track boundary driven load
       case Function::STRESS_DENSITY:
       {
         // these objectives need their adjoint problems for the calculation of the objective value
@@ -3515,7 +3578,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     // save and restore them in any case.
     StdVector<LinearFormContext*> org_forms = assemble->GetLinForms();
     // set pseudo loads (if there are output nodes)
-    if (f->NeedsSelectionVector())
+    if (f->NeedsSelectionVector()) // TODO: rhs? no, since selection vector is assembled automatically
       ConstructSelection(excite, f, true);// is actually already set for the forward calculation - who cares?
 
     // any adjoint PDE has HDBC instead of IDBC. We Store the IDBC, add the BC as HDBC, solve, reset the IDBC and remove the additional HDBC
@@ -3601,6 +3664,13 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         StressConstraint<double> sc(&excite, f, this, &forward);
         sc.CalcAdjointRHS(rhs);
+        break;
+      }
+      case Function::TEMP_TRACKING_AT_INTERFACE:
+      {
+        Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
+        Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
+        CalcTempTrackingAtInterface(excite, c, g, g->GetBoundValue(), rhs, true);
         break;
       }
       default:
