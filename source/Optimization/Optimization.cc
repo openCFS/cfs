@@ -201,7 +201,7 @@ void Optimization::PostInitSecond()
         log.AddToHeader("ef_" + lexical_cast<string>(g->GetEigenValueID()) + "_wv");
     }
     else {
-      if(log.localDetail) {
+      if(progOpts->DoDetailedInfo()) {
         log.AddToHeader("max_" + g->ToString());
         log.AddToHeader("mean_" + g->ToString());
       }
@@ -1122,7 +1122,7 @@ void Optimization::LogFileLine(ofstream* out, PtrParamNode iteration)
       LocalCondition* local = dynamic_cast<LocalCondition*>(g);
       double max  = local->CalcMaxValue();
       double mean = local->CalcMeanValue();
-      if(out)
+      if(progOpts->DoDetailedInfo() && out)
         *out << " \t" << max << " \t" << mean;
       iteration->Get("max_" + g->ToString())->SetValue(max);
       iteration->Get("mean_" + g->ToString())->SetValue(mean);
@@ -1221,7 +1221,6 @@ Optimization::Log::Log()
   this->design = false;
   this->designGradient = false;
   this->designConstraintGradients = false;
-  this->localDetail = progOpts->DoDetailedInfo();
   this->gradNorm = progOpts->DoDetailedInfo();
   this->file = NULL;
   this->fileHeader = "";

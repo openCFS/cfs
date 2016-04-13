@@ -75,9 +75,9 @@ DesignSpace* DensityFile::ReadErsatzMaterial(DesignSpace* space)
   PtrParamNode info = domain->GetInfoRoot();
 
   // perhaps Optimization has already called the SetEnums
-  if (DesignElement::type.map.empty())
+  if(DesignElement::type.map.empty())
     DesignElement::SetEnums();
-  if (Objective::type.map.empty())
+  if(Objective::type.map.empty())
     Optimization::SetEnums();
 
   // do we have a command line switch? we then use the filename and the last set

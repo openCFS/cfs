@@ -272,9 +272,6 @@ namespace CoupledField
            /** if set write the constraint gradient of the design to the logfile */
            bool designConstraintGradients;
 
-           /** write mean and max for local constraints */
-           bool localDetail;
-
            /** write the gradient norms */
            bool gradNorm;
 

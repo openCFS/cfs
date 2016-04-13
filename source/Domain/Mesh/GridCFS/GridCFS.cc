@@ -2395,7 +2395,9 @@ namespace CoupledField {
 
       StdVector<double> edges;
 
-      GetElemShapeMap(orderedElems_[0], false)->GetEdgeLength(edges);
+      // take the first vol element of the first vol region. The first ordered element might be a surface element
+      GetElemShapeMap(volElems_.First().First(), false)->GetEdgeLength(edges);
+      assert(edges.GetSize() == GetDim());
 
       Matrix<double> m = CalcGridBoundingBox();
 

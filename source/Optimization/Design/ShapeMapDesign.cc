@@ -371,31 +371,30 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    shape_.Resize(nodes.GetSize() * 2); // list is for nodes which are doubled by profile
    for(unsigned int i = 0, n = nodes.GetSize(); i < n; i++) {
      shape_[i].Init(nodes[i], i); // empty constructor due to StdVector/(
-     shape_[n+i].Init(profile, n+i);
+     shape_[n+i].Init(profile, n+i); // one profile for each node shape
    }
    num_node_shapes_ = nodes.GetSize();
 
-   // setup nodes within shape_param_
+   // setup nodes within shape_param_. When nx != ny we need the number of shapes to reserve proper space
    StdVector<ShapeParam*> shape_x = FindShape(NODE, 0);
    StdVector<ShapeParam*> shape_y = FindShape(NODE, 1);
 
    num_node_shape_params_ = (nx_+1) * shape_x.GetSize() + (ny_+1) * shape_y.GetSize(); // one node more than elements
    shape_param_.Reserve(2 * num_node_shape_params_); // all doubled for profile
    assert(shape_param_.Capacity() > 0);
-   for(unsigned int s = 0; s < shape_x.GetSize(); s++)
+
+   // take the shapes in the order they are stored in shape_ as read from xml
+   for(unsigned int s = 0; s < nodes.GetSize(); s++)
    {
-     shape_x[s]->start_param = shape_param_.GetSize();
-     for(unsigned int y = 0; y < ny_+1; y++)
-       CreateShapeVariable(shape_x[s], y);
-     shape_x[s]->end_param = shape_param_.GetSize();
+     ShapeParam& param = shape_[s];
+     param.start_param = shape_param_.GetSize();
+     // when dof=x then we traverse the ny_+1
+     unsigned int end = param.dof == 0 ? ny_ + 1 : nx_ + 1;
+     for(unsigned int e = 0; e < end; e++)
+       CreateShapeVariable(&param, e);
+     param.end_param = shape_param_.GetSize();
    }
-   for(unsigned int s = 0; s < shape_y.GetSize(); s++)
-   {
-     shape_y[s]->start_param = shape_param_.GetSize();
-     for(unsigned int x = 0; x < nx_+1; x++)
-       CreateShapeVariable(shape_y[s], x);
-     shape_y[s]->end_param = shape_param_.GetSize();
-   }
+
    // add the profiles
    for(int n = 0; n < num_node_shapes_; n++)
    {
@@ -409,6 +408,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      assert(prof.end_param - prof.start_param == node.end_param - node.start_param);
      assert(prof.start_param - num_node_shape_params_ == node.start_param);
    }
+   assert((int) shape_param_.GetSize() == 2 * num_node_shape_params_); // all doubled for profile
 
    // set map_ to map from shape_param to DesignSpace::data, fill with shape_param_
    map_.Resize(data.GetSize());
