@@ -343,6 +343,7 @@ void Optimization::SetEnums()
   Function::type.Add(Function::JUMP, "jump");
   Function::type.Add(Function::GLOBAL_JUMP, "globalJump");
   Function::type.Add(Function::BUMP, "bump");
+  Function::type.Add(Function::PERIODIC, "periodic");
   Function::type.Add(Function::DESIGN_TRACKING, "designTracking");
   Function::type.Add(Function::SUM_MODULI, "sumModuli");
   Function::type.Add(Function::GLOBAL_SUM_MODULI, "globalSumModuli");
@@ -390,6 +391,7 @@ void Optimization::SetEnums()
   Function::Local::locality.Add(Function::Local::DEG_45_STAR, "45_deg_star");
   Function::Local::locality.Add(Function::Local::DEG_45_STAR_AND_REVERSE, "45_deg_star_and_reverse");
   Function::Local::locality.Add(Function::Local::BOUNDARY, "boundary");
+  Function::Local::locality.Add(Function::Local::CYCLIC, "cyclic");
   Function::Local::locality.Add(Function::Local::ELEMENT, "element");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_ELEMENT, "multiple_designs_element");
   Function::Local::locality.Add(Function::Local::MULT_DESIGNS_NEXT, "multiple_designs_next");

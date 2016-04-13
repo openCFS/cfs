@@ -1262,7 +1262,8 @@ BaseDesignElement* DesignSpace::GetDesignElement(unsigned int idx)
 DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, bool throw_exception, bool include_pseudo_designs, int mm_index)
 {
   int idx = Find(elemNum, throw_exception, include_pseudo_designs);
-  if(idx == -1) return NULL; // an exception was already thrown if desired
+  if(idx == -1)
+    return NULL; // an exception was already thrown if desired
   // check for real design or pseudo design
   if(elemToDesign[elemNum].second == true)
   {
@@ -1289,41 +1290,9 @@ DesignElement* DesignSpace::Find(unsigned int elemNum, DesignElement::Type dt, b
         return &(pseudoDesigns_[i][idx]);
     }
   }
-  if(throw_exception) throw Exception("design type not in design or pseudo design region problem");
+  if(throw_exception)
+    throw Exception("design type not in design or pseudo design region problem");
   return NULL;
-}
-
-inline
-int DesignSpace::Find(unsigned int elemNum, bool throw_exception, bool include_pseudo_designs)
-{
-  // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
-  int idx = elemToDesign[elemNum].first;
-  // reset pseudo designs when we don't look for them explicitly
-  if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
-    idx = -1;
-  if(idx == -1 && throw_exception)
-    EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
-  return idx;
-}
-
-int DesignSpace::Find(const Elem* elem, bool throw_exception)
-{
-  // no extensions for pseudo designs implemented, yet!
-  if(FindRegion(elem->regionId) >= 0) return Find(elem->elemNum, throw_exception);
-  // we might have surface element and it is pointing to a design element
-  const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
-  // no chance, we are wrong
-  if(se == NULL) {
-    if(!throw_exception) return -1;
-    EXCEPTION("element " << elem->ToString() << " not in design regions" );
-  }
-  else
-    for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
-      if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
-        return Find(se->ptVolElems[i]->elemNum);
-
-  if(!throw_exception) return -1;
-  EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
 }
 
 void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
@@ -1363,6 +1332,7 @@ void DesignSpace::ToInfo(PtrParamNode in, ErsatzMaterial* em)
       regions[0][i].ToInfo(rs->Get("region", ParamNode::APPEND));
   }
 }
+
 std::string DesignSpace::ToString()
 {
   std::stringstream ss;

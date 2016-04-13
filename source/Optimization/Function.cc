@@ -178,6 +178,7 @@ Function::Function(PtrParamNode pn) {
   case SLACK:
   case MULTIMATERIAL_SUM:
   case SHAPE_INF:
+  case PERIODIC:
     linear_ = true;
     break;
 //  case TENSOR_TRACE:
@@ -396,6 +397,7 @@ void Function::SetExcitation(MultipleExcitation* me, int excite_index)
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case PERIODIC:
   case DESIGN_TRACKING:
   case SUM_MODULI:
   case GLOBAL_SUM_MODULI:
@@ -576,6 +578,7 @@ bool Function::IsLocal(Type t) {
   case OSCILLATION:
   case JUMP:
   case BUMP:
+  case PERIODIC:
   case SUM_MODULI:
   case TWO_SCALE_VOL:
   case ORTHOTROPIC_TENSOR_TRACE:
@@ -682,6 +685,7 @@ bool Function::ForSensitivityFiltering() const {
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case PERIODIC:
   case DESIGN_TRACKING:
   case ORTHOTROPIC_TENSOR_TRACE:
   case GLOBAL_ORTHOTROPIC_TENSOR_TRACE:
@@ -843,6 +847,7 @@ void Function::PostProc(DesignSpace* space, DesignStructure* structure, ErsatzMa
   case JUMP:
   case GLOBAL_JUMP:
   case BUMP:
+  case PERIODIC:
     // assert(space->IsRegular()); // VicinityElements work only on a regular grid
     // the design elements require the vicinity element to be set which holds the direct
     // neighbors. Is save to call several times
@@ -1026,6 +1031,12 @@ Function::Local::Local(Function* func, DesignSpace* space) {
     locality_ = NEXT;
     break;
 
+  case PERIODIC:
+    if (locality_ != CYCLIC && locality_ != DEFAULT)
+      throw Exception("Invalid locality '" + locality.ToString(locality_) + "' within '" + fname + "'");
+    locality_ = CYCLIC;
+    break;
+
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
     if ((phase_ == BOTH && locality_ != DEG_45_STAR_AND_REVERSE
@@ -1104,7 +1115,11 @@ Function::Local::Local(Function* func, DesignSpace* space) {
   }
 
   // this is actually pure constructor work, just extracted to handle function size
-  switch (locality_) {
+  ShapeMapDesign* smd = dynamic_cast<ShapeMapDesign*>(space); // only not null if we do not shape mapping
+  assert(!(BaseDesignElement::IsShapeMapType(func->GetDesignType()) && space->GetNumberOfShapeMappingVariables() == 0));
+
+  switch (locality_)
+  {
   case DEG_45_STAR:
   case DEG_45_STAR_AND_REVERSE:
   case BOUNDARY:
@@ -1143,12 +1158,17 @@ Function::Local::Local(Function* func, DesignSpace* space) {
    SetupVirtualStarLocalElementMap(func);
    break;
 
+  case CYCLIC:
+    if(BaseDesignElement::IsShapeMapType(func->GetDesignType()))
+      smd->SetupCyclicVirtualShapeElementMap(func, virtual_elem_map, locality_);
+    else
+      throw Exception("the local function '" + func->ToString() + "' is only mapping");
+   break;
+
+
   default:
     if(BaseDesignElement::IsShapeMapType(func->GetDesignType()))
-    {
-      assert(space->GetNumberOfShapeMappingVariables() > 0);
-      dynamic_cast<ShapeMapDesign*>(space)->SetupVirtualShapeElementMap(func, virtual_elem_map, locality_, phase_);
-    }
+      smd->SetupVirtualShapeElementMap(func, virtual_elem_map, locality_, phase_);
     else
       SetupVirtualElementMap(phase_);
     break;
@@ -1961,6 +1981,10 @@ double Function::Local::Identifier::EvalFunction(const Local* local,  bool grad_
     fv = CalcPerimeter(local->func_->parameter_, 1. / local->virtual_elem_map.GetSize());
     break;
 
+  case PERIODIC:
+    fv = CalcPeriodic();
+    break;
+
   case OSCILLATION:
   case GLOBAL_OSCILLATION:
     fv = CalcOscillation(local->GetBeta());
@@ -2141,6 +2165,10 @@ void Function::Local::Identifier::EvalGradient(const Local* local) {
 
     case PERIMETER:
       gv = CalcPerimeterGradient(n, local->func_->parameter_, 1. / local->virtual_elem_map.GetSize());
+      break;
+
+    case PERIODIC:
+      gv = CalcPeriodicGradient(n);
       break;
 
     case OSCILLATION:
@@ -2363,8 +2391,26 @@ double Function::Local::Identifier::CalcPerimeterGradient(int neigh_idx, double 
   return res;
 }
 
+double Function::Local::Identifier::CalcPeriodic() const
+{
+  // this - neighbor
+  assert(this->neighbor.GetSize() == 1);
 
+  double mine  = element->GetDesign(DesignElement::SMART);
+  double other = neighbor[0]->GetDesign(DesignElement::SMART);
+  double res   = mine - other;
 
+  LOG_DBG3(func) << "L:I:CP de=" << element->GetIndex() << " other=" << neighbor[0]->GetIndex()
+                 << " mine=" << mine << " other=" << other << " -> " << res;
+  return res;
+}
+
+double Function::Local::Identifier::CalcPeriodicGradient(int neigh_idx) const
+{
+  assert(neigh_idx == -1 || neigh_idx == 0);
+  double s = neigh_idx == -1 ? 1.0 : -1.0;
+  return s;
+}
 
 double Function::Local::Identifier::CalcOscillation(double beta) const {
   assert(sign == 1 || sign == -1);

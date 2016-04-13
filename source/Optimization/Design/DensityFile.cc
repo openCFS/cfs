@@ -329,9 +329,10 @@ void DensityFile::SetAndWriteCurrent(int current_iteration)
   if(smd != NULL)
   {
     // skip the aux variables slack and alpha -> they are written to the info.xml
-    for(unsigned int i = smd->GetNumberOfAuxParameters(), n = smd->GetNumberOfVariables(); i < n; i++)
+    for(unsigned int i = 0, n = smd->GetNumberOfVariables() - smd->GetNumberOfAuxParameters(); i < n; i++)
     {
       ShapeParamElement* spe = dynamic_cast<ShapeParamElement*>(smd->GetDesignElement(i));
+      assert(spe != NULL);
       std::stringstream ss;
       ss << "<shapeParamElement nr=\"" << spe->GetIndex();
       ss << "\" dof=\"" << (spe->dof == 0 ? "x" : "y");

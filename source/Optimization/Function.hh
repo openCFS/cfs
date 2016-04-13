@@ -112,6 +112,7 @@ class Function
       OSCILLATION,               /*!< Feature size control by Fabian W. :) */
       JUMP,                      /*!< Weak greyness control by Fabian W. :) */
       BUMP,                      /*!< Prevent intermediate change of slope ('hobbala') by Fabian W. */
+      PERIODIC,                  /*!< local constraint right minus left, meant for shape mapping */
       DESIGN_TRACKING,           /*!< Tracking against physical densities in designTarget. Either for region or periodic (constraint nodes) elements */
       SUM_MODULI,                /*!< the sum of the elasticity and shear moduli in parametrized elasticity tensor formulations */
       GLOBAL_SUM_MODULI,         /*!< global resource constraint, see sum_moduli */
@@ -326,6 +327,7 @@ class Function
         DEG_45_STAR,             /*!< Different notation. prev_next but also diagonals */
         DEG_45_STAR_AND_REVERSE, /*!< The doubled variant of DEG_45_STAR for oscillation */
         BOUNDARY,                /*!< For a neighbor definition the first and last element (JUMP) */
+        CYCLIC,                /*!< The periodic element for the the periodic constraint */
         ELEMENT,                 /*!< For stress there is no neighborhood, only the element itself */
         MULT_DESIGNS_ELEMENT,    /*!< ELEMENT for multiple different designs - only parametrized PLANE_STRESS for now */
         SHAPE,                    /*!< SHAPE, the sparsity pattern is read from file */
@@ -442,6 +444,10 @@ class Function
         /** the perimeter is similar to the slope constraint but always globalized (sum) */
         double CalcPerimeter(double eps, double l_k) const;
         double CalcPerimeterGradient(int neigh_idx, double eps, double l_k) const;
+
+        /** periodic means right end minus left end. Meant for shape mapping. A relaxed equal needs both bounds */
+        double CalcPeriodic() const;
+        double CalcPeriodicGradient(int neigh_idx) const;
 
         /** calculates the checkerboard value. The sign determines if the smaller or larger value is evaluated
          * @param beta < 0 is real max, otherwise it is a Kreiselmeier Steinhauser approximation */
