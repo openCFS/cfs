@@ -357,6 +357,8 @@
                 <xsd:enumeration value="globalOscillation"/>
                 <xsd:enumeration value="mole"/>
                 <xsd:enumeration value="globalMole"/>
+                <!-- local constraint right minus left. Meant for shape mapping -->
+                <xsd:enumeration value="periodic"/>
                 <!--  the global perimeter constraint  -->
                 <xsd:enumeration value="perimeter"/>
                 <xsd:enumeration value="jump"/>
@@ -1879,6 +1881,7 @@
           <xsd:enumeration value="45_deg_star"/>
           <xsd:enumeration value="45_deg_star_and_reverse"/>
           <xsd:enumeration value="element"/>
+          <xsd:enumeration value="cyclic"/>
           <xsd:enumeration value="multiple_designs_element"/>
           <xsd:enumeration value="multiple_designs_next"/>
           <xsd:enumeration value="multiple_designs_next_and_reverse"/>

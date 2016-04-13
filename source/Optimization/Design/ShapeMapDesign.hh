@@ -67,6 +67,9 @@ public:
    * @param phase just given to assert() it is BOTH  */
   void SetupVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality, Function::Local::Phase ph);
 
+  /** Variant of SetupVirtualShapeElementMap() for the periodic constraint which is the first element of a shape minus the last */
+  void SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& virtual_element_map, Function::Local::Locality locality);
+
   /** this maps the mesh to a regular lexicographic design representation. For the moment is assumes the mesh to be already
    * lexicographic but this might be extended transparently when required. Used also by LatticeBoltzmannPDE, therefore static!
   @param design_reg extend to vector if necessary!

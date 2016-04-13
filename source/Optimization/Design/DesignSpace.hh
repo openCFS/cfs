@@ -249,11 +249,48 @@ namespace CoupledField
       * @param throw_region_exception if no region matches returns -1 or throws exception
       * @return either the element index for GetErsatzMaterialFactor() or -1 if no region matches
       * @exception throw_region_exception suppresses only exceptions on non-matching regions! */
-     int Find(const Elem* elem, bool throw_region_exception);
+     //int Find(const Elem* elem, bool throw_region_exception);
 
      /** finds the index of the design element in design.data for the element.
       * Is very fast O(1) */
-     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+     //int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false);
+
+
+     int Find(unsigned int elemNum, bool throw_exception = true, bool include_pseudo_designs = false)
+     {
+       // LOG_DBG3(designSpace) << "Find e=" << elemNum << " ipd=" << include_pseudo_designs << " idx=" << elemToDesign[elemNum].first << " sec=" << elemToDesign[elemNum].second;
+       int idx = elemToDesign[elemNum].first;
+       // reset pseudo designs when we don't look for them explicitly
+       if(idx != -1 && !include_pseudo_designs && elemToDesign[elemNum].second == false)
+         idx = -1;
+       if(idx == -1 && throw_exception)
+         EXCEPTION("could not find element " << elemNum << " in our (pseudo) design space");
+       return idx;
+     }
+
+     int Find(const Elem* elem, bool throw_exception)
+     {
+       // no extensions for pseudo designs implemented, yet!
+       if(FindRegion(elem->regionId) >= 0)
+         return Find(elem->elemNum, throw_exception);
+       // we might have surface element and it is pointing to a design element
+       const SurfElem* se = dynamic_cast<const SurfElem*>(elem);
+       // no chance, we are wrong
+       if(se == NULL) {
+         if(!throw_exception) return -1;
+         EXCEPTION("element " << elem->ToString() << " not in design regions" );
+       }
+       else
+         for(unsigned int i = 0; i < se->ptVolElems.size(); i++)
+           if(se->ptVolElems[i] != NULL && FindRegion(se->ptVolElems[i]->regionId) >= 0)
+             return Find(se->ptVolElems[i]->elemNum);
+
+       if(!throw_exception)
+         return -1;
+       EXCEPTION("element " << elem->ToString() << " has no volume element in design region");
+     }
+
+
 
      /** When we have more design types this is a divisor of data.GetSize() */
      unsigned int GetNumberOfElements() { return elements; }

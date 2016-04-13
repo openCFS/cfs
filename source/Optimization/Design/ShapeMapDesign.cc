@@ -309,8 +309,42 @@ void ShapeMapDesign::SetupVirtualShapeElementMap(Function* f, StdVector<Function
   }
 
   LOG_DBG(SMD) << "SVSEM f=" << f->ToString() << " loc=" << locality << " ts=" << two_signs << " prev=" << prev << " -> vem=" << vem.GetSize();
-
 }
+
+
+void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Function::Local::Identifier>& vem, Function::Local::Locality locality)
+{
+  // we assume fixed only for profile
+  if(f->GetDesignType() == BaseDesignElement::PROFILE && IsProfileFixed())
+    throw Exception("cannot have local constraint of shape map design 'profile' when this design is fixed.");
+
+  assert(locality == Function::Local::CYCLIC);
+
+  // the index within shape_
+  unsigned int first = GetFirstShapeIdx(f,true);
+  unsigned int end   = GetEndShapeIdx(f,true); // last would be within range but end is the bound
+
+  vem.Reserve(end - first);
+  assert(vem.Capacity() > 0);
+
+  for(unsigned int s = first; s < end; s++)
+  {
+    const ShapeParam& param = shape_[s];
+    assert(f->GetDesignType() == Convert(param.type)); // NODE or PROFILE
+    assert(!param.fixed);
+
+    BaseDesignElement& left  = shape_param_[param.start_param];
+    BaseDesignElement& right = shape_param_[param.end_param-1]; // now take the last which is end-1
+
+    vem.Push_back(Function::Local::Identifier(&left, NULL, &right)); // makes a neighborhood of size 1
+  }
+
+  LOG_DBG(SMD) << "SCVSEM f=" << f->ToString() << " loc=" << locality << " -> vem=" << vem.GetSize();
+}
+
+
+
+
 
 void ShapeMapDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 {

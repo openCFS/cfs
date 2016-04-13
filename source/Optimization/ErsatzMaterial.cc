@@ -1452,6 +1452,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Function::OSCILLATION:
       case Function::JUMP:
       case Function::BUMP:
+      case Function::PERIODIC:
       case Function::SUM_MODULI:
       case Function::TWO_SCALE_VOL:
       case Function::ORTHOTROPIC_TENSOR_TRACE:
