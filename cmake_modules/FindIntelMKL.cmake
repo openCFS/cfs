@@ -239,6 +239,8 @@ SET (MKL_POSSIBLE_PATHS
   /apps/intel/Compiler/11.0/069/mkl
   /apps/intel/mkl/10.0.011
   /apps/intel/ict/3.0/cmkl/9.0
+  # path for mdmt
+  /share/programs/intel/composer_xe_2015.2.164/mkl
  )
 
 #-------------------------------------------------------------------------------
