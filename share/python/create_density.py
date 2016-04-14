@@ -273,7 +273,6 @@ else:
 
 if args.save:
   filename = args.save
-
 if filename.endswith('.png') or filename.endswith('.jpg') or filename.endswith('.jpeg') or filename.endswith('.gif') or filename.endswith('.tif'):
   get_image(data).save(filename)
   print "generated image '" + filename + "'"

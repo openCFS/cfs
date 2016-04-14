@@ -208,6 +208,15 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
           s2 = ones((len(s1), 1)) * 0.25
           s3 = ones((len(s1), 1)) * 0.25
         if args.hom_samples or args.cell_size:
+          if args.type == "apod6":
+            valid_position = valid_position_apod6
+            print 'Apod6 is calculated!' 
+          elif args.type == "robot":
+            valid_position = valid_position_robot
+            print 'Robot is calculated!'
+          else:
+            valid_position = None
+            print 'Warning: No type for valid_position was selected!'
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
@@ -219,17 +228,24 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
 		            # number of fine elements in each direction
                 tmp = args.nf.split(',')
                 n_f = [int(tmp[0]),int(tmp[1]),int(tmp[2])]
+                if args.type == "apod6":
+                  valid_position = valid_position_apod6
+                  print 'Apod6 is validated!'
+                elif args.type == "robot":
+                  valid_position = valid_position_robot
+                  print 'Robot is validated!'
+
                 if args.show == 'simp':
-                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize,args.show)
+                  me = create_validation_mesh(coords, nondes_coords, s1, [], [], None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize,args.show)
                 else:
-                  me = create_validation_apod6_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,args.thres,csize)
+                  me = create_validation_mesh(coords, nondes_coords, s1, s2, s3, None, args.hom_grad, args.hom_dir, scale,n_f,valid_position,args.type,args.thres,csize)
                 write_gid_mesh(me, args.mesh+".mesh")
                 exit()  
               else:
-                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, args.hom_dir, scale, args.thres,csize)
+                viz = create_3d_frame_ip(coords, s1, s2, s3, angle, None, args.hom_grad, scale, valid_position, args.thres,csize)
 
             else:
-              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, args.hom_dir, scale, args.thres)
+              viz = create_3d_frame_ip(coords, s1, s2, s3, angle, args.hom_samples, args.hom_grad, scale, valid_position, args.thres)
         else:  # no sample
           if args.hom_grad == 'none':
               viz = create_3d_frame(coords, s1, s2, s3, angle, args.hom_dir, scale)
@@ -350,6 +366,7 @@ parser.add_argument("--nodefile", help="name of the design to node file", defaul
 parser.add_argument("--thres", help="threshold value for 3D VTK plot", type=float, default=0.0)
 parser.add_argument("--mesh", help="create 3D mesh from optimized 2-scale result for validation", default="")
 parser.add_argument("--nf", help="requires --mesh, number of fine elements in x,y,z direction")
+parser.add_argument("--type", help="type of 3D object for 2-scale visualization",choices=['apod6', 'robot'])
 
 # print sys.argv
 
@@ -420,7 +437,7 @@ else:
     sys.exit()   
   validate_region(f, args.h5_region)
   if len(args.unstructured) <> 0:
-    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'nondesign', False, 'load', 'support')
+    nondes_centers, nondes_min, nondes_max, nondes_elem_dim, nondes_force, nondes_support = centered_elements(f, 'non-design', False, 'load', 'support')
     print 'Reading elements from H5-file done '
     dim_2D = nondes_min[2] == nondes_max[2]
     print 'detected dimension ' + ('2D ' if dim_2D else '3D ') + "in non-design region" 
