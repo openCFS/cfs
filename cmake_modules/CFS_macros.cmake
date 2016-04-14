@@ -107,7 +107,7 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
     FILE(WRITE "${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.cxx"
       "${SOURCE}\n")
 
-    MESSAGE(STATUS "Performing Test ${VAR}")
+    #MESSAGE(STATUS "Performing Test ${VAR}")
     TRY_RUN(${VAR}_EXITCODE ${VAR}_COMPILED
       ${CMAKE_BINARY_DIR}
       ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeTmp/src.cxx
@@ -126,7 +126,7 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
     # if the return value was 0 then it worked
     IF("${${VAR}_EXITCODE}" EQUAL 0)
       SET(${VAR} 1 CACHE INTERNAL "Test ${VAR}")
-      MESSAGE(STATUS "Performing Test ${VAR} - Success")
+      #MESSAGE(STATUS "Performing Test ${VAR} - Success")
       FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log 
         "Performing C++ SOURCE FILE Test ${VAR} succeded with the following output:\n"
         "${OUTPUT}\n" 
@@ -139,7 +139,7 @@ MACRO(CFS_CHECK_CXX_SOURCE_RUNS SOURCE VAR LINK_DIRS)
         SET(${VAR} "" CACHE INTERNAL "Test ${VAR}")
       ENDIF(CMAKE_CROSSCOMPILING AND "${${VAR}_EXITCODE}" MATCHES  "FAILED_TO_RUN")
 
-      MESSAGE(STATUS "Performing Test ${VAR} - Failed")
+      #MESSAGE(STATUS "Performing Test ${VAR} - Failed")
       FILE(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log 
         "Performing C++ SOURCE FILE Test ${VAR} failed with the following output:\n"
         "${OUTPUT}\n"  
@@ -222,22 +222,22 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   SET(TIMEOUT 60)                         
 
   IF(EXISTS ${LOCAL_FILE})
-#    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
+    MESSAGE("'${LOCAL_FILE}' already exists!\nComparing MD5 sums...")
 
     FILE(MD5 ${LOCAL_FILE} ACTUAL_MD5)
     STRING(TOLOWER ${ACTUAL_MD5} ACTUAL_MD5)
 
-#    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
-#    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
+    MESSAGE("ACTUAL_MD5 ${ACTUAL_MD5}")
+    MESSAGE("EXPECTED_MD5 ${MD5_SUM}") 
 
     STRING(COMPARE EQUAL ${MD5_SUM} ${ACTUAL_MD5} MD5_EQUAL)
 
     IF(NOT MD5_EQUAL)
       FILE(REMOVE ${LOCAL_FILE})
       SET(PERFORM_DOWNLOAD 1)   
-#      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
+      MESSAGE("MD5 sums do not match!\nDeleting '${LOCAL_FILE}'...")
     ELSE()                                                          
-#      MESSAGE("MD5 sums match! Very fine!")
+      MESSAGE("MD5 sums match! Very fine!")
       SET(DOWNLOAD_OKAY 1)
     ENDIF()
   ELSE()
@@ -247,9 +247,9 @@ MACRO(DOWNLOAD_CFSDEPS LOCAL_FILE MD5_SUM MIRROR_LIST)
   IF(PERFORM_DOWNLOAD)
     FOREACH(URL IN ITEMS ${MIRROR_LIST})
       MESSAGE("downloading...
-     src='${URL}'
-     dst='${LOCAL_FILE}'
-     timeout=${TIMEOUT}")
+        src='${URL}'
+        dst='${LOCAL_FILE}'
+        timeout=${TIMEOUT}")
 
       FILE(DOWNLOAD
         ${URL}
@@ -353,11 +353,16 @@ ENDMACRO()
 # ------------------------------------------------------------------------------
 # Generate a package name for the precompiled zip file. 
 # Names the compiler. If C/C++ and Fortan are different, both are named. Otherwise it would
-# lead to issues with clang
+# lead to issues with clang which needs either gfortran or ifort as companion
 # ------------------------------------------------------------------------------
 MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   # in the legacy cfs there was for WIN32 ${CMAKE_BUILD_TYPE} instead of the compiler stuff
-  IF(${CMAKE_Fortran_COMPILER_VERSION})
+  # there is complex issue with ifort. On Thumbeweed we have
+  # FC_VERSION=16.0 20150815, CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
+  # With ubuntu CMAKE_Fortran_COMPILER_VERSION is not set but FC_VERSION w/o space ?!
+  # with gfortran both variables have the same value (e.g. 5.2.0) 
+  # use our own variable
+  IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
@@ -366,16 +371,13 @@ MACRO(PRECOMPILED_ZIP RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")
   ELSE()
-    # in the intel case:
-    # FC_VERSION=16.0 20150815
-    # CMAKE_Fortran_COMPILER_VERSION=16.0.0.20150815
-    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")  
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${Fortran_COMPILER_VERSION}_${CMAKE_BUILD_TYPE}.zip")  
   ENDIF()    
 ENDMACRO()
 
 # don't add Release or Debug when the package is built independently
 MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
-  IF(${CMAKE_Fortran_COMPILER_VERSION})
+  IF(DEFINED CMAKE_Fortran_COMPILER_VERSION AND NOT "${CMAKE_Fortran_COMPILER_VERSION}" STREQUAL "")
     SET(Fortran_COMPILER_VERSION "${CMAKE_Fortran_COMPILER_VERSION}")
   ELSE()
     SET(Fortran_COMPILER_VERSION "${FC_VERSION}")
@@ -384,7 +386,7 @@ MACRO(PRECOMPILED_ZIP_NOBUILD RETVAL IN_PACKAGE_NAME IN_PACKAGE_VER)
   IF(${CMAKE_CXX_COMPILER_VERSION} STREQUAL ${Fortran_COMPILER_VERSION})
     SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}.zip")
   ELSE()
-    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${CMAKE_Fortran_COMPILER_VERSION}.zip")  
+    SET(${RETVAL} "${CFS_DEPS_CACHE_DIR}/precompiled/${IN_PACKAGE_NAME}_${IN_PACKAGE_VER}_${CFS_ARCH_STR}_C_${CMAKE_CXX_COMPILER_ID}_${CMAKE_CXX_COMPILER_VERSION}_F_${CMAKE_Fortran_COMPILER_ID}_${Fortran_COMPILER_VERSION}.zip")  
   ENDIF()    
 ENDMACRO()
 
@@ -392,7 +394,7 @@ ENDMACRO()
 #------------------------------------------------------
 # Display all available variables
 #------------------------------------------------------
-MACRO(DISPLAY_ALL_VARIABLES)
+MACRO(DUMP_VARIABLES)
   get_cmake_property(_variableNames VARIABLES)
   foreach (_variableName ${_variableNames})
     message("${_variableName}=${${_variableName}}")

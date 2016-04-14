@@ -79,6 +79,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
     oc_damping_ = pn->Get("damping")->As<Double>();
     lambda_min_ = pn->Get("lambda_min")->As<Double>();
     err_eps_    = pn->Get("err_eps")->As<Double>();
+    max_lambda_iters_ = pn->Get("max_lambda_iters")->As<int>();
 
     // it doesn't harm to read the parameters for all types!
     if(pn->Has(type.ToString(FRAMED)))
@@ -130,7 +131,7 @@ OptimalityCondition::OptimalityCondition(Optimization* optimization, PtrParamNod
 void OptimalityCondition::SolveProblem()
 {
   // solve the state problem first
-  domain->GetBasePDE()->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed    
+  Optimization::context->pde->GetAssemble()->SetAllReassemble(); // tell assemble that the Design has changed
   optimization->SolveStateProblem();
 
   // start with iteration 0 which is the initial design
@@ -181,7 +182,7 @@ void OptimalityCondition::SolveProblem()
     }
     
     // solve the state problem for the new design vector
-    domain->GetBasePDE()->GetAssemble()->SetAllReassemble();    
+    Optimization::context->pde->GetAssemble()->SetAllReassemble();
     optimization->SolveStateProblem();
 
     // calc the objective for the logging in CommitIteration(),

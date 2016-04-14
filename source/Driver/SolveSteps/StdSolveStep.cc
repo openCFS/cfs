@@ -155,7 +155,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
 
     PDE_.SetBCs();
 
-    // store rhs vector back to PDE
+    // store rhs vector back to algsys
     algsys_->GetRHSVal(rhsVec_);
 
     // Only if the matrices have changed (e.g. due to updated lagrangian
@@ -1340,9 +1340,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
   // METHODS FOR EIGENVALUE COMPUTATION
   // ======================================================
 
-  UInt StdSolveStep::CalcEigenFrequencies( Vector<Double> & frequencies,
-                                           Vector<Double> & errBounds,
-                                           UInt numFreq, Double shift ) {
+  UInt StdSolveStep::CalcEigenFrequencies( Vector<Double>& frequencies, Vector<Double>& errBounds,
+                                           UInt numFreq, double shift, bool sort) {
 
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1352,7 +1351,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver
-    algsys_->SetupEigenSolver( numFreq, shift, false, false);
+    algsys_->SetupEigenSolver(numFreq, shift, false, sort, false);
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies(frequencies, errBounds);
@@ -1360,9 +1359,8 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     return frequencies.GetSize();
   }
 
-  UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex> & frequencies,
-                                           Vector<Double> & errBounds,
-                                           UInt numFreq, Double shift, bool bloch) {
+  UInt StdSolveStep::CalcEigenFrequencies( Vector<Complex>& frequencies, Vector<Double>& errBounds,
+                                           UInt numFreq, Double shift, bool sort, bool bloch) {
 
     // Init algsys data structures
     algsys_->InitRHS();
@@ -1372,7 +1370,7 @@ DEFINE_LOG(stdsolvestep, "stdsolvestep")
     assemble_->AssembleMatrices();
 
     // Setup solver  - we cannot be quadratic and bloch concurrently!
-   algsys_->SetupEigenSolver( numFreq, shift, !bloch, bloch);
+   algsys_->SetupEigenSolver(numFreq, shift, !bloch, sort, bloch);
 
     // Calculate eigenfrequencies
     algsys_->CalcEigenFrequencies( frequencies, errBounds );

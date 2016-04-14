@@ -52,6 +52,9 @@ public:
     return stopFreq_;
   }
 
+  /** helper for ContextManager in case of multiple sequence optimization.  */
+  static unsigned int GetNumFreq(PtrParamNode node);
+
   //! Initialization method
   void Init(bool restart);
 

@@ -1,7 +1,7 @@
 #ifndef OLAS_TYPEDEFS_HH
 #define OLAS_TYPEDEFS_HH
 
-//! \file typedefs.hh
+//! \file TypeDefs.hh
 //! This file collects several type and class definitions related to the use
 //! of matrices and vectors with block entries.
 

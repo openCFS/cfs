@@ -20,6 +20,7 @@
 #include "Optimization/Function.hh"
 #include "Optimization/LevelSet.hh"
 #include "Optimization/Objective.hh"
+#include "Optimization/Context.hh"
 #include "Optimization/TransferFunction.hh"
 #include "PDE/SinglePDE.hh"
 #include "Utils/Point.hh"
@@ -363,13 +364,19 @@ void DesignElement::Init()
 }
 
 
-DesignElement::Type DesignElement::Default(const SinglePDE* pde)
+DesignElement::Type DesignElement::Default(const Context* ctxt)
 {
-  if(pde->GetName() == "electrostatic") return POLARIZATION;
-  if(pde->GetName() == "mechanic") return DENSITY;
-  if(pde->GetName() == "acoustic") return ACOU_DENSITY;
-
-  throw Exception("invalid");
+  switch(ctxt->ToApp()) // will fail for piezo ?!
+  {
+  case App::MECH:
+    return DENSITY;
+  case App::ACOUSTIC:
+    return ACOU_DENSITY;
+  case App::ELEC:
+    return POLARIZATION;
+  default:
+    throw Exception("invalid");
+  }
 }
 
 
@@ -488,7 +495,7 @@ void DesignElement::GetValue(ResultDescription& rd, StdVector<double>& out, unsi
       if(rd.solutionType == PHYSICAL_PSEUDO_DENSITY)
         out[0] = GetPhysicalDesign(NULL);
       else if(rd.solutionType == ELEC_PHYSICAL_PSEUDO_DENSITY || rd.solutionType == LBM_PHYSICAL_PSEUDO_DENSITY)
-        out[0] = GetPhysicalDesign(domain->GetOptimization()->pde);
+        out[0] = GetPhysicalDesign(Optimization::context);
       else
         out[0] = GetValue(rd.value, rd.access);
     }
@@ -599,10 +606,10 @@ double DesignElement::GetDesign() const
   EXCEPTION("use DesignElement::GetDesign(Access)");
 }
 
-double DesignElement::GetPhysicalDesign(const SinglePDE* pde) const
+double DesignElement::GetPhysicalDesign(const Context* ctxt) const
 {
   assert(space_ != NULL);
-  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, pde), true);
+  TransferFunction* tf = space_->GetTransferFunction(type_, TransferFunction::Default(type_, ctxt), true);
 
   // when we have a transformation we want the physical value for the source design
   DesignElement* trans = space_->ApplyTransformations(this, NULL, NULL);
@@ -628,7 +635,7 @@ void DesignElement::ToInfo(PtrParamNode in, TransferFunction* tf, ErsatzMaterial
   {
     in->Get("material")->SetValue(multimaterial->name);
     in->Get("mm_index")->SetValue(multimaterial->index);
-    multimaterial->ToInfo(in, em);
+    multimaterial->ToInfo(in);
   }
 }
 
@@ -1108,12 +1115,12 @@ std::string SIMPElement::ToString(int level) const
 
 inline unsigned int SIMPElement::DetermineFilterIndex() const
 {
-  return Optimization::context.excitation->robust_filter_idx;
+  return Optimization::context->GetExcitation()->robust_filter_idx;
 }
 
 unsigned int SIMPElement::DetermineFilterIndexNonInlined() const
 {
-  return Optimization::context.excitation->robust_filter_idx;
+  return Optimization::context->GetExcitation()->robust_filter_idx;
 }
 
 inline Filter& SIMPElement::DetermineFilter()

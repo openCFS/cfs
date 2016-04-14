@@ -152,6 +152,14 @@ namespace CoupledField
     return true;
   }
 
+  unsigned int HarmonicDriver::GetNumFreq(PtrParamNode node)
+  {
+    if(node->Has("numFreq"))
+      return node->Get("numFreq")->As<unsigned int>();
+    else
+      return node->Get("frequencyList")->GetChildren().GetSize();
+  }
+
   bool HarmonicDriver::ReadParametrizedFrequencies()
   {
     // check for existence

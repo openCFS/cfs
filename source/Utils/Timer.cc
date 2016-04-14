@@ -9,13 +9,15 @@ using posix_time::microsec_clock;
 using posix_time::time_duration;
 using std::string;
 
-Timer::Timer() :
+Timer::Timer(const std::string& name, bool sub) :
   calls_(0),
   running(false),
   start_clock(0),
   start_time(0),
   sum_time(0),
-  sum_clock(0)
+  sum_clock(0),
+  label_(name),
+  sub_(sub)
 {
 }
 
@@ -69,15 +71,18 @@ double Timer::GetCPUTime() const
   return total / (1.0 * CLOCKS_PER_SEC);
 }
 
-
 string Timer::ToXMLFormat(const string& name) const
 {
   std::ostringstream os;
 
   os << "<" << name;
+  if (label_ != "")
+    os << " label=\""<< label_ << "\"";
   os << " wall=\"" << GetWallTime() << "\"";
   os << " cpu=\"" << GetCPUTime() << "\"";
   os << " calls=\"" << calls_ << "\"";
+  if (sub_)
+    os << " sub=\"true\"";
   os << "/>";
 
   return os.str();

@@ -41,8 +41,7 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & mat,
-                UInt numFreq, Double freqShift );
+    void Setup(const BaseMatrix & mat, UInt numFreq, double freqShift, bool sort);
 
     //! Setup routine for a generalized eigenvalue problem
     
@@ -53,9 +52,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & stiffMat,
-                const BaseMatrix & massMat,
-                UInt numFreq, Double freqShift, bool bloch);
+    void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat,
+               UInt numFreq, double freqShift, bool sort, bool bloch);
     
     //! Setup routine for a quadratic eigenvalue problem
     
@@ -68,10 +66,8 @@ namespace CoupledField {
     //! \param freqShift Frequency shift applied to the system
     //! \param shiftMode Flag indicating if shift-and-invert mode of solver
     //!        is used
-    void Setup( const BaseMatrix & stiffMat,
-                const BaseMatrix & massMat,
-                const BaseMatrix & dampMat,
-                UInt numFreq, Double freqShift );
+    void Setup(const BaseMatrix & stiffMat, const BaseMatrix & massMat, const BaseMatrix & dampMat,
+               UInt numFreq, double freqShift, bool sort );
 
 
     //! Solve the linear generalized eigenvalue problem
@@ -104,6 +100,18 @@ namespace CoupledField {
     //! Method for generation of complex matrices from real ones
     void SetupComplexMatrices();
 
+    /** Setup idx_. If not sort_ it is set to match 1:1. But it needs to be called! */
+    void SetupIndex(unsigned int numev);
+
+    /** for SetupIndex */
+    typedef std::pair<double, unsigned int> ev_idx;
+
+    /** for SetupIndex */
+    static bool comperator(const ev_idx& one, const ev_idx& two)
+    {
+      return one.first < two.first;
+    }
+
     /** print setup information */
     void ToInfo();
 
@@ -118,8 +126,6 @@ namespace CoupledField {
     const StdMatrix* matrixB_;
     const StdMatrix* matrixD_;
 
-    //! Pointer to complex matrices
-    const StdMatrix *complexStiff_, *complexMass_, *complexDamp_;
     //! Pointer to complex matrices
     StdMatrix *zStiff_, *zMass_, *zDamp_;
 
@@ -138,11 +144,12 @@ namespace CoupledField {
     //! Flag for shift-and-invert mode
     bool shiftAndInvert_;
     
-    //! Flag for use of logging
-    bool logging_;
-
     //! Character string for 'which' setting of  arpack
-    char * which_;
+    char* which_;
+
+    /** this is the permutation matrix which allows sorting. Always used
+     * and in the non-sorting case set to 0,1,2, ... */
+    StdVector<unsigned int> idx_;
   };
 }
 

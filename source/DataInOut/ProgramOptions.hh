@@ -122,6 +122,9 @@ namespace CoupledField
      * Might get really big!! */
     bool DoExportGrid() const;
 
+    /** shall a .map be created using StdPDE::CreateEquationMapFile() */
+    bool DoEquationMapping() const;
+
     //! Return Restart flag
 
     //! This method can be used to query the status of the restart flag.

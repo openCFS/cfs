@@ -26,13 +26,13 @@ namespace CoupledField
   struct Elem;
   struct ResultInfo;
   class CoefFunctionOpt;
-  class Context;
   struct LocPointMapped;
   class BaseMaterial;
   class BaseOptimizer;
   class BaseResult;
   class SinglePDE;
   struct MultiMaterial;
+  class Context;
 
   /** This is the container of DesingElements which also holds the transferFunctions.
    * It can be initialized by Optimization of can contain the ersatz material stuff. */
@@ -41,12 +41,12 @@ namespace CoupledField
     public:
      /** Constructor for SIMP type Optimization - there we lay on a region which contains also n# elements
       * @param pn we search for design, transferFunction, result and pamping  */
-     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     DesignSpace(StdVector<RegionIdType>& regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      virtual ~DesignSpace();
     
      /** Creates the corresponding DesignSpace object depending on the method */
-     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD, Context* context = NULL);
+     static DesignSpace* CreateInstance(StdVector<RegionIdType> regions, PtrParamNode pn, ErsatzMaterial::Method method = ErsatzMaterial::NO_METHOD);
 
      /** PostInit as usual when not all can be stuffed into the constructor
       * @param objectives the number of objectives
@@ -88,13 +88,18 @@ namespace CoupledField
      template <class T>
      bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, T& retScal, const LocPointMapped* lpm);
 
+     /** Performs the optimization for the scalar case. This
+      * @return true if design and retScal is set */
+     template <class T>
+     bool ApplyPhysicalDesign(shared_ptr<CoefFunctionOpt> coef, Vector<T>& retVec, const LocPointMapped* lpm);
+
      /** This gives the ersatz material factor for an element.
       *  This fulfills the trick, that there might be more transfer function for
       *  a single element -> as in the coupling term of Piezo SIMP.
       * @param design_index use Find(Elem*, bool) to find your index -> is complicated, check it!
       * @param applic finds the real transfer function, see  GetErsatzMaterialFactor(unsigned int, const BaseForm*)
       * @return a good factor or an exception is thrown */
-     double GetErsatzMaterialFactor(unsigned int design_index, Optimization::Application applic, bool forBimaterial = false);
+     double GetErsatzMaterialFactor(unsigned int design_index, App::Type applic, bool forBimaterial = false);
 
      /** assigns the pamping matrix: pamping_ * rho * (1-rho) * M_0. (Sigmund; Morphology; 2007)
       * The mesh is assumed irregular as we have not the ErsatzMaterial::OptimizatioMaterial.
@@ -146,7 +151,7 @@ namespace CoupledField
      /** This gets back a uniquely defined transfer function.
       * @param throw_exception if false NULL is returned when nothing is found!
       * @param use_single when there is only one transfer function, use this one and ignore design and application */
-     TransferFunction* GetTransferFunction(DesignElement::Type design, Optimization::Application application, bool throw_exception = true, bool use_single = false);
+     TransferFunction* GetTransferFunction(DesignElement::Type design, App::Type application, bool throw_exception = true, bool use_single = false);
 
      /** Try to determine the transfer function from the design element uniquely */
      TransferFunction* GetTransferFunction(const DesignElement* de);
@@ -163,10 +168,11 @@ namespace CoupledField
       };
 */
 
-     /**<p>check the optResult_1/2/3 from the optimization/simp/result elementes against
+     /**<p>check the optResult_1/2/3/... from the optimization/simp/result elements against
       * element results in the pde and conditionally add it as store results to the pde.</p>
-      * @param pde in the current implementation a MechPDE */
-     void AppendOptimizationResults(SinglePDE* pde);
+      * @param pde where to checke for store results
+      * @param warn shall an warning be printed if the result is not referred in the pde */
+     void AppendOptimizationResults(SinglePDE* pde, bool warn);
 
      /** <p>Copies the relevant data from the design element to the result such that it can be written
       * to the output (e.g. gid). This is called from the CalcResults() methods of the relevant pdes
@@ -374,7 +380,6 @@ namespace CoupledField
 
        void ToInfo(PtrParamNode node) const;
 
-
      private:
 
        /** the label for the info.xml */
@@ -480,15 +485,12 @@ namespace CoupledField
       * -1 for element numbers with no associated design */
      StdVector<std::pair<int, bool> > elemToDesign;
 
-     /** This transforms FormName (Integrator) to Application -> so the enum is actually Application 
+     /** This transforms FormName (Integrator) to App::Type -> so the enum is actually App::Type 
       * but here int because of circular includes :( */
      Enum<int> applicationForm;
 
      /** We have to know the level set method to map to nodal values */
      BaseOptimizer* optimizer_;
-
-     /** When we do optimization we have a context */
-     Context* context_;
 
      /** are all regions regular.
       * Note, that in the derived design space a irregular grid is assumed! */
@@ -535,7 +537,7 @@ namespace CoupledField
     BaseMaterial* GetMultiMaterial(const MaterialClass mc);
 
     /** for all material classes */
-    void ToInfo(PtrParamNode in, ErsatzMaterial* opt);
+    void ToInfo(PtrParamNode in);
 
     /** material name, to be allow creation on the fly. */
     std::string name;

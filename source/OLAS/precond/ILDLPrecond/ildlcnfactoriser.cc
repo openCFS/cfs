@@ -92,16 +92,9 @@ namespace CoupledField {
           << "ILDLPRECOND_tau parameter" );
     }
  
-    // Shall we be verbose?
-    bool logging = false;
-
     // =================
     //  Report start-up
     // =================
-    if ( logging ) {
-      (*cla) << " + Using ILDLCN variant with tau = " << tau << "\n"
-             << std::endl;
-    }
 
 #ifdef DEBUG_ILDLCNFACTORISER
     (*debug) << " ILDLCNFACTORISER:\n FACTORISE\n" << std::endl;
@@ -152,8 +145,6 @@ namespace CoupledField {
     // Needed for writing progress report of factorisation
     UInt percentDone = 0;
     Double actDone = 0.0;
-    (*cla) << " Factorisation done:\n" << " 0%" << std::flush;
-
 
     // =================
     //  Get matrix data
@@ -262,7 +253,6 @@ namespace CoupledField {
       actDone = (UInt)(actDone/10.0)*10;
       if ( actDone > percentDone ) {
         percentDone = (UInt)actDone;
-        (*cla) << " .. " << percentDone << "%" << std::flush;
       }
 
       // Insert row k of A into linked list, but omit the diagonal entry
@@ -680,12 +670,6 @@ namespace CoupledField {
     // ============
     //   Clean-up
     // ============
-
-    // Finish logging to las-file
-    if ( percentDone < 100 ) {
-      (*cla) << " .. 100%";
-    }
-    (*cla) << std::endl;
 
     delete[] scanList_   ;
     delete[] activeList_ ;

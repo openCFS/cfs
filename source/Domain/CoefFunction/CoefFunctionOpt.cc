@@ -17,12 +17,12 @@ CoefFunctionOpt::CoefFunctionOpt(DesignSpace* design, PtrCoefFct orgMat, SingleP
   isComplex_ = false;
   supportDerivative_ = false;
   dimType_ = orgMat->GetDimType();
-
+  this->direction = DesignElement::NO_DERIVATIVE;
   this->design  = design;
   this->orgMat  = orgMat;
   this->form    = NULL; // can only be set later
   this->state = OPT;
-  this-> subTensor = pde->GetSubTensorType();
+  this->subTensor = pde->GetSubTensorType();
 }
 
 void CoefFunctionOpt::SetToOptimization()
@@ -142,7 +142,37 @@ void CoefFunctionOpt::GetScalar(T& scal, const LocPointMapped& lpm)
     break;
   }
 
-  LOG_DBG3(coef) << "CFO:GT el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << scal;
+  LOG_DBG3(coef) << "CFO:GS el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << scal;
+
+}
+
+template <class T>
+void CoefFunctionOpt::GetVector(Vector<T>& vec, const LocPointMapped& lpm)
+{
+  assert(this->dimType_ == VECTOR);
+  // if no coordinate system is set, just
+   // use internal vector
+  if(coordSys_ != NULL)
+    EXCEPTION("the rotation is not fully finished ':-(\n");
+
+  switch(state)
+  {
+  case DIRECTION:
+  case OPT:
+    // the element does not necessarily lay in the design space!
+    // if ApplyPhysicalDesign() returns true, coefMat is already set
+    if(!design->ApplyPhysicalDesign<T>(shared_from_this(), vec, &lpm))
+      orgMat->GetVector(vec, lpm);
+    break;
+  case ORG:
+    orgMat->GetVector(vec, lpm);
+    break;
+  case SHADOW:
+    shadowMat->GetVector(vec, lpm);
+    break;
+  }
+
+  LOG_DBG3(coef) << "CFO:GV el=" << lpm.ptEl->elemNum  << " state=" << state << " shadow=" << (shadowMat ? "set" : "not set") << " -> " << vec;
 
 }
 

@@ -357,18 +357,11 @@ OPTION(USE_FLANN
   "Enable support for FLANN - Fast Library for Approximate Nearest Neighbors."
   ${USE_FLANN_DEFAULT})
 
-OPTION(DEBUG "Build debug version of the code."
-  ${DEBUG_DEFAULT})
-OPTION(PROFILING "Turn on compiler profiling (DEBUG/RELEASE)."
-  ${PROFILING_DEFAULT})
-OPTION(COVERAGE "Turn on code coverage output."
-  ${COVERAGE_DEFAULT})
-
-OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."
-  ${CFSTOOL_DEFAULT})
-  
-OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."
-  ${CFSDAT_DEFAULT})
+OPTION(DEBUG "Build debug version of the code." ${DEBUG_DEFAULT})
+OPTION(PROFILING "Set profiling compiler options for Release." ${PROFILING_DEFAULT})
+OPTION(COVERAGE "Turn on coverage compier options."  ${COVERAGE_DEFAULT})
+OPTION(CFSTOOL "Build CFS++ converter tool (cfstool)."  ${CFSTOOL_DEFAULT})
+OPTION(CFSDAT "Build CFS++ data analysis tool (cfsdat)."  ${CFSDAT_DEFAULT})
 
 #-----------------------------------------------------------------------------
 # Shall we build ParaView?
@@ -518,25 +511,31 @@ OPTION(BUILD_TESTING "Build the testing tree." ${BUILD_TESTING_DEFAULT})
 
 IF(BUILD_TESTING)
   SET(BUILDNAME
-    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CFS_CXX_COMPILER_VER} ")
-  SET(BUILDNAME
-    "${BUILDNAME} ${CMAKE_BUILD_TYPE}"
+    "${CFS_ARCH_STR} ${CFS_CXX_COMPILER_NAME} ${CFS_CXX_COMPILER_VER} ${CMAKE_BUILD_TYPE}"
     CACHE STRING "Name of build on the dashboard")
   MARK_AS_ADVANCED(BUILDNAME)
 
   #---------------------------------------------------------------------------
   # Include CMake module for testing support
+  # This adds the option BUILD_TESTING again! -> BUILD_TESTING overwritten?
   #---------------------------------------------------------------------------
   INCLUDE(CTest)
 ENDIF(BUILD_TESTING)
 
 #-----------------------------------------------------------------------------
-# Enables visualization tests for matviz.py
+# Enables testsuite for matviz.py used be the optimization group
 #-----------------------------------------------------------------------------
-OPTION(MATVIZ_TESTS
-  "Adds visualization tests for matviz.py to the test-cases" ${MATVIZ_TESTS_DEFAULT})
+OPTION(MATVIZ_TESTS "Adds visualization tests for matviz.py to the test-cases")
+  
+#-----------------------------------------------------------------------------
+# Switch on/off usage of intel optimization report
+#-----------------------------------------------------------------------------
+OPTION(INTEL_OPT_REPORT "Tells Intel compiler to print out additional information on code optimization during compiler time" ${INTEL_OPT_REPORT_DEFAULT})
+
+# The performance tests are meant for the nightly builds. For some strange reasons
+# PERFORMANCE_TESTS doesn't work as it statys always OFF in the test suite?? 
+OPTION(PERF_TESTS "Add performance tests to the test-cases")
+
 
 #-----------------------------------------------------------------------------
 # Set proper paths to development servers in testing readme.

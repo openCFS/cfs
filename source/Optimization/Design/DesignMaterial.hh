@@ -11,6 +11,7 @@
 #include "General/Environment.hh"
 #include "Optimization/OptimizationMaterial.hh"
 #include "MatVec/Matrix.hh"
+#include "def_use_sgpp.hh"
 
 #ifdef USE_SGPP
 #include "sgpp/base/grid/Grid.hpp"
@@ -50,6 +51,9 @@ class TransferFunction;
     
     /** Material notation. Only for FMO we assume the design to be Hill-Mandel, in LinElastInt we use Voigt. The CFS-B-operator is also Voigt, _NO_DENSITY sets topology variable to 1 in simultaneous material and top. opt. */
     typedef enum { VOIGT, HILL_MANDEL, HILL_MANDEL_NO_DENSITY } Notation;
+
+    /** Method used for interpolation of material tensor and volume */
+    typedef enum { NOTYPE=-1, C1, SG, FULL_BSPLINE } Interpolation;
 
     /** constructor, reads in DesignMaterial from XML
      * @param pn pointer to PtrParamNode */ 
@@ -114,6 +118,9 @@ class TransferFunction;
 
     const Elem* current_elem;
 
+    double CalcHomVolume(Vector<double>& p, DesignElement::Type direction, bool derivative);
+
+    Interpolation GetInterpolationMethod() const { return interpolation_; };
 
   protected:
 
@@ -346,6 +353,8 @@ class TransferFunction;
        * @param vector p has the values of the design variable */
     void ApplyHomRectFullBsplineTensor(Matrix<double>& E, Vector<double>& p, DesignElement::Type direction, SubTensorType subTensor) const;
 
+    void EvaluateFullGrid();
+
     /** Fill sparse grid with data values*/
     void FillSparseGridWithFullGridData(Matrix<double>& data);
     void FillSparseGridWithSparseGridData(Matrix<double>& data);
@@ -357,7 +366,7 @@ class TransferFunction;
     /** evaluates the derivative of the sgpp interpolation at point point in direction direction*/
     double EvaluateSGPPInterpolation_Deriv(SGPP::base::OperationEval* opEval, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
     double EvaluateSGPPInterpolation_Deriv_Exact(SGPP::base::OperationNaiveEvalPartialDerivative* opEvalPartDeriv, SGPP::base::DataVector& alpha, SGPP::base::DataVector& point, DesignElement::Type direction) const;
-#endif
+#endif //USE_SGPP
 
     /** sampled values for a single hom-rect 9-element by the number of shape function. Notation is Hill-Mandel!
      * 9 rows and 6 columns for with TENSOR11 being the first */
@@ -410,7 +419,7 @@ class TransferFunction;
     /** only for ROTATION to get OptimizationMaterial */
     ErsatzMaterial* em_;
 
-    enum Interpolation { C1, SGPP, FULL_BSPLINE } interpolation_;
+    Interpolation interpolation_;
     unsigned int level_;
 
 #ifdef USE_SGPP
@@ -423,6 +432,7 @@ class TransferFunction;
     SGPP::base::DataVector alpha4_;
     SGPP::base::DataVector alpha5_;
     SGPP::base::DataVector alpha6_;
+    SGPP::base::DataVector volume_;
     Matrix<double> full_bspline_coeff11_;
     Matrix<double> full_bspline_coeff12_;
     Matrix<double> full_bspline_coeff13_;

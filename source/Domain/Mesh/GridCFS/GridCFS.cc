@@ -40,6 +40,8 @@ namespace CoupledField {
     edgesMapped_ = false;
     facesMapped_ = false;
     maxNumElemNodes_ = 0;
+    mapNodeToElems_.Resize(GetNumNodes()+1);
+    mappedNodeToElems_ = false;
   }
 
 
@@ -55,7 +57,6 @@ namespace CoupledField {
     }
     orderedElems_.Clear();
   }
-
 
   void GridCFS::CreateUserDefinedNodesElems() {
 
@@ -77,7 +78,7 @@ namespace CoupledField {
         listNode = param_->Get("domain")->Get("nodeList", ParamNode::PASS);
         isNode = true;
       } else {
-        // iterate over nodes
+        // iterate over elements
         listNode = param_->Get("domain")->Get("elemList", ParamNode::PASS);
         isNode = false;
       }
@@ -89,6 +90,17 @@ namespace CoupledField {
 
           // fetch name of nodes to be selected
           nodes[i]->GetValue("name", name);
+
+          //check if named nodes are defined by specifying a region
+          if (nodes[i]->Has("allNodesInRegion")) {
+            std::string regName;
+            nodes[i]->Get("allNodesInRegion")->GetValue("regName",regName);
+            RegionIdType regId = region_.Parse(regName);
+
+            StdVector<UInt> nodesInRegion;
+            GetNodesByRegion(nodesInRegion,regId);
+            AddNamedNodes(name,nodesInRegion);
+          }
 
           // check if node is defined by point coord
           PtrParamNode coordNode = nodes[i]->Get("coord", ParamNode::PASS );
@@ -1145,9 +1157,7 @@ namespace CoupledField {
 
   }
 
-  void GridCFS::
-  CreateGridInformation( ResultHandler* ptRes,
-                         std::map<std::string, CoordSystem*>& coordSysMap ) {
+  void GridCFS::CreateGridInformation( ResultHandler* ptRes,std::map<std::string, CoordSystem*>& coordSysMap ) {
     
     // This method crates a "dummy" multisequence step, in
     // which some grid-information results are created:
@@ -2688,6 +2698,30 @@ namespace CoupledField {
       return false;
     }
 
+  }
+
+  void GridCFS::SetNodesToElemsMap()
+  {
+    if (mappedNodeToElems_)
+      return;
+
+    mapNodeToElems_.Resize(GetNumNodes()+1);
+    int maxNeighbors = dim_ == 2 ? 4 : 8;
+    for (int n = 0, nNodes = mapNodeToElems_.GetSize(); n < nNodes; n++) {
+      mapNodeToElems_[n].Reserve(maxNeighbors);
+    }
+    // traverse all elements
+    for(unsigned int e = 0; e < numElems_; e++)
+    {
+      Elem* elem = orderedElems_[e];
+      // add this elem to every node that it is connected with
+      for(unsigned int n = 0, nn = elem->connect.GetSize(); n < nn; n++) {
+        if (!mapNodeToElems_[elem->connect[n]].Contains(elem))
+        mapNodeToElems_[elem->connect[n]].Push_back(elem);
+      }
+    }
+
+    mappedNodeToElems_ = true;
   }
 
   // =======================================================================

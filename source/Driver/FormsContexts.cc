@@ -200,7 +200,7 @@ namespace CoupledField {
   {
     std::ostringstream os;
     os << "integrator: " << integrator_->GetName() 
-       << " pde: " << ptPde_->GetName();
+       << " pde: " << ptPde_->GetName() << " at=" <<BasePDE::analysisType.ToString(ptPde_->GetAnalysisType());
 
     return os.str(); 
   }

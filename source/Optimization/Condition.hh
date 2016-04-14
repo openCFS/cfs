@@ -94,10 +94,10 @@ namespace CoupledField
 
        /** This is a nice statement for output which adds delta_logging and details for result output.
         * Contains the virtual element for slope */
-       virtual std::string ToString(MultipleExcitation* me = NULL) const;
+       virtual std::string ToString() const;
 
        /** log to info.xml. Overloads Function::ToInfo() */
-       void ToInfo(PtrParamNode in, MultipleExcitation* me);
+       void ToInfo(PtrParamNode in);
        
        /** Shall the scaling be linked to the objective scaling */
        bool DoObjectiveScaling() const { return objective_scaling_; }
@@ -111,6 +111,9 @@ namespace CoupledField
 
        /** Is it a constraint on the permeability? */
        bool IsBiisotropy() const { return biisotropy_; }
+
+       /** When we do bloch, do we full bloch for all wave vectors? */
+       bool DoFullBloch() const { return !bloch_extremal_; }
 
        // int GetFMOPosDefMinor() const { return fmo_pos_def_minor_; }
 
@@ -148,6 +151,9 @@ namespace CoupledField
        /** For design tracking, this are the elements we have to track. Function::elements is resized accordingly!
         * The vector is empty when we do not do design tracking */
        StdVector<double> pattern;
+
+       /** for bloch eigenvalues which are extremal (searched and not full) */
+       EigenInfo bloch;
 
        static double SLACK_VALUE;
        static double ALPHA_MINUS_SLACK_VALUE;
@@ -191,16 +197,12 @@ namespace CoupledField
        * Set by AppendSubCondition() */
       bool blown_up_;
 
-
       /** This is only needed for biisotropy constraints, meaning that both permittitvity and permeability shall be isotropic
-       *  biisotropy == true indicates isotropy constraints on the permeability
-       */
+       *  biisotropy == true indicates isotropy constraints on the permeability  */
       bool biisotropy_;
 
-
       /** Information if the constraint is set for the imaginary part
-       *  default=false
-       */
+       *  default=false  */
       bool imag_;
 
       /** this is the virtual base index of this condition w.r.t. all conditions.
@@ -231,6 +233,9 @@ namespace CoupledField
 
       /** for bloch mode each constraint is multiplied by wave vector which corresponds to excitation */
       static void AddBlochEigenConstraints(StdVector<Condition*>& list, MultipleExcitation* me);
+
+      /** In the bloch case shall we have a constraint for every wave vector or search for the extremal */
+      bool bloch_extremal_;
 
    };
 
@@ -408,7 +413,7 @@ namespace CoupledField
 
      /** Log the head information. The InfoNode is stored such that PostProc can do the info output
       * if already set. */
-     void ToInfo(PtrParamNode in, MultipleExcitation* me);
+     void ToInfo(PtrParamNode in);
 
      /** Searches in active constraints or all constraints !
       *  @param design NO_TYPE ignores this criteria. DEFAULT would be problematic for

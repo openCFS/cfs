@@ -1440,9 +1440,6 @@ namespace CoupledField {
     // Check, if we must do anything at all
     if ( newLayout != currentLayout_ ) {
 
-      // Store current layout for preparing final report
-      subFormat oldLayout = currentLayout_;
-
 #ifdef DEBUG_CRS_MATRIX
       (*debug) << " Old format:\n";
       Print( *debug );
@@ -1557,12 +1554,6 @@ namespace CoupledField {
         EXCEPTION( "Congratulations! You have found a missing case "
                  << "implementation!" );
       }
-
-      // Report to standard report file
-      (*cla) << " CRS_Matrix: Changed sub-format from '"
-             << Enum2String( oldLayout )
-             << "' to '"
-             << Enum2String( currentLayout_ ) << "'" << std::endl;
     }
   }
 

@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -100,7 +101,7 @@
                            </xsd:restriction>
                         </xsd:simpleType>
                       </xsd:attribute>
-                      
+                      <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1"/>
                     </xsd:complexType>
                   </xsd:element>
                 </xsd:sequence>
@@ -126,6 +127,14 @@
               </xsd:complexType>
             </xsd:element>
             
+            <!-- specifies the gap cost function. Band gap maximization based on bloch eigenfrequencies -->
+            <xsd:element name="bandgap" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:attribute name="lower_ev" type="xsd:positiveInteger" use="required" />
+                <xsd:attribute name="upper_ev" type="xsd:positiveInteger" use="required" />
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="trackings" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
@@ -145,13 +154,14 @@
               </xsd:complexType>
             </xsd:element>
 
-           <!-- <multipleExcitation type="fixed_weights/meta_objective"> 
+           <!-- <multipleExcitation type="fixed_weights/meta_objective/homogenizationTestStrains"> 
                   <metaObjective type="best_value"/> 
                   <adjustWeights stride="1" max_gain="1e4"/> 
-               </multipleExcitation> -->
+               </multipleExcitation> 
+               Extend if your really have ME for more than one sequence-->
             <xsd:element name="multipleExcitation" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
-                <xsd:all>
+                <xsd:sequence>
                   <xsd:element name="metaObjective" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:attribute name="type" default="best_objective" use="optional">
@@ -171,7 +181,7 @@
                     </xsd:complexType>
                   </xsd:element>
                   <!-- The excitions need only to be given explicitly if
-               one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
+                       one does not want to derive   them from the pdd loads (force, ...) and/or if one wants to prove weights -->                  
                   <xsd:element name="excitations" minOccurs="0" maxOccurs="1">
                     <xsd:complexType>
                       <xsd:sequence>
@@ -198,7 +208,18 @@
                       </xsd:sequence>
                     </xsd:complexType>
                   </xsd:element>
-                </xsd:all>
+                  <!-- when we have multi sequence and we have robust filters we require to set these elements
+                      for every sequence to set robustness for the sequence -->
+                  <xsd:element name="robust" minOccurs="0" maxOccurs="unbounded">
+                     <xsd:complexType>
+                        <!--  the sequence 1,2,... must be unique -->
+                        <xsd:attribute name="sequence" type="xsd:positiveInteger" use="required"/>
+                        <xsd:attribute name="enable" type="xsd:boolean" use="required"/>
+                        <!-- when (and only when) disabled we need to give the filer (excitation_idx) for the physical simulation -->
+                        <xsd:attribute name="filter" type="xsd:nonNegativeInteger" use="optional"/>
+                     </xsd:complexType>
+                  </xsd:element>
+                </xsd:sequence>
                 <xsd:attribute name="type" default="fixed_weights" use="optional">
                   <xsd:simpleType>
                     <xsd:restriction base="xsd:token">
@@ -209,7 +230,9 @@
                   </xsd:simpleType>
                 </xsd:attribute>
                 <!-- we might have excitations of excitations. transformation is a possible outer loop -->
-                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>  
+                <xsd:attribute name="do_transform" type="xsd:boolean" use="optional" default="false"/>
+                <!--  for the multi sequence case we may need to assign the sequence (e.g. which one to homogenize). -->
+                <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1"/>
               </xsd:complexType>
             </xsd:element>
             
@@ -265,26 +288,26 @@
 
           <!-- switching linear/nonliear makes an effect for feasPP and snopt -->
           <xsd:attribute name="linear" use="optional" type="xsd:boolean"/>
+          
+          <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
+          <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
+          
         </xsd:complexType>
       </xsd:element>
       
       
       <!-- bewtween the costFunction and the constraints we might define properties for eigenvalue optimizaton -->
-      <xsd:element name="eigenvalue" minOccurs="0" maxOccurs="1">
-        <xsd:complexType>
-          <xsd:sequence>
-            <xsd:annotation>
-              <xsd:documentation>To deal with mode setting, this block allows sorting of the eigenvector (modes) corresponding to multiple eigenvalues</xsd:documentation>
-            </xsd:annotation>
-            <xsd:element name="sort" minOccurs="0" maxOccurs="1">
-              <xsd:complexType>
-                <!-- the closeness of eigenvalues for consdiering mode switching -->
-                <xsd:attribute name="tol" type="xsd:float" default="1e-4" use="optional"/>
-              </xsd:complexType>
-            </xsd:element>
-          </xsd:sequence>
-        </xsd:complexType>
-      </xsd:element> 
+<!--       <xsd:element name="eigenvalue" minOccurs="0" maxOccurs="1"> -->
+<!--         <xsd:complexType> -->
+<!--           <xsd:sequence> -->
+<!--             <xsd:element name="bloch" minOccurs="0" maxOccurs="1"> -->
+<!--               <xsd:complexType> -->
+<!--                 <xsd:attribute name=""></xsd:attribute> -->
+<!--               </xsd:complexType> -->
+<!--             </xsd:element> -->
+<!--           </xsd:sequence> -->
+<!--         </xsd:complexType> -->
+<!--       </xsd:element>  -->
       
       
       <!-- constraint: e.g. <constraint type="volume" value="0.5"/> optional -->
@@ -385,6 +408,11 @@
                 <xsd:enumeration value="shape_inf"/>
                 <!-- eigenvalue problem scaled for resonance frequency, where number of of the mode is in attribute ev -->
                 <xsd:enumeration value="eigenfrequency"/>
+                <!-- expression like value smaller alpha+/-slack to be extended via mathparser -->
+                <!-- heat energy -->
+                <xsd:enumeration value="heatEnergy"/>
+                <!-- pressure drop of fluidic system -->
+                <xsd:enumeration value="pressureDrop"/>
               </xsd:restriction>
             </xsd:simpleType>
           </xsd:attribute>
@@ -482,6 +510,20 @@
           
           <!--  The number of the eigenvalue starting from 1, must not be larger than numModes in the eigenfrequency analysis -->
           <xsd:attribute name="ev" type="xsd:positiveInteger" use="optional" />
+          
+          <!-- only if we do bloch mode eigenvalue optimzation. Shall we have a constraint for every wave vector k or search for the extremal (min, max).
+          No default, we enforca a choice -->
+          <xsd:attribute name="bloch" use="optional">
+            <xsd:simpleType>
+              <xsd:restriction base="xsd:token">
+                <xsd:enumeration value="full"/>
+                <xsd:enumeration value="extremal"/>
+              </xsd:restriction>
+            </xsd:simpleType>
+          </xsd:attribute>
+          
+          <!-- for multiple sequence optimization the corresponding 1-based sequence step from the simulation -->
+          <xsd:attribute name="sequence" type="xsd:positiveInteger" use="optional" default="1" />
           
         </xsd:complexType>
         
@@ -899,12 +941,34 @@
               </xsd:complexType>
             </xsd:element>
             
+            <xsd:element name="materials" minOccurs="0" maxOccurs="1">
+              <xsd:complexType>
+                <xsd:sequence>
+                  <xsd:element name="material" minOccurs="0" maxOccurs="unbounded">
+                    <xsd:complexType>
+                      <xsd:attribute name="type" use="required" type="xsd:token"/>
+                      <xsd:attribute name="sequence" use="required" type="xsd:nonNegativeInteger"/>
+                    </xsd:complexType>              
+                  </xsd:element>
+                </xsd:sequence>
+              </xsd:complexType>
+            </xsd:element>
+            
             <xsd:element name="filters" minOccurs="0" maxOccurs="1">
               <xsd:complexType>
                 <xsd:sequence>
                   <!-- every regularization needs to define the type explicitly -->
                    <xsd:element name="filter" minOccurs="1" maxOccurs="unbounded" type="DT_Filter" />
                 </xsd:sequence>
+                <!-- enable checks for periodic B.C. of the pde -->
+	              <xsd:attribute name="periodic" use="optional" default="enable">
+		              <xsd:simpleType>
+			               <xsd:restriction base="xsd:token">
+				               <xsd:enumeration value="enable" />
+				               <xsd:enumeration value="disable" />
+			               </xsd:restriction>
+		              </xsd:simpleType>
+	              </xsd:attribute>
               </xsd:complexType>
            </xsd:element>                 
             
@@ -1427,6 +1491,7 @@
           <xsd:enumeration value="chargeDensity"/>                    
           <xsd:enumeration value="stress"/>
           <xsd:enumeration value="lbm"/>
+          <xsd:enumeration value="heat"/>
         </xsd:restriction>
       </xsd:simpleType>
     </xsd:attribute>
@@ -1510,6 +1575,7 @@
       <xsd:enumeration value="rotAngleX"/>
       <xsd:enumeration value="rotAngleY"/>
       <xsd:enumeration value="rotAngleZ"/>
+<!--       <xsd:enumeration value="heat_dummy"/> -->
       <xsd:enumeration value="lowerEigenBound"/> <!-- This is used as lower Eigenvalue bound in "(density-times-)orthotropic" formulations -->
       <!-- multimaterial requies the material attribute -->
       <xsd:enumeration value="multimaterial"/>
@@ -1553,11 +1619,14 @@
       <!-- The stress density is divided by the element volume and corresponds to density=true in the stress results -->
       <xsd:enumeration value="stressDensity"/>
       <!-- Pressure drop for the external LBM solver -->
-      <xsd:enumeration value="pressureDrop"/>      
+      <xsd:enumeration value="pressureDrop"/>
+      <!-- Heat energy for heat pde -->
+      <xsd:enumeration value="heatEnergy"/>
       <xsd:enumeration value="multiObjective"/>
       <!-- allows constraints to be bounded by slack -->
       <xsd:enumeration value="slack"/>
-
+      <!-- band gap. Requires child element gap -->
+      <xsd:enumeration value="bandgap"/>
     </xsd:restriction>
   </xsd:simpleType>
 

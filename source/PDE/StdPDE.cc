@@ -8,6 +8,7 @@
 #include "MatVec/generatematvec.hh"
 #include "Driver/SolveSteps/StdSolveStep.hh"
 #include "Driver/TransientDriver.hh"
+#include "Driver/MultiSequenceDriver.hh"
 
 #include "Domain/Domain.hh"
 #include "Domain/CoordinateSystems/CoordSystem.hh"
@@ -38,9 +39,13 @@ namespace CoupledField {
     nonLinMaterial_(false),
     nonLinTotalFormulation_(false),
     isHysteresis_(false),
+    matDepend_(false),
+    nonLinMethod_(FIXEDPOINT),
+    pdematerialclass_(NO_CLASS),
     isIterCoupled_(false),
     diagMass_(false),
     needsAlgsys_(true),
+    analysistype_(BasePDE::NO_ANALYSIS),
     isAlwaysStatic_(false),
     dim_(ptGrid_->GetDim()), 
     isaxi_(ptGrid_->IsAxi()),
@@ -252,16 +257,45 @@ namespace CoupledField {
     fncIt= feFunctions_.begin();
     while(fncIt != feFunctions_.end()){
       fncIt->second->SetSystem(algsys_);
-      // Print equation information
-      //fncIt->second->GetFeSpace()->PrintEqnMap();
       fncIt++;
     }
 
-    //exit(0);
+    if(progOpts->DoEquationMapping())
+      CreateEquationMapFile();
+
     // Trigger writing of info file
-    myInfo_->GetRoot()->ToFile("", true );
+    myInfo_->GetRoot()->ToFile(true);
 
   }
+
+   void StdPDE::CreateEquationMapFile()
+   {
+     // to be called after DefineAlgSys()
+
+     std::string name =progOpts->GetSimName();
+
+     if(domain->GetMultiSequenceDriver() != NULL)
+       name += "_sequence_" + boost::lexical_cast<std::string>(domain->GetMultiSequenceDriver()->GetActSequenceStep());
+
+     if(domain->GetSinglePDEs().GetSize() > 1)
+       name += "_" + GetName(); // in case of more than one pde name it
+
+     name += ".map";
+
+     std::ofstream* out = new std::ofstream(name.c_str());
+     if(out == NULL)
+       throw Exception("cannot open equation mapping file " + name + " for writing");
+
+     std::map<SolutionType, shared_ptr<BaseFeFunction> >::iterator fncIt= feFunctions_.begin();
+     fncIt= feFunctions_.begin();
+     while(fncIt != feFunctions_.end()){
+       // Print equation information
+       fncIt->second->GetFeSpace()->PrintEqnMap(out);
+       fncIt++;
+     }
+     out->close();
+     delete out;
+   }
 
   BaseSolveStep * StdPDE::GetSolveStep()
   {

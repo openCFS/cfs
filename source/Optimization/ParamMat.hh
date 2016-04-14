@@ -27,29 +27,26 @@ class TransferFunction;
      * @param de the current DesignElement (this provides the element as well as the direction)
      * @param app is ignored
      * @param outn pointer where the matrix should be stored */
-    virtual void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0)
+    virtual void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, bool derivative, CalcMode calcMode = STANDARD, double ev = -1.0)
     {
-      if(complex_)
+      if(ctxt->IsComplex())
       {
-        if(material->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
-          SetElementK<Complex, Complex >(de, tf, app, mat_out, derivative, calcMode, ev);
+        if(ctxt->mat->ComplexElementMatrix(de->elem->regionId)) // handles also bloch which real material but complex BOp
+          SetElementK<Complex, Complex >(ctxt, de, tf, app, mat_out, derivative, calcMode, ev);
         else
-          SetElementK<Complex, double >(de, tf, app, mat_out, derivative, calcMode, ev);
+          SetElementK<Complex, double >(ctxt, de, tf, app, mat_out, derivative, calcMode, ev);
       }
       else
-        SetElementK<double,double>(de, tf, app, mat_out, derivative, calcMode, ev);
+        SetElementK<double,double>(ctxt, de, tf, app, mat_out, derivative, calcMode, ev);
     }
     
-    virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, Application app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
-
-    /** this is a shortcut to the material class */
-    MechMat* mech_mat_;
+    virtual void SetElementKMapping(DesignElement* de, BaseDesignElement::Type type, const TransferFunction* tf, App::Type app, DenseMatrix* mat_out, CalcMode calcMode, bool derivative);
 
     /** see the SIMP case
      * T1 is the out matrix type
      * T2 is the element matrix type */
     template <class T1, class T2>
-    void SetElementK(DesignElement* de, const TransferFunction* tf, Application app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
+    void SetElementK(Context* ctxt, DesignElement* de, const TransferFunction* tf, App::Type app, DenseMatrix* out, bool derivative = true, CalcMode mode = STANDARD, double ev = -1.0);
 
   };
 
