@@ -786,7 +786,6 @@ string Condition::ToString(const StdVector<boost::tuple<int, int, double> >& coo
 void Condition::ToInfo(PtrParamNode in)
 {
   Function::ToInfo(in);
-  in->Get("name")->SetValue(ToString(me));
 
   in->Get("name")->SetValue(ToString());
 
