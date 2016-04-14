@@ -216,7 +216,7 @@ def perform(args, h5_read, dim_2D, tensor, centers, aux_code, force_scale=None,n
             print 'Robot is calculated!'
           else:
             valid_position = None
-            print 'No type for valid_position was selected!'
+            print 'Warning: No type for valid_position was selected!'
           if args.hom_grad == 'none':
             print 'for hom_rect in 3D with hom_samples you need to specify hom_grad'
             exit()
