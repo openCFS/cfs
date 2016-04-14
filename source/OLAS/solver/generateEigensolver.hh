@@ -5,7 +5,7 @@
 #include "General/defs.hh"
 #include "DataInOut/ParamHandling/ParamNode.hh"
 
-//! \file generateEigenSolver.hh
+//! \file generateEigensolver.hh
 //! This module handles generation of Eigen solver objects. It is also
 //! responsible for the instantiation of the templated Eigen solvers.
 

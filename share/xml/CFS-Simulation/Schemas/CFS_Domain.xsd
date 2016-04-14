@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
   targetNamespace="http://www.cfs++.org"
   xmlns="http://www.cfs++.org"
@@ -255,6 +256,11 @@
   <!--  ********************************************************************  -->
   <xsd:complexType name="DT_DomainEntSelect">
     <xsd:choice minOccurs="0" maxOccurs="1">
+      <xsd:element name="allNodesInRegion">
+        <xsd:complexType>
+          <xsd:attribute name="regName" type="xsd:token" use="required"/>
+        </xsd:complexType>
+      </xsd:element>
       <!-- pair of coordinates -->
       <xsd:element name="coord">
         <xsd:complexType>

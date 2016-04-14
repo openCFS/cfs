@@ -27,6 +27,7 @@ namespace CoupledField {
     precond_ = NULL;
     solver_ = NULL;
     diagScale_ = 1.0;
+    useStiffInNMat_ = false;
   }
 
   ArpackMatInterface::ArpackMatInterface( const BaseMatrix * matA, 
@@ -46,6 +47,8 @@ namespace CoupledField {
     precond_ = NULL;
     solver_ = NULL;
     diagScale_ = 1.0;
+    useStiffInNMat_ = false;
+
   }
 
   ArpackMatInterface::ArpackMatInterface( BaseMatrix * matA, 
@@ -61,7 +64,6 @@ namespace CoupledField {
     shift_   = shift*8.0*atan(1.0);
     size_    = 2*matA->GetNumRows();
     shiftAndInvert_ = shiftMode;
-    // useStiffInNMat_ = true;
     useStiffInNMat_ = false;
     isGeneralized_ = true;
     precond_ = NULL;
@@ -151,7 +153,6 @@ namespace CoupledField {
     matrixC_->Add( 1.0, matD );
     matrixC_->Scale( shift_ );
     matrixC_->Add( 1.0, matA );
-    // matrixC_->Print(*cla); 
 
     // set diagonal scaling entry (hard coded = 1)
     diagScale_ = 1.0;

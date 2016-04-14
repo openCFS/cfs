@@ -149,6 +149,7 @@ namespace CoupledField {
     //! value is based upon the stored entry type. In the case of block entries
     //! the latter are counted and the number of entries on the scalar level
     //! will actually be higher depending on the block size.
+    //! Also for symmetric storage - GetNumEntries() give the right number of elements!
     UInt GetNnz() const {
       return nnz_;
     }

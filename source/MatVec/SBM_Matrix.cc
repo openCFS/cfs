@@ -613,7 +613,7 @@ namespace CoupledField {
         // construct file name
         if(ncols_ > 1 || nrows_ > 1)
           ss << fname << '_' << i << '_' << j;
-        outFile = fname + ss.str();
+        outFile =  fname + ss.str();
 
         // export sub-matrix
         if ( subMat_[ComputeIndex(i,j)] != NULL ) {

@@ -104,8 +104,7 @@ namespace CoupledField {
     // get id for linear system
     std::string systemId = myParam_->Get("systemId")->As<std::string>();
     
-    PtrParamNode ls = myParam_->GetParent()
-        ->GetParent()->Get("linearSystems",ParamNode::INSERT);
+    PtrParamNode ls = myParam_->GetParent()->GetParent()->Get("linearSystems",ParamNode::INSERT);
     olasNode_ = ls->GetByVal("system", "id", systemId, ParamNode::INSERT);
     
   }
@@ -166,6 +165,13 @@ namespace CoupledField {
       delete inputIt->second;
     }
 
+  }
+
+  std::string SinglePDE::ToString() const
+  {
+    std::stringstream ss;
+    ss << pdename_ << " s=" << sequenceStep_ << " at=" << BasePDE::analysisType.ToString(analysistype_);
+    return ss.str();
   }
 
 
@@ -397,7 +403,9 @@ namespace CoupledField {
       
       // pass regions of primary function also RHS one
       StdVector< shared_ptr<EntityList> > support =  actFct->GetEntityList();
+      LOG_DBG(singlepde) << "IS3: support=" << support.GetSize();
       for( UInt i = 0; i < support.GetSize(); ++i ) {
+        LOG_DBG3(singlepde) << "IS3: support[" << i << "]=" << support[i]->GetName() << " size=" << support[i]->GetSize();
         rhsFeFunctions_[fncIt->first]->AddEntityList( support[i] );
       }
 

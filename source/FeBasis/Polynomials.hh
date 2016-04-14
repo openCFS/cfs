@@ -3,7 +3,8 @@
 
 namespace CoupledField {
 
-  //! \file Define different types of hierarchic Polynomials
+  //! \file Polynomials.hh
+  //! \brief {Define different types of hierarchic Polynomials}
   
 
 // ========================================================================

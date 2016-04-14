@@ -53,6 +53,7 @@ DesignStructure::DesignStructure(ErsatzMaterial* em)
   this->regions = em->GetDesign()->GetRegionIds();
   this->em = em;
   this->grid = domain->GetGrid();
+
   Constructor();
 }
 
@@ -63,12 +64,13 @@ void DesignStructure::Constructor()
 
   this->dim  = grid->GetDim();
 
-  periodic = domain->HasPerdiodicBC();
+  bool enable = domain->GetParamRoot()->Has("optimization/ersatzMaterial/filters/periodic") ?
+      domain->GetParamRoot()->Get("optimization/ersatzMaterial/filters/periodic")->As<bool>() : true;
+  periodic_ = enable & domain->HasPerdiodicBC();
 
   filter_space_ = NO_FILTER;
 
   value  = -1.0;
-
 }
 
 
@@ -77,7 +79,7 @@ void DesignStructure::Initialize()
   // save to be called multiple times. Has all neighbors and the number of common nodes
   grid->FindElementNeighorhood();
 
-  // we will need the barycenters in FindNeibhborhood()
+  // we will need the barycenters in FindNeighborhood()
   for(unsigned int i = 0; i < regions.GetSize(); i++)
     grid->SetElementBarycenters(regions[i], false); // no updated coordinates
   // Handle also the off-design barycenters
@@ -88,7 +90,7 @@ void DesignStructure::Initialize()
   // can we assume all elements within all regions to be similar?
   regular = grid->IsRegionRegular(regions);
 
-  if(periodic)
+  if(periodic_)
   {
     SetPeriodicConstraintMapping();
     SetNodeElemMapping();
@@ -97,7 +99,7 @@ void DesignStructure::Initialize()
       dimension[r] = bb[r][1] - bb[r][0];
   }
 
-  LOG_DBG2(ds) << "I: regular=" << regular << " periodic=" << periodic << " dimension=" << dimension.ToString();
+  LOG_DBG2(ds) << "I: regular=" << regular << " periodic=" << periodic_ << " dimension=" << dimension.ToString();
 
   initialized_ = true;
 }
@@ -178,6 +180,8 @@ void DesignStructure::SetFilter(PtrParamNode pn, PtrParamNode info)
     ref.SetNonLinCorrection(&data[space->FindDesign(design) * space->GetNumberOfElements()], 0); // further robust filter might already be set
   }
 
+
+  info->Get(ParamNode::HEADER)->Get("filters/periodic")->SetValue(periodic_);
   PtrParamNode in = info->Get(ParamNode::HEADER)->Get("filters")->Get("filter", ParamNode::APPEND);
 
   // do we have to do something?
@@ -289,8 +293,8 @@ void DesignStructure::WriteFilterInfo(PtrParamNode pn, PtrParamNode in, const Fi
       in->Get(ParamNode::WARNING)->SetValue("'volume' constraint shall be non-linear due to non-linear filter");
   }
 
-  if(periodic)
-   in->Get("periodic")->SetValue(periodic);
+  if(periodic_)
+   in->Get("periodic")->SetValue(periodic_);
 
   in->Get("design")->SetValue(DesignElement::type.ToString(design));
 
@@ -401,7 +405,7 @@ DesignElement* DesignStructure::GetNeighborElement(DesignElement* base, unsigned
     }
     else {
       // with periodic b.c. we shall always have a neighbor! - but only if the full domain is design domain
-      assert(!periodic || domain->GetGrid()->GetNumRegions() > space->design.GetSize());
+      assert(!periodic_ || domain->GetGrid()->GetNumRegions() > space->design.GetSize());
       return NULL;
     }
   }
@@ -423,7 +427,7 @@ void DesignStructure::FindUnstructuredNeighborhood(DesignElement* base, double r
   Filter& filter = base->simp->filter[0];
   double val_rad = filter.sensitivity_ == Filter::SHARP_PLAIN || filter.sensitivity_ == Filter::SHARP_SIGMUND ? value : radius;
 
-  assert(!periodic); // only regular may be periodic!!
+  assert(!periodic_); // only regular may be periodic!!
 
     // the idea is as follows:
   // * We assume non regular grid.
@@ -491,7 +495,7 @@ double DesignStructure::RelaxedDistance(const Elem* base, const Elem* test) cons
 
   double dist = bb.Dist(tb);
 
-  if(!periodic)
+  if(!periodic_)
   {
     LOG_DBG3(ds) << "RD: dist " << base->elemNum << " <-> " << test->elemNum << " = " << dist << " : " << bb.ToString() << " <-> " << tb.ToString();
     return dist;
@@ -568,15 +572,14 @@ double DesignStructure::FindFilterRadius(FilterSpace space, DesignElement* de, d
 
 void DesignStructure::SetPeriodicConstraintMapping()
 {
-  assert(em != NULL); // is not called otherwise!
+   assert(em != NULL); // is not called otherwise!
    constraintMapping.Resize(grid->GetNumNodes() + 1); // 1-based
 
-   if(em->pde == NULL)
-     em->SetPDEs(em->ParseSystem());
+   assert(Optimization::context->pde != NULL); // if(em->pde == NULL) em->SetPDEs(em->ParseSystem());
 
-   ConstraintList glist = em->pde->GetFeFunctions().begin()->second->GetConstraints();
+   ConstraintList glist = Optimization::context->pde->GetFeFunctions().begin()->second->GetConstraints();
 
-   assert(em->pdes.size() == 1);
+   assert(Optimization::context->pdes.size() == 1);
    assert(glist.GetSize() > 0);
 
    LOG_DBG(ds) << "SPCM: constraint list = " << glist.GetSize();
@@ -654,7 +657,7 @@ void DesignStructure::RecursiveCompletePeriodicity(unsigned int master, StdVecto
 
 void DesignStructure::SetNodeElemMapping()
 {
-  assert(periodic);
+  assert(periodic_);
 
   nodeToElem.Resize(grid->GetNumNodes() + 1,0); // 1-based
 
@@ -673,13 +676,12 @@ void DesignStructure::SetNodeElemMapping()
   }
 }
 
-
 bool DesignStructure::ExtendPeriodicNeighborhood(Elem* elem, int common, StdVector<std::pair<Elem*, int> >& neighbors)
 {
   if(!initialized_)
     Initialize();
 
-  assert(periodic);
+  assert(periodic_);
 
   neighbors.Resize(0);
 

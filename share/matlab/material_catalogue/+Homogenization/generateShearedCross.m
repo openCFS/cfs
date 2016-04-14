@@ -106,4 +106,4 @@ fullpath=pwd;
 cd(oldpath)
 filename = fullfile(fullpath,filename);
 
-file = Homogenization.matrixToMeshOrDensity(density,filename,angle);
+file = Homogenization.matrixToMeshAndDensity(density,filename,angle);

@@ -43,13 +43,8 @@ cfsdeps/arpack/CMakeLists.txt -text
 cfsdeps/arpack/External_ARPACK.cmake -text
 cfsdeps/arpack/RiceBSD.doc -text
 cfsdeps/arpack/RiceBSD.txt -text
-cfsdeps/arpack/arpack-2.1-redhat.patch -text
-cfsdeps/arpack/arpack-arscnd-2.patch -text
-cfsdeps/arpack/arpack-arscnd-3.patch -text
-cfsdeps/arpack/arpack-gfortran-etime-intrinsic.patch -text
 cfsdeps/arpack/arpack-ifort-cpu_time.patch -text
 cfsdeps/arpack/arpack-patch.cmake.in -text
-cfsdeps/arpack/instruction.arpack -text
 cfsdeps/arpack/readme.arpack -text
 cfsdeps/boost/4315.patch -text
 cfsdeps/boost/External_Boost.cmake -text
@@ -383,8 +378,21 @@ ctest_scripts/sites/eamc061/linux64_shared_opt_clang_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_debug.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_intel_release.ctest -text
+ctest_scripts/sites/eamc061/linux64_shared_opt_mingw_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_shared_opt_no_prec_gcc_release.ctest -text
 ctest_scripts/sites/eamc061/linux64_trunk_intel_release.ctest -text
+ctest_scripts/sites/eamc061/site_specific_init.cmake -text
+ctest_scripts/sites/eamc067/generate_test_name_list.cmake -text
+ctest_scripts/sites/eamc067/linux64_mpolzer_gcc_debug.ctest -text
+ctest_scripts/sites/eamc067/linux64_mpolzer_gcc_release.ctest -text
+ctest_scripts/sites/eamc067/linux64_mpolzer_mingw_debug.ctest -text
+ctest_scripts/sites/eamc067/linux64_mpolzer_mingw_release.ctest -text
+ctest_scripts/sites/eamc067/site_specific_init.cmake -text
+ctest_scripts/sites/eamc080/generate_test_name_list.cmake -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_debug.ctest -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_doc_doxygen.ctest -text
+ctest_scripts/sites/eamc080/linux64_shared_opt_gcc_release.ctest -text
+ctest_scripts/sites/eamc080/site_specific_init.cmake -text
 ctest_scripts/sites/fedora18/Vagrantfile -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_debug.ctest -text
 ctest_scripts/sites/fedora18/linux64_trunk_clang_release.ctest -text
@@ -522,6 +530,7 @@ include/def_use_metis.hh.in -text
 include/def_use_openmp.hh.in -text
 include/def_use_pardiso.hh.in -text
 include/def_use_scpip.hh.in -text
+include/def_use_sgpp.hh.in -text
 include/def_use_snopt.hh.in -text
 include/def_use_suitesparse.hh.in -text
 include/def_use_superlu.hh.in -text
@@ -579,13 +588,10 @@ share/doc/auxilliaries/Pics/tu_signet.png -text svneol=unset#unset
 share/doc/auxilliaries/cfs-logo.cdr -text svneol=unset#application/coreldraw
 share/doc/developer/CMakeLists.txt svneol=native#text/plain
 share/doc/developer/DoxygenConfig/background.png -text svneol=unset#unset
-share/doc/developer/DoxygenConfig/doxy-config-new.in -text
 share/doc/developer/DoxygenConfig/doxy-config.in -text
 share/doc/developer/DoxygenConfig/extra.css -text
 share/doc/developer/DoxygenConfig/footerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/footerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/headerTemplate.html svneol=native#text/html
-share/doc/developer/DoxygenConfig/headerTemplateNew.html -text
 share/doc/developer/DoxygenConfig/latexHeader.tex -text
 share/doc/developer/DoxygenConfig/mainpage.md -text
 share/doc/developer/DoxygenConfig/mainpage.txt svneol=native#text/plain
@@ -1069,6 +1075,7 @@ share/matlab/hdf5tools/test/th5varget.m -text
 share/matlab/hdf5tools/test/th5varget.mat -text
 share/matlab/hdf5tools/test/th5varput.m -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor.xml -text svneol=unset#application/xml
+share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_comp.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/inv_tensor_master.xml -text
 share/matlab/material_catalogue/+Homogenization/CFS_Working_Directory/mat.xml -text svneol=unset#application/xml
 share/matlab/material_catalogue/+Homogenization/Veraltet/E11.png -text svneol=unset#image/png
@@ -1113,6 +1120,7 @@ share/matlab/material_catalogue/+Homogenization/getElasticityTensorOfMicroCell.m
 share/matlab/material_catalogue/+Homogenization/getInterpolationValues.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToDensity.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToMesh.m -text
+share/matlab/material_catalogue/+Homogenization/matrixToMeshAndDensity.m -text
 share/matlab/material_catalogue/+Homogenization/matrixToMeshOrDensity.m -text
 share/matlab/material_catalogue/+Homogenization/plotEh.m -text
 share/matlab/material_catalogue/+Homogenization/plotmesh.m -text
@@ -1124,8 +1132,8 @@ share/matlab/material_catalogue/callCatalogueGeneration.m -text
 share/matlab/material_catalogue/callMatlab.sh -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_31 -text
 share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5 -text
-share/matlab/material_catalogue/catalogues/detailed_stats_presets3D_L5_interpolant -text
 share/matlab/material_catalogue/createPresetsFullGrid.m -text
+share/matlab/material_catalogue/createPresetsFullGrid_bndry.m -text
 share/matlab/material_catalogue/createPresetsSparseGrid.m -text
 share/matlab/material_catalogue/extractPartialCatalogue.m -text
 share/matlab/material_catalogue/generateCatalogueParallel.sh -text
@@ -1188,6 +1196,7 @@ share/matlab/material_catalogue/rotatevoigt.m -text
 share/matlab/material_catalogue/sortCatalogue.m -text
 share/matlab/material_catalogue/validateCFS.m -text
 share/matlab/material_catalogue/voigttohillmandel.m -text
+share/matlab/material_catalogue/writeHeader.m -text
 share/matlab/mminfo.m svneol=native#text/plain
 share/matlab/mmread.m svneol=native#text/plain
 share/matlab/mmwrite.m -text
@@ -1210,7 +1219,6 @@ share/python/convert_fms_to_hom.py -text
 share/python/copy_density.py -text
 share/python/create_density.py -text
 share/python/create_mesh.py -text
-share/python/density-to-png.py -text
 share/python/eigenfrequenzy_plot.py -text
 share/python/extract_bloch_region_results.py -text
 share/python/extract_info_xml_results.py -text
@@ -1287,9 +1295,11 @@ share/python/nas-tool-voidmesh.py -text
 share/python/optimization_tools.py -text
 share/python/pcolor.py -text
 share/python/pcolorSBM.py -text
+share/python/performance_test.py -text
 share/python/physical_density_to_stiff.py -text
 share/python/physical_density_to_stiff_rotAngle.py -text
 share/python/probe_ilupack_parameters.py -text
+share/python/process_density.py -text
 share/python/process_image.py -text
 share/python/show_density.py -text
 share/python/sort_bloch.py -text
@@ -1329,6 +1339,7 @@ share/scripts/hdf5_import_mesh.sh.in svneol=native#text/plain
 share/scripts/identify_compiler.cmake.in svneol=native#text/plain
 share/scripts/toolchain_cross_linux_macosx_x86_64.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_centos_6.cmake -text
+share/scripts/toolchain_cross_linux_mingw_x86_64_mxe_opensuse.cmake -text
 share/scripts/toolchain_cross_linux_mingw_x86_64_ubuntu_1204.cmake -text
 share/scripts/voidmesh.pl -text
 share/scripts/winver.bat -text
@@ -2060,14 +2071,13 @@ source/Optimization/Design/Filter.cc -text
 source/Optimization/Design/Filter.hh -text
 source/Optimization/Design/ShapeDesign.cc -text
 source/Optimization/Design/ShapeDesign.hh -text
+source/Optimization/EigenInfo.hh -text
 source/Optimization/ErsatzMaterial.cc -text
 source/Optimization/ErsatzMaterial.hh -text
 source/Optimization/Excitation.cc -text
 source/Optimization/Excitation.hh -text
 source/Optimization/Function.cc -text
 source/Optimization/Function.hh -text
-source/Optimization/LBMSIMP.cc -text
-source/Optimization/LBMSIMP.hh -text
 source/Optimization/LevelSet.cc -text
 source/Optimization/LevelSet.hh -text
 source/Optimization/Objective.cc -text

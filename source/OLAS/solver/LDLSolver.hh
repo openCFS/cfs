@@ -85,7 +85,7 @@ namespace CoupledField {
   //!       <td>This parameter is used to control the verbosity of the solver.
   //!           If it is set to 'true', then the object will log some
   //!           information on the solution process to the standard %OLAS
-  //!           report stream (*cla).
+  //!           report stream (*cla) ---removed logging---.
   //!       </td>
   //!     </tr>
   //!   </table>

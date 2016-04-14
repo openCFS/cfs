@@ -2,21 +2,19 @@
 #define FUNCTION_HH_
 
 #include <assert.h>
-#include <stddef.h>
 #include <string>
 #include <utility>
 
 #include "DataInOut/ParamHandling/ParamNode.hh"
+#include "Driver/FormsContexts.hh"
 #include "General/Enum.hh"
-#include "General/defs.hh"
 #include "General/Environment.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
-#include "Optimization/Design/DesignElement.hh"
-#include "Optimization/Design/DesignStructure.hh"
-#include "Optimization/Design/DesignMaterial.hh"
 #include "Utils/StdVector.hh"
-#include "boost/tuple/tuple.hpp"
+#include "Design/DesignElement.hh"
+#include "Design/DesignMaterial.hh"
+#include "Design/DesignStructure.hh"
 
 namespace CoupledField {
 class ErsatzMaterial;
@@ -35,6 +33,7 @@ class Excitation;
 class MultipleExcitation;
 class Objective;
 class ShapeDesign;
+class Context;
 
 /** A Function is the (abstract) base class of Objective and Condition (which is a constraint but the name was
  * already used)
@@ -63,6 +62,10 @@ class Function
     typedef enum {
       // This are exclusive objective functions
       MULTI_OBJECTIVE,           /*!< Special type, not to be evaluated but trigger only */
+      SLACK,                     /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
+      BANDGAP,                   /*!< bloch mode eigenfrequency band gap maximization. Requires gap element with the two eigenmode-numbers*/
+
+      // This is objective and constraint together
       OUTPUT,                    /*!< Re(u,l) maximize solution where vector l is not 0 */
       DYNAMIC_OUTPUT,            /*!< (u, L conj(u)) as OUTPUT but complex */
       ABS_OUTPUT,                /*!< |<u,l>| harmonic is implemented, real valued easy to add */
@@ -70,8 +73,6 @@ class Function
       GLOBAL_DYNAMIC_COMPLIANCE, /*!< (u, I conj(u)) as DYNAMIC_OUTPUT with L is I (everywhere) */
       ELEC_ENERGY,               /*!< p^T K_pp p or p^T K_pp p^* */
       ENERGY_FLUX,               /*!< Re{j*w*u^T L grad_n u^*} */
-
-      // This is objective and constraint together
       COMPLIANCE,                /*!< (u,f) the opposite of stiffness */
       VOLUME,                    /*!< normalized sum of original design elements */
       PENALIZED_VOLUME,          /*!< normalized sum of design elements penalized by parameter */
@@ -88,6 +89,7 @@ class Function
       YOUNGS_MODULUS_E2,         /*!< Young's Modulus (E2) within orthotrope homogenization */
       TYCHONOFF,                 /*!< int(|| design ||^2) is a regularization form material opt. */
       TEMPERATURE,               /*!< for optimization of poisson and heat conduction pde */
+      HEAT_ENEGRY,               /*!< for optimization in heat conduction pde, equivalent to compliance in linear elasticity*/
       GLOBAL_SLOPE,              /*!< different implementation from local slopes */
       GLOBAL_MOLE,               /*!< see mole */
       GLOBAL_OSCILLATION,        /*!< see oscillation */
@@ -130,13 +132,13 @@ class Function
       BENSON_VANDERBEI_3,        /*!< 3st minor constraint for numerical problemantic FMO pos def constraint */
       DESIGN_BOUND,              /*!< local design bound */
       MULTIMATERIAL_SUM,         /*!< local sum of multimaterial designs */
-      SLACK,                      /*!< for min max problems like min alpha s.th. compliance smaller alpha. Not really a function but triggers AuxDesign instead of DesignSpace. */
-      DETERMINANT_MATRIX,         /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
-      ROTATIONAL_MATRIX_1,        /*!< first rotational constraint */
-      ROTATIONAL_MATRIX_2,         /*!< 2nd rotational constraint */
-      DETERMINANT_MAPPING,         /*!used in greedy-mapping*/
-      TRACE_MAPPING,               /*used in greedy-mapping*/
-      SHAPE_INF                  /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
+      DETERMINANT_MATRIX,        /*!< to ensure that the determinant of the gradient transformation matrix is positive in model-reduction*/         /*!< constraint to ensure that the transformation matrix G in model-reduction is indeed the gradient of a mapping*/
+      ROTATIONAL_MATRIX_1,       /*!< first rotational constraint */
+      ROTATIONAL_MATRIX_2,       /*!< 2nd rotational constraint */
+      DETERMINANT_MAPPING,       /*!< used in greedy-mapping*/
+      TRACE_MAPPING,             /*!< used in greedy-mapping*/
+      SHAPE_INF,                 /*!< In Shape Optimization, there might be restrictions (not only box constraints) for shape parameters, this is the inf-norm version which splits nicely */
+      EXPRESSION                 /*!< e.g. value smaller alpha+/-slack to be extended via mathparser when needed */
     } Type; // in ConditionContainer::VirtualView::Refresh() we assume a maximal value for the type. Check!!
 
     /** to convert string/enum for this type */
@@ -150,7 +152,7 @@ class Function
      * Check if better use this than type.ToString(GetType()).
      * Is overloaded in Condition
      * @param me is for Condition */
-    virtual std::string ToString(MultipleExcitation* me = NULL) const;
+    virtual std::string ToString() const;
 
     /** for historical reasons there are Condition and Objective pointers used concurrently. This is a
      * little helper. asserts that only of function is set. */
@@ -197,13 +199,16 @@ class Function
     void SetExcitation(MultipleExcitation* me, int excite_index = -2);
 
     /** Get at least one excitation which applies to this function. For excite_ == -1 this might be one sample */
-     Excitation* GetExcitation() { return sample_excitation_; }
+    Excitation* GetExcitation() { return sample_excitation_; }
+    const Excitation* GetExcitation() const { return sample_excitation_; }
 
     /** Evaluate at this excitation? */
     bool DoEvaluate(const Excitation* excite) const;
 
-    /** Evaluate for all excitations if there are multiple? */
-    bool DoEvaluateAlways() const;
+    /** Evaluate for all excitations if there are multiple?
+     * If we would so (excite_ == -1) we do it only for the sequence.
+     * Never true for different sequence*/
+    bool DoEvaluateAlways(int sequence) const;
 
     /** Are we generally excitation sensitive? E.g. stress */
     bool IsExcitationSensitive() const;
@@ -262,10 +267,11 @@ class Function
     int GetIndex() const { return index_; }
 
     /** Read the tensor if it is given, otherwise sets to 1.1
+     * @param f_ctxt we call this during the constructor an therefore cannot use Function::ctxt
      * @param pn might contain a "tensor" child
      * @param matrix where to store the data
      * @return true if the tensor was read */
-    static bool ReadTensor(PtrParamNode pn, Matrix<double>& matrix);
+    static bool ReadTensor(Context* f_ctxt, PtrParamNode pn, Matrix<double>& matrix);
 
     /** @see StressConstraint::GetApplications */
     typedef enum { MECH, PIEZO, ONLY_COUPLING } StressType;
@@ -276,6 +282,20 @@ class Function
 
     /** for volume to check the notation in the FMO case with tensor_trace design. */
     DesignMaterial::Notation GetNotation() const { return notation_; }
+
+    /** for the bandgap function. Could clearly be a general gap between two functions. This could then handle
+     * the old gap function from Michael (volume - penalized volume) */
+    struct BandGap
+    {
+      BandGap() {lower_ev = -1; upper_ev = -1; }
+      int lower_ev;
+      int upper_ev;
+
+      EigenInfo lower;
+      EigenInfo upper;
+    };
+
+    BandGap bandgap;
 
     /** A function can be be a local function when it is calculated by the local neighborhood state.
      * This does NOT mean, that the function may not be a global function, e.g. when a the L2 norm
@@ -372,7 +392,7 @@ class Function
         const static int MATERIAL_SIGN;
 
         /** default constructor for StdVector() */
-        Identifier() : sign(NO_SIGN) {}
+        Identifier() : element(NULL), sign(NO_SIGN)  {}
 
         /** @param prev if NONE neighbor is size 1 otherwise size two */
         Identifier(BaseDesignElement* elem, BaseDesignElement* prev, BaseDesignElement* next, int si = NO_SIGN);
@@ -530,7 +550,7 @@ class Function
         /** to be reused */
         static StdVector<double> tmp1;
         static StdVector<double> tmp2;
-      };
+      }; // end of struct Identifier
 
       /** Elements with no full neighborhood are not stored. If they would be stored
        * we could easily calculate the virtual element number.
@@ -597,7 +617,7 @@ class Function
         double radius;
         double value;
         DesignStructure::FilterSpace fs;
-      };
+      }; // end of struct NeighborhoodStructure
 
       NeighborhoodStructure* structure_;
 
@@ -659,6 +679,10 @@ class Function
     /** When we optimize output we store here the rhs loads */
     StdVector<LinearFormContext*> output_forms;
 
+    /** the multiple sequence step we belong to.
+     * @see ContextManager */
+    Context* ctxt;
+
   protected:
 
     /** common constructor stuff. To be called from special Objective constructor, too */
@@ -700,7 +724,9 @@ class Function
      * identify the constraint gradient in DesignElement. Only relevant for type = active */
     int index_;
 
-    /** Excitation index for evaluation. -1 for all excitations. Most interesting for stress constraints.
+    /** Excitation index for evaluation.
+     * Note that the index is unique over all sequences!
+     * -1 for all excitations within this sequence!!. Most interesting for stress constraints.
      * -2 is for unset! */
     int excite_;
 
@@ -713,11 +739,9 @@ class Function
     /** @see FactorOmegaOmega() */
     bool omega_omega_;
 
-    /** the "ev" parameter for the eigenvalue function. 1-based! */
+    /** the "ev" parameter for the eigenvalue function. 1-based!
+     * @see Condition::bloch_extremal_ */
     int eigenvalue_id_;
-
-    /** complex for harmonic and eigenvalue problems */
-    bool complex_;
 
     /** Conditions mark themselves as (non) linear -> no power in the design variable, ...*/
     bool linear_;

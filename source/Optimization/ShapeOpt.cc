@@ -203,7 +203,7 @@ double ShapeOpt::CalcVolume(Objective* c, Condition* g, bool derivative, bool no
   return 0.0;
 }
 
-void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
+void ShapeOpt::CalcMinusU1dKU2(StateContainer& forward, StateContainer& adjoint, Objective* f, Condition* constraint, const Matrix<double>* tensor_diff){
   assert(false);
   /* FIXME
   StdVector<double> der; // solution
@@ -270,8 +270,8 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
     forwards[e].Resize(timesteps);
     adjoints[e].Resize(timesteps);
     for(unsigned int t = 0; t < timesteps; ++t){
-      forwards[e][t] = &forward.Get(e, NULL, t)->gridelem[MECH];
-      adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[MECH];
+      forwards[e][t] = &forward.Get(e, NULL, t)->gridelem[App::MECH];
+      adjoints[e][t] = &adjoint.Get(e, f, t)->gridelem[App::MECH];
     }
   }
   if(transient){
@@ -281,8 +281,8 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
       forwarddt[e].Resize(timesteps);
       forwarddtt[e].Resize(timesteps);
       for(unsigned int t = 0; t < timesteps; ++t){
-        forwarddt[e][t] = &forward.Get(e, NULL, t, FIRST_DERIV)->gridelem[MECH];
-        forwarddtt[e][t] = &forward.Get(e, NULL, t, SECOND_DERIV)->gridelem[MECH];
+        forwarddt[e][t] = &forward.Get(e, NULL, t, FIRST_DERIV)->gridelem[App::MECH];
+        forwarddtt[e][t] = &forward.Get(e, NULL, t, SECOND_DERIV)->gridelem[App::MECH];
       }
     }
   }
@@ -450,7 +450,7 @@ void ShapeOpt::CalcMinusU1dKU2(StateSolutions& forward, StateSolutions& adjoint,
   */
 }
 
-void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constraint, double w){
+void ShapeOpt::CalcUdF(StateContainer& adjoint, Objective* f, Condition* constraint, double w){
   assert(true);
   /* FIXME
   int np(shapedesign->GetNumberOfAuxParameters());
@@ -487,7 +487,7 @@ void ShapeOpt::CalcUdF(StateSolutions& adjoint, Objective* f, Condition* constra
       parser->SetValue(MathParser::GLOB_HANDLER, "t", dt*(t+1)); // GetPressureFactor uses this
       parser->SetValue(MathParser::GLOB_HANDLER, "step", t+1);
       StateSolution* u = adjoint.Get(ex, f, t);
-      StdVector<SingleVector*>* u_vec = &u->gridelem[MECH];
+      StdVector<SingleVector*>* u_vec = &u->gridelem[App::MECH];
       
       Excitation& excite = me->excitations[ex];
       
@@ -671,11 +671,11 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
       grid->GetElemNodesCoord(CornerCoords, elem->connect, true);
       form->CalcElementMatrix(elemMat, it, it);
       for(unsigned int ij = 0; ij < ex_size; ++ij){
-        u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[MECH][e]);
+        u1diff = *dynamic_cast<Vector<double>* >(forward.Get(ij)->gridelem[App::MECH][e]);
         SubtractTestDisplacement(ij, CornerCoords, u1diff, tmp_strain, tmp_displacement);
         Ku = elemMat * u1diff;
         for(unsigned int kl = ij; kl < ex_size; ++kl){ // only upper triangle
-          u2diff = *dynamic_cast<Vector<double>* >(forward.Get(kl)->gridelem[MECH][e]);
+          u2diff = *dynamic_cast<Vector<double>* >(forward.Get(kl)->gridelem[App::MECH][e]);
           SubtractTestDisplacement(kl, CornerCoords, u2diff, tmp_strain, tmp_displacement);
           result[ij][kl] += Ku * u2diff;
         }
@@ -699,10 +699,10 @@ Matrix<double> ShapeOpt::CalcHomogenizedTensor(Function* f)
   return result;
 }
 
-void ShapeOpt::StorePDESolution(StateSolutions& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, DERIVType derivative, const std::string& comment){
+void ShapeOpt::StorePDESolution(StateContainer& solutions, Excitation &excite, Function* f, UInt timestep, bool read_sol, bool read_rhs, bool save_sol, TimeDeriv derivative, const std::string& comment){
   ParamMat::StorePDESolution(solutions, excite, f, timestep, read_sol, read_rhs, save_sol, derivative, comment);
   if(read_sol){
-    solutions.Get(excite, f, timestep, derivative)->Read(StateSolution::GRIDELEM_VECTORS, pde, MECH, false, derivative);
+    solutions.Get(excite, f, timestep, derivative)->Read(StateSolution::GRIDELEM_VECTORS, Optimization::context->pde, App::MECH, false, derivative);
   }
 }
 

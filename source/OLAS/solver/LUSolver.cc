@@ -52,36 +52,25 @@ namespace CoupledField {
 
     StdMatrix& stdMat = dynamic_cast<StdMatrix&>(sysMat);
 
-      // Now test the storage layout
-      BaseMatrix::StorageType sType = stdMat.GetStorageType();
-      if ( sType != BaseMatrix::SPARSE_NONSYM ) {
-        EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
-            << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
-            << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
-            << " format." );
-      }
+    // Now test the storage layout
+    BaseMatrix::StorageType sType = stdMat.GetStorageType();
+    if ( sType != BaseMatrix::SPARSE_NONSYM ) {
+      EXCEPTION( "LUSolver::Setup: The LUSolver requires the system matrix"
+          << " to be a CRS_Matrix, i.e. sparseNonSym. The system matrix"
+          << " you supplied is a matrix in " << BaseMatrix::storageType.ToString( sType )
+          << " format." );
+    }
 
-      // Down-cast to CRS_Matrix
-      CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
+    // Down-cast to CRS_Matrix
+    CRS_Matrix<T>& crsMat = dynamic_cast<CRS_Matrix<T>&>(sysMat);
 
-      // Logging
-      (*cla) << " -----------------------------------------------\n"
-	     << " LUSolver: Factorisation of a "
-	     << crsMat.GetNumRows() << " x " << crsMat.GetNumCols()
-	     << " matrix (nnz = " << crsMat.GetNnz() << ")"
-	     << std::endl;
+    // Set estimate for growth of sparsity pattern
+    // Being generous here improves performance
+    this->memGrowthEstimate_ = 25;
 
-      // Set estimate for growth of sparsity pattern
-      // Being generous here improves performance
-      this->memGrowthEstimate_ = 25;
-
-      // Perform the factorisation
-      this->Factorise( crsMat );
-      amFactorised_ = true;
-
-      // Logging
-      (*cla) << " -----------------------------------------------"
-	     << std::endl;
+    // Perform the factorisation
+    this->Factorise( crsMat );
+    amFactorised_ = true;
 
     // If the user wishes, we can export the LU factorisation to a file
     bool saveFacToFile = false;
@@ -120,14 +109,6 @@ namespace CoupledField {
     const Vector<T>& myRHS = dynamic_cast<const Vector<T>&>(rhs);
     Vector<T>& mySol = dynamic_cast<Vector<T>&>(sol);
 
-    // Logging
-    bool logging = false;
-    if ( logging ) {
-      (*cla) << " -----------------------------------------------\n"
-             << " LUSolver: Solving a problem with "
-             << sysMat.GetNumCols() << " unknowns" << std::endl;
-    }
-
     // Actual solve is done by CroutLU class
     CroutLU<T>::Solve( myRHS, mySol );
 
@@ -152,12 +133,6 @@ namespace CoupledField {
         itRefSteps_ = numSteps;
 
     }
-
-      // Logging
-      if ( logging ) {
-        (*cla) << " -----------------------------------------------"
-               << std::endl;
-      }
 
     // Generate Report
 

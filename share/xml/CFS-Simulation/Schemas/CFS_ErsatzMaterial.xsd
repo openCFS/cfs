@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema"
             targetNamespace="http://www.cfs++.org"
             xmlns="http://www.cfs++.org"
@@ -25,7 +26,7 @@
     <xsd:attribute name="file" use="required" type="xsd:token" />
     <!-- this is either "first", "last" or anything a match to the <set id="*" .../> in 
          the ersatz material file -->
-    <xsd:attribute name="set" use="required" type="xsd:token" />
+    <xsd:attribute name="set" use="optional" type="xsd:token" default="last"/>
     <!-- for some special cases, e.g. when we want to use a structural result in a 
          structural-acoustic setting, we enforce the the use of the given region, and ignore
          the element numbering. This implies that the element numbering within the region is 

@@ -4,4 +4,4 @@
 
 echo $1
 
-matlab -nodesktop -nodisplay -nosplash -r "callCatalogueGeneration('$1')">$1.out 2>$1.err
+matlab -nodesktop -nodisplay -nosplash -singleCompThread -r "callCatalogueGeneration('$1')">$1.out 2>$1.err

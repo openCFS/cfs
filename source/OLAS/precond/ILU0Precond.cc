@@ -45,7 +45,7 @@ ILU0Precond<T>::~ILU0Precond() {
 
 
 // =================================
-//   Application of Preconditioner
+//   App::Type of Preconditioner
 // =================================
 template <typename T>
 void ILU0Precond<T>::Apply( const CRS_Matrix<T> &mat,
@@ -163,7 +163,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
     actDone = (UInt)(actDone/10.0)*10;
     if ( actDone > percentDone ) {
       percentDone = (UInt)actDone;
-      (*cla) << " .. " << percentDone << "%" << std::flush;
     }
 
     // set help array for nonzero column indices of row k 
@@ -206,8 +205,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
       // obviously there is no diagonal element and the 
       // algorithm fails
       if (j >= j2) {
-        (*cla) << " terminating ILU setup. k=" << k << "jrow: " << jrow << 
-            std::endl;
         break;    
       }
 
@@ -218,8 +215,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
     // if the diagonal has not been found or is zero
     // we terminate Setup and state that it failed.
     if (jrow!=k || ilu_data_[j] == 0.0) {
-      (*cla) << "Zero pivot in ILU setup: row: " << jrow << " k=" << k
-          << " val=" << ilu_data_[j] << std::endl;
       EXCEPTION("Zero pivot in ILU setup!");
     }// 0 pivot
 
@@ -229,8 +224,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
     }
   }//k
 
-  (*cla) << "\n \n " << std::endl;
-
   delete [] (help); help = NULL;
 
   // If the user wishes, we can export the LU factorisation to a file
@@ -239,10 +232,6 @@ void ILU0Precond<T>::Setup( CRS_Matrix<T> &mat ) {
     this->xml_->GetValue("saveFacFile", saveFacFile, ParamNode::INSERT);
 
     this->ExportILUFactorisation( saveFacFile);
-    if ( logging_ == true ) {
-      (*cla) << " Exported factor matrix to file '" << saveFacFile << "'"
-          << std::endl;
-    }
   }
 }// Setup for ILU
 

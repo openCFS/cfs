@@ -346,7 +346,6 @@ PtrParamNode ParamNode::GetByVal(const string& parent_raw, const string& child1,
             " but not also child " << child2 << " with value " << value2);
 }
 
-
 ParamNodeList ParamNode::GetList(const string& name)
 {
   const unsigned int chsize(children_.GetSize());
@@ -468,36 +467,39 @@ AS_INTEGRAL(Double)
 AS_INTEGRAL(std::string)
 
 // special implementation for bool
-template<>\
- bool ParamNode::As<bool>() const
+template<>
+bool ParamNode::As<bool>() const
 {
-  bool retVal = false;
-  if (value_.type() == typeid(bool))
-  {
+  if(value_.type() == typeid(bool))
     return boost::any_cast<bool>(value_);
-  }
-  else
+
+  if(value_.type() == typeid(std::string))
   {
-    if (value_.type() == typeid(std::string))
-    {
-      std::string str = boost::any_cast<std::string>(value_);
-      if (str == "yes" || str == "true" || str == "on")
-        retVal = true;
-      if (str == "no" || str == "false" || str == "off")
-        retVal = false;
-    }
-    else
-    {
-      EXCEPTION("Could not convert node '" << name_ << "' to bool value");
-    }
+    std::string str = boost::any_cast<std::string>(value_);
+    if(str == "yes" || str == "true" || str == "on" || str == "enable")
+      return true;
+    if(str == "no" || str == "false" || str == "off" || str == "disable")
+      return false;
+
+   EXCEPTION("Cannot convert node '" << name_ << "' with value '" << str << "' to boolean");
   }
-  return retVal;
+  EXCEPTION("Cannot convert node '" << name_ << "' to boolean, it's neither string nor bool");
+}
+
+boost::shared_ptr<Timer> ParamNode::AsTimer()
+{
+  if(value_.empty())
+    value_ = boost::shared_ptr<Timer>(new Timer());
+
+  if(value_.type() != typeid(boost::shared_ptr<Timer>))
+    EXCEPTION("param node " << name_ << " cannot be returned as timer");
+
+  return boost::any_cast<boost::shared_ptr<Timer> >(value_);
 }
 
 template<typename TYPE>
 const TYPE& ParamNode::AsConst() const
 {
-
   // first, try to directly use any_cast<Integer>
   try
   {
@@ -823,7 +825,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
   }
 
   // special conversion for timer
-  if (value_.type() == typeid(boost::shared_ptr<Timer>))
+  if(value_.type() == typeid(boost::shared_ptr<Timer>))
   {
     boost::shared_ptr<Timer> timer = boost::any_cast<boost::shared_ptr<Timer> >(value_);
     // Note, that we are a SELF_XML type
@@ -831,7 +833,7 @@ void ParamNode::ToString(std::string& ret, int depth) const
     return;
   }
 
-  if (value_.type() == typeid(StdVector<std::string>))
+  if(value_.type() == typeid(StdVector<std::string>))
   {
     ret = "error in fast bulk block writing"; // this should not be printed
     return;
@@ -995,9 +997,14 @@ void ParamNode::ToFile(const std::string& filename, bool force)
     
     write_timer_->Start();
     
+    bool debug = false;
+    #ifndef NDEBUG
+      debug = true;
+    #endif
+
     // only really write the file if at least a certain amount of time has passed since last write
-    // or if forced
-    if(!force && write_timer_->GetWallTime() < 2.0)
+    // or if forced. Write always in the debug mode
+    if(debug && !force && write_timer_->GetWallTime() < 2.0)
     {
       ++reject_counter_;
       return;

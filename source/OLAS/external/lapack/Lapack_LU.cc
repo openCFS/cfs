@@ -85,11 +85,6 @@ namespace CoupledField {
   // ********************************
   void Lapack_LU::PrivateSetup( const BaseMatrix &sysmat ) {
 
-
-    // Report to logfile
-    (*cla) << " --------------------------------------\n"
-	   << " LAPACK_LU: Starting factorisation" << std::endl;
-
     const StdMatrix& stdmat = dynamic_cast<const StdMatrix&>(sysmat);
       // Check that we have the correct matrix type
       BaseMatrix::StorageType mtype = stdmat.GetStorageType();
@@ -124,11 +119,6 @@ namespace CoupledField {
 
     // now we have a (new) factorisation
     amFactorised_ = true;
-
-    // Report to logfile
-    (*cla) << " LAPACK_LU: Finished factorisation\n"
-	   << " --------------------------------------" << std::endl;
-
   }
 
 
@@ -193,10 +183,7 @@ namespace CoupledField {
             << " is exactly zero" );
       }
       else {
-        (*cla) << " DGBEQU reports: rowcnd = "   << lp_rowcond
-	         << "\n                 colcnd = " << lp_colcond
-	         << "\n                 amax   = " << lp_amax
-	         << std::endl;
+        // removed logging to *.las
       }
 
       // Scale matrix
@@ -204,27 +191,6 @@ namespace CoupledField {
       dlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
               matdata, &lp_ldab, row_scalings_, col_scalings_,
               &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
-
-      // Process result
-      if ( lp_equed == 'N' ) {
-	(*cla) << " DLAQGB performed no scaling" << std::endl;
-      }
-      else if ( lp_equed == 'R' ) {
-	(*cla) << " DLAQGB performed row scaling" << std::endl;
-      }
-      else if ( lp_equed == 'C' ) {
-	(*cla) << " DLAQGB performed column scaling" << std::endl;
-      }
-      else if ( lp_equed == 'B' ) {
-	(*cla) << " DLAQGB performed row & column scaling" << std::endl;
-      }
-      else {
-        EXCEPTION( "DLAQGB returned with unexpected parameter value" );
-      }
-      (*cla) << " DLAQGB reports: rowcnd = "   << lp_rowcond
-	     << "\n                 colcnd = " << lp_colcond
-	     << "\n                 amax   = " << lp_amax
-	     << std::endl;
 
       // Save type of scaling performed for re-scaling of solution
       scalingType_ = lp_equed;
@@ -352,10 +318,7 @@ namespace CoupledField {
         EXCEPTION( "ZBGEQU reports zero row" );
       }
       else {
-	(*cla) << " ZGBEQU reports: rowcnd = "   << lp_rowcond
-	       << "\n                 colcnd = " << lp_colcond
-	       << "\n                 amax   = " << lp_amax
-	       << std::endl;
+        // removed logging to *.las
       }
 
       // Scale matrix
@@ -363,27 +326,6 @@ namespace CoupledField {
       zlaqgb( &lp_nrows, &lp_ncols, &lp_wlower, &lp_wupper,
               matdata, &lp_ldab, row_scalings_, col_scalings_,
               &lp_rowcond, &lp_colcond, &lp_amax, &lp_equed );
-
-      // Process result
-      if ( lp_equed == 'N' ) {
-	(*cla) << " ZLAQGB performed no scaling" << std::endl;
-      }
-      else if ( lp_equed == 'R' ) {
-	(*cla) << " ZLAQGB performed row scaling" << std::endl;
-      }
-      else if ( lp_equed == 'C' ) {
-	(*cla) << " ZLAQGB performed column scaling" << std::endl;
-      }
-      else if ( lp_equed == 'B' ) {
-	(*cla) << " ZLAQGB performed row & column scaling" << std::endl;
-      }
-      else {
-        EXCEPTION( "ZLAQGB returned with unexpected parameter value" );
-      }
-      (*cla) << " ZLAQGB reports: rowcnd = "   << lp_rowcond
-             << "\n                 colcnd = " << lp_colcond
-             << "\n                 amax   = " << lp_amax
-	     << std::endl;
 
       // Save type of scaling performed for re-scaling of solution
       scalingType_ = lp_equed;
@@ -456,16 +398,6 @@ namespace CoupledField {
   // ***********************
   void Lapack_LU::Solve( const BaseMatrix &sysmat, const BaseVector &rhs, BaseVector &sol) {
 
-
-    // Are we expected to be verbose?
-    bool logging = false;
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " --------------------------------------\n"
-      << " LAPACK_LU: Computing solution" << std::endl;
-    }
-
     if ( facmat_ == NULL || amFactorised_ == false ) {
 
       // If the two indicators are consistent call Setup()
@@ -508,12 +440,6 @@ namespace CoupledField {
     default:
       EXCEPTION( "Matrix entry type not valid for a LAPACK matrix" );
     }
-
-    // Report to logfile
-    if ( logging == true ) {
-      (*cla) << " --------------------------------------" << std::endl;
-    }
-
   }
 
 
@@ -522,10 +448,6 @@ namespace CoupledField {
   // *********************************************
   void Lapack_LU::SolveF77REAL8( const BaseVector &rhs, BaseVector &sol,
 				 const BaseMatrix *mat ) {
-
-
-    // Are we expected to be verbose?
-    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -598,9 +520,6 @@ namespace CoupledField {
     if ( lp_info != 0 ) {
       EXCEPTION( "DGBTRS reports invalid input parameter" );
     }
-    else if ( logging == true ) {
-      (*cla) << " LAPACK_LU: Solution went fine" << std::endl;
-    }
 
     // ==============================
     //   Refine solution (optional)
@@ -637,13 +556,6 @@ namespace CoupledField {
       // Process results
       if ( lp_info != 0 ) {
         EXCEPTION( "DBGRFS reports invalid input parameter" );
-      }
-      else if ( logging == true ) {
-	(*cla) << " LAPACK_LU: Iterative refinement suceeded\n"
-	       << " DGBRFS reports:"
-	       << "\n Estimated forward  error bound = " << lp_ferr
-	       << "\n Estimated backward error bound = " << lp_berr
-	       << std::endl;
       }
     }
 
@@ -683,10 +595,6 @@ namespace CoupledField {
   // ************************************************
   void Lapack_LU::SolveF77COMPLEX16( const BaseVector &rhs, BaseVector &sol,
 				     const BaseMatrix *mat ) {
-
-
-    // Are we expected to be verbose?
-    bool logging = false;
 
     // Some variables for LAPACK
     char lp_trans = 'N';
@@ -775,9 +683,6 @@ namespace CoupledField {
     if ( lp_info != 0 ) {
       EXCEPTION( "DGBTRS reports invalid input parameter" );
     }
-    else if ( logging == true ) {
-      (*cla) << " LAPACK_LU: Solution went fine" << std::endl;
-    }
 
     // ==============================
     //   Refine solution (optional)
@@ -814,12 +719,6 @@ namespace CoupledField {
       // Process results
       if ( lp_info != 0 ) {
         EXCEPTION( "ZBGRFS reports invalid input parameter" );
-      }
-      else if ( logging == true ) {
-	(*cla) << " Iterative refinement suceeded!\n ZGBRFS reports:"
-	       << "\n Estimated forward  error bound = " << lp_ferr
-	       << "\n Estimated backward error bound = " << lp_berr
-	       << std::endl;
       }
     }
 

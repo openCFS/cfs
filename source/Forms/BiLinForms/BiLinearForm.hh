@@ -3,7 +3,7 @@
 //       Filename:  BiLinearForm.hh
 // 
 //    Description:  Base Class for all bilinear integrators within CFS++
-//                  Most oimportant derived classes so far:
+//                  Most important derived classes so far:
 //                  BDBInt -> for symmetric bilinear forms
 //                  ADBInt -> for asymmetric bilinear forms
 // 
@@ -43,6 +43,7 @@ class BiLinearForm{
       BiLinearForm( bool coordUpdate = false ){
         coordUpdate_ = coordUpdate;
         isNewtonBilinearForm_ = false;
+        isSymmetric_ = false;
       }
 
       virtual ~BiLinearForm(){
