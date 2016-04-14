@@ -2117,10 +2117,11 @@
 
   <xsd:complexType name="DT_output">
     <xsd:sequence>
-      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector"/>
+      <xsd:element name="displacement" minOccurs="0" maxOccurs="unbounded" type="DT_BcInhomVector_mod"/>
       <xsd:element name="elecPotential" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
       <!-- here the quantity attribute shall be set in the probem file. Default is acouPressure! -->
       <xsd:element name="acoustic" minOccurs="0" maxOccurs="unbounded" type="DT_Load"/>
+      
       <xsd:element name="energyFlux" minOccurs="0" maxOccurs="1">
         <xsd:complexType>
           <xsd:sequence>
@@ -2129,12 +2130,20 @@
                 <xsd:attribute name="name" type="xsd:token" use="required"/>
                 <xsd:attribute name="neighborRegion" type="xsd:token" use="required"/>
               </xsd:complexType>
-            </xsd:element>
+            </xsd:element>           
           </xsd:sequence>
         </xsd:complexType>
       </xsd:element>
     </xsd:sequence>               
   </xsd:complexType>    
+  
+  <xsd:complexType name="DT_BcInhomVector_mod">
+  <xsd:complexContent>
+    <xsd:extension base="DT_BcInhomVector">
+        <xsd:attribute name="multiple_nodes" type="xsd:token" use="optional"/>
+    </xsd:extension>
+  </xsd:complexContent>
+</xsd:complexType>
   
   
   <!-- Simple load definition -->

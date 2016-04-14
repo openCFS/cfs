@@ -13,7 +13,7 @@ from optimization_tools import *
 from cfs_utils import *
 import os.path
 import matplotlib.pyplot as plt
-
+from mesh_tool import *
 import argparse
 
 # lena = misc.lena()
@@ -237,7 +237,7 @@ parser.add_argument("--point", help="point list", type=np.array, default=np.zero
 parser.add_argument("--msfem", help="name of msfem grid file on the fine scale")
 parser.add_argument("--hom", help="name of grid file for homogenization cell problem")
 parser.add_argument("--sparse_msfem", help="sparse msfem option true or false")
-parser.add_argument("--shape", help="choose between frame or cross", choices=['frame', 'cross', 'frame_modified', 'frame_w_triangles'])
+parser.add_argument("--shape", help="choose between frame or cross", choices=['frame', 'cross', 'frame_modified', 'frame_w_triangles', 'auxetic'])
 parser.add_argument("--triangle_msfem", help="true or false")
 parser.add_argument("--filter", help="filtered densities on or off")
 parser.add_argument("--void_material", help="set value for void material", type=float, default=1e-9)
@@ -245,7 +245,7 @@ parser.add_argument("--epsilon", help="number of frames/crosses in the cell prob
 parser.add_argument("--design", help="select single thicknesses s1,s2,s3 for debugging,e.g. 0.1,0.3,0.")
 parser.add_argument("--oversampling", help="name of the mesh with size minres/epsilon including only one base cell")
 parser.add_argument("--penalization", help="creates a penalized material catalogue in the interval [0, 1/steps_p], step_p has to be given",type=int)
-
+parser.add_argument("--gmsh",help="folder with stp files of geometry")
 
 
 
@@ -259,6 +259,9 @@ minres = args.res
 steps = args.stp
 folder = args.folder
 void = args.void_material
+
+if args.shape == "auxetic" and not args.gmsh:
+  print "Error: --gmsh option is necessary for auxetic structures!"
 
 if dim == 2:
   #setup calculation directory
@@ -513,7 +516,7 @@ if dim == 2:
             y += 1
       if not args.design:
         x +=1    
-  elif args.shape == "frame" or args.shape == "frame_modified":
+  elif args.shape == "frame" or args.shape == "frame_modified" or args.shape == "auxetic":
     # Homogenization for 2D frame structures
     array = void * np.ones((minres, minres))
     joblist = ()
@@ -546,7 +549,12 @@ if dim == 2:
           problem = str(x)+ "-" +str(y) 
                     
         if args.shape == "frame_modified":
-          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, True) 
+          array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, True)
+        elif args.shape == "auxetic":
+          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          create_mesh_from_gmsh(str(args.gmsh)+"/" + problem,"aux_cells")
+          os.system('cp ' +str(args.gmsh)+"/" + problem +".mesh " + str(folder) + '/' + problem + '.mesh')
         else:
           array = insert_modified_frame(array, minres, y, x, steps, void, args.epsilon, steps_p, False)
         # filtering of the data
@@ -554,12 +562,16 @@ if dim == 2:
           array_filter = ndimage.uniform_filter(array, size=6)
         else:
           array_filter = array
-        write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
         array = np.ones((minres, minres))
-        # add new job to jobfile
-        jobfile.write('cfs.rel -m ' + str(args.hom) + ' -x ' + densfilename + ' ' + problem + ' \n')
-        # create xml file for cfs
-        os.system('cp inv_tensor.xml ' + str(folder) + '/' + problem + '.xml')  
+        if not args.gmsh:
+          write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
+          # add new job to jobfile
+          jobfile.write('cfs.rel -m ' + str(args.hom) + ' -x ' + densfilename + ' ' + problem + ' \n')
+          # create xml file for cfs
+          os.system('cp inv_tensor.xml ' + str(folder) + '/' + problem + '.xml')
+        else:
+          os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
+          jobfile.write('cfs.rel ' + problem + ' \n')  
         print problem  + ' is done'
         if args.design:
           # stop calculations if only one point is needed (debug)
@@ -638,7 +650,7 @@ if dim == 2:
       if not args.design:
         x+=1
   else:
-    print 'option not defined' 
+    print 'option not defined'
 elif dim == 3:
   # Homogenization for 3D cross structures
   joblist = ()
@@ -674,46 +686,54 @@ elif dim == 3:
         else:
           densfilename = str(x) + "-" + str(y) +"-" + str(z) + ".dens.xml"
           problem = str(x)+ "-" +str(y) + "-" + str(z) 
+         
+        if not args.gmsh:  
+          array = void * np.ones((minres, minres, minres))
+          if args.penalization:
+            offx = int((minres / 2.) * (1. - ((float(x) * steps_p / steps)**3./steps_p)) + 0.5)
+            offy = int((minres / 2.) * (1. - ((float(y) * steps_p / steps)**3./steps_p)) + 0.5)
+            offz = int((minres / 2.) * (1. - ((float(z) * steps_p / steps)**3./steps_p)) + 0.5)
+          else:
+            offx = int((minres / 2.) * (1. - float(x) / (steps)) + 0.5)
+            offy = int((minres / 2.) * (1. - float(y) / (steps)) + 0.5)
+            offz = int((minres / 2.) * (1. - float(z) / (steps)) + 0.5)
+          print "test: offx " + str(offx) + " test: offy " + str(offy) + " test: offz " + str(offz)
+          for i in range(0, minres):
+            for j in range(offx, minres - offx):
+              for k in range(offx, minres - offx):
+                array[i][j][k] = 1.
+          for i in range(offy, minres - offy):
+            for j in range(0, minres):
+              for k in range(offy, minres - offy):
+                array[i][j][k] = 1.
+          for i in range(offz, minres - offz):
+            for j in range(offz, minres - offz):
+              for k in range(0, minres):
+                array[i][j][k] = 1.
+          if args.filter == 'on':   
+            array_filter = ndimage.uniform_filter(array, size=2)
+          else:
+            array_filter = array        
+          write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
+          array = np.ones((minres, minres, minres))                    
+          # add new job to jobfile
+          jobfile.write('cfs.rel -m ' + str(args.hom) + ' ' + problem + ' \n')
+          # create xml file for cfs
+          os.system('cp inv_tensor_3D.xml ' + str(folder) + '/' + problem + '.xml')
+          file = str(folder) + '/' + problem + '.xml'
+          if os.path.isfile(file):      
+            doc = libxml2.parseFile(file)
+            xml = doc.xpathNewContext()
+            xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
+            replace(xml, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
+            doc.saveFile(file)
+        else:          
+          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+ "/"+ problem +".stp -3 -optimize_netgen ")
+          os.system("/Applications/Gmsh.app/Contents/MacOS/gmsh "+ str(args.gmsh)+"/"+ problem +".msh -refine ")
+          os.system('cp ' +str(args.gmsh)+"/" + problem +".msh " + str(folder) + '/' + problem + '.mesh')
+          os.system('cp inv_tensor_3D_gmsh.xml ' + str(folder) + '/' + problem + '.xml')
+          jobfile.write('cfs.rel ' + problem + ' \n')
           
-        array = void * np.ones((minres, minres, minres))
-        if args.penalization:
-          offx = int((minres / 2.) * (1. - ((float(x) * steps_p / steps)**3./steps_p)) + 0.5)
-          offy = int((minres / 2.) * (1. - ((float(y) * steps_p / steps)**3./steps_p)) + 0.5)
-          offz = int((minres / 2.) * (1. - ((float(z) * steps_p / steps)**3./steps_p)) + 0.5)
-        else:
-          offx = int((minres / 2.) * (1. - float(x) / (steps)) + 0.5)
-          offy = int((minres / 2.) * (1. - float(y) / (steps)) + 0.5)
-          offz = int((minres / 2.) * (1. - float(z) / (steps)) + 0.5)
-        print "test: offx " + str(offx) + " test: offy " + str(offy) + " test: offz " + str(offz)
-        for i in range(0, minres):
-          for j in range(offx, minres - offx):
-            for k in range(offx, minres - offx):
-              array[i][j][k] = 1.
-        for i in range(offy, minres - offy):
-          for j in range(0, minres):
-            for k in range(offy, minres - offy):
-              array[i][j][k] = 1.
-        for i in range(offz, minres - offz):
-          for j in range(offz, minres - offz):
-            for k in range(0, minres):
-              array[i][j][k] = 1.
-        if args.filter == 'on':   
-          array_filter = ndimage.uniform_filter(array, size=2)
-        else:
-          array_filter = array        
-        write_density_file(str(folder) + "/" + densfilename, array_filter, "set")
-        array = np.ones((minres, minres, minres))
-        # add new job to jobfile
-        jobfile.write('cfs.rel -m ' + str(args.hom) + ' ' + problem + ' \n')
-        # create xml file for cfs
-        os.system('cp inv_tensor_3D.xml ' + str(folder) + '/' + problem + '.xml')
-        file = str(folder) + '/' + problem + '.xml'
-        if os.path.isfile(file):      
-          doc = libxml2.parseFile(file)
-          xml = doc.xpathNewContext()
-          xml.xpathRegisterNs('cfs', 'http://www.cfs++.org')
-          replace(xml, "//cfs:loadErsatzMaterial/@file", problem + '.dens.xml')
-          doc.saveFile(file)
         print problem + ' is done'
         if args.design:
           # stop calculations if only one point is needed (debug)

@@ -2345,45 +2345,55 @@ namespace CoupledField {
     if(!input && !myParam_->Has("bcsAndLoads") )
       return;
 
+
     ParamNodeList elems = !input ? myParam_->Get("bcsAndLoads")->GetList(elemName) : input->GetList(elemName);
+
+    // necessary for constraints on displacements
+    UInt end = 0;
+    if (elemName == "displacement_constraint") {
+      assert(elems.GetSize() == 1);
+      PtrParamNode xml = elems[0];
+      // read number of nodes where displacement constraint is applied
+      end = xml->Get("multiple_nodes")->As<int>();
+    } else {
+      end = elems.GetSize();
+    }
 
     entities.Resize(elems.GetSize());
     coef.Resize(elems.GetSize());
-
-    for( UInt i = 0; i < elems.GetSize(); ++i ) {
+    for( UInt i = 0; i < end; ++i ) {
       PtrParamNode xml = elems[i];
-
       // get entity list, depending on type
       std::string entName = xml->Get("name")->As<std::string>();
-      try {
-        // determine list type: In case we have have surface elements, generate explicitly
-        // a surface element list
-        EntityList::ListType listType = EntityList::ELEM_LIST; 
-        if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
-          listType = EntityList::SURF_ELEM_LIST;
+        try {
+          // determine list type: In case we have have surface elements, generate explicitly
+          // a surface element list
+          EntityList::ListType listType = EntityList::ELEM_LIST;
+          if( ptGrid_->GetEntityDim( entName ) == ptGrid_->GetDim() - 1) {
+            listType = EntityList::SURF_ELEM_LIST;
+          }
+
+          switch( ptGrid_->GetEntityType(entName) ) {
+            case EntityList::NAMED_NODES:
+              entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
+              break;
+            case EntityList::REGION:
+            case EntityList::NAMED_ELEMS:
+              entities[i] = ptGrid_->GetEntityList( listType, entName );
+              break;
+            case EntityList::NO_TYPE:
+              EXCEPTION("No entities with name '" << entName << "' known");
+              break;
+          }
+
+          std::set<UInt> definedDofs;
+          ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
+                              definedDofs, updateGeo );
+
+        } catch (Exception& e) {
+          RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
+                            << "' on entities '" << entName <<"'");
         }
-
-        switch( ptGrid_->GetEntityType(entName) ) {
-          case EntityList::NAMED_NODES:
-            entities[i] = ptGrid_->GetEntityList( EntityList::NODE_LIST, entName);
-            break;
-          case EntityList::REGION:
-          case EntityList::NAMED_ELEMS:
-            entities[i] = ptGrid_->GetEntityList( listType, entName );
-            break;
-          case EntityList::NO_TYPE:
-            EXCEPTION("No entities with name '" << entName << "' known");
-            break;
-        }
-
-        std::set<UInt> definedDofs;
-        ReadUserFieldValues(entities[i],xml,compNames,type,isComplex,coef[i],
-                            definedDofs, updateGeo );
-
-      } catch (Exception& e) {
-        RETHROW_EXCEPTION(e, pdename_ << ": Could not read definition for '" << elemName
-                          << "' on entities '" << entName <<"'");
-      }
     } // loop: elements
 
   }
