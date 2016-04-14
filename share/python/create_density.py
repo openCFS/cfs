@@ -114,7 +114,7 @@ def find_radius(dim, vol, order, invert):
   while iter < 30 and abs(err) > 1e-12:
     mid = 0.5 * (lower + upper)
     
-    data = make_sphere(dim, center, mid, 0.002, 1.0, order, invert)
+    data = make_sphere(dim, center, mid, 0.02, 1.0, order, invert)
     act_vol = data.sum() / float(data.size)
     
     err  = vol - act_vol
@@ -192,7 +192,6 @@ else:
 
 if args.save:
   filename = args.save
-
 write_density_file(filename, data, "order_" + str(args.order) + ("_inv" if args.invert else ""))
 
 print "generated file '" + filename + "'" 
