@@ -34,6 +34,7 @@
 #include "MatVec/exprt/xpr2.hh"
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
+#include "MatVec/SBM_Matrix.hh"
 #include "Materials/MechanicMaterial.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/DensityFile.hh"
@@ -1303,7 +1304,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
      StdVector<unsigned int>& nodes = de->elem->connect;
      out.Resize(nodes.GetSize());
 
-     // for each node we have f' = 1-2*(sum rho of node)
+     // for each node we have f' =  4* ds_i /drho_i * (1-2*s_i)
 
      for(unsigned int n = 0; n < nodes.GetSize(); n++)
      {
@@ -1459,7 +1460,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       case Condition::TEMP_TRACKING_AT_INTERFACE:
       {
         Vector<double> res;
-        CalcTempTrackingAtInterface(excite, c, g, g->GetBoundValue(),res);
+        CalcTempTrackingAtInterface(excite, c, g, derivative, g->GetBoundValue(),res);
         result = res[0];
         break;
       }
@@ -2084,7 +2085,6 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     {
       TransferFunction* tf = design->GetTransferFunction(func->GetDesignType() , App::HEAT, true);
       double factor = excite.GetWeightedFactor(func);
-      //TODO: if design dependent
       HeatPDE* heat = dynamic_cast<HeatPDE*>(domain->GetSinglePDEs()[0]);
       assert(heat != NULL);
       DesignDependentRHS* rhs = NULL;
@@ -2538,26 +2538,115 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return upper_freq - lower_freq;
   }
 
-  void ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, double refVal, Vector<double>& res, bool adjoint)
+  void ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double refVal, Vector<double>& res, bool calcAdjoint)
   {
     Function* f = Function::Cast(c, g);
-    App::Type app = Context::ToApp(f->ctxt->pde);
-    assert(app == App::HEAT);
+    assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
     Context& context = *(f->ctxt);
     Assemble& assemble = *(context.pde->GetAssemble());
     unsigned int nNodes = domain->GetGrid()->GetNumNodes(design->GetRegionId());
 
-    Vector<double> rhs;
-    FeFctIdType feFctId = context.pde->GetFeFunction(context.pde->GetNativeSolutionType())->GetFctId();
-    assemble.GetAlgSys()->GetRHSVal(rhs, feFctId);
+    if (derivative)
+    { // (u - u_)^T * F'(u - u_), where u_ is tracked temperature and F diag(f)
+      TransferFunction* tf = design->GetTransferFunction(f->GetDesignType() , App::HEAT, true);
+      double factor = excite.GetWeightedFactor(f);
+      HeatPDE* heat = dynamic_cast<HeatPDE*>(domain->GetSinglePDEs()[0]);
+      assert(heat != NULL);
+      DesignDependentRHS* rhs = NULL;
+      if (heat->HasInterfaceDrivenRHS())
+      {
+        rhs = new DesignDependentRHS();
+        rhs->Init<double>(design,App::HEAT);
+        StdVector<SingleVector* > stateSol = forward.Get(excite)->elem[App::HEAT];
+        for (unsigned int e = 0; e < stateSol.GetSize(); e++) { // (u_i - u_ref)^2, element based
+          Vector<double>* elemVec = (Vector<double>*)stateSol[e];
+          for (unsigned int n = 0; n < elemVec->GetSize(); n++) {
+            elemVec->SetEntry(n, elemVec->GetDoubleEntry(n) - refVal);
+          }
+        }
+        for (unsigned int id = 0; id < design->data.GetSize(); id++) {
+          Vector<double> gradRHS;
+          DesignElement* de = &design->data[id];
+          CalcInterfaceDrivenGradRHS(de,gradRHS); // calc f'
+          double val = 0.0;
+          for (unsigned int n = 0; n < gradRHS.GetSize(); n++) { //f' * (u_i - u_) * (u_i - u_)
+            val += gradRHS[n] * stateSol[de->elem->elemNum-1]->GetDoubleEntry(n) * stateSol[de->elem->elemNum-1]->GetDoubleEntry(n);
+          }
+          de->AddGradient(f,val);
+        }
+      }
+      CalcU1KU2(tf, adjoint.Get(excite,f)->elem[App::HEAT], App::HEAT, forward.Get(excite)->elem[App::HEAT], rhs, -factor, STANDARD, f);
+      res.Resize(1);
+      res[0] = 0.0;
+    }
+    else
+    {
+      Vector<double> rhs;
+      FeFctIdType feFctId = context.pde->GetFeFunction(context.pde->GetNativeSolutionType())->GetFctId();
+      assemble.GetAlgSys()->GetRHSVal(rhs, feFctId);
 
+      StdVector<LinearFormContext*> linForms = assemble.GetLinForms();
+      StdVector<LinearFormContext*>::iterator formsIt;
+
+      Vector<double> loadsAtNodes; // 4 * rho * (1-rho) * loadValue
+//      loadsAtNodes.Reserve(nNodes);
+
+      // iterate over all descriptors
+      for(formsIt = linForms.Begin(); formsIt != linForms.End(); formsIt++)
+      {
+        // get integrator
+        LinearFormContext& actContext = **formsIt;
+
+        LinearForm* form = actContext.GetIntegrator();
+
+        Vector<double> elemVec;
+        // get entity iterator
+        EntityIterator  entIt = actContext.GetEntities()->GetIterator();
+        // iterate over all entities
+        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
+          // Calculate real valued element vector
+          form->CalcElemVector(elemVec, entIt);
+          loadsAtNodes.Push_back(elemVec[0]);
+        }
+      }
+
+      Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
+      assert(u.GetSize() == nNodes);
+      res.Resize(1);
+      res[0] = 0.0;
+      for (unsigned int n = 0; n < nNodes; n++)
+        res[0] += loadsAtNodes[n] * (u[n] - refVal) * (u[n] - refVal);
+    }
+  }
+
+  void ErsatzMaterial::CalcAdjointRHSTempTracking(Excitation& excite, Objective* c, Condition* g, double trackVal, Vector<double>& out)
+  {
+    Function* f = Function::Cast(c, g);
+    StdVector<SingleVector*> all_u_elem = forward.Get(excite)->elem[App::HEAT];
+    out.Resize(forward.Get(excite)->GetVector(StateSolution::RAW_VECTOR)->GetSize(),0.0);
+    unsigned int nElems = design->GetNumberOfElements();
+    Vector<double> diff(domain->GetGrid()->GetNumNodes(),0.0);
+    for (unsigned int e = 0; e < nElems; e++)
+    {
+      DesignElement* de = &design->data[e];
+
+      Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*all_u_elem[e]);
+      assert(u_elem.GetSize() <= 4);
+
+      StdVector<unsigned int>& nodes = de->elem->connect;
+
+      for (unsigned int n = 0; n < nodes.GetSize(); n++) {
+        diff[de->elem->elemNum-1] += u_elem[n] - trackVal;
+      } // node
+      diff[de->elem->elemNum-1] /= (double) nodes.GetSize();
+    } // elem
+
+    StdVector<double> elemLoad; // f for one elem
+    elemLoad.Reserve(out.GetSize());
+    Assemble& assemble = *(f->ctxt->pde->GetAssemble());
     StdVector<LinearFormContext*> linForms = assemble.GetLinForms();
     StdVector<LinearFormContext*>::iterator formsIt;
 
-    StdVector<double> nodeDensities; // 4 * rho * (1-rho) * loadValue
-    nodeDensities.Reserve(nNodes);
-
-    // iterate over all descriptors
     for(formsIt = linForms.Begin(); formsIt != linForms.End(); formsIt++)
     {
       // get integrator
@@ -2572,25 +2661,15 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
         // Calculate real valued element vector
         form->CalcElemVector(elemVec, entIt);
-        nodeDensities.Push_back(elemVec[0]);
+        elemLoad.Push_back(elemVec[0]);
       }
+    } // calc f at boundary nodes of one elem
+
+    std::cout << "stateSol: " << forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR) << std::endl;
+    std::cout << "diff: " << diff.ToString() << std::endl;
+    for (unsigned int i = 0; i < out.GetSize(); i++) {
+      out[i] = - 2.0 * elemLoad[i] * diff[i];
     }
-
-    Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
-    assert(u.GetSize() == nNodes);
-
-    if (adjoint) {
-      res.Resize(nNodes);
-      for (unsigned int n = 0; n < nNodes; n++) {
-        res[n] = - 2.0 * nodeDensities[n] * (u[n] - refVal);
-      }
-      return;
-    }
-
-    res.Resize(1);
-    res[0] = 0.0;
-    for (unsigned int n = 0; n < nNodes; n++)
-      res[0] += nodeDensities[n] * (u[n] - refVal) * (u[n] - refVal);
   }
 
 
@@ -3598,10 +3677,11 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
 
     // set the adjoint rhs
     ConstructAdjointRHS(excite, f);
-    // calculate adjoint problem
+
     assert(context->GetDriver()->GetAnalysisId().adjoint == false);
     context->GetDriver()->GetAnalysisId().adjoint = true;
 
+    // calculate adjoint problem
     assemble->GetAlgSys()->Solve();
 
     context->GetDriver()->GetAnalysisId().adjoint = false;
@@ -3670,7 +3750,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
         Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
-        CalcTempTrackingAtInterface(excite, c, g, g->GetBoundValue(), rhs, true);
+        CalcAdjointRHSTempTracking(excite, c, g, g->GetBoundValue(), rhs);
         break;
       }
       default:
@@ -3678,6 +3758,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       break;
     }
 
+    std::cout << "rhs: " << rhs.ToString() << std::endl;
     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
     // we cannot easily set the rhs. Therefore we set it to 0 and add our own rhs
     fe->GetSystem()->InitRHS(fe->GetFctId());

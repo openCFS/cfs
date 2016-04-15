@@ -153,8 +153,6 @@ protected:
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
       double factor, CalcMode calcMode, Function* f, int res_idx = -1, double ev = -1.0);
 
-
-
   /** for Virgininies stuff */
   double CalcU1KU2_mapping(TransferFunction* tf, StdVector<SingleVector*>& u1,
       App::Type k, StdVector<SingleVector*>& u2, DesignDependentRHS* rhs,
@@ -281,7 +279,13 @@ protected:
    *  @param adjointRHS If adjoint RHS should be calculated, this is the output
    *  @return sum over all tracked values at interface nodes
    */
-  virtual void CalcTempTrackingAtInterface(Excitation& excite, Objective* f, Condition* g, double refVal, Vector<double>& res, bool adjoint=false);
+  virtual void CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double trackVal, Vector<double>& res, bool adjoint=false);
+
+  /**
+   * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
+   * K*l^T = -2 * F' * (u - u_track)
+   */
+  virtual void CalcAdjointRHSTempTracking(Excitation& excite, Objective* c, Condition* g, double trackVal, Vector<double>& out);
 
   /** Calculate the energy flux through a surface region: 1/2*Re{j*u^T Q u^*} where
    * Q is the grad operator in z direction. Only for acoustic but easy to extend!*/
@@ -431,7 +435,9 @@ private:
       DesignDependentRHS* ref, double factor, CalcMode calcMode, Function* f,
       int res_idx, double ev);
 
-  /** for design dependent interface driven excitation f=4*rho*(1-rho) as for heat .... calculate element based f'
+  /** for design dependent interface driven excitation as for heat .... calculate element based f'
+   * run over all neighbor nodes of design element de
+   * f'=4*d_rho_i/d_rho_j *(1-2*rho_i), where rho_i is the node based density calculated via averaging the densities of neighboring elements
    * @param de for this element we compute "out"
    * @param out gets size of nodes of de elem and contains d_f/d_de */
   template<class T> void CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out);
