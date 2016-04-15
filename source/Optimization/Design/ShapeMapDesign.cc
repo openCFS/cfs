@@ -6,8 +6,11 @@
  */
 #include "Optimization/Design/ShapeMapDesign.hh"
 #include "Optimization/Excitation.hh"
+#include "DataInOut/ProgramOptions.hh"
 #include "DataInOut/Logging/LogConfigurator.hh"
 #include "DataInOut/Logging/log.hpp"
+
+using std::string;
 
 namespace CoupledField {
 
@@ -634,6 +637,47 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      if(res_idx_dw >= 0)
        de->specialResult[res_idx_dw] = log_dw;
    } // end loop over density elements
+ }
+
+ void ShapeMapDesign::WriteGradientFile()
+ {
+   std::ofstream out;
+   string name = progOpts->GetSimName() + "_" + lexical_cast<string>(opt_->GetCurrentIteration()) + ".grad.plot";
+   out.open(name.c_str());
+   out.precision(8);
+   out.flags(std::ios::scientific);
+
+   assert(opt_->objectives.data.GetSize() == 1);
+   out << "#(1) el (2) var (3) shapqe \t(4) " + opt_->objectives.data[0]->ToString();
+
+   int cnt = 4; // will be preincremented to 4
+   for(unsigned int g; g < opt_->constraints.all.GetSize(); g++)
+     if(opt_->constraints.all[g]->HasDenseJacobian())
+       out << "("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + " \t";
+   out << std::endl;
+
+   for(unsigned int e = 0; e < opt_shape_param_.GetSize(); e++)
+   {
+     ShapeParamElement* spe = opt_shape_param_[e];
+     out << e << " \t" << spe->type.ToString(spe->GetType()) << " \t" << FindShape(spe)->idx << " \t";
+     out << spe->costGradient[0] << " \t";
+
+     for(unsigned int g = 0; g < spe->constraintGradient.GetSize(); g++)
+       if(opt_->constraints.all[g]->HasDenseJacobian())
+         out << spe->constraintGradient[g] << " \t";
+     out << std::endl;
+   }
+   out.close();
+ }
+
+ ShapeMapDesign::ShapeParam* ShapeMapDesign::FindShape(const ShapeParamElement* spe)
+ {
+   for(unsigned int i = 0; i < shape_.GetSize(); i++)
+     if((int) spe->GetIndex() < shape_[i].end_param)
+       return &shape_[i];
+
+   assert(false);
+   return NULL;
  }
 
  inline double ShapeMapDesign::Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const

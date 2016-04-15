@@ -61,6 +61,9 @@ public:
 
   virtual void ToInfo(PtrParamNode in, ErsatzMaterial* em);
 
+  /** creates a gnuplot file for the current iteration with the design value and derivatives */
+  virtual void WriteGradientFile();
+
   /** This is the variant of Function::Local::SetupVirtualElementMap() for slope constraints on ShapeParamElements.
    * This function is called within Function::Local() constructor, therefore Function::GetLocal() cannot work yet!
    * @param locality just given to assert() it is PREV_AND_NEXT
@@ -126,6 +129,10 @@ protected:
 
   /** Search in shape_ */
   StdVector<ShapeParam*> FindShape(Type type, int dof);
+
+  /** search for the corresponding shape */
+  ShapeParam* FindShape(const ShapeParamElement* spe);
+
 
   /** helper to fill shape_param_
    * @param free corresponds to the node counter, not element counter as max free is ny_ and not ny_-1*/

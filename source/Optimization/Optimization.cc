@@ -897,7 +897,11 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   }
 
   if(grad_out != NULL)
+  {
     design->WriteGradientToExtern(*grad_out, DesignElement::COST_GRADIENT, DesignElement::SMART,  objectives.data[0]); // use the first such that we know about the robust index
+    if(progOpts->DoDetailedInfo())
+      design->WriteGradientFile(); // if constraints are not calculated yet whill be overwitten later with the good data for this iterations
+  }
 }
 
 
@@ -947,7 +951,11 @@ void Optimization::CalcConstraintGradient(Condition* g, StdVector<double>* grad_
 
   // copies from the design element gradient data to a memory array for external optimizers
   if(grad_out != NULL)
+  {
     design->WriteGradientToExtern(*grad_out, DesignElement::CONSTRAINT_GRADIENT, DesignElement::SMART, g);
+    if(progOpts->DoDetailedInfo())
+      design->WriteGradientFile(); // might overwrite function stuff for this iteration which is goood
+  }
 
   // if there is a <result ... value="constraintGradient" detail="penalizedVolume/*"
   if(g->special_result_idx != -1)
