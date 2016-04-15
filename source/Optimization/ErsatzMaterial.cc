@@ -2538,7 +2538,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     return upper_freq - lower_freq;
   }
 
-  void ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double refVal, Vector<double>& res, bool calcAdjoint)
+  void ErsatzMaterial::CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double trackVal, Vector<double>& res, bool calcAdjoint)
   {
     Function* f = Function::Cast(c, g);
     assert(Context::ToApp(f->ctxt->pde) == App::HEAT);
@@ -2561,17 +2561,19 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
         for (unsigned int e = 0; e < stateSol.GetSize(); e++) { // (u_i - u_ref)^2, element based
           Vector<double>* elemVec = (Vector<double>*)stateSol[e];
           for (unsigned int n = 0; n < elemVec->GetSize(); n++) {
-            elemVec->SetEntry(n, elemVec->GetDoubleEntry(n) - refVal);
+            elemVec->SetEntry(n, elemVec->GetDoubleEntry(n) - trackVal);
           }
         }
         for (unsigned int id = 0; id < design->data.GetSize(); id++) {
           Vector<double> gradRHS;
           DesignElement* de = &design->data[id];
           CalcInterfaceDrivenGradRHS(de,gradRHS); // calc f'
+//          std::cout << "gradrhs: " << gradRHS.ToString(0, ' ') << std::endl;
           double val = 0.0;
           for (unsigned int n = 0; n < gradRHS.GetSize(); n++) { //f' * (u_i - u_) * (u_i - u_)
             val += gradRHS[n] * stateSol[de->elem->elemNum-1]->GetDoubleEntry(n) * stateSol[de->elem->elemNum-1]->GetDoubleEntry(n);
           }
+          assert(val == 0);
           de->AddGradient(f,val);
         }
       }
@@ -2581,95 +2583,62 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
     }
     else
     {
-      Vector<double> rhs;
+      Vector<double> loads;
       FeFctIdType feFctId = context.pde->GetFeFunction(context.pde->GetNativeSolutionType())->GetFctId();
-      assemble.GetAlgSys()->GetRHSVal(rhs, feFctId);
-
-      StdVector<LinearFormContext*> linForms = assemble.GetLinForms();
-      StdVector<LinearFormContext*>::iterator formsIt;
-
-      Vector<double> loadsAtNodes; // 4 * rho * (1-rho) * loadValue
-//      loadsAtNodes.Reserve(nNodes);
-
-      // iterate over all descriptors
-      for(formsIt = linForms.Begin(); formsIt != linForms.End(); formsIt++)
-      {
-        // get integrator
-        LinearFormContext& actContext = **formsIt;
-
-        LinearForm* form = actContext.GetIntegrator();
-
-        Vector<double> elemVec;
-        // get entity iterator
-        EntityIterator  entIt = actContext.GetEntities()->GetIterator();
-        // iterate over all entities
-        for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-          // Calculate real valued element vector
-          form->CalcElemVector(elemVec, entIt);
-          loadsAtNodes.Push_back(elemVec[0]);
-        }
-      }
+      assemble.GetAlgSys()->GetRHSVal(loads, feFctId);
 
       Vector<double>& u = forward.Get(excite, NULL)->GetRealVector(StateSolution::RAW_VECTOR);
       assert(u.GetSize() == nNodes);
       res.Resize(1);
       res[0] = 0.0;
-      for (unsigned int n = 0; n < nNodes; n++)
-        res[0] += loadsAtNodes[n] * (u[n] - refVal) * (u[n] - refVal);
+      std::cout << "loads: " << loads.ToString(0, ' ') << std::endl;
+      for (unsigned int n = 0; n < nNodes; n++) {
+        res[0] += loads[n] * (u[n] - trackVal) * (u[n] - trackVal);
+        assert(loads[n] >= 0);
+        assert(u[n] >= 0);
+        assert(trackVal >= 0);
+      }
     }
   }
 
   void ErsatzMaterial::CalcAdjointRHSTempTracking(Excitation& excite, Objective* c, Condition* g, double trackVal, Vector<double>& out)
   {
     Function* f = Function::Cast(c, g);
-    StdVector<SingleVector*> all_u_elem = forward.Get(excite)->elem[App::HEAT];
-    out.Resize(forward.Get(excite)->GetVector(StateSolution::RAW_VECTOR)->GetSize(),0.0);
-    unsigned int nElems = design->GetNumberOfElements();
-    Vector<double> diff(domain->GetGrid()->GetNumNodes(),0.0);
-    for (unsigned int e = 0; e < nElems; e++)
+    Vector<double> stateSol = forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR);
+    out.Resize(stateSol.GetSize());
+
+    Vector<double> load;
+    f->ctxt->pde->GetAssemble()->GetAlgSys()->GetRHSVal(load, context->pde->GetFeFunction(context->pde->GetNativeSolutionType())->GetFctId());
+    std::cout << "load: " << load.ToString() << std::endl;
+
+    for (unsigned int i = 0; i < stateSol.GetSize(); i++)
     {
-      DesignElement* de = &design->data[e];
-
-      Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*all_u_elem[e]);
-      assert(u_elem.GetSize() <= 4);
-
-      StdVector<unsigned int>& nodes = de->elem->connect;
-
-      for (unsigned int n = 0; n < nodes.GetSize(); n++) {
-        diff[de->elem->elemNum-1] += u_elem[n] - trackVal;
-      } // node
-      diff[de->elem->elemNum-1] /= (double) nodes.GetSize();
-    } // elem
-
-    StdVector<double> elemLoad; // f for one elem
-    elemLoad.Reserve(out.GetSize());
-    Assemble& assemble = *(f->ctxt->pde->GetAssemble());
-    StdVector<LinearFormContext*> linForms = assemble.GetLinForms();
-    StdVector<LinearFormContext*>::iterator formsIt;
-
-    for(formsIt = linForms.Begin(); formsIt != linForms.End(); formsIt++)
-    {
-      // get integrator
-      LinearFormContext& actContext = **formsIt;
-
-      LinearForm* form = actContext.GetIntegrator();
-
-      Vector<double> elemVec;
-      // get entity iterator
-      EntityIterator  entIt = actContext.GetEntities()->GetIterator();
-      // iterate over all entities
-      for ( entIt.Begin(); !entIt.IsEnd(); entIt++ ) {
-        // Calculate real valued element vector
-        form->CalcElemVector(elemVec, entIt);
-        elemLoad.Push_back(elemVec[0]);
-      }
-    } // calc f at boundary nodes of one elem
-
-    std::cout << "stateSol: " << forward.Get(excite)->GetRealVector(StateSolution::RAW_VECTOR) << std::endl;
-    std::cout << "diff: " << diff.ToString() << std::endl;
-    for (unsigned int i = 0; i < out.GetSize(); i++) {
-      out[i] = - 2.0 * elemLoad[i] * diff[i];
+      out[i] = - 2.0 * load[i] * (stateSol[i] - trackVal);
     }
+
+    std::cout << "adj rhs: " << out.ToString() << std::endl;
+//    StdVector<SingleVector*> all_u_elem = forward.Get(excite)->elem[App::HEAT];
+//    out.Resize(forward.Get(excite)->GetVector(StateSolution::RAW_VECTOR)->GetSize(),0.0);
+//    unsigned int nElems = design->GetNumberOfElements();
+//    Vector<double> diff(domain->GetGrid()->GetNumNodes(),0.0);
+//    for (unsigned int e = 0; e < nElems; e++)
+//    {
+//      DesignElement* de = &design->data[e];
+//
+//      Vector<double>& u_elem = dynamic_cast<Vector<double>& >(*all_u_elem[e]);
+//      assert(u_elem.GetSize() <= 4);
+//
+//      StdVector<unsigned int>& nodes = de->elem->connect;
+//
+//      for (unsigned int n = 0; n < nodes.GetSize(); n++) {
+//        diff[de->elem->elemNum-1] += u_elem[n] - trackVal;
+//      } // node
+//      diff[de->elem->elemNum-1] /= (double) nodes.GetSize();
+//    } // elem
+//
+//    for (unsigned int i = 0; i < out.GetSize(); i++) {
+//      out[i] = - 2.0 * elemLoad[i] * diff[i];
+//    }
   }
 
 
