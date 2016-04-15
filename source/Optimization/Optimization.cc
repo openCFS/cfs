@@ -904,8 +904,6 @@ void Optimization::CalcObjectiveGradient(StdVector<double>* grad_out)
   }
 }
 
-
-
 double Optimization::CalcConstraint(Condition* g)
 {
   // assume when we have only one constraint which is not explicitly given, this is not the stress constraint!
