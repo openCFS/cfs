@@ -189,7 +189,17 @@ def read_mesh_info(filename, silent):
   
   else:
     assert(len(mesh) == 1)
-    return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    nx = int(mesh[0].get("x"))
+    ny = int(mesh[0].get("y"))
+    nz = int(mesh[0].get("z"))
+    # temporary fix to process corrupt data
+    if nx == 59 and ny == 59:
+      print "FIXME: switch mesh 59 to 60"
+      nx = 60
+      ny = 60
+    # return int(mesh[0].get("x")), int(mesh[0].get("y")), int(mesh[0].get("z"))   
+    return nx, ny, nz    
+       
   
 # # Reads a density.xml file as vector
 # @param filename from which the last 'set' is used

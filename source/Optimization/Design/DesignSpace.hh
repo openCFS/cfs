@@ -220,6 +220,9 @@ namespace CoupledField
       * @param design with design elements to set, DEFAULT applies for all design types */
      virtual void Reset(DesignElement::ValueSpecifier vs, DesignElement::Type design = DesignElement::DEFAULT);
      
+     /** creates a gnuplot file for the current iteration. To be triggered by cfs -d and only implemented in shape map design */
+     virtual void WriteGradientFile() {} ;
+
      /** This disables the transfer functions -> sets them to NO_TYPE. This is used
       * in SIMP to calculate the original stiffness matrices.
       * The setting from the XML file is stored -> to be undone with EnableTranferFunctions() */
