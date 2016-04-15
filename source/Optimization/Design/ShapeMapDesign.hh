@@ -149,9 +149,9 @@ protected:
    * @param grad_w false for tanh, true for d_tanh_dw. */
   double Eval(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords, unsigned int ip_x, unsigned int ip_y, bool grad_a, bool grad_w) const;
 
-  /** Aprroximate the maximal rho for the extremal integration points. Note that one can also save by returning the minimal rho
-   * for completely within the structure */
-  double ApproxMaxRho(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const;
+  /** Decides if we element given by the coordinates is close enough to the nodal shapes (profiles found implicitly) such that
+   * it is worth to consider them. */
+  bool CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const;
 
   /** tanh performs the smoothing from the mapping
    * @param x is the coordinte (x or y)
@@ -209,14 +209,23 @@ protected:
   {
     /** our Design Element */
     DesignElement* rho;
+
     /** the node variables the mapping is based on.
      * ShapeParamElement is connected to ShapeParam in shape_ (same order).
      * nodes are sufficient as the profile is  */
     StdVector<ShapeParamElement*> nodes;
 
-    /** for each integration point order_*order_ (x the fastest variable) the index within param for the largest density from tanh.
+    /** this is the current subset of nodes which gives the relevant shapes.
+     * We wouldn't need it for overlap_ == MAX as ip_param_idx has this information more detailed.
+     * Set in MapShapeDesign() when checking for CloseEnough() and used in MapShapeGradient().
+     * Has maximal size of nodes */
+    StdVector<int> relevant_nodes;
+
+    /** For overlap == max only!
+     * for each integration point order_*order_ (x the fastest variable) the index within param for the largest density from tanh.
      * -1 if this value is too small and the gradient shall be 0.
-     * Used to compute the gradient which takes the shape_param for each ip where the corresponding rho is max */
+     * Used to compute the gradient which takes the shape_param for each ip where the corresponding rho is max
+     * Has size order_ * order_ */
     Vector<int> ip_param_idx;
   };
 
@@ -226,7 +235,22 @@ protected:
   /** this is the design_id for the last MapShapeToDensit() run */
   int mapped_design_ = -1;
 
+  /** controls the boundary. Relates to meter so it also depends on discretication. 30 is a small value (gray) and 70 gives a smaller boundary. */
   double beta_;
+
+  /** this is the decision value for CloseEnough() */
+  double sensitivity_;
+
+  /** max means that at each ip we consider only the shape which has the largest rho. Only the gradient of that shape will ne considered at that ip.
+   * sum means max(sum,1) and all gradients are weighted averages by their rho at each ip.
+   * An issue is if the gradients shall be scaled down to match the factor by the cutting of max(sum,1) */
+  typedef enum { MAX, SUM } Overlap;
+
+  /** no need for static */
+  Enum<Overlap> overlap;
+
+  /** handles the overlapping of shapes, controls MapShapeToDensity() and has a very strong impact on MapShapeGradietn() */
+  Overlap overlap_;
 
   /** number of elements of rho in x-direction. +1 for nodes! */
   unsigned int nx_ = 0;

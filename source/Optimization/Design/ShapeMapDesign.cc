@@ -19,9 +19,15 @@ DEFINE_LOG(SMD, "shapeMapDesign")
 
 
 ShapeMapDesign::ShapeMapDesign(StdVector<RegionIdType>& regionIds, PtrParamNode pn, ErsatzMaterial::Method method)
-: AuxDesign(regionIds, pn, method), order_(10) // order 2 is technical minimum but too poor for practial use
+: AuxDesign(regionIds, pn, method), order_(10) // order 2 is technical minimum but too poor for practical use
 {
+  this->overlap.SetName("ShapeMapDesign::Overlap");
+  this->overlap.Add(MAX, "max");
+  this->overlap.Add(SUM, "sum");
+
+  this->overlap_ = overlap.Parse(pn->Get("shapeMap/overlap")->As<string>());
   this->beta_ = pn->Get("shapeMap/beta")->As<double>();
+  this->sensitivity_ = pn->Get("shapeMap/sensitivity")->As<double>();
   this->dim_ = domain->GetGrid()->GetDim();
   this->exoprt_fe_design_ = false; // we use the original design but don't communicate it via ReadDesignFromExtern(), ...
   this->tailing_aux_design_ = true; // we want shape_param_ or better opt_shape_param_ to take the role of DesignSpace::data
@@ -59,7 +65,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
       new_design = true;
 
     opt_shape_param_[i]->SetDesign(v);
-    LOG_DBG(SMD) << "RDFE: i=" << i << "-> " << v;
+    LOG_DBG3(SMD) << "RDFE: i=" << i << "-> " << v;
   }
 
   // append aux design, might also change design_id
@@ -72,6 +78,7 @@ int ShapeMapDesign::ReadDesignFromExtern(const double* space_in)
   if(mapped_design_ != design_id)
     MapShapeToDensity();
 
+  LOG_DBG(SMD) << "RDFE: di -> " << design_id;
   return design_id;
 }
 
@@ -95,17 +102,18 @@ int ShapeMapDesign::WriteDesignToExtern(double* space_out, bool scale) const
   for(unsigned int i=0; i < opt_shape_param_.GetSize(); i++)
   {
     space_out[i] = opt_shape_param_[i]->GetDesign(BaseDesignElement::PLAIN) * rscaling;
-    LOG_DBG(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
+    LOG_DBG3(SMD) << "WDTE: out[" << i << "]=" << space_out[i];
   }
 
   AuxDesign::WriteDesignToExtern(space_out, scale);
 
+  LOG_DBG(SMD) << "WDTE: di -> " << design_id;
   return design_id;
 }
 
 void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement::ValueSpecifier vs, DesignElement::Access access, Function* f, bool scaling)
 {
-  LOG_DBG(SMD) << "WGTE: ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
+  LOG_DBG(SMD) << "WGTE: f=" << f->ToString() << " ad=" << aux_design_.GetSize() << " osp=" << opt_shape_param_.GetSize() << " owst=" << out.window.GetStart() << " owsz=" << out.window.GetSize();
   // we cannot cache easily for mapped_constr_gradient_ as we would need it for each function.
   // MapShapeGradient would be good to perform it for all functions concurrently, however this is not possible as it is not the case that first all
   // simp function gradients are called and then all exported. This would need rewriting some stuff in cfs!
@@ -131,7 +139,7 @@ void ShapeMapDesign::WriteGradientToExtern(StdVector<double>& out, DesignElement
     {
       assert(out.InWindow(base + s));
       out[base + s] = opt_shape_param_[s]->GetPlainGradient(f) * scaling;
-      LOG_DBG2(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
+      LOG_DBG3(SMD) << "WGTE f=" << f->ToString() << " ws=" << out.window.GetStart() << " s=" << s << " -> " << out[base + s];
     }
     // add slack stuff. No need to cheat window size
     AuxDesign::WriteGradientToExtern(out, vs, access, f, scaling);
@@ -352,10 +360,15 @@ void ShapeMapDesign::SetupCyclicVirtualShapeElementMap(Function* f, StdVector<Fu
 void ShapeMapDesign::ToInfo(PtrParamNode in, ErsatzMaterial* em)
 {
   AuxDesign::ToInfo(in, em);
-  PtrParamNode base_ = in->Get("designVariables");
 
+  PtrParamNode sm = in->Get("shapeMap");
+  sm->Get("beta")->SetValue(beta_);
+  sm->Get("overlap")->SetValue(overlap.ToString(overlap_));
+  sm->Get("sensitivity")->SetValue(sensitivity_);
+
+  PtrParamNode base = in->Get("designVariables");
   for(unsigned int i = 0; i < shape_.GetSize(); i++)
-    shape_[i].ToInfo(base_->Get("shapeParam", ParamNode::APPEND));
+    shape_[i].ToInfo(base->Get("shapeParam", ParamNode::APPEND));
 }
 
 
@@ -453,8 +466,10 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    {
      map_[i].rho = &(data[Find(idx_to_elem[i])]); // is very fast and gives a layer for arbitrary element ordering in the mesh
      map_[i].nodes.Reserve(2 * num_node_shapes_); // each design node connects to two density elements
-     map_[i].ip_param_idx.Resize(order_ * order_);
-     map_[i].ip_param_idx.Init(-1);
+     if(overlap_ == MAX) {
+       map_[i].ip_param_idx.Resize(order_ * order_);
+       map_[i].ip_param_idx.Init(-1);
+     }
    }
 
    for(int i = 0; i < num_node_shape_params_; i++)
@@ -495,8 +510,6 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    Grid* grid = domain->GetGrid();
    // within the element coordinates we perform the integration
    Matrix<double> coords;
-   // this are shapes we need to integrated. If too far away we dont't need them if all then the 0....n/2 with n size of item.para.GetSize()
-   StdVector<unsigned int> shapes;
 
    assert(data.GetSize() == map_.GetSize());
    for(unsigned int r = 0, n = map_.GetSize(); r < n; r++)
@@ -508,41 +521,52 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      item.ip_param_idx.Init(-1);
 
      // reduce integration by identifying the structures close enough to zero. One could save more tanh if also the close to one are skipped.
-     shapes.Clear(true); // keep capacity
+     // this are shapes we need to integrated. If too far away we dont't need them if all then the 0....n/2 with n size of item.para.GetSize()
+     StdVector<int>& shapes = item.relevant_nodes; // shortcut
+     shapes.Clear(true);
      assert(item.nodes.GetSize() % 2 == 0); // we expect to have pairs
      for(unsigned int s = 0; s < item.nodes.GetSize(); s+=2)
-       if(ApproxMaxRho(item.nodes[s], item.nodes[s+1], coords) > 1e-10)
+       if(CloseEnough(item.nodes[s], item.nodes[s+1], coords))
          shapes.Push_back(s);
 
-     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " shape=" << shapes.ToString();
-
      double rho = 0.0; // sum up over all ips (if shapes is large enough :))
+     double ip_rho = 0.0; // usage depends on overlap_
 
-     // it makes sense to traverse first the ip and then the variables
-     for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
+     if(!shapes.IsEmpty())
      {
-       for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
+       // it makes sense to traverse first the ip and then the variables
+       for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
        {
-         double max_ip_rho = 0.0; // we need 0.0 for a valid final rho if t is too small everywhere but we need to overwrite the default idx -1!
-         for(unsigned int si = 0; si < shapes.GetSize(); si++)
+         for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
          {
-           double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, ip_x, ip_y, false, false); // no derivative
-           if(t >= max_ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
-             max_ip_rho = t;
-             item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
-           }
-         }
-         rho += max_ip_rho;
-       } // end ip_y
-     } // end ip_x
+           ip_rho = 0.0; // we need 0.0 for a valid final rho if t is too small everywhere
+           switch(overlap_)
+           {
+           case MAX:
+             for(unsigned int si = 0; si < shapes.GetSize(); si++){
+               double t = Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, ip_x, ip_y, false, false); // no derivative
+               if(t >= ip_rho) { // equal is important to overwrite index -1 with a 0.0 rho and not to keep it
+                 ip_rho = t;
+                 item.ip_param_idx[ip_y*order_+ip_x] = shapes[si]; // x fastest, easy to extend to 3D
+               }
+             }
+             break;
+           case SUM:
+             for(unsigned int si = 0; si < shapes.GetSize(); si++)
+               ip_rho += Eval(item.nodes[shapes[si]], item.nodes[shapes[si]+1], coords, ip_x, ip_y, false, false); // no derivative
+             ip_rho = std::min(ip_rho,1.0);
+             break;
+           } // end of switch(overlap_)
+           rho += ip_rho;
+         } // end ip_y
+       } // end ip_x
+     }
 
      de->SetDesign(de->GetLowerBound() + (de->GetUpperBound() - de->GetLowerBound()) * (rho / (order_ * order_))); // we assume 0 <= v <= 1
+     LOG_DBG2(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue()
+                   << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound()) << " shape=" << shapes.ToString(); // << " pi=" << item.ip_param_idx.ToString();
      assert(de->GetPlainDesignValue() <= de->GetUpperBound() + 1e-10);
      assert(de->GetPlainDesignValue() >= de->GetLowerBound() - 1e-10);
-     LOG_DBG3(SMD) << "MS2D: -> el=" << de->elem->elemNum << " -> avg=" << de->GetPlainDesignValue(); // << " pi=" << item.ip_param_idx.ToString();
-     // Matrix<double> m;
-     // m.Assign(v, order_, order_, true);
-     // LOG_DBG3(SMD) << m.ToString();
    } // end loop over density elements
 
    mapped_design_ = design_id;
@@ -579,59 +603,63 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
      double log_da = 0.0;
      double log_dw = 0.0;
 
-     // either all ip_param_idx are -1 or none
-     if(item.ip_param_idx[0] > -1)
+     if(item.relevant_nodes.GetSize() > 0)
      {
+       assert(!(overlap_ == MAX && item.ip_param_idx[0] == -1));      // either all ip_param_idx are -1 or none
        for(unsigned int ip_x = 0; ip_x < order_; ip_x++)
        {
          for(unsigned int ip_y = 0; ip_y < order_; ip_y++)
          {
-           unsigned int ip_idx    = ip_y*order_+ip_x;
-           int shape_idx = item.ip_param_idx[ip_idx];
-           assert(shape_idx >= 0); // all -1 or none
-           assert(shape_idx % 2 == 0); // shall be even
-           // select the dominant shape parameter which lead to max rho for this ip
-           ShapeParamElement* s1 = item.nodes[shape_idx];
-           ShapeParamElement* s2 = item.nodes[shape_idx+1];
-
-           double da = Eval(s1, s2, coords, ip_x, ip_y, true, false); // dtanh_da
-           // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
-           double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
-           log_da += da_norm;
-
-           assert(opt_ != NULL);
-           assert(opt_->objectives.data.GetSize() == s1->costGradient.GetSize());
-           s1->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-           s2->AddGradient(f, de->GetPlainGradient(f) * da_norm);
-
-           if(!IsProfileFixed())
+           // we loop over the shapes for this element which is 1 for overlap==MAX and mostly 1 for SUM
+           for(unsigned int s = 0, n = overlap_ == MAX ? 1 : item.relevant_nodes.GetSize(); s < n; s++)
            {
-             ShapeParamElement* w1 = GetProfile(s1);
-             ShapeParamElement* w2 = GetProfile(s2);
-             double dw = Eval(s1, s2, coords, ip_x, ip_y, false, true); // dtanh_dw
-             // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
-             double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
-             log_dw += dw_norm;
+             // with MAX the shape_idx is stored by ip in ip_param_idx, for SUM we check all shapes (0,1,2) where item.nodes is with pairs
+             int shape_idx = overlap_ == MAX ? item.ip_param_idx[ip_y*order_+ip_x] : item.relevant_nodes[s];
 
-             w1->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-             w2->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
-           }
-           //LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
-           //    << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
-           //    << " s2=" << s2->GetIndex() << " da=" << da << " da_norm=" << da_norm << " dw=" << dw << " dw_norm=" << dw_norm;
+             assert(shape_idx >= 0); // all -1 or none
+             assert(shape_idx % 2 == 0); // shall be even
+             // select the dominant shape parameter which lead to max rho for this ip
+             ShapeParamElement* s1 = item.nodes[shape_idx];
+             ShapeParamElement* s2 = item.nodes[shape_idx+1];
 
+             double da = Eval(s1, s2, coords, ip_x, ip_y, true, false); // dtanh_da
+             // normalize FIXME! For a reason I don't understand the 0.5 makes the snopt gradient check work?!
+             double da_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * da / (order_ * order_);
+             log_da += da_norm;
+
+             assert(opt_ != NULL);
+             assert(opt_->objectives.data.GetSize() == s1->costGradient.GetSize());
+             s1->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+             s2->AddGradient(f, de->GetPlainGradient(f) * da_norm);
+
+             if(!IsProfileFixed())
+             {
+               ShapeParamElement* w1 = GetProfile(s1);
+               ShapeParamElement* w2 = GetProfile(s2);
+               double dw = Eval(s1, s2, coords, ip_x, ip_y, false, true); // dtanh_dw
+               // the first 0.5 is not understood as above and the second 0.5 is because we apply 0.5*profile to tanh
+               double dw_norm = (de->GetUpperBound() - de->GetLowerBound()) * 0.5 * 0.5 * dw / (order_ * order_);
+               log_dw += dw_norm;
+
+               w1->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+               w2->AddGradient(f, de->GetPlainGradient(f) * dw_norm);
+             }
+             //LOG_DBG3(SMD) << "MSG: -> el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " ip_x=" << ip_x
+             //    << " ip_y=" << ip_y << " ip_idx=" << ip_idx << " si=" << shape_idx << " s1=" << s1->GetIndex()
+             //    << " s2=" << s2->GetIndex() << " da=" << da << " da_norm=" << da_norm << " dw=" << dw << " dw_norm=" << dw_norm;
+
+           } // end loop over shape_idx
          } // end ip_y
        } // end ip_x
        // normalize by integration points.
      }
      else
      {
-       LOG_DBG2(SMD) << "MSG: f=" << f->ToString() << " el=" << de->elem->elemNum << " item.ip_param_idx[0]=" << item.ip_param_idx[0] << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da;
-       // when one ip_param_idx is -1, all are -1.
-       // the reason is, that all are -1 if ApproxMaxRho() to small for all shapes. Otherwise at least one shape has the ips
-       assert(item.ip_param_idx.Sum() == -1 * (int) (order_*order_));
+       LOG_DBG2(SMD) << "MSG: f=" << f->ToString() << " el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue()
+                     << " delta=" << (de->GetPlainDesignValue() - de->GetLowerBound())
+                     << " bound=" << (de->GetPlainDesignValue() - (de->GetLowerBound() + sensitivity_)) << " sum da=" << log_da;
      }
-     LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da << " sum dw=" << log_dw;
+     LOG_DBG2(SMD) << "MSG: el=" << de->elem->elemNum << " rho=" << de->GetPlainDesignValue() << " sum da=" << log_da << " sum dw=" << log_dw << " nodes=" << item.relevant_nodes.GetSize();
      if(res_idx_da >= 0)
        de->specialResult[res_idx_da] = log_da;
      if(res_idx_dw >= 0)
@@ -651,7 +679,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    out << "#(1) el (2) var (3) shapqe \t(4) " + opt_->objectives.data[0]->ToString();
 
    int cnt = 4; // will be preincremented to 4
-   for(unsigned int g; g < opt_->constraints.all.GetSize(); g++)
+   for(unsigned int g = 0; g < opt_->constraints.all.GetSize(); g++)
      if(opt_->constraints.all[g]->HasDenseJacobian())
        out << "("  << lexical_cast<string>(++cnt) << ") " + ToValidXML(opt_->constraints.all[g]->ToString()) + " \t";
    out << std::endl;
@@ -723,19 +751,20 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
    return val;
  }
 
- inline double ShapeMapDesign::ApproxMaxRho(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
+ inline bool ShapeMapDesign::CloseEnough(const ShapeParamElement* s1, const ShapeParamElement* s2, const Matrix<double>& coords) const
  {
    assert(dim_ == 2);
    double max        = Eval(s1, s2, coords, 0,               0, false, false); // false=no derivative
    max = std::max(max, Eval(s1, s2, coords, 0,        order_-1, false, false));
    max = std::max(max, Eval(s1, s2, coords, order_-1,        0, false, false));
    max = std::max(max, Eval(s1, s2, coords, order_-1, order_-1, false, false));
-   return max;
+   return max > sensitivity_;
  }
 
 
  inline double ShapeMapDesign::tanh(double x, double a, double w) const
  {
+   // set xrange[0:1]; a = 0.5; d=0.5; beta=30
    // plot 1-1/(exp(2*beta*(x-a+w)) + 1), 1/(exp(2*beta*(x-a-w)) + 1)
    if(x <= a)
      return 1.0 - 1/(std::exp(2*beta_*(x-a+w))+1);
@@ -745,6 +774,7 @@ StdVector<unsigned int> ShapeMapDesign::SetupLexicographicMesh(Grid* grid, const
 
  inline double ShapeMapDesign::d_tanh_da(double x, double a, double w) const
  {
+   // set xrange[0:1]; a = 0.5; d=0.5; beta=30
    // plot -1* (exp(2*beta*(x-a+w)) + 1)**-2 *2*beta*exp(2*beta*(x-a+w)), (exp(2*beta*(x-a-w))+1)**-2 *2*beta*exp(2*beta*(x-a-w))
    //
    // matlab:

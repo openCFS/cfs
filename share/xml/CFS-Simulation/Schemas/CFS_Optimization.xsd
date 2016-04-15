@@ -1207,6 +1207,19 @@
                    </xsd:element>
                 </xsd:sequence>
                 <xsd:attribute name="beta" type="xsd:float" use="required"/>
+                <!-- how to hande the calculated rho for overlapping shapes at integration points -->
+                <xsd:attribute name="overlap" use="required">
+                  <xsd:simpleType>
+                    <xsd:restriction base="xsd:token">
+                      <!--  consider only the rho for the "stronger" shape at this ip -->
+                      <xsd:enumeration value="max"/>
+                      <!--  max(sum, 1)  -->
+                      <xsd:enumeration value="sum"/>
+                    </xsd:restriction>
+                  </xsd:simpleType>
+                </xsd:attribute>
+                <!-- elements with have an estimated integrated rho below this value will not be considered in shape mapping. The larger the faster -->
+                <xsd:attribute name="sensitivity" type="xsd:float" use="optional" default="1e-10" />
               </xsd:complexType>
             </xsd:element>
             
