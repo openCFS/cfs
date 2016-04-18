@@ -279,7 +279,7 @@ protected:
    *  @param adjointRHS If adjoint RHS should be calculated, this is the output
    *  @return sum over all tracked values at interface nodes
    */
-  virtual void CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double trackVal, Vector<double>& res, bool adjoint=false);
+  virtual double CalcTempTrackingAtInterface(Excitation& excite, Objective* c, Condition* g, bool derivative, double trackVal);
 
   /**
    * Calculates and sets adjoint rhs for temperature (or any scalar state) at interfaces between solid an void
