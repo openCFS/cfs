@@ -167,7 +167,7 @@ namespace CoupledField {
 
   // Create CRS matrix from given input data
   template<typename T>
-      CRS_Matrix<T>::CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr, UInt* diag_ptr) {
+      CRS_Matrix<T>::CRS_Matrix(UInt nr, UInt nc, UInt nnz, UInt* row_ptr, UInt* col_ptr, T* data_ptr) {
 
         colInd_           = NULL;
         rowPtr_           = NULL;
@@ -197,7 +197,6 @@ namespace CoupledField {
         }
         for (UInt i = 0; i < this->nrows_; i++ ) {
           rowPtr_[i]  = row_ptr[i];
-          diagPtr_[i] = diag_ptr[i];
         }
         rowPtr_[this->nrows_] = row_ptr[this->nrows_];
 
@@ -235,7 +234,6 @@ namespace CoupledField {
       }
       const UInt * row_ptr = origMat.GetRowPointer();
       const UInt * col_ptr = origMat.GetColPointer();
-      const UInt * diag_ptr = origMat.GetDiagPointer();
       const T * data_ptr = origMat.GetDataPointer();
 
       //setup temporary vector
@@ -803,7 +801,6 @@ namespace CoupledField {
                // copy the value and store the row-index
                data_ptr[p] = data_[k];
                row_ptr[p]  = tmpInd[k];
-               //diag_ptr[p] = diagPtr_[k];
 
                p++;
             }

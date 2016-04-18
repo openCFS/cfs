@@ -25,6 +25,7 @@
 #include "Optimization/Excitation.hh"
 #include "Optimization/Optimization.hh"
 #include "Utils/tools.hh"
+#include <boost/lexical_cast.hpp>
 
 using std::string;
 using std::pair;
@@ -239,7 +240,7 @@ void Condition::AddOutputConstraints(PtrParamNode pn, StdVector<Condition*>& lis
   assert(elems.GetSize() == 1);
   PtrParamNode xml = elems[0];
   //std::string entName = xml->Get("name")->As<std::string>();
-  entName.assign(entName + std::to_string(i));
+  entName.assign(entName + boost::lexical_cast<std::string>(i));
   xml ->Get("name")->SetValue(entName);
 }
 
