@@ -19,7 +19,6 @@
 #include "MatVec/Matrix.hh"
 #include "MatVec/Vector.hh"
 #include "Materials/MechanicMaterial.hh"
-//#include "Optimization/Function.hh"
 #include "Optimization/Condition.hh"
 #include "Optimization/Design/AuxDesign.hh"
 #include "Optimization/Design/DesignElement.hh"
