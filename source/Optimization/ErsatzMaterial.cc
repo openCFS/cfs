@@ -1302,13 +1302,29 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
   void ErsatzMaterial::CalcInterfaceDrivenGradRHS(const DesignElement* de, Vector<T>& out)
   {
      StdVector<unsigned int>& nodes = de->elem->connect;
-     out.Resize(nodes.GetSize());
+     out.Resize(nodes.GetSize(), 0.0);
+
+     // get nodes where homogeneous Dirichlet BC is enforced
+     shared_ptr<BaseFeFunction> fe = context->pde->GetFeFunction(context->pde->GetNativeSolutionType());
+     StdVector<unsigned int> idBcNodes;
+     IdBcList& idBcs = fe->GetInHomDirichletBCs();
+
+     // find indices of nodes with a hom Dirichlet bc
+     for (unsigned int i = 0; i < idBcs.GetSize(); i++) {
+       EntityIterator entIt = idBcs[i]->entities->GetIterator();
+       for ( ; !entIt.IsEnd(); entIt++)
+         idBcNodes.Push_back(entIt.GetNode());
+     }
 
      // for each node we have f' =  4* ds_i /drho_i * (1-2*s_i)
-
+     // except for bc nodes, there f' is 0
      for(unsigned int n = 0; n < nodes.GetSize(); n++)
      {
        unsigned int node = nodes[n];
+
+       if(idBcNodes.Contains(node))
+         continue; // gradient is 0 at bc nodes
+
        // search for the elements of node
        StdVector<Elem*> elems = domain->GetGrid()->GetElemsByNode(node);
        // traverse the elements
@@ -1461,7 +1477,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         assert(g != NULL);
         Vector<double> res;
-        result = CalcTempTrackingAtInterface(excite, c, g, derivative, g->GetBoundValue());
+        result = CalcTempTrackingAtInterface(excite, c, g, derivative, g->GetParameter());
         break;
       }
 
@@ -3674,7 +3690,7 @@ PtrParamNode ErsatzMaterial::CommitIteration(bool keep_iteration_number)
       {
         Objective* c = f->IsObjective() ? dynamic_cast<Objective*>(f) : NULL;
         Condition* g = f->IsObjective() ? NULL : dynamic_cast<Condition*>(f);
-        CalcAdjointRHSTempTracking(excite, c, g, g->GetBoundValue(), rhs);
+        CalcAdjointRHSTempTracking(excite, c, g, g->GetParameter(), rhs);
         break;
       }
       default:
